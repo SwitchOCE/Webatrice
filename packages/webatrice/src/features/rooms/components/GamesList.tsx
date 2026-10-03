@@ -101,7 +101,7 @@ export default function GamesList({ room }: GamesListProps) {
     handleSelect(Number(key));
     listRef.current?.scrollToRow({ index: keys.indexOf(key), align: 'smart' });
   }, [handleSelect, keys]);
-  const { getRowProps } = useGridRows({
+  const { getRowProps, onRowsRendered } = useGridRows({
     keys,
     selectedKey: selectedGameId != null ? String(selectedGameId) : null,
     onSelect: selectRow,
@@ -242,6 +242,7 @@ export default function GamesList({ room }: GamesListProps) {
               className="[scrollbar-gutter:stable]"
               renderRow={renderGameRow}
               listRef={listRef}
+              onRowsRendered={onRowsRendered}
             />
           </div>
         )}

@@ -1,5 +1,5 @@
 import { AriaRole, ReactNode, Ref } from 'react';
-import { List, ListImperativeAPI, RowComponentProps } from 'react-window';
+import { List, ListImperativeAPI, ListProps, RowComponentProps } from 'react-window';
 
 import './VirtualList.css';
 
@@ -18,6 +18,8 @@ interface VirtualRowsProps<T> {
   role?: AriaRole;
   /** For callers that scroll a row into view (keyboard navigation). */
   listRef?: Ref<ListImperativeAPI>;
+  /** Reports the visible and rendered (overscanned) row ranges, e.g. to keep a grid's tab stop on a mounted row. */
+  onRowsRendered?: ListProps<VirtualRowsData<T>>['onRowsRendered'];
 }
 
 function RowsRow<T>({ ariaAttributes, index, style, items, renderRow, listItems }: RowComponentProps<VirtualRowsData<T>>) {
@@ -32,7 +34,7 @@ function RowsRow<T>({ ariaAttributes, index, style, items, renderRow, listItems 
  * window only. Pass a referentially stable `renderRow`. See
  * webatrice.instructions.md § Virtualized lists for when to prefer this and why.
  */
-export function VirtualRows<T>({ items, rowHeight, className = '', renderRow, role, listRef }: VirtualRowsProps<T>) {
+export function VirtualRows<T>({ items, rowHeight, className = '', renderRow, role, listRef, onRowsRendered }: VirtualRowsProps<T>) {
   return (
     <div className="virtual-list">
       <List<VirtualRowsData<T>>
@@ -41,6 +43,7 @@ export function VirtualRows<T>({ items, rowHeight, className = '', renderRow, ro
         // react-window's built-in role="list" and strip it from plain lists.
         {...(role ? { role } : {})}
         listRef={listRef}
+        onRowsRendered={onRowsRendered}
         rowCount={items.length}
         rowHeight={rowHeight}
         rowComponent={RowsRow}
