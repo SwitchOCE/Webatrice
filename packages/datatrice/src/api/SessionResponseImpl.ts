@@ -192,6 +192,14 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.gamesOfUser({ userName, response }));
   }
 
+  getGamesOfUserPending(userName: string): void {
+    this.store.dispatch(ServerActions.gamesOfUserRequested({ userName }));
+  }
+
+  getGamesOfUserFailed(userName: string, responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
+    this.store.dispatch(ServerActions.gamesOfUserFailed({ userName, responseCode, failure }));
+  }
+
   gameJoined(gameJoinedData: Event_GameJoined): void {
     this.store.dispatch(GameActions.gameJoined({ data: gameJoinedData }));
   }

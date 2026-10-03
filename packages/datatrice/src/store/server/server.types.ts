@@ -87,4 +87,6 @@ export const Types = {
   REPLAY_DOWNLOADED: a.replayDownloaded.type,
   // User games
   GAMES_OF_USER: a.gamesOfUser.type,
+  GAMES_OF_USER_REQUESTED: a.gamesOfUserRequested.type,
+  GAMES_OF_USER_FAILED: a.gamesOfUserFailed.type,
 } as const;

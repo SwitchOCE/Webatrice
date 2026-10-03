@@ -61,6 +61,7 @@ export const initialState: ServerState = {
   downloadedDeck: null,
   downloadedReplay: null,
   gamesOfUser: {},
+  gamesOfUserStatus: {},
   registrationError: null,
 };
 

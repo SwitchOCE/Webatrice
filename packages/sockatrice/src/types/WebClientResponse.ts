@@ -117,6 +117,8 @@ export interface ISessionResponse {
   /** Command_GetUserInfo for `userName` failed (e.g. RespNameNotFound for a guest who has left). */
   getUserInfoFailed?(userName: string, responseCode: number, requestId?: RequestId): void;
   getGamesOfUser(userName: string, response: Response_GetGamesOfUser): void;
+  getGamesOfUserPending?(userName: string): void;
+  getGamesOfUserFailed?(userName: string, responseCode: number, failure?: CommandFailure): void;
   gameJoined(gameJoinedData: Event_GameJoined): void;
   notifyUser(notification: Event_NotifyUser): void;
   playerPropertiesChanged(gameId: number, playerId: number, payload: Event_PlayerPropertiesChanged): void;
