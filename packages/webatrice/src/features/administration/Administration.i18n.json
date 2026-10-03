@@ -1,0 +1,50 @@
+{
+  "Administration": {
+    "admin": {
+      "title": "Server administration functions",
+      "updateServerMessage": "Update server message",
+      "shutdownServer": "Shut down server",
+      "reloadConfig": "Reload configuration"
+    },
+    "moderator": {
+      "title": "Server moderator functions",
+      "replayId": "Replay ID",
+      "grantReplayAccess": "Grant Replay Access",
+      "userToActivate": "Username to Activate",
+      "forceActivateUser": "Force Activate User"
+    },
+    "shutdown": {
+      "title": "Shut down server",
+      "reason": "Reason for shutdown",
+      "minutes": "Time until shutdown (minutes)",
+      "confirm": "Shut down"
+    },
+    "button": {
+      "unlock": "Unlock functions",
+      "lock": "Lock functions",
+      "cancel": "Cancel",
+      "ok": "OK"
+    },
+    "result": {
+      "successTitle": "Success",
+      "errorTitle": "Error",
+      "replayAccessGranted": "Replay access granted",
+      "replayIdInvalid": "Unable to grant replay access. Replay ID invalid",
+      "replayAccessInternalError": "Unable to grant replay access. Internal error",
+      "userActivated": "User successfully activated",
+      "activateNameInvalid": "Unable to activate user. Username invalid",
+      "activateAlreadyActive": "Unable to activate user. User already active",
+      "activateInternalError": "Unable to activate user. Internal error",
+      "serverMessageUpdated": "Server message updated",
+      "shutdownScheduled": "Server shutdown scheduled",
+      "configReloaded": "Configuration reloaded",
+      "serverMessageFailed": "Could not update the server message.",
+      "shutdownFailed": "Could not schedule the server shutdown.",
+      "configReloadFailed": "Could not reload the configuration."
+    },
+    "validation": {
+      "minutes": "Enter a whole number of minutes from 0 to {max}",
+      "replayId": "Enter a replay ID (digits only)"
+    }
+  }
+}

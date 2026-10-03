@@ -1,0 +1,89 @@
+{
+  "ModerationPage": {
+    "search": {
+      "placeholder": "User name",
+      "investigate": "Investigate"
+    },
+    "action": {
+      "resetPassword": "Reset Password",
+      "removeAvatar": "Remove Avatar"
+    },
+    "info": {
+      "title": "User Info",
+      "name": "Name:",
+      "registered": "Registered:",
+      "lastLogin": "Last login:",
+      "status": "Status:",
+      "counts": "Counts:",
+      "adminNotes": "Admin notes:",
+      "active": "active",
+      "inactive": "inactive",
+      "admin": "admin",
+      "countsValue": "Reports: {reports}   Bans: {bans}   Warnings: {warnings}",
+      "noNotes": "(none)",
+      "loadError": "Error loading user info."
+    },
+    "alts": {
+      "title": "Alts",
+      "user": "User",
+      "email": "eMail",
+      "clientId": "Client ID",
+      "registered": "Registered",
+      "lastLogin": "Last login",
+      "warns": "Warns",
+      "bans": "Bans",
+      "active": "Active"
+    },
+    "sessions": {
+      "title": "Sessions",
+      "ip": "IP",
+      "clientId": "Client ID",
+      "start": "Start",
+      "end": "End",
+      "type": "Type"
+    },
+    "staff": {
+      "title": "Staff Last Logins",
+      "user": "User",
+      "level": "Level",
+      "lastLogin": "Last login",
+      "refresh": "Refresh"
+    },
+    "level": {
+      "admin": "Admin",
+      "developer": "Developer",
+      "moderator": "Moderator",
+      "judge": "Judge"
+    },
+    "value": {
+      "unknown": "Unknown",
+      "loading": "Loading...",
+      "yes": "yes",
+      "no": "no",
+      "activeSession": "Active"
+    },
+    "confirm": {
+      "resetTitle": "Reset Password",
+      "reset": "Reset the password of {userName}? A temporary password will be generated and shown to you. The user must change it on their first login.",
+      "avatarTitle": "Remove Avatar",
+      "avatar": "Remove the avatar of {userName}? The user will have to upload a new one."
+    },
+    "password": {
+      "title": "Password reset",
+      "for": "Temporary password for {userName}:",
+      "label": "Temporary password",
+      "secureChannel": "Pass it to the user through a secure channel."
+    },
+    "notice": {
+      "errorTitle": "Error",
+      "resetFailed": "Password reset failed.",
+      "avatarRemovedTitle": "Avatar removed",
+      "avatarRemoved": "The avatar of {userName} has been removed.",
+      "avatarFailed": "Could not remove the avatar."
+    },
+    "button": {
+      "ok": "OK",
+      "cancel": "Cancel"
+    }
+  }
+}

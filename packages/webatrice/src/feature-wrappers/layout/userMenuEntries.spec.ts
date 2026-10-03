@@ -28,3 +28,31 @@ describe('userMenuEntries', () => {
     USER_MENU_ENTRIES.forEach((entry) => expect(entry.label).toMatch(/^UserMenu\./));
   });
 });
+
+describe('userMenuEntries: staff pages', () => {
+  const v31 = () => true;
+  const v30 = () => false;
+  const staff = (userLevel: number, supports: (capability: string) => boolean) =>
+    visibleUserMenuEntries(userLevel, supports).map((entry) => entry.route).filter((route) => STAFF_ROUTES.includes(route));
+  const STAFF_ROUTES = [RouteEnum.ADMINISTRATION, RouteEnum.CARD_ART_RULES, RouteEnum.MODERATION, RouteEnum.DEVELOPER];
+
+  it('offers nothing to a plain user or a judge', () => {
+    expect(staff(registered, v31)).toEqual([]);
+    expect(staff(registered | Level.IsJudge, v31)).toEqual([]);
+  });
+
+  it('offers moderators and admins the staff tabs in desktop order on a 3.1 server', () => {
+    const expected = [RouteEnum.ADMINISTRATION, RouteEnum.CARD_ART_RULES, RouteEnum.MODERATION];
+    expect(staff(registered | Level.IsModerator, v31)).toEqual(expected);
+    expect(staff(registered | Level.IsModerator | Level.IsAdmin, v31)).toEqual(expected);
+  });
+
+  it('keeps Administration and hides the 3.1-only pages on a 3.0 server', () => {
+    expect(staff(registered | Level.IsModerator, v30)).toEqual([RouteEnum.ADMINISTRATION]);
+    expect(staff(registered | Level.IsDeveloper, v30)).toEqual([]);
+  });
+
+  it('offers developers the Developer page', () => {
+    expect(staff(registered | Level.IsDeveloper, v31)).toEqual([RouteEnum.DEVELOPER]);
+  });
+});
