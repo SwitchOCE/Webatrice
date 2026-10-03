@@ -1,0 +1,1 @@
+- 21:04Z started rv11; PR file prs/parity-27-a11y-keyboard-paths.md absent on parity-notes → reviewing from diff+commit bodies+spec
