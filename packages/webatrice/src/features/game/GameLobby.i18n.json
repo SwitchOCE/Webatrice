@@ -8,6 +8,7 @@
       "forceStart": "Force start"
     },
     "deck": {
+      "heading": "Your deck",
       "maindeck": "Maindeck: {count}",
       "sideboard": "Sideboard: {count}",
       "moveToSideboard": "Move {name} to the sideboard",

@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeftRight } from 'lucide-react';
 
@@ -30,6 +30,7 @@ interface DeckZoneColumnProps extends LobbyDeckViewProps {
 
 function DeckZoneColumn({ zone, view, editable, onMoveCard }: DeckZoneColumnProps) {
   const { t } = useTranslation();
+  const hintId = useId();
   const cards = view[zone];
   const isMain = zone === DECK_ZONE_MAIN;
   const heading = isMain
@@ -45,17 +46,20 @@ function DeckZoneColumn({ zone, view, editable, onMoveCard }: DeckZoneColumnProp
         {heading}
       </h3>
       <ul className="max-h-64 overflow-y-auto divide-y divide-border-subtle/50" data-testid={`lobby-deck-${zone}`}>
-        {groupDeckZone(cards).map(({ name, count }) => {
+        {groupDeckZone(cards).map(({ name, count }, index) => {
           const moveLabel = isMain
             ? t('GameLobby.deck.moveToSideboard', { name })
             : t('GameLobby.deck.moveToMaindeck', { name });
+          const rowHintId = `${hintId}-${index}`;
+          // The row's name is its visible "4 Lightning Bolt"; the move is a description, offered only when it works.
           return (
             <li key={name}>
+              {editable && <span id={rowHintId} hidden>{moveLabel}</span>}
               <button
                 type="button"
                 disabled={!editable}
                 onClick={() => onMoveCard(zone, name)}
-                aria-label={moveLabel}
+                aria-describedby={editable ? rowHintId : undefined}
                 title={editable ? moveLabel : undefined}
                 className={[
                   'group w-full flex items-center gap-2 px-3 py-1.5 text-left text-sm text-text-primary',
@@ -63,6 +67,8 @@ function DeckZoneColumn({ zone, view, editable, onMoveCard }: DeckZoneColumnProp
                 ].join(' ')}
               >
                 <span className="w-6 shrink-0 text-right tabular-nums text-text-muted">{count}</span>
+                {/* Separates count and name in the accessible name; flex layout drops it visually. */}
+                {' '}
                 <span className="flex-1 min-w-0 truncate">{name}</span>
                 {editable && (
                   <ArrowLeftRight size={12} className="shrink-0 text-text-muted opacity-0 group-hover:opacity-100" />
