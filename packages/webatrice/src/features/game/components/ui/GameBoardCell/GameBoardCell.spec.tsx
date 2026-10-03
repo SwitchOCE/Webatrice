@@ -1,11 +1,10 @@
 // Characterization of GameBoardCell as the seat adapter (refactor plan Phase 0).
 //
-// GameBoardCell selects Datatrice state, projects it into the PlayerBox props and
-// builds the command callbacks PlayerBox fires. PlayerBox is replaced by a probe
-// that records its props, so these specs pin (a) the state projection and (b) the
-// exact Sockatrice request each callback sends, including the optimistic Redux
-// dispatches and rollbacks. Phase 3 moves both halves into usePlayerSeatViewModel /
-// usePlayerZoneCommands; these expectations are the contract they must keep.
+// GameBoardCell selects Datatrice state into the seat model and builds the grouped
+// command ports the seat fires. The seat view is replaced by a probe that records
+// its props, so these specs pin (a) the state projection and (b) the exact
+// Sockatrice request each port sends, including the optimistic Redux dispatches
+// and rollbacks.
 
 import { act } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
@@ -78,8 +77,23 @@ function renderCell(cell: BoardCell = OWN_CELL, { spec = SPEC, totalPlayers = 2,
   mutate?.(preloadedState);
   const webClient = createMockWebClient();
   const utils = renderWithProviders(<GameBoardCell cell={cell} totalPlayers={totalPlayers} />, { preloadedState, webClient });
-  return { ...utils, game: webClient.request.game, session: webClient.request.session, props: () => probe.props! };
+  return {
+    ...utils,
+    game: webClient.request.game,
+    session: webClient.request.session,
+    props: () => probe.props!,
+    model: () => probe.props!.model,
+    commands: () => probe.props!.commands,
+  };
 }
+
+/** The seat's zone counts, keyed as the desktop zone names. */
+const counts = (model: Record<string, any>) => ({
+  deck: model.zones.library.cardCount,
+  grave: model.zones.graveyard.cardCount,
+  rfg: model.zones.exile.cardCount,
+  hand: model.zones.hand.cardCount,
+});
 
 const zone = (store: ReturnType<typeof renderCell>['store'], playerId: number, name: string) =>
   store.getState().games.games[1].players[playerId].zones[name];
@@ -94,13 +108,13 @@ afterEach(() => {
 
 describe('GameBoardCell — state projection into the seat', () => {
   it('projects identity, turn, layout flags and the life counter', () => {
-    const { props } = renderCell();
+    const { model } = renderCell();
 
-    expect(props().player).toMatchObject({ user_id: '1', profile: { id: '1', display_name: 'P1', username: 'P1' } });
-    expect(props()).toMatchObject({ isSelf: true, isActive: true, handOnTop: false, flipHandCardBacks: true, playerId: 1 });
-    expect(props().lifeControl.value).toBe(20);
-    expect(props().revealTargets).toEqual([{ playerId: 2, name: 'Opp' }]);
-    expect(props().manaCounters).toEqual({
+    expect(model().seat).toMatchObject({ playerId: 1, displayName: 'P1', username: 'P1' });
+    expect(model().seat).toMatchObject({ isLocal: true, isActive: true, mirrored: false, flipHandCardBacks: true, playerId: 1 });
+    expect(model().counters.life.value).toBe(20);
+    expect(model().seat.revealTargets).toEqual([{ playerId: 2, name: 'Opp' }]);
+    expect(model().counters.mana).toEqual({
       W: { id: MANA_COUNTER_IDS.w, count: 0 },
       U: { id: MANA_COUNTER_IDS.u, count: 0 },
       B: { id: MANA_COUNTER_IDS.b, count: 0 },
@@ -112,34 +126,34 @@ describe('GameBoardCell — state projection into the seat', () => {
   });
 
   it('keeps opponent card backs upright only in three-player layouts', () => {
-    expect(renderCell(OPP_CELL, { totalPlayers: 3 }).props()).toMatchObject({
-      isSelf: false,
+    expect(renderCell(OPP_CELL, { totalPlayers: 3 }).model().seat).toMatchObject({
+      isLocal: false,
       isActive: false,
-      handOnTop: true,
+      mirrored: true,
       flipHandCardBacks: false,
     });
   });
 
   it('takes hidden-zone counts from cardCount and keeps the opponent hand secret', () => {
-    const own = renderCell().props();
-    expect(own.zoneCounts).toEqual({ deck: 40, grave: 1, rfg: 0, hand: 1 });
-    expect(own.handCards).toEqual([{ id: '30', name: 'Shock', scryfallId: 'shock-pid', annotation: undefined }]);
+    const own = renderCell().model();
+    expect(counts(own)).toEqual({ deck: 40, grave: 1, rfg: 0, hand: 1 });
+    expect(own.zones.hand.cards).toEqual([{ id: '30', name: 'Shock', scryfallId: 'shock-pid', annotation: undefined }]);
 
-    const opp = renderCell(OPP_CELL).props();
-    expect(opp.zoneCounts).toEqual({ deck: 33, grave: 0, rfg: 0, hand: 5 });
-    expect(opp.handCards).toEqual([]);
-    expect(opp.lifeControl.value).toBe(17);
+    const opp = renderCell(OPP_CELL).model();
+    expect(counts(opp)).toEqual({ deck: 33, grave: 0, rfg: 0, hand: 5 });
+    expect(opp.zones.hand.cards).toEqual([]);
+    expect(opp.counters.life.value).toBe(17);
   });
 
   it('projects piles bottom → top and keeps annotations for the stack', () => {
-    const { props } = renderCell();
-    expect(props().graveCards).toEqual([{ id: '40', name: 'Duress', scryfallId: '', annotation: undefined }]);
-    expect(props().exileCards).toEqual([]);
-    expect(props().stackCards).toEqual([{ id: '50', name: 'Counterspell', scryfallId: '', annotation: 'targets Bolt' }]);
+    const { zones } = renderCell().model();
+    expect(zones.graveyard.cards).toEqual([{ id: '40', name: 'Duress', scryfallId: '', annotation: undefined }]);
+    expect(zones.exile.cards).toEqual([]);
+    expect(zones.stack.cards).toEqual([{ id: '50', name: 'Counterspell', scryfallId: '', annotation: 'targets Bolt' }]);
   });
 
   it('unpacks the wire x into stack column and sub-slot', () => {
-    const own = renderCell().props().battlefieldCards;
+    const own = renderCell().model().zones.battlefield.cards;
     expect(own.find((c: { id: string }) => c.id === '10')).toMatchObject({
       ownerPlayerId: 1,
       slot: { row: 1, col: 1 },
@@ -157,17 +171,17 @@ describe('GameBoardCell — state projection into the seat', () => {
   });
 
   it('renders a cross-player attachment under its parent while keeping the true owner', () => {
-    const ownIds = renderCell().props().battlefieldCards.map((c: { id: string; ownerPlayerId: number }) => [c.id, c.ownerPlayerId]);
+    const ownIds = renderCell().model().zones.battlefield.cards.map((c: { id: string; ownerPlayerId: number }) => [c.id, c.ownerPlayerId]);
     expect(ownIds).toEqual([['10', 1], ['11', 1], ['21', 2]]);
-    const aura = probe.props!.battlefieldCards.find((c: { id: string }) => c.id === '21');
+    const aura = probe.props!.model.zones.battlefield.cards.find((c: { id: string }) => c.id === '21');
     expect(aura).toMatchObject({ attachTargetCardId: 10, attachTargetPlayerId: 1 });
 
-    const oppIds = renderCell(OPP_CELL).props().battlefieldCards.map((c: { id: string }) => c.id);
+    const oppIds = renderCell(OPP_CELL).model().zones.battlefield.cards.map((c: { id: string }) => c.id);
     expect(oppIds).toEqual(['20']);
   });
 
   it('projects revealed library / sideboard snapshots and the known top card', () => {
-    const { props } = renderCell(OWN_CELL, {
+    const { model } = renderCell(OWN_CELL, {
       mutate: (state) => {
         const zones = state.games!.games![1]!.players![1]!.zones!;
         zones[ZoneName.DECK]!.revealedCards = [makeCard({ id: 0, name: 'Top' }), makeCard({ id: 1, name: 'Next' })];
@@ -176,21 +190,22 @@ describe('GameBoardCell — state projection into the seat', () => {
         zones[ZoneName.SIDEBOARD]!.revealedCards = [makeCard({ id: 0, name: 'Side' })];
       },
     });
-    expect(props().revealedDeckCards).toEqual([
+    const { library, sideboard } = model().zones;
+    expect(library.revealedCards).toEqual([
       { id: '0', name: 'Top', scryfallId: '' },
       { id: '1', name: 'Next', scryfallId: '' },
     ]);
-    expect(props().deckTopCard).toEqual({ name: 'Top', scryfallId: 'top-pid' });
-    expect(props().alwaysRevealTopCard).toBe(true);
-    expect(props().alwaysLookAtTopCard).toBe(false);
-    expect(props().sideboardCards).toEqual([{ id: '0', name: 'Side', scryfallId: '' }]);
+    expect(library.topCard).toEqual({ name: 'Top', scryfallId: 'top-pid' });
+    expect(library.alwaysRevealTopCard).toBe(true);
+    expect(library.alwaysLookAtTopCard).toBe(false);
+    expect(sideboard.revealedCards).toEqual([{ id: '0', name: 'Side', scryfallId: '' }]);
   });
 
   it('falls back to placeholder identity and no controlled state before the player hydrates', () => {
-    const { props } = renderCell({ ...OPP_CELL, playerId: 9 });
-    expect(props().player.profile.display_name).toBe('Player 9');
-    expect(props().lifeControl).toBeUndefined();
-    expect(props().zoneCounts).toBeUndefined();
+    const { model } = renderCell({ ...OPP_CELL, playerId: 9 });
+    expect(model().seat).toMatchObject({ hydrated: false, displayName: 'Player 9' });
+    expect(model().counters.life).toBeUndefined();
+    expect(counts(model())).toEqual({ deck: undefined, grave: undefined, rfg: undefined, hand: undefined });
   });
 });
 
@@ -236,8 +251,8 @@ describe('GameBoardCell — deck editor link (Cockatrice deck document)', () => 
 
 describe('GameBoardCell — move command adapter', () => {
   it('sends hidden-zone moves straight to the server without an optimistic dispatch', () => {
-    const { props, game, store } = renderCell();
-    act(() => props().onMoveCards(ZoneName.DECK, [0], { zone: ZoneName.HAND }));
+    const { commands, game, store } = renderCell();
+    act(() => commands().zone.moveCards(ZoneName.DECK, [0], { zone: ZoneName.HAND }));
 
     expect(game.moveCard).toHaveBeenCalledWith(1, {
       startPlayerId: 1,
@@ -252,7 +267,7 @@ describe('GameBoardCell — move command adapter', () => {
   });
 
   it('moves a public card optimistically and rolls back when the server rejects', () => {
-    const { props, game, store } = renderCell();
+    const { commands, game, store } = renderCell();
     const params = {
       startPlayerId: 1,
       startZone: ZoneName.HAND,
@@ -262,7 +277,7 @@ describe('GameBoardCell — move command adapter', () => {
       x: 0,
       y: 0,
     };
-    act(() => props().onMoveCards(ZoneName.HAND, [30], { zone: ZoneName.GRAVE }));
+    act(() => commands().zone.moveCards(ZoneName.HAND, [30], { zone: ZoneName.GRAVE }));
 
     expect(zone(store, 1, ZoneName.GRAVE).order).toEqual([40, 30]);
     expect(zone(store, 1, ZoneName.HAND).order).toEqual([]);
@@ -276,10 +291,10 @@ describe('GameBoardCell — move command adapter', () => {
 
   it('resolves a table drop to the next free sub-slot, walking right then left when the stack is full', () => {
     const fullColumn = [0, 1, 2].map((sub) => makeCard({ id: 60 + sub, name: `S${sub}`, x: 3 + sub, y: 0 }));
-    const { props, game } = renderCell(OWN_CELL, {
+    const { commands, game } = renderCell(OWN_CELL, {
       spec: { ...SPEC, seats: [{ ...SPEC.seats[0], table: [...fullColumn, makeCard({ id: 64, name: 'R', x: 6, y: 0 })] }, SPEC.seats[1]] },
     });
-    act(() => props().onMoveCards(ZoneName.DECK, [0], { zone: ZoneName.TABLE, index: 3 }));
+    act(() => commands().zone.moveCards(ZoneName.DECK, [0], { zone: ZoneName.TABLE, index: 3 }));
     // Column 1 is full; column 2 has sub-slot 0 taken → x = 2 * 3 + 1.
     expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({ x: 7, y: 0 });
   });
@@ -287,13 +302,13 @@ describe('GameBoardCell — move command adapter', () => {
 
 describe('GameBoardCell — library, zone and reveal commands', () => {
   it('draw, mulligan, undo draw and shuffles', () => {
-    const { props, game } = renderCell();
-    props().onDrawCards(3);
-    props().onMulligan(6);
-    props().onUndoDraw();
-    props().onShuffle();
-    props().onShuffleRange(0, 2);
-    props().onShuffleRange(-3, -1);
+    const { commands, game } = renderCell();
+    commands().zone.draw(3);
+    commands().zone.mulligan(6);
+    commands().zone.undoDraw();
+    commands().zone.shuffleLibrary();
+    commands().zone.shuffleLibrary({ start: 0, end: 2 });
+    commands().zone.shuffleLibrary({ start: -3, end: -1 });
 
     expect(game.drawCards).toHaveBeenCalledWith(1, { number: 3 });
     expect(game.mulligan).toHaveBeenCalledWith(1, { number: 6 });
@@ -306,34 +321,34 @@ describe('GameBoardCell — library, zone and reveal commands', () => {
   });
 
   it('dumps and clears library / sideboard views', () => {
-    const { props, game, store } = renderCell(OWN_CELL, {
+    const { commands, game, store } = renderCell(OWN_CELL, {
       mutate: (state) => {
         state.games!.games![1]!.players![1]!.zones![ZoneName.DECK]!.revealedCards = [makeCard({ id: 0 })];
         state.games!.games![1]!.players![1]!.zones![ZoneName.SIDEBOARD]!.revealedCards = [makeCard({ id: 0 })];
       },
     });
-    props().onDumpTopCards(5, true);
-    props().onDumpSideboard();
+    commands().zone.viewLibrary(5, true);
+    commands().zone.viewSideboard();
     expect(vi.mocked(game.dumpZone).mock.calls.map(([, p]) => p)).toEqual([
       { playerId: 1, zoneName: ZoneName.DECK, numberCards: 5, isReversed: true },
       { playerId: 1, zoneName: ZoneName.SIDEBOARD, numberCards: -1, isReversed: false },
     ]);
 
-    act(() => props().onClearRevealedDeck());
-    act(() => props().onClearRevealedSideboard());
+    act(() => commands().zone.closeLibraryView());
+    act(() => commands().zone.closeSideboardView());
     expect(zone(store, 1, ZoneName.DECK).revealedCards ?? []).toEqual([]);
     expect(zone(store, 1, ZoneName.SIDEBOARD).revealedCards ?? []).toEqual([]);
   });
 
   it('reveal commands omit playerId for "all players" and use the desktop sentinels', () => {
-    const { props, game } = renderCell();
-    props().onRevealLibrary(-1);
-    props().onRevealLibrary(2);
-    props().onLendLibrary(2);
-    props().onRevealZone(ZoneName.HAND, -1);
-    props().onRevealRandomFromZone(ZoneName.GRAVE, 2);
-    props().onRevealTopCards(-1, 3);
-    props().onRevealTopCards(2, 1);
+    const { commands, game } = renderCell();
+    commands().zone.reveal(ZoneName.DECK, 'all');
+    commands().zone.reveal(ZoneName.DECK, 2);
+    commands().zone.lendLibrary(2);
+    commands().zone.reveal(ZoneName.HAND, 'all');
+    commands().zone.reveal(ZoneName.GRAVE, 2, 'random');
+    commands().zone.reveal(ZoneName.DECK, 'all', { top: 3 });
+    commands().zone.reveal(ZoneName.DECK, 2, { top: 1 });
 
     expect(vi.mocked(game.revealCards).mock.calls.map(([, p]) => p)).toEqual([
       { zoneName: ZoneName.DECK },
@@ -347,9 +362,9 @@ describe('GameBoardCell — library, zone and reveal commands', () => {
   });
 
   it('always-reveal / always-look toggles change the deck zone properties', () => {
-    const { props, game } = renderCell();
-    props().onSetAlwaysRevealTopCard(true);
-    props().onSetAlwaysLookAtTopCard(false);
+    const { commands, game } = renderCell();
+    commands().zone.setAlwaysRevealTopCard(true);
+    commands().zone.setAlwaysLookAtTopCard(false);
     expect(vi.mocked(game.changeZoneProperties).mock.calls.map(([, p]) => p)).toEqual([
       { zoneName: ZoneName.DECK, alwaysRevealTopCard: true },
       { zoneName: ZoneName.DECK, alwaysLookAtTopCard: false },
@@ -359,8 +374,8 @@ describe('GameBoardCell — library, zone and reveal commands', () => {
 
 describe('GameBoardCell — card commands', () => {
   it('taps optimistically per card, skips the optimistic step when already in state, and rolls back on error', () => {
-    const { props, game, store } = renderCell();
-    act(() => props().onSetCardTapped([10, 11], true));
+    const { commands, game, store } = renderCell();
+    act(() => commands().card.setTapped([10, 11], true));
 
     expect(zone(store, 1, ZoneName.TABLE).byId[10].tapped).toBe(true);
     const calls = vi.mocked(game.setCardAttr).mock.calls;
@@ -378,12 +393,12 @@ describe('GameBoardCell — card commands', () => {
   });
 
   it('untap all, flip, doesn\'t-untap, annotation and P/T', () => {
-    const { props, game, store } = renderCell();
-    props().onUntapAll();
-    props().onFlipCard(10, true);
-    props().onSetCardDoesntUntap(10, true);
-    props().onSetAnnotation(10, 'note');
-    act(() => props().onSetPT([{ cardId: 11, pt: '4/4' }]));
+    const { commands, game, store } = renderCell();
+    commands().card.untapAll();
+    commands().card.flip(10, true);
+    commands().card.setDoesntUntap(10, true);
+    commands().card.setAnnotation(10, 'note');
+    act(() => commands().card.setPT([{ cardId: 11, pt: '4/4' }]));
 
     const attr = (cardId: number, attribute: CardAttribute, attrValue: string) => ({ zone: ZoneName.TABLE, cardId, attribute, attrValue });
     expect(game.setCardAttr).toHaveBeenCalledWith(1, attr(-1, CardAttribute.AttrTapped, '0'));
@@ -400,11 +415,11 @@ describe('GameBoardCell — card commands', () => {
   });
 
   it('card counters: single set is clamped and optimistic; bulk set is one batch', () => {
-    const { props, game, store } = renderCell();
-    act(() => props().onSetCardCounter(10, 2, 3));
-    act(() => props().onSetCardCounter(10, 3, -4));
-    props().onBulkSetCardCounters([{ cardId: 10, counterId: 2, value: 4 }, { cardId: 11, counterId: 0, value: 1 }]);
-    props().onBulkSetCardCounters([]);
+    const { commands, game, store } = renderCell();
+    act(() => commands().counter.setCardCounter(10, 2, 3));
+    act(() => commands().counter.setCardCounter(10, 3, -4));
+    commands().counter.setCardCounters([{ cardId: 10, counterId: 2, value: 4 }, { cardId: 11, counterId: 0, value: 1 }]);
+    commands().counter.setCardCounters([]);
 
     expect(vi.mocked(game.setCardCounter).mock.calls.map(([, p]) => p)).toEqual([
       { zone: ZoneName.TABLE, cardId: 10, counterId: 2, counterValue: 3 },
@@ -419,9 +434,9 @@ describe('GameBoardCell — card commands', () => {
   });
 
   it('attach sends the target; unattach omits every target field', () => {
-    const { props, game } = renderCell();
-    props().onAttachCard(10, { playerId: 2, cardId: 20 });
-    props().onUnattachCard(10);
+    const { commands, game } = renderCell();
+    commands().target.attach(10, { playerId: 2, cardId: 20 });
+    commands().target.unattach(10);
 
     const [attach, unattach] = vi.mocked(game.attachCard).mock.calls.map(([, p]) => p);
     expect(attach).toEqual({ startZone: ZoneName.TABLE, cardId: 10, targetPlayerId: 2, targetZone: ZoneName.TABLE, targetCardId: 20 });
@@ -429,14 +444,14 @@ describe('GameBoardCell — card commands', () => {
   });
 
   it('arrows: card targets carry zone + card, player targets omit them; Ctrl+R clears own arrows', () => {
-    const { props, game } = renderCell(OWN_CELL, {
+    const { commands, game } = renderCell(OWN_CELL, {
       mutate: (state) => {
         state.games!.games![1]!.players![1]!.arrows = { 5: makeArrow({ id: 5 }), 6: makeArrow({ id: 6 }) };
       },
     });
-    props().onCreateArrow(10, ZoneName.TABLE, { kind: 'card', playerId: 2, cardId: 20 });
-    props().onCreateArrow(40, ZoneName.GRAVE, { kind: 'player', playerId: 2 });
-    props().onClearOwnArrows();
+    commands().target.createArrow(10, ZoneName.TABLE, { kind: 'card', playerId: 2, cardId: 20 });
+    commands().target.createArrow(40, ZoneName.GRAVE, { kind: 'player', playerId: 2 });
+    commands().target.clearOwnArrows();
 
     expect(vi.mocked(game.createArrow).mock.calls.map(([, p]) => p)).toEqual([
       {
@@ -454,9 +469,9 @@ describe('GameBoardCell — card commands', () => {
   });
 
   it('peek is local-seat only and batches through bulkPeek', () => {
-    const { props, game } = renderCell();
-    props().onPeekCards([10, 11]);
-    props().onPeekCards([]);
+    const { commands, game } = renderCell();
+    commands().card.peek([10, 11]);
+    commands().card.peek([]);
     expect(game.bulkPeek).toHaveBeenCalledTimes(1);
     expect(game.bulkPeek).toHaveBeenCalledWith(
       1,
@@ -466,12 +481,12 @@ describe('GameBoardCell — card commands', () => {
       ],
       1,
     );
-    expect(renderCell(OPP_CELL).props().onPeekCards).toBeUndefined();
+    expect(renderCell(OPP_CELL).commands().card.peek).toBeUndefined();
   });
 
   it('clone creates a destroy-on-zone-change token on the source row', () => {
-    const { props, game } = renderCell();
-    props().onCloneCard({ name: 'Ogre', providerId: 'p', color: 'r', pt: '3/3', annotation: 'big', y: 2 });
+    const { commands, game } = renderCell();
+    commands().card.clone({ name: 'Ogre', providerId: 'p', color: 'r', pt: '3/3', annotation: 'big', y: 2 });
     expect(game.createToken).toHaveBeenCalledWith(1, {
       zone: ZoneName.TABLE,
       cardName: 'Ogre',
@@ -489,15 +504,15 @@ describe('GameBoardCell — card commands', () => {
     const tablerows: Record<string, string> = { Forest: '0', Wall: '3' };
     vi.spyOn(CardDTO, 'get').mockImplementation(((name: string) =>
       Promise.resolve(tablerows[name] ? { tablerow: { value: tablerows[name] } } : undefined)) as unknown as typeof CardDTO.get);
-    const { props, game } = renderCell();
+    const { commands, game } = renderCell();
     const base = { color: '', pt: '', annotation: '', destroyOnZoneChange: true, faceDown: false };
 
     await act(async () => {
-      await props().onCreateToken({ ...base, name: 'Forest' });
-      await props().onCreateToken({ ...base, name: 'Wall' });
-      await props().onCreateToken({ ...base, name: 'Unknown' });
-      await props().onCreateToken({ ...base, name: 'Forest', faceDown: true });
-      await props().onCreateToken({ ...base, name: 'Back', providerId: 'b', targetCardId: 10, targetMode: 'transform_into' });
+      await commands().card.createToken({ ...base, name: 'Forest' });
+      await commands().card.createToken({ ...base, name: 'Wall' });
+      await commands().card.createToken({ ...base, name: 'Unknown' });
+      await commands().card.createToken({ ...base, name: 'Forest', faceDown: true });
+      await commands().card.createToken({ ...base, name: 'Back', providerId: 'b', targetCardId: 10, targetMode: 'transform_into' });
     });
 
     const calls = vi.mocked(game.createToken).mock.calls.map(([, p]) => p);
@@ -521,39 +536,38 @@ describe('GameBoardCell — card commands', () => {
 
 describe('GameBoardCell — player counters', () => {
   it('life and mana counters update optimistically and roll back on error', () => {
-    const { props, game, store } = renderCell();
+    const { commands, game, store } = renderCell();
     const count = (id: number) => store.getState().games.games[1].players[1].counters[id].count;
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-    act(() => props().lifeControl.onDelta(-3));
+    act(() => commands().counter.increment(LIFE_COUNTER_ID, -3));
     expect(count(LIFE_COUNTER_ID)).toBe(17);
     expect(game.incCounter).toHaveBeenLastCalledWith(1, { counterId: LIFE_COUNTER_ID, delta: -3 }, { onError: expect.any(Function) });
     act(() => vi.mocked(game.incCounter).mock.calls.at(-1)![2]!.onError!(1, {} as never));
     expect(count(LIFE_COUNTER_ID)).toBe(20);
 
-    act(() => props().lifeControl.onSet(5));
+    act(() => commands().counter.set(LIFE_COUNTER_ID, 5));
     expect(count(LIFE_COUNTER_ID)).toBe(5);
     expect(game.setCounter).toHaveBeenLastCalledWith(1, { counterId: LIFE_COUNTER_ID, value: 5 }, { onError: expect.any(Function) });
 
-    act(() => props().onModifyCounter(MANA_COUNTER_IDS.g, 2));
+    act(() => commands().counter.increment(MANA_COUNTER_IDS.g, 2));
     expect(count(MANA_COUNTER_IDS.g)).toBe(2);
-    act(() => props().onSetPlayerCounter(MANA_COUNTER_IDS.r, 4));
+    act(() => commands().counter.set(MANA_COUNTER_IDS.r, 4));
     expect(count(MANA_COUNTER_IDS.r)).toBe(4);
     expect(game.setCounter).toHaveBeenLastCalledWith(1, { counterId: MANA_COUNTER_IDS.r, value: 4 }, { onError: expect.any(Function) });
   });
 
   it('flip coin is a single d2 roll', () => {
-    const { props, game } = renderCell();
-    props().onFlipCoin();
+    const { commands, game } = renderCell();
+    commands().counter.flipCoin();
     expect(game.rollDie).toHaveBeenCalledWith(1, { sides: 2, count: 1 });
   });
 });
 
 describe('GameBoardCell — no active game', () => {
-  it('provides no commands while the game id is unknown', () => {
+  it('renders no seat while the game id is unknown, since there are no commands to give it', () => {
     const preloadedState = buildSeatGameState(SPEC);
     renderWithProviders(<GameBoardCell cell={OWN_CELL} totalPlayers={2} />, { preloadedState, gameId: undefined });
-    const commandProps = Object.entries(probe.props!).filter(([key]) => key.startsWith('on'));
-    expect(commandProps.filter(([, value]) => value !== undefined).map(([key]) => key)).toEqual([]);
+    expect(probe.props).toBeUndefined();
   });
 });
