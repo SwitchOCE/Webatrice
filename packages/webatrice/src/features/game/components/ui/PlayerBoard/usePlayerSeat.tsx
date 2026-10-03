@@ -57,6 +57,7 @@ import { useGameDialogsContext } from '../GameDialogsContext';
 import { useShortcutHints } from '@app/feature-widgets/shortcuts';
 import { MANA_COLORS } from '../../right-sidebar/PlayerInfoPanel/manaColors';
 import { toRecipient } from './revealRecipient';
+import { useDrawFlights } from './useDrawFlights';
 import { useSeatCardMetadata } from './useSeatCardMetadata';
 
 /** Seat card shapes. Owned by the PlayerBoard seat contract; the aliases keep
@@ -215,26 +216,8 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
   // animate a card back travelling between them.
   const libraryRef = useRef<HTMLDivElement>(null);
   const handRef = useRef<HTMLDivElement>(null);
-  // Ref to the search-library dialog while open. The dialog usually
-  // floats over the play area's library pile, so drops landing on
-  // the dialog need to resolve to the library zone too (otherwise
-  // the user can drag cards out but not back in). Populated by the
-  // dialog via a callback ref.
 
-  // In-flight draw animations. Purely visual: a card back tweens from
-  // the library rect to the hand rect whenever this player's hand
-  // count grows in Redux (a draw or mulligan just happened). Doesn't
-  // touch any game state — the drawn card is already committed to
-  // Redux by the time the animation starts; the flight is decoration
-  // that fires alongside.
-  const DRAW_ANIMATION_MS = 450;
-  const flightIdCounterRef = useRef(0);
-  const [flights, setFlights] = useState<
-    { id: number; from: DOMRect; to: DOMRect; landed: boolean }[]
-  >([]);
-  // Tracks the last observed `drawSeq` from Redux so the effect only fires
-  // when the beacon actually ticks — not on unrelated re-renders.
-  const prevDrawSeqForFlightRef = useRef<number | null>(null);
+  const { flights, DRAW_ANIMATION_MS } = useDrawFlights({ drawSeq, lastDrawCount, libraryRef, handRef });
 
   const draw = (n: number) => {
     // Server pops N off the top of the deck and broadcasts
@@ -1820,60 +1803,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
   const handDisplayList = zones.hand.cards;
   const handCount = zones.hand.cardCount ?? handDisplayList.length;
 
-  // Fire flight animations from the library rect to the hand rect only
-  // when the Redux draw beacon (`drawSeq`) ticks. The beacon is bumped
-  // exclusively by the cardsDrawn listener (Event_DrawCards), so drags
-  // from other zones into the hand — which grow `handCount` too — never
-  // trigger this. `lastDrawCount` says how many flights to spawn. Each
-  // PlayerBox measures against its OWN library/hand rects, so it works
-  // for self draws (Ctrl+D, mulligan, opening hand) and opponents alike.
-  // Guards: skip on first render (no baseline), skip if refs aren't
-  // measurable, skip if the beacon didn't actually tick.
-  useEffect(() => {
-    const currentSeq = drawSeq ?? 0;
-    const prev = prevDrawSeqForFlightRef.current;
-    prevDrawSeqForFlightRef.current = currentSeq;
-    if (prev === null) {
-      return;
-    } // first render — establish baseline only
-    if (currentSeq <= prev) {
-      return;
-    }
-    const drawn = lastDrawCount ?? 0;
-    if (drawn <= 0) {
-      return;
-    }
-    const libEl = libraryRef.current;
-    const handEl = handRef.current;
-    if (!libEl || !handEl) {
-      return;
-    }
-    const from = libEl.getBoundingClientRect();
-    const to = handEl.getBoundingClientRect();
-    if (from.width === 0 || to.width === 0) {
-      return;
-    }
-    for (let i = 0; i < drawn; i++) {
-      const id = ++flightIdCounterRef.current;
-      const startDelay = i * 90;
-      window.setTimeout(() => {
-        setFlights((prev) => [...prev, { id, from, to, landed: false }]);
-        // Two rAFs so the initial style commits before the transition
-        // target is set — otherwise browsers may collapse both frames
-        // and skip the animation.
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            setFlights((prev) =>
-              prev.map((f) => (f.id === id ? { ...f, landed: true } : f)),
-            );
-          });
-        });
-        window.setTimeout(() => {
-          setFlights((prev) => prev.filter((f) => f.id !== id));
-        }, DRAW_ANIMATION_MS + 50);
-      }, startDelay);
-    }
-  }, [drawSeq, lastDrawCount]);
   // `battlefieldDisplayList` is hoisted to the layout section earlier
   // (needed by cellWidths / contentW / contentH) so both the card
   // render loop and the slot overlay resolve against the same source.
