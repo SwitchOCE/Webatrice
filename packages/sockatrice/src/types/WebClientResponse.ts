@@ -245,7 +245,10 @@ export interface IGameResponse {
   replayGameLoaded?(gameId: number, gameInfo: ServerInfo_Game): void;
   /** The replay played into the local game `gameId` was closed. Raised by `WebClient.unloadReplayGame`. */
   replayGameUnloaded?(gameId: number): void;
-  // Optional so existing IGameResponse implementations keep compiling.
+  /**
+   * Response_DeckDownload to Command_DeckSelect: the server's copy of the deck.
+   * Optional so existing IGameResponse implementations keep compiling.
+   */
   deckSelected?(gameId: number, deckList: string): void;
   /** Command_DeckSelect failed; `failure` is set when the server never answered (see CommandFailure). */
   deckSelectFailed?(gameId: number, responseCode: number, failure?: CommandFailure): void;

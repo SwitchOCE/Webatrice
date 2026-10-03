@@ -207,6 +207,7 @@ export const WebClient = {
     loadReplayGame: vi.fn(),
     unloadReplayGame: vi.fn(),
     status: 0 as number,
+    connectTarget: null as { host: string; port: string | number } | null,
     clientConfig: {
       clientid: 'test-clientid',
       clientver: 'test-client',
