@@ -32,7 +32,7 @@ describe('SettingDTO', () => {
 
   it('does not share array defaults between instances', () => {
     const a = new SettingDTO('a');
-    a.messageMacros.push('gg');
+    (a.messageMacros as string[]).push('gg');
     expect(new SettingDTO('b').messageMacros).toEqual([]);
   });
 
