@@ -13,3 +13,4 @@ export * from './useRequestTracker';
 export * from './useJoinGameErrorMessage';
 export * from './useUserCapabilities';
 export * from './useJoinGame';
+export * from './useGridRows';
