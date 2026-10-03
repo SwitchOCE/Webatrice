@@ -23,6 +23,8 @@ export { default as ScrollToBottomOnChanges } from './ScrollToBottomOnChanges/Sc
 
 export { default as AuthGuard } from './Guard/AuthGuard';
 export { default as ModGuard } from './Guard/ModGuard';
+export { default as CapabilityGuard } from './Guard/CapabilityGuard';
+export { default as DeveloperGuard } from './Guard/DeveloperGuard';
 
 export { default as Toast, useToast, usePushToast, ToastProvider } from './Toast';
 export { ErrorBoundary, ErrorFallback, RouteErrorBoundary } from './ErrorBoundary';

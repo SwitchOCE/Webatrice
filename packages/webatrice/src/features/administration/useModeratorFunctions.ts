@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { server } from '@cockatrice/datatrice';
@@ -8,11 +8,13 @@ import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 
-import type { ModerationNotice } from './useModerationFlow';
+export interface AdministrationNotice {
+  title: string;
+  message: string;
+  severity: 'info' | 'error';
+}
 
 export interface ModeratorFunctions {
-  notice: ModerationNotice | null;
-  dismissNotice: () => void;
   grantReplayAccess: (replayId: number) => void;
   forceActivateUser: (userName: string) => void;
 }
@@ -24,15 +26,15 @@ interface FailedPayload { command: string; responseCode: number; target: string;
  * to a replay by id, and force-activate an account by user name. Both send the
  * local user as `moderator_name`, and report the outcome in a message box keyed
  * on the response code exactly as grantReplayAccessProcessResponse /
- * activateUserProcessResponse do.
+ * activateUserProcessResponse do; a request the server never answered gets the
+ * transport reason instead.
  */
-export function useModeratorFunctions(): ModeratorFunctions {
+export function useModeratorFunctions(notify: (notice: AdministrationNotice) => void): ModeratorFunctions {
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
   const webClient = useWebClient();
   const ownName = useAppSelector((state) => server.Selectors.getUser(state)?.name ?? '');
-  const [notice, setNotice] = useState<ModerationNotice | null>(null);
-  // Only report outcomes of requests this panel sent.
+  // Only report outcomes of requests this page sent.
   const pendingReplays = useRef(new Set<string>());
   const pendingActivations = useRef(new Set<string>());
 
@@ -47,38 +49,36 @@ export function useModeratorFunctions(): ModeratorFunctions {
     webClient.request.moderator.forceActivateUser(name, ownName);
   }, [webClient, ownName]);
 
-  const dismissNotice = useCallback(() => setNotice(null), []);
-
-  const success = (message: string) => setNotice({ title: t('Moderation.common.success'), message, severity: 'info' });
-  const failure = (message: string) => setNotice({ title: t('Moderation.common.error'), message, severity: 'error' });
+  const success = (message: string) => notify({ title: t('Administration.result.successTitle'), message, severity: 'info' });
+  const failure = (message: string) => notify({ title: t('Administration.result.errorTitle'), message, severity: 'error' });
 
   useReduxEffect<{ replayId: number }>(({ payload }) => {
     if (pendingReplays.current.delete(String(payload.replayId))) {
-      success(t('Moderation.functions.replayGranted'));
+      success(t('Administration.result.replayAccessGranted'));
       // Desktop fires an empty Event_ReplayAdded so the replays tab re-reads its list.
       webClient.request.session.replayList();
     }
-  }, server.Types.GRANT_REPLAY_ACCESS, [t, webClient]);
+  }, server.Types.GRANT_REPLAY_ACCESS, [t, webClient, notify]);
 
   useReduxEffect<{ usernameToActivate: string }>(({ payload }) => {
     if (pendingActivations.current.delete(payload.usernameToActivate)) {
-      success(t('Moderation.functions.activated'));
+      success(t('Administration.result.userActivated'));
     }
-  }, server.Types.FORCE_ACTIVATE_USER, [t]);
+  }, server.Types.FORCE_ACTIVATE_USER, [t, notify]);
 
   useReduxEffect<FailedPayload>(({ payload }) => {
     if (payload.command === 'grantReplayAccess' && pendingReplays.current.delete(payload.target)) {
       failure(describeFailure(payload.failure, t(payload.responseCode === Response_ResponseCode.RespContextError
-        ? 'Moderation.functions.replayInvalid'
-        : 'Moderation.functions.replayError')));
+        ? 'Administration.result.replayIdInvalid'
+        : 'Administration.result.replayAccessInternalError')));
     } else if (payload.command === 'forceActivateUser' && pendingActivations.current.delete(payload.target)) {
       const messages: Partial<Record<number, string>> = {
-        [Response_ResponseCode.RespNameNotFound]: 'Moderation.functions.activateUnknown',
-        [Response_ResponseCode.RespActivationFailed]: 'Moderation.functions.activateAlreadyActive',
+        [Response_ResponseCode.RespNameNotFound]: 'Administration.result.activateNameInvalid',
+        [Response_ResponseCode.RespActivationFailed]: 'Administration.result.activateAlreadyActive',
       };
-      failure(describeFailure(payload.failure, t(messages[payload.responseCode] ?? 'Moderation.functions.activateError')));
+      failure(describeFailure(payload.failure, t(messages[payload.responseCode] ?? 'Administration.result.activateInternalError')));
     }
-  }, server.Types.MODERATOR_COMMAND_FAILED, [describeFailure, t]);
+  }, server.Types.MODERATOR_COMMAND_FAILED, [describeFailure, t, notify]);
 
-  return { notice, dismissNotice, grantReplayAccess, forceActivateUser };
+  return { grantReplayAccess, forceActivateUser };
 }

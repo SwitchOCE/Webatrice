@@ -1,0 +1,109 @@
+import { create } from '@bufbuild/protobuf';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { Route, Routes } from 'react-router-dom';
+
+import { server } from '@cockatrice/datatrice';
+import { Response_CardArtRuleEntrySchema, ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
+
+import { connectedState, createMockWebClient, makeUser, renderWithProviders } from '../../__test-utils__';
+import CardArtRules from './CardArtRules';
+
+vi.mock('./cardPrintings', () => ({
+  loadCardPrintings: vi.fn(async (name: string) => (name === 'Island'
+    ? [{ providerId: 'uuid-1', label: 'Alpha #1' }, { providerId: 'uuid-2', label: 'Beta #2' }]
+    : [])),
+}));
+
+const MODERATOR = ServerInfo_User_UserLevelFlag.IsRegistered | ServerInfo_User_UserLevelFlag.IsModerator;
+
+function setup(version = '3.1.0 ()') {
+  const webClient = createMockWebClient();
+  const utils = renderWithProviders(
+    <Routes>
+      <Route path="/server" element={<div>server-page</div>} />
+      <Route path="/card-art-rules" element={<CardArtRules />} />
+    </Routes>,
+    {
+      preloadedState: {
+        ...connectedState,
+        server: {
+          ...(connectedState.server as any),
+          info: { message: null, name: 'Servatrice', version },
+          user: makeUser({ userLevel: MODERATOR }),
+        },
+      },
+      route: '/card-art-rules',
+      webClient,
+    },
+  );
+  return { ...utils, webClient };
+}
+
+const rule = (cardName: string, cardProviderId: string, mode = 'DENY') =>
+  create(Response_CardArtRuleEntrySchema, { cardName, cardProviderId, mode, reason: '' });
+
+describe('CardArtRules', () => {
+  it('is unavailable on a 3.0 server', () => {
+    setup('3.0.0 ()');
+    expect(screen.getByText('server-page')).toBeInTheDocument();
+  });
+
+  it('lists the rules when opened', () => {
+    const { webClient, store } = setup();
+    expect(webClient.request.moderator.listCardArtRules).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      store.dispatch(server.Actions.cardArtRules({ entries: [rule('Island', 'uuid-1')] }));
+    });
+    expect(screen.getByText('uuid-1')).toBeInTheDocument();
+  });
+
+  it('adds a rule for a printing from the local card database, then re-lists', async () => {
+    const { webClient } = setup();
+    const card = screen.getByRole('textbox', { name: /label\.card/ });
+    fireEvent.change(card, { target: { value: 'Island' } });
+    fireEvent.blur(card);
+    await waitFor(() => expect(screen.getByRole('combobox', { name: /label\.providerId/ })).toHaveTextContent('Alpha #1'));
+
+    fireEvent.change(screen.getByRole('textbox', { name: /label\.reason/ }), { target: { value: 'nsfw' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /button\.add/ }));
+    });
+
+    expect(webClient.request.moderator.addCardArtRule).toHaveBeenCalledWith('Island', 'uuid-1', 'ALLOW', 'nsfw');
+    expect(webClient.request.moderator.listCardArtRules).toHaveBeenCalledTimes(2);
+  });
+
+  it('accepts a typed provider id when the card is not in the local database', async () => {
+    const { webClient } = setup();
+    fireEvent.change(screen.getByRole('textbox', { name: /label\.card/ }), { target: { value: 'Unknown Card' } });
+    fireEvent.change(screen.getByRole('textbox', { name: /label\.providerId/ }), { target: { value: 'custom-id' } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /button\.add/ }));
+    });
+    expect(webClient.request.moderator.addCardArtRule).toHaveBeenCalledWith('Unknown Card', 'custom-id', 'ALLOW', '');
+  });
+
+  it('does not add a rule without a card', async () => {
+    const { webClient } = setup();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /button\.add/ }));
+    });
+    expect(webClient.request.moderator.addCardArtRule).not.toHaveBeenCalled();
+  });
+
+  it('removes the selected rule, then re-lists', () => {
+    const { webClient, store } = setup();
+    act(() => {
+      store.dispatch(server.Actions.cardArtRules({ entries: [rule('Island', 'uuid-1'), rule('Forest', 'uuid-9')] }));
+    });
+    const remove = screen.getByRole('button', { name: /button\.remove/ });
+    expect(remove).toBeDisabled();
+
+    fireEvent.click(screen.getByText('Forest'));
+    fireEvent.click(remove);
+
+    expect(webClient.request.moderator.removeCardArtRule).toHaveBeenCalledWith('Forest', 'uuid-9');
+    expect(webClient.request.moderator.listCardArtRules).toHaveBeenCalledTimes(2);
+  });
+});

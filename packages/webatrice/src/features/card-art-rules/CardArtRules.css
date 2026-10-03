@@ -1,0 +1,32 @@
+.card-art-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+}
+
+.card-art-rules__form-panel {
+  padding: 16px;
+}
+
+.card-art-rules__form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.card-art-rules__buttons {
+  display: flex;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+
+.card-art-rules__table {
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.card-art-rules__row {
+  cursor: pointer;
+}

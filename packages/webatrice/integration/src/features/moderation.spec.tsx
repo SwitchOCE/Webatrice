@@ -46,7 +46,8 @@ import {
   ServerInfo_WarningSchema,
 } from '@cockatrice/sockatrice/generated';
 import { UserDisplay } from '@app/components';
-import { ModerationProvider, ModeratorFunctions } from '@app/feature-widgets/moderation';
+import { ModerationProvider } from '@app/feature-widgets/moderation';
+import { Administration } from '@app/features/administration';
 import { Logs } from '@app/features/logs';
 
 import { connectAndHandshake } from '../helpers/setup';
@@ -227,45 +228,46 @@ describe('moderation round trips (integration)', () => {
   });
 });
 
-describe('moderator functions (integration)', () => {
+// TabAdmin's "Server moderator functions" live on the Administration page.
+describe('administration moderator functions (integration)', () => {
   it('grant replay access: RespContextError → "Replay ID invalid"; RespOk → granted and the replay list reloads', async () => {
     loginAs('mod', MODERATOR);
-    renderFeatureScreen(<ModeratorFunctions />);
+    renderFeatureScreen(<Administration />, '/administration');
 
-    const replayId = screen.getByRole('textbox', { name: 'Moderation.functions.replayId' });
+    const replayId = screen.getByRole('textbox', { name: 'Administration.moderator.replayId' });
     fireEvent.change(replayId, { target: { value: '404' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Moderation.functions.grantReplayAccess' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Administration.moderator.grantReplayAccess' }));
     await waitFor(() => findLastModeratorCommand(Command_GrantReplayAccess_ext));
     const missing = findLastModeratorCommand(Command_GrantReplayAccess_ext);
     expect(missing.value).toMatchObject({ replayId: 404, moderatorName: 'mod' });
     respond(missing.cmdId, undefined, undefined, Response_ResponseCode.RespContextError);
-    expect(await screen.findByText('Moderation.functions.replayInvalid')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'OK' }));
+    expect(await screen.findByText('Administration.result.replayIdInvalid')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Administration.button.ok' }));
     // MUI keeps the rest of the page aria-hidden until the dialog's exit transition ends.
-    await waitFor(() => expect(screen.queryByText('Moderation.functions.replayInvalid')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText('Administration.result.replayIdInvalid')).not.toBeInTheDocument());
 
     fireEvent.change(replayId, { target: { value: '7' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Moderation.functions.grantReplayAccess' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Administration.moderator.grantReplayAccess' }));
     await waitFor(() => expect(findLastModeratorCommand(Command_GrantReplayAccess_ext).value.replayId).toBe(7));
     respond(findLastModeratorCommand(Command_GrantReplayAccess_ext).cmdId);
-    expect(await screen.findByText('Moderation.functions.replayGranted')).toBeInTheDocument();
+    expect(await screen.findByText('Administration.result.replayAccessGranted')).toBeInTheDocument();
     expect(() => findLastSessionCommand(Command_ReplayList_ext)).not.toThrow();
   });
 
   it('force activate: RespActivationAccepted → "User successfully activated"', async () => {
     loginAs('mod', MODERATOR);
-    renderFeatureScreen(<ModeratorFunctions />);
+    renderFeatureScreen(<Administration />, '/administration');
 
-    fireEvent.change(screen.getByRole('textbox', { name: 'Moderation.functions.userToActivate' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Administration.moderator.userToActivate' }), {
       target: { value: ' sleeper ' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Moderation.functions.forceActivate' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Administration.moderator.forceActivateUser' }));
     await waitFor(() => findLastModeratorCommand(Command_ForceActivateUser_ext));
     const activate = findLastModeratorCommand(Command_ForceActivateUser_ext);
     expect(activate.value).toMatchObject({ usernameToActivate: 'sleeper', moderatorName: 'mod' });
     respond(activate.cmdId, undefined, undefined, Response_ResponseCode.RespActivationAccepted);
 
-    expect(await screen.findByText('Moderation.functions.activated')).toBeInTheDocument();
+    expect(await screen.findByText('Administration.result.userActivated')).toBeInTheDocument();
   });
 });
 

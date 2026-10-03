@@ -4,7 +4,6 @@ import {
   banMinutes,
   buildBanUserSchema,
   buildWarnUserSchema,
-  grantReplayAccessSchema,
   type BanUserFormValues,
 } from './moderationFormSchemas';
 
@@ -73,13 +72,5 @@ describe('buildWarnUserSchema', () => {
       .toEqual(['Moderation.warn.errorBlankName']);
     expect(messages(schema.safeParse({ userName: 'alice', reason: '', redact: false })))
       .toEqual(['Moderation.warn.errorBlankReason']);
-  });
-});
-
-describe('grantReplayAccessSchema', () => {
-  it('accepts a non-negative integer up to INT_MAX', () => {
-    expect(grantReplayAccessSchema.safeParse({ replayId: '2147483647' }).success).toBe(true);
-    expect(grantReplayAccessSchema.safeParse({ replayId: '2147483648' }).success).toBe(false);
-    expect(grantReplayAccessSchema.safeParse({ replayId: '-1' }).success).toBe(false);
   });
 });

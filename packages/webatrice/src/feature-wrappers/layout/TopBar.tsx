@@ -3,7 +3,7 @@ import { useLocation, useNavigate, generatePath, matchPath } from 'react-router-
 import {
   User, LogOut, Home as HomeIcon, Swords, Library, LibraryBig,
   UserCircle2, Settings as SettingsIcon, FileText, X, Circle, Grid3x3,
-  Keyboard, PanelLeftOpen, Download,
+  Keyboard, PanelLeftOpen, Download, ShieldCheck,
   type LucideIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -18,7 +18,7 @@ import { RouteEnum } from '@app/types';
 import { CardImportDialog } from '@app/feature-widgets/card-import';
 
 import { useShellLifecycle } from './ShellLifecycleContext';
-import { visibleUserMenuEntries } from './userMenuEntries';
+import { visibleUserMenuEntries, type CapabilityCheck } from './userMenuEntries';
 
 const USER_MENU_ITEM_CLASS =
   'w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary '
@@ -36,6 +36,7 @@ type TabType =
   | 'account'
   | 'logs'
   | 'player'
+  | 'staff' // Administration / Moderation / Card Art Rules / Developer
   | 'unknown';
 
 interface Tab {
@@ -59,6 +60,7 @@ const TYPE_ICON: Record<TabType, LucideIcon> = {
   account: UserCircle2,
   logs: FileText,
   player: User,
+  staff: ShieldCheck,
   unknown: FileText,
 };
 
@@ -479,6 +481,8 @@ function UserMenu({
   onSignOut,
 }: UserMenuProps) {
   const { t } = useTranslation();
+  const serverVersion = useAppSelector(server.Selectors.getVersion);
+  const supports: CapabilityCheck = (capability) => server.serverSupports(serverVersion, capability);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -549,7 +553,7 @@ function UserMenu({
               </span>
             )}
           </button>
-          {visibleUserMenuEntries(userLevel).map(({ label, icon: Icon, route }) => (
+          {visibleUserMenuEntries(userLevel, supports).map(({ label, icon: Icon, route }) => (
             <button
               key={route}
               onClick={() => {
@@ -598,6 +602,13 @@ function routeMatches(pathname: string, route: string): boolean {
   return matchPath({ path: route, end: true }, pathname) !== null;
 }
 
+const STAFF_TABS: { key: string; title: string; route: RouteEnum }[] = [
+  { key: 'administration', title: 'Administration', route: RouteEnum.ADMINISTRATION },
+  { key: 'moderation', title: 'Moderation', route: RouteEnum.MODERATION },
+  { key: 'card-art-rules', title: 'Card Art Rules', route: RouteEnum.CARD_ART_RULES },
+  { key: 'developer', title: 'Developer', route: RouteEnum.DEVELOPER },
+];
+
 /** Build a transient tab for the current route if it's one of the
  *  non-primary pages (Decks, Settings, Account, Logs, Player). Returns
  *  null for routes that are already covered by the primary strip
@@ -628,6 +639,10 @@ function detectTransientTab(pathname: string): Tab | null {
   }
   if (matchPath({ path: RouteEnum.LOGS, end: true }, pathname)) {
     return { key: 'logs', type: 'logs', title: 'Logs', route: pathname, closeable: true };
+  }
+  const staffTab = STAFF_TABS.find(({ route }) => matchPath({ path: route, end: true }, pathname));
+  if (staffTab) {
+    return { key: staffTab.key, type: 'staff', title: staffTab.title, route: pathname, closeable: true };
   }
   const playerMatch = matchPath({ path: RouteEnum.PLAYER, end: true }, pathname);
   if (playerMatch) {

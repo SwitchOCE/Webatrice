@@ -59,18 +59,3 @@ export function banMinutes({ duration, days, hours, minutes }: BanUserFormValues
 export const adminNotesSchema = z.object({ notes: z.string() });
 
 export type AdminNotesFormValues = z.infer<typeof adminNotesSchema>;
-
-// TabAdmin's replay id field takes a QIntValidator(0, INT_MAX).
-const INT_MAX = 2147483647;
-
-export const grantReplayAccessSchema = z.object({
-  replayId: z.string().trim().regex(/^\d+$/).refine((value) => Number(value) <= INT_MAX),
-});
-
-export type GrantReplayAccessFormValues = z.infer<typeof grantReplayAccessSchema>;
-
-export const forceActivateUserSchema = z.object({
-  userName: z.string().trim().min(1),
-});
-
-export type ForceActivateUserFormValues = z.infer<typeof forceActivateUserSchema>;

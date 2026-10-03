@@ -1,0 +1,48 @@
+.administration {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  max-width: 640px;
+}
+
+.administration__group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.administration__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.administration__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.administration__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.administration__row .MuiTextField-root {
+  flex: 1;
+}
+
+.administration__lock {
+  display: flex;
+  gap: 8px;
+}
+
+.administration-shutdown__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 8px !important;
+}

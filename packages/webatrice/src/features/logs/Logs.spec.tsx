@@ -82,8 +82,8 @@ describe('Logs', () => {
     expect(hoisted.mockWebClient.request.moderator.viewLogHistory).not.toHaveBeenCalled();
   });
 
-  it('lets a developer search without the moderator functions', () => {
-    const { container } = renderWithProviders(<Logs />, {
+  it('lets a developer search without the IP filter', () => {
+    renderWithProviders(<Logs />, {
       preloadedState: {
         ...connectedState,
         server: { ...(connectedState.server as any), user: makeUser({ userLevel: Level.IsUser | Level.IsRegistered | Level.IsDeveloper }) },
@@ -91,7 +91,6 @@ describe('Logs', () => {
     });
 
     expect(screen.getByRole('button', { name: /LogSearchForm\.button\.search/ })).toBeInTheDocument();
-    expect(container.querySelector('.moderator-logs__functions')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('LogSearchForm.label.ipAddress')).not.toBeInTheDocument();
   });
 
