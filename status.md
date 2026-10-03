@@ -1,1 +1,2 @@
 - 14:17Z started w24 → read context, set up branch
+- 14:24Z PLAT-026 preflight + unsupported screen pushed (e9f8cc3-amended) → e2e tsconfig, e2e specs
