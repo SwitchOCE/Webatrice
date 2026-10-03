@@ -5,3 +5,4 @@ export * from './TokenDTO';
 export * from './HostDTO';
 export * from './FormatDTO';
 export * from './InfoDTO';
+export * from './ReplayFileDTO';

@@ -17,6 +17,10 @@ export enum Stores {
   // related-card/token refs (from Scryfall `all_parts`) that back
   // the card context menu's "Token: …" items.
   SCRYFALL_CACHE = 'scryfallCache',
+  // Local replay library (folders + `.cor` metadata) and the replay bytes,
+  // split so listing a folder never loads every replay.
+  REPLAYS = 'replays',
+  REPLAY_DATA = 'replayData',
 }
 
 export const schemaV2 = (db: Dexie) => {
@@ -38,5 +42,13 @@ export const schemaV2 = (db: Dexie) => {
   // at the query layer.
   db.version(4).stores({
     [Stores.SCRYFALL_CACHE]: 'name',
+  });
+
+  // Version 5 adds the local replay library: a parentId-addressed tree of
+  // folders and replays, with the replay bytes in their own table keyed by the
+  // replay entry's id.
+  db.version(5).stores({
+    [Stores.REPLAYS]: '++id, parentId',
+    [Stores.REPLAY_DATA]: 'id',
   });
 };
