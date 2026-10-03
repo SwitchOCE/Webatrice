@@ -24,6 +24,7 @@ import GameBoardCell from './components/ui/GameBoardCell/GameBoardCell';
 import { BigCardPreview } from './components/PlayerBox/bigCardPreview';
 import { CardScaleProvider } from './components/PlayerBox/cardScale';
 import IncomingRevealDialog from './dialogs/IncomingRevealDialog/IncomingRevealDialog';
+import TallyOverlay from './components/TallyOverlay/TallyOverlay';
 import CreateTokenDialog from './dialogs/CreateTokenDialog/CreateTokenDialog';
 import MoveTopUntilDialog from './dialogs/MoveTopUntilDialog/MoveTopUntilDialog';
 import DeckSelectDialog from './dialogs/DeckSelectDialog/DeckSelectDialog';
@@ -238,6 +239,7 @@ function GameBoard() {
                                       ))}
                                     </div>
                                   )}
+                                  <TallyOverlay />
                                   {/* Bottom-bar HandZone removed: each PlayerBox now
                               renders its own hand inline. Kept the space so
                               downstream layout hooks that watched the empty

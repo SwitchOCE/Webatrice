@@ -10,6 +10,7 @@ import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 import type { ActionId } from '@app/feature-widgets/shortcuts';
 
 import type { ContextMenuItem } from '../../PlayerBox/ContextMenu';
+import type { TallyType } from '../../../utils/tally';
 import type { HandSortKey, ZoneViewTarget } from '../../../hooks/dialogs/gameDialogs.types';
 import type { SeatSelection } from '../../../hooks/useSeatSelection';
 import type {
@@ -49,6 +50,29 @@ export function buildRevealToSubmenu(
       disabled,
     })),
   ];
+}
+
+/**
+ * The "Tally" submenu: exclusive checkable None, a separator, then Subtypes,
+ * Total Power and Total Toughness (desktop TallyMenu, tally_menu.cpp). It
+ * sets a local preference; nothing is sent.
+ */
+export function buildTallyMenu(current: TallyType, onSet: (type: TallyType) => void): ContextMenuItem {
+  const option = (type: TallyType, label: string): ContextMenuItem => ({
+    label,
+    checked: current === type,
+    onClick: () => onSet(type),
+  });
+  return {
+    label: 'Tally',
+    submenu: [
+      option('none', 'None'),
+      { divider: true },
+      option('subtypes', 'Subtypes'),
+      option('power', 'Total Power'),
+      option('toughness', 'Total Toughness'),
+    ],
+  };
 }
 
 export interface LibraryMenuArgs {
@@ -702,6 +726,9 @@ export interface BattlefieldMenuArgs<Token> {
   ) => void;
   onUntapAll?: () => void;
   onFlipCoin?: () => void;
+  /** Player-menu entries after the utility items, desktop order: Tally,
+   *  then Say (player_menu.cpp:48-54). */
+  trailingItems?: ContextMenuItem[];
 }
 
 // Battlefield right-click menu — Cockatrice's PlayerMenu (attached
@@ -718,7 +745,7 @@ export function buildBattlefieldMenu<Token>({
   shortcutHints, handMenuItems, libraryMenuItems, graveMenuItemsSelf, exileMenuItemsSelf,
   countersMenuItems, selection, battlefieldDisplayList, lastToken, openCreateTokenDialog,
   onCreateToken, onRequestViewSideboard, onRequestRollDie, onRequestGameInfo,
-  onBulkSetCardCounters, onUntapAll, onFlipCoin,
+  onBulkSetCardCounters, onUntapAll, onFlipCoin, trailingItems = [],
 }: BattlefieldMenuArgs<Token>): ContextMenuItem[] {
   // Rest of the battlefield menu — pile submenus are placeholders
   // (already wired on the piles themselves), utility items wire
@@ -900,6 +927,7 @@ export function buildBattlefieldMenu<Token>({
       label: 'Game info...',
       onClick: () => onRequestGameInfo?.(),
     },
+    ...trailingItems,
   ];
 }
 
@@ -907,18 +935,22 @@ export function buildBattlefieldMenu<Token>({
 // player_menu.cpp:14-58 opponent branch: all utility items (Create
 // token, Roll die, Counters, Untap all, Hand / Library / Sideboard
 // submenus) are OWN-ONLY, so the opponent menu narrows to just the
-// two public zones you can peek at — graveyard and exile. Reuses
+// two public zones you can peek at — graveyard and exile — plus the
+// menus every player's menu carries (Tally, player_menu.cpp:48). Reuses
 // the same opponent grave/exile item arrays the pile-level menus
 // already attach so "View graveyard" opens the same LibrarySearch
 // dialog either way.
 export function buildOpponentBattlefieldMenu({
-  graveMenuItemsOpponent, exileMenuItemsOpponent,
+  graveMenuItemsOpponent, exileMenuItemsOpponent, trailingItems = [],
 }: {
   graveMenuItemsOpponent: ContextMenuItem[];
   exileMenuItemsOpponent: ContextMenuItem[];
+  /** Entries every player's menu carries, such as Tally. */
+  trailingItems?: ContextMenuItem[];
 }): ContextMenuItem[] {
   return [
     { label: 'Graveyard', submenu: graveMenuItemsOpponent },
     { label: 'Exile', submenu: exileMenuItemsOpponent },
+    ...trailingItems,
   ];
 }

@@ -50,7 +50,9 @@ import {
   buildHandMenu,
   buildLibraryMenu,
   buildOpponentBattlefieldMenu,
+  buildTallyMenu,
 } from '../context-menus/PlayerContextMenu/playerMenu.model';
+import { useTallyType } from '../../hooks/useTallyType';
 import {
   buildRelatedTokenItems,
   buildRelatedViewItems,
@@ -1573,6 +1575,7 @@ function PlayerBox(
   // binding (Cockatrice desktop hardcodes; we can't since bindings
   // are user-customizable).
   const shortcutHints = useShortcutHints();
+  const [tallyType, setTallyType] = useTallyType();
 
   // Seat-scoped shortcut operations. useGameShortcuts owns the key bindings
   // and runs these for the local seat only (see SeatShortcutsContext).
@@ -3498,14 +3501,15 @@ function PlayerBox(
     manaColors: MANA_COLORS, manaCounters, lifeControl, openLifePrompt, openCounterPrompt,
     onModifyCounter, onSetPlayerCounter,
   });
+  const tallyMenu = buildTallyMenu(tallyType, setTallyType);
   const battlefieldMenuItems = buildBattlefieldMenu({
     shortcutHints, handMenuItems, libraryMenuItems, graveMenuItemsSelf, exileMenuItemsSelf,
     countersMenuItems, selection, battlefieldDisplayList, lastToken, openCreateTokenDialog,
     onCreateToken, onRequestViewSideboard, onRequestRollDie, onRequestGameInfo,
-    onBulkSetCardCounters, onUntapAll, onFlipCoin,
+    onBulkSetCardCounters, onUntapAll, onFlipCoin, trailingItems: [tallyMenu],
   });
   const opponentBattlefieldMenuItems = buildOpponentBattlefieldMenu({
-    graveMenuItemsOpponent, exileMenuItemsOpponent,
+    graveMenuItemsOpponent, exileMenuItemsOpponent, trailingItems: [tallyMenu],
   });
 
   // The drag ghost: the dragged cards under the pointer, anchored where the

@@ -9,6 +9,7 @@ import {
   buildHandMenu,
   buildLibraryMenu,
   buildOpponentBattlefieldMenu,
+  buildTallyMenu,
   type HandMenuArgs,
   type LibraryMenuArgs,
 } from './playerMenu.model';
@@ -283,3 +284,25 @@ describe('buildBattlefieldMenu', () => {
     expect(tree(items)).toEqual(['Graveyard', 'Exile']);
   });
 });
+
+describe('buildTallyMenu', () => {
+  it('checks exactly the current tally and sets the picked one', () => {
+    const onSet = vi.fn();
+    const menu = buildTallyMenu('power', onSet);
+    expect(tree([menu])).toEqual(['Tally', '  None', '  ---', '  Subtypes', '  ✓ Total Power', '  Total Toughness']);
+
+    find([menu], 'Tally', 'Subtypes').onClick?.();
+    expect(onSet).toHaveBeenCalledWith('subtypes');
+  });
+
+  it('ends both battlefield menus', () => {
+    const tally = buildTallyMenu('none', vi.fn());
+    const opponent = buildOpponentBattlefieldMenu({
+      graveMenuItemsOpponent: [],
+      exileMenuItemsOpponent: [],
+      trailingItems: [tally],
+    });
+    expect(tree(opponent).filter((l) => !l.startsWith(' '))).toEqual(['Graveyard', 'Exile', 'Tally']);
+  });
+});
+
