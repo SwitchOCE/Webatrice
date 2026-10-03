@@ -109,7 +109,9 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
   // Persistent toasts never leave on their own, so a burst (a run of private
   // messages) would stack up the screen edge. Keep the newest few and fold the
   // rest into "+N more"; expanding shows them all until the stack is short again.
+  // The toast holding focus is never folded away, so focus doesn't drop to <body>.
   const [showAllPersistent, setShowAllPersistent] = useState(false);
+  const [focusedKey, setFocusedKey] = useState<string | null>(null);
   const persistentKeys = Object.keys(state.toasts).filter((key) => state.toasts[key].isOpen && state.toasts[key].persistent);
   const folded = persistentKeys.length - VISIBLE_PERSISTENT_TOASTS;
   useEffect(() => {
@@ -117,7 +119,9 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
       setShowAllPersistent(false);
     }
   }, [folded]);
-  const hidden = new Set(folded > 0 && !showAllPersistent ? persistentKeys.slice(0, folded) : []);
+  const hidden = new Set(folded > 0 && !showAllPersistent
+    ? persistentKeys.slice(0, folded).filter((key) => key !== focusedKey)
+    : []);
   const entries = Object.entries(state.toasts).filter(([key]) => !hidden.has(key));
   const renderToast = ([key, entry]: [string, ToastEntry]) => (
     <Toast
@@ -127,6 +131,7 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
       icon={entry.icon}
       severity={entry.severity}
       autoHideDuration={entry.persistent ? 0 : undefined}
+      onFocusChange={(focused) => setFocusedKey((current) => (focused ? key : current === key ? null : current))}
     >
       {entry.children}
     </Toast>
