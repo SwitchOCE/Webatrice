@@ -1,4 +1,5 @@
 import { createAction } from '@reduxjs/toolkit';
+import type { Response_DeckShareCreate, Response_DeckShareList } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { serverSlice } from './server.reducer';
@@ -42,6 +43,15 @@ const SignalActions = {
   deckDownloadFailed: createAction<CommandFailedPayload & { deckId: number }>('server/deckDownloadFailed'),
   deckUploadFailed: createAction<CommandFailedPayload & { path: string }>('server/deckUploadFailed'),
   deckUpdateFailed: createAction<CommandFailedPayload & { deckId: number }>('server/deckUpdateFailed'),
+  // Deck share links and public decks (#7241). The answers a view acts on once
+  // are signals; the caller's share list and public deck trees are state.
+  deckShareCreated: createAction<{ share: Response_DeckShareCreate }>('server/deckShareCreated'),
+  deckShareListed: createAction<{ token: string; share: Response_DeckShareList }>('server/deckShareListed'),
+  deckShareDownloaded: createAction<{ token: string; itemId: number; deck: string }>('server/deckShareDownloaded'),
+  publicDeckDownloaded: createAction<{ deckId: number; deck: string }>('server/publicDeckDownloaded'),
+  deckSharingFailed: createAction<CommandFailedPayload & { command: WebsocketTypes.DeckSharingCommandName; target: string }>(
+    'server/deckSharingFailed'
+  ),
 };
 
 export const Actions = { ...serverSlice.actions, ...SignalActions };

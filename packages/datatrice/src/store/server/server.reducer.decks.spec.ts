@@ -1,0 +1,98 @@
+import { create } from '@bufbuild/protobuf';
+import {
+  ServerInfo_DeckShareSummarySchema,
+  ServerInfo_DeckStorage_FileSchema,
+  ServerInfo_DeckStorage_FolderSchema,
+} from '@cockatrice/sockatrice/generated';
+
+import { makeDeckList, makeDeckTreeItem, makeServerState } from '../../testing/fixtures/server';
+import { Actions } from './server.actions';
+import { serverReducer } from './server.reducer';
+
+// Deck share links and public decks (#7241).
+
+function storage() {
+  const deck = makeDeckTreeItem({ id: 1, name: 'Burn', file: create(ServerInfo_DeckStorage_FileSchema, { creationTime: 5 }) });
+  const nested = makeDeckTreeItem({ id: 2, name: 'Elves', file: create(ServerInfo_DeckStorage_FileSchema, {}) });
+  const inner = makeDeckTreeItem({ id: 0, name: 'inner', folder: create(ServerInfo_DeckStorage_FolderSchema, { items: [nested] }) });
+  const outer = makeDeckTreeItem({ id: 0, name: 'outer', folder: create(ServerInfo_DeckStorage_FolderSchema, { items: [inner] }) });
+  return makeServerState({
+    backendDecks: makeDeckList({ root: create(ServerInfo_DeckStorage_FolderSchema, { items: [deck, outer] }) }),
+  });
+}
+
+function share(id: number) {
+  return create(ServerInfo_DeckShareSummarySchema, { id, name: `share ${id}`, itemCount: 1 });
+}
+
+describe('deckVisibilityChanged', () => {
+  it('sets a deck\'s own public bit by id', () => {
+    const state = storage();
+    const result = serverReducer(state, Actions.deckVisibilityChanged({ deckId: 2, isPublic: true }));
+    const nested = result.backendDecks!.root!.items[1].folder!.items[0].folder!.items[0];
+    expect(nested.file!.isPublic).toBe(true);
+    expect(result.backendDecks!.root!.items[0].file!.isPublic).toBe(false);
+  });
+
+  it('keeps the rest of the deck entry', () => {
+    const result = serverReducer(storage(), Actions.deckVisibilityChanged({ deckId: 1, isPublic: true }));
+    const deck = result.backendDecks!.root!.items[0];
+    expect(deck.name).toBe('Burn');
+    expect(deck.file!.creationTime).toBe(5);
+  });
+
+  it('sets a folder\'s bit by path without touching the decks under it', () => {
+    const result = serverReducer(storage(), Actions.deckVisibilityChanged({ folderPath: 'outer/inner', isPublic: true }));
+    const outer = result.backendDecks!.root!.items[1];
+    const inner = outer.folder!.items[0];
+    expect(outer.folder!.isPublic).toBe(false);
+    expect(inner.folder!.isPublic).toBe(true);
+    expect(inner.folder!.items[0].file!.isPublic).toBe(false);
+  });
+
+  it('replaces the stored messages instead of mutating them', () => {
+    const state = storage();
+    const before = state.backendDecks!.root!.items[0];
+    const result = serverReducer(state, Actions.deckVisibilityChanged({ deckId: 1, isPublic: true }));
+    expect(before.file!.isPublic).toBe(false);
+    expect(result.backendDecks!.root!.items[0]).not.toBe(before);
+  });
+
+  it('is a no-op before the deck list has loaded', () => {
+    const state = makeServerState({ backendDecks: null });
+    expect(serverReducer(state, Actions.deckVisibilityChanged({ deckId: 1, isPublic: true })).backendDecks).toBeNull();
+  });
+});
+
+describe('deckSharesMine / deckShareRemoved', () => {
+  it('stores the caller\'s share links', () => {
+    const result = serverReducer(makeServerState(), Actions.deckSharesMine({ shares: [share(1), share(2)] }));
+    expect(result.deckSharesMine!.map((s) => s.id)).toEqual([1, 2]);
+  });
+
+  it('drops a revoked share', () => {
+    const state = makeServerState({ deckSharesMine: [share(1), share(2)] });
+    const result = serverReducer(state, Actions.deckShareRemoved({ shareId: 1 }));
+    expect(result.deckSharesMine!.map((s) => s.id)).toEqual([2]);
+  });
+
+  it('leaves an unlisted share list unlisted', () => {
+    const result = serverReducer(makeServerState({ deckSharesMine: null }), Actions.deckShareRemoved({ shareId: 1 }));
+    expect(result.deckSharesMine).toBeNull();
+  });
+});
+
+describe('publicDecks', () => {
+  it('stores a user\'s public deck tree by name', () => {
+    const deckList = makeDeckList();
+    const result = serverReducer(makeServerState(), Actions.publicDecks({ userName: 'bob', deckList }));
+    expect(result.publicDecks.bob).toBe(deckList);
+  });
+
+  it('is cleared with the rest of the session', () => {
+    const state = makeServerState({ publicDecks: { bob: makeDeckList() }, deckSharesMine: [share(1)] });
+    const result = serverReducer(state, Actions.clearStore());
+    expect(result.publicDecks).toEqual({});
+    expect(result.deckSharesMine).toBeNull();
+  });
+});

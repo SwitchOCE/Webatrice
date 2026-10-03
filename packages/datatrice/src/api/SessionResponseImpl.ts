@@ -7,12 +7,16 @@ import {
   Event_UserMessage,
   Response_DeckDownload,
   Response_DeckList,
+  Response_DeckShareCreate,
+  Response_DeckShareList,
   Response_GetGamesOfUser,
   Response_ReplayDownload,
+  ServerInfo_DeckShareSummary,
   ServerInfo_DeckStorage_TreeItem,
   ServerInfo_ReplayMatch,
   ServerInfo_User,
 } from '@cockatrice/sockatrice/generated';
+import type { DeckSetVisibilityParams } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { Actions as ServerActions } from '../store/server/server.actions';
@@ -292,5 +296,46 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
 
   deckUploadFailed(path: string, responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
     this.store.dispatch(ServerActions.deckUploadFailed({ path, responseCode, failure }));
+  }
+
+  deckShareCreated(share: Response_DeckShareCreate): void {
+    this.store.dispatch(ServerActions.deckShareCreated({ share }));
+  }
+
+  deckShareListed(token: string, share: Response_DeckShareList): void {
+    this.store.dispatch(ServerActions.deckShareListed({ token, share }));
+  }
+
+  deckShareDownloaded(token: string, itemId: number, deck: string): void {
+    this.store.dispatch(ServerActions.deckShareDownloaded({ token, itemId, deck }));
+  }
+
+  deckSharesMine(shares: ServerInfo_DeckShareSummary[]): void {
+    this.store.dispatch(ServerActions.deckSharesMine({ shares }));
+  }
+
+  deckShareRemoved(shareId: number): void {
+    this.store.dispatch(ServerActions.deckShareRemoved({ shareId }));
+  }
+
+  otherUserDecks(userName: string, deckList: Response_DeckList): void {
+    this.store.dispatch(ServerActions.publicDecks({ userName, deckList }));
+  }
+
+  deckVisibilityChanged({ deckId, folderPath, isPublic }: DeckSetVisibilityParams): void {
+    this.store.dispatch(ServerActions.deckVisibilityChanged({ deckId, folderPath, isPublic: isPublic ?? false }));
+  }
+
+  publicDeckDownloaded(deckId: number, deck: string): void {
+    this.store.dispatch(ServerActions.publicDeckDownloaded({ deckId, deck }));
+  }
+
+  deckSharingFailed(
+    command: WebsocketTypes.DeckSharingCommandName,
+    responseCode: number,
+    target: string,
+    failure?: WebsocketTypes.CommandFailure,
+  ): void {
+    this.store.dispatch(ServerActions.deckSharingFailed({ command, target, responseCode, failure }));
   }
 }

@@ -15,6 +15,7 @@ import {
   Event_NotifyUserSchema,
   Event_ServerShutdownSchema,
   Response_ResponseCode,
+  ServerInfo_DeckShareSummarySchema,
   ServerInfo_User_UserLevelFlag,
 } from '@cockatrice/sockatrice/generated';
 import { ServerCapability } from './server.capabilities';
@@ -235,6 +236,19 @@ describe('Selectors', () => {
     const downloadedDeck = { deckId: 42, deck: '<xml>' };
     const state = makeServerState({ downloadedDeck });
     expect(Selectors.getDownloadedDeck(rootState(state))).toEqual(downloadedDeck);
+  });
+
+  it('getDeckSharesMine → null until listed, then the share summaries', () => {
+    expect(Selectors.getDeckSharesMine(rootState(makeServerState()))).toBeNull();
+    const shares = [create(ServerInfo_DeckShareSummarySchema, { id: 3 })];
+    expect(Selectors.getDeckSharesMine(rootState(makeServerState({ deckSharesMine: shares })))).toBe(shares);
+  });
+
+  it('getPublicDecks → the named user\'s public deck tree', () => {
+    const deckList = makeDeckList();
+    const state = makeServerState({ publicDecks: { bob: deckList } });
+    expect(Selectors.getPublicDecks(rootState(state), 'bob')).toBe(deckList);
+    expect(Selectors.getPublicDecks(rootState(state), 'alice')).toBeUndefined();
   });
 
   it('getDownloadedReplay → returns downloadedReplay', () => {
