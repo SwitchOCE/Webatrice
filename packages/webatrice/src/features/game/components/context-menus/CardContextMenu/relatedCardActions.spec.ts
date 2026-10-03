@@ -114,10 +114,15 @@ describe('buildTransformItems', () => {
     ['a non-flipping layout', { layout: 'adventure', faces }, 42],
     ['a single face', { layout: 'transform', faces: faces.slice(0, 1) }, 42],
     ['no server card id', { layout: 'transform', faces }, undefined],
-    // Pinned gap, not intent: Servatrice ids start at 0 (newCardId), so a real card 0 gets no item.
-    ['card id 0', { layout: 'reversible_card', faces }, 0],
   ])('offers nothing for %s', (_label, meta, cardId) => {
     expect(buildTransformItems(meta, cardId, 'Delver of Secrets', vi.fn())).toEqual([]);
+  });
+
+  it('targets card id 0, the first id Servatrice hands out', () => {
+    const create = vi.fn();
+    const [item] = buildTransformItems({ layout: 'reversible_card', faces }, 0, 'Delver of Secrets', create).map(row);
+    item.onClick!();
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ targetCardId: 0, targetMode: 'transform_into' }));
   });
 
   it('offers nothing without a create-token command', () => {
