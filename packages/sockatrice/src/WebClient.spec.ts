@@ -444,6 +444,11 @@ describe('WebClient', () => {
       expect(client.protobuf.resetCommands).toHaveBeenCalled();
     });
 
+    it('calls protobuf.resetCommands on RECONNECTING (commands on the dropped socket can never be answered)', () => {
+      client.updateStatus(StatusEnum.RECONNECTING);
+      expect(client.protobuf.resetCommands).toHaveBeenCalled();
+    });
+
     it('does not reset protobuf when status is not DISCONNECTED', () => {
       client.updateStatus(StatusEnum.CONNECTED);
       expect(client.protobuf.resetCommands).not.toHaveBeenCalled();

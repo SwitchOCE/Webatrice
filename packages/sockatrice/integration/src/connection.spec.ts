@@ -20,6 +20,7 @@ import {
   openMockWebSocket,
   setPendingOptions,
   connectAndHandshake,
+  connectAndLogin,
   PROTOCOL_VERSION,
 } from '../../src/testing/setup';
 import {
@@ -129,15 +130,29 @@ describe('connection lifecycle', () => {
     expect(getWebClient().status).toBe(WebsocketTypes.StatusEnum.DISCONNECTED);
   });
 
-  it('enters RECONNECTING on unexpected socket close after a successful handshake', () => {
-    connectAndHandshake();
+  it('enters RECONNECTING on unexpected socket close after a successful login', () => {
+    connectAndLogin();
 
+    const mock = getMockWebSocket();
+    mock.readyState = 3;
+    mock.onclose?.({ code: 1006, reason: '', wasClean: false } as CloseEvent);
+
+    expect(getWebClient().status).toBe(WebsocketTypes.StatusEnum.RECONNECTING);
+  });
+
+  // The reconnect opens a fresh server session, so a login still in flight on
+  // the dropped socket can never be answered. It settles the login form straight
+  // away, but leaves the connection status to the transport (desktop's
+  // loginResponse likewise ignores the RespNotConnected it synthesises).
+  it('fails a login that is in flight when the socket drops', () => {
+    connectAndHandshake();
     expect(() => findLastSessionCommand(Data.Command_Login_ext)).not.toThrow();
 
     const mock = getMockWebSocket();
     mock.readyState = 3;
     mock.onclose?.({ code: 1006, reason: '', wasClean: false } as CloseEvent);
 
+    expect(getMockResponse().session.loginFailed).toHaveBeenCalledTimes(1);
     expect(getWebClient().status).toBe(WebsocketTypes.StatusEnum.RECONNECTING);
   });
 

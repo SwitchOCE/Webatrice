@@ -8,6 +8,7 @@
  *                       Use 3 for sendRoomCommand (roomId, ext, value, options).
  */
 import { Mock } from 'vitest';
+import type { CommandFailure } from '../services/command-options';
 
 export function makeCallbackHelpers(mockFn: Mock, optsArgIndex = 2) {
   function getLastSendOpts() {
@@ -26,8 +27,16 @@ export function makeCallbackHelpers(mockFn: Mock, optsArgIndex = 2) {
     }
   }
 
-  function invokeOnError(code: number = 99, raw: any = {}) {
-    getLastSendOpts()?.onError?.(code, raw);
+  // `failure` simulates a transport outcome (timeout, disconnect, not sent);
+  // leave it undefined for a server-sent rejection.
+  function invokeOnError(code: number = 99, raw: any = {}, failure?: CommandFailure) {
+    // Only pass `failure` when simulating one, so a server rejection reaches
+    // onError with exactly the (code, raw) a real response would.
+    if (failure === undefined) {
+      getLastSendOpts()?.onError?.(code, raw);
+    } else {
+      getLastSendOpts()?.onError?.(code, raw, failure);
+    }
   }
 
   function invokeCallback(callbackName: string, ...args: any[]) {
