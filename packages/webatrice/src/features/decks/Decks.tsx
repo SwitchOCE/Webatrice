@@ -265,7 +265,11 @@ function Decks() {
         open={shareTarget != null}
         defaultName={t('DeckSharing.defaultDecksName')}
         state={share.state}
-        onClose={() => setShareTarget(null)}
+        onClose={() => {
+          // Drop a create still in flight, so a late answer isn't copied after a cancel.
+          share.reset();
+          setShareTarget(null);
+        }}
         onCreate={createShare}
       />
 

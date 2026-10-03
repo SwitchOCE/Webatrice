@@ -239,7 +239,11 @@ const DeckEditor = () => {
         open={shareOpen}
         defaultName={t('DeckSharing.defaultDeckName')}
         state={share.state}
-        onClose={() => setShareOpen(false)}
+        onClose={() => {
+          // Drop a create still in flight, so a late answer isn't copied after a cancel.
+          share.reset();
+          setShareOpen(false);
+        }}
         onCreate={createShare}
       />
 

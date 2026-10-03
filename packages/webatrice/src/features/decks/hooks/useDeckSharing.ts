@@ -61,15 +61,15 @@ export function useDeckShareCreate() {
   const pendingRef = useRef(false);
 
   const finish = useCallback(async (share: Response_DeckShareCreate) => {
-    const link = buildDeckShareLink(window.location.href, {
-      token: share.token,
-      hostname: shareServer?.hostname ?? '',
-      port: shareServer?.port ?? '',
-    });
+    if (!shareServer) {
+      setState({ status: 'failed', message: t('DeckSharing.noServer') });
+      return;
+    }
+    const link = buildDeckShareLink(window.location.href, { token: share.token, ...shareServer });
     setState({ status: 'created', link, expiresAt: share.expiresAt, itemCount: share.itemCount, copied: false });
     const copied = await copyShareLink(link);
     setState((current) => (current.status === 'created' && current.link === link ? { ...current, copied } : current));
-  }, [shareServer]);
+  }, [shareServer, t]);
 
   useReduxEffect<{ share: Response_DeckShareCreate }>(({ payload: { share } }) => {
     if (!pendingRef.current) {
@@ -92,6 +92,11 @@ export function useDeckShareCreate() {
 
   const create = (params: DeckShareCreateParams) => {
     if (pendingRef.current) {
+      return;
+    }
+    // A link has to name its server; one without could never be opened.
+    if (!shareServer) {
+      setState({ status: 'failed', message: t('DeckSharing.noServer') });
       return;
     }
     pendingRef.current = true;
