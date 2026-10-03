@@ -51,7 +51,7 @@ describe('fetchGameChangers', () => {
   });
 
   it('shares one request between concurrent callers', async () => {
-    fetchMock.mockResolvedValue(json({ data: [] }));
+    fetchMock.mockResolvedValue(json({ data: [{ name: 'Sol Ring' }] }));
     await Promise.all([fetchGameChangers(), fetchGameChangers()]);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
@@ -60,6 +60,7 @@ describe('fetchGameChangers', () => {
     ['an HTTP error', () => json({}, 500), { kind: 'http', status: 500 }],
     ['malformed JSON', malformed, { kind: 'malformed' }],
     ['a body without a data array', () => json({ object: 'error' }), { kind: 'malformed' }],
+    ['a list with no card names', () => json({ data: [{ id: 'x' }] }), { kind: 'malformed' }],
   ])('reports %s as unavailable instead of an empty list, and does not cache it', async (_name, respond, failure) => {
     fetchMock.mockImplementation(async () => respond());
 
@@ -77,6 +78,20 @@ describe('fetchGameChangers', () => {
   it('gives up after the timeout', async () => {
     vi.useFakeTimers();
     fetchMock.mockImplementation(hanging);
+
+    const result = fetchGameChangers();
+    await vi.advanceTimersByTimeAsync(BRACKET_SOURCE_TIMEOUT_MS);
+
+    expect(await result).toEqual({ status: 'unavailable', failure: { kind: 'timeout' } });
+  });
+
+  it('reports a timeout while the body is still arriving as a timeout', async () => {
+    vi.useFakeTimers();
+    fetchMock.mockImplementation(async (_url: unknown, init?: RequestInit) => ({
+      ok: true,
+      status: 200,
+      json: () => hanging(undefined, init),
+    }));
 
     const result = fetchGameChangers();
     await vi.advanceTimersByTimeAsync(BRACKET_SOURCE_TIMEOUT_MS);
@@ -144,6 +159,19 @@ describe('fetchOracleText', () => {
     expect(retried).toHaveLength(5);
   });
 
+  it('reports a chunk with a nameless card as malformed, without caching any of it', async () => {
+    fetchMock.mockResolvedValue(json({ data: [{ name: 'Sol Ring', oracle_text: 'x' }, { oracle_text: 'y' }] }));
+
+    expect(await fetchOracleText(['Sol Ring', 'Negate'])).toEqual({
+      status: 'unavailable',
+      failure: { kind: 'malformed' },
+    });
+
+    fetchMock.mockImplementation(collectionResponder());
+    await fetchOracleText(['Sol Ring']);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('reports a total failure as unavailable', async () => {
     fetchMock.mockResolvedValue(malformed());
     expect(await fetchOracleText(['Sol Ring'])).toEqual({ status: 'unavailable', failure: { kind: 'malformed' } });
@@ -168,12 +196,14 @@ describe('fetchSpellbookCombos', () => {
     });
   });
 
-  it('treats an answer with no included list as no combos', async () => {
-    fetchMock.mockResolvedValue(json({ results: {} }));
+  it('returns an empty included list as no combos', async () => {
+    fetchMock.mockResolvedValue(json({ results: { included: [] } }));
     expect(await fetchSpellbookCombos(cards)).toEqual({ status: 'ok', data: [] });
   });
 
   it.each([
+    ['results without an included list', () => json({ results: {} }), { kind: 'malformed' }],
+    ['an included value that is not a list', () => json({ results: { included: {} } }), { kind: 'malformed' }],
     ['an outage', () => json({ detail: 'down' }, 502), { kind: 'http', status: 502 }],
     ['malformed JSON', malformed, { kind: 'malformed' }],
     ['a body without results', () => json({ detail: 'x' }), { kind: 'malformed' }],
