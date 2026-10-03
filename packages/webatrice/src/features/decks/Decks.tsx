@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { generatePath, useNavigate } from 'react-router-dom';
 import {
   Plus,
@@ -18,9 +19,10 @@ import {
 import { AuthGuard } from '@app/components';
 import { Layout } from '@app/feature-wrappers/layout';
 import { server } from '@cockatrice/datatrice';
+import type { CommandFailedPayload } from '@cockatrice/datatrice';
 import type { ServerInfo_DeckStorage_Folder, ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
 import { useAppSelector } from '@app/store';
-import { useReduxEffect } from '@app/hooks';
+import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { RouteEnum } from '@app/types';
 
@@ -131,6 +133,11 @@ function Decks() {
   const webClient = useWebClient();
   const backendDecks = useAppSelector(server.Selectors.getBackendDecks);
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
+  const { t } = useTranslation();
+  const describeFailure = useCommandFailureMessage();
+  // Why the deck list could not be loaded; replaces the loading spinner
+  // (which would otherwise spin forever) until the user retries.
+  const [listError, setListError] = useState<string | null>(null);
 
   // Kick off the initial fetch when we don't yet have a tree. Refresh
   // button also uses this handler.
@@ -138,6 +145,7 @@ function Decks() {
     if (!isConnected) {
       return;
     }
+    setListError(null);
     // Clear the fetched guard so a manual refresh re-downloads every
     // deck's XML and picks up any changes made in the editor (or
     // elsewhere) since we last visited this page. Wipe both the
@@ -153,6 +161,10 @@ function Decks() {
     setSummaryMap(new Map());
     webClient.request.session.deckList();
   };
+  useReduxEffect<CommandFailedPayload>(({ payload: { failure } }) => {
+    setListError(describeFailure(failure, t('Decks.listError')));
+  }, server.Types.DECK_LIST_FAILED, [describeFailure, t]);
+
   useEffect(() => {
     if (isConnected && !backendDecks) {
       fetchList();
@@ -456,7 +468,8 @@ function Decks() {
              width so rows don't stretch to ultrawide monitors. */}
         <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
           <div className="max-w-4xl mx-auto">
-            {loading && <LoadingState />}
+            {loading && !listError && <LoadingState />}
+            {loading && listError && <ListErrorState message={listError} onRetry={fetchList} />}
             {!loading && decks.length === 0 && <EmptyState onCreate={() => setCreateOpen(true)} disabled={!isConnected} />}
             {!loading && decks.length > 0 && (
               <div className="space-y-6">
@@ -889,6 +902,30 @@ function LoadingState() {
       <div className="flex items-center gap-2 text-sm text-text-muted">
         <Loader2 size={16} className="animate-spin text-accent" />
         Loading decks…
+      </div>
+    </div>
+  );
+}
+
+function ListErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="h-full min-h-[240px] flex items-center justify-center">
+      <div role="alert" className="flex flex-col items-center gap-3 text-sm text-text-muted text-center max-w-sm">
+        <span className="inline-flex items-center gap-2">
+          <CircleAlert size={16} className="text-red-400" />
+          {message}
+        </span>
+        <button
+          type="button"
+          onClick={onRetry}
+          className={[
+            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md',
+            'border border-border-subtle text-text-primary hover:bg-bg-elevated',
+          ].join(' ')}
+        >
+          <RefreshCw size={14} /> {t('Decks.retry')}
+        </button>
       </div>
     </div>
   );
