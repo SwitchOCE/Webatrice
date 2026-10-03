@@ -4,6 +4,7 @@ import {
   CardAttribute,
   Event_ChangeZonePropertiesSchema,
   Event_GameJoinedSchema,
+  Event_GameLogNotice_NoticeType,
   Event_GameStateChangedSchema,
   Event_MoveCard,
   Event_SetCardAttrSchema,
@@ -2475,6 +2476,34 @@ describe('2K: Log-only actions', () => {
     expect(msgs[0].kind).toBe('event');
     expect(msgs[0].message).toContain('17');
     expect(msgs[0].message).toContain('20');
+  });
+
+  it('GAME_LOG_NOTICE UNDO_DRAW_FAILED → appends the failed-undo line for the acting player', () => {
+    const state = makeState();
+    const result = gamesReducer(state, Actions.gameLogNotice({
+      gameId: 1, playerId: 1, noticeType: Event_GameLogNotice_NoticeType.UNDO_DRAW_FAILED,
+    }));
+    const msgs = result.games[1].messages;
+    expect(msgs.length).toBe(1);
+    expect(msgs[0].kind).toBe('event');
+    expect(msgs[0].playerId).toBe(1);
+    expect(msgs[0].message).toMatch(/ failed to undo their last draw\.$/);
+  });
+
+  it('GAME_LOG_NOTICE with a notice type this client does not know → dropped', () => {
+    const state = makeState();
+    const result = gamesReducer(state, Actions.gameLogNotice({
+      gameId: 1, playerId: 1, noticeType: 99 as Event_GameLogNotice_NoticeType,
+    }));
+    expect(result.games[1].messages).toEqual(state.games[1].messages);
+  });
+
+  it('GAME_LOG_NOTICE with unknown gameId → state unchanged', () => {
+    const state = makeState();
+    const result = gamesReducer(state, Actions.gameLogNotice({
+      gameId: 999, playerId: 1, noticeType: Event_GameLogNotice_NoticeType.UNDO_DRAW_FAILED,
+    }));
+    expect(result).toBe(state);
   });
 
   it('ZONE_SHUFFLED with unknown gameId → state unchanged', () => {

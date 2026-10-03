@@ -122,6 +122,40 @@ describe('Account & Connection', () => {
 });
 
 
+describe('Login failure code', () => {
+  it('LOGIN_FAILED → records the rejecting response code', () => {
+    const result = serverReducer(makeServerState(), Actions.loginFailed({ responseCode: 36 }));
+    expect(result.loginFailureCode).toBe(36);
+  });
+
+  it('LOGIN_FAILED without a code → records null', () => {
+    const state = makeServerState({ loginFailureCode: 12 });
+    const result = serverReducer(state, Actions.loginFailed());
+    expect(result.loginFailureCode).toBeNull();
+  });
+
+  it('CONNECTION_ATTEMPTED → clears a code from a prior attempt', () => {
+    const state = makeServerState({ loginFailureCode: 38 });
+    const result = serverReducer(state, Actions.connectionAttempted());
+    expect(result.loginFailureCode).toBeNull();
+  });
+
+  // Same hazard as connectUnreachable: the socket close after a rejected login
+  // rebuilds the slice via DISCONNECTED, which must keep the code.
+  it('preserves loginFailureCode across DISCONNECTED', () => {
+    const state = makeServerState({ loginFailureCode: 38 });
+    const result = serverReducer(state, Actions.disconnected());
+    expect(result.loginFailureCode).toBe(38);
+  });
+
+  it('CLEAR_STORE → resets loginFailureCode', () => {
+    const state = makeServerState({ loginFailureCode: 38 });
+    const result = serverReducer(state, Actions.clearStore());
+    expect(result.loginFailureCode).toBeNull();
+  });
+});
+
+
 describe('Connect Unreachable', () => {
   it('CONNECT_UNREACHABLE → sets connectUnreachable to true', () => {
     const state = makeServerState({ connectUnreachable: false });
@@ -628,6 +662,22 @@ describe('ADJUST_MOD', () => {
     const result = serverReducer(state, Actions.adjustMod({ userName: 'Dan', shouldBeMod: true, shouldBeJudge: false }));
     // IsUser(1) | IsRegistered(2) | IsModerator(4) = 7
     expect(result.users['Dan'].userLevel).toBe(7);
+  });
+
+  it('an undefined flag leaves that role unchanged (promote to mod keeps judge)', () => {
+    const state = makeServerState({
+      users: { Dan: makeUser({ name: 'Dan', userLevel: UserLevelFlag.IsUser | UserLevelFlag.IsJudge }) },
+    });
+    const result = serverReducer(state, Actions.adjustMod({ userName: 'Dan', shouldBeMod: true }));
+    expect(result.users['Dan'].userLevel).toBe(UserLevelFlag.IsUser | UserLevelFlag.IsJudge | UserLevelFlag.IsModerator);
+  });
+
+  it('shouldBeDeveloper sets and clears IsDeveloper without touching other roles', () => {
+    const state = makeServerState({ users: { Dan: makeUser({ name: 'Dan', userLevel: baseUserLevel }) } });
+    const promoted = serverReducer(state, Actions.adjustMod({ userName: 'Dan', shouldBeDeveloper: true }));
+    expect(promoted.users['Dan'].userLevel).toBe(baseUserLevel | UserLevelFlag.IsDeveloper);
+    const demoted = serverReducer(promoted, Actions.adjustMod({ userName: 'Dan', shouldBeDeveloper: false }));
+    expect(demoted.users['Dan'].userLevel).toBe(baseUserLevel);
   });
 
   it('non-matching users are left unchanged', () => {

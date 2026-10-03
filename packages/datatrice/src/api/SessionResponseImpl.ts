@@ -40,8 +40,8 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.loginSuccessful({ options }));
   }
 
-  loginFailed(): void {
-    this.store.dispatch(ServerActions.loginFailed());
+  loginFailed(responseCode?: number): void {
+    this.store.dispatch(ServerActions.loginFailed(responseCode === undefined ? undefined : { responseCode }));
   }
 
   connectionFailed(): void {

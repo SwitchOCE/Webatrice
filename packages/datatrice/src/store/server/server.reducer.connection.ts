@@ -26,6 +26,7 @@ export const initialState: ServerState = {
   },
   connectionHealth: HEALTHY_CONNECTION_HEALTH,
   connectUnreachable: false,
+  loginFailureCode: null,
   info: {
     message: null,
     name: null,
@@ -78,7 +79,14 @@ export const connectionReducers = {
   connectionAttempted: ((state) => {
     state.status.connectionAttemptMade = true;
     state.connectUnreachable = false;
+    state.loginFailureCode = null;
   }) as CaseReducer<ServerState>,
+
+  // Signal for LOGIN_FAILED effects, and the rejection code for the login screen.
+  // Undefined payload = the login never got a Command_Login answer (salt request failed).
+  loginFailed: ((state, action) => {
+    state.loginFailureCode = action.payload?.responseCode ?? null;
+  }) as CaseReducer<ServerState, PayloadAction<{ responseCode?: number } | undefined>>,
 
   connectUnreachable: ((state) => {
     state.connectUnreachable = true;
@@ -121,6 +129,9 @@ export const connectionReducers = {
     // Load-bearing: the failure sets connectUnreachable just before the same-tick
     // DISCONNECTED that triggers this rebuild, so carry it or it's wiped before render.
     connectUnreachable: state.connectUnreachable,
+    // Same hazard: a rejected login dispatches loginFailed between the DISCONNECTED
+    // status and the socket close, whose second DISCONNECTED rebuilds the slice again.
+    loginFailureCode: state.loginFailureCode,
   })) as CaseReducer<ServerState>,
 
   serverMessage: ((state, action) => {

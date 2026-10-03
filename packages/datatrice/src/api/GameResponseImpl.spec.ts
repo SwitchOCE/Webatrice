@@ -12,6 +12,7 @@ import {
   Event_DestroyCardSchema,
   Event_DrawCardsSchema,
   Event_DumpZoneSchema,
+  Event_GameLogNotice_NoticeType,
   Event_FlipCardSchema,
   Event_GameStateChangedSchema,
   Event_MoveCardSchema,
@@ -256,5 +257,13 @@ describe('GameResponseImpl', () => {
     const data = create(Event_ChangeZonePropertiesSchema, { zoneName: 'deck' });
     impl.zonePropertiesChanged(7, 3, data);
     expect(dispatch).toHaveBeenCalledWith(GameActions.zonePropertiesChanged({ gameId: 7, playerId: 3, data }));
+  });
+
+  it('gameLogNotice dispatches the gameLogNotice action', () => {
+    const { impl, dispatch } = setup();
+    impl.gameLogNotice(7, 3, Event_GameLogNotice_NoticeType.UNDO_DRAW_FAILED);
+    expect(dispatch).toHaveBeenCalledWith(GameActions.gameLogNotice({
+      gameId: 7, playerId: 3, noticeType: Event_GameLogNotice_NoticeType.UNDO_DRAW_FAILED,
+    }));
   });
 });

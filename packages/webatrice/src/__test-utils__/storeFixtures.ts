@@ -21,6 +21,7 @@ export const disconnectedState: Partial<RootState> = {
     },
     connectionHealth: { missedPongs: 0, silentForMs: 0 },
     connectUnreachable: false,
+    loginFailureCode: null,
     info: { message: null, name: null, version: null },
     logs: { room: [], game: [], chat: [] },
     user: null,

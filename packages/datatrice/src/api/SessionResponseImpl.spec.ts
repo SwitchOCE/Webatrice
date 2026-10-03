@@ -5,6 +5,7 @@ import { createStore } from '../store/createStore';
 import {
   Event_GameJoinedSchema,
   Event_NotifyUserSchema,
+  Event_NotifyUser_NotificationType,
   Event_PlayerPropertiesChangedSchema,
   Event_ServerShutdownSchema,
   Event_UserMessageSchema,
@@ -12,6 +13,7 @@ import {
   Response_DeckListSchema,
   Response_GetGamesOfUserSchema,
   Response_ReplayDownloadSchema,
+  Response_ResponseCode,
   ServerInfo_DeckStorage_TreeItemSchema,
   ServerInfo_PlayerPropertiesSchema,
   ServerInfo_ReplayMatchSchema,
@@ -26,6 +28,32 @@ function setup() {
   const dispatch = vi.spyOn(store, 'dispatch');
   return { store, impl: new SessionResponseImpl(store), dispatch };
 }
+
+describe('SessionResponseImpl.loginFailed', () => {
+  // Mirrors sockatrice login.ts: DISCONNECTED status, loginFailed(code), then the
+  // socket close's second DISCONNECTED. The code must survive both slice rebuilds.
+  it('keeps the rejection code through the disconnect that follows a rejected login', () => {
+    const { store, impl } = setup();
+    impl.connectionAttempted();
+    impl.updateStatus(WebsocketTypes.StatusEnum.DISCONNECTED, 'Login failed: server is full');
+    impl.loginFailed(Response_ResponseCode.RespServerFull);
+    impl.updateStatus(WebsocketTypes.StatusEnum.DISCONNECTED, 'Login failed: server is full');
+    expect(store.getState().server.loginFailureCode).toBe(Response_ResponseCode.RespServerFull);
+  });
+
+  it('clears the rejection code on the next connection attempt', () => {
+    const { store, impl } = setup();
+    impl.loginFailed(Response_ResponseCode.RespPasswordChangeRequired);
+    impl.connectionAttempted();
+    expect(store.getState().server.loginFailureCode).toBeNull();
+  });
+
+  it('records no code when the login never reached Command_Login', () => {
+    const { store, impl } = setup();
+    impl.loginFailed();
+    expect(store.getState().server.loginFailureCode).toBeNull();
+  });
+});
 
 describe('SessionResponseImpl.updateStatus', () => {
   // updateStatus is the one method whose effect propagates through the server
@@ -90,6 +118,12 @@ describe('SessionResponseImpl forwards', () => {
     const { impl, dispatch } = setup();
     impl.loginFailed();
     expect(dispatch).toHaveBeenCalledWith(ServerActions.loginFailed());
+  });
+
+  it('loginFailed forwards the rejecting response code', () => {
+    const { impl, dispatch } = setup();
+    impl.loginFailed(Response_ResponseCode.RespServerFull);
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.loginFailed({ responseCode: Response_ResponseCode.RespServerFull }));
   });
 
   it('connectionFailed', () => {
@@ -341,6 +375,16 @@ describe('SessionResponseImpl forwards', () => {
     const notification = create(Event_NotifyUserSchema, {});
     impl.notifyUser(notification);
     expect(dispatch).toHaveBeenCalledWith(ServerActions.notifyUser({ notification }));
+  });
+
+  it.each([
+    Event_NotifyUser_NotificationType.REPORT_RESOLVED,
+    Event_NotifyUser_NotificationType.REPORT_COMMENT,
+  ])('notifyUser lands 3.1 report notification type %s in server.notifications', (type) => {
+    const { store, impl } = setup();
+    const notification = create(Event_NotifyUserSchema, { type, customTitle: 'Report #3', customContent: 'Resolved' });
+    impl.notifyUser(notification);
+    expect(store.getState().server.notifications).toEqual([notification]);
   });
 
   it('playerPropertiesChanged dispatches a GameActions action when playerProperties is set', () => {
