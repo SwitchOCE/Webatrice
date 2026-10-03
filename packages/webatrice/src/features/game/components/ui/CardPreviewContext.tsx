@@ -35,6 +35,15 @@ export interface CardPreviewActions {
   setFocusedCard: (card: PreviewCard | null) => void;
   openBigPreview: (card: PreviewCard) => void;
   closeBigPreview: () => void;
+  /** Show a card in the card-info pane until the hovered card changes
+   *  (desktop's cardInfoRequested, e.g. from "View related cards"). */
+  showCardInfo: (card: PreviewCard) => void;
+}
+
+/** One showCardInfo call. A fresh object per call, so asking for the same
+ *  card twice still notifies the pane. */
+export interface CardInfoRequest {
+  card: PreviewCard;
 }
 
 export interface CardPreviewStore extends CardPreviewActions {
@@ -42,12 +51,14 @@ export interface CardPreviewStore extends CardPreviewActions {
   /** Focused card, else hovered card. */
   getPreviewCard: () => PreviewCard | null;
   getBigPreviewCard: () => PreviewCard | null;
+  getCardInfoRequest: () => CardInfoRequest | null;
 }
 
 export function createCardPreviewStore(): CardPreviewStore {
   let hovered: PreviewCard | null = null;
   let focused: PreviewCard | null = null;
   let big: PreviewCard | null = null;
+  let infoRequest: CardInfoRequest | null = null;
   const listeners = new Set<() => void>();
   const emit = () => listeners.forEach((l) => l());
 
@@ -60,6 +71,7 @@ export function createCardPreviewStore(): CardPreviewStore {
     },
     getPreviewCard: () => focused ?? hovered,
     getBigPreviewCard: () => big,
+    getCardInfoRequest: () => infoRequest,
     setHoveredCard: (card) => {
       if (card !== hovered) {
         hovered = card;
@@ -81,6 +93,10 @@ export function createCardPreviewStore(): CardPreviewStore {
         big = null;
         emit();
       }
+    },
+    showCardInfo: (card) => {
+      infoRequest = { card };
+      emit();
     },
   };
 }
@@ -108,6 +124,7 @@ const NOOP_ACTIONS: CardPreviewActions = {
   setFocusedCard: () => {},
   openBigPreview: () => {},
   closeBigPreview: () => {},
+  showCardInfo: () => {},
 };
 
 const noSubscription = () => () => {};
@@ -132,4 +149,10 @@ export function useCardPreview(): PreviewCard | null {
 export function useBigPreviewCard(): PreviewCard | null {
   const store = useContext(CardPreviewContext);
   return useSyncExternalStore(store?.subscribe ?? noSubscription, store?.getBigPreviewCard ?? noCard);
+}
+
+/** The latest card-info request (see showCardInfo), or null before the first. */
+export function useCardInfoRequest(): CardInfoRequest | null {
+  const store = useContext(CardPreviewContext);
+  return useSyncExternalStore(store?.subscribe ?? noSubscription, store?.getCardInfoRequest ?? noCard);
 }

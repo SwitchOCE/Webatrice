@@ -6,7 +6,8 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
-import { buildSeatGameState, cardEl, type SeatGameSpec } from './__test-utils__/seatFixtures';
+import { lookupCard, lookupCards } from '../../services/cards/cardCatalog';
+import { buildSeatGameState, cardEl, chooseMenuPath, openContextMenu, type SeatGameSpec } from './__test-utils__/seatFixtures';
 import Game from './Game';
 
 vi.mock('../../hooks/useSettings');
@@ -98,5 +99,37 @@ describe('Game card preview', () => {
 
     unmount();
     expect(document.querySelector('.z-\\[1400\\]')).toBeNull();
+  });
+  it('"View related cards" shows the relation in the preview and sends nothing', async () => {
+    vi.mocked(lookupCard).mockImplementation(async (name: string) => ({
+      found: true,
+      source: 'dexie',
+      name,
+      printings: [],
+      related: name === 'Lightning Bolt'
+        ? [
+          { name: 'Spark Elemental', origin: 'related' },
+          { name: 'Missing Card', origin: 'reverse-related' },
+        ]
+        : undefined,
+    }));
+    vi.mocked(lookupCards).mockImplementation(async (inputs) =>
+      new Map(inputs.map((i) => {
+        const name = typeof i === 'string' ? i : i.name;
+        return [name, { found: name === 'Spark Elemental', source: 'dexie', name, printings: [] }];
+      })));
+    const webClient = createMockWebClient();
+    renderWithProviders(<Game />, { preloadedState: buildSeatGameState(SPEC), webClient });
+    await act(async () => {});
+
+    openContextMenu(cardEl(BOLT.id, 'battlefield'));
+    chooseMenuPath('View related cards', 'Spark Elemental');
+
+    expect(previewImages().map((img) => img.getAttribute('src'))).toEqual([
+      expect.stringContaining(`exact=${encodeURIComponent('Spark Elemental')}`),
+    ]);
+    for (const send of Object.values(webClient.request.game)) {
+      expect(send).not.toHaveBeenCalled();
+    }
   });
 });
