@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
-import { X, Check, ChevronDown } from 'lucide-react';
+import { useEffect, useId, useMemo, useState, type ReactNode } from 'react';
+import { Check, ChevronDown } from 'lucide-react';
 
 import { rooms, type GameFilters } from '@cockatrice/datatrice';
 import { GametypeMap } from '@cockatrice/datatrice';
+import { DialogShell } from '@app/dialogs';
 
 const SECONDARY_BUTTON_CLASS =
   'px-4 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary '
@@ -51,19 +51,7 @@ export default function FilterGamesDialog({
     }
   }, [isOpen, initialFilters]);
 
-  // Close on Escape.
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onCancel();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, onCancel]);
+  const formId = useId();
 
   const gameTypes = useMemo(
     () => Object.entries(gametypeMap).map(([id, name]) => ({ id: Number(id), name })),
@@ -100,187 +88,155 @@ export default function FilterGamesDialog({
     setCreatorNamesText('');
   };
 
-  if (!isOpen) {
-    return null;
-  }
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Filter games"
-    >
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
-        onClick={onCancel}
-      />
-
-      {/* Card */}
-      <div
-        className={[
-          'relative z-10 w-full max-w-lg max-h-[90vh] flex flex-col rounded-xl',
-          'bg-bg-surface border border-border-subtle shadow-glow overflow-hidden',
-        ].join(' ')}
-      >
-        <header className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-border-subtle">
-          <h2 className="font-modern text-lg font-semibold text-text-primary">Filter games</h2>
+  return (
+    <DialogShell
+      isOpen={isOpen}
+      handleClose={onCancel}
+      title="Filter games"
+      maxWidth="max-w-lg"
+      footer={(
+        <>
+          <button
+            type="button"
+            onClick={handleReset}
+            className={SECONDARY_BUTTON_CLASS}
+          >
+            Reset
+          </button>
           <button
             type="button"
             onClick={onCancel}
-            className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"
-            title="Close"
-            aria-label="Close"
+            className={SECONDARY_BUTTON_CLASS}
           >
-            <X size={16} />
+            Cancel
           </button>
-        </header>
+          <button
+            type="submit"
+            form={formId}
+            className={[
+              'px-4 py-1.5 rounded-md text-sm font-semibold bg-accent',
+              'text-white hover:bg-accent-hover shadow-glow transition-colors',
+            ].join(' ')}
+          >
+            Apply
+          </button>
+        </>
+      )}
+    >
+      <form id={formId} onSubmit={handleSubmit} className="space-y-4">
+        <TextInput
+          label="Game description contains"
+          value={form.gameNameFilter}
+          onChange={(v) => update('gameNameFilter', v)}
+          autoFocus
+        />
+        <TextInput
+          label="Creator names (comma-separated)"
+          value={creatorNamesText}
+          onChange={setCreatorNamesText}
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <NumberInput
+            label="Min players"
+            value={form.maxPlayersFilterMin}
+            onChange={(v) => update('maxPlayersFilterMin', v)}
+            min={0}
+            max={99}
+          />
+          <NumberInput
+            label="Max players"
+            value={form.maxPlayersFilterMax}
+            onChange={(v) => update('maxPlayersFilterMax', v)}
+            min={0}
+            max={99}
+          />
+        </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col min-h-0 flex-1">
-          <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-4">
-            <TextInput
-              label="Game description contains"
-              value={form.gameNameFilter}
-              onChange={(v) => update('gameNameFilter', v)}
-              autoFocus
-            />
-            <TextInput
-              label="Creator names (comma-separated)"
-              value={creatorNamesText}
-              onChange={setCreatorNamesText}
-            />
-            <div className="grid grid-cols-2 gap-3">
-              <NumberInput
-                label="Min players"
-                value={form.maxPlayersFilterMin}
-                onChange={(v) => update('maxPlayersFilterMin', v)}
-                min={0}
-                max={99}
-              />
-              <NumberInput
-                label="Max players"
-                value={form.maxPlayersFilterMax}
-                onChange={(v) => update('maxPlayersFilterMax', v)}
-                min={0}
-                max={99}
-              />
-            </div>
+        <SelectInput
+          label="Max age"
+          value={form.maxGameAgeSeconds}
+          onChange={(v) => update('maxGameAgeSeconds', v)}
+          options={MAX_AGE_OPTIONS.map((o) => ({ value: o.seconds, label: o.label }))}
+        />
 
-            <SelectInput
-              label="Max age"
-              value={form.maxGameAgeSeconds}
-              onChange={(v) => update('maxGameAgeSeconds', v)}
-              options={MAX_AGE_OPTIONS.map((o) => ({ value: o.seconds, label: o.label }))}
-            />
+        {gameTypes.length > 0 && (
+          <Section title="Game types">
+            {gameTypes.map(({ id, name }) => (
+              <Checkbox
+                key={id}
+                label={name}
+                checked={form.gameTypeFilter.includes(id)}
+                onChange={() => toggleGameType(id)}
+              />
+            ))}
+          </Section>
+        )}
 
-            {gameTypes.length > 0 && (
-              <Section title="Game types">
-                {gameTypes.map(({ id, name }) => (
-                  <Checkbox
-                    key={id}
-                    label={name}
-                    checked={form.gameTypeFilter.includes(id)}
-                    onChange={() => toggleGameType(id)}
-                  />
-                ))}
-              </Section>
-            )}
+        <Section title="Hide">
+          <Checkbox
+            label="Hide full games"
+            checked={form.hideFullGames}
+            onChange={(c) => update('hideFullGames', c)}
+          />
+          <Checkbox
+            label="Hide games that started"
+            checked={form.hideGamesThatStarted}
+            onChange={(c) => update('hideGamesThatStarted', c)}
+          />
+          <Checkbox
+            label="Hide password-protected games"
+            checked={form.hidePasswordProtectedGames}
+            onChange={(c) => update('hidePasswordProtectedGames', c)}
+          />
+          <Checkbox
+            label="Hide buddies-only games"
+            checked={form.hideBuddiesOnlyGames}
+            onChange={(c) => update('hideBuddiesOnlyGames', c)}
+          />
+          <Checkbox
+            label="Hide games created by ignored users"
+            checked={form.hideIgnoredUserGames}
+            onChange={(c) => update('hideIgnoredUserGames', c)}
+          />
+          <Checkbox
+            label="Hide games not created by buddies"
+            checked={form.hideNotBuddyCreatedGames}
+            onChange={(c) => update('hideNotBuddyCreatedGames', c)}
+          />
+          <Checkbox
+            label="Hide open-decklist games"
+            checked={form.hideOpenDecklistGames}
+            onChange={(c) => update('hideOpenDecklistGames', c)}
+          />
+        </Section>
 
-            <Section title="Hide">
-              <Checkbox
-                label="Hide full games"
-                checked={form.hideFullGames}
-                onChange={(c) => update('hideFullGames', c)}
-              />
-              <Checkbox
-                label="Hide games that started"
-                checked={form.hideGamesThatStarted}
-                onChange={(c) => update('hideGamesThatStarted', c)}
-              />
-              <Checkbox
-                label="Hide password-protected games"
-                checked={form.hidePasswordProtectedGames}
-                onChange={(c) => update('hidePasswordProtectedGames', c)}
-              />
-              <Checkbox
-                label="Hide buddies-only games"
-                checked={form.hideBuddiesOnlyGames}
-                onChange={(c) => update('hideBuddiesOnlyGames', c)}
-              />
-              <Checkbox
-                label="Hide games created by ignored users"
-                checked={form.hideIgnoredUserGames}
-                onChange={(c) => update('hideIgnoredUserGames', c)}
-              />
-              <Checkbox
-                label="Hide games not created by buddies"
-                checked={form.hideNotBuddyCreatedGames}
-                onChange={(c) => update('hideNotBuddyCreatedGames', c)}
-              />
-              <Checkbox
-                label="Hide open-decklist games"
-                checked={form.hideOpenDecklistGames}
-                onChange={(c) => update('hideOpenDecklistGames', c)}
-              />
-            </Section>
-
-            <Section title="Spectator filters">
-              <Checkbox
-                label="Show only games where spectators can watch"
-                checked={form.showOnlyIfSpectatorsCanWatch}
-                onChange={(c) => update('showOnlyIfSpectatorsCanWatch', c)}
-              />
-              <Checkbox
-                label="Show games where spectators need a password"
-                checked={form.showSpectatorPasswordProtected}
-                onChange={(c) => update('showSpectatorPasswordProtected', c)}
-                disabled={!form.showOnlyIfSpectatorsCanWatch}
-              />
-              <Checkbox
-                label="Show only games where spectators can chat"
-                checked={form.showOnlyIfSpectatorsCanChat}
-                onChange={(c) => update('showOnlyIfSpectatorsCanChat', c)}
-                disabled={!form.showOnlyIfSpectatorsCanWatch}
-              />
-              <Checkbox
-                label="Show only games where spectators see hands"
-                checked={form.showOnlyIfSpectatorsCanSeeHands}
-                onChange={(c) => update('showOnlyIfSpectatorsCanSeeHands', c)}
-                disabled={!form.showOnlyIfSpectatorsCanWatch}
-              />
-            </Section>
-          </div>
-
-          <footer className="shrink-0 flex items-center justify-end gap-2 px-5 py-3 border-t border-border-subtle bg-bg-surface">
-            <button
-              type="button"
-              onClick={handleReset}
-              className={SECONDARY_BUTTON_CLASS}
-            >
-              Reset
-            </button>
-            <button
-              type="button"
-              onClick={onCancel}
-              className={SECONDARY_BUTTON_CLASS}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className={[
-                'px-4 py-1.5 rounded-md text-sm font-semibold bg-accent',
-                'text-white hover:bg-accent-hover shadow-glow transition-colors',
-              ].join(' ')}
-            >
-              Apply
-            </button>
-          </footer>
-        </form>
-      </div>
-    </div>,
-    document.body,
+        <Section title="Spectator filters">
+          <Checkbox
+            label="Show only games where spectators can watch"
+            checked={form.showOnlyIfSpectatorsCanWatch}
+            onChange={(c) => update('showOnlyIfSpectatorsCanWatch', c)}
+          />
+          <Checkbox
+            label="Show games where spectators need a password"
+            checked={form.showSpectatorPasswordProtected}
+            onChange={(c) => update('showSpectatorPasswordProtected', c)}
+            disabled={!form.showOnlyIfSpectatorsCanWatch}
+          />
+          <Checkbox
+            label="Show only games where spectators can chat"
+            checked={form.showOnlyIfSpectatorsCanChat}
+            onChange={(c) => update('showOnlyIfSpectatorsCanChat', c)}
+            disabled={!form.showOnlyIfSpectatorsCanWatch}
+          />
+          <Checkbox
+            label="Show only games where spectators see hands"
+            checked={form.showOnlyIfSpectatorsCanSeeHands}
+            onChange={(c) => update('showOnlyIfSpectatorsCanSeeHands', c)}
+            disabled={!form.showOnlyIfSpectatorsCanWatch}
+          />
+        </Section>
+      </form>
+    </DialogShell>
   );
 }
 
