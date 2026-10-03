@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   User,
   Crown,
@@ -10,9 +11,13 @@ import {
   FastForward,
   LogOut,
   Eye,
+  Lock,
+  Unlock,
+  Undo2,
 } from 'lucide-react';
 
 import { AuthGuard } from '@app/components';
+import { ConfirmDialog } from '@app/dialogs';
 import { Layout } from '@app/feature-wrappers/layout';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { rooms, server } from '@cockatrice/datatrice';
@@ -25,6 +30,8 @@ import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat } from '@app/types';
 import { useCurrentGame } from './hooks/useCurrentGame';
 import ChatLog from './components/ChatLog/ChatLog';
 import { GameIdProvider } from './components/ui/GameIdContext';
+import LobbyDeckView from './components/lobby/LobbyDeckView';
+import { useLobbyDeckView } from './components/lobby/useLobbyDeckView';
 
 /**
  * Pre-game lobby. Renders after a player joins a game that hasn't
@@ -32,17 +39,22 @@ import { GameIdProvider } from './components/ui/GameIdContext';
  * screen with a persistent full-page view where:
  *
  *   • Every player's seat is visible with their ready + deck state
- *   • The local user picks a deck (from My Decks OR via .cod upload)
- *     and readies up
- *   • The host can force-start by kicking unready players — Cockatrice
- *     has no explicit force-start command, so we lean on Command_
- *     KickFromGame to trim the seat list. Once no unready players
- *     remain, the server auto-starts the game.
+ *   • The local seat follows desktop's DeckViewContainer states
+ *     (deck_view_container.cpp): with no deck loaded it picks one
+ *     (from My Decks OR via .cod upload); once the server returns the
+ *     deck it shows the deck view with Unload deck / Ready to start /
+ *     Sideboard locked|unlocked / Force start (host). The sideboard
+ *     plan is edited in the deck view while the sideboard is unlocked
+ *     and the player isn't ready. The same view returns between games.
  *
  * Protocol calls used (via sockatrice):
  *   • deckSelect(gameId, { deckId })      — pick from server-stored deck
  *   • deckSelect(gameId, { deck: xml })   — upload a .cod XML string
  *   • readyStart(gameId, { ready })       — toggle self ready
+ *   • readyStart(gameId, { ready: true, forceStart: true })
+ *                                         — host force start; the server
+ *                                           kicks unready players and starts
+ *   • setSideboardPlan / setSideboardLock — pre-game sideboarding
  *   • kickFromGame(gameId, { playerId })  — host-only, removes a player
  *   • leaveGame(gameId)                   — self leave
  */
@@ -117,6 +129,7 @@ interface DeckSummary {
 const deckSummaryCache = new Map<number, DeckSummary>();
 
 export default function GameLobby({ gameId }: { gameId: number }) {
+  const { t } = useTranslation();
   const webClient = useWebClient();
   const leaveGame = useLeaveGame();
   const { game, localPlayer, isHost, isSpectator, isJudge } = useCurrentGame(gameId);
@@ -296,15 +309,10 @@ export default function GameLobby({ gameId }: { gameId: number }) {
     reader.readAsText(file);
   };
 
-  const handleReadyToggle = () => {
-    if (!localPlayer) {
-      return;
-    }
-    const newReady = !localPlayer.properties.readyStart;
-    webClient.request.game.readyStart(gameId, { ready: newReady });
-    // No gameSay: Cockatrice emits its own event
-    // ("X is ready to start the game.") on the readyStart property update.
-  };
+  // Deck-loaded state, sideboard plan and the ready/lock toggles. No
+  // gameSay on ready: Cockatrice emits its own event ("X is ready to start
+  // the game.") on the readyStart property update.
+  const deckView = useLobbyDeckView(gameId);
 
   // Remember which local deck the player just picked so the local
   // player row can show its bracket badge. Cockatrice broadcasts each
@@ -325,9 +333,6 @@ export default function GameLobby({ gameId }: { gameId: number }) {
   const myDeckName =
     myPickedDeckId != null ? summaryByDeckId.get(myPickedDeckId)?.name : undefined;
 
-  // Force-start proxy: kick every non-ready seated (non-spectator,
-  // non-judge, non-host) player. Once no unready players remain,
-  // Servatrice auto-starts the game. Confirmation gate below.
   const seatedPlayers = useMemo(() => {
     if (!game) {
       return [];
@@ -338,25 +343,15 @@ export default function GameLobby({ gameId }: { gameId: number }) {
         !!p && !p.properties.spectator && !p.properties.judge,
       );
   }, [game]);
-  const unreadyPlayers = seatedPlayers.filter((p) => !p.properties.readyStart);
-  const [forceStartPending, setForceStartPending] = useState(false);
-  const handleForceStart = () => {
-    if (!isHost) {
-      return;
-    }
-    if (!forceStartPending) {
-      setForceStartPending(true);
-      return;
-    }
-    // Confirmed — kick every unready player. If the host is unready
-    // themselves it's excluded; the host has to ready up first.
-    for (const p of unreadyPlayers) {
-      if (p.properties.playerId === game?.localPlayerId) {
-        continue;
-      }
-      webClient.request.game.kickFromGame(gameId, { playerId: p.properties.playerId });
-    }
-    setForceStartPending(false);
+
+  // Force start (desktop DeckViewContainer::forceStart): after a Yes/No
+  // confirmation the host sends ONE Command_ReadyStart{ready, force_start}.
+  // Servatrice readies the host, kicks every unready player and starts the
+  // game atomically (Server_AbstractPlayer::cmdReadyStart → startGameIfReady(true)).
+  const [forceStartConfirmOpen, setForceStartConfirmOpen] = useState(false);
+  const confirmForceStart = () => {
+    setForceStartConfirmOpen(false);
+    webClient.request.game.readyStart(gameId, { ready: true, forceStart: true });
   };
 
   // Reconnect / stale-state guard. The lobby is only meaningful for
@@ -374,18 +369,15 @@ export default function GameLobby({ gameId }: { gameId: number }) {
     );
   }
 
-  const readyCount = seatedPlayers.filter((p) => p.properties.readyStart).length;
   const totalSeats = game.info.maxPlayers || seatedPlayers.length;
   const emptySeats = Math.max(0, totalSeats - seatedPlayers.length);
-  const iAmReady = !!localPlayer?.properties.readyStart;
   const iAmSeated = !!localPlayer && !isSpectator && !isJudge;
-  const iHaveDeck = !!localPlayer?.properties.deckHash;
 
   return (
     <Layout>
       <AuthGuard />
       <GameIdProvider value={gameId}>
-        <div className="h-full flex bg-bg-base bg-purple-radial">
+        <div className="h-full flex bg-bg-base bg-purple-radial" data-testid="game-lobby">
           <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="max-w-xl mx-auto py-10 px-6 flex flex-col gap-8">
               {/* Header */}
@@ -442,8 +434,8 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                 ))}
               </div>
 
-              {/* Deck selection (only for seated players, only pre-ready) */}
-              {iAmSeated && !iAmReady && (
+              {/* Deck selection — desktop's deck-select state: seated, no deck loaded */}
+              {iAmSeated && !deckView.deckLoaded && (
                 <div className="border-t border-border-strong pt-6 space-y-3">
                   <div className="text-xs font-semibold uppercase tracking-widest text-text-muted text-center">
                   Your deck
@@ -551,25 +543,63 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                 </div>
               )}
 
-              {/* Ready toggle */}
+              {/* Deck-loaded state: deck view + desktop's DeckViewContainer button row */}
+              {iAmSeated && deckView.deckLoaded && deckView.view && (
+                <div className="border-t border-border-strong pt-6 space-y-3">
+                  <div className="text-xs font-semibold uppercase tracking-widest text-text-muted text-center">
+                    Your deck
+                  </div>
+                  <LobbyDeckView
+                    view={deckView.view}
+                    editable={deckView.editable}
+                    onMoveCard={deckView.moveCard}
+                  />
+                  <div className="flex items-center gap-2 justify-center flex-wrap">
+                    <button type="button" onClick={deckView.unloadDeck} className={LOBBY_BUTTON_CLASS}>
+                      <Undo2 size={14} /> {t('GameLobby.action.unloadDeck')}
+                    </button>
+                    {/* Desktop's ToggleButton: green frame when on, red when off. */}
+                    <button
+                      type="button"
+                      onClick={deckView.toggleReady}
+                      aria-pressed={deckView.ready}
+                      className={[LOBBY_BUTTON_CLASS, deckView.ready ? TOGGLE_ON_CLASS : TOGGLE_OFF_CLASS].join(' ')}
+                    >
+                      <CheckCircle2 size={14} /> {t('GameLobby.action.readyStart')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={deckView.toggleSideboardLock}
+                      disabled={deckView.ready}
+                      aria-pressed={!deckView.sideboardLocked}
+                      className={[
+                        LOBBY_BUTTON_CLASS,
+                        deckView.sideboardLocked ? TOGGLE_OFF_CLASS : TOGGLE_ON_CLASS,
+                      ].join(' ')}
+                    >
+                      {deckView.sideboardLocked ? <Lock size={14} /> : <Unlock size={14} />}
+                      {deckView.sideboardLocked
+                        ? t('GameLobby.action.sideboardLocked')
+                        : t('GameLobby.action.sideboardUnlocked')}
+                    </button>
+                    {isHost && (
+                      <button
+                        type="button"
+                        onClick={() => setForceStartConfirmOpen(true)}
+                        className={[LOBBY_BUTTON_CLASS, 'text-warning'].join(' ')}
+                      >
+                        <FastForward size={14} /> {t('GameLobby.action.forceStart')}
+                      </button>
+                    )}
+                  </div>
+                  {deckView.sideboardLocked && !deckView.ready && (
+                    <p className="text-xs text-text-muted text-center">{t('GameLobby.deck.lockedHint')}</p>
+                  )}
+                </div>
+              )}
+
               {iAmSeated && (
-                <div className="flex items-center gap-2 justify-center flex-wrap">
-                  <button
-                    type="button"
-                    onClick={handleReadyToggle}
-                    disabled={!iHaveDeck}
-                    title={iHaveDeck ? undefined : 'Select a deck first'}
-                    className={[
-                      'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold shadow-glow transition-colors',
-                      'disabled:opacity-50 disabled:cursor-not-allowed',
-                      iAmReady
-                        ? 'bg-bg-elevated hover:bg-border-subtle text-text-primary border border-border-strong'
-                        : 'bg-accent hover:bg-accent-hover text-white',
-                    ].join(' ')}
-                  >
-                    {iAmReady && <CheckCircle2 size={14} />}
-                    {iAmReady ? 'Unready' : 'Ready up'}
-                  </button>
+                <div className="flex items-center justify-center">
                   <button
                     type="button"
                     onClick={() => leaveGame(gameId)}
@@ -602,54 +632,6 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                 </div>
               )}
 
-              {/* Host controls — visible whenever at least one player is
-                 ready, regardless of whether the host themselves is
-                 ready and regardless of whether there are unready
-                 players to kick. When there's nothing to kick the
-                 button is a no-op label ("Force start"), but keeping
-                 it visible matches the host's mental model of "I
-                 should always be able to press this". */}
-              {isHost && readyCount >= 1 && (
-                <div className="border-t border-border-strong pt-6 space-y-2">
-                  <div className="text-xs font-semibold uppercase tracking-widest text-text-muted text-center">
-                  Host controls
-                  </div>
-                  <div className="flex items-center justify-center">
-                    <button
-                      type="button"
-                      onClick={handleForceStart}
-                      disabled={unreadyPlayers.length === 0}
-                      className={[
-                        'flex items-center gap-2 px-4 py-2 rounded-md bg-yellow-500/20',
-                        'hover:bg-yellow-500/30 text-warning border border-yellow-500/50',
-                        'text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
-                      ].join(' ')}
-                      title={
-                        unreadyPlayers.length === 0
-                          ? 'Everyone seated is ready — Cockatrice will start the game automatically. '
-                            + 'Force start is only useful when there are unready players to kick.'
-                          : 'Kicks all unready players so Cockatrice auto-starts with whoever is left.'
-                      }
-                    >
-                      <FastForward size={14} />
-                      {unreadyPlayers.length === 0
-                        ? 'Force start'
-                        : forceStartPending
-                          ? `Confirm — kick ${unreadyPlayers.length} unready player${unreadyPlayers.length === 1 ? '' : 's'}?`
-                          : `Force start (${unreadyPlayers.length} unready)`}
-                    </button>
-                    {forceStartPending && (
-                      <button
-                        type="button"
-                        onClick={() => setForceStartPending(false)}
-                        className="ml-2 text-xs text-text-muted hover:text-text-primary"
-                      >
-                      cancel
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           </div>
           {/* Persistent chat log — the shared ChatLog component (same one
@@ -661,10 +643,27 @@ export default function GameLobby({ gameId }: { gameId: number }) {
             <ChatLog />
           </aside>
         </div>
+        <ConfirmDialog
+          isOpen={forceStartConfirmOpen}
+          title={t('GameLobby.forceStart.title')}
+          message={t('GameLobby.forceStart.message')}
+          confirmLabel={t('GameLobby.forceStart.confirm')}
+          cancelLabel={t('GameLobby.forceStart.cancel')}
+          onConfirm={confirmForceStart}
+          onCancel={() => setForceStartConfirmOpen(false)}
+        />
       </GameIdProvider>
     </Layout>
   );
 }
+
+const LOBBY_BUTTON_CLASS = [
+  'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-colors',
+  'bg-bg-elevated hover:bg-border-subtle text-text-primary border-2 border-border-strong',
+  'disabled:opacity-50 disabled:cursor-not-allowed',
+].join(' ');
+const TOGGLE_ON_CLASS = 'border-emerald-500/70';
+const TOGGLE_OFF_CLASS = 'border-red-500/60';
 
 function PlayerRow({
   playerName,
