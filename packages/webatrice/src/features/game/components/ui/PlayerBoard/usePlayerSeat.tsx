@@ -1,48 +1,36 @@
 import { useMemo, useRef } from 'react';
-import { useForkRef } from '@mui/material/utils';
+import { useShortcutHints } from '@app/feature-widgets/shortcuts';
+
 import {
-  layoutStackPile,
+} from '../../../hooks/dialogs/seatPrompts';
+import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
+import { useMoveTopUntil } from '../../../hooks/useMoveTopUntil';
+import { useSeatSelection } from '../../../hooks/useSeatSelection';
+import {
   SEAT_CARD_HEIGHT_PX as CARD_H_PX_BASE,
   SEAT_CARD_WIDTH_PX as CARD_W_PX_BASE,
   STACK_PILE_HORIZONTAL_OFFSET_PX,
 } from '../../battlefield/Battlefield/battlefieldLayout';
-import {
-} from '../../../hooks/dialogs/seatPrompts';
+import { useBattlefieldMenuItems } from '../../battlefield/Battlefield/useBattlefieldMenuItems';
+import { useCardScale } from '../CardScaleContext';
+import { useGameDialogsContext } from '../GameDialogsContext';
+import { useGameSelectionState } from '../GameSelectionContext';
+import { useHandMenuItems } from '../HandZone/useHandMenuItems';
+import { useActiveSeatDrag } from '../SeatDragContext';
+import { useLibraryMenuItems } from '../ZoneStack/useLibraryMenuItems';
+import { usePileMenus } from '../ZoneStack/usePileMenus';
+import { MAX_COUNTER_VALUE } from './counterLimits';
 import type {
   PlayerBoardCommands,
   PlayerBoardModel,
-  PlayerCardViewModel,
 } from './playerBoard.types';
-import { useCardScale } from '../CardScaleContext';
-import { useSeatSelection, type SeatSelection } from '../../../hooks/useSeatSelection';
-import { useMoveTopUntil } from '../../../hooks/useMoveTopUntil';
-import { useGameSelectionState } from '../GameSelectionContext';
-import { useCanActFor } from '../CardVisualStateContext';
-import { SEAT_DROP_PRIORITY, type SeatZone } from '../../../hooks/seatDropPlan';
-import { useActiveSeatDrag, useSeatDragSource, useSeatDropZone, type SeatDragStart } from '../SeatDragContext';
-import { useGameDialogsContext } from '../GameDialogsContext';
-import { useShortcutHints } from '@app/feature-widgets/shortcuts';
-import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
-import { MAX_COUNTER_VALUE } from './counterLimits';
 import { useDrawFlights } from './useDrawFlights';
 import { usePendingArrows } from './usePendingArrows';
 import { useSeatCardMetadata } from './useSeatCardMetadata';
+import { useSeatDnd } from './useSeatDnd';
 import { useSeatMarquee } from './useSeatMarquee';
 import { useSeatPrompts } from './useSeatPrompts';
 import { useSeatShortcutOperations } from './useSeatShortcutOperations';
-import { usePileMenus } from '../ZoneStack/usePileMenus';
-import { useLibraryMenuItems } from '../ZoneStack/useLibraryMenuItems';
-import { useHandMenuItems } from '../HandZone/useHandMenuItems';
-import { useBattlefieldMenuItems } from '../../battlefield/Battlefield/useBattlefieldMenuItems';
-
-/** Seat card shape. Owned by the PlayerBoard seat contract. */
-type HandCard = PlayerCardViewModel;
-
-/** Which zone a drag was initiated from. */
-type DragSourceZone = SeatZone;
-
-/** A marquee selection is always within a single zone. */
-type Selection = SeatSelection;
 
 export type PlayerSeatProps = {
   /** What the seat shows: identity, zones, counters, permissions. */
@@ -191,90 +179,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
   const shortcutHints = useShortcutHints();
 
 
-
-  const startPileDrag = (
-    e: React.PointerEvent<HTMLElement>,
-    card: HandCard,
-    zone: Exclude<DragSourceZone, 'hand' | 'battlefield' | 'stack'>,
-  ) => {
-    seatDragSources[zone]?.(e, [card]);
-  };
-
-  /** True if this specific card is currently part of an active drag.
-   *  Only returns true after the pointer has moved past the threshold —
-   *  a click that never becomes a drag doesn't hide its source. */
-  const isDragging = (id: string, zone: DragSourceZone) =>
-    seatDrag?.zone === zone && seatDrag.cards.some((c) => c.id === id);
-
-  // A press released before the drag threshold (a click). Two readings:
-  //   1. Pending-attach mode: the previous "Attach to card..." menu choice
-  //      set `attachPending`; this click on a battlefield card resolves the
-  //      attach (or cancels if the user clicked the source card again).
-  //   2. Normal click: replace the selection with the clicked card.
-  const releaseCardPress = (zone: DragSourceZone, clickedCardId: string, e: PointerEvent) => {
-    const clickedCardIdNum = Number(clickedCardId);
-    const pending = attachPendingRef.current;
-    if (
-      pending &&
-      zone === 'battlefield' &&
-      Number.isFinite(clickedCardIdNum) &&
-      playerId != null
-    ) {
-      const extras = attachExtraSourceIdsRef.current;
-      const allSources = [pending.sourceCardId, ...extras];
-      if (allSources.includes(clickedCardIdNum)) {
-        // Clicked a source card = cancel. Cockatrice's
-        // ArrowAttachItem does the same via `targetItem == startItem`
-        // short-circuit; we extend to any source in a multi-attach.
-        setAttachPending(null);
-        setAttachExtraSourceIds([]);
-      } else {
-        // Attach every source card to the clicked target. Server
-        // treats each attach independently (no batch wire), so we
-        // loop.
-        for (const sourceCardId of allSources) {
-          targetCommands.attach(sourceCardId, { playerId, cardId: clickedCardIdNum });
-        }
-        setAttachPending(null);
-        setAttachExtraSourceIds([]);
-      }
-    } else if (
-      zone === 'hand' ||
-      zone === 'battlefield' ||
-      zone === 'stack'
-    ) {
-      // Ctrl (Windows/Linux) / ⌘ (Mac) adds to or toggles the
-      // multi-selection instead of replacing it — matches
-      // Cockatrice desktop's `Qt::ControlModifier` branch in
-      // `AbstractCardItem::mousePressEvent` (line 294-295).
-      //
-      // Cockatrice technically allows the selection to span
-      // multiple zones (drag filters back down to same-zone), but
-      // our Selection shape is single-zoned (used to gate drag +
-      // context-menu bulk actions), so Ctrl+Click in a DIFFERENT
-      // zone replaces the selection with a new single-card set
-      // rooted in the clicked zone. Same-zone Ctrl+Click toggles.
-      const isCtrl = e.ctrlKey || e.metaKey;
-      if (isCtrl && selection && selection.zone === zone) {
-        const nextIds = new Set(selection.ids);
-        if (nextIds.has(clickedCardId)) {
-          nextIds.delete(clickedCardId);
-        } else {
-          nextIds.add(clickedCardId);
-        }
-        if (nextIds.size === 0) {
-          setSelection(null);
-        } else {
-          setSelection({ zone, ids: nextIds });
-        }
-      } else {
-        setSelection({
-          zone,
-          ids: new Set([clickedCardId]),
-        });
-      }
-    }
-  };
 
   const { marquee, onPointerDownBox } = useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelection, clearAllSelection });
 
@@ -441,136 +345,38 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     targetCommands,
   });
 
-  // ---- Seat drag and drop (useGameDnd) ------------------------------------
-  // The game's DnD coordinator drives these drags; this seat says what is
-  // dragged and, for each zone it renders, where a drop on it lands (it owns
-  // the zone's layout).
-
-  // Desktop starts a card drag only for the local player's cards, or any
-  // card for a judge (CardItem::mouseMoveEvent, getLocalOrJudge). On any
-  // other seat a press still selects but never drags.
-  const canMoveSeatCards = useCanActFor()(seatId);
-  const handDragSource = useSeatDragSource(`seat-${seatId}-hand`, {
-    seatPlayerId: seatId,
-    zone: 'hand',
-    canDrag: canMoveSeatCards,
+  const {
+    startPileDrag,
+    isDragging,
+    startSeatCardDrag,
+    stackZoneRef,
+    handZoneRef,
+    libraryZoneRef,
+    graveyardZoneRef,
+    exileZoneRef,
+  } = useSeatDnd({
+    seatId,
+    playerId,
+    seatDrag,
+    selection,
+    setSelection,
+    attachPendingRef,
+    attachExtraSourceIdsRef,
+    setAttachPending,
+    setAttachExtraSourceIds,
+    targetCommands,
+    stackDisplayList,
+    handDisplayList,
+    boxRef,
+    handRef,
+    stackRef,
+    libraryRef,
+    graveyardRef,
+    exileRef,
+    CARD_W_PX,
+    CARD_H_PX,
+    STACK_HOFFSET_PX,
   });
-  const stackDragSource = useSeatDragSource(`seat-${seatId}-stack`, {
-    seatPlayerId: seatId,
-    zone: 'stack',
-    canDrag: canMoveSeatCards,
-  });
-  const graveyardDragSource = useSeatDragSource(`seat-${seatId}-graveyard`, {
-    seatPlayerId: seatId,
-    zone: 'graveyard',
-    canDrag: canMoveSeatCards,
-  });
-  const exileDragSource = useSeatDragSource(`seat-${seatId}-exile`, {
-    seatPlayerId: seatId,
-    zone: 'exile',
-    canDrag: canMoveSeatCards,
-  });
-  const battlefieldDragSource = useSeatDragSource(`seat-${seatId}-battlefield`, {
-    seatPlayerId: seatId,
-    canDrag: canMoveSeatCards,
-    zone: 'battlefield',
-  });
-  // Hidden zones: the library pile drags its top card (position 0). The
-  // zone views (ZoneViewDialog) are drag sources of their own.
-  const libraryDragSource = useSeatDragSource(`seat-${seatId}-library`, {
-    seatPlayerId: seatId,
-    zone: 'library',
-    canDrag: canMoveSeatCards,
-  });
-  const seatDragSources: Partial<Record<DragSourceZone, SeatDragStart>> = {
-    battlefield: battlefieldDragSource,
-    library: libraryDragSource,
-    hand: handDragSource,
-    stack: stackDragSource,
-    graveyard: graveyardDragSource,
-    exile: exileDragSource,
-  };
-
-  // A press on a card in the selection drags the whole selection, in display
-  // order; anything else drags just the card (the selection is only touched
-  // once the gesture ends). Both seats take part: clicking selects on any
-  // battlefield. A click on a single card goes to releaseCardPress.
-  const startSeatCardDrag = (
-    e: React.PointerEvent<HTMLElement>,
-    card: HandCard,
-    zone: Selection['zone'],
-    zoneCards: readonly HandCard[],
-  ) => {
-    const start = seatDragSources[zone];
-    if (!start) {
-      return;
-    }
-    if (selection && selection.zone === zone && selection.ids.has(card.id)) {
-      const group = zoneCards.filter((c) => selection.ids.has(c.id));
-      start(e, group, group.length === 1 ? (up) => releaseCardPress(zone, card.id, up) : undefined);
-    } else {
-      start(e, [card], (up) => releaseCardPress(zone, card.id, up));
-    }
-  };
-
-  const stackDropRef = useSeatDropZone(`seat-${seatId}-stack`, {
-    seatPlayerId: seatId,
-    priority: SEAT_DROP_PRIORITY.stack,
-    // Insertion index against the pile the user sees: cards dragged out of
-    // the stack are hidden, so the pile re-flows without them.
-    resolve: ({ pointer }, source) => {
-      const stackEl = stackRef.current;
-      if (!stackEl) {
-        return null;
-      }
-      const rect = stackEl.getBoundingClientRect();
-      const layoutCount = stackDisplayList.length - (source.zone === 'stack' ? source.cards.length : 0);
-      const positions = layoutStackPile(layoutCount, rect.width, rect.height, CARD_W_PX, CARD_H_PX, STACK_HOFFSET_PX);
-      const index = positions.filter((pos) => pointer.y > rect.top + pos.y + CARD_H_PX / 2).length;
-      return { zone: 'stack', index };
-    },
-  });
-  const handDropRef = useSeatDropZone(`seat-${seatId}-hand`, {
-    seatPlayerId: seatId,
-    priority: SEAT_DROP_PRIORITY.hand,
-    // Insertion index = hand cards whose centre is left of the pointer,
-    // not counting the cards being dragged: the post-removal position.
-    resolve: ({ pointer }, source) => {
-      const dragged = new Set(source.zone === 'hand' ? source.cards.map((c) => c.id) : []);
-      let index = 0;
-      boxRef.current?.querySelectorAll<HTMLElement>('[data-card][data-zone="hand"]').forEach((el) => {
-        const id = el.dataset.cardId;
-        if (!id || dragged.has(id)) {
-          return;
-        }
-        const r = el.getBoundingClientRect();
-        if (pointer.x > r.left + r.width / 2) {
-          index++;
-        }
-      });
-      return { zone: 'hand', index, order: handDisplayList.map((c) => c.id) };
-    },
-  });
-  const libraryDropRef = useSeatDropZone(`seat-${seatId}-library`, {
-    seatPlayerId: seatId,
-    priority: SEAT_DROP_PRIORITY.library,
-    resolve: () => ({ zone: 'library' }),
-  });
-  const graveyardDropRef = useSeatDropZone(`seat-${seatId}-graveyard`, {
-    seatPlayerId: seatId,
-    priority: SEAT_DROP_PRIORITY.graveyard,
-    resolve: () => ({ zone: 'graveyard' }),
-  });
-  const exileDropRef = useSeatDropZone(`seat-${seatId}-exile`, {
-    seatPlayerId: seatId,
-    priority: SEAT_DROP_PRIORITY.exile,
-    resolve: () => ({ zone: 'exile' }),
-  });
-  const stackZoneRef = useForkRef(stackRef, stackDropRef);
-  const handZoneRef = useForkRef(handRef, handDropRef);
-  const libraryZoneRef = useForkRef(libraryRef, libraryDropRef);
-  const graveyardZoneRef = useForkRef(graveyardRef, graveyardDropRef);
-  const exileZoneRef = useForkRef(exileRef, exileDropRef);
 
   return {
     CARD_H_PX,
