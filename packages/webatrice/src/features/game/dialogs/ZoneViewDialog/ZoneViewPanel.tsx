@@ -671,7 +671,7 @@ export default function ZoneViewPanel({
     <div
       className="fixed inset-0 z-[1000] flex items-center justify-center p-6 pointer-events-none"
       // React portals still bubble synthetic events up the React tree,
-      // which would let a pointerdown here reach the ancestor PlayerBox
+      // which would let a pointerdown here reach the ancestor seat
       // and start a marquee behind the dialog. Stop propagation at the
       // portal boundary for both mouse (backdrop close) and pointer
       // (drag start / card interactions).

@@ -14,7 +14,7 @@ import { ArrowColor, rgbaToCss } from '@app/types';
 import { makeCardKey, makePlayerKey, useCardRegistry } from '../../../utils/CardRegistry/CardRegistryContext';
 
 // Fallback DOM lookup for consumers that don't wire the CardRegistry
-// (e.g. the ported fancy PlayerBox). We tag battlefield cards with
+// (e.g. the seat, PlayerBoard). We tag battlefield cards with
 // `data-card-id`, `data-card-owner`, `data-card-zone` and player-target
 // hitboxes with `data-arrow-target-*` — a plain querySelector finds them.
 // CSS.escape guards against zone strings with punctuation.

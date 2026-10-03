@@ -1,5 +1,5 @@
 // Shared fixtures for the game-seat characterization specs
-// (PlayerBox.characterization, GameBoardCell, Game.dragdrop, Game.orchestration).
+// (PlayerBoard.characterization, GameBoardCell, Game.dragdrop, Game.orchestration).
 //
 // The seat surface is driven end-to-end through real Redux state, so these
 // helpers build a `games` slice with explicit per-zone contents and the
@@ -290,7 +290,7 @@ export function layoutBoxes(boxes: Array<[(el: Element) => boolean, Box]>) {
 }
 
 /** Presses on `source` at `from`, moves to `to` and releases there — the
- *  PlayerBox pointer drag (window-level pointermove/pointerup listeners). */
+ *  seat pointer drag (window-level pointermove/pointerup listeners). */
 export function pointerDrag(source: Element, from: { x: number; y: number }, to: { x: number; y: number }) {
   act(() => {
     fireEvent.pointerDown(source, { button: 0, clientX: from.x, clientY: from.y });

@@ -236,7 +236,7 @@ function GameBoard() {
                                       ))}
                                     </div>
                                   )}
-                                  {/* Bottom-bar HandZone removed: each PlayerBox now
+                                  {/* Bottom-bar HandZone removed: each seat now
                               renders its own hand inline. Kept the space so
                               downstream layout hooks that watched the empty
                               bottom bar don't recompute their heights. */}

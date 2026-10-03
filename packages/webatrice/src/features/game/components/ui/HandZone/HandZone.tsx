@@ -359,7 +359,7 @@ export default function HandZone() {
                     height: CARD_HEIGHT,
                     borderRadius: CARD_CORNER_RADIUS,
                     // Only rotate 180° when this player's hand renders
-                    // at the TOP of their PlayerBox (handOnTop). A
+                    // at the TOP of their seat (handOnTop). A
                     // bottom-row opponent in a 4-player layout has
                     // flipHandCardBacks=true (the per-count flag) but
                     // handOnTop=false — their hand is at the bottom of

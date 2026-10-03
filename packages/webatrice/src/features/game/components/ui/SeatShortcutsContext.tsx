@@ -7,7 +7,7 @@ import type { ActionId } from '@app/feature-widgets/shortcuts';
  * useGameShortcuts.
  *
  * Most of these act on the local seat's selection, prompts or zones, which the
- * PlayerBox façade still owns. The local seat publishes the operations here;
+ * seat (useSeatShortcutOperations) owns. The local seat publishes the operations here;
  * useGameShortcuts owns every key binding and calls through. Only one seat
  * publishes (the local player's), so a keystroke can never reach two seats,
  * and a spectator without a seat leaves the browser default alone.

@@ -132,10 +132,10 @@ function buildItems(
 }
 
 // Local rendering copy of ContextMenu's popup — kept in this file so
-// this component stays self-contained (the PlayerBox ContextMenu is
+// this component stays self-contained (the seat's ContextMenu is
 // a wrapper primitive that owns its own right-click and children,
 // which isn't what we need here). Uses the same viewport-clamped
-// popup hook the PlayerBox menu uses so behaviour stays consistent.
+// popup hook the seat menu uses so behaviour stays consistent.
 function PlayerListContextMenu({
   anchor,
   target,

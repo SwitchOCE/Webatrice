@@ -7,7 +7,7 @@ const AVATAR_DATA_URI_PREFIX = 'data:image/png;base64,';
  * can fall back to a placeholder.
  *
  * Extracted from Player.tsx so both the player-details page and the
- * in-game PlayerBox (life-total background) can share the same
+ * in-game seat (life-total background) can share the same
  * conversion.
  */
 export function avatarSrc(bmp: Uint8Array | undefined | null): string | null {

@@ -21,7 +21,7 @@ export function usePendingArrows({ playerId, targetCommands }: UsePendingArrowsA
   // from a battlefield card's context menu. Next click on a battlefield
   // card resolves the attach; Escape or clicking the source cancels.
   // Numeric `cardId` because Command_AttachCard needs the wire id, not
-  // the string HandCard id. Only set on the isSelf PlayerBox (opponents
+  // the string HandCard id. Only set on the local seat (opponents
   // can't attach FROM their own cards via our UI). The ref is kept in
   // sync so the drag/pointerup useEffect closure — which captures
   // `drag` and only re-registers when it changes — can still read the

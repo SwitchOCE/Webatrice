@@ -189,7 +189,7 @@ export function useSeatCardMetadata({ isSelf, deckCards, battlefieldCards }: Use
   }, [isSelf, deckCards]);
 
   // Fetch Scryfall metadata for cards currently on the battlefield
-  // — runs for BOTH self and opponent PlayerBoxes. The initial deck-
+  // — runs for BOTH self and opponent seats. The initial deck-
   // driven lookup above (gated to `isSelf` because opponent decks
   // aren't wired) only ever populates the local player's own card
   // names, so opponent creatures had no printed-PT fallback and

@@ -65,7 +65,7 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // Cockatrice's `aMoveToBottomLibrary` (Ctrl+B) — moves the selection
   // to the bottom of the local player's library. Uses `x: 0` with
   // `isReversed: true`, matching the menu's "Bottom of library" path
-  // (see PlayerBox onMoveToBottom).
+  // (the card menu's Move to > Bottom of library).
   'game.moveSelectedToLibraryBottom': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyB'] },
   // Cockatrice's `aSetPT` (Ctrl+P) — opens the "Set Power/Toughness"
   // modal against the selection. First-selected card drives the

@@ -5,7 +5,7 @@ import type { Coordinates, PointerGestureData } from './gamePointerSensor';
 
 /**
  * Drag data, drop targets and the drop → Command_MoveCard plan for the seat
- * (PlayerBox) surfaces. useGameDnd coordinates every gesture; the seat only
+ * (PlayerBoard) surfaces. useGameDnd coordinates every gesture; the seat only
  * says what is being dragged and, for each zone it renders, where in that
  * zone a drop lands, because it owns that zone's layout.
  */
