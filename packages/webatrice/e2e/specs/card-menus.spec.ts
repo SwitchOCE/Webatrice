@@ -72,7 +72,7 @@ test('"View related cards" shows the related card in the card-info pane', async 
   await game.chooseCardMenuPath(game.cardsOnBoard().first(), /^view related cards$/i, /^human$/i);
 
   // The pane shows the token by its Scryfall id (from the parent's all_parts).
-  await expect(game.rightPanel.locator('img[src*="00000000-0000-4000-8000-0000000e2e03"], img[src*="Human"]').first())
+  await expect(game.rightPanel.locator('img[src*="00000000-0000-4000-8000-0000000e2e03"]').first())
     .toBeVisible({ timeout: 15_000 });
 
   await game.leaveGame();
