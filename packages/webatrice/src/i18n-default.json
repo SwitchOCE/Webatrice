@@ -2523,6 +2523,10 @@
     "showTotalSelectionCount": {
       "label": "Show total selection count"
     },
+    "keepGameChatFocus": {
+      "label": "Keep game chat focused when clicking in game (Note: disables card view search bar)",
+      "description": "Clicking cards and the table leaves the focus on the game chat, so you can keep typing."
+    },
     "notificationsEnabled": {
       "label": "Mark the browser tab when something happens in your game",
       "description": "While Webatrice is in a background tab, its title is marked until you come back."

@@ -57,6 +57,12 @@ export const userInterfaceSection: SettingsSection = {
           labelKey: 'SettingsUserInterface.showTotalSelectionCount.label',
           control: { kind: 'toggle', key: 'showTotalSelectionCount' },
         },
+        {
+          id: 'keepGameChatFocus',
+          labelKey: 'SettingsUserInterface.keepGameChatFocus.label',
+          descriptionKey: 'SettingsUserInterface.keepGameChatFocus.description',
+          control: { kind: 'toggle', key: 'keepGameChatFocus' },
+        },
       ],
     },
     {
