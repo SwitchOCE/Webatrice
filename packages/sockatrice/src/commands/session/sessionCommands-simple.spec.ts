@@ -620,6 +620,14 @@ describe('replayDeleteMatch', () => {
     invokeOnSuccess();
     expect(WebClient.instance.response.session.replayDeleteMatch).toHaveBeenCalledWith(7);
   });
+
+  it('forwards onFailure without touching the store', () => {
+    const onFailure = vi.fn();
+    replayDeleteMatch(7, onFailure);
+    invokeCallback('onError', 18);
+    expect(onFailure).toHaveBeenCalledWith(18);
+    expect(WebClient.instance.response.session.replayDeleteMatch).not.toHaveBeenCalled();
+  });
 });
 
 describe('replayList', () => {
@@ -652,6 +660,14 @@ describe('replayModifyMatch', () => {
     replayModifyMatch(7, true);
     invokeOnSuccess();
     expect(WebClient.instance.response.session.replayModifyMatch).toHaveBeenCalledWith(7, true);
+  });
+
+  it('forwards onFailure without touching the store', () => {
+    const onFailure = vi.fn();
+    replayModifyMatch(7, true, onFailure);
+    invokeCallback('onError', 18);
+    expect(onFailure).toHaveBeenCalledWith(18);
+    expect(WebClient.instance.response.session.replayModifyMatch).not.toHaveBeenCalled();
   });
 });
 
@@ -723,6 +739,15 @@ describe('replayGetCode', () => {
     invokeOnSuccess({ replayCode: 'abc123-xyz' });
     expect(onCodeReceived).toHaveBeenCalledWith('abc123-xyz');
   });
+
+  it('forwards onFailure with the response code', () => {
+    const onCodeReceived = vi.fn();
+    const onFailure = vi.fn();
+    replayGetCode(42, onCodeReceived, onFailure);
+    invokeCallback('onError', 18);
+    expect(onFailure).toHaveBeenCalledWith(18);
+    expect(onCodeReceived).not.toHaveBeenCalled();
+  });
 });
 
 describe('replaySubmitCode', () => {
@@ -789,5 +814,20 @@ describe('replayDownload', () => {
     const resp = { replayData: new Uint8Array([1, 2, 3]) };
     invokeOnSuccess(resp, { responseCode: 0 });
     expect(WebClient.instance.response.session.replayDownloaded).toHaveBeenCalledWith(99, resp);
+  });
+
+  it('hands the replay bytes to onDownloaded', () => {
+    const onDownloaded = vi.fn();
+    replayDownload(99, onDownloaded);
+    const replayData = new Uint8Array([1, 2, 3]);
+    invokeOnSuccess({ replayData }, { responseCode: 0 });
+    expect(onDownloaded).toHaveBeenCalledWith(replayData);
+  });
+
+  it('forwards onFailure with the response code', () => {
+    const onFailure = vi.fn();
+    replayDownload(99, undefined, onFailure);
+    invokeCallback('onError', 18);
+    expect(onFailure).toHaveBeenCalledWith(18);
   });
 });
