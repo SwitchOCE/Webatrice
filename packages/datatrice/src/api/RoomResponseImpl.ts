@@ -61,8 +61,8 @@ export class RoomResponseImpl implements WebsocketTypes.IRoomResponse<WebsocketT
     this.store.dispatch(RoomsActions.setJoinGameError({ code, message }));
   }
 
-  joinRoomFailed(roomId: number, responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
-    this.store.dispatch(RoomsActions.joinRoomFailed({ roomId, responseCode, failure }));
+  joinRoomFailed(roomId: number, responseCode: number, failure?: WebsocketTypes.CommandFailure, userInitiated = true): void {
+    this.store.dispatch(RoomsActions.joinRoomFailed({ roomId, responseCode, failure, userInitiated }));
   }
 
   createGameFailed(roomId: number, responseCode: number, failure?: WebsocketTypes.CommandFailure): void {

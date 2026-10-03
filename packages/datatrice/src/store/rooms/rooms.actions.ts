@@ -1,12 +1,12 @@
 import { createAction } from '@reduxjs/toolkit';
 
 import { roomsSlice } from './rooms.reducer';
-import type { RoomCommandFailedPayload } from './rooms.interfaces';
+import type { JoinRoomFailedPayload, RoomCommandFailedPayload } from './rooms.interfaces';
 
 const SignalActions = {
   gameCreated: createAction<{ roomId: number }>('rooms/gameCreated'),
   // Command failure outcomes; `failure` as on the server `*Failed` actions.
-  joinRoomFailed: createAction<RoomCommandFailedPayload>('rooms/joinRoomFailed'),
+  joinRoomFailed: createAction<JoinRoomFailedPayload>('rooms/joinRoomFailed'),
   createGameFailed: createAction<RoomCommandFailedPayload>('rooms/createGameFailed'),
 };
 

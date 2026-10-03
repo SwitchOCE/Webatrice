@@ -3,11 +3,11 @@ import { rooms, server } from '@cockatrice/datatrice';
 import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
-import { renderWithProviders, disconnectedState } from '../../__test-utils__';
+import { renderWithProviders, connectedState } from '../../__test-utils__';
 import CommandFailureNotices from './CommandFailureNotices';
 
 function setup() {
-  return renderWithProviders(<CommandFailureNotices />, { preloadedState: disconnectedState });
+  return renderWithProviders(<CommandFailureNotices />, { preloadedState: connectedState });
 }
 
 describe('CommandFailureNotices', () => {
@@ -24,10 +24,51 @@ describe('CommandFailureNotices', () => {
   ])('explains a join-room rejection (code %s) with desktop\'s message', (responseCode, message) => {
     const { store } = setup();
     act(() => {
-      store.dispatch(rooms.Actions.joinRoomFailed({ roomId: 1, responseCode }));
+      store.dispatch(rooms.Actions.joinRoomFailed({ roomId: 1, responseCode, userInitiated: true }));
     });
     expect(screen.getByText('CommandFailureNotices.joinRoom.title')).toBeInTheDocument();
     expect(screen.getByText(message)).toBeInTheDocument();
+  });
+
+  it('stays silent when an autojoin fails, as desktop does', () => {
+    const { store } = setup();
+    act(() => {
+      store.dispatch(rooms.Actions.joinRoomFailed({
+        roomId: 1,
+        responseCode: Response_ResponseCode.RespNotConnected,
+        failure: WebsocketTypes.CommandFailure.Disconnected,
+        userInitiated: false,
+      }));
+    });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('drops queued notices once the connection is gone', () => {
+    const { store } = setup();
+    act(() => {
+      store.dispatch(rooms.Actions.joinRoomFailed({
+        roomId: 1,
+        responseCode: Response_ResponseCode.RespNameNotFound,
+        userInitiated: true,
+      }));
+      store.dispatch(rooms.Actions.createGameFailed({ roomId: 1, responseCode: Response_ResponseCode.RespContextError }));
+    });
+    expect(screen.getByText('CommandFailureNotices.joinRoom.title')).toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(server.Actions.updateStatus({ status: { state: WebsocketTypes.StatusEnum.DISCONNECTED, description: null } }));
+      store.dispatch(server.Actions.deckUploadFailed({
+        path: '',
+        responseCode: Response_ResponseCode.RespNotConnected,
+        failure: WebsocketTypes.CommandFailure.Disconnected,
+      }));
+    });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(server.Actions.updateStatus({ status: { state: WebsocketTypes.StatusEnum.LOGGED_IN, description: null } }));
+    });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('explains a create-game timeout with the transport reason', () => {
