@@ -40,6 +40,40 @@ describe('ReportTable', () => {
     expect(rowIds()).toEqual(['report-row-2', 'report-row-5']);
   });
 
+  it('is a keyboard grid: one tab stop on the selected row, arrows and Home/End move the selection', () => {
+    const onSelect = vi.fn();
+    const { rerender } = renderWithProviders(
+      <ReportTable reports={rows} columns={QUEUE_COLUMNS} selectedId={null} onSelect={onSelect} />,
+    );
+    expect(screen.getByRole('grid')).toBeTruthy();
+    // Nothing selected: the first row holds the tab stop.
+    expect(screen.getByTestId('report-row-2').tabIndex).toBe(0);
+    expect(screen.getByTestId('report-row-5').tabIndex).toBe(-1);
+
+    fireEvent.keyDown(screen.getByTestId('report-row-2'), { key: ' ' });
+    expect(onSelect).toHaveBeenLastCalledWith(2);
+    fireEvent.keyDown(screen.getByTestId('report-row-2'), { key: 'ArrowDown' });
+    expect(onSelect).toHaveBeenLastCalledWith(5);
+
+    rerender(<ReportTable reports={rows} columns={QUEUE_COLUMNS} selectedId={5} onSelect={onSelect} />);
+    expect(screen.getByTestId('report-row-5').tabIndex).toBe(0);
+    expect(document.activeElement).toBe(screen.getByTestId('report-row-5'));
+    fireEvent.keyDown(screen.getByTestId('report-row-5'), { key: 'Home' });
+    expect(onSelect).toHaveBeenLastCalledWith(2);
+    fireEvent.keyDown(screen.getByTestId('report-row-2'), { key: 'Enter' });
+    expect(onSelect).toHaveBeenLastCalledWith(2);
+  });
+
+  it('marks the sorted column for assistive technology', () => {
+    renderWithProviders(<ReportTable reports={rows} columns={MY_REPORT_COLUMNS} selectedId={null} onSelect={vi.fn()} />);
+    const header = screen.getByText('Reports.column.reportedUser').closest('th')!;
+    expect(header.getAttribute('aria-sort')).toBeNull();
+    fireEvent.click(screen.getByText('Reports.column.reportedUser'));
+    expect(header.getAttribute('aria-sort')).toBe('ascending');
+    fireEvent.click(screen.getByText('Reports.column.reportedUser'));
+    expect(header.getAttribute('aria-sort')).toBe('descending');
+  });
+
   it('selects a row on click and marks the selected row', () => {
     const onSelect = vi.fn();
     renderWithProviders(<ReportTable reports={rows} columns={MY_REPORT_COLUMNS} selectedId={5} onSelect={onSelect} />);
