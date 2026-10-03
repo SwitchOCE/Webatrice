@@ -122,6 +122,25 @@ describe('IncomingRevealDialog', () => {
       expect(screen.getByRole('heading', { name: 'P2 reveals their library' })).toBeInTheDocument();
     });
 
+    it('selects cards from the keyboard, so Alt+H can hide them', () => {
+      renderReveal();
+      const island = within(popup()).getByRole('button', { name: 'Island' });
+      expect(island).toHaveAttribute('tabindex', '0');
+      expect(island).toHaveAttribute('aria-pressed', 'false');
+
+      fireEvent.keyDown(island, { key: ' ' });
+      expect(island).toHaveAttribute('aria-pressed', 'true');
+      fireEvent.keyDown(within(popup()).getByRole('button', { name: 'Forest' }), { key: 'Enter' });
+      fireEvent.keyDown(island, { key: 'Enter' });
+      expect(island).toHaveAttribute('aria-pressed', 'false');
+
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyH', altKey: true, bubbles: true, cancelable: true }));
+      });
+      expect(within(popup()).getByTitle('Island')).toBeInTheDocument();
+      expect(within(popup()).queryByTitle('Forest')).not.toBeInTheDocument();
+    });
+
     it('a new reveal shows its cards again', () => {
       const { store } = renderReveal();
       rightClick('Island');

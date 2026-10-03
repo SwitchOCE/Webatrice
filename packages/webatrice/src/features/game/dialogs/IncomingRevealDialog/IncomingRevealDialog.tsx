@@ -680,25 +680,35 @@ export default function IncomingRevealDialog() {
     return null;
   }
 
-  // Click selects a card (Ctrl / Cmd toggles it); right-click opens the
-  // revealed-card menu. A lent reveal keeps its drag behaviour and no menu.
+  // Click selects a card (Ctrl / Cmd toggles it); Space or Enter toggles the
+  // focused card; right-click opens the revealed-card menu. A lent reveal
+  // keeps its drag behaviour and no menu.
   const cardInteraction = (c: EnrichedCard): React.HTMLAttributes<HTMLDivElement> => {
     if (!readOnly) {
       return {};
     }
     const id = c.handCard.id;
+    const select = (toggle: boolean) => setSelectedIds((prev) => {
+      if (!toggle) {
+        return new Set([id]);
+      }
+      const next = new Set(prev);
+      if (!next.delete(id)) {
+        next.add(id);
+      }
+      return next;
+    });
     return {
-      onClick: (e) => {
-        setSelectedIds((prev) => {
-          if (!(e.ctrlKey || e.metaKey)) {
-            return new Set([id]);
-          }
-          const next = new Set(prev);
-          if (!next.delete(id)) {
-            next.add(id);
-          }
-          return next;
-        });
+      role: 'button',
+      tabIndex: 0,
+      'aria-label': c.handCard.name,
+      'aria-pressed': selectedIds.has(id),
+      onClick: (e) => select(e.ctrlKey || e.metaKey),
+      onKeyDown: (e) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          select(true);
+        }
       },
       onContextMenu: (e) => {
         e.preventDefault();
