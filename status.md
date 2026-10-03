@@ -1,3 +1,4 @@
 - 15:24Z started f0102; read brief/task/rv1 → set up 01 work branch
 - 15:30Z 01: fixed both majors, pushed claude/parity-01-lint → minors (ShellLifecycle, LoginForm callbacks)
 - 15:39Z 02: both majors fixed + pushed claude/parity-02-hand-reorder → full gate on 02, PR files
+- 15:41Z 01 gate green; PR files drafted → waiting on 02 gate
