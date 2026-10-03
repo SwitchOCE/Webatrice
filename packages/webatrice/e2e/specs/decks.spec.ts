@@ -20,15 +20,17 @@ test('deck folders, undo/redo and autosave round-trip through Servatrice', async
   await page.getByRole('textbox', { name: 'Name of new folder:' }).fill('Tournament');
   await page.getByRole('button', { name: 'Create' }).click();
   await page.getByText('Tournament', { exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Tournament' })).toHaveAttribute('aria-current', 'location');
+  const breadcrumb = page.getByRole('navigation', { name: 'Folder' });
+  await expect(breadcrumb.getByRole('button', { name: 'Tournament' })).toHaveAttribute('aria-current', 'location');
 
   // A deck created here lands in the folder and opens in the editor.
   await page.getByRole('button', { name: /New deck/ }).first().click();
   await page.getByPlaceholder('Untitled Deck').fill('E2E Brew');
   await page.getByRole('button', { name: 'Create' }).click();
-  await expect(page).toHaveURL(/\/deck\/\d+$/, { timeout: 15_000 });
+  // The app routes in memory, so the editor is recognised by its content.
   const name = page.getByPlaceholder('Untitled Deck');
   await expect(name).toHaveValue('E2E Brew', { timeout: 15_000 });
+  await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeVisible();
 
   // Rename, then undo: each state is saved to the server as an update.
   await name.fill('E2E Brew v2');
@@ -59,7 +61,7 @@ test('deck folders, undo/redo and autosave round-trip through Servatrice', async
   await page.getByRole('button', { name: 'Move', exact: true }).click();
   await expect(page.getByText('This folder is empty.')).toBeVisible({ timeout: 15_000 });
 
-  await page.getByRole('button', { name: /Server deck storage/ }).click();
+  await breadcrumb.getByRole('button', { name: /Server deck storage/ }).click();
   await expect(page.getByText('E2E Brew', { exact: true })).toBeVisible();
 
   // Delete the now-empty folder.
