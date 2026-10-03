@@ -110,6 +110,20 @@ describe('Local replays', () => {
     expect(await localPane().findByTestId('local-replay-round1.cor')).toBeInTheDocument();
   });
 
+  it('reports a library read failure when watching or exporting', async () => {
+    vi.mocked(ReplayFileDTO.readData).mockRejectedValue(new Error('IndexedDB unavailable'));
+    renderReplays();
+
+    fireEvent.doubleClick(await localPane().findByTestId('local-replay-alpha.cor'));
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Replays.local.readFailed');
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button'));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    fireEvent.click(localPane().getByTestId('local-replay-alpha.cor'));
+    fireEvent.click(localPane().getByRole('button', { name: 'Replays.action.export' }));
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Replays.local.readFailed');
+  });
+
   it('reports a stored entry that is not a replay', async () => {
     vi.mocked(ReplayFileDTO.readData).mockResolvedValue(new Uint8Array([0xff, 0xff]));
     renderReplays();

@@ -131,7 +131,13 @@ export function useLocalReplays(refreshKey = 0): LocalReplays {
     if (entry.kind !== 'replay' || entry.id == null) {
       return;
     }
-    const data = await ReplayFileDTO.readData(entry.id);
+    let data: Uint8Array | undefined;
+    try {
+      data = await ReplayFileDTO.readData(entry.id);
+    } catch {
+      showError(t('Replays.local.readFailed'));
+      return;
+    }
     if (!data) {
       showError(t('Replays.local.missingData'));
       return;
@@ -224,7 +230,7 @@ export function useLocalReplays(refreshKey = 0): LocalReplays {
       } else {
         showError(t('Replays.local.missingData'));
       }
-    });
+    }, () => showError(t('Replays.local.readFailed')));
   }, [selected, showError, t]);
 
   const submitPrompt = useCallback((rawName: string) => {
