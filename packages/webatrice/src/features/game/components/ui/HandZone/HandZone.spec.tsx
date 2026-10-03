@@ -5,7 +5,7 @@ import { makeCard } from '@cockatrice/datatrice/testing';
 import { PREFERENCE_DEFAULTS } from '@app/types';
 
 import { usePreferences } from '../../../../../hooks/useSettings';
-import { lookupCard } from '../../../../../services/cards/cardCatalog';
+import { lookupCard } from '../../../../../services/cards/catalog/lookup';
 import type { Preferences } from '../../../../../types';
 import {
   buildSeatGameState, cardEl, chooseMenuPath, menuLabels, openContextMenu, renderSeatCell, type SeatGameSpec,
@@ -15,7 +15,7 @@ import Game from '../../../Game';
 import { CARD_BACK_URL } from '../SeatCard/cardSize';
 
 vi.mock('../../../../../hooks/useSettings');
-vi.mock('../../../../../services/cards/cardCatalog', async () =>
+vi.mock('../../../../../services/cards/catalog/lookup', async () =>
   (await import('../../../__test-utils__/unknownCardCatalog')).unknownCardCatalog());
 
 const FOREST = makeCard({ id: 30, name: 'Forest' });

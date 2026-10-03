@@ -9,5 +9,5 @@ export {
   type LookupResult,
   type PrintingSummary,
   type RelatedCardRef,
-} from './cardCatalog';
+} from './catalog';
 export { getFormatRules } from './formatRules';

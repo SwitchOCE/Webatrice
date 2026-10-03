@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 
 import { getSettings, settingsStore } from '../../../../../hooks/useSettings';
-import { lookupCard } from '../../../../../services/cards/cardCatalog';
+import { lookupCard } from '../../../../../services/cards/catalog/lookup';
 import type { Preferences } from '../../../../../types';
 import { tableRowToGridY } from '../../battlefield/Battlefield/cardPlacement';
 import type {
@@ -14,7 +14,7 @@ import type {
 import type { SeatCardMeta } from './useSeatCardMetadata';
 import { useSeatClickToPlay } from './useSeatClickToPlay';
 
-vi.mock('../../../../../services/cards/cardCatalog', async () =>
+vi.mock('../../../../../services/cards/catalog/lookup', async () =>
   (await import('../../../__test-utils__/unknownCardCatalog')).unknownCardCatalog());
 
 const card = (id: number, name: string): PlayerCardViewModel => ({ id: String(id), name, scryfallId: '' });

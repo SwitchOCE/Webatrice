@@ -3,7 +3,7 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
 import { createMockWebClient, renderWithProviders } from '../../../__test-utils__';
-import { lookupCardsCached } from '../../../services/cards/cardCatalog';
+import { lookupCardsCached } from '../../../services/cards/catalog/lookup';
 import { GameIdProvider } from '../components/ui/GameIdContext';
 import { GameSelectionProvider } from '../components/ui/GameSelectionContext';
 import { buildSeatGameState } from '../__test-utils__/seatFixtures';
@@ -14,7 +14,7 @@ import type { TallyType } from '../utils/tally';
 
 vi.mock('../../../hooks/useSettings');
 
-vi.mock('../../../services/cards/cardCatalog', () => ({
+vi.mock('../../../services/cards/catalog/lookup', () => ({
   lookupCardsCached: vi.fn(),
 }));
 

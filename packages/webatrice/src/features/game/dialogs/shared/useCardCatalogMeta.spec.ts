@@ -1,9 +1,9 @@
 import { act, renderHook } from '@testing-library/react';
 
-import { lookupCardsCached } from '../../../../services/cards/cardCatalog';
+import { lookupCardsCached } from '../../../../services/cards/catalog/lookup';
 import { useCardCatalogMeta } from './useCardCatalogMeta';
 
-vi.mock('../../../../services/cards/cardCatalog', () => ({
+vi.mock('../../../../services/cards/catalog/lookup', () => ({
   lookupCardsCached: vi.fn(),
 }));
 
