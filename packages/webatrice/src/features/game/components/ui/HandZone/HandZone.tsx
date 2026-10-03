@@ -9,7 +9,7 @@ import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
 import Card from '../SeatCard/SeatCard';
 import type { PlayerCardViewModel } from '../PlayerBoard/playerBoard.types';
-import { layoutVerticalHand } from './verticalHandLayout';
+import { layoutVerticalPile, type VerticalPileOptions } from '../VerticalPile/verticalPile';
 import { OVER_ART_SHADOW_SMALL, SELECTED_RING } from '../seatColors/seatColors';
 
 /**
@@ -54,6 +54,7 @@ export default function HandZone() {
     handDisplayList,
     handMenuItems,
     handOnTop,
+    handPileOptions,
     handSize,
     handZoneRef,
     horizontalHand,
@@ -242,6 +243,7 @@ export default function HandZone() {
         renderCard={(i) => (isSelf ? renderOwnCard(handDisplayList[i]) : renderCardBack(i))}
         cardWidth={CARD_W_PX}
         cardHeight={CARD_H_PX}
+        pileOptions={handPileOptions}
         zoneRef={handZoneRef}
         testId={`hand-zone-${playerId}`}
       />
@@ -364,6 +366,7 @@ interface VerticalHandProps {
   renderCard: (index: number) => ReactNode;
   cardWidth: number;
   cardHeight: number;
+  pileOptions: VerticalPileOptions;
   zoneRef: React.Ref<HTMLDivElement>;
   testId: string;
 }
@@ -371,7 +374,7 @@ interface VerticalHandProps {
 /**
  * Desktop's vertical hand: a column beside the info column, its cards
  * overlapping top to bottom and zig-zagging left and right
- * (layoutVerticalHand). Every card stays in view, so there is no hover
+ * (layoutVerticalPile). Every card stays in view, so there is no hover
  * expansion; the hovered card comes to the front, as on desktop.
  */
 function VerticalHand({
@@ -382,10 +385,10 @@ function VerticalHand({
   renderCard,
   cardWidth,
   cardHeight,
+  pileOptions,
   zoneRef,
   testId,
 }: VerticalHandProps) {
-  const overlapPercent = usePreference('verticalCardOverlapPercent');
   const sizeRef = useRef<HTMLDivElement>(null);
   const ref = useForkRef(zoneRef, sizeRef);
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -402,7 +405,7 @@ function VerticalHand({
     return () => ro.disconnect();
   }, []);
 
-  const { positions } = layoutVerticalHand(count, size.w, size.h, cardWidth, cardHeight, overlapPercent);
+  const { positions } = layoutVerticalPile(count, size.w, size.h, cardWidth, cardHeight, pileOptions);
 
   return (
     <div

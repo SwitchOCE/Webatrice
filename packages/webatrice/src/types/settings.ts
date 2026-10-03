@@ -36,9 +36,13 @@ export class Setting {
   roundCardCorners: boolean;
   maxFontSizeForCards: number;
 
-  // Appearance — card layout (desktop cards_display `verticalCardOverlapPercent`)
+  // Appearance — card layout (desktop cards_display `verticalCardOverlapPercent`, interface
+  // `cardViewInitialRowsMax`, `cardViewExpandedRowsMax`)
   /** How much of each card the next one covers on the stack and in a vertical hand, at least. */
   verticalCardOverlapPercent: number;
+  /** A card view's height when it opens, and when its title bar is double-clicked, in rows. */
+  cardViewInitialRowsMax: number;
+  cardViewExpandedRowsMax: number;
 
   // Appearance — hand layout (desktop interface `hand/horizontal`, `leftJustified`)
   horizontalHand: boolean;
@@ -150,6 +154,8 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   maxFontSizeForCards: 12,
 
   verticalCardOverlapPercent: 33,
+  cardViewInitialRowsMax: 14,
+  cardViewExpandedRowsMax: 20,
 
   horizontalHand: true,
   leftJustifiedHand: false,

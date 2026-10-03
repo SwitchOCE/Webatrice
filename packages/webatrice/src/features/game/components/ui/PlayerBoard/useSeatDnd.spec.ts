@@ -79,7 +79,7 @@ function setup(args: Partial<UseSeatDndArgs> = {}) {
     exileRef: { current: null },
     CARD_W_PX: 72,
     CARD_H_PX: 102,
-    STACK_HOFFSET_PX: 8,
+    stackPileOptions: { overlapPercent: 33, minOffset: 10, xSpace: 5 },
     ...args,
   };
   const { result } = renderHook(() => useSeatDnd(props));

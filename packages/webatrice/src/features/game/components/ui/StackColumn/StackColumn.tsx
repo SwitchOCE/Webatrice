@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useForkRef } from '@mui/material/utils';
 import { ZoneName } from '@cockatrice/sockatrice';
 
-import { layoutStackPile } from '../../battlefield/Battlefield/battlefieldLayout';
 import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
+import { layoutVerticalPile } from '../VerticalPile/verticalPile';
 import { CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
 import Card from '../SeatCard/SeatCard';
 import { SELECTED_RING } from '../seatColors/seatColors';
@@ -17,7 +17,6 @@ export default function StackColumn() {
   const {
     CARD_H_PX,
     CARD_W_PX,
-    STACK_HOFFSET_PX,
     cardMetaByName,
     isDragging,
     isSelf,
@@ -28,6 +27,7 @@ export default function StackColumn() {
     seatGrid,
     selection,
     stackDisplayList,
+    stackPileOptions,
     stackZoneRef,
     startSeatCardDrag,
   } = usePlayerSeatContext();
@@ -55,21 +55,22 @@ export default function StackColumn() {
       className="border-r border-border-subtle flex flex-col min-h-0 p-2"
       style={seatGrid.stack}
     >
-      {/* Stack — spells/abilities waiting to resolve. Cards zig-zag
-        vertically; index 0 renders topmost. Dropping between two
-        existing cards inserts at that position. */}
+      {/* Stack — spells/abilities waiting to resolve: desktop's vertical
+        pile (overlapping by the card layout setting, zig-zagging); index 0
+        renders topmost. Dropping between two existing cards inserts at that
+        position. */}
       <div ref={stackRef} className="flex-1 min-h-0 relative">
         {(() => {
           const visible = stackDisplayList.filter(
             (c) => !isDragging(c.id, 'stack'),
           );
-          const positions = layoutStackPile(
+          const { positions } = layoutVerticalPile(
             visible.length,
             stackSize.w,
             stackSize.h,
             CARD_W_PX,
             CARD_H_PX,
-            STACK_HOFFSET_PX,
+            stackPileOptions,
           );
           return visible.map((c, i) => {
             const pos = positions[i];
