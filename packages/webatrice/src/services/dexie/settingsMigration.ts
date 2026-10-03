@@ -12,11 +12,20 @@ const MIGRATIONS: Record<number, (row: SettingRow) => void> = {
   1: (row) => fillPreferenceDefaults(row),
 };
 
-/** Adds a default for every preference the row lacks. Never overwrites a stored value. */
+/** Whether a stored value has the type of the preference's default (a list for a list). */
+function hasDefaultType(key: PreferenceKey, value: unknown): boolean {
+  const fallback = PREFERENCE_DEFAULTS[key];
+  return Array.isArray(fallback) ? Array.isArray(value) : typeof value === typeof fallback;
+}
+
+/**
+ * Adds a default for every preference the row lacks, or holds with the wrong type (`null`, a
+ * string volume: an old tab, a restored backup, devtools). Never overwrites a well-typed value.
+ */
 export function fillPreferenceDefaults(row: Partial<Preferences>): void {
   const target = row as Record<PreferenceKey, unknown>;
   for (const key of Object.keys(PREFERENCE_DEFAULTS) as PreferenceKey[]) {
-    if (target[key] === undefined) {
+    if (!hasDefaultType(key, target[key])) {
       // Clone so rows never share the defaults' arrays.
       target[key] = structuredClone(PREFERENCE_DEFAULTS[key]);
     }
