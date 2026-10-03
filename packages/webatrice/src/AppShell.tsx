@@ -5,6 +5,7 @@ import Routes from './AppShellRoutes';
 import './AppShell.css';
 
 import { RouteErrorBoundary, ToastProvider } from '@app/components';
+import { ReportUserProvider } from '@app/dialogs';
 import { useAdminLockSession, useSyncLocaleToStore } from '@app/hooks';
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 import { ModerationProvider } from '@app/feature-widgets/moderation';
@@ -58,13 +59,16 @@ function AppShell() {
               <CommandFailureNotices />
               {/* Server shutdown countdown and Event_NotifyUser messages. */}
               <ServerNotices />
-              <ModerationProvider>
-                <UserGamesProvider>
-                  <RouteErrorBoundary>
-                    <Routes />
-                  </RouteErrorBoundary>
-                </UserGamesProvider>
-              </ModerationProvider>
+              {/* Hosts the report-user dialog for useReportUser().openReportUser. */}
+              <ReportUserProvider>
+                <ModerationProvider>
+                  <UserGamesProvider>
+                    <RouteErrorBoundary>
+                      <Routes />
+                    </RouteErrorBoundary>
+                  </UserGamesProvider>
+                </ModerationProvider>
+              </ReportUserProvider>
             </ShortcutProvider>
           </ShellLifecycleProvider>
         </Router>
