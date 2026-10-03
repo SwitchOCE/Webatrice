@@ -34,27 +34,27 @@
 - `cockatrice/src/client/latency_status_widget.cpp`, `latency_graph_widget.cpp`; `interface/window_main.cpp`
 
 ## Testing
-The gate was run from the repo root at the tip, with Vitest limited to `--maxWorkers=2`.
-- `npx turbo run typecheck --concurrency=1`: 5/5 pass.
+The full gate was run from the repo root at tip `d444301` after the rv7 fixes, with Vitest limited to `--maxWorkers=2`.
+- `npx turbo run typecheck --concurrency=1`: 5/5 pass at the tip. It also passes at **every** commit of the branch (`git rebase -x`).
 - `npm run lint`: 3/3 pass, 0 errors.
 - `npm test`: all pass.
   - Sockatrice: 790 passed.
   - Datatrice: 1210 passed.
-  - Webatrice: 1526 passed, 2 skipped. Both skips were already there.
+  - Webatrice: 1534 passed, 2 skipped. Both skips were already there.
 - `npm run test:integration`: all pass.
   - Sockatrice: 167 passed.
   - Datatrice: 137 passed.
   - Webatrice: 160 passed, 2 skipped. Both skips were already there.
-- `npm run test:e2e -w @cockatrice/sockatrice` (3.0.0 Servatrice): 5/5 passed.
-- Webatrice e2e, run in the containerised Playwright 1.60 image against 3.0.0, across chromium, firefox and webkit: **31 passed, 8 failed. None of the failures come from this branch.**
-  - `staff-tools` "admin publishes a new server message" fails on 3 browsers with `spawnSync docker ENOENT`. The spec runs `docker compose exec` from inside the Playwright container, where there is no docker CLI.
-  - `bulk-card-actions` fails on 3 browsers, and `app-boots` fails on chromium and webkit (`ERR_CERT_AUTHORITY_INVALID` console errors). I rebuilt the base `8fca043` and ran both specs there: they fail the same way, so they are pre-existing.
-  - New e2e: `connection-stability` "the top bar shows the measured server round trip" passes on all three browsers.
-- New specs:
+- e2e after the rv7 fixes: the only user-visible change is the ping button's accessible name, so I re-ran `connection-stability.spec.ts` (which uses the updated `ConnectionStatus.latency` locator) in the Playwright 1.60 container against 3.0.0. It passed **6/6** on chromium, firefox and webkit. The full webatrice e2e suite was not re-run. Pre-fix results: Sockatrice e2e 5/5. Webatrice e2e had 31 passed and 8 failed, and none of the 8 came from this branch: `staff-tools` fails because the container has no docker CLI, and `bulk-card-actions`/`app-boots` fail with `ERR_CERT_AUTHORITY_INVALID`, the same on base `8fca043`.
+- Specs:
   - **Sockatrice:** `LatencyTracker.spec` (desktop's `latency_tracker_test` ported case for case); round-trip timing in `ProtobufService.outcomes.spec`; `WebClient.spec` forwarding; integration `latency.spec` (keepalive ping timed through the wire, zeroed on disconnect).
   - **Datatrice:** `playmat.spec`; `getPlayerPlaymat` (stability across unrelated updates, SetPlaymat follow, clear); latency reducer, selector and `SessionResponseImpl`; integration test that a SetPlaymat-shaped event sets the clamped playmat and adds no log line.
-  - **Webatrice:** `playmatCrop.spec`, `PlayerPlaymat.spec` (gating, visibility, cover-fit placement), `resolvePlaymat.spec`, `usePlaymatSync.spec` (fallback, override, reselect, echo, settings change, round-robin across games, clean slate per game, 3.0 server, spectator), `usePlaymatSettings.spec`, `PlaymatSettingsPanel.spec`, `Settings.spec` tab, `LatencyStatus.spec`.
-- A 3.1-image e2e for playmats was not run. The task marked it optional, and the master image was not built in this run.
+  - **Webatrice:** `playmatCrop.spec`, `PlayerPlaymat.spec`, `resolvePlaymat.spec`, `playmatSyncState.spec`, `usePlaymatSettings.spec`, `Settings.spec` tab.
+    - `usePlaymatSync.spec`: fallback, override, reselect, echo, settings change, round-robin advancing on the next game's Ready with the same deck, random re-roll on Ready, no re-roll on a visibility change, state kept across unmount/remount (deck playmat and round-robin cursor), clean slate per game, 3.0 server, spectator.
+    - `PlaymatSettingsPanel.spec`: adds aria value text, and a drag that saves only on release.
+    - `LatencyStatus.spec`: accessible name and description.
+    - The 5 new `usePlaymatSync` specs and the new crop/ping specs fail on the pre-fix code.
+- A 3.1-image e2e for playmats was not run. The task marked it optional, and the master image was not built.
 
 ## Notes for reviewers
 - **Settings seam (branch 19).** The four playmat preferences live in their own localStorage store (`hooks/usePlaymatSettings.ts`), using desktop's defaults (show all, fallback, fixed, empty list). This branch does not include the typed settings framework, so they are not yet stored there. When rebasing onto #19:
@@ -74,3 +74,16 @@ The gate was run from the repo root at the tip, with Vitest limited to `--maxWor
 - **Desktop quirk mirrored.** `playmatClampedZoom` caps at 4× even though its comment says the zoom-out floor bypasses the cap. The code is mirrored, not the comment, and `playmatCrop.spec` pins it.
 - **i18n.** Strings use ICU syntax, as the app's i18next-icu instance expects. `i18n-default.json` was regenerated: it adds keys and reorders some, and removes none.
 - The crop math lives in `@app/utils/playmatCrop` because both the board and the settings preview use it.
+
+## Review response (rv7)
+- **major, sync state in `Game` refs** → fixed. The deck playmat, last sent, last resolved and rotation index live in `playmatSyncState` (a module-level map keyed by game, pruned once the game leaves the store), as desktop keeps them per match on `DeckViewContainer`. A new deck hash is also taken as a deck select on its own. I did **not** make the deck hash the *only* signal: reselecting the same deck leaves the stored hash unchanged, and only its playmat reverting shows the reselect. So "a playmat this client did not send" still counts, but `lastSent` now survives remounts, which removes the misreading. Specs unmount and remount the hook mid-game: Override → Settings → Deck only restores the deck's mat, and the round-robin cursor survives.
+- **major, round-robin/random don't advance per game** → fixed. The hook re-resolves when the local `readyStart` turns on, mirroring `sendReadyStartCommand(true)` → `resolveAndSendPlaymat()`. The spec now keeps `deckHash: 'h1'` across games and flips `readyStart`; a second spec covers random re-rolling on Ready without repeating. Ordering differs slightly: desktop sends SetPlaymat just before ReadyStart, and here it goes out when the ready echo arrives. Servatrice accepts SetPlaymat at any time while a deck is loaded (`cmdSetPlaymat` only checks `deck`), so the only effect is that the new mat can appear a round trip after the game starts.
+- **minor, visibility re-resolves** → fixed with `sameCollectionSettings` (mode, list mode and collection, compared by value). Spec added.
+- **minor, `lastPlaymatByPlayer` never pruned** → fixed. `lruMemoize(playmatFromParams, { maxSize: 32, resultEqualityCheck: dequal })`, the `selectAllAttachments` idiom. The existing stability specs still pass. Nothing user-visible changed, so no new failing spec was added.
+- **minor, crop slider aria value text** → fixed with `getAriaValueText` using the label formatter. Spec added, and the text corrected to "sliders".
+- **minor, ping `aria-label`** → fixed. The accessible name is the visible "Ping: N ms", the stats are an `aria-describedby` description, and the e2e page object locator was updated.
+- **minor, a localStorage write on every slider tick** → fixed. The slider keeps a local draft and saves on `onChangeCommitted`. Spec drags by pointer and checks that nothing is saved until release.
+- **minor, free-text "Add"** → **not applied here.** The only card-name search is `features/decks/search.ts` (Scryfall autocomplete), and the boundaries lint forbids feature→feature imports. The local Dexie card DB may also be empty. Doing it properly means moving the search and `features/card-art-rules/cardPrintings.ts` into `services` and giving both pages one chooser. That is a cross-feature refactor, so it is listed as a follow-up.
+- **nit, `useCallback` wrapper** → removed.
+- **nit, commit hygiene** → `ea4a992` is squashed into the playmat-settings commit (no add-then-remove of the `feature-widgets` alias), and the RTT e2e hunk moved into the latency top-bar commit. While running typecheck per commit I also found that `feat(sockatrice): measure command round-trip times` was red on its own: datatrice's required `ServerState.latency` landed before the webatrice fixture. That fixture line is folded into that commit. Every commit now typechecks; the rewrite leaves the tip's tree byte-identical.
+- **nit, "Add..."/"Edit..."** → "Add"/"Edit".
