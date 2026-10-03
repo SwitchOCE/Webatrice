@@ -4,16 +4,6 @@ import type { TFunction } from 'i18next';
 /** Desktop's cap on any free-text field (libcockatrice_utility string_limits.h MAX_TEXT_LENGTH). */
 export const MAX_TEXT_LENGTH = 0xfff;
 
-// Desktop: "Separate words with a space, alphanumeric characters only".
-const ALERT_WORDS = /^[\p{L}\p{N}\s]*$/u;
-
-export const buildHighlightWordsSchema = (t: TFunction) =>
-  z.object({
-    words: z.string().regex(ALERT_WORDS, t('SettingsChat.highlightWords.invalid')),
-  });
-
-export type HighlightWordsValues = z.infer<ReturnType<typeof buildHighlightWordsSchema>>;
-
 export const buildMessageMacroSchema = (t: TFunction) =>
   z.object({
     message: z

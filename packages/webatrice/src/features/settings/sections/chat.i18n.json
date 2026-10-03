@@ -44,8 +44,7 @@
     "highlightWords": {
       "label": "Alert words",
       "description": "Separate words with a space, alphanumeric characters only.",
-      "placeholder": "Word1 Word2 Word3",
-      "invalid": "Use letters and numbers only, separated by spaces."
+      "placeholder": "Word1 Word2 Word3"
     },
     "chatHighlightColor": {
       "label": "Alert word highlight color"
