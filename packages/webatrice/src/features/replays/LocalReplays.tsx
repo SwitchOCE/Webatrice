@@ -5,6 +5,7 @@ import Button from '@mui/material/Button';
 
 import { useGridRows } from '@app/hooks';
 import { REPLAY_FILE_EXTENSION } from '@app/services';
+import { toBcp47 } from '@app/utils';
 
 import type { LocalReplays as LocalReplaysModel } from './useLocalReplays';
 
@@ -13,7 +14,7 @@ export interface LocalReplaysProps {
 }
 
 /** File size in the UI language's own unit names (B, kB, MB…). */
-function formatSize(bytes: number, locale: string): string {
+function formatSize(bytes: number, locale: string | undefined): string {
   const [value, unit] = bytes < 1024
     ? [bytes, 'byte']
     : bytes < 1024 * 1024 ? [bytes / 1024, 'kilobyte'] : [bytes / (1024 * 1024), 'megabyte'];
@@ -134,7 +135,9 @@ function LocalReplays({ model }: LocalReplaysProps) {
                       {entry.name}
                     </span>
                   </td>
-                  <td className="replays-table__num">{entry.kind === 'replay' ? formatSize(entry.size, i18n.language) : ''}</td>
+                  <td className="replays-table__num">
+                    {entry.kind === 'replay' ? formatSize(entry.size, toBcp47(i18n.language) || undefined) : ''}
+                  </td>
                   <td>{new Date(entry.modifiedAt).toLocaleString()}</td>
                 </tr>
               ))}

@@ -3,8 +3,8 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import ICU from 'i18next-icu';
 import { initReactI18next } from 'react-i18next';
 
-import { Language } from '@app/types';
-import { toBcp47 } from '@app/utils';
+import { DEFAULT_LANGUAGE, Language } from '@app/types';
+import { resolveSupportedLanguage, toBcp47 } from '@app/utils';
 import I18nBackend from './i18n-backend';
 
 // Bundle default translation with application
@@ -19,11 +19,21 @@ i18n
   .use(initReactI18next)
   // for all options read: https://www.i18next.com/overview/configuration-options
   .init({
-    fallbackLng: Language['en-US'],
+    fallbackLng: DEFAULT_LANGUAGE,
+    supportedLngs: Object.values(Language),
     resources: {
-      [Language['en-US']]: { translation },
+      [DEFAULT_LANGUAGE]: { translation },
     },
     partialBundledLanguages: true,
+    detection: {
+      // The persisted choice is the `language` preference (see useLanguagePreference), mirrored
+      // into localStorage only so the first paint is already in that language. Detected
+      // languages are not cached, so "follow the browser" keeps following it.
+      order: ['querystring', 'localStorage', 'navigator', 'htmlTag'],
+      caches: [],
+      // Browsers report BCP-47 (`pt-BR`, `de-AT`); the catalogues use Transifex codes (`pt_BR`).
+      convertDetectedLanguage: (lng: string) => resolveSupportedLanguage(lng) ?? lng,
+    },
     i18nFormat: {
       // Locale codes are Cockatrice/Transifex underscore style (e.g. `pt_BR`),
       // but IntlMessageFormat needs BCP-47 hyphens (`pt-BR`) or it throws
@@ -63,7 +73,7 @@ function formatWithEnglishFallback(key: string, res: string, options?: unknown):
     return res;
   }
   try {
-    return new IntlMessageFormat(en, Language['en-US']).format(options);
+    return new IntlMessageFormat(en, toBcp47(DEFAULT_LANGUAGE)).format(options);
   } catch {
     return res; // English source also malformed — fall through to the raw string
   }
