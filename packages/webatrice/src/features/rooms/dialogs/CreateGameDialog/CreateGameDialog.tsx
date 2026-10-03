@@ -10,6 +10,7 @@ import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import { useTranslation } from 'react-i18next';
 
 import { server } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
@@ -64,6 +65,7 @@ function initialFormState(isRegistered: boolean): FormState {
 }
 
 function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGameDialogProps) {
+  const { t } = useTranslation();
   const isRegistered = useAppSelector(server.Selectors.getIsUserRegistered);
   const isJudge = useAppSelector(server.Selectors.getIsUserJudge);
 
@@ -106,7 +108,7 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
 
   return (
     <Dialog className="CreateGameDialog" open={isOpen} onClose={onCancel} maxWidth="sm" fullWidth>
-      <DialogTitle>Create Game</DialogTitle>
+      <DialogTitle>{t('CreateGameDialog.title')}</DialogTitle>
       <form onSubmit={handleSubmit}>
         <DialogContent className="dialog-content create-game-dialog__body">
           <TextField
@@ -114,7 +116,7 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
             fullWidth
             margin="dense"
             size="small"
-            label="Description"
+            label={t('CreateGameDialog.label.description')}
             value={form.description}
             onChange={(e) => update('description', e.target.value)}
           />
@@ -122,7 +124,7 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
             fullWidth
             margin="dense"
             size="small"
-            label="Password"
+            label={t('CreateGameDialog.label.password')}
             type="password"
             value={form.password}
             onChange={(e) => update('password', e.target.value)}
@@ -131,7 +133,7 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
             fullWidth
             margin="dense"
             size="small"
-            label="Max players"
+            label={t('CreateGameDialog.label.maxPlayers')}
             type="number"
             slotProps={{ htmlInput: { min: 1, max: 100 } }}
             value={form.maxPlayers}
@@ -141,7 +143,7 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
             fullWidth
             margin="dense"
             size="small"
-            label="Starting life total"
+            label={t('CreateGameDialog.label.startingLifeTotal')}
             type="number"
             slotProps={{ htmlInput: { min: 1, max: 99999 } }}
             value={form.startingLifeTotal}
@@ -150,7 +152,7 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
 
           {gameTypes.length > 0 && (
             <div className="create-game-dialog__section">
-              <Typography variant="subtitle2">Game type</Typography>
+              <Typography variant="subtitle2">{t('CreateGameDialog.section.gameType')}</Typography>
               <RadioGroup
                 value={form.gameTypeId ?? ''}
                 onChange={(_, value) => update('gameTypeId', value === '' ? null : Number(value))}
@@ -163,7 +165,7 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
           )}
 
           <div className="create-game-dialog__section">
-            <Typography variant="subtitle2">Permissions</Typography>
+            <Typography variant="subtitle2">{t('CreateGameDialog.section.permissions')}</Typography>
             <FormControlLabel
               control={
                 <Checkbox
@@ -173,7 +175,7 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
                   disabled={!isRegistered}
                 />
               }
-              label="Only buddies"
+              label={t('CreateGameDialog.label.onlyBuddies')}
             />
             <FormControlLabel
               control={
@@ -183,12 +185,12 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
                   onChange={(_, c) => update('onlyRegistered', c)}
                 />
               }
-              label="Only registered users"
+              label={t('CreateGameDialog.label.onlyRegistered')}
             />
           </div>
 
           <div className="create-game-dialog__section">
-            <Typography variant="subtitle2">Spectators</Typography>
+            <Typography variant="subtitle2">{t('CreateGameDialog.section.spectators')}</Typography>
             <FormControlLabel
               control={
                 <Checkbox
@@ -197,7 +199,7 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
                   onChange={(_, c) => update('spectatorsAllowed', c)}
                 />
               }
-              label="Allow spectators"
+              label={t('CreateGameDialog.label.spectatorsAllowed')}
             />
             <FormControlLabel
               control={
@@ -208,7 +210,7 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
                   disabled={!form.spectatorsAllowed}
                 />
               }
-              label="Spectators need password"
+              label={t('CreateGameDialog.label.spectatorsNeedPassword')}
             />
             <FormControlLabel
               control={
@@ -219,7 +221,7 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
                   disabled={!form.spectatorsAllowed}
                 />
               }
-              label="Spectators can chat"
+              label={t('CreateGameDialog.label.spectatorsCanTalk')}
             />
             <FormControlLabel
               control={
@@ -230,7 +232,7 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
                   disabled={!form.spectatorsAllowed}
                 />
               }
-              label="Spectators see everything"
+              label={t('CreateGameDialog.label.spectatorsSeeEverything')}
             />
             <FormControlLabel
               control={
@@ -240,12 +242,12 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
                   onChange={(_, c) => update('joinAsSpectator', c)}
                 />
               }
-              label="Create as spectator"
+              label={t('CreateGameDialog.label.joinAsSpectator')}
             />
           </div>
 
           <div className="create-game-dialog__section">
-            <Typography variant="subtitle2">Other</Typography>
+            <Typography variant="subtitle2">{t('CreateGameDialog.section.other')}</Typography>
             <FormControlLabel
               control={
                 <Checkbox
@@ -254,7 +256,7 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
                   onChange={(_, c) => update('shareDecklistsOnLoad', c)}
                 />
               }
-              label="Share decklists on load"
+              label={t('CreateGameDialog.label.shareDecklistsOnLoad')}
             />
             {isJudge && (
               <FormControlLabel
@@ -265,14 +267,14 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
                     onChange={(_, c) => update('joinAsJudge', c)}
                   />
                 }
-                label="Create as judge"
+                label={t('CreateGameDialog.label.joinAsJudge')}
               />
             )}
           </div>
         </DialogContent>
         <DialogActions>
-          <Button type="button" onClick={onCancel}>Cancel</Button>
-          <Button type="submit" variant="contained" color="primary">Create</Button>
+          <Button type="button" onClick={onCancel}>{t('Common.action.cancel')}</Button>
+          <Button type="submit" variant="contained" color="primary">{t('Common.action.create')}</Button>
         </DialogActions>
       </form>
     </Dialog>

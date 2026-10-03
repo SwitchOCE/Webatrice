@@ -3,6 +3,9 @@
     "notice": {
       "chatFlood": "You are flooding the chat. Please wait a couple of seconds.",
       "notSent": "Message not sent: {reason}"
-    }
+    },
+    "subtitle": "· room chat",
+    "empty": "No messages yet — say hi.",
+    "placeholder": "Message {name}"
   }
 }

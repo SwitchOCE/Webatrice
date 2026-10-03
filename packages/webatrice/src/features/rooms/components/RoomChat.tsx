@@ -95,13 +95,13 @@ function RoomChatView({ roomId, roomName, messages: allMessages, users, onSay }:
       <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-border-subtle">
         <Hash size={14} className="text-text-muted" />
         <span className="text-sm font-semibold text-text-primary truncate">{roomName}</span>
-        <span className="text-xs text-text-muted">· room chat</span>
+        <span className="text-xs text-text-muted">{t('RoomChat.subtitle')}</span>
       </div>
 
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-2 space-y-1 bg-bg-base/40">
         {(!messages || messages.length === 0) && (
           <div className="h-full flex items-center justify-center text-xs text-text-muted italic">
-            No messages yet — say hi.
+            {t('RoomChat.empty')}
           </div>
         )}
         {messages?.map((m, idx) => (
@@ -133,7 +133,7 @@ function RoomChatView({ roomId, roomName, messages: allMessages, users, onSay }:
           type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder={`Message ${roomName}`}
+          placeholder={t('RoomChat.placeholder', { name: roomName })}
           className={[
             'flex-1 min-w-0 px-3 py-2 rounded-md bg-bg-base border',
             'border-border-subtle text-sm text-text-primary',
@@ -148,8 +148,8 @@ function RoomChatView({ roomId, roomName, messages: allMessages, users, onSay }:
             'p-2 rounded-md bg-accent text-white hover:bg-accent-hover',
             'disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
           ].join(' ')}
-          title="Send"
-          aria-label="Send"
+          title={t('Common.action.send')}
+          aria-label={t('Common.action.send')}
         >
           <Send size={16} />
         </button>
