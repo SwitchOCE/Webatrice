@@ -1,7 +1,22 @@
+import { useState } from 'react';
 import { screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import { renderWithProviders } from '../../__test-utils__';
 import DialogShell from './DialogShell';
+
+function Opener({ autofocus = false }: { autofocus?: boolean }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)}>Open</button>
+      <DialogShell isOpen={open} handleClose={() => setOpen(false)} title="Edit host" description="Change the address">
+        <input aria-label="Name" />
+        <input aria-label="Address" data-autofocus={autofocus || undefined} />
+      </DialogShell>
+    </>
+  );
+}
 
 describe('DialogShell', () => {
   // @critical Regression: a form submit inside a dialog must not bubble through
@@ -27,5 +42,87 @@ describe('DialogShell', () => {
 
     expect(innerSubmit).toHaveBeenCalledTimes(1);
     expect(outerSubmit).not.toHaveBeenCalled();
+  });
+
+  it('is named by its heading and described by its description', () => {
+    renderWithProviders(<DialogShell isOpen title="Edit host" description="Change the address">body</DialogShell>);
+
+    const dialog = screen.getByRole('dialog', { name: 'Edit host' });
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    expect(dialog).toHaveAccessibleDescription('Change the address');
+  });
+
+  it('moves focus to the first control of its content, or to a data-autofocus control', async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderWithProviders(<Opener />);
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveFocus();
+    unmount();
+
+    renderWithProviders(<Opener autofocus />);
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    expect(screen.getByRole('textbox', { name: 'Address' })).toHaveFocus();
+  });
+
+  it('keeps Tab and Shift+Tab inside the dialog', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Opener />);
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+
+    // Name → Address, then past the last control back round to the header's Close button.
+    await user.tab();
+    expect(screen.getByRole('textbox', { name: 'Address' })).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'DialogShell.close' })).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(screen.getByRole('textbox', { name: 'Address' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Open' })).not.toHaveFocus();
+  });
+
+  it('closes on Escape and gives focus back to the control that opened it', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<Opener />);
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open' })).toHaveFocus();
+  });
+
+  it('ignores Escape when it cannot be closed', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<DialogShell isOpen title="Busy"><button type="button">Ok</button></DialogShell>);
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByRole('dialog', { name: 'Busy' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'DialogShell.close' })).not.toBeInTheDocument();
+  });
+
+  it('lets a dialog opened from inside another close on its own', async () => {
+    const user = userEvent.setup();
+    const outerClose = vi.fn();
+    function Stacked() {
+      const [inner, setInner] = useState(false);
+      return (
+        <DialogShell isOpen handleClose={outerClose} title="Outer">
+          <button type="button" onClick={() => setInner(true)}>More</button>
+          <DialogShell isOpen={inner} handleClose={() => setInner(false)} title="Inner">
+            <button type="button">Inner action</button>
+          </DialogShell>
+        </DialogShell>
+      );
+    }
+    renderWithProviders(<Stacked />);
+    await user.click(screen.getByRole('button', { name: 'More' }));
+    expect(screen.getByRole('button', { name: 'Inner action' })).toHaveFocus();
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByRole('dialog', { name: 'Inner' })).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Outer' })).toBeInTheDocument();
+    expect(outerClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'More' })).toHaveFocus();
   });
 });
