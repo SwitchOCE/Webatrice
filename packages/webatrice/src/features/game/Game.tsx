@@ -291,9 +291,6 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                                           key={cell.playerId}
                                           cell={cell}
                                           totalPlayers={layout.cells.length}
-                                          onPlayerContextMenu={dialogs.handlePlayerContextMenu}
-                                          onPlayerClick={arrows.handlePlayerClick}
-                                          onHandContextMenu={dialogs.handleHandContextMenu}
                                         />
                                       ))}
                                     </div>

@@ -25,13 +25,6 @@ export interface GameBoardCellProps {
    *  normal for 3-player (opponents on the sides, flipping looks
    *  off). */
   totalPlayers: number;
-  // Callbacks kept in the API so Game.tsx's existing wiring compiles
-  // through this transitional slice. The ported PlayerBox is
-  // wiring-free in step 1; these props will be re-consumed once the
-  // ported PlayerBox is wired to og's Cockatrice data model.
-  onPlayerContextMenu?: (event: React.MouseEvent) => void;
-  onPlayerClick?: (playerId: number) => boolean;
-  onHandContextMenu?: (event: React.MouseEvent) => void;
 }
 
 // Mock deck — enough cards to fill a Commander library so the
