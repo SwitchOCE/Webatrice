@@ -593,21 +593,6 @@ export default function ZoneViewPanel({
     };
   }, [marquee, onSelectedIdsChange]);
 
-  // Escape closes the dialog. Backdrop clicks don't — the play area
-  // behind stays interactive (this component's overlay is
-  // pointer-events-none), so the only ways to dismiss are Escape or the
-  // header's close button.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose(showShuffleOnClose && shuffleOnClose);
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose, showShuffleOnClose, shuffleOnClose]);
-
   // Card metadata (type line, mana value, colours, P/T) from the card
   // catalog, keyed by name: dumps routinely leave provider_id empty, and
   // the display fields are stable across printings. Mirrors
@@ -783,6 +768,14 @@ export default function ZoneViewPanel({
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              // The game's Esc (close the most recent view) skips text
+              // inputs, so the search box closes its own view.
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  onClose(showShuffleOnClose && shuffleOnClose);
+                }
+              }}
               placeholder="Search — try t:creature, c:blue, cmc:3"
               className={[
                 'w-full pl-8 pr-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm',
