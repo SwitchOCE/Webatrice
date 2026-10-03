@@ -16,6 +16,10 @@
       "label": "Play all nonlands onto the stack (not the battlefield) by default",
       "description": "When off, double-clicking a permanent in your hand puts it straight onto the battlefield. Instants and sorceries still go to the stack."
     },
+    "doNotDeleteArrowsInSubPhases": {
+      "label": "Do not delete arrows inside of subphases",
+      "description": "An arrow drawn during combat lasts until combat ends, and one drawn in the beginning phase until the first main phase. Off, every arrow goes at the next phase."
+    },
     "closeEmptyCardView": {
       "label": "Close card view window when last card is removed"
     },

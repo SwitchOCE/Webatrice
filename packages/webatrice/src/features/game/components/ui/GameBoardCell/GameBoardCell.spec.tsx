@@ -9,6 +9,7 @@
 import { act } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { CardAttribute, Command_CreateToken_TargetMode } from '@cockatrice/sockatrice/generated';
+import { Phase } from '@cockatrice/datatrice';
 import { makeArrow, makeCard, makeDeckList, makeDeckTreeItem } from '@cockatrice/datatrice/testing';
 import { ArrowColor } from '@app/types';
 import { CardDTO } from '@app/services';
@@ -433,10 +434,19 @@ describe('GameBoardCell — card commands', () => {
         startCardId: 10,
         targetPlayerId: 2,
         arrowColor: ArrowColor.RED,
+        // Drawn in the beginning phase: kept until the first main phase.
+        deleteInPhase: Phase.FirstMain,
         targetZone: ZoneName.TABLE,
         targetCardId: 20,
       },
-      { startPlayerId: 1, startZone: ZoneName.GRAVE, startCardId: 40, targetPlayerId: 2, arrowColor: ArrowColor.RED },
+      {
+        startPlayerId: 1,
+        startZone: ZoneName.GRAVE,
+        startCardId: 40,
+        targetPlayerId: 2,
+        arrowColor: ArrowColor.RED,
+        deleteInPhase: Phase.FirstMain,
+      },
     ]);
     expect(vi.mocked(game.deleteArrow).mock.calls.map(([, p]) => p)).toEqual([{ arrowId: 5 }, { arrowId: 6 }]);
   });

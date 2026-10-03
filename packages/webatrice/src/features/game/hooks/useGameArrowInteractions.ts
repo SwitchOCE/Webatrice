@@ -8,6 +8,7 @@ import { GameEntry } from '@cockatrice/datatrice';
 import { ArrowColor, ColorRGBA, rgbaToCss } from '@app/types';
 import { makeCardKey, makePlayerKey, parseCardKey, type CardRegistry } from '../utils/CardRegistry/CardRegistryContext';
 import { useJudgeTarget } from './useJudgeTarget';
+import { arrowLifetime } from '../utils/arrowLifetime';
 import { bulkTargetsFor, type SelectedCard } from '../utils/selection';
 
 import { autoPlayCard, playCardViaTableRow } from './playCard';
@@ -300,6 +301,7 @@ export function useGameArrowInteractions({
               targetPlayerId,
               ...targetFields,
               arrowColor,
+              ...arrowLifetime(game?.activePhase),
             });
           })();
         }
@@ -312,6 +314,7 @@ export function useGameArrowInteractions({
         targetPlayerId,
         ...targetFields,
         arrowColor: arrowColorForModifiers(e),
+        ...arrowLifetime(game?.activePhase),
       });
     };
 
@@ -502,6 +505,7 @@ export function useGameArrowInteractions({
               targetZone: zone,
               targetCardId: card.id,
               arrowColor: ArrowColor.RED,
+              ...arrowLifetime(game?.activePhase),
             });
           })();
         }
@@ -516,6 +520,7 @@ export function useGameArrowInteractions({
         targetZone: zone,
         targetCardId: card.id,
         arrowColor: ArrowColor.RED,
+        ...arrowLifetime(game?.activePhase),
       });
       setPending(null);
     },
@@ -592,11 +597,12 @@ export function useGameArrowInteractions({
         startCardId: src.sourceCardId,
         targetPlayerId,
         arrowColor: ArrowColor.RED,
+        ...arrowLifetime(game?.activePhase),
       });
       setPending(null);
       return true;
     },
-    [gameId, pending, webClient],
+    [gameId, game, pending, webClient],
   );
 
   const startPendingArrow = useCallback((source: CardSource) => {

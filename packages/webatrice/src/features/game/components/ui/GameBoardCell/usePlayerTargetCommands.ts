@@ -8,6 +8,7 @@ import { ArrowColor } from '@app/types';
 import type { RootState } from '@app/store';
 
 import { useGameId } from '../GameIdContext';
+import { arrowLifetime } from '../../../utils/arrowLifetime';
 import type { PlayerTargetCommands } from '../PlayerBoard/playerBoard.types';
 
 type AttachCardParams = Parameters<ReturnType<typeof useWebClient>['request']['game']['attachCard']>[1];
@@ -59,6 +60,7 @@ export function usePlayerTargetCommands(playerId: number): PlayerTargetCommands 
           startCardId: sourceCardId,
           targetPlayerId: target.playerId,
           arrowColor: ArrowColor.RED,
+          ...arrowLifetime(games.Selectors.getActivePhase(store.getState(), gameId)),
         };
         const params = target.kind === 'card'
           ? { ...base, targetZone: ZoneName.TABLE, targetCardId: target.cardId }

@@ -3,7 +3,7 @@ import { create } from '@bufbuild/protobuf';
 import { Event_CreateArrowSchema } from '@cockatrice/sockatrice/generated';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { makeArrow } from '@cockatrice/datatrice/testing';
-import { games } from '@cockatrice/datatrice';
+import { games, Phase } from '@cockatrice/datatrice';
 import { ArrowColor } from '@app/types';
 import { renderSeatHook, type SeatGameSpec } from '../../../__test-utils__/seatFixtures';
 import { usePlayerTargetCommands } from './usePlayerTargetCommands';
@@ -31,6 +31,7 @@ describe('usePlayerTargetCommands', () => {
       startCardId: 10,
       targetPlayerId: 2,
       arrowColor: ArrowColor.RED,
+      deleteInPhase: Phase.FirstMain,
     });
   });
 
