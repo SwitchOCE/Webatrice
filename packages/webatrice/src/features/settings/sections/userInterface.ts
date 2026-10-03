@@ -42,6 +42,11 @@ export const userInterfaceSection: SettingsSection = {
           labelKey: 'SettingsUserInterface.closeEmptyCardView.label',
           control: { kind: 'toggle', key: 'closeEmptyCardView' },
         },
+        {
+          id: 'focusCardViewSearchBar',
+          labelKey: 'SettingsUserInterface.focusCardViewSearchBar.label',
+          control: { kind: 'toggle', key: 'focusCardViewSearchBar' },
+        },
       ],
     },
     {
