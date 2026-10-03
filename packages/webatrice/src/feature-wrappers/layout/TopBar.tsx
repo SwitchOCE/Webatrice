@@ -3,9 +3,10 @@ import { useLocation, useNavigate, generatePath, matchPath } from 'react-router-
 import {
   User, LogOut, Home as HomeIcon, Swords, Library, LibraryBig,
   UserCircle2, Settings as SettingsIcon, FileText, X, Circle, Grid3x3,
-  Keyboard, PanelLeftOpen,
+  Keyboard, PanelLeftOpen, Download,
   type LucideIcon,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { server, rooms, games } from '@cockatrice/datatrice';
 import type { ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
@@ -14,8 +15,10 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import { useLeaveGame, usePhaseTrackPinnedSetting, useSnapGridSetting } from '@app/hooks';
 import { Images } from '@app/images';
 import { RouteEnum } from '@app/types';
+import { CardImportDialog } from '@app/feature-widgets/card-import';
 
 import { useShellLifecycle } from './ShellLifecycleContext';
+import { visibleUserMenuEntries } from './userMenuEntries';
 
 const USER_MENU_ITEM_CLASS =
   'w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary '
@@ -84,6 +87,7 @@ export default function TopBar() {
   const [snapGridVisible, setSnapGridVisible] = useSnapGridSetting();
   const [phaseTrackPinned, setPhaseTrackPinned] = usePhaseTrackPinnedSetting();
   const { onIdentityChanged } = useShellLifecycle();
+  const [cardImportOpen, setCardImportOpen] = useState(false);
 
   // Sticky tabs = the deck-related routes the user has visited and not
   // explicitly closed. Keeps My Decks pinned alongside the currently-
@@ -373,15 +377,18 @@ export default function TopBar() {
           <div className="w-px h-6 bg-border-subtle mx-1" />
           <UserMenu
             userName={user?.name ?? null}
+            userLevel={user?.userLevel ?? 0}
             snapGridVisible={snapGridVisible}
             onToggleSnapGrid={() => setSnapGridVisible(!snapGridVisible)}
             phaseTrackPinned={phaseTrackPinned}
             onTogglePhaseTrackPinned={() => setPhaseTrackPinned(!phaseTrackPinned)}
-            onOpenShortcuts={() => navigate(generatePath(RouteEnum.SHORTCUTS))}
+            onNavigate={(route) => navigate(generatePath(route))}
+            onImportCards={() => setCardImportOpen(true)}
             onSignOut={() => webClient.request.authentication.disconnect()}
           />
         </div>
       </div>
+      <CardImportDialog isOpen={cardImportOpen} handleClose={() => setCardImportOpen(false)} />
     </header>
   );
 }
@@ -450,23 +457,28 @@ function TabList({ tabs, activeKey, onActivate, onClose }: TabListProps) {
 
 interface UserMenuProps {
   userName: string | null;
+  userLevel: number;
   snapGridVisible: boolean;
   onToggleSnapGrid: () => void;
   phaseTrackPinned: boolean;
   onTogglePhaseTrackPinned: () => void;
-  onOpenShortcuts: () => void;
+  onNavigate: (route: RouteEnum) => void;
+  onImportCards: () => void;
   onSignOut: () => void;
 }
 
 function UserMenu({
   userName,
+  userLevel,
   snapGridVisible,
   onToggleSnapGrid,
   phaseTrackPinned,
   onTogglePhaseTrackPinned,
-  onOpenShortcuts,
+  onNavigate,
+  onImportCards,
   onSignOut,
 }: UserMenuProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -537,15 +549,28 @@ function UserMenu({
               </span>
             )}
           </button>
+          {visibleUserMenuEntries(userLevel).map(({ label, icon: Icon, route }) => (
+            <button
+              key={route}
+              onClick={() => {
+                setOpen(false);
+                onNavigate(route);
+              }}
+              className={USER_MENU_ITEM_CLASS}
+            >
+              <Icon size={14} />
+              <span className="flex-1 text-left">{t(label)}</span>
+            </button>
+          ))}
           <button
             onClick={() => {
               setOpen(false);
-              onOpenShortcuts();
+              onImportCards();
             }}
             className={USER_MENU_ITEM_CLASS}
           >
-            <Keyboard size={14} />
-            <span className="flex-1 text-left">Shortcuts</span>
+            <Download size={14} />
+            <span className="flex-1 text-left">{t('UserMenu.importCards')}</span>
           </button>
           <div className="my-1 border-t border-border-subtle" />
           <button

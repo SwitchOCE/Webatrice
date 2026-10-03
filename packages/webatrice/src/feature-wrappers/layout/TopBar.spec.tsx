@@ -1,7 +1,8 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { useLocation } from 'react-router-dom';
 
-import { connectedState, renderWithProviders } from '../../__test-utils__';
+import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
+import { connectedState, makeUser, renderWithProviders } from '../../__test-utils__';
 import { RouteEnum } from '@app/types';
 
 import { ShellLifecycleProvider, type ShellLifecycle } from './ShellLifecycleContext';
@@ -15,14 +16,14 @@ function LocationProbe() {
   return <div data-testid="location">{useLocation().pathname}</div>;
 }
 
-function renderTopBar(route: string = RouteEnum.SERVER) {
+function renderTopBar(route: string = RouteEnum.SERVER, preloadedState = connectedState) {
   const lifecycle: ShellLifecycle = { onIdentityChanged: vi.fn() };
   renderWithProviders(
     <ShellLifecycleProvider value={lifecycle}>
       <TopBar />
       <LocationProbe />
     </ShellLifecycleProvider>,
-    { preloadedState: connectedState, route },
+    { preloadedState, route },
   );
   return lifecycle;
 }
@@ -72,5 +73,62 @@ describe('TopBar shell lifecycle port', () => {
     ).toThrow('useShellLifecycle must be used inside <ShellLifecycleProvider>');
 
     consoleError.mockRestore();
+  });
+});
+
+describe('TopBar user menu', () => {
+  const moderatorState = {
+    ...connectedState,
+    server: {
+      ...(connectedState.server as any),
+      user: makeUser({ userLevel: Level.IsUser | Level.IsRegistered | Level.IsModerator }),
+    },
+  };
+
+  const openMenuAndPick = (label: string) => {
+    fireEvent.click(screen.getByRole('button', { name: 'testUser' }));
+    fireEvent.click(screen.getByRole('button', { name: label }));
+  };
+
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('reaches Account and Settings, replacing the transient tab instead of stacking it', () => {
+    renderTopBar();
+
+    openMenuAndPick('UserMenu.account');
+    expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.ACCOUNT);
+    expect(screen.getByRole('tab', { name: /Account/ })).toHaveAttribute('aria-selected', 'true');
+
+    openMenuAndPick('UserMenu.settings');
+    expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SETTINGS);
+    expect(screen.queryByRole('tab', { name: /Account/ })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('tab', { name: /Lobby|Server/ }));
+    expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
+    expect(screen.queryByRole('tab', { name: /Settings/ })).not.toBeInTheDocument();
+  });
+
+  it('offers Logs to moderators only', () => {
+    renderTopBar(RouteEnum.SERVER, moderatorState);
+
+    openMenuAndPick('UserMenu.logs');
+    expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.LOGS);
+  });
+
+  it('hides Logs from regular users', () => {
+    renderTopBar();
+
+    fireEvent.click(screen.getByRole('button', { name: 'testUser' }));
+    expect(screen.getByRole('button', { name: 'UserMenu.account' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'UserMenu.logs' })).not.toBeInTheDocument();
+  });
+
+  it('opens the card import dialog', () => {
+    renderTopBar();
+
+    openMenuAndPick('UserMenu.importCards');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });
