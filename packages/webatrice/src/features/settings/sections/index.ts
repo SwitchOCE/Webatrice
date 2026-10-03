@@ -1,5 +1,6 @@
 import { buildSettingsSections, type SettingsSection } from '../registry';
 import { appearanceSection } from './appearance';
+import { cardSourcesSection } from './cardSources';
 import { chatSection } from './chat';
 import { generalSection } from './general';
 import { shortcutsSection } from './shortcuts';
@@ -18,6 +19,7 @@ const registrations: readonly SettingsSection[] = [
   themeSection,
   appearanceSection,
   userInterfaceSection,
+  cardSourcesSection,
   storageSection,
   chatSection,
   soundSection,

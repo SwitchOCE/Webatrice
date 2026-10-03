@@ -432,8 +432,7 @@
       "import": "Import cards",
       "database": "Loaded data",
       "sets": "Manage sets",
-      "tokens": "Custom tokens",
-      "sources": "Card sources"
+      "tokens": "Custom tokens"
     }
   },
   "CardImportForm": {
@@ -458,8 +457,6 @@
     }
   },
   "CardSourcesSettings": {
-    "title": "URL Download Priority",
-    "description": "Card art is tried from these URLs top to bottom for each printing, after the card database's own picture URL and before the Scryfall fallback.",
     "label": {
       "url": "URL:",
       "list": "Picture URL templates",
@@ -1580,6 +1577,15 @@
     "invertVerticalCoordinate": {
       "label": "Invert vertical coordinate",
       "description": "Flip the battlefield rows top to bottom, so lands sit at the top of your side."
+    }
+  },
+  "SettingsCardSources": {
+    "group": {
+      "downloads": "URL Download Priority"
+    },
+    "pictureUrls": {
+      "label": "Picture download URLs",
+      "description": "Card art is tried from these URLs top to bottom for each printing, after the card database's own picture URL and before the Scryfall fallback."
     }
   },
   "SettingsChat": {
