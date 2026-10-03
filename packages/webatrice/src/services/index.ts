@@ -8,6 +8,7 @@ export * from './cardDatabase';
 export * from './PublicServersService';
 export * from './replay';
 export * from './notifications';
+export * from './scryfall';
 export * from './sound';
 export * from './storage';
 export * from './theme';
