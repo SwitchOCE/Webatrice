@@ -1,2 +1,3 @@
 - 15:42Z started f21; read brief/task/review → set up work branch
 - 15:55Z history rewritten (1641af1 folded; themeMode→d31aa4d, clearDebugLogOnClose→d1a631d, Account rollup→4156694; tip tree identical) + 10 fix commits pushed → per-commit tests, full gate
+- 16:09Z full gate green on e984f0f (tc 5/5, lint 3/3, unit 763/1176/1640+2s, int 159/132/162+2s); every commit green; PR file updated → done

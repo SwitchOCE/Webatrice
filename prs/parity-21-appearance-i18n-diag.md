@@ -27,11 +27,11 @@
   It can also clear the Scryfall cache, and delete the imported card database after a confirmation. Each clear is a single Dexie transaction, and neither touches settings, shortcuts or known hosts.
 - **Debug log (LONG-007).** `services/debugLog` follows desktop's `Logger`: a header (client, browser, locale) and a 500-line ring buffer.
   - `installConsoleCapture()` (called in `index.tsx`) wraps `console.*`, which captures every existing logging call in Webatrice, Sockatrice and Datatrice, plus uncaught errors and unhandled rejections. Each wrapper calls the original method first with the same arguments. The dev server ignore-lists the wrapper in source maps, so DevTools still links each message to the code that logged it.
-  - Fields named like passwords, salts, secrets and tokens are redacted when objects are serialised.
-  - `DebugLogDialog` follows `dlg_view_log`: copy to clipboard, the persisted "Clear log when closing", and an extra Clear button. It opens from the user menu (an entry in #10's `userMenuEntries.ts`) and from Settings › General › Diagnostics.
+  - Fields named like passwords, salts, secrets, tokens, `auth*` and API keys, and the account PII fields `email` and `realName`, are redacted when objects are serialised.
+  - `DebugLogDialog` follows `dlg_view_log`: copy to clipboard, the persisted "Clear log when closing", and an extra Clear button. It opens from the login page (desktop's Help menu works while disconnected), the user menu (an entry in #10's `userMenuEntries.ts`) and Settings › General › Diagnostics. It renders and subscribes to the log only while open, and the log notifies listeners in a microtask, once per burst.
 
 ## Parity rows closed
-- **LONG-012**: closed for the palette (Light / Dark / System, live, persisted, contrast-checked). Table/card presentation options are follow-ups; see below.
+- **LONG-012**: closed for the palette (Light / Dark / System, live, persisted; text, including muted text, is checked for at least AA contrast on every surface, and disabled text for 3:1). Table/card presentation options are follow-ups; see below.
 - **LONG-015**: closed. Desktop's path settings and picture-cache method, size, TTL and naming options are N/A: data lives in the origin's IndexedDB, and card images live in the browser's HTTP cache, which a page cannot read or clear.
 - **LONG-007**: closed. The log is bounded and in memory only, with credentials redacted and copy/clear. There is no separate download: copying gives the same text.
 - **LONG-016**: partial. Every catalogue is reachable, locale tags are normalised, the choice persists, and switching is live. The Account page is now translated, and the account and moderation dialogs were already keyed. Still open: hard-coded English in TopBar (listed under Follow-ups) and a missing-key CI check.
@@ -45,34 +45,25 @@
 - `cockatrice/src/interface/logger.cpp`: header lines plus a bounded buffer.
 
 ## Testing
-After rebasing onto #19 (`e3a1137`), I ran `git submodule update --init` and `npm ci`, then the gate from the repo root, with Vitest capped at `--maxWorkers=2`:
+Final tip `e984f0f` (on #19 `e3a1137`), after `git submodule update --init` and `npm ci`, from the repo root with Vitest capped at `--maxWorkers=2`:
 - `npx turbo run typecheck --concurrency=1`: 5/5 tasks pass.
-- `npm run lint`: 3/3 tasks pass, 0 errors.
-- `npm test -- -- --maxWorkers=2`:
-  - Sockatrice: 763 passed.
-  - Datatrice: 1176 passed.
-  - Webatrice: 1626 passed, 2 skipped. Both skips were already there.
-- `npm run test:integration -- -- --maxWorkers=2`:
-  - Sockatrice: 159 passed.
-  - Datatrice: 132 passed.
-  - Webatrice: 162 passed, 2 skipped. Both skips were already there.
-- Webatrice e2e, once, on chromium, firefox and webkit. The session's local browsers don't match Playwright 1.60, so it ran in the pre-pulled `mcr.microsoft.com/playwright:v1.60.0-noble` image (`--network host`) against the 3.0.0 Servatrice stack. Result: **25 passed, 5 failed**. Every failure also fails the same way on the unmodified `origin/parity/19-settings` build, and each one comes from the container's network:
-  - `app-boots` (chromium, webkit): `net::ERR_CERT_AUTHORITY_INVALID` console errors. The container does not trust the session's egress-proxy CA. This spec still imports `@playwright/test` directly, because the hermetic e2e fixture is not in this base yet.
-  - `bulk-card-actions` (all three browsers): the two Forests land on the stack, not the battlefield. Without a card database, the type line comes from a Scryfall lookup, and that lookup fails on the same certificate error. The card's type is then unknown, and #19's play-to-stack routing (`typeLineToTableRow(undefined)` ≠ land row) sends it to the stack. When Scryfall is reachable, Forest resolves as a land. The screenshots show the light palette rendering correctly on the game board.
-- New or changed specs in this rebase:
-  - `userMenuEntries.spec`: dialog entries, and distinct destinations.
-  - `TopBar.spec`: the debug log opens from its menu entry; the card-import test is kept.
-  - `Account.spec` and the Account integration spec: the new keys and their interpolated values.
+- `npm run lint`: 3/3 tasks pass, 0 problems.
+- `npm test -- -- --maxWorkers=2`: Sockatrice 763 passed; Datatrice 1176 passed; Webatrice 1640 passed, 2 skipped (both skips were already there).
+- `npm run test:integration -- -- --maxWorkers=2`: Sockatrice 159 passed; Datatrice 132 passed; Webatrice 162 passed, 2 skipped (both already there).
+- `npm run translate` on the tip leaves `i18n-default.json` unchanged.
+- **Every commit is green.** On each of the 8 rewritten commits: turbo typecheck, plus the Webatrice unit and integration suites, all pass. (Unit counts per commit: 1557, 1592, 1592, 1607, 1626, 1626, 1626, 1626. Integration: 159, 159, 159, 162, then 162 from there on.) Each of the 10 review-fix commits passes the Webatrice typecheck.
+- **Every new test fails without its fix** (checked by reverting the production files): Login debug-log entry, closed dialog holds no subscription, deferred and coalesced notification, PII redaction, unpinned cached language, muted AA contrast (3 surfaces), popup follows the theme, stale storage read, and Account empty-value interpolation.
+- e2e was not re-run, because no server flow changed. The new login-page button opens a client-only dialog. The earlier e2e run (25 passed; 5 failures that the base also has, caused by the egress-proxy CA) still applies to the unchanged flows.
 
 ## Notes for reviewers
 - **Rebase decisions (onto #19 `e3a1137`).**
   - **Settings versioning:** still only the settings *row* goes 1 → 2 (`SETTINGS_VERSION`). #19's Dexie `version(6)` schema is untouched, and no Dexie version is added.
   - **Navigation:** #10's `userMenuEntries.ts` is the single user-menu list. `UserMenuEntry` is now a union of route entries and dialog entries (`{ label, icon, dialog: UserMenuDialog }`). The TopBar owns one `openDialog` state, and renders `CardImportDialog` and `DebugLogDialog`. #10's hand-written Import cards button moved into the list as well, so both dialogs go through one path. The label moved from `TopBar.userMenu.debugLog` to `UserMenu.debugLog`, and `TopBar.i18n.json` is gone. Appearance and Storage are Settings sections, not menu entries.
   - **Composition:** ignore-list filtering (now Datatrice, #11) and notifications skipping #11's system notices are #19's code, and this branch does not touch either. #19's new DeckEditor save-failed and status colours were moved onto the status tokens during conflict resolution.
-  - **`i18n-default.json`** was regenerated with `npm run translate`. The base's committed copy is stale (regenerating it on #19 alone reorders 69 lines), so the diff against #19 includes that reorder.
+  - **`i18n-default.json`** was regenerated with `npm run translate`. The base's committed copy is stale (regenerating it on #19 alone reorders 69 lines), so the diff against #19 includes that reorder. It lands in the debug-log commit, the first one after which the committed copy matches a fresh regeneration; the four commits before it carry the base's ordering and only add their own keys.
 - **No Dexie migration.** Both new preferences live on the existing settings row, so no Dexie v6 is needed. The row's own `SETTINGS_VERSION` goes 1 → 2 in `settingsMigration.ts`. The v2 step:
   - keeps existing rows on **Dark**, the only look those users have seen, while fresh installs get desktop's **System** default;
-  - adopts i18next's old `i18nextLng` localStorage value as the language preference.
+  - adopts i18next's old `i18nextLng` localStorage value as the language preference, but only when it differs from what the browser's language list resolves to. The old detector cached the detected browser language too, so a matching value is not treated as a choice.
 - **Card Sources** is untouched. The reserved `SettingsSectionId.CardSources` id is still unregistered. The integrator wires `CardSourcesSettings` from `@app/feature-widgets/card-import` (sibling `parity/20-card-data`) by adding it to `features/settings/sections/index.ts`.
 - **Language storage.** The persisted language is the settings row. The detector's localStorage key now only mirrors it for a flash-free boot: `caches: []`, so detected languages are no longer written back. As a result, "Use the browser's language" really does follow the browser. The language-name key `Common.languages.en-US` moved to `Common.languages.en_US`, so its existing translations need a Transifex re-sync. Eight new language-name keys were also added.
 - **MUI ThemeProvider is back**, scoped in `AppThemeProvider`. CssBaseline stays removed and `mui-overrides.css` still paints surfaces. The 8 `theme.palette.grey[300]` dialog borders now use `theme.palette.divider`.
@@ -80,9 +71,10 @@ After rebasing onto #19 (`e3a1137`), I ran `git submodule update --init` and `np
   - `text-red-300` and `text-red-400` now share one `--status-danger` (`#F87171`); emerald and yellow are merged the same way.
   - The navy game dialogs now use the purple tokens like the rest of the app.
   - On-image overlays (life total, counters, card name pills, phase tiles) keep their palette-independent white-on-shadow styling.
+  - `--text-muted` moves from `#7A6E8F` to `#9388A5`, the lightest change that reaches 4.5:1 on `bg-elevated`. The decks select chevron (`selectChevron.ts`) keeps the old hex, because it is a decorative graphic that needs only 3:1.
 - **Debug log choices.**
   - It holds 500 lines rather than desktop's 128, because a browser session logs more per event.
-  - Redaction is by key name only. Free-text chat that the socket layer logs on errors (for example, unknown message types) can still appear; the log never leaves memory unless the user copies it.
+  - Redaction is by key name only (credentials, `email`, `realName`). Free-text chat that the socket layer logs on errors (for example, unknown message types) can still appear; the log never leaves memory unless the user copies it.
 - **Clearing card data** does not drop the decks feature's in-memory `sessionCache` (a `features/` module that a settings control may not import), so lookups already made in this tab still resolve until reload.
 - **Follow-ups:**
   - **Appearance:** card rendering (display card names, rounded corners, scale on hover, auto-rotate), card view rows, hand layout and the multi-column threshold. The board has no switches for these yet. Home-tab backgrounds, playmats and menu shortcuts are also not done.
@@ -92,3 +84,14 @@ After rebasing onto #19 (`e3a1137`), I ran `git submodule update --init` and `np
   - **TopBar i18n (LONG-016):** about 20 literals are left: the tab titles (`Lobby`, `My Decks`, `Settings`, `Shortcuts`, `Account`, `Logs`, `Player`, `Room {id}`, `Deck #{id}`), which are built in non-component helpers and asserted by name in specs; the menu items `Snap grid`, `Toggle auto-hide phase tracker` (plus its two titles), `Sign out` and `Signed in`; `Close tab`; `View your decks`; and the `Connected` / `Disconnected` connection labels. Moving them needs `t` threaded into the tab helpers and the TopBar specs updated, which is more than a small leftover.
   - **e2e under a TLS-intercepting proxy:** see Testing. The code is unaffected. Re-run the two specs where Scryfall is reachable, or once the hermetic e2e fixture is in the base (that fixture was not checked for whether it stubs Scryfall).
   - **Pre-existing lint error:** `integration/src/services/dexie/resetDexie.ts` violates a boundaries rule. `npm run lint` does not lint `integration/`.
+
+## Review response (rv6, PR 21)
+- **major: history had red commits** → rewritten (fixup only, nothing dropped; the tip tree before the fix commits is byte-identical to the reviewed `4156694`). `themeMode` (type, default and the v2 step's Dark assignment, with their unit specs) moved from the i18n commit into the appearance commit, and `clearDebugLogOnClose` moved into the debug-log commit. Each integration-spec update now sits in the commit that breaks it: the General-tab expectation is in the i18n commit, the Storage-tab one in the Storage commit, and the migrated-Dark expectation in the appearance commit. 1641af1 folded away, and the Account `i18n-default.json` rollup moved from the status-tokens commit into the Account commit. Every commit in the range passes typecheck and the webatrice unit and integration suites (see Testing).
+- **major: debug log not reachable before login** → the login footer has a "View debug log" button next to the language picker (`Login.spec` covers it).
+- **major: always-mounted subscription** → `DebugLogDialog` renders its body (and its `useSyncExternalStore` subscription) only while open. `DebugLog` notifies in a `queueMicrotask`, coalesced per burst, and builds its snapshot lazily in `getEntries`, so a `console.*` call during another component's render no longer schedules a render-phase update.
+- **minor: v2 pins every upgrader's language** → applied as suggested: the cached value is adopted only when it differs from the browser's resolved language. Specs cover both the pinned and the unpinned case.
+- **minor: `useStorageStatus` reused a stale in-flight read** → applied with a generation counter: every refresh starts its own read, and only the latest one updates the status. Left on its small module store rather than `createSharedStore`, because that store loads once and has no refresh. Moving it over would widen the PR.
+- **minor: Account `Location: ({country})`** → applied: every interpolation defaults to `''`.
+- **minor: muted text below AA** → applied: the spec now requires 4.5:1 for `text-muted` (3:1 stays for `text-disabled` only), and dark `--text-muted` is lightened.
+- **minor: redaction misses PII/auth keys** → applied: the pattern adds `auth*` (but not `author`), `apiKey`, `email` and `realName`, with a spec.
+- **nits** → all applied: `border-danger/60`, the login header reads `--status-success`, AppShell imports merged, v6 schema comment updated, `uninstall()` moved to `afterEach`, `withMockColorSchemeMedia` listed in the testing instructions, the card-preview popup now follows the mirrored mode and the OS scheme (`followBootColorScheme`), and the changeset is reworded.
