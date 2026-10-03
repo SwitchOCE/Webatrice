@@ -1,1 +1,2 @@
 - 15:24Z started f1306 → read PR files
+- 15:29Z 13: squashed red commits (e63f697+407ede9+moderation.spec migration → 6d53388), each commit typechecks; pushed cc6c1ce → guards fix
