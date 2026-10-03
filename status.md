@@ -3,3 +3,4 @@
 - 15:54Z minors done (card-DB lookup deferred) → history nit (squash ea4a992 into c5d0cc7, move e2e hunk to b2c1695)
 - 15:55Z history rewritten (move squashed into feat(settings), e2e hunk into latency commit; tree identical) → typecheck each commit
 - 16:04Z rewritten branch pushed, every commit typechecks (folded storeFixtures latency hunk into sockatrice commit; was red) → full gate
+- 16:22Z gate green at d444301, PR file updated → final message
