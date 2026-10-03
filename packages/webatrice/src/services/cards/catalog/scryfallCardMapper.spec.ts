@@ -1,4 +1,4 @@
-import type { ScryfallCard } from '../../scryfall';
+import type { ScryfallCard } from '../../scryfall/types';
 import { scryfallToLookup } from './scryfallCardMapper';
 
 const DELVER: ScryfallCard = {
