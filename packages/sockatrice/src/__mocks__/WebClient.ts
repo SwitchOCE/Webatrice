@@ -98,6 +98,7 @@ const room = {
   updateRooms: vi.fn(),
   updateGames: vi.fn(),
   addMessage: vi.fn(),
+  roomSayFailed: vi.fn(),
   userJoined: vi.fn(),
   userLeft: vi.fn(),
   removeMessages: vi.fn(),

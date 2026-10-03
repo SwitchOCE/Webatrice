@@ -157,7 +157,8 @@ describe('roomSay', () => {
     expect(WebClient.instance.protobuf.sendRoomCommand).toHaveBeenCalledWith(
       2,
       Command_RoomSay_ext,
-      expect.objectContaining({ message: 'hello' })
+      expect.objectContaining({ message: 'hello' }),
+      expect.any(Object),
     );
   });
 
@@ -169,5 +170,25 @@ describe('roomSay', () => {
   it('does not call sendRoomCommand when message is empty string', () => {
     roomSay(2, '');
     expect(WebClient.instance.protobuf.sendRoomCommand).not.toHaveBeenCalled();
+  });
+
+  it('reports a flood rejection with the unsent message', () => {
+    roomSay(2, '  hello  ');
+    invokeResponseCode(Response_ResponseCode.RespChatFlood);
+    expect(WebClient.instance.response.room.roomSayFailed).toHaveBeenCalledWith(2, 'hello', Response_ResponseCode.RespChatFlood);
+  });
+
+  it('reports a message the server never answered with the transport reason', () => {
+    roomSay(2, 'hello');
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    expect(WebClient.instance.response.room.roomSayFailed).toHaveBeenCalledWith(
+      2, 'hello', Response_ResponseCode.RespNotConnected, CommandFailure.Disconnected,
+    );
+  });
+
+  it('keeps other server rejections silent, as desktop does', () => {
+    roomSay(2, 'hello');
+    invokeOnError(Response_ResponseCode.RespContextError);
+    expect(WebClient.instance.response.room.roomSayFailed).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,7 @@
 import type { CaseReducer, PayloadAction } from '@reduxjs/toolkit';
+import { create } from '@bufbuild/protobuf';
 import { App, Enriched } from '../../types';
-import { ServerInfo_Game, ServerInfo_Room, ServerInfo_User } from '@cockatrice/sockatrice/generated';
+import { Event_RoomSaySchema, ServerInfo_Game, ServerInfo_Room, ServerInfo_User } from '@cockatrice/sockatrice/generated';
 
 import { normalizeRoomInfo, normalizeUserMessage } from '../../common';
 
@@ -77,12 +78,7 @@ export const leaveRoom: CaseReducer<RoomsState, PayloadAction<{ roomId: number }
   }
 };
 
-export const addMessage: CaseReducer<
-  RoomsState,
-  PayloadAction<{ roomId: number; message: Enriched.Message }>
-> = (state, action) => {
-  const { roomId, message } = action.payload;
-
+function appendMessage(state: RoomsState, roomId: number, message: Enriched.Message): void {
   if (!state.messages[roomId]) {
     state.messages[roomId] = [];
   }
@@ -90,7 +86,33 @@ export const addMessage: CaseReducer<
   if (msgs.length >= MAX_ROOM_MESSAGES) {
     state.messages[roomId] = msgs.slice(msgs.length - MAX_ROOM_MESSAGES + 1);
   }
-  state.messages[roomId].push({ ...normalizeUserMessage(message), id: nextMessageId++ });
+  state.messages[roomId].push({ ...message, id: nextMessageId++ });
+}
+
+// Reached through the roomSayReceived listener, which drops ignored senders first
+// (see rooms.listeners.ts).
+export const addMessage: CaseReducer<
+  RoomsState,
+  PayloadAction<{ roomId: number; message: Enriched.Message }>
+> = (state, action) => {
+  const { roomId, message } = action.payload;
+  appendMessage(state, roomId, normalizeUserMessage(message));
+};
+
+// Desktop TabRoom::sayFinished: a RespChatFlood rejection appends a warning line
+// to the room chat; a message the server never answered (`failure` set) gets a
+// "not sent" line with the reason. `message` is the unsent text: the reducer only
+// records the notice, and the UI may use the payload to restore the draft.
+export const roomSayFailed: CaseReducer<
+  RoomsState,
+  PayloadAction<RoomCommandFailedPayload & { message: string; timeReceived: number }>
+> = (state, action) => {
+  const { roomId, timeReceived, failure } = action.payload;
+  appendMessage(state, roomId, {
+    ...create(Event_RoomSaySchema, { name: '', message: '' }),
+    timeReceived,
+    ...(failure ? { notice: 'notSent' as const, failure } : { notice: 'chatFlood' as const }),
+  });
 };
 
 export const updateGames: CaseReducer<
@@ -228,6 +250,7 @@ export const inlineReducers = {
   joinRoom,
   leaveRoom,
   addMessage,
+  roomSayFailed,
   updateGames,
   userJoined,
   userLeft,

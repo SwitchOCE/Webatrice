@@ -164,6 +164,7 @@ export interface IRoomResponse<T extends RoomEventMap = WebSocketRoomResponseOve
   updateRooms(rooms: ServerInfo_Room[]): void;
   updateGames(roomId: number, gameList: ServerInfo_Game[]): void;
   addMessage(roomId: number, message: T[KeyOf<RoomEventMap, Event_RoomSay>]): void;
+  roomSayFailed?(roomId: number, message: string, responseCode: number, failure?: CommandFailure): void;
   userJoined(roomId: number, user: ServerInfo_User): void;
   userLeft(roomId: number, name: string): void;
   removeMessages(roomId: number, name: string, amount: number): void;
