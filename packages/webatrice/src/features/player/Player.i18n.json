@@ -1,6 +1,7 @@
 {
   "Player": {
     "title": "User Information",
+    "moderation": "Moderation",
     "label": {
       "realName": "Real Name",
       "location": "Location",
@@ -25,8 +26,6 @@
       "addIgnore": "Add to Ignore List",
       "removeIgnore": "Remove from Ignore List",
       "message": "Message",
-      "warn": "Warn User",
-      "ban": "Ban from Server",
       "notFound": "User not found or still loading…"
     }
   }

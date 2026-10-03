@@ -11,6 +11,8 @@ export { default as UserDisplay } from './UserDisplay/UserDisplay';
 export { default as UserRows } from './UserRows/UserRows';
 export { default as UserActionsMenu } from './UserDisplay/UserActionsMenu';
 export { useUserDisplay } from './UserDisplay/useUserDisplay';
+export { UserMenuSlotProvider, useUserMenuSlot } from './UserDisplay/UserMenuSlot';
+export type { UserMenuSlotProps } from './UserDisplay/UserMenuSlot';
 export { UserBadges } from './UserBadges/UserBadges';
 export { CardRelatedLinks, relatedCardKey } from './CardRelatedLinks/CardRelatedLinks';
 export type { RelatedCardKind, NavigatedCard } from './CardRelatedLinks/CardRelatedLinks';

@@ -42,6 +42,7 @@ const UserDisplay = ({ user }: UserDisplayProps) => {
           y={position.y}
           onClose={handleClose}
           name={name}
+          userLevel={userLevel}
           isABuddy={isABuddy}
           isIgnored={isIgnored}
           onAddBuddy={onAddBuddy}

@@ -30,6 +30,7 @@ export function createMockWebClient() {
         deckDel: vi.fn(),
         deckNewDir: vi.fn(),
         deckDelDir: vi.fn(),
+        replayList: vi.fn(),
       },
       rooms: {
         joinRoom: vi.fn(),
@@ -94,8 +95,13 @@ export function createMockWebClient() {
         viewLogHistory: vi.fn(),
         banFromServer: vi.fn(),
         warnUser: vi.fn(),
-        warnHistory: vi.fn(),
-        banHistory: vi.fn(),
+        getWarnHistory: vi.fn(),
+        getBanHistory: vi.fn(),
+        getWarnList: vi.fn(),
+        getAdminNotes: vi.fn(),
+        updateAdminNotes: vi.fn(),
+        grantReplayAccess: vi.fn(),
+        forceActivateUser: vi.fn(),
       },
     },
   } as unknown as WebClient;
