@@ -13,6 +13,9 @@ export function reportDetails(reportId: number): void {
           WebClient.instance.response.session.reportDetails?.(response.report);
         }
       },
+      onError: (responseCode) => {
+        WebClient.instance.response.session.commandFailed?.('reportDetails', responseCode, String(reportId));
+      },
     }
   );
 }

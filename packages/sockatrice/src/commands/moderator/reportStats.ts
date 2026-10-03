@@ -9,5 +9,8 @@ export function reportStats(): void {
     onSuccess: (response) => {
       WebClient.instance.response.moderator.reportStats?.(response);
     },
+    onError: (responseCode) => {
+      WebClient.instance.response.moderator.commandFailed?.('reportStats', responseCode, '');
+    },
   });
 }

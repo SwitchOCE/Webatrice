@@ -11,6 +11,9 @@ export function deckShareDownload(token: string, itemId: number): void {
       onSuccess: (response) => {
         WebClient.instance.response.session.deckShareDownloaded?.(token, itemId, response.deck);
       },
+      onError: (responseCode) => {
+        WebClient.instance.response.session.commandFailed?.('deckShareDownload', responseCode, token);
+      },
     }
   );
 }

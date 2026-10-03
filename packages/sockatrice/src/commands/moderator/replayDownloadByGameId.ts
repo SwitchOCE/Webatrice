@@ -16,6 +16,9 @@ export function replayDownloadByGameId(gameId: number): void {
       onSuccess: (response) => {
         WebClient.instance.response.moderator.replayDownloadedByGameId?.(gameId, response);
       },
+      onError: (responseCode) => {
+        WebClient.instance.response.moderator.commandFailed?.('replayDownloadByGameId', responseCode, String(gameId));
+      },
     },
   );
 }

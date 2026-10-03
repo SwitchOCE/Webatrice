@@ -82,4 +82,12 @@ describe('ModeratorResponseImpl', () => {
     impl.updateAdminNotes('alice', 'updated notes');
     expect(dispatch).toHaveBeenCalledWith(ServerActions.updateAdminNotes({ userName: 'alice', notes: 'updated notes' }));
   });
+
+  it('commandFailed dispatches moderatorCommandFailed with the command, code and target', () => {
+    const { impl, dispatch } = setup();
+    impl.commandFailed('reportUserInfo', 13, 'alice');
+    expect(dispatch).toHaveBeenCalledWith(
+      ServerActions.moderatorCommandFailed({ command: 'reportUserInfo', responseCode: 13, target: 'alice' }),
+    );
+  });
 });

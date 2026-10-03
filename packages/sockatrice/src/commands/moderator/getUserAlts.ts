@@ -9,5 +9,8 @@ export function getUserAlts(userName: string): void {
     onSuccess: (response) => {
       WebClient.instance.response.moderator.userAlts?.(userName, response.alts);
     },
+    onError: (responseCode) => {
+      WebClient.instance.response.moderator.commandFailed?.('getUserAlts', responseCode, userName);
+    },
   });
 }

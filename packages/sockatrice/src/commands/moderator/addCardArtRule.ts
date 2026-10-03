@@ -14,6 +14,9 @@ export function addCardArtRule(cardName: string, cardProviderId: string, mode: C
       onSuccess: () => {
         WebClient.instance.response.moderator.cardArtRuleAdded?.(cardName, cardProviderId, mode, reason);
       },
+      onError: (responseCode) => {
+        WebClient.instance.response.moderator.commandFailed?.('addCardArtRule', responseCode, cardName);
+      },
     },
   );
 }

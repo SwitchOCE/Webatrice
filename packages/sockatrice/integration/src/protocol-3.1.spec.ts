@@ -89,6 +89,25 @@ describe('Cockatrice 3.1 protocol', () => {
     );
   });
 
+  it('a refused moderation query reaches moderator.commandFailed with its target', () => {
+    connectAndLogin();
+
+    ModeratorCommands.reportUserInfo('mallory');
+
+    const { cmdId } = findLastModeratorCommand(Data.Command_ReportUserInfo_ext);
+    deliverMessage(buildResponseMessage(buildResponse({
+      cmdId,
+      responseCode: Data.Response_ResponseCode.RespNameNotFound,
+    })));
+
+    expect(getMockResponse().moderator.commandFailed).toHaveBeenCalledWith(
+      'reportUserInfo',
+      Data.Response_ResponseCode.RespNameNotFound,
+      'mallory',
+    );
+    expect(getMockResponse().moderator.reportUserInfo).not.toHaveBeenCalled();
+  });
+
   it('report reports a rate-limited submission to the caller', () => {
     connectAndLogin();
     const onSubmitted = vi.fn();

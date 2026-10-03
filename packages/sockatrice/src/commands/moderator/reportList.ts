@@ -13,6 +13,9 @@ export function reportList(unresolvedOnly?: boolean, offset?: number, limit?: nu
       onSuccess: (response) => {
         WebClient.instance.response.moderator.reportList?.(response.reports, response.totalCount);
       },
+      onError: (responseCode) => {
+        WebClient.instance.response.moderator.commandFailed?.('reportList', responseCode, '');
+      },
     },
   );
 }

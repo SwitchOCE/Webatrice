@@ -8,5 +8,8 @@ export function reportMyList(): void {
     onSuccess: (response) => {
       WebClient.instance.response.session.reportMyList?.(response.reports);
     },
+    onError: (responseCode) => {
+      WebClient.instance.response.session.commandFailed?.('reportMyList', responseCode, '');
+    },
   });
 }

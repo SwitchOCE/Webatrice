@@ -261,4 +261,8 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
   replayDownloaded(replayId: number, response: Response_ReplayDownload): void {
     this.store.dispatch(ServerActions.replayDownloaded({ replayId, replayData: response.replayData }));
   }
+
+  commandFailed(command: WebsocketTypes.SessionCommandName, responseCode: number, target: string): void {
+    this.store.dispatch(ServerActions.sessionCommandFailed({ command, responseCode, target }));
+  }
 }
