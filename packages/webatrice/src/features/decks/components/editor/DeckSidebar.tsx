@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
-import { Check, CircleAlert, Loader2, Upload } from 'lucide-react';
+import { Check, CircleAlert, Loader2, Share2, Upload } from 'lucide-react';
 
 import type { SaveState } from '../../hooks/useDeckAutosave';
 import type { PriceLookup } from '../../pricing';
@@ -19,6 +19,8 @@ export interface DeckSidebarProps {
   onNameChange: (name: string) => void;
   onFormatChange: (format: string) => void;
   onExport: () => void;
+  /** Desktop "Share deck..." (Servatrice 3.1 only). */
+  onShare?: () => void;
   previewCard: DeckCard | null;
   prices: PriceLookup;
   pricesLoading: boolean;
@@ -41,6 +43,7 @@ export function DeckSidebar({
   onNameChange,
   onFormatChange,
   onExport,
+  onShare,
   previewCard,
   prices,
   pricesLoading,
@@ -48,6 +51,7 @@ export function DeckSidebar({
   headerActions,
   details,
 }: DeckSidebarProps) {
+  const { t } = useTranslation();
   return (
     <aside className="min-h-0 flex flex-col border-r border-border-subtle bg-bg-surface">
       <div className="shrink-0 px-4 py-3 border-b border-border-subtle">
@@ -92,6 +96,19 @@ export function DeckSidebar({
           >
             <Upload size={13} /> Export deck
           </button>
+          {onShare && (
+            <button
+              type="button"
+              onClick={onShare}
+              className={[
+                'w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5',
+                'rounded-md border border-border-strong bg-bg-elevated',
+                'hover:bg-border-subtle text-text-primary text-sm font-medium transition-colors',
+              ].join(' ')}
+            >
+              <Share2 size={13} /> {t('DeckSharing.shareDeck')}
+            </button>
+          )}
           {/* Deck-total TCGplayer pill only makes sense when the cards
               are MTG (Scryfall pricing has no coverage for anything
               else). Non-MTG decks drop the row entirely. */}

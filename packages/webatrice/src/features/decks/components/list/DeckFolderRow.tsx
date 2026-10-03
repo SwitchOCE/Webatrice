@@ -1,21 +1,26 @@
 import { useTranslation } from 'react-i18next';
-import { Download, Folder, Trash2 } from 'lucide-react';
+import { Download, Folder, Globe, Share2, Trash2 } from 'lucide-react';
 
 import type { DeckFolderEntry } from '../../deckFolders';
+import { DeckVisibilityBadge } from './DeckVisibilityBadge';
 
 export interface DeckFolderRowProps {
   folder: DeckFolderEntry;
   onOpen: () => void;
   onDownload: () => void;
   onDelete: () => void;
+  /** Share every deck in the folder (Servatrice 3.1 only). */
+  onShare?: () => void;
+  /** Publish or unpublish the folder (Servatrice 3.1 only). */
+  onTogglePublic?: () => void;
 }
 
 const ACTION_CLASS = [
   'p-2 rounded-md text-text-muted opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all shrink-0',
 ].join(' ');
 
-/** A subfolder in the list: opens on click; download and delete on hover. */
-export function DeckFolderRow({ folder, onOpen, onDownload, onDelete }: DeckFolderRowProps) {
+/** A subfolder in the list: opens on click; share, publish, download and delete on hover. */
+export function DeckFolderRow({ folder, onOpen, onDownload, onDelete, onShare, onTogglePublic }: DeckFolderRowProps) {
   const { t } = useTranslation();
   return (
     <div className="group flex items-center gap-2 rounded-md bg-bg-surface border border-border-subtle hover:border-border-strong">
@@ -29,7 +34,32 @@ export function DeckFolderRow({ folder, onOpen, onDownload, onDelete }: DeckFold
         <span className="text-xs text-text-muted tabular-nums">
           {t('DeckFolders.deckCount', { count: folder.deckCount })}
         </span>
+        <DeckVisibilityBadge visibility={folder.visibility} kind="folder" />
       </button>
+      {onShare && (
+        <button
+          type="button"
+          onClick={onShare}
+          disabled={folder.deckCount === 0}
+          className={`${ACTION_CLASS} hover:text-text-primary hover:bg-bg-elevated disabled:hidden`}
+          title={t('DeckSharing.shareDecks')}
+          aria-label={t('DeckSharing.shareFolderNamed', { name: folder.name })}
+        >
+          <Share2 size={14} />
+        </button>
+      )}
+      {onTogglePublic && (
+        <button
+          type="button"
+          onClick={onTogglePublic}
+          aria-pressed={folder.visibility === 'public'}
+          className={`${ACTION_CLASS} hover:text-text-primary hover:bg-bg-elevated`}
+          title={t('DeckSharing.publish')}
+          aria-label={t('DeckSharing.publishNamed', { name: folder.name })}
+        >
+          <Globe size={14} />
+        </button>
+      )}
       <button
         type="button"
         onClick={onDownload}

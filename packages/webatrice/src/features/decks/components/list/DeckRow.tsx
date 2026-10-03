@@ -1,10 +1,11 @@
 import { useTranslation } from 'react-i18next';
-import { Download, FileText, FolderInput, Trash2 } from 'lucide-react';
+import { Download, FileText, FolderInput, Globe, Share2, Trash2 } from 'lucide-react';
 
 import { deckArtUrl, formatDisplayLabel, type DeckSummary } from '../../deckSummary';
 import { formatDeckAge, type FlatDeck } from '../../deckTree';
 import type { DeckListViewMode } from '../../hooks/useDeckListViewMode';
 import { BracketBadge, DeckPriceBadge } from './DeckBadges';
+import { DeckVisibilityBadge } from './DeckVisibilityBadge';
 
 export interface DeckRowProps {
   deck: FlatDeck;
@@ -18,6 +19,10 @@ export interface DeckRowProps {
   onMove?: () => void;
   /** Save the deck as a `.cod` file. */
   onDownload?: () => void;
+  /** Create a share link (Servatrice 3.1 only). */
+  onShare?: () => void;
+  /** Publish or unpublish the deck (Servatrice 3.1 only). */
+  onTogglePublic?: () => void;
 }
 
 export function DeckRow(props: DeckRowProps) {
@@ -57,13 +62,45 @@ function DeckRowMeta({ deck, summary, className }: {
  * opens the deck; delete floats top-right so it stays reachable over the
  * art.
  */
-/** Move / download buttons, shown on hover like delete. */
-function DeckRowStorageActions({ deck, onMove, onDownload, className }: Pick<DeckRowProps, 'deck' | 'onMove' | 'onDownload'> & {
+/** Share / publish / move / download buttons, shown on hover like delete. */
+function DeckRowStorageActions({ deck, onMove, onDownload, onShare, onTogglePublic, className }: Pick<
+  DeckRowProps,
+  'deck' | 'onMove' | 'onDownload' | 'onShare' | 'onTogglePublic'
+> & {
   className: string;
 }) {
   const { t } = useTranslation();
   return (
     <>
+      {onShare && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onShare();
+          }}
+          className={`${className} hover:text-text-primary hover:bg-bg-elevated`}
+          title={t('DeckSharing.shareDeck')}
+          aria-label={t('DeckSharing.shareDeckNamed', { name: deck.name })}
+        >
+          <Share2 size={14} />
+        </button>
+      )}
+      {onTogglePublic && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onTogglePublic();
+          }}
+          aria-pressed={deck.visibility === 'public'}
+          className={`${className} hover:text-text-primary hover:bg-bg-elevated`}
+          title={t('DeckSharing.publish')}
+          aria-label={t('DeckSharing.publishNamed', { name: deck.name })}
+        >
+          <Globe size={14} />
+        </button>
+      )}
       {onDownload && (
         <button
           type="button"
@@ -96,7 +133,7 @@ function DeckRowStorageActions({ deck, onMove, onDownload, className }: Pick<Dec
   );
 }
 
-function DeckRowCard({ deck, summary, onOpen, onDelete, onMove, onDownload }: DeckRowProps) {
+function DeckRowCard({ deck, summary, onOpen, onDelete, onMove, onDownload, onShare, onTogglePublic }: DeckRowProps) {
   const artUrl = deckArtUrl(summary);
   const bracket = summary?.bracketLevel;
 
@@ -154,6 +191,7 @@ function DeckRowCard({ deck, summary, onOpen, onDelete, onMove, onDownload }: De
               {deck.name}
             </span>
             {bracket != null && <BracketBadge level={bracket} />}
+            <DeckVisibilityBadge visibility={deck.visibility} kind="deck" />
           </div>
           <DeckRowMeta
             deck={deck}
@@ -168,6 +206,8 @@ function DeckRowCard({ deck, summary, onOpen, onDelete, onMove, onDownload }: De
           deck={deck}
           onMove={onMove}
           onDownload={onDownload}
+          onShare={onShare}
+          onTogglePublic={onTogglePublic}
           className={[
             'p-2 rounded-md bg-bg-surface/80 backdrop-blur-sm border border-border-subtle text-text-muted',
             'opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all',
@@ -198,7 +238,7 @@ function DeckRowCard({ deck, summary, onOpen, onDelete, onMove, onDownload }: De
  * "Compact" layout: one line with a small art thumbnail on the left,
  * name + bracket + meta, delete on the right.
  */
-function DeckRowCompact({ deck, summary, onOpen, onDelete, onMove, onDownload }: DeckRowProps) {
+function DeckRowCompact({ deck, summary, onOpen, onDelete, onMove, onDownload, onShare, onTogglePublic }: DeckRowProps) {
   const artUrl = deckArtUrl(summary);
   const bracket = summary?.bracketLevel;
 
@@ -241,6 +281,7 @@ function DeckRowCompact({ deck, summary, onOpen, onDelete, onMove, onDownload }:
               {deck.name}
             </span>
             {bracket != null && <BracketBadge level={bracket} />}
+            <DeckVisibilityBadge visibility={deck.visibility} kind="deck" />
           </div>
           <DeckRowMeta
             deck={deck}
@@ -254,6 +295,8 @@ function DeckRowCompact({ deck, summary, onOpen, onDelete, onMove, onDownload }:
         deck={deck}
         onMove={onMove}
         onDownload={onDownload}
+        onShare={onShare}
+        onTogglePublic={onTogglePublic}
         className="p-2 rounded-md text-text-muted opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all shrink-0"
       />
       <button

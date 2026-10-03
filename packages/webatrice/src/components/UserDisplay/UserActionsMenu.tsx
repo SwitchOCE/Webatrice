@@ -2,9 +2,12 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { NavLink, generatePath } from 'react-router-dom';
-import { Flag, MessageSquare, UserRoundPlus, UserRoundMinus, VolumeX, Volume2 } from 'lucide-react';
+import { Flag, Library, MessageSquare, UserRoundPlus, UserRoundMinus, VolumeX, Volume2 } from 'lucide-react';
 
+import { server, ServerCapability } from '@cockatrice/datatrice';
+import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 import { useReportUser } from '@app/dialogs';
+import { useAppSelector } from '@app/store';
 import { RouteEnum } from '@app/types';
 import { useUserMenuSlot } from './UserMenuSlot';
 
@@ -56,6 +59,12 @@ export default function UserActionsMenu({
   const Slot = useUserMenuSlot();
   const { t } = useTranslation();
   const { reportingAvailable, canReportUser, openReportUser } = useReportUser();
+  const ownName = useAppSelector((state) => server.Selectors.getUser(state)?.name);
+  const deckSharing = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.DECK_SHARING));
+  // Desktop UserContextMenu: registered users only, and never yourself.
+  const showPublicDecks = deckSharing
+    && ((userLevel ?? 0) & ServerInfo_User_UserLevelFlag.IsRegistered) !== 0
+    && name !== ownName;
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
@@ -111,6 +120,16 @@ export default function UserActionsMenu({
          *  the PrivateChat panel for this user. */}
         <MessageSquare size={14} /> Private chat
       </NavLink>
+      {showPublicDecks && (
+        <NavLink
+          to={generatePath(RouteEnum.PUBLIC_DECKS, { userName: name })}
+          onClick={onClose}
+          className={MENU_ITEM_CLASS}
+          role="menuitem"
+        >
+          <Library size={14} /> {t('UserActionsMenu.viewPublicDecks')}
+        </NavLink>
+      )}
       <div className="my-1 border-t border-border-subtle" />
       {!isABuddy ? (
         <button

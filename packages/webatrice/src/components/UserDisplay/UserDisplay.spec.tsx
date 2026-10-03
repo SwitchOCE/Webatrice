@@ -1,6 +1,6 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
-import { renderWithProviders, connectedState, makeUser, createMockWebClient } from '../../__test-utils__';
+import { renderWithProviders, connected31State, connectedState, makeUser, createMockWebClient } from '../../__test-utils__';
 import { ReportChatScope, ReportUserProvider } from '../../dialogs';
 import UserDisplay from './UserDisplay';
 import { UserMenuSlotProvider, type UserMenuSlotProps } from './UserMenuSlot';
@@ -72,6 +72,29 @@ describe('UserDisplay', () => {
     fireEvent.contextMenu(screen.getByText('TestPlayer'));
     expect(screen.getByRole('menu')).toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: /^slot/ })).not.toBeInTheDocument();
+  });
+
+  describe('View this user\'s public decks', () => {
+    const registered = Level.IsRegistered;
+
+    function openMenu(user: ReturnType<typeof makeUser>, preloadedState = connected31State) {
+      renderWithProviders(<UserDisplay user={user} />, { preloadedState });
+      fireEvent.contextMenu(screen.getByText(user.name));
+    }
+
+    it('links a registered user to their public decks on a 3.1 server', () => {
+      openMenu(makeUser({ name: 'bob', userLevel: registered }));
+      expect(screen.getByRole('menuitem', { name: /UserActionsMenu.viewPublicDecks/ })).toHaveAttribute('href', '/decks/public/bob');
+    });
+
+    it.each([
+      ['an unregistered user', makeUser({ name: 'bob', userLevel: 0 }), connected31State],
+      ['yourself', makeUser({ name: connectedState.server!.user!.name, userLevel: registered }), connected31State],
+      ['anyone on a 3.0 server', makeUser({ name: 'bob', userLevel: registered }), connectedState],
+    ])('is not offered for %s', (_case, user, state) => {
+      openMenu(user, state);
+      expect(screen.queryByRole('menuitem', { name: /UserActionsMenu.viewPublicDecks/ })).toBeNull();
+    });
   });
 });
 

@@ -77,12 +77,20 @@ export function parseDeckShareLink(text: string): DeckShareLink | { problem: Dec
 }
 
 /**
+ * The machine a host entry names: Webatrice hosts may carry a scheme, a port
+ * or a WebSocket path (`server.cockatrice.us/servatrice`), desktop's never do.
+ */
+function bareHostname(host: string): string {
+  return host.trim().toLowerCase().replace(/^[a-z]+:\/\//, '').split('/')[0].replace(/:\d+$/, '');
+}
+
+/**
  * Whether a link's server is the one this session is logged into. Only the
- * host is compared: a desktop link names Servatrice's TCP port, which a browser
- * can't use, while this session knows only the WebSocket port.
+ * machine is compared: a desktop link names Servatrice's TCP port, which a
+ * browser can't use, while this session knows only its WebSocket address.
  */
 export function isSameShareServer(link: DeckShareLink, hostname: string | undefined): boolean {
-  return !!hostname && link.hostname.toLowerCase() === hostname.toLowerCase();
+  return !!hostname && bareHostname(link.hostname) === bareHostname(hostname);
 }
 
 /** Desktop `DeckShareUtils::formatShareExpiry`: local date and time, short. */

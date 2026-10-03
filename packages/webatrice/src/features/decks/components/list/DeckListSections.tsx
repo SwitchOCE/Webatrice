@@ -11,6 +11,8 @@ export interface DeckListSectionsProps {
   onDelete: (deck: FlatDeck) => void;
   onMove?: (deck: FlatDeck) => void;
   onDownload?: (deck: FlatDeck) => void;
+  onShare?: (deck: FlatDeck) => void;
+  onTogglePublic?: (deck: FlatDeck) => void;
 }
 
 /** The deck rows, one titled section per format. */
@@ -22,6 +24,8 @@ export function DeckListSections({
   onDelete,
   onMove,
   onDownload,
+  onShare,
+  onTogglePublic,
 }: DeckListSectionsProps) {
   return (
     <div className="space-y-6">
@@ -42,6 +46,8 @@ export function DeckListSections({
                   onDelete={() => onDelete(deck)}
                   onMove={onMove && (() => onMove(deck))}
                   onDownload={onDownload && (() => onDownload(deck))}
+                  onShare={onShare && (() => onShare(deck))}
+                  onTogglePublic={onTogglePublic && (() => onTogglePublic(deck))}
                 />
               </li>
             ))}

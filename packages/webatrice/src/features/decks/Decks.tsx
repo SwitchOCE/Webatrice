@@ -3,6 +3,7 @@ import { generatePath, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import { AuthGuard } from '@app/components';
+import { AlertDialog } from '@app/dialogs';
 import { Layout } from '@app/feature-wrappers/layout';
 import { RouteEnum } from '@app/types';
 
@@ -12,16 +13,22 @@ import { DeckListHeader } from './components/list/DeckListHeader';
 import { DeckListSections } from './components/list/DeckListSections';
 import { DeckListEmpty, DeckListError, DeckListLoading, DeckStorageError } from './components/list/DeckListStates';
 import type { DeckFolderEntry } from './deckFolders';
+import { deckShareQuery, type DeckShareLink } from './deckSharing';
 import type { FlatDeck } from './deckTree';
 import { CreateDeckDialog } from './dialogs/CreateDeckDialog';
 import { CreateFolderDialog } from './dialogs/CreateFolderDialog';
 import { DeleteDeckDialog } from './dialogs/DeleteDeckDialog';
+import { DeckShareLinksDialog } from './dialogs/DeckShareLinksDialog';
 import { DeleteFolderDialog } from './dialogs/DeleteFolderDialog';
 import { ImportDeckDialog } from './dialogs/ImportDeckDialog';
 import { MoveDeckDialog } from './dialogs/MoveDeckDialog';
+import { OpenShareLinkDialog } from './dialogs/OpenShareLinkDialog';
+import { ShareDeckDialog } from './dialogs/ShareDeckDialog';
 import { useDeckFileDownloads } from './hooks/useDeckFileDownloads';
 import { useDeckList } from './hooks/useDeckList';
 import { useDeckListViewMode } from './hooks/useDeckListViewMode';
+import { useDeckShareCreate, useDeckSharingSupported, useDeckVisibility } from './hooks/useDeckSharing';
+import { useDeckShareLinks } from './hooks/useDeckShareLinks';
 
 /** The `?folder=` search parameter holds the shown folder's path. */
 const FOLDER_PARAM = 'folder';
@@ -38,6 +45,8 @@ const FOLDER_PARAM = 'folder';
  *   • New folder / delete folder (confirming what it holds) / move a deck /
  *     download a deck or a folder as `.cod` files.
  *   • Row click → `/deck/:id`. Delete → confirm → `deckDel(id)`.
+ *   • Servatrice 3.1: share a deck or a folder's decks, publish/unpublish a
+ *     deck or folder, review and revoke share links, open a pasted link.
  */
 function Decks() {
   const navigate = useNavigate();
@@ -59,6 +68,35 @@ function Decks() {
   const [pendingDelete, setPendingDelete] = useState<FlatDeck | null>(null);
   const [pendingFolderDelete, setPendingFolderDelete] = useState<DeckFolderEntry | null>(null);
   const [pendingMove, setPendingMove] = useState<FlatDeck | null>(null);
+
+  const sharingSupported = useDeckSharingSupported();
+  const share = useDeckShareCreate();
+  const visibility = useDeckVisibility();
+  // What the share dialog is for: one stored deck, or a folder's decks.
+  const [shareTarget, setShareTarget] = useState<{ deckId: number } | { folderPath: string } | null>(null);
+  const [shareLinksOpen, setShareLinksOpen] = useState(false);
+  const [openLinkOpen, setOpenLinkOpen] = useState(false);
+  const shareLinks = useDeckShareLinks(shareLinksOpen);
+
+  const startShare = (target: { deckId: number } | { folderPath: string }) => {
+    share.reset();
+    setShareTarget(target);
+  };
+
+  const createShare = (name: string) => {
+    if (!shareTarget || !list.isConnected) {
+      return;
+    }
+    // Desktop's storage tab shares stored decks by id and a folder by path.
+    share.create('folderPath' in shareTarget
+      ? { name, folderPath: shareTarget.folderPath }
+      : { name, items: [{ deckId: shareTarget.deckId }] });
+  };
+
+  const openShareLink = (link: DeckShareLink) => {
+    setOpenLinkOpen(false);
+    navigate({ pathname: RouteEnum.SHARED_DECK, search: `?${deckShareQuery(link)}` });
+  };
 
   const openFolder = (path: string) => {
     setSearchParams(path ? { [FOLDER_PARAM]: path } : {});
@@ -111,6 +149,8 @@ function Decks() {
           onRefresh={list.refresh}
           onImport={() => setImportOpen(true)}
           onCreate={() => setCreateOpen(true)}
+          onOpenShareLink={sharingSupported ? () => setOpenLinkOpen(true) : undefined}
+          onShareLinks={sharingSupported ? () => setShareLinksOpen(true) : undefined}
         />
 
         {/* Capped at max-w-4xl so rows don't stretch across ultrawide monitors. */}
@@ -136,6 +176,10 @@ function Decks() {
                       onOpen={() => openFolder(entry.path)}
                       onDownload={() => files.download(list.decksUnder(entry.path), entry.path)}
                       onDelete={() => setPendingFolderDelete(entry)}
+                      onShare={sharingSupported ? () => startShare({ folderPath: entry.path }) : undefined}
+                      onTogglePublic={sharingSupported
+                        ? () => visibility.toggle({ folderPath: entry.path }, entry.visibility)
+                        : undefined}
                     />
                   </li>
                 ))}
@@ -156,6 +200,10 @@ function Decks() {
                 onDelete={setPendingDelete}
                 onMove={canMove ? setPendingMove : undefined}
                 onDownload={(deck) => files.download([deck], deck.path)}
+                onShare={sharingSupported ? (deck) => startShare({ deckId: deck.id }) : undefined}
+                onTogglePublic={sharingSupported
+                  ? (deck) => visibility.toggle({ deckId: deck.id }, deck.visibility)
+                  : undefined}
               />
             )}
           </div>
@@ -211,6 +259,32 @@ function Decks() {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreate={handleCreate}
+      />
+
+      <ShareDeckDialog
+        open={shareTarget != null}
+        defaultName={t('DeckSharing.defaultDecksName')}
+        state={share.state}
+        onClose={() => setShareTarget(null)}
+        onCreate={createShare}
+      />
+
+      {shareLinksOpen && (
+        <DeckShareLinksDialog
+          shares={shareLinks.shares}
+          error={shareLinks.error}
+          onRevoke={shareLinks.revoke}
+          onClose={() => setShareLinksOpen(false)}
+        />
+      )}
+
+      <OpenShareLinkDialog open={openLinkOpen} onClose={() => setOpenLinkOpen(false)} onOpen={openShareLink} />
+
+      <AlertDialog
+        isOpen={visibility.error != null}
+        title={t('DeckSharing.error')}
+        message={visibility.error ?? ''}
+        onDismiss={visibility.clearError}
       />
     </Layout>
   );
