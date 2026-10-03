@@ -5,3 +5,4 @@ export { toBcp47 } from './locale';
 export { getRoomPermissionDisplay } from './roomPermission';
 export { formatChatHistoryTime } from './chatTime';
 export { formatRestrictions, formatSpectators } from './gameInfo';
+export { downloadBlob } from './downloadBlob';

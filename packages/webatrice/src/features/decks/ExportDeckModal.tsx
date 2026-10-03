@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Copy, Check, Download, FileText, Swords, Package } from 'lucide-react';
 
+import { downloadBlob } from '@app/utils';
+
 import { serializeCod } from './cod';
 import type { DeckCard, DeckMeta } from './types';
 
@@ -227,15 +229,7 @@ export default function ExportDeckModal({
   };
 
   const download = () => {
-    const blob = new Blob([content], { type: `${currentFormat.mime};charset=utf-8` });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${slugify(deckName)}.${currentFormat.extension}`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadBlob(content, `${slugify(deckName)}.${currentFormat.extension}`, `${currentFormat.mime};charset=utf-8`);
   };
 
   if (!open) {
