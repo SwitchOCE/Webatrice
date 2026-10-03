@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { ListImperativeAPI } from 'react-window';
 import { Filter, FilterX, Plus, LogIn, Eye, Gavel, ArrowUp, ArrowDown } from 'lucide-react';
 
@@ -126,12 +126,13 @@ export default function GamesList({ room }: GamesListProps) {
   // Stable renderRow identity (deps are only what changes a row's drawing:
   // selection + the row handlers) so react-window's row memoization holds — see
   // webatrice.instructions.md § Virtualized lists.
-  const renderGameRow = useCallback((game: Game, index: number) => {
+  const renderGameRow = useCallback((game: Game, index: number, style: CSSProperties) => {
     const { info, gameType } = game;
     const isSelected = info.gameId === selectedGameId;
     return (
       <div
         role="row"
+        style={style}
         {...getRowProps(String(info.gameId))}
         aria-selected={isSelected}
         // Row 1 is the header; react-window renders only a window of the rest.
