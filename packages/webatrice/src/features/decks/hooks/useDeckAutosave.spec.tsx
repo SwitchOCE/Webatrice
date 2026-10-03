@@ -1,37 +1,56 @@
-import type { ReactNode } from 'react';
-import { act, renderHook } from '@testing-library/react';
+import { act } from '@testing-library/react';
 
-import { WebClientContext } from '@cockatrice/datatrice/react';
-import type { WebClient } from '@cockatrice/sockatrice';
+import { server } from '@cockatrice/datatrice';
+import { create } from '@bufbuild/protobuf';
+import { Response_ResponseCode, ServerInfo_DeckStorage_TreeItemSchema } from '@cockatrice/sockatrice/generated';
 
+import { connectedState, createMockWebClient, renderWithProviders } from '../../../__test-utils__';
 import { clearDeckEditorCache, getCachedDeck, setCachedDeck } from '../deckEditorCache';
-import { serializeDeckForSave, uploadDeckUpdate } from '../deckPersistence';
+import { deckSaveSignature } from '../deckPersistence';
 import type { HydratedDeck } from '../types';
-import { AUTOSAVE_DEBOUNCE_MS, useDeckAutosave } from './useDeckAutosave';
-
-vi.mock('../deckPersistence', () => ({
-  serializeDeckForSave: vi.fn(),
-  uploadDeckUpdate: vi.fn(),
-}));
+import { AUTOSAVE_DEBOUNCE_MS, useDeckAutosave, type DeckAutosave } from './useDeckAutosave';
 
 const deck: HydratedDeck = { name: 'D', meta: { v: 1, updatedAt: 'x' }, cards: [], format: 'modern' };
-const client = {} as WebClient;
+const SAVED = deckSaveSignature(deck);
+const EDITED: HydratedDeck = { ...deck, name: 'D v2' };
 
-function wrapper({ children }: { children: ReactNode }) {
-  return <WebClientContext value={client}>{children}</WebClientContext>;
+let latest: DeckAutosave;
+let current: HydratedDeck | null;
+// Stable, like the editor's `readDeck`: a new reader would re-create the
+// flush callback and flush on every render.
+const readDeck = () => current;
+
+function Probe({ initial }: { initial: string | null }) {
+  latest = useDeckAutosave(7, readDeck, initial);
+  return null;
 }
 
-function renderAutosave(initialSavedXml: string | null = null, current: HydratedDeck | null = deck) {
-  // Stable, like the editor's `readDeck`: a new reader would re-create
-  // the flush callback and flush on every render.
-  const readDeck = () => current;
-  return renderHook(() => useDeckAutosave(7, readDeck, initialSavedXml), { wrapper });
+function setup(initial: string | null = SAVED) {
+  const webClient = createMockWebClient();
+  const view = renderWithProviders(<Probe initial={initial} />, { preloadedState: connectedState, webClient });
+  return { ...view, webClient };
+}
+
+function ack(store: { dispatch: (a: unknown) => void }, deckId = 7) {
+  act(() => {
+    store.dispatch(server.Actions.deckUpdated({
+      deckId,
+      treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: deckId, name: 'D' }),
+    }));
+  });
+}
+
+function save() {
+  act(() => {
+    latest.scheduleSave();
+    vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+  });
 }
 
 beforeEach(() => {
   vi.useFakeTimers();
   clearDeckEditorCache();
-  vi.mocked(serializeDeckForSave).mockReturnValue('<new/>');
+  current = EDITED;
 });
 
 afterEach(() => {
@@ -39,96 +58,121 @@ afterEach(() => {
 });
 
 describe('useDeckAutosave', () => {
-  it('debounces edits into one upload and reports saving, then saved on the ack', () => {
-    const { result } = renderAutosave('<old/>');
+  it('debounces edits into one deckUpdate and reports saving, then saved on the ack', () => {
+    const { webClient, store } = setup();
 
     act(() => {
-      result.current.scheduleSave();
-      result.current.scheduleSave();
+      latest.scheduleSave();
+      latest.scheduleSave();
     });
-    expect(result.current.saveState).toBe('dirty');
-    expect(uploadDeckUpdate).not.toHaveBeenCalled();
+    expect(latest.saveState).toBe('dirty');
+    expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
 
     act(() => {
       vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
     });
-    expect(uploadDeckUpdate).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(uploadDeckUpdate).mock.calls[0].slice(0, 3)).toEqual([client, 7, '<new/>']);
-    expect(result.current.saveState).toBe('saving');
+    expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);
+    const [deckId, xml] = vi.mocked(webClient.request.session.deckUpdate).mock.calls[0];
+    expect(deckId).toBe(7);
+    expect(xml).toContain('<deckname>D v2</deckname>');
+    expect(latest.saveState).toBe('saving');
 
-    act(() => vi.mocked(uploadDeckUpdate).mock.calls[0][3]!());
-    expect(result.current.saveState).toBe('saved');
-    expect(result.current.savedXml()).toBe('<new/>');
+    ack(store);
+    expect(latest.saveState).toBe('saved');
+    expect(latest.savedSignature()).toBe(deckSaveSignature(EDITED));
   });
 
-  it('flags a failed upload and forgets its signature so the next save resends it', () => {
-    setCachedDeck(7, { deck, savedXml: '<old/>' });
-    const { result } = renderAutosave('<old/>');
-    act(() => {
-      result.current.scheduleSave();
-      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
-    });
-    expect(result.current.saveState).toBe('saving');
-
-    act(() => vi.mocked(uploadDeckUpdate).mock.calls[0][4]!());
-    expect(result.current.saveState).toBe('failed');
-    expect(result.current.savedXml()).toBe('<old/>');
-    expect(getCachedDeck(7)?.savedXml).toBe('<old/>');
-
-    act(() => {
-      result.current.scheduleSave();
-      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
-    });
-    expect(uploadDeckUpdate).toHaveBeenCalledTimes(2);
+  it('skips the upload when only the timestamp would change', () => {
+    current = { ...deck, meta: { ...deck.meta, updatedAt: 'later' } };
+    const { webClient } = setup();
+    save();
+    expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+    expect(latest.saveState).toBe('idle');
   });
 
-  it('skips the upload when the XML matches the last save', () => {
-    const { result } = renderAutosave('<new/>');
+  it('settles back to saved when an edit is reverted before the debounce fires', () => {
+    const { webClient, store } = setup();
+    save();
+    ack(store);
+
+    current = { ...EDITED, name: 'D v3' };
+    act(() => latest.scheduleSave());
+    current = EDITED;
     act(() => {
-      result.current.scheduleSave();
       vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
     });
-    expect(uploadDeckUpdate).not.toHaveBeenCalled();
+    expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);
+    expect(latest.saveState).toBe('saved');
   });
 
-  it('keeps the cached signature in step with each save', () => {
-    setCachedDeck(7, { deck, savedXml: '<old/>' });
-    const { result } = renderAutosave('<old/>');
+  it('does not resend content that is already in flight', () => {
+    const { webClient } = setup();
+    save();
+    save();
+    expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);
+    expect(latest.saveState).toBe('saving');
+  });
+
+  it('reports a failed save and uploads again on the next save', () => {
+    const { webClient, store } = setup();
+    save();
     act(() => {
-      result.current.scheduleSave();
-      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
+      store.dispatch(server.Actions.deckUpdateFailed({ deckId: 7, responseCode: Response_ResponseCode.RespInternalError }));
     });
-    expect(getCachedDeck(7)?.savedXml).toBe('<new/>');
+    expect(latest.saveState).toBe('failed');
+    expect(latest.savedSignature()).toBe(SAVED);
+
+    save();
+    expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(2);
+  });
+
+  it('ignores answers for other decks and answers with nothing in flight', () => {
+    const { store } = setup();
+    ack(store);
+    expect(latest.saveState).toBe('idle');
+    save();
+    ack(store, 8);
+    expect(latest.saveState).toBe('saving');
+  });
+
+  it('keeps the cached signature in step with each acknowledged save', () => {
+    setCachedDeck(7, { deck, savedSignature: SAVED });
+    const { store } = setup();
+    save();
+    expect(getCachedDeck(7)?.savedSignature).toBe(SAVED);
+    ack(store);
+    expect(getCachedDeck(7)?.savedSignature).toBe(deckSaveSignature(EDITED));
   });
 
   it('flushes a pending save on demand and on unmount', () => {
-    const { result, unmount } = renderAutosave('<old/>');
-    act(() => result.current.scheduleSave());
-    act(() => result.current.flushSave());
-    expect(uploadDeckUpdate).toHaveBeenCalledTimes(1);
+    const { webClient, unmount } = setup();
+    act(() => latest.scheduleSave());
+    act(() => latest.flushSave());
+    expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);
 
-    vi.mocked(serializeDeckForSave).mockReturnValue('<newer/>');
-    act(() => result.current.scheduleSave());
+    current = { ...EDITED, name: 'D v3' };
+    act(() => latest.scheduleSave());
     unmount();
-    expect(uploadDeckUpdate).toHaveBeenCalledTimes(2);
+    expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(2);
   });
 
   it('does nothing without a deck', () => {
-    const { result } = renderAutosave(null, null);
-    act(() => {
-      result.current.scheduleSave();
-      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS);
-    });
-    expect(uploadDeckUpdate).not.toHaveBeenCalled();
+    current = null;
+    const { webClient } = setup();
+    save();
+    expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
   });
 
-  it('marks a freshly downloaded deck clean', () => {
-    const { result } = renderAutosave();
-    act(() => result.current.scheduleSave());
-    act(() => result.current.markSaved('<downloaded/>'));
-    expect(result.current.saveState).toBe('idle');
-    expect(result.current.savedXml()).toBe('<downloaded/>');
-    act(() => result.current.resetSaved());
-    expect(result.current.savedXml()).toBeNull();
+  it('uploads unconditionally after resetSaved, and markSaved marks the deck clean', () => {
+    current = deck;
+    const { webClient } = setup();
+    act(() => latest.resetSaved());
+    expect(latest.savedSignature()).toBeNull();
+    save();
+    expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);
+
+    act(() => latest.markSaved('sig'));
+    expect(latest.saveState).toBe('idle');
+    expect(latest.savedSignature()).toBe('sig');
   });
 });

@@ -1,8 +1,6 @@
 {
   "DeckEditor": {
     "downloadFailed": "Failed to download this deck from the server.",
-    "loadFailedTitle": "Deck could not be loaded",
-    "saveFailed": "Save failed",
-    "saveFailedHint": "Your last change was not saved. It will be sent again with your next change."
+    "loadFailedTitle": "Deck could not be loaded"
   }
 }

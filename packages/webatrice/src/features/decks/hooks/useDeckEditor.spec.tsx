@@ -7,6 +7,7 @@ import { lookupCard } from '@app/services';
 
 import { connectedState, createMockWebClient, renderWithProviders } from '../../../__test-utils__';
 import { clearDeckEditorCache, getCachedDeck, setCachedDeck } from '../deckEditorCache';
+import { deckSaveSignature } from '../deckPersistence';
 import { hydrateDeck } from '../hydrate';
 import type { HydratedDeck } from '../types';
 import { useDeckEditor, type UseDeckEditor } from './useDeckEditor';
@@ -14,10 +15,6 @@ import { useDeckEditor, type UseDeckEditor } from './useDeckEditor';
 vi.mock('../hydrate', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../hydrate')>()),
   hydrateDeck: vi.fn(),
-}));
-vi.mock('../deckPersistence', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../deckPersistence')>()),
-  uploadDeckUpdate: vi.fn(),
 }));
 vi.mock('@app/services', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@app/services')>()),
@@ -68,7 +65,7 @@ describe('useDeckEditor', () => {
     await waitFor(() => expect(latest.loading).toBe(false));
     expect(latest.deck?.name).toBe('Burn');
     expect(latest.totalMainboardCount).toBe(1);
-    expect(getCachedDeck(5)?.savedXml).toBe(COD);
+    expect(getCachedDeck(5)?.savedSignature).toBe(deckSaveSignature(hydrated()));
   });
 
   it('ignores another deck’s download', () => {
@@ -122,7 +119,7 @@ describe('useDeckEditor', () => {
   });
 
   it('serves a deck opened earlier this session without downloading it', () => {
-    setCachedDeck(5, { deck: hydrated({ name: 'Cached' }), savedXml: COD });
+    setCachedDeck(5, { deck: hydrated({ name: 'Cached' }), savedSignature: deckSaveSignature(hydrated()) });
     const { webClient } = setup();
     expect(latest.loading).toBe(false);
     expect(latest.deck?.name).toBe('Cached');
@@ -130,7 +127,7 @@ describe('useDeckEditor', () => {
   });
 
   it('applies edits optimistically, marks the deck dirty and mirrors it into the cache', () => {
-    setCachedDeck(5, { deck: hydrated(), savedXml: COD });
+    setCachedDeck(5, { deck: hydrated(), savedSignature: deckSaveSignature(hydrated()) });
     setup();
 
     act(() => latest.setName('Burn v2'));
@@ -147,7 +144,7 @@ describe('useDeckEditor', () => {
   });
 
   it('adds a card by name, incrementing an existing mainboard row', async () => {
-    setCachedDeck(5, { deck: hydrated(), savedXml: COD });
+    setCachedDeck(5, { deck: hydrated(), savedSignature: deckSaveSignature(hydrated()) });
     vi.mocked(lookupCard).mockResolvedValue({ found: false, source: 'unknown', name: 'Mox', printings: [] });
     setup();
 

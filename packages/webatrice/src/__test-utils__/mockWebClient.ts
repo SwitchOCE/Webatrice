@@ -28,6 +28,7 @@ export function createMockWebClient() {
         deckList: vi.fn(),
         deckDownload: vi.fn(),
         deckUpload: vi.fn(),
+        deckUpdate: vi.fn(),
         deckDel: vi.fn(),
         deckNewDir: vi.fn(),
         deckDelDir: vi.fn(),

@@ -1,0 +1,7 @@
+{
+  "DeckSidebar": {
+    "saveFailed": "The deck could not be saved.",
+    "retrySave": "Retry",
+    "saveFailedHint": "Your last change was not saved. It will be sent again with your next change, or now with Retry."
+  }
+}

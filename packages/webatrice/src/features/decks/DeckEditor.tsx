@@ -79,6 +79,7 @@ const DeckEditor = () => {
         <DeckSidebar
           deck={editor.deck}
           saveState={editor.saveState}
+          onRetrySave={editor.retrySave}
           totalMainboardCount={editor.totalMainboardCount}
           totalSideboardCount={editor.totalSideboardCount}
           onNameChange={editor.setName}
