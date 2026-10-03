@@ -9,7 +9,7 @@ import {
   parseReplay,
 } from '@app/services';
 
-import { readReplayFile, saveReplayFile } from './replayFiles';
+import { MAX_REPLAY_FILE_BYTES, hasReplayExtension, readReplayFile, saveReplayFile } from './replayFiles';
 import type { ReplayNotice } from './useServerReplays';
 
 export interface LibraryCrumb {
@@ -159,31 +159,58 @@ export function useLocalReplays(refreshKey = 0): LocalReplays {
   }, [selected, watchEntry]);
 
   const watchFile = useCallback((file: File) => {
+    if (!hasReplayExtension(file)) {
+      showError(t('Replays.local.invalidFile', { name: file.name }));
+      return;
+    }
+    if (file.size > MAX_REPLAY_FILE_BYTES) {
+      showError(t('Replays.local.tooLarge', { names: file.name }));
+      return;
+    }
     readReplayFile(file)
       .then((data) => watchReplay(data, file.name))
       .catch(() => showError(t('Replays.local.invalidFile', { name: file.name })));
   }, [watchReplay, showError, t]);
 
+  // The picker's `accept` is only a hint: check every file, import the good
+  // ones, and report the rest by name instead of failing the whole batch.
   const importFiles = useCallback((files: readonly File[]) => {
     const rejected: string[] = [];
+    const tooLarge: string[] = [];
+    const failed: string[] = [];
     const imports = files.map(async (file) => {
-      const data = await readReplayFile(file);
+      if (file.size > MAX_REPLAY_FILE_BYTES) {
+        tooLarge.push(file.name);
+        return;
+      }
+      let data: Uint8Array;
       try {
+        if (!hasReplayExtension(file)) {
+          throw new Error('not a .cor file');
+        }
+        data = await readReplayFile(file);
         parseReplay(data);
       } catch {
         rejected.push(file.name);
         return;
       }
-      await ReplayFileDTO.addReplay(folderId, file.name, data);
+      try {
+        await ReplayFileDTO.addReplay(folderId, file.name, data);
+      } catch (err) {
+        failed.push(err instanceof ReplayNameTakenError ? t('Replays.local.nameTaken', { name: file.name }) : file.name);
+      }
     });
-    Promise.all(imports)
-      .then(() => {
-        if (rejected.length) {
-          showError(t('Replays.local.invalidFiles', { names: rejected.join(', ') }));
-        }
-      })
-      .catch(() => showError(t('Replays.local.saveFailed')))
-      .finally(reload);
+    void Promise.allSettled(imports).then(() => {
+      const problems = [
+        rejected.length ? t('Replays.local.invalidFiles', { names: rejected.join(', ') }) : null,
+        tooLarge.length ? t('Replays.local.tooLarge', { names: tooLarge.join(', ') }) : null,
+        failed.length ? t('Replays.local.importFailed', { names: failed.join(', ') }) : null,
+      ].filter((problem): problem is string => problem != null);
+      if (problems.length) {
+        showError(problems.join(' '));
+      }
+      reload();
+    });
   }, [folderId, reload, showError, t]);
 
   const exportSelected = useCallback(() => {
