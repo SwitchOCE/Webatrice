@@ -25,7 +25,7 @@ const searchSchema = z.object({ userName: z.string() });
 type SearchFormValues = z.infer<typeof searchSchema>;
 
 /** Desktop TabModeration (tab_moderation.cpp). */
-const Moderation = () => {
+const ModerationContent = () => {
   const { t } = useTranslation();
   const moderation = useModeration();
   const { currentUser, investigation, pending } = moderation;
@@ -76,11 +76,7 @@ const Moderation = () => {
     : { title: t('ModerationPage.confirm.avatarTitle'), message: t('ModerationPage.confirm.avatar', { userName: currentUser }) };
 
   return (
-    <Layout className="moderation scrollable">
-      <AuthGuard />
-      <ModGuard />
-      <CapabilityGuard capability={ServerCapability.MODERATION_TOOLS} />
-
+    <>
       <div className="moderation__top">
         <form
           className="moderation__search"
@@ -158,8 +154,21 @@ const Moderation = () => {
         buttonLabel={t('ModerationPage.button.ok')}
         onDismiss={moderation.dismissNotice}
       />
-    </Layout>
+    </>
   );
 };
+
+// The guards mount the page body only when it is allowed, so its mount effects
+// never send a staff or 3.1 command the user or server cannot serve.
+const Moderation = () => (
+  <Layout className="moderation scrollable">
+    <AuthGuard />
+    <ModGuard>
+      <CapabilityGuard capability={ServerCapability.MODERATION_TOOLS}>
+        <ModerationContent />
+      </CapabilityGuard>
+    </ModGuard>
+  </Layout>
+);
 
 export default Moderation;

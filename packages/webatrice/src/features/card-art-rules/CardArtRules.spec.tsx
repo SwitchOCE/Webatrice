@@ -43,9 +43,10 @@ const rule = (cardName: string, cardProviderId: string, mode = 'DENY') =>
   create(Response_CardArtRuleEntrySchema, { cardName, cardProviderId, mode, reason: '' });
 
 describe('CardArtRules', () => {
-  it('is unavailable on a 3.0 server', () => {
-    setup('3.0.0 ()');
+  it('is unavailable on a 3.0 server, and never asks it for the rules', () => {
+    const { webClient } = setup('3.0.0 ()');
     expect(screen.getByText('server-page')).toBeInTheDocument();
+    expect(webClient.request.moderator.listCardArtRules).not.toHaveBeenCalled();
   });
 
   it('lists the rules when opened', () => {
