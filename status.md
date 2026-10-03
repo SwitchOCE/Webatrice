@@ -7,3 +7,4 @@
 - 16:50Z §6 tally + count label pushed → §5 custom zones
 - 16:55Z §5 custom zones pushed → §10 say macros
 - 17:01Z §10 say macros pushed → changeset, full gate, e2e (reveal-to, related cards)
+- 17:16Z changeset + e2e pushed (93e07b4); gate green → full webatrice e2e (3 browsers), then PR notes
