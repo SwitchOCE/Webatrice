@@ -9,7 +9,7 @@ import { useImportDeckCopy } from './useImportDeckCopy';
 
 const COD = '<cockatrice_deck version="1"><deckname>Burn</deckname><zone name="main"/></cockatrice_deck>';
 
-let importCopy: (xml: string) => void;
+let importCopy: (xml: string, colorIdentity?: string) => void;
 function Probe({ onImported }: { onImported: (id: number) => void }) {
   importCopy = useImportDeckCopy(onImported);
   return null;
@@ -29,11 +29,17 @@ describe('useImportDeckCopy', () => {
   it('uploads a copy to the storage root and hands on its new id', () => {
     const { webClient, store, onImported } = setup();
     act(() => importCopy(COD));
-    expect(webClient.request.session.deckUpload).toHaveBeenCalledWith('', 0, COD);
+    expect(webClient.request.session.deckUpload).toHaveBeenCalledWith('', 0, COD, undefined, undefined);
     act(() => {
       store.dispatch(uploaded('', 12, 'Burn'));
     });
     expect(onImported).toHaveBeenCalledWith(12);
+  });
+
+  it('stores the color identity the share already gave', () => {
+    const { webClient } = setup();
+    act(() => importCopy(COD, 'WR'));
+    expect(webClient.request.session.deckUpload).toHaveBeenCalledWith('', 0, COD, undefined, 'WR');
   });
 
   it('ignores uploads it did not send', () => {

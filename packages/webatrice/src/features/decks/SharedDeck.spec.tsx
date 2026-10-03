@@ -55,7 +55,7 @@ describe('SharedDeck', () => {
     expect(screen.getByText('Lightning Bolt')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /ReadOnlyDeck.import/ }));
-    expect(webClient.request.session.deckUpload).toHaveBeenCalledWith('', 0, COD);
+    expect(webClient.request.session.deckUpload).toHaveBeenCalledWith('', 0, COD, undefined, 'R');
   });
 
   it('names what is missing from an incomplete link, like desktop', () => {

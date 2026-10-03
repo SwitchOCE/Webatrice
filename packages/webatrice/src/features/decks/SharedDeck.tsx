@@ -14,7 +14,12 @@ import { formatDisplayLabel } from './deckSummary';
 import { formatShareExpiry, isSameShareServer, parseDeckShareQuery } from './deckSharing';
 import { useDeckSharingSupported, useShareServer } from './hooks/useDeckSharing';
 import { useImportDeckCopy } from './hooks/useImportDeckCopy';
-import { useSharedDeck } from './hooks/useSharedDeck';
+import { useSharedDeck, type SharedDeckListing } from './hooks/useSharedDeck';
+
+/** The color identity the share listed for an item, if it was listed. */
+function listedColorIdentity(listing: SharedDeckListing, itemId: number): string | undefined {
+  return listing.status === 'loaded' ? listing.items.find((item) => item.id === itemId)?.colorIdentity : undefined;
+}
 
 /**
  * A share link's decks (desktop `IntentOpenSharedDeck` + `DlgSharedDecksPreview`),
@@ -124,7 +129,9 @@ function SharedDeck() {
             {!blocked && open.status === 'open' && (
               <ReadOnlyDeck
                 deck={open.opened.deck}
-                onImport={isConnected ? () => importCopy(open.opened.xml) : undefined}
+                onImport={isConnected
+                  ? () => importCopy(open.opened.xml, listedColorIdentity(listing, open.opened.id))
+                  : undefined}
                 onClose={shared.close}
               />
             )}

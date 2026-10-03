@@ -102,7 +102,9 @@ function PublicDecks() {
             {open.status === 'open' && (
               <ReadOnlyDeck
                 deck={open.opened.deck}
-                onImport={isConnected ? () => importCopy(open.opened.xml) : undefined}
+                onImport={isConnected
+                  ? () => importCopy(open.opened.xml, decks.find((deck) => deck.id === open.opened.id)?.file.colorIdentity)
+                  : undefined}
                 onClose={publicDecks.close}
               />
             )}
