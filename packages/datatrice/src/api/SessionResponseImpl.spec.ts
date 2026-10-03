@@ -11,9 +11,12 @@ import {
   Event_UserMessageSchema,
   Response_DeckDownloadSchema,
   Response_DeckListSchema,
+  Response_DeckShareCreateSchema,
+  Response_DeckShareListSchema,
   Response_GetGamesOfUserSchema,
   Response_ReplayDownloadSchema,
   Response_ResponseCode,
+  ServerInfo_DeckShareSummarySchema,
   ServerInfo_DeckStorage_TreeItemSchema,
   ServerInfo_PlayerPropertiesSchema,
   ServerInfo_ReplayMatchSchema,
@@ -634,4 +637,57 @@ describe('SessionResponseImpl reports', () => {
     impl.notifyUser(create(Event_NotifyUserSchema, { type: Event_NotifyUser_NotificationType.PROMOTED }));
     expect(store.getState().server.reports.lastNotice).toBeNull();
   });
+});
+
+describe('SessionResponseImpl deck sharing (#7241)', () => {
+  it('deckShareCreated dispatches the created share', () => {
+    const { impl, dispatch } = setup();
+    const share = create(Response_DeckShareCreateSchema, { token: 'tok', expiresAt: 100n, itemCount: 1 });
+    impl.deckShareCreated(share);
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.deckShareCreated({ share }));
+  });
+
+  it('deckShareListed dispatches the bundle keyed by token', () => {
+    const { impl, dispatch } = setup();
+    const share = create(Response_DeckShareListSchema, { name: 'Cube' });
+    impl.deckShareListed('tok', share);
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.deckShareListed({ token: 'tok', share }));
+  });
+
+  it('deckShareDownloaded dispatches the deck text', () => {
+    const { impl, dispatch } = setup();
+    impl.deckShareDownloaded('tok', 3, '<deck/>');
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.deckShareDownloaded({ token: 'tok', itemId: 3, deck: '<deck/>' }));
+  });
+
+  it('deckSharesMine and deckShareRemoved dispatch the share list changes', () => {
+    const { impl, dispatch } = setup();
+    const shares = [create(ServerInfo_DeckShareSummarySchema, { id: 4 })];
+    impl.deckSharesMine(shares);
+    impl.deckShareRemoved(4);
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.deckSharesMine({ shares }));
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.deckShareRemoved({ shareId: 4 }));
+  });
+
+  it('otherUserDecks dispatches publicDecks keyed by user', () => {
+    const { impl, dispatch } = setup();
+    const deckList = create(Response_DeckListSchema, {});
+    impl.otherUserDecks('bob', deckList);
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.publicDecks({ userName: 'bob', deckList }));
+  });
+
+  it('deckVisibilityChanged dispatches the target and the new bit', () => {
+    const { impl, dispatch } = setup();
+    impl.deckVisibilityChanged({ folderPath: 'cubes', isPublic: true });
+    expect(dispatch).toHaveBeenCalledWith(
+      ServerActions.deckVisibilityChanged({ deckId: undefined, folderPath: 'cubes', isPublic: true }),
+    );
+  });
+
+  it('publicDeckDownloaded dispatches the deck text', () => {
+    const { impl, dispatch } = setup();
+    impl.publicDeckDownloaded(7, '<deck/>');
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.publicDeckDownloaded({ deckId: 7, deck: '<deck/>' }));
+  });
+
 });

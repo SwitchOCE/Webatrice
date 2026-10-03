@@ -1,6 +1,7 @@
 import { createSelector } from '@reduxjs/toolkit';
 import {
   Event_UserMessage,
+  Response_DeckList,
   Response_WarnList,
   ServerInfo_ReplayMatch,
   ServerInfo_User,
@@ -141,6 +142,8 @@ export const Selectors = {
   getServerStats: ({ server }: State) => server.staff.serverStats,
   getBackendDecks: ({ server }: State) => server.backendDecks,
   getDownloadedDeck: ({ server }: State) => server.downloadedDeck,
+  getDeckSharesMine: ({ server }: State) => server.deckSharesMine,
+  getPublicDecks: ({ server }: State, userName: string): Response_DeckList | undefined => server.publicDecks[userName],
   getDownloadedReplay: ({ server }: State) => server.downloadedReplay,
   getRegistrationError: ({ server }: State) => server.registrationError,
   // Event_NotifyUser messages in arrival order (capped at MAX_NOTIFICATIONS).
