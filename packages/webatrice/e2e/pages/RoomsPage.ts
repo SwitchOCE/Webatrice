@@ -93,7 +93,7 @@ export class RoomsPage {
     // After Create the server replies with Event_GameJoined; the
     // GamesList's useReduxEffect routes to /game/:id. Wait for the
     // game-container testid to appear.
-    await expect(this.page.getByTestId('game-container').or(this.page.getByRole('button', { name: /ready up/i }))).toBeVisible({
+    await expect(this.page.getByTestId('game-container').or(this.page.getByTestId('game-lobby'))).toBeVisible({
       timeout: 30_000,
     });
   }
@@ -128,10 +128,10 @@ export class RoomsPage {
     const btn = this.page.getByRole('button', { name: action });
     await expect(btn).toBeEnabled({ timeout: 10_000 });
     await btn.click();
-    // Pre-start: GameLobby (Ready up button) mounts. Post-start:
+    // Pre-start: GameLobby (game-lobby testid) mounts. Post-start:
     // GameBoard (game-container testid) mounts. Wait for either.
     await expect(
-      this.page.getByTestId('game-container').or(this.page.getByRole('button', { name: /ready up/i })),
+      this.page.getByTestId('game-container').or(this.page.getByTestId('game-lobby')),
     ).toBeVisible({ timeout: 30_000 });
   }
 
