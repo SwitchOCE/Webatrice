@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { generatePath, useNavigate } from 'react-router-dom';
 
 import { games, rooms, type JoinGameError } from '@cockatrice/datatrice';
@@ -8,6 +8,12 @@ import { useAppDispatch, useAppSelector } from '@app/store';
 import { RouteEnum } from '@app/types';
 
 import { useReduxEffect } from './useReduxEffect';
+
+// The useJoinGame instance whose join the stored `rooms.joinGameError` answers.
+// Several lists can be mounted at once (a user menu's games dialog over a room's
+// game list) and all read the one store field, so only this owner shows the
+// error; null (no join sent from a list yet) lets every list show it.
+let joinErrorOwner: symbol | null = null;
 
 interface PendingJoin {
   roomId: number;
@@ -33,7 +39,8 @@ export interface JoinGameFlow {
  * already open (the server would answer RespContextError) and route to it,
  * join a full game as a spectator, ask for the password when the join needs
  * one, then send Command_JoinGame. Server rejections arrive as
- * `rooms.joinGameError` (desktop GameSelector::checkResponse messages).
+ * `rooms.joinGameError` (desktop GameSelector::checkResponse messages); only
+ * the list that sent the last join reports it (see `joinErrorOwner`).
  */
 export function useJoinGame(): JoinGameFlow {
   const webClient = useWebClient();
@@ -41,8 +48,19 @@ export function useJoinGame(): JoinGameFlow {
   const dispatch = useAppDispatch();
   const activeGameIds = useAppSelector(games.Selectors.getActiveGameIds);
   const joinPending = useAppSelector(rooms.Selectors.getJoinGamePending);
-  const joinError = useAppSelector(rooms.Selectors.getJoinGameError);
+  const storedJoinError = useAppSelector(rooms.Selectors.getJoinGameError);
   const [pendingPasswordJoin, setPendingPasswordJoin] = useState<PendingJoin | null>(null);
+  const [owner] = useState(() => Symbol('useJoinGame'));
+  const joinError = joinErrorOwner === null || joinErrorOwner === owner ? storedJoinError : null;
+
+  // A list that closes while it owns the error takes it along, so it never
+  // surfaces later in another list.
+  useEffect(() => () => {
+    if (joinErrorOwner === owner) {
+      joinErrorOwner = null;
+      dispatch(rooms.Actions.clearJoinGameError());
+    }
+  }, [dispatch, owner]);
 
   const sendJoin = useCallback(
     ({ roomId, gameId, asSpectator, asJudge }: PendingJoin, password: string) => {
@@ -50,6 +68,7 @@ export function useJoinGame(): JoinGameFlow {
         navigate(generatePath(RouteEnum.GAME, { gameId: gameId.toString() }));
         return;
       }
+      joinErrorOwner = owner;
       webClient.request.rooms.joinGame(roomId, {
         gameId,
         password,
@@ -58,7 +77,7 @@ export function useJoinGame(): JoinGameFlow {
         joinAsJudge: asJudge,
       });
     },
-    [activeGameIds, navigate, webClient],
+    [activeGameIds, navigate, owner, webClient],
   );
 
   const beginJoin = useCallback(
