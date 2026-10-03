@@ -12,6 +12,8 @@ import {
   Response_DeckListSchema,
   Response_GetGamesOfUserSchema,
   Response_ReplayDownloadSchema,
+  ServerInfo_DeckShareSummarySchema,
+  ServerInfo_DeckStorage_FileSchema,
   ServerInfo_DeckStorage_FolderSchema,
   ServerInfo_DeckStorage_TreeItemSchema,
   ServerInfo_GameSchema,
@@ -405,6 +407,58 @@ describe('integration: session server decks', () => {
     const response = attachResponseHandlers(store);
     response.session.downloadServerDeck(5, create(Response_DeckDownloadSchema, { deck: '<deck/>' }));
     expect(server.Selectors.getDownloadedDeck(store.getState())).toEqual({ deckId: 5, deck: '<deck/>' });
+  });
+});
+
+// --- deck share links and public decks (3.1) -----------------------------
+
+describe('integration: session deck sharing', () => {
+  function withStoredDecks() {
+    const store = createStore();
+    const response = attachResponseHandlers(store);
+    response.session.updateServerDecks(create(Response_DeckListSchema, {
+      root: create(ServerInfo_DeckStorage_FolderSchema, {
+        items: [
+          create(ServerInfo_DeckStorage_TreeItemSchema, {
+            id: 1, name: 'Burn', file: create(ServerInfo_DeckStorage_FileSchema, { creationTime: 5 }),
+          }),
+          create(ServerInfo_DeckStorage_TreeItemSchema, {
+            name: 'Cube', folder: create(ServerInfo_DeckStorage_FolderSchema, { items: [] }),
+          }),
+        ],
+      }),
+    }));
+    return { store, response };
+  }
+
+  it('deckVisibilityChanged republishes the stored (frozen) tree with the new bits', () => {
+    const { store, response } = withStoredDecks();
+    response.session.deckVisibilityChanged!({ deckId: 1, isPublic: true });
+    response.session.deckVisibilityChanged!({ folderPath: 'Cube', isPublic: true });
+    const [deck, folder] = server.Selectors.getBackendDecks(store.getState())!.root!.items;
+    expect(deck.file!.isPublic).toBe(true);
+    expect(deck.file!.creationTime).toBe(5);
+    expect(folder.folder!.isPublic).toBe(true);
+  });
+
+  it('deckSharesMine lists the caller\'s links and deckShareRemoved drops one', () => {
+    const store = createStore();
+    const response = attachResponseHandlers(store);
+    response.session.deckSharesMine!([
+      create(ServerInfo_DeckShareSummarySchema, { id: 1, name: 'A' }),
+      create(ServerInfo_DeckShareSummarySchema, { id: 2, name: 'B' }),
+    ]);
+    response.session.deckShareRemoved!(1);
+    expect(server.Selectors.getDeckSharesMine(store.getState())!.map((share) => share.name)).toEqual(['B']);
+  });
+
+  it('otherUserDecks stores the public tree under the user\'s name', () => {
+    const store = createStore();
+    const response = attachResponseHandlers(store);
+    const deckList = create(Response_DeckListSchema, { root: create(ServerInfo_DeckStorage_FolderSchema, { items: [] }) });
+    response.session.otherUserDecks!('bob', deckList);
+    expect(server.Selectors.getPublicDecks(store.getState(), 'bob')?.root).toBeDefined();
+    expect(server.Selectors.getPublicDecks(store.getState(), 'alice')).toBeUndefined();
   });
 });
 
