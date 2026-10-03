@@ -16,7 +16,7 @@
 
 /** Deck category — no commander zone here (or in the deck feature).
  *  Commander is a per-card `isCommander` flag on the row, not a
- *  distinct zone. See features/decks/types.ts. */
+ *  distinct zone. See types/cockatriceDeck.ts. */
 export type DeckCategory = 'main' | 'sideboard';
 
 /** Card row inside a deck. Mirrors fancy's DeckCard columns for the

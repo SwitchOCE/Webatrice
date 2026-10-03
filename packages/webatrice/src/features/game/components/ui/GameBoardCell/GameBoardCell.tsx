@@ -21,7 +21,7 @@ import type {
 } from '@cockatrice/sockatrice/generated';
 import { ArrowColor, RouteEnum } from '@app/types';
 
-import { CardDTO } from '@app/services';
+import { CardDTO, parseCod } from '@app/services';
 import { BoardCell } from '../../../hooks/useGameBoardLayout';
 import { BoardCellProvider } from '../BoardCellContext';
 import { useGameId } from '../GameIdContext';
@@ -34,7 +34,6 @@ import type {
   RoomMemberWithProfile,
 } from '../../PlayerBox/mockTypes';
 import { getPickedMockDeck } from '../../../mockDeckStore';
-import { parseCod } from '@app/features/decks';
 import { avatarSrc } from '../../../utils/avatarSrc';
 
 import './GameBoardCell.css';

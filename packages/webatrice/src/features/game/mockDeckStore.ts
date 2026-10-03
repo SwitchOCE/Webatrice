@@ -1,5 +1,5 @@
 import type { DeckCard, DeckCategory } from './components/PlayerBox/mockTypes';
-import type { ParsedDeck } from '../decks/types';
+import type { ParsedDeck } from '@app/types';
 
 /**
  * Dev-tool: when the local player picks a deck in the game lobby, we
