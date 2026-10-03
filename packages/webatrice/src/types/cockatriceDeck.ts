@@ -141,7 +141,11 @@ export interface ParsedDeck {
   playmatXml?: string;
   /** Desktop's `<sideboard_plan>` elements (the current plan is the one
    *  named ""), each kept as raw XML so a web save writes them back after
-   *  the zones, where desktop's `DeckList::write` puts them. */
+   *  the zones, where desktop's `DeckList::write` puts them. Order and
+   *  duplicates are preserved as read. Desktop reads plans into a map keyed
+   *  by name (a later duplicate replaces an earlier one) and writes them
+   *  sorted by name, so a desktop re-save can differ from a web one; both
+   *  load the same plans. */
   sideboardPlansXml?: string[];
   /** Optional `<tags>` element — Cockatrice desktop's tag list.
    *  Stored as the raw XML string of the whole element so we can
