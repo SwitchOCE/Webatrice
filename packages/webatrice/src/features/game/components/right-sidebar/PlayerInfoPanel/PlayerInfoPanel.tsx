@@ -1,7 +1,10 @@
 import { Heart } from 'lucide-react';
+import { useAnimationPreference } from '@app/hooks';
 
 import { ManaSymbols } from '../../ui/ManaSymbols/ManaSymbols';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
+import { useValueFlash } from '../../ui/ValueFlash/useValueFlash';
+import ValueFlashOverlay from '../../ui/ValueFlash/ValueFlashOverlay';
 import ZoneStack from '../../ui/ZoneStack/ZoneStack';
 import { MANA_COLORS } from './manaColors';
 
@@ -94,6 +97,7 @@ export default function PlayerInfoPanel() {
     counterCommands,
     isSelf,
     life,
+    lifeControl,
     manaCounters,
     name,
     playerId,
@@ -101,6 +105,9 @@ export default function PlayerInfoPanel() {
     seatGrid,
     setLife,
   } = usePlayerSeatContext();
+  // Desktop's "Life counter flash": green on a gain, red on a loss, from the
+  // server's life counter (the fallback before it exists never flashes).
+  const lifeFlash = useValueFlash(lifeControl?.value, useAnimationPreference('lifeCounterAnimations'));
   // Mana pool: read from the wired `manaCounters` when available
   // (Redux-authoritative), fall back to zeros during pre-hydration.
   // Local mana pool is per-player and matches Cockatrice's
@@ -212,6 +219,7 @@ export default function PlayerInfoPanel() {
             {life}
           </span>
         </div>
+        <ValueFlashOverlay flash={lifeFlash} kind="change" />
       </div>
 
       {/* Below the life total: mana pool sits as the first item of

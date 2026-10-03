@@ -113,4 +113,26 @@ describe('v2: theme palette and language', () => {
   it('gives a fresh row the desktop default of following the system', () => {
     expect(PREFERENCE_DEFAULTS.themeMode).toBe(ThemeMode.System);
   });
+
+  describe('v3: animations', () => {
+    it('counts a tap animation already turned off as an animation choice', () => {
+      expect(migrateSetting({ user: '*app', version: 2, tapAnimation: false }).animationsChosen).toBe(true);
+    });
+
+    it('lets the system\'s reduced-motion setting decide for everyone else', () => {
+      expect(migrateSetting({ user: '*app', version: 2, tapAnimation: true }).animationsChosen).toBe(false);
+      expect(migrateSetting({ user: '*app' }).animationsChosen).toBe(false);
+    });
+
+    it('gives the new board preferences desktop\'s defaults', () => {
+      const row = migrateSetting({ user: '*app', version: 2 });
+      expect(row).toMatchObject({
+        horizontalHand: true,
+        doubleClickToPlay: true,
+        doNotDeleteArrowsInSubPhases: true,
+        minPlayersForMultiColumnLayout: 4,
+        battlefieldFlash: true,
+      });
+    });
+  });
 });

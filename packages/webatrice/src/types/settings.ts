@@ -57,7 +57,18 @@ export class Setting {
   showTotalSelectionCount: boolean;
   /** Clicking the board leaves the focus where it is (on the chat); hides the card views' search. */
   keepGameChatFocus: boolean;
+
+  // User interface — animations (desktop cards_display `tapAnimation`, `arrowDrawAnimation`;
+  // interface `lifeCounterAnimationsEnabled`, `battlefieldFlashEnabled`)
   tapAnimation: boolean;
+  arrowDrawAnimation: boolean;
+  lifeCounterAnimations: boolean;
+  battlefieldFlash: boolean;
+  /**
+   * Whether the user has set the animations. Until they have, the operating system's
+   * reduced-motion setting turns them off (see useAnimationPreference).
+   */
+  animationsChosen: boolean;
 
   // User interface — notifications ("taskbar" alerts on desktop)
   notificationsEnabled: boolean;
@@ -137,7 +148,12 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   showDragSelectionCount: true,
   showTotalSelectionCount: true,
   keepGameChatFocus: false,
+
   tapAnimation: true,
+  arrowDrawAnimation: true,
+  lifeCounterAnimations: true,
+  battlefieldFlash: true,
+  animationsChosen: false,
 
   notificationsEnabled: true,
   spectatorNotificationsEnabled: false,

@@ -32,6 +32,9 @@
   --status-danger: 248 113 113;     /* #F87171 */
   --status-success: 52 211 153;     /* #34D399 */
   --status-warning: 250 204 21;     /* #FACC15 */
+  /* Board: life-change and damage flashes, drawn as translucent washes (desktop's colours). */
+  --seat-flash-gain: 52 224 122;    /* #34E07A */
+  --seat-flash-loss: 239 68 68;     /* #EF4444 */
 }
 
 /* Same roles, inverted: white surfaces, near-black text, and the
@@ -53,4 +56,7 @@
   --status-danger: 185 28 28;       /* #B91C1C */
   --status-success: 4 120 87;       /* #047857 */
   --status-warning: 138 89 5;       /* #8A5905 */
+  /* Board: life-change and damage flashes, drawn as translucent washes (desktop's colours). */
+  --seat-flash-gain: 52 224 122;    /* #34E07A */
+  --seat-flash-loss: 239 68 68;     /* #EF4444 */
 }

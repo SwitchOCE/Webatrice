@@ -1,7 +1,10 @@
+import { useAnimationPreference } from '@app/hooks';
+
 import { useGameId } from '../../ui/GameIdContext';
 
 import { useGameArrowOverlay } from './useGameArrowOverlay';
 import { buildArrowGeometry } from './arrowPath';
+import { useArrowDrawIn } from './useArrowDrawIn';
 
 import './GameArrowOverlay.css';
 
@@ -49,6 +52,7 @@ function ArrowShape({
   onClick,
   testId,
   className,
+  drawIn,
 }: {
   x1: number;
   y1: number;
@@ -58,15 +62,30 @@ function ArrowShape({
   onClick?: () => void;
   testId?: string;
   className?: string;
+  /** Reveal the arrow from start to tip as it appears; the id names its clip. */
+  drawIn?: { id: string; animate: boolean };
 }) {
+  const length = Math.hypot(x2 - x1, y2 - y1);
+  const progress = useArrowDrawIn(drawIn?.animate ?? false, length);
   const geom = buildArrowGeometry(x1, y1, x2, y2);
   if (!geom) {
     return null;
   }
+  // While drawing, clip the arrow (in its local frame: start at the origin,
+  // tip at +length) to the part drawn so far; the margins cover the bowed
+  // shaft, the head and the outline.
+  const clipId = drawIn && progress < 1 ? `arrow-draw-${drawIn.id}` : undefined;
   return (
     <g
       transform={`translate(${geom.originX} ${geom.originY}) rotate(${geom.angleDeg})`}
+      clipPath={clipId && `url(#${clipId})`}
+      data-drawing={clipId ? progress.toFixed(2) : undefined}
     >
+      {clipId && (
+        <clipPath id={clipId}>
+          <rect x={-length} y={-length} width={length + progress * length} height={2 * length} />
+        </clipPath>
+      )}
       {/* Border stroke mirrors Cockatrice's `ArrowItem::paint`, which
        *  never calls `setPen` — so QPainter falls back to its default
        *  black 1-pixel pen and strokes the path's outline in addition to
@@ -93,6 +112,8 @@ function ArrowShape({
 function GameArrowOverlay({ containerRef, dragPreview = null }: GameArrowOverlayProps) {
   const gameId = useGameId();
   const { arrows, width, height, handleArrowClick } = useGameArrowOverlay({ gameId, containerRef });
+  // Desktop's "Arrow draw animation", for arrows as they appear.
+  const arrowDrawAnimation = useAnimationPreference('arrowDrawAnimation');
 
   // Committed arrows always render at Cockatrice's "locked target" alpha
   // (α=200) — they've already resolved to a real endpoint.
@@ -122,6 +143,7 @@ function GameArrowOverlay({ containerRef, dragPreview = null }: GameArrowOverlay
           onClick={() => handleArrowClick(a.arrowId)}
           testId={`arrow-${a.arrowId}`}
           className="game-arrow-overlay__shape"
+          drawIn={{ id: String(a.arrowId), animate: arrowDrawAnimation }}
         />
       ))}
       {dragPreview && (

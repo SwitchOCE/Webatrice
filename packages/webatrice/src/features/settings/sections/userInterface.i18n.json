@@ -59,6 +59,23 @@
     },
     "tapAnimation": {
       "label": "Tap/untap animation"
+    },
+    "animations": {
+      "all": {
+        "label": "All animations",
+        "description": "Until you change an animation here, they follow your system's \"reduce motion\" setting."
+      },
+      "enableAll": "Enable all animations",
+      "disableAll": "Disable all animations"
+    },
+    "arrowDrawAnimation": {
+      "label": "Arrow draw animation"
+    },
+    "lifeCounterAnimations": {
+      "label": "Life counter flash"
+    },
+    "battlefieldFlash": {
+      "label": "Battlefield flash on damage"
     }
   }
 }

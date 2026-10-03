@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 import { colorSchema } from '@cockatrice/sockatrice/generated';
 import { createMockWebClient, makeStoreState, renderWithProviders } from '../../../../../__test-utils__';
@@ -9,7 +9,9 @@ import {
   makePlayerEntry,
   makePlayerProperties,
 } from '@cockatrice/datatrice/testing';
+import { getSettings, settingsStore } from '../../../../../hooks/useSettings';
 import GameArrowOverlay from './GameArrowOverlay';
+import { arrowStrokeDurationMs } from './useArrowDrawIn';
 import {
   CardRegistryContext,
   createCardRegistry,
@@ -134,5 +136,37 @@ describe('GameArrowOverlay', () => {
     fireEvent.click(screen.getByTestId('arrow-1'));
 
     expect(webClient.request.game.deleteArrow).toHaveBeenCalledWith(1, { arrowId: 1 });
+  });
+
+  describe('arrow draw animation', () => {
+    afterEach(() => {
+      settingsStore.reset();
+    });
+
+    it('draws a new arrow in from its start, then shows it whole', async () => {
+      const { registry } = setupRegistryWithTwoCards();
+      renderWithProviders(wrapWithRegistry(<Harness />, registry), { preloadedState: stateWithOneArrow() });
+
+      const group = screen.getByTestId('arrow-1').parentElement!;
+      expect(group).toHaveAttribute('clip-path', 'url(#arrow-draw-1)');
+      expect(group.querySelector('clipPath#arrow-draw-1')).not.toBeNull();
+
+      await waitFor(() => expect(screen.getByTestId('arrow-1').parentElement).not.toHaveAttribute('clip-path'));
+    });
+
+    it('shows the arrow whole at once with the animation off', async () => {
+      const settings = await getSettings();
+      settingsStore.setValue(Object.assign(settings, { animationsChosen: true, arrowDrawAnimation: false }));
+      const { registry } = setupRegistryWithTwoCards();
+      renderWithProviders(wrapWithRegistry(<Harness />, registry), { preloadedState: stateWithOneArrow() });
+
+      expect(screen.getByTestId('arrow-1').parentElement).not.toHaveAttribute('clip-path');
+    });
+
+    it('takes desktop\'s time: 0.8 ms per pixel, from 200 to 450 ms', () => {
+      expect(arrowStrokeDurationMs(100)).toBe(200);
+      expect(arrowStrokeDurationMs(400)).toBe(320);
+      expect(arrowStrokeDurationMs(1000)).toBe(450);
+    });
   });
 });
