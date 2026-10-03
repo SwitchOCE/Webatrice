@@ -85,6 +85,10 @@ export function useLogin(): Login {
     useState<WebsocketTypes.PendingActivationContext | null>(null);
 
   const rememberLoginRef = useRef<LoginFormValues | RegisterFormValues | null>(null);
+  // @critical memory-only: the plaintext password retained for the post-activation login (desktop
+  // RemoteClient keeps it the same way). Never put it in Redux (the action slice snapshots payloads)
+  // or Dexie; cleared when activation succeeds or the dialog closes.
+  const pendingActivationPasswordRef = useRef<string | undefined>(undefined);
   const knownHosts = useKnownHosts();
   const [dialogState, setDialogState] = useState<LoginDialogState>({
     passwordResetRequestDialog: false,
@@ -128,6 +132,7 @@ export function useLogin(): Login {
   };
 
   const closeActivateAccountDialog = () => {
+    pendingActivationPasswordRef.current = undefined;
     setDialogState((s) => ({ ...s, activationDialog: false }));
   };
 
@@ -153,6 +158,7 @@ export function useLogin(): Login {
 
   useReduxEffect<{ options: WebsocketTypes.PendingActivationContext }>(({ payload: { options } }) => {
     setPendingActivationOptions(options);
+    pendingActivationPasswordRef.current = rememberLoginRef.current?.password || undefined;
     closeRegistrationDialog();
     openActivateAccountDialog();
   }, server.Types.ACCOUNT_AWAITING_ACTIVATION, []);
@@ -201,6 +207,7 @@ export function useLogin(): Login {
     if (loginForm && 'remember' in loginForm) {
       updateHost(options.hashedPassword, loginForm);
     }
+    rememberLoginRef.current = null;
   }, server.Types.LOGIN_SUCCESSFUL, []);
 
   useAutoLogin(handleLogin, connectionAttemptMade);
@@ -232,6 +239,7 @@ export function useLogin(): Login {
       port: pendingActivationOptions.port,
       userName: pendingActivationOptions.userName,
       token,
+      password: pendingActivationPasswordRef.current,
     });
   };
 

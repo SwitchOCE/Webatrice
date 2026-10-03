@@ -130,6 +130,17 @@ describe('authentication', () => {
 
       const login = findLastSessionCommand(Command_Login_ext);
       expect(login.value.userName).toBe('alice');
+      expect(login.value.password).toBe('secret');
+
+      deliverMessage(buildResponseMessage(buildResponse({
+        cmdId: login.cmdId,
+        responseCode: Response_ResponseCode.RespOk,
+        ext: Response_Login_ext,
+        value: create(Response_LoginSchema, { userInfo: makeUser('alice') }),
+      })));
+
+      expect(store.getState().server.status.state).toBe(WebsocketTypes.StatusEnum.LOGGED_IN);
+      expect(store.getState().server.user?.name).toBe('alice');
     });
   });
 
