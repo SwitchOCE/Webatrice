@@ -38,7 +38,7 @@ This closes the audit's P1 keyboard blocker: a game can now be joined without a 
 Audit accessibility rows P1, P2, P3, P7, P13, P15, P17 and P19. These are accessibility rows, not desktop-parity-matrix rows. Desktop's QTreeView/QTabBar already offer these keyboard paths, so this restores parity of input model.
 
 ## Desktop reference
-- `cockatrice/src/interface/widgets/server/game_selector.cpp`: double-click on a game row runs `actJoin`. Enter does the same here.
+- Desktop `GameSelector`: double-clicking a game row joins it (the join path `useJoinGame` already mirrors from `GameSelector::joinGame`). Enter does the same here. Source file path not re-checked in this run.
 - QTreeView key handling (arrows/Home/End move the current item, Enter activates). This is the model `useGridRows` already mirrors.
 - Desktop tab bar: middle-click closes a tab. That behaviour is kept.
 
