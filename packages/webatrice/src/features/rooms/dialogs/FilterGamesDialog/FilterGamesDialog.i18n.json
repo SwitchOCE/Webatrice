@@ -1,0 +1,37 @@
+{
+  "FilterGamesDialog": {
+    "title": "Filter games",
+    "label": {
+      "gameName": "Game description contains",
+      "creatorNames": "Creator names (comma-separated)",
+      "minPlayers": "Min players",
+      "maxPlayers": "Max players",
+      "maxAge": "Max age"
+    },
+    "maxAge": {
+      "noLimit": "No limit",
+      "minutes": "{count, plural, one {# minute} other {# minutes}}",
+      "hours": "{count, plural, one {# hour} other {# hours}}"
+    },
+    "section": {
+      "gameTypes": "Game types",
+      "hide": "Hide",
+      "spectators": "Spectator filters"
+    },
+    "hide": {
+      "fullGames": "Hide full games",
+      "gamesThatStarted": "Hide games that started",
+      "passwordProtected": "Hide password-protected games",
+      "buddiesOnly": "Hide buddies-only games",
+      "ignoredUsers": "Hide games created by ignored users",
+      "notBuddyCreated": "Hide games not created by buddies",
+      "openDecklist": "Hide open-decklist games"
+    },
+    "spectators": {
+      "canWatch": "Show only games where spectators can watch",
+      "needPassword": "Show games where spectators need a password",
+      "canChat": "Show only games where spectators can chat",
+      "canSeeHands": "Show only games where spectators see hands"
+    }
+  }
+}

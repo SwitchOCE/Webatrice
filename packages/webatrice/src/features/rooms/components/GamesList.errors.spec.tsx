@@ -11,13 +11,13 @@ it('shows translated join codes and transport reasons in the live games list', a
   const { store, webClient } = renderWithProviders(<GamesList room={room} />, { preloadedState: {
     ...connectedWithRoomsState, rooms: makeRoomsState({ rooms: { 1: room }, selectedGameIds: { 1: 1 } }),
   } });
-  fireEvent.click(await screen.findByRole('button', { name: /^Join$/ }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Common.action.join' }));
   const requestId = vi.mocked(webClient.request.rooms.joinGame).mock.lastCall?.[2];
   act(() => store.dispatch(rooms.Actions.setJoinGameError({ code: Response_ResponseCode.RespWrongPassword, message: '', requestId })));
   expect(screen.getByText('JoinGameError.wrongPassword')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: /^ok$/i }));
   expect(store.getState().rooms.joinGameError).toBeNull();
-  fireEvent.click(await screen.findByRole('button', { name: /^Join$/ }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Common.action.join' }));
   const retryId = vi.mocked(webClient.request.rooms.joinGame).mock.lastCall?.[2];
   act(() => store.dispatch(rooms.Actions.setJoinGameError({
     code: Response_ResponseCode.RespNotConnected, message: '', failure: WebsocketTypes.CommandFailure.Timeout, requestId: retryId,
@@ -30,6 +30,6 @@ it('asks for a game password in a masked field, as desktop does', async () => {
   renderWithProviders(<GamesList room={room} />, { preloadedState: {
     ...connectedWithRoomsState, rooms: makeRoomsState({ rooms: { 1: room }, selectedGameIds: { 1: 1 } }),
   } });
-  fireEvent.click(await screen.findByRole('button', { name: /^Join$/ }));
-  expect(await screen.findByLabelText('Password')).toHaveAttribute('type', 'password');
+  fireEvent.click(await screen.findByRole('button', { name: 'Common.action.join' }));
+  expect(await screen.findByLabelText('Common.label.password')).toHaveAttribute('type', 'password');
 });

@@ -1,0 +1,26 @@
+{
+  "CreateGameDialog": {
+    "title": "Create Game",
+    "label": {
+      "description": "Description",
+      "password": "Password",
+      "maxPlayers": "Max players",
+      "startingLifeTotal": "Starting life total",
+      "onlyBuddies": "Only buddies",
+      "onlyRegistered": "Only registered users",
+      "spectatorsAllowed": "Allow spectators",
+      "spectatorsNeedPassword": "Spectators need password",
+      "spectatorsCanTalk": "Spectators can chat",
+      "spectatorsSeeEverything": "Spectators see everything",
+      "joinAsSpectator": "Create as spectator",
+      "shareDecklistsOnLoad": "Share decklists on load",
+      "joinAsJudge": "Create as judge"
+    },
+    "section": {
+      "gameType": "Game type",
+      "permissions": "Permissions",
+      "spectators": "Spectators",
+      "other": "Other"
+    }
+  }
+}

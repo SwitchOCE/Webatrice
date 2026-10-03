@@ -87,7 +87,7 @@ function RoomChatView({ roomId, roomName, messages, users, onSay }: RoomChatProp
       <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-border-subtle">
         <Hash size={14} className="text-text-muted" />
         <span className="text-sm font-semibold text-text-primary truncate">{roomName}</span>
-        <span className="text-xs text-text-muted">· room chat</span>
+        <span className="text-xs text-text-muted">{t('RoomChat.subtitle')}</span>
       </div>
 
       {/* Desktop ChatView reads out nothing, but a browser has no other way to hear new lines:
@@ -101,7 +101,7 @@ function RoomChatView({ roomId, roomName, messages, users, onSay }: RoomChatProp
       >
         {(!messages || messages.length === 0) && (
           <div className="h-full flex items-center justify-center text-xs text-text-muted italic">
-            No messages yet — say hi.
+            {t('RoomChat.empty')}
           </div>
         )}
         {messages?.map((m, idx) => (
@@ -149,8 +149,8 @@ function RoomChatView({ roomId, roomName, messages, users, onSay }: RoomChatProp
             'p-2 rounded-md bg-accent text-on-accent hover:bg-accent-hover',
             'disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
           ].join(' ')}
-          title="Send"
-          aria-label="Send"
+          title={t('Common.action.send')}
+          aria-label={t('Common.action.send')}
         >
           <Send size={16} />
         </button>

@@ -37,8 +37,8 @@ describe('Room (integration)', () => {
     expect(container.querySelector('.room-view')).toBeInTheDocument();
     // Side pane is now RoomUsers with Buddies + Players Online cards; the
     // old "Users in this room:" copy was replaced by these headings.
-    expect(screen.getByRole('heading', { name: 'Players Online' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'RoomUsers.online.title' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Common.action.send' })).toBeInTheDocument();
   });
 
   it('renders nothing when the route param does not match a joined room', () => {

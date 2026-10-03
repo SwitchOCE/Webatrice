@@ -40,10 +40,10 @@ describe('Rooms components (integration)', () => {
   it('mounts GamesList with an empty room as a games grid with sortable headers and a toolbar', () => {
     renderFeatureScreen(<GamesList room={makeRoom()} />);
 
-    expect(screen.getByRole('grid', { name: 'Games in Lobby' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Age' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Description' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Create/ })).toBeInTheDocument();
+    expect(screen.getByRole('grid', { name: 'GamesList.heading' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'GamesList.column.age' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'GamesList.column.description' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Common.action.create' })).toBeInTheDocument();
   });
 
   it('mounts Messages with rendered message data', () => {
@@ -65,7 +65,7 @@ describe('Rooms components (integration)', () => {
       />,
     );
 
-    expect(screen.getByText('Create Game')).toBeInTheDocument();
+    expect(screen.getByText('CreateGameDialog.title')).toBeInTheDocument();
   });
 
   it('mounts FilterGamesDialog open with default filters', () => {
@@ -79,6 +79,6 @@ describe('Rooms components (integration)', () => {
       />,
     );
 
-    expect(screen.getByText('Filter games')).toBeInTheDocument();
+    expect(screen.getByText('FilterGamesDialog.title')).toBeInTheDocument();
   });
 });

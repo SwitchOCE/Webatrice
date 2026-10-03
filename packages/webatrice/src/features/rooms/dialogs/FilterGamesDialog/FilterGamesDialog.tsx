@@ -1,5 +1,7 @@
 import { useEffect, useId, useMemo, useState, type ReactNode } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
 import { rooms, type GameFilters } from '@cockatrice/datatrice';
 import { GametypeMap } from '@cockatrice/datatrice';
@@ -18,19 +20,16 @@ export interface FilterGamesDialogProps {
   onSubmit: (filters: GameFilters) => void;
 }
 
-interface MaxAgeOption {
-  label: string;
-  seconds: number;
-}
+const MAX_AGE_OPTIONS = [0, 5 * 60, 10 * 60, 30 * 60, 60 * 60, 2 * 60 * 60];
 
-const MAX_AGE_OPTIONS: MaxAgeOption[] = [
-  { label: 'No limit', seconds: 0 },
-  { label: '5 minutes', seconds: 5 * 60 },
-  { label: '10 minutes', seconds: 10 * 60 },
-  { label: '30 minutes', seconds: 30 * 60 },
-  { label: '1 hour', seconds: 60 * 60 },
-  { label: '2 hours', seconds: 2 * 60 * 60 },
-];
+function maxAgeLabel(t: TFunction, seconds: number): string {
+  if (seconds === 0) {
+    return t('FilterGamesDialog.maxAge.noLimit');
+  }
+  return seconds < 60 * 60
+    ? t('FilterGamesDialog.maxAge.minutes', { count: seconds / 60 })
+    : t('FilterGamesDialog.maxAge.hours', { count: seconds / (60 * 60) });
+}
 
 export default function FilterGamesDialog({
   isOpen,
@@ -39,6 +38,7 @@ export default function FilterGamesDialog({
   onCancel,
   onSubmit,
 }: FilterGamesDialogProps) {
+  const { t } = useTranslation();
   const [form, setForm] = useState<GameFilters>(initialFilters);
   const [creatorNamesText, setCreatorNamesText] = useState<string>(
     initialFilters.creatorNameFilters.join(', '),
@@ -92,7 +92,7 @@ export default function FilterGamesDialog({
     <DialogShell
       isOpen={isOpen}
       handleClose={onCancel}
-      title="Filter games"
+      title={t('FilterGamesDialog.title')}
       maxWidth="max-w-lg"
       footer={(
         <>
@@ -101,14 +101,14 @@ export default function FilterGamesDialog({
             onClick={handleReset}
             className={SECONDARY_BUTTON_CLASS}
           >
-            Reset
+            {t('Common.action.reset')}
           </button>
           <button
             type="button"
             onClick={onCancel}
             className={SECONDARY_BUTTON_CLASS}
           >
-            Cancel
+            {t('Common.action.cancel')}
           </button>
           <button
             type="submit"
@@ -118,33 +118,33 @@ export default function FilterGamesDialog({
               'text-on-accent hover:bg-accent-hover shadow-glow transition-colors',
             ].join(' ')}
           >
-            Apply
+            {t('Common.action.apply')}
           </button>
         </>
       )}
     >
       <form id={formId} onSubmit={handleSubmit} className="space-y-4">
         <TextInput
-          label="Game description contains"
+          label={t('FilterGamesDialog.label.gameName')}
           value={form.gameNameFilter}
           onChange={(v) => update('gameNameFilter', v)}
           autoFocus
         />
         <TextInput
-          label="Creator names (comma-separated)"
+          label={t('FilterGamesDialog.label.creatorNames')}
           value={creatorNamesText}
           onChange={setCreatorNamesText}
         />
         <div className="grid grid-cols-2 gap-3">
           <NumberInput
-            label="Min players"
+            label={t('FilterGamesDialog.label.minPlayers')}
             value={form.maxPlayersFilterMin}
             onChange={(v) => update('maxPlayersFilterMin', v)}
             min={0}
             max={99}
           />
           <NumberInput
-            label="Max players"
+            label={t('FilterGamesDialog.label.maxPlayers')}
             value={form.maxPlayersFilterMax}
             onChange={(v) => update('maxPlayersFilterMax', v)}
             min={0}
@@ -153,14 +153,14 @@ export default function FilterGamesDialog({
         </div>
 
         <SelectInput
-          label="Max age"
+          label={t('FilterGamesDialog.label.maxAge')}
           value={form.maxGameAgeSeconds}
           onChange={(v) => update('maxGameAgeSeconds', v)}
-          options={MAX_AGE_OPTIONS.map((o) => ({ value: o.seconds, label: o.label }))}
+          options={MAX_AGE_OPTIONS.map((seconds) => ({ value: seconds, label: maxAgeLabel(t, seconds) }))}
         />
 
         {gameTypes.length > 0 && (
-          <Section title="Game types">
+          <Section title={t('FilterGamesDialog.section.gameTypes')}>
             {gameTypes.map(({ id, name }) => (
               <Checkbox
                 key={id}
@@ -172,64 +172,64 @@ export default function FilterGamesDialog({
           </Section>
         )}
 
-        <Section title="Hide">
+        <Section title={t('FilterGamesDialog.section.hide')}>
           <Checkbox
-            label="Hide full games"
+            label={t('FilterGamesDialog.hide.fullGames')}
             checked={form.hideFullGames}
             onChange={(c) => update('hideFullGames', c)}
           />
           <Checkbox
-            label="Hide games that started"
+            label={t('FilterGamesDialog.hide.gamesThatStarted')}
             checked={form.hideGamesThatStarted}
             onChange={(c) => update('hideGamesThatStarted', c)}
           />
           <Checkbox
-            label="Hide password-protected games"
+            label={t('FilterGamesDialog.hide.passwordProtected')}
             checked={form.hidePasswordProtectedGames}
             onChange={(c) => update('hidePasswordProtectedGames', c)}
           />
           <Checkbox
-            label="Hide buddies-only games"
+            label={t('FilterGamesDialog.hide.buddiesOnly')}
             checked={form.hideBuddiesOnlyGames}
             onChange={(c) => update('hideBuddiesOnlyGames', c)}
           />
           <Checkbox
-            label="Hide games created by ignored users"
+            label={t('FilterGamesDialog.hide.ignoredUsers')}
             checked={form.hideIgnoredUserGames}
             onChange={(c) => update('hideIgnoredUserGames', c)}
           />
           <Checkbox
-            label="Hide games not created by buddies"
+            label={t('FilterGamesDialog.hide.notBuddyCreated')}
             checked={form.hideNotBuddyCreatedGames}
             onChange={(c) => update('hideNotBuddyCreatedGames', c)}
           />
           <Checkbox
-            label="Hide open-decklist games"
+            label={t('FilterGamesDialog.hide.openDecklist')}
             checked={form.hideOpenDecklistGames}
             onChange={(c) => update('hideOpenDecklistGames', c)}
           />
         </Section>
 
-        <Section title="Spectator filters">
+        <Section title={t('FilterGamesDialog.section.spectators')}>
           <Checkbox
-            label="Show only games where spectators can watch"
+            label={t('FilterGamesDialog.spectators.canWatch')}
             checked={form.showOnlyIfSpectatorsCanWatch}
             onChange={(c) => update('showOnlyIfSpectatorsCanWatch', c)}
           />
           <Checkbox
-            label="Show games where spectators need a password"
+            label={t('FilterGamesDialog.spectators.needPassword')}
             checked={form.showSpectatorPasswordProtected}
             onChange={(c) => update('showSpectatorPasswordProtected', c)}
             disabled={!form.showOnlyIfSpectatorsCanWatch}
           />
           <Checkbox
-            label="Show only games where spectators can chat"
+            label={t('FilterGamesDialog.spectators.canChat')}
             checked={form.showOnlyIfSpectatorsCanChat}
             onChange={(c) => update('showOnlyIfSpectatorsCanChat', c)}
             disabled={!form.showOnlyIfSpectatorsCanWatch}
           />
           <Checkbox
-            label="Show only games where spectators see hands"
+            label={t('FilterGamesDialog.spectators.canSeeHands')}
             checked={form.showOnlyIfSpectatorsCanSeeHands}
             onChange={(c) => update('showOnlyIfSpectatorsCanSeeHands', c)}
             disabled={!form.showOnlyIfSpectatorsCanWatch}
