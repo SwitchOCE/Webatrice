@@ -148,6 +148,31 @@ describe('serializeCod → parseCod round-trip', () => {
     expect(deck.meta.v).toBe(1);
   });
 
+  it('keeps desktop\'s <playmatCard> verbatim, next to <bannerCard>', () => {
+    const desktop = '<?xml version="1.0" encoding="UTF-8"?>'
+      + '<cockatrice_deck version="1"><deckname>Mat</deckname><format>commander</format>'
+      + '<bannerCard providerId="b-1">Sol Ring</bannerCard>'
+      + '<playmatCard providerId="p-1" marginPctL="0.1000" marginPctR="0.2000" verticalOffset="0.0500" zoom="1.2500">'
+      + 'Island</playmatCard>'
+      + '<comments/><tags><tag>Ramp</tag></tags><zone name="main"/></cockatrice_deck>';
+
+    const parsed = parseCod(desktop);
+    const xml = serializeCod(parsed);
+
+    const root = new DOMParser().parseFromString(xml, 'application/xml').documentElement;
+    const names = Array.from(root.children).map((el) => el.tagName);
+    expect(names.indexOf('playmatCard')).toBe(names.indexOf('bannerCard') + 1);
+    const playmat = root.querySelector('playmatCard')!;
+    expect(playmat.textContent).toBe('Island');
+    expect(['providerId', 'marginPctL', 'marginPctR', 'verticalOffset', 'zoom'].map((a) => playmat.getAttribute(a)))
+      .toEqual(['p-1', '0.1000', '0.2000', '0.0500', '1.2500']);
+    expect(parseCod(xml).playmatXml).toBe(parsed.playmatXml);
+  });
+
+  it('writes no <playmatCard> for a deck without one', () => {
+    expect(serializeCod({ name: 'X', meta: defaultMeta(), cards: [] })).not.toContain('playmatCard');
+  });
+
   it('serializeCod starts with an XML declaration and cockatrice_deck root', () => {
     const xml = serializeCod({ name: 'X', meta: defaultMeta(), cards: [] });
     expect(xml).toMatch(/^<\?xml version="1\.0" encoding="UTF-8"\?>/);

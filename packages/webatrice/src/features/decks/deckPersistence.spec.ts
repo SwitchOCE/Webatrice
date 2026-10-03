@@ -26,6 +26,12 @@ describe('serializeDeckForSave', () => {
     expect(parsed.bracketAssessment?.level).toBe(2);
     expect(parsed.meta.updatedAt).not.toBe('2020-01-01T00:00:00.000Z');
   });
+
+  it('keeps a desktop playmat the editor does not edit, and counts it as saved content', () => {
+    const playmatXml = '<playmatCard providerId="p-1" zoom="1.0000">Island</playmatCard>';
+    expect(parseCod(serializeDeckForSave({ ...deck, playmatXml })).playmatXml).toBe(playmatXml);
+    expect(deckSaveSignature({ ...deck, playmatXml })).not.toBe(deckSaveSignature(deck));
+  });
 });
 
 describe('deckColorIdentity', () => {
