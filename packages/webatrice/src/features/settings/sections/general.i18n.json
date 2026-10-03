@@ -1,0 +1,12 @@
+{
+  "SettingsGeneral": {
+    "group": {
+      "language": "Language"
+    },
+    "language": {
+      "label": "Language",
+      "description": "The language of menus, dialogs and messages. Missing translations show in English.",
+      "followBrowser": "Use the browser's language"
+    }
+  }
+}

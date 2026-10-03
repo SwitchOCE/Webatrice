@@ -21,7 +21,7 @@ describe('Settings (integration)', () => {
   it('lists the settings sections when the user is logged in, and opens Shortcuts', () => {
     renderFeatureScreen(<Settings />);
 
-    expect(screen.getByRole('tab', { name: /Settings\.section\.appearance/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /Settings\.section\.general/ })).toHaveAttribute('aria-selected', 'true');
 
     fireEvent.click(screen.getByRole('tab', { name: /Settings\.section\.shortcuts/ }));
 

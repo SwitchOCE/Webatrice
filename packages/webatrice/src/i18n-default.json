@@ -278,11 +278,20 @@
       "ZW": "Zimbabwe",
       "EU": "European Union"
     },
+    "languagePicker": "Language",
     "languages": {
-      "en-US": "English - US",
+      "en_US": "English - US",
+      "de": "German",
+      "es": "Spanish",
+      "fi": "Finnish",
       "fr": "French",
+      "it": "Italian",
       "nl": "Dutch",
-      "pt_BR": "Portuguese - Brazil"
+      "pl": "Polish",
+      "pt_BR": "Portuguese - Brazil",
+      "ru": "Russian",
+      "tok": "Toki Pona",
+      "yue": "Cantonese"
     }
   },
   "ErrorFallback": {
@@ -1458,6 +1467,16 @@
       "edit": "Edit message \"{message}\"",
       "remove": "Remove message \"{message}\"",
       "tooLong": "Messages can be at most {max} characters."
+    }
+  },
+  "SettingsGeneral": {
+    "group": {
+      "language": "Language"
+    },
+    "language": {
+      "label": "Language",
+      "description": "The language of menus, dialogs and messages. Missing translations show in English.",
+      "followBrowser": "Use the browser's language"
     }
   },
   "SettingsSound": {

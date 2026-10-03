@@ -2,6 +2,7 @@ export * from './useAdminLock';
 export * from './useChatPreferences';
 export * from './useFireOnce';
 export * from './useLeaveGame';
+export * from './useLanguagePreference';
 export * from './useLocaleSort';
 export * from './useOpenUserInvestigation';
 export * from './useOpenedReplays';

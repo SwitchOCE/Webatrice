@@ -1,4 +1,5 @@
 import { PREFERENCE_DEFAULTS, PreferenceKey, Preferences, SETTINGS_VERSION, Setting } from '@app/types';
+import { LANGUAGE_STORAGE_KEY, resolveSupportedLanguage } from '@app/utils';
 
 type SettingRow = Partial<Setting> & { user: string };
 
@@ -10,7 +11,21 @@ const MIGRATIONS: Record<number, (row: SettingRow) => void> = {
   // v1: first versioned schema. Pre-v1 rows hold only autoConnect, invertVerticalCoordinate and
   // shortcut overrides; every preference introduced with the Settings page takes its default.
   1: (row) => fillPreferenceDefaults(row),
+  // v2: language becomes a setting. Before it, the language was i18next's own localStorage cache;
+  // adopt it. The preference did not exist before v2, so assigning (rather than filling) cannot lose
+  // a choice — and must assign, because step 1 has already filled a v0 row with the default.
+  2: (row) => {
+    row.language = legacyLanguageChoice() ?? '';
+  },
 };
+
+function legacyLanguageChoice(): string | undefined {
+  try {
+    return resolveSupportedLanguage(globalThis.localStorage?.getItem(LANGUAGE_STORAGE_KEY));
+  } catch {
+    return undefined; // storage blocked (privacy mode); fall back to the browser language
+  }
+}
 
 /** Whether a stored value has the type of the preference's default (a list for a list). */
 function hasDefaultType(key: PreferenceKey, value: unknown): boolean {
