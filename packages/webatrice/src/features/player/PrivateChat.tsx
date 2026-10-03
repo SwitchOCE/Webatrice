@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare, Send } from 'lucide-react';
 
 import { server, type PrivateConversationEntry } from '@cockatrice/datatrice';
+import { useMentionCompleter } from '@app/components';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 
 interface PrivateChatProps {
@@ -37,7 +38,11 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState('');
+  // Desktop's message tab has no completer; here the conversation's two names complete.
+  const names = useMemo(() => (selfName ? [peerName, selfName] : [peerName]), [peerName, selfName]);
+  const mention = useMentionCompleter({ names, value: draft, onValueChange: setDraft, inputRef });
 
   // Auto-scroll to newest entry on receive / send. Runs on length
   // change so scroll doesn't fight the user while they're reading
@@ -135,18 +140,22 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
         onSubmit={send}
         className="shrink-0 flex items-center gap-2 px-3 py-2 border-t border-border-subtle bg-bg-surface"
       >
-        <input
-          type="text"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={`Message ${peerName}`}
-          className={[
-            'flex-1 min-w-0 px-3 py-2 rounded-md bg-bg-base border',
-            'border-border-subtle text-sm text-text-primary',
-            'placeholder:text-text-muted focus:outline-none',
-            'focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
-          ].join(' ')}
-        />
+        <div className="relative flex-1 min-w-0">
+          <input
+            ref={inputRef}
+            type="text"
+            value={draft}
+            {...mention.inputProps}
+            placeholder={`Message ${peerName}`}
+            className={[
+              'w-full px-3 py-2 rounded-md bg-bg-base border',
+              'border-border-subtle text-sm text-text-primary',
+              'placeholder:text-text-muted focus:outline-none',
+              'focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
+            ].join(' ')}
+          />
+          {mention.popup}
+        </div>
         <button
           type="submit"
           disabled={!draft.trim() || blockedReason !== null}

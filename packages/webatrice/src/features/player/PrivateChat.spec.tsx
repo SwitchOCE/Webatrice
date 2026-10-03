@@ -50,11 +50,22 @@ describe('PrivateChat', () => {
     expect(screen.getByText('PrivateChat.notice.notSent')).toBeInTheDocument();
   });
 
+  it('completes @mentions of the two people in the conversation', () => {
+    renderChat();
+    const input = screen.getByRole('combobox');
+
+    fireEvent.change(input, { target: { value: '@' } });
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['@bob', '@me']);
+    fireEvent.keyDown(input, { key: 'Tab' });
+
+    expect(input).toHaveValue('@bob ');
+  });
+
   it('shows the peer as online and sends a trimmed draft', () => {
     const { onSend } = renderChat();
     expect(screen.getByTestId('private-chat-presence')).toHaveTextContent('PrivateChat.presence.online');
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('combobox');
     fireEvent.change(input, { target: { value: '  hello  ' } });
     fireEvent.submit(input);
     expect(onSend).toHaveBeenCalledWith('hello');
@@ -66,7 +77,7 @@ describe('PrivateChat', () => {
     expect(screen.getByTestId('private-chat-presence')).toHaveTextContent('PrivateChat.presence.offline');
     expect(screen.getByText('PrivateChat.blocked.offline')).toBeInTheDocument();
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('combobox');
     fireEvent.change(input, { target: { value: 'hello' } });
     fireEvent.submit(input);
     expect(onSend).not.toHaveBeenCalled();
@@ -77,7 +88,7 @@ describe('PrivateChat', () => {
   it('refuses to send to a user you have ignored', () => {
     const { onSend } = renderChat({ isIgnored: true });
     expect(screen.getByText('PrivateChat.blocked.ignoring')).toBeInTheDocument();
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('combobox');
     fireEvent.change(input, { target: { value: 'hello' } });
     fireEvent.submit(input);
     expect(onSend).not.toHaveBeenCalled();
@@ -93,17 +104,17 @@ describe('PrivateChat', () => {
         userName: 'bob', message: 'are you there?', responseCode: Response_ResponseCode.RespNameNotFound,
       }));
     });
-    expect(screen.getByRole('textbox')).toHaveValue('are you there?');
+    expect(screen.getByRole('combobox')).toHaveValue('are you there?');
   });
 
   it('does not overwrite text typed since the failed send', () => {
     const { store } = renderChat();
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'newer' } });
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'newer' } });
     act(() => {
       store.dispatch(server.Actions.privateMessageFailed({
         userName: 'bob', message: 'older', responseCode: Response_ResponseCode.RespChatFlood,
       }));
     });
-    expect(screen.getByRole('textbox')).toHaveValue('newer');
+    expect(screen.getByRole('combobox')).toHaveValue('newer');
   });
 });

@@ -46,6 +46,12 @@ export const chatSection: SettingsSection = {
           dependsOn: 'chatMention',
         },
         {
+          id: 'chatMentionCompleter',
+          labelKey: 'SettingsChat.chatMentionCompleter.label',
+          descriptionKey: 'SettingsChat.chatMentionCompleter.description',
+          control: { kind: 'toggle', key: 'chatMentionCompleter' },
+        },
+        {
           id: 'ignoreUnregisteredUsers',
           labelKey: 'SettingsChat.ignoreUnregisteredUsers.label',
           control: { kind: 'toggle', key: 'ignoreUnregisteredUsers' },

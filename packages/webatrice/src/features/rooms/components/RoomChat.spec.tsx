@@ -54,7 +54,7 @@ describe('RoomChat', () => {
   it('sends the draft and clears the input', () => {
     const onSay = vi.fn();
     renderChat([], onSay);
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('combobox');
     fireEvent.change(input, { target: { value: 'hi all' } });
     fireEvent.submit(input);
     expect(onSay).toHaveBeenCalledWith({ message: 'hi all' });
@@ -67,16 +67,36 @@ describe('RoomChat', () => {
       store.dispatch(rooms.Actions.roomSayFailed({ roomId: 2, message: 'other room', responseCode: 18, timeReceived: 1 }));
       store.dispatch(rooms.Actions.roomSayFailed({ roomId: 1, message: 'too fast', responseCode: 18, timeReceived: 2 }));
     });
-    expect(screen.getByRole('textbox')).toHaveValue('too fast');
+    expect(screen.getByRole('combobox')).toHaveValue('too fast');
   });
 
   it('keeps what the user has typed since the flooded send', () => {
     const { store } = renderChat();
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'newer' } });
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'newer' } });
     act(() => {
       store.dispatch(rooms.Actions.roomSayFailed({ roomId: 1, message: 'too fast', responseCode: 18, timeReceived: 2 }));
     });
-    expect(screen.getByRole('textbox')).toHaveValue('newer');
+    expect(screen.getByRole('combobox')).toHaveValue('newer');
+  });
+
+  it('completes @mentions from the room\'s user list', () => {
+    renderWithProviders(
+      <RoomChat
+        roomId={1}
+        roomName="Main"
+        messages={[]}
+        users={{ alice: makeUser({ name: 'alice' }), bob: makeUser({ name: 'bob' }) }}
+        onSay={vi.fn()}
+      />,
+      { preloadedState: connectedState },
+    );
+    const input = screen.getByRole('combobox');
+
+    fireEvent.change(input, { target: { value: 'gg @b' } });
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['@bob']);
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    expect(input).toHaveValue('gg @bob ');
   });
 
   describe('chat preferences', () => {
