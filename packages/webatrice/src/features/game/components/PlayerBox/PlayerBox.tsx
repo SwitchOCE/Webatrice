@@ -69,7 +69,6 @@ import {
   CARD_WIDTH,
 } from '../ui/SeatCard/cardSize';
 import ContextMenu, { type ContextMenuItem } from './ContextMenu';
-import ZoneViewPanel from '../../dialogs/ZoneViewDialog/ZoneViewPanel';
 import Card from '../ui/SeatCard/SeatCard';
 import { useCardPreviewActions } from '../ui/CardPreviewContext';
 import { usePublishSeatShortcuts, type SeatShortcutOperations } from '../ui/SeatShortcutsContext';
@@ -84,7 +83,6 @@ import {
   useSeatDropZone,
   type SeatDragStart,
 } from '../ui/SeatDragContext';
-import ZoneRevealPanel from '../../dialogs/ZoneViewDialog/ZoneRevealPanel';
 import { useGameDialogActions } from '../ui/GameDialogActionsContext';
 import { useGameDialogsContext } from '../ui/GameDialogsContext';
 import { useShortcutHints } from '@app/feature-widgets/shortcuts';
@@ -1087,9 +1085,6 @@ function PlayerBox(
     zoneCounts,
     graveCards,
     exileCards,
-    sideboardCards,
-    onDumpSideboard,
-    onClearRevealedSideboard,
     handCards,
     battlefieldCards,
     stackCards,
@@ -1103,9 +1098,6 @@ function PlayerBox(
     onRevealRandomFromZone,
     onRevealZone,
     onUndoDraw,
-    onDumpTopCards,
-    onClearRevealedDeck,
-    revealedDeckCards,
     revealTargets,
     onRevealLibrary,
     onLendLibrary,
@@ -1147,31 +1139,14 @@ function PlayerBox(
     onRequestGameInfo,
     onRequestViewSideboard,
   } = useGameDialogActions();
-  // Sideboard view state — mounted below in the modal render block
-  // when isSelf. Both open triggers (right-sidebar button + battlefield
-  // menu) dispatch through useGameDialogActions so this is the single
-  // source of truth.
+  // The seat's zone views (library, top / bottom N, graveyard, exile,
+  // hand, sideboard) are game dialogs: openZoneView stacks one and dumps a
+  // hidden zone. Hand-menu handlers already wired at the dialog layer:
+  // `handleRequestSortHandBy` fires per-card moveCard dispatches
+  // (hand_menu.cpp parity), `handleRequestChooseMulligan` opens a numeric
+  // prompt then dispatches Command_Mulligan.
   const {
-    viewSideboardOpen,
-    closeViewSideboard,
-    // Trigger flags flipped by the F3/F4 shortcuts (and the sidebar,
-    // eventually). PlayerBox is where the actual LibrarySearchDialog /
-    // pileView state lives, so external triggers just set a boolean
-    // here and we open the local dialog + clear the trigger.
-    viewLibraryOpen,
-    closeViewLibrary,
-    viewGraveyardOpen,
-    closeViewGraveyard,
-    // Hand-menu handlers already wired at the dialog layer — used by
-    // handMenuItems below so the button-triggered menu isn't full of
-    // disabled placeholders. `handleRequestSortHandBy` fires per-card
-    // moveCard dispatches (hand_menu.cpp parity),
-    // `handleRequestChooseMulligan` opens a numeric prompt then
-    // dispatches Command_Mulligan. "View hand" reuses the local
-    // LibrarySearchDialog via `pileView` instead of the dialog-layer
-    // handler so we get the same search / group / sort / pile-view
-    // controls as the graveyard / exile viewers, plus drag-in and
-    // drag-out support against the HAND zone.
+    openZoneView,
     handleRequestSortHandBy,
     handleRequestChooseMulligan,
     seatCardMenu,
@@ -1180,14 +1155,6 @@ function PlayerBox(
     openPrompt,
     openCreateToken,
   } = useGameDialogsContext();
-  // Fire Command_DumpZone(zone=SIDEBOARD) each time the modal opens.
-  // Same pattern as View library: sideboard is a HiddenZone so we
-  // don't have `byId`/`order` locally without a dump. Owner-only.
-  useEffect(() => {
-    if (isSelf && viewSideboardOpen) {
-      onDumpSideboard?.();
-    }
-  }, [isSelf, viewSideboardOpen, onDumpSideboard]);
 
   // Scaled versions of the base card-related pixel constants. Every layout
   // computation in this component that measures against card size (grid
@@ -1254,8 +1221,6 @@ function PlayerBox(
   // Card metadata cache keyed by name. Consumed by:
   //   • Battlefield P/T pills (typeLine + pt).
   //   • Card context menu's currentPT fallback.
-  //   • LibrarySearchDialog (backfills type_line / cmc / colors / power /
-  //     toughness on DeckCards whose .cod source didn't ship metadata).
   // The .cod XML we upload doesn't carry these fields, so we backfill
   // from the Dexie card DB (Cockatrice XML import) and fall back to
   // Scryfall on miss.
@@ -1527,24 +1492,6 @@ function PlayerBox(
   // the dialog need to resolve to the library zone too (otherwise
   // the user can drag cards out but not back in). Populated by the
   // dialog via a callback ref.
-  const librarySearchDialogRef = useRef<HTMLDivElement | null>(null);
-  // The zone-reveal dialog (used for "View top cards..." today, plus
-  // graveyard/exile reveal flows later) needs a ref so the parent's
-  // drop-detection can hit-test drops that land on the dialog and
-  // resolve them to the source zone.
-  const zoneRevealDialogRef = useRef<HTMLDivElement | null>(null);
-  // Separate ref for the graveyard / exile view dialog. Same purpose
-  // as `zoneRevealDialogRef` — drop-detection needs to hit-test the
-  // modal so drops don't fall through to the battlefield behind it.
-  // Kept distinct so a same-zone drop resolves to the pile that
-  // opened the view (graveyard vs. exile) via `pileView.zone` in
-  // detectDropTarget, rather than always assuming "library" like the
-  // shared reveal-dialog ref does.
-  const pileViewDialogRef = useRef<HTMLDivElement | null>(null);
-  // Sideboard view dialog ref — same rationale as pileViewDialogRef
-  // (drop-detection needs to hit-test the modal so drops resolve to
-  // SIDEBOARD instead of falling through to the battlefield).
-  const sideboardDialogRef = useRef<HTMLDivElement | null>(null);
 
   // In-flight draw animations. Purely visual: a card back tweens from
   // the library rect to the hand rect whenever this player's hand
@@ -1609,10 +1556,6 @@ function PlayerBox(
   const seatId = playerId ?? Number(player.user_id);
   const activeSeatDrag = useActiveSeatDrag();
   const seatDrag = activeSeatDrag?.seatPlayerId === seatId ? activeSeatDrag : null;
-  // "View library" dialog (full-deck reveal). Opened via the library
-  // context menu; fires Command_DumpZone(numberCards=-1) on open so
-  // the dialog reads the server-authoritative revealed cards.
-  const [librarySearchOpen, setLibrarySearchOpen] = useState(false);
   // The seat's card menus: battlefield, pile view (graveyard / exile) and
   // stack. The open menu lives in the game dialog state, so it is one of the
   // game's mutually exclusive context menus; this seat renders it when it
@@ -2446,11 +2389,6 @@ function PlayerBox(
     seatDragSources[zone]?.(e, [card]);
   };
 
-  /** Ids of the cards a drag from `zone` is carrying, for dialogs that hide
-   *  them while the ghost has them. */
-  const draggingIdsFrom = (zone: DragSourceZone): Set<string> | undefined =>
-    seatDrag?.zone === zone ? new Set(seatDrag.cards.map((c) => c.id)) : undefined;
-
   /** True if this specific card is currently part of an active drag.
    *  Only returns true after the pointer has moved past the threshold —
    *  a click that never becomes a drag doesn't hide its source. */
@@ -2934,10 +2872,7 @@ function PlayerBox(
       title: isReversed ? 'View bottom cards of library' : 'View top cards of library',
       submitLabel: 'View',
       deckSize,
-      onSubmit: (n) => {
-        onDumpTopCards?.(n, isReversed);
-        setTopCardsView({ isReversed });
-      },
+      onSubmit: (n) => openZoneView({ playerId: seatId, zoneName: ZoneName.DECK, numberCards: n, isReversed }),
     });
   // Reveal top N to a player: Command_RevealCards via onRevealTopCards
   // (`-1` = all players, sent with no player_id).
@@ -2951,54 +2886,6 @@ function PlayerBox(
     deckSize,
     onSubmit: (n) => onRevealTopCards?.(targetPlayerId, n),
   });
-  // The ViewTopCardsDialog carries the direction so its header can
-  // read "Top N" or "Bottom N" correctly. `null` = closed.
-  const [topCardsView, setTopCardsView] = useState<{ isReversed: boolean } | null>(
-    null,
-  );
-  // "View graveyard" / "View exile" — persistent dialog listing every
-  // card in the public pile. Both are PublicZones so Redux already
-  // carries the full byId/order — no wire needed to open, unlike the
-  // library flows above which have to Command_DumpZone first. Mirrors
-  // Cockatrice's actViewGraveyard / actViewRfg (player_actions.cpp:222-230)
-  // which just emit requestZoneViewToggle(zone, -1). `null` = closed.
-  const [pileView, setPileView] = useState<
-    { zone: 'graveyard' | 'exile' | 'hand' } | null
-  >(null);
-
-  // External "View library" trigger (F3 shortcut, sidebar, etc.).
-  // Battlefield right-click "View library" does two things: fires
-  // Command_DumpZone(numberCards=-1) then opens LibrarySearchDialog.
-  // The context flag lets the same flow fire from anywhere. We flip
-  // the trigger off immediately (closeViewLibrary) so a subsequent
-  // shortcut press after manually closing the dialog re-fires.
-  // Owner-only — closeViewLibrary still runs for opponents so a stray
-  // trigger doesn't get stuck on.
-  useEffect(() => {
-    if (!viewLibraryOpen) {
-      return;
-    }
-    if (isSelf) {
-      onDumpTopCards?.(-1, false);
-      setLibrarySearchOpen(true);
-    }
-    closeViewLibrary();
-  }, [viewLibraryOpen, isSelf, onDumpTopCards, closeViewLibrary]);
-
-  // External "View graveyard" trigger (F4 shortcut, sidebar, etc.).
-  // Mirrors the battlefield right-click "View graveyard" menu item:
-  // sets pileView so the LibrarySearchDialog opens against the
-  // graveyard's Redux-carried card list (no wire needed — grave is
-  // a PublicZone).
-  useEffect(() => {
-    if (!viewGraveyardOpen) {
-      return;
-    }
-    if (isSelf) {
-      setPileView({ zone: 'graveyard' });
-    }
-    closeViewGraveyard();
-  }, [viewGraveyardOpen, isSelf, closeViewGraveyard]);
 
   // "Set counters (X)..." prompt, seeded with the clicked (or first
   // selected) card's value. The target ids are snapshotted when it opens;
@@ -3235,32 +3122,6 @@ function PlayerBox(
   const handDisplayList = handCards ?? [];
   const handCount = zoneCounts?.hand ?? handDisplayList.length;
 
-  // DeckCards enriched with Scryfall/Dexie metadata (`cardMetaByName`),
-  // used only by the "View library" search dialog. The .cod parser
-  // nulls type_line/cmc/colors/mana_cost/power/toughness because .cod
-  // XML doesn't ship them; without this backfill, the dialog's Group
-  // by Type / Sort by CMC / etc. would degrade to a single "Other"
-  // bucket. Prefer any non-null field already on the DeckCard so a
-  // future .cod format that DOES carry metadata isn't overwritten.
-  const enrichedDeckCards = useMemo<DeckCard[]>(
-    () =>
-      cards.map((c) => {
-        const meta = cardMetaByName.get(c.name);
-        if (!meta) {
-          return c;
-        }
-        return {
-          ...c,
-          type_line: c.type_line ?? meta.typeLine ?? null,
-          mana_cost: c.mana_cost ?? meta.manaCost ?? null,
-          cmc: c.cmc ?? meta.cmc ?? null,
-          colors: c.colors.length > 0 ? c.colors : meta.colors ?? [],
-          power: c.power ?? meta.power ?? null,
-          toughness: c.toughness ?? meta.toughness ?? null,
-        };
-      }),
-    [cards, cardMetaByName],
-  );
   // Fire flight animations from the library rect to the hand rect only
   // when the Redux draw beacon (`drawSeq`) ticks. The beacon is bumped
   // exclusively by the cardsDrawn listener (Event_DrawCards), so drags
@@ -3587,7 +3448,7 @@ function PlayerBox(
   const graveMenuItemsSelf: ContextMenuItem[] = [
     {
       label: 'View graveyard',
-      onClick: () => setPileView({ zone: 'graveyard' }),
+      onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.GRAVE }),
       shortcut: shortcutHints['game.viewGraveyard'],
     },
     {
@@ -3630,7 +3491,7 @@ function PlayerBox(
   const graveMenuItemsOpponent: ContextMenuItem[] = [
     {
       label: 'View graveyard',
-      onClick: () => setPileView({ zone: 'graveyard' }),
+      onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.GRAVE }),
       disabled: displayedGraveyardCount <= 0,
     },
   ];
@@ -3641,7 +3502,7 @@ function PlayerBox(
   const exileMenuItemsSelf: ContextMenuItem[] = [
     {
       label: 'View exile',
-      onClick: () => setPileView({ zone: 'exile' }),
+      onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.EXILE }),
     },
     { divider: true },
     {
@@ -3676,7 +3537,7 @@ function PlayerBox(
   const exileMenuItemsOpponent: ContextMenuItem[] = [
     {
       label: 'View exile',
-      onClick: () => setPileView({ zone: 'exile' }),
+      onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.EXILE }),
       disabled: displayedExileCount <= 0,
     },
   ];
@@ -3845,10 +3706,7 @@ function PlayerBox(
     { divider: true },
     {
       label: 'View library',
-      onClick: () => {
-        onDumpTopCards?.(-1, false);
-        setLibrarySearchOpen(true);
-      },
+      onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.DECK }),
       disabled: deckCount <= 0,
       shortcut: shortcutHints['game.viewLibrary'],
     },
@@ -4175,12 +4033,12 @@ function PlayerBox(
   };
   const handMenuItems: ContextMenuItem[] = [
     {
-      // View hand — reuses the generic zone-view dialog (same
-      // widget as View library / graveyard / exile). Only offered
+      // View hand — the same zone view as View library /
+      // graveyard / exile (desktop aViewHand). Only offered
       // for the local player; opponents' hands are hidden and the
       // dialog would have nothing to show.
       label: 'View hand',
-      onClick: () => setPileView({ zone: 'hand' }),
+      onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.HAND }),
       disabled: !isSelf || handSize <= 0,
     },
     {
@@ -4380,8 +4238,6 @@ function PlayerBox(
         {
           // Cockatrice's actViewSideboard opens the same zone-view
           // dialog that "View library" opens (player_actions.cpp:232-234).
-          // We reuse LibrarySearchDialog against the local player's
-          // sideboard zone (mounted below in the modal render block).
           label: 'View sideboard',
           onClick: onRequestViewSideboard,
           shortcut: shortcutHints['game.viewSideboard'],
@@ -4635,40 +4491,17 @@ function PlayerBox(
     zone: 'exile',
     canDrag: canMoveSeatCards,
   });
-  // The graveyard / exile / hand view dialog drags from the pile it shows.
-  const pileViewDragSource = useSeatDragSource(`seat-${seatId}-pile-view`, {
-    seatPlayerId: seatId,
-    canDrag: canMoveSeatCards,
-    zone: pileView?.zone ?? 'graveyard',
-    disabled: !pileView,
-  });
   const battlefieldDragSource = useSeatDragSource(`seat-${seatId}-battlefield`, {
     seatPlayerId: seatId,
     canDrag: canMoveSeatCards,
     zone: 'battlefield',
   });
-  // Hidden zones: the library pile drags its top card (position 0); the
-  // search, reveal and sideboard dialogs drag by the server position their
-  // snapshot carries as the card id.
+  // Hidden zones: the library pile drags its top card (position 0). The
+  // zone views (ZoneViewDialog) are drag sources of their own.
   const libraryDragSource = useSeatDragSource(`seat-${seatId}-library`, {
     seatPlayerId: seatId,
     zone: 'library',
     canDrag: canMoveSeatCards,
-  });
-  const librarySearchDragSource = useSeatDragSource(`seat-${seatId}-library-search`, {
-    seatPlayerId: seatId,
-    canDrag: canMoveSeatCards,
-    zone: 'library',
-  });
-  const revealDragSource = useSeatDragSource(`seat-${seatId}-reveal`, {
-    seatPlayerId: seatId,
-    zone: 'library',
-    canDrag: canMoveSeatCards,
-  });
-  const sideboardDragSource = useSeatDragSource(`seat-${seatId}-sideboard-view`, {
-    seatPlayerId: seatId,
-    canDrag: canMoveSeatCards,
-    zone: 'sideboard',
   });
   const seatDragSources: Partial<Record<DragSourceZone, SeatDragStart>> = {
     battlefield: battlefieldDragSource,
@@ -4776,68 +4609,12 @@ function PlayerBox(
     priority: SEAT_DROP_PRIORITY.exile,
     resolve: () => ({ zone: 'exile' }),
   });
-  // The seat's dialogs float over the board and take drops before it.
-  const librarySearchDropRef = useSeatDropZone(`seat-${seatId}-library-search`, {
-    seatPlayerId: seatId,
-    priority: SEAT_DROP_PRIORITY.librarySearchDialog,
-    resolve: () => ({ zone: 'library' }),
-  });
-  // The graveyard / exile / hand view resolves to the pile it shows, so a
-  // drop back onto it is a same-zone no-op. The hand view appends: it sorts
-  // and groups, so a positional insert wouldn't match what the user sees.
-  const pileViewDropRef = useSeatDropZone(`seat-${seatId}-pile-view`, {
-    seatPlayerId: seatId,
-    priority: SEAT_DROP_PRIORITY.pileViewDialog,
-    resolve: () => {
-      if (!pileView) {
-        return null;
-      }
-      return pileView.zone === 'hand'
-        ? { zone: 'hand', index: handDisplayList.length }
-        : { zone: pileView.zone };
-    },
-  });
-  // The sideboard is hidden: drops append (x = -1).
-  const sideboardDropRef = useSeatDropZone(`seat-${seatId}-sideboard-view`, {
-    seatPlayerId: seatId,
-    priority: SEAT_DROP_PRIORITY.sideboardDialog,
-    resolve: () => (viewSideboardOpen ? { zone: 'sideboard' } : null),
-  });
-  // The top/bottom-N reveal: the drop lands between two revealed cards (past
-  // a card's centre means after it), at the deck position that slot shows.
-  // Top view: slot k is position k; bottom-N view: deckCount - N + k.
-  const revealDropRef = useSeatDropZone(`seat-${seatId}-reveal`, {
-    seatPlayerId: seatId,
-    priority: SEAT_DROP_PRIORITY.revealDialog,
-    resolve: ({ pointer }) => {
-      const cardEls = zoneRevealDialogRef.current?.querySelectorAll<HTMLElement>('[data-card][data-card-id]');
-      let slot = 0;
-      let best = Infinity;
-      cardEls?.forEach((el, i) => {
-        const r = el.getBoundingClientRect();
-        const cx = r.left + r.width / 2;
-        const cy = r.top + r.height / 2;
-        const dist = (pointer.x - cx) ** 2 + (pointer.y - cy) ** 2;
-        if (dist < best) {
-          best = dist;
-          slot = pointer.x > cx ? i + 1 : i;
-        }
-      });
-      const revealCount = revealedDeckCards?.length ?? 0;
-      const base = topCardsView?.isReversed ? deckCount - revealCount : 0;
-      return { zone: 'library', position: Math.max(0, Math.min(deckCount, base + slot)) };
-    },
-  });
   const battlefieldScrollRef = useForkRef(scrollContainerRef, battlefieldDropRef);
   const stackZoneRef = useForkRef(stackRef, stackDropRef);
   const handZoneRef = useForkRef(handRef, handDropRef);
   const libraryZoneRef = useForkRef(libraryRef, libraryDropRef);
   const graveyardZoneRef = useForkRef(graveyardRef, graveyardDropRef);
   const exileZoneRef = useForkRef(exileRef, exileDropRef);
-  const librarySearchDialogZoneRef = useForkRef(librarySearchDialogRef, librarySearchDropRef);
-  const pileViewDialogZoneRef = useForkRef(pileViewDialogRef, pileViewDropRef);
-  const sideboardDialogZoneRef = useForkRef(sideboardDialogRef, sideboardDropRef);
-  const revealDialogZoneRef = useForkRef(zoneRevealDialogRef, revealDropRef);
 
   return (
     <div
@@ -5065,15 +4842,11 @@ function PlayerBox(
                 },
                 { divider: true },
                 {
-                  // "View library" — fires a full-deck dump
-                  // (Command_DumpZone with numberCards=-1) and opens the
-                  // search dialog against Redux `revealedCards`. Mirrors
+                  // "View library" — the zone view dumps the whole library
+                  // (Command_DumpZone with numberCards=-1). Mirrors
                   // Cockatrice's actViewLibrary (player_actions.cpp).
                   label: 'View library',
-                  onClick: () => {
-                    onDumpTopCards?.(-1, false);
-                    setLibrarySearchOpen(true);
-                  },
+                  onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.DECK }),
                   disabled: deckCount <= 0,
                   shortcut: shortcutHints['game.viewLibrary'],
                 },
@@ -6654,43 +6427,6 @@ function PlayerBox(
           document.body,
         )}
 
-      {/* Library search dialog — full-deck reveal. Cards come from Redux
-          `revealedDeckCards` (populated by Response_DumpZone when
-          "View library" opens above). On close, optionally fires
-          Command_Shuffle (shuffle-on-close checkbox default checked
-          per Cockatrice) and always clears the revealed snapshot.
-
-          The .cod-parsed DeckCards ship with type_line/cmc/colors/pt
-          set to null (parsedDeckToMockCards), so backfill each field
-          from `cardMetaByName` (Dexie / Scryfall lookup) before
-          passing. Without this, "Group by Type" would bucket every
-          card into "Other" and "Sort by CMC" would treat everything
-          as 0. */}
-      <ZoneViewPanel
-        isOpen={librarySearchOpen}
-        onClose={(shuffleOnClose) => {
-          setLibrarySearchOpen(false);
-          if (shuffleOnClose) {
-            onShuffle?.();
-          }
-          onClearRevealedDeck?.();
-        }}
-        library={revealedDeckCards ?? []}
-        deckCards={enrichedDeckCards}
-        playerName={name}
-        dropRef={librarySearchDialogZoneRef}
-        // Pointer-down on a card in the dialog kicks off a normal
-        // library-source drag. The card's id is the revealed-card's
-        // server-side deck position, which the wire path forwards
-        // verbatim as Command_MoveCard.cardId.
-        onCardPointerDown={
-          isSelf
-            ? (e, c) => librarySearchDragSource(e, [c])
-            : undefined
-        }
-        draggingCardIds={draggingIdsFrom('library')}
-      />
-
       {/* Menu-initiated arrow visuals — live arrow from the source card
           to the cursor. Green for "Attach to card...", red for "Draw
           arrow...". Ports Cockatrice's ArrowAttachItem / ArrowDragItem
@@ -6786,167 +6522,6 @@ function PlayerBox(
           />,
           document.body,
         )}
-
-      {/* Zone-reveal dialog for the "View top / bottom cards of
-          library..." flow. Same component will host graveyard / exile
-          reveal flows too — the caller supplies the title, shuffle
-          option, and reorder handler; the dialog itself is
-          zone-agnostic. Cockatrice's ZoneView shows revealed cards in
-          server order (no sort/group), and lets you drag them to
-          reorder — the parent forwards that as
-          Command_MoveCard(source=zone, target=zone, x=toIndex). */}
-      {topCardsView && (
-        <ZoneRevealPanel
-          isOpen
-          title={`${topCardsView.isReversed ? 'Bottom' : 'Top'} ${revealedDeckCards?.length ?? 0} cards — ${name}`}
-          cards={revealedDeckCards ?? []}
-          // Position label per card: the actual 0-indexed deck position,
-          // read straight off the reveal card's id (server writes the
-          // real deck position — Cockatrice invariant, see
-          // reindexRevealed / view_zone_logic.cpp). Bottom view: server
-          // sends cards.size()-N..cards.size()-1 in that order, so
-          // revealed[N-1] is the actual bottom. Ends → "Top" / "Bottom";
-          // middle → the raw 0-indexed position.
-          labels={(revealedDeckCards ?? []).map((c) => {
-            const libraryPos = Number(c.id);
-            if (!Number.isFinite(libraryPos)) {
-              return '';
-            }
-            if (libraryPos <= 0) {
-              return 'Top';
-            }
-            if (libraryPos >= deckCount - 1) {
-              return 'Bottom';
-            }
-            return String(libraryPos);
-          })}
-          // Outbound drag — pointerdown on a card starts a normal
-          // library-source drag, so it can be dropped on any zone in
-          // the play area. Drops back on the dialog resolve to library
-          // via `zoneRevealDialogRef` in detectDropTarget.
-          onCardPointerDown={
-            isSelf
-              ? (e, c) => revealDragSource(e, [c])
-              : undefined
-          }
-          dropRef={revealDialogZoneRef}
-          draggingCardIds={draggingIdsFrom('library')}
-          onClose={() => {
-            setTopCardsView(null);
-            onClearRevealedDeck?.();
-          }}
-        />
-      )}
-
-      {/* View graveyard / exile / hand — reuses LibrarySearchDialog so
-          the pile view / group-by / sort-by controls match the
-          "View library" flow. Graveyard and exile are public zones
-          whose full card list Redux already carries; hand is private
-          but only opened for the local player (`isSelf`-gated at the
-          menu), whose byId/order is populated too. No wire fires on
-          open (unlike the library flow which needs Command_DumpZone
-          first) and nothing needs clearing on close.
-          `showShuffleOnClose={false}` hides the toggle — shuffling
-          a pile that isn't the library makes no sense.
-          `enrichedDeckCards` is passed so the group/sort dropdowns
-          have Scryfall-backfilled type / cmc / color info to work
-          with (graveyard / hand cards typically originated from the
-          deck). Drag-out uses the pile's source-zone so the move
-          fires the correct startZone; drag-in lands on the dialog's
-          seat drop zone, which routes to
-          Command_MoveCard(target={GRAVE|EXILE|HAND}). */}
-      {pileView && (
-        <ZoneViewPanel
-          isOpen
-          title={`${
-            pileView.zone === 'graveyard'
-              ? 'Graveyard'
-              : pileView.zone === 'exile'
-                ? 'Exile'
-                : 'Hand'
-          } — ${name}`}
-          showShuffleOnClose={false}
-          library={
-            pileView.zone === 'graveyard'
-              ? graveDisplayList
-              : pileView.zone === 'exile'
-                ? exileDisplayList
-                : handDisplayList
-          }
-          deckCards={enrichedDeckCards}
-          playerName={name}
-          onCardPointerDown={
-            isSelf
-              ? (e, c) => pileViewDragSource(e, [c])
-              : undefined
-          }
-          // Per-card right-click menu. Anchors at the pointer so it
-          // opens where the user clicked, and carries the source
-          // zone (GRAVE / EXILE) so the Draw arrow flow can set the
-          // wire's `startZone` correctly. The hand-pile view skips
-          // this menu — hand cards already have their own drag-based
-          // interactions, and the Draw / Clone actions offered by
-          // pileCardMenu don't make sense from hand.
-          onCardContextMenu={
-            pileView.zone === 'hand'
-              ? undefined
-              : (e, c) => {
-                openSeatCardMenu({
-                  kind: 'pile',
-                  playerId: menuOwnerId,
-                  zone:
-                    pileView.zone === 'graveyard'
-                      ? ZoneName.GRAVE
-                      : ZoneName.EXILE,
-                  cardId: c.id,
-                  cardName: c.name,
-                  x: e.clientX,
-                  y: e.clientY,
-                });
-              }
-          }
-          // dropRef lets detectDropTarget hit-test the modal so a
-          // drag-and-release inside the dialog resolves to the source
-          // pile (same-zone no-op) instead of falling through to the
-          // battlefield behind. Without this the modal was invisible
-          // to drop detection.
-          dropRef={pileViewDialogZoneRef}
-          draggingCardIds={draggingIdsFrom(pileView.zone)}
-          onClose={() => setPileView(null)}
-        />
-      )}
-
-      {/* Sideboard view — Cockatrice's actViewSideboard opens the
-          same zone-view dialog "View library" uses (player_actions.cpp:232-234).
-          We reuse LibrarySearchDialog against the local player's
-          SIDEBOARD zone. Owner-only (gated on isSelf) — sideboard
-          contents are private, and only the owner has byId/order
-          populated. No wire fires on open: the sideboard zone is
-          already populated in Redux from the initial game state
-          broadcast. Drag out: cards drag by their server position like
-          the library dialogs. Drop in: the dialog's seat drop zone
-          resolves to `{ zone: "sideboard" }`, and the move fires
-          Command_MoveCard(target=SIDEBOARD, x=-1) to append. */}
-      {isSelf && viewSideboardOpen && (
-        <ZoneViewPanel
-          isOpen
-          title={`Sideboard — ${name}`}
-          showShuffleOnClose={false}
-          library={sideboardCards ?? []}
-          deckCards={enrichedDeckCards}
-          playerName={name}
-          onCardPointerDown={(e, c) => sideboardDragSource(e, [c])}
-          dropRef={sideboardDialogZoneRef}
-          draggingCardIds={draggingIdsFrom('sideboard')}
-          onClose={() => {
-            closeViewSideboard();
-            // Clear the revealed snapshot so the next open re-dumps
-            // fresh (mirrors Cockatrice's zoneViewCleared broadcast
-            // on ZoneViewWidget close).
-            onClearRevealedSideboard?.();
-          }}
-        />
-      )}
 
       {/* Card context menu — right-click a battlefield card to open.
           All actions apply to a single card via its real numeric id;
@@ -7661,7 +7236,7 @@ function PlayerBox(
               onClick: () => {
                 if (numeric) {
                   const graveCard =
-                    pileView?.zone === 'graveyard'
+                    pileCardMenu.zone === ZoneName.GRAVE
                       ? graveDisplayList.find(
                         (gc) => gc.id === pileCardMenu.cardId,
                       )

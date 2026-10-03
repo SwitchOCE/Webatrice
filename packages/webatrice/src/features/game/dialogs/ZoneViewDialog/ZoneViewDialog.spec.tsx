@@ -1,6 +1,5 @@
 import { ZoneName } from '@cockatrice/sockatrice';
-import { screen, fireEvent } from '@testing-library/react';
-import { makeStoreState, renderWithProviders, makeUser } from '../../../../__test-utils__';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import {
   makeCard,
   makeGameEntry,
@@ -8,230 +7,182 @@ import {
   makePlayerProperties,
   makeZoneEntry,
 } from '@cockatrice/datatrice/testing';
+import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
+
+import { makeStoreState, makeUser, renderWithProviders } from '../../../../__test-utils__';
+import { GameSelectionProvider } from '../../components/ui/GameSelectionContext';
+import type { ZoneViewTarget } from '../../hooks/dialogs/gameDialogs.types';
 import ZoneViewDialog from './ZoneViewDialog';
 
-function stateWith(zone: Parameters<typeof makeZoneEntry>[0]) {
+vi.mock('../../../../services/cards/cardCatalog', () => ({
+  lookupCardsCached: vi.fn(async (names: string[]) =>
+    new Map(names.map((name) => [name, { found: false, source: 'unknown', name, printings: [] }]))),
+}));
+
+const OPT = makeCard({ id: 7, name: 'Opt' });
+const DURESS = makeCard({ id: 8, name: 'Duress' });
+
+/** Player 1 (local, "Trajer") and player 2 ("Opp"), each with `zone`. */
+type ZoneSpec = {
+  name: NonNullable<Parameters<typeof makeZoneEntry>[0]['name']>;
+  cards?: ServerInfo_Card[];
+  cardCount: number;
+  revealedCards?: ServerInfo_Card[];
+};
+
+function stateWith(zone: ZoneSpec) {
+  const seat = (playerId: number, name: string) => {
+    const entry = makeZoneEntry({ name: zone.name, cards: zone.cards ?? [], cardCount: zone.cardCount });
+    entry.revealedCards = zone.revealedCards;
+    return makePlayerEntry({
+      properties: makePlayerProperties({ playerId, userInfo: makeUser({ name }) }),
+      zones: { [zone.name]: entry },
+    });
+  };
   return makeStoreState({
     games: {
       games: {
-        1: makeGameEntry({
-          localPlayerId: 1,
-          players: {
-            1: makePlayerEntry({
-              properties: makePlayerProperties({
-                playerId: 1,
-                userInfo: makeUser({ name: 'Trajer' }),
-              }),
-              zones: {
-                [zone.name!]: makeZoneEntry(zone),
-              },
-            }),
-          },
-        }),
+        1: makeGameEntry({ localPlayerId: 1, players: { 1: seat(1, 'Trajer'), 2: seat(2, 'Opp') } }),
       },
     },
   });
 }
 
+function renderView(
+  view: ZoneViewTarget,
+  zone: Parameters<typeof stateWith>[0],
+  options: Parameters<typeof renderWithProviders>[1] = {},
+) {
+  const handleClose = vi.fn();
+  const result = renderWithProviders(<ZoneViewDialog view={view} handleClose={handleClose} />, {
+    preloadedState: stateWith(zone),
+    ...options,
+  });
+  return { handleClose, ...result };
+}
+
+function panel(title: RegExp): HTMLElement {
+  return screen.getByRole('heading', { name: title }).closest<HTMLElement>('.pointer-events-auto.resize')!;
+}
+
+function viewCards(el: HTMLElement): HTMLElement[] {
+  return Array.from(el.querySelectorAll<HTMLElement>('[data-card][data-card-id]'));
+}
+
+afterEach(() => {
+  window.localStorage.clear();
+});
+
 describe('ZoneViewDialog', () => {
-  it('does not render content when closed', () => {
-    renderWithProviders(
-      <ZoneViewDialog
-        isOpen={false}
-        playerId={1}
-        zoneName={ZoneName.GRAVE}
-        handleClose={() => {}}
-      />,
-      { preloadedState: stateWith({ name: ZoneName.GRAVE, cardCount: 0 }) },
-    );
+  it('lists a public zone under its owner\'s name', () => {
+    renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT, DURESS], cardCount: 2 });
 
-    expect(screen.queryByTestId('zone-view-dialog')).not.toBeInTheDocument();
+    const view = panel(/^Graveyard — Trajer/);
+    expect(viewCards(view).map((el) => el.dataset.cardId).sort()).toEqual(['7', '8']);
+    expect(within(view).queryByRole('checkbox', { name: /shuffle when closing/i })).not.toBeInTheDocument();
   });
 
-  it('renders each card in the zone with its Scryfall image', () => {
-    const cards = [
-      makeCard({ id: 1, name: 'Lightning Bolt' }),
-      makeCard({ id: 2, name: 'Counterspell' }),
-    ];
-    renderWithProviders(
-      <ZoneViewDialog
-        isOpen
-        playerId={1}
-        zoneName={ZoneName.GRAVE}
-        handleClose={() => {}}
-      />,
-      {
-        preloadedState: stateWith({
-          name: ZoneName.GRAVE,
-          cards,
-          cardCount: 2,
-        }),
-      },
+  it('lists the library\'s dump snapshot and passes its shuffle choice on close', () => {
+    const { handleClose } = renderView(
+      { playerId: 1, zoneName: ZoneName.DECK },
+      { name: ZoneName.DECK, cardCount: 40, revealedCards: [makeCard({ id: 0, name: 'Island' })] },
     );
+    const view = panel(/^Trajer's library/);
+    expect(viewCards(view)).toHaveLength(1);
+    const shuffle = within(view).getByRole('checkbox', { name: /shuffle when closing/i });
+    expect(shuffle).toBeChecked();
 
-    expect(screen.getByAltText('Lightning Bolt')).toBeInTheDocument();
-    expect(screen.getByAltText('Counterspell')).toBeInTheDocument();
+    fireEvent.click(within(view).getByTitle('Close'));
+    expect(handleClose).toHaveBeenLastCalledWith(true);
+
+    fireEvent.click(shuffle);
+    fireEvent.click(within(view).getByTitle('Close'));
+    expect(handleClose).toHaveBeenLastCalledWith(false);
   });
 
-  it('shows the zone label in the title with the player name and count', () => {
-    renderWithProviders(
-      <ZoneViewDialog
-        isOpen
-        playerId={1}
-        zoneName={ZoneName.GRAVE}
-        handleClose={() => {}}
-      />,
-      {
-        preloadedState: stateWith({
-          name: ZoneName.GRAVE,
-          cards: [makeCard({ id: 1 })],
-          cardCount: 1,
-        }),
-      },
+  it('closes on Escape, from its search box too', () => {
+    const { handleClose } = renderView(
+      { playerId: 1, zoneName: ZoneName.GRAVE },
+      { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 },
     );
 
-    expect(screen.getByText(/Trajer Graveyard \(1\)/)).toBeInTheDocument();
-  });
+    fireEvent.keyDown(within(panel(/^Graveyard/)).getByRole('textbox'), { key: 'Escape' });
 
-  it('shows "This zone is empty." when the zone is fully empty', () => {
-    renderWithProviders(
-      <ZoneViewDialog
-        isOpen
-        playerId={1}
-        zoneName={ZoneName.EXILE}
-        handleClose={() => {}}
-      />,
-      { preloadedState: stateWith({ name: ZoneName.EXILE, cardCount: 0 }) },
-    );
-
-    expect(screen.getByText(/this zone is empty/i)).toBeInTheDocument();
-  });
-
-  it('shows a hidden-card fallback for hidden zones with count > 0 and no visible cards', () => {
-    renderWithProviders(
-      <ZoneViewDialog
-        isOpen
-        playerId={1}
-        zoneName={ZoneName.DECK}
-        handleClose={() => {}}
-      />,
-      {
-        preloadedState: stateWith({
-          name: ZoneName.DECK,
-          cardCount: 40,
-          cards: [],
-        }),
-      },
-    );
-
-    expect(screen.getByText(/40 hidden cards/i)).toBeInTheDocument();
-  });
-
-  it('rests on the back face for face-down cards', () => {
-    const faceDown = makeCard({ id: 1, name: 'Secret', faceDown: true });
-    const { container } = renderWithProviders(
-      <ZoneViewDialog
-        isOpen
-        playerId={1}
-        zoneName={ZoneName.EXILE}
-        handleClose={() => {}}
-      />,
-      {
-        preloadedState: stateWith({
-          name: ZoneName.EXILE,
-          cards: [faceDown],
-          cardCount: 1,
-        }),
-      },
-    );
-
-    // Both faces render so the flip can reveal the other side; a face-down card rests
-    // flipped to the back (its image is rotated away, not removed from the DOM).
-    expect(screen.getByLabelText('face-down card')).toBeInTheDocument();
-    expect(container.querySelector('.cardflip--back')).toBeInTheDocument();
-    expect(container.querySelector('.cardflip--front')).toBeNull();
-  });
-
-  it('fires handleClose when the ✕ button is clicked', () => {
-    const handleClose = vi.fn();
-    renderWithProviders(
-      <ZoneViewDialog
-        isOpen
-        playerId={1}
-        zoneName={ZoneName.GRAVE}
-        handleClose={handleClose}
-      />,
-      { preloadedState: stateWith({ name: ZoneName.GRAVE, cardCount: 0 }) },
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /close zone view/i }));
-
-    expect(handleClose).toHaveBeenCalled();
-  });
-
-  it('renders a non-modal floating panel at the provided initial position', () => {
-    renderWithProviders(
-      <ZoneViewDialog
-        isOpen
-        playerId={1}
-        zoneName={ZoneName.GRAVE}
-        handleClose={() => {}}
-        initialPosition={{ x: 200, y: 150 }}
-      />,
-      { preloadedState: stateWith({ name: ZoneName.GRAVE, cardCount: 0 }) },
-    );
-
-    const panel = screen.getByTestId('zone-view-dialog');
-    expect(panel).toHaveStyle({ left: '200px', top: '150px' });
-    expect(panel).toHaveAttribute('role', 'dialog');
-  });
-
-  it('renders the revealed library cards for the deck even though byId is empty', () => {
-    const state = stateWith({ name: ZoneName.DECK, cardCount: 2, cards: [] });
-    state.games.games[1].players[1].zones[ZoneName.DECK].revealedCards = [
-      makeCard({ id: 0, name: 'Forest' }),
-      makeCard({ id: 1, name: 'Island' }),
-    ];
-    renderWithProviders(
-      <ZoneViewDialog isOpen playerId={1} zoneName={ZoneName.DECK} handleClose={() => {}} />,
-      { preloadedState: state },
-    );
-
-    expect(screen.getByAltText('Forest')).toBeInTheDocument();
-    expect(screen.getByAltText('Island')).toBeInTheDocument();
-  });
-
-  it('shows a "Shuffle on close" checkbox (default checked) for the library and passes the flag on close', () => {
-    const handleClose = vi.fn();
-    renderWithProviders(
-      <ZoneViewDialog isOpen playerId={1} zoneName={ZoneName.DECK} handleClose={handleClose} />,
-      { preloadedState: stateWith({ name: ZoneName.DECK, cardCount: 0 }) },
-    );
-
-    expect(screen.getByRole('checkbox', { name: /shuffle on close/i })).toBeChecked();
-
-    fireEvent.click(screen.getByRole('button', { name: /close zone view/i }));
-    expect(handleClose).toHaveBeenCalledWith(true);
-  });
-
-  it('passes shuffleOnClose=false when the library checkbox is unchecked', () => {
-    const handleClose = vi.fn();
-    renderWithProviders(
-      <ZoneViewDialog isOpen playerId={1} zoneName={ZoneName.DECK} handleClose={handleClose} />,
-      { preloadedState: stateWith({ name: ZoneName.DECK, cardCount: 0 }) },
-    );
-
-    fireEvent.click(screen.getByRole('checkbox', { name: /shuffle on close/i }));
-    fireEvent.click(screen.getByRole('button', { name: /close zone view/i }));
     expect(handleClose).toHaveBeenCalledWith(false);
   });
 
-  it('does not show the shuffle-on-close checkbox for non-deck zones', () => {
-    renderWithProviders(
-      <ZoneViewDialog isOpen playerId={1} zoneName={ZoneName.GRAVE} handleClose={() => {}} />,
-      { preloadedState: stateWith({ name: ZoneName.GRAVE, cardCount: 0 }) },
+  it('lists a top / bottom N view in server order, labelled by deck position', () => {
+    const { handleClose } = renderView(
+      { playerId: 1, zoneName: ZoneName.DECK, numberCards: 3, isReversed: true },
+      {
+        name: ZoneName.DECK,
+        cardCount: 10,
+        revealedCards: [7, 8, 9].map((id) => makeCard({ id, name: `C${id}` })),
+      },
+    );
+    const view = panel(/^Bottom 3 cards — Trajer/);
+
+    expect(viewCards(view).map((el) => el.dataset.cardId)).toEqual(['7', '8', '9']);
+    expect(within(view).getByText('Bottom')).toBeInTheDocument();
+    expect(within(view).getByText('7')).toBeInTheDocument();
+
+    fireEvent.click(within(view).getAllByRole('button', { name: 'Close' })[0]);
+    expect(handleClose).toHaveBeenCalledWith(false);
+  });
+
+  it('drags only the local player\'s own cards', () => {
+    renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
+    renderView({ playerId: 2, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
+
+    expect(viewCards(panel(/^Graveyard — Trajer/))[0]).toHaveStyle({ cursor: 'grab' });
+    expect(viewCards(panel(/^Graveyard — Opp/))[0].style.cursor).toBe('');
+  });
+
+  it('opens the owning seat\'s card menu for a graveyard or exile card', () => {
+    const openSeatCardMenu = vi.fn();
+    renderView(
+      { playerId: 2, zoneName: ZoneName.GRAVE },
+      { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 },
+      { gameDialogs: { openSeatCardMenu } },
     );
 
-    expect(screen.queryByRole('checkbox', { name: /shuffle on close/i })).not.toBeInTheDocument();
+    fireEvent.contextMenu(viewCards(panel(/^Graveyard/))[0], { clientX: 5, clientY: 6 });
+
+    expect(openSeatCardMenu).toHaveBeenCalledWith({
+      kind: 'pile', playerId: 2, zone: ZoneName.GRAVE, cardId: '7', cardName: 'Opt', x: 5, y: 6,
+    });
+  });
+
+  it('offers no card menu in a hand view', () => {
+    const openSeatCardMenu = vi.fn();
+    renderView(
+      { playerId: 1, zoneName: ZoneName.HAND },
+      { name: ZoneName.HAND, cards: [OPT], cardCount: 1 },
+      { gameDialogs: { openSeatCardMenu } },
+    );
+
+    fireEvent.contextMenu(viewCards(panel(/^Hand/))[0]);
+
+    expect(openSeatCardMenu).not.toHaveBeenCalled();
+  });
+
+  it('shows the game selection, and drops its own cards from it on close', () => {
+    let keys: ReadonlySet<string> = new Set(['1-grave-7', '1-table-3']);
+    const setSelectedCardKeys = vi.fn((next: ReadonlySet<string> | ((prev: ReadonlySet<string>) => ReadonlySet<string>)) => {
+      keys = typeof next === 'function' ? next(keys) : next;
+    });
+    const { unmount } = renderWithProviders(
+      <GameSelectionProvider selectedCardKeys={keys} setSelectedCardKeys={setSelectedCardKeys}>
+        <ZoneViewDialog view={{ playerId: 1, zoneName: ZoneName.GRAVE }} handleClose={() => undefined} />
+      </GameSelectionProvider>,
+      { preloadedState: stateWith({ name: ZoneName.GRAVE, cards: [OPT, DURESS], cardCount: 2 }) },
+    );
+    const [first, second] = viewCards(panel(/^Graveyard/)).sort((a, b) => a.dataset.cardId!.localeCompare(b.dataset.cardId!));
+
+    expect(first.style.boxShadow).not.toBe('');
+    expect(second.style.boxShadow).toBe('');
+
+    act(() => unmount());
+    expect([...keys]).toEqual(['1-table-3']);
   });
 });

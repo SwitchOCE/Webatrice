@@ -101,6 +101,7 @@ export function useGameDialogs({
     env,
     zoneViews: state.zoneViews,
     zoneMenu: state.zoneMenu,
+    hasSeat: !isSpectator,
     set,
     closeAllContextMenus,
   });

@@ -74,9 +74,10 @@ function slotIntersection(
   );
 }
 
-// A droppable lives "in a popup" when its node is inside a floating
-// ZoneViewDialog (position:fixed, z-index:1200 — see ZoneViewDialog.css). Such a
-// popup is visually stacked above the board, but dnd-kit collision is purely
+// A structured droppable lives "in a popup" when its node is inside a floating
+// `.zone-view-dialog` element. (ZoneViewDialog's views are seat drop zones,
+// ordered by SEAT_DROP_PRIORITY instead; no structured popup is mounted today.)
+// Such a popup is visually stacked above the board, but dnd-kit collision is purely
 // geometric: board droppables rendered underneath a popup would otherwise
 // compete with — and beat — the popup's own droppables (its body + the reorder
 // slots of the cards it renders).
