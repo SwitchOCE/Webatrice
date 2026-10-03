@@ -644,6 +644,31 @@
     "message": "You are still in the game. Reload the board to pick up where you left off.",
     "retry": "Reload board"
   },
+  "Login": {
+    "header": {
+      "title": "Login",
+      "subtitle": "A cross-platform virtual tabletop for multiplayer card games."
+    },
+    "footer": {
+      "registerPrompt": "Not registered yet?",
+      "registerAction": "Create an account",
+      "credit": "Cockatrice is an open source project",
+      "version": "Version"
+    },
+    "content": {
+      "subtitle1": "Play multiplayer card games online.",
+      "subtitle2": "Cross-platform virtual tabletop for multiplayer card games. Forever free."
+    },
+    "toasts": {
+      "passwordResetSuccessToast": "Password Reset Successfully",
+      "accountActivationSuccess": "Account Activated Successfully"
+    },
+    "status": {
+      "serverUnreachable": "Trouble reaching the server. Wait a minute and try again.",
+      "passwordChangeRequired": "An administrator has reset your password. Contact your server administrator for your temporary password, log in with it, then change it under Account.",
+      "serverFull": "The server has reached its maximum number of users. Please check back later."
+    }
+  },
   "AccountActivationDialog": {
     "title": "Account Activation",
     "subtitle1": "Your account has not been activated yet.",
@@ -695,51 +720,6 @@
       "reset": "Reset Password"
     }
   },
-  "Login": {
-    "header": {
-      "title": "Login",
-      "subtitle": "A cross-platform virtual tabletop for multiplayer card games."
-    },
-    "footer": {
-      "registerPrompt": "Not registered yet?",
-      "registerAction": "Create an account",
-      "credit": "Cockatrice is an open source project",
-      "version": "Version"
-    },
-    "content": {
-      "subtitle1": "Play multiplayer card games online.",
-      "subtitle2": "Cross-platform virtual tabletop for multiplayer card games. Forever free."
-    },
-    "toasts": {
-      "passwordResetSuccessToast": "Password Reset Successfully",
-      "accountActivationSuccess": "Account Activated Successfully"
-    },
-    "status": {
-      "serverUnreachable": "Trouble reaching the server. Wait a minute and try again.",
-      "passwordChangeRequired": "An administrator has reset your password. Contact your server administrator for your temporary password, log in with it, then change it under Account.",
-      "serverFull": "The server has reached its maximum number of users. Please check back later."
-    }
-  },
-  "Logs": {
-    "tab": {
-      "rooms": "Room Logs",
-      "games": "Game Logs",
-      "chats": "Chat Logs"
-    },
-    "column": {
-      "time": "Time",
-      "senderName": "Sender Name",
-      "senderIp": "Sender IP",
-      "message": "Message",
-      "targetId": "Target ID",
-      "targetName": "Target Name"
-    },
-    "notice": {
-      "title": "Message History",
-      "empty": "There are no messages for the selected filters.",
-      "failed": "Failed to collect message history information."
-    }
-  },
   "LogSearchForm": {
     "group": {
       "filters": "Filters",
@@ -770,6 +750,26 @@
     "button": {
       "search": "Get User Logs",
       "clear": "Clear Filters"
+    }
+  },
+  "Logs": {
+    "tab": {
+      "rooms": "Room Logs",
+      "games": "Game Logs",
+      "chats": "Chat Logs"
+    },
+    "column": {
+      "time": "Time",
+      "senderName": "Sender Name",
+      "senderIp": "Sender IP",
+      "message": "Message",
+      "targetId": "Target ID",
+      "targetName": "Target Name"
+    },
+    "notice": {
+      "title": "Message History",
+      "empty": "There are no messages for the selected filters.",
+      "failed": "Failed to collect message history information."
     }
   },
   "Player": {
@@ -836,6 +836,26 @@
       "contextError": "The server thinks you are in the server room but your client is unable to display it. Try restarting your client.",
       "userLevelTooLow": "You do not have the required permission to join this server room.",
       "unknown": "Failed to join the server room due to an unknown error: {code}."
+    }
+  },
+  "Settings": {
+    "title": "Settings",
+    "navLabel": "Settings",
+    "searchLabel": "Search settings",
+    "searchPlaceholder": "Search settings...",
+    "searchResults": "Search results",
+    "noResults": "No settings match \"{query}\".",
+    "openSection": "Open {section}",
+    "restoreDefaults": "Restore defaults",
+    "section": {
+      "general": "General",
+      "appearance": "Appearance",
+      "userInterface": "User Interface",
+      "cardSources": "Card Sources",
+      "storage": "Storage",
+      "chat": "Chat",
+      "sound": "Sound",
+      "shortcuts": "Shortcuts"
     }
   },
   "SettingsAppearance": {
@@ -970,30 +990,6 @@
       "label": "Tap/untap animation"
     }
   },
-  "Settings": {
-    "title": "Settings",
-    "navLabel": "Settings",
-    "searchLabel": "Search settings",
-    "searchPlaceholder": "Search settings...",
-    "searchResults": "Search results",
-    "noResults": "No settings match \"{query}\".",
-    "openSection": "Open {section}",
-    "restoreDefaults": "Restore defaults",
-    "section": {
-      "general": "General",
-      "appearance": "Appearance",
-      "userInterface": "User Interface",
-      "cardSources": "Card Sources",
-      "storage": "Storage",
-      "chat": "Chat",
-      "sound": "Sound",
-      "shortcuts": "Shortcuts"
-    }
-  },
-  "AppAlerts": {
-    "mention": "{sender} mentioned you.",
-    "buddySignedOn": "Your buddy {name} has signed on!"
-  },
   "CommandFailureNotices": {
     "createGame": {
       "title": "Could not create game",
@@ -1037,6 +1033,10 @@
     "title": "Unsupported Browser",
     "subtitle1": "Please update your browser and/or check your permissions.",
     "subtitle2": "Note: Private browsing causes some browsers to disable certain permissions or features."
+  },
+  "AppAlerts": {
+    "mention": "{sender} mentioned you.",
+    "buddySignedOn": "Your buddy {name} has signed on!"
   },
   "CommandFailure": {
     "notSent": "You are not connected to the server.",

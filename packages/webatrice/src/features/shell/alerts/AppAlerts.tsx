@@ -10,7 +10,7 @@ import { getPreferencesSnapshot, playSound } from '@app/hooks';
 import { isPageHidden, requestAttention } from '@app/services';
 import type { RootState } from '@app/store';
 import { RouteEnum } from '@app/types';
-import { findChatAlert, isPrivilegedUser, isRoomMessageVisible, parseHighlightWords } from '@app/utils';
+import { chatFilterVerdicts, findChatAlert, isPrivilegedUser, isRoomMessageVisible, parseHighlightWords } from '@app/utils';
 
 import { gameEventSound, isGameAttentionEvent, type ObservedAction } from './gameEventSound';
 import { useActionFeed } from './useActionFeed';
@@ -61,17 +61,20 @@ export default function AppAlerts() {
   }
 
   function onRoomMessage({ roomId, message }: { roomId: number; message: Message }, state: RootState) {
+    const prefs = getPreferencesSnapshot();
+    const users = state.rooms.rooms[roomId]?.users ?? {};
+    // Desktop filters a line once, as it arrives: settle its verdict now, against the sender and
+    // preferences of this moment, and RoomChat shows what was decided. Ignored senders never get
+    // here: Datatrice drops them before ADD_MESSAGE. Client notices (flood, not sent) are added
+    // by their own action and raise nothing.
+    const stored = state.rooms.messages[roomId]?.at(-1) ?? message;
+    const filter = { roomHistory: prefs.roomHistory, ignoreUnregisteredUsers: prefs.ignoreUnregisteredUsers };
+    if (!isRoomMessageVisible(stored, users, filter, chatFilterVerdicts)) {
+      return;
+    }
     const selfName = state.server.user?.name ?? null;
     // History replays old lines on join; desktop's alerts are for new ones.
     if (message.messageType === Event_RoomSay_RoomMessageType.ChatHistory || !message.name || message.name === selfName) {
-      return;
-    }
-    const prefs = getPreferencesSnapshot();
-    const users = state.rooms.rooms[roomId]?.users ?? {};
-    // Ignored senders never get here: Datatrice drops them before ADD_MESSAGE. Client notices
-    // (flood, not sent) are added by their own action and raise nothing.
-    const filter = { roomHistory: prefs.roomHistory, ignoreUnregisteredUsers: prefs.ignoreUnregisteredUsers };
-    if (!isRoomMessageVisible(message, users, filter)) {
       return;
     }
     const alert = findChatAlert(message.message, {

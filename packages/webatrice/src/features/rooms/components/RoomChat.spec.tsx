@@ -91,7 +91,8 @@ describe('RoomChat', () => {
       mod: makeUser({ name: 'mod', userLevel: Level.IsUser | Level.IsRegistered | Level.IsModerator }),
     };
 
-    const messages: Message[] = [
+    // Fresh objects per render: the filters remember each line's verdict.
+    const messages = (): Message[] => [
       makeMessage({ message: 'old: earlier', messageType: Event_RoomSay_RoomMessageType.ChatHistory }),
       say('member', 'hello @TestUser'),
       say('guest', 'guest says hi'),
@@ -105,8 +106,8 @@ describe('RoomChat', () => {
       settingsStore.setValue(settings);
     };
 
-    const renderWithUsers = () =>
-      renderWithProviders(<RoomChat roomId={1} roomName="Main" messages={messages} users={users} onSay={vi.fn()} />, {
+    const renderWithUsers = (lines = messages()) =>
+      renderWithProviders(<RoomChat roomId={1} roomName="Main" messages={lines} users={users} onSay={vi.fn()} />, {
         preloadedState: connectedState,
       });
 
@@ -140,6 +141,30 @@ describe('RoomChat', () => {
       expect(screen.queryByText(/guest says hi/)).not.toBeInTheDocument();
       expect(screen.getByText(/hello/)).toBeInTheDocument();
       expect(screen.getByText('RoomChat.notice.chatFlood')).toBeInTheDocument();
+    });
+
+    it('keeps a filtered line hidden after its sender leaves the room', async () => {
+      await setPreferences({ ignoreUnregisteredUsers: true });
+      const lines = messages();
+      const { rerender } = renderWithUsers(lines);
+      expect(screen.queryByText(/guest says hi/)).not.toBeInTheDocument();
+
+      const { guest: _left, ...remaining } = users;
+      rerender(<RoomChat roomId={1} roomName="Main" messages={lines} users={remaining} onSay={vi.fn()} />);
+
+      expect(screen.queryByText(/guest says hi/)).not.toBeInTheDocument();
+    });
+
+    it('keeps the lines it showed when a filter is turned on later', async () => {
+      const lines = messages();
+      const { rerender } = renderWithUsers(lines);
+
+      await act(async () => {
+        await setPreferences({ ignoreUnregisteredUsers: true });
+      });
+      rerender(<RoomChat roomId={1} roomName="Main" messages={lines} users={users} onSay={vi.fn()} />);
+
+      expect(screen.getByText(/guest says hi/)).toBeInTheDocument();
     });
 
     it('follows a preference change while open', async () => {

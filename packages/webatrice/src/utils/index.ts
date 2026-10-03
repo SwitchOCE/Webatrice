@@ -1,5 +1,11 @@
-export { isPrivilegedUser, isRegisteredUser, isRoomMessageVisible, visiblePrivateMessages } from './chatFilters';
-export type { PrivateConversation, PrivateMessageFilter, RoomChatFilter, RoomChatLine } from './chatFilters';
+export {
+  chatFilterVerdicts,
+  isPrivilegedUser,
+  isRegisteredUser,
+  isRoomMessageVisible,
+  visiblePrivateMessages,
+} from './chatFilters';
+export type { ChatFilterVerdicts, PrivateConversation, PrivateMessageFilter, RoomChatFilter, RoomChatLine } from './chatFilters';
 export { ALL_MENTION, findChatAlert, highlightStyle, isOwnMention, parseHighlightWords, segmentText } from './chatHighlight';
 export type { ChatAlertContext, ChatAlertKind, ChatHighlight, TextSegment, TextSegmentKind } from './chatHighlight';
 export { cx } from './cx';
