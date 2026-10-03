@@ -1,4 +1,4 @@
-import type { SeatDeckCard } from '../ui/PlayerBoard/playerBoard.types';
+import type { SeatDeckCard } from './playerBoard.types';
 
 /**
  * The large Scryfall image a deck row's card shows on the board, so a
