@@ -3,15 +3,8 @@ import { useMemo } from 'react';
 import { shortcuts, useAppSelector } from '@app/store';
 
 import { allActionIds, defaults } from './defaults';
-import { displaySequenceForOs } from './shortcutSequence';
+import { displaySequenceForOs, isMacPlatform } from './shortcutSequence';
 import { ActionId } from './types';
-
-function isMacUA(): boolean {
-  if (typeof navigator === 'undefined') {
-    return false;
-  }
-  return /Mac|iPod|iPhone|iPad/.test(navigator.platform);
-}
 
 /**
  * Reactive shortcut-hint map. Returns a `Record<ActionId, string>` where
@@ -29,7 +22,7 @@ function isMacUA(): boolean {
 export function useShortcutHints(): Record<ActionId, string> {
   const overrides = useAppSelector(shortcuts.Selectors.getOverrides);
   return useMemo(() => {
-    const mac = isMacUA();
+    const mac = isMacPlatform();
     const out = {} as Record<ActionId, string>;
     for (const actionId of allActionIds) {
       const sequences = overrides[actionId] ?? defaults[actionId]?.sequences ?? [];
