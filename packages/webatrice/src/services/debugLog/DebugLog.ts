@@ -30,10 +30,11 @@ const LEVELS: readonly DebugLogLevel[] = ['debug', 'log', 'info', 'warn', 'error
 
 /**
  * Object keys whose values never reach the log, however deeply nested: passwords in every
- * spelling the protocol uses (`password`, `hashedPassword`, `newPassword`), salts, secrets and
- * `*Token`s.
+ * spelling the protocol uses (`password`, `hashedPassword`, `newPassword`), salts, secrets,
+ * `*Token`s and other credentials (`auth*`, `apiKey`), and the account PII protocol messages
+ * carry (`email`, `realName`).
  */
-const SECRET_KEY = /password|passwd|secret|salt|^hash|token$/i;
+const SECRET_KEY = /password|passwd|secret|salt|^hash|token$|^auth(?!ors?$)|api_?key|e_?mail|real_?name/i;
 const REDACTED = '[redacted]';
 
 function describeValue(value: unknown): string {
