@@ -91,6 +91,31 @@ describe('Game seat shortcuts', () => {
     expect(screen.getByRole('dialog', { name: 'Take mulligan' })).toBeInTheDocument();
   });
 
+  it('on macOS Cmd answers the Ctrl bindings, as Qt maps Ctrl to Cmd', () => {
+    vi.spyOn(navigator, 'platform', 'get').mockReturnValue('MacIntel');
+    const { game } = renderGame();
+
+    const event = press('KeyR', { metaKey: true });
+    expect(event.defaultPrevented).toBe(true);
+    expect(vi.mocked(game.deleteArrow).mock.calls.map(([, params]) => params)).toEqual([
+      { arrowId: 5 },
+      { arrowId: 6 },
+    ]);
+
+    press('KeyM', { metaKey: true });
+    expect(screen.getByRole('dialog', { name: 'Take mulligan' })).toBeInTheDocument();
+  });
+
+  it('off macOS Cmd+R is left to the browser', () => {
+    vi.spyOn(navigator, 'platform', 'get').mockReturnValue('Win32');
+    const { game } = renderGame();
+
+    const event = press('KeyR', { metaKey: true });
+
+    expect(event.defaultPrevented).toBe(false);
+    expect(game.deleteArrow).not.toHaveBeenCalled();
+  });
+
   it('a spectator has no seat to act on, so Ctrl+R stays with the browser', () => {
     const { game } = renderGame({ spectator: true, localPlayerId: 3 });
 
