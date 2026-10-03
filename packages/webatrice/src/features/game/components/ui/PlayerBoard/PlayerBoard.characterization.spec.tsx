@@ -1,9 +1,10 @@
-// Characterization barrier for the PlayerBox seat surface (refactor plan Phase 0).
+// Characterization barrier for the PlayerBoard seat surface (refactor plan Phase 0;
+// written against PlayerBox, which PlayerBoard replaced in Phase 7).
 //
 // These specs pin what the seat does TODAY, end-to-end through <Game /> with real
 // Redux state and a mock WebClient: which seats show what, which menu routes and
 // dialogs exist, how selection feeds bulk commands, where drags land, how hidden
-// zones are addressed, and that every global listener PlayerBox installs is
+// zones are addressed, and that every global listener the seat installs is
 // released. Later refactor phases move this behaviour into the seat model and the
 // existing game owners; a failure here means a phase changed behaviour, not that
 // the spec needs updating. Assertions are on the wire (`webClient.request.game.*`)
@@ -13,7 +14,7 @@ import { act, fireEvent, screen, within } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { CardAttribute } from '@cockatrice/sockatrice/generated';
 import { makeCard } from '@cockatrice/datatrice/testing';
-import { createMockWebClient, renderWithProviders } from '../../../../__test-utils__';
+import { createMockWebClient, renderWithProviders } from '../../../../../__test-utils__';
 import {
   battlefieldEl,
   buildSeatGameState,
@@ -28,14 +29,14 @@ import {
   pileEl,
   pointerDrag,
   type SeatGameSpec,
-} from '../../__test-utils__/seatFixtures';
-import Game from '../../Game';
+} from '../../../__test-utils__/seatFixtures';
+import Game from '../../../Game';
 
-vi.mock('../../../../hooks/useSettings');
+vi.mock('../../../../../hooks/useSettings');
 
 // Card metadata is looked up from Dexie/Scryfall; keep it off the network and
 // deterministic (every card resolves as unknown, which is the render fallback).
-vi.mock('../../../../services/cards/cardCatalog', () => {
+vi.mock('../../../../../services/cards/cardCatalog', () => {
   const unknown = (name: string) => ({ found: false, source: 'unknown', name, printings: [] });
   return {
     lookupCard: vi.fn(async (name: string) => unknown(name)),
@@ -78,7 +79,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('PlayerBox characterization — seats and hidden zones', () => {
+describe('PlayerBoard characterization — seats and hidden zones', () => {
   it('shows the local hand face-up and an opponent hand only as an authoritative count', () => {
     renderSeats();
 
@@ -138,7 +139,7 @@ describe('PlayerBox characterization — seats and hidden zones', () => {
   });
 });
 
-describe('PlayerBox characterization — menu trees', () => {
+describe('PlayerBoard characterization — menu trees', () => {
   it('own library menu', async () => {
     renderSeats();
     expect(menuLabels(openContextMenu(pileEl('Library', 0)))).toEqual([
@@ -251,7 +252,7 @@ describe('PlayerBox characterization — menu trees', () => {
   });
 });
 
-describe('PlayerBox characterization — commands from menus and dialogs', () => {
+describe('PlayerBoard characterization — commands from menus and dialogs', () => {
   it('library menu: draw, shuffle, undo draw', () => {
     const { game } = renderSeats();
 
@@ -439,7 +440,7 @@ describe('PlayerBox characterization — commands from menus and dialogs', () =>
   });
 });
 
-describe('PlayerBox characterization — selection and bulk operations', () => {
+describe('PlayerBoard characterization — selection and bulk operations', () => {
   it('a click below the drag threshold selects; ctrl-click adds; the card menu then targets the selection', () => {
     const { game } = renderSeats();
 
@@ -482,7 +483,7 @@ describe('PlayerBox characterization — selection and bulk operations', () => {
   });
 });
 
-describe('PlayerBox characterization — drag and drop destinations', () => {
+describe('PlayerBoard characterization — drag and drop destinations', () => {
   // Library and graveyard sit edge to edge so a four-pixel move can cross
   // from one to the other: that is what makes the threshold observable.
   const BF_BOX = { left: 0, top: 0, width: 800, height: 400 };
@@ -658,7 +659,7 @@ describe('PlayerBox characterization — drag and drop destinations', () => {
   });
 });
 
-describe('PlayerBox characterization — global listener cleanup', () => {
+describe('PlayerBoard characterization — global listener cleanup', () => {
   // Live listeners per event type, keyed by identity so a cleanup that removes
   // a never-added listener (the menus arm theirs on a timer) doesn't skew counts.
   function trackListeners(target: Window | Document) {

@@ -71,30 +71,6 @@ export default tseslint.config(
   },
   // Playwright fixtures receive a `use` callback, which is not React's `use`.
   { files: ['e2e/**'], rules: { 'react-hooks/rules-of-hooks': 'off' } },
-  // Owners extracted from the PlayerBox seat must not depend back on it: the
-  // façade may import them, never the reverse (docs/webatrice-solid-refactor-plan.md §6).
-  {
-    files: [
-      'src/features/game/components/battlefield/Battlefield/{battlefieldLayout,cardPlacement}.ts',
-      'src/features/game/components/context-menus/CardContextMenu/{cardAttributeEdits,cardContextMenu.model,relatedCardActions}.ts',
-      'src/features/game/components/context-menus/CardContextMenu/CardContextMenu.tsx',
-      'src/features/game/components/context-menus/useViewportClampedMenu.ts',
-      'src/features/game/components/right-sidebar/PlayerInfoPanel/*.{ts,tsx}',
-      'src/features/game/components/ui/{CardPreviewContext,GameSelectionContext,SeatDragContext,SeatShortcutsContext}.tsx',
-      'src/features/game/components/ui/PlayerBoard/*.{ts,tsx}',
-      'src/features/game/components/ui/GameBoardCell/use{PlayerSeatViewModel,Player*Commands,OpenDeckInEditor,MoveCard}.ts',
-      'src/features/game/dialogs/{ZoneViewDialog,MoveTopUntilDialog}/*.{ts,tsx}',
-      'src/features/game/dialogs/IncomingRevealDialog/IncomingRevealDialog.tsx',
-      'src/features/game/components/ui/SeatCard/{SeatCard.tsx,cardSize.ts}',
-      'src/features/game/hooks/{useSeatSelection,seatDropPlan,gamePointerSensor,useMoveTopUntil}.ts',
-      'src/features/game/hooks/dialogs/*.ts',
-    ],
-    rules: {
-      'no-restricted-imports': ['error', {
-        patterns: [{ group: ['**/PlayerBox/**'], message: 'Seat owners must not import the PlayerBox façade.' }],
-      }],
-    },
-  },
 
   // Project-specific config
   {
