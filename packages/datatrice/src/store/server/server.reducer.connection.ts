@@ -143,10 +143,11 @@ export const connectionReducers = {
   }) as CaseReducer<ServerState, PayloadAction<{ message: string }>>,
 
   updateInfo: ((state, action) => {
-    const { name, version } = action.payload.info;
+    const { name, version, supportsPasswordHash } = action.payload.info;
     state.info.name = name;
     state.info.version = version;
-  }) as CaseReducer<ServerState, PayloadAction<{ info: { name: string; version: string } }>>,
+    state.info.supportsPasswordHash = supportsPasswordHash;
+  }) as CaseReducer<ServerState, PayloadAction<{ info: { name: string; version: string; supportsPasswordHash?: boolean } }>>,
 
   updateStatus: ((state, action) => {
     const { status } = action.payload;

@@ -31,6 +31,7 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
   }
 
   const getPasswordSalt = passwordSaltSupported(serverOptions);
+  WebClient.instance.serverSupportsPasswordHash = getPasswordSalt;
   const options = consumePendingOptions();
 
   if (!options) {
@@ -124,5 +125,5 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
     }
   }
 
-  response.session.updateInfo(serverName, serverVersion);
+  response.session.updateInfo(serverName, serverVersion, getPasswordSalt);
 }

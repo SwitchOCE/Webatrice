@@ -84,8 +84,8 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.removeFromIgnoreList({ userName }));
   }
 
-  updateInfo(name: string, version: string): void {
-    this.store.dispatch(ServerActions.updateInfo({ info: { name, version } }));
+  updateInfo(name: string, version: string, supportsPasswordHash?: boolean): void {
+    this.store.dispatch(ServerActions.updateInfo({ info: { name, version, supportsPasswordHash } }));
   }
 
   updateStatus(state: WebsocketTypes.StatusEnum, description: string): void {

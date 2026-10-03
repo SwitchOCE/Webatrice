@@ -15,6 +15,7 @@ vi.mock('./', async () => {
 });
 
 import { Mock } from 'vitest';
+import { isFieldSet } from '@bufbuild/protobuf';
 import { makeCallbackHelpers } from '../../testing/callback-helpers';
 import { WebClient } from '../../WebClient';
 import { CommandFailure } from '../../types/CommandFailure';
@@ -47,6 +48,8 @@ import { replayGetCode } from './replayGetCode';
 import { replaySubmitCode } from './replaySubmitCode';
 import {
   Command_AccountEdit_ext,
+  Command_AccountEditSchema,
+  Command_AccountPasswordSchema,
   Command_AccountImage_ext,
   Command_AccountPassword_ext,
   Command_AddToList_ext,
@@ -97,18 +100,36 @@ beforeEach(() => {
 
 describe('accountEdit', () => {
   it('sends Command_AccountEdit with correct params', () => {
-    accountEdit('pw', 'Alice', 'a@b.com', 'US');
+    accountEdit({ passwordCheck: 'pw', realName: 'Alice', email: 'a@b.com', country: 'us' });
     expect(WebClient.instance.protobuf.sendSessionCommand).toHaveBeenCalledWith(
       Command_AccountEdit_ext,
-      expect.objectContaining({ passwordCheck: 'pw', realName: 'Alice', email: 'a@b.com', country: 'US' }),
+      expect.objectContaining({ passwordCheck: 'pw', realName: 'Alice', email: 'a@b.com', country: 'us' }),
       expect.any(Object)
     );
   });
 
-  it('calls WebClient.instance.response.session.accountEditChanged on success', () => {
-    accountEdit('pw', 'Alice', 'a@b.com', 'US');
+  it('leaves omitted fields unset so Servatrice does not touch them', () => {
+    accountEdit({ realName: 'Alice', country: 'us' });
+    const cmd = (WebClient.instance.protobuf.sendSessionCommand as Mock).mock.calls[0][1];
+    expect(isFieldSet(cmd, Command_AccountEditSchema.field.realName)).toBe(true);
+    expect(isFieldSet(cmd, Command_AccountEditSchema.field.email)).toBe(false);
+    expect(isFieldSet(cmd, Command_AccountEditSchema.field.passwordCheck)).toBe(false);
+  });
+
+  it('reports the edit to the response layer and the caller on success', () => {
+    const onEdited = vi.fn();
+    accountEdit({ realName: 'Alice', email: 'a@b.com', country: 'us' }, onEdited);
     invokeOnSuccess();
-    expect(WebClient.instance.response.session.accountEditChanged).toHaveBeenCalledWith('Alice', 'a@b.com', 'US');
+    expect(WebClient.instance.response.session.accountEditChanged).toHaveBeenCalledWith('Alice', 'a@b.com', 'us');
+    expect(onEdited).toHaveBeenCalled();
+  });
+
+  it('hands the response code to the caller on failure', () => {
+    const onFailure = vi.fn();
+    accountEdit({ realName: 'Alice' }, undefined, onFailure);
+    invokeOnError(Response_ResponseCode.RespWrongPassword);
+    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespWrongPassword, undefined);
+    expect(WebClient.instance.response.session.accountEditChanged).not.toHaveBeenCalled();
   });
 });
 
@@ -121,28 +142,67 @@ describe('accountImage', () => {
     );
   });
 
-  it('calls WebClient.instance.response.session.accountImageChanged on success', () => {
+  it('reports the new image to the response layer and the caller on success', () => {
     const img = new Uint8Array([1, 2]);
-    accountImage(img);
+    const onChanged = vi.fn();
+    accountImage(img, onChanged);
     invokeOnSuccess();
     expect(WebClient.instance.response.session.accountImageChanged).toHaveBeenCalledWith(img);
+    expect(onChanged).toHaveBeenCalled();
+  });
+
+  it('hands the response code to the caller on failure', () => {
+    const onFailure = vi.fn();
+    accountImage(new Uint8Array(), undefined, onFailure);
+    invokeOnError(Response_ResponseCode.RespFunctionNotAllowed);
+    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespFunctionNotAllowed, undefined);
   });
 });
 
 describe('accountPassword', () => {
-  it('sends Command_AccountPassword', () => {
-    accountPassword('old', 'new', 'hashed');
-    expect(WebClient.instance.protobuf.sendSessionCommand).toHaveBeenCalledWith(
-      Command_AccountPassword_ext,
-      expect.objectContaining({ oldPassword: 'old', newPassword: 'new', hashedNewPassword: 'hashed' }),
-      expect.any(Object)
-    );
+  afterEach(() => {
+    WebClient.instance.serverSupportsPasswordHash = false;
   });
 
-  it('calls WebClient.instance.response.session.accountPasswordChange on success', () => {
-    accountPassword('old', 'new', 'hashed');
+  it('sends only the plaintext new password to servers without password hashing', async () => {
+    await accountPassword('old', 'newpassword');
+    const [ext, cmd] = (WebClient.instance.protobuf.sendSessionCommand as Mock).mock.calls[0];
+    expect(ext).toBe(Command_AccountPassword_ext);
+    expect(cmd).toMatchObject({ oldPassword: 'old', newPassword: 'newpassword' });
+    expect(isFieldSet(cmd, Command_AccountPasswordSchema.field.hashedNewPassword)).toBe(false);
+    expect(hashPassword).not.toHaveBeenCalled();
+  });
+
+  it('sends only a freshly salted hash to servers that support password hashing', async () => {
+    WebClient.instance.serverSupportsPasswordHash = true;
+    await accountPassword('old', 'newpassword');
+    expect(hashPassword).toHaveBeenCalledWith('randSalt', 'newpassword');
+    const cmd = (WebClient.instance.protobuf.sendSessionCommand as Mock).mock.calls[0][1];
+    expect(cmd).toMatchObject({ oldPassword: 'old', hashedNewPassword: 'hashed_pw' });
+    expect(isFieldSet(cmd, Command_AccountPasswordSchema.field.newPassword)).toBe(false);
+  });
+
+  it('reports the change to the response layer and the caller on success', async () => {
+    const onChanged = vi.fn();
+    await accountPassword('old', 'newpassword', onChanged);
     invokeOnSuccess();
     expect(WebClient.instance.response.session.accountPasswordChange).toHaveBeenCalled();
+    expect(onChanged).toHaveBeenCalled();
+  });
+
+  it('hands a timeout to the caller with its transport reason', async () => {
+    const onFailure = vi.fn();
+    await accountPassword('old', 'newpassword', undefined, onFailure);
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Timeout);
+    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespNotConnected, CommandFailure.Timeout);
+  });
+
+  it('hands the response code to the caller on failure', async () => {
+    const onFailure = vi.fn();
+    await accountPassword('old', 'newpassword', undefined, onFailure);
+    invokeOnError(Response_ResponseCode.RespPasswordTooShort);
+    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespPasswordTooShort, undefined);
+    expect(WebClient.instance.response.session.accountPasswordChange).not.toHaveBeenCalled();
   });
 });
 

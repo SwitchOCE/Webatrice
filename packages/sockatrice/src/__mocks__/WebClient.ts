@@ -204,6 +204,7 @@ export const WebClient = {
       keepalive: 5000,
     },
     protocolVersion: 14,
+    serverSupportsPasswordHash: false,
     protobuf: {
       sendSessionCommand: vi.fn(),
       sendRoomCommand: vi.fn(),

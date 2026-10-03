@@ -84,7 +84,8 @@ export interface ISessionResponse {
   updateIgnoreList(ignoreList: ServerInfo_User[]): void;
   addToIgnoreList(user: ServerInfo_User): void;
   removeFromIgnoreList(userName: string): void;
-  updateInfo(name: string, version: string): void;
+  /** `supportsPasswordHash` absent = capability unknown (older senders); see `server.info.supportsPasswordHash`. */
+  updateInfo(name: string, version: string, supportsPasswordHash?: boolean): void;
   updateStatus(state: StatusEnum, description: string): void;
   /** Keepalive health: missedPongs > 0 while pings go unanswered, 0 on recovery.
    *  Optional for backward compatibility with existing consumers. */
