@@ -41,6 +41,27 @@ describe('EditTokens', () => {
     expect(screen.getByText('EditTokens.selectHint')).toBeInTheDocument();
   });
 
+  it('moves the selection with the arrow keys and selects with Space or Enter', () => {
+    const zombie = createCustomToken('Zombie');
+    const hook = makeHook({ tokens: [spirit, zombie] });
+    hoisted.useEditTokens.mockReturnValue(hook);
+    renderWithProviders(<EditTokens />);
+
+    const [first, second] = screen.getAllByRole('option');
+    expect(first).toHaveAttribute('tabindex', '0');
+    expect(second).toHaveAttribute('tabindex', '-1');
+    fireEvent.keyDown(first, { key: 'ArrowDown' });
+    expect(second).toHaveFocus();
+    expect(hook.select).toHaveBeenCalledWith('Zombie');
+
+    fireEvent.keyDown(second, { key: 'Home' });
+    expect(first).toHaveFocus();
+    expect(hook.select).toHaveBeenLastCalledWith('Spirit');
+    fireEvent.keyDown(first, { key: 'Enter' });
+    fireEvent.keyDown(second, { key: ' ' });
+    expect(hook.select.mock.calls.slice(-2)).toEqual([['Spirit'], ['Zombie']]);
+  });
+
   it('adds a token by name', async () => {
     const hook = makeHook();
     hoisted.useEditTokens.mockReturnValue(hook);

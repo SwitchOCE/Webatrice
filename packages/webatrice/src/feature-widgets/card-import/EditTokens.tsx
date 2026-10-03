@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import Button from '@mui/material/Button';
 
 import { InputField, SelectField } from '@app/components';
+import { useGridRows } from '@app/hooks';
 import type { Token } from '@app/services';
 
 import {
@@ -106,6 +107,14 @@ const EditTokens = () => {
     resolver,
   });
 
+  // One roving tab stop; arrows, Home/End move the selection, Space or Enter selects.
+  const { getRowProps } = useGridRows({
+    keys: editor.tokens.map((token) => token.name.value),
+    selectedKey: editor.selected?.name.value ?? null,
+    onSelect: editor.select,
+    onActivate: editor.select,
+  });
+
   const add = handleSubmit(async ({ name }) => {
     if (await editor.addToken(name) === 'conflict') {
       setError('name', { type: 'server', message: t('EditTokens.validation.conflict') });
@@ -125,6 +134,7 @@ const EditTokens = () => {
             {editor.tokens.map((token) => (
               <li
                 key={token.name.value}
+                {...getRowProps(token.name.value)}
                 role="option"
                 aria-selected={editor.selected === token}
                 className={editor.selected === token ? 'is-selected' : ''}

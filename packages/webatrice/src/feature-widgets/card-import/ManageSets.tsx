@@ -1,4 +1,5 @@
-import { useCallback, type MouseEvent, type ReactNode } from 'react';
+import { useCallback, useId, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
+import { useListRef } from 'react-window';
 import { useTranslation } from 'react-i18next';
 
 import Button from '@mui/material/Button';
@@ -13,6 +14,7 @@ import KeyboardDoubleArrowUpIcon from '@mui/icons-material/KeyboardDoubleArrowUp
 
 import { VirtualRows } from '@app/components';
 
+import { isSelectKey, navigationTarget } from './listKeyboard';
 import type { MoveDirection, SetRow, SetSortColumn } from './manageSetsModel';
 import { useManageSets } from './useManageSets';
 
@@ -41,12 +43,31 @@ const ManageSets = ({ onSaved, onCancel }: ManageSetsProps) => {
   const { select, toggleEnabled, selected } = manage;
   const sorted = manage.sort !== null;
   const noSelection = selected.size === 0;
+  const rowIdPrefix = useId();
+  const listRef = useListRef(null);
+  // The keyboard's current row. The grid keeps focus and points at it with
+  // aria-activedescendant: rows are virtualized, so a focused row could unmount.
+  const [active, setActive] = useState<string | null>(null);
+  const rows = manage.visibleRows;
+  const activeIndex = active === null ? -1 : rows.findIndex((r) => r.code === active);
+  const rowId = (index: number) => `${rowIdPrefix}-row-${index}`;
 
-  const renderRow = useCallback((row: SetRow) => {
-    const onClick = (e: MouseEvent) => select(row.code, { toggle: e.ctrlKey || e.metaKey, range: e.shiftKey });
+  const renderRow = useCallback((row: SetRow, index: number) => {
+    const onClick = (e: MouseEvent) => {
+      setActive(row.code);
+      select(row.code, { toggle: e.ctrlKey || e.metaKey, range: e.shiftKey });
+    };
+    const classes = ['cardDatabase-setRow'];
+    if (selected.has(row.code)) {
+      classes.push('is-selected');
+    }
+    if (row.code === active) {
+      classes.push('is-active');
+    }
     return (
       <div
-        className={`cardDatabase-setRow${selected.has(row.code) ? ' is-selected' : ''}`}
+        id={`${rowIdPrefix}-row-${index}`}
+        className={classes.join(' ')}
         role="row"
         aria-selected={selected.has(row.code)}
         onClick={onClick}
@@ -66,7 +87,40 @@ const ManageSets = ({ onSaved, onCancel }: ManageSetsProps) => {
         <span role="gridcell" className="cardDatabase-setCell">{row.releaseDate}</span>
       </div>
     );
-  }, [select, toggleEnabled, selected]);
+  }, [select, toggleEnabled, selected, active, rowIdPrefix]);
+
+  // Desktop's set list keys: arrows move and select (Shift extends, Ctrl moves
+  // without selecting), Space/Enter select (Ctrl toggles), Ctrl+A selects all.
+  const onGridKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) {
+      return;
+    }
+    const toggle = e.ctrlKey || e.metaKey;
+    if (toggle && e.key.toLowerCase() === 'a') {
+      e.preventDefault();
+      manage.selectAll();
+      return;
+    }
+    if (isSelectKey(e.key)) {
+      e.preventDefault();
+      const row = rows[activeIndex] ?? rows[0];
+      if (row) {
+        setActive(row.code);
+        select(row.code, { toggle, range: e.shiftKey });
+      }
+      return;
+    }
+    const target = navigationTarget(e.key, activeIndex < 0 ? null : activeIndex, rows.length);
+    if (target === null) {
+      return;
+    }
+    e.preventDefault();
+    setActive(rows[target].code);
+    listRef.current?.scrollToRow({ index: target, align: 'smart' });
+    if (!toggle) {
+      select(rows[target].code, { range: e.shiftKey });
+    }
+  };
 
   const save = async () => {
     if (await manage.save()) {
@@ -121,7 +175,16 @@ const ManageSets = ({ onSaved, onCancel }: ManageSetsProps) => {
           ))}
         </div>
 
-        <div className="cardDatabase-setTable" role="grid" aria-rowcount={manage.visibleRows.length}>
+        <div
+          className="cardDatabase-setTable"
+          role="grid"
+          aria-label={t('ManageSets.label.sets')}
+          aria-multiselectable
+          aria-rowcount={rows.length}
+          aria-activedescendant={activeIndex < 0 ? undefined : rowId(activeIndex)}
+          tabIndex={0}
+          onKeyDown={onGridKeyDown}
+        >
           <div className="cardDatabase-setRow is-header" role="row">
             <span role="columnheader" className="cardDatabase-setCell is-check">{t('ManageSets.column.enabled')}</span>
             {COLUMNS.map((column) => {
@@ -141,7 +204,7 @@ const ManageSets = ({ onSaved, onCancel }: ManageSetsProps) => {
               );
             })}
           </div>
-          <VirtualRows items={manage.visibleRows} rowHeight={ROW_HEIGHT} renderRow={renderRow} role="rowgroup" />
+          <VirtualRows items={rows} rowHeight={ROW_HEIGHT} renderRow={renderRow} role="rowgroup" listRef={listRef} />
         </div>
       </div>
 

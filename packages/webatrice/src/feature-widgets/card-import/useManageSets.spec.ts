@@ -63,6 +63,13 @@ describe('useManageSets', () => {
     expect([...result.current.selected]).toEqual(['LEA', 'M10']);
   });
 
+  it('selects every set the search shows', async () => {
+    const { result } = await renderLoaded();
+    act(() => result.current.setSearch('magic'));
+    act(() => result.current.selectAll());
+    expect([...result.current.selected]).toEqual(['M10']);
+  });
+
   it('cycles column sort ascending → descending → off and blocks moves while sorted', async () => {
     const { result } = await renderLoaded();
     act(() => result.current.cycleSort('code'));

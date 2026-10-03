@@ -8,6 +8,7 @@ import { z } from 'zod';
 import Button from '@mui/material/Button';
 
 import { InputField } from '@app/components';
+import { useGridRows } from '@app/hooks';
 import { isValidPictureUrlTemplate, PICTURE_URL_PLACEHOLDERS } from '@app/services';
 
 import { usePictureUrlTemplates } from './usePictureUrlTemplates';
@@ -58,6 +59,14 @@ const CardSourcesSettings = ({ labelId, describedBy }: CardSourcesSettingsProps)
     setMessage(null);
   };
 
+  // One roving tab stop; arrows, Home/End move the selection, Space or Enter selects.
+  const { getRowProps } = useGridRows({
+    keys: sources.templates.map((_, index) => String(index)),
+    selectedKey: selected === null ? null : String(selected),
+    onSelect: (key) => select(Number(key)),
+    onActivate: (key) => select(Number(key)),
+  });
+
   const resetAll = async () => {
     await sources.resetToDefaults();
     reset({ url: '' });
@@ -71,6 +80,7 @@ const CardSourcesSettings = ({ labelId, describedBy }: CardSourcesSettingsProps)
         {sources.templates.map((template, index) => (
           <li
             key={`${index}:${template}`}
+            {...getRowProps(String(index))}
             role="option"
             aria-selected={selected === index}
             className={selected === index ? 'is-selected' : ''}
