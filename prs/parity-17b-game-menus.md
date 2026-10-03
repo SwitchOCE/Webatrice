@@ -30,15 +30,16 @@ Cockatrice `add65caa`:
 - `shortcuts_settings.h:503-505,560-562`
 
 ## Testing
-Tip `93e07b4`, from the repo root:
+Tip `5a8feae` (after the rv10 review fixes), from the repo root:
 - `npx turbo run typecheck --concurrency=1`: 5/5 tasks pass.
-- `npm run lint`: 3/3 tasks pass.
-- `npm test -- -- --maxWorkers=2`: sockatrice 776/776, datatrice 1196/1196, webatrice 2042/2042.
-- `npm run test:integration -- -- --maxWorkers=2`: sockatrice 166/166, datatrice 136/136, webatrice 162 passed and 2 skipped (both skips were already on the base).
-- `npm run test:e2e -w @cockatrice/webatrice`: built on the host, run in `mcr.microsoft.com/playwright:v1.60.0-noble` against Servatrice 3.0.0 on chromium, firefox and webkit. 42 passed, 3 failed. All three failures are `staff-tools.spec.ts:38` (an admin publishes a server message), which fails with `spawnSync docker ENOENT`: the spec shells out to `docker compose exec` for SQL, and the Playwright container has no docker CLI. This is environmental and unrelated to this PR; that spec also needs a 3.1 server. The new `card-menus.spec` passed 9/9 (3 tests × 3 browsers).
-- Sockatrice e2e: not run. Sockatrice only gains the pure `isBuiltinZone` helper (with its unit spec); no server flow changed.
+- `npm run lint`: 3/3 tasks pass, 0 errors.
+- `npm test -- -- --maxWorkers=2`: sockatrice 40 files / 776 tests, datatrice 29 / 1196, webatrice 253 / 2074. All pass.
+- `npm run test:integration -- -- --maxWorkers=2`: sockatrice 19 / 166, datatrice 9 / 136, webatrice 38 files / 163 tests passed with 2 files / 2 tests skipped (both skips are already on the base, `0412500`; stage 5 restores them).
+- Webatrice e2e: built on the host (`npm run build -w @cockatrice/webatrice`, `test:e2e:up`), run in `mcr.microsoft.com/playwright:v1.60.0-noble` against Servatrice 3.0.0 on chromium, firefox and webkit, with the host's docker CLI and socket mounted so `staff-tools.spec` can seed SQL: **45 passed, 0 failed (10.4 min)**, including `card-menus.spec` 9/9 with the tightened image assertion. Stack torn down.
+- Sockatrice e2e: not run. Sockatrice code is unchanged by the review fixes; the only new wire fields (`pt` / `tapped` on `CardToMove`) are existing protocol fields sent through the webatrice seat port.
+- Every behaviour fix's new test was checked to fail before its fix.
 - New specs:
-  - unit: `playerMenu.model.spec`, `handCardMenu.model.spec`, `revealedCardMenu.model.spec`, `tally.spec`, `useSelectionTally.spec`, `TallyOverlay.spec`, `useMessageMacros.spec`, `deckHandoff.spec`, `zoneNames.spec`, plus additions to `relatedCardActions`, `cardContextMenu.model`, `CardPreviewContext`, `IncomingRevealDialog`, `useDeckEditor`, `usePlayerZoneCommands`, `GameBoardCell`, `usePlayerSeatViewModel`, `useZoneViewDialog`, `Game.cardMenus`, `Game.zoneViews`, `Game.preview` and `Game.shortcuts`;
+  - unit: `playerMenu.model.spec`, `handCardMenu.model.spec`, `handCardMenu.actions.spec`, `revealedCardMenu.model.spec`, `tally.spec`, `useSelectionTally.spec`, `TallyOverlay.spec`, `useMessageMacros.spec`, `deckHandoff.spec`, `zoneNames.spec`, plus additions to `relatedCardActions`, `cardContextMenu.model`, `CardPreviewContext`, `IncomingRevealDialog`, `useDeckEditor`, `usePlayerZoneCommands`, `GameBoardCell`, `usePlayerSeatViewModel`, `useZoneViewDialog`, `Game.cardMenus`, `Game.zoneViews`, `Game.preview`, `Game.shortcuts`, `TopBar` and `cardCatalog`;
   - integration: `deck-draft.spec`, `game/custom-zones.spec`;
   - e2e: `card-menus.spec`, with 3 tests × 3 browsers.
 
