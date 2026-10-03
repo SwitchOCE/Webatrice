@@ -132,9 +132,11 @@ function setup(opts: SetupOpts = {}) {
   const onRequestMoveTopToGrave = vi.fn();
   const onRequestMoveTopNToGrave = vi.fn();
   const onCloseRecentZoneView = vi.fn(() => false);
+  const onRotateView = vi.fn();
   renderHook(() => useGameShortcuts({
     gameId: 1,
     seatShortcuts,
+    onRotateView,
     onRequestConcede,
     onRequestDrawMultiple,
     onRequestUndoDraw,
@@ -154,6 +156,7 @@ function setup(opts: SetupOpts = {}) {
 
   return {
     webClient,
+    onRotateView,
     onRequestConcede,
     onRequestDrawMultiple,
     onRequestUndoDraw,
@@ -271,6 +274,17 @@ describe('useGameShortcuts', () => {
     const conceded = setup({ conceded: true });
     fire('game.reverseTurn');
     expect(conceded.webClient.request.game.reverseTurn).not.toHaveBeenCalled();
+  });
+
+  it('rotates the view clockwise (-1) and counterclockwise (+1), spectators included, sending nothing', () => {
+    const { webClient, onRotateView } = setup({ spectator: true, activePlayerId: 99 });
+
+    expect(registrations.get('game.rotateViewCW')?.enabled).toBe(true);
+    fire('game.rotateViewCW');
+    fire('game.rotateViewCCW');
+
+    expect(onRotateView.mock.calls).toEqual([[-1], [1]]);
+    expect(Object.values(webClient.request.game).some((fn) => vi.mocked(fn).mock.calls.length > 0)).toBe(false);
   });
 
   it('does not draw or pass turn when the local player has conceded', () => {
