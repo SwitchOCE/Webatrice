@@ -1,7 +1,7 @@
 import { Heart } from 'lucide-react';
 import { useAnimationPreference } from '@app/hooks';
 
-import { ManaSymbols } from '../../ui/ManaSymbols/ManaSymbols';
+import { ManaSymbols } from '@app/components';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import { useValueFlash } from '../../ui/ValueFlash/useValueFlash';
 import ValueFlashOverlay from '../../ui/ValueFlash/ValueFlashOverlay';
