@@ -84,6 +84,22 @@ describe('formatLogArguments', () => {
     expect(message.match(/\[redacted\]/g)).toHaveLength(5);
   });
 
+  test('never logs credentials or account PII', () => {
+    const message = formatLogArguments([{
+      userName: 'alice',
+      email: 'alice@example.com',
+      realName: 'Alice Liddell',
+      author: 'kept',
+      headers: { Authorization: 'Bearer abc', apiKey: 'k' },
+    }]);
+
+    expect(message).toContain('"userName":"alice"');
+    expect(message).toContain('"author":"kept"');
+    for (const secret of ['alice@example.com', 'Alice Liddell', 'Bearer abc', '"k"']) {
+      expect(message).not.toContain(secret);
+    }
+  });
+
   test('survives circular structures and truncates huge payloads', () => {
     const node: Record<string, unknown> = { name: 'loop' };
     node.self = node;
