@@ -16,6 +16,7 @@ import TableRow from '@mui/material/TableRow';
 import TextField from '@mui/material/TextField';
 
 import { AuthGuard, CapabilityGuard, ModGuard } from '@app/components';
+import { useGridRows } from '@app/hooks';
 import { Layout } from '@app/feature-wrappers/layout';
 import { ServerCapability } from '@cockatrice/datatrice';
 
@@ -48,6 +49,12 @@ const CardArtRulesContent = () => {
   const { t } = useTranslation();
   const rulesState = useCardArtRules();
   const { rules, selectedIndex, printings } = rulesState;
+  const { getRowProps } = useGridRows({
+    keys: rules.map((_, index) => String(index)),
+    selectedKey: selectedIndex === null ? null : String(selectedIndex),
+    onSelect: (key) => rulesState.select(Number(key)),
+    onActivate: (key) => rulesState.select(Number(key)),
+  });
 
   const resolver = useMemo(() => zodResolver(buildRuleSchema(t)), [t]);
   const { control, handleSubmit, setValue } = useForm<RuleFormValues>({ defaultValues: DEFAULT_VALUES, resolver });
@@ -127,7 +134,9 @@ const CardArtRulesContent = () => {
       </Paper>
 
       <Paper component="section" className="card-art-rules__table">
-        <Table size="small" stickyHeader aria-label={t('CardArtRules.title')}>
+        {/* A single-select grid with one roving tab stop: arrows, Home/End, Enter or
+            Space select a rule, so "Remove rule" works from the keyboard too. */}
+        <Table size="small" stickyHeader role="grid" aria-label={t('CardArtRules.title')}>
           <TableHead>
             <TableRow>
               {columns.map((label) => <TableCell key={label}>{label}</TableCell>)}
@@ -137,6 +146,7 @@ const CardArtRulesContent = () => {
             {rules.map((rule, index) => (
               <TableRow
                 key={`${rule.cardName}\u0000${rule.cardProviderId}`}
+                {...getRowProps(String(index))}
                 hover
                 selected={index === selectedIndex}
                 aria-selected={index === selectedIndex}

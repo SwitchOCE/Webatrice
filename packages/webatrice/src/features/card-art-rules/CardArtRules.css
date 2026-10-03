@@ -30,3 +30,8 @@
 .card-art-rules__row {
   cursor: pointer;
 }
+
+.card-art-rules__row:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
