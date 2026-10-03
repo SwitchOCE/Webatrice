@@ -3,6 +3,7 @@ import tseslint from 'typescript-eslint';
 import globals from 'globals';
 import * as espree from 'espree';
 import reactHooks from 'eslint-plugin-react-hooks';
+import i18next from 'eslint-plugin-i18next';
 import { boundariesConfig } from './eslint.boundaries.mjs';
 
 export default tseslint.config(
@@ -72,6 +73,32 @@ export default tseslint.config(
   },
   // Playwright fixtures receive a `use` callback, which is not React's `use`.
   { files: ['e2e/**'], rules: { 'react-hooks/rules-of-hooks': 'off' } },
+
+  // UI text goes through i18next (`t()` / `<Trans>`): no English literals in JSX
+  // text or in the attributes users read. `scripts/check-i18n.mjs` checks the keys.
+  {
+    files: ['src/**/*.tsx'],
+    ignores: ['src/**/*.spec.tsx', 'src/__test-utils__/**', 'src/**/__mocks__/**'],
+    plugins: { i18next },
+    rules: {
+      'i18next/no-literal-string': ['error', {
+        mode: 'jsx-only',
+        'jsx-attributes': { include: ['title', 'aria-label', 'placeholder', 'label', 'helperText', 'alt'] },
+        // File paths and other technical text shown in <code>.
+        'jsx-components': { exclude: ['Trans', 'code'] },
+        // `kind` / `type` carry discriminators, not text.
+        'object-properties': { exclude: ['[A-Z_-]+', 'kind', 'type'] },
+        // No letters (separators, arrows, dashes), all caps, and brand names.
+        words: { exclude: ['[^a-zA-Z]+', '[A-Z_-]+', 'Webatrice', 'TCGplayer'] },
+        'should-validate-template': true,
+      }],
+    },
+  },
+  // Not migrated yet. Each translation PR deletes its folder from this list.
+  {
+    files: ['src/features/game/**', 'src/features/decks/**'],
+    rules: { 'i18next/no-literal-string': 'off' },
+  },
 
   // Project-specific config
   {
