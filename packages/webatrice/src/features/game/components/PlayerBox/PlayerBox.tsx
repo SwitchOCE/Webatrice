@@ -41,6 +41,7 @@ import { legacyTableRowFromTypeLine, tableRowToGridY } from '../battlefield/Batt
 import { MAX_SUBPOS } from '../battlefield/Battlefield/gridMath';
 import { applyPTDelta, applyPTSet, parsePT } from '../context-menus/CardContextMenu/cardAttributeEdits';
 import { evalLifeExpression } from '../right-sidebar/PlayerInfoPanel/lifeExpression';
+import { counterColorForId } from '../ui/CardSlot/counterColors';
 import type { BattlefieldCardViewModel, PlayerCardViewModel } from '../ui/PlayerBoard/playerBoard.types';
 import { useCardScale } from './cardScale';
 import { CardImage } from '@app/components';
@@ -231,17 +232,6 @@ type CardMenuItem =
       submenu?: CardMenuItem[];
       onClick?: () => void;
     };
-
-/** Cockatrice's six counter slot colors (A-F). Matches the desktop
- *  client's default palette in `settings_cache.cpp`. */
-const COUNTER_COLORS: [string, string, string, string, string, string] = [
-  '#ef4444', // A red
-  '#eab308', // B yellow
-  '#22c55e', // C green
-  '#22d3ee', // D cyan
-  '#3b82f6', // E blue
-  '#ec4899', // F pink
-];
 
 interface BuildCardContextMenuArgs {
   /** Reactive shortcut-hint map; drives every menu item's `shortcut:`
@@ -522,13 +512,13 @@ function buildCardContextMenu(args: BuildCardContextMenuArgs): CardMenuItem[] {
     counterItems.push({
       label: `Add counter (${letter})`,
       shortcut: counterShortcuts[i][0] || undefined,
-      swatch: COUNTER_COLORS[i],
+      swatch: counterColorForId(i),
       onClick: () => args.onAddCardCounter(i),
     });
     counterItems.push({
       label: `Set counters (${letter})...`,
       shortcut: counterShortcuts[i][1] || undefined,
-      swatch: COUNTER_COLORS[i],
+      swatch: counterColorForId(i),
       onClick: () => args.onSetCardCounter(i),
     });
   });
@@ -9752,7 +9742,7 @@ function PlayerBox(
           <SetCardCounterModal
             cardName={setCounterModal.cardName}
             counterLetter={setCounterModal.counterLetter}
-            counterColor={COUNTER_COLORS[setCounterModal.counterId] ?? '#888'}
+            counterColor={counterColorForId(setCounterModal.counterId)}
             currentValue={setCounterModal.currentValue}
             onCancel={() => setSetCounterModal(null)}
             onConfirm={(value) => {
