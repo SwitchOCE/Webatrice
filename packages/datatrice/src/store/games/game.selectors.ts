@@ -4,6 +4,7 @@ import { dequal } from 'dequal';
 import { Enriched } from '../../types';
 import { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
 import { GamesState, IncomingReveal } from './game.interfaces';
+import { type Playmat, playmatFromParams } from './playmat';
 
 type State = { games: GamesState };
 
@@ -111,6 +112,32 @@ function buildAttachments(
 // output reference is what we're stabilizing here.
 const selectAllAttachments = lruMemoize(buildAttachments, { resultEqualityCheck: dequal });
 
+// The normalized playmat keeps its reference until the announced playmat
+// actually changes. playerPropertiesUpdated deep-clones the properties on every
+// non-ping update (a ready toggle, a sideboard lock), which hands the params a
+// new ref, so a ref-keyed cache alone would still churn: a miss is compared by
+// value with the player's previous result and that result reused when equal.
+const playmatByParams = new WeakMap<object, Playmat | null>();
+const lastPlaymatByPlayer = new Map<string, Playmat | null>();
+
+function playmatOf(gameId: number, playerId: number, player: Enriched.PlayerEntry | undefined): Playmat | null {
+  const params = player?.properties.playmatParams;
+  if (!params) {
+    return null;
+  }
+  const cached = playmatByParams.get(params);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const key = `${gameId}:${playerId}`;
+  const derived = playmatFromParams(params);
+  const previous = lastPlaymatByPlayer.get(key);
+  const playmat = previous !== undefined && dequal(previous, derived) ? previous : derived;
+  playmatByParams.set(params, playmat);
+  lastPlaymatByPlayer.set(key, playmat);
+  return playmat;
+}
+
 export const Selectors = {
   getGames: ({ games }: State): { [gameId: number]: Enriched.GameEntry } => games.games,
 
@@ -134,6 +161,12 @@ export const Selectors = {
 
   getPlayerPing: ({ games }: State, gameId: number, playerId: number): number =>
     games.pings?.[gameId]?.[playerId] ?? 0,
+
+  /** The player's announced playmat (Cockatrice #7101), or null when none is
+   *  set. Arrives in the join snapshot and in Event_PlayerPropertiesChanged
+   *  after a deck select or a Command_SetPlaymat; 3.0 servers never send one. */
+  getPlayerPlaymat: ({ games }: State, gameId: number, playerId: number): Playmat | null =>
+    playmatOf(gameId, playerId, games.games[gameId]?.players[playerId]),
 
   getSeatedPlayers: ({ games }: State, gameId: number): Enriched.PlayerEntry[] => {
     const game = games.games[gameId];
