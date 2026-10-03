@@ -1,1 +1,2 @@
 - 15:26Z started w14b → rebase 14 onto 15
+- 15:31Z rebased onto 15 (4 additive conflicts), View Replay wired via @app/hooks useWatchReplay; tc+lint green; pushed 22a0a99 → unit/integration/e2e
