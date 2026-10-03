@@ -10,6 +10,7 @@ import {
 import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
 
 import { makeStoreState, makeUser, renderWithProviders } from '../../../../__test-utils__';
+import { getSettings, settingsStore } from '../../../../hooks/useSettings';
 import { GameSelectionProvider } from '../../components/ui/GameSelectionContext';
 import type { ZoneViewTarget } from '../../hooks/dialogs/gameDialogs.types';
 import ZoneViewDialog from './ZoneViewDialog';
@@ -71,6 +72,7 @@ function viewCards(el: HTMLElement): HTMLElement[] {
 
 afterEach(() => {
   window.localStorage.clear();
+  settingsStore.reset();
 });
 
 describe('ZoneViewDialog', () => {
@@ -98,6 +100,18 @@ describe('ZoneViewDialog', () => {
     fireEvent.click(shuffle);
     fireEvent.click(within(view).getByTitle('Close'));
     expect(handleClose).toHaveBeenLastCalledWith(false);
+  });
+
+  it('focuses its search box when it opens, as desktop does by default', () => {
+    renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
+    expect(within(panel(/^Graveyard/)).getByRole('textbox')).toHaveFocus();
+  });
+
+  it('leaves the focus alone with "Auto focus search bar" off', async () => {
+    const settings = await getSettings();
+    settingsStore.setValue(Object.assign(settings, { focusCardViewSearchBar: false }));
+    renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
+    expect(within(panel(/^Graveyard/)).getByRole('textbox')).not.toHaveFocus();
   });
 
   it('closes from its search box on Escape, which the game shortcut skips', () => {
