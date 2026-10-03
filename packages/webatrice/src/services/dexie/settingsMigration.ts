@@ -13,9 +13,10 @@ const MIGRATIONS: Record<number, (row: SettingRow) => void> = {
   1: (row) => fillPreferenceDefaults(row),
   // v2: theme palette and language become settings. A row that predates them belongs to someone
   // who has only ever seen the dark palette, so they keep it (fresh installs follow the system,
-  // as desktop does). Their language was i18next's own localStorage cache; adopt it. Neither
-  // preference existed before v2, so assigning (rather than filling) cannot lose a choice — and
-  // must assign, because step 1 has already filled a v0 row with the fresh-install defaults.
+  // as desktop does). Their language was i18next's own localStorage cache; adopt it only when it
+  // differs from what the browser asks for, since the detector cached the browser language too.
+  // Neither preference existed before v2, so assigning (rather than filling) cannot lose a
+  // choice — and must assign, because step 1 has already filled a v0 row with the defaults.
   2: (row) => {
     row.themeMode = ThemeMode.Dark;
     row.language = legacyLanguageChoice() ?? '';
@@ -23,11 +24,20 @@ const MIGRATIONS: Record<number, (row: SettingRow) => void> = {
 };
 
 function legacyLanguageChoice(): string | undefined {
+  let cached: string | undefined;
   try {
-    return resolveSupportedLanguage(globalThis.localStorage?.getItem(LANGUAGE_STORAGE_KEY));
+    cached = resolveSupportedLanguage(globalThis.localStorage?.getItem(LANGUAGE_STORAGE_KEY));
   } catch {
     return undefined; // storage blocked (privacy mode); fall back to the browser language
   }
+  return cached !== browserLanguage() ? cached : undefined;
+}
+
+/** The catalogue the detector would pick from the browser's own language list. */
+function browserLanguage(): string | undefined {
+  const nav = globalThis.navigator;
+  const tags = nav?.languages?.length ? nav.languages : [nav?.language];
+  return tags.map(resolveSupportedLanguage).find((language) => language !== undefined);
 }
 
 /** Adds a default for every preference the row lacks. Never overwrites a stored value. */

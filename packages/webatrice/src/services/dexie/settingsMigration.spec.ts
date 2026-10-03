@@ -64,6 +64,7 @@ describe('fillPreferenceDefaults', () => {
 describe('v2: theme palette and language', () => {
   afterEach(() => {
     localStorage.clear();
+    vi.restoreAllMocks();
   });
 
   it('keeps an existing user on the dark palette they have always had', () => {
@@ -74,6 +75,15 @@ describe('v2: theme palette and language', () => {
   it('adopts the language i18next cached before the preference existed', () => {
     localStorage.setItem(LANGUAGE_STORAGE_KEY, 'pt-BR');
     expect(migrateSetting({ user: '*app', version: 1 }).language).toBe('pt_BR');
+  });
+
+  it('keeps following the browser when the cache only holds the language it detected', () => {
+    vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['de-AT', 'en-US']);
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, 'de-AT');
+    expect(migrateSetting({ user: '*app', version: 1 }).language).toBe('');
+
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, 'en');
+    expect(migrateSetting({ user: '*app', version: 1 }).language).toBe('en_US');
   });
 
   it('follows the browser language when nothing usable was cached', () => {
