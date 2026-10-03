@@ -22,7 +22,8 @@
   --accent-secondary: 107 70 193;   /* #6B46C1 */
   --text-primary: 245 240 246;      /* #F5F0F6 */
   --text-secondary: 199 191 212;    /* #C7BFD4 */
-  --text-muted: 122 110 143;        /* #7A6E8F */
+  /* Muted: hints and labels people read, so AA (4.5:1) on every surface. */
+  --text-muted: 147 136 165;        /* #9388A5 */
   /* Disabled: intentionally *not* in the purple family so it reads
      as "off" rather than "dimmer purple". Warm-neutral gray with
      ~5:1 contrast on bg-surface — legible, obviously not active. */
