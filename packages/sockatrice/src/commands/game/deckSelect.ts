@@ -21,6 +21,9 @@ export function deckSelect(gameId: number, params: DeckSelectParams): void {
     {
       responseExt: Response_DeckDownload_ext,
       onSuccess: (resp) => WebClient.instance.response.game.deckSelected?.(gameId, resp.deck),
+      onError: (responseCode, _raw, failure) => {
+        WebClient.instance.response.game.deckSelectFailed?.(gameId, responseCode, failure);
+      },
     },
   );
 }
