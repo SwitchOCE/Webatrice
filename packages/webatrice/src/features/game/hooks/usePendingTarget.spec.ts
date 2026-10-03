@@ -1,5 +1,6 @@
 import { act, fireEvent } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
+import { Phase } from '@cockatrice/datatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 import { ArrowColor } from '@app/types';
 
@@ -38,8 +39,9 @@ function renderPicker() {
   return { ...utils, picker };
 }
 
+// The fixture game is in its beginning phase: an arrow is kept until the first main phase.
 const arrow = (startCardId: number, target: object, startZone: string = ZoneName.TABLE) =>
-  [1, { startPlayerId: 1, startZone, startCardId, ...target, arrowColor: ArrowColor.RED }];
+  [1, { startPlayerId: 1, startZone, startCardId, ...target, arrowColor: ArrowColor.RED, deleteInPhase: Phase.FirstMain }];
 
 afterEach(() => {
   added.splice(0).forEach((el) => el.remove());

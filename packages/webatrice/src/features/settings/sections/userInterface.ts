@@ -32,6 +32,12 @@ export const userInterfaceSection: SettingsSection = {
           control: { kind: 'toggle', key: 'playToStack' },
         },
         {
+          id: 'doNotDeleteArrowsInSubPhases',
+          labelKey: 'SettingsUserInterface.doNotDeleteArrowsInSubPhases.label',
+          descriptionKey: 'SettingsUserInterface.doNotDeleteArrowsInSubPhases.description',
+          control: { kind: 'toggle', key: 'doNotDeleteArrowsInSubPhases' },
+        },
+        {
           id: 'closeEmptyCardView',
           labelKey: 'SettingsUserInterface.closeEmptyCardView.label',
           control: { kind: 'toggle', key: 'closeEmptyCardView' },

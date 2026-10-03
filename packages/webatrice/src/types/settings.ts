@@ -56,6 +56,8 @@ export class Setting {
   /** A click to play plays every selected card of the zone when the clicked card is selected. */
   clickPlaysAllSelected: boolean;
   playToStack: boolean;
+  /** Keep an arrow until the end of the phase group it was drawn in (combat, the beginning phase). */
+  doNotDeleteArrowsInSubPhases: boolean;
   closeEmptyCardView: boolean;
   tapAnimation: boolean;
 
@@ -170,6 +172,7 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   doubleClickToPlay: true,
   clickPlaysAllSelected: true,
   playToStack: true,
+  doNotDeleteArrowsInSubPhases: true,
   closeEmptyCardView: true,
   tapAnimation: true,
 

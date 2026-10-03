@@ -3,7 +3,7 @@ import { create } from '@bufbuild/protobuf';
 import { Event_CreateArrowSchema } from '@cockatrice/sockatrice/generated';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { makeArrow } from '@cockatrice/datatrice/testing';
-import { games } from '@cockatrice/datatrice';
+import { games, Phase } from '@cockatrice/datatrice';
 import { ArrowColor } from '@app/types';
 import { makeCard } from '@cockatrice/datatrice/testing';
 import { renderSeatHook, type SeatGameSpec } from '../../../__test-utils__/seatFixtures';
@@ -50,6 +50,7 @@ describe('usePlayerTargetCommands', () => {
       startCardId: 10,
       targetPlayerId: 2,
       arrowColor: ArrowColor.RED,
+      deleteInPhase: Phase.FirstMain,
     });
   });
 
@@ -81,6 +82,7 @@ describe('target commands', () => {
       targetZone: ZoneName.STACK,
       targetCardId: 21,
       arrowColor: ArrowColor.GREEN,
+      deleteInPhase: Phase.FirstMain,
     });
   });
 
@@ -120,6 +122,7 @@ describe('target commands', () => {
     }), undefined]]);
     expect(vi.mocked(game.createArrow).mock.calls).toEqual([[1, {
       startPlayerId: 1, startZone: ZoneName.STACK, startCardId: 30, targetPlayerId: 2, arrowColor: ArrowColor.YELLOW,
+      deleteInPhase: Phase.FirstMain,
     }]]);
   });
 
@@ -132,6 +135,7 @@ describe('target commands', () => {
     }), undefined]]);
     expect(vi.mocked(game.createArrow).mock.calls).toEqual([[1, {
       startPlayerId: 1, startZone: ZoneName.TABLE, startCardId: 30, targetPlayerId: 2, arrowColor: ArrowColor.YELLOW,
+      deleteInPhase: Phase.FirstMain,
     }]]);
   });
 

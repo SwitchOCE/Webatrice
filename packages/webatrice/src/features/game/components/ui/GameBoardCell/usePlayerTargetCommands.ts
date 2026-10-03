@@ -11,6 +11,7 @@ import type { RootState } from '@app/store';
 import { autoPlayCard } from '../../../hooks/playCard';
 import { useJudgeTarget } from '../../../hooks/useJudgeTarget';
 import { useGameId } from '../GameIdContext';
+import { arrowLifetime } from '../../../utils/arrowLifetime';
 import type { PlayerTargetCommands } from '../PlayerBoard/playerBoard.types';
 
 type AttachCardParams = Parameters<ReturnType<typeof useWebClient>['request']['game']['attachCard']>[1];
@@ -51,6 +52,7 @@ export function useTargetCommandsFor(gameId: number | undefined): TargetCommands
           startCardId: sourceCardId,
           targetPlayerId: target.playerId,
           arrowColor: color,
+          ...arrowLifetime(games.Selectors.getActivePhase(store.getState(), id)),
         };
         const params = target.kind === 'card'
           ? { ...base, targetZone: target.zone, targetCardId: target.cardId }

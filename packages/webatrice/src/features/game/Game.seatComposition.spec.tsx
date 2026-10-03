@@ -6,6 +6,7 @@
 
 import { act, fireEvent, screen } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
+import { Phase } from '@cockatrice/datatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 import { ArrowColor } from '@app/types';
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
@@ -86,6 +87,8 @@ describe('Game seat composition', () => {
       startCardId: BOLT.id,
       targetPlayerId: 2,
       arrowColor: ArrowColor.RED,
+      // Drawn in the beginning phase: kept until the first main phase.
+      deleteInPhase: Phase.FirstMain,
     });
   });
 });
