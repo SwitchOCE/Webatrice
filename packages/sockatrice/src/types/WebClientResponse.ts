@@ -233,7 +233,8 @@ export interface IGameResponse {
   dieRolled(gameId: number, playerId: number, data: Event_RollDie): void;
   activePlayerSet(gameId: number, activePlayerId: number): void;
   activePhaseSet(gameId: number, phase: number): void;
-  turnReversed(gameId: number, reversed: boolean): void;
+  /** `playerId` is the player who reversed the order (Event_ReverseTurn's GameEvent.player_id). */
+  turnReversed(gameId: number, reversed: boolean, playerId?: number): void;
   zoneDumped(gameId: number, playerId: number, data: Event_DumpZone): void;
   zonePropertiesChanged(gameId: number, playerId: number, data: Event_ChangeZoneProperties): void;
   /** Event_GameLogNotice (3.1): a droppable, log-only notice about `playerId`. */
