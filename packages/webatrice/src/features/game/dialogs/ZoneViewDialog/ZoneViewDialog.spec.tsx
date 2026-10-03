@@ -149,7 +149,15 @@ describe('ZoneViewDialog', () => {
     fireEvent.contextMenu(viewCards(panel(/^Graveyard/))[0], { clientX: 5, clientY: 6 });
 
     expect(openSeatCardMenu).toHaveBeenCalledWith({
-      kind: 'pile', playerId: 2, zone: ZoneName.GRAVE, cardId: '7', cardName: 'Opt', x: 5, y: 6,
+      kind: 'pile',
+      playerId: 2,
+      zone: ZoneName.GRAVE,
+      cardId: '7',
+      cardName: 'Opt',
+      x: 5,
+      y: 6,
+      viewCardIds: ['7'],
+      columnCardIds: ['7'],
     });
   });
 

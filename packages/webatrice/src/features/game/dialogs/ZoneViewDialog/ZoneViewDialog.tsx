@@ -12,7 +12,7 @@ import { SEAT_DROP_PRIORITY, type SeatDropTarget, type SeatZone } from '../../ho
 import { makeCardKey } from '../../utils/CardRegistry/CardRegistryContext';
 import { EMPTY_SELECTION } from '../../utils/selection';
 import ZoneRevealPanel from './ZoneRevealPanel';
-import ZoneViewPanel from './ZoneViewPanel';
+import ZoneViewPanel, { type ZoneViewCardScope } from './ZoneViewPanel';
 import { useZoneViewDialog } from './useZoneViewDialog';
 import { isOrderedView, offersShuffleOnClose } from './zoneViewTarget';
 
@@ -120,7 +120,7 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
 
   const { openSeatCardMenu } = useGameDialogsContext();
   const onCardContextMenu = ZONES_WITH_CARD_MENU.has(zoneName)
-    ? (e: React.MouseEvent<HTMLElement>, card: { id: string; name: string }) => {
+    ? (e: React.MouseEvent<HTMLElement>, card: { id: string; name: string }, scope: ZoneViewCardScope) => {
       openSeatCardMenu({
         kind: 'pile',
         playerId,
@@ -129,6 +129,8 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
         cardName: card.name,
         x: e.clientX,
         y: e.clientY,
+        viewCardIds: scope.shownIds,
+        columnCardIds: scope.columnIds,
       });
     }
     : undefined;

@@ -73,6 +73,8 @@ import Card from '../ui/SeatCard/SeatCard';
 import { useCardPreviewActions } from '../ui/CardPreviewContext';
 import { usePublishSeatShortcuts, type SeatShortcutOperations } from '../ui/SeatShortcutsContext';
 import { useSeatSelection, type SeatSelection } from '../../hooks/useSeatSelection';
+import { useGameSelectionState } from '../ui/GameSelectionContext';
+import { makeCardKey } from '../../utils/CardRegistry/CardRegistryContext';
 import { useCanActFor } from '../ui/CardVisualStateContext';
 import { SEAT_DROP_PRIORITY, type SeatZone } from '../../hooks/seatDropPlan';
 import {
@@ -1561,6 +1563,7 @@ function PlayerBox(
   // game's mutually exclusive context menus; this seat renders it when it
   // opened it, and CardMenuPopup closes it on an outside click or Escape.
   const menuOwnerId = playerId ?? -1;
+  const gameSelection = useGameSelectionState();
   const seatMenu = seatCardMenu?.playerId === menuOwnerId ? seatCardMenu : null;
   const cardContextMenu = seatMenu?.kind === 'battlefield' ? seatMenu : null;
   const pileCardMenu = seatMenu?.kind === 'pile' ? seatMenu : null;
@@ -7190,17 +7193,35 @@ function PlayerBox(
           );
         })()}
 
-      {/* Pile-view card context menu — right-click a card inside the
-          graveyard / exile pile-view modal. View-only shape: Draw
-          arrow / Clone / Select All / Select Column, matching
-          Cockatrice's card-in-ZoneView menu. Uses the same
-          CardMenuPopup renderer as the battlefield menu — only
-          the item set differs. */}
+      {/* Pile-view card context menu — right-click a card inside a
+          graveyard / exile zone view. View-only shape: Draw arrow /
+          Clone / Select All / Select Column, matching Cockatrice's
+          card-in-ZoneView menu. Uses the same CardMenuPopup renderer
+          as the battlefield menu — only the item set differs. */}
       {pileCardMenu &&
         (() => {
           const cardIdNum = Number(pileCardMenu.cardId);
           const numeric = Number.isFinite(cardIdNum);
           const close = closeSeatCardMenu;
+          // The view's selection is the game selection, keyed by this
+          // pile. Select All / Select Column replace it with the view's
+          // cards or the clicked card's column (desktop actSelectAll /
+          // actSelectColumn over the ZoneView); Clone then applies to the
+          // selection when the clicked card is part of it, like desktop's
+          // aClone over the selected cards. Draw arrow stays single-card
+          // (desktop actDrawArrow uses the active card).
+          const pileKey = (id: string) => makeCardKey(menuOwnerId, pileCardMenu.zone, Number(id));
+          const selectPileCards = (ids: readonly string[]) => {
+            gameSelection?.setSelectedCardKeys(new Set(ids.map(pileKey)));
+            close();
+          };
+          const selectedInView = pileCardMenu.viewCardIds.filter(
+            (id) => gameSelection?.selectedCardKeys.has(pileKey(id)),
+          );
+          const cloneIds = selectedInView.includes(pileCardMenu.cardId)
+            ? selectedInView
+            : [pileCardMenu.cardId];
+          const pileCards = pileCardMenu.zone === ZoneName.GRAVE ? graveDisplayList : exileDisplayList;
           const items: CardMenuItem[] = [
             {
               // "Draw arrow..." — enters pending-arrow mode with the
@@ -7235,43 +7256,32 @@ function PlayerBox(
               shortcut: shortcutHints['game.cloneCard'],
               onClick: () => {
                 if (numeric) {
-                  const graveCard =
-                    pileCardMenu.zone === ZoneName.GRAVE
-                      ? graveDisplayList.find(
-                        (gc) => gc.id === pileCardMenu.cardId,
-                      )
-                      : exileDisplayList.find(
-                        (gc) => gc.id === pileCardMenu.cardId,
-                      );
-                  if (graveCard) {
-                    onCloneCard?.({
-                      name: graveCard.name,
-                      providerId: graveCard.scryfallId,
-                      color: '',
-                      pt: '',
-                      annotation: '',
-                      y: 0,
-                    });
+                  for (const id of cloneIds) {
+                    const pileCard = pileCards.find((pc) => pc.id === id);
+                    if (pileCard) {
+                      onCloneCard?.({
+                        name: pileCard.name,
+                        providerId: pileCard.scryfallId,
+                        color: '',
+                        pt: '',
+                        annotation: '',
+                        y: 0,
+                      });
+                    }
                   }
                 }
                 close();
               },
             },
             {
-              // Cockatrice's actSelectAll / actSelectColumn set the
-              // marquee selection inside the ZoneView so a subsequent
-              // Draw arrow / Clone applies to every selected card.
-              // The LibrarySearchDialog owns its own `selectedIds`
-              // state internally; wiring these items would need to
-              // expose an imperative setter from the dialog. Deferred
-              // until a caller actually needs multi-select in this
-              // flow — the menu shape stays 1:1 with Cockatrice.
               label: 'Select All',
               shortcut: shortcutHints['game.selectAllBattlefield'],
+              onClick: () => selectPileCards(pileCardMenu.viewCardIds),
             },
             {
               label: 'Select Column',
               shortcut: shortcutHints['game.selectColumnBattlefield'],
+              onClick: () => selectPileCards(pileCardMenu.columnCardIds),
             },
           ];
           return (
