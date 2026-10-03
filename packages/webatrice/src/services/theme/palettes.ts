@@ -19,7 +19,9 @@ export type PaletteToken =
   | 'text-disabled'
   | 'status-danger'
   | 'status-success'
-  | 'status-warning';
+  | 'status-warning'
+  | 'seat-flash-gain'
+  | 'seat-flash-loss';
 
 export type Palette = Readonly<Record<PaletteToken, string>>;
 
@@ -47,6 +49,8 @@ export const PALETTES: Readonly<Record<ColorScheme, Palette>> = {
     'status-danger': '#F87171',
     'status-success': '#34D399',
     'status-warning': '#FACC15',
+    'seat-flash-gain': '#34E07A',
+    'seat-flash-loss': '#EF4444',
   },
   light: {
     'bg-base': '#F6F3FA',
@@ -66,5 +70,7 @@ export const PALETTES: Readonly<Record<ColorScheme, Palette>> = {
     'status-danger': '#B91C1C',
     'status-success': '#047857',
     'status-warning': '#8A5905',
+    'seat-flash-gain': '#34E07A',
+    'seat-flash-loss': '#EF4444',
   },
 };
