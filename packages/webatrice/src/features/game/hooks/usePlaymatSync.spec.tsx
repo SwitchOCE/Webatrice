@@ -4,7 +4,10 @@ import { combineReducers } from '@reduxjs/toolkit';
 
 import { games, server } from '@cockatrice/datatrice';
 import { makeGameEntry, makePlayerEntry, makePlayerProperties, makeServerState } from '@cockatrice/datatrice/testing';
-import { ServerInfo_PlayerPropertiesSchema } from '@cockatrice/sockatrice/generated';
+import {
+  ServerInfo_PlayerPropertiesSchema,
+  ServerInfo_PlayerProperties_PlaymatParamsSchema,
+} from '@cockatrice/sockatrice/generated';
 import {
   DEFAULT_PLAYMAT_SETTINGS,
   PlaymatFallbackBehavior,
@@ -20,14 +23,28 @@ const mat = (cardName: string) => ({ cardName, cardProviderId: '', params: PARAM
 
 function setup({ version = '3.1.0 ()', spectator = false } = {}) {
   const player = makePlayerEntry({ properties: makePlayerProperties({ playerId: 1 }) });
+  // A second game where the same deck playmat 'A' is already announced.
+  const inGame2 = makePlayerEntry({
+    properties: makePlayerProperties({
+      playerId: 1,
+      deckHash: 'h2',
+      playmatParams: create(ServerInfo_PlayerProperties_PlaymatParamsSchema, { cardName: 'A' }),
+    }),
+  });
   const { Wrapper, store, webClient } = makeReduxWebClientHookWrapper({
     reducer: combineReducers({ games: games.gamesReducer, server: server.serverReducer }),
     preloadedState: {
-      games: { games: { 1: makeGameEntry({ localPlayerId: 1, spectator, players: { 1: player } }) }, pings: {} },
+      games: {
+        games: {
+          1: makeGameEntry({ localPlayerId: 1, spectator, players: { 1: player } }),
+          2: makeGameEntry({ localPlayerId: 1, players: { 1: inGame2 } }),
+        },
+        pings: {},
+      },
       server: makeServerState({ info: { message: null, name: 'Servatrice', version } }),
     } as any,
   });
-  const hook = renderHook(() => usePlaymatSync(1), { wrapper: Wrapper });
+  const hook = renderHook(({ gameId }) => usePlaymatSync(gameId), { wrapper: Wrapper, initialProps: { gameId: 1 } });
   // What Servatrice sends back for a deck select (and a SetPlaymat echo).
   const announce = (properties: Parameters<typeof create<typeof ServerInfo_PlayerPropertiesSchema>>[1]) =>
     act(() => {
@@ -122,6 +139,19 @@ describe('usePlaymatSync', () => {
     });
     announce({ deckHash: 'h2', playmatParams: { cardName: '' } });
     expect(setPlaymat).toHaveBeenLastCalledWith(1, { playmatParams: expect.objectContaining({ cardName: 'B' }) });
+  });
+
+  it('starts each game from a clean slate', () => {
+    act(() => setPlaymatSettings({ fallbackList: [mat('A')] }));
+    const { hook, setPlaymat, announce } = setup();
+    announce({ deckHash: 'h1', playmatParams: { cardName: '' } });
+    expect(setPlaymat).toHaveBeenLastCalledWith(1, { playmatParams: expect.objectContaining({ cardName: 'A' }) });
+
+    // In game 2 'A' is that deck's own playmat, not an echo of what game 1 was sent,
+    // so deck-only mode keeps it rather than clearing it.
+    hook.rerender({ gameId: 2 });
+    act(() => setPlaymatSettings({ mode: PlaymatMode.DECK_ONLY }));
+    expect(setPlaymat).toHaveBeenCalledTimes(1);
   });
 
   it('does nothing on a server without playmats', () => {
