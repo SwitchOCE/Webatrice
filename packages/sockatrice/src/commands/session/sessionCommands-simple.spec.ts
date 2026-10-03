@@ -20,7 +20,7 @@ import { makeCallbackHelpers } from '../../testing/callback-helpers';
 import { WebClient } from '../../WebClient';
 import { CommandFailure } from '../../types/CommandFailure';
 import { StatusEnum } from '../../types/StatusEnum';
-import { hashPassword, generateSalt, passwordSaltSupported } from '../../utils';
+import { hashPassword, generateSalt, passwordHashAvailable, passwordSaltSupported } from '../../utils';
 
 import { accountEdit } from './accountEdit';
 import { accountImage } from './accountImage';
@@ -199,6 +199,16 @@ describe('accountPassword', () => {
     const cmd = (WebClient.instance.protobuf.sendSessionCommand as Mock).mock.calls[0][1];
     expect(cmd).toMatchObject({ oldPassword: 'old', hashedNewPassword: 'hashed_pw' });
     expect(isFieldSet(cmd, Command_AccountPasswordSchema.field.newPassword)).toBe(false);
+  });
+
+  it('sends the plaintext when the client cannot hash (no Web Crypto outside a secure context)', async () => {
+    WebClient.instance.serverSupportsPasswordHash = true;
+    (passwordHashAvailable as Mock).mockReturnValueOnce(false);
+    await accountPassword('old', 'newpassword');
+    expect(hashPassword).not.toHaveBeenCalled();
+    const cmd = (WebClient.instance.protobuf.sendSessionCommand as Mock).mock.calls[0][1];
+    expect(cmd).toMatchObject({ oldPassword: 'old', newPassword: 'newpassword' });
+    expect(isFieldSet(cmd, Command_AccountPasswordSchema.field.hashedNewPassword)).toBe(false);
   });
 
   it('reports the change to the response layer and the caller on success', async () => {
