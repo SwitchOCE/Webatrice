@@ -6,7 +6,8 @@ import { E2E_MODERATOR, joinFirstRoomAs, registerAndJoinFirstRoom } from '../fix
 // matrix: the user context menu opens from the focused name (Shift+F10, as on
 // desktop), its entries are reached with the arrows, the dialogs they open take
 // focus, keep Tab inside and hand focus back to the name when they close. Only
-// the starting focus is placed directly; everything after it is key presses.
+// the first focus, on the name, is placed directly; everything after it is key
+// presses, and each later step starts from wherever the last one left focus.
 
 test('a moderator warns a user and reads the warning back without a pointer', async ({ newContext }) => {
   test.setTimeout(120_000);
@@ -18,10 +19,11 @@ test('a moderator warns a user and reads the warning back without a pointer', as
 
   const name = moderatorPage.locator('aside').getByRole('link', { name: target.username });
   await expect(name).toBeVisible({ timeout: 15_000 });
+  await name.focus();
 
   // Shift+F10 on the name opens its menu with the first entry focused; ↓ walks to an entry.
   async function chooseFromUserMenu(entry: string): Promise<void> {
-    await name.focus();
+    await expect(name).toBeFocused();
     await keyboard.press('Shift+F10');
     const menu = moderatorPage.getByRole('menu');
     await expect(menu.getByRole('menuitem').first()).toBeFocused();
@@ -48,9 +50,9 @@ test('a moderator warns a user and reads the warning back without a pointer', as
     await keyboard.press('Shift+Tab');
     await expect(warnDialog.locator(':focus')).toHaveCount(1);
   }
+  // Tab on from wherever the Shift+Tab loop ended until OK has focus.
   const ok = warnDialog.getByRole('button', { name: 'OK' });
-  await reasons.focus();
-  for (let step = 0; step < 8 && !(await ok.evaluate((el) => el === document.activeElement)); step++) {
+  for (let step = 0; step < 12 && !(await ok.evaluate((el) => el === document.activeElement)); step++) {
     await keyboard.press('Tab');
   }
   await expect(ok).toBeFocused();
