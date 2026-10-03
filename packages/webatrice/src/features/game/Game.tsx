@@ -350,6 +350,11 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
 
                                 <MoveTopUntilDialog />
 
+                                {/* No live trigger: its only opener is PlayerContextMenu, whose
+                                    openPlayerMenu has no caller, and a started game's hidden
+                                    zones hold no deck list to plan from. Sideboarding moves to
+                                    the pre-game lobby; Phase 8 of the seat refactor deletes this
+                                    dialog with PlayerContextMenu. */}
                                 <SideboardDialog />
 
                                 <RevealCardsDialog />
