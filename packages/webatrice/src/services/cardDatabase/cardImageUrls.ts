@@ -1,6 +1,6 @@
 import { ScryfallImageSize } from '@cockatrice/datatrice';
 
-import { getScryfallUrlByName } from '../ScryfallService';
+import { getScryfallUrlByName } from '../scryfall';
 import type { CardInSet, CardProperties, XmlNode } from '../dexie/types';
 import { expandPictureUrlTemplate } from './pictureUrlTemplates';
 import { sortBySetPreference, type SetPreferenceMap } from './setPriority';

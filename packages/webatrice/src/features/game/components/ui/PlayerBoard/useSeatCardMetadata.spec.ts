@@ -9,7 +9,10 @@ const catalog = vi.hoisted(() => ({
   lookupCards: vi.fn(),
 }));
 
-vi.mock('@app/services', () => catalog);
+vi.mock('@app/services', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@app/services')>()),
+  ...catalog,
+}));
 
 const record = (name: string, extra: Partial<LookupResult> = {}): LookupResult => ({
   found: true,

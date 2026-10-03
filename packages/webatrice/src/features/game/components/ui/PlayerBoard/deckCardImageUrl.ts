@@ -1,3 +1,7 @@
+import { ScryfallImageSize } from '@cockatrice/datatrice';
+
+import { getScryfallUrlByIdOrExactName } from '@app/services';
+
 import type { SeatDeckCard } from './playerBoard.types';
 
 /**
@@ -7,7 +11,5 @@ import type { SeatDeckCard } from './playerBoard.types';
  * as a plain .cod, has an empty `scryfallId`).
  */
 export function deckCardImageUrl(card: Pick<SeatDeckCard, 'scryfallId' | 'name'>): string {
-  return card.scryfallId
-    ? `https://api.scryfall.com/cards/${card.scryfallId}?format=image&version=large`
-    : `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(card.name)}&format=image&version=large`;
+  return getScryfallUrlByIdOrExactName(card, ScryfallImageSize.Large);
 }

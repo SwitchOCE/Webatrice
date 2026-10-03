@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 
+import { ScryfallImageSize } from '@cockatrice/datatrice';
+
 import { CardImage, CardRelatedLinks } from '@app/components';
+import { getScryfallUrlByIdOrExactName } from '@app/services';
 import type { PreviewMode } from '../BattlefieldSidebar/BattlefieldSidebar';
 import type { PreviewCard } from '../ui/CardPreviewContext';
 import { ManaSymbols, SymbolText } from '../ui/ManaSymbols/ManaSymbols';
@@ -86,9 +89,7 @@ export default function CardPreviewPopupPage() {
   const imageUrl = card
     ? card.imageUri
       ? card.imageUri
-      : card.scryfallId
-        ? `https://api.scryfall.com/cards/${card.scryfallId}?format=image&version=png`
-        : `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(card.name)}&format=image&version=png`
+      : getScryfallUrlByIdOrExactName(card, ScryfallImageSize.Png)
     : null;
 
   // Prefer the face matching the hovered card's name — mirrors the
