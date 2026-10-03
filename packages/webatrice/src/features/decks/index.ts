@@ -1,6 +1,9 @@
 export { default as Decks } from './Decks';
 export { clearDecksListCache } from './hooks/useDeckList';
 export { default as DeckEditor } from './DeckEditor';
+export { default as SharedDeck } from './SharedDeck';
+export { default as PublicDecks } from './PublicDecks';
+export { DeckShareLinkRedirect } from './components/DeckShareLinkRedirect';
 export { clearDeckEditorCache } from './deckEditorCache';
 
 // --- Data layer (Piece 1: foundation for MyDecks feature) ---

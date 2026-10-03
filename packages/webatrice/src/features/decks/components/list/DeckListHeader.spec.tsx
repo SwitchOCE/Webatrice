@@ -19,6 +19,25 @@ function renderHeader(overrides: Partial<DeckListHeaderProps> = {}) {
 }
 
 describe('DeckListHeader', () => {
+  it('offers the share-link actions when given', () => {
+    const props = renderHeader({ onOpenShareLink: vi.fn(), onShareLinks: vi.fn() });
+    fireEvent.click(screen.getByRole('button', { name: /OpenShareLink.open/ }));
+    fireEvent.click(screen.getByRole('button', { name: /DeckShareLinks.open/ }));
+    expect(props.onOpenShareLink).toHaveBeenCalled();
+    expect(props.onShareLinks).toHaveBeenCalled();
+  });
+
+  it('disables the share-link actions while disconnected', () => {
+    renderHeader({ isConnected: false, onOpenShareLink: vi.fn(), onShareLinks: vi.fn() });
+    expect(screen.getByRole('button', { name: /OpenShareLink.open/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /DeckShareLinks.open/ })).toBeDisabled();
+  });
+
+  it('has no share-link actions without handlers', () => {
+    renderHeader();
+    expect(screen.queryByRole('button', { name: /OpenShareLink.open/ })).toBeNull();
+  });
+
   it('shows the deck count once loaded', () => {
     renderHeader({ deckCount: 1 });
     expect(screen.getByText('1 deck on this server')).toBeInTheDocument();

@@ -3,7 +3,7 @@ import type { Response_DeckShareCreate, Response_DeckShareList } from '@cockatri
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { serverSlice } from './server.reducer';
-import type { CommandFailedPayload } from './server.interfaces';
+import type { CommandFailedPayload, DeckSharingFailedPayload } from './server.interfaces';
 
 const SignalActions = {
   accountAwaitingActivation: createAction<{ options: WebsocketTypes.PendingActivationContext }>('server/accountAwaitingActivation'),
@@ -49,9 +49,7 @@ const SignalActions = {
   deckShareListed: createAction<{ token: string; share: Response_DeckShareList }>('server/deckShareListed'),
   deckShareDownloaded: createAction<{ token: string; itemId: number; deck: string }>('server/deckShareDownloaded'),
   publicDeckDownloaded: createAction<{ deckId: number; deck: string }>('server/publicDeckDownloaded'),
-  deckSharingFailed: createAction<CommandFailedPayload & { command: WebsocketTypes.DeckSharingCommandName; target: string }>(
-    'server/deckSharingFailed'
-  ),
+  deckSharingFailed: createAction<DeckSharingFailedPayload>('server/deckSharingFailed'),
 };
 
 export const Actions = { ...serverSlice.actions, ...SignalActions };

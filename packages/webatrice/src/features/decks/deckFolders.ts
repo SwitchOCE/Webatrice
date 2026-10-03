@@ -1,4 +1,4 @@
-import type { ServerInfo_DeckStorage_Folder } from '@cockatrice/sockatrice/generated';
+import type { ServerInfo_DeckStorage_File, ServerInfo_DeckStorage_Folder } from '@cockatrice/sockatrice/generated';
 
 import { deckVisibility, flattenFolder, type DeckVisibility, type FlatDeck } from './deckTree';
 
@@ -122,6 +122,28 @@ export function listDeckFolder(root: ServerInfo_DeckStorage_Folder | undefined, 
 export function decksUnderFolder(root: ServerInfo_DeckStorage_Folder | undefined, path: string): FlatDeck[] {
   const folder = findDeckFolder(root, path);
   return folder ? flattenFolder(folder, path, isUnderPublicFolder(root, parentDeckPath(path))) : [];
+}
+
+/** A deck in another user's public tree, with the preview metadata Servatrice keeps for it. */
+export interface PublicDeckEntry {
+  id: number;
+  name: string;
+  /** Folder path in the owner's storage. */
+  path: string;
+  file: ServerInfo_DeckStorage_File;
+}
+
+/** Every deck in a public deck tree (`Command_DeckListOtherUser`), folders flattened into paths. */
+export function listPublicDecks(folder: ServerInfo_DeckStorage_Folder | undefined, path = ''): PublicDeckEntry[] {
+  if (!folder) {
+    return [];
+  }
+  return folder.items.flatMap((item) => {
+    if (item.file && item.id) {
+      return [{ id: item.id, name: item.name || `Deck #${item.id}`, path, file: item.file }];
+    }
+    return item.folder ? listPublicDecks(item.folder, joinDeckPath(path, item.name)) : [];
+  });
 }
 
 /** Every folder path, root first, for picking where a deck goes. */

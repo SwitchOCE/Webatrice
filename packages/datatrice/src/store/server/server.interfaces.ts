@@ -93,6 +93,13 @@ export interface CommandFailedPayload {
   failure?: WebsocketTypes.CommandFailure;
 }
 
+// Payload of `deckSharingFailed`: which deck share or public-deck command
+// failed and what it acted on (see ISessionResponse.deckSharingFailed).
+export interface DeckSharingFailedPayload extends CommandFailedPayload {
+  command: WebsocketTypes.DeckSharingCommandName;
+  target: string;
+}
+
 // `failed` carries the raw Response.ResponseCode, which the UI maps to desktop's
 // UserContextMenu::gamesOfUserReceived message, and `failure` when the server never answered.
 export type GamesOfUserStatus =

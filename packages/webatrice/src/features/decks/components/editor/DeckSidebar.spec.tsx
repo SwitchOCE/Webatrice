@@ -42,6 +42,18 @@ describe('DeckSidebar', () => {
     expect(props.onExport).toHaveBeenCalled();
   });
 
+  it('offers Share deck... only when given a handler', () => {
+    const onShare = vi.fn();
+    renderSidebar({ onShare });
+    fireEvent.click(screen.getByRole('button', { name: /DeckSharing.shareDeck/ }));
+    expect(onShare).toHaveBeenCalled();
+  });
+
+  it('has no share button on a server without share links', () => {
+    renderSidebar();
+    expect(screen.queryByRole('button', { name: /DeckSharing.shareDeck/ })).toBeNull();
+  });
+
   it('shows the totals and the save state', () => {
     renderSidebar({ totalSideboardCount: 2, saveState: 'dirty' });
     expect(screen.getByText('4 cards · 2 sideboard')).toBeInTheDocument();

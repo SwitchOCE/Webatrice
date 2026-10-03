@@ -89,6 +89,15 @@ export const connectedState: Partial<RootState> = {
   },
 };
 
+/** Logged in to a Servatrice 3.1 server, which offers deck sharing and the other 3.1 capabilities. */
+export const connected31State: Partial<RootState> = {
+  ...connectedState,
+  server: {
+    ...(connectedState.server as any),
+    info: { ...(connectedState.server as any).info, version: '3.1.0 (2026-05-08)' },
+  },
+};
+
 export const connectedWithRoomsState: Partial<RootState> = {
   ...connectedState,
   server: {

@@ -7,6 +7,9 @@ export enum RouteEnum {
   GAME = '/game/:gameId',
   DECKS = '/decks',
   DECK = '/deck/:deckId',
+  // A share link's decks, read-only: `?share=<token>&hostname=<host>&port=<port>`.
+  SHARED_DECK = '/decks/shared',
+  PUBLIC_DECKS = '/decks/public/:userName',
   ACCOUNT = '/account',
   ADMINISTRATION = '/administration',
   MODERATION = '/moderation',

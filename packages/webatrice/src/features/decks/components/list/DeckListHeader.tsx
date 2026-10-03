@@ -1,4 +1,5 @@
-import { LayoutGrid, RefreshCw, Rows3, Upload } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { LayoutGrid, Link2, RefreshCw, Rows3, Share2, Upload } from 'lucide-react';
 
 import type { DeckListViewMode } from '../../hooks/useDeckListViewMode';
 import { NewDeckButton } from './DeckListStates';
@@ -13,7 +14,17 @@ export interface DeckListHeaderProps {
   onRefresh: () => void;
   onImport: () => void;
   onCreate: () => void;
+  /** Paste a share link to open (Servatrice 3.1 only). */
+  onOpenShareLink?: () => void;
+  /** Review and revoke the user's share links (Servatrice 3.1 only). */
+  onShareLinks?: () => void;
 }
+
+const SECONDARY_BUTTON_CLASS = [
+  'inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium',
+  'text-text-primary bg-bg-elevated border border-border-strong',
+  'hover:bg-border-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
+].join(' ');
 
 const VIEW_MODES: Array<{ mode: DeckListViewMode; label: string; Icon: typeof LayoutGrid }> = [
   { mode: 'card', label: 'Card view', Icon: LayoutGrid },
@@ -30,7 +41,10 @@ export function DeckListHeader({
   onRefresh,
   onImport,
   onCreate,
+  onOpenShareLink,
+  onShareLinks,
 }: DeckListHeaderProps) {
+  const { t } = useTranslation();
   return (
     <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-border-subtle">
       <div>
@@ -80,16 +94,17 @@ export function DeckListHeader({
         >
           <RefreshCw size={16} />
         </button>
-        <button
-          type="button"
-          onClick={onImport}
-          disabled={!isConnected}
-          className={[
-            'inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium',
-            'text-text-primary bg-bg-elevated border border-border-strong',
-            'hover:bg-border-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
-          ].join(' ')}
-        >
+        {onShareLinks && (
+          <button type="button" onClick={onShareLinks} disabled={!isConnected} className={SECONDARY_BUTTON_CLASS}>
+            <Share2 size={14} /> {t('DeckShareLinks.open')}
+          </button>
+        )}
+        {onOpenShareLink && (
+          <button type="button" onClick={onOpenShareLink} disabled={!isConnected} className={SECONDARY_BUTTON_CLASS}>
+            <Link2 size={14} /> {t('OpenShareLink.open')}
+          </button>
+        )}
+        <button type="button" onClick={onImport} disabled={!isConnected} className={SECONDARY_BUTTON_CLASS}>
           <Upload size={14} /> Import
         </button>
         <NewDeckButton onClick={onCreate} disabled={!isConnected} />

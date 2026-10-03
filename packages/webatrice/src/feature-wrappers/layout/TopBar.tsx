@@ -644,6 +644,11 @@ function detectTransientTab(pathname: string): Tab | null {
   if (staffTab) {
     return { key: staffTab.key, type: 'staff', title: staffTab.title, route: pathname, closeable: true };
   }
+  const publicDecksMatch = matchPath({ path: RouteEnum.PUBLIC_DECKS, end: true }, pathname);
+  if (publicDecksMatch) {
+    const name = publicDecksMatch.params.userName ?? '';
+    return { key: `public-decks:${name}`, type: 'decks', title: `Public decks of ${name}`, route: pathname, closeable: true };
+  }
   const playerMatch = matchPath({ path: RouteEnum.PLAYER, end: true }, pathname);
   if (playerMatch) {
     const name = playerMatch.params.name ?? 'Player';
