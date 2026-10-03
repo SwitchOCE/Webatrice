@@ -6,10 +6,24 @@
       "tab": "Replays"
     },
     "replayTab": "Replay",
+    "tab": {
+      "lobby": "Lobby",
+      "room": "Room {id}",
+      "game": "Game {id}",
+      "deck": "Deck #{id}",
+      "unsavedDeck": "Unsaved deck",
+      "publicDecks": "Public decks of {name}",
+      "myDecks": "My Decks",
+      "player": "Player"
+    },
     "connection": {
       "connected": "Connected",
       "disconnected": "Disconnected",
       "stale": "Server not responding"
+    },
+    "decks": {
+      "button": "Decks",
+      "title": "View your decks"
     },
     "user": {
       "signedIn": "Signed in",
