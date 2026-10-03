@@ -29,6 +29,7 @@ vi.mock('dexie', () => {
     bulkPut: () => Promise.resolve(),
     delete: () => Promise.resolve(),
     bulkDelete: () => Promise.resolve(),
+    count: () => Promise.resolve(0),
     clear: () => Promise.resolve(),
     toArray: () => Promise.resolve([]),
     where: () => ({

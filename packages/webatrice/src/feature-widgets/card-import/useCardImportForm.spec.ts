@@ -15,6 +15,7 @@ const makeIngestResult = (overrides = {}) => ({
   formats: [],
   acceptedFiles: ['cards.xml'],
   skippedFiles: [],
+  files: [{ name: 'cards.xml', xml: '<cockatrice_carddatabase/>' }],
   info: {},
   ...overrides,
 });
@@ -93,8 +94,14 @@ describe('useCardImportForm', () => {
   });
 
   it('handleLocalSave persists the ingest result and advances to finished', async () => {
-    hoisted.ingest.mockResolvedValue(makeIngestResult());
-    hoisted.persist.mockResolvedValue(undefined);
+    const ingest = makeIngestResult();
+    const rebuild = {
+      summary: { cards: 1, sets: 1, tokens: 0, formats: 0 },
+      unknownSets: ['SET'],
+      allNewSetsEnabled: false,
+    };
+    hoisted.ingest.mockResolvedValue(ingest);
+    hoisted.persist.mockResolvedValue(rebuild);
     const { result } = renderHook(() => useCardImportForm());
 
     await act(async () => {
@@ -104,7 +111,8 @@ describe('useCardImportForm', () => {
       await result.current.handleLocalSave();
     });
 
-    expect(hoisted.persist).toHaveBeenCalledTimes(1);
+    expect(hoisted.persist).toHaveBeenCalledWith(ingest);
+    expect(result.current.rebuild).toEqual(rebuild);
     expect(result.current.activeStep).toBe(2);
   });
 
