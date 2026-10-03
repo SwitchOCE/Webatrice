@@ -1,1 +1,2 @@
 - 15:42Z started, read brief/task/review → checkout parity/23-playmats
+- 15:49Z both majors + visibility minor committed/pushed → remaining minors
