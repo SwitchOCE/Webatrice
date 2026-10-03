@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { LoadingState, usePreferences, useSettings } from '@app/hooks';
@@ -109,35 +110,106 @@ function BuiltInControl({ id, control, preferences, disabled, describedBy, onCha
       );
     case 'range':
       return (
-        <span className="settings-range">
-          <input
-            id={id}
-            type="range"
-            min={control.min}
-            max={control.max}
-            step={control.step ?? 1}
-            value={preferences[control.key]}
-            disabled={disabled}
-            aria-describedby={describedBy}
-            onChange={(e) => onChange({ [control.key]: Number(e.target.value) })}
-          />
-          <output htmlFor={id} className="settings-range__value">
-            {preferences[control.key]}
-          </output>
-        </span>
+        <RangeControl
+          id={id}
+          control={control}
+          preferences={preferences}
+          disabled={disabled}
+          describedBy={describedBy}
+          onChange={onChange}
+        />
       );
     case 'color':
       // Stored as desktop does: six hex digits without the '#'.
       return (
-        <input
+        <CommittedInput
           id={id}
           type="color"
           className="settings-color"
           value={`#${preferences[control.key]}`}
           disabled={disabled}
           aria-describedby={describedBy}
-          onChange={(e) => onChange({ [control.key]: e.target.value.replace(/^#/, '').toUpperCase() })}
+          onCommit={(value) => onChange({ [control.key]: value.replace(/^#/, '').toUpperCase() })}
         />
       );
   }
+}
+
+type RangeControlProps = Omit<BuiltInControlProps, 'control'> & {
+  control: Extract<SettingControl, { kind: 'range' }>;
+};
+
+function RangeControl({ id, control, preferences, disabled, describedBy, onChange }: RangeControlProps) {
+  const [shown, setShown] = useState<string | null>(null);
+  const commit = (raw: string) => {
+    setShown(null);
+    const patch = { [control.key]: Number(raw) };
+    onChange(patch);
+    control.onCommit?.({ ...preferences, ...patch });
+  };
+
+  return (
+    <span className="settings-range">
+      <CommittedInput
+        id={id}
+        type="range"
+        min={control.min}
+        max={control.max}
+        step={control.step ?? 1}
+        value={String(preferences[control.key])}
+        disabled={disabled}
+        aria-describedby={describedBy}
+        onDraft={setShown}
+        onCommit={commit}
+      />
+      <output htmlFor={id} className="settings-range__value">
+        {shown ?? preferences[control.key]}
+      </output>
+    </span>
+  );
+}
+
+type CommittedInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> & {
+  value: string;
+  /** Each value the user passes through while dragging. */
+  onDraft?: (value: string) => void;
+  /** The value the user settled on. */
+  onCommit: (value: string) => void;
+};
+
+/**
+ * A range or colour input that saves once the user lets go. The native `change` event fires on
+ * release, on a keyboard step and when the colour picker closes; React's onChange fires on every
+ * drag tick, and saving each one would write the settings row and re-render its readers per tick.
+ */
+function CommittedInput({ value, onDraft, onCommit, ...props }: CommittedInputProps) {
+  const ref = useRef<HTMLInputElement>(null);
+  const [draft, setDraft] = useState<string | null>(null);
+  const commitRef = useRef(onCommit);
+  commitRef.current = onCommit;
+
+  useEffect(() => {
+    const input = ref.current;
+    if (!input) {
+      return;
+    }
+    const commit = () => {
+      setDraft(null);
+      commitRef.current(input.value);
+    };
+    input.addEventListener('change', commit);
+    return () => input.removeEventListener('change', commit);
+  }, []);
+
+  return (
+    <input
+      ref={ref}
+      {...props}
+      value={draft ?? value}
+      onChange={(e) => {
+        setDraft(e.target.value);
+        onDraft?.(e.target.value);
+      }}
+    />
+  );
 }

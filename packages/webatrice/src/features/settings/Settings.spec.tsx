@@ -3,6 +3,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { renderWithProviders, connectedState } from '../../__test-utils__';
 import { getPreferencesSnapshot, getSettings, settingsStore } from '../../hooks/useSettings';
 import { shortcuts } from '../../store';
+import { soundEngine } from '../../services';
 import Settings from './Settings';
 
 const renderSettings = async () => {
@@ -73,16 +74,45 @@ describe('Settings', () => {
 
   it('disables a setting while the preference it depends on is off', async () => {
     await renderSettings();
+    openSection(/Settings\.section\.userInterface/);
+
+    const buddies = /SettingsUserInterface\.buddyConnectNotificationsEnabled\.label/;
+    expect(screen.getByRole('switch', { name: buddies })).toBeEnabled();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('switch', { name: /SettingsUserInterface\.notificationsEnabled\.label/ }));
+    });
+
+    expect(screen.getByRole('switch', { name: buddies })).toBeDisabled();
+  });
+
+  it('keeps the volume and theme editable while sound is off, as desktop does', async () => {
+    await renderSettings();
     openSection(/Settings\.section\.sound/);
 
     expect(getPreferencesSnapshot().soundEnabled).toBe(false);
-    expect(screen.getByLabelText(/SettingsSound\.masterVolume\.label/)).toBeDisabled();
+    expect(screen.getByLabelText(/SettingsSound\.masterVolume\.label/)).toBeEnabled();
+    expect(screen.getByLabelText(/SettingsSound\.soundTheme\.label/)).toBeEnabled();
+  });
+
+  it('saves the volume once the slider is let go, and plays the test sound then', async () => {
+    const test = vi.spyOn(soundEngine, 'test').mockImplementation(() => {});
+    await renderSettings();
+    openSection(/Settings\.section\.sound/);
+    const slider = screen.getByLabelText(/SettingsSound\.masterVolume\.label/);
+
+    fireEvent.input(slider, { target: { value: '40' } });
+    expect(slider).toHaveValue('40');
+    expect(getPreferencesSnapshot().masterVolume).toBe(100);
+    expect(test).not.toHaveBeenCalled();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('switch', { name: /SettingsSound\.soundEnabled\.label/ }));
+      fireEvent.change(slider, { target: { value: '30' } });
     });
 
-    expect(screen.getByLabelText(/SettingsSound\.masterVolume\.label/)).toBeEnabled();
+    expect(getPreferencesSnapshot().masterVolume).toBe(30);
+    expect(test).toHaveBeenCalledWith(expect.objectContaining({ volume: 30 }));
+    test.mockRestore();
   });
 
   it('stores colors as desktop does, as hex without the hash', async () => {
