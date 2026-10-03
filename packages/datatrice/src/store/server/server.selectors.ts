@@ -23,6 +23,7 @@ export const Selectors = {
   getMessage: ({ server }: State) => server.info.message,
   getName: ({ server }: State) => server.info.name,
   getVersion: ({ server }: State) => server.info.version,
+  getSupportsPasswordHash: ({ server }: State) => server.info.supportsPasswordHash,
   getDescription: ({ server }: State) => server.status.description,
   getState: ({ server }: State) => server.status.state,
   getConnectionAttemptMade: ({ server }: State) => server.status.connectionAttemptMade,

@@ -61,12 +61,13 @@ describe('integration: session connection lifecycle', () => {
     const store = createStore();
     const response = attachResponseHandlers(store);
 
-    response.session.updateInfo('Cockatrice Server', '2.11');
+    response.session.updateInfo('Cockatrice Server', '2.11', true);
     response.session.serverMessage('Welcome!');
 
     const state = store.getState();
     expect(server.Selectors.getName(state)).toBe('Cockatrice Server');
     expect(server.Selectors.getVersion(state)).toBe('2.11');
+    expect(server.Selectors.getSupportsPasswordHash(state)).toBe(true);
     expect(server.Selectors.getMessage(state)).toBe('Welcome!');
   });
 
