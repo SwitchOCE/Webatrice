@@ -13,10 +13,15 @@ vi.mock('@app/services', () => ({
     save = mockSave;
     static get = vi.fn(() => Promise.resolve(storedSetting));
   },
+  migrateSetting: vi.fn((row: any) => {
+    row.migrated = true;
+    return row;
+  }),
 }));
 
 vi.mock('@app/types', () => ({
   APP_USER: '*app',
+  PREFERENCE_DEFAULTS: { playToStack: true, soundEnabled: false, messageMacros: [] },
 }));
 
 // Each spec resets module state so the shared store starts fresh.
@@ -94,5 +99,64 @@ describe('useSettings', () => {
     await waitFor(() => {
       expect(mockSave).not.toHaveBeenCalled();
     });
+  });
+
+  test('migrates the stored row on load', async () => {
+    storedSetting = { user: '*app', autoConnect: true, save: mockSave };
+
+    const { result } = renderHook(() => useSettingsModule.useSettings());
+
+    await waitFor(() => {
+      expect(result.current.status).toBe(LoadingState.READY);
+    });
+    expect((result.current.value as any).migrated).toBe(true);
+  });
+});
+
+describe('usePreference / usePreferences', () => {
+  test('return the desktop defaults until the row has loaded, then the stored values', async () => {
+    storedSetting = { user: '*app', playToStack: false, soundEnabled: true, messageMacros: ['gg'], save: mockSave };
+
+    const { result } = renderHook(() => ({
+      playToStack: useSettingsModule.usePreference('playToStack'),
+      macros: useSettingsModule.useMessageMacros(),
+    }));
+
+    expect(result.current.playToStack).toBe(true);
+    expect(result.current.macros).toEqual([]);
+
+    await waitFor(() => {
+      expect(result.current.playToStack).toBe(false);
+    });
+    expect(result.current.macros).toEqual(['gg']);
+  });
+
+  test('re-render when a preference is updated', async () => {
+    storedSetting = { user: '*app', soundEnabled: false, save: mockSave };
+
+    const { result } = renderHook(() => ({
+      settings: useSettingsModule.useSettings(),
+      soundEnabled: useSettingsModule.usePreference('soundEnabled'),
+    }));
+    await waitFor(() => {
+      expect(result.current.settings.status).toBe(LoadingState.READY);
+    });
+
+    await act(async () => {
+      await result.current.settings.update({ soundEnabled: true });
+    });
+
+    expect(result.current.soundEnabled).toBe(true);
+  });
+});
+
+describe('getPreferencesSnapshot', () => {
+  test('returns the defaults before load and the live row afterwards', async () => {
+    expect(useSettingsModule.getPreferencesSnapshot().soundEnabled).toBe(false);
+
+    storedSetting = { user: '*app', soundEnabled: true, save: mockSave };
+    await useSettingsModule.getSettings();
+
+    expect(useSettingsModule.getPreferencesSnapshot().soundEnabled).toBe(true);
   });
 });
