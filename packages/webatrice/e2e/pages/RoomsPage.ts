@@ -8,7 +8,7 @@ import { topBarTab } from './TopBar';
 // server view rendered.
 //
 // The Tailwind rewrite replaced the MUI `LeftNav` + rooms table +
-// GameSelector with:
+// old GameSelector with:
 //   • TopBar   (a fixed top strip; its tabs are links in a nav, and the
 //               pinned "Lobby" tab jumps back to /server)
 //   • RoomsList (Tailwind <table> under /server — column headers
