@@ -2,3 +2,4 @@
 - 15:30Z 01: fixed both majors, pushed claude/parity-01-lint → minors (ShellLifecycle, LoginForm callbacks)
 - 15:39Z 02: both majors fixed + pushed claude/parity-02-hand-reorder → full gate on 02, PR files
 - 15:41Z 01 gate green; PR files drafted → waiting on 02 gate
+- 15:42Z DONE. 01: 3fd036e → a3f242c (claude/parity-01-lint). 02: a5fbad4 → d3909f3 (claude/parity-02-hand-reorder, rebased onto fixed 01). Full gate green on both; e2e not run (no new server flows).

@@ -26,7 +26,7 @@ n/a.
 
 ## Testing
 All run from the worktree root:
-Final tip, from the repo root:
+Final tip `a3f242c`, from the repo root:
 - `npx turbo run typecheck --concurrency=1`: passes (5/5 tasks).
 - `npm run lint`: passes for all three packages, with 0 errors and 0 warnings in Webatrice (now enforced by `--max-warnings 0`; a probe file with a missing dep makes it exit 1).
 - `npm test`:
