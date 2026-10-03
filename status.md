@@ -1,1 +1,2 @@
 - 13:57Z started; read brief+task → set up branch 18
+- 14:05Z item1 (optional deck update callbacks) pushed b37db92 → item2 legality
