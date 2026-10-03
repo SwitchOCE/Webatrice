@@ -1,1 +1,2 @@
 - 13:57Z setup done (base 8fca043; docs/ absent on base, will create) → reading inputs
+- 13:59Z inputs read; branch DAG computed → verifying desktop claims
