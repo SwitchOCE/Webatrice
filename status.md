@@ -1,1 +1,2 @@
 - 18:39Z started f05; read brief → reading rv8
+- 18:44Z read rv8 + code; plan: split f77215a (A pure move keeps one-pile-view + per-view Esc listeners; B feat), then tip fixes 1-3 + dead-port cleanup → building A
