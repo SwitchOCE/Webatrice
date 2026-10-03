@@ -237,7 +237,9 @@ describe('GameBoardCell — deck editor link (Cockatrice deck document)', () => 
 describe('GameBoardCell — move command adapter', () => {
   it('sends hidden-zone moves straight to the server without an optimistic dispatch', () => {
     const { props, game, store } = renderCell();
-    const params = {
+    act(() => props().onMoveCards(ZoneName.DECK, [0], { zone: ZoneName.HAND }));
+
+    expect(game.moveCard).toHaveBeenCalledWith(1, {
       startPlayerId: 1,
       startZone: ZoneName.DECK,
       cardsToMove: { card: [{ cardId: 0 }] },
@@ -245,10 +247,7 @@ describe('GameBoardCell — move command adapter', () => {
       targetZone: ZoneName.HAND,
       x: 0,
       y: 0,
-    };
-    act(() => props().onMoveCard(params));
-
-    expect(game.moveCard).toHaveBeenCalledWith(1, params);
+    });
     expect(zone(store, 1, ZoneName.HAND).order).toEqual([30]);
   });
 
@@ -263,7 +262,7 @@ describe('GameBoardCell — move command adapter', () => {
       x: 0,
       y: 0,
     };
-    act(() => props().onMoveCard(params));
+    act(() => props().onMoveCards(ZoneName.HAND, [30], { zone: ZoneName.GRAVE }));
 
     expect(zone(store, 1, ZoneName.GRAVE).order).toEqual([40, 30]);
     expect(zone(store, 1, ZoneName.HAND).order).toEqual([]);
@@ -280,32 +279,9 @@ describe('GameBoardCell — move command adapter', () => {
     const { props, game } = renderCell(OWN_CELL, {
       spec: { ...SPEC, seats: [{ ...SPEC.seats[0], table: [...fullColumn, makeCard({ id: 64, name: 'R', x: 6, y: 0 })] }, SPEC.seats[1]] },
     });
-    act(() => props().onMoveCard({
-      startPlayerId: 1,
-      startZone: ZoneName.DECK,
-      cardsToMove: { card: [{ cardId: 0 }] },
-      targetPlayerId: 1,
-      targetZone: ZoneName.TABLE,
-      x: 3,
-      y: 0,
-    }));
+    act(() => props().onMoveCards(ZoneName.DECK, [0], { zone: ZoneName.TABLE, index: 3 }));
     // Column 1 is full; column 2 has sub-slot 0 taken → x = 2 * 3 + 1.
     expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({ x: 7, y: 0 });
-  });
-
-  it('resolves a gift onto another player\'s table against that player\'s board', () => {
-    const { props, game } = renderCell();
-    act(() => props().onMoveCard({
-      startPlayerId: 1,
-      startZone: ZoneName.DECK,
-      cardsToMove: { card: [{ cardId: 0 }] },
-      targetPlayerId: 2,
-      targetZone: ZoneName.TABLE,
-      x: 0,
-      y: 0,
-    }));
-    // Bear holds P2's column 0 sub-slot 0.
-    expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({ targetPlayerId: 2, x: 1, y: 0 });
   });
 });
 

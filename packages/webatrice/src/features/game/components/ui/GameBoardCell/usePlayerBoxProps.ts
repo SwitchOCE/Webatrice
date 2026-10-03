@@ -81,7 +81,7 @@ export function usePlayerBoxCommandProps(
   const { zone, card, counter, target } = commands;
 
   const zoneProps = useMemo(() => zone && ({
-    onMoveCard: zone.move,
+    onMoveCards: zone.moveCards,
     onDrawCards: zone.draw,
     onUndoDraw: zone.undoDraw,
     onMulligan: zone.mulligan,
