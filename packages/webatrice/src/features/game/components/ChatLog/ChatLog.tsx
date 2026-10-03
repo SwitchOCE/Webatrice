@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { classifyLogTone, type LogSegment, type LogTone } from '@cockatrice/datatrice';
 
+import { renderGameLinks } from '@app/components';
 import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 
 import { useGameId } from '../ui/GameIdContext';
@@ -212,7 +213,7 @@ export default function ChatLog() {
                 </span>
               )}
               <span className="font-semibold text-accent">{name}:</span>{' '}
-              <span>{m.message}</span>
+              <span>{renderGameLinks(m.message)}</span>
             </div>
           );
         })}

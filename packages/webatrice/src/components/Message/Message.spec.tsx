@@ -31,4 +31,12 @@ describe('Message', () => {
     const { container } = renderWithProviders(<Message message={{ message: 'alice: hello' }} />);
     expect(container.querySelector('time')).not.toBeInTheDocument();
   });
+
+  it('renders a desktop game link as a join button', () => {
+    const url = 'cockatrice://joingame?hostname=h&port=4747&roomid=1&gameid=7';
+    renderWithProviders(<Message message={{ message: `alice: Join my game (#7): ${url}` }} />);
+
+    expect(screen.getByRole('button', { name: /GameLink\.anchor\.withId/ })).toHaveAttribute('title', url);
+    expect(screen.getByText(/Join my game \(#7\):/)).toBeInTheDocument();
+  });
 });

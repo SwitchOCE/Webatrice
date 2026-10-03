@@ -4,6 +4,8 @@ import type { ReactNode } from 'react';
 import { CALLOUT_BOUNDARY_REGEX, CARD_CALLOUT_REGEX, MENTION_REGEX, RouteEnum, URL_REGEX } from '@app/types';
 import UserActionsMenu from '../UserDisplay/UserActionsMenu';
 import { useUserDisplay } from '../UserDisplay/useUserDisplay';
+import { containsGameLink } from '@app/utils';
+import { renderGameLinks } from '../GameLink/GameLinkButton';
 import CardCallout from './CardCallout';
 import { useParsedMessage } from './useMessage';
 import './Message.css';
@@ -100,6 +102,11 @@ function parseChunks(chunk: string, index: number): ReactNode {
   if (chunk.match(CARD_CALLOUT_REGEX)) {
     const name = chunk.replace(CALLOUT_BOUNDARY_REGEX, '').trim();
     return (<CardCallout name={name} key={index}></CardCallout>);
+  }
+
+  // Desktop renders cockatrice://joingame words as join anchors (ChatView::appendGameLinkTag).
+  if (containsGameLink(chunk)) {
+    return <span key={index}>{renderGameLinks(chunk)}</span>;
   }
 
   if (chunk.match(URL_REGEX)) {

@@ -1,0 +1,53 @@
+import { useTranslation } from 'react-i18next';
+import { Swords } from 'lucide-react';
+import type { ReactNode } from 'react';
+
+import { GAME_LINK_REGEX, containsGameLink, parseGameJoinLink } from '@app/utils';
+
+import { requestGameLinkJoin } from './gameLinkRequests';
+
+interface GameLinkButtonProps {
+  url: string;
+}
+
+/**
+ * A `cockatrice://joingame` link inside a chat message, labelled like
+ * desktop's chat anchor (ChatView::appendGameLinkTag). Clicking hands the
+ * link to GameLinkJoinHost, which confirms and joins.
+ */
+export function GameLinkButton({ url }: GameLinkButtonProps) {
+  const { t } = useTranslation();
+  const parsed = parseGameJoinLink(url);
+  let label = t('GameLink.anchor.plain');
+  if (parsed.ok && parsed.link.gameId > 0) {
+    const { gameId, hostname, description } = parsed.link;
+    label = description
+      ? t('GameLink.anchor.withDescription', { description, gameId, hostname })
+      : t('GameLink.anchor.withId', { gameId, hostname });
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => requestGameLinkJoin(url)}
+      title={url}
+      className={[
+        'inline-flex items-center gap-1 px-1.5 rounded align-baseline font-semibold',
+        'text-accent bg-accent/10 hover:bg-accent/20 transition-colors',
+      ].join(' ')}
+    >
+      <Swords size={12} className="shrink-0" />
+      {label}
+    </button>
+  );
+}
+
+/** Splits chat text into plain strings and game-link buttons. */
+export function renderGameLinks(text: string): ReactNode[] {
+  if (!containsGameLink(text)) {
+    return [text];
+  }
+  return text
+    .split(GAME_LINK_REGEX)
+    .filter((part) => part !== '')
+    .map((part, index) => (containsGameLink(part) ? <GameLinkButton key={index} url={part} /> : part));
+}

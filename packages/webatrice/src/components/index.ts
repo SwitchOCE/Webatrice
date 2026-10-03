@@ -28,3 +28,4 @@ export { default as DeveloperGuard } from './Guard/DeveloperGuard';
 
 export { default as Toast, useToast, usePushToast, ToastProvider } from './Toast';
 export { ErrorBoundary, ErrorFallback, RouteErrorBoundary } from './ErrorBoundary';
+export { GameLinkButton, GameLinkJoinHost, renderGameLinks, requestGameLinkJoin } from './GameLink';

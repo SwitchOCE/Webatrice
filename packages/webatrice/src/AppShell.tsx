@@ -4,7 +4,7 @@ import Routes from './AppShellRoutes';
 
 import './AppShell.css';
 
-import { RouteErrorBoundary, ToastProvider } from '@app/components';
+import { GameLinkJoinHost, RouteErrorBoundary, ToastProvider } from '@app/components';
 import { useSyncLocaleToStore } from '@app/hooks';
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 import { ModerationProvider } from '@app/feature-widgets/moderation';
@@ -51,6 +51,8 @@ function AppShell() {
                *  useLocation work; inside ToastProvider so pushToast
                *  is available. */}
               <PrivateMessageNotifier />
+              {/* Runs the join flow for game links clicked in any chat. */}
+              <GameLinkJoinHost />
               {/* Error dialogs for commands whose UI has moved on before the
                *  server answers (join room, create game, deck upload). Renders
                *  nothing until one fails. */}

@@ -4,6 +4,7 @@ import { MessageSquare, Send } from 'lucide-react';
 
 import { server, type PrivateConversationEntry } from '@cockatrice/datatrice';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
+import { renderGameLinks } from '@app/components';
 
 interface PrivateChatProps {
   peerName: string;
@@ -119,7 +120,7 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
                     : 'bg-bg-elevated text-text-primary border border-border-subtle',
                 ].join(' ')}
               >
-                {m.message}
+                {renderGameLinks(m.message)}
               </div>
             </div>
           );
