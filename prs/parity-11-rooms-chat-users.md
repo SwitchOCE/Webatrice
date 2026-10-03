@@ -41,29 +41,23 @@ PLAT-017, PLAT-018, PLAT-021, PLAT-022, PLAT-025, LONG-022. PLAT-023 (desktop no
 
 ## Testing
 
-Run on the rebased tip after `git submodule update` (vendor at `add65ca`) and `npm ci`, with Vitest capped at `--maxWorkers=2` because the shared host is short on memory.
+Run on the final tip `0491a03` after `git submodule update` and `npm ci`, with Vitest capped at `--maxWorkers=2`.
 
-- `npx turbo run typecheck --concurrency=1`: 5/5 tasks pass.
-- `npx turbo run lint --concurrency=1`: 3/3 tasks pass, 0 errors.
+- Every commit in the rewritten range passes `npx turbo run typecheck --concurrency=1` (5/5), checked with `git rebase -x`. The fix commits were typechecked as part of the tip gate.
+- `npm run lint`: 3/3, 0 errors.
 - Unit tests:
-  - sockatrice: 763 passed (39 files).
+  - sockatrice: 771 passed (39 files).
   - datatrice: 1176 passed (27 files).
-  - webatrice: 1402 passed, 2 skipped (190 files + 2 skipped; both skips were already there).
+  - webatrice: 1409 passed, 2 skipped (190 files + 2 skipped; both skips were already there).
 - Integration tests:
   - sockatrice: 159 passed (18 files).
   - datatrice: 132 passed (8 files).
-  - webatrice: 156 passed, 2 skipped (35 files + 2 skipped).
-- Some steps aborted with V8 out-of-memory (`Zone Allocation failed`, `DataCloneError`) while other agents loaded the host. The gate script waits for free memory and retries only those aborts, never a test failure.
-- Only the branch tip was gated in full. Commit `c1e3fa8` (shared join flow) has one spec type error, which `900ed97` fixes; it existed before the rebase as well.
-- New integration coverage:
-  - Websocket round trips for a rejected, auto-joined and healed `Command_JoinRoom`, flood on `Command_RoomSay`, ignored-sender filtering (live and history), and each `Command_Message` rejection.
-  - Feature round trips for the lobby join-error dialog, a PM to a partner who went offline (notice, draft restored, presence), and Show games (list, password join, routing, ignored error).
-  - Unit specs cover every transport-failure path, the join de-duplication, and the slot composition (`UserGamesProvider.spec.tsx`). One of those slot specs checks that the selector survives the row unmounting.
-- E2E: run under the e2e mutex against Servatrice 3.0.0 (default image) on the rebased tip. `e2e/specs/user-games-and-private-chat.spec.ts` and `login-join-room.spec.ts` passed **9/9** in 1.7 min across chromium, firefox and webkit, and Playwright exited 0.
-  - Show games: the user-menu entry, now in the slot, lists another user's game and joins it, and the dialog closes.
-  - Private chat to a partner who goes offline: "has left the server", the Offline state, the composer explains, Send is disabled, and the draft is kept.
-  - Containers and volumes were torn down and the lock was released.
-  - Before the rebase, the full suite passed 24/24. It was not repeated in full after the rebase.
+  - webatrice: 157 passed, 2 skipped (35 files + 2 skipped). This includes the new disconnect test in `integration/src/websocket/rooms.spec.ts`.
+- `npm run test:e2e -w @cockatrice/sockatrice`: 5/5 (4 files), Servatrice 3.0.0.
+- `npm run test:e2e -w @cockatrice/webatrice`, Servatrice 3.0.0, on the full suite: **26/30** passed.
+  - chromium 8/10, firefox 9/10, webkit 9/10. WebKit first needed `playwright install-deps webkit`, then I re-ran it as its own project.
+  - All of these passed on every browser: `account-self-service`, `user-games-and-private-chat` (both tests), `login-join-room`, `game-create-and-play`, `spectator`, `moderation-room-user` and `connection-stability`.
+  - Four tests failed: `app-boots` on chromium (`ERR_CERT_AUTHORITY_INVALID` from an external host through the egress proxy) and `bulk-card-actions` on all three browsers. I ran those two specs on the original PR tip `a6642c3` and they fail the same way there (4 failed, 2 passed), so this branch did not cause them. The hermetic e2e fixture isn't in this base.
 
 ## Notes for reviewers
 

@@ -5,3 +5,4 @@
 - 15:54Z PR11: join-error owner (ef71ebe), stale failures guard (b90dd6d) pushed → keyboard access
 - 15:56Z PR11 keyboard grid (0491a03) pushed → full gate + webatrice e2e on PR11 tip
 - 16:06Z PR11 gate green (tc 5/5, lint 3/3, unit 771/1176/1409, int 159/132/157), sockatrice e2e 5/5; webatrice e2e running → finish PR files
+- 16:20Z DONE. Old→new tips: parity/10-account-auth 4e0ca01 → claude/parity-10-account-auth 4119363; parity/11-rooms-chat-users a6642c3 → claude/parity-11-rooms-chat-users 0491a03. Gate green on both; webatrice e2e 26/30 (4 fail identically on a6642c3: app-boots chromium cert, bulk-card-actions ×3).
