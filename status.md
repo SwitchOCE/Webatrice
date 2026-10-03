@@ -4,3 +4,4 @@
 - 16:28Z §7 reveal-to pushed → §8 hide
 - 16:35Z §8 hide pushed → §4 deck in editor
 - 16:42Z §4 deck-in-editor draft pushed → §6 tally
+- 16:50Z §6 tally + count label pushed → §5 custom zones
