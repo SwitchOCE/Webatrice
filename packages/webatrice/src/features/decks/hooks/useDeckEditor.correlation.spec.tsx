@@ -1,5 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { combineReducers } from '@reduxjs/toolkit';
+import type { ReactNode } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 import { server } from '@cockatrice/datatrice';
 import { endSession } from '@app/services/session';
 import { rootReducerMap, type RootState } from '@app/store';
@@ -20,12 +22,16 @@ function setup() {
   const { Wrapper, store } = makeReduxWebClientHookWrapper<RootState>({
     reducer: combineReducers(rootReducerMap), preloadedState: connectedState as RootState, webClient,
   });
-  const hook = renderHook(({ id }) => useDeckEditor(id), { wrapper: Wrapper, initialProps: { id: 7 } });
+  // The editor navigates once a draft is stored, so it needs a router.
+  const RoutedWrapper = ({ children }: { children: ReactNode }) => (
+    <MemoryRouter><Wrapper>{children}</Wrapper></MemoryRouter>
+  );
+  const hook = renderHook(({ id }) => useDeckEditor(id), { wrapper: RoutedWrapper, initialProps: { id: 7 } });
   const requestId = () => vi.mocked(webClient.request.session.deckDownload).mock.calls.at(-1)![1];
   const success = (id: number, name: string, request = requestId()) => {
     act(() => store.dispatch(server.Actions.deckDownloaded({ deckId: id, deck: emptyCod(name, 'modern'), requestId: request })));
   };
-  return { ...hook, Wrapper, store, webClient, requestId, success };
+  return { ...hook, Wrapper: RoutedWrapper, store, webClient, requestId, success };
 }
 beforeEach(() => {
   clearDeckEditorCache();

@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useStore } from 'react-redux';
 
+import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
+import { useReduxEffect } from '@app/hooks';
 import type { RootState } from '@app/store';
 
+import { deckColorIdentity, deckSaveSignature, serializeDeckForSave } from '../deckPersistence';
 import { getDeckSaveRegistry, type SaveState } from '../deckSaveRegistry';
 import type { HydratedDeck } from '../types';
 
@@ -24,18 +27,34 @@ export interface DeckAutosave {
   savedSignature: () => string | null;
 }
 
-/** Debounce belongs to the editor; request settlement belongs to its per-deck registry. */
+/** An unsaved draft's autosave (`deckId` null): its first save stores it. */
+export interface DraftAutosave {
+  /** The draft's first save was stored as deck `deckId`, holding `signature`. */
+  onStored: (deckId: number, signature: string) => void;
+}
+
+/**
+ * Debounce belongs to the editor; stored saves settle in the per-deck registry.
+ * A draft keeps its first upload local until the server assigns it a deck id.
+ */
 export function useDeckAutosave(
   deckId: number | null,
   readDeck: () => HydratedDeck | null,
   initialSavedSignature: string | null,
+  draft?: DraftAutosave,
 ): DeckAutosave {
   const webClient = useWebClient();
   const store = useStore<RootState>();
   const registry = useMemo(() => getDeckSaveRegistry(store, webClient), [store, webClient]);
   const getSnapshot = useCallback(() => registry.getSnapshot(deckId), [registry, deckId]);
-  const { saveState } = useSyncExternalStore(registry.subscribe, getSnapshot);
+  const { saveState: storedSaveState } = useSyncExternalStore(registry.subscribe, getSnapshot);
   const saveTimerRef = useRef<number | null>(null);
+  const [draftSaveState, setDraftSaveState] = useState<SaveState>('idle');
+  const draftSavedSignatureRef = useRef<string | null>(deckId == null ? initialSavedSignature : null);
+  // Only the matching DECK_UPLOAD / DECK_UPLOAD_FAILED may settle this save.
+  const draftUploadRef = useRef<{ signature: string; requestId: string } | null>(null);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
 
   useEffect(() => {
     registry.connect();
@@ -46,16 +65,62 @@ export function useDeckAutosave(
 
   const persistNow = useCallback(() => {
     const current = readDeck();
-    if (current && deckId != null) {
-      registry.save(deckId, current);
-    }
-  }, [registry, deckId, readDeck]);
-
-  const scheduleSave = useCallback(() => {
-    if (deckId == null) {
+    if (!current) {
       return;
     }
-    registry.markDirty(deckId);
+    if (deckId != null) {
+      registry.save(deckId, current);
+      return;
+    }
+    if (!draftRef.current) {
+      return;
+    }
+    const signature = deckSaveSignature(current);
+    if (draftUploadRef.current == null && signature !== draftSavedSignatureRef.current) {
+      const requestId = crypto.randomUUID();
+      draftUploadRef.current = { signature, requestId };
+      setDraftSaveState('saving');
+      webClient.request.session.deckUpload('', 0, serializeDeckForSave(current), undefined, deckColorIdentity(current.cards), requestId);
+    }
+  }, [registry, deckId, webClient, readDeck]);
+
+  // A draft's first save came back as a new stored deck.
+  useReduxEffect<{ path: string; treeItem: { id: number }; requestId?: string }>(
+    ({ payload }) => {
+      const upload = draftUploadRef.current;
+      if (upload == null || deckId != null || payload.requestId !== upload.requestId) {
+        return;
+      }
+      const { signature } = upload;
+      draftUploadRef.current = null;
+      draftSavedSignatureRef.current = signature;
+      setDraftSaveState('saved');
+      registry.initialize(payload.treeItem.id, signature);
+      draftRef.current?.onStored(payload.treeItem.id, signature);
+    },
+    server.Types.DECK_UPLOAD,
+    [deckId, registry],
+  );
+  useReduxEffect<{ requestId?: string }>(
+    ({ payload }) => {
+      const upload = draftUploadRef.current;
+      if (deckId == null && upload != null && payload.requestId === upload.requestId) {
+        draftUploadRef.current = null;
+        setDraftSaveState('failed');
+      }
+    },
+    server.Types.DECK_UPLOAD_FAILED,
+    [deckId],
+  );
+
+  const scheduleSave = useCallback(() => {
+    if (deckId != null) {
+      registry.markDirty(deckId);
+    } else if (draftRef.current) {
+      setDraftSaveState('dirty');
+    } else {
+      return;
+    }
     if (saveTimerRef.current != null) {
       window.clearTimeout(saveTimerRef.current);
     }
@@ -79,14 +144,23 @@ export function useDeckAutosave(
   const markSaved = useCallback((signature: string) => {
     if (deckId != null) {
       registry.markSaved(deckId, signature);
+    } else {
+      draftSavedSignatureRef.current = signature;
+      setDraftSaveState('idle');
     }
   }, [registry, deckId]);
   const resetSaved = useCallback(() => {
     if (deckId != null) {
       registry.markSaved(deckId, null);
+    } else {
+      draftSavedSignatureRef.current = null;
+      setDraftSaveState('idle');
     }
   }, [registry, deckId]);
-  const savedSignature = useCallback(() => registry.getSnapshot(deckId).savedSignature, [registry, deckId]);
+  const savedSignature = useCallback(() => deckId == null
+    ? draftSavedSignatureRef.current
+    : registry.getSnapshot(deckId).savedSignature, [registry, deckId]);
+  const saveState = deckId == null ? draftSaveState : storedSaveState;
 
   return { saveState, scheduleSave, flushSave, markSaved, resetSaved, savedSignature };
 }
