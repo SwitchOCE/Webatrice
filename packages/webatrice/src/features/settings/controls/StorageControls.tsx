@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ShieldCheck, Trash2 } from 'lucide-react';
 
 import { ConfirmDialog } from '@app/dialogs';
+import { refreshCardDataPreferences } from '@app/hooks';
 import {
   ALL_STORES,
   CARD_DATA_STORES,
@@ -178,13 +179,22 @@ export function ClearScryfallCacheControl(props: CustomControlProps) {
   );
 }
 
+/**
+ * Deletes the card database, then reloads the card-data preferences so set names and the deck
+ * editor's lookup cache stop serving the deleted cards.
+ */
+async function deleteCardData(): Promise<void> {
+  await clearCardData();
+  await refreshCardDataPreferences();
+}
+
 /** The imported card database; only a fresh import brings it back, so it asks first. */
 export function ClearCardDataControl(props: CustomControlProps) {
   return (
     <ClearStoresControl
       {...props}
       stores={CARD_DATA_STORES}
-      clear={clearCardData}
+      clear={deleteCardData}
       keyPrefix="SettingsStorage.cardData"
       confirm
     />
