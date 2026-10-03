@@ -24,6 +24,9 @@
       "passwordChangeRequired": "An administrator has reset your password. The server will not log you in until you choose a new one: use Forgot Password to set it, then log in with the new password.",
       "passwordChangeRequiredAction": "Reset password",
       "serverFull": "The server has reached its maximum number of users. Please check back later."
+    },
+    "showcase": {
+      "avatarAlt": "Stock Player"
     }
   }
 }

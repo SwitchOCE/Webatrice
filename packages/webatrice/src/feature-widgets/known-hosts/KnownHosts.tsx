@@ -222,8 +222,8 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
                       'p-1 rounded text-text-muted hover:text-text-primary',
                       'hover:bg-border-subtle opacity-0 group-hover:opacity-100 transition-opacity',
                     ].join(' ')}
-                    title="Edit host"
-                    aria-label="Edit host"
+                    title={t('KnownHosts.edit')}
+                    aria-label={t('KnownHosts.edit')}
                   >
                     <Pencil size={12} />
                   </button>

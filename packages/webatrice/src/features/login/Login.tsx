@@ -27,6 +27,9 @@ import './Login.css';
 // blue login card. Palette is now driven entirely by Login.css using
 // our fancy tokens.
 
+// Sample player names on the showcase cards: names, not UI text.
+const SHOWCASE_PLAYERS = ['1mrlee', 'CyberX', 'Gamer69'];
+
 const Login = () => {
   const { t } = useTranslation();
   const {
@@ -64,7 +67,7 @@ const Login = () => {
           <Paper className="login-content">
             <div className="login-content__form">
               <div className="login-content__header">
-                <img src={Images.Logo} alt="logo" />
+                <img src={Images.Logo} alt={t('Common.label.logo')} />
                 <span>COCKATRICE</span>
               </div>
               <Typography variant="h1">{t('Login.header.title')}</Typography>
@@ -126,20 +129,20 @@ const Login = () => {
                 <div className="login-content__description-cards">
                   <div className="login-content__description-cards__card leftCard">
                     <div className="login-content__description-cards__card-wrapper">
-                      <img src={Images.Faces.face1} alt='Stock Player' />
-                      <span>1mrlee</span>
+                      <img src={Images.Faces.face1} alt={t('Login.showcase.avatarAlt')} />
+                      <span>{SHOWCASE_PLAYERS[0]}</span>
                     </div>
                   </div>
                   <div className="login-content__description-cards__card rightCard">
                     <div className="login-content__description-cards__card-wrapper">
-                      <img src={Images.Faces.face2} alt='Stock Player' />
-                      <span>CyberX</span>
+                      <img src={Images.Faces.face2} alt={t('Login.showcase.avatarAlt')} />
+                      <span>{SHOWCASE_PLAYERS[1]}</span>
                     </div>
                   </div>
                   <div className="login-content__description-cards__card topCard">
                     <div className="login-content__description-cards__card-wrapper">
-                      <img src={Images.Faces.face3} alt='Stock Player' />
-                      <span>Gamer69</span>
+                      <img src={Images.Faces.face3} alt={t('Login.showcase.avatarAlt')} />
+                      <span>{SHOWCASE_PLAYERS[2]}</span>
                     </div>
                   </div>
                 </div>

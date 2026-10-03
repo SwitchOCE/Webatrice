@@ -15,6 +15,7 @@
         "noWebSocket": "Desktop client only: no WebSocket port",
         "noSecureWebSocket": "Desktop client only: no secure WebSocket port"
       }
-    }
+    },
+    "edit": "Edit host"
   }
 }

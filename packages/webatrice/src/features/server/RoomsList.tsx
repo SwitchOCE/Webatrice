@@ -65,9 +65,9 @@ export default function RoomsList({ rooms, joinedRooms }: RoomsListProps) {
     <section className="flex h-full flex-col bg-bg-surface border border-border-subtle rounded-lg overflow-hidden">
       <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-border-subtle">
         <div>
-          <h2 className="font-modern text-lg font-semibold text-text-primary">Rooms</h2>
+          <h2 className="font-modern text-lg font-semibold text-text-primary">{t('RoomsList.title')}</h2>
           <p className="text-xs text-text-muted mt-0.5 tabular-nums">
-            {roomList.length} available
+            {t('RoomsList.available', { count: roomList.length })}
           </p>
         </div>
       </div>
@@ -77,19 +77,19 @@ export default function RoomsList({ rooms, joinedRooms }: RoomsListProps) {
           <thead className="sticky top-0 z-10 bg-bg-elevated">
             <tr>
               <th className={HEADER_CELL_CLASS}>
-                Name
+                {t('RoomsList.column.name')}
               </th>
               <th className={HEADER_CELL_CLASS}>
-                Description
+                {t('RoomsList.column.description')}
               </th>
               <th className={`${HEADER_CELL_CLASS} w-32`}>
-                Permissions
+                {t('RoomsList.column.permissions')}
               </th>
               <th className={`${HEADER_CELL_CLASS} w-20 tabular-nums`}>
-                Players
+                {t('RoomsList.column.players')}
               </th>
               <th className={`${HEADER_CELL_CLASS} w-20 tabular-nums`}>
-                Games
+                {t('RoomsList.column.games')}
               </th>
               <th className="border-b border-border-subtle w-28" aria-hidden />
             </tr>
@@ -98,7 +98,7 @@ export default function RoomsList({ rooms, joinedRooms }: RoomsListProps) {
             {roomList.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-sm text-text-muted">
-                  No rooms available.
+                  {t('RoomsList.empty')}
                 </td>
               </tr>
             )}
@@ -138,11 +138,11 @@ export default function RoomsList({ rooms, joinedRooms }: RoomsListProps) {
                     >
                       {joined ? (
                         <>
-                          <ArrowRight size={14} /> Open
+                          <ArrowRight size={14} /> {t('RoomsList.open')}
                         </>
                       ) : (
                         <>
-                          <LogIn size={14} /> Join
+                          <LogIn size={14} /> {t('Common.action.join')}
                         </>
                       )}
                     </button>

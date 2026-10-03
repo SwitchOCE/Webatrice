@@ -35,11 +35,11 @@ describe('Server', () => {
     // Rooms table is inside RoomsList's <table>; scope to it so we don't
     // collide with any tab labels for the same room name in TopBar.
     const roomsTable = within(container.querySelector('table') as HTMLElement);
-    expect(roomsTable.getByText('Name')).toBeInTheDocument();
+    expect(roomsTable.getByText('RoomsList.column.name')).toBeInTheDocument();
     expect(roomsTable.getByText('Main Room')).toBeInTheDocument();
     // ServerUsers panel shows a "N connected" count instead of the old
     // "Users connected to server:" copy.
-    expect(screen.getByText(/\d+ connected/)).toBeInTheDocument();
+    expect(screen.getByText('ServerUsers.count')).toBeInTheDocument();
   });
 
   it('renders the sanitized server message html', () => {
@@ -60,7 +60,7 @@ describe('Server', () => {
     });
     // Empty-state row from RoomsList's <tbody> is the new "no rooms" signal;
     // the old `.server-rooms` container class no longer exists.
-    expect(within(container).getByText(/No rooms available\./)).toBeInTheDocument();
+    expect(within(container).getByText('RoomsList.empty')).toBeInTheDocument();
   });
 
   describe('when a room join lands', () => {
@@ -89,7 +89,7 @@ describe('Server', () => {
         store.dispatch(rooms.Actions.joinRoom({ roomInfo, userInitiated: false }));
       });
       expect(screen.queryByText('room-page')).not.toBeInTheDocument();
-      expect(screen.getByRole('columnheader', { name: 'Name' })).toBeInTheDocument();
+      expect(screen.getByRole('columnheader', { name: 'RoomsList.column.name' })).toBeInTheDocument();
     });
   });
 });

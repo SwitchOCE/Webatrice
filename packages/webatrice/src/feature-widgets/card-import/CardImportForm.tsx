@@ -173,9 +173,9 @@ const DropZone = ({ onFiles, disabled }: DropZoneProps) => {
       />
       <div className='cardImportForm-help'>
         <div>{t('CardImportForm.message.oracleHelp')}</div>
-        <div><strong>Windows:</strong> <code>%APPDATA%\Cockatrice\</code></div>
-        <div><strong>macOS:</strong> <code>~/Library/Application Support/Cockatrice/</code></div>
-        <div><strong>Linux:</strong> <code>~/.local/share/Cockatrice/</code></div>
+        <div><strong>{t('CardImportForm.os.windows')}</strong> <code>%APPDATA%\Cockatrice\</code></div>
+        <div><strong>{t('CardImportForm.os.macos')}</strong> <code>~/Library/Application Support/Cockatrice/</code></div>
+        <div><strong>{t('CardImportForm.os.linux')}</strong> <code>~/.local/share/Cockatrice/</code></div>
       </div>
     </div>
   );

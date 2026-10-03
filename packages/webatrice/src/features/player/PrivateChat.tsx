@@ -77,7 +77,7 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
       <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-border-subtle">
         <MessageSquare size={14} className="text-text-muted" />
         <span className="text-sm font-semibold text-text-primary truncate">{peerName}</span>
-        <span className="text-xs text-text-muted">· private chat</span>
+        <span className="text-xs text-text-muted">{t('PrivateChat.subtitle')}</span>
         <span className="ml-auto flex items-center gap-1.5 text-xs text-text-muted" data-testid="private-chat-presence">
           <span
             aria-hidden
@@ -90,7 +90,7 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-2 bg-bg-base/40">
         {entries.length === 0 && (
           <div className="h-full flex items-center justify-center text-xs text-text-muted italic">
-            No messages yet — say hi.
+            {t('PrivateChat.empty')}
           </div>
         )}
         {entries.map((entry, index) => {
@@ -139,7 +139,7 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
           type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder={`Message ${peerName}`}
+          placeholder={t('PrivateChat.placeholder', { name: peerName })}
           className={[
             'flex-1 min-w-0 px-3 py-2 rounded-md bg-bg-base border',
             'border-border-subtle text-sm text-text-primary',
@@ -154,8 +154,8 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
             'p-2 rounded-md bg-accent text-white hover:bg-accent-hover',
             'disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
           ].join(' ')}
-          title="Send"
-          aria-label="Send"
+          title={t('Common.action.send')}
+          aria-label={t('Common.action.send')}
         >
           <Send size={16} />
         </button>

@@ -30,7 +30,7 @@ describe('Server (integration)', () => {
     // <table> inside RoomsList. ServerUsers panel exposes user count as
     // "N connected" instead of "Users connected to server:".
     expect(container.querySelector('table')).toBeInTheDocument();
-    expect(screen.getByText(/\d+ connected/)).toBeInTheDocument();
+    expect(screen.getByText('ServerUsers.count')).toBeInTheDocument();
   });
 
   it('shows a row in the rooms table for each known room', () => {
@@ -62,7 +62,7 @@ describe('Server (integration)', () => {
     })));
 
     renderFeatureScreen(<Server />);
-    fireEvent.click(screen.getByRole('button', { name: 'Join' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Common.action.join' }));
 
     const join = findLastSessionCommand(Command_JoinRoom_ext);
     expect(join.value.roomId).toBe(4);
@@ -76,6 +76,6 @@ describe('Server (integration)', () => {
     expect(await screen.findByRole('dialog')).toHaveTextContent('RoomsList.joinError.notFound');
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));
     expect(store.getState().rooms.joinRoomError).toBeNull();
-    expect(await screen.findByRole('button', { name: 'Join' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Common.action.join' })).toBeInTheDocument();
   });
 });

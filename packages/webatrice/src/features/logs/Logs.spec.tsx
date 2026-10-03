@@ -109,7 +109,7 @@ describe('Logs', () => {
     renderWithProviders(<Logs />, { preloadedState: stateWithLogs });
 
     expect(screen.getByText('pre-loaded-room-entry')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /\[1\]/ })).toBeInTheDocument();
+    expect(screen.getAllByRole('tab')[0]).toHaveAccessibleName('Logs.tabWithCount');
   });
 
   it('switches to the games tab and reveals game-tab results', () => {
@@ -126,7 +126,7 @@ describe('Logs', () => {
     };
     renderWithProviders(<Logs />, { preloadedState: stateWithLogs });
 
-    fireEvent.click(screen.getByRole('tab', { name: /Logs\.tab\.games/ }));
+    fireEvent.click(screen.getAllByRole('tab')[1]);
     expect(screen.getByText('in-game-log')).toBeInTheDocument();
   });
 

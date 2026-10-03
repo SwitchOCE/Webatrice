@@ -15,6 +15,9 @@
       "userLeft": "{name} has left the server.",
       "userJoined": "{name} has joined the server.",
       "notSent": "Message not sent: {reason}"
-    }
+    },
+    "subtitle": "· private chat",
+    "empty": "No messages yet — say hi.",
+    "placeholder": "Message {name}"
   }
 }

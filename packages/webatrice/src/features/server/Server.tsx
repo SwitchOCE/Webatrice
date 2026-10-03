@@ -1,5 +1,6 @@
 import { generatePath, useNavigate } from 'react-router-dom';
 import { Megaphone } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { AuthGuard } from '@app/components';
 import { useReduxEffect } from '@app/hooks';
@@ -76,12 +77,13 @@ interface ServerMotdProps {
  *  from the server still render their own colors (red for warnings,
  *  etc.) — that's intentional. */
 function ServerMotd({ message }: ServerMotdProps) {
+  const { t } = useTranslation();
   return (
     <section className="flex h-full flex-col bg-bg-surface border border-border-subtle rounded-lg overflow-hidden">
       <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-border-subtle">
         <Megaphone size={14} className="text-text-muted" />
         <h3 className="font-modern text-xs font-bold uppercase tracking-wider text-text-secondary">
-          Server Announcements
+          {t('Server.announcements')}
         </h3>
       </div>
       <div

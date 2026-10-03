@@ -53,7 +53,7 @@ describe('Player (integration)', () => {
 
     const input = screen.getByRole('textbox');
     fireEvent.change(input, { target: { value: 'you there?' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Common.action.send' }));
     expect(input).toHaveValue('');
 
     // bob went offline before the command reached the server.
@@ -70,6 +70,6 @@ describe('Player (integration)', () => {
     deliverMessage(buildSessionEventMessage(Event_UserLeft_ext, create(Event_UserLeftSchema, { name: 'bob' })));
     expect(await screen.findByText('PrivateChat.notice.userLeft')).toBeInTheDocument();
     expect(screen.getByTestId('private-chat-presence')).toHaveTextContent('PrivateChat.presence.offline');
-    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Common.action.send' })).toBeDisabled();
   });
 });
