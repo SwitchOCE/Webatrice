@@ -114,6 +114,19 @@ describe('Account', () => {
     expect(screen.getByText(/Account\.details\.userLevel .*"userLevel":4/)).toBeInTheDocument();
   });
 
+  it('gives every detail label a value before the user info arrives, so ICU still formats it', () => {
+    const state = {
+      ...connectedState,
+      server: { ...(connectedState.server as any), user: null },
+    };
+    renderWithProviders(<Account />, { preloadedState: state });
+
+    expect(screen.getByText('Account.details.location {"country":""}')).toBeInTheDocument();
+    expect(screen.getByText('Account.details.realName {"realName":""}')).toBeInTheDocument();
+    expect(screen.getByText('Account.details.userLevel {"userLevel":""}')).toBeInTheDocument();
+    expect(screen.getByText('Account.details.accountAge {"accountAge":""}')).toBeInTheDocument();
+  });
+
   it('renders the Edit, Change Password, and Change Avatar action buttons', () => {
     renderWithProviders(<Account />, { preloadedState: connectedState });
 

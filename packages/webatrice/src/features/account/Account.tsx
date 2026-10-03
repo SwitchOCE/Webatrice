@@ -74,10 +74,10 @@ const Account = () => {
         <Paper className="account-details" style={{ margin: '0 0 5px 0' }}>
           {avatarUrl && <img src={avatarUrl} alt={name} />}
           <p><strong>{name}</strong></p>
-          <p>{t('Account.details.location', { country: country?.toUpperCase() })}</p>
-          <p>{t('Account.details.userLevel', { userLevel })}</p>
-          <p>{t('Account.details.accountAge', { accountAge: String(accountageSecs) })}</p>
-          <p>{t('Account.details.realName', { realName })}</p>
+          <p>{t('Account.details.location', { country: country?.toUpperCase() ?? '' })}</p>
+          <p>{t('Account.details.userLevel', { userLevel: userLevel ?? '' })}</p>
+          <p>{t('Account.details.accountAge', { accountAge: String(accountageSecs ?? '') })}</p>
+          <p>{t('Account.details.realName', { realName: realName ?? '' })}</p>
           <div className="account-details__actions">
             <Button size="small" color="primary" variant="contained" onClick={() => setOpenDialog('edit')}>
               {t('Account.action.edit')}
