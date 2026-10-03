@@ -82,4 +82,15 @@ describe('TallyOverlay', () => {
     expect(within(tally()!).getByText('Total Toughness')).toBeInTheDocument();
     expect(within(tally()!).getByText('4')).toBeInTheDocument();
   });
+
+  it('shows the selection count from two selected cards, with no tally chosen', () => {
+    renderGame();
+    expect(screen.queryByRole('status', { name: /cards selected/ })).not.toBeInTheDocument();
+
+    openContextMenu(cardEl(OGRE.id, 'battlefield'));
+    chooseMenuPath('Select All');
+
+    expect(screen.getByRole('status', { name: '2 cards selected' })).toHaveTextContent('2');
+    expect(tally()).not.toBeInTheDocument();
+  });
 });
