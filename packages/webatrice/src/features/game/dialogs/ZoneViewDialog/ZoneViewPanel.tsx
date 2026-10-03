@@ -139,6 +139,13 @@ function clampToViewport(
   };
 }
 
+/** The cards around a right-clicked card, in display order: every card the
+ *  view shows (after the search filter), and those in its column (group). */
+export interface ZoneViewCardScope {
+  shownIds: string[];
+  columnIds: string[];
+}
+
 type Props = {
   /** Called when the dialog closes. Receives whether the "shuffle
    *  when closing" toggle was on so the parent can dispatch the
@@ -169,6 +176,7 @@ type Props = {
   onCardContextMenu?: (
     e: React.MouseEvent<HTMLElement>,
     card: HandCard,
+    scope: ZoneViewCardScope,
   ) => void;
   /** IDs of library cards currently being dragged by the parent. Those
    *  cards render at opacity 0 in the dialog so the user only sees the
@@ -657,6 +665,7 @@ export default function ZoneViewPanel({
   }, [library, metaByName, query, effectiveSortBy, effectiveGroupBy]);
 
   const totalShown = groups.reduce((n, g) => n + g.cards.length, 0);
+  const shownIds = groups.flatMap((g) => g.cards.map((c) => c.handCard.id));
 
   return createPortal(
     <div
@@ -881,7 +890,7 @@ export default function ZoneViewPanel({
                               onCardContextMenu
                                 ? (e) => {
                                   e.preventDefault();
-                                  onCardContextMenu(e, c.handCard);
+                                  onCardContextMenu(e, c.handCard, { shownIds, columnIds: g.cards.map((gc) => gc.handCard.id) });
                                 }
                                 : undefined
                             }
@@ -978,7 +987,7 @@ export default function ZoneViewPanel({
                               onCardContextMenu
                                 ? (e) => {
                                   e.preventDefault();
-                                  onCardContextMenu(e, c.handCard);
+                                  onCardContextMenu(e, c.handCard, { shownIds, columnIds: g.cards.map((gc) => gc.handCard.id) });
                                 }
                                 : undefined
                             }

@@ -39,7 +39,19 @@ export interface CardMenuState {
  */
 export type SeatCardMenuState =
   | { kind: 'battlefield' | 'stack'; playerId: number; cardId: string; x: number; y: number }
-  | { kind: 'pile'; playerId: number; zone: string; cardId: string; cardName: string; x: number; y: number };
+  | {
+    kind: 'pile';
+    playerId: number;
+    zone: string;
+    cardId: string;
+    cardName: string;
+    x: number;
+    y: number;
+    /** The zone view's cards, in display order, that Select All picks. */
+    viewCardIds: string[];
+    /** The right-clicked card's column (group) in the view, for Select Column. */
+    columnCardIds: string[];
+  };
 
 export interface ZoneMenuState {
   playerId: number;
