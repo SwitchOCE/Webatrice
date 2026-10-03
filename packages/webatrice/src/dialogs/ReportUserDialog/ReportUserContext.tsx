@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 
 import { server, ServerCapability } from '@cockatrice/datatrice';
 import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
+import { DialogReturnFocusContext, closestList } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 
 import ReportUserDialog, { type OpenReportUserParams } from './ReportUserDialog';
@@ -31,7 +32,8 @@ const OpenReportUserContext = createContext<(params: OpenReportUserParams) => vo
 
 /**
  * Mounts the report dialog once for the app; `useReportUser().openReportUser`
- * opens it from anywhere below.
+ * opens it from anywhere below. Opened from a user list or chat name whose row
+ * has gone by the time it closes, it returns focus to that list.
  */
 export function ReportUserProvider({ children }: { children: ReactNode }) {
   const [request, setRequest] = useState<OpenReportUserParams | null>(null);
@@ -47,7 +49,9 @@ export function ReportUserProvider({ children }: { children: ReactNode }) {
   return (
     <OpenReportUserContext.Provider value={open}>
       {children}
-      {request && <ReportUserDialog key={requestKey} request={request} onClose={close} />}
+      <DialogReturnFocusContext.Provider value={closestList}>
+        {request && <ReportUserDialog key={requestKey} request={request} onClose={close} />}
+      </DialogReturnFocusContext.Provider>
     </OpenReportUserContext.Provider>
   );
 }

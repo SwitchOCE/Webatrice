@@ -5,6 +5,7 @@ import { create } from '@bufbuild/protobuf';
 import { ServerInfo_UserSchema } from '@cockatrice/sockatrice/generated';
 import { UserMenuSlotProvider } from '@app/components';
 import { AlertDialog, DialogShell } from '@app/dialogs';
+import { DialogReturnFocusContext, closestList } from '@app/hooks';
 
 import AdminNotesDialog from './AdminNotesDialog';
 import BanUserDialog from './BanUserDialog';
@@ -83,7 +84,10 @@ export const ModerationDialogs = ({
  * Hosts the moderator/admin user actions for the whole app. Mount once above
  * the routes: it registers the menu entries in `UserActionsMenu`'s slot, gives
  * `useModerationMenu` callers (game player list, player page) their `open`, and
- * renders the one dialog or message box the current round trip needs.
+ * renders the one dialog or message box the current round trip needs. The
+ * dialogs open from user-list rows and chat names, which can unmount while a
+ * dialog is up (the user leaves, the row scrolls away); focus then returns to
+ * the list instead of the page top.
  */
 export const ModerationProvider = ({ children }: { children: ReactNode }) => {
   const state = useModerationFlow();
@@ -95,7 +99,9 @@ export const ModerationProvider = ({ children }: { children: ReactNode }) => {
       <UserMenuSlotProvider value={ModerationMenuItems}>
         {children}
       </UserMenuSlotProvider>
-      <ModerationDialogs {...state} />
+      <DialogReturnFocusContext.Provider value={closestList}>
+        <ModerationDialogs {...state} />
+      </DialogReturnFocusContext.Provider>
     </ModerationContext.Provider>
   );
 };

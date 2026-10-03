@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 
-import { useDialogFocus } from '@app/hooks';
+import { useDialogFocus, useDialogReturnFocus, type ReturnFocusTo } from '@app/hooks';
 
 export interface DialogShellProps {
   isOpen: boolean;
@@ -22,6 +22,9 @@ export interface DialogShellProps {
    *  want the pre-redo `xs`/`sm`/`md` breakpoints should pass the
    *  matching Tailwind class. */
   maxWidth?: string;
+  /** Where focus goes on close if the control that opened the dialog has unmounted meanwhile.
+   *  Defaults to a `DialogReturnFocusContext` above, else the opener's nearest landmark. */
+  returnFocusTo?: ReturnFocusTo;
 }
 
 /**
@@ -34,7 +37,8 @@ export interface DialogShellProps {
  *
  * Focus follows `useDialogFocus`: it moves into the content on open (mark a
  * control `data-autofocus` to pick it), Tab stays inside, and closing returns
- * focus to the opener. The dialog is named by its heading.
+ * focus to the opener (or `returnFocusTo` if the opener has gone). The dialog
+ * is named by its heading.
  */
 const DialogShell = ({
   isOpen,
@@ -46,11 +50,17 @@ const DialogShell = ({
   className,
   contentClassName,
   maxWidth = 'max-w-md',
+  returnFocusTo,
 }: DialogShellProps) => {
   const { t } = useTranslation();
   const titleId = useId();
   const descriptionId = useId();
-  const { getDialogProps } = useDialogFocus({ isOpen, onEscape: handleClose });
+  const inheritedReturnFocusTo = useDialogReturnFocus();
+  const { getDialogProps } = useDialogFocus({
+    isOpen,
+    onEscape: handleClose,
+    returnFocusTo: returnFocusTo ?? inheritedReturnFocusTo,
+  });
 
   if (!isOpen) {
     return null;
