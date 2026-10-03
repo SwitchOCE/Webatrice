@@ -1,8 +1,31 @@
-import { openInNewTab, printHtml, submitFormInNewTab } from './browserHandoff';
+import { openInNewTab, printHtml, saveTextFile, submitFormInNewTab } from './browserHandoff';
 
 afterEach(() => {
   vi.restoreAllMocks();
   document.body.innerHTML = '';
+});
+
+describe('saveTextFile', () => {
+  it('downloads the content under the file name', () => {
+    const { createObjectURL, revokeObjectURL } = URL;
+    URL.createObjectURL = vi.fn(() => 'blob:x');
+    URL.revokeObjectURL = vi.fn();
+    let clicked: HTMLAnchorElement | null = null;
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {
+      clicked = document.querySelector('a');
+    });
+    try {
+      saveTextFile('burn.cod', '<cockatrice_deck/>', 'application/xml');
+
+      expect(clicked!.download).toBe('burn.cod');
+      expect(clicked!.href).toBe('blob:x');
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:x');
+      expect(document.querySelector('a')).toBeNull();
+    } finally {
+      URL.createObjectURL = createObjectURL;
+      URL.revokeObjectURL = revokeObjectURL;
+    }
+  });
 });
 
 describe('openInNewTab', () => {
