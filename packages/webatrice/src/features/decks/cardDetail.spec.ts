@@ -31,6 +31,20 @@ describe('fetchScryfallDetail', () => {
     ]);
   });
 
+  it('passes the caller\'s abort signal as the only request option', async () => {
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => ({ ok: true, json: async () => ({ id: 'x', name: 'X' }) }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { signal } = new AbortController();
+
+    await fetchScryfallDetail('abc', 'Ignored', signal);
+    await fetchScryfallDetail(undefined, 'Fire // Ice');
+
+    expect(fetchMock.mock.calls).toEqual([
+      ['https://api.scryfall.com/cards/abc', { signal }],
+      [`https://api.scryfall.com/cards/named?exact=${encodeURIComponent('Fire // Ice')}`, { signal: undefined }],
+    ]);
+  });
+
   it('returns null on an HTTP or network failure and rethrows an abort', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false })));
     expect(await fetchScryfallDetail(undefined, 'X')).toBeNull();
