@@ -16,6 +16,12 @@ export function tabbableElements(container: HTMLElement): HTMLElement[] {
     .filter((element) => !element.closest('[hidden],[inert]'));
 }
 
+// The opener of a dialog that just closed while another took its place in the same commit (a
+// loading dialog swapped for the form it was loading). The new dialog adopts it, since the control
+// focused when it opened is its own autoFocus field or nothing. Cleared once that commit's effects
+// have run, so it never reaches an unrelated dialog.
+let handedOver: HTMLElement | null = null;
+
 export interface DialogFocusOptions {
   /** Focus moves in when this turns true and goes back to where it came from when it turns false. */
   isOpen: boolean;
@@ -33,7 +39,8 @@ export interface DialogFocusProps {
  * Focus model for a modal dialog, the way a Qt dialog window behaves: opening it moves focus
  * inside (to a `[data-autofocus]` element, else the first control of its `[data-dialog-content]`,
  * else its first control, else the dialog itself), Tab and Shift+Tab cycle through its controls
- * only, Escape closes it, and closing it puts focus back on the control that opened it.
+ * only, Escape closes it, and closing it puts focus back on the control that opened it — also when
+ * the dialog replaced another one, which hands its opener on.
  *
  * Keys arrive through React, so a dialog opened from inside another one handles them first: an
  * inner dialog stops Escape and ignores Tab from outside its own element, and the outer one in
@@ -47,7 +54,9 @@ export function useDialogFocus({ isOpen, onEscape }: DialogFocusOptions) {
     if (!isOpen || !element) {
       return;
     }
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const opener = active && active !== document.body && !element.contains(active) ? active : handedOver;
+    handedOver = null;
     // A control with React's autoFocus is already focused by the time this runs; leave it there.
     if (!element.contains(document.activeElement)) {
       const content = element.querySelector<HTMLElement>('[data-dialog-content]');
@@ -61,10 +70,17 @@ export function useDialogFocus({ isOpen, onEscape }: DialogFocusOptions) {
       // Hand focus back only when it is still ours to give: inside the closing dialog, or lost to
       // <body> because the focused control unmounted with it. Another dialog that has already
       // taken focus keeps it.
-      const active = document.activeElement;
-      const lost = active == null || active === document.body || element.contains(active);
-      if (opener?.isConnected && lost) {
+      const current = document.activeElement;
+      if (!opener?.isConnected) {
+        return;
+      }
+      if (current == null || current === document.body || element.contains(current)) {
         opener.focus();
+      } else if (current.closest('[aria-modal="true"]')) {
+        handedOver = opener;
+        queueMicrotask(() => {
+          handedOver = null;
+        });
       }
     };
   }, [isOpen]);
