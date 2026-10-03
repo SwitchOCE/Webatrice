@@ -5,6 +5,7 @@ import type {
   BooleanPreferenceKey,
   NumberPreferenceKey,
   PreferenceKey,
+  Preferences,
   StringPreferenceKey,
 } from '@app/types';
 
@@ -45,7 +46,15 @@ export interface SelectOption {
 export type SettingControl =
   | { kind: 'toggle'; key: BooleanPreferenceKey }
   | { kind: 'select'; key: StringPreferenceKey; options: readonly SelectOption[] }
-  | { kind: 'range'; key: NumberPreferenceKey; min: number; max: number; step?: number }
+  | {
+    kind: 'range';
+    key: NumberPreferenceKey;
+    min: number;
+    max: number;
+    step?: number;
+    /** Runs once the user lets go, with the preferences as saved. */
+    onCommit?: (preferences: Preferences) => void;
+  }
   | { kind: 'color'; key: StringPreferenceKey }
   /**
    * Anything else. `keys` lists the preferences it edits so "Restore defaults" covers them;
