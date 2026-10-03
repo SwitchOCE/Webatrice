@@ -26,6 +26,9 @@ export enum Stores {
   // derived view rebuilt from these, which is what makes "Reload card
   // database" possible.
   CARD_SOURCES = 'cardSources',
+  // Version 7. The XML or parsed records of each `cardSources` row, keyed by
+  // the same id; split out so listing sources reads only their metadata.
+  CARD_SOURCE_PAYLOADS = 'cardSourcePayloads',
   // Version 7. Per-set enabled / art-priority options, keyed by set code.
   // Separate from `sets` so re-imports never reset them (desktop keeps them
   // in settings).
