@@ -1,0 +1,134 @@
+.replays__panes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+  padding: 12px;
+  overflow: auto;
+}
+
+.replays-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid rgb(var(--border-subtle));
+  border-radius: 8px;
+  background: rgb(var(--bg-surface));
+  color: rgb(var(--text-primary));
+}
+
+.replays-pane__header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 12px 4px;
+}
+
+.replays-pane__header h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.replays-pane__path {
+  font-size: 12px;
+  color: rgb(var(--text-secondary));
+}
+
+.replays-pane__path button {
+  color: rgb(var(--accent-primary));
+}
+
+.replays-pane__path button:hover {
+  text-decoration: underline;
+}
+
+.replays-pane__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 8px;
+  border-bottom: 1px solid rgb(var(--border-subtle));
+}
+
+.replays-pane__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.replays-pane__empty {
+  margin: 24px 16px;
+  font-size: 13px;
+  text-align: center;
+  color: rgb(var(--text-muted));
+}
+
+.replays-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.replays-table th {
+  position: sticky;
+  top: 0;
+  padding: 6px 8px;
+  text-align: left;
+  font-weight: 600;
+  color: rgb(var(--text-secondary));
+  background: rgb(var(--bg-surface));
+  border-bottom: 1px solid rgb(var(--border-subtle));
+}
+
+.replays-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid rgb(var(--border-subtle) / 0.5);
+  white-space: nowrap;
+}
+
+.replays-table tbody tr {
+  cursor: default;
+  user-select: none;
+}
+
+.replays-table tbody tr:hover {
+  background: rgb(var(--bg-elevated));
+}
+
+.replays-table tbody tr[aria-selected='true'] {
+  background: rgb(var(--accent-primary) / 0.2);
+}
+
+.replays-table__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.replays-table__child td:first-child {
+  padding-left: 32px;
+}
+
+.replays-table__expander {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-right: 4px;
+  color: rgb(var(--text-muted));
+}
+
+.replays-table__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.replays-share-code {
+  display: block;
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 15px;
+  user-select: all;
+  background: rgb(var(--bg-base));
+}

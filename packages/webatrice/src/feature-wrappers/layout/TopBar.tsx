@@ -4,6 +4,7 @@ import {
   User, LogOut, Home as HomeIcon, Swords, Library, LibraryBig,
   UserCircle2, Settings as SettingsIcon, FileText, X, Circle, Grid3x3,
   Keyboard, PanelLeftOpen, Download, ShieldCheck,
+  Film,
   type LucideIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +15,7 @@ import { useAppSelector } from '@app/store';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { useLeaveGame, usePhaseTrackPinnedSetting, useSnapGridSetting } from '@app/hooks';
 import { Images } from '@app/images';
+import { closeReplay, getOpenedReplay } from '@app/services';
 import { RouteEnum } from '@app/types';
 import { CardImportDialog } from '@app/feature-widgets/card-import';
 
@@ -37,6 +39,8 @@ type TabType =
   | 'logs'
   | 'player'
   | 'staff' // Administration / Moderation / Card Art Rules / Developer
+  | 'replays' // /replays — server + local replay lists
+  | 'replay' // /replay/:replayKey — replay playback
   | 'unknown';
 
 interface Tab {
@@ -61,6 +65,8 @@ const TYPE_ICON: Record<TabType, LucideIcon> = {
   logs: FileText,
   player: User,
   staff: ShieldCheck,
+  replays: Film,
+  replay: Film,
   unknown: FileText,
 };
 
@@ -376,6 +382,16 @@ export default function TopBar() {
           >
             <Library size={16} /> Decks
           </button>
+          <button
+            onClick={() => navigate(generatePath(RouteEnum.REPLAYS))}
+            className={[
+              'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium',
+              'text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors',
+            ].join(' ')}
+            title="Watch and manage replays"
+          >
+            <Film size={16} /> Replays
+          </button>
           <div className="w-px h-6 bg-border-subtle mx-1" />
           <UserMenu
             userName={user?.name ?? null}
@@ -648,6 +664,22 @@ function detectTransientTab(pathname: string): Tab | null {
   if (playerMatch) {
     const name = playerMatch.params.name ?? 'Player';
     return { key: `player:${name}`, type: 'player', title: name, route: pathname, closeable: true };
+  }
+  if (matchPath({ path: RouteEnum.REPLAYS, end: true }, pathname)) {
+    return { key: 'replays', type: 'replays', title: 'Replays', route: pathname, closeable: true };
+  }
+  const replayMatch = matchPath({ path: RouteEnum.REPLAY, end: true }, pathname);
+  if (replayMatch) {
+    const replayKey = replayMatch.params.replayKey ?? '';
+    const title = getOpenedReplay(replayKey)?.title ?? 'Replay';
+    return {
+      key: `replay:${replayKey}`,
+      type: 'replay',
+      title,
+      route: pathname,
+      closeable: true,
+      onClose: () => closeReplay(replayKey),
+    };
   }
   return null;
 }
