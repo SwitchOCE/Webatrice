@@ -250,7 +250,9 @@ export class GamePage {
   // ("Library — 60" / "Graveyard — 2 (top: Forest)").
   async zoneStackCount(zoneName: string, board: Locator = this.localBoard): Promise<number> {
     const title = await this.zoneStack(zoneName, board).getAttribute('title');
-    if (title == null) return 0;
+    if (title == null) {
+      return 0;
+    }
     // Grab the digit(s) right after " — " — accepts both bare
     // "Label — N" and "Label — N (top: ...)".
     const match = title.match(/—\s*(\d+)/);
