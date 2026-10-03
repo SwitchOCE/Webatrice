@@ -6,7 +6,9 @@
       "nextPhase": "Next phase",
       "nextPhaseAction": "Next phase with action",
       "nextTurn": "Next turn",
-      "reverseTurn": "Reverse turn order"
+      "reverseTurn": "Reverse turn order",
+      "rotateViewCW": "Rotate view clockwise",
+      "rotateViewCCW": "Rotate view counterclockwise"
     }
   }
 }

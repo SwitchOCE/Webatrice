@@ -8,6 +8,8 @@ const args = (overrides: Partial<GameMenuModelArgs> = {}): GameMenuModelArgs => 
   onNextPhaseAction: vi.fn(),
   onNextTurn: vi.fn(),
   onReverseTurn: vi.fn(),
+  onRotateViewCW: vi.fn(),
+  onRotateViewCCW: vi.fn(),
   ...overrides,
 });
 
@@ -22,20 +24,31 @@ describe('buildGameMenuItems', () => {
       '---',
       ['nextTurn', 'game.endTurn', false],
       ['reverseTurn', 'game.reverseTurn', false],
+      '---',
+      ['rotateViewCW', 'game.rotateViewCW', false],
+      ['rotateViewCCW', 'game.rotateViewCCW', false],
     ]);
   });
 
   it('gates phase items on the phase gate and turn items on the turn gate', () => {
-    expect(summary(args({ canAdvancePhase: false, canRunNextPhaseAction: false }))).toEqual([
+    expect(summary(args({ canAdvancePhase: false, canRunNextPhaseAction: false })).slice(0, 5)).toEqual([
       ['nextPhase', 'game.nextPhase', true],
       ['nextPhaseAction', 'game.nextPhaseAction', true],
       '---',
       ['nextTurn', 'game.endTurn', false],
       ['reverseTurn', 'game.reverseTurn', false],
     ]);
-    expect(summary(args({ canPassTurn: false })).slice(3)).toEqual([
+    expect(summary(args({ canPassTurn: false })).slice(3, 5)).toEqual([
       ['nextTurn', 'game.endTurn', true],
       ['reverseTurn', 'game.reverseTurn', true],
+    ]);
+  });
+
+  it('keeps the local view rotation available with every gate closed', () => {
+    const closed = args({ canAdvancePhase: false, canPassTurn: false, canRunNextPhaseAction: false });
+    expect(summary(closed).slice(-2)).toEqual([
+      ['rotateViewCW', 'game.rotateViewCW', false],
+      ['rotateViewCCW', 'game.rotateViewCCW', false],
     ]);
   });
 });

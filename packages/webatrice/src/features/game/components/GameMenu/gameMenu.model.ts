@@ -1,6 +1,12 @@
 import type { ActionId } from '@app/feature-widgets/shortcuts';
 
-export type GameMenuItemId = 'nextPhase' | 'nextPhaseAction' | 'nextTurn' | 'reverseTurn';
+export type GameMenuItemId =
+  | 'nextPhase'
+  | 'nextPhaseAction'
+  | 'nextTurn'
+  | 'reverseTurn'
+  | 'rotateViewCW'
+  | 'rotateViewCCW';
 
 export type GameMenuEntry =
   | {
@@ -21,13 +27,17 @@ export interface GameMenuModelArgs {
   onNextPhaseAction: () => void;
   onNextTurn: () => void;
   onReverseTurn: () => void;
+  onRotateViewCW: () => void;
+  onRotateViewCCW: () => void;
 }
 
 /**
  * The game menu, in desktop's TabGame::createMenuItems order: the phase
- * actions, then the turn actions. Desktop enables every item and lets the
- * server refuse; here each item is disabled when the server would refuse it
- * (see webatrice-game.instructions.md "Phase model" for the two gates).
+ * actions, the turn actions, then the view rotation. Desktop enables every
+ * item and lets the server refuse; here each server item is disabled when the
+ * server would refuse it (see webatrice-game.instructions.md "Phase model" for
+ * the two gates). Rotation is local, so it is always available, spectators
+ * included.
  */
 export function buildGameMenuItems(args: GameMenuModelArgs): GameMenuEntry[] {
   return [
@@ -42,5 +52,8 @@ export function buildGameMenuItems(args: GameMenuModelArgs): GameMenuEntry[] {
     { kind: 'divider', id: 'phases' },
     { kind: 'item', id: 'nextTurn', shortcut: 'game.endTurn', disabled: !args.canPassTurn, onClick: args.onNextTurn },
     { kind: 'item', id: 'reverseTurn', shortcut: 'game.reverseTurn', disabled: !args.canPassTurn, onClick: args.onReverseTurn },
+    { kind: 'divider', id: 'turns' },
+    { kind: 'item', id: 'rotateViewCW', shortcut: 'game.rotateViewCW', disabled: false, onClick: args.onRotateViewCW },
+    { kind: 'item', id: 'rotateViewCCW', shortcut: 'game.rotateViewCCW', disabled: false, onClick: args.onRotateViewCCW },
   ];
 }
