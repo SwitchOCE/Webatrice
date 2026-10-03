@@ -15,6 +15,9 @@ export const E2E_HOST = { host: 'localhost', port: 4748 } as const;
 // Pre-seeded judge account (docker/servatrice/judge-seed.sql, admin = 4 → IsJudge).
 // Used by the judge-card-actions e2e to log in as a judge.
 export const E2E_JUDGE = { username: 'e2e_judge', password: 'password123' } as const;
+// Pre-seeded moderator (admin = 2 → IsModerator) and admin (admin = 1 → IsAdmin | IsModerator).
+export const E2E_MODERATOR = { username: 'e2e_moderator', password: 'password123' } as const;
+export const E2E_ADMIN = { username: 'e2e_superuser', password: 'password123' } as const;
 
 export interface RegisteredSession {
   login: LoginPage;
