@@ -4,3 +4,4 @@
 - ACK M1: 157c0a5 dropped; new 17b builders will be colocated with their stage-5 owner hooks, no central playerMenu.model.ts
 - 22:29Z 17a tip 57a3449 pushed (G1 guard commit added; unit 895/1316/3532 green before G1) → per-commit typecheck, then 17b port
 - 22:38Z 17a per-commit typecheck 12/12 PASS; full unit at 17a tip running. 17b: 2/25 commits ported (related cards, reveal-to → SeatCardMenus/HandCardMenu, buildRevealToSubmenu in PlayerBoard/revealRecipient.ts), pushed → continue 17b
+- 23:17Z 17b: all 25 commits ported + macro seam swap commit (tip 65687b0), pushed → per-commit typecheck + full gate at 17b tip, 17a unit rerun (first run OOM-killed by parallel vitest)
