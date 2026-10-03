@@ -6,6 +6,7 @@
 - 12 note: fixed 12's ModerationProvider.spec 3.1 fixture to beta.12 (03's DEVELOPER_ROLE gate) in 'offer developer role changes only on 3.1 servers'
 - 04 54287c0..d1cf623 → new tip f750c4f, typecheck ok, unit tests green (sock 791, data 1165, web 1307+2 skipped)
 - 10 58b4116..4119363 → new tip ec60e2b, typecheck ok, unit green
-- 11 4119363..0491a03 → new tip 3b15510, typecheck ok, unit green (joinRoom: 11's surface wins, 04's userInitiated plumbing dropped)
-- 13 a6642c3..e2fb4b7 → new tip 41edded, typecheck ok; gate at 13: lint ok, unit sock 838/data 1213/web 1530+2skip, integration sock 170/data 136/web 165+2skip (commandFailed deduped to 03's; useGridRows introduced at 11 and used by 11+13)
 - ACK M1: redoing 11 so joinRoomFailed carries 04's userInitiated through to 11's lobby surface (04's specs restored), then redo 13 on it. ACK M2: will use origin/claude/parity-14-reports 60b3669 for row 11
+- 11 4119363..0491a03 → new tip d35273c (REDONE per M1), typecheck ok on every commit; lint ok, unit sock 826/data 1195/web 1441+2skip, integration sock 163/data 133/web 161+2skip. joinRoom: 11's lobby surface now carries 04's userInitiated (autojoin silent via reducer), 04's specs restored; 04's notice-drop-on-disconnect fix kept
+- review-fix audit rows 1–6 (03,12,04,10): no other review-fix drops found (resolutions were unions, or took the side that already contained the other's fix: 10's viewLogHistory passes 04's failure; 12 fixture bumped to beta.12 for 03's DEVELOPER_ROLE gate)
+- 13 a6642c3..e2fb4b7 → new tip 6dae547, typecheck ok on every commit; gate: lint ok, unit sock 838/data 1215/web 1530+2skip, integration sock 170/data 137/web 165+2skip. commandFailed deduped onto 03's names (13 adds failure arg + admin/developer signals); CardArtRules uses useGridRows
