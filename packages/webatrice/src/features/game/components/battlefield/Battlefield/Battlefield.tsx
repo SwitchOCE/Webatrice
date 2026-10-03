@@ -134,11 +134,11 @@ export default function Battlefield() {
     battlefieldDisplayList,
     battlefieldMenuItems,
     cardMetaByName,
-    cardOps,
     handOnTop,
     isDragging,
     isSelf,
     menuOwnerId,
+    onCardDoubleClick,
     openSeatCardMenu,
     opponentBattlefieldMenuItems,
     playerId,
@@ -372,14 +372,9 @@ export default function Battlefield() {
                       }
                       : undefined
                   }
-                  onDoubleClick={
-                    isSelf
-                      // A double-click taps or untaps like the card
-                      // menu's Tap / Untap: the whole selection when the
-                      // card is part of it, toggled from this card.
-                      ? () => cardOps.forCard(c.id)?.toggleTapped()
-                      : undefined
-                  }
+                  // Click to play taps or untaps the card, or the whole
+                  // selection when the card is in it.
+                  onDoubleClick={(e) => onCardDoubleClick('battlefield', c, e)}
                   style={{
                     width: CARD_WIDTH,
                     height: CARD_HEIGHT,

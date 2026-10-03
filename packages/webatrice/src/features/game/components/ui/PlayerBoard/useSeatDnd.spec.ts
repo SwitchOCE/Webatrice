@@ -98,10 +98,10 @@ describe('useSeatDnd', () => {
     expect(props.setSelection).toHaveBeenCalledWith({ zone: 'battlefield', ids: new Set(['10']) });
   });
 
-  it('drags the whole selection when the pressed card is in it, with no click for a group', () => {
+  it('drags the whole selection when the pressed card is in it', () => {
     const { result } = setup({ selection: { zone: 'hand', ids: new Set(['30', '32']) } });
     result.current.startSeatCardDrag(press, card(30), 'hand', [card(30), card(31), card(32)]);
-    expect(dnd.starts.get('seat-1-hand')).toHaveBeenCalledWith(press, [card(30), card(32)], undefined);
+    expect(dnd.starts.get('seat-1-hand')).toHaveBeenCalledWith(press, [card(30), card(32)], expect.any(Function));
   });
 
   it('toggles a card in the selection on Ctrl / Cmd click, and clears it when the last one goes', () => {
@@ -130,6 +130,26 @@ describe('useSeatDnd', () => {
     result.current.startSeatCardDrag(press, card(50), 'stack', [card(50)]);
     act(() => dnd.starts.get('seat-1-stack')!.mock.calls[0][2](release()));
     expect(props.resolveAttachPress).toHaveBeenCalledTimes(2);
+  });
+
+  it('hands a click on to onCardClick once the selection is updated', () => {
+    const onCardClick = vi.fn();
+    const { result, props } = setup({ onCardClick });
+    result.current.startSeatCardDrag(press, card(31), 'hand', [card(30), card(31)]);
+    const up = release({ shiftKey: true });
+    act(() => dnd.starts.get('seat-1-hand')!.mock.calls[0][2](up));
+    expect(props.setSelection).toHaveBeenCalledWith({ zone: 'hand', ids: new Set(['31']) });
+    expect(onCardClick).toHaveBeenCalledWith('hand', card(31), up);
+  });
+
+  it('keeps a group selected on a click on one of its cards, and still hands the click on', () => {
+    const onCardClick = vi.fn();
+    const { result, props } = setup({ onCardClick, selection: { zone: 'hand', ids: new Set(['30', '32']) } });
+    result.current.startSeatCardDrag(press, card(30), 'hand', [card(30), card(31), card(32)]);
+    const up = release();
+    act(() => dnd.starts.get('seat-1-hand')!.mock.calls[0][2](up));
+    expect(props.setSelection).not.toHaveBeenCalled();
+    expect(onCardClick).toHaveBeenCalledWith('hand', card(30), up);
   });
 
   it('drags the top card of a pile', () => {

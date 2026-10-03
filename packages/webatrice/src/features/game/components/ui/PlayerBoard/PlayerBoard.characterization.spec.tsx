@@ -469,18 +469,20 @@ describe('PlayerBoard characterization — selection and bulk operations', () =>
     );
   });
 
-  it('double-click taps the whole battlefield selection with one command per card', () => {
+  it('double-click taps the whole battlefield selection, one command per card that changes', () => {
     const { game } = renderSeats();
 
     openContextMenu(cardEl(BOLT.id, 'battlefield'));
     chooseMenuPath('Select All');
     fireEvent.doubleClick(cardEl(BOLT.id, 'battlefield'));
 
+    // Desktop's TableZone::toggleTapped: Bolt is untapped, so the selection
+    // is tapped; Ogre already is, so only Bolt is sent.
     const tapped = vi.mocked(game.setCardAttr).mock.calls
       .map(([, params]) => params)
       .filter((p) => p.attribute === CardAttribute.AttrTapped);
-    expect(tapped.map((p) => p.cardId).sort()).toEqual([BOLT.id, OGRE.id]);
-    expect(new Set(tapped.map((p) => p.attrValue))).toEqual(new Set(['1']));
+    expect(tapped.map((p) => p.cardId)).toEqual([BOLT.id]);
+    expect(tapped.map((p) => p.attrValue)).toEqual(['1']);
   });
 });
 
