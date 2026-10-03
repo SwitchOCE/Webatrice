@@ -142,6 +142,25 @@ describe('GameLinkJoinHost (GAME-033 incoming links)', () => {
     expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(1, expect.objectContaining({ password: 'hunter2' }));
   });
 
+  it('reports a rejected join off the room page, and dismissing it clears the error', () => {
+    const { store } = renderHost(link());
+    fireEvent.click(dialogButton('GameLink.yes'));
+    act(() => {
+      store.dispatch(rooms.Actions.setJoinGameError({ code: 1, message: 'The game is full.' }));
+    });
+    expect(within(screen.getByRole('dialog')).getByText('The game is full.')).toBeInTheDocument();
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button'));
+    expect(rooms.Selectors.getJoinGameError(store.getState())).toBeNull();
+  });
+
+  it('cancelling the password prompt sends nothing', async () => {
+    const { webClient } = renderHost(link(), listedGame({ withPassword: true }));
+    fireEvent.click(dialogButton('GameLink.yes'));
+    fireEvent.click(dialogButton('Cancel'));
+    expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
   it('explains a link for another server instead of joining', () => {
     const { webClient } = renderHost(link({ hostname: 'other.example' }));
     fireEvent.click(dialogButton('GameLink.yes'));
