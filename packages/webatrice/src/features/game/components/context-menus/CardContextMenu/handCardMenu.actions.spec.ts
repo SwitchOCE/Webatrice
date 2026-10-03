@@ -191,6 +191,14 @@ describe('resolveHandOrZoneCardMenu', () => {
     });
   });
 
+  it('moves the whole selection X cards from the top in one move', () => {
+    const deps = makeDeps({ handSelection: { zone: 'hand', ids: new Set(['10', '11']) } });
+    click(itemsOf(deps), 'Move to', 'X cards from the top of library...');
+    expect(deps.promptMoveXFromTop).toHaveBeenCalledWith({
+      cardIds: [10, 11], cardName: 'Grizzly Bears', deckSize: 40, fromZone: ZoneName.HAND,
+    });
+  });
+
   it('starts an arrow from a hand card', () => {
     const deps = makeDeps();
     click(itemsOf(deps), 'Draw arrow...');
