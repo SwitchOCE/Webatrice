@@ -269,4 +269,16 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
   commandFailed(command: WebsocketTypes.SessionCommandName, responseCode: number, target: string): void {
     this.store.dispatch(ServerActions.sessionCommandFailed({ command, responseCode, target }));
   }
+
+  deckListFailed(responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
+    this.store.dispatch(ServerActions.deckListFailed({ responseCode, failure }));
+  }
+
+  deckDownloadFailed(deckId: number, responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
+    this.store.dispatch(ServerActions.deckDownloadFailed({ deckId, responseCode, failure }));
+  }
+
+  deckUploadFailed(path: string, responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
+    this.store.dispatch(ServerActions.deckUploadFailed({ path, responseCode, failure }));
+  }
 }
