@@ -37,7 +37,7 @@ describe('SampleHandPanel', () => {
     const names = handNames();
     expect(names).toHaveLength(7);
     expect(names).not.toContain('Elves');
-    expect(screen.getAllByRole('img', { name: 'Bolt' }).length + names.filter((n) => n === 'Forest').length).toBe(7);
+    expect(names.every((n) => n === 'Bolt' || n === 'Forest')).toBe(true);
   });
 
   it('redraws a new hand without touching the deck', () => {
