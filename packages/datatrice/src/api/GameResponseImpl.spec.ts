@@ -311,4 +311,10 @@ describe('GameResponseImpl', () => {
     impl.replayGameUnloaded(-1001);
     expect(dispatch).toHaveBeenCalledWith(GameActions.replayGameUnloaded({ gameId: -1001 }));
   });
+
+  it('replayGameTime dispatches the recorded container\'s game time', () => {
+    const { impl, dispatch } = setup();
+    impl.replayGameTime(-1001, 95);
+    expect(dispatch).toHaveBeenCalledWith(GameActions.gameTimeSynced({ gameId: -1001, secondsElapsed: 95 }));
+  });
 });

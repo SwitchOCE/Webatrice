@@ -11,6 +11,7 @@ export const Types = {
   REPLAY_GAME_UNLOADED: a.replayGameUnloaded.type,
   GAME_HOST_CHANGED: a.gameHostChanged.type,
   GAME_STATE_CHANGED: a.gameStateChanged.type,
+  GAME_TIME_SYNCED: a.gameTimeSynced.type,
   PLAYER_JOINED: a.playerJoined.type,
   PLAYER_LEFT: a.playerLeft.type,
   PLAYER_PROPERTIES_CHANGED: a.playerPropertiesChanged.type,
