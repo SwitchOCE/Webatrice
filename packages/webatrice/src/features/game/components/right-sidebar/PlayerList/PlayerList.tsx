@@ -15,7 +15,7 @@ import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated'
 
 import { useGameId } from '../../ui/GameIdContext';
 import { useGameReadOnly } from '../../ui/GameReadOnlyContext';
-import type { ContextMenuItem } from '../../PlayerBox/ContextMenu';
+import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import PlayerListContextMenu, {
   type PlayerListMenuActions,
   type PlayerListMenuTarget,

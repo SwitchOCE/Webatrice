@@ -12,7 +12,7 @@ import { motion } from 'motion/react';
 import { Hand, Heart, Skull, Sparkles } from 'lucide-react';
 import type { RoomMemberWithProfile, DeckCard } from './mockTypes';
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
-import { ManaSymbols } from './ManaSymbols';
+import { ManaSymbols } from '../ui/ManaSymbols/ManaSymbols';
 import {
   BATTLEFIELD_GAP_PX as BATTLEFIELD_GAP_PX_BASE,
   STACK_OFFSET_PX as STACK_OFFSET_PX_BASE,
@@ -56,7 +56,7 @@ import type {
   SeatMoveCard,
   SeatMoveDestination,
 } from '../ui/PlayerBoard/playerBoard.types';
-import { useCardScale } from './cardScale';
+import { useCardScale } from '../ui/CardScaleContext';
 import { CardImage } from '@app/components';
 import { usePreference, useSnapGridVisible } from '@app/hooks';
 import {
@@ -67,7 +67,7 @@ import {
   CARD_SIDEWAYS_WIDTH,
   CARD_WIDTH,
 } from '../ui/SeatCard/cardSize';
-import ContextMenu, { type ContextMenuItem } from './ContextMenu';
+import ContextMenu, { type ContextMenuItem } from '../context-menus/ContextMenu/ContextMenu';
 import Card from '../ui/SeatCard/SeatCard';
 import { deckCardImageUrl } from './deckCardImageUrl';
 import { useCardPreviewActions } from '../ui/CardPreviewContext';
