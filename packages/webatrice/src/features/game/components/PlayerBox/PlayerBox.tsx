@@ -39,6 +39,8 @@ import {
 } from '../battlefield/Battlefield/battlefieldLayout';
 import { legacyTableRowFromTypeLine, tableRowToGridY } from '../battlefield/Battlefield/cardPlacement';
 import { MAX_SUBPOS } from '../battlefield/Battlefield/gridMath';
+import { applyPTDelta, applyPTSet, parsePT } from '../context-menus/CardContextMenu/cardAttributeEdits';
+import { evalLifeExpression } from '../right-sidebar/PlayerInfoPanel/lifeExpression';
 import type { BattlefieldCardViewModel, PlayerCardViewModel } from '../ui/PlayerBoard/playerBoard.types';
 import { useCardScale } from './cardScale';
 import { CardImage } from '@app/components';
@@ -1568,39 +1570,6 @@ const CardBackZone = forwardRef<
       );
 
 /**
- * Safely evaluate a basic arithmetic expression the user typed into
- * the set-life modal. Supports `+ - * / %` and parentheses.
- *
- * Input is character-filtered before hitting the Function constructor,
- * so nothing but digits, operators, parens, decimal points, and
- * whitespace can make it into the evaluated string. That means no
- * identifiers (letters), no property access, no function calls — the
- * evaluator can only compute against literal numbers.
- *
- * Returns the truncated integer result, or `null` when the input is
- * empty / non-arithmetic / doesn't produce a finite number.
- */
-function evalLifeExpression(input: string): number | null {
-  const stripped = input.replace(/\s+/g, '');
-  if (stripped.length === 0) {
-    return null;
-  }
-  if (!/^[-+*/%().0-9]+$/.test(stripped)) {
-    return null;
-  }
-  try {
-
-    const result = new Function(`"use strict"; return (${stripped})`)();
-    if (typeof result !== 'number' || !Number.isFinite(result)) {
-      return null;
-    }
-    return Math.trunc(result);
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Modal for setting the local player's life to an arbitrary value.
  * Portal-rendered by PlayerBox; opens via the Ctrl / Cmd + L
  * shortcut. Auto-focuses the input, Enter to save, Escape to cancel,
@@ -1735,80 +1704,6 @@ function SetLifeModal({
       </div>
     </div>
   );
-}
-
-/** Port of Cockatrice's `CardItem::parsePT`. The PT wire string is a
- *  '/'-separated list of tokens; a leading '+' or '-' marks the token
- *  as a signed integer, otherwise it stays a string. Empty input →
- *  empty list. Only used to feed applyPTDelta / applyPTSet below. */
-function parsePT(pt: string): (number | string)[] {
-  if (!pt) {
-    return [];
-  }
-  // Leading '/' is a Cockatrice special-case: treat the rest as one
-  // opaque string token. Preserves inputs like "/foo".
-  if (pt.startsWith('/')) {
-    return [pt.slice(1)];
-  }
-  return pt.split('/').map((item) => {
-    if (item.length === 0) {
-      return '';
-    }
-    if (item[0] === '+') {
-      return parseInt(item.slice(1), 10) || 0;
-    }
-    if (item[0] === '-') {
-      return parseInt(item, 10) || 0;
-    }
-    return item;
-  });
-}
-
-/** Extracts the numeric value from a parsed PT token. String tokens like
- *  "2" parse as 2; opaque strings ("*") parse as 0. Mirrors Cockatrice
- *  which does the same via QVariant::toInt on the QVariantList. */
-function ptTokenToInt(token: number | string): number {
-  if (typeof token === 'number') {
-    return token;
-  }
-  const n = parseInt(token, 10);
-  return Number.isFinite(n) ? n : 0;
-}
-
-/** Port of `PlayerActions::actIncPT(cards, deltaP, deltaT)`. Applies a
- *  per-card power/toughness delta and returns the resulting wire string.
- *  Matches Cockatrice's three cases: empty PT, single-token PT (power
- *  only), and multi-token PT (power/toughness). */
-function applyPTDelta(currentPt: string, deltaP: number, deltaT: number): string {
-  const list = parsePT(currentPt);
-  const tSuffix = deltaT ? `/${deltaT}` : '';
-  if (list.length === 0) {
-    return `${deltaP}${tSuffix}`;
-  }
-  if (list.length === 1) {
-    return `${ptTokenToInt(list[0]) + deltaP}${tSuffix}`;
-  }
-  return `${ptTokenToInt(list[0]) + deltaP}/${ptTokenToInt(list[1]) + deltaT}`;
-}
-
-/** Port of `PlayerActions::actSetPT(cards, pt)`. The input string is a
- *  mini-DSL: numeric tokens replace, `+N`/`-N` tokens adjust the same
- *  position on the current PT. Empty input clears the PT. */
-function applyPTSet(currentPt: string, input: string): string {
-  const inputList = parsePT(input);
-  if (inputList.length === 0) {
-    return '';
-  }
-  const oldList = parsePT(currentPt);
-  return inputList
-    .map((item, i) => {
-      if (typeof item === 'number') {
-        const old = i < oldList.length ? ptTokenToInt(oldList[i]) : 0;
-        return String(old + item);
-      }
-      return item;
-    })
-    .join('/');
 }
 
 /** Mirrors Cockatrice desktop's `actRequestSetPTDialog` + `actSetPT`:
