@@ -18,7 +18,8 @@
       "game": "Game",
       "gamePhases": "Game Phases",
       "deckEditor": "Deck Editor",
-      "room": "Room"
+      "room": "Room",
+      "replays": "Replays"
     },
     "action": {
       "chat.focus": "Focus chat",
@@ -91,7 +92,13 @@
       "deck.load": "Load deck",
       "deck.addCard": "Add card",
       "deck.removeCard": "Remove card",
-      "room.sendMessage": "Send message"
+      "room.sendMessage": "Send message",
+      "replays.playPause": "Play/Pause",
+      "replays.skipForward": "Skip forward",
+      "replays.skipBackward": "Skip backward",
+      "replays.skipForwardBig": "Skip forward by a lot",
+      "replays.skipBackwardBig": "Skip backward by a lot",
+      "replays.toggleFastForward": "Toggle fast forward"
     }
   }
 }

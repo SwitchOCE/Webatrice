@@ -5,6 +5,7 @@ import { classifyLogTone, type LogSegment, type LogTone } from '@cockatrice/data
 import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 
 import { useGameId } from '../ui/GameIdContext';
+import { useGameReadOnly } from '../ui/GameReadOnlyContext';
 import { useHoveredCard } from '../PlayerBox/hoveredCard';
 import { useBigCardPreview } from '../PlayerBox/bigCardPreview';
 
@@ -79,8 +80,10 @@ export default function ChatLog() {
     canChat,
     chatDisabledReason,
   } = useGameLog({ gameId, listRef });
-  // Composite disabled state — no active game OR spectator-can't-chat.
-  const inputDisabled = gameId == null || !canChat;
+  // A replay is a recording: desktop's replay tab has no say box at all.
+  const readOnly = useGameReadOnly();
+  // Composite disabled state — no active game OR spectator-can't-chat OR replay.
+  const inputDisabled = gameId == null || !canChat || readOnly;
 
   // Cockatrice-parity focus-chat shortcut (Shift+Enter). Registered
   // GLOBAL so it fires regardless of route, but only actually mounted
@@ -222,6 +225,7 @@ export default function ChatLog() {
            kept as an sr-only affordance for keyboard-only users. */}
       <form
         onSubmit={handleSubmit}
+        hidden={readOnly}
         className="shrink-0 p-2 border-t border-border-subtle"
       >
         <label htmlFor="game-log-say-input" className="sr-only">

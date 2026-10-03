@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ExternalLink, FileText, Flag, Image as ImageIcon, Layers, LayoutList, LogOut, X } from 'lucide-react';
 
 import { CardImage, CardRelatedLinks } from '@app/components';
@@ -7,6 +8,7 @@ import PlayerList from '../right-sidebar/PlayerList/PlayerList';
 import ChatLog from '../ChatLog/ChatLog';
 import { useGameId } from '../ui/GameIdContext';
 import { useGameDialogActions } from '../ui/GameDialogActionsContext';
+import { useGameReadOnly } from '../ui/GameReadOnlyContext';
 import { useLocalIdentity } from '../../hooks/useLocalIdentity';
 import { useGameAffordances } from '../../hooks/useGameAffordances';
 import { useHoveredCard } from '../PlayerBox/hoveredCard';
@@ -120,6 +122,8 @@ async function fetchScryfallDetail(
 export default function BattlefieldSidebar() {
   const gameId = useGameId();
   const { isSpectator } = useLocalIdentity();
+  const readOnly = useGameReadOnly();
+  const { t } = useTranslation();
   const { hoveredCard } = useHoveredCard();
   const {
     onRequestConcede,
@@ -331,7 +335,7 @@ export default function BattlefieldSidebar() {
             'text-yellow-300 bg-yellow-500/10 border-b border-yellow-500/30 text-center',
           ].join(' ')}
         >
-          Spectating
+          {readOnly ? t('GameReplay.sidebar.tag') : 'Spectating'}
         </div>
       )}
 
@@ -590,14 +594,14 @@ export default function BattlefieldSidebar() {
             type="button"
             onClick={handleLeave}
             disabled={gameId == null}
-            title="Leave the game"
+            title={readOnly ? t('GameReplay.sidebar.closeTitle') : 'Leave the game'}
             className={[
               'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium',
               'text-text-primary bg-bg-elevated hover:bg-border-subtle border',
               'border-border-subtle disabled:opacity-60 disabled:cursor-not-allowed transition-colors',
             ].join(' ')}
           >
-            <LogOut size={12} /> Leave
+            <LogOut size={12} /> {readOnly ? t('GameReplay.sidebar.close') : 'Leave'}
           </button>
         </div>
         <PlayerList />

@@ -29,7 +29,7 @@ function computeRouteScope(pathname: string): ShortcutScope | null {
   if (pathname.startsWith('/room/')) {
     return ShortcutScope.ROOM;
   }
-  if (pathname === '/replays') {
+  if (pathname === '/replays' || pathname.startsWith('/replay/')) {
     return ShortcutScope.REPLAYS;
   }
   return null;
