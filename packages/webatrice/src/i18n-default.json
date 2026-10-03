@@ -990,6 +990,10 @@
       "shortcuts": "Shortcuts"
     }
   },
+  "AppAlerts": {
+    "mention": "{sender} mentioned you.",
+    "buddySignedOn": "Your buddy {name} has signed on!"
+  },
   "CommandFailureNotices": {
     "createGame": {
       "title": "Could not create game",

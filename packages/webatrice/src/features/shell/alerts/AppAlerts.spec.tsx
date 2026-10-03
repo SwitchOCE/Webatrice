@@ -1,0 +1,203 @@
+import { act, screen } from '@testing-library/react';
+import { create } from '@bufbuild/protobuf';
+import { games, rooms, server } from '@cockatrice/datatrice';
+import { makeGameEntry, makePlayerEntry, makePlayerProperties } from '@cockatrice/datatrice/testing';
+import { Event_RoomSay_RoomMessageType, Event_RoomSaySchema } from '@cockatrice/sockatrice/generated';
+
+import { connectedWithRoomsState, makeUser, renderWithProviders } from '../../../__test-utils__';
+import { playSound } from '../../../hooks/playSound';
+import { getSettings, settingsStore } from '../../../hooks/useSettings';
+import { ATTENTION_MARKER } from '../../../services/notifications/NotificationService';
+import type { Preferences } from '../../../types';
+import AppAlerts from './AppAlerts';
+
+vi.mock('../../../hooks/playSound');
+
+const preloadedState = {
+  ...connectedWithRoomsState,
+  server: {
+    ...connectedWithRoomsState.server!,
+    buddyList: { alice: makeUser({ name: 'alice' }) },
+    ignoreList: { pest: makeUser({ name: 'pest' }) },
+  },
+  games: {
+    games: {
+      1: makeGameEntry({
+        localPlayerId: 1,
+        players: { 1: makePlayerEntry({ properties: makePlayerProperties({ playerId: 1 }) }) },
+      }),
+    },
+    pings: { 1: {} },
+  },
+};
+
+const setPreferences = async (patch: Partial<Preferences>) => {
+  const settings = await getSettings();
+  Object.assign(settings, patch);
+  settingsStore.setValue(settings);
+};
+
+const renderAlerts = (route = '/') => renderWithProviders(<AppAlerts />, { preloadedState, route });
+
+// The inbound path: Datatrice's listener drops ignored senders, then stores the rest.
+const roomSay = (name: string, message: string, messageType = Event_RoomSay_RoomMessageType.UserMessage) =>
+  rooms.Actions.roomSayReceived({
+    roomId: 1,
+    message: { ...create(Event_RoomSaySchema, { name, message, messageType }), timeReceived: 0 },
+  });
+
+describe('AppAlerts', () => {
+  beforeEach(async () => {
+    document.title = 'Webatrice';
+    settingsStore.reset();
+    await getSettings();
+  });
+
+  describe('game events', () => {
+    it('plays the desktop sound for the event', () => {
+      const { store } = renderAlerts();
+      act(() => {
+        store.dispatch(games.Actions.activePhaseSet({ gameId: 1, phase: 4 }));
+      });
+      expect(playSound).toHaveBeenCalledWith('start_combat');
+    });
+
+    it('marks a hidden tab, unless tab notifications are off', async () => {
+      const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+      const { store } = renderAlerts();
+
+      act(() => {
+        store.dispatch(games.Actions.activePlayerSet({ gameId: 1, activePlayerId: 1 }));
+      });
+      expect(document.title).toBe(`${ATTENTION_MARKER}Webatrice`);
+
+      hidden.mockReturnValue(false);
+      document.dispatchEvent(new Event('visibilitychange'));
+      hidden.mockReturnValue(true);
+      await act(async () => {
+        await setPreferences({ notificationsEnabled: false });
+      });
+      act(() => {
+        store.dispatch(games.Actions.activePlayerSet({ gameId: 1, activePlayerId: 1 }));
+      });
+      expect(document.title).toBe('Webatrice');
+    });
+  });
+
+  describe('room mentions', () => {
+    it('plays the mention sound and toasts when you are elsewhere', () => {
+      const { store } = renderAlerts();
+      act(() => {
+        store.dispatch(roomSay('otherUser', 'hey @testUser, game?'));
+      });
+
+      expect(playSound).toHaveBeenCalledWith('chat_mention');
+      expect(screen.getByText(/AppAlerts\.mention/)).toBeInTheDocument();
+    });
+
+    it('only plays the sound while you are reading that room', () => {
+      const { store } = renderAlerts('/room/1');
+      act(() => {
+        store.dispatch(roomSay('otherUser', 'hey @testUser'));
+      });
+
+      expect(playSound).toHaveBeenCalledWith('chat_mention');
+      expect(screen.queryByText(/AppAlerts\.mention/)).not.toBeInTheDocument();
+    });
+
+    it('stays quiet for history, your own lines and lines without a mention', () => {
+      const { store } = renderAlerts();
+      act(() => {
+        store.dispatch(roomSay('otherUser', 'hey @testUser', Event_RoomSay_RoomMessageType.ChatHistory));
+        store.dispatch(roomSay('testUser', 'talking to myself @testUser'));
+        store.dispatch(roomSay('otherUser', 'hello room'));
+      });
+      expect(playSound).not.toHaveBeenCalled();
+    });
+
+    it('raises nothing for an ignored sender, whose line Datatrice drops on arrival', () => {
+      const { store } = renderAlerts();
+      act(() => {
+        store.dispatch(roomSay('pest', 'hey @testUser'));
+      });
+      expect(playSound).not.toHaveBeenCalled();
+      expect(screen.queryByText(/AppAlerts\.mention/)).not.toBeInTheDocument();
+    });
+
+    it('raises nothing for the client’s own flood or not-sent notices', () => {
+      const { store } = renderAlerts();
+      act(() => {
+        store.dispatch(rooms.Actions.roomSayFailed({ roomId: 1, message: '@testUser hi', responseCode: 18, timeReceived: 1 }));
+      });
+      expect(playSound).not.toHaveBeenCalled();
+      expect(screen.queryByText(/AppAlerts\.mention/)).not.toBeInTheDocument();
+    });
+
+    it('respects the mention and popup preferences', async () => {
+      await setPreferences({ showMentionPopups: false });
+      const { store } = renderAlerts();
+      act(() => {
+        store.dispatch(roomSay('otherUser', 'hey @testUser'));
+      });
+      expect(playSound).toHaveBeenCalledWith('chat_mention');
+      expect(screen.queryByText(/AppAlerts\.mention/)).not.toBeInTheDocument();
+
+      vi.mocked(playSound).mockClear();
+      await act(async () => {
+        await setPreferences({ chatMention: false });
+      });
+      act(() => {
+        store.dispatch(roomSay('otherUser', 'hey @testUser'));
+      });
+      expect(playSound).not.toHaveBeenCalled();
+    });
+
+    it('marks a hidden tab for an alert word, without a sound', async () => {
+      vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
+      await setPreferences({ chatHighlightWords: 'cube' });
+      const { store } = renderAlerts();
+
+      act(() => {
+        store.dispatch(roomSay('otherUser', 'cube draft?'));
+      });
+
+      expect(document.title).toBe(`${ATTENTION_MARKER}Webatrice`);
+      expect(playSound).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('buddies', () => {
+    it('plays the buddy sounds and announces a buddy signing on', () => {
+      const { store } = renderAlerts();
+      act(() => {
+        store.dispatch(server.Actions.userJoined({ user: makeUser({ name: 'alice' }) }));
+      });
+      expect(playSound).toHaveBeenCalledWith('buddy_join');
+      expect(screen.getByText(/AppAlerts\.buddySignedOn/)).toBeInTheDocument();
+
+      act(() => {
+        store.dispatch(server.Actions.userLeft({ name: 'alice' }));
+      });
+      expect(playSound).toHaveBeenCalledWith('buddy_leave');
+    });
+
+    it('ignores users who are not buddies', () => {
+      const { store } = renderAlerts();
+      act(() => {
+        store.dispatch(server.Actions.userJoined({ user: makeUser({ name: 'stranger' }) }));
+      });
+      expect(playSound).not.toHaveBeenCalled();
+      expect(screen.queryByText(/AppAlerts\.buddySignedOn/)).not.toBeInTheDocument();
+    });
+
+    it('keeps the sound but skips the announcement when buddy notifications are off', async () => {
+      await setPreferences({ buddyConnectNotificationsEnabled: false });
+      const { store } = renderAlerts();
+      act(() => {
+        store.dispatch(server.Actions.userJoined({ user: makeUser({ name: 'alice' }) }));
+      });
+      expect(playSound).toHaveBeenCalledWith('buddy_join');
+      expect(screen.queryByText(/AppAlerts\.buddySignedOn/)).not.toBeInTheDocument();
+    });
+  });
+});
