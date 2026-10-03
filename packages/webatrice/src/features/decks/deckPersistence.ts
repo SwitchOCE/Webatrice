@@ -1,6 +1,6 @@
 import { serializeCod } from '@app/services';
 
-import type { HydratedDeck } from './types';
+import type { DeckCard, HydratedDeck } from './types';
 
 /**
  * Saving an open deck back to Servatrice deck storage. The upload itself is
@@ -21,6 +21,26 @@ export function serializeDeckForSave(deck: HydratedDeck): string {
     tagsXml: deck.tagsXml,
     bracketAssessment: deck.bracketAssessment,
   });
+}
+
+const WUBRG = ['W', 'U', 'B', 'R', 'G'] as const;
+
+/**
+ * The deck's color identity as desktop's `getDeckColorIdentity` computes it
+ * for a save: the union of the colors of every main and sideboard card, in
+ * WUBRG order. Cards whose data hasn't loaded contribute nothing, as unknown
+ * cards do on desktop. 3.1 servers store it beside the deck (and overwrite it
+ * on every update).
+ */
+export function deckColorIdentity(cards: readonly DeckCard[]): string {
+  const colors = new Set<string>();
+  // Every card is main or sideboard, the two zones desktop reads.
+  for (const card of cards) {
+    for (const color of card.colors ?? []) {
+      colors.add(color.toUpperCase());
+    }
+  }
+  return WUBRG.filter((c) => colors.has(c)).join('');
 }
 
 /**

@@ -5,7 +5,7 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import { useReduxEffect } from '@app/hooks';
 
 import { getCachedDeck, setCachedDeck } from '../deckEditorCache';
-import { deckSaveSignature, serializeDeckForSave } from '../deckPersistence';
+import { deckColorIdentity, deckSaveSignature, serializeDeckForSave } from '../deckPersistence';
 import type { HydratedDeck } from '../types';
 
 export const AUTOSAVE_DEBOUNCE_MS = 500;
@@ -70,7 +70,9 @@ export function useDeckAutosave(
     }
     inFlight.push(signature);
     setSaveState('saving');
-    webClient.request.session.deckUpdate(deckId, serializeDeckForSave(current));
+    // Visibility is left as is; the color identity is sent every time,
+    // since the server overwrites it on each update.
+    webClient.request.session.deckUpdate(deckId, serializeDeckForSave(current), undefined, deckColorIdentity(current.cards));
   }, [deckId, webClient, readDeck]);
 
   useReduxEffect<{ deckId: number }>(
