@@ -3,3 +3,4 @@
 - 15:52Z replay tabs persist until closed (engine owned by opened replay; useWatchReplay moved to @app/hooks, same signature) → keyboard lists
 - 15:55Z keyboard grids done (useGridRows in @app/hooks) → minors
 - 15:59Z minors done: engine wall-clock, FF speed, timeline keys, read-only affordances, replayDownload store → remaining minors (library folder, import checks, IDB errors, i18n, docs, fold)
+- 16:08Z all fixes+minors+docs pushed → folding red intermediate commits (rebase), then full gate
