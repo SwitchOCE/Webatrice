@@ -207,8 +207,10 @@ export function resolveHandOrZoneCardMenu(deps: HandOrZoneCardMenuDeps): CardMen
         case 'libraryBottom':
           return moveTargets({ zone: ZoneName.DECK, reversed: true });
         case 'libraryXFromTop':
-          if (numeric) {
-            deps.promptMoveXFromTop({ cardIds: [cardIdNum], cardName, deckSize: deps.deckSize, fromZone: zone });
+          // Desktop actMoveCardXCardsFromTop moves the whole selection in one
+          // Command_MoveCard (player_actions.cpp:1229-1252).
+          if (targetIds.length > 0) {
+            deps.promptMoveXFromTop({ cardIds: targetIds, cardName, deckSize: deps.deckSize, fromZone: zone });
           }
           return;
         case 'table':
