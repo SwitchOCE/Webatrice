@@ -12,6 +12,7 @@ import { Enriched } from '../../types';
 import { ServerCapability, serverSupports } from './server.capabilities';
 import { GamesOfUserStatus, PrivateChatNotice, PrivateConversationEntry, ServerState, UserInvestigation } from './server.interfaces';
 import { HEALTHY_CONNECTION_HEALTH } from './server.reducer.connection';
+import { reportSelectors } from './server.selectors.reports';
 
 type State = { server: ServerState };
 
@@ -248,4 +249,6 @@ export const Selectors = {
       return Object.values(replays).sort((a, b) => a.gameId - b.gameId);
     }
   ),
+
+  ...reportSelectors,
 }
