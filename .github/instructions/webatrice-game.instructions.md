@@ -79,7 +79,8 @@ Affecting [src/store/game/game.listeners.ts](../../packages/webatrice/src/store/
 
 **Left-click and right-click use independent click-vs-drag thresholds.** They serve different gestures and have different ergonomics:
 
-- **Left-click** (`useGame`'s `PointerSensor`): `activationConstraint: { distance: 0 }`. Any motion at all activates a drag; a pure click (pointerdown → pointerup with no `pointermove`) never calls dnd-kit's `handleStart`, so the click event flows through to `arrows.handleCardClick`. No "dead zone" between press and visible drag feedback.
+- **Left-click** (`useGame`'s `GamePointerSensor`, `activationDistance: 0`): any motion at all activates a drag; a pure click (pointerdown → pointerup with no `pointermove`) never starts one, so the click event flows through to `arrows.handleCardClick`. No "dead zone" between press and visible drag feedback.
+- **Seat cards and piles** (PlayerBox, through `useSeatDragSource`): the drag data sets `activationDistance: 4`, so the pointer must leave a 4px box around the press point along either axis; a release inside it is a click, delivered to the source's `onRelease` (selection, pending attach). Same sensor, same coordinator (`useGameDnd`).
 - **Right-click** (`useGameArrowInteractions`'s `ARROW_DRAG_THRESHOLD_PX = 4`): 4px of motion budget before a right-click promotes from "open context menu" to "drag-to-draw-arrow." More grace because menus need a confirmation gesture.
 
 A regression on either side silently breaks its corresponding click-through path (left: card click for arrow source/target; right: context menu open) because `pointerdown` fires `cancelPendingOnDragStart` before `handleCardClick` runs.

@@ -58,15 +58,15 @@ import {
 } from './cardSize';
 import ContextMenu, { type ContextMenuItem } from './ContextMenu';
 import LibrarySearchDialog from './LibrarySearchDialog';
-import { useRegisterForeignDrag } from './foreignDragContext';
 import Card from './Card';
 import { deckCardImageUrl } from './deckCardImageUrl';
 import { useCardPreviewActions } from '../ui/CardPreviewContext';
 import { usePublishSeatShortcuts, type SeatShortcutOperations } from '../ui/SeatShortcutsContext';
 import { useSeatSelection, type SeatSelection } from '../../hooks/useSeatSelection';
-import { SEAT_DROP_PRIORITY } from '../../hooks/seatDropPlan';
+import { SEAT_DROP_PRIORITY, type SeatZone } from '../../hooks/seatDropPlan';
 import {
   SeatDragGhost,
+  SeatDropPreview,
   useActiveSeatDrag,
   useSeatDragSource,
   useSeatDropZone,
@@ -80,7 +80,6 @@ import { useGameDialogsContext } from '../ui/GameDialogsContext';
 import { useShortcutHints } from '@app/feature-widgets/shortcuts';
 import { isFilterEmpty, matchCard, parseCardFilter, type CardFilter, type FilterableCard } from '../../utils/cardFilter';
 import { buildArrowGeometry } from '../arrows/GameArrowOverlay/arrowPath';
-import { planHandReorder } from '../../hooks/handReorder';
 import { ArrowColor, rgbaToCss } from '@app/types';
 import {
   lookupCard,
@@ -107,117 +106,13 @@ const DIALOG_SUBMIT_BUTTON_CLASS =
 export type HandCard = PlayerCardViewModel;
 export type BattlefieldCard = BattlefieldCardViewModel;
 
-/** Which zone a drag was initiated from. Individual card identities are
- *  carried on the DragState itself (`cards[*].id`), so we don't need a
- *  discriminated union here anymore. */
-type DragSourceZone =
-  | 'hand'
-  | 'battlefield'
-  | 'library'
-  | 'graveyard'
-  | 'exile'
-  | 'stack'
-  | 'sideboard';
-
-/**
- * Where a dragged card is being dropped. Battlefield carries the snapped
- * slot; stack carries the insertion index (0 = top of pile, N = bottom);
- * everything else is just the zone.
- */
-type DropTarget =
-  // Battlefield carries the owner so drops can cross PlayerBoxes — the
-  // viewer can gift a card onto an opponent's battlefield.
-  | { zone: 'battlefield'; slot: BattlefieldSlot; ownerId: string }
-  // Hand carries the insertion index so drops can reorder cards within
-  // the hand or drop cards into specific positions.
-  | { zone: 'hand'; index: number }
-  // Library — `revealSlotIndex` is set when the drop landed on the
-  // ZoneRevealDialog. Value is the reveal-list slot the user dropped
-  // between; PlayerBox translates it to a library position (top-view =
-  // direct, bottom-view = mirrored) and passes it as `x` on the wire.
-  // Server routes via `Command_MoveCard(target=DECK, x=libraryPos)`,
-  // same path Cockatrice's "Move to → X cards from the top of library"
-  // uses — the only way Cockatrice supports arbitrary-position drops.
-  | { zone: 'library'; revealSlotIndex?: number }
-  | { zone: 'graveyard' }
-  | { zone: 'exile' }
-  | { zone: 'stack'; index: number }
-  // Sideboard — HiddenZone like library. Drops on the sideboard-view
-  // modal append (x=-1 sentinel handled by applyMove); we don't
-  // currently support positional drops within the sideboard reveal.
-  | { zone: 'sideboard' };
-
-/**
- * Live drag state. `cards` holds one entry for a single-card drag or many
- * for a group drag; drop logic iterates over it. `offsetX/Y` capture where
- * the pointer sat within the primary card so the ghost stays anchored and
- * the drop calculation uses the card's top-left, not the pointer position.
- */
-type DragState = {
-  cards: HandCard[];
-  sourceZone: DragSourceZone;
-  /** Player id the cards originate from. Undefined means "self" (the
-   *  normal case — the drag started in the local player's own zones).
-   *  Set to another player's id when we're dragging cards from a zone
-   *  someone else lent us via Command_RevealCards(grant_write_access).
-   *  Consumed by the wire path in `applyMove` — Command_MoveCard's
-   *  `startPlayerId` gets this value instead of the local player's,
-   *  and Servatrice's cmdMoveCard write-permission check
-   *  (server_abstract_player.cpp:779) validates that we're in the
-   *  lent zone's `playersWithWritePermission` set. */
-  sourcePlayerId?: number;
-  offsetX: number;
-  offsetY: number;
-  pointerX: number;
-  pointerY: number;
-  /** Pointer position where the drag was initiated. Used to distinguish
-   *  drags from clicks — a release within a few pixels of the start is
-   *  treated as a click and doesn't commit a drop, so double-clicks
-   *  don't accidentally re-order stacks. */
-  initialX: number;
-  initialY: number;
-  /** Flips true once the pointer has moved past the threshold. Gates all
-   *  visual drag effects (ghost, source-card hiding, cursor override) so
-   *  a click that never moves doesn't flash the drag UI. */
-  moved: boolean;
-};
-
-/** Pointer must move at least this many pixels for a drop to fire. */
-const DRAG_MOVEMENT_THRESHOLD_PX = 4;
+/** Which zone a drag was initiated from. */
+type DragSourceZone = SeatZone;
 
 /** A marquee selection is always within a single zone. */
 type Selection = SeatSelection;
 
 const NO_CARDS: readonly HandCard[] = [];
-
-/** Map a local drag zone name to the Cockatrice wire zone name. */
-function wireZoneName(
-  zone:
-    | 'battlefield'
-    | 'hand'
-    | 'library'
-    | 'graveyard'
-    | 'exile'
-    | 'stack'
-    | 'sideboard',
-): string {
-  switch (zone) {
-    case 'battlefield':
-      return ZoneName.TABLE;
-    case 'hand':
-      return ZoneName.HAND;
-    case 'library':
-      return ZoneName.DECK;
-    case 'graveyard':
-      return ZoneName.GRAVE;
-    case 'exile':
-      return ZoneName.EXILE;
-    case 'stack':
-      return ZoneName.STACK;
-    case 'sideboard':
-      return ZoneName.SIDEBOARD;
-  }
-}
 
 interface CardContextMenuPopupProps {
   items: CardMenuItem[];
@@ -387,11 +282,9 @@ function CardContextSubmenu({
 
 /** Synthetic drag payload for pulling the top of the library. The library
  *  is a HiddenZone — the client never knows which face is at deck[0]
- *  (that's the server's shuffle) so the drag carries no identity, and
- *  the wire path hardcodes `cardId: 0` (positional "top" per Cockatrice's
- *  HiddenZone convention). The id is a non-numeric sentinel so
- *  `Number(id) → NaN` correctly steers the wire past the numeric-id
- *  fast-path in `applyMove` and into the top-of-deck fallback. */
+ *  (that's the server's shuffle) so the drag carries no identity. The id
+ *  is a non-numeric sentinel, which planSeatMove sends as position 0, the
+ *  top of the deck (Cockatrice's HiddenZone convention). */
 const LIBRARY_TOP_DRAG_PAYLOAD: HandCard = {
   id: '__library_top__',
   name: '',
@@ -913,6 +806,7 @@ function BattlefieldSlotOverlay({
         return (
           <div
             key={`${slot.row}-${slot.col}`}
+            data-drop-preview={isHighlighted || undefined}
             // Dashed border toggled by the header "Snap grid" button
             // (useSnapGridVisible). Off by default; on = dashed outline
             // at every snap position so the user can eyeball layout.
@@ -2790,11 +2684,6 @@ function PlayerBox(
     return () => ro.disconnect();
   }, []);
 
-  // Drag state for the local player. Only self can drag — opponents' cards
-  // are rendered read-only. Tracking pointer position here lets the portal
-  // ghost follow the cursor smoothly.
-  const [drag, setDrag] = useState<DragState | null>(null);
-
   // Marquee selection. Selection is single-zone — the marquee groups whatever
   // it touches by zone and picks the zone contributing the most cards. It is
   // this seat's share of the game-level selection, so selecting anywhere else
@@ -3771,114 +3660,24 @@ function PlayerBox(
     prevMaxColsRef.current = maxColsInAnyRow;
   }, [maxColsInAnyRow]);
 
-  // Begin a drag on `cards` (single or group) coming from `sourceZone`.
-  // Records the pointer's offset from the primary card's top-left so the
-  // ghost stays anchored where the user grabbed. No-op for opponents.
-  //
-  // `sourcePlayerId` defaults to undefined = "self". Only set when the
-  // drag started inside a zone another player lent us — the Lend
-  // library flow calls this via the ForeignDragContext registered
-  // below, passing the lender's id so the wire dispatches with
-  // Command_MoveCard.startPlayerId = <lender>.
-  const beginDrag = (
-    e: React.PointerEvent<HTMLElement>,
-    cards: HandCard[],
-    sourceZone: DragSourceZone,
-    sourcePlayerId?: number,
-  ) => {
-    // Fires on both self and opponent boxes so click-to-select works
-    // uniformly (Cockatrice parity — each battlefield has its own
-    // selection). Actual drag-and-drop moves are still gated on isSelf
-    // in applyMove; server rejects any leak.
-    if (e.button !== 0 || cards.length === 0) {
-      return;
-    }
-    // preventDefault suppresses the browser's default text-selection AND
-    // its native HTML5 drag on any focusable/selectable child (e.g., the
-    // card art). Without it the browser sometimes takes over mid-drag and
-    // shows the "no drop" cursor, killing our custom drag.
-    e.preventDefault();
-    const rect = e.currentTarget.getBoundingClientRect();
-    setDrag({
-      cards,
-      sourceZone,
-      sourcePlayerId,
-      offsetX: e.clientX - rect.left,
-      offsetY: e.clientY - rect.top,
-      pointerX: e.clientX,
-      pointerY: e.clientY,
-      initialX: e.clientX,
-      initialY: e.clientY,
-      moved: false,
-    });
-  };
-
-  // Publish beginDrag into the shared ForeignDragContext when we're
-  // the local seat. IncomingRevealDialog (mounted at Game.tsx level,
-  // outside this PlayerBox's subtree) uses this to start drags from
-  // a lender's revealed library — the drag runs on our infrastructure
-  // (ghost, drop detection, applyMove) but with sourcePlayerId set
-  // to the lender. Non-self PlayerBoxes don't register — a foreign
-  // drag on an opponent's UI wouldn't make sense.
-  useRegisterForeignDrag(isSelf ? beginDrag : null);
-
   const startPileDrag = (
     e: React.PointerEvent<HTMLElement>,
     card: HandCard,
     zone: Exclude<DragSourceZone, 'hand' | 'battlefield' | 'stack'>,
   ) => {
-    const start = seatDragSources[zone];
-    if (start) {
-      start(e, [card]);
-      return;
-    }
-    beginDrag(e, [card], zone);
+    seatDragSources[zone]?.(e, [card]);
   };
 
   /** Ids of the cards a drag from `zone` is carrying, for dialogs that hide
    *  them while the ghost has them. */
-  const draggingIdsFrom = (zone: DragSourceZone): Set<string> | undefined => {
-    if (drag?.sourceZone === zone) {
-      return new Set(drag.cards.map((c) => c.id));
-    }
-    if (seatDrag?.zone === zone) {
-      return new Set(seatDrag.cards.map((c) => c.id));
-    }
-    return undefined;
-  };
+  const draggingIdsFrom = (zone: DragSourceZone): Set<string> | undefined =>
+    seatDrag?.zone === zone ? new Set(seatDrag.cards.map((c) => c.id)) : undefined;
 
   /** True if this specific card is currently part of an active drag.
    *  Only returns true after the pointer has moved past the threshold —
    *  a click that never becomes a drag doesn't hide its source. */
   const isDragging = (id: string, zone: DragSourceZone) =>
-    (!!drag &&
-      drag.moved &&
-      drag.sourceZone === zone &&
-      drag.cards.some((c) => c.id === id)) ||
-    (seatDrag?.zone === zone && seatDrag.cards.some((c) => c.id === id));
-
-  // Force the grabbing cursor on the whole document while a drag is
-  // active. Without this, the OS cursor picks up the style of whatever
-  // element is under the pointer — including cursor: not-allowed on
-  // disabled phase buttons or other-player zones — which makes the drag
-  // look like it's about to fail even though it's fine. Toggling on the
-  // "is a drag active" boolean keeps this from thrashing on every pointer
-  // move (drag state churns each move to update pointerX/Y).
-  const isDragActive = drag !== null && drag.moved;
-  useEffect(() => {
-    if (!isDragActive) {
-      return;
-    }
-    const prev = document.body.style.cursor;
-    document.body.style.cursor = 'grabbing';
-    const styleEl = document.createElement('style');
-    styleEl.textContent = '*, *::before, *::after { cursor: grabbing !important; }';
-    document.head.appendChild(styleEl);
-    return () => {
-      document.body.style.cursor = prev;
-      styleEl.remove();
-    };
-  }, [isDragActive]);
+    seatDrag?.zone === zone && seatDrag.cards.some((c) => c.id === id);
 
   // A press released before the drag threshold (a click). Two readings:
   //   1. Pending-attach mode: the previous "Attach to card..." menu choice
@@ -3949,48 +3748,6 @@ function PlayerBox(
       }
     }
   };
-
-  // Global pointer listeners while dragging. Effect re-registers on every
-  // pointer move (drag state churns) — negligible cost, keeps the closure
-  // and drop calculation trivially correct.
-  useEffect(() => {
-    if (!drag) {
-      return;
-    }
-    const onMove = (e: PointerEvent) => {
-      setDrag((d) => {
-        if (!d) {
-          return null;
-        }
-        const moved =
-          d.moved ||
-          Math.abs(e.clientX - d.initialX) > DRAG_MOVEMENT_THRESHOLD_PX ||
-          Math.abs(e.clientY - d.initialY) > DRAG_MOVEMENT_THRESHOLD_PX;
-        return { ...d, pointerX: e.clientX, pointerY: e.clientY, moved };
-      });
-    };
-    const onUp = (e: PointerEvent) => {
-      if (drag.moved) {
-        // Real drag: commit drop, clear selection so the group doesn't
-        // trail the cards into their new zone.
-        const target = detectDropTarget(e.clientX, e.clientY, drag);
-        if (target) {
-          applyMove(drag.sourceZone, target, drag.cards, drag.sourcePlayerId);
-        }
-        setSelection(null);
-      } else if (drag.cards.length === 1) {
-        releaseCardPress(drag.sourceZone, drag.cards[0].id, e);
-      }
-      setDrag(null);
-    };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-    return () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- listeners re-bind on every `drag`/`marquee` update, picking up fresh handlers
-  }, [drag, cellWidths]);
 
   // Marquee pointer effect. Follows the pointer while dragging out a
   // selection rect; on release, finalize the selection.
@@ -4245,586 +4002,6 @@ function PlayerBox(
       y2: e.clientY,
       startZone: zoneAtPoint(e.clientX, e.clientY),
     });
-  };
-
-  // Hit-test the pointer against each zone's ref, returning the first
-  // match. Battlefield is checked first because it's the biggest area and
-  // needs the extra slot-computation step; the others are pure zone hits.
-  const detectDropTarget = (
-    x: number,
-    y: number,
-    d: DragState,
-  ): DropTarget | null => {
-    const insideRect = (el: HTMLElement | null) => {
-      if (!el) {
-        return null;
-      }
-      const r = el.getBoundingClientRect();
-      if (x < r.left || x > r.right || y < r.top || y > r.bottom) {
-        return null;
-      }
-      return r;
-    };
-    // The search-library dialog is a modal — while open, it takes
-    // drop priority over everything beneath it (usually the
-    // battlefield). Check first so drops on the modal resolve to
-    // library instead of leaking through to the covered zone.
-    if (insideRect(librarySearchDialogRef.current)) {
-      return { zone: 'library' };
-    }
-    // Graveyard / exile / hand view dialog — same overlay-priority
-    // principle as the library dialogs above. Resolves to the exact
-    // pile the view was opened on, so a same-zone graveyard / exile
-    // drop (drag out and let go on the modal) is absorbed as a no-op by
-    // applyMove's same-zone branch rather than leaking into the
-    // battlefield underneath. Hand needs an `index` field on the
-    // DropTarget so a cross-zone drop into the hand viewer fires
-    // Command_MoveCard(target=HAND, x=index) — we append (x=handSize)
-    // since the LibrarySearchDialog groups/sorts its display and a
-    // positional insert wouldn't line up with what the user sees. That
-    // append index is meaningless for a hand card dropped back on its
-    // own viewer (applyMove would send it to the end of the hand), so
-    // that drop resolves to no target and the card snaps back.
-    if (pileView && insideRect(pileViewDialogRef.current)) {
-      if (pileView.zone === 'hand') {
-        return d.sourceZone === 'hand' ? null : { zone: 'hand', index: handDisplayList.length };
-      }
-      return { zone: pileView.zone };
-    }
-    // Sideboard view dialog — same overlay-priority pattern. Drops
-    // land on the SIDEBOARD zone (HiddenZone), server picks the
-    // position via x=-1 (append). Same-zone drops (drag within
-    // the sideboard) resolve as no-ops via applyMove's same-zone
-    // early return; cross-zone drops (from hand / battlefield /
-    // grave / etc.) fire Command_MoveCard(target=SIDEBOARD).
-    if (viewSideboardOpen && insideRect(sideboardDialogRef.current)) {
-      return { zone: 'sideboard' };
-    }
-    // Zone-reveal dialog — compute which reveal slot the drop lands in
-    // so we can move the card to that exact library position via
-    // Cockatrice's "Move to → X cards from top" wire path
-    // (Command_MoveCard target=DECK x=N). The drop index is between two
-    // cards: pointer past a card's horizontal midpoint bumps the index
-    // by one so drops land AFTER that card. When the pointer is past
-    // the last card entirely, index = cards.length (append to reveal).
-    const zrEl = zoneRevealDialogRef.current;
-    if (insideRect(zrEl) && zrEl) {
-      const cardEls = zrEl.querySelectorAll<HTMLElement>(
-        '[data-card][data-card-id]',
-      );
-      if (cardEls.length === 0) {
-        return { zone: 'library', revealSlotIndex: 0 };
-      }
-      let bestIndex = 0;
-      let bestDist = Infinity;
-      let bestRight = false;
-      cardEls.forEach((el, i) => {
-        const r = el.getBoundingClientRect();
-        const cx = r.left + r.width / 2;
-        const cy = r.top + r.height / 2;
-        const dx = x - cx;
-        const dy = y - cy;
-        const dist = dx * dx + dy * dy;
-        if (dist < bestDist) {
-          bestDist = dist;
-          bestIndex = i;
-          bestRight = x > cx;
-        }
-      });
-      const revealSlotIndex = bestRight ? bestIndex + 1 : bestIndex;
-      return { zone: 'library', revealSlotIndex };
-    }
-    // Battlefield hit-test scans EVERY player's battlefield, not just our
-    // own — this is what lets the viewer gift cards onto an opponent's
-    // battlefield. For each battlefield, the pointer must be inside the
-    // VISIBLE scroll container (content can extend past it when scrolled)
-    // and the slot is computed against the content div's rect so scroll
-    // offset is naturally accounted for.
-    const bfEls = document.querySelectorAll<HTMLElement>(
-      '[data-battlefield-owner]',
-    );
-    for (const el of bfEls) {
-      // `el` is the scroll container (visible area). Its first child is
-      // the sized content div — use it for coordinate math because it
-      // stays aligned with the grid regardless of scroll offset.
-      const visibleRect = el.getBoundingClientRect();
-      if (
-        x < visibleRect.left ||
-        x > visibleRect.right ||
-        y < visibleRect.top ||
-        y > visibleRect.bottom
-      ) {
-        continue;
-      }
-      const contentEl = el.firstElementChild as HTMLElement | null;
-      if (!contentEl) {
-        continue;
-      }
-      const bfRect = contentEl.getBoundingClientRect();
-      const ownerId = el.dataset.battlefieldOwner ?? '';
-      const mirrored = el.dataset.battlefieldMirrored === 'true';
-      // Target-specific cellWidths are serialized as JSON on the content
-      // div's dataset so the source PlayerBox can snap against the exact
-      // same per-column footprint the target renders — a card dropped
-      // between a 3-stack and its neighbor lands in the correct column
-      // even though this drag logic runs outside the target's render
-      // context. Falls back to an empty map for the pre-hydration
-      // transient (uniform card-width columns).
-      let targetCellWidths: ReturnType<typeof computeCellWidths>;
-      try {
-        const raw = contentEl.dataset.cellWidths;
-        targetCellWidths = raw ? new Map(JSON.parse(raw)) : new Map();
-      } catch {
-        targetCellWidths = new Map();
-      }
-      // Pointer position in the target content div's coord space. The
-      // content div's rect already accounts for horizontal scroll, so
-      // subtracting its left/top gives layout coords.
-      const cardLeft = x - d.offsetX;
-      const cardTop = y - d.offsetY;
-      const localX = cardLeft - bfRect.left;
-      const localYRaw = cardTop - bfRect.top;
-      // Mirroring: on the OWN board, wire row 0 (creatures) renders at
-      // the visual TOP. Opponent boards flip so their creatures still
-      // face ours. Snap in the visual coord system, then flip the row
-      // back to wire orientation if the target is mirrored.
-      const rawSnap = snapPxToSlot(
-        localX,
-        localYRaw,
-        targetCellWidths,
-        battlefieldLayout,
-      );
-      const wireRow = mirrored
-        ? BATTLEFIELD_ROWS - 1 - rawSnap.row
-        : rawSnap.row;
-      return {
-        zone: 'battlefield',
-        slot: { row: wireRow, col: rawSnap.col },
-        ownerId,
-      };
-    }
-    const stackRect = insideRect(stackRef.current);
-    if (stackRect) {
-      // Insertion index is judged against the layout the user actually
-      // sees. When dragging cards OUT of the stack, those source cards are
-      // hidden and the pile re-flows to `stack.length - drag.cards.length`;
-      // matching that count keeps the drop-index visually accurate.
-      const layoutCount =
-        stackDisplayList.length - (d.sourceZone === 'stack' ? d.cards.length : 0);
-      const positions = layoutStackPile(
-        layoutCount,
-        stackRect.width,
-        stackRect.height,
-        CARD_W_PX,
-        CARD_H_PX,
-        STACK_HOFFSET_PX,
-      );
-      let idx = 0;
-      for (const p of positions) {
-        const centerY = stackRect.top + p.y + CARD_H_PX / 2;
-        if (y > centerY) {
-          idx++;
-        }
-      }
-      return { zone: 'stack', index: idx };
-    }
-    if (insideRect(handRef.current)) {
-      // Insertion index = number of hand cards whose center-X sits to the
-      // LEFT of the pointer, excluding any cards currently being dragged
-      // (they've moved with the cursor and shouldn't influence the index).
-      const handEls = boxRef.current?.querySelectorAll<HTMLElement>(
-        '[data-card][data-zone="hand"]',
-      );
-      let idx = 0;
-      handEls?.forEach((el) => {
-        const id = el.dataset.cardId;
-        if (!id) {
-          return;
-        }
-        if (d.sourceZone === 'hand' && d.cards.some((c) => c.id === id)) {
-          return;
-        }
-        const r = el.getBoundingClientRect();
-        if (x > r.left + r.width / 2) {
-          idx++;
-        }
-      });
-      return { zone: 'hand', index: idx };
-    }
-    if (insideRect(libraryRef.current)) {
-      return { zone: 'library' };
-    }
-    if (insideRect(graveyardRef.current)) {
-      return { zone: 'graveyard' };
-    }
-    if (insideRect(exileRef.current)) {
-      return { zone: 'exile' };
-    }
-    return null;
-  };
-
-  // Move a group of cards from their source zone to the resolved drop
-  // target. Handles both single-card and group drags. Same-zone drops are
-  // no-ops except battlefield (re-slot), hand (reorder), and library
-  // reveal reorders.
-  //
-  // `sourcePlayerId` defaults to the local player. Set only when the
-  // drag started from another player's zone that they lent us (via
-  // Command_RevealCards + grant_write_access) — in that case the wire
-  // uses the lender's id for `startPlayerId` so Servatrice routes the
-  // move through their zone, checking the write-permission set.
-  const applyMove = (
-    sourceZone: DragSourceZone,
-    target: DropTarget,
-    cards: HandCard[],
-    sourcePlayerId?: number,
-  ) => {
-    if (cards.length === 0) {
-      return;
-    }
-    // Foreign drags (from a lent zone) are Cockatrice-parity-limited to
-    // battlefield drops only — matching what the desktop client offers
-    // via drag-from-ZoneViewWidget. Silently no-op if the user drops
-    // anywhere else so the card just visually snaps back.
-    if (sourcePlayerId != null && target.zone !== 'battlefield') {
-      return;
-    }
-    const ids = new Set(cards.map((c) => c.id));
-
-    // In-place moves within my own battlefield: re-slot + re-append.
-    // (Battlefield dropped on someone else's battlefield falls through
-    // to the cross-zone path, which handles the gift + source removal.)
-    if (
-      target.zone === 'battlefield' &&
-      sourceZone === 'battlefield' &&
-      target.ownerId === player.user_id
-    ) {
-      // Re-slot each dragged card row-major from the drop slot, and
-      // re-append them to the end of the array so they land on top of
-      // any existing stack at the target slot (paint order = array
-      // order, and stack index within a slot = insertion order). If
-      // the group came from a single source slot (i.e., a stack), skip
-      // row-major and target the drop slot for every card — the
-      // resolveSlots cap still bumps overflow to neighbors.
-      const intended = intendedBattlefieldSlots(cards, target.slot);
-      // Wire dispatch: fire Command_MoveCard so the server updates
-      // the card's x/y (intra-zone reorder via cardMovedInSameZone).
-      // Multi-card group drags fire one wire per card so each lands
-      // at its intended slot. Skips optimistic mock-id cards.
-      if (onMoveCard && playerId != null) {
-        for (let i = 0; i < cards.length; i++) {
-          const cardId = Number(cards[i].id);
-          if (!Number.isFinite(cardId)) {
-            continue;
-          }
-          const slot = intended[i] ?? target.slot;
-          // Wire x encodes `col*3 + subSlot` (see resolveBattlefieldXForDrop).
-          // Resolving the sub-slot locally lets the optimistic dispatch
-          // land the card at its final position immediately — otherwise
-          // the drop shows at sub-slot 0, then jumps to sub-slot 1/2 when
-          // Servatrice's echo arrives with the corrected `x`.
-          onMoveCard({
-            startPlayerId: playerId,
-            startZone: ZoneName.TABLE,
-            cardsToMove: { card: [{ cardId }] },
-            targetPlayerId: playerId,
-            targetZone: ZoneName.TABLE,
-            x: resolveBattlefieldXForDrop(slot.col, slot.row, ids),
-            y: slot.row,
-          });
-        }
-      }
-      return;
-    }
-    if (target.zone === 'stack' && sourceZone === 'stack') {
-      return;
-    }
-    // Hand reorders: target.index is the slot among the hand cards not
-    // being dragged (only the hand strip yields a hand→hand target; the
-    // hand viewer resolves none). planHandReorder turns it into one
-    // single-card command per dragged card so a group keeps its order.
-    if (target.zone === 'hand' && sourceZone === 'hand') {
-      if (onMoveCard && playerId != null) {
-        const plan = planHandReorder(
-          handDisplayList.map((c) => c.id),
-          cards.map((c) => c.id),
-          target.index,
-        );
-        for (const { cardId, x } of plan) {
-          const wireId = Number(cardId);
-          if (!Number.isFinite(wireId)) {
-            continue;
-          }
-          onMoveCard({
-            startPlayerId: playerId,
-            startZone: ZoneName.HAND,
-            cardsToMove: { card: [{ cardId: wireId }] },
-            targetPlayerId: playerId,
-            targetZone: ZoneName.HAND,
-            x,
-            y: 0,
-            isReversed: false,
-          });
-        }
-      }
-      return;
-    }
-    // Same-zone drops for the remaining zones are no-ops — EXCEPT a
-    // library→library drop that landed on the zone-reveal dialog: that's
-    // a reorder within the visible reveal, which we forward as
-    // Command_MoveCard(source=DECK, target=DECK, x=slot) so the server
-    // reorders the deck. Datatrice's cardMoved listener sees the
-    // same-zone event and dispatches zoneViewCardReordered, which
-    // updates the reveal snapshot in place.
-    const isLibraryRevealReorder =
-      sourceZone === 'library' &&
-      target.zone === 'library' &&
-      target.revealSlotIndex !== undefined;
-    if (
-      target.zone === sourceZone &&
-      target.zone !== 'battlefield' &&
-      target.zone !== 'stack' &&
-      !isLibraryRevealReorder
-    ) {
-      return;
-    }
-    // Wire path: fire Command_MoveCard, then rely on the server's
-    // Event_MoveCard broadcast to drive the reducer and refresh the
-    // Redux-hydrated display props. There is no local mock to
-    // maintain any more.
-    //
-    // Card addressing on the wire depends on the source zone type:
-    //   • Library (HiddenZone) → positional index. Pile drags carry
-    //     LIBRARY_TOP_DRAG_PAYLOAD (non-numeric id → cardId: 0).
-    //     Reveal-dialog drags carry numeric ids matching the revealed
-    //     card's server-side deck position.
-    //   • Hand / Battlefield / Grave / Exile / Stack (PublicZone or
-    //     PrivateZone) → the real numeric card id Redux carries, taken
-    //     verbatim from `card.id`.
-    if (onMoveCard && playerId != null) {
-      const wireStartZone = wireZoneName(sourceZone);
-      const wireTargetZone = wireZoneName(target.zone);
-      const targetPlayerId =
-        target.zone === 'battlefield' ? Number(target.ownerId) : playerId;
-      // For battlefield drops: wire x = col * 3 to match Cockatrice's
-      // stack-column encoding (`gridX / 3` = stack column, `gridX % 3` =
-      // sub-slot 0..2). Sending col*3 always aims for sub-slot 0; the
-      // desktop client's drop resolver bumps subsequent cards in the
-      // same column to sub-slots 1 and 2 automatically.
-      // Drop-on-reveal reorder → translate the reveal slot index to a
-      // deck position for the wire's `x`. The invariant is that the
-      // drop-target slot lines up with the deck position of whichever
-      // revealed card would sit there:
-      //   • Top view: revealed[k].id = k, so revealSlotIndex k → x=k.
-      //   • Bottom-N view: revealed[k].id = deckCount - N + k, so
-      //     revealSlotIndex k → x = deckCount - N + k.
-      // Drops past the last revealed slot (revealSlotIndex === N) append
-      // after the last-visible card (deckCount for top view, deckCount
-      // for bottom view — clamped by the server to the actual last
-      // position after the source removal).
-      const revealCount = revealedDeckCards?.length ?? 0;
-      const revealBase =
-        topCardsView?.isReversed ? deckCount - revealCount : 0;
-      const revealX =
-        target.zone === 'library' && target.revealSlotIndex !== undefined
-          ? Math.max(
-            0,
-            Math.min(deckCount, revealBase + target.revealSlotIndex),
-          )
-          : undefined;
-      // For battlefield drops onto OUR battlefield, resolve the stack
-      // sub-slot locally (see resolveBattlefieldXForDrop's doc) so the
-      // optimistic dispatch and the wire agree on the final `x`. For
-      // gifts onto an opponent's battlefield, we don't have their zone
-      // state to hand — fall back to `col*3` and let Servatrice bump.
-      const x =
-        target.zone === 'battlefield'
-          ? target.ownerId === player.user_id
-            ? resolveBattlefieldXForDrop(target.slot.col, target.slot.row, ids)
-            : target.slot.col * 3
-          : target.zone === 'hand' || target.zone === 'stack'
-            ? target.index
-            : target.zone === 'sideboard'
-              ? -1 // Append to sideboard — HiddenZone with no visible
-            // ordering. Server places the card at the end.
-              : revealX ?? 0;
-      const y = target.zone === 'battlefield' ? target.slot.row : 0;
-      // Reveal drops don't need `is_reversed` on the wire — we're
-      // sending an exact position via `x`, which the server places at
-      // library index `x` regardless. `is_reversed` would only apply
-      // to Cockatrice-style front-of-view drops (x=0 + isReversed).
-      const isReversedFlag = false;
-      let wireCards: { cardId: number }[] | null;
-      if (sourceZone === 'library') {
-        // Library is a HiddenZone: the wire cardId is a POSITION into
-        // the server's deck (0 = top). Reveal-dialog drags carry a
-        // numeric id equal to the revealed card's deck position — use
-        // it verbatim. Pile drags carry LIBRARY_TOP_DRAG_PAYLOAD whose
-        // sentinel id parses to NaN, correctly resolving to `cardId: 0`.
-        wireCards = cards.map((c) => {
-          const realId = Number(c.id);
-          return { cardId: Number.isFinite(realId) ? realId : 0 };
-        });
-      } else if (sourceZone === 'sideboard') {
-        // Sideboard is a HiddenZone — Servatrice expects a positional
-        // cardId. Cards in the sideboard modal come from
-        // sideboardZone.revealedCards, which the zoneViewRevealed
-        // reducer already reindexed to 0..N-1 positional ids (see
-        // reindexRevealed). So the HandCard.id IS the wire cardId —
-        // same pattern as the library reveal-dialog drag path above.
-        wireCards = cards.map((c) => {
-          const realId = Number(c.id);
-          return { cardId: Number.isFinite(realId) ? realId : 0 };
-        });
-      } else {
-        wireCards = [];
-        for (const c of cards) {
-          const cardId = Number(c.id);
-          if (!Number.isFinite(cardId)) {
-            // Card without a server id — should never happen now that
-            // display lists trust Redux exclusively. Skip the wire
-            // rather than send a garbage cardId to the server.
-            wireCards = null;
-            break;
-          }
-          wireCards.push({ cardId });
-        }
-      }
-      if (wireCards) {
-        onMoveCard({
-          // Foreign drags (lent zones) use the lender's id here so
-          // Servatrice routes the move through their zone; local
-          // drags use our own id like always.
-          startPlayerId: sourcePlayerId ?? playerId,
-          startZone: wireStartZone,
-          cardsToMove: { card: wireCards },
-          targetPlayerId,
-          targetZone: wireTargetZone,
-          x,
-          y,
-          isReversed: isReversedFlag,
-        });
-        // NOTE: don't re-dump the reveal after a deck-touching move.
-        // Datatrice's cardMoved listener already updates the reveal
-        // snapshot in place — `zoneViewCardRemoved` prunes cards that
-        // leave the deck, `zoneViewCardReordered` handles in-zone
-        // moves. Re-dumping would pull FRESH cards from the deck to
-        // fill the vacated slot, which is a reveal cheat: if the
-        // player asked to see the top 3 and plays one, they'd see the
-        // next-hidden card promoted into slot 3 for free. Cockatrice's
-        // ZoneView also just shrinks.
-      }
-      // Reveal reorder is fully server-authoritative — the wire above
-      // moves the card in the deck, and datatrice's zoneViewCardReordered
-      // reindexes the visible snapshot. Skip the local-mock library
-      // mutations below: the reveal card carries a numeric id equal to
-      // its (stale) deck position, and prepending it to `library` would
-      // pollute `library[0]` so a subsequent pile drag sends that stale
-      // id as the wire cardId — the server would then pick the WRONG
-      // deck slot (e.g. dragging the pile after "Shivan Reef to top"
-      // returns whatever is currently at deck[2], not deck[0]).
-      if (isLibraryRevealReorder) {
-        return;
-      }
-    }
-  };
-
-  // Decide where each card in a battlefield drop wants to land, before
-  // the 3-per-slot cap kicks in. When every card in the group came from
-  // the battlefield we preserve the source layout:
-  //   - single stack (all same source slot) → collapse onto the drop slot
-  //   - multiple stacks → translate every card by (source − anchor) so
-  //     the whole selection shape lands at the drop point, keeping each
-  //     stack intact relative to the others
-  // Any mix that includes cards without source slots (hand, library, …)
-  // falls back to row-major spreading from the drop slot.
-  // Cockatrice packs up to three cards into one visual column via
-  // `wire_x % 3`. When the client sends `x = col*3` and that sub-slot
-  // is already taken, Servatrice bumps to sub-slot 1 or 2 and echoes
-  // the corrected `x`. Without client-side resolution the optimistic
-  // drop always lands at sub-slot 0 and only settles into its true
-  // sub-slot once the server round-trip completes — visible as a
-  // post-drop jump. Resolve locally so the wire (and the optimistic
-  // reducer that snapshots it) both carry the final position from
-  // the start. `excludeIds` skips the cards currently being dragged
-  // so a card being re-slotted to the same column doesn't count
-  // itself as occupying its old sub-slot. Returns `col*3` as the
-  // fallback when all three sub-slots are taken — matches what the
-  // pre-change wire sent, letting Servatrice handle overflow.
-  const resolveBattlefieldXForDrop = (
-    col: number,
-    row: number,
-    excludeIds: Set<string>,
-  ): number => {
-    const occupied = new Set<number>();
-    for (const bc of battlefieldDisplayList) {
-      if (excludeIds.has(bc.id)) {
-        continue;
-      }
-      if (bc.slot.col === col && bc.slot.row === row) {
-        occupied.add(bc.subSlot);
-      }
-    }
-    for (let sub = 0; sub < 3; sub++) {
-      if (!occupied.has(sub)) {
-        return col * 3 + sub;
-      }
-    }
-    return col * 3;
-  };
-
-  const intendedBattlefieldSlots = (
-    cards: HandCard[],
-    start: BattlefieldSlot,
-  ): BattlefieldSlot[] => {
-    if (cards.length === 0) {
-      return [];
-    }
-    const srcSlots = cards.map(
-      (c) => battlefieldDisplayList.find((bc) => bc.id === c.id)?.slot,
-    );
-    if (srcSlots.every((s) => s !== undefined)) {
-      const defined = srcSlots as BattlefieldSlot[];
-      const first = defined[0];
-      const allSameSlot = defined.every(
-        (s) => s.row === first.row && s.col === first.col,
-      );
-      if (allSameSlot) {
-        return cards.map(() => start);
-      }
-      // Multiple source stacks: use each card's offset from the group's
-      // top-left anchor as its offset from the drop slot. Clamp to grid
-      // bounds so the shape gets pushed back on-board when the anchor
-      // sits close to an edge.
-      const minRow = Math.min(...defined.map((s) => s.row));
-      const minCol = Math.min(...defined.map((s) => s.col));
-      const rows = Math.max(1, gridRows);
-      const cols = Math.max(1, gridCols);
-      return defined.map((s) => ({
-        row: Math.max(0, Math.min(rows - 1, start.row + (s.row - minRow))),
-        col: Math.max(0, Math.min(cols - 1, start.col + (s.col - minCol))),
-      }));
-    }
-    return slotsFrom(start, cards.length);
-  };
-
-  // Row-major slot sequence starting at `start`, wrapping to the next row
-  // when we run out of columns. Used for placing group drops on the
-  // battlefield so cards spread out visibly instead of overlapping.
-  const slotsFrom = (
-    start: BattlefieldSlot,
-    count: number,
-  ): BattlefieldSlot[] => {
-    const cols = Math.max(1, gridCols);
-    const rows = Math.max(1, gridRows);
-    const out: BattlefieldSlot[] = [];
-    let idx = start.row * cols + start.col;
-    for (let i = 0; i < count; i++) {
-      const wrapped = idx % (cols * rows);
-      out.push({ row: Math.floor(wrapped / cols), col: wrapped % cols });
-      idx++;
-    }
-    return out;
   };
 
   // Cross-player "receive" (gifts) and cross-board marquee forwarding.
@@ -5543,9 +4720,9 @@ function PlayerBox(
     });
   };
   const graveyardTopIdx =
-    graveDisplayList.length - 1 - (drag?.sourceZone === 'graveyard' || seatDrag?.zone === 'graveyard' ? 1 : 0);
+    graveDisplayList.length - 1 - (seatDrag?.zone === 'graveyard' ? 1 : 0);
   const exileTopIdx =
-    exileDisplayList.length - 1 - (drag?.sourceZone === 'exile' || seatDrag?.zone === 'exile' ? 1 : 0);
+    exileDisplayList.length - 1 - (seatDrag?.zone === 'exile' ? 1 : 0);
   const graveyardTop =
     graveyardTopIdx >= 0 ? graveDisplayList[graveyardTopIdx] : null;
   const exileTop = exileTopIdx >= 0 ? exileDisplayList[exileTopIdx] : null;
@@ -8318,42 +7495,26 @@ function PlayerBox(
               zIndex: 0,
             }}
           >
-            <BattlefieldSlotOverlay
-              cellWidths={cellWidths}
-              colsByRow={colsByRow}
-              layout={battlefieldLayout}
-              mirrored={handOnTop}
-              highlightedSlot={(() => {
-              // While a drag is in flight, ask the drop-target detector
-              // where it would land right now — same code path applyMove
-              // uses on release, so the highlight is always in sync with
-              // the actual snap. Only paint the highlight when the target
-              // is a battlefield AND it's THIS PlayerBox's board (drag can
-              // cross into an opponent's battlefield, in which case their
-              // PlayerBox lights up instead of ours). The returned slot's
-              // row is in wire coord (post-mirror), so undo the mirror
-              // for display comparison inside the overlay.
-                if (!drag) {
-                  return null;
-                }
-                const target = detectDropTarget(
-                  drag.pointerX,
-                  drag.pointerY,
-                  drag,
-                );
-                if (
-                  !target
-                || target.zone !== 'battlefield'
-                || target.ownerId !== player.user_id
-                ) {
-                  return null;
-                }
-                const displayRow = handOnTop
-                  ? BATTLEFIELD_ROWS - 1 - target.slot.row
-                  : target.slot.row;
-                return { row: displayRow, col: target.slot.col };
-              })()}
-            />
+            <SeatDropPreview dropId={`seat-${seatId}-battlefield`}>
+              {(target) => (
+                <BattlefieldSlotOverlay
+                  cellWidths={cellWidths}
+                  colsByRow={colsByRow}
+                  layout={battlefieldLayout}
+                  mirrored={handOnTop}
+                  // The drop target's row is in wire orientation; the
+                  // overlay paints in display orientation.
+                  highlightedSlot={
+                    target?.zone === 'battlefield'
+                      ? {
+                        row: handOnTop ? BATTLEFIELD_ROWS - 1 - target.slot.row : target.slot.row,
+                        col: target.slot.col,
+                      }
+                      : null
+                  }
+                />
+              )}
+            </SeatDropPreview>
             {(() => {
             // Group cards by slot for insertion-order stacking. For
             // server-authoritative cards `subSlot` carries the true
@@ -9301,9 +8462,9 @@ function PlayerBox(
           `enrichedDeckCards` is passed so the group/sort dropdowns
           have Scryfall-backfilled type / cmc / color info to work
           with (graveyard / hand cards typically originated from the
-          deck). Drag-out uses the pile's source-zone so applyMove
-          fires the correct startZone; drag-in is detected via
-          `pileViewDialogRef` in detectDropTarget above and routes to
+          deck). Drag-out uses the pile's source-zone so the move
+          fires the correct startZone; drag-in lands on the dialog's
+          seat drop zone, which routes to
           Command_MoveCard(target={GRAVE|EXILE|HAND}). */}
       {pileView && (
         <LibrarySearchDialog
@@ -9371,9 +8532,9 @@ function PlayerBox(
           contents are private, and only the owner has byId/order
           populated. No wire fires on open: the sideboard zone is
           already populated in Redux from the initial game state
-          broadcast. Drag out: cards flow through beginDrag as normal
-          library-style drops. Drop in: detectDropTarget routes drops
-          on the modal to `{ zone: "sideboard" }`, applyMove fires
+          broadcast. Drag out: cards drag by their server position like
+          the library dialogs. Drop in: the dialog's seat drop zone
+          resolves to `{ zone: "sideboard" }`, and the move fires
           Command_MoveCard(target=SIDEBOARD, x=-1) to append. */}
       {isSelf && viewSideboardOpen && (
         <LibrarySearchDialog
@@ -10647,15 +9808,6 @@ function PlayerBox(
           face here would mislead the user into thinking THAT specific
           card is being moved — so library-source drags render a card
           back instead, matching the pile visualization. */}
-      {drag &&
-        drag.moved &&
-        createPortal(
-          renderDragGhost(drag.cards, drag.sourceZone, drag.sourcePlayerId !== undefined, {
-            x: drag.pointerX - drag.offsetX,
-            y: drag.pointerY - drag.offsetY,
-          }),
-          document.body,
-        )}
       {seatDrag &&
         createPortal(
           <SeatDragGhost>
