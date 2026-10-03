@@ -80,7 +80,7 @@ npm run test:e2e -w @cockatrice/webatrice       # when user-visible server flows
 **Browsers:** the machine's own Playwright browsers do not match 1.60 and will not launch. Run the browser part of e2e
 inside the pre-pulled image: `npm run build -w @cockatrice/webatrice && npm run test:e2e:up -w @cockatrice/webatrice`, then
 `docker run --rm --network host --ipc=host -v "$PWD":"$PWD" -w "$PWD/packages/webatrice" mcr.microsoft.com/playwright:v1.60.0-noble npx playwright test`,
-then `npm run test:e2e:down -w @cockatrice/webatrice`. (Start Docker first with `sudo dockerd >/tmp/dockerd.log 2>&1 &` if `docker info` fails.)
+then `npm run test:e2e:down -w @cockatrice/webatrice`. The container does not trust the egress proxy's CA, so any spec that reaches an external host (Scryfall) fails with `ERR_CERT_AUTHORITY_INVALID` (known: `app-boots`, `bulk-card-actions` before the hermetic e2e fixture is in your base). Confirm such failures also happen on your base, record them, and move on. (Start Docker first with `sudo dockerd >/tmp/dockerd.log 2>&1 &` if `docker info` fails.)
 
 The machine is yours alone: no e2e lock needed. Docker and the 3.0.0 Servatrice/MySQL/Playwright images are
 pre-pulled. For 3.1-only e2e (reports, staff tools): build the master image once —
