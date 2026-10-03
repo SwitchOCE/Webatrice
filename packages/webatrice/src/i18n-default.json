@@ -525,6 +525,58 @@
       "room.sendMessage": "Send message"
     }
   },
+  "Account": {
+    "action": {
+      "edit": "Edit",
+      "changePassword": "Change Password",
+      "changeAvatar": "Change Avatar"
+    }
+  },
+  "AccountDialogs": {
+    "label": {
+      "cancel": "Cancel",
+      "ok": "OK"
+    },
+    "error": {
+      "editNotAllowed": "This server does not permit you to update your user information.",
+      "passwordCheckWrong": "The entered password does not match your account.",
+      "updateFailed": "An error occurred while trying to update your user information.",
+      "passwordNotAllowed": "This server does not permit you to change your password.",
+      "passwordTooShort": "The new password is too short.",
+      "oldPasswordWrong": "The old password is incorrect.",
+      "avatarNotAllowed": "This server does not permit you to update your avatar.",
+      "avatarFailed": "An error occurred while trying to update your avatar."
+    },
+    "validation": {
+      "maxChars": "Maximum of {count} characters"
+    }
+  },
+  "ChangeAvatarDialog": {
+    "title": "Change avatar",
+    "noImage": "No image chosen.",
+    "invalidImage": "Invalid image chosen.",
+    "previewAlt": "New avatar preview",
+    "instructions": "To change your avatar, choose a new image. To remove your current avatar, confirm without choosing a new image.",
+    "browse": "Browse...",
+    "hint": "Images are automatically downscaled to at most {size}x{size} pixels.",
+    "success": "Avatar updated."
+  },
+  "ChangePasswordDialog": {
+    "title": "Change password",
+    "label": {
+      "oldPassword": "Old password",
+      "newPassword": "New password",
+      "newPasswordConfirm": "Confirm new password"
+    },
+    "success": "Password changed."
+  },
+  "EditUserDialog": {
+    "title": "Edit user profile",
+    "label": {
+      "passwordCheck": "Current password (required to change your email)"
+    },
+    "success": "User information updated."
+  },
   "DeckEditor": {
     "downloadFailed": "Failed to download this deck from the server.",
     "loadFailedTitle": "Deck could not be loaded",
