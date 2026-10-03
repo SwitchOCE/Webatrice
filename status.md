@@ -3,3 +3,4 @@
 - 14:02Z plan: (1) sockatrice LatencyTracker + ProtobufService timing → session.updateLatencyStats → datatrice server.latency → webatrice LatencyStatus in TopBar (RTT is client-side, works on 3.0 too: NOT capability-gated, matches desktop); (2) datatrice getPlayerPlaymat selector (properties.playmatParams already merged by playerPropertiesProperties reducer), webatrice usePlaymatSettings (localStorage seam for branch 19), Playmats settings tab, PlayerPlaymat on battlefield, SetPlaymat after deck select; gated on PLAYMATS → npm ci + code
 - 14:04Z sockatrice RTT tracker+timing+specs green → datatrice latency state
 - 14:09Z RTT done (7d414dc core, b2c1695 TopBar LatencyStatus) → playmats
+- 14:09Z RTT done (7d414dc core, b2c1695 TopBar LatencyStatus) → playmats
