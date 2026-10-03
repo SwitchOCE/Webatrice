@@ -4,7 +4,9 @@ import type { ScryfallCard, ScryfallCardHint, ScryfallIdentifier } from './types
  * The one Scryfall HTTP client: endpoint URLs, the `/cards/collection`
  * batch limit and the request shapes every caller sends. Callers keep
  * their own caching and error policy; this module only decides what
- * goes over the wire, so every Scryfall request is built here.
+ * goes over the wire. Every Scryfall API request is built here except
+ * the deck editor's autocomplete and card search
+ * (`features/decks/search.ts`), which move onto the client in PR 31.
  *
  * Rate limiting: Scryfall asks for no more than about ten requests a
  * second. The client stays inside that by batching (75 identifiers per
