@@ -43,11 +43,10 @@ async function reachHost(login: LoginPage): Promise<void> {
 // the one <table> under the "Name" column header on /server, so we
 // anchor the button lookup to the table's <tbody>.
 //
-// The e2e Servatrice auto-joins its one room on login, and the Server view
-// opens a room whenever a join lands (Server.tsx's JOIN_ROOM effect). That
-// join can arrive after `waitForRoomList` has shown the Lobby, which then
-// swaps the rooms table for the room before the click. Either way the
-// session ends up in the first room, so retry until its game list shows.
+// The e2e Servatrice auto-joins its one room on login. Like desktop
+// (setCurrent = false), the auto-join opens the room without leaving the
+// Lobby, so the row's button reads "Join" or "Open" and the click is what
+// enters the room — the manual path is exercised on every run.
 async function joinFirstRoom(page: Page, rooms: RoomsPage): Promise<void> {
   const roomsTable = page.getByRole('table').filter({
     has: page.getByRole('columnheader', { name: /^name$/i }),
@@ -55,12 +54,9 @@ async function joinFirstRoom(page: Page, rooms: RoomsPage): Promise<void> {
   const firstJoinable = roomsTable
     .getByRole('button', { name: /^(join|open)$/i })
     .first();
-  await expect(async () => {
-    if (!(await rooms.gameListCaption.isVisible())) {
-      await firstJoinable.click({ timeout: 2_000 });
-    }
-    await expect(rooms.gameListCaption).toBeVisible({ timeout: 2_000 });
-  }).toPass({ timeout: 20_000 });
+  await expect(firstJoinable).toBeVisible({ timeout: 15_000 });
+  await firstJoinable.click();
+  await rooms.waitForGameList();
 }
 
 // Register a fresh user, select the e2e docker host, and wait until the
