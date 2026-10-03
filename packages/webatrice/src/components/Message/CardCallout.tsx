@@ -27,14 +27,18 @@ const CardCallout = ({ name }: CardCalloutProps) => {
   const { card, token, anchorEl, open, handlePopoverOpen, handlePopoverClose } =
     useCardCallout(name);
   const previewId = useId();
+  const summaryId = useId();
   const showPreview = open && Boolean(card || token);
+  // The preview is visual; screen readers get the type line and P/T as the name's description.
+  const props = (card ?? token)?.prop?.value;
+  const summary = [props?.type?.value || props?.maintype?.value, props?.pt?.value].filter(Boolean).join(', ');
 
   return (
     <span className='callout'>
       <button
         type="button"
         className="callout__name"
-        aria-describedby={showPreview ? previewId : undefined}
+        aria-describedby={showPreview && summary ? summaryId : undefined}
         onMouseEnter={handlePopoverOpen}
         onMouseLeave={handlePopoverClose}
         onFocus={handlePopoverOpen}
@@ -56,6 +60,7 @@ const CardCallout = ({ name }: CardCalloutProps) => {
         sx={{ pointerEvents: 'none', zIndex: (theme) => theme.zIndex.tooltip }}
       >
         <Paper className="callout-card">
+          {summary && <span id={summaryId} className="sr-only">{summary}</span>}
           {card && (<CardDetails card={card} />)}
           {token && (<TokenDetails token={token} />)}
         </Paper>
