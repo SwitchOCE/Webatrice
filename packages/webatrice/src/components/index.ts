@@ -26,3 +26,5 @@ export { default as ModGuard } from './Guard/ModGuard';
 
 export { default as Toast, useToast, usePushToast, ToastProvider } from './Toast';
 export { ErrorBoundary, ErrorFallback, RouteErrorBoundary } from './ErrorBoundary';
+export { NotificationToast, useNotify } from './Notifications';
+export type { NotifyOptions, NotifyResult } from './Notifications';
