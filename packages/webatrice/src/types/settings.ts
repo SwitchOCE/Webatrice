@@ -40,6 +40,9 @@ export class Setting {
   // Appearance — menus (desktop interface `showShortcuts`)
   showShortcutsInMenus: boolean;
 
+  // Appearance — card printings (desktop cards_display `bumpSetsWithCardsInDeckToTop`)
+  bumpSetsWithCardsInDeckToTop: boolean;
+
   // Appearance — card rendering (desktop cards_display `displayCardNames`,
   // `autoRotateSidewaysLayoutCards`, `scaleCards`, `roundCardCorners`; appearance `maxFontSize`)
   displayCardNames: boolean;
@@ -208,6 +211,8 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   themeMode: ThemeMode.System,
 
   showShortcutsInMenus: true,
+
+  bumpSetsWithCardsInDeckToTop: true,
 
   displayCardNames: true,
   autoRotateSidewaysLayoutCards: true,
