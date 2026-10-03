@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Users, UserRoundPlus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { server } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
@@ -16,6 +17,7 @@ import type { ServerInfo_User } from '@cockatrice/sockatrice/generated';
  * to be server-scoped, per the fancy webatrice design.
  */
 export default function RoomUsers() {
+  const { t } = useTranslation();
   const buddiesMap = useAppSelector(server.Selectors.getBuddyList);
   const allUsers = useAppSelector(server.Selectors.getSortedUsers);
 
@@ -36,16 +38,16 @@ export default function RoomUsers() {
     <aside className="flex h-full flex-col gap-3">
       <Panel
         icon={<UserRoundPlus size={14} className="text-accent" />}
-        title="Buddies"
-        subtitle={`${onlineBuddies.length} online`}
-        empty="No buddies online right now."
+        title={t('RoomUsers.buddies.title')}
+        subtitle={t('RoomUsers.buddies.count', { count: onlineBuddies.length })}
+        empty={t('RoomUsers.buddies.empty')}
         users={onlineBuddies}
       />
       <Panel
         icon={<Users size={14} className="text-text-muted" />}
-        title="Players Online"
-        subtitle={`${allUsers.length} connected`}
-        empty="No one else online."
+        title={t('RoomUsers.online.title')}
+        subtitle={t('RoomUsers.online.count', { count: allUsers.length })}
+        empty={t('RoomUsers.online.empty')}
         users={allUsers}
       />
     </aside>

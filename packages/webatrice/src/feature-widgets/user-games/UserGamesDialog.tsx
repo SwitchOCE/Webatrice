@@ -145,9 +145,9 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
               <td role="gridcell" className={`${CELL_CLASS} text-text-primary`}>{info.description}</td>
               <td role="gridcell" className={CELL_CLASS}>{info.creatorInfo?.name ?? ''}</td>
               <td role="gridcell" className={CELL_CLASS}>{gameType}</td>
-              <td role="gridcell" className={CELL_CLASS}>{formatRestrictions(info)}</td>
+              <td role="gridcell" className={CELL_CLASS}>{formatRestrictions(t, info)}</td>
               <td role="gridcell" className={`${CELL_CLASS} tabular-nums`}>{info.playerCount}/{info.maxPlayers}</td>
-              <td role="gridcell" className={CELL_CLASS}>{formatSpectators(info)}</td>
+              <td role="gridcell" className={CELL_CLASS}>{formatSpectators(t, info)}</td>
             </tr>
           ))}
         </tbody>
