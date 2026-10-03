@@ -1,1 +1,2 @@
 - 15:43 started f19 → setup work branch
+- 15:48 chat filters decided on arrival (d41dbce) → mentions
