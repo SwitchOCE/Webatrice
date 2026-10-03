@@ -70,3 +70,7 @@ SERVATRICE_IMAGE=webatrice-local/servatrice:master-add65ca npm run test:e2e -w @
 - **Red intermediate commits (major):** `f24ddd9` is folded into the sockatrice commit (now `c158cb6`), and the `storeFixtures` line moved into the datatrice commit (now `ae5a355`). Typecheck passes at every commit.
 - **Required `loginFailureCode` (major):** now `loginFailureCode?: number | null` in the commit that introduced it. The selector already reads it with `?? null`.
 - Not addressed in this round (minors and nits not listed in the fix task): e2e image recipe, the seven can't-fail "does not call X" tests, 3.0 drift of the developer flag and `deckUpload` fields, the clientver length cap, and `reportResolve` sending `''`.
+
+## Restack notes (wR1)
+
+- Failure pattern (series decision): this PR introduces the one scope-level `commandFailed(command, responseCode, target)` + Datatrice `<scope>CommandFailed` signals. #04 adds the optional 4th `failure` (moderator/admin), #13 extends it to admin/developer and the staff lookups, #14 adds `failure?` to the session scope and routes the report builders through it — one implementation across all four scopes in the final stack.

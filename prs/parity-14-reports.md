@@ -67,3 +67,16 @@ Rebased onto `parity/15-replays` (`0d1d235`); `git submodule update --init` (ser
 - **Replay download bug found and fixed.** `reportReplayDownloaded` first carried the protobuf response, whose `bytes` field the dev `freezeMessagesMiddleware` can't freeze. The bytes now travel bare, like `replayDownloaded`, and a spec checks this with the guard on.
 - **Hardcoded labels.** The game player-list menu labels are hardcoded English throughout that file, so "Report user" follows that convention there. All other new strings, including the shared user menu's entry, are in `*.i18n.json`.
 - **Ordering in the shared menu.** Webatrice's `UserActionsMenu` already lists Show games in its slot after buddy/ignore (desktop puts it near the top), so "Report user" sits after Ignore and before Show games. Relative to buddy/ignore and the moderator section it matches desktop.
+
+## Restack notes (wR1)
+
+- Report tables use the shared `useGridRows` (#11).
+- Failure pattern: 14's own session `commandFailed` merged into #03's; the session scope gains the optional `failure` arg.
+- 14 @8c9aa3a report builders: 03 already reports them via commandFailed; this commit keeps that and also calls 14's interim onFailure (removed again by 14's own commandFailed refactor); its onFailure specs expect the code only; instructions sentence for the interim callbacks added beside 03/13's paragraph
+- 14 @90ff1ff datatrice.instructions.md: kept 03's beta-aware capability text (review fix) + 14's 'import ServerCapability from the package root' clause; store/index.ts additive
+- 14 @f20c982 PlayerList(+ContextMenu): 13's admin-lock moderator gate + 14's canReport/Report user entry
+- 14 @bbf2576 useWatchReplay already lives in @app/hooks after 15's review fix: kept 15's hooks barrel/useServerReplays imports; 14 keeps its new useWatchReplay.spec; commit message reworded (no move)
+- 14 @0d88555 (failure-pattern decision): 14's own session.commandFailed/sessionCommandFailed duplicated 03's — kept 03's single definition (names, SessionCommandName list, doc) and adopted 14's optional 4th failure arg on the session scope too, so all four scopes share commandFailed(command, code, target, failure?); removed duplicate SessionResponseImpl method, Types entry, action and duplicate specs; report builders take 14's final form; instructions paragraph: one sentence for all scopes
+- 14 @bbf2576 useWatchReplay.spec (new in 14) wraps the hook in WebClientContext for 15's webClient-aware openReplay and closes opened replays after each test
+- 14 @b401429: dropped the duplicate useGridRows barrel export (hook already exported since 11), reworded
+- 14 @565f52b ReportQueue.spec: joinRoomFailed payload carries userInitiated (04's JoinRoomFailedPayload)

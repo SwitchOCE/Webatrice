@@ -203,3 +203,8 @@ Status key:
 - **nit, stale permission status** → watches the Permissions API `change` event, with a fallback that re-reads on window focus; the status is `aria-live="polite"`.
 - **nit, duplicate AppShell import** → merged.
 - **nit, unused section strings** → General/Card Sources/Storage titles removed from the i18n files (the enum ids stay for the sibling PR).
+
+## Restack notes (wR1)
+
+- 19 @9a12596 types/settings.ts: 15's replay prefs + 19's typed preferences (additive); services barrel additive
+- 19 @80c2f67 RoomChat.tsx: 14's ReportChatScope wrapper (RoomChat→RoomChatView) + 19's chat filter/highlight inside RoomChatView; report context still gets the unfiltered log; hooks barrel additive

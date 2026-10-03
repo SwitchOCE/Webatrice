@@ -87,3 +87,7 @@ The full gate was run from the repo root at tip `d444301` after the rv7 fixes, w
 - **nit, `useCallback` wrapper** → removed.
 - **nit, commit hygiene** → `ea4a992` is squashed into the playmat-settings commit (no add-then-remove of the `feature-widgets` alias), and the RTT e2e hunk moved into the latency top-bar commit. While running typecheck per commit I also found that `feat(sockatrice): measure command round-trip times` was red on its own: datatrice's required `ServerState.latency` landed before the webatrice fixture. That fixture line is folded into that commit. Every commit now typechecks; the rewrite leaves the tip's tree byte-identical.
 - **nit, "Add..."/"Edit..."** → "Add"/"Edit".
+
+## Restack notes (wR1)
+
+- 23 @191bf47 Settings: 19 replaced the tabbed page with the section registry — dropped 23's Playmats tab and registered PlaymatSettingsPanel as the 'Playmat settings' group of Appearance (sections/playmats.ts, block custom control; panel drops its own h2 when hosted); spec moved to Settings.spec; utils barrel additive. Follow-up: migrate the playmat prefs from localStorage into the typed settings row

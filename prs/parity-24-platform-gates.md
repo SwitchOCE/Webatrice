@@ -88,3 +88,11 @@ All run from the repo root on the tip `61fd4f4`, against Servatrice 3.0.0 (the d
   - e2e `strict` (noted as non-strict above).
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+## Restack notes (wR1)
+
+- 24 @66342c9 index.tsx: 21's console capture/debug header/boot colour scheme + 24's preflight (analytics only in the supported branch); utils barrel additive
+- 24 @c36eceb accountPassword.ts: 10's positional/callback overloads + 24's no-Web-Crypto plaintext fallback; doc merged
+- 24 @61fd4f4 index.tsx → 24's preflight entry; boot.tsx (24's moved entry) carries 21's console capture/debug-log header, AppThemeProvider and boot colour scheme; lint script keeps --max-warnings 0 + public/preflight.js
+- 24 @66f0806 e2e/tsconfig.json maps @app/types: 06's network fixture imports DefaultHosts (HostService → @app/types), which 24's new e2e typecheck must resolve
+- 24 @66342c9 Toast.spec severity assertions use 21's status tokens (text-success/text-warning)

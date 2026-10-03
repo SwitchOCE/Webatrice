@@ -48,3 +48,7 @@ On the final tip `54287c0` (parent `parity/03-protocol`), after `git submodule u
 - **major: Warn/Ban hang when GetUserInfo fails** → fixed in the way desktop behaves. Desktop shows no error box here: `banUser_/warnUser_processUserInfoResponse` never check the code. So the flow goes to `ready`: Ban opens with only the name filled in, and Warn sends GetWarnList with an empty client id and then opens the warning dialog.
 - The minor and nit findings (ModeratorCommandName naming, pendingRoleChanges key, log-search `searching` flag, admin e2e, `role="group"`, `create(...)` idiom, forceActivate comment, replay refetch placement, squashing `5462952`) were not in this fix task's scope and are left for a later pass.
 
+## Restack notes (wR1)
+
+- 12 @9a0efc4 sockatrice WebClientResponse.ts/namespace.ts: union of 03's Session/Moderator(3.1)/Developer command names and 12's AdminCommandName + 7 moderator names; one ModeratorCommandName
+- 12 @e997ff9 ModerationProvider.spec: 3.1 fixture bumped to 3.1.0-beta.12 for 03's per-beta DEVELOPER_ROLE gate

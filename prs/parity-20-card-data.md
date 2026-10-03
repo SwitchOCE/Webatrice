@@ -113,3 +113,11 @@ All commands were run from the repo root at `ca5ef66`, after `git submodule upda
   - `i18n-default.json` is regenerated in each commit.
   - Every commit typechecks, and the final tree matched the fix branch before the last two fixups.
 - **nit: reads outside the transaction.** Fixed. `applySources` reads, merges and writes in one `cardDataTransaction`, which now also covers `cardSourcePayloads` and `cardDataSettings`.
+
+## Restack notes (wR1)
+
+- Token editor and picture-URL lists use the shared `useGridRows` (#11); ManageSets keeps aria-activedescendant (virtualized multi-select).
+- 20 @2c1abfa dexie Stores/DTOs/types/DexieService: 15's replay tables + 20's v7 card-data tables (additive)
+- 20 @f1c6549 StorageService.ts: 20's card-preference stores + 21-restack's replay stores in ALL_STORES
+- 20 @3a60393 (grid decision): token editor and picture-URL lists use useGridRows (dropped 20's useRovingOptions + spec; selection now follows the arrows like desktop's list widgets); Manage Sets keeps its aria-activedescendant model (virtualized multi-select grid — useGridRows focuses rows, which would unmount)
+- 20 @00dc16a: FeatureDetection.spec's @app/services mock made partial (importOriginal) — the restacked import graph now evaluates mergeCardSources (USER_TOKENS_SOURCE_ID at module load) through the shell barrel

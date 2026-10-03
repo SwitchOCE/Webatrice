@@ -57,3 +57,6 @@ All run from the repo root on the final tip `19a7954`, against Servatrice 3.0.0 
 - **Rebased onto the fixed #13** (`e2fb4b7`); no conflicts.
 - Not addressed (minor/nit, outside this task's list): teardown `Promise.allSettled`, the lint bypasses and `e2e/**` scope, the testing-instructions section, commit-1 message hygiene, linting `playwright.config.ts`, `rules-of-hooks` scope, `PUBLIC_SERVERS_URL` duplication, `readdirSync` for Scryfall fixtures, `bulk-card-actions` using `page`.
 
+## Restack notes (wR1)
+
+- 06 @d2f93e0 webatrice package.json lint script: 06's integration+e2e globs plus the lower branch's --max-warnings 0

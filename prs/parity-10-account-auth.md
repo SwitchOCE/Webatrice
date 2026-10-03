@@ -48,3 +48,8 @@ Run on the final tip `4119363` after `git submodule update` and `npm ci`, with V
 - **major, public-server URL parity** → fixed (`4119363`). Only `websocketPort === '443'` is reachable; entries are saved as `host/servatrice` on 443, which `buildWebSocketUrl` turns into `wss://host/servatrice` (desktop: `wss://host:443/servatrice`). Other WebSocket ports are disabled with a "no secure WebSocket port" reason. Bundled and saved hosts are untouched. Tests: reachability, the saved record, the picker's disabled entry, and a `buildWebSocketUrl` spec for the saved public form (`buildWebSocketUrl` isn't exported from Sockatrice, so that check lives in its spec).
 - **minor, `RequestPasswordSalt` omission** → kept, and now stated in the changeset.
 - Not in this task's scope, left for a follow-up: e2e hermeticity for `public-servers.json`, the unhandled hashing rejection in `useChangePassword` (the command's doc now says the promise rejects only when hashing fails), the triple log-gating derivation / dead `ModGuard`, and the nits (`isAdmin` unused, the double `isInactive` check, the avatar zod scaffolding, the `fcc272e` message).
+
+## Restack notes (wR1)
+
+- 10 @7c4f2bf sockatrice developer/viewLogHistory.ts: 03 already reported failures via moderator.commandFailed; took 10's version that also passes 04's transport failure
+- 10 @7c4f2bf also: 03's queryFailure.spec expects the developer viewLogHistory commandFailed with a trailing undefined failure
