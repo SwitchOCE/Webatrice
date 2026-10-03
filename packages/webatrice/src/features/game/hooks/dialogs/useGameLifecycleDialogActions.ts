@@ -4,7 +4,7 @@ import { useCallback, useMemo } from 'react';
 
 import { useAppDispatch } from '@app/store';
 import type { SideboardPlanMove } from '../../dialogs/SideboardDialog/SideboardDialog';
-import type { GameDialogsActions } from './gameDialogs.types';
+import type { CreateTokenRequest, GameDialogsActions } from './gameDialogs.types';
 import type { GameDialogEnv } from './gameDialogEnv';
 import type { GameDialogSetters } from './useGameDialogState';
 
@@ -30,12 +30,14 @@ export interface UseGameLifecycleDialogActionsArgs {
     | 'setRollDieOpen'
     | 'setLastDieSides'
     | 'setLastDieCount'
-    | 'setCreateTokenOpen'
+    | 'setCreateTokenRequest'
     | 'setSideboardOpen'
     | 'setConcedeConfirm'
     | 'setLeaveConfirm'
   >;
   closeAllContextMenus: () => void;
+  /** The open create-token request; its submitter replaces the default command. */
+  createTokenRequest: CreateTokenRequest | null;
 }
 
 /** Player-level dialogs: the player menu, dice, tokens, sideboard plan, concede and leave. */
@@ -44,6 +46,7 @@ export function useGameLifecycleDialogActions({
   canOpenMenus,
   set,
   closeAllContextMenus,
+  createTokenRequest,
 }: UseGameLifecycleDialogActionsArgs): GameLifecycleDialogActions {
   const { gameId, webClient } = env;
   const {
@@ -51,7 +54,7 @@ export function useGameLifecycleDialogActions({
     setRollDieOpen,
     setLastDieSides,
     setLastDieCount,
-    setCreateTokenOpen,
+    setCreateTokenRequest,
     setSideboardOpen,
     setConcedeConfirm,
     setLeaveConfirm,
@@ -93,6 +96,11 @@ export function useGameLifecycleDialogActions({
       faceDown: boolean;
       providerId?: string;
     }) => {
+      if (createTokenRequest?.onSubmit) {
+        createTokenRequest.onSubmit(args);
+        setCreateTokenRequest(null);
+        return;
+      }
       if (gameId == null) {
         return;
       }
@@ -109,9 +117,9 @@ export function useGameLifecycleDialogActions({
         targetCardId: -1,
         cardProviderId: args.providerId ?? '',
       });
-      setCreateTokenOpen(false);
+      setCreateTokenRequest(null);
     },
-    [gameId, webClient, setCreateTokenOpen],
+    [gameId, webClient, setCreateTokenRequest, createTokenRequest],
   );
 
   const handleSideboardSubmit = useCallback(

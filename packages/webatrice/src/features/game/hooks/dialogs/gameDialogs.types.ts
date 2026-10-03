@@ -1,5 +1,6 @@
 import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
 
+import type { CreateTokenSubmit } from '../../dialogs/CreateTokenDialog/CreateTokenDialog';
 import type { SideboardPlanMove } from '../../dialogs/SideboardDialog/SideboardDialog';
 
 // The game dialog and menu contract. `useGameDialogs` is the façade that builds
@@ -55,6 +56,17 @@ export interface PromptState {
   onSubmit: (value: string) => void;
 }
 
+/**
+ * Who opened the create-token dialog. A seat seeds it with its last token
+ * and creates the token through its own card port (so "Create another
+ * token" can repeat it); without a request the dialog uses the game's
+ * Command_CreateToken defaults.
+ */
+export interface CreateTokenRequest {
+  initial?: CreateTokenSubmit | null;
+  onSubmit?: (token: CreateTokenSubmit) => void;
+}
+
 export interface RevealState {
   title: string;
   zoneName: string;
@@ -90,6 +102,8 @@ export interface GameDialogsState {
   lastDieSides: number;
   lastDieCount: number;
   createTokenOpen: boolean;
+  /** The values the create-token dialog opens with; null for blank. */
+  createTokenInitial: CreateTokenSubmit | null;
   sideboardOpen: boolean;
   /** In-game live sideboard viewer — separate from `sideboardOpen`
    *  (which drives the older MUI sideboard-PLAN editor). Owner-only
@@ -155,7 +169,7 @@ export interface GameDialogsActions {
   handleRollDieSubmit: (args: { sides: number; count: number }) => void;
 
   // Token / sideboard / game info / concede
-  openCreateToken: () => void;
+  openCreateToken: (request?: CreateTokenRequest) => void;
   closeCreateToken: () => void;
   handleCreateTokenSubmit: (args: {
     name: string;
