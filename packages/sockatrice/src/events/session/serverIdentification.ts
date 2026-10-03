@@ -5,6 +5,20 @@ import { consumePendingOptions } from '../../utils/connectionState';
 import { WebSocketConnectReason } from '../../types/ConnectOptions';
 import { generateSalt, hashPassword, passwordSaltSupported } from '../../utils';
 import * as SessionCommands from '../../commands/session';
+import { CommandFailure } from '../../types/CommandFailure';
+
+// Settles the form behind a failed password-salt request. One lost to a dropped
+// socket must not disconnect: the transport is already reconnecting (or has
+// reported why it closed), and disconnect() would cancel that reconnect.
+// Desktop's passwordSaltResponse likewise ignores RespNotConnected.
+function onSaltFailure(settle: () => void) {
+  return (failure?: CommandFailure) => {
+    settle();
+    if (failure !== CommandFailure.Disconnected) {
+      SessionCommands.disconnect();
+    }
+  };
+}
 
 export async function serverIdentification(info: Event_ServerIdentification): Promise<void> {
   const { serverName, serverVersion, protocolVersion, serverOptions } = info;
@@ -45,9 +59,7 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
               SessionCommands.login(rest, password);
             }
           },
-          () => {
-            response.session.loginFailed(); SessionCommands.disconnect();
-          },
+          onSaltFailure(() => response.session.loginFailed()),
         );
       } else {
         SessionCommands.login(rest, password);
@@ -73,9 +85,7 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
             const hashedPassword = salt ? await hashPassword(salt, password) : undefined;
             SessionCommands.activate(rest, password, hashedPassword);
           },
-          () => {
-            response.session.accountActivationFailed(); SessionCommands.disconnect();
-          },
+          onSaltFailure(() => response.session.accountActivationFailed()),
         );
       } else {
         SessionCommands.activate(rest, password);
@@ -100,9 +110,7 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
               SessionCommands.forgotPasswordReset(rest, newPassword);
             }
           },
-          () => {
-            response.session.resetPasswordFailed(); SessionCommands.disconnect();
-          },
+          onSaltFailure(() => response.session.resetPasswordFailed()),
         );
       } else {
         SessionCommands.forgotPasswordReset(rest, newPassword);
