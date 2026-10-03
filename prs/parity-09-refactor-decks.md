@@ -103,4 +103,14 @@ Run from the worktree root on 2026-10-03.
 - Renames: `CardDetailModal` → `dialogs/CardDetailDialog` and `ExportDeckModal` → `dialogs/ExportDeckDialog`.
   Both are internal to the feature.
 
+## Follow-ups
+
+No change on this branch. The items it left for later are handled in #18's follow-up commits (see "Follow-ups" in
+`parity-18-decks.md`):
+- the Spellbook sideboard merge (the sideboard is no longer sent);
+- the consent for the third-party bracket calls (off until the user allows it).
+
+The Sockatrice `deckUpdate` follow-up was already in #18; its new response callbacks are now optional.
+The completeness flag in the persisted assessment schema is still open.
+
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
