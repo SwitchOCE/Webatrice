@@ -17,16 +17,13 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import { useLeaveGame, useOpenedReplays, usePhaseTrackPinnedSetting, useSnapGridSetting } from '@app/hooks';
 import { Images } from '@app/images';
 import { closeReplay } from '@app/services';
+import { Menu, MenuCheckboxItem, MenuItem, MenuSeparator, type MenuAnchor } from '@app/components';
 import { DebugLogDialog } from '@app/dialogs';
 import { RouteEnum } from '@app/types';
 import { CardImportDialog } from '@app/feature-widgets/card-import';
 
 import LatencyStatus from './LatencyStatus';
 import { UserMenuDialog, visibleUserMenuEntries, type CapabilityCheck } from './userMenuEntries';
-
-const USER_MENU_ITEM_CLASS =
-  'w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary '
-  + 'hover:text-text-primary hover:bg-bg-elevated transition-colors';
 
 type TabType =
   | 'server'
@@ -92,8 +89,8 @@ export default function TopBar() {
   const user = useAppSelector(server.Selectors.getUser);
   const serverName = useAppSelector(server.Selectors.getName);
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
-  const connectionHealth = useAppSelector(server.Selectors.getConnectionHealth);
   const isServerUnresponsive = useAppSelector(server.Selectors.getIsServerUnresponsive);
+  const connectionState = !isConnected ? 'disconnected' : isServerUnresponsive ? 'stale' : 'connected';
   const joinedRooms = useAppSelector(rooms.Selectors.getJoinedRooms);
   const activeGames = useAppSelector(games.Selectors.getActiveGames);
   const openedReplays = useOpenedReplays();
@@ -351,22 +348,19 @@ export default function TopBar() {
             <Circle
               size={12}
               strokeWidth={3}
+              aria-hidden
               className={[
                 'absolute -bottom-0.5 -right-0.5 stroke-bg-surface',
-                !isConnected
+                connectionState === 'disconnected'
                   ? 'text-danger fill-danger'
-                  : isServerUnresponsive
+                  : connectionState === 'stale'
                     ? 'text-warning fill-warning'
                     : 'text-success fill-success',
               ].join(' ')}
-              aria-label={
-                !isConnected
-                  ? 'Disconnected'
-                  : isServerUnresponsive
-                    ? `Server not responding (${Math.round(connectionHealth.silentForMs / 1000)}s)`
-                    : 'Connected'
-              }
             />
+            {/* Mounted for the whole session so each change of state is announced. The seconds
+             *  count stays out of the spoken text, which would otherwise change every second. */}
+            <span role="status" className="sr-only">{t(`TopBar.connection.${connectionState}`)}</span>
           </div>
           <span className="font-modern text-lg font-bold tracking-wide text-text-primary">
             Webatrice
@@ -528,28 +522,31 @@ function UserMenu({
     [ServerCapability.REPORTS]: reports,
   };
   const supports: CapabilityCheck = (capability) => capabilities[capability] ?? false;
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const close = useCallback(() => setAnchor(null), []);
 
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-    const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
-  }, [open]);
+  const toggle = () => {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    setAnchor((open) => (open || !rect ? null : { x: rect.right, y: rect.bottom + 4, align: 'end' }));
+  };
 
-  const displayName = userName ?? 'Signed in';
+  const displayName = userName ?? t('TopBar.user.signedIn');
 
   return (
-    <div ref={ref} className="relative">
+    <div className="relative">
       <button
-        onClick={() => setOpen((o) => !o)}
+        ref={triggerRef}
+        type="button"
+        onClick={toggle}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowDown' && !anchor) {
+            e.preventDefault();
+            toggle();
+          }
+        }}
+        aria-haspopup="menu"
+        aria-expanded={anchor != null}
         className="flex items-center gap-2 px-2 py-1 rounded-md bg-bg-elevated hover:bg-border-subtle transition-colors"
       >
         <div className="h-6 w-6 rounded-full bg-gradient-to-br from-accent to-accent-secondary flex items-center justify-center">
@@ -560,72 +557,57 @@ function UserMenu({
         </span>
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-full mt-1 w-56 rounded-lg bg-bg-surface border border-border-subtle shadow-glow py-1 z-50">
-          <div className="px-3 py-2 border-b border-border-subtle">
+      {anchor && (
+        <Menu anchor={anchor} label={displayName} onClose={close} triggerRef={triggerRef} className="w-56">
+          <div className="px-3 py-2 mb-1 border-b border-border-subtle" aria-hidden>
             <span className="text-sm font-medium text-text-primary truncate">{displayName}</span>
           </div>
-          <button
-            onClick={onToggleSnapGrid}
-            className={USER_MENU_ITEM_CLASS}
-            aria-pressed={snapGridVisible}
+          <MenuCheckboxItem
+            checked={snapGridVisible}
+            onChange={onToggleSnapGrid}
+            icon={<Grid3x3 size={14} />}
           >
-            <Grid3x3 size={14} />
-            <span className="flex-1 text-left">Snap grid</span>
-            {snapGridVisible && (
-              <span className="text-xs text-accent" aria-hidden>
-                ✓
-              </span>
-            )}
-          </button>
-          <button
-            onClick={onTogglePhaseTrackPinned}
-            className={USER_MENU_ITEM_CLASS}
-            // The stored preference is `phaseTrackPinned`; this UI
-            // exposes the inverse ("auto-hide on/off") so `aria-pressed`
-            // and the checkmark flip together. When auto-hide is ON
-            // (checked), the phase track collapses to an 8-px HUD.
-            aria-pressed={!phaseTrackPinned}
-            title={phaseTrackPinned
-              ? 'Collapse the phase track into an auto-hiding HUD'
-              : 'Keep the phase track always visible'}
+            {t('TopBar.game.snapGrid')}
+          </MenuCheckboxItem>
+          {/* The stored preference is `phaseTrackPinned`; this entry exposes
+           *  the inverse ("auto-hide on/off") so the checked state and the
+           *  checkmark flip together. When auto-hide is ON (checked), the
+           *  phase track collapses to an 8-px HUD. */}
+          <MenuCheckboxItem
+            checked={!phaseTrackPinned}
+            onChange={onTogglePhaseTrackPinned}
+            icon={<PanelLeftOpen size={14} />}
+            title={phaseTrackPinned ? t('TopBar.game.phaseTrackCollapse') : t('TopBar.game.phaseTrackPin')}
           >
-            <PanelLeftOpen size={14} />
-            <span className="flex-1 text-left">Toggle auto-hide phase tracker</span>
-            {!phaseTrackPinned && (
-              <span className="text-xs text-accent" aria-hidden>
-                ✓
-              </span>
-            )}
-          </button>
+            {t('TopBar.game.phaseTrackToggle')}
+          </MenuCheckboxItem>
           {visibleUserMenuEntries(userLevel, supports).map((entry) => (
-            <button
+            <MenuItem
               key={entry.route ?? entry.dialog}
-              onClick={() => {
-                setOpen(false);
+              icon={<entry.icon size={14} />}
+              onSelect={() => {
+                close();
                 if (entry.route) {
                   onNavigate(entry.route);
                 } else {
                   onOpenDialog(entry.dialog);
                 }
               }}
-              className={USER_MENU_ITEM_CLASS}
             >
-              <entry.icon size={14} />
-              <span className="flex-1 text-left">{t(entry.label)}</span>
-            </button>
+              {t(entry.label)}
+            </MenuItem>
           ))}
-          <div className="my-1 border-t border-border-subtle" />
-          <button
-            onClick={() => {
-              setOpen(false);
+          <MenuSeparator />
+          <MenuItem
+            icon={<LogOut size={14} />}
+            onSelect={() => {
+              close();
               onSignOut();
             }}
-            className={USER_MENU_ITEM_CLASS}
           >
-            <LogOut size={14} /> Sign out
-          </button>
-        </div>
+            {t('TopBar.user.signOut')}
+          </MenuItem>
+        </Menu>
       )}
     </div>
   );

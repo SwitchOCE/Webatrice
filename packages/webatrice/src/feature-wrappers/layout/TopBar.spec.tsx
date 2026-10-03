@@ -85,7 +85,7 @@ describe('TopBar user menu', () => {
 
   const openMenuAndPick = (label: string) => {
     fireEvent.click(screen.getByRole('button', { name: 'testUser' }));
-    fireEvent.click(screen.getByRole('button', { name: label }));
+    fireEvent.click(screen.getByRole('menuitem', { name: label }));
   };
 
   afterEach(() => {
@@ -129,8 +129,8 @@ describe('TopBar user menu', () => {
     renderTopBar();
 
     fireEvent.click(screen.getByRole('button', { name: 'testUser' }));
-    expect(screen.getByRole('button', { name: 'UserMenu.account' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'UserMenu.logs' })).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'UserMenu.account' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'UserMenu.logs' })).not.toBeInTheDocument();
   });
 
   it('opens the card import dialog', () => {
@@ -145,7 +145,7 @@ describe('TopBar user menu', () => {
 
     openMenuAndPick('UserMenu.debugLog');
     expect(screen.getByRole('dialog', { name: /DebugLogDialog\.title/ })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Sign out/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'TopBar.user.signOut' })).not.toBeInTheDocument();
   });
 });
 
@@ -216,21 +216,21 @@ describe('TopBar report entries (#7091)', () => {
 
   it('shows My Reports to a registered user on 3.1 and opens it in a tab', () => {
     renderAs('3.1.0 ()', Level.IsUser | Level.IsRegistered);
-    expect(screen.queryByRole('button', { name: 'UserMenu.reportQueue' })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'UserMenu.myReports' }));
+    expect(screen.queryByRole('menuitem', { name: 'UserMenu.reportQueue' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'UserMenu.myReports' }));
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.MY_REPORTS);
     expect(screen.getByRole('tab', { name: /My Reports/ })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('adds the Report Queue for moderators', () => {
     renderAs('3.1.0 ()', Level.IsUser | Level.IsRegistered | Level.IsModerator);
-    fireEvent.click(screen.getByRole('button', { name: 'UserMenu.reportQueue' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'UserMenu.reportQueue' }));
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.REPORT_QUEUE);
   });
 
   it('shows neither on a 3.0 server', () => {
     renderAs('3.0.0 ()', Level.IsUser | Level.IsRegistered | Level.IsModerator);
-    expect(screen.queryByRole('button', { name: 'UserMenu.myReports' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'UserMenu.reportQueue' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'UserMenu.myReports' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'UserMenu.reportQueue' })).not.toBeInTheDocument();
   });
 });

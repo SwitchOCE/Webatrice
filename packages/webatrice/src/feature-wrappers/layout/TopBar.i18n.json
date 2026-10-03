@@ -5,6 +5,21 @@
       "title": "Watch and manage replays",
       "tab": "Replays"
     },
-    "replayTab": "Replay"
+    "replayTab": "Replay",
+    "connection": {
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "stale": "Server not responding"
+    },
+    "user": {
+      "signedIn": "Signed in",
+      "signOut": "Sign out"
+    },
+    "game": {
+      "snapGrid": "Snap grid",
+      "phaseTrackToggle": "Toggle auto-hide phase tracker",
+      "phaseTrackCollapse": "Collapse the phase track into an auto-hiding HUD",
+      "phaseTrackPin": "Keep the phase track always visible"
+    }
   }
 }

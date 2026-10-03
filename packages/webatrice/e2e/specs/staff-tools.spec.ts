@@ -33,7 +33,7 @@ async function openUserMenu(page: Page, userName: string): Promise<void> {
 
 async function openStaffPage(page: Page, userName: string, label: string): Promise<void> {
   await openUserMenu(page, userName);
-  await page.getByRole('button', { name: label, exact: true }).click();
+  await page.getByRole('menuitem', { name: label, exact: true }).click();
 }
 
 test('an admin publishes a new server message from Administration', async ({ page }) => {
@@ -73,12 +73,12 @@ test('a moderator looks up the alts of an account from Moderation', async ({ new
       type: 'unsupported',
       description: `Moderation investigation coverage unavailable on advertised server ${ADVERTISED_VERSION}`,
     });
-    await expect(page.getByRole('button', { name: 'Administration', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Moderation', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('menuitem', { name: 'Administration', exact: true })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: 'Moderation', exact: true })).toHaveCount(0);
     return;
   }
 
-  await page.getByRole('button', { name: 'Moderation', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Moderation', exact: true }).click();
   await page.getByRole('searchbox', { name: 'User name' }).fill(suspect.username);
   await page.getByRole('button', { name: 'Investigate' }).click();
 

@@ -1,4 +1,5 @@
 import { fireEvent, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
 import { renderWithProviders, connected31State, connectedState, makeUser, createMockWebClient } from '../../__test-utils__';
 import { ReportChatScope, ReportUserProvider } from '../../dialogs';
@@ -63,6 +64,41 @@ describe('UserDisplay', () => {
     const entry = screen.getByRole('menuitem', { name: 'slot TestPlayer 3' });
     fireEvent.click(entry);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('opens from the keyboard on the focused name and reaches slot entries with the arrows', async () => {
+    const user = userEvent.setup();
+    const onSlot = vi.fn();
+    const Slot = ({ userName, onClose }: UserMenuSlotProps) => (
+      <button
+        type="button"
+        role="menuitem"
+        tabIndex={-1}
+        onClick={() => {
+          onSlot(userName);
+          onClose();
+        }}
+      >
+        Warn user
+      </button>
+    );
+    renderWithProviders(
+      <UserMenuSlotProvider value={Slot}>
+        <UserDisplay user={makeUser({ name: 'TestPlayer', country: 'us' })} />
+      </UserMenuSlotProvider>,
+      { preloadedState: connectedState },
+    );
+    const link = screen.getByRole('link', { name: /TestPlayer/ });
+    link.focus();
+
+    await user.keyboard('{Shift>}{F10}{/Shift}');
+    expect(screen.getByRole('menu', { name: 'UserActionsMenu.label' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /UserActionsMenu.privateChat/ })).toHaveFocus();
+
+    await user.keyboard('{End}{Enter}');
+    expect(onSlot).toHaveBeenCalledWith('TestPlayer');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(link).toHaveFocus();
   });
 
   it('renders only its own entries without a slot provider', () => {

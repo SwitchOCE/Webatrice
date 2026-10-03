@@ -59,18 +59,16 @@ interface PlayerLinkProps {
 /**
  * Author name / @mention link inside a chat message. Left-click still
  * navigates to the Player page (which hosts the private-chat panel);
- * right-click opens the same UserActionsMenu the Buddies / Players
- * Online rows use, so the "Private chat" entry point is consistent
+ * right-click (or Shift+F10 / the Menu key) opens the same UserActionsMenu
+ * the Buddies / Players Online rows use, so the "Private chat" entry point is consistent
  * across the app. Cockatrice-parity: right-click on a name anywhere
  * in the desktop client also brings up this menu.
  */
 export const PlayerLink = ({ name, label = name }: PlayerLinkProps) => {
   const {
-    position,
+    menu,
     isABuddy,
     isIgnored,
-    handleClick,
-    handleClose,
     onAddBuddy,
     onRemoveBuddy,
     onAddIgnore,
@@ -81,15 +79,15 @@ export const PlayerLink = ({ name, label = name }: PlayerLinkProps) => {
       <NavLink
         className="link"
         to={generatePath(RouteEnum.PLAYER, { name })}
-        onContextMenu={handleClick}
+        {...menu.getTriggerProps()}
       >
         {label}
       </NavLink>
-      {position && (
+      {menu.anchor && (
         <UserActionsMenu
-          x={position.x}
-          y={position.y}
-          onClose={handleClose}
+          anchor={menu.anchor}
+          triggerRef={menu.triggerRef}
+          onClose={menu.close}
           name={name}
           isABuddy={isABuddy}
           isIgnored={isIgnored}

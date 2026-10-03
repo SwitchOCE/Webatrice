@@ -2,15 +2,10 @@ import { useTranslation } from 'react-i18next';
 import { Gamepad2 } from 'lucide-react';
 
 import { server } from '@cockatrice/datatrice';
-import type { UserMenuSlotProps } from '@app/components';
+import { MenuItem, MenuSeparator, type UserMenuSlotProps } from '@app/components';
 import { useAppSelector } from '@app/store';
 
 import { useUserGames } from './useUserGames';
-
-const ITEM_CLASS =
-  'w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left text-text-secondary '
-  + 'hover:text-text-primary hover:bg-bg-elevated transition-colors '
-  + 'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent';
 
 /**
  * "Show this user's games" in `UserActionsMenu`'s slot. Desktop enables it only
@@ -27,19 +22,17 @@ const UserGamesMenuItem = ({ userName, onClose }: UserMenuSlotProps) => {
 
   return (
     <>
-      <div className="my-1 border-t border-border-subtle" />
-      <button
-        type="button"
-        role="menuitem"
+      <MenuSeparator />
+      <MenuItem
         disabled={!isOnline}
-        className={ITEM_CLASS}
-        onClick={() => {
+        icon={<Gamepad2 size={14} />}
+        onSelect={() => {
           userGames.open(userName);
           onClose();
         }}
       >
-        <Gamepad2 size={14} /> {t('UserGamesDialog.menu.showGames')}
-      </button>
+        {t('UserGamesDialog.menu.showGames')}
+      </MenuItem>
     </>
   );
 };

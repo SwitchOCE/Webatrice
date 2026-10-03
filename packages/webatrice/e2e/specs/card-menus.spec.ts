@@ -86,7 +86,7 @@ test('Alt+1 sends the first message macro to the game chat', async ({ newContext
 
   // The macro is set up where a player would: Settings > Chat.
   await page.getByRole('button', { name: session.user.username }).click();
-  await page.getByRole('button', { name: /^settings$/i }).click();
+  await page.getByRole('menuitem', { name: /^settings$/i }).click();
   await page.getByRole('tab', { name: /^chat$/i }).click();
   await page.getByRole('textbox', { name: /^new message$/i }).fill('e2e macro says hi');
   await page.getByRole('button', { name: /^add new message$/i }).click();
