@@ -116,7 +116,9 @@ Protobuf-ES maps proto `int64` / `uint64` fields to native `BigInt`. `BigInt.pro
 
 Coercion is one-way: `JSON.parse` does not round-trip back to `BigInt`. Acceptable because in-memory state still holds real `BigInt`s; only serialized surfaces see the coerced form.
 
-The polyfill must execute before any module creates the store, or the first devtools dump throws. Enforced by making `./polyfills` the first import in [src/index.tsx](../../packages/webatrice/src/index.tsx) and [src/setupTests.ts](../../packages/webatrice/src/setupTests.ts).
+The polyfill must execute before any module creates the store, or the first devtools dump throws. Enforced by making `./polyfills` the first import in [src/boot.tsx](../../packages/webatrice/src/boot.tsx) and [src/setupTests.ts](../../packages/webatrice/src/setupTests.ts).
+
+Before any of that, [public/preflight.js](../../packages/webatrice/public/preflight.js) runs as a classic script and checks that the browser can run the client (syntax, ES modules, BigInt, WebSocket, …). The module entry [src/index.tsx](../../packages/webatrice/src/index.tsx) only reads its result and dynamic-imports `./boot` when nothing required is missing; otherwise the preflight renders the unsupported screen itself and the app bundle is never fetched. Keep `index.tsx` free of other static imports, and keep `preflight.js` ES5 (lint parses it as ES5).
 
 ## Shared store pattern
 
