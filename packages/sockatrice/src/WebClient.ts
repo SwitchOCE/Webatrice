@@ -9,6 +9,7 @@ import {
 import {
   AdminCommands,
   AuthenticationCommands,
+  DeveloperCommands,
   GameCommands,
   ModeratorCommands,
   RoomCommands,
@@ -63,6 +64,7 @@ export class WebClient {
     game: GameCommands,
     admin: AdminCommands,
     moderator: ModeratorCommands,
+    developer: DeveloperCommands,
   }
 
   constructor(

@@ -4,6 +4,14 @@ import type {
   Response_DeckDownload,
   Response_ReplayDownload,
   Response_WarnList,
+  Response_CardArtRuleEntry,
+  Response_DeckShareCreate,
+  Response_DeckShareList,
+  Response_GetServerStats,
+  Response_ReplayDownloadByGameId,
+  Response_ReportStats,
+  Response_ReportUserInfo,
+  Event_GameLogNotice_NoticeType,
   Event_RoomSay,
   Event_GameJoined,
   Event_GameStateChanged,
@@ -40,6 +48,12 @@ import type {
   ServerInfo_DeckStorage_TreeItem,
   ServerInfo_ReplayMatch,
   ServerInfo_Card,
+  ServerInfo_DeckShareSummary,
+  ServerInfo_ModeratorLogin,
+  ServerInfo_Report,
+  ServerInfo_UserAlt,
+  ServerInfo_UserSession,
+  DeckSetVisibilityParams,
 } from '../generated';
 
 import type { StatusEnum } from './StatusEnum';
@@ -54,7 +68,9 @@ export interface ISessionResponse {
   connectionAttempted(): void;
   clearStore(): void;
   loginSuccessful(options: LoginSuccessContext): void;
-  loginFailed(): void;
+  /** `responseCode` is the Response.ResponseCode the server rejected the login with;
+   *  undefined when the login never reached Command_Login (e.g. the salt request failed). */
+  loginFailed(responseCode?: number): void;
   connectionFailed(): void;
   connectionUnreachable(): void;
   testConnectionSuccessful(supportsHashedPassword: boolean): void;
@@ -111,6 +127,25 @@ export interface ISessionResponse {
   replayModifyMatch(gameId: number, doNotHide: boolean): void;
   replayDeleteMatch(gameId: number): void;
   replayDownloaded(replayId: number, response: Response_ReplayDownload): void;
+
+  // ── Cockatrice 3.1 protocol additions ─────────────────────────────────────
+  // Optional so existing IWebClientResponse implementations keep compiling; a
+  // consumer that omits one simply drops that response. 3.0 servers never
+  // answer these commands successfully, so nothing reaches them there.
+
+  /** Deck share links (#7241). */
+  deckShareCreated?(response: Response_DeckShareCreate): void;
+  deckShareListed?(token: string, response: Response_DeckShareList): void;
+  deckShareDownloaded?(token: string, itemId: number, deck: string): void;
+  deckSharesMine?(shares: ServerInfo_DeckShareSummary[]): void;
+  deckShareRemoved?(shareId: number): void;
+  /** Public decks (#7241). */
+  otherUserDecks?(userName: string, deckList: Response_DeckList): void;
+  deckVisibilityChanged?(params: DeckSetVisibilityParams): void;
+  publicDeckDownloaded?(deckId: number, deck: string): void;
+  /** The caller's own reports (#7091). */
+  reportMyList?(reports: ServerInfo_Report[]): void;
+  reportDetails?(report: ServerInfo_Report): void;
 }
 
 export interface IRoomResponse<T extends RoomEventMap = WebSocketRoomResponseOverrides> {
@@ -161,10 +196,13 @@ export interface IGameResponse {
   turnReversed(gameId: number, reversed: boolean): void;
   zoneDumped(gameId: number, playerId: number, data: Event_DumpZone): void;
   zonePropertiesChanged(gameId: number, playerId: number, data: Event_ChangeZoneProperties): void;
+  /** Event_GameLogNotice (3.1): a droppable, log-only notice about `playerId`. */
+  gameLogNotice?(gameId: number, playerId: number, noticeType: Event_GameLogNotice_NoticeType): void;
 }
 
 export interface IAdminResponse {
-  adjustMod(userName: string, shouldBeMod: boolean, shouldBeJudge: boolean): void;
+  /** Each flag is `undefined` when the command left that role unchanged (proto2 presence). */
+  adjustMod(userName: string, shouldBeMod?: boolean, shouldBeJudge?: boolean, shouldBeDeveloper?: boolean): void;
   reloadConfig(): void;
   shutdownServer(): void;
   updateServerMessage(): void;
@@ -181,6 +219,30 @@ export interface IModeratorResponse {
   forceActivateUser(usernameToActivate: string, moderatorName: string): void;
   getAdminNotes(userName: string, notes: string): void;
   updateAdminNotes(userName: string, notes: string): void;
+
+  // ── Cockatrice 3.1 protocol additions (optional; see ISessionResponse) ────
+
+  /** Card-art rules (#7101). */
+  cardArtRules?(entries: Response_CardArtRuleEntry[]): void;
+  cardArtRuleAdded?(cardName: string, cardProviderId: string, mode: string, reason: string): void;
+  cardArtRuleRemoved?(cardName: string, cardProviderId: string): void;
+  /** Investigation tools. */
+  userSessions?(userName: string, sessions: ServerInfo_UserSession[]): void;
+  userAlts?(userName: string, alts: ServerInfo_UserAlt[]): void;
+  moderatorLastLogins?(logins: ServerInfo_ModeratorLogin[]): void;
+  userAvatarRemoved?(userName: string): void;
+  /** Moderation queue (#7091). */
+  reportList?(reports: ServerInfo_Report[], totalCount: number): void;
+  reportAssigned?(reportId: number): void;
+  reportResolved?(reportId: number, dismissed: boolean): void;
+  reportUserInfo?(info: Response_ReportUserInfo): void;
+  reportStats?(stats: Response_ReportStats): void;
+  replayDownloadedByGameId?(gameId: number, response: Response_ReplayDownloadByGameId): void;
+}
+
+/** Developer staff role (#7211, #7212). Developer log lookups route to IModeratorResponse.viewLogs. */
+export interface IDeveloperResponse {
+  serverStats?(stats: Response_GetServerStats): void;
 }
 
 export interface IWebClientResponse<
@@ -191,4 +253,6 @@ export interface IWebClientResponse<
   game: IGameResponse;
   admin: IAdminResponse;
   moderator: IModeratorResponse;
+  /** Optional: only consumers that surface developer tooling need it. */
+  developer?: IDeveloperResponse;
 }

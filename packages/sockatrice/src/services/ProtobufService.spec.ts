@@ -19,6 +19,7 @@ import type {
   AdminCommand,
   CommandContainer,
   Command_Judge,
+  DeveloperCommand,
   GameCommand,
   GameEvent,
   ModeratorCommand,
@@ -75,6 +76,7 @@ describe('ProtobufService', () => {
   const gameExt = {} as GenExtension<GameCommand, Record<string, never>>;
   const moderatorExt = {} as GenExtension<ModeratorCommand, Record<string, never>>;
   const adminExt = {} as GenExtension<AdminCommand, Record<string, never>>;
+  const developerExt = {} as GenExtension<DeveloperCommand, Record<string, never>>;
 
   describe('resetCommands', () => {
     it('resets cmdId and pendingCommands', () => {
@@ -416,6 +418,27 @@ describe('ProtobufService', () => {
 
       const storedCb = (service as ProtobufInternal).pendingCommands.get(1)!;
       expect(() => storedCb(create(ResponseSchema))).not.toThrow();
+    });
+  });
+
+  describe('sendDeveloperCommand', () => {
+    it('wraps the command in CommandContainer.developerCommand', () => {
+      const service = makeService();
+      service.sendDeveloperCommand(developerExt, {});
+
+      expect(setExtension).toHaveBeenCalledWith(expect.anything(), developerExt, {});
+      const container = vi.mocked(toBinary).mock.calls.at(-1)![1] as CommandContainer;
+      expect(container.developerCommand).toHaveLength(1);
+      expect(container.moderatorCommand).toHaveLength(0);
+      expect((service as ProtobufInternal).cmdId).toBe(1);
+    });
+
+    it('calls onError when the command is dropped', () => {
+      const service = makeService();
+      mockSocket.isOpen.mockReturnValue(false);
+      const onError = vi.fn();
+      service.sendDeveloperCommand(developerExt, {}, { onError });
+      expect(onError).toHaveBeenCalledWith(-1, expect.any(Object));
     });
   });
 

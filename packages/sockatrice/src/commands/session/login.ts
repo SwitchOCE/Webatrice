@@ -32,12 +32,17 @@ export function login(options: ConnectTarget & LoginParams, password?: string): 
       : { password }),
   };
 
-  const onLoginError = (message: string, extra?: () => void) => {
+  // Every rejection reports its response code so consumers can localize the
+  // reasons they recognize; `message` is the English status-line fallback.
+  const onLoginError = (responseCode: number, message: string, extra?: () => void) => {
     updateStatus(StatusEnum.DISCONNECTED, message);
     extra?.();
-    WebClient.instance.response.session.loginFailed();
+    WebClient.instance.response.session.loginFailed(responseCode);
     disconnect();
   };
+
+  const rejectWith = (message: string, extra?: () => void) =>
+    (raw: { responseCode: number }) => onLoginError(raw.responseCode, message, extra);
 
   WebClient.instance.protobuf.sendSessionCommand(Command_Login_ext, create(Command_LoginSchema, loginConfig), {
     responseExt: Response_Login_ext,
@@ -55,34 +60,30 @@ export function login(options: ConnectTarget & LoginParams, password?: string): 
       updateStatus(StatusEnum.LOGGED_IN, 'Logged in.');
     },
     onResponseCode: {
-      [Response_ResponseCode.RespClientUpdateRequired]: () =>
-        onLoginError('Login failed: missing features'),
-      [Response_ResponseCode.RespWrongPassword]: () =>
-        onLoginError('Login failed: incorrect username or password'),
-      [Response_ResponseCode.RespUsernameInvalid]: () =>
-        onLoginError('Login failed: incorrect username or password'),
-      [Response_ResponseCode.RespWouldOverwriteOldSession]: () =>
-        onLoginError('Login failed: duplicated user session'),
-      [Response_ResponseCode.RespUserIsBanned]: () =>
-        onLoginError('Login failed: banned user'),
-      [Response_ResponseCode.RespRegistrationRequired]: () =>
-        onLoginError('Login failed: registration required'),
-      [Response_ResponseCode.RespClientIdRequired]: () =>
-        onLoginError('Login failed: missing client ID'),
-      [Response_ResponseCode.RespContextError]: () =>
-        onLoginError('Login failed: server error'),
-      [Response_ResponseCode.RespAccountNotActivated]: () =>
-        onLoginError('Login failed: account not activated',
-          () => {
-            WebClient.instance.response.session.accountAwaitingActivation({
-              host: options.host,
-              port: options.port,
-              userName: options.userName,
-            });
-          }
-        ),
+      [Response_ResponseCode.RespClientUpdateRequired]: rejectWith('Login failed: missing features'),
+      [Response_ResponseCode.RespWrongPassword]: rejectWith('Login failed: incorrect username or password'),
+      [Response_ResponseCode.RespUsernameInvalid]: rejectWith('Login failed: incorrect username or password'),
+      [Response_ResponseCode.RespWouldOverwriteOldSession]: rejectWith('Login failed: duplicated user session'),
+      [Response_ResponseCode.RespUserIsBanned]: rejectWith('Login failed: banned user'),
+      [Response_ResponseCode.RespRegistrationRequired]: rejectWith('Login failed: registration required'),
+      [Response_ResponseCode.RespClientIdRequired]: rejectWith('Login failed: missing client ID'),
+      [Response_ResponseCode.RespContextError]: rejectWith('Login failed: server error'),
+      // Desktop (remote_connection_controller.cpp) disconnects and tells the user an
+      // administrator reset their password; Servatrice only sends it after the
+      // supplied password checked out.
+      [Response_ResponseCode.RespPasswordChangeRequired]: rejectWith('Login failed: password change required'),
+      [Response_ResponseCode.RespServerFull]: rejectWith('Login failed: server is full'),
+      [Response_ResponseCode.RespAccountNotActivated]: rejectWith('Login failed: account not activated',
+        () => {
+          WebClient.instance.response.session.accountAwaitingActivation({
+            host: options.host,
+            port: options.port,
+            userName: options.userName,
+          });
+        }
+      ),
     },
     onError: (responseCode) =>
-      onLoginError(`Login failed: unknown error: ${responseCode}`),
+      onLoginError(responseCode, `Login failed: unknown error: ${responseCode}`),
   });
 }

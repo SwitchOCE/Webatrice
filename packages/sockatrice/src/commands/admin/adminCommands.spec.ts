@@ -4,13 +4,16 @@ import { makeCallbackHelpers } from '../../testing/callback-helpers';
 import { WebClient } from '../../WebClient';
 import { adjustMod } from './adjustMod';
 import { reloadConfig } from './reloadConfig';
+import { resetUserPassword } from './resetUserPassword';
 import { shutdownServer } from './shutdownServer';
 import { updateServerMessage } from './updateServerMessage';
 import {
   Command_AdjustMod_ext,
   Command_ReloadConfig_ext,
+  Command_ResetUserPassword_ext,
   Command_ShutdownServer_ext,
   Command_UpdateServerMessage_ext,
+  Response_ResetUserPassword_ext,
   Response_ResponseCode,
 } from '../../generated';
 
@@ -35,7 +38,18 @@ describe('adjustMod', () => {
   it('onSuccess calls response.admin.adjustMod', () => {
     adjustMod('alice', true, false);
     invokeOnSuccess();
-    expect(WebClient.instance.response.admin.adjustMod).toHaveBeenCalledWith('alice', true, false);
+    expect(WebClient.instance.response.admin.adjustMod).toHaveBeenCalledWith('alice', true, false, undefined);
+  });
+
+  it('sends shouldBeDeveloper and forwards it on success', () => {
+    adjustMod('alice', undefined, undefined, true);
+    expect(WebClient.instance.protobuf.sendAdminCommand).toHaveBeenCalledWith(
+      Command_AdjustMod_ext,
+      expect.objectContaining({ userName: 'alice', shouldBeDeveloper: true }),
+      expect.any(Object)
+    );
+    invokeOnSuccess();
+    expect(WebClient.instance.response.admin.adjustMod).toHaveBeenCalledWith('alice', undefined, undefined, true);
   });
 
   it('does not call response.admin.adjustMod on permission-denied response and does not retry', () => {
@@ -104,5 +118,33 @@ describe('updateServerMessage', () => {
     updateServerMessage();
     invokeOnSuccess();
     expect(WebClient.instance.response.admin.updateServerMessage).toHaveBeenCalled();
+  });
+});
+
+describe('resetUserPassword', () => {
+
+  it('calls sendAdminCommand with Command_ResetUserPassword', () => {
+    resetUserPassword('alice');
+    expect(WebClient.instance.protobuf.sendAdminCommand).toHaveBeenCalledWith(
+      Command_ResetUserPassword_ext,
+      expect.objectContaining({ userName: 'alice' }),
+      expect.objectContaining({ responseExt: Response_ResetUserPassword_ext })
+    );
+  });
+
+  it('hands the temporary password to the caller', () => {
+    const onReset = vi.fn();
+    resetUserPassword('alice', onReset);
+    invokeOnSuccess({ userName: 'alice', temporaryPassword: 'tmp-secret' });
+    expect(onReset).toHaveBeenCalledWith('alice', 'tmp-secret');
+  });
+
+  it('reports a refused reset (moderator target) to onFailure', () => {
+    const onReset = vi.fn();
+    const onFailure = vi.fn();
+    resetUserPassword('mod1', onReset, onFailure);
+    invokeOnError(Response_ResponseCode.RespAccessDenied);
+    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespAccessDenied, expect.anything());
+    expect(onReset).not.toHaveBeenCalled();
   });
 });

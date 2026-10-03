@@ -42,5 +42,6 @@ export { changeZoneProperties } from './changeZoneProperties';
 export { deckSelect } from './deckSelect';
 export { setSideboardPlan } from './setSideboardPlan';
 export { setSideboardLock } from './setSideboardLock';
+export { setPlaymat } from './setPlaymat';
 export { mulligan } from './mulligan';
 export { rollDie } from './rollDie';
