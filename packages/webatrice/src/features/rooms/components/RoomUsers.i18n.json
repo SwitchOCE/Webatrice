@@ -2,12 +2,12 @@
   "RoomUsers": {
     "buddies": {
       "title": "Buddies",
-      "count": "{count} online",
+      "count": "{count, plural, other {# online}}",
       "empty": "No buddies online right now."
     },
     "online": {
       "title": "Players Online",
-      "count": "{count} connected",
+      "count": "{count, plural, other {# connected}}",
       "empty": "No one else online."
     }
   }
