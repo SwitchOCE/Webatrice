@@ -1,8 +1,9 @@
 import { act, fireEvent, screen } from '@testing-library/react';
-import { Routes, Route } from 'react-router-dom';
-import { create } from '@bufbuild/protobuf';
+import { Routes, Route, useParams } from 'react-router-dom';
+import { create, toBinary } from '@bufbuild/protobuf';
 import { rooms, server } from '@cockatrice/datatrice';
 import {
+  GameReplaySchema,
   Response_ReportStatsSchema,
   Response_ReportUserInfoSchema,
   Response_ResponseCode,
@@ -10,10 +11,9 @@ import {
 } from '@cockatrice/sockatrice/generated';
 import type { Mock } from 'vitest';
 
-const hoisted = vi.hoisted(() => ({ saveReplayFile: vi.fn() }));
-vi.mock('./saveReplayFile', () => ({ saveReplayFile: hoisted.saveReplayFile }));
-
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
+import { getOpenedReplay } from '../../services';
+import { buildReplay, sayContainer } from '../../services/replay/__mocks__/fixtures';
 import { RouteEnum } from '../../types';
 import { makeReport, reportsRootState, SERVER_30 } from './__mocks__/reportState';
 import ReportQueue from './ReportQueue';
@@ -30,6 +30,7 @@ function renderQueue(options: { moderator?: boolean; version?: string } = {}) {
       <Route path={RouteEnum.REPORT_QUEUE} element={<ReportQueue />} />
       <Route path={RouteEnum.SERVER} element={<div>lobby</div>} />
       <Route path={RouteEnum.GAME} element={<div>game page</div>} />
+      <Route path={RouteEnum.REPLAY} element={<ReplayViewProbe />} />
     </Routes>,
     {
       preloadedState: reportsRootState({ moderator: options.moderator ?? true, version: options.version }),
@@ -44,6 +45,11 @@ function renderQueue(options: { moderator?: boolean; version?: string } = {}) {
     utils.store.dispatch(server.Actions.reportList({ reports, totalCount: reports.length }));
   });
   return { ...utils, moderator, session, roomsRequest, load };
+}
+
+function ReplayViewProbe() {
+  const { replayKey } = useParams();
+  return <div data-testid="replay-view">{getOpenedReplay(replayKey)?.title}</div>;
 }
 
 const button = (name: string) => screen.getByRole('button', { name }) as HTMLButtonElement;
@@ -88,12 +94,12 @@ describe('ReportQueue', () => {
     fireEvent.click(screen.getByTestId('report-row-1'));
     expect(button('Reports.queue.assign').disabled).toBe(false);
     expect(button('Reports.queue.resolve').disabled).toBe(false);
-    expect(button('Reports.queue.downloadReplay').disabled).toBe(true);
+    expect(button('Reports.queue.viewReplay').disabled).toBe(true);
     expect(button('Reports.queue.joinGame').disabled).toBe(true);
     fireEvent.click(screen.getByTestId('report-row-2'));
     expect(button('Reports.queue.assign').disabled).toBe(true);
     expect(button('Reports.queue.dismiss').disabled).toBe(false);
-    expect(button('Reports.queue.downloadReplay').disabled).toBe(false);
+    expect(button('Reports.queue.viewReplay').disabled).toBe(false);
     expect(button('Reports.queue.joinGame').disabled).toBe(false);
   });
 
@@ -164,25 +170,44 @@ describe('ReportQueue', () => {
     expect(screen.getByTestId('report-user-context').textContent).toContain('Reports.userContext.loadFailed');
   });
 
-  it('saves the replay once the matching download arrives', () => {
+  it('opens the replay in the replay view once the matching download arrives', () => {
     const { moderator, load, store } = renderQueue();
     load();
     fireEvent.click(screen.getByTestId('report-row-2'));
-    fireEvent.click(button('Reports.queue.downloadReplay'));
+    fireEvent.click(button('Reports.queue.viewReplay'));
     expect(moderator.replayDownloadByGameId).toHaveBeenCalledWith(30, expect.any(Function));
-    const replayData = new Uint8Array([1, 2, 3]);
+    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.loadingReplay');
+
+    // A replay for another game (a stale response) is ignored.
+    const replayData = toBinary(GameReplaySchema, buildReplay([sayContainer(0)], 30));
+    act(() => {
+      store.dispatch(server.Actions.reportReplayDownloaded({ gameId: 31, replayId: 8, replayData }));
+    });
+    expect(screen.queryByTestId('replay-view')).toBeNull();
+
     act(() => {
       store.dispatch(server.Actions.reportReplayDownloaded({ gameId: 30, replayId: 9, replayData }));
     });
-    expect(hoisted.saveReplayFile).toHaveBeenCalledWith(30, replayData);
-    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.replaySaved');
+    expect(screen.getByTestId('replay-view').textContent).toBe('Reports.queue.replayTitle');
+  });
+
+  it('says the replay could not be parsed and stays on the queue', () => {
+    const { load, store } = renderQueue();
+    load();
+    fireEvent.click(screen.getByTestId('report-row-2'));
+    fireEvent.click(button('Reports.queue.viewReplay'));
+    act(() => {
+      store.dispatch(server.Actions.reportReplayDownloaded({ gameId: 30, replayId: 9, replayData: new Uint8Array([1, 2, 3]) }));
+    });
+    expect(screen.queryByTestId('replay-view')).toBeNull();
+    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.replayParseFailed');
   });
 
   it('says there is no replay when the download fails', () => {
     const { moderator, load } = renderQueue();
     load();
     fireEvent.click(screen.getByTestId('report-row-2'));
-    fireEvent.click(button('Reports.queue.downloadReplay'));
+    fireEvent.click(button('Reports.queue.viewReplay'));
     act(() => moderator.replayDownloadByGameId.mock.calls[0][1](8));
     expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.noReplay');
   });
