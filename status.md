@@ -1,2 +1,4 @@
 - 13:57Z setup done (base 8fca043; docs/ absent on base, will create) → reading inputs
 - 13:59Z inputs read; branch DAG computed → verifying desktop claims
+- 14:04Z pushed 27be928 (matrix + parity-pr-series.md) → acting on M1
+- ACK M1: replacing both files with one consolidated docs/cockatrice-parity.md (one row per ID, short evidence, out-of-scope, PR series/reviewer guide)
