@@ -8,3 +8,4 @@
 - 22:50Z zone view autofocus + selection counts pushed → keep game chat focused
 - 22:53Z keep game chat focused pushed → animations group
 - 23:04Z animations (all/none, arrow draw, life flash, damage flash, reduced-motion default) pushed → game time in logs
+- 23:13Z game time in logs (sockatrice replayGameTime + datatrice gameSeconds + webatrice pref) pushed → annotate tokens check, then LONG-012 card presentation + M1 tokens
