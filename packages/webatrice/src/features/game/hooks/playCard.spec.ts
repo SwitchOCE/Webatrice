@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 
 import { CardDTO } from '../../../services/dexie/DexieDTOs/CardDTO';
-import { playCardViaTableRow } from './playCard';
+import { autoPlayCard, playCardViaTableRow } from './playCard';
 
 vi.mock('../../../services/dexie/DexieDTOs/CardDTO', () => ({
   CardDTO: { get: vi.fn(() => Promise.resolve(undefined)) },
@@ -74,5 +74,32 @@ describe('playCardViaTableRow — owner routing + judge wrap', () => {
       }),
       2,
     );
+  });
+});
+
+describe('autoPlayCard — "Play all nonlands onto the stack"', () => {
+  it.each([
+    ['0', true, ZoneName.TABLE],
+    ['1', true, ZoneName.STACK],
+    ['2', true, ZoneName.STACK],
+    ['3', true, ZoneName.STACK],
+    ['0', false, ZoneName.TABLE],
+    ['1', false, ZoneName.TABLE],
+    ['2', false, ZoneName.TABLE],
+    ['3', false, ZoneName.STACK],
+  ])('tablerow %s from hand with playToStack=%s goes to %s, as desktop PlayerActions::playCard', async (tablerow, playToStack, zone) => {
+    vi.mocked(CardDTO.get).mockResolvedValue({ tablerow: { value: tablerow } } as never);
+    const { webClient, moveCard } = makeWebClient();
+
+    await expect(autoPlayCard({ ...baseArgs, webClient, sourcePlayerId: 1, playToStack })).resolves.toBe(zone);
+
+    expect(moveCard).toHaveBeenCalledWith(1, expect.objectContaining({ targetZone: zone }), undefined);
+  });
+
+  it('defaults to playing nonlands onto the stack', async () => {
+    vi.mocked(CardDTO.get).mockResolvedValue({ tablerow: { value: '1' } } as never);
+    const { webClient } = makeWebClient();
+
+    await expect(autoPlayCard({ ...baseArgs, webClient, sourcePlayerId: 1 })).resolves.toBe(ZoneName.STACK);
   });
 });
