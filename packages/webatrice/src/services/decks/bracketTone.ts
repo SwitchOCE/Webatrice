@@ -1,8 +1,8 @@
 /**
  * Bracket traffic-light palette (edhpowerlevel's colouring): green for
  * casual, yellow for mid-tier, red for optimized/cEDH. Shared by the
- * MyDecks row badge and the editor's bracket section so a B3 reads the
- * same everywhere.
+ * MyDecks row badge, the editor's bracket section and the game lobby's
+ * deck badge so a B3 reads the same everywhere.
  */
 export interface BracketTone {
   text: string;

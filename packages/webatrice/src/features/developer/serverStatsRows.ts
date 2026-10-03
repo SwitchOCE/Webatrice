@@ -2,6 +2,8 @@ import type { TFunction } from 'i18next';
 
 import type { CommandStats, Response_GetServerStats } from '@cockatrice/sockatrice/generated';
 
+import { formatLocalDateTime } from '@app/utils';
+
 export interface StatRow {
   label: string;
   value: string;
@@ -44,14 +46,6 @@ export function formatDurationMs(ms: bigint, t: TFunction): string {
   return t('Developer.unit.milliseconds', { value });
 }
 
-const pad = (value: number): string => String(value).padStart(2, '0');
-
-/** Local "yyyy-MM-dd HH:mm", as desktop formats the snapshot and update times. */
-export function formatTimestamp(date: Date): string {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} `
-    + `${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
 /** Desktop TabDeveloper::serverStatsResponse, the statistics table. */
 export function buildStatRows(stats: Response_GetServerStats, t: TFunction): StatRow[] {
   const uptime = Number(stats.uptimeSecs);
@@ -71,7 +65,7 @@ export function buildStatRows(stats: Response_GetServerStats, t: TFunction): Sta
         ? t('Developer.unit.uptimeDays', { days, hours, minutes })
         : t('Developer.unit.uptimeHours', { hours, minutes }),
     },
-    { label: t('Developer.stat.snapshot'), value: formatTimestamp(new Date(Number(stats.timest) * 1000)) },
+    { label: t('Developer.stat.snapshot'), value: formatLocalDateTime(new Date(Number(stats.timest) * 1000)) },
     { label: t('Developer.stat.liveMetrics'), value: '', section: true },
     { label: t('Developer.stat.cardsInGames'), value: String(stats.cardsInGames) },
     { label: t('Developer.stat.totalCommands'), value: String(stats.totalCommands) },

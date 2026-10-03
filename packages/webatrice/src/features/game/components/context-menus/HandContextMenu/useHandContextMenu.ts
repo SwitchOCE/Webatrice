@@ -1,6 +1,6 @@
 import { useWebClient } from '@cockatrice/datatrice/react';
 
-export type HandSortKey = 'name' | 'maintype' | 'manacost';
+import type { HandSortKey } from '../../../hooks/dialogs/gameDialogs.types';
 
 export interface HandContextMenu {
   handleChoose: () => void;

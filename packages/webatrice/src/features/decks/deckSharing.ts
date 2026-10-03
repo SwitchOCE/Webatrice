@@ -1,5 +1,5 @@
 import { readDeckTags } from './deckTags';
-import type { DeckCard, HydratedDeck } from './types';
+import type { HydratedDeck } from './types';
 
 /**
  * Deck share links (Cockatrice 3.1, #7241).
@@ -150,23 +150,6 @@ export function isBlankDeck(
     && !deck.bannerCardProviderId
     && !hasPlaymatCard
     && readDeckTags(deck.tagsXml).length === 0;
-}
-
-const WUBRG = ['W', 'U', 'B', 'R', 'G'];
-
-/**
- * Desktop `getDeckColorIdentity`: the colors of the main and side cards, in
- * WUBRG order — sent with an inline share so other clients can show it
- * without parsing the deck.
- */
-export function deckColorIdentity(cards: readonly DeckCard[]): string {
-  const colors = new Set<string>();
-  for (const card of cards) {
-    if (card.category === 'main' || card.category === 'sideboard') {
-      card.colors?.forEach((color) => colors.add(color));
-    }
-  }
-  return WUBRG.filter((color) => colors.has(color)).join('');
 }
 
 /** The share link the page was loaded with, until login opens it. Memory only. */

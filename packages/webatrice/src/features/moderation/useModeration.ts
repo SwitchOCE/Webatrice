@@ -15,6 +15,7 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import type { Response_ReportUserInfo, ServerInfo_ModeratorLogin } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { useAppDispatch, useAppSelector } from '@app/store';
+import type { ModerationNotice } from '@app/types';
 
 export type InvestigationPart = 'info' | 'alts' | 'sessions';
 
