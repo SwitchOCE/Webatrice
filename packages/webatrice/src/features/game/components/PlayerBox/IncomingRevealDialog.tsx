@@ -17,7 +17,7 @@ import {
   type EnrichedCard,
   type GroupMode,
   type SortMode,
-} from './cardListSort';
+} from '../../dialogs/ZoneViewDialog/zoneViewSort';
 import { lookupCardsCached } from '@app/services';
 
 const TOOLBAR_SELECT_CLASS =

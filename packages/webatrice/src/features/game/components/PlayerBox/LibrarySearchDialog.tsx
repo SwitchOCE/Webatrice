@@ -20,7 +20,7 @@ import {
   type EnrichedCard,
   type GroupMode,
   type SortMode,
-} from './cardListSort';
+} from '../../dialogs/ZoneViewDialog/zoneViewSort';
 
 const TOOLBAR_SELECT_CLASS =
   'px-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm text-text-primary '
