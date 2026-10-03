@@ -62,6 +62,7 @@ export function createMockWebClient() {
         bulkSetAnnotation: vi.fn(),
         bulkIncCardCounter: vi.fn(),
         bulkSetCardCounter: vi.fn(),
+        bulkSetCardCounterEntries: vi.fn(),
         flipCard: vi.fn(),
         attachCard: vi.fn(),
         createToken: vi.fn(),
