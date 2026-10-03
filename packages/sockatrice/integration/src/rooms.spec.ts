@@ -100,6 +100,25 @@ describe('rooms', () => {
     );
   });
 
+  // Desktop's processListRoomsEvent joins with setCurrent = false, and
+  // joinRoomFinished shows no message box for such a join.
+  it('reports a failed auto-join as not user-initiated', () => {
+    connectAndHandshake();
+    deliverMessage(buildSessionEventMessage(
+      Data.Event_ListRooms_ext,
+      create(Data.Event_ListRoomsSchema, { roomList: [makeRoom({ roomId: 1, autoJoin: true })] }),
+    ));
+    const join = findLastSessionCommand(Data.Command_JoinRoom_ext);
+    deliverMessage(buildResponseMessage(buildResponse({
+      cmdId: join.cmdId,
+      responseCode: Data.Response_ResponseCode.RespUserLevelTooLow,
+    })));
+
+    expect(getMockResponse().room.joinRoomFailed).toHaveBeenCalledWith(
+      1, Data.Response_ResponseCode.RespUserLevelTooLow, undefined, false,
+    );
+  });
+
   it('dispatches addMessage on Event_RoomSay', () => {
     connectAndHandshake();
     setupJoinedRoom(1);

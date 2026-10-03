@@ -99,7 +99,17 @@ describe('RoomResponseImpl', () => {
   it('joinRoomFailed dispatches joinRoomFailed keyed by roomId', () => {
     const { impl, dispatch } = setup();
     impl.joinRoomFailed(3, 15);
-    expect(dispatch).toHaveBeenCalledWith(RoomsActions.joinRoomFailed({ roomId: 3, responseCode: 15, failure: undefined }));
+    expect(dispatch).toHaveBeenCalledWith(
+      RoomsActions.joinRoomFailed({ roomId: 3, responseCode: 15, failure: undefined, userInitiated: true }),
+    );
+  });
+
+  it('joinRoomFailed carries an autojoin as not user-initiated', () => {
+    const { impl, dispatch } = setup();
+    impl.joinRoomFailed(3, 15, undefined, false);
+    expect(dispatch).toHaveBeenCalledWith(
+      RoomsActions.joinRoomFailed({ roomId: 3, responseCode: 15, failure: undefined, userInitiated: false }),
+    );
   });
 
   it('createGameFailed dispatches createGameFailed with the transport reason', () => {

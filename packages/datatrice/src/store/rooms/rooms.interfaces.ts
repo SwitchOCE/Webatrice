@@ -22,6 +22,11 @@ export interface RoomCommandFailedPayload {
   failure?: WebsocketTypes.CommandFailure;
 }
 
+export interface JoinRoomFailedPayload extends RoomCommandFailedPayload {
+  /** False for an autojoin, which desktop fails without a message box. */
+  userInitiated: boolean;
+}
+
 export interface JoinGameError {
   code: number;
   message: string;
