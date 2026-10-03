@@ -388,6 +388,31 @@ describe('integration: game chat and table events', () => {
   });
 });
 
+// --- pre-game deck -------------------------------------------------------
+
+describe('integration: pre-game deck', () => {
+  it('deckSelected stores the server deck on the local player; a resync keeps the server copy', () => {
+    const store = createStore();
+    const response = attachResponseHandlers(store);
+    response.session.gameJoined(makeJoinedData());
+    response.game.gameStateChanged(GAME_ID, create(Event_GameStateChangedSchema, {
+      playerList: [playerWithZones(1, 'Alice'), playerWithZones(2, 'Bob')],
+    }));
+
+    const deck = '<cockatrice_deck version="1"><zone name="main"><card number="1" name="Forest"/></zone></cockatrice_deck>';
+    response.game.deckSelected?.(GAME_ID, deck);
+    expect(games.Selectors.getLocalPlayer(store.getState(), GAME_ID)?.deckList).toBe(deck);
+
+    // Between games Servatrice resends the deck (with its sideboard plan) in deck_list.
+    const resynced = playerWithZones(1, 'Alice');
+    resynced.deckList = deck.replace('Forest', 'Island');
+    response.game.gameStateChanged(GAME_ID, create(Event_GameStateChangedSchema, {
+      playerList: [resynced, playerWithZones(2, 'Bob')],
+    }));
+    expect(games.Selectors.getLocalPlayer(store.getState(), GAME_ID)?.deckList).toContain('Island');
+  });
+});
+
 // --- card events ---------------------------------------------------------
 
 describe('integration: card events', () => {

@@ -51,6 +51,10 @@ export class GameResponseImpl implements WebsocketTypes.IGameResponse {
     this.store.dispatch(GameActions.playerPropertiesChanged({ gameId, playerId, properties, isDeckSelect }));
   }
 
+  deckSelected(gameId: number, deckList: string): void {
+    this.store.dispatch(GameActions.deckSelected({ gameId, deckList }));
+  }
+
   gameClosed(gameId: number): void {
     this.store.dispatch(GameActions.gameClosed({ gameId }));
   }
