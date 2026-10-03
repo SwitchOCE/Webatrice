@@ -69,3 +69,9 @@ New tests:
 - **Commit hygiene** → done. `58b4116` was split: its `ProtobufService.spec.ts` hunk went into the first commit and its `moderator.spec.ts` hunk into the commandFailed commit. `9d488d1` was folded into the deck/room/game-create failures commit. The per-commit check found one more red spot: the first commit failed four of the protocol branch's `onError` specs until the commandFailed commit changed `testing/callback-helpers.ts`, so that hunk moved into the first commit too. Every commit now builds, typechecks and passes the sockatrice unit and integration suites. The optional changeset moves were not done.
 - The minor and nit findings (exception-safe settle loop and `dispose()`, a derived/configurable deadline, the ContextError heal, localising join-game reasons, autosave through `request.session.deckUpload`, "Return to lobby" on `/server`, the AlertDialog `OK` label, the transport instructions section, the remaining changeset gaps, the constant-only spec, a monotonic `cmdId`, the login Timeout note, the warning severity, the "Try again" label, and reusing `CommandFailedPayload`) were not in this fix task's scope and are left for a later pass.
 
+## Restack notes (wR1)
+
+- Join-room failures: #11 makes the lobby dialog the one surface and keeps this PR's `userInitiated` review fix end to end (autojoin silent); this PR's global join notice is removed there, its drop-on-disconnect fix stays.
+- 04 @7e1fe97 sockatrice WebClientResponse.ts + mock: kept 03's session commandFailed and 04's deckList/Download/UploadFailed side by side
+- 04 @dc2c709 webatrice useDeckEditor.spec.tsx (add/add with 02's deck-id re-seed spec): kept 02's file, moved 04's failure suite to useDeckEditor.failures.spec.tsx
+- 04 @f7e1efa WebClientResponse.ts/server.actions.ts: kept 03's sessionCommandFailed; moderator/admin payloads take 04's CommandFailedPayload (failure?); merged the commandFailed doc

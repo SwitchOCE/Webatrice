@@ -83,3 +83,12 @@ Final tip `e2fb4b7`, after `git submodule update --init` (servatrice `add65ca`) 
 - Orchestrator M1: 13's `commandFailed` design is unchanged; the final restack will dedupe it against #03's scope-level `commandFailed` (f03).
 - Not addressed (minor/nit, outside this task's list): card-art printings staleness, the double card-art sync path and missing `CARD_ART_RULE_*` types, investigation pruning, lock reset on logout, `serverSupports` in TopBar, the three notice types, table/password accessible names, the e2e 3.1 detection, Shutdown button label, `ms` i18n. The `CapabilityGuard` type nit is fixed in passing (it now imports `ServerCapability`).
 
+## Restack notes (wR1)
+
+- Uses #11's `useGridRows` for CardArtRules rows.
+- Failure pattern: 13's commandFailed folded onto #03's names/signature; 13 adds the transport reason and admin/developer signals.
+- 13 @3df3d96 (failure-pattern decision): 03 already routes the staff lookups and getServerStats through commandFailed with 03's names; 13's commit now only adds 04's transport reason (4th arg) to those builders and to IDeveloperResponse.commandFailed, plus the admin server commands. Kept 03's ModeratorCommandName list. 03's queryFailure.spec asserts the first three args and an undefined failure. 13's sockatrice changeset rewritten accordingly. Datatrice developerCommandFailed (13) follows 03's <scope>CommandFailed naming
+- 13 @b97950e moderationMenu.ts/useModerationMenu.ts(+spec): combined 12's supportsDeveloperRole with 13's adminLocked/canInvestigate
+- 13 @cc6c1ce sockatrice.instructions.md: one paragraph — 03 introduces scope-level commandFailed, 13 extends it (admin/developer signals, failure 4th arg)
+- 13 @0d2e92b (grid decision): CardArtRules rows now use useGridRows (one roving tab stop instead of tabIndex=0 on every row); spec checks roving + ArrowDown
+- 13 @3df3d96 sockatrice integration protocol-3.1.spec: reportUserInfo commandFailed now carries a trailing undefined failure

@@ -95,3 +95,13 @@ Final tip `e984f0f` (on #19 `e3a1137`), after `git submodule update --init` and 
 - **minor: muted text below AA** → applied: the spec now requires 4.5:1 for `text-muted` (3:1 stays for `text-disabled` only), and dark `--text-muted` is lightened.
 - **minor: redaction misses PII/auth keys** → applied: the pattern adds `auth*` (but not `author`), `apiKey`, `email` and `realName`, with a spec.
 - **nits** → all applied: `border-danger/60`, the login header reads `--status-success`, AppShell imports merged, v6 schema comment updated, `uninstall()` moved to `afterEach`, `withMockColorSchemeMedia` listed in the testing instructions, the card-preview popup now follows the mirrored mode and the OS scheme (`followBootColorScheme`), and the changeset is reworded.
+
+## Restack notes (wR1)
+
+- 21 @243eef3 settingsMigration.ts: 19's wrong-type default repair (review fix) + 21's v2 language migration
+- 21 @bb48552 DexieService.ts: 15's replays/replayData/readWrite + 21's count/clear (additive)
+- 21 @037e262 TopBar/userMenuEntries/UserMenu.i18n: 21's route|dialog entry union (import cards + debug log dialogs) with 13/14's staff/report entries and capability filter (visibleUserMenuEntries(userLevel, supports))
+- 21 @4df63bf v6.schema.ts comment: 21's migrateSetting wording + 19's merge-order note (review fix); also repaired i18n-default.json that my 037e262 resolution had staged with markers (regenerated in every affected commit)
+- 21 @bb48552 (cross-PR): Storage page lists 15's replay tables (REPLAY_STORES, never cleared) so Record<Stores,number> stays total; labels added, i18n regenerated
+- 21 @243eef3 (cross-PR, found by e2e): LocalReplays formats sizes with toBcp47(i18n.language) — catalogue codes such as en_US made #15's Intl.NumberFormat throw and crash the Replays page.
+- Storage page lists #15's replay tables (never cleared); #20 adds its card-preference tables beside them.

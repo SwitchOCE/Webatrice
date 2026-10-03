@@ -101,3 +101,8 @@ Final tip `50214e1` (28 commits on `parity/06-e2e-hardening`), from the repo roo
 | nit — dead code | Removed `getIsReplayGame` and the `refresh` export. **Kept** the engine snapshot's `finished`/`processedEvents`/`totalEvents`: they are the engine's observable state, and its specs assert progress through them. They are cheap and documented. |
 | nit — duplicated download code | Added `utils/downloadBlob`, now used by both the replay `.cor` save and `ExportDeckModal`. #14's `saveReplayFile` can use it too. |
 | nit — `URL` methods replaced for the whole file | Now `vi.spyOn`, which `setupTests`' `restoreAllMocks` restores. |
+
+## Restack notes (wR1)
+
+- `useGridRows` now arrives with #11; this PR reuses it (the file is byte-identical).
+- 15 @56af23b hooks barrel: additive (useGridRows from 11 + useWatchReplay). @c1fc85d (grid decision): the hook already exists from 11 (identical file), so this commit only wires LocalReplays/ServerReplays to it; dropped the duplicate barrel line, reworded the message
