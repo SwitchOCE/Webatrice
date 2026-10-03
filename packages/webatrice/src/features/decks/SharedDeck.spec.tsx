@@ -86,7 +86,7 @@ describe('SharedDeck', () => {
 
   it('asks nothing of a server without share links', () => {
     const { webClient } = renderPage(undefined, connectedState);
-    expect(screen.getByRole('alert')).toHaveTextContent('SharedDeck.notFound');
+    expect(screen.getByRole('alert')).toHaveTextContent('DeckSharing.notSupported');
     expect(webClient.request.session.deckShareList).not.toHaveBeenCalled();
   });
 

@@ -64,7 +64,8 @@ function PublicDecks() {
                 <Loader2 size={14} className="animate-spin" /> {t('PublicDecks.loading')}
               </p>
             )}
-            {(!supported || (publicDecks.root && decks.length === 0)) && <p>{t('PublicDecks.empty')}</p>}
+            {!supported && <p role="alert">{t('DeckSharing.notSupported')}</p>}
+            {supported && publicDecks.root && decks.length === 0 && <p>{t('PublicDecks.empty')}</p>}
             {decks.length > 0 && (
               <ul className="space-y-2">
                 {decks.map((deck) => (
