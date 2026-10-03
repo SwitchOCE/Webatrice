@@ -1,7 +1,8 @@
 import { vi } from 'vitest';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 
-import { renderWithProviders, createMockWebClient, connectedState } from '../../__test-utils__';
+import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
+import { renderWithProviders, createMockWebClient, connectedState, makeUser } from '../../__test-utils__';
 
 const flush = async () => {
   await act(async () => {
@@ -79,6 +80,19 @@ describe('Logs', () => {
     await flush();
 
     expect(hoisted.mockWebClient.request.moderator.viewLogHistory).not.toHaveBeenCalled();
+  });
+
+  it('lets a developer search without the moderator functions', () => {
+    const { container } = renderWithProviders(<Logs />, {
+      preloadedState: {
+        ...connectedState,
+        server: { ...(connectedState.server as any), user: makeUser({ userLevel: Level.IsUser | Level.IsRegistered | Level.IsDeveloper }) },
+      },
+    });
+
+    expect(screen.getByRole('button', { name: /LogSearchForm\.button\.search/ })).toBeInTheDocument();
+    expect(container.querySelector('.moderator-logs__functions')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('LogSearchForm.label.ipAddress')).not.toBeInTheDocument();
   });
 
   it('renders existing room log rows from the state slice', () => {

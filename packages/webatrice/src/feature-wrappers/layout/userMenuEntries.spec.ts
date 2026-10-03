@@ -11,8 +11,9 @@ describe('userMenuEntries', () => {
     expect(routes(registered)).toEqual([RouteEnum.ACCOUNT, RouteEnum.SETTINGS, RouteEnum.SHORTCUTS]);
   });
 
-  it('adds Logs for moderators, like desktop TabSupervisor', () => {
+  it('adds Logs for moderators and for developers, like desktop TabSupervisor', () => {
     expect(routes(registered | Level.IsModerator)).toContain(RouteEnum.LOGS);
+    expect(routes(registered | Level.IsDeveloper)).toContain(RouteEnum.LOGS);
   });
 
   it('reads user-level flags as a bitmask', () => {

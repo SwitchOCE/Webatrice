@@ -14,7 +14,8 @@ import { SessionScope } from '../../SessionScope';
 
 import { rootReducerMap, type RootState } from '../../store';
 import { ToastProvider } from '../../components/Toast/ToastContext';
-import { createMockWebClient, connectedState } from '../../__test-utils__';
+import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
+import { createMockWebClient, connectedState, makeUser } from '../../__test-utils__';
 import { LOG_SEARCH_DEFAULTS, type LogSearchFormValues } from './LogSearchForm/logSearchFormSchema';
 import { toViewLogHistoryParams, useLogs } from './useLogs';
 
@@ -45,6 +46,11 @@ function setup(preloadedState: Partial<RootState> = connectedState) {
   const view = renderHook(() => useLogs(), { wrapper: Wrapper });
   return { ...view, webClient, store };
 }
+
+const withLevel = (userLevel: number): Partial<RootState> => ({
+  ...connectedState,
+  server: { ...(connectedState.server as any), user: makeUser({ userLevel }) },
+});
 
 const search = (overrides: Partial<LogSearchFormValues>): LogSearchFormValues => ({
   ...LOG_SEARCH_DEFAULTS,
@@ -90,6 +96,39 @@ describe('useLogs', () => {
     expect(webClient.request.moderator.viewLogHistory).toHaveBeenCalledTimes(1);
     const params = (webClient.request.moderator.viewLogHistory as any).mock.calls[0][0];
     expect(params).toMatchObject({ userName: 'alice', dateRange: 24, maximumResults: 25, logLocation: ['room', 'game', 'chat'] });
+  });
+
+  it('searches through the developer family for a developer who is not a moderator', () => {
+    const { result, webClient } = setup(withLevel(Level.IsUser | Level.IsRegistered | Level.IsDeveloper));
+    expect(result.current.developer).toBe(true);
+
+    result.current.onSubmit(search({ userName: 'alice' }));
+
+    expect(webClient.request.developer.viewLogHistory).toHaveBeenCalledTimes(1);
+    expect(webClient.request.moderator.viewLogHistory).not.toHaveBeenCalled();
+  });
+
+  it('owns the reply to a developer search by its request id', () => {
+    const { result, store, webClient } = setup(withLevel(Level.IsUser | Level.IsRegistered | Level.IsDeveloper));
+    act(() => {
+      result.current.onSubmit(search({ userName: 'alice' }));
+    });
+    const requestId = vi.mocked(webClient.request.developer.viewLogHistory).mock.lastCall?.[1];
+    expect(requestId).toEqual(expect.any(String));
+    act(() => {
+      store.dispatch(server.Actions.viewLogs({ logs: [], requestId }));
+    });
+    expect(result.current.notice).toMatchObject({ message: 'Logs.notice.empty', severity: 'info' });
+  });
+
+  it('keeps a developer who is also a moderator on the moderator family', () => {
+    const { result, webClient } = setup(withLevel(Level.IsUser | Level.IsRegistered | Level.IsModerator | Level.IsDeveloper));
+    expect(result.current.developer).toBe(false);
+
+    result.current.onSubmit(search({ userName: 'alice' }));
+
+    expect(webClient.request.moderator.viewLogHistory).toHaveBeenCalledTimes(1);
+    expect(webClient.request.developer.viewLogHistory).not.toHaveBeenCalled();
   });
 
   it('says there are no messages when a search comes back empty', () => {

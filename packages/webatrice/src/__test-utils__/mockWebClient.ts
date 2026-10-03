@@ -91,6 +91,10 @@ export function createMockWebClient() {
         shutdownServer: vi.fn(),
         updateServerMessage: vi.fn(),
       },
+      developer: {
+        viewLogHistory: vi.fn(),
+        getServerStats: vi.fn(),
+      },
       moderator: {
         viewLogHistory: vi.fn(),
         banFromServer: vi.fn(),

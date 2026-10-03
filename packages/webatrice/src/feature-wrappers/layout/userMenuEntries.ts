@@ -19,17 +19,20 @@ const hasLevel = (flag: ServerInfo_User_UserLevelFlag): UserLevelPredicate => (u
 
 export const isModerator = hasLevel(ServerInfo_User_UserLevelFlag.IsModerator);
 export const isAdmin = hasLevel(ServerInfo_User_UserLevelFlag.IsAdmin);
+export const isDeveloper = hasLevel(ServerInfo_User_UserLevelFlag.IsDeveloper);
+/** Desktop TabSupervisor offers Logs to moderators and, separately, to developers. */
+export const canReadLogs: UserLevelPredicate = (userLevel) => isModerator(userLevel) || isDeveloper(userLevel);
 
 /**
  * Navigation offered from the TopBar user menu, in desktop Tabs-menu order and with TabSupervisor's
- * gating (moderator-only tabs check `IsModerator`). Adding a destination is a
+ * gating (staff tabs check the user-level bits). Adding a destination is a
  * one-line entry here (keep one entry per line so parallel additions rebase cleanly).
  */
 export const USER_MENU_ENTRIES: readonly UserMenuEntry[] = [
   { label: 'UserMenu.account', icon: UserCircle2, route: RouteEnum.ACCOUNT },
   { label: 'UserMenu.settings', icon: SettingsIcon, route: RouteEnum.SETTINGS },
   { label: 'UserMenu.shortcuts', icon: Keyboard, route: RouteEnum.SHORTCUTS },
-  { label: 'UserMenu.logs', icon: FileText, route: RouteEnum.LOGS, visibleTo: isModerator },
+  { label: 'UserMenu.logs', icon: FileText, route: RouteEnum.LOGS, visibleTo: canReadLogs },
 ];
 
 export const visibleUserMenuEntries = (userLevel: number): UserMenuEntry[] =>
