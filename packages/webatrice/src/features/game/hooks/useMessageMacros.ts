@@ -5,11 +5,13 @@ import { useSyncExternalStore } from 'react';
  * in order: the player menu's Say submenu and the Alt+1…Alt+0 shortcuts send
  * them verbatim.
  *
- * Seam: the settings framework (parity branch 19) owns this preference, with
- * its editor, as `useMessageMacros()` in `@app/hooks`. Until that branch is in
- * the base this reads the same list from localStorage (`webatrice.messageMacros`,
- * a JSON string array), with no editor; on the restack, delete this file and
- * import the settings hook instead.
+ * Seam: every reader (the Say menu, the Alt+digit shortcuts) goes through
+ * this one hook. The settings framework (parity branch 19) owns the preference
+ * and its editor (Settings > Chat), as `useMessageMacros()` in `@app/hooks`
+ * with this signature. Until that branch is in the base this reads the list
+ * from localStorage (`webatrice.messageMacros`, a JSON string array) and there
+ * is no editor. On the restack this file becomes
+ * `export { useMessageMacros } from '@app/hooks';`.
  */
 const STORAGE_KEY = 'webatrice.messageMacros';
 const NONE: readonly string[] = [];
