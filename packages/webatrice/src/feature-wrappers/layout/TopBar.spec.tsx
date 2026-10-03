@@ -63,4 +63,14 @@ describe('TopBar shell lifecycle port', () => {
     expect(lifecycle.onIdentityChanged).not.toHaveBeenCalled();
     expect(window.localStorage.getItem(OWNER_KEY)).toBe(IDENTITY);
   });
+
+  it('throws when rendered without a ShellLifecycleProvider', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    expect(() =>
+      renderWithProviders(<TopBar />, { preloadedState: connectedState, route: RouteEnum.SERVER, shellLifecycle: null }),
+    ).toThrow('useShellLifecycle must be used inside <ShellLifecycleProvider>');
+
+    consoleError.mockRestore();
+  });
 });

@@ -15,16 +15,19 @@ export interface ShellLifecycle {
   onIdentityChanged: () => void;
 }
 
-const NOOP_SHELL_LIFECYCLE: ShellLifecycle = {
-  onIdentityChanged: () => {},
-};
-
-const ShellLifecycleContext = createContext<ShellLifecycle>(NOOP_SHELL_LIFECYCLE);
+// No default: TopBar's identity check is the only path that clears
+// server-scoped feature caches, so a tree without the provider must
+// fail loudly rather than silently skip that cleanup.
+const ShellLifecycleContext = createContext<ShellLifecycle | null>(null);
 
 export function ShellLifecycleProvider({ value, children }: { value: ShellLifecycle; children: ReactNode }) {
   return <ShellLifecycleContext.Provider value={value}>{children}</ShellLifecycleContext.Provider>;
 }
 
 export function useShellLifecycle(): ShellLifecycle {
-  return useContext(ShellLifecycleContext);
+  const lifecycle = useContext(ShellLifecycleContext);
+  if (!lifecycle) {
+    throw new Error('useShellLifecycle must be used inside <ShellLifecycleProvider>');
+  }
+  return lifecycle;
 }

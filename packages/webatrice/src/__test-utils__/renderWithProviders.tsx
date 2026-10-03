@@ -32,6 +32,7 @@ const testTheme = createTheme({
 
 import { rootReducerMap, type RootState } from '../store';
 import { ToastProvider } from '../components/Toast/ToastContext';
+import { ShellLifecycleProvider, type ShellLifecycle } from '../feature-wrappers/layout';
 import { GameInteractionProvider, type GameInteractionHandlers } from '../features/game/components/ui/GameInteractionContext';
 import { CardVisualStateProvider, type CanActFor } from '../features/game/components/ui/CardVisualStateContext';
 import { GameDialogActionsProvider, type GameDialogActions } from '../features/game/components/ui/GameDialogActionsContext';
@@ -95,6 +96,10 @@ interface CardVisualStateOverride {
   selectedCardKeys?: ReadonlySet<string>;
   canActFor?: CanActFor;
 }
+
+const NOOP_SHELL_LIFECYCLE: ShellLifecycle = {
+  onIdentityChanged: () => {},
+};
 
 const EMPTY_SELECTION: ReadonlySet<string> = new Set();
 const DENY_ALL: CanActFor = () => false;
@@ -160,6 +165,9 @@ interface ExtendedRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   // The seat a board component renders, provided via BoardCellContext. Defaults
   // to the local seat (playerId 1); pass to render an opponent/mirrored cell.
   boardCell?: Partial<BoardCellInfo>;
+  // The shell lifecycle port page chrome (TopBar) reports to. Defaults to
+  // no-ops; pass `null` to render without the provider.
+  shellLifecycle?: ShellLifecycle | null;
 }
 
 export function renderWithProviders(
@@ -177,6 +185,7 @@ export function renderWithProviders(
     gameDialogs,
     boardCell,
     previewCard = null,
+    shellLifecycle = NOOP_SHELL_LIFECYCLE,
     ...renderOptions
   } = options;
   const boardCellInfo: BoardCellInfo = boardCell
@@ -236,7 +245,11 @@ export function renderWithProviders(
                             <CardPreviewProvider value={previewCard}>
                               <GameDialogsProvider value={dialogs}>
                                 <BoardCellProvider value={boardCellInfo}>
-                                  {children}
+                                  {shellLifecycle ? (
+                                    <ShellLifecycleProvider value={shellLifecycle}>{children}</ShellLifecycleProvider>
+                                  ) : (
+                                    children
+                                  )}
                                 </BoardCellProvider>
                               </GameDialogsProvider>
                             </CardPreviewProvider>
