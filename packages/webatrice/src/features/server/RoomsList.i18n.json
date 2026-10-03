@@ -8,7 +8,7 @@
       "unknown": "Failed to join the server room due to an unknown error: {code}."
     },
     "title": "Rooms",
-    "available": "{count} available",
+    "available": "{count, plural, other {# available}}",
     "column": {
       "name": "Name",
       "description": "Description",
