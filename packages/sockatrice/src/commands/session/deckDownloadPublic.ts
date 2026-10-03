@@ -11,8 +11,8 @@ export function deckDownloadPublic(deckId: number): void {
       onSuccess: (response) => {
         WebClient.instance.response.session.publicDeckDownloaded?.(deckId, response.deck);
       },
-      onError: (responseCode) => {
-        WebClient.instance.response.session.commandFailed?.('deckDownloadPublic', responseCode, String(deckId));
+      onError: (responseCode, _raw, failure) => {
+        WebClient.instance.response.session.commandFailed?.('deckDownloadPublic', responseCode, String(deckId), failure);
       },
     }
   );

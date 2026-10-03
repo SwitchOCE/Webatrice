@@ -6,6 +6,7 @@ import { create, isFieldSet } from '@bufbuild/protobuf';
 import { Mock } from 'vitest';
 import { makeCallbackHelpers } from '../../testing/callback-helpers';
 import { WebClient } from '../../WebClient';
+import { CommandFailure } from '../../types/CommandFailure';
 import {
   Command_DeckDownloadPublic_ext,
   Command_DeckListOtherUser_ext,
@@ -197,5 +198,15 @@ describe('deckUpload (3.1 fields)', () => {
     const sent = (WebClient.instance.protobuf.sendSessionCommand as Mock).mock.calls.at(-1)![1];
     expect(isFieldSet(sent, Command_DeckUploadSchema.field.isPublic)).toBe(false);
     expect(isFieldSet(sent, Command_DeckUploadSchema.field.colorIdentity)).toBe(false);
+  });
+});
+
+describe('deck sharing failures', () => {
+  // Refusals and their targets are pinned with the other 3.1 queries in
+  // queryFailure.spec; this pins the transport failure riding along.
+  it('passes a transport failure through session.commandFailed', () => {
+    deckShareList('tok');
+    invokeOnError(-1, {}, CommandFailure.Timeout);
+    expect(WebClient.instance.response.session.commandFailed).toHaveBeenCalledWith('deckShareList', -1, 'tok', CommandFailure.Timeout);
   });
 });

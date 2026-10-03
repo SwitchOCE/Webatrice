@@ -110,7 +110,7 @@ describe('3.1 query failure reporting', () => {
     answer('session', Response_ResponseCode.RespNameNotFound);
 
     expect(responseScope('session').commandFailed)
-      .toHaveBeenCalledWith('deckSetVisibility', Response_ResponseCode.RespNameNotFound, 'Cube');
+      .toHaveBeenCalledWith('deckSetVisibility', Response_ResponseCode.RespNameNotFound, 'Cube', undefined);
   });
 
   describe('a response implementation without commandFailed', () => {

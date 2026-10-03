@@ -12,8 +12,8 @@ export function deckListOtherUser(userName: string): void {
       onSuccess: (response) => {
         WebClient.instance.response.session.otherUserDecks?.(userName, response);
       },
-      onError: (responseCode) => {
-        WebClient.instance.response.session.commandFailed?.('deckListOtherUser', responseCode, userName);
+      onError: (responseCode, _raw, failure) => {
+        WebClient.instance.response.session.commandFailed?.('deckListOtherUser', responseCode, userName, failure);
       },
     }
   );
