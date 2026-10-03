@@ -27,7 +27,7 @@ export function retainReplayGames(state: GamesState): GamesState {
 
 // Mirrors desktop's replay game state: no local player, an omniscient spectator
 // (Replay ctor + AbstractGame::loadReplay), with the replay-started log line.
-function buildReplayGame(gameInfo: ServerInfo_Game): Enriched.GameEntry {
+function buildReplayGame(gameInfo: ServerInfo_Game, logStart: boolean): Enriched.GameEntry {
   const game: Enriched.GameEntry = {
     info: cloneWith(ServerInfo_GameSchema, gameInfo, { spectatorsOmniscient: true }),
     hostId: -1,
@@ -45,7 +45,9 @@ function buildReplayGame(gameInfo: ServerInfo_Game): Enriched.GameEntry {
     messages: [],
     replay: true,
   };
-  pushEventMessage(game, EVENT_PLAYER_ID_SYSTEM, formatReplayStarted(gameInfo.gameId));
+  if (logStart) {
+    pushEventMessage(game, EVENT_PLAYER_ID_SYSTEM, formatReplayStarted(gameInfo.gameId));
+  }
   return game;
 }
 
@@ -107,7 +109,9 @@ export const lifecycleReducers = {
    */
   replayGameLoaded: ((state, action) => {
     const { gameId, gameInfo } = action.payload;
-    state.games[gameId] = buildReplayGame(gameInfo);
+    // Desktop logs "You are watching a replay…" once when the tab opens; a
+    // rewind (TabGame::resetForRewind) clears the log without repeating it.
+    state.games[gameId] = buildReplayGame(gameInfo, !state.games[gameId]?.replay);
     state.pings[gameId] = {};
   }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; gameInfo: ServerInfo_Game }>>,
 
