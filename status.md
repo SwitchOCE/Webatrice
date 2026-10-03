@@ -1,3 +1,4 @@
 - 16:02Z started; ranges inspected (09: 10 commits, 18: 21 commits) → rebase 09 onto dc77ebd
 - 16:15Z 09 rebased onto dc77ebd + gate green, pushed claude/parity-09-refactor-decks ba8a091 → rebase 18
 - 16:15Z 09 rebased onto dc77ebd + gate green, pushed claude/parity-09-refactor-decks ba8a091 → rebase 18
+- 16:23Z 18 rebased onto new 09 (typecheck+lint green) → full gate + e2e on 18
