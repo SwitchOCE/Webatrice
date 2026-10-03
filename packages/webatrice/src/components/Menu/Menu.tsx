@@ -264,14 +264,20 @@ export function Menu({ anchor, label, onClose, triggerRef, autoFocus = true, id,
         onClose();
         break;
       default: {
-        if (event.key.length !== 1 || event.altKey || event.ctrlKey || event.metaKey || event.key === ' ') {
+        if (event.key.length !== 1 || event.altKey || event.ctrlKey || event.metaKey) {
           return;
         }
         // Type-ahead: letters typed in quick succession build one prefix ("mo" → "Move to"). A
         // repeated single letter keeps cycling through the items starting with it.
         const key = event.key.toLocaleLowerCase();
         const now = Date.now();
-        const text = now - typed.current.at > TYPEAHEAD_TIMEOUT ? key : typed.current.text + key;
+        const searching = typed.current.text !== '' && now - typed.current.at <= TYPEAHEAD_TIMEOUT;
+        // Space activates the focused item, except inside a search ("move c"), where running the
+        // item it passes over would be an action the user was only looking for.
+        if (key === ' ' && !searching) {
+          return;
+        }
+        const text = searching ? typed.current.text + key : key;
         typed.current = { text, at: now };
         const cycling = [...text].every((letter) => letter === key);
         const prefix = cycling ? key : text;
