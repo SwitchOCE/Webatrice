@@ -1,3 +1,4 @@
 - 15:43 started f19 → setup work branch
 - 15:48 chat filters decided on arrival (d41dbce) → mentions
 - 15:54 majors done; minors: sections/sliders/usePreference done → migration types, alert words, restore defaults, nits, squash
+- 16:00 all fixes + history fold pushed; typechecking each commit → full gate, PR file
