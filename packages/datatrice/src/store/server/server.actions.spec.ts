@@ -291,6 +291,20 @@ describe('Actions', () => {
     });
   });
 
+  it('moderatorCommandFailed', () => {
+    expect(Actions.moderatorCommandFailed({ command: 'banHistory', responseCode: 18, target: 'Ned' })).toEqual({
+      type: Types.MODERATOR_COMMAND_FAILED,
+      payload: { command: 'banHistory', responseCode: 18, target: 'Ned' },
+    });
+  });
+
+  it('adminCommandFailed', () => {
+    expect(Actions.adminCommandFailed({ command: 'adjustMod', responseCode: 18, target: 'Ned' })).toEqual({
+      type: Types.ADMIN_COMMAND_FAILED,
+      payload: { command: 'adjustMod', responseCode: 18, target: 'Ned' },
+    });
+  });
+
   it('forceActivateUser', () => {
     expect(Actions.forceActivateUser({ usernameToActivate: 'Ned', moderatorName: 'Moe' })).toEqual({
       type: Types.FORCE_ACTIVATE_USER,

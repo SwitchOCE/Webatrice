@@ -82,4 +82,12 @@ describe('ModeratorResponseImpl', () => {
     impl.updateAdminNotes('alice', 'updated notes');
     expect(dispatch).toHaveBeenCalledWith(ServerActions.updateAdminNotes({ userName: 'alice', notes: 'updated notes' }));
   });
+
+  it('commandFailed dispatches moderatorCommandFailed with the command, code and target', () => {
+    const { impl, dispatch } = setup();
+    impl.commandFailed('grantReplayAccess', 13, '42');
+    expect(dispatch).toHaveBeenCalledWith(
+      ServerActions.moderatorCommandFailed({ command: 'grantReplayAccess', responseCode: 13, target: '42' }),
+    );
+  });
 });

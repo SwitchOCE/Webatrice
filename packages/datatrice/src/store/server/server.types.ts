@@ -62,6 +62,8 @@ export const Types = {
   WARN_USER: a.warnUser.type,
   GRANT_REPLAY_ACCESS: a.grantReplayAccess.type,
   FORCE_ACTIVATE_USER: a.forceActivateUser.type,
+  MODERATOR_COMMAND_FAILED: a.moderatorCommandFailed.type,
+  ADMIN_COMMAND_FAILED: a.adminCommandFailed.type,
   GET_ADMIN_NOTES: a.getAdminNotes.type,
   UPDATE_ADMIN_NOTES: a.updateAdminNotes.type,
   // Replay

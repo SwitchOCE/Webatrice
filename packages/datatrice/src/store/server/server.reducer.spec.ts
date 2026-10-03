@@ -689,6 +689,13 @@ describe('ADJUST_MOD', () => {
     expect(result.users['Alice']).toEqual(alice);
   });
 
+  it('also updates the userInfo snapshot so an open profile reflects the new role', () => {
+    const state = makeServerState({ userInfo: { Dan: makeUser({ name: 'Dan', userLevel: 3 }) } });
+    const result = serverReducer(state, Actions.adjustMod({ userName: 'Dan', shouldBeMod: true }));
+    expect(result.userInfo['Dan'].userLevel).toBe(7);
+    expect(result.userInfo['Dan']).not.toBe(state.userInfo['Dan']);
+  });
+
   it('unknown userName → state unchanged', () => {
     const state = makeServerState({ users: { Dan: makeUser({ name: 'Dan' }) } });
     const result = serverReducer(state, Actions.adjustMod({ userName: 'Ghost', shouldBeMod: true, shouldBeJudge: false }));

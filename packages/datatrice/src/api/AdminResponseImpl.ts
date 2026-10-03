@@ -21,4 +21,8 @@ export class AdminResponseImpl implements WebsocketTypes.IAdminResponse {
   updateServerMessage(): void {
     this.store.dispatch(ServerActions.updateServerMessage());
   }
+
+  commandFailed(command: WebsocketTypes.AdminCommandName, responseCode: number, target: string): void {
+    this.store.dispatch(ServerActions.adminCommandFailed({ command, responseCode, target }));
+  }
 }

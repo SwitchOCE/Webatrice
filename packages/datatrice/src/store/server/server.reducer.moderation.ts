@@ -3,6 +3,7 @@ import {
   Response_WarnList,
   ServerInfo_Ban,
   ServerInfo_ChatMessage,
+  ServerInfo_User,
   ServerInfo_UserSchema,
   ServerInfo_User_UserLevelFlag,
   ServerInfo_Warning,
@@ -43,23 +44,27 @@ export const moderationReducers = {
   // (has_should_be_*); an undefined flag leaves that bit alone.
   adjustMod: ((state, action) => {
     const { userName, shouldBeMod, shouldBeJudge, shouldBeDeveloper } = action.payload;
-    const user = state.users[userName];
-    if (!user) {
-      return;
-    }
     const applyFlag = (level: number, flag: ServerInfo_User_UserLevelFlag, on: boolean | undefined): number => {
       if (on === undefined) {
         return level;
       }
       return on ? (level | flag) : (level & ~flag);
     };
-    let newLevel = user.userLevel;
-    newLevel = applyFlag(newLevel, ServerInfo_User_UserLevelFlag.IsModerator, shouldBeMod);
-    newLevel = applyFlag(newLevel, ServerInfo_User_UserLevelFlag.IsJudge, shouldBeJudge);
-    newLevel = applyFlag(newLevel, ServerInfo_User_UserLevelFlag.IsDeveloper, shouldBeDeveloper);
-    // Reassign a fresh clone; Immer can't draft protobuf-es, so `user.userLevel = …` in
-    // place would go untracked and the moderator badge wouldn't re-render.
-    state.users[userName] = cloneWith(ServerInfo_UserSchema, user, { userLevel: newLevel });
+    const apply = (user: ServerInfo_User): ServerInfo_User => {
+      let newLevel = applyFlag(user.userLevel, ServerInfo_User_UserLevelFlag.IsModerator, shouldBeMod);
+      newLevel = applyFlag(newLevel, ServerInfo_User_UserLevelFlag.IsJudge, shouldBeJudge);
+      newLevel = applyFlag(newLevel, ServerInfo_User_UserLevelFlag.IsDeveloper, shouldBeDeveloper);
+      // Reassign a fresh clone; Immer can't draft protobuf-es, so `user.userLevel = …` in
+      // place would go untracked and the moderator badge wouldn't re-render.
+      return cloneWith(ServerInfo_UserSchema, user, { userLevel: newLevel });
+    };
+    if (state.users[userName]) {
+      state.users[userName] = apply(state.users[userName]);
+    }
+    // Keep an open profile's snapshot in step with the role change.
+    if (state.userInfo[userName]) {
+      state.userInfo[userName] = apply(state.userInfo[userName]);
+    }
   }) as CaseReducer<ServerState, PayloadAction<{
     userName: string;
     shouldBeMod?: boolean;
