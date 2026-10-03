@@ -302,6 +302,10 @@
       "retry": "Reload page"
     }
   },
+  "Toast": {
+    "region": "Notifications",
+    "dismiss": "Dismiss"
+  },
   "UserActionsMenu": {
     "label": "Actions for {name}",
     "privateChat": "Private chat",
@@ -1370,7 +1374,10 @@
       "userLeft": "{name} has left the server.",
       "userJoined": "{name} has joined the server.",
       "notSent": "Message not sent: {reason}"
-    }
+    },
+    "log": "Private chat with {name}",
+    "input": "Message {name}",
+    "send": "Send"
   },
   "PrivateMessageNotifier": {
     "title": "New message from {sender}"
@@ -1588,7 +1595,9 @@
     "notice": {
       "chatFlood": "You are flooding the chat. Please wait a couple of seconds.",
       "notSent": "Message not sent: {reason}"
-    }
+    },
+    "log": "{room} chat",
+    "input": "Message {room}"
   },
   "RoomsList": {
     "joinError": {

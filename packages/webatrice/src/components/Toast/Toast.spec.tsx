@@ -1,4 +1,4 @@
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { useEffect, useState } from 'react';
 
 import { renderWithProviders } from '../../__test-utils__';
@@ -37,21 +37,21 @@ function AutoOpen({ messageKey, body }: { messageKey: string; body: string }) {
   return null;
 }
 
-function PushOnMount({ body, severity }: { body: string; severity?: 'warning' }) {
+function PushOnMount({ body, severity, persistent }: { body: string; severity?: 'warning' | 'error'; persistent?: boolean }) {
   const pushToast = usePushToast();
   useEffect(() => {
-    pushToast(body, { severity });
+    pushToast(body, { severity, persistent });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fixture pushes exactly once on mount
   }, []);
   return null;
 }
 
 function queryAlerts(): HTMLElement[] {
-  return screen.queryAllByRole('alert');
+  return screen.queryAllByTestId('toast');
 }
 
 describe('Toast component', () => {
-  it('renders an alert element when open and removes it when closed', async () => {
+  it('renders the pill when open and removes it when closed', async () => {
     const { rerender } = renderWithProviders(
       <Toast open onClose={() => {}}>
         hello
@@ -190,9 +190,9 @@ describe('ToastProvider + usePushToast', () => {
       </ToastProvider>,
     );
 
-    const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('pushed');
-    expect(alert.querySelector('svg')).toHaveClass('text-success');
+    const toast = await screen.findByTestId('toast');
+    expect(toast).toHaveTextContent('pushed');
+    expect(toast.querySelector('svg')).toHaveClass('text-success');
   });
 
   it('carries the requested severity to the pill', async () => {
@@ -202,8 +202,112 @@ describe('ToastProvider + usePushToast', () => {
       </ToastProvider>,
     );
 
-    const alert = await screen.findByRole('alert');
-    expect(alert.querySelector('svg')).toHaveClass('text-warning');
+    const toast = await screen.findByTestId('toast');
+    expect(toast.querySelector('svg')).toHaveClass('text-warning');
+  });
+
+  it('announces through persistent regions: errors assertively, the rest politely', async () => {
+    renderWithProviders(
+      <ToastProvider>
+        <PushOnMount body="saved" />
+        <PushOnMount body="failed" severity="error" />
+      </ToastProvider>,
+    );
+
+    const saved = await screen.findByText('saved');
+    const region = saved.closest('section') as HTMLElement;
+    expect(region).toHaveAccessibleName('Toast.region');
+    expect(saved.closest('[aria-live]')).toHaveAttribute('aria-live', 'polite');
+    expect(within(region).getByText('failed').closest('[aria-live]')).toHaveAttribute('aria-live', 'assertive');
+  });
+
+  it('removes a pushed toast when it times out', () => {
+    vi.useFakeTimers();
+    renderWithProviders(
+      <ToastProvider>
+        <PushOnMount body="brief" />
+      </ToastProvider>,
+    );
+    expect(screen.getByText('brief')).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+
+    expect(screen.queryByText('brief')).not.toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
+  it('keeps a persistent toast until it is dismissed', () => {
+    vi.useFakeTimers();
+    renderWithProviders(
+      <ToastProvider>
+        <PushOnMount body="go to chat" persistent />
+      </ToastProvider>,
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(60_000);
+    });
+    expect(screen.getByText('go to chat')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Toast.dismiss' }));
+    expect(screen.queryByText('go to chat')).not.toBeInTheDocument();
+    vi.useRealTimers();
+  });
+});
+
+describe('Toast auto-hide pause', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('stops the countdown while hovered and resumes with the time that was left', () => {
+    vi.useFakeTimers();
+    const onClose = vi.fn();
+    renderWithProviders(<Toast open autoHideDuration={3000} onClose={onClose}>hover me</Toast>);
+    const toast = screen.getByTestId('toast');
+
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+    fireEvent.mouseEnter(toast);
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.mouseLeave(toast);
+    act(() => {
+      vi.advanceTimersByTime(900);
+    });
+    expect(onClose).not.toHaveBeenCalled();
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops the countdown while focus is inside', () => {
+    vi.useFakeTimers();
+    const onClose = vi.fn();
+    renderWithProviders(<Toast open autoHideDuration={1000} onClose={onClose}>focus me</Toast>);
+
+    act(() => {
+      screen.getByRole('button', { name: 'Toast.dismiss' }).focus();
+    });
+    act(() => {
+      vi.advanceTimersByTime(5000);
+    });
+    expect(onClose).not.toHaveBeenCalled();
+
+    act(() => {
+      screen.getByRole('button', { name: 'Toast.dismiss' }).blur();
+    });
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -15,6 +15,9 @@
       "userLeft": "{name} has left the server.",
       "userJoined": "{name} has joined the server.",
       "notSent": "Message not sent: {reason}"
-    }
+    },
+    "log": "Private chat with {name}",
+    "input": "Message {name}",
+    "send": "Send"
   }
 }
