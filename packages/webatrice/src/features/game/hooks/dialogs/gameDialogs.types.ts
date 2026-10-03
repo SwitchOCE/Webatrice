@@ -22,6 +22,16 @@ export interface CardMenuState {
   anchorPosition: AnchorPosition;
 }
 
+/**
+ * A card menu opened on a seat: the battlefield, stack or pile-view (graveyard,
+ * exile) card it belongs to and where it opens. The seat builds the items from
+ * its live state and renders them through `CardMenuPopup`; keeping the open
+ * menu here makes it one of the game's mutually exclusive context menus.
+ */
+export type SeatCardMenuState =
+  | { kind: 'battlefield' | 'stack'; playerId: number; cardId: string; x: number; y: number }
+  | { kind: 'pile'; playerId: number; zone: string; cardId: string; cardName: string; x: number; y: number };
+
 export interface ZoneMenuState {
   playerId: number;
   zoneName: string;
@@ -62,6 +72,7 @@ export interface StartPendingSource {
 // (their intersection) stays the single type every consumer reads.
 export interface GameDialogsState {
   cardMenu: CardMenuState | null;
+  seatCardMenu: SeatCardMenuState | null;
   zoneMenu: ZoneMenuState | null;
   playerMenu: AnchorPosition | null;
   handMenu: AnchorPosition | null;
@@ -102,6 +113,8 @@ export interface GameDialogsState {
 export interface GameDialogsActions {
   // Card/zone/player/hand menus
   closeCardMenu: () => void;
+  openSeatCardMenu: (menu: SeatCardMenuState) => void;
+  closeSeatCardMenu: () => void;
   closeZoneMenu: () => void;
   closePlayerMenu: () => void;
   closeHandMenu: () => void;
@@ -227,6 +240,8 @@ export type HandSortKey = 'name' | 'maintype' | 'manacost';
 const noopDialogAction = (): void => undefined;
 export const NOOP_GAME_DIALOGS_ACTIONS: GameDialogsActions = {
   closeCardMenu: noopDialogAction,
+  openSeatCardMenu: noopDialogAction,
+  closeSeatCardMenu: noopDialogAction,
   closeZoneMenu: noopDialogAction,
   closePlayerMenu: noopDialogAction,
   closeHandMenu: noopDialogAction,

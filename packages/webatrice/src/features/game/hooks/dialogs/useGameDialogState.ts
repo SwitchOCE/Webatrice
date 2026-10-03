@@ -9,6 +9,7 @@ import type {
   GameDialogsState,
   PromptState,
   RevealState,
+  SeatCardMenuState,
   ZoneMenuState,
   ZoneViewTarget,
 } from './gameDialogs.types';
@@ -17,6 +18,7 @@ import type {
 export interface GameDialogSetters {
   setZoneViews: React.Dispatch<React.SetStateAction<ZoneViewTarget[]>>;
   setCardMenu: React.Dispatch<React.SetStateAction<CardMenuState | null>>;
+  setSeatCardMenu: React.Dispatch<React.SetStateAction<SeatCardMenuState | null>>;
   setZoneMenu: React.Dispatch<React.SetStateAction<ZoneMenuState | null>>;
   setPlayerMenu: React.Dispatch<React.SetStateAction<AnchorPosition | null>>;
   setHandMenu: React.Dispatch<React.SetStateAction<AnchorPosition | null>>;
@@ -35,6 +37,7 @@ export interface GameDialogSetters {
 export type GameDialogToggleActions = Pick<
   GameDialogsActions,
   | 'closeCardMenu'
+  | 'closeSeatCardMenu'
   | 'closeZoneMenu'
   | 'closePlayerMenu'
   | 'closeHandMenu'
@@ -65,8 +68,8 @@ export interface GameDialogStateHandle {
   state: GameDialogsState;
   set: GameDialogSetters;
   toggles: GameDialogToggleActions;
-  /** Closes every context menu. Each menu opener calls it first, so at most
-   *  one in-game context menu is open at a time. */
+  /** Closes every context menu, the seats' card menus included. Each menu
+   *  opener calls it first, so at most one in-game context menu is open at a time. */
   closeAllContextMenus: () => void;
 }
 
@@ -74,6 +77,7 @@ export interface GameDialogStateHandle {
 export function useGameDialogState(): GameDialogStateHandle {
   const [zoneViews, setZoneViews] = useState<ZoneViewTarget[]>([]);
   const [cardMenu, setCardMenu] = useState<CardMenuState | null>(null);
+  const [seatCardMenu, setSeatCardMenu] = useState<SeatCardMenuState | null>(null);
   const [zoneMenu, setZoneMenu] = useState<ZoneMenuState | null>(null);
   const [prompt, setPrompt] = useState<PromptState | null>(null);
   const [rollDieOpen, setRollDieOpen] = useState(false);
@@ -93,6 +97,7 @@ export function useGameDialogState(): GameDialogStateHandle {
 
   const closeAllContextMenus = useCallback(() => {
     setCardMenu(null);
+    setSeatCardMenu(null);
     setZoneMenu(null);
     setPlayerMenu(null);
     setHandMenu(null);
@@ -102,6 +107,7 @@ export function useGameDialogState(): GameDialogStateHandle {
   const set = useMemo<GameDialogSetters>(() => ({
     setZoneViews,
     setCardMenu,
+    setSeatCardMenu,
     setZoneMenu,
     setPlayerMenu,
     setHandMenu,
@@ -118,6 +124,7 @@ export function useGameDialogState(): GameDialogStateHandle {
 
   const toggles = useMemo<GameDialogToggleActions>(() => ({
     closeCardMenu: () => setCardMenu(null),
+    closeSeatCardMenu: () => setSeatCardMenu(null),
     closeZoneMenu: () => setZoneMenu(null),
     closePlayerMenu: () => setPlayerMenu(null),
     closeHandMenu: () => setHandMenu(null),
@@ -147,6 +154,7 @@ export function useGameDialogState(): GameDialogStateHandle {
   const state = useMemo<GameDialogsState>(
     () => ({
       cardMenu,
+      seatCardMenu,
       zoneMenu,
       playerMenu,
       handMenu,
@@ -167,6 +175,7 @@ export function useGameDialogState(): GameDialogStateHandle {
     }),
     [
       cardMenu,
+      seatCardMenu,
       zoneMenu,
       playerMenu,
       handMenu,
