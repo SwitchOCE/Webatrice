@@ -52,8 +52,13 @@ test('log in, join a room and join a game with the keyboard only', async ({ newC
   // Pick the saved host from the known-hosts listbox.
   await tabTo(page, login.hostPicker);
   await page.keyboard.press('Enter');
-  const option = page.getByRole('option').filter({ hasText: new RegExp(`^${E2E_HOST_LABEL}`, 'i') }).first();
-  await tabTo(page, option);
+  // The listbox is one tab stop; typing the host's name moves its active
+  // option there (aria-activedescendant) and Enter picks it.
+  const listbox = page.getByRole('listbox', { name: /saved hosts/i });
+  await tabTo(page, listbox);
+  await page.keyboard.type(E2E_HOST_LABEL);
+  const option = listbox.getByRole('option').filter({ hasText: new RegExp(`^${E2E_HOST_LABEL}`, 'i') }).first();
+  await expect(listbox).toHaveAttribute('aria-activedescendant', (await option.getAttribute('id'))!);
   await page.keyboard.press('Enter');
   await expect(login.hostPicker).toBeFocused();
   await expect(login.loginButton).toBeEnabled({ timeout: 15_000 });
