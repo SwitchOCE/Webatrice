@@ -6,3 +6,4 @@
 - 12 note: fixed 12's ModerationProvider.spec 3.1 fixture to beta.12 (03's DEVELOPER_ROLE gate) in 'offer developer role changes only on 3.1 servers'
 - 04 54287c0..d1cf623 → new tip f750c4f, typecheck ok, unit tests green (sock 791, data 1165, web 1307+2 skipped)
 - 10 58b4116..4119363 → new tip ec60e2b, typecheck ok, unit green
+- 11 4119363..0491a03 → new tip 8ebe287, typecheck ok, unit green (joinRoom: 11's surface wins, 04's userInitiated plumbing dropped)
