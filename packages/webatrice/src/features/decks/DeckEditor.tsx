@@ -1057,7 +1057,7 @@ function PlainCardRow({
         <button
           type="button"
           onClick={onDelete}
-          className="p-1 rounded text-text-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"
+          className="p-1 rounded text-text-muted hover:text-danger hover:bg-red-500/10 transition-colors"
           title="Remove"
           aria-label={`Remove ${card.name}`}
         >
@@ -1390,7 +1390,7 @@ function CardRow({
       )}
       {card.lookupSource === 'unknown' && (
         <span
-          className="shrink-0 text-yellow-400"
+          className="shrink-0 text-warning"
           title="Not in your card DB and Scryfall couldn't find it. The card is saved but details/images can't be shown."
         >
           <CircleAlert size={10} />
@@ -1570,7 +1570,7 @@ function RowActionsMenu({
             )}
             {isCommander && (
               <MenuItem
-                icon={<Crown size={13} className={cardIsCommander ? 'text-yellow-400' : ''} />}
+                icon={<Crown size={13} className={cardIsCommander ? 'text-warning' : ''} />}
                 label={cardIsCommander ? 'Unmark as commander' : 'Mark as commander'}
                 onClick={runAndClose(() => onSetCommander(!cardIsCommander))}
               />
@@ -1628,7 +1628,7 @@ function MenuItem({
         disabled
           ? 'text-text-muted opacity-40 cursor-not-allowed'
           : danger
-            ? 'text-red-300 hover:bg-red-500/10'
+            ? 'text-danger hover:bg-red-500/10'
             : 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated',
       ].join(' ')}
     >
@@ -1800,7 +1800,7 @@ function PrintingPickerModal({
         )}
 
         {error && (
-          <div className="mt-4 flex items-start gap-2 text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">
+          <div className="mt-4 flex items-start gap-2 text-sm text-danger bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">
             <CircleAlert size={14} className="shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
@@ -1864,7 +1864,7 @@ function PrintingPickerModal({
                           <span
                             className={[
                               'tabular-nums shrink-0',
-                              usd != null ? 'text-emerald-300 font-medium' : 'text-text-muted',
+                              usd != null ? 'text-success font-medium' : 'text-text-muted',
                             ].join(' ')}
                             title={usd != null ? 'TCGplayer USD' : 'No TCGplayer price'}
                           >
@@ -2145,7 +2145,7 @@ function AdvancedSearchView({
 
         <div className="text-xs text-text-muted h-4">
           {loading && 'Searching…'}
-          {error && <span className="text-red-400">{error}</span>}
+          {error && <span className="text-danger">{error}</span>}
           {!loading && !error && composedQuery && (
             <span>
               Showing {results.length} result{results.length === 1 ? '' : 's'} · <span className="font-mono">{composedQuery}</span>
@@ -2614,7 +2614,7 @@ function NotFoundShell({ reason }: { reason: string | null }) {
     <Layout>
       <AuthGuard />
       <div className="h-full flex flex-col items-center justify-center bg-bg-base gap-3">
-        <CircleAlert size={32} className="text-red-400" />
+        <CircleAlert size={32} className="text-danger" />
         <div className="text-text-primary font-medium">
           {reason ? t('DeckEditor.loadFailedTitle') : 'Deck not found'}
         </div>
@@ -2639,7 +2639,7 @@ function NotFoundShell({ reason }: { reason: string | null }) {
 function SaveFailedIndicator() {
   const { t } = useTranslation();
   return (
-    <span role="status" className="inline-flex items-center gap-1 text-red-400" title={t('DeckEditor.saveFailedHint')}>
+    <span role="status" className="inline-flex items-center gap-1 text-danger" title={t('DeckEditor.saveFailedHint')}>
       <CircleAlert size={10} /> {t('DeckEditor.saveFailed')}
     </span>
   );
@@ -2654,12 +2654,12 @@ function SaveIndicator({ state }: { state: SaveState }) {
         </span>
       );
     case 'dirty':
-      return <span className="text-yellow-400">Unsaved changes</span>;
+      return <span className="text-warning">Unsaved changes</span>;
     case 'failed':
       return <SaveFailedIndicator />;
     case 'saved':
       return (
-        <span className="inline-flex items-center gap-1 text-emerald-400">
+        <span className="inline-flex items-center gap-1 text-success">
           <Check size={10} /> Saved
         </span>
       );

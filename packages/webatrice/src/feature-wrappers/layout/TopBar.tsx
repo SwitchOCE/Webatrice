@@ -331,10 +331,10 @@ export default function TopBar() {
               className={[
                 'absolute -bottom-0.5 -right-0.5 stroke-bg-surface',
                 !isConnected
-                  ? 'text-red-400 fill-red-400'
+                  ? 'text-danger fill-danger'
                   : isServerUnresponsive
-                    ? 'text-amber-400 fill-amber-400'
-                    : 'text-emerald-400 fill-emerald-400',
+                    ? 'text-warning fill-warning'
+                    : 'text-success fill-success',
               ].join(' ')}
               aria-label={
                 !isConnected

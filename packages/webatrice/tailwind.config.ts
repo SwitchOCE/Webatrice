@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import plugin from 'tailwindcss/plugin';
 
 /** Preflight is on: MUI's CssBaseline was removed alongside the theme,
  *  so preflight now provides the button/anchor/heading/box-sizing
@@ -35,6 +36,10 @@ export default {
           secondary: 'rgb(var(--text-secondary) / <alpha-value>)',
           muted: 'rgb(var(--text-muted) / <alpha-value>)',
         },
+        // Status text that stays legible on both palettes (text-danger, text-success, ...).
+        danger: 'rgb(var(--status-danger) / <alpha-value>)',
+        success: 'rgb(var(--status-success) / <alpha-value>)',
+        warning: 'rgb(var(--status-warning) / <alpha-value>)',
       },
       boxShadow: {
         glow: '0 0 24px -4px rgb(var(--accent-primary) / 0.35)',
@@ -45,5 +50,12 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // `light:` styles an element only under the light palette (see src/styles/tokens.css). Dark
+    // is the default, so decorative hues tuned for it need only a light override, e.g.
+    // `text-sky-400 light:text-sky-700`. Prefer a token when the colour has a role.
+    plugin(({ addVariant }) => {
+      addVariant('light', ':root[data-theme="light"] &');
+    }),
+  ],
 } satisfies Config;

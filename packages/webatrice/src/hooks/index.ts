@@ -1,4 +1,5 @@
 export * from './useChatPreferences';
+export * from './useColorScheme';
 export * from './useFireOnce';
 export * from './useLeaveGame';
 export * from './useLanguagePreference';

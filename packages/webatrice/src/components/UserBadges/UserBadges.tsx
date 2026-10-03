@@ -48,17 +48,17 @@ export function UserBadges({
     <span className={`inline-flex items-center gap-0.5 shrink-0 ${className}`}>
       {isAdmin && (
         <span title="Admin" className="inline-flex">
-          <ShieldCheck size={size} className="text-red-400" aria-label="Admin" />
+          <ShieldCheck size={size} className="text-danger" aria-label="Admin" />
         </span>
       )}
       {!isAdmin && isModerator && (
         <span title="Moderator" className="inline-flex">
-          <Shield size={size} className="text-blue-400" aria-label="Moderator" />
+          <Shield size={size} className="text-blue-400 light:text-blue-700" aria-label="Moderator" />
         </span>
       )}
       {isJudge && (
         <span title="Judge" className="inline-flex">
-          <Gavel size={size} className="text-amber-400" aria-label="Judge" />
+          <Gavel size={size} className="text-warning" aria-label="Judge" />
         </span>
       )}
     </span>

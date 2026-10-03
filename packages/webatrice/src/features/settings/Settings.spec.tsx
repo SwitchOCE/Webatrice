@@ -130,6 +130,22 @@ describe('Settings', () => {
     expect(getPreferencesSnapshot().roomHistory).toBe(true);
   });
 
+  it('saves the theme palette and the language from their sections', async () => {
+    await renderSettings();
+
+    openSection(/Settings\.section\.appearance/);
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText(/SettingsAppearance\.themeMode\.label/), { target: { value: 'light' } });
+    });
+    expect(getPreferencesSnapshot().themeMode).toBe('light');
+
+    openSection(/Settings\.section\.general/);
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText(/SettingsGeneral\.language\.label/), { target: { value: 'de' } });
+    });
+    expect(getPreferencesSnapshot().language).toBe('de');
+  });
+
   it('searches every section and edits results in place', async () => {
     await renderSettings();
 
