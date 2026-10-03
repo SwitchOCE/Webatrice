@@ -29,7 +29,10 @@ const CardSourcesSettings = () => {
   const sources = usePictureUrlTemplates();
   const [message, setMessage] = useState<string | null>(null);
   const resolver = useMemo(() => zodResolver(buildTemplateSchema(t)), [t]);
-  const { control, handleSubmit, reset } = useForm<TemplateValues>({ defaultValues: { url: '' }, resolver });
+  const { control, handleSubmit, reset, formState: { isSubmitted } } = useForm<TemplateValues>({
+    defaultValues: { url: '' },
+    resolver,
+  });
 
   const selected = sources.selectedIndex;
   const add = handleSubmit(async ({ url }) => {
@@ -97,7 +100,7 @@ const CardSourcesSettings = () => {
               {...field}
               label={t('CardSourcesSettings.label.url')}
               error={fieldState.error?.message}
-              touched={fieldState.isTouched || fieldState.isDirty}
+              touched={fieldState.isTouched || isSubmitted}
             />
           )}
         />

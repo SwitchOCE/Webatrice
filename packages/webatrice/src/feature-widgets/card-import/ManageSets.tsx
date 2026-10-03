@@ -96,7 +96,7 @@ const ManageSets = ({ onSaved, onCancel }: ManageSetsProps) => {
           onChange={(e) => manage.setSearch(e.target.value)}
           slotProps={{ htmlInput: { 'aria-label': t('ManageSets.search') } }}
         />
-        <Tooltip title={t('ManageSets.tooltip.defaultOrder')}>
+        <Tooltip title={t('ManageSets.tooltip.defaultOrder')} describeChild>
           <span>
             <Button onClick={manage.restoreDefault}>{t('ManageSets.button.defaultOrder')}</Button>
           </span>
@@ -157,7 +157,7 @@ const ManageSets = ({ onSaved, onCancel }: ManageSetsProps) => {
       {sorted && (
         <div className="cardDatabase-note" role="note">
           <div>{t('ManageSets.sortNote')}</div>
-          <Tooltip title={t('ManageSets.tooltip.useSorting')}>
+          <Tooltip title={t('ManageSets.tooltip.useSorting')} describeChild>
             <Button size="small" onClick={manage.applySortAsPriority}>{t('ManageSets.button.useSorting')}</Button>
           </Tooltip>
         </div>
