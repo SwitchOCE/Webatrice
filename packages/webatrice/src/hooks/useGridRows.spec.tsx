@@ -7,10 +7,11 @@ const KEYS = ['a', 'b', 'c'];
 
 function Grid(props: Partial<GridRowsOptions>) {
   const [selected, setSelected] = useState<string | null>(null);
-  const rows = useGridRows({ keys: KEYS, selectedKey: selected, onSelect: setSelected, onActivate: vi.fn(), ...props });
+  const keys = props.keys ?? KEYS;
+  const rows = useGridRows({ keys, selectedKey: selected, onSelect: setSelected, onActivate: vi.fn(), ...props });
   return (
     <div role="grid">
-      {KEYS.map((key) => (
+      {keys.map((key) => (
         <div key={key} role="row" aria-selected={key === selected} data-testid={key} {...rows.getRowProps(key)}>
           <button type="button">{key}</button>
         </div>
@@ -38,6 +39,19 @@ describe('useGridRows', () => {
     expect(screen.getByTestId('b')).toHaveFocus();
     fireEvent.keyDown(screen.getByTestId('b'), { key: 'Home' });
     expect(screen.getByTestId('a')).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('pages ten rows with PageDown and PageUp, stopping at the ends', () => {
+    const onSelect = vi.fn();
+    const keys = Array.from({ length: 15 }, (_, i) => `row-${i}`);
+    render(<Grid keys={keys} onSelect={onSelect} />);
+
+    expect(fireEvent.keyDown(screen.getByTestId('row-2'), { key: 'PageDown' })).toBe(false);
+    expect(screen.getByTestId('row-12')).toHaveFocus();
+    fireEvent.keyDown(screen.getByTestId('row-12'), { key: 'PageDown' });
+    fireEvent.keyDown(screen.getByTestId('row-14'), { key: 'PageUp' });
+    fireEvent.keyDown(screen.getByTestId('row-0'), { key: 'PageUp' });
+    expect(onSelect.mock.calls.map(([key]) => key)).toEqual(['row-12', 'row-14', 'row-4']);
   });
 
   it('selects on Space, opens on Enter and leaves keys from inner controls alone', () => {
