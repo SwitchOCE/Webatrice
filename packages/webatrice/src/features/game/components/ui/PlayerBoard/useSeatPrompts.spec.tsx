@@ -139,7 +139,7 @@ describe('useSeatPrompts', () => {
 
   it('puts a battlefield card X from the top of the library', () => {
     const { result, zoneCommands, answer } = setup();
-    result.current.openMoveXFromTopPrompt({ cardId: 10, cardName: 'Bear', deckSize: 30 });
+    result.current.openMoveXFromTopPrompt({ cardIds: [10], cardName: 'Bear', deckSize: 30 });
     answer('4');
     expect(zoneCommands.moveCards).toHaveBeenCalledWith(ZoneName.TABLE, [10], { zone: ZoneName.DECK, index: 4, reversed: false });
   });
