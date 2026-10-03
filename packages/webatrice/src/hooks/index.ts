@@ -25,3 +25,4 @@ export * from './useCanOverrideGameRestrictions';
 export * from './useWatchReplay';
 
 export * from './useActionFeed';
+export * from './useCardDataPreferences';
