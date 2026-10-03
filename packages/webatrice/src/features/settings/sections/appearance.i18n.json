@@ -1,0 +1,11 @@
+{
+  "SettingsAppearance": {
+    "group": {
+      "tableGrid": "Table grid layout"
+    },
+    "invertVerticalCoordinate": {
+      "label": "Invert vertical coordinate",
+      "description": "Flip the battlefield rows top to bottom, so lands sit at the top of your side."
+    }
+  }
+}

@@ -835,10 +835,155 @@
       "unknown": "Failed to join the server room due to an unknown error: {code}."
     }
   },
+  "SettingsAppearance": {
+    "group": {
+      "tableGrid": "Table grid layout"
+    },
+    "invertVerticalCoordinate": {
+      "label": "Invert vertical coordinate",
+      "description": "Flip the battlefield rows top to bottom, so lands sit at the top of your side."
+    }
+  },
+  "SettingsChat": {
+    "group": {
+      "chat": "Chat settings",
+      "highlight": "Custom alert words",
+      "macros": "In-game message macros"
+    },
+    "chatMention": {
+      "label": "Enable chat mentions",
+      "description": "Highlights @yourname in room chat and alerts you when someone mentions you."
+    },
+    "chatMentionColor": {
+      "label": "Mention highlight color"
+    },
+    "invertTextColor": {
+      "label": "Invert text color",
+      "description": "White text on the highlight color. Off uses black text."
+    },
+    "ignoreUnregisteredUsers": {
+      "label": "Ignore chat room messages sent by unregistered users"
+    },
+    "ignoreUnregisteredUserMessages": {
+      "label": "Ignore private messages sent by unregistered users"
+    },
+    "ignoreNonBuddyUserMessages": {
+      "label": "Ignore private messages sent by non-buddy users"
+    },
+    "privateMessageFilter": {
+      "description": "Applies to new conversations only. Moderators and administrators always get through."
+    },
+    "showMessagePopups": {
+      "label": "Enable desktop notifications for private messages"
+    },
+    "showMentionPopups": {
+      "label": "Enable desktop notification for mentions"
+    },
+    "roomHistory": {
+      "label": "Enable room message history on join"
+    },
+    "ignoreAllPrivateMessages": {
+      "label": "Ignore all private messages",
+      "description": "Also silences conversations you already have open. Messages from moderators and administrators still arrive."
+    },
+    "highlightWords": {
+      "label": "Alert words",
+      "description": "Separate words with a space, alphanumeric characters only.",
+      "placeholder": "Word1 Word2 Word3",
+      "invalid": "Use letters and numbers only, separated by spaces."
+    },
+    "chatHighlightColor": {
+      "label": "Alert word highlight color"
+    },
+    "macros": {
+      "label": "Messages",
+      "description": "Quick messages to send during a game, kept in this order.",
+      "empty": "No messages yet.",
+      "placeholder": "Message",
+      "newLabel": "New message",
+      "editLabel": "Edit message {index}",
+      "add": "Add New Message",
+      "save": "Save",
+      "cancel": "Cancel",
+      "edit": "Edit message \"{message}\"",
+      "remove": "Remove message \"{message}\"",
+      "tooLong": "Messages can be at most {max} characters."
+    }
+  },
+  "SettingsSound": {
+    "group": {
+      "sound": "Sound settings"
+    },
+    "soundEnabled": {
+      "label": "Enable sounds",
+      "description": "Plays a sound for game events, mentions, private messages and buddies signing on or off."
+    },
+    "soundTheme": {
+      "label": "Current sounds theme"
+    },
+    "test": {
+      "label": "Test system sound engine",
+      "button": "Play test sound"
+    },
+    "masterVolume": {
+      "label": "Master volume"
+    }
+  },
+  "SettingsUserInterface": {
+    "group": {
+      "general": "General interface settings",
+      "notifications": "Notifications settings",
+      "animation": "Animation settings"
+    },
+    "playToStack": {
+      "label": "Play all nonlands onto the stack (not the battlefield) by default",
+      "description": "When off, double-clicking a permanent in your hand puts it straight onto the battlefield. Instants and sorceries still go to the stack."
+    },
+    "closeEmptyCardView": {
+      "label": "Close card view window when last card is removed"
+    },
+    "notificationsEnabled": {
+      "label": "Mark the browser tab when something happens in your game",
+      "description": "While Webatrice is in a background tab, its title is marked until you come back."
+    },
+    "spectatorNotificationsEnabled": {
+      "label": "Also mark the tab for game events while you are spectating"
+    },
+    "buddyConnectNotificationsEnabled": {
+      "label": "Notify when users in your buddy list connect"
+    },
+    "browserNotifications": {
+      "label": "Desktop notifications",
+      "description": "Lets Webatrice show system notifications while its tab is in the background. Without them, notifications appear inside the page.",
+      "status": {
+        "granted": "Allowed",
+        "denied": "Blocked. Allow notifications for this site in your browser settings.",
+        "default": "Not allowed yet",
+        "unsupported": "Not supported by this browser"
+      },
+      "request": "Allow notifications"
+    },
+    "tapAnimation": {
+      "label": "Tap/untap animation"
+    }
+  },
   "Settings": {
     "title": "Settings",
     "navLabel": "Settings",
-    "tab": {
+    "searchLabel": "Search settings",
+    "searchPlaceholder": "Search settings...",
+    "searchResults": "Search results",
+    "noResults": "No settings match \"{query}\".",
+    "openSection": "Open {section}",
+    "restoreDefaults": "Restore defaults",
+    "section": {
+      "general": "General",
+      "appearance": "Appearance",
+      "userInterface": "User Interface",
+      "cardSources": "Card Sources",
+      "storage": "Storage",
+      "chat": "Chat",
+      "sound": "Sound",
       "shortcuts": "Shortcuts"
     }
   },
