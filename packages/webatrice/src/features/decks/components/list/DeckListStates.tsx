@@ -1,4 +1,4 @@
-import { CircleAlert, FileText, Loader2, Plus, RefreshCw } from 'lucide-react';
+import { CircleAlert, FileText, Loader2, Plus, RefreshCw, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const NEW_DECK_BUTTON_CLASS =
@@ -45,6 +45,28 @@ export function DeckListError({ message, onRetry }: { message: string; onRetry: 
           <RefreshCw size={14} /> {t('Decks.retry')}
         </button>
       </div>
+    </div>
+  );
+}
+
+/** A create, import or move the server refused; stays until dismissed. */
+export function DeckStorageError({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div
+      role="alert"
+      className="mb-4 flex items-start gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200"
+    >
+      <CircleAlert size={16} className="shrink-0 mt-0.5 text-red-400" />
+      <span className="flex-1">{message}</span>
+      <button
+        type="button"
+        onClick={onDismiss}
+        aria-label={t('Decks.dismiss')}
+        className="shrink-0 rounded p-0.5 text-red-200 hover:bg-red-500/15"
+      >
+        <X size={14} />
+      </button>
     </div>
   );
 }
