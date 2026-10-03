@@ -7,11 +7,11 @@ import { act, fireEvent, screen, within } from '@testing-library/react';
 import { useState } from 'react';
 
 import { renderWithProviders } from '../../../../__test-utils__';
-import { lookupCardsCached } from '../../../../services/cards/cardCatalog';
+import { lookupCardsCached } from '../../../../services/cards/catalog/lookup';
 import { settingsStore } from '../../../../hooks/useSettings';
 import ZoneViewPanel from './ZoneViewPanel';
 
-vi.mock('../../../../services/cards/cardCatalog', () => ({
+vi.mock('../../../../services/cards/catalog/lookup', () => ({
   lookupCardsCached: vi.fn(),
 }));
 

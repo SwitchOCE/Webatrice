@@ -2,10 +2,10 @@ import { act, fireEvent, waitFor } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
-import { lookupCard } from '../../../../../services/cards/cardCatalog';
+import { lookupCard } from '../../../../../services/cards/catalog/lookup';
 import { cardEl, renderSeatCell, type SeatGameSpec } from '../../../__test-utils__/seatFixtures';
 
-vi.mock('../../../../../services/cards/cardCatalog', async () =>
+vi.mock('../../../../../services/cards/catalog/lookup', async () =>
   (await import('../../../__test-utils__/unknownCardCatalog')).unknownCardCatalog());
 
 const SHOCK = makeCard({ id: 50, name: 'Shock' });
