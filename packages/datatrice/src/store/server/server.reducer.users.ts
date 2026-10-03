@@ -135,16 +135,32 @@ export const userReducers = {
     state.notifications.push(action.payload.notification);
   }) as CaseReducer<ServerState, PayloadAction<{ notification: Event_NotifyUser }>>,
 
+  // A fresh request drops the previous answer so a stale list never shows as current.
+  gamesOfUserRequested: ((state, action) => {
+    const { userName } = action.payload;
+    delete state.gamesOfUser[userName];
+    state.gamesOfUserStatus[userName] = { state: 'loading' };
+  }) as CaseReducer<ServerState, PayloadAction<{ userName: string }>>,
+
   gamesOfUser: ((state, action) => {
     const { userName, response } = action.payload;
-    const gametypeMap = normalizeGametypeMap(
-      (response.roomList ?? []).flatMap(room => room.gametypeList ?? [])
-    );
+    // Game type ids are scoped to their room, so each game resolves its type
+    // through its own room's list (desktop keys gameTypeMap by room id).
+    const gametypeMaps: { [roomId: number]: Enriched.GametypeMap } = {};
+    for (const room of response.roomList ?? []) {
+      gametypeMaps[room.roomId] = normalizeGametypeMap(room.gametypeList ?? []);
+    }
     const games: { [gameId: number]: Enriched.Game } = {};
     for (const g of response.gameList ?? []) {
-      const normalized = normalizeGameObject(g, gametypeMap);
+      const normalized = normalizeGameObject(g, gametypeMaps[g.roomId] ?? {});
       games[normalized.info.gameId] = normalized;
     }
     state.gamesOfUser[userName] = games;
+    state.gamesOfUserStatus[userName] = { state: 'loaded' };
   }) as CaseReducer<ServerState, PayloadAction<{ userName: string; response: Response_GetGamesOfUser }>>,
+
+  gamesOfUserFailed: ((state, action) => {
+    const { userName, responseCode, failure } = action.payload;
+    state.gamesOfUserStatus[userName] = { state: 'failed', responseCode, failure };
+  }) as CaseReducer<ServerState, PayloadAction<CommandFailedPayload & { userName: string }>>,
 };

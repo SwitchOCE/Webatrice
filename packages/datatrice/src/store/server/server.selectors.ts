@@ -8,8 +8,9 @@ import {
 } from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { SortUtil } from '../../common';
+import { Enriched } from '../../types';
 import { ServerCapability, serverSupports } from './server.capabilities';
-import { PrivateChatNotice, PrivateConversationEntry, ServerState } from './server.interfaces';
+import { GamesOfUserStatus, PrivateChatNotice, PrivateConversationEntry, ServerState } from './server.interfaces';
 import { HEALTHY_CONNECTION_HEALTH } from './server.reducer.connection';
 
 type State = { server: ServerState };
@@ -18,6 +19,7 @@ const EMPTY_USERS: ServerInfo_User[] = [];
 const EMPTY_REPLAYS: ServerInfo_ReplayMatch[] = [];
 const EMPTY_MESSAGES: Event_UserMessage[] = [];
 const EMPTY_NOTICES: PrivateChatNotice[] = [];
+const EMPTY_GAMES: { [gameId: number]: Enriched.Game } = {};
 
 const getPrivateChatNotices = ({ server }: State, userName: string): PrivateChatNotice[] =>
   server.privateChatNotices[userName] ?? EMPTY_NOTICES;
@@ -173,6 +175,14 @@ export const Selectors = {
 
   // Known presence: whether the user is in the server's online user list.
   getIsUserOnline: ({ server }: State, userName: string): boolean => Boolean(server.users[userName]),
+
+  // A user's games from the latest "Show games" answer, in the server's order.
+  getGamesOfUser: createSelector(
+    [({ server }: State, userName: string) => server.gamesOfUser[userName] ?? EMPTY_GAMES],
+    (games): Enriched.Game[] => Object.values(games),
+  ),
+  getGamesOfUserStatus: ({ server }: State, userName: string): GamesOfUserStatus | undefined =>
+    server.gamesOfUserStatus[userName],
 
   getUsers: ({ server }: State) => server.users,
   getBuddyList: ({ server }: State) => server.buddyList,

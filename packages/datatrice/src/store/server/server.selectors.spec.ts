@@ -405,6 +405,20 @@ describe('Selectors', () => {
     ]);
   });
 
+  it('getGamesOfUser → lists the stored games and a stable empty array otherwise', () => {
+    const game = { info: { gameId: 7 }, gameType: 'Standard' } as never;
+    const state = makeServerState({ gamesOfUser: { bob: { 7: game } } });
+    expect(Selectors.getGamesOfUser(rootState(state), 'bob')).toEqual([game]);
+    expect(Selectors.getGamesOfUser(rootState(state), 'bob')).toBe(Selectors.getGamesOfUser(rootState(state), 'bob'));
+    expect(Selectors.getGamesOfUser(rootState(state), 'carol')).toEqual([]);
+  });
+
+  it('getGamesOfUserStatus → returns the request lifecycle for a user', () => {
+    const state = makeServerState({ gamesOfUserStatus: { bob: { state: 'failed', responseCode: 6 } } });
+    expect(Selectors.getGamesOfUserStatus(rootState(state), 'bob')).toEqual({ state: 'failed', responseCode: 6 });
+    expect(Selectors.getGamesOfUserStatus(rootState(state), 'carol')).toBeUndefined();
+  });
+
   it('getIsUserOnline → reflects the online user list', () => {
     const state = makeServerState({ users: { Bob: makeUser({ name: 'Bob' }) } });
     expect(Selectors.getIsUserOnline(rootState(state), 'Bob')).toBe(true);

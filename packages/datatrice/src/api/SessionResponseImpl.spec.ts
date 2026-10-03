@@ -384,6 +384,16 @@ describe('SessionResponseImpl forwards', () => {
     expect(dispatch).toHaveBeenCalledWith(ServerActions.privateMessageFailed({ userName: 'alice', message: 'hi', responseCode: 18 }));
   });
 
+  it('getGamesOfUserPending / getGamesOfUserFailed dispatch the request lifecycle actions', () => {
+    const { impl, dispatch } = setup();
+    impl.getGamesOfUserPending('alice');
+    impl.getGamesOfUserFailed('alice', 6, WebsocketTypes.CommandFailure.Disconnected);
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.gamesOfUserRequested({ userName: 'alice' }));
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.gamesOfUserFailed({
+      userName: 'alice', responseCode: 6, failure: WebsocketTypes.CommandFailure.Disconnected,
+    }));
+  });
+
   it('getGamesOfUser maps method name to gamesOfUser action', () => {
     const { impl, dispatch } = setup();
     const response = create(Response_GetGamesOfUserSchema, {});
