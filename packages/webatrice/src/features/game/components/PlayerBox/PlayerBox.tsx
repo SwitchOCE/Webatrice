@@ -30,9 +30,14 @@ import {
   computeContentWidth,
   computeContentHeight,
   snapPxToSlot,
+  layoutStackPile,
+  SEAT_CARD_HEIGHT_PX as CARD_H_PX_BASE,
+  SEAT_CARD_WIDTH_PX as CARD_W_PX_BASE,
+  STACK_PILE_HORIZONTAL_OFFSET_PX,
   type BattlefieldLayoutOpts,
   type BattlefieldSlot,
-} from './gameBattlefield';
+} from '../battlefield/Battlefield/battlefieldLayout';
+import { MAX_SUBPOS } from '../battlefield/Battlefield/gridMath';
 import { useCardScale } from './cardScale';
 import { CardImage } from '@app/components';
 import { usePreference, useSnapGridVisible } from '@app/hooks';
@@ -898,11 +903,6 @@ function CardContextSubmenu({
   );
 }
 
-/** Max cards allowed in a single battlefield slot. Beyond this, dropped
- *  cards bump to the nearest slot with room. Keeps stacks small enough
- *  for every card's title to remain readable. */
-const MAX_STACK_PER_SLOT = 3;
-
 /** Synthetic drag payload for pulling the top of the library. The library
  *  is a HiddenZone — the client never knows which face is at deck[0]
  *  (that's the server's shuffle) so the drag carries no identity, and
@@ -915,49 +915,6 @@ const LIBRARY_TOP_DRAG_PAYLOAD: HandCard = {
   name: '',
   scryfallId: '',
 };
-
-/** How far each successive stack card advances downward, as a fraction of
- *  the card height. 0.35 leaves each card's title fully readable. */
-const STACK_VERTICAL_STEP_FRACTION = 0.35;
-/** Horizontal zig-zag offset (px). Alternates left/right by index so the
- *  pile visually "shares" the center rather than drifting one direction. */
-const STACK_HORIZONTAL_OFFSET_PX = 8;
-
-/**
- * Position each card of the stack within a container of the given size.
- * Index 0 is the top of the pile (resolves next); it renders highest in
- * the container. Cards are centered as a group and squished together if
- * the container can't fit the ideal spacing.
- */
-function layoutStack(
-  count: number,
-  containerW: number,
-  containerH: number,
-  cardWPx: number = CARD_W_PX_BASE,
-  cardHPx: number = CARD_H_PX_BASE,
-  hOffsetPx: number = STACK_HORIZONTAL_OFFSET_PX,
-): { x: number; y: number }[] {
-  if (count === 0) {
-    return [];
-  }
-  const idealStep = cardHPx * STACK_VERTICAL_STEP_FRACTION;
-  const maxSpan = Math.max(0, containerH - cardHPx);
-  const step =
-    count > 1 ? Math.min(idealStep, maxSpan / (count - 1)) : 0;
-  const totalSpan = (count - 1) * step;
-  const startY = Math.max(0, (containerH - totalSpan - cardHPx) / 2);
-  const cx = (containerW - cardWPx) / 2;
-  const out: { x: number; y: number }[] = [];
-  for (let i = 0; i < count; i++) {
-    // Single card sits dead center; zig-zag only applies once there's a
-    // second card to share the middle with. Without this, a lone stack
-    // card would render shifted 8px left of column center.
-    const xOffset =
-      count === 1 ? 0 : (i % 2 === 0 ? -1 : 1) * hOffsetPx;
-    out.push({ x: cx + xOffset, y: startY + i * step });
-  }
-  return out;
-}
 
 /**
  * A single player's play-area box. Layout:
@@ -1413,14 +1370,6 @@ const MANA_COLORS: Array<{
   // carries over.
   { symbol: 'O', label: 'Other', tint: '#f97316' },
 ];
-
-// Card dims in px at scale=1. Matches Cockatrice desktop's logical
-// scene coords (CardDimensions::WIDTH / HEIGHT in card_dimensions.h), so
-// scale=1 here corresponds to fitInView scale=1 in Cockatrice's view.
-// Keep in sync with the CSS var fallbacks in cardSize.ts and the base
-// dims applied by CardScaleProvider.
-const CARD_W_PX_BASE = 72;
-const CARD_H_PX_BASE = 102;
 
 /**
  * Non-interactive overlay: dashed outline at every snap slot + the divider
@@ -3085,7 +3034,7 @@ function PlayerBox(
   const BATTLEFIELD_GAP_PX = BATTLEFIELD_GAP_PX_BASE * scale;
   const STACK_OFFSET_PX = STACK_OFFSET_PX_BASE * scale;
   const STACK_OFFSET_Y_PX = STACK_OFFSET_Y_PX_BASE * scale;
-  const STACK_HOFFSET_PX = STACK_HORIZONTAL_OFFSET_PX * scale;
+  const STACK_HOFFSET_PX = STACK_PILE_HORIZONTAL_OFFSET_PX * scale;
   const BATTLEFIELD_ROW_PADDING_PX = BATTLEFIELD_ROW_PADDING_PX_BASE * scale;
   const BATTLEFIELD_MARGIN_LEFT_PX = BATTLEFIELD_MARGIN_LEFT_PX_BASE * scale;
   const BATTLEFIELD_MARGIN_RIGHT_PX = BATTLEFIELD_MARGIN_RIGHT_PX_BASE * scale;
@@ -3107,10 +3056,10 @@ function PlayerBox(
     rows: BATTLEFIELD_ROWS,
   };
   // Reserved room at the visual bottom of the battlefield so a fully
-  // stacked bottom-row slot (up to MAX_STACK_PER_SLOT cards, each
+  // stacked bottom-row slot (up to MAX_SUBPOS cards, each
   // offset by STACK_OFFSET_Y_PX from the last) doesn't clip past the
   // container edge.
-  const stackExtPx = (MAX_STACK_PER_SLOT - 1) * STACK_OFFSET_Y_PX;
+  const stackExtPx = (MAX_SUBPOS - 1) * STACK_OFFSET_Y_PX;
 
   // Preload every image in the viewer's deck the moment we have the deck
   // list, so drawing feels instant instead of waiting on Scryfall. Only for
@@ -5263,7 +5212,7 @@ function PlayerBox(
       // matching that count keeps the drop-index visually accurate.
       const layoutCount =
         stackDisplayList.length - (d.sourceZone === 'stack' ? d.cards.length : 0);
-      const positions = layoutStack(
+      const positions = layoutStackPile(
         layoutCount,
         stackRect.width,
         stackRect.height,
@@ -8673,7 +8622,7 @@ function PlayerBox(
             const visible = stackDisplayList.filter(
               (c) => !isDragging(c.id, 'stack'),
             );
-            const positions = layoutStack(
+            const positions = layoutStackPile(
               visible.length,
               stackSize.w,
               stackSize.h,
