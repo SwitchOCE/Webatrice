@@ -4,7 +4,7 @@ import type { useShortcutHints } from '@app/feature-widgets/shortcuts';
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import { useGameDialogsContext } from '../GameDialogsContext';
 import type { SeatMoveCard, SeatMoveDestination, PlayerZoneCommands } from '../PlayerBoard/playerBoard.types';
-import { toRecipient } from '../PlayerBoard/revealRecipient';
+import { buildRevealToSubmenu, toRecipient } from '../PlayerBoard/revealRecipient';
 import type { useSeatPrompts } from '../PlayerBoard/useSeatPrompts';
 
 type ShortcutHints = ReturnType<typeof useShortcutHints>;
@@ -141,21 +141,14 @@ export function useLibraryMenuItems({
       },
     });
   };
-  // Reveal targets → submenu builder for "Reveal library to..." and
-  // "Reveal top cards to...". Reveal-library variant includes an "All
-  // players" option; reveal-top-N variant opens a numeric prompt per
-  // pick. Lend-library variant omits "All players" (library_menu.cpp:280-293).
-  const revealLibraryItems: ContextMenuItem[] =
-    revealTargets && revealTargets.length > 0
-      ? [
-        { label: 'All players', onClick: () => zoneCommands.reveal(ZoneName.DECK, toRecipient(-1)) },
-        { divider: true },
-        ...revealTargets.map((t) => ({
-          label: t.name,
-          onClick: () => zoneCommands.reveal(ZoneName.DECK, toRecipient(t.playerId)),
-        })),
-      ]
-      : [{ label: '(no players)' }];
+  // "Reveal library to..." and "Reveal top cards to..." always list "All
+  // players" first, even when playing alone (library_menu.cpp:259-267,
+  // 295-303); the reveal-top-N variant opens a count prompt per pick. Lend
+  // library lists only the other players (library_menu.cpp:280-293).
+  const revealLibraryItems = buildRevealToSubmenu(
+    revealTargets,
+    (targetPlayerId) => zoneCommands.reveal(ZoneName.DECK, toRecipient(targetPlayerId)),
+  );
   const lendLibraryItems: ContextMenuItem[] =
     revealTargets && revealTargets.length > 0
       ? revealTargets.map((t) => ({
@@ -163,30 +156,12 @@ export function useLibraryMenuItems({
         onClick: () => zoneCommands.lendLibrary(t.playerId),
       }))
       : [{ label: '(no players)' }];
-  const revealTopCardsItems: ContextMenuItem[] =
-    revealTargets && revealTargets.length > 0
-      ? [
-        {
-          label: 'All players',
-          onClick: () =>
-            openRevealTopCardsPrompt({
-              targetPlayerId: -1,
-              targetName: 'all players',
-              deckSize: deckCount,
-            }),
-        },
-        { divider: true },
-        ...revealTargets.map((t) => ({
-          label: t.name,
-          onClick: () =>
-            openRevealTopCardsPrompt({
-              targetPlayerId: t.playerId,
-              targetName: t.name,
-              deckSize: deckCount,
-            }),
-        })),
-      ]
-      : [{ label: '(no players)' }];
+  const revealTopCardsItems = buildRevealToSubmenu(revealTargets, (targetPlayerId) =>
+    openRevealTopCardsPrompt({
+      targetPlayerId,
+      targetName: revealTargets.find((t) => t.playerId === targetPlayerId)?.name ?? 'all players',
+      deckSize: deckCount,
+    }));
   const libraryMenuItems: ContextMenuItem[] = [
     {
       label: 'Draw card',
