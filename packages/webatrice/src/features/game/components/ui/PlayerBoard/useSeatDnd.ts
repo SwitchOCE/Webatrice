@@ -1,0 +1,300 @@
+import type { RefObject } from 'react';
+import { useForkRef } from '@mui/material/utils';
+
+import { SEAT_DROP_PRIORITY, type SeatZone } from '../../../hooks/seatDropPlan';
+import type { SeatSelection, SeatSelectionApi } from '../../../hooks/useSeatSelection';
+import { layoutStackPile } from '../../battlefield/Battlefield/battlefieldLayout';
+import { useCanActFor } from '../CardVisualStateContext';
+import { useActiveSeatDrag, useSeatDragSource, useSeatDropZone, type SeatDragStart } from '../SeatDragContext';
+import type { PlayerCardViewModel, PlayerTargetCommands } from './playerBoard.types';
+import type { usePendingArrows } from './usePendingArrows';
+
+type HandCard = PlayerCardViewModel;
+/** Which zone a drag was initiated from. */
+type DragSourceZone = SeatZone;
+/** A marquee selection is always within a single zone. */
+type Selection = SeatSelection;
+type ActiveSeatDrag = NonNullable<ReturnType<typeof useActiveSeatDrag>>;
+type PendingArrows = ReturnType<typeof usePendingArrows>;
+
+export interface UseSeatDndArgs {
+  seatId: number;
+  playerId: number;
+  /** The drag in progress from this seat, if any. */
+  seatDrag: ActiveSeatDrag | null;
+  selection: SeatSelection | null;
+  setSelection: SeatSelectionApi['setSelection'];
+  attachPendingRef: PendingArrows['attachPendingRef'];
+  attachExtraSourceIdsRef: PendingArrows['attachExtraSourceIdsRef'];
+  setAttachPending: PendingArrows['setAttachPending'];
+  setAttachExtraSourceIds: PendingArrows['setAttachExtraSourceIds'];
+  targetCommands: PlayerTargetCommands;
+  stackDisplayList: readonly PlayerCardViewModel[];
+  /** The seat root: the hand drop resolves against the hand cards inside it. */
+  boxRef: RefObject<HTMLDivElement | null>;
+  handRef: RefObject<HTMLDivElement | null>;
+  stackRef: RefObject<HTMLDivElement | null>;
+  libraryRef: RefObject<HTMLDivElement | null>;
+  graveyardRef: RefObject<HTMLDivElement | null>;
+  exileRef: RefObject<HTMLDivElement | null>;
+  /** Card size and stack offset at the current card scale, for the stack drop. */
+  CARD_W_PX: number;
+  CARD_H_PX: number;
+  STACK_HOFFSET_PX: number;
+}
+
+/**
+ * The seat's part in the game's drag and drop (useGameDnd): its drag
+ * sources (cards and piles), what a press that never became a drag does
+ * (select, or resolve a pending attach), and the drop zones for its stack,
+ * hand and piles (the battlefield registers its own). Returns the refs the
+ * regions put on those zones.
+ */
+export function useSeatDnd({
+  seatId,
+  playerId,
+  seatDrag,
+  selection,
+  setSelection,
+  attachPendingRef,
+  attachExtraSourceIdsRef,
+  setAttachPending,
+  setAttachExtraSourceIds,
+  targetCommands,
+  stackDisplayList,
+  boxRef,
+  handRef,
+  stackRef,
+  libraryRef,
+  graveyardRef,
+  exileRef,
+  CARD_W_PX,
+  CARD_H_PX,
+  STACK_HOFFSET_PX,
+}: UseSeatDndArgs) {
+  const startPileDrag = (
+    e: React.PointerEvent<HTMLElement>,
+    card: HandCard,
+    zone: Exclude<DragSourceZone, 'hand' | 'battlefield' | 'stack'>,
+  ) => {
+    seatDragSources[zone]?.(e, [card]);
+  };
+
+  /** True if this specific card is currently part of an active drag.
+   *  Only returns true after the pointer has moved past the threshold —
+   *  a click that never becomes a drag doesn't hide its source. */
+  const isDragging = (id: string, zone: DragSourceZone) =>
+    seatDrag?.zone === zone && seatDrag.cards.some((c) => c.id === id);
+
+  // A press released before the drag threshold (a click). Two readings:
+  //   1. Pending-attach mode: the previous "Attach to card..." menu choice
+  //      set `attachPending`; this click on a battlefield card resolves the
+  //      attach (or cancels if the user clicked the source card again).
+  //   2. Normal click: replace the selection with the clicked card.
+  const releaseCardPress = (zone: DragSourceZone, clickedCardId: string, e: PointerEvent) => {
+    const clickedCardIdNum = Number(clickedCardId);
+    const pending = attachPendingRef.current;
+    if (
+      pending &&
+      zone === 'battlefield' &&
+      Number.isFinite(clickedCardIdNum) &&
+      playerId != null
+    ) {
+      const extras = attachExtraSourceIdsRef.current;
+      const allSources = [pending.sourceCardId, ...extras];
+      if (allSources.includes(clickedCardIdNum)) {
+        // Clicked a source card = cancel. Cockatrice's
+        // ArrowAttachItem does the same via `targetItem == startItem`
+        // short-circuit; we extend to any source in a multi-attach.
+        setAttachPending(null);
+        setAttachExtraSourceIds([]);
+      } else {
+        // Attach every source card to the clicked target. Server
+        // treats each attach independently (no batch wire), so we
+        // loop.
+        for (const sourceCardId of allSources) {
+          targetCommands.attach(sourceCardId, { playerId, cardId: clickedCardIdNum });
+        }
+        setAttachPending(null);
+        setAttachExtraSourceIds([]);
+      }
+    } else if (
+      zone === 'hand' ||
+      zone === 'battlefield' ||
+      zone === 'stack'
+    ) {
+      // Ctrl (Windows/Linux) / ⌘ (Mac) adds to or toggles the
+      // multi-selection instead of replacing it — matches
+      // Cockatrice desktop's `Qt::ControlModifier` branch in
+      // `AbstractCardItem::mousePressEvent` (line 294-295).
+      //
+      // Cockatrice technically allows the selection to span
+      // multiple zones (drag filters back down to same-zone), but
+      // our Selection shape is single-zoned (used to gate drag +
+      // context-menu bulk actions), so Ctrl+Click in a DIFFERENT
+      // zone replaces the selection with a new single-card set
+      // rooted in the clicked zone. Same-zone Ctrl+Click toggles.
+      const isCtrl = e.ctrlKey || e.metaKey;
+      if (isCtrl && selection && selection.zone === zone) {
+        const nextIds = new Set(selection.ids);
+        if (nextIds.has(clickedCardId)) {
+          nextIds.delete(clickedCardId);
+        } else {
+          nextIds.add(clickedCardId);
+        }
+        if (nextIds.size === 0) {
+          setSelection(null);
+        } else {
+          setSelection({ zone, ids: nextIds });
+        }
+      } else {
+        setSelection({
+          zone,
+          ids: new Set([clickedCardId]),
+        });
+      }
+    }
+  };
+
+  // ---- Seat drag and drop (useGameDnd) ------------------------------------
+  // The game's DnD coordinator drives these drags; this seat says what is
+  // dragged and, for each zone it renders, where a drop on it lands (it owns
+  // the zone's layout).
+
+  // Desktop starts a card drag only for the local player's cards, or any
+  // card for a judge (CardItem::mouseMoveEvent, getLocalOrJudge). On any
+  // other seat a press still selects but never drags.
+  const canMoveSeatCards = useCanActFor()(seatId);
+  const handDragSource = useSeatDragSource(`seat-${seatId}-hand`, {
+    seatPlayerId: seatId,
+    zone: 'hand',
+    canDrag: canMoveSeatCards,
+  });
+  const stackDragSource = useSeatDragSource(`seat-${seatId}-stack`, {
+    seatPlayerId: seatId,
+    zone: 'stack',
+    canDrag: canMoveSeatCards,
+  });
+  const graveyardDragSource = useSeatDragSource(`seat-${seatId}-graveyard`, {
+    seatPlayerId: seatId,
+    zone: 'graveyard',
+    canDrag: canMoveSeatCards,
+  });
+  const exileDragSource = useSeatDragSource(`seat-${seatId}-exile`, {
+    seatPlayerId: seatId,
+    zone: 'exile',
+    canDrag: canMoveSeatCards,
+  });
+  const battlefieldDragSource = useSeatDragSource(`seat-${seatId}-battlefield`, {
+    seatPlayerId: seatId,
+    canDrag: canMoveSeatCards,
+    zone: 'battlefield',
+  });
+  // Hidden zones: the library pile drags its top card (position 0). The
+  // zone views (ZoneViewDialog) are drag sources of their own.
+  const libraryDragSource = useSeatDragSource(`seat-${seatId}-library`, {
+    seatPlayerId: seatId,
+    zone: 'library',
+    canDrag: canMoveSeatCards,
+  });
+  const seatDragSources: Partial<Record<DragSourceZone, SeatDragStart>> = {
+    battlefield: battlefieldDragSource,
+    library: libraryDragSource,
+    hand: handDragSource,
+    stack: stackDragSource,
+    graveyard: graveyardDragSource,
+    exile: exileDragSource,
+  };
+
+  // A press on a card in the selection drags the whole selection, in display
+  // order; anything else drags just the card (the selection is only touched
+  // once the gesture ends). Both seats take part: clicking selects on any
+  // battlefield. A click on a single card goes to releaseCardPress.
+  const startSeatCardDrag = (
+    e: React.PointerEvent<HTMLElement>,
+    card: HandCard,
+    zone: Selection['zone'],
+    zoneCards: readonly HandCard[],
+  ) => {
+    const start = seatDragSources[zone];
+    if (!start) {
+      return;
+    }
+    if (selection && selection.zone === zone && selection.ids.has(card.id)) {
+      const group = zoneCards.filter((c) => selection.ids.has(c.id));
+      start(e, group, group.length === 1 ? (up) => releaseCardPress(zone, card.id, up) : undefined);
+    } else {
+      start(e, [card], (up) => releaseCardPress(zone, card.id, up));
+    }
+  };
+
+  const stackDropRef = useSeatDropZone(`seat-${seatId}-stack`, {
+    seatPlayerId: seatId,
+    priority: SEAT_DROP_PRIORITY.stack,
+    // Insertion index against the pile the user sees: cards dragged out of
+    // the stack are hidden, so the pile re-flows without them.
+    resolve: ({ pointer }, source) => {
+      const stackEl = stackRef.current;
+      if (!stackEl) {
+        return null;
+      }
+      const rect = stackEl.getBoundingClientRect();
+      const layoutCount = stackDisplayList.length - (source.zone === 'stack' ? source.cards.length : 0);
+      const positions = layoutStackPile(layoutCount, rect.width, rect.height, CARD_W_PX, CARD_H_PX, STACK_HOFFSET_PX);
+      const index = positions.filter((pos) => pointer.y > rect.top + pos.y + CARD_H_PX / 2).length;
+      return { zone: 'stack', index };
+    },
+  });
+  const handDropRef = useSeatDropZone(`seat-${seatId}-hand`, {
+    seatPlayerId: seatId,
+    priority: SEAT_DROP_PRIORITY.hand,
+    // Insertion index = hand cards whose centre is left of the pointer,
+    // not counting the cards being dragged: the post-removal position.
+    resolve: ({ pointer }, source) => {
+      const dragged = new Set(source.zone === 'hand' ? source.cards.map((c) => c.id) : []);
+      let index = 0;
+      boxRef.current?.querySelectorAll<HTMLElement>('[data-card][data-zone="hand"]').forEach((el) => {
+        const id = el.dataset.cardId;
+        if (!id || dragged.has(id)) {
+          return;
+        }
+        const r = el.getBoundingClientRect();
+        if (pointer.x > r.left + r.width / 2) {
+          index++;
+        }
+      });
+      return { zone: 'hand', index };
+    },
+  });
+  const libraryDropRef = useSeatDropZone(`seat-${seatId}-library`, {
+    seatPlayerId: seatId,
+    priority: SEAT_DROP_PRIORITY.library,
+    resolve: () => ({ zone: 'library' }),
+  });
+  const graveyardDropRef = useSeatDropZone(`seat-${seatId}-graveyard`, {
+    seatPlayerId: seatId,
+    priority: SEAT_DROP_PRIORITY.graveyard,
+    resolve: () => ({ zone: 'graveyard' }),
+  });
+  const exileDropRef = useSeatDropZone(`seat-${seatId}-exile`, {
+    seatPlayerId: seatId,
+    priority: SEAT_DROP_PRIORITY.exile,
+    resolve: () => ({ zone: 'exile' }),
+  });
+  const stackZoneRef = useForkRef(stackRef, stackDropRef);
+  const handZoneRef = useForkRef(handRef, handDropRef);
+  const libraryZoneRef = useForkRef(libraryRef, libraryDropRef);
+  const graveyardZoneRef = useForkRef(graveyardRef, graveyardDropRef);
+  const exileZoneRef = useForkRef(exileRef, exileDropRef);
+
+  return {
+    startPileDrag,
+    isDragging,
+    startSeatCardDrag,
+    stackZoneRef,
+    handZoneRef,
+    libraryZoneRef,
+    graveyardZoneRef,
+    exileZoneRef,
+  };
+}
