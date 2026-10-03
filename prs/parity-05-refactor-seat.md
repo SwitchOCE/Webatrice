@@ -584,3 +584,128 @@ Testing (tip `0412500`, repo root, `--maxWorkers=2`):
   - webatrice: 36 passed + 2 skipped files, 160 passed + 2 skipped tests. These are the same pre-existing `library-view` / `judge-override` skips.
 - Sockatrice e2e: 4 files / 5 tests passed.
 - Webatrice e2e (default 3.0.0 image, chromium + firefox + webkit, after `playwright install-deps`): **36 passed (8.4 min)**. That includes `app-boots` and the `bulk-card-actions` release gate in all three browsers, now that 06's hermetic network fixture is in the base.
+
+### Stage 5 — Phase 7 (regions and PlayerBoard) and Phase 8 (façade and legacy paths removed)
+
+`components/PlayerBox` is gone. `GameBoardCell` renders `ui/PlayerBoard/PlayerBoard` with the seat model and the four command ports. PlayerBoard runs `usePlayerSeat`, provides it to its regions through `PlayerSeatContext`, lays them out and draws the seat-wide overlays. `usePlayerSeat` is now 470 lines that compose focused hooks. At the end of Stage 4, `PlayerBox.tsx` was 7,380 lines.
+
+Commits (oldest first, on top of `0412500`):
+
+1. `refactor(game): drop PlayerBox's unused imperative handle (PB-21)`
+   - No caller passed a ref. `receiveBattlefieldCards` was already a no-op, and the forwarded `startMarquee` never ran.
+2. `refactor(game): move PlayerBox's sibling modules to their owners (PB-18/PB-19)`
+   - Each moved with `git mv`:
+     - `ContextMenu` → `context-menus/ContextMenu`;
+     - `ManaSymbols` → `ui/ManaSymbols`;
+     - `cardScale` → `ui/CardScaleContext`;
+     - `bigCardPreview` → `ui/BigCardPreview`.
+3. `refactor(game): read the seat's deck list from Datatrice instead of the mock deck (PB-21)`
+   - Servatrice sends the loaded deck list to its owner, so it becomes `PlayerBoardModel.deck` (parsed with `parseCod`, with a spec). The seat warms its images and metadata from it.
+   - Deleted:
+     - `mockDeckStore` and the lobby's localStorage stash;
+     - `GameBoardCell`'s `MOCK_DECK`;
+     - the `DeckCard` mock type.
+4. `refactor(game): give the seat view the seat model and command ports directly` (plan Phase 7, step 3)
+   - The seat takes `{ model, commands }` and calls the ports. `usePlayerBoxProps` and the mock `RoomMemberWithProfile` are deleted.
+   - The adapter's two conventions move into the seat:
+     - `toRecipient` maps the menus' "-1 = every player" to the port's `'all'`;
+     - life +/- and the set-life prompt go through the life counter's `increment` / `set`.
+   - `GameBoardCell` renders no seat until the game id is known, because every port is undefined before then.
+   - `GameBoardCell.spec` keeps every request expectation and makes it through the ports.
+5. `refactor(game): move the seat's state and actions out of PlayerBox into usePlayerSeat`
+   - A pure move of the body above PlayerBox's JSX.
+6–7. `refactor(game): render the seat's … through their region owners (PB-20)`
+   - The JSX moves unchanged into `StackColumn`, `Battlefield`, `HandZone`, `PlayerInfoPanel` and `ZoneStack`.
+   - `ZoneStack` returns a fragment, so the piles stay children of the info column's flex container.
+   - Each region carries its menu arrays with it.
+   - The structured components previously at those paths were mounted nowhere. They are deleted with their specs: `StackColumn`, `HandZone`, `Battlefield` + `BattlefieldRow` / `BattlefieldStackColumn` / `AttachmentStack`, `PlayerInfoPanel`, `ZoneStack`, the structured `PlayerBoard`, `useHandZone`, `useBattlefield` and `usePlayerInfoPanel`.
+8. `refactor(game): replace the PlayerBox façade with PlayerBoard (Phase 7/8)`
+   - The three card menus move to `context-menus/SeatCardMenus/{Battlefield,Pile,Stack}CardMenu`, each with its whole item tree.
+   - The remaining shell becomes `PlayerBoard`.
+   - The characterization spec moves beside it, with every assertion unchanged.
+   - The lint guard against importing PlayerBox is removed together with the directory it guarded.
+9. `refactor(game): delete the unwired in-game SideboardDialog and PlayerContextMenu (Phase 8)`
+   - Also removes the `playerMenu` / `sideboardOpen` dialog state and the sideboard submit / lock handlers.
+   - Stage 4's sideboard-plan zone-name fix only touched this dialog, so its changeset is dropped.
+10. `test(game): restore the library-view and judge-override integration suites (Phase 8)`
+    - Both now run over the real protobuf pipeline:
+      - View library → `Command_DumpZone` → `Response_DumpZone` fills the zone view → close shuffles and clears the snapshot;
+      - a judge's drag of an opponent's card goes out as `Command_Judge` (target = owner) wrapping the `MoveCard`, with nothing sent unwrapped.
+11–23. One commit per hook split out of `usePlayerSeat`, each with its own spec:
+    - `ui/PlayerBoard/`:
+      - `useSeatCardMetadata`: catalog cache and image preload; the duplicated mapping becomes `seatCardMetaFromLookup`;
+      - `useDrawFlights`;
+      - `usePendingArrows`;
+      - `useSeatPrompts`, which also owns life;
+      - `useSeatShortcutOperations`: the 45 seat shortcuts;
+      - `useSeatMarquee`;
+      - `useSeatDnd`: drag sources, press release, drop zones.
+    - `battlefield/Battlefield/`:
+      - `useBattlefieldLayout`: Battlefield calls it itself, together with its own drop zone and `useHorizontalWheelScroll`;
+      - `useBattlefieldMenuItems`.
+    - `ui/ZoneStack/`: `usePileMenus` and `useLibraryMenuItems`.
+    - `ui/HandZone/`: `useHandMenuItems`.
+    - Region-only state moves into the region that renders it:
+      - hand expand / slide → HandZone;
+      - stack size → StackColumn;
+      - mana pool → PlayerInfoPanel;
+      - pile tops → ZoneStack;
+      - drag-ghost cards → `SeatDragGhostCards`.
+24. `docs(game): describe the seat as PlayerBoard in comments and the e2e page object`
+    - Present-tense PlayerBox references now name the new owner. History notes stay.
+25. `refactor(game): drop gridMath's attachment helpers along with their only renderers`
+    - Their only users were the deleted AttachmentStack and BattlefieldStackColumn.
+    - The instructions' attachment section now describes `useBattlefieldLayout`.
+26. `refactor(game): drop BoardCellContext, which nothing reads any more`
+27. `test(game): co-locate specs with the seat's region components`
+    - Adds the `renderSeatCell` fixture (one real seat through GameBoardCell) and a shared `unknownCardCatalog` mock.
+28. `chore(changeset): note PlayerBoard replacing the PlayerBox façade`
+
+Gate checks:
+
+- Behaviour is unchanged:
+  - `PlayerBoard.characterization` (moved, assertions identical), `GameBoardCell`, and every `Game.*` spec (`cardMenus`, `menuMoves`, `seatPrompts`, `seatDnd`, `dragdrop`, `orchestration`, `selection`, `shortcuts`, `preview`, `seatComposition`, `zoneViews`, `moveTopUntil`) are green at every commit.
+  - Their only edits are comments, and `Game.spec`'s pointer to the moved characterization file.
+  - The exact card-menu snapshots (`Game.cardMenus.spec`) and the menu-move wire table (`Game.menuMoves.spec`) are unchanged, so request spies show no new command payloads.
+- The menu arrays the parallel 17a / 17b branches splice into moved wholesale:
+  - pile, library, hand and battlefield menus → their hooks;
+  - card menus → `SeatCardMenus`;
+  - the library pile's inline menu → `ZoneStack`.
+  - No `context-menus/*/…model.ts` file was renamed or restructured.
+- `rg components/PlayerBox src integration e2e` finds no import, and `rg features/decks src/features/game` finds none either.
+
+Testing (tip `7e91c45`, repo root, `--maxWorkers=2`):
+
+- `npx turbo run typecheck --concurrency=1`: pass. `npm run lint`: 0 errors.
+- Unit tests:
+  - sockatrice: 39 / 775.
+  - datatrice: 29 / 1196.
+  - webatrice: **256 files / 1978 tests**. At `0412500` it was 244 / 1979. Removed: the specs of the deleted structured components, SideboardDialog, PlayerContextMenu and the gridMath attachment helpers. Added: 22 spec files for the new hooks and regions.
+- Integration tests:
+  - sockatrice: 19 / 166.
+  - datatrice: 9 / 136.
+  - webatrice: **38 files / 163 tests, 0 skipped**. Before: 36 + 2 skipped files, 160 + 2 skipped tests. `library-view` and `judge-override` run again.
+- Webatrice e2e (3.0.0 image; the browsers run in `mcr.microsoft.com/playwright:v1.60.0-noble`, because the host only has an older chromium build):
+  - First run: **33 passed, 3 failed (9.5 min)**. The 3 failures were `staff-tools.spec.ts` "admin publishes a server message" in all three browsers. That spec seeds MySQL with `docker compose exec`, and the container had no docker CLI (`spawnSync docker ENOENT`), so no test body ran.
+  - Re-run of `staff-tools.spec.ts` with the host's docker CLI and socket mounted into the container: **6 / 6 passed** (chromium, firefox, webkit).
+  - Every game spec passed in all three browsers, including the `bulk-card-actions` release gate.
+  - The stack was torn down.
+- Sockatrice e2e: not run. No sockatrice or server flow changed.
+
+Notes for reviewers (Stage 5):
+
+- **Visible changes:** none intended. The two behaviour-level differences:
+  - The seat preloads card images and catalog metadata from the deck list the server sent, not from the lobby's localStorage copy (or a hard-coded Commander list when nothing was picked). For a real game the cards are the same. Preloads now skip deck entries without a printing instead of requesting `/cards/?format=image`.
+  - Without a game id, `GameBoardCell` renders no seat. It used to render an inert one. This is only reachable in tests.
+- **`usePlayerSeat` is still the seat controller.** It composes the hooks above and returns what the regions read; PlayerBoard provides that through `PlayerSeatContext`.
+  - The context still carries about 80 entries. Most of them are the menus and prompts several regions share.
+  - Splitting it per region would mean threading those through props, so it stays one context. Each hook's argument interface is now the documented dependency list.
+- **Two copies of the library menu**: the library pile's inline array (`ZoneStack`) and the battlefield's Library submenu (`useLibraryMenuItems`). Both hold the same items (only their definition order differs). They are kept separate because PlayerBox had them separate, and a parallel branch may splice into either. Folding them into one is a follow-up.
+- **Left for a follow-up: the structured interaction layer.** Nothing renders the CardSlot-based layer any more, but it is still mounted and wired:
+  - `CardSlot` / `useCardSlot`;
+  - `CardDragOverlay` and `BoxSelectOverlay`;
+  - `GameInteractionContext`;
+  - the game-level `CardContextMenu` / `ZoneContextMenu` / `HandContextMenu` with their `useGameDialogs` handlers;
+  - the CardSlot and BattlefieldRow half of `useGameDnd`.
+  - Deleting it touches the card-menu files the parallel 17a / 17b branches are editing, so it is kept out of this PR. `CardSlot/counterColors.ts` stays live, because the seat card and the card menu model use it.
+- `GameBoardCell`'s spec now asserts against the ports. The "-1 = every player" mapping and the life counter routing are covered by the characterization reveal and life tests.
