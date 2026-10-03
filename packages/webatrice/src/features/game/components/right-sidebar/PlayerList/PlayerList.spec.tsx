@@ -1,6 +1,8 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 
-import { makeStoreState, renderWithProviders, makeUser } from '../../../../../__test-utils__';
+import { ServerInfo_User_UserLevelFlag as Flag } from '@cockatrice/sockatrice/generated';
+import { ModerationProvider } from '@app/feature-widgets/moderation';
+import { connectedState, makeStoreState, renderWithProviders, makeUser } from '../../../../../__test-utils__';
 import {
   makeGameEntry,
   makePlayerEntry,
@@ -151,5 +153,64 @@ describe('PlayerList', () => {
     const aliceRow = screen.getByTestId('player-list-item-1');
     expect(bobRow.querySelector('[aria-label="Host"]')).not.toBeNull();
     expect(aliceRow.querySelector('[aria-label="Host"]')).toBeNull();
+  });
+
+  describe('moderator section (shared moderation widget)', () => {
+    const REGULAR = Flag.IsUser | Flag.IsRegistered;
+    const MODERATOR = REGULAR | Flag.IsModerator;
+    const ADMIN = MODERATOR | Flag.IsAdmin;
+
+    function renderAs(localLevel: number) {
+      const alice = makePlayerEntry({
+        properties: makePlayerProperties({ playerId: 1, userInfo: makeUser({ name: 'Alice', userLevel: localLevel }) }),
+      });
+      const bob = makePlayerEntry({
+        properties: makePlayerProperties({ playerId: 2, userInfo: makeUser({ name: 'Bob', userLevel: REGULAR }) }),
+      });
+      const state = buildState([alice, bob], 1);
+      renderWithProviders(
+        <ModerationProvider>
+          <PlayerList />
+        </ModerationProvider>,
+        {
+          preloadedState: {
+            ...state,
+            server: { ...(connectedState.server as any), user: makeUser({ name: 'Alice', userLevel: localLevel }) },
+          },
+        },
+      );
+    }
+
+    const openMenu = (playerId: number) => fireEvent.contextMenu(screen.getByTestId(`player-list-item-${playerId}`));
+
+    it('offers nothing extra to a regular user', () => {
+      renderAs(REGULAR);
+      openMenu(2);
+      expect(screen.queryByRole('button', { name: 'Moderation.menu.warnUser' })).not.toBeInTheDocument();
+    });
+
+    it('offers warn / ban / notes to a moderator, without role changes', () => {
+      renderAs(MODERATOR);
+      openMenu(2);
+      expect(screen.getByRole('button', { name: 'Moderation.menu.warnUser' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Moderation.menu.banHistory' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Moderation.menu.adminNotes' })).toBeEnabled();
+      expect(screen.queryByRole('button', { name: 'Moderation.menu.promoteMod' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Kick from game' })).toBeInTheDocument();
+    });
+
+    it('adds promote entries for an admin', () => {
+      renderAs(ADMIN);
+      openMenu(2);
+      expect(screen.getByRole('button', { name: 'Moderation.menu.promoteMod' })).toBeEnabled();
+      expect(screen.getByRole('button', { name: 'Moderation.menu.promoteJudge' })).toBeEnabled();
+    });
+
+    it('disables the section on your own seat', () => {
+      renderAs(ADMIN);
+      openMenu(1);
+      expect(screen.getByRole('button', { name: 'Moderation.menu.warnUser' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Moderation.menu.demoteMod' })).toBeDisabled();
+    });
   });
 });
