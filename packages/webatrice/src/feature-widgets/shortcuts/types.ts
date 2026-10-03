@@ -98,13 +98,20 @@ export type ActionId =
   | 'deck.load'
   | 'deck.addCard'
   | 'deck.removeCard'
-  | 'room.sendMessage';
+  | 'room.sendMessage'
+  | 'replays.playPause'
+  | 'replays.skipForward'
+  | 'replays.skipBackward'
+  | 'replays.skipForwardBig'
+  | 'replays.skipBackwardBig'
+  | 'replays.toggleFastForward';
 
 export type ShortcutGroupId =
   | 'game'
   | 'gamePhases'
   | 'deckEditor'
-  | 'room';
+  | 'room'
+  | 'replays';
 
 export interface ShortcutDef {
   scope: ShortcutScope;

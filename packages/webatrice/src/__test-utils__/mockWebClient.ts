@@ -2,6 +2,7 @@ import type { WebClient } from '@cockatrice/sockatrice';
 
 export function createMockWebClient() {
   return {
+    replayGameEventContainer: vi.fn(),
     request: {
       authentication: {
         login: vi.fn(),
@@ -32,6 +33,11 @@ export function createMockWebClient() {
         deckNewDir: vi.fn(),
         deckDelDir: vi.fn(),
         replayList: vi.fn(),
+        replayDownload: vi.fn(),
+        replayDeleteMatch: vi.fn(),
+        replayModifyMatch: vi.fn(),
+        replayGetCode: vi.fn(),
+        replaySubmitCode: vi.fn(),
       },
       rooms: {
         joinRoom: vi.fn(),

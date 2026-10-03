@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { DndContext } from '@dnd-kit/core';
 
@@ -41,6 +41,7 @@ import { GameDialogActionsProvider } from './components/ui/GameDialogActionsCont
 import { GameIdProvider } from './components/ui/GameIdContext';
 import { CardPreviewProvider } from './components/ui/CardPreviewContext';
 import { GameDialogsProvider } from './components/ui/GameDialogsContext';
+import { useGameReadOnly } from './components/ui/GameReadOnlyContext';
 
 import './Game.css';
 
@@ -74,8 +75,44 @@ function Game() {
   );
 }
 
-function GameBoard() {
-  const g = useGame();
+// Replay mode swallows every press and click on the board grid in the capture
+// phase, so no card, zone or player control can send a command or apply an
+// optimistic update; hover still reaches the cards for the preview pane. Keys
+// are left alone: the board's keyboard handlers are window-level and gated on
+// owning a seat, and the replay shortcuts listen on the window too.
+function swallowBoardInput(event: React.SyntheticEvent) {
+  event.preventDefault();
+  event.stopPropagation();
+}
+
+const READ_ONLY_BOARD_GUARD = {
+  onPointerDownCapture: swallowBoardInput,
+  onMouseDownCapture: swallowBoardInput,
+  onClickCapture: swallowBoardInput,
+  onDoubleClickCapture: swallowBoardInput,
+  onContextMenuCapture: swallowBoardInput,
+  onDragStartCapture: swallowBoardInput,
+};
+
+const noop = () => {};
+
+export interface GameBoardProps {
+  /** Game to render; defaults to the `/game/:gameId` route param. */
+  gameId?: number;
+  /** Chrome rendered as a full-width row under the board (the replay timeline). */
+  footer?: ReactNode;
+  /** Replaces the sidebar's Leave action (a replay closes instead of leaving). */
+  onLeave?: () => void;
+}
+
+/**
+ * The battlefield for a game. Inside a `GameReadOnlyProvider` (replay playback)
+ * it renders the same board as a spectator would see, with every way to act on
+ * the game removed.
+ */
+export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardProps = {}) {
+  const readOnly = useGameReadOnly();
+  const g = useGame({ gameId: boardGameId, readOnly });
   const {
     gameId,
     game,
@@ -107,17 +144,29 @@ function GameBoard() {
   const phaseTrackColumnWidth = phaseTrackPinned ? 112 : 8;
 
   const interactionHandlers = useMemo(
-    () => ({
-      onCardHover: setHoveredCard,
-      onCardFocus,
-      onCardBlur,
-      onCardClick: arrows.handleCardClick,
-      onCardContextMenu: dialogs.handleCardContextMenu,
-      onCardDoubleClick: arrows.handleCardDoubleClick,
-      onZoneClick: dialogs.handleZoneClick,
-      onZoneContextMenu: dialogs.handleZoneContextMenu,
-    }),
+    () => (readOnly
+      ? {
+        onCardHover: setHoveredCard,
+        onCardFocus,
+        onCardBlur,
+        onCardClick: noop,
+        onCardContextMenu: noop,
+        onCardDoubleClick: noop,
+        onZoneClick: noop,
+        onZoneContextMenu: noop,
+      }
+      : {
+        onCardHover: setHoveredCard,
+        onCardFocus,
+        onCardBlur,
+        onCardClick: arrows.handleCardClick,
+        onCardContextMenu: dialogs.handleCardContextMenu,
+        onCardDoubleClick: arrows.handleCardDoubleClick,
+        onZoneClick: dialogs.handleZoneClick,
+        onZoneContextMenu: dialogs.handleZoneContextMenu,
+      }),
     [
+      readOnly,
       setHoveredCard,
       onCardFocus,
       onCardBlur,
@@ -141,15 +190,26 @@ function GameBoard() {
   // Dialog/confirm-opening actions surfaced by the TurnControls sidebar. Provided
   // via context so RightPanel (which doesn't use them) needn't forward them.
   const dialogActions = useMemo(
-    () => ({
-      onRequestRollDie: dialogs.openRollDie,
-      onRequestConcede: dialogs.openConcede,
-      onRequestUnconcede: dialogs.openUnconcede,
-      onRequestGameInfo: dialogs.openGameInfo,
-      onRequestViewSideboard: dialogs.openViewSideboard,
-      onRequestLeave: dialogs.openLeaveConfirm,
-    }),
+    () => (readOnly
+      ? {
+        onRequestRollDie: noop,
+        onRequestConcede: noop,
+        onRequestUnconcede: noop,
+        onRequestGameInfo: noop,
+        onRequestViewSideboard: noop,
+        onRequestLeave: onLeave ?? noop,
+      }
+      : {
+        onRequestRollDie: dialogs.openRollDie,
+        onRequestConcede: dialogs.openConcede,
+        onRequestUnconcede: dialogs.openUnconcede,
+        onRequestGameInfo: dialogs.openGameInfo,
+        onRequestViewSideboard: dialogs.openViewSideboard,
+        onRequestLeave: onLeave ?? dialogs.openLeaveConfirm,
+      }),
     [
+      readOnly,
+      onLeave,
       dialogs.openRollDie,
       dialogs.openConcede,
       dialogs.openUnconcede,
@@ -161,7 +221,7 @@ function GameBoard() {
 
   return (
     <Layout>
-      <AuthGuard />
+      {!readOnly && <AuthGuard />}
       <CardRegistryContext.Provider value={cardRegistry}>
         <GameIdProvider value={gameId}>
           <HoveredCardProvider>
@@ -185,10 +245,11 @@ function GameBoard() {
                           <CardPreviewProvider value={previewCard ?? null}>
                             <GameDialogsProvider value={dialogs}>
                               <div
-                                className="game"
+                                className={footer ? 'game game--with-footer' : 'game'}
                                 data-testid="game-container"
+                                data-readonly={readOnly || undefined}
                                 ref={gameRef}
-                                onMouseDown={handleGameMouseDown}
+                                onMouseDown={readOnly ? undefined : handleGameMouseDown}
                                 style={{
                                   '--sidebar-width': `${sidebarWidth}px`,
                                   '--phase-track-width': `${phaseTrackColumnWidth}px`,
@@ -209,6 +270,7 @@ function GameBoard() {
                                   className="game__board"
                                   ref={boardRef}
                                   onMouseDown={arrows.handleBoardMouseDown}
+                                  {...(readOnly ? READ_ONLY_BOARD_GUARD : undefined)}
                                 >
                                   {!game && (
                                     <div className="game__empty" data-testid="game-empty">
@@ -250,7 +312,7 @@ function GameBoard() {
 
                                 <BoxSelectOverlay preview={boxSelectPreview} />
 
-                                <DeckSelectDialog />
+                                {!readOnly && <DeckSelectDialog />}
 
                                 {dialogs.zoneViews.map((v, idx) => (
                                   <ZoneViewDialog
@@ -297,7 +359,7 @@ function GameBoard() {
                             card list (someone revealed a zone to us,
                             or "to all players" including us). Reads /
                             dismisses via the incomingReveal slice. */}
-                                <IncomingRevealDialog />
+                                {!readOnly && <IncomingRevealDialog />}
 
                                 <ConfirmDialog
                                   isOpen={dialogs.concedeConfirm === 'concede'}
@@ -329,6 +391,8 @@ function GameBoard() {
                                 />
 
                                 <GameInfoDialog />
+
+                                {footer && <div className="game__footer">{footer}</div>}
                               </div>
                             </GameDialogsProvider>
                           </CardPreviewProvider>
