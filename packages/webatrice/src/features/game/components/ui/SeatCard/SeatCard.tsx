@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { CardImage } from '@app/components';
+import { usePreference } from '@app/hooks';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from './cardSize';
 import { useCardPreviewActions } from '../CardPreviewContext';
 import { counterColorForId } from '../CardSlot/counterColors';
@@ -19,6 +21,10 @@ import { counterColorForId } from '../CardSlot/counterColors';
  * The hover-scale + tight name pill are ported straight from fancy
  * webatrice.
  */
+// Desktop's "Maximum font size for information displayed on cards", at card
+// scale (useApplyCardPresentation); 0.7rem where nothing sets it.
+const CARD_INFO_FONT_SIZE = 'var(--card-info-font-size, 0.7rem)';
+
 interface Props {
   name: string;
   scryfallId?: string;
@@ -91,12 +97,22 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
   // `AbstractCardItem::paintPicture`). We use the same "# " prefix so
   // players who bounce between the clients see a familiar tag.
   const displayName = faceDown && id != null ? `# ${id}` : name;
+  // Desktop's "Display card names on cards having a picture": the name is
+  // always drawn on a face-down card and on one whose picture failed to load
+  // (AbstractCardItem::paintPicture); with the option off, nowhere else.
+  const displayCardNames = usePreference('displayCardNames');
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
+  const showName = displayCardNames || !!faceDown || failedImageUrl === imageUrl;
 
   const { setHoveredCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
 
   return (
     <div
-      className="relative shadow-md select-none overflow-hidden transition-transform duration-150 ease-out hover:scale-[1.06]"
+      // "Scale cards on mouse over" (desktop's 1.1) through --card-hover-scale.
+      className={
+        'relative shadow-md select-none overflow-hidden transition-transform duration-150 ease-out '
+        + 'hover:scale-[var(--card-hover-scale,1.1)]'
+      }
       style={{
         width: CARD_WIDTH,
         height: CARD_HEIGHT,
@@ -163,6 +179,7 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
         draggable={false}
         className="w-full h-full"
         style={{ imageRendering: '-webkit-optimize-contrast' }}
+        onError={() => setFailedImageUrl(imageUrl)}
       />
       {/* Card name — small pill overlay anchored to the top-left.
           Mirrors the P/T pill's bottom-right anchoring so the two
@@ -171,11 +188,16 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
           `box-decoration-clone` span redraws the background around
           each line individually so the black pill hugs the text
           instead of stretching to the container width. */}
-      <div className="absolute top-1 left-1 right-1 text-[0.7rem] font-semibold leading-tight line-clamp-2">
-        <span className="bg-over-art-backdrop text-over-art-text rounded box-decoration-clone">
-          {displayName}
-        </span>
-      </div>
+      {showName && (
+        <div
+          className="absolute top-1 left-1 right-1 font-semibold leading-tight line-clamp-2"
+          style={{ fontSize: CARD_INFO_FONT_SIZE }}
+        >
+          <span className="bg-over-art-backdrop text-over-art-text rounded box-decoration-clone">
+            {displayName}
+          </span>
+        </div>
+      )}
       {/* P/T pill — same style as the name pill but anchored to the
           bottom-right. Only rendered when we have a value (creatures,
           vehicles, or any card whose in-game PT has been modified). */}
@@ -183,9 +205,10 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
         <div className="absolute bottom-1 right-1 flex justify-end">
           <span
             className={[
-              'bg-over-art-backdrop text-[0.6rem] font-semibold leading-none px-1.5 py-0.5 rounded tabular-nums',
+              'bg-over-art-backdrop font-semibold leading-none px-1.5 py-0.5 rounded tabular-nums',
               ptModified ? 'text-pt-modified' : 'text-over-art-text',
             ].join(' ')}
+            style={{ fontSize: `calc(${CARD_INFO_FONT_SIZE} * 0.85)` }}
           >
             {pt}
           </span>
@@ -247,7 +270,10 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
           to the container width. Used for both user-set annotations
           and the "token" label auto-applied to Clone-created copies. */}
       {annotation && (
-        <div className="absolute inset-x-1 top-1/2 -translate-y-1/2 text-center text-[0.7rem] font-semibold leading-tight line-clamp-3">
+        <div
+          className="absolute inset-x-1 top-1/2 -translate-y-1/2 text-center font-semibold leading-tight line-clamp-3"
+          style={{ fontSize: CARD_INFO_FONT_SIZE }}
+        >
           <span className="bg-over-art-backdrop text-over-art-text rounded box-decoration-clone">
             {annotation}
           </span>

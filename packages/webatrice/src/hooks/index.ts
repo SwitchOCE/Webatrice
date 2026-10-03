@@ -31,3 +31,4 @@ export * from './useActionFeed';
 export * from './useCardDataPreferences';
 export * from './usePlaymatSettings';
 export * from './useAnimationPreferences';
+export * from './useApplyCardPresentation';

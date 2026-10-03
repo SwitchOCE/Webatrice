@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ExternalLink, FileText, Flag, Image as ImageIcon, Layers, LayoutList, LogOut, X } from 'lucide-react';
 
-import { CardImage, CardRelatedLinks } from '@app/components';
+import { CardRelatedLinks } from '@app/components';
 
 import PlayerList from '../right-sidebar/PlayerList/PlayerList';
 import ChatLog from '../ChatLog/ChatLog';
@@ -17,6 +17,7 @@ import { CARD_CORNER_RADIUS } from '../ui/SeatCard/cardSize';
 import { ManaSymbols, SymbolText } from '../ui/ManaSymbols/ManaSymbols';
 import { useCardPreviewPopup } from '../CardPreviewPopup/useCardPreviewPopup';
 import GameMenu from '../GameMenu/GameMenu';
+import PreviewCardImage from '../ui/PreviewCardImage/PreviewCardImage';
 
 const SIDEBAR_HEADER_BUTTON_CLASS = [
   'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium',
@@ -451,13 +452,11 @@ export default function BattlefieldSidebar() {
           <div className="flex flex-col gap-2">
             {(previewMode === 'image' || previewMode === 'both') && (
               hoveredImageUrl ? (
-                <CardImage
+                <PreviewCardImage
                   src={hoveredImageUrl}
                   name={activeCard?.name}
-                  draggable={false}
                   className="w-full shadow-md"
                   style={{
-                    aspectRatio: '5 / 7',
                     borderRadius: CARD_CORNER_RADIUS,
                     imageRendering: '-webkit-optimize-contrast',
                   }}

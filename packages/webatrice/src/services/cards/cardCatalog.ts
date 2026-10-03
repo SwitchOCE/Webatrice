@@ -76,6 +76,9 @@ export interface LookupResult {
   faces?: LookupCardFace[];
   /** Rules text (cards.xml `<text>`, Scryfall `oracle_text`). */
   text?: string;
+  /** A sideways-layout card (battles, split cards, planes) whose art is landscape inside a
+   *  portrait frame: cards.xml `<landscapeOrientation>`, or Oracle's rule for Scryfall records. */
+  landscape?: boolean;
   /** Card properties by Cockatrice name (cards.xml `<prop>` children such
    *  as `type`, `maintype`, `cmc`). Scryfall records carry `type` only.
    *  Format rules' exception conditions match against these. */
@@ -423,8 +426,17 @@ function mergeLookup(
     // cards.xml legalities win (desktop reads its card DB); a DB
     // imported without them falls back to Scryfall's.
     text: xml!.text ?? scryfall!.text,
+    landscape: xml!.landscape || scryfall!.landscape,
     legalities: xml!.legalities ?? scryfall!.legalities,
   };
+}
+
+/**
+ * Oracle's rule for sideways-layout cards (oracleimporter.cpp): battles, split cards and planes
+ * print their art landscape inside a portrait frame.
+ */
+function isLandscapeLayout(layout: string | undefined, typeLine: string | undefined): boolean {
+  return layout === 'split' || layout === 'planar' || /\bBattle\b/.test(typeLine ?? '');
 }
 
 // ---------- Dexie: cards.xml table ----------
@@ -515,6 +527,7 @@ function dexieToLookup(card: Card, preferences?: CardDataPreferences): LookupRes
     printings,
     related: relatedList.length > 0 ? relatedList : undefined,
     text: card.text?.value || undefined,
+    landscape: card.landscapeOrientation?.value === '1' || undefined,
     properties: readProperties(prop),
     legalities: readLegalities(prop),
   };
@@ -1028,6 +1041,7 @@ function scryfallToLookup(card: ScryfallCard): LookupResult {
     layout: card.layout,
     faces: faces && faces.length > 0 ? faces : undefined,
     text: card.oracle_text ?? card.card_faces?.map((f) => f.oracle_text ?? '').join('\n//\n'),
+    landscape: isLandscapeLayout(card.layout, card.type_line) || undefined,
     properties: card.type_line ? { type: card.type_line } : undefined,
     legalities: scryfallLegalities(card.legalities),
   };
