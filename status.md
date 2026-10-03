@@ -1,1 +1,2 @@
 - 15:42Z started f15 → checkout + install
+- 15:48Z layering fix committed (WebClient.loadReplayGame → GameResponseImpl) → replay tab persistence
