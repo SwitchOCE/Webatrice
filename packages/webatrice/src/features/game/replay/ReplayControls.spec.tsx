@@ -86,6 +86,21 @@ describe('ReplayControls', () => {
     expect(playback.setFastForwardSpeed).toHaveBeenCalledWith(99.9);
   });
 
+  it('applies an in-range fast-forward speed as it is typed, and clamps on Enter', () => {
+    const playback = makePlayback();
+    renderWithProviders(<ReplayControls playback={playback} />);
+    fireEvent.click(screen.getByRole('button', { name: 'GameReplay.controls.settings' }));
+    const speed = within(screen.getByRole('presentation')).getByLabelText('GameReplay.settings.fastForwardSpeed');
+
+    fireEvent.change(speed, { target: { value: '25' } });
+    expect(playback.setFastForwardSpeed).toHaveBeenLastCalledWith(25);
+
+    fireEvent.change(speed, { target: { value: '0.5' } });
+    expect(playback.setFastForwardSpeed).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(speed, { key: 'Enter' });
+    expect(playback.setFastForwardSpeed).toHaveBeenLastCalledWith(1);
+  });
+
   it('seeks to the clicked point of the timeline', () => {
     const playback = makePlayback();
     renderWithProviders(<ReplayControls playback={playback} />);
@@ -98,4 +113,5 @@ describe('ReplayControls', () => {
     expect(timeline).toHaveAttribute('aria-valuenow', '65000');
     expect(timeline).toHaveAttribute('aria-valuemax', '600000');
   });
+
 });

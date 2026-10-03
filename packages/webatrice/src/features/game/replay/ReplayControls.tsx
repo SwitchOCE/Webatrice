@@ -34,6 +34,17 @@ function ReplayControls({ playback }: ReplayControlsProps) {
   const { state, timeline, fastForward, fastForwardSpeed } = playback;
   const [speedDraft, setSpeedDraft] = useState<string | null>(null);
 
+  // Desktop's spin box applies every in-range value as it changes (valueChanged),
+  // so a running fast-forward picks it up at once; out-of-range input is clamped
+  // on Enter, blur or close.
+  const editSpeed = (draft: string) => {
+    setSpeedDraft(draft);
+    const value = Number(draft);
+    if (draft.trim() !== '' && value >= MIN_FAST_FORWARD_SPEED && value <= MAX_FAST_FORWARD_SPEED) {
+      playback.setFastForwardSpeed(Math.round(value * 10) / 10);
+    }
+  };
+
   const commitSpeed = () => {
     if (speedDraft == null) {
       return;
@@ -136,8 +147,13 @@ function ReplayControls({ playback }: ReplayControlsProps) {
             type="number"
             label={t('GameReplay.settings.fastForwardSpeed')}
             value={speedDraft ?? String(fastForwardSpeed)}
-            onChange={(event) => setSpeedDraft(event.target.value)}
+            onChange={(event) => editSpeed(event.target.value)}
             onBlur={commitSpeed}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                commitSpeed();
+              }
+            }}
             slotProps={{
               htmlInput: { min: MIN_FAST_FORWARD_SPEED, max: MAX_FAST_FORWARD_SPEED, step: 0.1 },
               input: { endAdornment: <span>x</span> },
