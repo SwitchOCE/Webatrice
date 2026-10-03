@@ -2,6 +2,7 @@ import { create } from '@bufbuild/protobuf';
 
 import { attachResponseHandlers, createStore, rooms } from '../../src';
 import {
+  Event_RoomSay_RoomMessageType,
   ServerInfo_Game,
   ServerInfo_GameSchema,
   ServerInfo_GameTypeSchema,
@@ -229,6 +230,40 @@ describe('integration: room chat and users', () => {
     const messages = rooms.Selectors.getRoomMessages(store.getState(), 1);
     expect(messages).toHaveLength(2);
     expect(messages[1]).toMatchObject({ senderName: 'bob', message: 'hi' });
+  });
+
+  it('drops messages from ignored senders as they arrive, history included', () => {
+    const store = createStore();
+    const response = attachResponseHandlers(store);
+    response.room.joinRoom(makeRoom(1, 'Main'));
+    response.room.addMessage(1, { name: 'troll', message: 'before', timeReceived: 1 });
+
+    response.session.addToIgnoreList(makeRoomUser('troll'));
+    response.room.addMessage(1, { name: 'troll', message: 'live', timeReceived: 2 });
+    response.room.addMessage(1, {
+      name: 'troll', message: 'old', messageType: Event_RoomSay_RoomMessageType.ChatHistory, timeOf: 5n, timeReceived: 3,
+    });
+    response.room.addMessage(1, { name: 'alice', message: 'hi', timeReceived: 4 });
+
+    // Desktop filters on arrival: a line shown before the ignore stays.
+    expect(rooms.Selectors.getRoomMessages(store.getState(), 1).map(m => m.message))
+      .toEqual(['troll: before', 'alice: hi']);
+
+    // Un-ignoring does not bring back what was dropped; new lines show again.
+    response.session.removeFromIgnoreList('troll');
+    response.room.addMessage(1, { name: 'troll', message: 'after', timeReceived: 5 });
+    expect(rooms.Selectors.getRoomMessages(store.getState(), 1).map(m => m.message))
+      .toEqual(['troll: before', 'alice: hi', 'troll: after']);
+  });
+
+  it('roomSayFailed appends a chatFlood notice to the room chat', () => {
+    const store = createStore();
+    const response = attachResponseHandlers(store);
+    response.room.joinRoom(makeRoom(1, 'Main'));
+
+    response.room.roomSayFailed(1, 'too fast', 18);
+    const [notice] = rooms.Selectors.getRoomMessages(store.getState(), 1);
+    expect(notice).toMatchObject({ notice: 'chatFlood', message: '' });
   });
 
   it('removeMessages drops the most recent N messages from a sender', () => {

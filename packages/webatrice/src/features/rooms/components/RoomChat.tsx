@@ -1,13 +1,26 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Send, Hash } from 'lucide-react';
 
 import { Message as MessageBubble } from '@app/components';
-import type { Message } from '@cockatrice/datatrice';
+import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
+import { formatChatHistoryTime } from '@app/utils';
+import { rooms, type Message } from '@cockatrice/datatrice';
+import { Event_RoomSay_RoomMessageType } from '@cockatrice/sockatrice/generated';
 
 interface RoomChatProps {
+  roomId: number;
   roomName: string;
   messages: Message[] | undefined;
   onSay: (args: { message: string }) => void;
+}
+
+// Desktop prefixes chat-history lines (sent on room join) with their server time.
+function historyTimestamp(message: Message): string | undefined {
+  if (message.messageType !== Event_RoomSay_RoomMessageType.ChatHistory || !message.timeOf) {
+    return undefined;
+  }
+  return formatChatHistoryTime(Number(message.timeOf));
 }
 
 /**
@@ -16,9 +29,21 @@ interface RoomChatProps {
  * delegating each row to the `Message` component. Only chrome + input
  * are new; parsing logic is unchanged.
  */
-export default function RoomChat({ roomName, messages, onSay }: RoomChatProps) {
+export default function RoomChat({ roomId, roomName, messages, onSay }: RoomChatProps) {
+  const { t } = useTranslation();
+  const describeFailure = useCommandFailureMessage();
+  const noticeText = (m: Message) =>
+    t(`RoomChat.notice.${m.notice}`, { reason: describeFailure(m.failure, '') });
   const scrollRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState('');
+
+  // A message was rejected as flooding or never answered: the chat shows a notice
+  // line, and the unsent text comes back into an empty input so it isn't lost.
+  useReduxEffect<{ roomId: number; message: string }>((action) => {
+    if (action.payload.roomId === roomId) {
+      setDraft((current) => current || action.payload.message);
+    }
+  }, rooms.Types.ROOM_SAY_FAILED, [roomId]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -59,7 +84,9 @@ export default function RoomChat({ roomName, messages, onSay }: RoomChatProps) {
               '[&_strong]:text-text-primary [&_strong]:mr-1',
             ].join(' ')}
           >
-            <MessageBubble message={m} />
+            {m.notice
+              ? <div className="italic text-text-muted">{noticeText(m)}</div>
+              : <MessageBubble message={m} timestamp={historyTimestamp(m)} />}
           </div>
         ))}
       </div>

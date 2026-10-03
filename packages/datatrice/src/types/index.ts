@@ -12,6 +12,7 @@ export type {
   ZoneEntry,
   GameMessage,
   Message,
+  ChatNotice,
   GametypeMap,
 } from './enriched';
 

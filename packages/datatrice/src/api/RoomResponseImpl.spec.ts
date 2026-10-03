@@ -46,11 +46,22 @@ describe('RoomResponseImpl', () => {
     expect(dispatch).toHaveBeenCalledWith(RoomsActions.updateGames({ roomId: 2, games }));
   });
 
-  it('addMessage dispatches the addMessage action', () => {
+  it('addMessage dispatches roomSayReceived for the ignore-list listener', () => {
     const { impl, dispatch } = setup();
     const message = { senderName: 'alice', message: 'hi', timeReceived: 123 };
     impl.addMessage(3, message);
-    expect(dispatch).toHaveBeenCalledWith(RoomsActions.addMessage({ roomId: 3, message }));
+    expect(dispatch).toHaveBeenCalledWith(RoomsActions.roomSayReceived({ roomId: 3, message }));
+  });
+
+  it('roomSayFailed dispatches the roomSayFailed action with a receive time', () => {
+    const { impl, dispatch } = setup();
+    impl.roomSayFailed(3, 'hello', 18, WebsocketTypes.CommandFailure.Timeout);
+    expect(dispatch).toHaveBeenCalledWith({
+      type: RoomsActions.roomSayFailed.type,
+      payload: {
+        roomId: 3, message: 'hello', responseCode: 18, failure: WebsocketTypes.CommandFailure.Timeout, timeReceived: expect.any(Number),
+      },
+    });
   });
 
   it('userJoined dispatches the userJoined action', () => {
