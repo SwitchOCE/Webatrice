@@ -7,6 +7,7 @@ import { createStore } from '@cockatrice/datatrice';
 import { WebClientContext } from '@cockatrice/datatrice/react';
 
 import { rootReducerMap, type RootState } from '../../store';
+import { getSettings, settingsStore } from '../../hooks/useSettings';
 import { createMockWebClient, connectedState, makeUser } from '../../__test-utils__';
 import { usePlayer } from './usePlayer';
 
@@ -127,5 +128,43 @@ describe('usePlayer', () => {
     result.current.onSendMessage('x');
     expect(webClient.request.session.addToBuddyList).not.toHaveBeenCalled();
     expect(webClient.request.session.message).not.toHaveBeenCalled();
+  });
+
+  describe('private messages', () => {
+    const conversation = [
+      { senderName: 'alice', receiverName: 'TestUser', message: 'hi' },
+      { senderName: 'TestUser', receiverName: 'alice', message: 'hello' },
+      { senderName: 'alice', receiverName: 'TestUser', message: 'how are you' },
+    ];
+    const withConversation = (overrides = {}) => stateWithPlayer('alice', {
+      user: makeUser({ name: 'TestUser' }),
+      users: { alice: makeUser({ name: 'alice', userLevel: 3 }) },
+      messages: { alice: conversation },
+      ...overrides,
+    });
+    const texts = (entries: { type: string; message?: { message: string }; notice?: { kind: string } }[]) =>
+      entries.map((entry) => (entry.type === 'message' ? entry.message!.message : `notice:${entry.notice!.kind}`));
+
+    beforeEach(async () => {
+      settingsStore.reset();
+      await getSettings();
+    });
+
+    it('returns the whole conversation by default', () => {
+      const { result } = setup(withConversation(), 'alice');
+      expect(texts(result.current.conversation)).toEqual(['hi', 'hello', 'how are you']);
+    });
+
+    it('applies the Chat preferences, e.g. ignoring non-buddies until you write to them', async () => {
+      const settings = await getSettings();
+      settings.ignoreNonBuddyUserMessages = true;
+      settingsStore.setValue(settings);
+
+      const { result } = setup(withConversation({
+        privateChatNotices: { alice: [{ id: 1, kind: 'userLeft', position: 1 }] },
+      }), 'alice');
+      // Filtered messages go; the client's notices keep their place.
+      expect(texts(result.current.conversation)).toEqual(['notice:userLeft', 'hello', 'how are you']);
+    });
   });
 });
