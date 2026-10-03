@@ -9,7 +9,14 @@ import {
   makeWarnHistoryItem,
   makeWarnListItem,
 } from '../../testing/fixtures/server';
-import { Response_ResponseCode, ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
+import { create } from '@bufbuild/protobuf';
+import {
+  Event_NotifyUser_NotificationType,
+  Event_NotifyUserSchema,
+  Event_ServerShutdownSchema,
+  Response_ResponseCode,
+  ServerInfo_User_UserLevelFlag,
+} from '@cockatrice/sockatrice/generated';
 import { ServerCapability } from './server.capabilities';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { HEALTHY_CONNECTION_HEALTH } from './server.reducer.connection';
@@ -233,6 +240,19 @@ describe('Selectors', () => {
   it('getRegistrationError → returns registrationError', () => {
     const state = makeServerState({ registrationError: 'bad input' });
     expect(Selectors.getRegistrationError(rootState(state))).toBe('bad input');
+  });
+
+  it('getNotifications → returns the stored Event_NotifyUser list in arrival order', () => {
+    const first = create(Event_NotifyUserSchema, { type: Event_NotifyUser_NotificationType.PROMOTED });
+    const second = create(Event_NotifyUserSchema, { type: Event_NotifyUser_NotificationType.WARNING, warningReason: 'spam' });
+    const state = makeServerState({ notifications: [first, second] });
+    expect(Selectors.getNotifications(rootState(state))).toEqual([first, second]);
+  });
+
+  it('getServerShutdown → returns the pending shutdown, or null', () => {
+    const shutdown = create(Event_ServerShutdownSchema, { reason: 'maintenance', minutes: 10 });
+    expect(Selectors.getServerShutdown(rootState(makeServerState({ serverShutdown: shutdown })))).toBe(shutdown);
+    expect(Selectors.getServerShutdown(rootState(makeServerState()))).toBeNull();
   });
 
 

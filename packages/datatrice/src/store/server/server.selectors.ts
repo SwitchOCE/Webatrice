@@ -128,6 +128,10 @@ export const Selectors = {
   getDownloadedDeck: ({ server }: State) => server.downloadedDeck,
   getDownloadedReplay: ({ server }: State) => server.downloadedReplay,
   getRegistrationError: ({ server }: State) => server.registrationError,
+  // Event_NotifyUser messages in arrival order (capped at MAX_NOTIFICATIONS).
+  getNotifications: ({ server }: State) => server.notifications,
+  // The latest Event_ServerShutdown announcement, or null when none is pending.
+  getServerShutdown: ({ server }: State) => server.serverShutdown,
   getSortUsersBy: ({ server }: State) => server.sortUsersBy,
 
   // Private-message history with a specific user. Both directions

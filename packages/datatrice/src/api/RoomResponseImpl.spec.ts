@@ -4,6 +4,7 @@ import { createStore } from '../store/createStore';
 import { ServerInfo_GameSchema, ServerInfo_RoomSchema, ServerInfo_UserSchema } from '@cockatrice/sockatrice/generated';
 import { Actions as RoomsActions } from '../store/rooms/rooms.actions';
 import { RoomResponseImpl } from './RoomResponseImpl';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 function setup() {
   const store = createStore();
@@ -93,5 +94,19 @@ describe('RoomResponseImpl', () => {
     const { impl, dispatch } = setup();
     impl.setJoinGameError(404, 'not found');
     expect(dispatch).toHaveBeenCalledWith(RoomsActions.setJoinGameError({ code: 404, message: 'not found' }));
+  });
+
+  it('joinRoomFailed dispatches joinRoomFailed keyed by roomId', () => {
+    const { impl, dispatch } = setup();
+    impl.joinRoomFailed(3, 15);
+    expect(dispatch).toHaveBeenCalledWith(RoomsActions.joinRoomFailed({ roomId: 3, responseCode: 15, failure: undefined }));
+  });
+
+  it('createGameFailed dispatches createGameFailed with the transport reason', () => {
+    const { impl, dispatch } = setup();
+    impl.createGameFailed(3, -1, WebsocketTypes.CommandFailure.Timeout);
+    expect(dispatch).toHaveBeenCalledWith(
+      RoomsActions.createGameFailed({ roomId: 3, responseCode: -1, failure: WebsocketTypes.CommandFailure.Timeout }),
+    );
   });
 });

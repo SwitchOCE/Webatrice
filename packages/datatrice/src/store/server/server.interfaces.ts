@@ -67,6 +67,12 @@ export interface ServerState {
   registrationError: string | null;
 }
 
+// Payload of every `*Failed` command-outcome signal action.
+export interface CommandFailedPayload {
+  responseCode: number;
+  failure?: WebsocketTypes.CommandFailure;
+}
+
 export interface ServerStateStatus {
   connectionAttemptMade: boolean;
   description: string | null;
