@@ -5,3 +5,4 @@
 - 16:42Z all 6 majors + minors/nits pushed; history folded (datatrice fix + changesets into package commits) → per-commit typecheck + full gate
 - 16:54Z every commit typechecks (folded 2 pre-existing red commits); tip 58a7fd4 pushed → full gate, then e2e 3.0 + 3.1 reports
 - 17:12Z gate green (unit/integration/lint/typecheck), sock e2e 5/5, web e2e 3.0 chromium+firefox 28 passed/4 skipped → webkit + 3.1 reports
+- 17:24Z DONE: tip 60b3669; full gate + e2e green; PR file updated
