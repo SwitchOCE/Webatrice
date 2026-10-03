@@ -1,1 +1,2 @@
 - 22:25Z started, read brief+aud2 → characterization specs for cardCatalog/scryfall
+- 22:28Z commit 1 characterization specs pushed → services/scryfall client
