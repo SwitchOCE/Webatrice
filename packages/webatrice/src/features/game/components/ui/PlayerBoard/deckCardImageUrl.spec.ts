@@ -10,4 +10,9 @@ describe('deckCardImageUrl', () => {
     expect(deckCardImageUrl({ scryfallId: '', name: 'Llanowar Elves' }))
       .toBe('https://api.scryfall.com/cards/named?exact=Llanowar%20Elves&format=image&version=large');
   });
+
+  it('keeps the exact name, Token suffix and all', () => {
+    expect(deckCardImageUrl({ scryfallId: '', name: 'Rhino, Warrior Token' }))
+      .toBe('https://api.scryfall.com/cards/named?exact=Rhino%2C%20Warrior%20Token&format=image&version=large');
+  });
 });
