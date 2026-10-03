@@ -61,3 +61,18 @@ export function resolvePlaymat(
       return deckPlaymat ?? pickFromCollection(settings, rotationIndex, lastResolved, random);
   }
 }
+
+type CollectionSettings = Pick<PlaymatSettings, 'mode' | 'fallbackBehavior' | 'fallbackList'>;
+
+/**
+ * Whether two settings resolve the same way. Visibility only changes what is
+ * drawn: desktop's setPlaymatVisibility emits playmatVisibilityChanged, not
+ * the playmatSettingsChanged that re-resolves (interface_settings.cpp).
+ */
+export function sameCollectionSettings(a: CollectionSettings | undefined, b: CollectionSettings): boolean {
+  return a !== undefined
+    && a.mode === b.mode
+    && a.fallbackBehavior === b.fallbackBehavior
+    && a.fallbackList.length === b.fallbackList.length
+    && a.fallbackList.every((entry, i) => samePlaymat(entry, b.fallbackList[i]));
+}

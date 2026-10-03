@@ -12,6 +12,7 @@ import {
   DEFAULT_PLAYMAT_SETTINGS,
   PlaymatFallbackBehavior,
   PlaymatMode,
+  PlaymatVisibility,
   setPlaymatSettings,
 } from '@app/hooks';
 
@@ -170,6 +171,21 @@ describe('usePlaymatSync', () => {
 
     announce({ readyStart: true });
     expect(setPlaymat).toHaveBeenLastCalledWith(1, { playmatParams: expect.objectContaining({ cardName: 'B' }) });
+    vi.restoreAllMocks();
+  });
+
+  it('does not re-roll when only the visibility changes', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    act(() => setPlaymatSettings({
+      fallbackBehavior: PlaymatFallbackBehavior.RANDOM,
+      fallbackList: [mat('A'), mat('B')],
+    }));
+    const { announce, setPlaymat } = setup();
+    announce({ deckHash: 'h1', playmatParams: { cardName: '' } });
+    announce({ playmatParams: { cardName: 'A' } });
+
+    act(() => setPlaymatSettings({ visibility: PlaymatVisibility.OWN_ONLY }));
+    expect(setPlaymat).toHaveBeenCalledTimes(1);
     vi.restoreAllMocks();
   });
 
