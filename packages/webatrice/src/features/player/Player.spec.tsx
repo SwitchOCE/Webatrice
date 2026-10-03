@@ -13,6 +13,7 @@ vi.mock('@cockatrice/datatrice/react', async (importOriginal) => {
 });
 
 import { ModerationProvider } from '@app/feature-widgets/moderation';
+import { UserGamesProvider } from '@app/feature-widgets/user-games';
 import Player from './Player';
 import { ReportUserProvider } from '../../dialogs';
 
@@ -23,9 +24,11 @@ beforeAll(() => {
 function renderPlayer(preloadedState: any, name = 'alice') {
   return renderWithProviders(
     <ModerationProvider>
-      <Routes>
-        <Route path="/player/:name" element={<Player />} />
-      </Routes>
+      <UserGamesProvider>
+        <Routes>
+          <Route path="/player/:name" element={<Player />} />
+        </Routes>
+      </UserGamesProvider>
     </ModerationProvider>,
     { preloadedState, route: `/player/${name}` },
   );
@@ -65,6 +68,18 @@ describe('Player', () => {
     const addBuddy = screen.getByRole('button', { name: /Player\.action\.addBuddy/ });
     fireEvent.click(addBuddy);
     expect(hoisted.mockWebClient.request.session.addToBuddyList).toHaveBeenCalledWith('alice');
+  });
+
+  // Desktop lists "Show this user's games" in the user context menu; the profile page carries
+  // it too, so it does not depend on reaching that menu.
+  it('offers the games action for another user, enabled only while they are online', () => {
+    const alice = makeUser({ name: 'alice' });
+    const { unmount } = renderPlayer(stateWithPlayer(alice));
+    expect(screen.getByRole('button', { name: 'UserGamesDialog.menu.showGames' })).toBeDisabled();
+    unmount();
+
+    renderPlayer(stateWithPlayer(alice, { users: { alice } }));
+    expect(screen.getByRole('button', { name: 'UserGamesDialog.menu.showGames' })).toBeEnabled();
   });
 
   it('hides action buttons when viewing your own profile', () => {
