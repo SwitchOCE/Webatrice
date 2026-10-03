@@ -268,7 +268,7 @@ describe('rooms', () => {
     })));
 
     const { joinRoomError, joinedRoomIds } = store.getState().rooms;
-    expect(joinRoomError).toEqual({ roomId: 3, code: Response_ResponseCode.RespUserLevelTooLow });
+    expect(joinRoomError).toEqual({ roomId: 3, responseCode: Response_ResponseCode.RespUserLevelTooLow, failure: undefined });
     expect(joinedRoomIds[3]).toBeUndefined();
   });
 

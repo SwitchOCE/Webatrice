@@ -5,7 +5,7 @@ import { rooms, server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { Response_ResponseCode, type ServerInfo_Game } from '@cockatrice/sockatrice/generated';
 import { AlertDialog, DialogShell, PromptDialog } from '@app/dialogs';
-import { useJoinGame, useNavigateOnGameJoined } from '@app/hooks';
+import { useCommandFailureMessage, useJoinGame, useNavigateOnGameJoined } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 import { formatRestrictions, formatSpectators } from '@app/utils';
 
@@ -19,7 +19,8 @@ const BUTTON_CLASS =
 const COLUMNS = ['room', 'description', 'creator', 'type', 'restrictions', 'players', 'spectators'] as const;
 
 // Desktop UserContextMenu::gamesOfUserReceived messages, keyed by response code;
-// any other rejection gets its generic "Could not get %1's games." message.
+// any other rejection gets its generic "Could not get %1's games." message, and a
+// request the server never answered gets the transport reason.
 const FAILURE_KEYS: Partial<Record<Response_ResponseCode, string>> = {
   [Response_ResponseCode.RespNameNotFound]: 'UserGamesDialog.error.userNotFound',
   [Response_ResponseCode.RespInIgnoreList]: 'UserGamesDialog.error.ignored',
@@ -39,6 +40,7 @@ interface UserGamesDialogProps {
  */
 export default function UserGamesDialog({ userName, onClose }: UserGamesDialogProps) {
   const { t } = useTranslation();
+  const describeFailure = useCommandFailureMessage();
   const webClient = useWebClient();
   const status = useAppSelector((state) => server.Selectors.getGamesOfUserStatus(state, userName));
   const gameList = useAppSelector((state) => server.Selectors.getGamesOfUser(state, userName));
@@ -87,8 +89,9 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
 
   let body;
   if (status?.state === 'failed') {
-    const key = FAILURE_KEYS[status.code as Response_ResponseCode] ?? 'UserGamesDialog.error.unknown';
-    body = <p role="alert" className="text-sm text-text-secondary">{t(key, { name: userName })}</p>;
+    const key = FAILURE_KEYS[status.responseCode as Response_ResponseCode] ?? 'UserGamesDialog.error.unknown';
+    const message = describeFailure(status.failure, t(key, { name: userName }));
+    body = <p role="alert" className="text-sm text-text-secondary">{message}</p>;
   } else if (status?.state !== 'loaded') {
     body = <p className="text-sm text-text-muted">{t('UserGamesDialog.loading')}</p>;
   } else if (gameList.length === 0) {

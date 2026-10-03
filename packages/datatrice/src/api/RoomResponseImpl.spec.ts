@@ -53,12 +53,14 @@ describe('RoomResponseImpl', () => {
     expect(dispatch).toHaveBeenCalledWith(RoomsActions.roomSayReceived({ roomId: 3, message }));
   });
 
-  it('roomSayFlooded dispatches the roomSayFlooded action with a receive time', () => {
+  it('roomSayFailed dispatches the roomSayFailed action with a receive time', () => {
     const { impl, dispatch } = setup();
-    impl.roomSayFlooded(3, 'hello');
+    impl.roomSayFailed(3, 'hello', 18, WebsocketTypes.CommandFailure.Timeout);
     expect(dispatch).toHaveBeenCalledWith({
-      type: RoomsActions.roomSayFlooded.type,
-      payload: { roomId: 3, message: 'hello', timeReceived: expect.any(Number) },
+      type: RoomsActions.roomSayFailed.type,
+      payload: {
+        roomId: 3, message: 'hello', responseCode: 18, failure: WebsocketTypes.CommandFailure.Timeout, timeReceived: expect.any(Number),
+      },
     });
   });
 

@@ -1,6 +1,7 @@
 import { act, fireEvent, screen } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 import { rooms, type Message } from '@cockatrice/datatrice';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { Event_RoomSay_RoomMessageType, Event_RoomSaySchema } from '@cockatrice/sockatrice/generated';
 
 import { renderWithProviders, connectedState } from '../../../__test-utils__';
@@ -39,6 +40,11 @@ describe('RoomChat', () => {
     expect(screen.getByText('RoomChat.notice.chatFlood')).toBeInTheDocument();
   });
 
+  it('renders a not-sent notice with the transport reason', () => {
+    renderChat([makeMessage({ message: '', notice: 'notSent', failure: WebsocketTypes.CommandFailure.Timeout })]);
+    expect(screen.getByText('RoomChat.notice.notSent')).toBeInTheDocument();
+  });
+
   it('sends the draft and clears the input', () => {
     const onSay = vi.fn();
     renderChat([], onSay);
@@ -52,8 +58,8 @@ describe('RoomChat', () => {
   it('restores the unsent text into an empty input when this room floods', () => {
     const { store } = renderChat();
     act(() => {
-      store.dispatch(rooms.Actions.roomSayFlooded({ roomId: 2, message: 'other room', timeReceived: 1 }));
-      store.dispatch(rooms.Actions.roomSayFlooded({ roomId: 1, message: 'too fast', timeReceived: 2 }));
+      store.dispatch(rooms.Actions.roomSayFailed({ roomId: 2, message: 'other room', responseCode: 18, timeReceived: 1 }));
+      store.dispatch(rooms.Actions.roomSayFailed({ roomId: 1, message: 'too fast', responseCode: 18, timeReceived: 2 }));
     });
     expect(screen.getByRole('textbox')).toHaveValue('too fast');
   });
@@ -62,7 +68,7 @@ describe('RoomChat', () => {
     const { store } = renderChat();
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'newer' } });
     act(() => {
-      store.dispatch(rooms.Actions.roomSayFlooded({ roomId: 1, message: 'too fast', timeReceived: 2 }));
+      store.dispatch(rooms.Actions.roomSayFailed({ roomId: 1, message: 'too fast', responseCode: 18, timeReceived: 2 }));
     });
     expect(screen.getByRole('textbox')).toHaveValue('newer');
   });

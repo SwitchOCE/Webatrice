@@ -268,13 +268,20 @@ describe('ADD_MESSAGE', () => {
   });
 });
 
-describe('ROOM_SAY_FLOODED', () => {
+describe('ROOM_SAY_FAILED', () => {
   it('appends a sender-less chatFlood notice without the unsent text', () => {
     const state = makeRoomsState({ messages: { 1: [makeMessage({ message: 'earlier', id: 1 })] } });
-    const result = roomsReducer(state, Actions.roomSayFlooded({ roomId: 1, message: 'too fast', timeReceived: 99 }));
+    const result = roomsReducer(state, Actions.roomSayFailed({ roomId: 1, message: 'too fast', responseCode: 18, timeReceived: 99 }));
     const notice = result.messages[1][1];
     expect(notice).toMatchObject({ name: '', message: '', notice: 'chatFlood', timeReceived: 99 });
     expect(notice.id).toBeTypeOf('number');
+  });
+
+  it('appends a notSent notice with the reason when the server never answered', () => {
+    const result = roomsReducer(makeRoomsState(), Actions.roomSayFailed({
+      roomId: 1, message: 'hello', responseCode: 4, failure: WebsocketTypes.CommandFailure.Disconnected, timeReceived: 1,
+    }));
+    expect(result.messages[1][0]).toMatchObject({ notice: 'notSent', failure: WebsocketTypes.CommandFailure.Disconnected });
   });
 });
 

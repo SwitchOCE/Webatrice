@@ -81,17 +81,18 @@ export interface CommandFailedPayload {
   failure?: WebsocketTypes.CommandFailure;
 }
 
-// `failed.code` is the raw Response.ResponseCode; the UI maps it to desktop's
-// UserContextMenu::gamesOfUserReceived message.
+// `failed` carries the raw Response.ResponseCode, which the UI maps to desktop's
+// UserContextMenu::gamesOfUserReceived message, and `failure` when the server never answered.
 export type GamesOfUserStatus =
   | { state: 'loading' }
   | { state: 'loaded' }
-  | { state: 'failed'; code: number };
+  | ({ state: 'failed' } & CommandFailedPayload);
 
 export type PrivateChatNoticeKind =
   | 'ignoredByRecipient'
   | 'recipientOffline'
   | 'chatFlood'
+  | 'notSent'
   | 'userLeft'
   | 'userJoined';
 
@@ -102,6 +103,8 @@ export interface PrivateChatNotice {
   // How many of the conversation's stored messages precede this notice. Shifted
   // down when old messages are trimmed, so the notice keeps its place.
   position: number;
+  // Why a `notSent` message got no answer from the server.
+  failure?: WebsocketTypes.CommandFailure;
 }
 
 // One row of a private conversation: a message or a client notice, in order.

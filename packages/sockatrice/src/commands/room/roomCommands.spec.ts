@@ -175,6 +175,20 @@ describe('roomSay', () => {
   it('reports a flood rejection with the unsent message', () => {
     roomSay(2, '  hello  ');
     invokeResponseCode(Response_ResponseCode.RespChatFlood);
-    expect(WebClient.instance.response.room.roomSayFlooded).toHaveBeenCalledWith(2, 'hello');
+    expect(WebClient.instance.response.room.roomSayFailed).toHaveBeenCalledWith(2, 'hello', Response_ResponseCode.RespChatFlood);
+  });
+
+  it('reports a message the server never answered with the transport reason', () => {
+    roomSay(2, 'hello');
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    expect(WebClient.instance.response.room.roomSayFailed).toHaveBeenCalledWith(
+      2, 'hello', Response_ResponseCode.RespNotConnected, CommandFailure.Disconnected,
+    );
+  });
+
+  it('keeps other server rejections silent, as desktop does', () => {
+    roomSay(2, 'hello');
+    invokeOnError(Response_ResponseCode.RespContextError);
+    expect(WebClient.instance.response.room.roomSayFailed).not.toHaveBeenCalled();
   });
 });

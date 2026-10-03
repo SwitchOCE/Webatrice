@@ -501,16 +501,26 @@ describe('Private chat notices', () => {
     [Response_ResponseCode.RespChatFlood, 'chatFlood'],
   ])('PRIVATE_MESSAGE_FAILED with code %i → appends a %s notice after the stored messages', (code, kind) => {
     const state = makeServerState({ messages: { Alice: [msg('a'), msg('b')] } });
-    const result = serverReducer(state, Actions.privateMessageFailed({ userName: 'Alice', message: 'unsent', code }));
+    const result = serverReducer(state, Actions.privateMessageFailed({ userName: 'Alice', message: 'unsent', responseCode: code }));
     expect(result.privateChatNotices['Alice']).toEqual([{ id: expect.any(Number), kind, position: 2 }]);
   });
 
   it('PRIVATE_MESSAGE_FAILED for an unmapped code → no notice', () => {
     const state = makeServerState();
     const result = serverReducer(state, Actions.privateMessageFailed({
-      userName: 'Alice', message: 'unsent', code: Response_ResponseCode.RespContextError,
+      userName: 'Alice', message: 'unsent', responseCode: Response_ResponseCode.RespContextError,
     }));
     expect(result.privateChatNotices).toEqual({});
+  });
+
+  it('PRIVATE_MESSAGE_FAILED without a server answer → a notSent notice carrying the reason', () => {
+    const result = serverReducer(makeServerState(), Actions.privateMessageFailed({
+      userName: 'Alice', message: 'unsent', responseCode: Response_ResponseCode.RespNotConnected,
+      failure: WebsocketTypes.CommandFailure.Timeout,
+    }));
+    expect(result.privateChatNotices['Alice']).toEqual([
+      { id: expect.any(Number), kind: 'notSent', position: 0, failure: WebsocketTypes.CommandFailure.Timeout },
+    ]);
   });
 
   it('USER_LEFT / USER_JOINED → record presence in an open conversation only', () => {
@@ -571,8 +581,8 @@ describe('Games Of User', () => {
 
   it('GAMES_OF_USER_FAILED → records the response code', () => {
     const state = makeServerState({ gamesOfUserStatus: { alice: { state: 'loading' } } });
-    const result = serverReducer(state, Actions.gamesOfUserFailed({ userName: 'alice', code: 16 }));
-    expect(result.gamesOfUserStatus['alice']).toEqual({ state: 'failed', code: 16 });
+    const result = serverReducer(state, Actions.gamesOfUserFailed({ userName: 'alice', responseCode: 16 }));
+    expect(result.gamesOfUserStatus['alice']).toEqual({ state: 'failed', responseCode: 16, failure: undefined });
   });
 
   it('GAMES_OF_USER → resolves each game type through its own room', () => {

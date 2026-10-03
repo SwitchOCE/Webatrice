@@ -112,14 +112,14 @@ export interface ISessionResponse {
   accountImageChanged(avatarBmp: Uint8Array): void;
   getUserInfo(userInfo: ServerInfo_User): void;
   getGamesOfUser(userName: string, response: Response_GetGamesOfUser): void;
-  getGamesOfUserPending(userName: string): void;
-  getGamesOfUserFailed(userName: string, responseCode: number): void;
+  getGamesOfUserPending?(userName: string): void;
+  getGamesOfUserFailed?(userName: string, responseCode: number, failure?: CommandFailure): void;
   gameJoined(gameJoinedData: Event_GameJoined): void;
   notifyUser(notification: Event_NotifyUser): void;
   playerPropertiesChanged(gameId: number, playerId: number, payload: Event_PlayerPropertiesChanged): void;
   serverShutdown(data: Event_ServerShutdown): void;
   userMessage(messageData: Event_UserMessage): void;
-  privateMessageFailed(userName: string, message: string, responseCode: number): void;
+  privateMessageFailed?(userName: string, message: string, responseCode: number, failure?: CommandFailure): void;
   addToList(list: string, userName: string): void;
   removeFromList(list: string, userName: string): void;
   deleteServerDeck(deckId: number): void;
@@ -167,7 +167,7 @@ export interface IRoomResponse<T extends RoomEventMap = WebSocketRoomResponseOve
   updateRooms(rooms: ServerInfo_Room[]): void;
   updateGames(roomId: number, gameList: ServerInfo_Game[]): void;
   addMessage(roomId: number, message: T[KeyOf<RoomEventMap, Event_RoomSay>]): void;
-  roomSayFlooded(roomId: number, message: string): void;
+  roomSayFailed?(roomId: number, message: string, responseCode: number, failure?: CommandFailure): void;
   userJoined(roomId: number, user: ServerInfo_User): void;
   userLeft(roomId: number, name: string): void;
   removeMessages(roomId: number, name: string, amount: number): void;

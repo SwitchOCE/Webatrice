@@ -10,6 +10,8 @@ import {
   ServerInfo_User_UserLevelFlag,
 } from '@cockatrice/sockatrice/generated';
 
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
+
 import { renderWithProviders, connectedState, createMockWebClient, makeUser } from '../../__test-utils__';
 import type { RootState } from '../../store';
 import UserGamesDialog from './UserGamesDialog';
@@ -88,8 +90,19 @@ describe('UserGamesDialog', () => {
     [Response_ResponseCode.RespInIgnoreList, 'UserGamesDialog.error.ignored'],
     [Response_ResponseCode.RespInternalError, 'UserGamesDialog.error.unknown'],
   ])('shows the desktop message for rejection %i', (code, key) => {
-    renderDialog({ status: { state: 'failed', code } });
+    renderDialog({ status: { state: 'failed', responseCode: code } });
     expect(screen.getByRole('alert')).toHaveTextContent(key);
+  });
+
+  it('gives the transport reason when the server never answered', () => {
+    renderDialog({
+      status: {
+        state: 'failed',
+        responseCode: Response_ResponseCode.RespNotConnected,
+        failure: WebsocketTypes.CommandFailure.Disconnected,
+      },
+    });
+    expect(screen.getByRole('alert')).toHaveTextContent('CommandFailure.disconnected');
   });
 
   it('says so when the user is in no games', () => {

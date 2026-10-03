@@ -100,17 +100,18 @@ export const addMessage: CaseReducer<
 };
 
 // Desktop TabRoom::sayFinished: a RespChatFlood rejection appends a warning line
-// to the room chat. `message` is the unsent text; the reducer only records the
-// notice, and the UI may use the payload to restore the draft.
-export const roomSayFlooded: CaseReducer<
+// to the room chat; a message the server never answered (`failure` set) gets a
+// "not sent" line with the reason. `message` is the unsent text: the reducer only
+// records the notice, and the UI may use the payload to restore the draft.
+export const roomSayFailed: CaseReducer<
   RoomsState,
-  PayloadAction<{ roomId: number; message: string; timeReceived: number }>
+  PayloadAction<RoomCommandFailedPayload & { message: string; timeReceived: number }>
 > = (state, action) => {
-  const { roomId, timeReceived } = action.payload;
+  const { roomId, timeReceived, failure } = action.payload;
   appendMessage(state, roomId, {
     ...create(Event_RoomSaySchema, { name: '', message: '' }),
     timeReceived,
-    notice: 'chatFlood',
+    ...(failure ? { notice: 'notSent' as const, failure } : { notice: 'chatFlood' as const }),
   });
 };
 
@@ -249,7 +250,7 @@ export const inlineReducers = {
   joinRoom,
   leaveRoom,
   addMessage,
-  roomSayFlooded,
+  roomSayFailed,
   updateGames,
   userJoined,
   userLeft,

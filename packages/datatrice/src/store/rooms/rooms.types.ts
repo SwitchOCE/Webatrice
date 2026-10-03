@@ -9,7 +9,7 @@ export const Types = {
   LEAVE_ROOM: a.leaveRoom.type,
   ADD_MESSAGE: a.addMessage.type,
   ROOM_SAY_RECEIVED: a.roomSayReceived.type,
-  ROOM_SAY_FLOODED: a.roomSayFlooded.type,
+  ROOM_SAY_FAILED: a.roomSayFailed.type,
   UPDATE_GAMES: a.updateGames.type,
   USER_JOINED: a.userJoined.type,
   USER_LEFT: a.userLeft.type,

@@ -10,7 +10,8 @@ import {
   ServerInfo_UserSchema,
 } from '@cockatrice/sockatrice/generated';
 import { normalizeGameObject, normalizeGametypeMap } from '../../common';
-import { PrivateChatNoticeKind, ServerState } from './server.interfaces';
+import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
+import { CommandFailedPayload, PrivateChatNoticeKind, ServerState } from './server.interfaces';
 
 export const MAX_USER_MESSAGES = 1000;
 export const MAX_NOTIFICATIONS = 200;
@@ -31,13 +32,18 @@ function hasConversation(state: ServerState, userName: string): boolean {
   return Boolean(state.messages[userName] || state.privateChatNotices[userName]);
 }
 
-function appendPrivateChatNotice(state: ServerState, userName: string, kind: PrivateChatNoticeKind): void {
+function appendPrivateChatNotice(
+  state: ServerState,
+  userName: string,
+  kind: PrivateChatNoticeKind,
+  failure?: WebsocketTypes.CommandFailure,
+): void {
   const notices = state.privateChatNotices[userName] ?? [];
   const position = state.messages[userName]?.length ?? 0;
   const kept = notices.length >= MAX_PRIVATE_CHAT_NOTICES
     ? notices.slice(notices.length - MAX_PRIVATE_CHAT_NOTICES + 1)
     : notices;
-  state.privateChatNotices[userName] = [...kept, { id: nextNoticeId++, kind, position }];
+  state.privateChatNotices[userName] = [...kept, { id: nextNoticeId++, kind, position, ...(failure ? { failure } : {}) }];
 }
 
 export const userReducers = {
@@ -105,15 +111,20 @@ export const userReducers = {
     state.messages[userName].push(action.payload.messageData);
   }) as CaseReducer<ServerState, PayloadAction<{ messageData: Event_UserMessage }>>,
 
-  // A rejected Command_Message. `message` is the unsent text: the reducer records
-  // only the notice; the UI may use the payload to restore the draft.
+  // A Command_Message that failed: rejected by the server, or never answered
+  // (`failure` set: a "not sent" notice with the reason). `message` is the unsent
+  // text: the reducer records only the notice; the UI may use it to restore the draft.
   privateMessageFailed: ((state, action) => {
-    const { userName, code } = action.payload;
-    const kind = PRIVATE_MESSAGE_FAILURE_NOTICES[code as Response_ResponseCode];
+    const { userName, responseCode, failure } = action.payload;
+    if (failure) {
+      appendPrivateChatNotice(state, userName, 'notSent', failure);
+      return;
+    }
+    const kind = PRIVATE_MESSAGE_FAILURE_NOTICES[responseCode as Response_ResponseCode];
     if (kind) {
       appendPrivateChatNotice(state, userName, kind);
     }
-  }) as CaseReducer<ServerState, PayloadAction<{ userName: string; message: string; code: number }>>,
+  }) as CaseReducer<ServerState, PayloadAction<CommandFailedPayload & { userName: string; message: string }>>,
 
   notifyUser: ((state, action) => {
     if (state.notifications.length >= MAX_NOTIFICATIONS) {
@@ -149,7 +160,7 @@ export const userReducers = {
   }) as CaseReducer<ServerState, PayloadAction<{ userName: string; response: Response_GetGamesOfUser }>>,
 
   gamesOfUserFailed: ((state, action) => {
-    const { userName, code } = action.payload;
-    state.gamesOfUserStatus[userName] = { state: 'failed', code };
-  }) as CaseReducer<ServerState, PayloadAction<{ userName: string; code: number }>>,
+    const { userName, responseCode, failure } = action.payload;
+    state.gamesOfUserStatus[userName] = { state: 'failed', responseCode, failure };
+  }) as CaseReducer<ServerState, PayloadAction<CommandFailedPayload & { userName: string }>>,
 };

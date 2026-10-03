@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { MessageSquare, Send } from 'lucide-react';
 
 import { server, type PrivateConversationEntry } from '@cockatrice/datatrice';
-import { useReduxEffect } from '@app/hooks';
+import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 
 interface PrivateChatProps {
   peerName: string;
@@ -27,14 +27,15 @@ interface PrivateChatProps {
  * re-renders from that state — no local optimistic buffer needed.
  *
  * Delivery mirrors desktop TabMessage: a rejected send (the peer ignores
- * you, went offline, or you are flooding) adds a notice line to the
- * conversation and the unsent text comes back into an empty composer;
+ * you, went offline, or you are flooding), or one the server never answered,
+ * adds a notice line to the conversation and the unsent text comes back into an empty composer;
  * the peer leaving or rejoining the server is noted in the conversation.
  * Desktop refuses to send while the peer is offline or ignored by you,
  * keeping the draft; here the composer explains why and stays disabled.
  */
 export default function PrivateChat({ peerName, selfName, entries, isOnline, isIgnored, onSend }: PrivateChatProps) {
   const { t } = useTranslation();
+  const describeFailure = useCommandFailureMessage();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState('');
 
@@ -96,7 +97,10 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
           if (entry.type === 'notice') {
             return (
               <div key={`notice-${entry.notice.id}`} className="text-center text-xs text-text-muted italic">
-                {t(`PrivateChat.notice.${entry.notice.kind}`, { name: peerName })}
+                {t(`PrivateChat.notice.${entry.notice.kind}`, {
+                  name: peerName,
+                  reason: describeFailure(entry.notice.failure, ''),
+                })}
               </div>
             );
           }

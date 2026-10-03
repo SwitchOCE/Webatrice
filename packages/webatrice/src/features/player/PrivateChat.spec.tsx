@@ -2,6 +2,7 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 import { server, type PrivateConversationEntry } from '@cockatrice/datatrice';
 import { Event_UserMessageSchema, Response_ResponseCode } from '@cockatrice/sockatrice/generated';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { renderWithProviders, connectedState } from '../../__test-utils__';
 import PrivateChat from './PrivateChat';
@@ -42,6 +43,13 @@ describe('PrivateChat', () => {
     expect(rows).toEqual(['hey', 'PrivateChat.notice.userLeft', 'still there?', 'PrivateChat.notice.recipientOffline']);
   });
 
+  it('explains a message the server never answered', () => {
+    renderChat({
+      entries: [{ type: 'notice', notice: { id: 9, kind: 'notSent', position: 0, failure: WebsocketTypes.CommandFailure.Timeout } }],
+    });
+    expect(screen.getByText('PrivateChat.notice.notSent')).toBeInTheDocument();
+  });
+
   it('shows the peer as online and sends a trimmed draft', () => {
     const { onSend } = renderChat();
     expect(screen.getByTestId('private-chat-presence')).toHaveTextContent('PrivateChat.presence.online');
@@ -79,10 +87,10 @@ describe('PrivateChat', () => {
     const { store } = renderChat();
     act(() => {
       store.dispatch(server.Actions.privateMessageFailed({
-        userName: 'carol', message: 'not for bob', code: Response_ResponseCode.RespChatFlood,
+        userName: 'carol', message: 'not for bob', responseCode: Response_ResponseCode.RespChatFlood,
       }));
       store.dispatch(server.Actions.privateMessageFailed({
-        userName: 'bob', message: 'are you there?', code: Response_ResponseCode.RespNameNotFound,
+        userName: 'bob', message: 'are you there?', responseCode: Response_ResponseCode.RespNameNotFound,
       }));
     });
     expect(screen.getByRole('textbox')).toHaveValue('are you there?');
@@ -93,7 +101,7 @@ describe('PrivateChat', () => {
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'newer' } });
     act(() => {
       store.dispatch(server.Actions.privateMessageFailed({
-        userName: 'bob', message: 'older', code: Response_ResponseCode.RespChatFlood,
+        userName: 'bob', message: 'older', responseCode: Response_ResponseCode.RespChatFlood,
       }));
     });
     expect(screen.getByRole('textbox')).toHaveValue('newer');

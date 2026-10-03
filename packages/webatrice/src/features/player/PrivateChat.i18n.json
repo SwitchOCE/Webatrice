@@ -13,7 +13,8 @@
       "recipientOffline": "Message not sent — {name} is offline.",
       "chatFlood": "You are flooding the chat. Please wait a couple of seconds.",
       "userLeft": "{name} has left the server.",
-      "userJoined": "{name} has joined the server."
+      "userJoined": "{name} has joined the server.",
+      "notSent": "Message not sent: {reason}"
     }
   }
 }

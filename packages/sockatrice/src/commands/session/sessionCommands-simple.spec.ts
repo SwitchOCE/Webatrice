@@ -344,7 +344,15 @@ describe('getGamesOfUser', () => {
   ])('reports rejection %i with its response code', (code) => {
     getGamesOfUser('alice');
     invokeOnError(code);
-    expect(WebClient.instance.response.session.getGamesOfUserFailed).toHaveBeenCalledWith('alice', code);
+    expect(WebClient.instance.response.session.getGamesOfUserFailed).toHaveBeenCalledWith('alice', code, undefined);
+  });
+
+  it('reports a request the server never answered with the transport reason', () => {
+    getGamesOfUser('alice');
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Timeout);
+    expect(WebClient.instance.response.session.getGamesOfUserFailed).toHaveBeenCalledWith(
+      'alice', Response_ResponseCode.RespNotConnected, CommandFailure.Timeout,
+    );
   });
 });
 
@@ -490,10 +498,18 @@ describe('message', () => {
     expect(WebClient.instance.response.session.privateMessageFailed).toHaveBeenCalledWith('bob', 'hi', code);
   });
 
-  it('leaves other failures to the default handler', () => {
+  it('reports a message the server never answered with the transport reason', () => {
     message('bob', 'hi');
-    const opts = (WebClient.instance.protobuf.sendSessionCommand as Mock).mock.calls[0][2];
-    expect(opts.onResponseCode[Response_ResponseCode.RespContextError]).toBeUndefined();
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.NotSent);
+    expect(WebClient.instance.response.session.privateMessageFailed).toHaveBeenCalledWith(
+      'bob', 'hi', Response_ResponseCode.RespNotConnected, CommandFailure.NotSent,
+    );
+  });
+
+  it('keeps other server rejections silent', () => {
+    message('bob', 'hi');
+    invokeOnError(Response_ResponseCode.RespContextError);
+    expect(WebClient.instance.response.session.privateMessageFailed).not.toHaveBeenCalled();
   });
 
 });

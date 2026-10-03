@@ -249,12 +249,12 @@ describe('integration: room chat and users', () => {
       .toEqual(['troll: before', 'alice: hi', 'troll: after']);
   });
 
-  it('roomSayFlooded appends a chatFlood notice to the room chat', () => {
+  it('roomSayFailed appends a chatFlood notice to the room chat', () => {
     const store = createStore();
     const response = attachResponseHandlers(store);
     response.room.joinRoom(makeRoom(1, 'Main'));
 
-    response.room.roomSayFlooded(1, 'too fast');
+    response.room.roomSayFailed(1, 'too fast', 18);
     const [notice] = rooms.Selectors.getRoomMessages(store.getState(), 1);
     expect(notice).toMatchObject({ notice: 'chatFlood', message: '' });
   });

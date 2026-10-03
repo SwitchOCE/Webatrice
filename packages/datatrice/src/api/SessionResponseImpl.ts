@@ -192,8 +192,8 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.gamesOfUserRequested({ userName }));
   }
 
-  getGamesOfUserFailed(userName: string, responseCode: number): void {
-    this.store.dispatch(ServerActions.gamesOfUserFailed({ userName, code: responseCode }));
+  getGamesOfUserFailed(userName: string, responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
+    this.store.dispatch(ServerActions.gamesOfUserFailed({ userName, responseCode, failure }));
   }
 
   gameJoined(gameJoinedData: Event_GameJoined): void {
@@ -218,8 +218,8 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.userMessage({ messageData }));
   }
 
-  privateMessageFailed(userName: string, message: string, responseCode: number): void {
-    this.store.dispatch(ServerActions.privateMessageFailed({ userName, message, code: responseCode }));
+  privateMessageFailed(userName: string, message: string, responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
+    this.store.dispatch(ServerActions.privateMessageFailed({ userName, message, responseCode, failure }));
   }
 
   addToList(list: string, userName: string): void {

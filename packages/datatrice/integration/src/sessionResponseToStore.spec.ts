@@ -329,7 +329,7 @@ describe('integration: session messaging and notifications', () => {
     response.session.getGamesOfUserPending('alice');
     expect(server.Selectors.getGamesOfUserStatus(store.getState(), 'alice')).toEqual({ state: 'loading' });
     response.session.getGamesOfUserFailed('alice', 16);
-    expect(server.Selectors.getGamesOfUserStatus(store.getState(), 'alice')).toEqual({ state: 'failed', code: 16 });
+    expect(server.Selectors.getGamesOfUserStatus(store.getState(), 'alice')).toEqual({ state: 'failed', responseCode: 16, failure: undefined });
 
     response.session.getGamesOfUserPending('alice');
     response.session.getGamesOfUser('alice', create(Response_GetGamesOfUserSchema, {

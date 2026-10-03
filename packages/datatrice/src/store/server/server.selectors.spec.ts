@@ -414,8 +414,8 @@ describe('Selectors', () => {
   });
 
   it('getGamesOfUserStatus → returns the request lifecycle for a user', () => {
-    const state = makeServerState({ gamesOfUserStatus: { bob: { state: 'failed', code: 6 } } });
-    expect(Selectors.getGamesOfUserStatus(rootState(state), 'bob')).toEqual({ state: 'failed', code: 6 });
+    const state = makeServerState({ gamesOfUserStatus: { bob: { state: 'failed', responseCode: 6 } } });
+    expect(Selectors.getGamesOfUserStatus(rootState(state), 'bob')).toEqual({ state: 'failed', responseCode: 6 });
     expect(Selectors.getGamesOfUserStatus(rootState(state), 'carol')).toBeUndefined();
   });
 
