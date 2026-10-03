@@ -129,6 +129,10 @@ describe('deckLegality', () => {
     expect(deckLegality([card('Lightning Bolt')], 'pauperhome', homebrew, undefined).status).toBe('legal');
   });
 
+  it('has nothing to check in an empty deck', () => {
+    expect(deckLegality([], 'modern', facts, modernRules).status).toBe('none');
+  });
+
   it('has nothing to check without a format', () => {
     expect(deckLegality([card('Sol Ring')], '', facts, modernRules)).toEqual(
       expect.objectContaining({ status: 'none', illegalCount: 0 }),
