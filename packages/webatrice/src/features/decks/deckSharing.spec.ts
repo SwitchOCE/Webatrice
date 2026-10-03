@@ -14,10 +14,23 @@ import type { DeckCard } from './types';
 const link = { token: 'abc123', hostname: 'server.cockatrice.us', port: '4748' };
 
 describe('share links', () => {
-  it('builds a link to Webatrice itself with desktop\'s query', () => {
+  it('builds a link to Webatrice itself with desktop\'s parameters in the fragment', () => {
     const built = buildDeckShareLink('https://play.example/webatrice/?old=1#x', link);
-    expect(built).toBe('https://play.example/webatrice/?share=abc123&hostname=server.cockatrice.us&port=4748');
+    expect(built).toBe('https://play.example/webatrice/#share=abc123&hostname=server.cockatrice.us&port=4748');
+    expect(new URL(built).search).toBe('');
     expect(parseDeckShareLink(built)).toEqual(link);
+  });
+
+  it('still reads a pasted link with the parameters in the query', () => {
+    expect(parseDeckShareLink('https://play.example/?share=abc123&hostname=server.cockatrice.us&port=4748')).toEqual(link);
+  });
+
+  it('reads encoded values and ignores extra parameters', () => {
+    expect(parseDeckShareLink('https://x/#share=a%2Fb%3D&hostname=h&port=1&evil=%2F%2Fother')).toEqual({
+      token: 'a/b=',
+      hostname: 'h',
+      port: '1',
+    });
   });
 
   it('reads a desktop cockatrice://opendeck link', () => {
@@ -30,6 +43,8 @@ describe('share links', () => {
   it.each([
     ['not a link', 'invalid'],
     ['cockatrice://joingame?share=a&hostname=h&port=1', 'invalid'],
+    ['javascript:alert(1)//?share=a&hostname=h&port=1', 'invalid'],
+    ['data:text/html,x?share=a&hostname=h&port=1', 'invalid'],
     ['https://x/?share=a&port=1', 'hostname'],
     ['https://x/?share=a&hostname=h', 'port'],
     ['https://x/?share=a&hostname=h&port=0', 'port'],
@@ -81,37 +96,48 @@ describe('deckColorIdentity', () => {
 });
 
 describe('pending share link', () => {
-  function fakeWindow(search: string) {
-    const storage = new Map<string, string>();
+  function fakeWindow(hash: string, search = '') {
     const replaceState = vi.fn();
     const win = {
-      location: { search, pathname: '/app/', hash: '' },
+      location: { search, pathname: '/app/', hash },
       history: { state: null, replaceState },
-      sessionStorage: {
-        getItem: (k: string) => storage.get(k) ?? null,
-        setItem: (k: string, v: string) => storage.set(k, v),
-        removeItem: (k: string) => storage.delete(k),
-      },
     } as unknown as Window;
     return { win, replaceState };
   }
 
-  it('moves the link from the address into session storage once', () => {
-    const { win, replaceState } = fakeWindow('?lang=fr&share=abc123&hostname=h&port=4748');
+  afterEach(() => {
+    takePendingDeckShareLink();
+  });
+
+  it('moves the link from the fragment into memory once', () => {
+    const { win, replaceState } = fakeWindow('#share=abc123&hostname=h&port=4748', '?lang=fr');
     expect(captureDeckShareLink(win)).toBe(true);
     expect(replaceState).toHaveBeenCalledWith(null, '', '/app/?lang=fr');
-    expect(takePendingDeckShareLink(win)).toBe('share=abc123&hostname=h&port=4748');
-    expect(takePendingDeckShareLink(win)).toBeNull();
+    expect(takePendingDeckShareLink()).toBe('share=abc123&hostname=h&port=4748');
+    expect(takePendingDeckShareLink()).toBeNull();
+  });
+
+  it('keeps other fragment parameters in the address bar', () => {
+    const { win, replaceState } = fakeWindow('#tab=x&share=abc123&hostname=h&port=4748');
+    expect(captureDeckShareLink(win)).toBe(true);
+    expect(replaceState).toHaveBeenCalledWith(null, '', '/app/#tab=x');
   });
 
   it('keeps an incomplete link so the shared-deck page can say what is missing', () => {
-    const { win } = fakeWindow('?share=abc123');
+    const { win } = fakeWindow('#share=abc123');
     expect(captureDeckShareLink(win)).toBe(true);
-    expect(parseDeckShareQuery(new URLSearchParams(takePendingDeckShareLink(win)!))).toEqual({ problem: 'hostname' });
+    expect(parseDeckShareQuery(new URLSearchParams(takePendingDeckShareLink()!))).toEqual({ problem: 'hostname' });
+  });
+
+  it('ignores a share link in the query: only the fragment form is opened on load', () => {
+    const { win, replaceState } = fakeWindow('', '?share=abc123&hostname=h&port=4748');
+    expect(captureDeckShareLink(win)).toBe(false);
+    expect(replaceState).not.toHaveBeenCalled();
+    expect(takePendingDeckShareLink()).toBeNull();
   });
 
   it('ignores a page load without a share link', () => {
-    const { win, replaceState } = fakeWindow('?lang=fr');
+    const { win, replaceState } = fakeWindow('#tab=x', '?lang=fr');
     expect(captureDeckShareLink(win)).toBe(false);
     expect(replaceState).not.toHaveBeenCalled();
   });

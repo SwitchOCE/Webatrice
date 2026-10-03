@@ -16,19 +16,40 @@ describe('DeckShareLinkRedirect', () => {
   const original = window.location.href;
   afterEach(() => {
     window.history.replaceState(null, '', original);
-    window.sessionStorage.clear();
   });
 
-  it('takes the link from the page address and opens it after login', () => {
-    window.history.replaceState(null, '', '/?share=tok&hostname=server.example&port=4748');
+  it('takes the link from the page fragment and opens it after login', () => {
+    window.history.replaceState(null, '', '/#share=tok&hostname=server.example&port=4748');
     const { store } = renderWithProviders(<><DeckShareLinkRedirect /><Location /></>, { preloadedState: disconnectedState });
+    expect(window.location.hash).toBe('');
     expect(window.location.search).toBe('');
-    expect(screen.getByTestId('location')).toHaveTextContent('/');
+    expect(window.location.href).not.toContain('tok');
+    expect(window.sessionStorage.length).toBe(0);
+    expect(screen.getByTestId('location').textContent).toBe('/');
 
     act(() => {
       store.dispatch(server.Actions.updateStatus({ status: { state: WebsocketTypes.StatusEnum.LOGGED_IN, description: null } }));
     });
-    expect(screen.getByTestId('location')).toHaveTextContent('/decks/shared?share=tok&hostname=server.example&port=4748');
+    expect(screen.getByTestId('location').textContent).toBe('/decks/shared?share=tok&hostname=server.example&port=4748');
+  });
+
+  it('keeps hostile values as data: the route is fixed and the values stay encoded', () => {
+    window.history.replaceState(null, '', '/#share=a%26port%3D1&hostname=%2F%2Fevil.example&port=4748&next=%2F%2Fevil');
+    const { store } = renderWithProviders(<><DeckShareLinkRedirect /><Location /></>, { preloadedState: disconnectedState });
+    act(() => {
+      store.dispatch(server.Actions.updateStatus({ status: { state: WebsocketTypes.StatusEnum.LOGGED_IN, description: null } }));
+    });
+    expect(screen.getByTestId('location').textContent)
+      .toBe('/decks/shared?share=a%26port%3D1&hostname=%2F%2Fevil.example&port=4748');
+  });
+
+  it('does not open a link given in the query', () => {
+    window.history.replaceState(null, '', '/?share=tok&hostname=server.example&port=4748');
+    const { store } = renderWithProviders(<><DeckShareLinkRedirect /><Location /></>, { preloadedState: disconnectedState });
+    act(() => {
+      store.dispatch(server.Actions.updateStatus({ status: { state: WebsocketTypes.StatusEnum.LOGGED_IN, description: null } }));
+    });
+    expect(screen.getByTestId('location').textContent).toBe('/');
   });
 
   it('does nothing without a link', () => {
@@ -37,6 +58,6 @@ describe('DeckShareLinkRedirect', () => {
     act(() => {
       store.dispatch(server.Actions.updateStatus({ status: { state: WebsocketTypes.StatusEnum.LOGGED_IN, description: null } }));
     });
-    expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/);
+    expect(screen.getByTestId('location').textContent).toBe('/');
   });
 });

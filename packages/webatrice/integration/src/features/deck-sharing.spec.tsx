@@ -135,7 +135,7 @@ describe('deck sharing (integration)', () => {
         value: create(Response_DeckShareCreateSchema, { token: 'tok123', expiresAt: 1_800_000_000n, itemCount: 1 }),
       })));
     });
-    const link = await screen.findByDisplayValue(/share=tok123&hostname=localhost&port=4748/);
+    const link = await screen.findByDisplayValue(/#share=tok123&hostname=localhost&port=4748$/);
     expect(link).toBeInTheDocument();
     expect(screen.getByText('DeckSharing.expires')).toBeInTheDocument();
   });
