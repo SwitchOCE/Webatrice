@@ -4,6 +4,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { create, isFieldSet } from '@bufbuild/protobuf';
 
 import { DeckEditor, clearDeckEditorCache, clearDecksListCache } from '@app/features/decks';
+import { clearBracketSourceCaches } from '../../../src/features/decks/bracketSources';
 import { parseCod } from '@app/services';
 import { RouteEnum, type ParsedDeck } from '@app/types';
 import {
@@ -21,6 +22,7 @@ import { buildResponse, buildResponseMessage, deliverMessage } from '../helpers/
 import { renderFeatureScreen } from './helpers';
 import {
   LocationProbe,
+  type FetchOverride,
   codXml,
   fetchCalls,
   respondToDeckDownload,
@@ -66,6 +68,7 @@ beforeEach(() => {
   vi.useRealTimers();
   clearDeckEditorCache();
   clearDecksListCache();
+  clearBracketSourceCaches();
   fetchMock = stubThirdPartyFetch();
   stubImagePreload();
   connectAndLogin();
@@ -148,6 +151,80 @@ describe('DeckEditor (integration)', () => {
     const saved = await autosaved((d) => d.bracketAssessment?.level === 1 && d.meta.priceUsd === 24.75);
     expect(saved.meta.bracketLevel).toBe(1);
     expect(saved.bracketAssessment?.fingerprint).toMatch(/^[0-9a-z]{8}$/);
+  });
+
+  describe('bracket assessment with a third-party outage (DATA-001)', () => {
+    function withOutage(override: FetchOverride) {
+      vi.unstubAllGlobals();
+      stubImagePreload();
+      let outage = true;
+      fetchMock = stubThirdPartyFetch((url, init) => (outage ? override(url, init) : undefined));
+      return () => {
+        outage = false;
+      };
+    }
+
+    function bracketUploads() {
+      return uploads().filter((d) => d.bracketAssessment || d.meta.bracketLevel != null);
+    }
+
+    it('shows a partial estimate, never persists it, and saves the bracket once a retry succeeds', async () => {
+      const recover = withOutage((url) =>
+        url.startsWith('https://backend.commanderspellbook.com/')
+          ? ({ ok: false, status: 503, json: async () => ({}) } as Response)
+          : undefined);
+      await openDeck(COMMANDER_DECK);
+
+      expect(await screen.findByText('DeckBracket.partialTitle', {}, { timeout: 3000 })).toBeInTheDocument();
+      expect(screen.getByText('DeckBracket.sourceUnavailable')).toBeInTheDocument();
+      // The price still autosaves; the degraded bracket never does.
+      await autosaved((d) => d.meta.priceUsd === 24.75);
+      expect(bracketUploads()).toEqual([]);
+
+      recover();
+      fireEvent.click(screen.getByRole('button', { name: /DeckBracket\.retry/ }));
+
+      expect(await screen.findByText(/Bracket 1 ·/, {}, { timeout: 3000 })).toBeInTheDocument();
+      expect(screen.queryByText('DeckBracket.partialNotice')).toBeNull();
+      const saved = await autosaved((d) => d.bracketAssessment?.level === 1);
+      expect(saved.meta.bracketLevel).toBe(1);
+    });
+
+    it('treats a malformed Game Changers response as incomplete, not as "no Game Changers"', async () => {
+      withOutage((url) =>
+        url.includes('is%3Agamechanger')
+          ? ({
+            ok: true,
+            status: 200,
+            json: async () => {
+              throw new SyntaxError('bad json');
+            },
+          } as unknown as Response)
+          : undefined);
+      await openDeck(COMMANDER_DECK);
+
+      expect(await screen.findByText('DeckBracket.partialTitle', {}, { timeout: 3000 })).toBeInTheDocument();
+      await autosaved((d) => d.meta.priceUsd === 24.75);
+      expect(bracketUploads()).toEqual([]);
+    });
+
+    it('drops a stale saved assessment instead of leaving it as current', async () => {
+      withOutage((url) =>
+        url.startsWith('https://backend.commanderspellbook.com/')
+          ? Promise.reject(new TypeError('Failed to fetch'))
+          : undefined);
+      await openDeck(codXml({
+        name: 'Stale',
+        format: 'commander',
+        bracketLevel: 4,
+        main: [{ name: 'Sol Ring' }],
+      }));
+
+      expect(await screen.findByText('DeckBracket.partialTitle', {}, { timeout: 3000 })).toBeInTheDocument();
+      const saved = await autosaved((d) => d.meta.priceUsd === 1.5);
+      expect(saved.bracketAssessment).toBeUndefined();
+      expect(saved.meta.bracketLevel).toBeUndefined();
+    });
   });
 
   it('autosaves edits as an update of the same deck id without a storage path, then refreshes the tree', async () => {
