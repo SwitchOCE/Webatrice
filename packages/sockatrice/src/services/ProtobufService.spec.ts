@@ -439,7 +439,7 @@ describe('ProtobufService', () => {
       mockSocket.isOpen.mockReturnValue(false);
       const onError = vi.fn();
       service.sendDeveloperCommand(developerExt, {}, { onError });
-      expect(onError).toHaveBeenCalledWith(-1, expect.any(Object));
+      expect(onError).toHaveBeenCalledWith(-1, expect.any(Object), CommandFailure.NotSent);
     });
   });
 

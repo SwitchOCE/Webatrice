@@ -231,7 +231,7 @@ describe('moderator commands', () => {
 
     expect(getMockResponse().moderator.forceActivateUser).not.toHaveBeenCalled();
     expect(getMockResponse().moderator.commandFailed).toHaveBeenCalledWith(
-      'forceActivateUser', Data.Response_ResponseCode.RespActivationFailed, 'active',
+      'forceActivateUser', Data.Response_ResponseCode.RespActivationFailed, 'active', undefined,
     );
   });
 
@@ -246,7 +246,7 @@ describe('moderator commands', () => {
     })));
 
     expect(getMockResponse().moderator.commandFailed).toHaveBeenCalledWith(
-      'grantReplayAccess', Data.Response_ResponseCode.RespContextError, '404',
+      'grantReplayAccess', Data.Response_ResponseCode.RespContextError, '404', undefined,
     );
   });
 
@@ -262,7 +262,7 @@ describe('moderator commands', () => {
 
     expect(getMockResponse().moderator.banHistory).not.toHaveBeenCalled();
     expect(getMockResponse().moderator.commandFailed).toHaveBeenCalledWith(
-      'banHistory', Data.Response_ResponseCode.RespInternalError, 'baduser',
+      'banHistory', Data.Response_ResponseCode.RespInternalError, 'baduser', undefined,
     );
   });
 });
