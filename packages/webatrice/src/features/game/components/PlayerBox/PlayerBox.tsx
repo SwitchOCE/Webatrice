@@ -49,6 +49,7 @@ import LibrarySearchDialog from './LibrarySearchDialog';
 import { useRegisterForeignDrag } from './foreignDragContext';
 import { useSelectionOwner } from './selectionOwner';
 import Card from './Card';
+import { deckCardImageUrl } from './deckCardImageUrl';
 import { useHoveredCard } from './hoveredCard';
 import { useViewportClampedPopup } from './useViewportClampedPopup';
 import ZoneRevealDialog from './ZoneRevealDialog';
@@ -3120,7 +3121,7 @@ function PlayerBox(
         continue;
       }
       const img = new Image();
-      img.src = `https://api.scryfall.com/cards/${c.card_scryfall_id}?format=image&version=large`;
+      img.src = deckCardImageUrl(c);
     }
   }, [isSelf, cards]);
 
