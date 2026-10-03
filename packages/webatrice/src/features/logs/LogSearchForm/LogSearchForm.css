@@ -49,7 +49,7 @@ hr.MuiDivider-root {
 }
 
 .log-search__error {
-  color: var(--color-error, #f87171);
+  color: rgb(var(--status-danger));
   font-size: 0.8125rem;
   margin: 0 0 12px;
 }
