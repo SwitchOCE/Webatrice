@@ -55,3 +55,15 @@ test('connection holds for 60 s in the foreground', async ({ page }) => {
   await status.expectConnected();
 });
 
+
+test('the top bar shows the measured server round trip', async ({ page }) => {
+  await registerAndReachRooms(page);
+  const status = new ConnectionStatus(page);
+
+  // Login and room commands are timed as they complete, so a ping shows at once.
+  await expect(status.latency).toBeVisible({ timeout: 10_000 });
+  await expect(status.latency).toHaveText(/^Ping: \d+ ms$/);
+
+  await status.latency.click();
+  await expect(page.getByRole('group', { name: 'Connection latency details' })).toContainText('Median:');
+});
