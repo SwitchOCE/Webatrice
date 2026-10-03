@@ -13,8 +13,8 @@
  *     we're fixing.
  *   - Autocomplete is fast (a single small JSON payload) and correct.
  *   - The dropdown only needs the name; hydration happens later, at
- *     which point Dexie is consulted first via the root card catalog
- *     (`services/cards/catalog`).
+ *     which point Dexie is consulted first via the card catalog
+ *     (`services/cards/catalog/lookup.ts`).
  */
 
 import type { DeckCard } from './types';
