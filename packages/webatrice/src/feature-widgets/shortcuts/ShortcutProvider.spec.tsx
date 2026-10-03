@@ -1,0 +1,113 @@
+// The provider's window listener through a real route: where Tab and
+// Shift+Tab move focus instead of advancing the phase, and which shortcuts
+// stand down while a modal is open.
+
+import type { ReactNode } from 'react';
+import { fireEvent } from '@testing-library/react';
+
+import { renderWithProviders } from '../../__test-utils__';
+import { ShortcutProvider } from './ShortcutProvider';
+import { useShortcut } from './useShortcut';
+import { ShortcutScope } from './types';
+
+vi.mock('../../hooks/useSettings');
+
+const handlers = {
+  nextPhase: vi.fn(),
+  nextPhaseAction: vi.fn(),
+  closeRecentView: vi.fn(),
+  chatFocus: vi.fn(),
+};
+
+// chat.focus is registered GLOBAL here to stand for any global action.
+function Harness({ children }: { children?: ReactNode }) {
+  useShortcut('game.nextPhase', handlers.nextPhase, { scope: ShortcutScope.GAME });
+  useShortcut('game.nextPhaseAction', handlers.nextPhaseAction, { scope: ShortcutScope.GAME });
+  useShortcut('game.closeRecentView', handlers.closeRecentView, { scope: ShortcutScope.GAME });
+  useShortcut('chat.focus', handlers.chatFocus, { scope: ShortcutScope.GLOBAL });
+  return <>{children}</>;
+}
+
+function renderGame(children?: ReactNode) {
+  return renderWithProviders(
+    <ShortcutProvider>
+      <Harness>{children}</Harness>
+    </ShortcutProvider>,
+    { route: '/game/1' },
+  );
+}
+
+function press(target: Element, init: KeyboardEventInit) {
+  return fireEvent.keyDown(target, init);
+}
+
+describe('ShortcutProvider focus guards', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('fires Tab and Shift+Tab on the board as desktop does', () => {
+    renderGame(<div data-testid="board">board</div>);
+
+    const tab = press(document.body, { code: 'Tab', key: 'Tab' });
+    press(document.body, { code: 'Tab', key: 'Tab', shiftKey: true });
+
+    expect(handlers.nextPhase).toHaveBeenCalledTimes(1);
+    expect(handlers.nextPhaseAction).toHaveBeenCalledTimes(1);
+    expect(tab).toBe(false);
+  });
+
+  it.each([
+    ['a button', <button key="b" data-testid="t">Go</button>],
+    ['a menu', <ul key="m" role="menu"><li data-testid="t" role="menuitem" tabIndex={0}>Item</li></ul>],
+    ['a non-modal dialog', <div key="d" role="dialog"><span data-testid="t">Panel</span></div>],
+  ])('leaves Tab and Shift+Tab to the browser on %s', (_name, node) => {
+    const { getByTestId } = renderGame(node);
+    const target = getByTestId('t');
+
+    const tab = press(target, { code: 'Tab', key: 'Tab' });
+    const shiftTab = press(target, { code: 'Tab', key: 'Tab', shiftKey: true });
+
+    expect(handlers.nextPhase).not.toHaveBeenCalled();
+    expect(handlers.nextPhaseAction).not.toHaveBeenCalled();
+    // Not prevented, so focus moves.
+    expect(tab).toBe(true);
+    expect(shiftTab).toBe(true);
+  });
+
+  it('fires Ctrl+Space for next phase from a button, since only Tab moves focus', () => {
+    const { getByTestId } = renderGame(<button data-testid="t">Go</button>);
+
+    press(getByTestId('t'), { code: 'Space', key: ' ', ctrlKey: true });
+
+    expect(handlers.nextPhase).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs only global shortcuts while a modal is open, and leaves Escape to the modal', () => {
+    renderGame(<div role="dialog" aria-modal="true">Modal</div>);
+
+    press(document.body, { code: 'Tab', key: 'Tab' });
+    press(document.body, { code: 'Space', key: ' ', ctrlKey: true });
+    const escape = press(document.body, { code: 'Escape', key: 'Escape' });
+
+    expect(handlers.nextPhase).not.toHaveBeenCalled();
+    expect(handlers.closeRecentView).not.toHaveBeenCalled();
+    expect(escape).toBe(true);
+  });
+
+  it('still fires global shortcuts while a modal is open', () => {
+    renderGame(<div role="dialog" aria-modal="true">Modal</div>);
+
+    press(document.body, { code: 'Enter', key: 'Enter', shiftKey: true });
+
+    expect(handlers.chatFocus).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes the latest zone view on Escape once no modal is open', () => {
+    renderGame();
+
+    press(document.body, { code: 'Escape', key: 'Escape' });
+
+    expect(handlers.closeRecentView).toHaveBeenCalledTimes(1);
+  });
+});
