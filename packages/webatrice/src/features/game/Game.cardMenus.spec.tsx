@@ -274,8 +274,6 @@ describe('seat card menu trees', () => {
       ---
       Select All  ⟨Ctrl+A⟩
       Select Row  ⟨Ctrl+Shift+X⟩
-      ---
-      View related cards
       "
     `);
   });

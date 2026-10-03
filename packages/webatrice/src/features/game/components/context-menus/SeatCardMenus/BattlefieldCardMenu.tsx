@@ -27,6 +27,7 @@ export default function BattlefieldCardMenu() {
     openCardCounterPrompt,
     openMoveXFromTopPrompt,
     openPTPrompt,
+    relatedViewItemsFor,
     selection,
     setAttachExtraSourceIds,
     setAttachPending,
@@ -194,12 +195,7 @@ export default function BattlefieldCardMenu() {
                 close();
               },
             },
-            { divider: true },
-            // Cockatrice reads the card's `related` field from the
-            // card DB and pops up a small dialog. We don't have that
-            // wire yet; leave as a disabled placeholder so the menu
-            // shape matches desktop 1:1 (card_menu.cpp:194).
-            { label: 'View related cards' },
+            ...(card ? relatedViewItemsFor(card.name) : []),
             // "Token: …" items — same shape as the own-card menu
             // below. Ports Cockatrice's addRelatedCardActions
             // (card_menu.cpp:407-479). Command_CreateToken fires as
@@ -692,6 +688,7 @@ export default function BattlefieldCardMenu() {
             close();
           },
           tokenItems,
+          relatedViewItems: card ? relatedViewItemsFor(card.name) : [],
         });
         return (
           <CardMenuPopup

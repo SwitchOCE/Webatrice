@@ -1,7 +1,7 @@
 import type { LookupResult, RelatedCardRef } from '@app/services';
 
 import type { CardMenuItem } from './cardContextMenu.model';
-import { buildRelatedTokenItems, buildTransformItems } from './relatedCardActions';
+import { buildRelatedTokenItems, buildRelatedViewItems, buildTransformItems } from './relatedCardActions';
 
 const lookup = (name: string, overrides: Partial<LookupResult> = {}): LookupResult => ({
   found: true,
@@ -127,5 +127,31 @@ describe('buildTransformItems', () => {
 
   it('offers nothing without a create-token command', () => {
     expect(buildTransformItems({ layout: 'transform', faces }, 42, 'Delver of Secrets', undefined)).toEqual([]);
+  });
+});
+
+describe('buildRelatedViewItems', () => {
+  const known = new Set(['Spark Elemental']);
+  const resolvable = (name: string) => known.has(name);
+
+  it('lists every relation, related and reverse-related, in order after a separator', () => {
+    const onView = vi.fn();
+    const items = buildRelatedViewItems(
+      [ref('Missing Card'), ref('Spark Elemental', { origin: 'reverse-related' })],
+      resolvable,
+      onView,
+    );
+    expect(items[0]).toEqual({ divider: true });
+    const submenu = row(items[1]).submenu ?? [];
+    expect(row(items[1]).label).toBe('View related cards');
+    expect(submenu.map((i) => row(i).label)).toEqual(['Missing Card', 'Spark Elemental']);
+
+    row(submenu[1]).onClick?.();
+    expect(onView).toHaveBeenCalledWith(expect.objectContaining({ name: 'Spark Elemental' }));
+  });
+
+  it('is empty unless at least one relation resolves', () => {
+    expect(buildRelatedViewItems([ref('Missing Card')], resolvable, vi.fn())).toEqual([]);
+    expect(buildRelatedViewItems([], resolvable, vi.fn())).toEqual([]);
   });
 });

@@ -12,7 +12,7 @@ import { useGameDialogActions } from '../ui/GameDialogActionsContext';
 import { useGameReadOnly } from '../ui/GameReadOnlyContext';
 import { useLocalIdentity } from '../../hooks/useLocalIdentity';
 import { useGameAffordances } from '../../hooks/useGameAffordances';
-import { useCardPreview } from '../ui/CardPreviewContext';
+import { useCardInfoRequest, useCardPreview } from '../ui/CardPreviewContext';
 import { CARD_CORNER_RADIUS } from '../ui/SeatCard/cardSize';
 import { ManaSymbols, SymbolText } from '../ui/ManaSymbols/ManaSymbols';
 import { useCardPreviewPopup } from '../CardPreviewPopup/useCardPreviewPopup';
@@ -199,6 +199,15 @@ export default function BattlefieldSidebar() {
   const handleBack = useCallback(() => {
     setOverrideStack((stack) => stack.slice(0, -1));
   }, []);
+
+  // A card menu's "View related cards" (desktop's cardInfoRequested) steps
+  // into the stack like a related-link click, so the next hover resets it.
+  const cardInfoRequest = useCardInfoRequest();
+  useEffect(() => {
+    if (cardInfoRequest) {
+      handleNavigate({ name: cardInfoRequest.card.name, scryfallId: cardInfoRequest.card.scryfallId });
+    }
+  }, [cardInfoRequest, handleNavigate]);
 
   // Full-fat Scryfall record for the currently displayed card. Only
   // fetched when text mode is active AND a card is active — image
