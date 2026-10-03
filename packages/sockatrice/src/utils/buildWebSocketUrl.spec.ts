@@ -46,4 +46,11 @@ describe('buildWebSocketUrl', () => {
       'ws://localhost/servatrice',
     );
   });
+
+  it('dials a saved public server (host/servatrice on 443) at desktop\'s wss://host:443/servatrice endpoint', () => {
+    const url = new URL(buildWebSocketUrl('public.example/servatrice', '443'));
+    expect(url.href).toBe('wss://public.example/servatrice');
+    expect(url.port).toBe('');
+    expect(url.pathname).toBe('/servatrice');
+  });
 });

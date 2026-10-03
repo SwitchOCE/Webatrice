@@ -44,10 +44,11 @@ describe('parsePublicServers', () => {
 });
 
 describe('isWebSocketReachable', () => {
-  it('requires an active server with a WebSocket port', () => {
+  it('requires an active server with a WebSocket port on 443, the only port desktop dials over wss', () => {
     const [chickatrice, inactive, desktopOnly] = parsePublicServers(DOCUMENT);
-    expect(isWebSocketReachable(chickatrice)).toBe(true);
-    expect(isWebSocketReachable(inactive)).toBe(false);
+    expect(isWebSocketReachable(chickatrice)).toBe(false);
+    expect(isWebSocketReachable({ ...chickatrice, websocketPort: '443' })).toBe(true);
+    expect(isWebSocketReachable({ ...inactive, websocketPort: '443' })).toBe(false);
     expect(isWebSocketReachable(desktopOnly)).toBe(false);
   });
 });

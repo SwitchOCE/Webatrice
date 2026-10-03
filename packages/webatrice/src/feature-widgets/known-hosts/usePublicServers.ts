@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 import { createSharedStore, LoadingState, type Loadable } from '@app/hooks';
-import { isWebSocketReachable, loadPublicServers, type PublicServer, type PublicServerList } from '@app/services';
+import { isWebSocketReachable, loadPublicServers, SECURE_WEBSOCKET_PORT, type PublicServer, type PublicServerList } from '@app/services';
 import type { Host } from '@app/types';
 
 /** One download per session, shared by every host picker (login, register, password reset). */
@@ -16,7 +16,7 @@ const hostName = (host: string): string => host.split('/')[0].toLowerCase();
 export interface PublicServerOption {
   server: PublicServer;
   /** Why the browser can't connect, or null when it can. */
-  unavailableReason: 'noWebSocket' | null;
+  unavailableReason: 'noWebSocket' | 'noSecureWebSocket' | null;
 }
 
 /**
@@ -28,14 +28,25 @@ export function publicServerOptions(servers: PublicServer[], savedHosts: Pick<Ho
   const saved = new Set(savedHosts.map((h) => hostName(h.host)));
   return servers
     .filter((server) => !server.isInactive && !saved.has(hostName(server.host)))
-    .map((server) => ({ server, unavailableReason: isWebSocketReachable(server) ? null : 'noWebSocket' }));
+    .map((server) => ({ server, unavailableReason: unavailableReason(server) }));
 }
 
-/** The saved-host record a picked public server becomes; it connects on its WebSocket port. */
+function unavailableReason(server: PublicServer): PublicServerOption['unavailableReason'] {
+  if (server.websocketPort === undefined) {
+    return 'noWebSocket';
+  }
+  return isWebSocketReachable(server) ? null : 'noSecureWebSocket';
+}
+
+/**
+ * The saved-host record a picked public server becomes. It carries desktop's `/servatrice` WebSocket
+ * path in the host, the form the bundled `DefaultHosts` use, so it dials `wss://host/servatrice` on the
+ * secure port like desktop's `wss://host:443/servatrice`.
+ */
 export const toSavedHost = ({ name, host, websocketPort }: PublicServer): Host => ({
   name,
-  host,
-  port: websocketPort ?? '',
+  host: `${host}/servatrice`,
+  port: websocketPort ?? SECURE_WEBSOCKET_PORT,
   editable: true,
 });
 
