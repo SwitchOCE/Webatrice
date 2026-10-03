@@ -25,7 +25,6 @@ jobs:
       root: ${{ steps.filter.outputs.root }}
       sockatriceGate: ${{ steps.filter.outputs.sockatrice == 'true' || steps.filter.outputs.proto == 'true' || steps.filter.outputs.root == 'true' }}
       datatriceGate: ${{ steps.filter.outputs.sockatrice == 'true' || steps.filter.outputs.datatrice == 'true' || steps.filter.outputs.proto == 'true' || steps.filter.outputs.root == 'true' }}
-      webatriceGate: ${{ steps.filter.outputs.sockatrice == 'true' || steps.filter.outputs.datatrice == 'true' || steps.filter.outputs.webatrice == 'true' || steps.filter.outputs.proto == 'true' || steps.filter.outputs.root == 'true' }}
       documentation_only: ${{ steps.filter.outputs.nonDocs == 'false' }}
       changesetTouched: ${{ steps.filter.outputs.changesetTouched }}
     steps:
@@ -48,6 +47,7 @@ jobs:
               - 'packages/sockatrice/buf.gen.*'
             root:
               - 'tsconfig.base.json'
+              - 'turbo.json'
               - 'package.json'
               - 'package-lock.json'
               - '.npmrc'
@@ -138,7 +138,6 @@ jobs:
         run: npm run -w @cockatrice/datatrice lint
 
       - name: Webatrice lint
-        if: needs.changes.outputs.webatriceGate == 'true'
         run: npm run -w @cockatrice/webatrice lint
 
   test:
