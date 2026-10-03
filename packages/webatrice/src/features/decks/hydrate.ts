@@ -47,6 +47,7 @@ export async function hydrateDeck(parsed: ParsedDeck): Promise<HydratedDeck> {
     bannerCard: parsed.bannerCard,
     bannerCardProviderId: parsed.bannerCardProviderId,
     lastLoadedTimestamp: parsed.lastLoadedTimestamp,
+    playmatXml: parsed.playmatXml,
     tagsXml: parsed.tagsXml,
     bracketAssessment: parsed.bracketAssessment,
   };

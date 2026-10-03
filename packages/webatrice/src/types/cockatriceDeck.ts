@@ -126,6 +126,10 @@ export interface ParsedDeck {
    *  webatrice-authored save doesn't clobber the desktop client's
    *  bookkeeping. Not surfaced in the UI. */
   lastLoadedTimestamp?: string;
+  /** Optional `<playmatCard>` element — desktop's playmat card and its
+   *  margin/offset/zoom attributes. Not edited here; kept as the raw XML of
+   *  the whole element so a web save doesn't drop it. */
+  playmatXml?: string;
   /** Optional `<tags>` element — Cockatrice desktop's tag list.
    *  Stored as the raw XML string of the whole element so we can
    *  round-trip whatever's inside without caring about its schema. */
