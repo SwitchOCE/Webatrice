@@ -6,11 +6,14 @@ import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 import { Layout } from '@app/feature-wrappers/layout';
 import { isCommanderFormat, isMtgFormat } from '@app/types';
 
+import { DeckBannerPicker } from './components/editor/DeckBannerPicker';
 import { DeckEditorSkeleton, DeckNotFound } from './components/editor/DeckEditorShells';
 import { DeckHistoryControls } from './components/editor/DeckHistoryControls';
 import { DeckMainPane } from './components/editor/DeckMainPane';
 import { DeckSidebar } from './components/editor/DeckSidebar';
+import { DeckTagsEditor } from './components/editor/DeckTagsEditor';
 import { groupDeckCards } from './deckGrouping';
+import { readDeckTags } from './deckTags';
 import { CardDetailDialog } from './dialogs/CardDetailDialog';
 import { ExportDeckDialog } from './dialogs/ExportDeckDialog';
 import { PrintingPickerDialog, type PrintingRequest } from './dialogs/PrintingPickerDialog';
@@ -59,6 +62,8 @@ const DeckEditor = () => {
   const isMtg = isMtgFormat(editor.deck?.format);
   const isCommander = isCommanderFormat(editor.deck?.format);
 
+  const tags = useMemo(() => readDeckTags(editor.deck?.tagsXml), [editor.deck?.tagsXml]);
+
   const groups = useMemo(
     () => groupDeckCards(editor.deck?.cards ?? [], isCommander),
     [editor.deck, isCommander],
@@ -95,6 +100,17 @@ const DeckEditor = () => {
           prices={pricing.prices}
           pricesLoading={pricing.loading}
           isMtg={isMtg}
+          details={(
+            <>
+              <DeckBannerPicker
+                cards={editor.deck.cards}
+                bannerCard={editor.deck.bannerCard}
+                bannerCardProviderId={editor.deck.bannerCardProviderId}
+                onChange={editor.setBanner}
+              />
+              <DeckTagsEditor tags={tags} onChange={editor.setTags} />
+            </>
+          )}
           headerActions={(
             <DeckHistoryControls
               history={editor.history}
