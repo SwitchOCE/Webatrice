@@ -126,6 +126,35 @@ describe('GameLobby integration (GAME-013 / GAME-014)', () => {
     expect(within(screen.getByTestId('lobby-deck-side')).getByText('Lightning Bolt').closest('button')).toBeDisabled();
   });
 
+  it('re-selecting a deck with a stored plan shows that plan after Servatrice\'s lock event and response', async () => {
+    enterLobby();
+    await loadDeck();
+    setLocalProperties({ sideboardLocked: false });
+    fireEvent.click(screen.getByRole('button', { name: 'GameLobby.action.unloadDeck' }));
+
+    const withPlan = UPLOADED.replace(
+      '</cockatrice_deck>',
+      '<sideboard_plan><name></name><move_card_to_zone><card_name>Lightning Bolt</card_name>'
+        + '<start_zone>main</start_zone><target_zone>side</target_zone></move_card_to_zone></sideboard_plan></cockatrice_deck>',
+    );
+    const input = document.querySelector<HTMLInputElement>('input[type="file"][accept*=".cod"]')!;
+    fireEvent.change(input, { target: { files: [new File([withPlan], 'burn.cod', { type: 'text/xml' })] } });
+    await waitFor(() => expect(findLastGameCommand(Command_DeckSelect_ext).value.deck).toBe(withPlan));
+    const deckSelect = findLastGameCommand(Command_DeckSelect_ext);
+
+    // Server_Player::cmdDeckSelect broadcasts sideboard_locked before the response goes out.
+    setLocalProperties({ sideboardLocked: true });
+    act(() => {
+      deliverMessage(buildResponseMessage(buildResponse({
+        cmdId: deckSelect.cmdId,
+        ext: Response_DeckDownload_ext,
+        value: create(Response_DeckDownloadSchema, { deck: withPlan }),
+      })));
+    });
+
+    await waitFor(() => expect(within(screen.getByTestId('lobby-deck-side')).getByText('Lightning Bolt')).toBeInTheDocument());
+  });
+
   it('host force start sends one Command_ReadyStart{ready, force_start} and no kicks', async () => {
     enterLobby();
     await loadDeck();
