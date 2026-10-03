@@ -14,6 +14,7 @@ vi.mock('@cockatrice/datatrice/react', async (importOriginal) => {
 
 import { ModerationProvider } from '@app/feature-widgets/moderation';
 import Player from './Player';
+import { ReportUserProvider } from '../../dialogs';
 
 beforeAll(() => {
   hoisted.mockWebClient = createMockWebClient();
@@ -178,5 +179,31 @@ describe('Player', () => {
     renderPlayer(stateWithPlayer(user), 'alice');
     const img = screen.getByAltText('alice') as HTMLImageElement;
     expect(img.src).toContain('data:image/png;base64,');
+  });
+});
+
+describe('Player report user (#7091)', () => {
+  const withServer = (version: string) => stateWithPlayer(makeUser({ name: 'alice', userLevel: 0 }), {
+    info: { message: null, name: 'Test Server', version },
+    user: makeUser({ name: 'testUser', userLevel: ServerInfo_User_UserLevelFlag.IsRegistered }),
+  });
+
+  it('opens the report dialog for this user, with no game or chat attached', () => {
+    renderWithProviders(
+      <ReportUserProvider>
+        <Routes>
+          <Route path="/player/:name" element={<Player />} />
+        </Routes>
+      </ReportUserProvider>,
+      { preloadedState: withServer('3.1.0 ()'), route: '/player/alice' },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'ReportUserDialog.menuItem' }));
+    expect(screen.getByTestId('report-reported-user').textContent).toBe('alice');
+    expect((screen.getByLabelText('ReportUserDialog.chatGroup') as HTMLTextAreaElement).value).toBe('');
+  });
+
+  it('hides the action on a 3.0 server', () => {
+    renderPlayer(withServer('3.0.0 ()'), 'alice');
+    expect(screen.queryByRole('button', { name: 'ReportUserDialog.menuItem' })).toBeNull();
   });
 });
