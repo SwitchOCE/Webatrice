@@ -1,1 +1,2 @@
 - 22:07Z started f26; read brief/task/rv13 → npm ci + gate baseline
+- 22:14Z dialog focus majors+minors pushed (e690b3c) → toasts (report persistent, cap)
