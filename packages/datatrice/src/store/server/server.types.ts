@@ -80,6 +80,8 @@ export const Types = {
   DECK_NEW_DIR: a.deckNewDir.type,
   DECK_DEL_DIR: a.deckDelDir.type,
   DECK_UPLOAD: a.deckUpload.type,
+  DECK_UPDATED: a.deckUpdated.type,
+  DECK_UPDATE_FAILED: a.deckUpdateFailed.type,
   DECK_DELETE: a.deckDelete.type,
   DECK_DOWNLOADED: a.deckDownloaded.type,
   DECK_LIST_FAILED: a.deckListFailed.type,
