@@ -36,3 +36,5 @@ List the ported tests in 27's PR file.
 The SHAs are pre-restack. Match by message, and use cherry-pick plus amend or `reset --soft`, never `rebase -i`. Every commit of the row must typecheck, and the integration suite must pass at f6ac60e's replacement.
 
 **document.title after 28:** at the 28 tip, check that `document.title` uses the translated tab titles (28 derives them at render time from keys). Add a spec if neither 26 nor 28 has one.
+
+**Folds carried from rv14 (row 2, PR 26):** fold `08393d9`'s ToastContext hunk into `5e81593`, and its `i18n-default.json` hunk into `ef177d5` (pre-restack SHAs; match by message). Every commit of row 2 must be lint-green and i18n-consistent.
