@@ -6,3 +6,4 @@
 - 16:42Z §4 deck-in-editor draft pushed → §6 tally
 - 16:50Z §6 tally + count label pushed → §5 custom zones
 - 16:55Z §5 custom zones pushed → §10 say macros
+- 17:01Z §10 say macros pushed → changeset, full gate, e2e (reveal-to, related cards)
