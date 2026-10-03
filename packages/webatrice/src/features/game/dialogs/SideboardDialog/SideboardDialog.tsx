@@ -12,6 +12,7 @@ import Tooltip from '@mui/material/Tooltip';
 
 import { ZoneEntry, games } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
+import { DECK_ZONE_MAIN, DECK_ZONE_SIDE } from '@app/types';
 
 import { useGameId } from '../../components/ui/GameIdContext';
 import { useGameDialogsContext } from '../../components/ui/GameDialogsContext';
@@ -31,10 +32,15 @@ const StyledDialog = styled(Dialog)(({ theme }) => ({
   },
 }));
 
+/**
+ * One `MoveCard_ToZone` entry. The zones are deck-list zone names
+ * (`DECK_ZONE_MAIN` / `DECK_ZONE_SIDE`), as desktop's
+ * `DeckViewScene::getSideboardPlan` sends them.
+ */
 export interface SideboardPlanMove {
   cardName: string;
-  startZone: string;
-  targetZone: string;
+  startZone: typeof DECK_ZONE_MAIN | typeof DECK_ZONE_SIDE;
+  targetZone: typeof DECK_ZONE_MAIN | typeof DECK_ZONE_SIDE;
 }
 
 type Card = { id: number; name: string };
@@ -47,8 +53,8 @@ function applyMoves(
   const deck = [...initialDeck];
   const sideboard = [...initialSideboard];
   for (const move of moves) {
-    const from = move.startZone === ZoneName.DECK ? deck : sideboard;
-    const to = move.targetZone === ZoneName.DECK ? deck : sideboard;
+    const from = move.startZone === DECK_ZONE_MAIN ? deck : sideboard;
+    const to = move.targetZone === DECK_ZONE_MAIN ? deck : sideboard;
     const idx = from.findIndex((c) => c.name === move.cardName);
     if (idx < 0) {
       continue;
@@ -96,7 +102,11 @@ function SideboardDialog() {
     [deckCards, sideboardCards, moves],
   );
 
-  const addMove = (cardName: string, startZone: string, targetZone: string) => {
+  const addMove = (
+    cardName: string,
+    startZone: SideboardPlanMove['startZone'],
+    targetZone: SideboardPlanMove['targetZone'],
+  ) => {
     setMoves((prev) => [...prev, { cardName, startZone, targetZone }]);
   };
 
@@ -104,14 +114,14 @@ function SideboardDialog() {
     if (isLocked) {
       return;
     }
-    addMove(card.name, ZoneName.DECK, ZoneName.SIDEBOARD);
+    addMove(card.name, DECK_ZONE_MAIN, DECK_ZONE_SIDE);
   };
 
   const handleMoveToDeck = (card: Card) => {
     if (isLocked) {
       return;
     }
-    addMove(card.name, ZoneName.SIDEBOARD, ZoneName.DECK);
+    addMove(card.name, DECK_ZONE_SIDE, DECK_ZONE_MAIN);
   };
 
   const handleApply = () => {
