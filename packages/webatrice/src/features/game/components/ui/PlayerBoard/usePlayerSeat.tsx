@@ -9,12 +9,16 @@ import { useSeatSelection } from '../../../hooks/useSeatSelection';
 import {
   SEAT_CARD_HEIGHT_PX as CARD_H_PX_BASE,
   SEAT_CARD_WIDTH_PX as CARD_W_PX_BASE,
-  STACK_PILE_HORIZONTAL_OFFSET_PX,
 } from '../../battlefield/Battlefield/battlefieldLayout';
 import { useBattlefieldMenuItems } from '../../battlefield/Battlefield/useBattlefieldMenuItems';
 import type { CardMenuItem } from '../../context-menus/CardContextMenu/cardContextMenu.model';
 import { buildRelatedViewItems } from '../../context-menus/CardContextMenu/relatedCardActions';
 import { useCardPreviewActions } from '../CardPreviewContext';
+import {
+  STACK_MIN_CARD_VISIBLE_PX,
+  VERTICAL_PILE_X_SPACE_PX,
+  type VerticalPileOptions,
+} from '../VerticalPile/verticalPile';
 import { useCardScale } from '../CardScaleContext';
 import { usePendingTargetContext } from '../PendingTargetContext';
 import { useGameDialogsContext } from '../GameDialogsContext';
@@ -113,7 +117,18 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
   const { scale } = useCardScale();
   const CARD_W_PX = CARD_W_PX_BASE * scale;
   const CARD_H_PX = CARD_H_PX_BASE * scale;
-  const STACK_HOFFSET_PX = STACK_PILE_HORIZONTAL_OFFSET_PX * scale;
+  // The stack and a vertical hand are desktop's vertical piles: cards overlap
+  // by "Minimum overlap percentage of cards on the stack and in vertical hand",
+  // and the stack keeps at least MIN_CARD_VISIBLE of each card showing.
+  const overlapPercent = usePreference('verticalCardOverlapPercent');
+  const handPileOptions = useMemo<VerticalPileOptions>(
+    () => ({ overlapPercent, xSpace: VERTICAL_PILE_X_SPACE_PX * scale }),
+    [overlapPercent, scale],
+  );
+  const stackPileOptions = useMemo<VerticalPileOptions>(
+    () => ({ ...handPileOptions, minOffset: STACK_MIN_CARD_VISIBLE_PX * scale }),
+    [handPileOptions, scale],
+  );
 
   // Appearance › Hand layout: a hand row (desktop's default) or a hand column.
   const horizontalHand = usePreference('horizontalHand');
@@ -439,14 +454,13 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     onCardClick,
     CARD_W_PX,
     CARD_H_PX,
-    STACK_HOFFSET_PX,
+    stackPileOptions,
   });
 
   return {
     CARD_H_PX,
     CARD_W_PX,
     DRAW_ANIMATION_MS,
-    STACK_HOFFSET_PX,
     alwaysLookAtTopCard,
     alwaysRevealTopCard,
     attachExtraSourceIds,
@@ -482,6 +496,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     handDisplayList,
     handMenuItems,
     handOnTop,
+    handPileOptions,
     handSize,
     handZoneRef,
     horizontalHand,
@@ -527,6 +542,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     shortcutHints,
     stackCardMenu,
     stackDisplayList,
+    stackPileOptions,
     stackZoneRef,
     startAttach,
     startDrawArrow,

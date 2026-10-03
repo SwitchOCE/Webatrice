@@ -3,8 +3,7 @@ import { useForkRef } from '@mui/material/utils';
 
 import { SEAT_DROP_PRIORITY, type SeatZone } from '../../../hooks/seatDropPlan';
 import type { SeatSelection, SeatSelectionApi } from '../../../hooks/useSeatSelection';
-import { layoutStackPile } from '../../battlefield/Battlefield/battlefieldLayout';
-import { verticalHandDropIndex } from '../HandZone/verticalHandLayout';
+import { layoutVerticalPile, verticalPileDropIndex, type VerticalPileOptions } from '../VerticalPile/verticalPile';
 import { useCanActFor } from '../CardVisualStateContext';
 import { useActiveSeatDrag, useSeatDragSource, useSeatDropZone, type SeatDragStart } from '../SeatDragContext';
 import type { BattlefieldCardViewModel, PlayerCardViewModel } from './playerBoard.types';
@@ -43,10 +42,10 @@ export interface UseSeatDndArgs {
   /** A press released on a card without dragging, once the selection has been updated
    *  (desktop's single-click play reads the selection as it was before the click). */
   onCardClick?: (zone: Selection['zone'], card: HandCard, e: PointerEvent) => void;
-  /** Card size and stack offset at the current card scale, for the stack drop. */
+  /** Card size at the current card scale, and how the stack lays out, for the stack drop. */
   CARD_W_PX: number;
   CARD_H_PX: number;
-  STACK_HOFFSET_PX: number;
+  stackPileOptions: VerticalPileOptions;
 }
 
 /**
@@ -75,7 +74,7 @@ export function useSeatDnd({
   onCardClick,
   CARD_W_PX,
   CARD_H_PX,
-  STACK_HOFFSET_PX,
+  stackPileOptions,
 }: UseSeatDndArgs) {
   // A card dragged out of any zone but the battlefield carries its printed
   // P/T, which it lands with if dropped on the battlefield.
@@ -247,8 +246,8 @@ export function useSeatDnd({
       }
       const rect = stackEl.getBoundingClientRect();
       const layoutCount = stackDisplayList.length - (source.zone === 'stack' ? source.cards.length : 0);
-      const positions = layoutStackPile(layoutCount, rect.width, rect.height, CARD_W_PX, CARD_H_PX, STACK_HOFFSET_PX);
-      const index = positions.filter((pos) => pointer.y > rect.top + pos.y + CARD_H_PX / 2).length;
+      const { positions } = layoutVerticalPile(layoutCount, rect.width, rect.height, CARD_W_PX, CARD_H_PX, stackPileOptions);
+      const index = verticalPileDropIndex(positions.map((pos) => rect.top + pos.y), pointer.y, CARD_H_PX);
       return { zone: 'stack', index };
     },
   });
@@ -269,7 +268,7 @@ export function useSeatDnd({
       });
       const index = horizontalHand
         ? rects.filter((r) => pointer.x > r.left + r.width / 2).length
-        : verticalHandDropIndex(rects.map((r) => r.top), pointer.y, CARD_H_PX);
+        : verticalPileDropIndex(rects.map((r) => r.top), pointer.y, CARD_H_PX);
       return { zone: 'hand', index, order: handDisplayList.map((c) => c.id) };
     },
   });
