@@ -91,6 +91,7 @@ export function createMockWebClient() {
         reloadConfig: vi.fn(),
         shutdownServer: vi.fn(),
         updateServerMessage: vi.fn(),
+        resetUserPassword: vi.fn(),
       },
       developer: {
         viewLogHistory: vi.fn(),
@@ -107,6 +108,14 @@ export function createMockWebClient() {
         updateAdminNotes: vi.fn(),
         grantReplayAccess: vi.fn(),
         forceActivateUser: vi.fn(),
+        reportUserInfo: vi.fn(),
+        getUserAlts: vi.fn(),
+        getUserSessions: vi.fn(),
+        getModeratorLastLogins: vi.fn(),
+        removeUserAvatar: vi.fn(),
+        listCardArtRules: vi.fn(),
+        addCardArtRule: vi.fn(),
+        removeCardArtRule: vi.fn(),
       },
     },
   } as unknown as WebClient;

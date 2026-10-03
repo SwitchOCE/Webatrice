@@ -4,6 +4,10 @@
     "settings": "Settings",
     "shortcuts": "Shortcuts",
     "logs": "Logs",
+    "administration": "Administration",
+    "moderation": "Moderation",
+    "cardArtRules": "Card Art Rules",
+    "developer": "Developer",
     "importCards": "Import cards"
   }
 }

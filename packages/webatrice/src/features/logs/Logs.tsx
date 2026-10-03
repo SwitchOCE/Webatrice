@@ -2,7 +2,6 @@ import { Navigate } from 'react-router-dom';
 
 import { AuthGuard } from '@app/components';
 import { AlertDialog } from '@app/dialogs';
-import { ModeratorFunctions } from '@app/feature-widgets/moderation';
 import { useUserCapabilities } from '@app/hooks';
 import { RouteEnum } from '@app/types';
 
@@ -14,7 +13,7 @@ import './Logs.css';
 
 const Logs = () => {
   const { developer, logs, notice, dismissNotice, onSubmit } = useLogs();
-  const { isModerator, canReadLogs } = useUserCapabilities();
+  const { canReadLogs } = useUserCapabilities();
 
   return (
     <div className="moderator-logs scrollable">
@@ -23,13 +22,6 @@ const Logs = () => {
 
       <div className="moderator-logs__form">
         <LogSearchForm onSubmit={onSubmit} developer={developer} />
-        {/* Desktop keeps these on its Administration tab, which Webatrice
-         *  does not have yet; the Logs page hosts them for moderators. */}
-        {isModerator && (
-          <div className="moderator-logs__functions">
-            <ModeratorFunctions />
-          </div>
-        )}
       </div>
 
       <div className="moderator-logs__results">

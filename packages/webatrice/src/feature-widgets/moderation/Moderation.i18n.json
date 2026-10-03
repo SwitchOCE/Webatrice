@@ -81,20 +81,6 @@
       "demoted": "Successfully demoted user.",
       "promoteFailed": "Failed to promote user.",
       "demoteFailed": "Failed to demote user."
-    },
-    "functions": {
-      "title": "Server moderator functions",
-      "replayId": "Replay ID",
-      "grantReplayAccess": "Grant Replay Access",
-      "replayGranted": "Replay access granted",
-      "replayInvalid": "Unable to grant replay access. Replay ID invalid",
-      "replayError": "Unable to grant replay access. Internal error",
-      "userToActivate": "Username to Activate",
-      "forceActivate": "Force Activate User",
-      "activated": "User successfully activated",
-      "activateUnknown": "Unable to activate user. Username invalid",
-      "activateAlreadyActive": "Unable to activate user. User already active",
-      "activateError": "Unable to activate user. Internal error"
     }
   }
 }

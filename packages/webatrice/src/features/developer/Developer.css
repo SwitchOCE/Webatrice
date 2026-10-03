@@ -1,0 +1,42 @@
+.developer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+}
+
+.developer__tables {
+  display: flex;
+  flex: 1;
+  gap: 12px;
+  min-height: 0;
+}
+
+.developer__stats {
+  flex: 1;
+  overflow: auto;
+}
+
+.developer__commands {
+  flex: 2;
+  overflow: auto;
+}
+
+.developer__section {
+  font-weight: 600 !important;
+}
+
+.developer__controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.developer__status {
+  flex: 1;
+}
+
+.developer__interval {
+  width: 7rem;
+}
