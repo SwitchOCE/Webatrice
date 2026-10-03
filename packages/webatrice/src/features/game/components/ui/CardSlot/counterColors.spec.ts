@@ -6,7 +6,7 @@ describe('counterColors', () => {
     expect(COUNTER_TYPE_LABELS).toEqual(['A', 'B', 'C', 'D', 'E', 'F']);
   });
 
-  it('produces a distinct hue per id 0-5', () => {
+  it('produces a distinct colour per id 0-5', () => {
     const colors = new Set<string>();
     for (let i = 0; i < COUNTER_TYPE_COUNT; i++) {
       colors.add(counterColorForId(i));
@@ -14,14 +14,15 @@ describe('counterColors', () => {
     expect(colors.size).toBe(COUNTER_TYPE_COUNT);
   });
 
-  it('emits a parseable hsl() string anchored at id × 60°', () => {
-    expect(counterColorForId(0)).toBe('hsl(0, 59%, 70%)');
-    expect(counterColorForId(1)).toBe('hsl(60, 59%, 70%)');
-    expect(counterColorForId(5)).toBe('hsl(300, 59%, 70%)');
+  it('reads the counter\'s colour from Appearance › Card counters, with desktop\'s default', () => {
+    // QColor::fromHsv(id × 60, 150, 255).
+    expect(counterColorForId(0)).toBe('var(--card-counter-0, #FF6969)');
+    expect(counterColorForId(1)).toBe('var(--card-counter-1, #FFFF69)');
+    expect(counterColorForId(5)).toBe('var(--card-counter-5, #FF69FF)');
   });
 
-  it('wraps hue past id 6 so out-of-range ids stay valid CSS', () => {
-    expect(counterColorForId(6)).toBe('hsl(0, 59%, 70%)');
-    expect(counterColorForId(7)).toBe('hsl(60, 59%, 70%)');
+  it('wraps past id 6 so out-of-range ids stay valid CSS', () => {
+    expect(counterColorForId(6)).toBe('var(--card-counter-0, #FF6969)');
+    expect(counterColorForId(7)).toBe('var(--card-counter-1, #FFFF69)');
   });
 });

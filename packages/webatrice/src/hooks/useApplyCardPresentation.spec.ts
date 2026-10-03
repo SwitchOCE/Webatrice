@@ -28,4 +28,15 @@ describe('useApplyCardPresentation', () => {
     expect(rootVar('--card-hover-scale')).toBe('1');
     expect(rootVar('--card-info-font-size')).toBe('calc(var(--card-width, 72px) * 20 / 72)');
   });
+
+  it('sets each card counter\'s colour, desktop\'s by default', async () => {
+    const settings = await getSettings();
+    renderHook(() => useApplyCardPresentation());
+    expect(rootVar('--card-counter-0')).toBe('#FF6969');
+    expect(rootVar('--card-counter-5')).toBe('#FF69FF');
+    await act(async () => {
+      settingsStore.setValue(Object.assign(settings, { cardCounterColorC: '123456' }));
+    });
+    expect(rootVar('--card-counter-2')).toBe('#123456');
+  });
 });
