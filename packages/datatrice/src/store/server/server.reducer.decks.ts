@@ -1,14 +1,16 @@
 import { CaseReducer, PayloadAction } from '@reduxjs/toolkit';
 import { clone, create } from '@bufbuild/protobuf';
 import {
-  ServerInfo_DeckStorage_FileSchema,
   Response_DeckList,
   Response_DeckListSchema,
+  ServerInfo_DeckShareSummary,
+  ServerInfo_DeckStorage_FileSchema,
   ServerInfo_DeckStorage_Folder,
   ServerInfo_DeckStorage_FolderSchema,
   ServerInfo_DeckStorage_TreeItem,
   ServerInfo_DeckStorage_TreeItemSchema,
 } from '@cockatrice/sockatrice/generated';
+import { cloneWith } from '../../common/cloneWith';
 import { mergeSetFields } from '../../common/mergeSetFields';
 import { ServerState } from './server.interfaces';
 
@@ -94,6 +96,41 @@ function removeByPath(folder: ServerInfo_DeckStorage_Folder, pathSegments: strin
   });
 }
 
+// Set the node's own public bit, the one Command_DeckSetVisibility persists: a
+// deck by id, or a folder by path. Decks under a folder keep their own bit and
+// inherit the folder's visibility (desktop's "Public (inherited)").
+function setVisibility(
+  folder: ServerInfo_DeckStorage_Folder,
+  target: { deckId?: number; folderPath?: string[] },
+  isPublic: boolean,
+): ServerInfo_DeckStorage_Folder {
+  const [head, ...tail] = target.folderPath ?? [];
+  return cloneWith(ServerInfo_DeckStorage_FolderSchema, folder, {
+    items: folder.items.map(item => {
+      if (item.folder) {
+        if (target.folderPath && item.name === head) {
+          const inner = tail.length === 0
+            ? cloneWith(ServerInfo_DeckStorage_FolderSchema, item.folder, { isPublic })
+            : setVisibility(item.folder, { folderPath: tail }, isPublic);
+          return cloneWith(ServerInfo_DeckStorage_TreeItemSchema, item, { folder: inner });
+        }
+        if (target.deckId !== undefined) {
+          return cloneWith(ServerInfo_DeckStorage_TreeItemSchema, item, {
+            folder: setVisibility(item.folder, target, isPublic),
+          });
+        }
+        return item;
+      }
+      if (item.file && target.deckId !== undefined && item.id === target.deckId) {
+        return cloneWith(ServerInfo_DeckStorage_TreeItemSchema, item, {
+          file: cloneWith(ServerInfo_DeckStorage_FileSchema, item.file, { isPublic }),
+        });
+      }
+      return item;
+    }),
+  });
+}
+
 export const deckReducers = {
   backendDecks: ((state, action) => {
     state.backendDecks = action.payload.deckList;
@@ -153,4 +190,29 @@ export const deckReducers = {
   deckDownloaded: ((state, action) => {
     state.downloadedDeck = action.payload;
   }) as CaseReducer<ServerState, PayloadAction<{ deckId: number; deck: string }>>,
+
+  deckVisibilityChanged: ((state, action) => {
+    const { deckId, folderPath, isPublic } = action.payload;
+    if (!state.backendDecks?.root) {
+      return;
+    }
+    const target = folderPath ? { folderPath: splitPath(folderPath) } : { deckId };
+    state.backendDecks = create(Response_DeckListSchema, {
+      root: setVisibility(state.backendDecks.root, target, isPublic),
+    });
+  }) as CaseReducer<ServerState, PayloadAction<{ deckId?: number; folderPath?: string; isPublic: boolean }>>,
+
+  deckSharesMine: ((state, action) => {
+    state.deckSharesMine = action.payload.shares;
+  }) as CaseReducer<ServerState, PayloadAction<{ shares: ServerInfo_DeckShareSummary[] }>>,
+
+  deckShareRemoved: ((state, action) => {
+    if (state.deckSharesMine) {
+      state.deckSharesMine = state.deckSharesMine.filter(share => share.id !== action.payload.shareId);
+    }
+  }) as CaseReducer<ServerState, PayloadAction<{ shareId: number }>>,
+
+  publicDecks: ((state, action) => {
+    state.publicDecks[action.payload.userName] = action.payload.deckList;
+  }) as CaseReducer<ServerState, PayloadAction<{ userName: string; deckList: Response_DeckList }>>,
 };

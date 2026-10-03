@@ -11,6 +11,7 @@ import {
   Response_WarnList,
   ServerInfo_Ban,
   ServerInfo_ChatMessage,
+  ServerInfo_DeckShareSummary,
   ServerInfo_ModeratorLogin,
   ServerInfo_ReplayMatch,
   ServerInfo_Report,
@@ -81,6 +82,10 @@ export interface ServerState {
   replays: { [gameId: number]: ServerInfo_ReplayMatch };
   backendDecks: Response_DeckList | null;
   downloadedDeck: { deckId: number; deck: string } | null;
+  // The caller's own share links (Command_DeckShareListMine); null until listed.
+  deckSharesMine: ServerInfo_DeckShareSummary[] | null;
+  // Other users' public deck trees (Command_DeckListOtherUser), by user name.
+  publicDecks: { [userName: string]: Response_DeckList };
   downloadedReplay: { replayId: number; replayData: Uint8Array } | null;
   gamesOfUser: { [userName: string]: { [gameId: number]: Enriched.Game } };
   // Lifecycle of the latest Command_GetGamesOfUser per user (desktop's "Show games").
