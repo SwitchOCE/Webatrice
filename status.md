@@ -3,3 +3,4 @@
 - 20:39Z Menu primitive + UserActionsMenu/TopBar menu + connection status, pushed → toasts, live regions
 - 20:45Z toasts region/pause/persistent + chat role=log + P12, pushed → P14 form errors, P18 lang/title, contrast
 - 20:50Z contrast tokens + P14 + P18, pushed → full gate + e2e keyboard spec
+- 21:04Z gate typecheck/lint/unit/integration green; keyboard e2e 3/3 browsers; pushed 36cd584 → full webatrice e2e matrix
