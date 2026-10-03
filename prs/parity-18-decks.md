@@ -123,7 +123,7 @@ New and changed coverage:
     local card DB, and the matrix asks to keep unknown apart from illegal.
   - A custom format that nobody labels is "Legality can't be checked". An empty deck shows no legality line.
   - Desktop's `maxAllowedForLegality` returns -1 both for an unlisted label and for an `unlimited` count, so
-    desktop paints unlimited cards red. Here `unlimited` is legal.
+    desktop paints unlimited cards red. That is a desktop bug (evidence under Follow-ups). Here `unlimited` is legal.
   - Like desktop, each row is checked against its own quantity, so main and side are not summed.
 - **Legality data freshness.** Scryfall lookups cached before this change have no `legalities`. Those cards show as
   unchecked until the cache entry is refreshed. Format `exceptions` are parsed on the next cards.xml import.
@@ -136,9 +136,70 @@ New and changed coverage:
   because the editor doesn't load other decks.
 - **Banner and tags are editable only in the editor.** My Decks shows them but can't edit them; desktop's visual
   deck storage can. Doing that would need a download and re-upload from the list.
-- **API change.** `ISessionResponse` gains two required members, `updateServerDeck` and `updateServerDeckFailed`
-  (Sockatrice minor). `deckUpdate` reports the save even when a server omits `new_file`.
+- **API change.** `ISessionResponse` gains two optional members, `updateServerDeck` and `updateServerDeckFailed`
+  (Sockatrice minor, additive). `deckUpdate` reports the save even when a server omits `new_file`.
 - **Housekeeping.** The format picker gained `aria-label="Format"` because the sidebar now has several selects.
   `flattenDeckTree` was removed (no callers).
+
+## Follow-ups
+
+Five commits at the tip of this branch, after review of the series. The first,
+`chore(webatrice): regenerate the i18n rollup`, only re-orders `src/i18n-default.json` to what `npm run translate`
+produces now. The pre-commit hook would otherwise have folded that into the next commit.
+
+- **`fix(sockatrice)`: optional deck update callbacks.** `updateServerDeck` and `updateServerDeckFailed` are now
+  optional members of `ISessionResponse`, as the series does elsewhere (#10's `updateInfo` argument,
+  `updateConnectionHealth`). `deckUpdate` calls them with `?.`. Existing implementations of the interface still
+  compile. A spec pins that a response without them doesn't throw on success or error. The changeset says so.
+- **`test(webatrice)`: `unlimited` stays legal; desktop's red is a bug.** At `add65caa`, Cockatrice #6166
+  ("Deck format legality checker", BruebachL, 2025-12-13) added all of these:
+  - the parser line `c.max = (maxAttr == "unlimited") ? -1 : …` (`cockatrice_xml_4.cpp:133`), and the writer
+    turning -1 back into `"unlimited"`;
+  - `AllowedCount::max` documented as "4, 1, 0, or -1 for unlimited" (`format_legality_rules.h:20`);
+  - in `isCardQuantityLegalForFormat`, `if (maxAllowed == -1) return false;` followed by
+    `if (maxAllowed < 0) { // unlimited  return true; }`.
+
+  The second branch can never run, because the only negative value is -1 and the check before it catches that. Later commits touched
+  the function (#6425 static helpers, #6460 cleanup, #6535 exception precedence, #6536 `getLegalityProp`), but none
+  changed the -1 checks. The intent, a legal
+  unlimited card, is written down three times. The red comes from reusing -1 as "label not listed". So
+  `unlimited` stays legal here. The reasoning is now in a comment by the check, and a spec separates the two cases.
+  The oracle's own imports use only `{4, legal}` / `{1, legal}` and `{0, banned}`, so only hand-written or
+  third-party format XML hits this. Worth an upstream desktop issue.
+- **`fix(webatrice)`: no sideboard in Commander Spellbook lookups.** Spellbook's `find-my-combos` accepts only
+  `main` and `commanders`. Its `DeckSerializer` (`backend/common/serializers.py` in
+  SpaceCowMedia/commander-spellbook-backend) has no sideboard field. Its plain-text parser drops `Sideboard`
+  and `Maybeboard` sections. The live `/schema/` could not be reached from this sandbox (proxy 403), so the
+  source was read instead. The request now sends the main deck in `main` and designated commanders in
+  `commanders`, so "must be commander" combos match. Sideboard cards are left out. A deck with nothing in the main
+  deck makes no request. The Scryfall lookups (Game Changers, oracle text) still use every card name. They only
+  read card text and don't count copies.
+- **`feat(webatrice)`: consent for the bracket's third-party calls.** Default **off**, with a first-use prompt
+  in the bracket section: "Allow online lookups". The prompt says what goes to Scryfall and what goes to
+  Spellbook. Desktop runs no third-party lookup without the user's say. Its one automatic lookup, "Download
+  spoilers automatically" (`DownloadSettings::getDownloadSpoilersStatus`), defaults to false. Its deck-site
+  services (above) each run from a menu action.
+  - The choice is remembered per browser (`localStorage` `decks:bracketOnlineLookups`) and shared live by every
+    open deck view. "Turn off online lookups" next to the provenance line withdraws it.
+  - Without consent, a saved assessment that matches the deck still shows, with no network. One for an older
+    version of the deck is cleared, as a failed analysis already does. The Game Changers search and Spellbook are
+    never called; the integration spec asserts both, then opts in and sees the bracket computed and saved.
+  - **Seam for #19:** `features/decks/bracketConsent.ts` (`readBracketLookupsAllowed`,
+    `writeBracketLookupsAllowed`, `useBracketLookupsConsent`) is the only reader and writer. When the settings
+    framework lands, the preference should move into its online services group behind those exports. The prompt
+    can stay as the first-use path.
+  - Not covered: the editor's card lookup (Scryfall by name for card data and prices) predates this branch and
+    isn't a bracket call. It is left as is.
+
+Follow-up testing (from the repo root, after `npm ci` and building sockatrice and datatrice):
+
+| Gate | Result |
+|---|---|
+| `npx turbo run typecheck --concurrency=1` | 5/5 tasks pass |
+| `npm run lint` | 3/3 tasks pass, 0 problems |
+| `npm test -- -- --maxWorkers=2` | sockatrice 610, datatrice 1091, webatrice 1728 (247 files): all pass |
+| `npm run test:integration -- -- --maxWorkers=2` | sockatrice 146, datatrice 124, webatrice 168 pass + 2 skipped (pre-existing) |
+| `npm run test:e2e -w @cockatrice/sockatrice` | 3/3 pass |
+| webatrice e2e (Playwright 1.60 container, docker Servatrice 3.0.0) | 16/21 pass, including the decks spec in all three browsers. 5 fail: `app-boots` (chromium, webkit) on `net::ERR_CERT_AUTHORITY_INVALID` (the sandbox's TLS-intercepting proxy, not trusted inside the container), and `bulk-card-actions` (all three) at `cardsOnBoard()` count 0. The same 5 fail the same way on the untouched `parity/18-decks` tip in this sandbox, so neither is from these commits. Worth re-running on a normal network. |
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)

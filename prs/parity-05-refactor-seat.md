@@ -447,3 +447,108 @@ Notes to carry into the final write-up:
 
 - The seat prompts and token dialog now render as the shared MUI dialogs (PromptDialog / CreateTokenDialog). A code comment cited an earlier "Replace MUI, don't override it" direction; the refactor plan (PB-12) chose reuse. Flag for the maintainer.
 - Pinned, not fixed: a battlefield move asking for "any free column" (x = -1) leaves `resolveBattlefieldDropX` as x = -3 (`Game.menuMoves.spec`).
+
+### Stage 4 — Phase 6 completed (resumed from `1ef4dab`)
+
+This closes the Stage 4 note above. PB-13 and PB-17 are done, and GAME-018 is closed as part of PB-13. `PlayerBox` goes from 8,030 lines at `1ef4dab` to 7,380 (9,842 at the end of Stage 3).
+
+Commits (oldest first, on top of `1ef4dab`):
+
+1. `test(game): pin the seat zone views before they move to ZoneViewDialog`
+   - New `Game.zoneViews.spec.tsx`, which runs through `<Game />`. It pins:
+     - which menu opens which view, the view titles, and the cards each view lists;
+     - the exact dump / shuffle / clear traffic when a view opens and closes, by button and by Esc;
+     - top/bottom-N `dumpZone` sizes;
+     - the sideboard dump and clear;
+     - the pile-menu Clone payload.
+   - It also pinned two current behaviours that later commits change on purpose: the GAME-018 gap (Select All does nothing) and the seat's limit of one pile view.
+2. `refactor(game): move the seat zone viewers into the ZoneViewDialog directory (PB-13)`
+   - `LibrarySearchDialog` / `ZoneRevealDialog` are renamed to `dialogs/ZoneViewDialog/ZoneViewPanel` / `ZoneRevealPanel` with `git mv`.
+   - The panel's metadata is typed as `ZoneViewCardMetadata` instead of the mock `DeckCard`.
+   - The lint guard against importing PlayerBox now covers the whole directory.
+3. `refactor(game): open the seat's zone views as ZoneViewDialogs from the game dialogs (PB-13)`
+   - `ZoneViewTarget` gains desktop's `numberCards` / `isReversed`.
+   - New `openZoneView`. It dumps a local hidden zone (deck or sideboard). Opening the same view again does nothing. A different count of the same zone replaces the open view and dumps again.
+   - `handleCloseZoneView` shuffles a whole-library view and clears a hidden zone's snapshot. It only acts on a view that is open, so a double close cannot send twice.
+   - `viewLibraryOpen` / `viewGraveyardOpen` / `viewSideboardOpen` and their PlayerBox effects are removed. `openViewLibrary` / `openViewGraveyard` / `openViewSideboard` now open the local seat's own views, for seated players only.
+   - `ZoneViewDialog` is now a container:
+     - it reads its cards with the seat's own projections (`zoneToSeatCards`, `revealedCardsToSeatCards`, new `seatDisplayName`);
+     - it registers its own seat drag source and drop zone, with the same priorities and resolvers PlayerBox used;
+     - graveyard and exile cards open the owning seat's card menu;
+     - its selection is the game selection.
+   - PlayerBox loses four dialog states, four drag sources, four drop zones and four dialog renders.
+   - The old structured CardSlot body of `ZoneViewDialog` is replaced, and its stylesheet is deleted. Its only trigger was the unmounted `PlayerInfoPanel`.
+4. `feat(game): select all / select column in graveyard and exile views (GAME-018)`
+   - Select All selects every card the view shows. Select Column selects the clicked card's group.
+   - Clone applies to the selection when the clicked card is part of it.
+   - The seat card menu state carries the ids of the view the menu was opened from.
+5. `test(game): pin put-top-cards-on-stack-until before it leaves PlayerBox`
+   - New `Game.moveTopUntil.spec.tsx`. It pins the dialog's validation and the loop's traffic as each revealed card lands, using `cardInsertedIntoZone` / `zoneCardCountAdjusted`.
+6. `refactor(game): extract put-top-cards-on-stack-until into MoveTopUntilDialog and useMoveTopUntil (PB-17)`
+   - `hooks/useMoveTopUntil.ts` holds the loop, unchanged.
+   - `dialogs/MoveTopUntilDialog` holds the modal with its markup unchanged. It is opened through the game dialogs (`openMoveTopUntil`, which closes itself after submit like `openPrompt`) and reads the local library size from the store.
+   - `Game.moveTopUntil.spec` is unchanged and green before and after.
+7. `docs(game): leave the unwired SideboardDialog for Phase 8 and retarget the zone-view specs`
+   - Records the decision (below).
+   - Updates the comment-only spec headers and `Game.spec`'s zone-view checks, which looked for a close label that no longer exists.
+8. `chore(changeset): note the converged menus, prompts and zone views`
+   - Adds the changeset entry the paused note asked for, covering the prompts, the token dialog, the single card menu, the zone views and GAME-018.
+
+Gate checks:
+
+- `PlayerBox.characterization`, `GameBoardCell`, and every `Game.*` spec (`cardMenus`, `menuMoves`, `seatPrompts`, `seatDnd`, `dragdrop`, `orchestration`, `selection`, `shortcuts`, `preview`, `seatComposition`) pass with no edits, except:
+  - the comment-only header in `Game.orchestration.spec`;
+  - the two `Game.spec` zone-view checks noted above.
+- The exact menu-tree snapshots (`Game.cardMenus.spec`) are unchanged. That includes the pile-view trees, whose Select All / Select Column rows now act.
+- Request spies show no new command payloads:
+  - opening and closing a view sends the same `dumpZone` / `shuffle` payloads the seat sent;
+  - a drag out of or into a view sends the same `moveCard` payloads;
+  - Clone over a selection sends one `createToken` per card, with the existing payload.
+- The new pin specs passed before each move and pass after it. The two deliberate changes each flip one pinned test (see notes).
+- New unit specs: `useZoneViewDialog` (rewritten), `ZoneViewDialog` (rewritten), `useZoneDialogActions` (eight new cases), `useMoveTopUntil`, `MoveTopUntilDialog`, and `useGameDialogState` (one new case).
+
+Testing (final commit `3667fd7`, repo root; Vitest with `--maxWorkers=2`):
+
+- `npx turbo run typecheck --concurrency=1`: pass.
+- `npm run lint`: 0 errors in all 3 packages.
+- Unit tests (`npm test`):
+  - sockatrice: 33 / 604.
+  - datatrice: 26 / 1083.
+  - webatrice: **205 files / 1669 tests passed**. On resume, the game feature alone was 95 files / 931 tests; it is now 100 / 978.
+- Integration tests (`npm run test:integration`):
+  - sockatrice: 16 / 146.
+  - datatrice: 8 / 124.
+  - webatrice: 33 passed + 2 skipped files, 132 passed + 2 skipped tests. These are the same pre-existing skips.
+- E2E: `npm run test:e2e -w @cockatrice/webatrice` (default 3.0.0 image), run once: **9 passed, 9 failed (4.1 min)**. None of the failures is caused by this stage:
+  - **webkit (6 failures):** WebKit would not launch on this cloud host (`browserType.launch: Host system is missing dependencies`: libgtk-4, libgraphene, gstreamer and others), so no test body ran.
+  - **chromium `app-boots`:** the console-error guard caught `net::ERR_CERT_AUTHORITY_INVALID` from external HTTPS fetches in the sandboxed browser. Firefox passed the same spec.
+  - **chromium + firefox `bulk-card-actions`:** both double-clicked Forests landed on the stack instead of the battlefield, so the spec's first `toHaveCount(2)` failed before any bulk action. The play route needs the card's type line, which comes from external lookups the sandbox blocks (see the cert error above). To confirm, I ran this one spec once on chromium at the resume base `1ef4dab`; it fails identically there.
+  - Passed in chromium and firefox: `game-create-and-play`, `login-join-room`, `spectator`, `connection-stability`, and firefox `app-boots`.
+  - The stack was torn down after the run.
+
+Notes for reviewers (Stage 4, completing the notes above):
+
+- **Deliberate change: graveyard / exile / hand views stay open side by side.**
+  - Desktop keeps a view per zone (`GameScene::toggleZoneView`); the seat held a single pile view.
+  - `Game.zoneViews.spec`'s pinned "replaces" test is now "keeps both open".
+- **Deliberate change (GAME-018): Select All / Select Column act.**
+  - They mirror desktop `actSelectAll` / `actSelectColumn` over a ZoneView, through the one game selection.
+  - "Column" is the group the card is listed under (By Type by default). It is one column in pile view and one wrapped row group in flat view.
+  - Clone then clones every selected card in that view, like desktop's `aClone` over the selection. Draw arrow stays on the clicked card (desktop `actDrawArrow` uses the active card).
+  - Because the selection is game-wide, a marquee or Select All in a view clears a board selection, and the other way round, as in desktop's single scene selection.
+  - Closing a view drops its cards from the selection. A hand view shares keys with the hand row, so closing it also clears a hand selection.
+- **Esc.**
+  - Before, every seat dialog had its own document listener, so one Esc closed them all.
+  - Now the game's `game.closeRecentView` shortcut closes the most recent view.
+  - With no explicit answer, a library view honours the remembered "shuffle when closing" choice (`zoneViewPreferences.ts`, same localStorage key as before). This matches desktop, which shuffles from `ZoneViewWidget::closeEvent`.
+  - The search box, where game shortcuts don't fire, closes its own view.
+- **Zone-view metadata now comes from the card catalog only.** The panel no longer consults the seat's mock `.cod` deck list, which was itself filled from the same catalog lookups. Grouping waits for the lookup, as it already did for cards missing from the deck list.
+- **SideboardDialog (decision made): it stays unwired.**
+  - Sideboarding moves to the pre-game lobby on another branch.
+  - A comment at its mount in `Game.tsx` and the orchestration spec header both name **Phase 8** to delete it, together with `PlayerContextMenu` and the `sideboardOpen` / `openSideboard` state.
+- **Left for Phase 8:**
+  - `PlayerBox` props `revealedDeckCards`, `sideboardCards`, `onDumpTopCards`, `onClearRevealedDeck`, `onDumpSideboard` and `onClearRevealedSideboard` are now unread. The `usePlayerBoxProps` adapter still produces them because `GameBoardCell.spec` pins its output. They go with the adapter.
+  - `useGameDnd`'s structured "popup" collision scoping (`.zone-view-dialog`) no longer has a structured popup to scope. Its comment says so.
+  - The skipped `integration/.../library-view.spec.tsx` could now be revived against `ZoneViewDialog`. Its DOM anchors (`zone-view-dialog` test ids) would need updating.
+- **Pinned, not fixed:** auto play in move-top-until sends the hit to the battlefield with `x = -3`. This is the same `resolveBattlefieldDropX` "any free column" finding `Game.menuMoves.spec` pins.
+- The move-top-until modal and the zone panels keep their Tailwind markup. As with PB-12, whether these become MUI dialogs is a maintainer call.
