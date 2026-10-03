@@ -19,6 +19,7 @@ export interface CardImageOptions {
   setLongNames?: ReadonlyMap<string, string>;
   /** Printing to try before the user's set priority (desktop: the card's own provider id). */
   preferredSet?: string;
+  /** `!sflang!`; defaults to `'en'` until Webatrice has a card-language setting. */
   lang?: string;
   /** Size of the trailing Scryfall by-name fallback. */
   fallbackSize?: ScryfallImageSize;
