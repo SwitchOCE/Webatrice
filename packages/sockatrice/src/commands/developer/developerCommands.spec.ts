@@ -4,6 +4,7 @@ import { create } from '@bufbuild/protobuf';
 import { Mock } from 'vitest';
 import { makeCallbackHelpers } from '../../testing/callback-helpers';
 import { WebClient } from '../../WebClient';
+import { CommandFailure } from '../../types/CommandFailure';
 import {
   Command_GetServerStats_ext,
   Command_ViewLogHistory_dev_ext,
@@ -73,5 +74,13 @@ describe('viewLogHistory (developer family)', () => {
     const logMessage = [create(ServerInfo_ChatMessageSchema, { senderName: 'alice', message: 'hi' })];
     invokeOnSuccess({ logMessage });
     expect(WebClient.instance.response.moderator.viewLogs).toHaveBeenCalledWith(logMessage);
+  });
+
+  it('reports a failed search through moderator.commandFailed like the moderator family', () => {
+    viewLogHistory({ userName: 'alice' });
+    invokeOnError(8, {}, CommandFailure.Timeout);
+    expect(WebClient.instance.response.moderator.commandFailed).toHaveBeenCalledWith(
+      'viewLogHistory', 8, 'alice', CommandFailure.Timeout,
+    );
   });
 });
