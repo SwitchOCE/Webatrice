@@ -206,4 +206,11 @@ describe('ModeratorResponseImpl report replay through a real store', () => {
     expect(store.getState().server.reports.replay).toEqual({ gameId: 9, replayId: 4, replayData });
   });
 
+  it('drops the stored replay when a new download is requested', () => {
+    const store = createStore();
+    const impl = new ModeratorResponseImpl(store);
+    impl.replayDownloadedByGameId(9, create(Response_ReplayDownloadByGameIdSchema, { replayId: 4, replayData: new Uint8Array([1]) }));
+    impl.replayDownloadByGameIdPending();
+    expect(store.getState().server.reports.replay).toBeNull();
+  });
 });

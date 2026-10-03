@@ -318,6 +318,8 @@ export function useReportQueue(): ReportQueue {
     setActionBusy(true);
     setActionMessage('loadingReplay');
     pendingReplayGameId.current = selected.gameId;
+    // Sockatrice clears the stored replay before sending, so only the answer
+    // to this request can match the game id below.
     webClient.request.moderator.replayDownloadByGameId(selected.gameId);
   }, [selected, webClient]);
 

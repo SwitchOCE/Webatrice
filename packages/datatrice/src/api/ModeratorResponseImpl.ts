@@ -132,6 +132,10 @@ export class ModeratorResponseImpl implements WebsocketTypes.IModeratorResponse 
     this.store.dispatch(ServerActions.reportStats({ stats }));
   }
 
+  replayDownloadByGameIdPending(): void {
+    this.store.dispatch(ServerActions.reportReplayRequested());
+  }
+
   replayDownloadedByGameId(gameId: number, response: Response_ReplayDownloadByGameId): void {
     this.store.dispatch(ServerActions.reportReplayDownloaded({
       gameId,

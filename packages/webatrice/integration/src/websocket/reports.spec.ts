@@ -6,6 +6,7 @@ import { create } from '@bufbuild/protobuf';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  Command_ReplayDownloadByGameId_ext,
   Command_ReportAddComment_ext,
   Command_ReportAssign_ext,
   Command_ReportDetails_ext,
@@ -16,6 +17,8 @@ import {
   Event_NotifyUserSchema,
   Event_NotifyUser_NotificationType,
   Event_NotifyUser_ext,
+  Response_ReplayDownloadByGameIdSchema,
+  Response_ReplayDownloadByGameId_ext,
   Response_ReportDetailsSchema,
   Response_ReportDetails_ext,
   Response_ReportListSchema,
@@ -186,4 +189,23 @@ describe('moderation queue commands', () => {
     expect(store.getState().server.reports.byId[3].status).toBe('open');
   });
 
+  it('a second replay download of the same game drops the stored replay until it is answered', () => {
+    connectAndLogin('modA');
+    ModeratorCommands.replayDownloadByGameId(30);
+    deliverMessage(buildResponseMessage(buildResponse({
+      cmdId: findLastModeratorCommand(Command_ReplayDownloadByGameId_ext).cmdId,
+      responseCode: Response_ResponseCode.RespOk,
+      ext: Response_ReplayDownloadByGameId_ext,
+      value: create(Response_ReplayDownloadByGameIdSchema, { replayId: 9, replayData: new Uint8Array([1]) }),
+    })));
+    expect(store.getState().server.reports.replay?.gameId).toBe(30);
+
+    ModeratorCommands.replayDownloadByGameId(30);
+    expect(store.getState().server.reports.replay).toBeNull();
+    answer(findLastModeratorCommand(Command_ReplayDownloadByGameId_ext).cmdId, Response_ResponseCode.RespNameNotFound);
+    expect(lastAction()).toMatchObject(server.Actions.moderatorCommandFailed({
+      command: 'replayDownloadByGameId', responseCode: Response_ResponseCode.RespNameNotFound, target: '30', failure: undefined,
+    }));
+    expect(store.getState().server.reports.replay).toBeNull();
+  });
 });
