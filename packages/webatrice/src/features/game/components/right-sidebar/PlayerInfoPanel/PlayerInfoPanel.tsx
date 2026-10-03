@@ -95,12 +95,25 @@ export default function PlayerInfoPanel() {
     isSelf,
     life,
     manaCounters,
-    manaPool,
     name,
     playerId,
     seat,
     setLife,
   } = usePlayerSeatContext();
+  // Mana pool: read from the wired `manaCounters` when available
+  // (Redux-authoritative), fall back to zeros during pre-hydration.
+  // Local mana pool is per-player and matches Cockatrice's
+  // Servatrice-created counters (w/u/b/r/g/x/storm) — see
+  // server_player.cpp:96-102.
+  const manaPool: Record<'W' | 'U' | 'B' | 'R' | 'G' | 'C' | 'O', number> = {
+    W: manaCounters?.W?.count ?? 0,
+    U: manaCounters?.U?.count ?? 0,
+    B: manaCounters?.B?.count ?? 0,
+    R: manaCounters?.R?.count ?? 0,
+    G: manaCounters?.G?.count ?? 0,
+    C: manaCounters?.C?.count ?? 0,
+    O: manaCounters?.O?.count ?? 0,
+  };
 
   return (
     <div
