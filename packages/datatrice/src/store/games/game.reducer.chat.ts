@@ -7,7 +7,7 @@ import {
   ServerInfo_Zone_ZoneType,
 } from '@cockatrice/sockatrice/generated';
 import { GamesState } from './game.interfaces';
-import { MAX_GAME_MESSAGES, clearZoneKnownCards, pushEventMessage } from './game.reducer.helpers';
+import { MAX_GAME_MESSAGES, clearZoneKnownCards, gameSecondsNow, pushEventMessage } from './game.reducer.helpers';
 import {
   formatDieRolled,
   formatUndoDrawFailed,
@@ -27,7 +27,14 @@ export const chatReducers = {
     }
     // Resolved now: a player who leaves is deleted from `players`.
     const senderName = game.players[playerId]?.properties.userInfo?.name;
-    game.messages.push({ playerId, message, timeReceived, kind: 'chat', senderName });
+    game.messages.push({
+      playerId,
+      message,
+      timeReceived,
+      gameSeconds: gameSecondsNow(game, timeReceived),
+      kind: 'chat',
+      senderName,
+    });
   }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; playerId: number; message: string; timeReceived: number }>>,
 
   zoneShuffled: ((state, action) => {

@@ -62,7 +62,13 @@ export interface GameEntry {
   started: boolean;
   activePlayerId: number;
   activePhase: number;
+  /** The game time, in seconds since the game started, as the server last said. */
   secondsElapsed: number;
+  /**
+   * Wall-clock ms when `secondsElapsed` arrived; the game time runs on from there (desktop
+   * ticks its own game clock between the server's updates). Unset until the first update.
+   */
+  secondsElapsedAt?: number;
   reversed: boolean;
 
   players: { [playerId: number]: PlayerEntry };
@@ -144,6 +150,9 @@ export interface GameMessage {
    *  as `[HH:MM:SS]` local time before the message body, matching
    *  Cockatrice desktop's `QDateTime::currentDateTime()` stamp. */
   timeReceived: number;
+  /** The game time, in seconds, when the line was logged: what desktop's "Use game time
+   *  instead of local time in game logs" stamps instead (see gameSecondsNow). */
+  gameSeconds?: number;
   kind?: 'chat' | 'event';
   /** Chat lines only: the sender's name when the line arrived, so the line
    *  keeps its author after that player leaves (desktop ChatView stores the
