@@ -48,12 +48,15 @@ export function login(options: ConnectTarget & LoginParams, password?: string): 
   WebClient.instance.protobuf.sendSessionCommand(Command_Login_ext, create(Command_LoginSchema, loginConfig), {
     responseExt: Response_Login_ext,
     onSuccess: (resp) => {
-      const { buddyList, ignoreList, userInfo } = resp;
+      const { buddyList, ignoreList, userInfo, missingFeatures } = resp;
 
       WebClient.instance.response.session.updateBuddyList(buddyList);
       WebClient.instance.response.session.updateIgnoreList(ignoreList);
       WebClient.instance.response.session.updateUser(userInfo);
-      WebClient.instance.response.session.loginSuccessful({ hashedPassword: loginConfig.hashedPassword });
+      WebClient.instance.response.session.loginSuccessful({
+        hashedPassword: loginConfig.hashedPassword,
+        missingFeatures,
+      });
 
       listUsers();
       listRooms();

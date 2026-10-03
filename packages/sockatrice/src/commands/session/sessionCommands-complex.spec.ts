@@ -192,6 +192,14 @@ describe('login', () => {
     expect(calledWith).toHaveProperty('hashedPassword', 'hashed_pw');
   });
 
+  it('onSuccess passes the server\'s missing features to loginSuccessful', () => {
+    login(makeLoginOpts(), 'pw');
+    const loginResp = { buddyList: [], ignoreList: [], userInfo: { name: 'alice' }, missingFeatures: ['new_feature'] };
+    invokeOnSuccess(loginResp, { responseCode: 0 });
+    const calledWith = (WebClient.instance.response.session.loginSuccessful as Mock).mock.calls[0][0];
+    expect(calledWith).toHaveProperty('missingFeatures', ['new_feature']);
+  });
+
   it('onResponseCode RespClientUpdateRequired calls onLoginError', () => {
     login(makeLoginOpts(), 'pw');
     invokeResponseCode(Response_ResponseCode.RespClientUpdateRequired);
