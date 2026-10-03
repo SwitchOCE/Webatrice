@@ -175,6 +175,7 @@ export interface ISessionResponse {
   deckListFailed?(responseCode: number, failure?: CommandFailure): void;
   deckDownloadFailed?(deckId: number, responseCode: number, failure?: CommandFailure, requestId?: RequestId): void;
   deckUploadFailed?(path: string, responseCode: number, failure?: CommandFailure): void;
+  replayListFailed?(responseCode: number, failure?: CommandFailure): void;
 }
 
 export interface IRoomResponse<T extends RoomEventMap = WebSocketRoomResponseOverrides> {
