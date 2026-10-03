@@ -40,7 +40,7 @@ function renderReplayRoute(replayKey: string, webClient: WebClient = createMockW
 
 /** Every request facade method of the mock client, flattened. */
 function allRequestSpies(webClient: WebClient) {
-  return Object.values(webClient.request).flatMap((scope) => Object.values(scope as Record<string, ReturnType<typeof vi.fn>>));
+  return Object.values(webClient.request).flatMap((scope) => Object.values(scope as unknown as Record<string, ReturnType<typeof vi.fn>>));
 }
 
 describe('GameReplay route', () => {
