@@ -4,13 +4,14 @@ import { combineReducers } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
 import { I18nextProvider, initReactI18next } from 'react-i18next';
 import i18n from 'i18next';
-import { createStore } from '@cockatrice/datatrice';
+import { createStore, server } from '@cockatrice/datatrice';
 import { WebClientContext } from '@cockatrice/datatrice/react';
 
 import { rootReducerMap, type RootState } from '../../store';
 import { ToastProvider } from '../../components/Toast/ToastContext';
 import { createMockWebClient, connectedState } from '../../__test-utils__';
-import { useLogs } from './useLogs';
+import { LOG_SEARCH_DEFAULTS, type LogSearchFormValues } from './LogSearchForm/logSearchFormSchema';
+import { toViewLogHistoryParams, useLogs } from './useLogs';
 
 const reducer = combineReducers(rootReducerMap);
 
@@ -40,49 +41,85 @@ function setup(preloadedState: Partial<RootState> = connectedState) {
   return { ...view, webClient, store };
 }
 
-describe('useLogs', () => {
-  it('exposes the logs slice from server state', () => {
-    const { result } = setup();
-    expect(result.current.logs).toEqual({ room: [], game: [], chat: [] });
+const search = (overrides: Partial<LogSearchFormValues>): LogSearchFormValues => ({
+  ...LOG_SEARCH_DEFAULTS,
+  logLocation: { room: true, game: true, chat: true },
+  dateRange: 'pastDays',
+  pastDays: 20,
+  maximumResults: 1000,
+  ...overrides,
+});
+
+describe('toViewLogHistoryParams', () => {
+  it('sends the look-back in hours, as desktop does', () => {
+    expect(toViewLogHistoryParams(search({ dateRange: 'lastHour' })).dateRange).toBe(1);
+    expect(toViewLogHistoryParams(search({ dateRange: 'today' })).dateRange).toBe(24);
+    expect(toViewLogHistoryParams(search({ dateRange: 'pastDays', pastDays: 3 })).dateRange).toBe(72);
   });
 
-  it('dispatches viewLogHistory when at least one required field is provided', () => {
-    const { result, webClient } = setup();
-    result.current.onSubmit({ userName: 'alice', logLocation: { room: true } });
-
-    expect(webClient.request.moderator.viewLogHistory).toHaveBeenCalledTimes(1);
-    const params = (webClient.request.moderator.viewLogHistory as any).mock.calls[0][0];
-    expect(params.userName).toBe('alice');
-    expect(params.logLocation).toEqual(['room']);
-    expect(params.maximumResults).toBe(1000);
+  it('passes the chosen maximum and the selected locations', () => {
+    const params = toViewLogHistoryParams(search({ maximumResults: 50, logLocation: { room: true, game: false, chat: true } }));
+    expect(params.maximumResults).toBe(50);
+    expect(params.logLocation).toEqual(['room', 'chat']);
   });
 
-  it('trims whitespace-only fields out of the wire params', () => {
-    const { result, webClient } = setup();
-    result.current.onSubmit({ userName: '  bob  ', ipAddress: '   ', message: 'hello' });
-
-    const params = (webClient.request.moderator.viewLogHistory as any).mock.calls[0][0];
+  it('trims text filters and leaves blank ones out', () => {
+    const params = toViewLogHistoryParams(search({ userName: '  bob  ', ipAddress: '   ', message: 'hello' }));
     expect(params.userName).toBe('bob');
     expect(params.ipAddress).toBeUndefined();
     expect(params.message).toBe('hello');
   });
+});
 
-  it('flattens all selected log locations', () => {
-    const { result, webClient } = setup();
-    result.current.onSubmit({
-      gameId: '7',
-      logLocation: { room: true, game: true, chat: false },
-    });
-    const params = (webClient.request.moderator.viewLogHistory as any).mock.calls[0][0];
-    expect(params.logLocation).toEqual(['room', 'game']);
+describe('useLogs', () => {
+  it('exposes the logs slice from server state', () => {
+    const { result } = setup();
+    expect(result.current.logs).toEqual({ room: [], game: [], chat: [] });
+    expect(result.current.notice).toBeNull();
   });
 
-  it('does not dispatch viewLogHistory when no required filter is set', () => {
+  it('sends viewLogHistory with the completed search', () => {
     const { result, webClient } = setup();
+    result.current.onSubmit(search({ userName: 'alice', dateRange: 'today', maximumResults: 25 }));
+
+    expect(webClient.request.moderator.viewLogHistory).toHaveBeenCalledTimes(1);
+    const params = (webClient.request.moderator.viewLogHistory as any).mock.calls[0][0];
+    expect(params).toMatchObject({ userName: 'alice', dateRange: 24, maximumResults: 25, logLocation: ['room', 'game', 'chat'] });
+  });
+
+  it('says there are no messages when a search comes back empty', () => {
+    const { result, store } = setup();
     act(() => {
-      result.current.onSubmit({ logLocation: { room: true } });
+      result.current.onSubmit(search({ userName: 'alice' }));
     });
-    expect(webClient.request.moderator.viewLogHistory).not.toHaveBeenCalled();
+    act(() => {
+      store.dispatch(server.Actions.viewLogs({ logs: [] }));
+    });
+    expect(result.current.notice).toMatchObject({ message: 'Logs.notice.empty', severity: 'info' });
+
+    act(() => {
+      result.current.dismissNotice();
+    });
+    expect(result.current.notice).toBeNull();
+  });
+
+  it('reports a failed search', () => {
+    const { result, store } = setup();
+    act(() => {
+      result.current.onSubmit(search({ userName: 'alice' }));
+    });
+    act(() => {
+      store.dispatch(server.Actions.moderatorCommandFailed({ command: 'viewLogHistory', responseCode: 3, target: 'alice' }));
+    });
+    expect(result.current.notice).toMatchObject({ message: 'Logs.notice.failed', severity: 'error' });
+  });
+
+  it('ignores log responses it did not ask for', () => {
+    const { result, store } = setup();
+    act(() => {
+      store.dispatch(server.Actions.viewLogs({ logs: [] }));
+    });
+    expect(result.current.notice).toBeNull();
   });
 
   it('clears the logs slice on unmount', () => {

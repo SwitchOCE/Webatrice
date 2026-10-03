@@ -1,17 +1,34 @@
 {
   "LogSearchForm": {
+    "group": {
+      "filters": "Filters",
+      "locations": "Log Locations",
+      "dateRange": "Date Range",
+      "maximumResults": "Maximum Results"
+    },
     "label": {
       "userName": "Username",
       "ipAddress": "IP Address",
       "gameName": "Game Name",
       "gameId": "GameID",
       "message": "Message",
-      "rooms": "Rooms",
-      "games": "Games",
-      "chats": "Chats"
+      "rooms": "Main Room",
+      "games": "Game Room",
+      "chats": "Private Chat",
+      "pastDays": "Past X Days",
+      "today": "Today",
+      "lastHour": "Last Hour",
+      "days": "Days",
+      "maximumResults": "Maximum Results"
+    },
+    "description": "At least one filter is required. The more information you put in, the more specific your results will be.",
+    "error": {
+      "noFilter": "You must select at least one filter.",
+      "noDays": "You have to select a valid number of days to locate."
     },
     "button": {
-      "search": "Search Logs"
+      "search": "Get User Logs",
+      "clear": "Clear Filters"
     }
   }
 }

@@ -1,9 +1,9 @@
 {
   "Logs": {
     "tab": {
-      "rooms": "Rooms",
-      "games": "Games",
-      "chats": "Chats"
+      "rooms": "Room Logs",
+      "games": "Game Logs",
+      "chats": "Chat Logs"
     },
     "column": {
       "time": "Time",
@@ -13,8 +13,10 @@
       "targetId": "Target ID",
       "targetName": "Target Name"
     },
-    "message": {
-      "emptyFilter": "Enter at least one search field before submitting."
+    "notice": {
+      "title": "Message History",
+      "empty": "There are no messages for the selected filters.",
+      "failed": "Failed to collect message history information."
     }
   }
 }
