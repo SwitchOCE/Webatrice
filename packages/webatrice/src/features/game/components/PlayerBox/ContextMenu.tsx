@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
-import { useViewportClampedPopup } from './useViewportClampedPopup';
+import { useViewportClampedMenu } from '../context-menus/useViewportClampedMenu';
 
 /**
  * A right-click context menu that overrides the browser's default menu.
@@ -143,7 +143,7 @@ function MenuList({
   // Viewport-clamped position — flips left / shifts up when the popup
   // would overflow. Same helper the card context menu uses so a
   // right-click near a screen edge doesn't clip the menu.
-  const { ref: popupRef, pos } = useViewportClampedPopup(x, y);
+  const { ref: popupRef, position: pos } = useViewportClampedMenu(x, y);
   // If any item in this menu is checkable, reserve the ✓ slot on
   // every row so labels line up regardless of checked state — matches
   // native menu conventions (macOS / Qt), where a menu with any

@@ -1,8 +1,8 @@
 // The battlefield card context menu as data (refactor plan PB-09). Labels,
 // order, dividers and shortcut hints mirror desktop's card menu
 // (menu_builder.cpp / TableZone::onCardContextMenu); the builder only wires
-// the caller's handlers, so it never touches a client or Dexie. PlayerBox
-// renders the result today; CardContextMenu.tsx will in Phase 6.
+// the caller's handlers, so it never touches a client or Dexie. The seat builds
+// it and CardContextMenu.tsx's CardMenuPopup renders it.
 
 import type { ActionId } from '@app/feature-widgets/shortcuts';
 

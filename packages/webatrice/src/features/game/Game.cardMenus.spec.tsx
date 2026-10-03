@@ -364,3 +364,48 @@ describe('seat card menu trees', () => {
     `);
   });
 });
+
+/** The Tailwind `z-[N]` layer of the nearest element that sets one. */
+function zLayer(el: Element): number {
+  const layered = el.closest('[class*="z-["]');
+  const match = layered?.className.toString().match(/z-\[(\d+)\]/);
+  return match ? Number(match[1]) : 0;
+}
+
+describe('seat card menu ownership', () => {
+  it('keeps one card menu open across seats: opening another closes the first', () => {
+    renderSeats();
+
+    openContextMenu(cardEl(BOLT.id, 'battlefield'));
+    act(() => {
+      fireEvent.contextMenu(cardEl(BEAR.id, 'battlefield'), { clientX: 30, clientY: 30 });
+    });
+
+    const menus = openMenus();
+    expect(menus).toHaveLength(1);
+    expect(menus[0]).toHaveTextContent('Reduce life by power');
+    expect(menus[0]).not.toHaveTextContent('Tap / Untap');
+  });
+
+  it('closes when one of its items fires', () => {
+    renderSeats();
+
+    openContextMenu(cardEl(OWN_SPELL.id, 'stack'));
+    chooseMenuPath('Select All');
+
+    expect(openMenus()).toHaveLength(0);
+  });
+
+  it('draws a pile-view card menu above the pile view', () => {
+    renderSeats();
+    openContextMenu(pileEl('Graveyard', 0));
+    chooseMenuPath('View graveyard');
+    const card = pileViewCard(OWN_GRAVE.id);
+
+    const menu = openContextMenu(card);
+
+    expect(zLayer(menu)).toBeGreaterThan(zLayer(card));
+    expect(menu.parentElement).toBe(document.body);
+  });
+});
+

@@ -77,6 +77,8 @@ export default tseslint.config(
     files: [
       'src/features/game/components/battlefield/Battlefield/{battlefieldLayout,cardPlacement}.ts',
       'src/features/game/components/context-menus/CardContextMenu/{cardAttributeEdits,cardContextMenu.model,relatedCardActions}.ts',
+      'src/features/game/components/context-menus/CardContextMenu/CardContextMenu.tsx',
+      'src/features/game/components/context-menus/useViewportClampedMenu.ts',
       'src/features/game/components/right-sidebar/PlayerInfoPanel/lifeExpression.ts',
       'src/features/game/components/ui/{CardPreviewContext,GameSelectionContext,SeatDragContext,SeatShortcutsContext}.tsx',
       'src/features/game/components/ui/PlayerBoard/playerBoard.types.ts',

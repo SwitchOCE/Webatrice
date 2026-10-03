@@ -41,6 +41,7 @@ import { legacyTableRowFromTypeLine, tableRowToGridY } from '../battlefield/Batt
 import { MAX_SUBPOS } from '../battlefield/Battlefield/gridMath';
 import { applyPTDelta, applyPTSet, parsePT } from '../context-menus/CardContextMenu/cardAttributeEdits';
 import { buildCardContextMenu, type CardMenuItem } from '../context-menus/CardContextMenu/cardContextMenu.model';
+import { CardMenuPopup } from '../context-menus/CardContextMenu/CardContextMenu';
 import { buildRelatedTokenItems, buildTransformItems } from '../context-menus/CardContextMenu/relatedCardActions';
 import { evalLifeExpression } from '../right-sidebar/PlayerInfoPanel/lifeExpression';
 import { counterColorForId } from '../ui/CardSlot/counterColors';
@@ -72,7 +73,6 @@ import {
   useSeatDropZone,
   type SeatDragStart,
 } from '../ui/SeatDragContext';
-import { useViewportClampedPopup } from './useViewportClampedPopup';
 import ZoneRevealDialog from './ZoneRevealDialog';
 import { useGameDialogActions } from '../ui/GameDialogActionsContext';
 import { useGameDialogsContext } from '../ui/GameDialogsContext';
@@ -112,172 +112,6 @@ type DragSourceZone = SeatZone;
 type Selection = SeatSelection;
 
 const NO_CARDS: readonly HandCard[] = [];
-
-interface CardContextMenuPopupProps {
-  items: CardMenuItem[];
-  anchorX: number;
-  anchorY: number;
-  disabled: boolean;
-}
-
-function CardContextMenuPopup({
-  items,
-  anchorX,
-  anchorY,
-  disabled,
-}: CardContextMenuPopupProps) {
-  const [openSubmenu, setOpenSubmenu] = useState<{
-    index: number;
-    x: number;
-    y: number;
-  } | null>(null);
-  const { ref: mainRef, pos: mainPos } = useViewportClampedPopup(
-    anchorX,
-    anchorY,
-  );
-
-  const renderItems = (
-    list: CardMenuItem[],
-    keyPrefix: string,
-    onItemHover: (i: number, e: React.MouseEvent<HTMLButtonElement>) => void,
-  ) =>
-    list.map((item, i) => {
-      if ('divider' in item) {
-        return (
-          <div
-            key={`${keyPrefix}-d-${i}`}
-            className="my-1 border-t border-border-subtle"
-          />
-        );
-      }
-      const hasSubmenu = !!item.submenu;
-      return (
-        <button
-          key={`${keyPrefix}-i-${i}`}
-          disabled={disabled && !hasSubmenu && !item.onClick}
-          onMouseEnter={(e) => onItemHover(i, e)}
-          onClick={item.onClick}
-          className={[
-            'w-full flex items-center gap-3 px-3 py-1.5 text-sm text-left text-text-primary',
-            'hover:bg-bg-elevated disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
-          ].join(' ')}
-        >
-          {item.swatch !== undefined ? (
-            <span
-              className="inline-block rounded-full shrink-0"
-              style={{
-                width: 10,
-                height: 10,
-                background: item.swatch,
-              }}
-              aria-hidden
-            />
-          ) : (
-            <span
-              className="inline-block shrink-0 text-center text-accent"
-              style={{ width: 10 }}
-              aria-hidden
-            >
-              {item.checked ? '✓' : ''}
-            </span>
-          )}
-          <span className="flex-1 truncate">{item.label}</span>
-          {item.shortcut && (
-            <span className="text-xs text-text-muted">{item.shortcut}</span>
-          )}
-          {hasSubmenu && (
-            <span className="text-text-muted text-xs" aria-hidden>
-              ▶
-            </span>
-          )}
-        </button>
-      );
-    });
-
-  return (
-    <>
-      <div
-        ref={mainRef}
-        data-card-context-menu
-        // z-[1200] sits above the pile-view LibrarySearchDialog
-        // (z-[1000]) so the pile-view per-card context menu is
-        // actually visible. Prior z-[100] worked for the battlefield
-        // menu but rendered BEHIND any open modal — the graveyard-
-        // view menu opened silently. Everything else here
-        // (battlefield, hand, etc.) has no modals above it, so the
-        // bump is inert for the existing flows.
-        className="fixed z-[1200] min-w-[220px] rounded-md border border-border-subtle bg-bg-surface shadow-glow py-1"
-        style={{ left: mainPos.x, top: mainPos.y }}
-      >
-        {renderItems(items, 'top', (i, e) => {
-          const item = items[i];
-          if ('divider' in item) {
-            return;
-          }
-          if (item.submenu) {
-            const rect = e.currentTarget.getBoundingClientRect();
-            setOpenSubmenu({ index: i, x: rect.right, y: rect.top });
-          } else {
-            setOpenSubmenu(null);
-          }
-        })}
-      </div>
-      {openSubmenu !== null &&
-        (() => {
-          const parent = items[openSubmenu.index];
-          if ('divider' in parent || !parent.submenu) {
-            return null;
-          }
-          return (
-            <CardContextSubmenu
-              anchorX={openSubmenu.x}
-              anchorY={openSubmenu.y}
-            >
-              {renderItems(parent.submenu, `sub-${openSubmenu.index}`, () => {
-                /* nested submenus not used by any current menu */
-              })}
-            </CardContextSubmenu>
-          );
-        })()}
-    </>
-  );
-}
-
-/** Measures the ref's own rendered size after mount and clamps
- *  (anchorX, anchorY) into the viewport. If the popup would spill
- *  past the right edge it flips to open on the LEFT of the anchor
- *  (starts at `anchorX - width` — used by submenus that fall back to
- *  the parent item's left side). If it would spill past the bottom
- *  it shifts up so the popup bottom sits just inside the viewport;
- *  same at the top. Runs in useLayoutEffect so the correction
- *  applies before paint — no visible flicker. */
-// `useViewportClampedPopup` was inlined here originally; extracted to
-// its own module so ContextMenu.tsx (library / graveyard / exile menus)
-// can share the same clamping behavior.
-
-interface CardContextSubmenuProps {
-  anchorX: number;
-  anchorY: number;
-  children: React.ReactNode;
-}
-
-function CardContextSubmenu({
-  anchorX,
-  anchorY,
-  children,
-}: CardContextSubmenuProps) {
-  const { ref, pos } = useViewportClampedPopup(anchorX, anchorY);
-  return (
-    <div
-      ref={ref}
-      data-card-context-menu
-      className="fixed z-[1201] min-w-[260px] rounded-md border border-border-subtle bg-bg-surface shadow-glow py-1"
-      style={{ left: pos.x, top: pos.y }}
-    >
-      {children}
-    </div>
-  );
-}
 
 /** Synthetic drag payload for pulling the top of the library. The library
  *  is a HiddenZone — the client never knows which face is at deck[0]
@@ -2267,6 +2101,9 @@ function PlayerBox(
     // drag-out support against the HAND zone.
     handleRequestSortHandBy,
     handleRequestChooseMulligan,
+    seatCardMenu,
+    openSeatCardMenu,
+    closeSeatCardMenu,
   } = useGameDialogsContext();
   // Fire Command_DumpZone(zone=SIDEBOARD) each time the modal opens.
   // Same pattern as View library: sideboard is a HiddenZone so we
@@ -2701,115 +2538,15 @@ function PlayerBox(
   // context menu; fires Command_DumpZone(numberCards=-1) on open so
   // the dialog reads the server-authoritative revealed cards.
   const [librarySearchOpen, setLibrarySearchOpen] = useState(false);
-  // Right-click card context menu — one shared popup keyed by the card
-  // being acted on. Populated by onContextMenu on battlefield cards;
-  // cleared by outside click / escape / after an item fires. Only
-  // applies to the local player's cards (opponents' cards not owned).
-  const [cardContextMenu, setCardContextMenu] = useState<
-    { cardId: string; x: number; y: number } | null
-  >(null);
-  // Per-card context menu inside the pile-view modal (graveyard /
-  // exile). Separate state from `cardContextMenu` (which is for
-  // battlefield cards) — different item set (view-only actions: Draw
-  // arrow, Clone, Select All/Column), and the anchor coords come
-  // from the modal's card element, not the board. `zone` is the wire
-  // zone name of the source pile (GRAVE / EXILE) so the Draw arrow
-  // flow can set `sourceZone` on the pending-arrow state correctly.
-  const [pileCardMenu, setPileCardMenu] = useState<
-    { zone: string; cardId: string; cardName: string; x: number; y: number } | null
-  >(null);
-  // Per-card context menu for cards on the stack. Ports Cockatrice's
-  // `CardMenu::createStackMenu` (card_menu.cpp:201-227): own-stack
-  // cards get Play / Play Face Down / Clone / Move to / Attach /
-  // Draw arrow / Select All; opponent-stack cards get the trimmed
-  // view-only branch (Draw arrow, Clone, Select All). Isolated from
-  // `cardContextMenu` because the item set is stack-specific and the
-  // card lives in `stackDisplayList`, not the battlefield.
-  const [stackCardMenu, setStackCardMenu] = useState<
-    { cardId: string; x: number; y: number } | null
-  >(null);
-  useEffect(() => {
-    if (!cardContextMenu) {
-      return;
-    }
-    const onDown = (e: MouseEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target?.closest('[data-card-context-menu]')) {
-        return;
-      }
-      setCardContextMenu(null);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setCardContextMenu(null);
-      }
-    };
-    const t = window.setTimeout(() => {
-      document.addEventListener('mousedown', onDown);
-      document.addEventListener('keydown', onKey);
-    }, 0);
-    return () => {
-      clearTimeout(t);
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [cardContextMenu]);
-  // Same close-on-outside-click / Escape handling for the pile-view
-  // per-card menu. Kept separate so the two menus don't fight each
-  // other over a shared close signal.
-  useEffect(() => {
-    if (!pileCardMenu) {
-      return;
-    }
-    const onDown = (e: MouseEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target?.closest('[data-card-context-menu]')) {
-        return;
-      }
-      setPileCardMenu(null);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setPileCardMenu(null);
-      }
-    };
-    const t = window.setTimeout(() => {
-      document.addEventListener('mousedown', onDown);
-      document.addEventListener('keydown', onKey);
-    }, 0);
-    return () => {
-      clearTimeout(t);
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [pileCardMenu]);
-  // Same close-on-outside-click / Escape handling for the stack menu.
-  useEffect(() => {
-    if (!stackCardMenu) {
-      return;
-    }
-    const onDown = (e: MouseEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target?.closest('[data-card-context-menu]')) {
-        return;
-      }
-      setStackCardMenu(null);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setStackCardMenu(null);
-      }
-    };
-    const t = window.setTimeout(() => {
-      document.addEventListener('mousedown', onDown);
-      document.addEventListener('keydown', onKey);
-    }, 0);
-    return () => {
-      clearTimeout(t);
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [stackCardMenu]);
+  // The seat's card menus: battlefield, pile view (graveyard / exile) and
+  // stack. The open menu lives in the game dialog state, so it is one of the
+  // game's mutually exclusive context menus; this seat renders it when it
+  // opened it, and CardMenuPopup closes it on an outside click or Escape.
+  const menuOwnerId = playerId ?? -1;
+  const seatMenu = seatCardMenu?.playerId === menuOwnerId ? seatCardMenu : null;
+  const cardContextMenu = seatMenu?.kind === 'battlefield' ? seatMenu : null;
+  const pileCardMenu = seatMenu?.kind === 'pile' ? seatMenu : null;
+  const stackCardMenu = seatMenu?.kind === 'stack' ? seatMenu : null;
   // Whether the hand row is being hovered — controls the auto-expand
   // that reveals full-size cards over the play area without reflowing
   // the shell (same pattern the PhaseTrack uses on the left edge).
@@ -7326,7 +7063,9 @@ function PlayerBox(
                   onContextMenu={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    setStackCardMenu({
+                    openSeatCardMenu({
+                      kind: 'stack',
+                      playerId: menuOwnerId,
                       cardId: c.id,
                       x: e.clientX,
                       y: e.clientY,
@@ -7618,7 +7357,9 @@ function PlayerBox(
                           // (Draw arrow / Clone / Select / Reduce life by
                           // power / View related cards — card_menu.cpp:183).
                           e.stopPropagation();
-                          setCardContextMenu({
+                          openSeatCardMenu({
+                            kind: 'battlefield',
+                            playerId: menuOwnerId,
                             cardId: c.id,
                             x: e.clientX,
                             y: e.clientY,
@@ -8521,7 +8262,9 @@ function PlayerBox(
             pileView.zone === 'hand'
               ? undefined
               : (e, c) => {
-                setPileCardMenu({
+                openSeatCardMenu({
+                  kind: 'pile',
+                  playerId: menuOwnerId,
                   zone:
                     pileView.zone === 'graveyard'
                       ? ZoneName.GRAVE
@@ -8724,7 +8467,7 @@ function PlayerBox(
             (bc) => bc.id === cardContextMenu.cardId,
           );
           const numeric = Number.isFinite(cardIdNum) && card != null;
-          const close = () => setCardContextMenu(null);
+          const close = closeSeatCardMenu;
           // Opponent card menu — ports Cockatrice's
           // card_menu.cpp:183-194 `!canModifyCard` branch on the TABLE
           // zone. Minimal item set: things a viewer can do to an
@@ -8909,14 +8652,13 @@ function PlayerBox(
                   : [];
               })(),
             ];
-            return createPortal(
-              <CardContextMenuPopup
+            return (
+              <CardMenuPopup
                 items={opponentItems}
-                anchorX={cardContextMenu.x}
-                anchorY={cardContextMenu.y}
+                anchor={{ x: cardContextMenu.x, y: cardContextMenu.y }}
                 disabled={!numeric}
-              />,
-              document.body,
+                onClose={closeSeatCardMenu}
+              />
             );
           }
           // Multi-card target set. Cockatrice's cardMenuAction pattern
@@ -9393,14 +9135,13 @@ function PlayerBox(
             },
             tokenItems,
           });
-          return createPortal(
-            <CardContextMenuPopup
+          return (
+            <CardMenuPopup
               items={menu}
-              anchorX={cardContextMenu.x}
-              anchorY={cardContextMenu.y}
+              anchor={{ x: cardContextMenu.x, y: cardContextMenu.y }}
               disabled={!numeric}
-            />,
-            document.body,
+              onClose={closeSeatCardMenu}
+            />
           );
         })()}
 
@@ -9408,13 +9149,13 @@ function PlayerBox(
           graveyard / exile pile-view modal. View-only shape: Draw
           arrow / Clone / Select All / Select Column, matching
           Cockatrice's card-in-ZoneView menu. Uses the same
-          CardContextMenuPopup renderer as the battlefield menu — only
+          CardMenuPopup renderer as the battlefield menu — only
           the item set differs. */}
       {pileCardMenu &&
         (() => {
           const cardIdNum = Number(pileCardMenu.cardId);
           const numeric = Number.isFinite(cardIdNum);
-          const close = () => setPileCardMenu(null);
+          const close = closeSeatCardMenu;
           const items: CardMenuItem[] = [
             {
               // "Draw arrow..." — enters pending-arrow mode with the
@@ -9488,14 +9229,13 @@ function PlayerBox(
               shortcut: shortcutHints['game.selectColumnBattlefield'],
             },
           ];
-          return createPortal(
-            <CardContextMenuPopup
+          return (
+            <CardMenuPopup
               items={items}
-              anchorX={pileCardMenu.x}
-              anchorY={pileCardMenu.y}
+              anchor={{ x: pileCardMenu.x, y: pileCardMenu.y }}
               disabled={!numeric}
-            />,
-            document.body,
+              onClose={closeSeatCardMenu}
+            />
           );
         })()}
 
@@ -9512,7 +9252,7 @@ function PlayerBox(
           const cardIdNum = Number(stackCardMenu.cardId);
           const card = stackDisplayList.find((sc) => sc.id === stackCardMenu.cardId);
           const numeric = Number.isFinite(cardIdNum) && card != null;
-          const close = () => setStackCardMenu(null);
+          const close = closeSeatCardMenu;
           // Selection scope: same rule as the battlefield menu — the
           // right-clicked card acts on the whole selection when part
           // of a ≥2 selection on THIS box's stack, else just itself.
@@ -9604,14 +9344,13 @@ function PlayerBox(
                   : [];
               })(),
             ];
-            return createPortal(
-              <CardContextMenuPopup
+            return (
+              <CardMenuPopup
                 items={opponentItems}
-                anchorX={stackCardMenu.x}
-                anchorY={stackCardMenu.y}
+                anchor={{ x: stackCardMenu.x, y: stackCardMenu.y }}
                 disabled={!numeric}
-              />,
-              document.body,
+                onClose={closeSeatCardMenu}
+              />
             );
           }
           // Own stack — full menu.
@@ -9805,14 +9544,13 @@ function PlayerBox(
                 : [];
             })(),
           ];
-          return createPortal(
-            <CardContextMenuPopup
+          return (
+            <CardMenuPopup
               items={items}
-              anchorX={stackCardMenu.x}
-              anchorY={stackCardMenu.y}
+              anchor={{ x: stackCardMenu.x, y: stackCardMenu.y }}
               disabled={!numeric}
-            />,
-            document.body,
+              onClose={closeSeatCardMenu}
+            />
           );
         })()}
 

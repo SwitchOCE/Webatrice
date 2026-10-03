@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import type { ServerInfo_User } from '@cockatrice/sockatrice/generated';
 
 import type { ContextMenuItem } from '../../PlayerBox/ContextMenu';
-import { useViewportClampedPopup } from '../../PlayerBox/useViewportClampedPopup';
+import { useViewportClampedMenu } from '../../context-menus/useViewportClampedMenu';
 
 /**
  * Right-click context menu for PlayerList rows. Ports
@@ -206,7 +206,7 @@ function MenuList({
 }) {
   const [openSubmenu, setOpenSubmenu] = useState<number>(-1);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const { ref: popupRef, pos } = useViewportClampedPopup(x, y);
+  const { ref: popupRef, position: pos } = useViewportClampedMenu(x, y);
   return (
     <div
       ref={popupRef}

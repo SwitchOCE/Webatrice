@@ -68,6 +68,7 @@ const NOOP_DIALOG_ACTIONS: GameDialogActions = {
 // field that drifts — specs override only what they assert.
 const NOOP_GAME_DIALOGS: GameDialogs = {
   cardMenu: null,
+  seatCardMenu: null,
   zoneMenu: null,
   playerMenu: null,
   handMenu: null,
