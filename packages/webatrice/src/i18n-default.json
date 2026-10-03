@@ -813,7 +813,6 @@
   },
   "LatencyStatus": {
     "ping": "Ping: {ms} ms",
-    "accessibleName": "Ping",
     "detailsName": "Connection latency details",
     "summary": "Connection quality over the last {count, plural, one {# sample} other {# samples}}:",
     "last": "Last: {ms} ms",
