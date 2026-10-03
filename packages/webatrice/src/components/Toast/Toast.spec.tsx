@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 
 import { renderWithProviders } from '../../__test-utils__';
 import Toast from './Toast';
-import { ToastProvider, useToast } from './ToastContext';
+import { ToastProvider, usePushToast, useToast } from './ToastContext';
 import { ACTIONS, initialState, reducer } from './reducer';
 
 function ManagedToast() {
@@ -33,6 +33,15 @@ function AutoOpen({ messageKey, body }: { messageKey: string; body: string }) {
   useEffect(() => {
     openToast();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fixture opens exactly once on mount
+  }, []);
+  return null;
+}
+
+function PushOnMount({ body, severity }: { body: string; severity?: 'warning' }) {
+  const pushToast = usePushToast();
+  useEffect(() => {
+    pushToast(body, { severity });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fixture pushes exactly once on mount
   }, []);
   return null;
 }
@@ -170,6 +179,31 @@ describe('ToastProvider + useToast', () => {
     rerender(<Container show={false} />);
 
     await waitFor(() => expect(queryAlerts().length).toBe(0));
+  });
+});
+
+describe('ToastProvider + usePushToast', () => {
+  it('shows a pushed toast with the default success severity', async () => {
+    renderWithProviders(
+      <ToastProvider>
+        <PushOnMount body="pushed" />
+      </ToastProvider>,
+    );
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('pushed');
+    expect(alert.querySelector('svg')).toHaveClass('text-emerald-400');
+  });
+
+  it('carries the requested severity to the pill', async () => {
+    renderWithProviders(
+      <ToastProvider>
+        <PushOnMount body="careful" severity="warning" />
+      </ToastProvider>,
+    );
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.querySelector('svg')).toHaveClass('text-yellow-400');
   });
 });
 

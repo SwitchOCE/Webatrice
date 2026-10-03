@@ -8,9 +8,11 @@ import { StyledEngineProvider } from '@mui/material';
 import { DatatriceProvider, WebClientProvider } from '@cockatrice/datatrice/react';
 import { extensions } from '@app/store';
 import { initAnalytics } from '@app/services';
+import { detectBrowserSupport } from '@app/utils';
 import { CLIENT_CONFIG, CLIENT_OPTIONS } from './clientConfig';
 import AppShell from './AppShell';
 import CardPreviewPopupPage from './features/game/components/CardPreviewPopup/CardPreviewPopupPage';
+import { Unsupported } from '@app/features/shell';
 
 import './i18n';
 import './index.css';
@@ -47,11 +49,26 @@ const isCardPreviewPopup =
   typeof window !== 'undefined'
   && window.location.hash === '#/card-preview-popup';
 
-// Bootstrap Google Analytics from the per-deploy runtime config. No-ops when no
-// measurement id was injected for this environment (see services/analytics.ts).
-initAnalytics();
+// Capability preflight (utils/browserSupport.ts). A browser missing a required
+// API gets the unsupported screen instead of the app: nothing below boots, so no
+// store, WebClient, socket or analytics is created for a client that cannot work.
+const { missingRequired } = detectBrowserSupport();
 
 const container = document.getElementById('root');
 const root = createRoot(container!);
 
-root.render(isCardPreviewPopup ? <CardPreviewPopupPage /> : <App />);
+if (missingRequired.length > 0) {
+  root.render(
+    <StyledEngineProvider injectFirst>
+      <Suspense fallback="loading">
+        <Unsupported missing={missingRequired} />
+      </Suspense>
+    </StyledEngineProvider>,
+  );
+} else {
+  // Bootstrap Google Analytics from the per-deploy runtime config. No-ops when no
+  // measurement id was injected for this environment (see services/analytics.ts).
+  initAnalytics();
+
+  root.render(isCardPreviewPopup ? <CardPreviewPopupPage /> : <App />);
+}
