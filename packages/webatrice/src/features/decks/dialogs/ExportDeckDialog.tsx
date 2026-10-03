@@ -1,23 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { X, Copy, Check, Download, FileText, Swords, Package } from 'lucide-react';
 
-import { exportDeck, exportFileName, type DeckExportFormat } from './deckExport';
-import type { HydratedDeck } from './types';
 import { downloadBlob } from '@app/utils';
 
-/**
- * Deck exporter. Portal modal with a format picker, live preview
- * textarea of the exported text, and Copy / Download actions. Formats:
- *
- *   - Plain text — `1 Card Name` lines grouped by section. Universal.
- *   - MTG Arena — includes set + collector number. Also works for
- *     Moxfield / Archidekt / topdecked imports.
- *   - Cockatrice (.cod) — round-trips through our own `serializeCod`
- *     so the file preserves format, banner card, tags, comments-meta,
- *     and per-card printing hints. Re-importing it into webatrice or
- *     Cockatrice desktop is lossless.
- */
+import { exportDeck, exportFileName, type DeckExportFormat } from '../deckExport';
+import { useEscapeKey } from '../hooks/useEscapeKey';
+import type { HydratedDeck } from '../types';
+import { DeckDialogFrame } from './DeckDialogFrame';
 
 interface FormatDef {
   id: DeckExportFormat;
@@ -55,9 +44,11 @@ const FORMATS: FormatDef[] = [
   },
 ];
 
-// ---------- Component ----------
-
-export default function ExportDeckModal({
+/**
+ * Deck exporter: a format picker (see `deckExport` for the formats), a
+ * live preview of the exported text, and Copy / Download actions.
+ */
+export function ExportDeckDialog({
   open,
   onClose,
   deck,
@@ -71,18 +62,11 @@ export default function ExportDeckModal({
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!open) {
-      return;
+    if (open) {
+      setCopied(false);
     }
-    setCopied(false);
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
+  useEscapeKey(open, onClose);
 
   const content = useMemo(() => exportDeck(deck, exportFormat), [deck, exportFormat]);
 
@@ -107,9 +91,8 @@ export default function ExportDeckModal({
     return null;
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
+  return (
+    <DeckDialogFrame onClose={onClose}>
       <div
         className={[
           'relative w-full max-w-2xl rounded-xl bg-bg-surface border',
@@ -194,7 +177,6 @@ export default function ExportDeckModal({
           </button>
         </div>
       </div>
-    </div>,
-    document.body,
+    </DeckDialogFrame>
   );
 }

@@ -4,7 +4,7 @@ import { ArrowLeft, SlidersHorizontal } from 'lucide-react';
 import type { BracketAssessment, DeckCategory } from '@app/types';
 
 import { EMPTY_FILTERS, type SearchFiltersState } from '../../cardSearchQuery';
-import DeckBreakdown from '../../DeckBreakdown';
+import { DeckBreakdown } from '../breakdown/DeckBreakdown';
 import type { DeckCardGroup as DeckCardGroupData } from '../../deckGrouping';
 import type { DeckCard, HydratedDeck } from '../../types';
 import { AdvancedCardSearch } from '../search/AdvancedCardSearch';
