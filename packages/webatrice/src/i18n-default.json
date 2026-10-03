@@ -1807,6 +1807,19 @@
       "label": "Tap/untap animation"
     }
   },
+  "BrowserFeature": {
+    "webSocket": "WebSockets, used to connect to the server",
+    "webCrypto": "Web Crypto, used to log in securely (needs a page served over https://)",
+    "textEncoder": "Text encoding, used to log in securely",
+    "bigInt": "BigInt numbers, used by the server protocol",
+    "structuredClone": "Structured cloning, used to track server requests",
+    "fetch": "Fetch, used to load translations, servers and card data",
+    "indexedDB": "IndexedDB storage, used for cards, decks and settings",
+    "worker": "Web Workers, used to keep the connection alive in a background tab",
+    "broadcastChannel": "Broadcast channels, used by the pop-out card preview",
+    "resizeObserver": "Resize observers, used to fit cards to the game board",
+    "clipboard": "The clipboard, used by copy buttons (needs a page served over https://)"
+  },
   "CommandFailureNotices": {
     "createGame": {
       "title": "Could not create game",
@@ -1816,6 +1829,9 @@
       "title": "Could not save deck",
       "serverError": "Failed to upload deck to server"
     }
+  },
+  "FeatureDetection": {
+    "degraded": "Some features are unavailable in this browser: {features}."
   },
   "Initialize": {
     "title": "DID YOU KNOW",
@@ -1860,21 +1876,5 @@
     "notSent": "You are not connected to the server.",
     "timeout": "The server did not respond. Please try again.",
     "disconnected": "The connection to the server has been lost."
-  },
-  "BrowserFeature": {
-    "webSocket": "WebSockets, used to connect to the server",
-    "webCrypto": "Web Crypto, used to log in securely (needs a page served over https://)",
-    "textEncoder": "Text encoding, used to log in securely",
-    "bigInt": "BigInt numbers, used by the server protocol",
-    "structuredClone": "Structured cloning, used to track server requests",
-    "fetch": "Fetch, used to load translations, servers and card data",
-    "indexedDB": "IndexedDB storage, used for cards, decks and settings",
-    "worker": "Web Workers, used to keep the connection alive in a background tab",
-    "broadcastChannel": "Broadcast channels, used by the pop-out card preview",
-    "resizeObserver": "Resize observers, used to fit cards to the game board",
-    "clipboard": "The clipboard, used by copy buttons (needs a page served over https://)"
-  },
-  "FeatureDetection": {
-    "degraded": "Some features are unavailable in this browser: {features}."
   }
 }

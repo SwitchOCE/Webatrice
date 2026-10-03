@@ -16,6 +16,12 @@ export const hashPassword = async (salt: string, password: string): Promise<stri
   return salt + btoa(binary);
 };
 
+// crypto.subtle exists only in a secure context (https:// or localhost), so a
+// client served over plain http:// (e.g. on a LAN) cannot hash. Callers then
+// send the plain password, the same path as a server without password hashing.
+export const passwordHashAvailable = (): boolean =>
+  typeof globalThis.crypto?.subtle?.digest === 'function';
+
 export const generateSalt = (): string => {
   const characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
