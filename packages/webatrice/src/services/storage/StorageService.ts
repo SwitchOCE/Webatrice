@@ -1,4 +1,4 @@
-import { dexieService, Stores } from '../dexie';
+import { dexieService, Stores, USER_TOKENS_SOURCE_ID, type CardSourcePayload } from '../dexie';
 
 /**
  * Browser-storage status and the targeted clears behind Settings › Storage. Desktop's storage
@@ -10,7 +10,8 @@ import { dexieService, Stores } from '../dexie';
 /**
  * The card database: the loaded files (`cardSources` and their contents) and the tables rebuilt
  * from them. Clearing the sources too keeps a later "Reload card database" from bringing the cards
- * back. Re-importable.
+ * back. Imported files can be imported again; tokens made in the token editor cannot, so
+ * `clearCardData` keeps them.
  */
 export const CARD_DATA_STORES: readonly Stores[] = [
   Stores.CARDS,
@@ -93,5 +94,28 @@ export async function countStoredRecords(): Promise<Record<Stores, number>> {
 
 export const clearScryfallCache = (): Promise<void> => dexieService.clear(SCRYFALL_CACHE_STORES);
 
-/** Deletes the imported card database. Card preferences, settings, shortcuts and known hosts are kept. */
-export const clearCardData = (): Promise<void> => dexieService.clear(CARD_DATA_STORES);
+/**
+ * Deletes the imported card database. Tokens made in the token editor stay, as desktop never
+ * deletes `customsets/TK.xml`, and stay loaded; card preferences, settings, shortcuts and known
+ * hosts are kept too.
+ */
+export function clearCardData(): Promise<void> {
+  return dexieService.cardDataTransaction(async () => {
+    const userTokens: CardSourcePayload | undefined = await dexieService.cardSourcePayloads.get(USER_TOKENS_SOURCE_ID);
+    await Promise.all([
+      dexieService.cards.clear(),
+      dexieService.sets.clear(),
+      dexieService.tokens.clear(),
+      dexieService.formats.clear(),
+      dexieService.info.clear(),
+      dexieService.cardSources.where('id').notEqual(USER_TOKENS_SOURCE_ID).delete(),
+      dexieService.cardSourcePayloads.where('id').notEqual(USER_TOKENS_SOURCE_ID).delete(),
+    ]);
+    if (userTokens?.records) {
+      await Promise.all([
+        dexieService.tokens.bulkPut(userTokens.records.tokens),
+        dexieService.sets.bulkPut(userTokens.records.sets),
+      ]);
+    }
+  });
+}
