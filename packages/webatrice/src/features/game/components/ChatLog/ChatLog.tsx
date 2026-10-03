@@ -1,14 +1,17 @@
-import { useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { MessageSquare } from 'lucide-react';
-import { classifyLogTone, type LogSegment, type LogTone } from '@cockatrice/datatrice';
+import { classifyLogTone, games, type GameMessage, type LogSegment, type LogTone } from '@cockatrice/datatrice';
 
+import { ReportChatScope } from '@app/dialogs';
 import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
+import { useAppSelector } from '@app/store';
 
 import { useGameId } from '../ui/GameIdContext';
 import { useGameReadOnly } from '../ui/GameReadOnlyContext';
 import { useHoveredCard } from '../PlayerBox/hoveredCard';
 import { useBigCardPreview } from '../PlayerBox/bigCardPreview';
 
+import { gameChatContext } from './gameChatContext';
 import { formatElapsed, useGameLog } from './useGameLog';
 
 // Per-tone styling for event log lines. Cockatrice desktop uses a fixed
@@ -64,6 +67,22 @@ const SEGMENT_CLASS: Record<LogSegment['kind'], string> = {
  * backgrounds so consecutive log lines are visually separable.
  */
 export default function ChatLog() {
+  // A report opened from a name in this log attaches the game and its chat,
+  // as desktop does for a report raised from a game's ChatView.
+  const gameId = useGameId();
+  // Selector's EMPTY_ARRAY fallback is typed ServerInfo_Card[]; cast is safe at runtime.
+  const messages = useAppSelector((state) => (gameId != null ? games.Selectors.getMessages(state, gameId) : undefined)) as
+    GameMessage[] | undefined;
+  const players = useAppSelector((state) => (gameId != null ? games.Selectors.getPlayers(state, gameId) : undefined));
+  const getChatContext = useCallback(() => gameChatContext(messages ?? [], players), [messages, players]);
+  return (
+    <ReportChatScope gameId={gameId ?? undefined} getChatContext={getChatContext}>
+      <ChatLogView />
+    </ReportChatScope>
+  );
+}
+
+function ChatLogView() {
   const gameId = useGameId();
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);

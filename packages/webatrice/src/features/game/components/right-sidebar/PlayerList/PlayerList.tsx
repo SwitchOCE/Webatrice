@@ -9,6 +9,7 @@ import { useAppSelector } from '@app/store';
 import { useAdminLocked } from '@app/hooks';
 import { UserBadges } from '@app/components';
 import { MODERATION_MENU_LABEL_KEYS, useModerationMenu } from '@app/feature-widgets/moderation';
+import { useReportUser } from '@app/dialogs';
 import { RouteEnum } from '@app/types';
 import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 
@@ -67,6 +68,7 @@ function PlayerList() {
   // Server-side user directory: the User details modal renders the
   // full ServerInfo_User, and seats fall back to it for role flags.
   const userInfoMap = useAppSelector((state) => state.server.userInfo);
+  const { reportingAvailable, openReportUser } = useReportUser();
 
   // Menu popup state: {anchor, target} or null. A single popup
   // handles every row; onContextMenu on each `<li>` calls
@@ -113,6 +115,8 @@ function PlayerList() {
       }
       webClient.request.game.kickFromGame(gameId, { playerId: match.properties.playerId });
     },
+    // Desktop passes the game but no chat view from the player list.
+    onReportUser: (userName) => openReportUser({ userName, gameId: gameId ?? undefined }),
   };
 
   const entries = players ? Object.values(players) : [];
@@ -252,6 +256,7 @@ function PlayerList() {
           isHost: hostId != null && hostId >= 0 && hostId === localPlayerId,
           isRegistered,
           isModerator: isModerator && !adminLocked,
+          canReport: reportingAvailable,
         }}
         buddyList={buddyList}
         ignoreList={ignoreList}

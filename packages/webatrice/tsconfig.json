@@ -30,6 +30,7 @@
       "@app/features/login": ["./src/features/login/index.ts"],
       "@app/features/player": ["./src/features/player/index.ts"],
       "@app/features/replays": ["./src/features/replays/index.ts"],
+      "@app/features/reports": ["./src/features/reports/index.ts"],
       "@app/features/rooms": ["./src/features/rooms/index.ts"],
       "@app/features/server": ["./src/features/server/index.ts"],
       "@app/features/settings": ["./src/features/settings/index.ts"],

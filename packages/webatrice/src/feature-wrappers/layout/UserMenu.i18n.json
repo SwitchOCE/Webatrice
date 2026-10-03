@@ -3,9 +3,11 @@
     "account": "Account",
     "settings": "Settings",
     "shortcuts": "Shortcuts",
+    "myReports": "My Reports",
     "logs": "Logs",
     "administration": "Administration",
     "moderation": "Moderation",
+    "reportQueue": "Report Queue",
     "cardArtRules": "Card Art Rules",
     "developer": "Developer",
     "importCards": "Import cards"
