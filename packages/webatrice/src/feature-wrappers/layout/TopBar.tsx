@@ -48,7 +48,12 @@ type TabType =
 interface Tab {
   key: string;
   type: TabType;
-  title: string;
+  /** Text shown as-is: a server- or user-supplied name (room, game, deck, player). */
+  title?: string;
+  /** Catalogue key for tabs without a name of their own. It is translated at
+   *  render time, so a sticky or persisted tab follows a language switch. */
+  titleKey?: string;
+  titleParams?: Record<string, string>;
   route: string;
   closeable: boolean;
   onClose?: () => void;
@@ -116,7 +121,7 @@ export default function TopBar() {
   // singleton + useSyncExternalStore pair survives remounts.
   const [stickyTabs, setStickyTabs] = useStickyTabs();
   useEffect(() => {
-    const transient = detectTransientTab(location.pathname, t);
+    const transient = detectTransientTab(location.pathname);
     if (!transient) {
       return;
     }
@@ -142,7 +147,7 @@ export default function TopBar() {
       // Decks list / Shortcuts / Player: additive, no-op if already present.
       return prev.some((t) => t.key === transient.key) ? prev : [...prev, transient];
     });
-  }, [location.pathname, setStickyTabs, t]);
+  }, [location.pathname, setStickyTabs]);
 
   // Mirror the current pathname to localStorage so an F5 refresh drops
   // the user back on the same route (MemoryRouter has no URL to lean
@@ -205,7 +210,7 @@ export default function TopBar() {
 
   // Enrich a deck-editor sticky tab with the actual deck name once
   // backendDecks has loaded it. Falls back to `Deck #N` before that.
-  const deckIdToName = useMemo(() => flattenDeckNames(backendDecks, t), [backendDecks, t]);
+  const deckIdToName = useMemo(() => flattenDeckNames(backendDecks), [backendDecks]);
 
   // Whenever the deck name enrichment ("Deck #N" → real name) resolves,
   // persist the freshly enriched title back into the sticky-tab list.
@@ -303,7 +308,7 @@ export default function TopBar() {
 
     // Transient tab for other non-primary routes (Settings, Account,
     // Logs, Player). Appears only while active — non-sticky.
-    const transient = detectTransientTab(location.pathname, t);
+    const transient = detectTransientTab(location.pathname);
     if (
       transient &&
       transient.type !== 'decks' &&
@@ -320,8 +325,10 @@ export default function TopBar() {
     const match = tabs.find((t) => routeMatches(location.pathname, t.route));
     return match?.key ?? 'server';
   }, [tabs, location.pathname]);
-  // The browser tab follows the active app tab, as a desktop window title does.
-  useDocumentTitle(tabs.find((tab) => tab.key === activeKey)?.title ?? null);
+  // The browser tab follows the active app tab, as a desktop window title does,
+  // in the current language: keyed titles are translated here, like the tab list.
+  const activeTab = tabs.find((tab) => tab.key === activeKey);
+  useDocumentTitle(activeTab ? tabTitle(activeTab, t) : null);
 
   const handleClose = (tab: Tab) => {
     tab.onClose?.();
@@ -489,7 +496,7 @@ function TabList({ tabs, activeKey, onClose }: TabListProps) {
                 ].join(' ')}
               >
                 <Icon size={14} aria-hidden className={active ? 'text-accent' : 'text-text-muted'} />
-                <span className="flex-1 text-sm truncate">{tab.title}</span>
+                <span className="flex-1 text-sm truncate">{tabTitle(tab, t)}</span>
               </Link>
               {tab.closeable ? (
                 <button
@@ -497,8 +504,8 @@ function TabList({ tabs, activeKey, onClose }: TabListProps) {
                   onClick={() => closeTab(tab)}
                   // Never dimmed: the icon needs its full 3:1 against the tab.
                   className="p-0.5 rounded hover:bg-border-subtle text-text-muted hover:text-text-primary"
-                  title={t('TopBar.tabs.close', { title: tab.title })}
-                  aria-label={t('TopBar.tabs.close', { title: tab.title })}
+                  title={t('TopBar.tabs.close', { title: tabTitle(tab, t) })}
+                  aria-label={t('TopBar.tabs.close', { title: tabTitle(tab, t) })}
                 >
                   <X size={12} aria-hidden />
                 </button>
@@ -661,9 +668,9 @@ const STAFF_TABS: { key: string; titleKey: string; route: RouteEnum }[] = [
  *  non-primary pages (Decks, Settings, Account, Logs, Player). Returns
  *  null for routes that are already covered by the primary strip
  *  (Server, Room, Game). */
-function detectTransientTab(pathname: string, t: TFunction): Tab | null {
+function detectTransientTab(pathname: string): Tab | null {
   if (matchPath({ path: RouteEnum.DECKS, end: true }, pathname)) {
-    return { key: 'decks', type: 'decks', title: t('TopBar.tab.myDecks'), route: pathname, closeable: true };
+    return { key: 'decks', type: 'decks', titleKey: 'TopBar.tab.myDecks', route: pathname, closeable: true };
   }
   const deckMatch = matchPath({ path: RouteEnum.DECK, end: true }, pathname);
   if (deckMatch) {
@@ -671,7 +678,8 @@ function detectTransientTab(pathname: string, t: TFunction): Tab | null {
     return {
       key: `deck:${id}`,
       type: 'deck',
-      title: t('TopBar.tab.deck', { id }), // TopBar re-titles this from backendDecks once loaded
+      titleKey: 'TopBar.tab.deck', // TopBar titles this with the deck name from backendDecks once loaded
+      titleParams: { id },
       route: pathname,
       closeable: true,
     };
@@ -684,51 +692,65 @@ function detectTransientTab(pathname: string, t: TFunction): Tab | null {
     return {
       key: `deck-draft:${draftMatch.params.token ?? '?'}`,
       type: 'deck',
-      title: t('TopBar.tab.unsavedDeck'),
+      titleKey: 'TopBar.tab.unsavedDeck',
       route: pathname,
       closeable: true,
     };
   }
   if (matchPath({ path: RouteEnum.SETTINGS, end: true }, pathname)) {
-    return { key: 'settings', type: 'settings', title: t('UserMenu.settings'), route: pathname, closeable: true };
+    return { key: 'settings', type: 'settings', titleKey: 'UserMenu.settings', route: pathname, closeable: true };
   }
   if (matchPath({ path: RouteEnum.SHORTCUTS, end: true }, pathname)) {
-    return { key: 'shortcuts', type: 'shortcuts', title: t('UserMenu.shortcuts'), route: pathname, closeable: true };
+    return { key: 'shortcuts', type: 'shortcuts', titleKey: 'UserMenu.shortcuts', route: pathname, closeable: true };
   }
   if (matchPath({ path: RouteEnum.ACCOUNT, end: true }, pathname)) {
-    return { key: 'account', type: 'account', title: t('UserMenu.account'), route: pathname, closeable: true };
+    return { key: 'account', type: 'account', titleKey: 'UserMenu.account', route: pathname, closeable: true };
   }
   if (matchPath({ path: RouteEnum.LOGS, end: true }, pathname)) {
-    return { key: 'logs', type: 'logs', title: t('UserMenu.logs'), route: pathname, closeable: true };
+    return { key: 'logs', type: 'logs', titleKey: 'UserMenu.logs', route: pathname, closeable: true };
   }
   const staffTab = STAFF_TABS.find(({ route }) => matchPath({ path: route, end: true }, pathname));
   if (staffTab) {
-    return { key: staffTab.key, type: 'staff', title: t(staffTab.titleKey), route: pathname, closeable: true };
+    return { key: staffTab.key, type: 'staff', titleKey: staffTab.titleKey, route: pathname, closeable: true };
   }
   if (matchPath({ path: RouteEnum.MY_REPORTS, end: true }, pathname)) {
-    return { key: 'my-reports', type: 'my-reports', title: t('UserMenu.myReports'), route: pathname, closeable: true };
+    return { key: 'my-reports', type: 'my-reports', titleKey: 'UserMenu.myReports', route: pathname, closeable: true };
   }
   const publicDecksMatch = matchPath({ path: RouteEnum.PUBLIC_DECKS, end: true }, pathname);
   if (publicDecksMatch) {
     const name = publicDecksMatch.params.userName ?? '';
-    return { key: `public-decks:${name}`, type: 'decks', title: t('TopBar.tab.publicDecks', { name }), route: pathname, closeable: true };
+    return {
+      key: `public-decks:${name}`,
+      type: 'decks',
+      titleKey: 'TopBar.tab.publicDecks',
+      titleParams: { name },
+      route: pathname,
+      closeable: true,
+    };
   }
   const playerMatch = matchPath({ path: RouteEnum.PLAYER, end: true }, pathname);
   if (playerMatch) {
-    const name = playerMatch.params.name ?? t('TopBar.tab.player');
-    return { key: `player:${name}`, type: 'player', title: name, route: pathname, closeable: true };
+    const name = playerMatch.params.name;
+    return name
+      ? { key: `player:${name}`, type: 'player', title: name, route: pathname, closeable: true }
+      : { key: 'player:', type: 'player', titleKey: 'TopBar.tab.player', route: pathname, closeable: true };
   }
   if (matchPath({ path: RouteEnum.REPLAYS, end: true }, pathname)) {
-    return { key: 'replays', type: 'replays', title: t('TopBar.replays.tab'), route: pathname, closeable: true };
+    return { key: 'replays', type: 'replays', titleKey: 'TopBar.replays.tab', route: pathname, closeable: true };
   }
   // An open replay already has its own tab; this only covers a replay key that
   // no longer resolves (e.g. after a reload), whose view explains it is gone.
   const replayMatch = matchPath({ path: RouteEnum.REPLAY, end: true }, pathname);
   if (replayMatch) {
     const replayKey = replayMatch.params.replayKey ?? '';
-    return { key: `replay:${replayKey}`, type: 'replay', title: t('TopBar.replayTab'), route: pathname, closeable: true };
+    return { key: `replay:${replayKey}`, type: 'replay', titleKey: 'TopBar.replayTab', route: pathname, closeable: true };
   }
   return null;
+}
+
+/** A tab's display text: its own name, else its catalogue title in the current language. */
+function tabTitle(tab: Tab, t: TFunction): string {
+  return tab.title ?? (tab.titleKey ? t(tab.titleKey, tab.titleParams) : '');
 }
 
 /** Walk the Servatrice deck-storage tree collecting `{deckId → name}`
@@ -736,7 +758,6 @@ function detectTransientTab(pathname: string, t: TFunction): Tab | null {
  *  sticky tab once the deck list is loaded. */
 function flattenDeckNames(
   backendDecks: ReturnType<typeof server.Selectors.getBackendDecks>,
-  t: TFunction,
 ): Map<number, string> {
   const out = new Map<number, string>();
   const walk = (items: readonly ServerInfo_DeckStorage_TreeItem[] | undefined) => {
@@ -744,8 +765,9 @@ function flattenDeckNames(
       return;
     }
     for (const item of items) {
-      if (item.file && item.id) {
-        out.set(item.id, item.name || t('TopBar.tab.deck', { id: String(item.id) }));
+      // An unnamed deck keeps its `Deck #N` catalogue title.
+      if (item.file && item.id && item.name) {
+        out.set(item.id, item.name);
       } else if (item.folder) {
         walk(item.folder.items);
       }
@@ -763,7 +785,8 @@ function flattenDeckNames(
 // no Context provider needed above the tree.
 //
 // Also persisted to localStorage so tabs survive an F5 refresh. Only
-// the plain metadata (key/type/title/route/closeable) round-trips —
+// the plain metadata (key/type/title/titleKey/titleParams/route/closeable)
+// round-trips —
 // `onClose` handlers aren't serializable but aren't needed either,
 // since none of the tab types we mark sticky (`decks`, `deck`) carry
 // an onClose; the tab-list useMemo attaches close behaviour at derive
@@ -792,7 +815,7 @@ function loadPersistedStickyTabs(): Tab[] {
     if (!Array.isArray(parsed)) {
       return [];
     }
-    return parsed.filter(isValidPersistedTab);
+    return parsed.filter(isValidPersistedTab).map(retitleLegacyTab);
   } catch {
     return [];
   }
@@ -805,12 +828,23 @@ function isValidPersistedTab(t: unknown): t is Tab {
   const rec = t as Record<string, unknown>;
   return (
     typeof rec.key === 'string' &&
-    typeof rec.title === 'string' &&
+    (typeof rec.title === 'string' || typeof rec.titleKey === 'string') &&
     typeof rec.route === 'string' &&
     typeof rec.closeable === 'boolean' &&
     typeof rec.type === 'string' &&
     (VALID_TAB_TYPES as string[]).includes(rec.type)
   );
+}
+
+/** Earlier builds persisted the translated title of every tab, which would pin
+ *  "My Decks" and the like to the language they were saved in. Re-derive such a
+ *  tab's title from its route; a deck's real name comes back with deckList. */
+function retitleLegacyTab(tab: Tab): Tab {
+  if (tab.titleKey !== undefined) {
+    return tab;
+  }
+  const derived = detectTransientTab(tab.route);
+  return derived && derived.key === tab.key ? derived : tab;
 }
 
 function persistStickyTabs(tabs: Tab[]): void {
@@ -819,8 +853,8 @@ function persistStickyTabs(tabs: Tab[]): void {
   }
   try {
     // Strip onClose (functions don't survive JSON) before writing.
-    const serializable = tabs.map(({ key, type, title, route, closeable }) => ({
-      key, type, title, route, closeable,
+    const serializable = tabs.map(({ key, type, title, titleKey, titleParams, route, closeable }) => ({
+      key, type, title, titleKey, titleParams, route, closeable,
     }));
     window.localStorage.setItem(STICKY_STORAGE_KEY, JSON.stringify(serializable));
   } catch {

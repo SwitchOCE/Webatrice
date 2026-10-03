@@ -1,5 +1,7 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { useLocation } from 'react-router-dom';
+import type { i18n as I18n } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
 import { connectedState, createMockWebClient, makeUser, renderWithProviders } from '../../__test-utils__';
@@ -271,5 +273,59 @@ describe('TopBar report entries (#7091)', () => {
     renderAs('3.0.0 ()', Level.IsUser | Level.IsRegistered | Level.IsModerator);
     expect(screen.queryByRole('menuitem', { name: 'UserMenu.myReports' })).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: 'UserMenu.reportQueue' })).not.toBeInTheDocument();
+  });
+});
+
+describe('TopBar tab titles', () => {
+  let i18n: I18n;
+  function I18nProbe() {
+    i18n = useTranslation().i18n;
+    return null;
+  }
+
+  afterEach(async () => {
+    await act(() => i18n.changeLanguage('en-US'));
+    i18n.removeResourceBundle('en-US', 'translation');
+    i18n.addResourceBundle('en-US', 'translation', {});
+    i18n.removeResourceBundle('de', 'translation');
+    window.localStorage.clear();
+  });
+
+  it('retitles sticky tabs when the language changes', async () => {
+    window.localStorage.setItem(OWNER_KEY, IDENTITY);
+    renderWithProviders(
+      <>
+        <I18nProbe />
+        <TopBar />
+      </>,
+      { preloadedState: connectedState, route: RouteEnum.DECKS },
+    );
+    i18n.addResourceBundle('en-US', 'translation', { TopBar: { tab: { myDecks: 'My Decks' } } });
+    i18n.addResourceBundle('de', 'translation', { TopBar: { tab: { myDecks: 'Meine Decks' } } });
+    await act(() => i18n.changeLanguage('en-US'));
+    expect(screen.getByRole('link', { name: 'My Decks' })).toBeInTheDocument();
+
+    await act(() => i18n.changeLanguage('de'));
+
+    expect(screen.getByRole('link', { name: 'Meine Decks' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'My Decks' })).not.toBeInTheDocument();
+  });
+
+  it('names the browser tab after the active tab in the current language', async () => {
+    renderWithProviders(
+      <>
+        <I18nProbe />
+        <TopBar />
+      </>,
+      { preloadedState: connectedState, route: RouteEnum.SETTINGS },
+    );
+    i18n.addResourceBundle('en-US', 'translation', { UserMenu: { settings: 'Settings' } });
+    i18n.addResourceBundle('de', 'translation', { UserMenu: { settings: 'Einstellungen' } });
+    await act(() => i18n.changeLanguage('en-US'));
+    expect(document.title).toBe('Settings · Webatrice');
+
+    await act(() => i18n.changeLanguage('de'));
+
+    expect(document.title).toBe('Einstellungen · Webatrice');
   });
 });
