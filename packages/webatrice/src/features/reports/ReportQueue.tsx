@@ -17,7 +17,7 @@ import { useReportQueue } from './hooks/useReportQueue';
 const STATUS_FILTERS = ['', 'open', 'assigned', 'resolved', 'dismissed'] as const;
 
 const INPUT_CLASS =
-  'bg-bg-base border border-border-subtle rounded-md px-3 py-1.5 text-sm text-text-primary '
+  'bg-bg-base border border-border-control rounded-md px-3 py-1.5 text-sm text-text-primary '
   + 'focus:outline-none focus:border-accent';
 
 const ReportQueueContent = () => {
