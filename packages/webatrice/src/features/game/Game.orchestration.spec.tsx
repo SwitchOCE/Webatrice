@@ -29,7 +29,7 @@ import Game from './Game';
 
 vi.mock('../../hooks/useSettings');
 
-vi.mock('../decks/cardLookup', () => {
+vi.mock('../../services/cards/cardCatalog', () => {
   const unknown = (name: string) => ({ found: false, source: 'unknown', name, printings: [] });
   return {
     lookupCard: vi.fn(async (name: string) => unknown(name)),

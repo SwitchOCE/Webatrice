@@ -1,16 +1,16 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 
-const hoisted = vi.hoisted(() => ({ load: vi.fn() }));
+const hoisted = vi.hoisted(() => ({ load: vi.fn(), reload: vi.fn() }));
 
 vi.mock('@app/services', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@app/services')>()),
-  loadCardDataPreferences: hoisted.load,
+  currentCardDataPreferences: hoisted.load,
+  refreshCardDataPreferences: hoisted.reload,
 }));
 
 import type { CardDataPreferences } from '@app/services';
 import {
   cardDataPreferencesStore,
-  currentCardDataPreferences,
   refreshCardDataPreferences,
   useCardImageUrls,
   useImageCandidates,
@@ -27,13 +27,13 @@ describe('useCardDataPreferences', () => {
     cardDataPreferencesStore.reset();
   });
 
-  it('currentCardDataPreferences returns the latest value after a refresh, not the first load', async () => {
+  it('refreshCardDataPreferences pushes the reloaded snapshot into the store', async () => {
     hoisted.load.mockResolvedValueOnce(makePreferences(['https://a/!name!']));
-    expect((await currentCardDataPreferences()).pictureUrlTemplates).toEqual(['https://a/!name!']);
+    expect((await cardDataPreferencesStore.whenReady()).pictureUrlTemplates).toEqual(['https://a/!name!']);
 
-    hoisted.load.mockResolvedValueOnce(makePreferences(['https://b/!name!']));
+    hoisted.reload.mockResolvedValueOnce(makePreferences(['https://b/!name!']));
     await refreshCardDataPreferences();
-    expect((await currentCardDataPreferences()).pictureUrlTemplates).toEqual(['https://b/!name!']);
+    expect(cardDataPreferencesStore.peek()?.pictureUrlTemplates).toEqual(['https://b/!name!']);
   });
 
   it('useCardImageUrls is empty while loading, then resolves against the stored templates', async () => {

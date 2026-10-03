@@ -22,7 +22,7 @@ vi.mock('../../components/Layout/Layout', () => ({
 vi.mock('../../hooks/useSettings');
 
 // Seat pile views look card metadata up in Dexie/Scryfall; keep that off the network.
-vi.mock('../decks/cardLookup', () => {
+vi.mock('../../services/cards/cardCatalog', () => {
   const unknown = (name: string) => ({ found: false, source: 'unknown', name, printings: [] });
   return {
     lookupCard: vi.fn(async (name: string) => unknown(name)),
