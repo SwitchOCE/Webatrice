@@ -9,6 +9,7 @@
 // spec needs updating. Assertions are on the wire (`webClient.request.game.*`).
 
 import { act, fireEvent, screen } from '@testing-library/react';
+import { Phase } from '@cockatrice/datatrice';
 import { makeArrow, makeCard } from '@cockatrice/datatrice/testing';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { CardAttribute } from '@cockatrice/sockatrice/generated';
@@ -441,8 +442,11 @@ describe('arrows and attachments', () => {
   const playerTarget = (playerId: number) =>
     document.querySelector<HTMLElement>(`[data-arrow-target-kind="player"][data-arrow-target-player-id="${playerId}"]`)!;
 
+  // The fixture game is in its beginning phase, and "Do not delete arrows inside of subphases" is
+  // on by default: every arrow is kept until the first main phase.
+  const ARROW_LIFETIME = { deleteInPhase: Phase.FirstMain };
   const arrowTo = (startCardId: number, target: object, startZone: string = ZoneName.TABLE, arrowColor = ArrowColor.RED) =>
-    ['createArrow', { startPlayerId: 1, startZone, startCardId, ...target, arrowColor }];
+    ['createArrow', { startPlayerId: 1, startZone, startCardId, ...target, arrowColor, ...ARROW_LIFETIME }];
 
   describe('the menu\'s "Draw arrow..." pick', () => {
     it('draws a red arrow to the next card clicked, on any seat', () => {
@@ -473,7 +477,7 @@ describe('arrows and attachments', () => {
         fireEvent.click(playerTarget(1));
       });
       expect(wire(game)).toEqual([['createArrow', {
-        startPlayerId: 2, startZone: ZoneName.TABLE, startCardId: 20, targetPlayerId: 1, arrowColor: ArrowColor.RED,
+        startPlayerId: 2, startZone: ZoneName.TABLE, startCardId: 20, targetPlayerId: 1, arrowColor: ArrowColor.RED, ...ARROW_LIFETIME,
       }]]);
     });
 
@@ -519,7 +523,7 @@ describe('arrows and attachments', () => {
       click(cardEl(WALL.id, 'battlefield'));
       expect(wire(game)).toEqual([['createArrow', {
         startPlayerId: 2, startZone: ZoneName.TABLE, startCardId: 20,
-        targetPlayerId: 1, targetZone: ZoneName.TABLE, targetCardId: 12, arrowColor: ArrowColor.RED,
+        targetPlayerId: 1, targetZone: ZoneName.TABLE, targetCardId: 12, arrowColor: ArrowColor.RED, ...ARROW_LIFETIME,
       }]]);
     });
 
@@ -708,7 +712,7 @@ describe('arrows and attachments', () => {
         arrowTo(10, { targetPlayerId: 2 }),
         ['createArrow', {
           startPlayerId: 2, startZone: ZoneName.TABLE, startCardId: 20,
-          targetPlayerId: 1, targetZone: ZoneName.TABLE, targetCardId: 10, arrowColor: ArrowColor.RED,
+          targetPlayerId: 1, targetZone: ZoneName.TABLE, targetCardId: 10, arrowColor: ArrowColor.RED, ...ARROW_LIFETIME,
         }],
       ]);
     });
