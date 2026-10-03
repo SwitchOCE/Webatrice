@@ -18,6 +18,7 @@ export function serializeDeckForSave(deck: HydratedDeck): string {
     bannerCard: deck.bannerCard,
     bannerCardProviderId: deck.bannerCardProviderId,
     lastLoadedTimestamp: deck.lastLoadedTimestamp,
+    playmatXml: deck.playmatXml,
     tagsXml: deck.tagsXml,
     bracketAssessment: deck.bracketAssessment,
   });
@@ -61,6 +62,7 @@ export function deckSaveSignature(deck: HydratedDeck): string {
     bannerCard: deck.bannerCard ?? null,
     bannerCardProviderId: deck.bannerCardProviderId ?? null,
     lastLoadedTimestamp: deck.lastLoadedTimestamp ?? null,
+    playmatXml: deck.playmatXml ?? null,
     tagsXml: deck.tagsXml ?? null,
     bracketAssessment: deck.bracketAssessment ?? null,
     cards: deck.cards.map((c) => [
