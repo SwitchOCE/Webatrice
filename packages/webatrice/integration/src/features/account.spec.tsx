@@ -28,8 +28,8 @@ describe('Account (integration)', () => {
   it('renders the buddy list and ignored users panels', () => {
     renderFeatureScreen(<Account />);
 
-    expect(screen.getByText(/Buddies Online:/)).toBeInTheDocument();
-    expect(screen.getByText(/Ignored Users Online:/)).toBeInTheDocument();
+    expect(screen.getByText('Account.buddies.online')).toBeInTheDocument();
+    expect(screen.getByText('Account.ignored.online')).toBeInTheDocument();
   });
 
   it('shows the Disconnect button and clicking it does not throw', () => {

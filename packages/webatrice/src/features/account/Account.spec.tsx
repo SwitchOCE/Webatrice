@@ -10,6 +10,13 @@ const flush = async () => {
 
 import { renderWithProviders, createMockWebClient, connectedState, makeUser } from '../../__test-utils__';
 
+// Echo interpolation values so the specs can check what each label is given.
+vi.mock('react-i18next', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-i18next')>();
+  const t = (key: string, values?: Record<string, unknown>) => (values ? `${key} ${JSON.stringify(values)}` : key);
+  return { ...actual, useTranslation: (...args: Parameters<typeof actual.useTranslation>) => ({ ...actual.useTranslation(...args), t }) };
+});
+
 const hoisted = vi.hoisted(() => ({ mockWebClient: undefined as any }));
 
 vi.mock('@cockatrice/datatrice/react', async (importOriginal) => {
@@ -27,14 +34,14 @@ describe('Account', () => {
   it('renders server details and the current user', () => {
     const { container } = renderWithProviders(<Account />, { preloadedState: connectedState });
 
-    expect(screen.getByText('Server Name: Test Server')).toBeInTheDocument();
-    expect(screen.getByText('Server Version: 1.0.0')).toBeInTheDocument();
+    expect(screen.getByText(/Account\.server\.name .*"serverName":"Test Server"/)).toBeInTheDocument();
+    expect(screen.getByText(/Account\.server\.version .*"serverVersion":"1\.0\.0"/)).toBeInTheDocument();
     // "testUser" also appears in the TopBar account button now; scope the
     // profile-name assertion to the account-details panel's <strong>.
     const strong = container.querySelector('.account-details strong');
     expect(strong?.textContent).toBe('testUser');
-    expect(screen.getByText(/Buddies Online:/)).toBeInTheDocument();
-    expect(screen.getByText(/Ignored Users Online:/)).toBeInTheDocument();
+    expect(screen.getByText(/^Account\.buddies\.online /)).toBeInTheDocument();
+    expect(screen.getByText(/^Account\.ignored\.online /)).toBeInTheDocument();
   });
 
   it('disconnects via the web client when the Disconnect button is clicked', () => {
@@ -103,9 +110,9 @@ describe('Account', () => {
     };
     renderWithProviders(<Account />, { preloadedState: state });
 
-    expect(screen.getByText(/Location:\s*\(US\)/)).toBeInTheDocument();
-    expect(screen.getByText(/Real Name:\s*Real Person/)).toBeInTheDocument();
-    expect(screen.getByText(/User Level:\s*4/)).toBeInTheDocument();
+    expect(screen.getByText(/Account\.details\.location .*"country":"US"/)).toBeInTheDocument();
+    expect(screen.getByText(/Account\.details\.realName .*"realName":"Real Person"/)).toBeInTheDocument();
+    expect(screen.getByText(/Account\.details\.userLevel .*"userLevel":4/)).toBeInTheDocument();
   });
 
   it('renders the Edit, Change Password, and Change Avatar action buttons', () => {
