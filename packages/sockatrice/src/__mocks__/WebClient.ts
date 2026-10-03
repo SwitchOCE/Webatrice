@@ -71,6 +71,8 @@ const session = {
   deleteServerDeck: vi.fn(),
   updateServerDecks: vi.fn(),
   uploadServerDeck: vi.fn(),
+  updateServerDeck: vi.fn(),
+  updateServerDeckFailed: vi.fn(),
   downloadServerDeck: vi.fn(),
   createServerDeckDir: vi.fn(),
   deleteServerDeckDir: vi.fn(),

@@ -49,6 +49,21 @@ function removeById(folder: ServerInfo_DeckStorage_Folder, id: number): ServerIn
   });
 }
 
+function replaceFileById(
+  folder: ServerInfo_DeckStorage_Folder,
+  id: number,
+  replacement: ServerInfo_DeckStorage_TreeItem,
+): ServerInfo_DeckStorage_Folder {
+  return create(ServerInfo_DeckStorage_FolderSchema, {
+    items: folder.items.map(item => {
+      if (item.folder) {
+        return { ...item, folder: replaceFileById(item.folder, id, replacement) };
+      }
+      return item.id === id ? replacement : item;
+    }),
+  });
+}
+
 function removeByPath(folder: ServerInfo_DeckStorage_Folder, pathSegments: string[]): ServerInfo_DeckStorage_Folder {
   if (pathSegments.length === 0 || (pathSegments.length === 1 && pathSegments[0] === '')) {
     return folder;
@@ -81,6 +96,18 @@ export const deckReducers = {
       root: insertAtPath(state.backendDecks.root, splitPath(action.payload.path), action.payload.treeItem),
     });
   }) as CaseReducer<ServerState, PayloadAction<{ path: string; treeItem: ServerInfo_DeckStorage_TreeItem }>>,
+
+  // An update keeps the deck's id and folder; Servatrice answers with the
+  // re-derived name and a fresh upload time, which replace the old entry.
+  deckUpdated: ((state, action) => {
+    const { deckId, treeItem } = action.payload;
+    if (!state.backendDecks?.root || !treeItem) {
+      return;
+    }
+    state.backendDecks = create(Response_DeckListSchema, {
+      root: replaceFileById(state.backendDecks.root, deckId, treeItem),
+    });
+  }) as CaseReducer<ServerState, PayloadAction<{ deckId: number; treeItem?: ServerInfo_DeckStorage_TreeItem }>>,
 
   deckDelete: ((state, action) => {
     if (!state.backendDecks?.root) {

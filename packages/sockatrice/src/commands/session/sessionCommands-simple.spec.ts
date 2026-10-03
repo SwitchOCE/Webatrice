@@ -29,6 +29,7 @@ import { deckDelDir } from './deckDelDir';
 import { deckDownload } from './deckDownload';
 import { deckList } from './deckList';
 import { deckNewDir } from './deckNewDir';
+import { deckUpdate } from './deckUpdate';
 import { deckUpload } from './deckUpload';
 import { disconnect } from './disconnect';
 import { getGamesOfUser } from './getGamesOfUser';
@@ -304,6 +305,32 @@ describe('deckUpload', () => {
     invokeOnError(Response_ResponseCode.RespContextError);
     expect(WebClient.instance.response.session.deckUploadFailed).toHaveBeenCalledWith(
       '/path', Response_ResponseCode.RespContextError, undefined,
+    );
+  });
+});
+
+describe('deckUpdate', () => {
+  it('sends Command_DeckUpload with the deck id and no path', () => {
+    deckUpdate(7, 'content');
+    expect(WebClient.instance.protobuf.sendSessionCommand).toHaveBeenCalledWith(
+      Command_DeckUpload_ext,
+      expect.objectContaining({ deckId: 7, deckList: 'content' }),
+      expect.objectContaining({ responseExt: Response_DeckUpload_ext })
+    );
+  });
+
+  it('calls updateServerDeck on success', () => {
+    deckUpdate(7, 'content');
+    const resp = { newFile: { id: 7, name: 'Renamed' } };
+    invokeOnSuccess(resp, { responseCode: 0 });
+    expect(WebClient.instance.response.session.updateServerDeck).toHaveBeenCalledWith(7, resp.newFile);
+  });
+
+  it('calls updateServerDeckFailed on error', () => {
+    deckUpdate(7, 'content');
+    invokeOnError(Response_ResponseCode.RespContextError);
+    expect(WebClient.instance.response.session.updateServerDeckFailed).toHaveBeenCalledWith(
+      7, Response_ResponseCode.RespContextError, undefined,
     );
   });
 });
