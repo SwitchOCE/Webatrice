@@ -72,6 +72,16 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     lastDrawCount,
   } = seat;
   const deckCards = model.deck;
+  const otherVisibleCards = useMemo(
+    () => [
+      zones.stack.cards,
+      zones.graveyard.cards,
+      zones.exile.cards,
+      zones.library.revealedCards,
+      zones.sideboard.revealedCards,
+    ],
+    [zones.stack.cards, zones.graveyard.cards, zones.exile.cards, zones.library.revealedCards, zones.sideboard.revealedCards],
+  );
   const manaCounters = counters.mana;
   const { alwaysRevealTopCard, alwaysLookAtTopCard, topCard: deckTopCard } = zones.library;
   // Life is the "life" counter: +/- sends a delta, the set-life prompt an
@@ -106,7 +116,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     tokenMetaByName,
     resolveFaceImageUri,
     describeCard,
-  } = useSeatCardMetadata({ isSelf, deckCards, battlefieldCards: zones.battlefield.cards });
+  } = useSeatCardMetadata({ isSelf, deckCards, battlefieldCards: zones.battlefield.cards, otherVisibleCards });
   // "View related cards" for a card menu (desktop addRelatedCardView). A
   // relation resolves once the catalog has found it; the item shows that
   // card in the sidebar's card-info pane.
