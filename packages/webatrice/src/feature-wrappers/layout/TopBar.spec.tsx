@@ -129,9 +129,10 @@ describe('TopBar replays entry', () => {
   it('opens the replays tab from the top bar', () => {
     renderTopBar();
 
-    fireEvent.click(screen.getByRole('button', { name: /Replays/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'TopBar.replays.button' }));
 
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.REPLAYS);
+    expect(screen.getByRole('tab', { name: 'TopBar.replays.tab' })).toHaveAttribute('aria-selected', 'true');
   });
 
   afterEach(() => {

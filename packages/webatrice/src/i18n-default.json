@@ -564,6 +564,14 @@
       "submit": "Join"
     }
   },
+  "TopBar": {
+    "replays": {
+      "button": "Replays",
+      "title": "Watch and manage replays",
+      "tab": "Replays"
+    },
+    "replayTab": "Replay"
+  },
   "UserMenu": {
     "account": "Account",
     "settings": "Settings",
@@ -1115,6 +1123,7 @@
       "collapse": "Hide replays",
       "locked": "Kept: will not expire",
       "replayTitle": "Replay #{id}",
+      "matchReplayTitle": "{name} (#{id})",
       "column": {
         "id": "ID",
         "name": "Name",

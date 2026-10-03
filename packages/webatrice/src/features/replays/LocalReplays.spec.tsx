@@ -56,6 +56,8 @@ describe('Local replays', () => {
     await localPane().findByTestId('local-replay-zeta.cor');
     const names = localPane().getAllByRole('row').slice(1).map((row) => row.getAttribute('data-testid'));
     expect(names).toEqual(['local-replay-Tournament', 'local-replay-alpha.cor', 'local-replay-zeta.cor']);
+    // Sizes use the UI language's unit names, not hard-coded English ones.
+    expect(localPane().getByTestId('local-replay-zeta.cor')).toHaveTextContent('2 kB');
   });
 
   it('opens a folder on double-click and walks back up via the path', async () => {
