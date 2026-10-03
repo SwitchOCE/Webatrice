@@ -66,6 +66,12 @@ describe('CockatriceXmlParser', () => {
       <maxDeckSize>0</maxDeckSize>
       <maxSideboardSize>15</maxSideboardSize>
       <allowedCounts><count max="4">legal</count></allowedCounts>
+      <exceptions>
+        <exception>
+          <maxCopies>unlimited</maxCopies>
+          <cardCondition field="type" match="contains" value="Basic Land"/>
+        </exception>
+      </exceptions>
     </format>
   </formats>
   <sets>
@@ -151,6 +157,9 @@ describe('CockatriceXmlParser', () => {
       expect(standard.maxDeckSize).toBe(0);
       expect(standard.maxSideboardSize).toBe(15);
       expect(standard.allowedCounts).toEqual([{ max: '4', label: 'legal' }]);
+      expect(standard.exceptions).toEqual([
+        { maxCopies: 'unlimited', conditions: [{ field: 'type', match: 'contains', value: 'Basic Land' }] },
+      ]);
     });
 
     it('parses <sets> using set.name.value as the short code', () => {

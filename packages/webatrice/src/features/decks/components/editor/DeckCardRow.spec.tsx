@@ -48,4 +48,19 @@ describe('DeckCardRow', () => {
     expect(props.onInc).toHaveBeenCalledWith(-1);
     expect(props.onSetCategory).toHaveBeenCalledWith('sideboard');
   });
+
+  it('paints an illegal row red and names the reason', () => {
+    renderRow({ legality: { status: 'illegal', reason: 'tooMany', max: 4 } });
+    const row = screen.getByText('4').parentElement!;
+    expect(row.className).toContain('bg-red-500/15');
+    expect(row).toHaveAttribute('title', 'DeckLegality.reason.tooMany');
+    expect(within(row).getByRole('img', { name: 'DeckLegality.reason.tooMany' })).toBeInTheDocument();
+  });
+
+  it('leaves legal and unchecked rows unmarked', () => {
+    renderRow({ legality: { status: 'unknown' } });
+    const row = screen.getByText('4').parentElement!;
+    expect(row.className).not.toContain('bg-red');
+    expect(within(row).queryByRole('img', { name: /DeckLegality/ })).toBeNull();
+  });
 });

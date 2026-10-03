@@ -16,6 +16,7 @@ import {
 import type { DeckCategory } from '@app/types';
 
 import type { DeckSection } from '../../deckGrouping';
+import type { CardLegality } from '../../deckLegality';
 import type { DeckCard } from '../../types';
 import { DeckCardRow } from './DeckCardRow';
 
@@ -32,6 +33,8 @@ export interface DeckCardGroupProps {
   onCardClick?: (card: DeckCard) => void;
   isMtg: boolean;
   isCommander: boolean;
+  /** Legality by card index into `deck`. */
+  legality?: readonly CardLegality[];
 }
 
 const SECTION_ICON: Record<DeckSection, LucideIcon> = {
@@ -61,6 +64,7 @@ export function DeckCardGroup({
   onCardClick,
   isMtg,
   isCommander,
+  legality,
 }: DeckCardGroupProps) {
   const totalQty = indices.reduce((sum, i) => sum + deck[i].quantity, 0);
   const Icon = SECTION_ICON[label] ?? MoreHorizontal;
@@ -87,6 +91,7 @@ export function DeckCardGroup({
               onCardClick={onCardClick ? () => onCardClick(deck[i]) : undefined}
               isMtg={isMtg}
               isCommander={isCommander}
+              legality={legality?.[i]}
             />
           </li>
         ))}

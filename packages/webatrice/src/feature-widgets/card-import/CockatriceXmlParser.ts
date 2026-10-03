@@ -1,4 +1,4 @@
-import { AllowedCount, Card, CardSourceRecords, Format, Info, Set, Token, XmlNode } from '@app/services';
+import { AllowedCount, Card, CardSourceRecords, Format, FormatException, Info, Set, Token, XmlNode } from '@app/services';
 export interface ParsedCockatriceXml {
   info?: Info;
   formats?: Format[];
@@ -170,6 +170,7 @@ class CockatriceXmlParser {
     const maxDeckSize = this.toInt(fields.maxDeckSize);
     const maxSideboardSize = this.toInt(fields.maxSideboardSize);
     const allowedCounts = this.toAllowedCounts(fields.allowedCounts);
+    const exceptions = this.parseExceptions(formatEl);
 
     return {
       formatName,
@@ -177,7 +178,25 @@ class CockatriceXmlParser {
       ...(maxDeckSize !== undefined && { maxDeckSize }),
       ...(maxSideboardSize !== undefined && { maxSideboardSize }),
       ...(allowedCounts && { allowedCounts }),
+      ...(exceptions.length > 0 && { exceptions }),
     };
+  }
+
+  // Read from the DOM, not `parseElement`: a `<cardCondition>`'s `value`
+  // attribute would collide with the generic text `value`.
+  private parseExceptions(formatEl: Element): FormatException[] {
+    const container = this.directChild(formatEl, 'exceptions');
+    if (!container) {
+      return [];
+    }
+    return this.directChildren(container, 'exception').map(ex => ({
+      maxCopies: this.directChild(ex, 'maxCopies')?.textContent?.trim() || 'unlimited',
+      conditions: this.directChildren(ex, 'cardCondition').map(cond => ({
+        field: cond.getAttribute('field') ?? '',
+        match: cond.getAttribute('match') ?? '',
+        value: cond.getAttribute('value') ?? '',
+      })),
+    }));
   }
 
   private toInt(node: unknown): number | undefined {

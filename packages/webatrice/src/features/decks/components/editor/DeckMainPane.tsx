@@ -6,6 +6,7 @@ import type { BracketAssessment, DeckCategory } from '@app/types';
 import { EMPTY_FILTERS, type SearchFiltersState } from '../../cardSearchQuery';
 import { DeckBreakdown } from '../breakdown/DeckBreakdown';
 import type { DeckCardGroup as DeckCardGroupData } from '../../deckGrouping';
+import type { CardLegality } from '../../deckLegality';
 import type { DeckCard, HydratedDeck } from '../../types';
 import { AdvancedCardSearch } from '../search/AdvancedCardSearch';
 import { DeckCardGroup } from './DeckCardGroup';
@@ -39,6 +40,8 @@ export interface DeckMainPaneProps {
   onBracketAssessmentComputed: (assessment: BracketAssessment | undefined) => void;
   isMtg: boolean;
   isCommander: boolean;
+  /** Legality by card index, for the red illegal-row styling. */
+  legality?: readonly CardLegality[];
 }
 
 export function DeckMainPane({
@@ -56,6 +59,7 @@ export function DeckMainPane({
   onBracketAssessmentComputed,
   isMtg,
   isCommander,
+  legality,
 }: DeckMainPaneProps) {
   // Right-pane view mode. `deckList` is the default (grouped column
   // layout of deck rows). `search` is the full-page advanced search
@@ -148,6 +152,7 @@ export function DeckMainPane({
                     onCardClick={onCardClick}
                     isMtg={isMtg}
                     isCommander={isCommander}
+                    legality={legality}
                   />
                 ))}
               </div>

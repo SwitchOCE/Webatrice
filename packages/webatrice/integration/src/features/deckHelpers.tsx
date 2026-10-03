@@ -34,18 +34,22 @@ export interface FakeScryfallCard {
   collector_number: string;
   oracle_text?: string;
   usd?: string;
+  legalities?: Record<string, string>;
 }
+
+const ALL_LEGAL = { commander: 'legal', modern: 'legal', legacy: 'legal', vintage: 'legal' };
 
 export const CARDS: Record<string, FakeScryfallCard[]> = {
   'Sol Ring': [{
     id: 'id-sol-ring', name: 'Sol Ring', type_line: 'Artifact', mana_cost: '{1}', cmc: 1,
     colors: [], set: 'c21', collector_number: '263', oracle_text: '{T}: Add {C}{C}.', usd: '1.50',
+    legalities: { commander: 'legal', modern: 'not_legal', legacy: 'banned', vintage: 'restricted' },
   }],
   'Lightning Bolt': [
     {
       id: 'id-bolt-m11', name: 'Lightning Bolt', type_line: 'Instant', mana_cost: '{R}', cmc: 1,
       colors: ['R'], set: 'm11', collector_number: '149', oracle_text: 'Lightning Bolt deals 3 damage to any target.',
-      usd: '2.00',
+      usd: '2.00', legalities: ALL_LEGAL,
     },
     {
       id: 'id-bolt-lea', name: 'Lightning Bolt', type_line: 'Instant', mana_cost: '{R}', cmc: 1,
@@ -56,10 +60,12 @@ export const CARDS: Record<string, FakeScryfallCard[]> = {
   'Llanowar Elves': [{
     id: 'id-elves', name: 'Llanowar Elves', type_line: 'Creature — Elf Druid', mana_cost: '{G}', cmc: 1,
     colors: ['G'], set: 'm19', collector_number: '314', oracle_text: '{T}: Add {G}.', usd: '0.25',
+    legalities: ALL_LEGAL,
   }],
   'Forest': [{
     id: 'id-forest', name: 'Forest', type_line: 'Basic Land — Forest', cmc: 0,
     colors: [], set: 'unf', collector_number: '239', oracle_text: '({T}: Add {G}.)', usd: '0.10',
+    legalities: ALL_LEGAL,
   }],
   'Atraxa, Grand Unifier': [{
     id: 'id-atraxa', name: 'Atraxa, Grand Unifier', type_line: 'Legendary Creature — Phyrexian Angel',
@@ -90,6 +96,7 @@ function toScryfallJson(c: FakeScryfallCard) {
     set: c.set,
     collector_number: c.collector_number,
     oracle_text: c.oracle_text,
+    legalities: c.legalities,
     image_uris: {
       small: `https://cards.scryfall.io/small/front/${c.id}.jpg`,
       normal: `https://cards.scryfall.io/normal/front/${c.id}.jpg`,

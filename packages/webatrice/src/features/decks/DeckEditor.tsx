@@ -9,6 +9,7 @@ import { isCommanderFormat, isMtgFormat } from '@app/types';
 import { DeckBannerPicker } from './components/editor/DeckBannerPicker';
 import { DeckEditorSkeleton, DeckNotFound } from './components/editor/DeckEditorShells';
 import { DeckHistoryControls } from './components/editor/DeckHistoryControls';
+import { DeckLegalitySummary } from './components/editor/DeckLegalitySummary';
 import { DeckMainPane } from './components/editor/DeckMainPane';
 import { DeckSidebar } from './components/editor/DeckSidebar';
 import { DeckTagsEditor } from './components/editor/DeckTagsEditor';
@@ -19,6 +20,7 @@ import { ExportDeckDialog } from './dialogs/ExportDeckDialog';
 import { PrintingPickerDialog, type PrintingRequest } from './dialogs/PrintingPickerDialog';
 import { useDeckEditor } from './hooks/useDeckEditor';
 import { useDeckImagePreload } from './hooks/useDeckImagePreload';
+import { useDeckLegality } from './hooks/useDeckLegality';
 import { useDeckPricing } from './hooks/useDeckPricing';
 import type { DeckCard } from './types';
 
@@ -51,6 +53,7 @@ const DeckEditor = () => {
   const [exportOpen, setExportOpen] = useState(false);
 
   const pricing = useDeckPricing(editor.deck, editor.setPriceCache);
+  const legality = useDeckLegality(editor.deck);
 
   const editing = !editor.loading && editor.deck != null;
   useShortcut('deck.undo', () => editor.undo(), { scope: ShortcutScope.DECK_EDITOR, enabled: editing });
@@ -102,6 +105,13 @@ const DeckEditor = () => {
           isMtg={isMtg}
           details={(
             <>
+              <DeckLegalitySummary
+                format={editor.deck.format}
+                status={legality.status}
+                illegalCount={legality.illegalCount}
+                unknownCount={legality.unknownCount}
+                loading={legality.loading}
+              />
               <DeckBannerPicker
                 cards={editor.deck.cards}
                 bannerCard={editor.deck.bannerCard}
@@ -136,6 +146,7 @@ const DeckEditor = () => {
           onBracketAssessmentComputed={editor.setBracketAssessment}
           isMtg={isMtg}
           isCommander={isCommander}
+          legality={legality.rows}
         />
       </div>
 
