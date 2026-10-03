@@ -1,14 +1,14 @@
-import { useTranslation } from 'react-i18next';
+import { useRef } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { CircleAlert, Loader2, RefreshCw } from 'lucide-react';
 
 import type { BracketAssessment } from '@app/types';
 
 import type { UnavailableSource } from '../../bracket';
 import { bracketSignalBadges } from '../../bracketBadges';
-import { BRACKET_LABEL } from '../../bracketData';
 import type { SourceFailure } from '../../bracketSources';
 import { BRACKET_TONE } from '../../bracketTone';
-import { useBracketAssessment } from '../../hooks/useBracketAssessment';
+import { useBracketAssessment, type BracketAssessmentState } from '../../hooks/useBracketAssessment';
 import type { DeckCard } from '../../types';
 import { SignalBadge } from './SignalBadge';
 
@@ -25,23 +25,41 @@ export interface BracketSectionProps {
 export function BracketSection({ cards, cachedAssessment, onAssessmentComputed }: BracketSectionProps) {
   const { t } = useTranslation();
   const assessment = useBracketAssessment(cards, cachedAssessment, onAssessmentComputed);
+  // The section stays mounted across states, so Retry can hand it focus
+  // before the notice (and the focused button) unmounts.
+  const sectionRef = useRef<HTMLDivElement>(null);
 
-  if (assessment.status === 'loading') {
-    return (
-      <div className="flex items-center gap-2 text-sm text-text-muted">
-        <Loader2 size={14} className="animate-spin" /> Assessing bracket…
-      </div>
-    );
-  }
+  return (
+    <div ref={sectionRef} tabIndex={-1} aria-busy={assessment.status === 'loading'} className="outline-none">
+      {assessment.status === 'loading' ? (
+        <div className="flex items-center gap-2 text-sm text-text-muted">
+          <Loader2 size={14} className="animate-spin" /> {t('DeckBracket.assessing')}
+        </div>
+      ) : assessment.status === 'error' ? (
+        <div className="text-sm text-text-muted">{t('DeckBracket.failed', { message: assessment.message })}</div>
+      ) : (
+        <BracketResult
+          assessment={assessment}
+          onRetry={() => {
+            sectionRef.current?.focus();
+            assessment.retry();
+          }}
+        />
+      )}
+    </div>
+  );
+}
 
-  if (assessment.status === 'error') {
-    return <div className="text-sm text-text-muted">Couldn't assess bracket: {assessment.message}</div>;
-  }
-
+function BracketResult({ assessment, onRetry }: {
+  assessment: Extract<BracketAssessmentState, { report: unknown }>;
+  onRetry: () => void;
+}) {
+  const { t } = useTranslation();
   const { report } = assessment;
   const degraded = assessment.status === 'degraded';
   const tone = BRACKET_TONE[report.level];
   const badges = bracketSignalBadges(report.signals);
+  const titleParams = { level: report.level, label: t(`DeckBracket.level.${report.level}`) };
 
   return (
     <div className="space-y-3">
@@ -55,38 +73,40 @@ export function BracketSection({ cards, cachedAssessment, onAssessmentComputed }
         </div>
         <div>
           <div className={`text-sm font-semibold ${tone.text}`}>
-            {degraded
-              ? t('DeckBracket.partialTitle', { level: report.level, label: BRACKET_LABEL[report.level] })
-              : `Bracket ${report.level} · ${BRACKET_LABEL[report.level]}`}
+            {t(degraded ? 'DeckBracket.partialTitle' : 'DeckBracket.title', titleParams)}
           </div>
           <div className="text-xs text-text-muted mt-1">
-            Minimum bracket per{' '}
-            <a
-              href="https://edhpowerlevel.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-text-primary"
-            >
-              edhpowerlevel
-            </a>
-            's algorithm: Game Changers, MLD, extra turns, and early game-defining combos.
+            <Trans
+              i18nKey="DeckBracket.methodology"
+              components={[
+                <a
+                  key="edhpowerlevel"
+                  href="https://edhpowerlevel.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-text-primary"
+                />,
+              ]}
+            />
           </div>
           <div className="text-xs text-text-muted mt-1">{t('DeckBracket.provenance')}</div>
         </div>
       </div>
 
       {assessment.status === 'degraded' && (
-        <BracketDegradedNotice unavailable={assessment.unavailable} onRetry={assessment.retry} />
+        <BracketDegradedNotice unavailable={assessment.unavailable} onRetry={onRetry} />
       )}
 
       <div className="grid grid-cols-5 gap-2">
         {badges.map((badge) => (
           <SignalBadge
-            key={badge.label}
-            label={badge.label}
+            key={badge.id}
+            label={t(`DeckBracket.signal.${badge.id}`)}
             count={badge.count}
             tone={badge.tone}
-            items={badge.items}
+            items={badge.chainable?.length
+              ? [...badge.items, t('DeckBracket.chainable'), ...badge.chainable]
+              : badge.items}
           />
         ))}
       </div>

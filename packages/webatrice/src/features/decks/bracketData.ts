@@ -149,13 +149,3 @@ export const EDHPL_MAXES = {
  *  or restricted MLD card in the deck bumps the minimum bracket to
  *  this value. */
 export const RESTRICTED_UNDER_BRACKET = 3;
-
-// ---------- Display labels ----------
-
-export const BRACKET_LABEL: Record<number, string> = {
-  1: 'Exhibition',
-  2: 'Core',
-  3: 'Upgraded',
-  4: 'Optimized',
-  5: 'cEDH',
-};

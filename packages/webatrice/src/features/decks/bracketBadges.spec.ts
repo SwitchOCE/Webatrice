@@ -16,12 +16,12 @@ function signals(overrides: Partial<BracketSignals> = {}): BracketSignals {
 describe('bracketSignalBadges', () => {
   it('renders every badge muted for a clean deck', () => {
     const badges = bracketSignalBadges(signals());
-    expect(badges.map((b) => [b.label, b.count, b.tone])).toEqual([
-      ['Game Changers', 0, 'muted'],
-      ['MLD', 0, 'muted'],
-      ['Extra turns', 0, 'muted'],
-      ['Early combos', 0, 'muted'],
-      ['Late combos', 0, 'muted'],
+    expect(badges.map((b) => [b.id, b.count, b.tone])).toEqual([
+      ['gameChangers', 0, 'muted'],
+      ['denial', 0, 'muted'],
+      ['turns', 0, 'muted'],
+      ['earlyCombos', 0, 'muted'],
+      ['lateCombos', 0, 'muted'],
     ]);
   });
 
@@ -39,13 +39,14 @@ describe('bracketSignalBadges', () => {
     expect(badges[3].items).toEqual(['A + B']);
   });
 
-  it('lists chain-able extra turns after a separator and treats them as hot', () => {
+  it('lists chain-able extra turns apart from the others and treats them as hot', () => {
     const [, , turns] = bracketSignalBadges(signals({
       turns: { matches: ['Time Warp'], restricted: ['Nexus of Fate'] },
     }));
     expect(turns.tone).toBe('hot');
     expect(turns.count).toBe(1);
-    expect(turns.items).toEqual(['Time Warp', '— chain-able:', 'Nexus of Fate']);
+    expect(turns.items).toEqual(['Time Warp']);
+    expect(turns.chainable).toEqual(['Nexus of Fate']);
   });
 });
 
