@@ -81,13 +81,13 @@ describe('DebugLogDialog', () => {
     const onClose = vi.fn();
     const { rerender } = render(<DebugLogDialog isOpen onClose={onClose} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'DialogShell.close' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Common.action.close' }));
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(debugLog.getEntries()).toHaveLength(1);
 
     clearOnClose(true);
     rerender(<DebugLogDialog isOpen onClose={onClose} />);
-    fireEvent.click(screen.getByRole('button', { name: 'DialogShell.close' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Common.action.close' }));
 
     expect(debugLog.getEntries()).toHaveLength(0);
   });

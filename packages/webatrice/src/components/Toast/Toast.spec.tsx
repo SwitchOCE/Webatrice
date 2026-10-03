@@ -251,7 +251,7 @@ describe('ToastProvider + usePushToast', () => {
     });
     expect(screen.getByText('go to chat')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Toast.dismiss' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Common.action.dismiss' }));
     expect(screen.queryByText('go to chat')).not.toBeInTheDocument();
     vi.useRealTimers();
   });
@@ -273,8 +273,8 @@ describe('ToastProvider + usePushToast', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Toast.showFewer' }));
     expect(queryAlerts()).toHaveLength(4);
 
-    fireEvent.click(within(queryAlerts()[2]).getByRole('button', { name: 'Toast.dismiss' }));
-    fireEvent.click(within(queryAlerts()[2]).getByRole('button', { name: 'Toast.dismiss' }));
+    fireEvent.click(within(queryAlerts()[2]).getByRole('button', { name: 'Common.action.dismiss' }));
+    fireEvent.click(within(queryAlerts()[2]).getByRole('button', { name: 'Common.action.dismiss' }));
     expect(queryAlerts().map((toast) => toast.textContent)).toEqual(['one', 'two', 'three', 'brief']);
     expect(screen.queryByRole('button', { name: 'Toast.more' })).not.toBeInTheDocument();
   });
@@ -290,7 +290,7 @@ describe('Toast folding and focus', () => {
       </ToastProvider>
     );
     const { rerender } = renderWithProviders(toasts([]));
-    const dismissOne = within(queryAlerts()[0]).getByRole('button', { name: 'Toast.dismiss' });
+    const dismissOne = within(queryAlerts()[0]).getByRole('button', { name: 'Common.action.dismiss' });
     act(() => dismissOne.focus());
 
     rerender(toasts(['four']));
@@ -339,7 +339,7 @@ describe('Toast auto-hide pause', () => {
     renderWithProviders(<Toast open autoHideDuration={1000} onClose={onClose}>focus me</Toast>);
 
     act(() => {
-      screen.getByRole('button', { name: 'Toast.dismiss' }).focus();
+      screen.getByRole('button', { name: 'Common.action.dismiss' }).focus();
     });
     act(() => {
       vi.advanceTimersByTime(5000);
@@ -347,7 +347,7 @@ describe('Toast auto-hide pause', () => {
     expect(onClose).not.toHaveBeenCalled();
 
     act(() => {
-      screen.getByRole('button', { name: 'Toast.dismiss' }).blur();
+      screen.getByRole('button', { name: 'Common.action.dismiss' }).blur();
     });
     act(() => {
       vi.advanceTimersByTime(1000);
