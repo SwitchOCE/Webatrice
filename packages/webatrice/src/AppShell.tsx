@@ -11,8 +11,7 @@ import { ModerationProvider } from '@app/feature-widgets/moderation';
 import { UserGamesProvider } from '@app/feature-widgets/user-games';
 import { loadPersistedLastRoute, ShellLifecycleProvider } from '@app/feature-wrappers/layout';
 import { PrivateMessageNotifier } from '@app/features/player';
-import { CommandFailureNotices, FeatureDetection, ServerNotices } from '@app/features/shell';
-import { AppAlerts } from '@app/features/shell';
+import { AppAlerts, CommandFailureNotices, FeatureDetection, ServerNotices } from '@app/features/shell';
 import { appShellLifecycle } from './appShellLifecycle';
 
 // CssBaseline removed: it was MUI's global body reset (font, color,
