@@ -295,6 +295,8 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     battlefieldMenuItems,
     opponentBattlefieldMenuItems,
   } = useBattlefieldMenuItems({
+    seatId,
+    customZones: zones.customZones ?? [],
     handMenuItems,
     libraryMenuItems,
     graveMenuItemsSelf,
