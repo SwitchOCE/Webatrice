@@ -6,13 +6,11 @@
  * bracket rules are looser and don't match player consensus,
  * especially on combos.
  *
- * External data sources:
- *   • Scryfall — `is:gamechanger` for the Game Changers list,
- *     `/cards/collection` for oracle text on every deck card.
- *   • Commander Spellbook — `POST /find-my-combos/` returns every
- *     Spellbook combo present in the deck.
- *
- * Session-cached where practical; both endpoints are public.
+ * The third-party data it needs (Game Changers, oracle text, Spellbook
+ * combos) comes through `bracketSources`, which reports outages instead
+ * of returning empty data. An analysis missing any source is marked
+ * incomplete: the signals it did find still set a floor, but the result
+ * is not authoritative and must not be cached on the deck.
  */
 
 import {
@@ -30,6 +28,15 @@ import {
 } from './bracketData';
 import type { BracketAssessment } from '@app/types';
 
+import {
+  fetchGameChangers,
+  fetchOracleText,
+  fetchSpellbookCombos,
+  type BracketSource,
+  type SourceFailure,
+  type SourceResult,
+  type SpellbookCombo,
+} from './bracketSources';
 import type { DeckCard } from './types';
 
 // ---------- Types ----------
@@ -125,214 +132,6 @@ function reduceBracket(signals: BracketSignals): 1 | 2 | 3 | 4 | 5 {
   const l = classify(signals.lateCombos.length, EDHPL_MAXES.lateCombos);
   const idx = Math.max(t, d, g, e, l);
   return (idx + 1) as 1 | 2 | 3 | 4 | 5;
-}
-
-// ---------- Scryfall: Game Changers list ----------
-
-let gameChangersCache: Set<string> | null = null;
-let gameChangersInFlight: Promise<Set<string>> | null = null;
-
-/** Fetches WotC's Game Changers list from Scryfall (`is:gamechanger`)
- *  and returns the set of card names. Cached for the session. */
-export async function fetchGameChangers(): Promise<Set<string>> {
-  if (gameChangersCache) {
-    return gameChangersCache;
-  }
-  if (gameChangersInFlight) {
-    return gameChangersInFlight;
-  }
-  gameChangersInFlight = (async () => {
-    try {
-      const url = 'https://api.scryfall.com/cards/search?q=is%3Agamechanger&order=name&unique=cards';
-      const res = await fetch(url);
-      if (!res.ok) {
-        return new Set<string>();
-      }
-      const body = (await res.json()) as { data?: Array<{ name: string }> };
-      const names = new Set<string>();
-      for (const c of body.data ?? []) {
-        names.add(c.name);
-      }
-      gameChangersCache = names;
-      return names;
-    } catch {
-      return new Set<string>();
-    } finally {
-      gameChangersInFlight = null;
-    }
-  })();
-  return gameChangersInFlight;
-}
-
-// ---------- Scryfall: oracle text bulk lookup ----------
-
-interface ScryfallCollectionCard {
-  name: string;
-  oracle_text?: string;
-  card_faces?: Array<{ oracle_text?: string }>;
-}
-
-// Session cache — oracle text almost never changes for a given name.
-const oracleCache = new Map<string, string>();
-const oracleInFlight = new Map<string, Promise<void>>();
-
-/** Bulk-fetch oracle text for the given card names via Scryfall's
- *  `/cards/collection` endpoint (75 identifiers per POST). Cards not
- *  found on Scryfall get an empty-string cache entry so we don't
- *  re-query them next render. Returns a Map keyed by lowercased name. */
-export async function fetchOracleTextByName(names: string[]): Promise<Map<string, string>> {
-  const uniqueLower = Array.from(new Set(names.map((n) => n.toLowerCase())));
-  const need: string[] = [];
-  const awaiting: Array<Promise<void>> = [];
-  for (const key of uniqueLower) {
-    if (oracleCache.has(key)) {
-      continue;
-    }
-    const pending = oracleInFlight.get(key);
-    if (pending) {
-      awaiting.push(pending);
-    } else {
-      need.push(key);
-    }
-  }
-
-  if (need.length > 0) {
-    // Preserve the original casing for the Scryfall payload.
-    const originalByLower = new Map<string, string>();
-    for (const n of names) {
-      originalByLower.set(n.toLowerCase(), n);
-    }
-
-    for (let i = 0; i < need.length; i += 75) {
-      const chunk = need.slice(i, i + 75);
-      const identifiers = chunk.map((k) => ({ name: originalByLower.get(k) ?? k }));
-      const p = (async () => {
-        try {
-          const res = await fetch('https://api.scryfall.com/cards/collection', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ identifiers }),
-          });
-          if (!res.ok) {
-            for (const k of chunk) {
-              oracleCache.set(k, '');
-            }
-            return;
-          }
-          const body = (await res.json()) as { data?: ScryfallCollectionCard[] };
-          const returnedLower = new Set<string>();
-          for (const card of body.data ?? []) {
-            const combined =
-              card.oracle_text ??
-              (card.card_faces ?? []).map((f) => f.oracle_text ?? '').filter(Boolean).join('\n') ??
-              '';
-            const key = card.name.toLowerCase();
-            oracleCache.set(key, combined);
-            returnedLower.add(key);
-            // Also handle split-card name form ("A // B") — key by
-            // the first face too so callers who asked for that
-            // single name still hit.
-            const firstFace = key.split(' // ')[0];
-            if (firstFace !== key) {
-              oracleCache.set(firstFace, combined);
-              returnedLower.add(firstFace);
-            }
-          }
-          // Names Scryfall didn't return get empty-string cache entries.
-          for (const k of chunk) {
-            if (!returnedLower.has(k)) {
-              oracleCache.set(k, '');
-            }
-          }
-        } catch {
-          for (const k of chunk) {
-            oracleCache.set(k, '');
-          }
-        }
-      })();
-      for (const k of chunk) {
-        oracleInFlight.set(k, p);
-      }
-      try {
-        await p;
-      } finally {
-        for (const k of chunk) {
-          oracleInFlight.delete(k);
-        }
-      }
-    }
-  }
-
-  await Promise.all(awaiting);
-  const out = new Map<string, string>();
-  for (const key of uniqueLower) {
-    const text = oracleCache.get(key);
-    if (text != null) {
-      out.set(key, text);
-    }
-  }
-  return out;
-}
-
-// ---------- Commander Spellbook: combos ----------
-
-/** Shape of a combo in Commander Spellbook's find-my-combos response.
- *  The API uses `uses` for the on-deck cards (not `cards` as some docs
- *  suggest); `requires` items have a `template` with an id. All array
- *  fields are treated defensively — some legacy combos may omit fields. */
-interface SpellbookCombo {
-  id: string;
-  uses?: Array<{
-    card: { name: string };
-    quantity?: number;
-    zoneLocations?: string[];
-  }>;
-  produces?: Array<{ feature?: { id: number }; quantity?: number }>;
-  requires?: Array<{
-    template?: { id: number };
-    quantity?: number;
-    zoneLocations?: string[];
-  }>;
-  manaValueNeeded?: number;
-  notablePrerequisites?: string;
-}
-
-interface SpellbookResponse {
-  results: {
-    included?: SpellbookCombo[];
-  };
-}
-
-/**
- * POSTs the user's deck to Commander Spellbook's find-my-combos endpoint
- * and returns the raw included combos (all Spellbook combos where every
- * required card is present in the deck). Caller applies the edhpowerlevel
- * filter to get the "game-defining" subset.
- */
-async function fetchSpellbookCombos(cards: DeckCard[]): Promise<SpellbookCombo[]> {
-  // Spellbook expects an object with a `main` array of card entries.
-  // Merge quantities across categories — Spellbook doesn't care about
-  // main-vs-sideboard for combo detection.
-  const merged = new Map<string, number>();
-  for (const c of cards) {
-    merged.set(c.name, (merged.get(c.name) ?? 0) + c.quantity);
-  }
-  const main = Array.from(merged, ([card, quantity]) => ({ card, quantity }));
-
-  try {
-    const res = await fetch('https://backend.commanderspellbook.com/find-my-combos/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ main }),
-    });
-    if (!res.ok) {
-      return [];
-    }
-    const body = (await res.json()) as SpellbookResponse;
-    return body.results?.included ?? [];
-  } catch {
-    return [];
-  }
 }
 
 /**
@@ -445,21 +244,54 @@ function filterAndSplitCombos(
 
 // ---------- Top-level analysis ----------
 
+/** A source the analysis had to do without (in whole, or `missing` of `total` items), and why. */
+export interface UnavailableSource {
+  source: BracketSource;
+  failure: SourceFailure;
+  missing?: number;
+  total?: number;
+}
+
+export interface BracketAnalysis {
+  report: BracketReport;
+  /** Sources that failed or answered in part; empty when the analysis is complete. */
+  unavailable: UnavailableSource[];
+}
+
+/** An analysis built from every source — the only kind that may be cached. */
+export function isCompleteAnalysis(analysis: BracketAnalysis): boolean {
+  return analysis.unavailable.length === 0;
+}
+
 /**
- * Run the full bracket assessment on a deck. Fires three network
- * requests in parallel (Game Changers list, per-card oracle text,
- * Spellbook combo detection), then applies the local classifier.
- * Returns a fully-populated report — callers render whatever they
- * want from `signals`.
+ * Run the full bracket assessment on a deck: fetch the three data
+ * sources in parallel, then apply the local classifier to whatever
+ * arrived. Missing data can only hide signals, so an incomplete
+ * analysis's level is a floor.
  */
-export async function analyzeBracket(cards: DeckCard[]): Promise<BracketReport> {
+export async function analyzeBracket(cards: DeckCard[]): Promise<BracketAnalysis> {
   const names = Array.from(new Set(cards.map((c) => c.name)));
 
-  const [gameChangers, oracleByName, rawCombos] = await Promise.all([
+  const [gameChangersResult, oracleResult, combosResult] = await Promise.all([
     fetchGameChangers(),
-    fetchOracleTextByName(names),
+    fetchOracleText(names),
     fetchSpellbookCombos(cards),
   ]);
+
+  const unavailable: UnavailableSource[] = [];
+  const dataOf = <T>(source: BracketSource, result: SourceResult<T>, empty: T): T => {
+    if (result.status === 'unavailable') {
+      unavailable.push({ source, failure: result.failure });
+      return empty;
+    }
+    if (result.status === 'partial') {
+      unavailable.push({ source, failure: result.failure, missing: result.missing, total: result.total });
+    }
+    return result.data;
+  };
+  const gameChangers = dataOf('gameChangers', gameChangersResult, new Set<string>());
+  const oracleByName = dataOf('oracleText', oracleResult, new Map<string, string>());
+  const rawCombos = dataOf('combos', combosResult, [] as SpellbookCombo[]);
 
   const turnsMatches: string[] = [];
   const turnsRestricted: string[] = [];
@@ -507,7 +339,7 @@ export async function analyzeBracket(cards: DeckCard[]): Promise<BracketReport> 
     lateCombos: late,
   };
 
-  return { level: reduceBracket(signals), signals };
+  return { report: { level: reduceBracket(signals), signals }, unavailable };
 }
 
 /**
