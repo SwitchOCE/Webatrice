@@ -145,6 +145,11 @@ describe('GameLobby — deck states (GAME-014)', () => {
     }
   });
 
+  it('titles the deck area with a translated heading in both states', () => {
+    renderLobby();
+    expect(screen.getByText('GameLobby.deck.heading')).toBeInTheDocument();
+  });
+
   it('with a deck shows Maindeck / Sideboard and hides the picker', () => {
     renderLobby();
     expect(screen.getByRole('heading', { name: 'GameLobby.deck.maindeck' })).toBeInTheDocument();
@@ -185,7 +190,8 @@ describe('GameLobby — deck states (GAME-014)', () => {
     act(() => {
       store.dispatch(games.Actions.deckSelectFailed({ gameId: 1, responseCode: Response_ResponseCode.RespContextError }));
     });
-    expect(screen.getByText('GameLobby.deckSelectFailed')).toBeInTheDocument();
+    // Reported under the deck heading, not inside the .cod upload card.
+    expect(screen.getByRole('alert')).toHaveTextContent('GameLobby.deckSelectFailed');
     expect(screen.queryByTestId('lobby-deck-view')).not.toBeInTheDocument();
   });
 
@@ -219,9 +225,22 @@ describe('GameLobby — sideboarding before ready (GAME-014)', () => {
       expect(row).toBeDisabled();
     }
     const lock = button('GameLobby.action.sideboardLocked');
-    expect(lock).toHaveAttribute('aria-pressed', 'false');
+    // The changing label carries the state; aria-pressed on top would contradict it.
+    expect(lock).not.toHaveAttribute('aria-pressed');
     fireEvent.click(lock);
     expect(webClient.request.game.setSideboardLock).toHaveBeenCalledWith(1, { locked: false });
+  });
+
+  it('names each row by its count and card, describing the move only while it is possible', () => {
+    renderLobby({ sideboardLocked: false });
+    const bolt = screen.getByRole('button', { name: '2 Lightning Bolt' });
+    expect(bolt).toHaveAccessibleDescription('GameLobby.deck.moveToSideboard');
+  });
+
+  it('a locked row keeps its count and card name and offers no move', () => {
+    renderLobby({ sideboardLocked: true });
+    const bolt = screen.getByRole('button', { name: '2 Lightning Bolt' });
+    expect(bolt).toHaveAccessibleDescription('');
   });
 
   it('while unlocked, moving a card sends the whole plan in deck zones (main/side)', () => {

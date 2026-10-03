@@ -315,6 +315,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
         return;
       }
       setMyPickedDeckId(null);
+      setDeckSelectError(null);
       webClient.request.game.deckSelect(gameId, { deck: xml });
       // Upload path bypasses the deckDownload cache — parse locally
       // and push straight into the mock-deck store so the game
@@ -351,6 +352,8 @@ export default function GameLobby({ gameId }: { gameId: number }) {
 
   // A rejected or unanswered Command_DeckSelect leaves the picker up; say why
   // instead of silently staying there (desktop has no handler for this).
+  // Kept apart from uploadError: a rejected pick from My Decks is not an upload problem.
+  const [deckSelectError, setDeckSelectError] = useState<string | null>(null);
   const describeFailure = useCommandFailureMessage();
   useReduxEffect<GameCommandFailedPayload>(
     ({ payload }) => {
@@ -358,7 +361,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
         return;
       }
       setMyPickedDeckId(null);
-      setUploadError(describeFailure(payload.failure, t('GameLobby.deckSelectFailed')));
+      setDeckSelectError(describeFailure(payload.failure, t('GameLobby.deckSelectFailed')));
     },
     games.Types.DECK_SELECT_FAILED,
     [gameId, describeFailure, t],
@@ -367,6 +370,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
   const handleSelectDeck = (deckId: number) => {
     setMyPickedDeckId(deckId);
     setUploadError(null);
+    setDeckSelectError(null);
     webClient.request.game.deckSelect(gameId, { deckId });
     // Push into the mock-deck store so the game screen's PlayerBoxes
     // seed their libraries from this deck (dev tool — see
@@ -490,8 +494,20 @@ export default function GameLobby({ gameId }: { gameId: number }) {
               {iAmSeated && !deckView.deckLoaded && (
                 <div className="border-t border-border-strong pt-6 space-y-3">
                   <div className="text-xs font-semibold uppercase tracking-widest text-text-muted text-center">
-                  Your deck
+                    {t('GameLobby.deck.heading')}
                   </div>
+                  {deckSelectError && (
+                    <div
+                      role="alert"
+                      className={[
+                        'flex items-start gap-2 text-xs text-red-300',
+                        'bg-red-500/10 border border-red-500/30 rounded-md px-2 py-1',
+                      ].join(' ')}
+                    >
+                      <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+                      <span>{deckSelectError}</span>
+                    </div>
+                  )}
 
                   <div className="rounded-lg bg-bg-surface border border-border-subtle overflow-hidden">
                     <div
@@ -599,7 +615,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
               {iAmSeated && deckView.deckLoaded && deckView.view && (
                 <div className="border-t border-border-strong pt-6 space-y-3">
                   <div className="text-xs font-semibold uppercase tracking-widest text-text-muted text-center">
-                    Your deck
+                    {t('GameLobby.deck.heading')}
                   </div>
                   <LobbyDeckView
                     view={deckView.view}
@@ -623,7 +639,6 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                       type="button"
                       onClick={deckView.toggleSideboardLock}
                       disabled={deckView.ready}
-                      aria-pressed={!deckView.sideboardLocked}
                       className={[
                         LOBBY_BUTTON_CLASS,
                         deckView.sideboardLocked ? TOGGLE_OFF_CLASS : TOGGLE_ON_CLASS,
