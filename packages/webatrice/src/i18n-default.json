@@ -424,20 +424,6 @@
       "demoted": "Successfully demoted user.",
       "promoteFailed": "Failed to promote user.",
       "demoteFailed": "Failed to demote user."
-    },
-    "functions": {
-      "title": "Server moderator functions",
-      "replayId": "Replay ID",
-      "grantReplayAccess": "Grant Replay Access",
-      "replayGranted": "Replay access granted",
-      "replayInvalid": "Unable to grant replay access. Replay ID invalid",
-      "replayError": "Unable to grant replay access. Internal error",
-      "userToActivate": "Username to Activate",
-      "forceActivate": "Force Activate User",
-      "activated": "User successfully activated",
-      "activateUnknown": "Unable to activate user. Username invalid",
-      "activateAlreadyActive": "Unable to activate user. User already active",
-      "activateError": "Unable to activate user. Internal error"
     }
   },
   "ShortcutsTab": {
@@ -575,6 +561,10 @@
     "settings": "Settings",
     "shortcuts": "Shortcuts",
     "logs": "Logs",
+    "administration": "Administration",
+    "moderation": "Moderation",
+    "cardArtRules": "Card Art Rules",
+    "developer": "Developer",
     "importCards": "Import cards"
   },
   "Account": {
@@ -629,6 +619,75 @@
     },
     "success": "User information updated."
   },
+  "Administration": {
+    "admin": {
+      "title": "Server administration functions",
+      "updateServerMessage": "Update server message",
+      "shutdownServer": "Shut down server",
+      "reloadConfig": "Reload configuration"
+    },
+    "moderator": {
+      "title": "Server moderator functions",
+      "replayId": "Replay ID",
+      "grantReplayAccess": "Grant Replay Access",
+      "userToActivate": "Username to Activate",
+      "forceActivateUser": "Force Activate User"
+    },
+    "shutdown": {
+      "title": "Shut down server",
+      "reason": "Reason for shutdown",
+      "minutes": "Time until shutdown (minutes)",
+      "confirm": "Shut down"
+    },
+    "button": {
+      "unlock": "Unlock functions",
+      "lock": "Lock functions",
+      "cancel": "Cancel",
+      "ok": "OK"
+    },
+    "result": {
+      "successTitle": "Success",
+      "errorTitle": "Error",
+      "replayAccessGranted": "Replay access granted",
+      "replayIdInvalid": "Unable to grant replay access. Replay ID invalid",
+      "replayAccessInternalError": "Unable to grant replay access. Internal error",
+      "userActivated": "User successfully activated",
+      "activateNameInvalid": "Unable to activate user. Username invalid",
+      "activateAlreadyActive": "Unable to activate user. User already active",
+      "activateInternalError": "Unable to activate user. Internal error",
+      "serverMessageUpdated": "Server message updated",
+      "shutdownScheduled": "Server shutdown scheduled",
+      "configReloaded": "Configuration reloaded",
+      "serverMessageFailed": "Could not update the server message.",
+      "shutdownFailed": "Could not schedule the server shutdown.",
+      "configReloadFailed": "Could not reload the configuration."
+    },
+    "validation": {
+      "minutes": "Enter a whole number of minutes from 0 to {max}",
+      "replayId": "Enter a replay ID (digits only)"
+    }
+  },
+  "CardArtRules": {
+    "title": "Card Art Rules",
+    "label": {
+      "card": "Card",
+      "cardPlaceholder": "Type a card name...",
+      "providerId": "ProviderId",
+      "mode": "Mode",
+      "reason": "Reason"
+    },
+    "column": {
+      "card": "Card",
+      "providerId": "ProviderId",
+      "mode": "Mode",
+      "reason": "Reason"
+    },
+    "button": {
+      "add": "Add rule",
+      "remove": "Remove rule",
+      "refresh": "Refresh"
+    }
+  },
   "DeckEditor": {
     "downloadFailed": "Failed to download this deck from the server.",
     "loadFailedTitle": "Deck could not be loaded",
@@ -638,6 +697,62 @@
   "Decks": {
     "listError": "Failed to load your decks from the server.",
     "retry": "Retry"
+  },
+  "Developer": {
+    "table": {
+      "stats": "Server statistics",
+      "commands": "Command statistics"
+    },
+    "column": {
+      "statistic": "Statistic",
+      "value": "Value",
+      "command": "Command",
+      "count": "Count",
+      "totalMs": "Total ms",
+      "avgMs": "Avg ms"
+    },
+    "stat": {
+      "usersOnline": "Registered users online",
+      "modsOnline": "Moderators online",
+      "gamesRunning": "Games running",
+      "trafficSent": "Traffic sent (last tick)",
+      "trafficReceived": "Traffic received (last tick)",
+      "uptime": "Server uptime",
+      "snapshot": "Snapshot taken",
+      "liveMetrics": "Live Metrics",
+      "cardsInGames": "Cards in live games",
+      "totalCommands": "Total commands processed",
+      "avgCommandTime": "Avg command time",
+      "activeCommandTypes": "Active command types",
+      "stalls": "Event loop stalls",
+      "lastStall": "Last stall overshoot",
+      "worstStall": "Worst stall overshoot",
+      "gameStarts": "Game starts",
+      "avgGameStart": "Avg game start time"
+    },
+    "unit": {
+      "gib": "{value} GiB",
+      "mib": "{value} MiB",
+      "kib": "{value} KiB",
+      "bytes": "{value} bytes",
+      "seconds": "{value} s",
+      "milliseconds": "{value} ms",
+      "uptimeDays": "{days}d {hours}h {minutes}m",
+      "uptimeHours": "{hours}h {minutes}m"
+    },
+    "autoRefresh": {
+      "label": "Auto-refresh",
+      "tooltip": "Automatically request fresh server statistics at a fixed interval.",
+      "interval": "Refresh interval (seconds)",
+      "intervalTooltip": "Seconds between automatic refreshes."
+    },
+    "status": {
+      "updated": "Updated {time}",
+      "unavailable": "No server statistics available yet."
+    },
+    "button": {
+      "refresh": "Refresh server stats"
+    }
   },
   "GameErrorBoundary": {
     "title": "The game board hit an unexpected error",
@@ -770,6 +885,93 @@
     "button": {
       "search": "Get User Logs",
       "clear": "Clear Filters"
+    }
+  },
+  "ModerationPage": {
+    "search": {
+      "placeholder": "User name",
+      "investigate": "Investigate"
+    },
+    "action": {
+      "resetPassword": "Reset Password",
+      "removeAvatar": "Remove Avatar"
+    },
+    "info": {
+      "title": "User Info",
+      "name": "Name:",
+      "registered": "Registered:",
+      "lastLogin": "Last login:",
+      "status": "Status:",
+      "counts": "Counts:",
+      "adminNotes": "Admin notes:",
+      "active": "active",
+      "inactive": "inactive",
+      "admin": "admin",
+      "countsValue": "Reports: {reports}   Bans: {bans}   Warnings: {warnings}",
+      "noNotes": "(none)",
+      "loadError": "Error loading user info."
+    },
+    "alts": {
+      "title": "Alts",
+      "user": "User",
+      "email": "eMail",
+      "clientId": "Client ID",
+      "registered": "Registered",
+      "lastLogin": "Last login",
+      "warns": "Warns",
+      "bans": "Bans",
+      "active": "Active"
+    },
+    "sessions": {
+      "title": "Sessions",
+      "ip": "IP",
+      "clientId": "Client ID",
+      "start": "Start",
+      "end": "End",
+      "type": "Type"
+    },
+    "staff": {
+      "title": "Staff Last Logins",
+      "user": "User",
+      "level": "Level",
+      "lastLogin": "Last login",
+      "refresh": "Refresh"
+    },
+    "level": {
+      "admin": "Admin",
+      "developer": "Developer",
+      "moderator": "Moderator",
+      "judge": "Judge"
+    },
+    "value": {
+      "unknown": "Unknown",
+      "loading": "Loading...",
+      "yes": "yes",
+      "no": "no",
+      "activeSession": "Active"
+    },
+    "confirm": {
+      "resetTitle": "Reset Password",
+      "reset": "Reset the password of {userName}? A temporary password will be generated and shown to you. The user must change it on their first login.",
+      "avatarTitle": "Remove Avatar",
+      "avatar": "Remove the avatar of {userName}? The user will have to upload a new one."
+    },
+    "password": {
+      "title": "Password reset",
+      "for": "Temporary password for {userName}:",
+      "label": "Temporary password",
+      "secureChannel": "Pass it to the user through a secure channel."
+    },
+    "notice": {
+      "errorTitle": "Error",
+      "resetFailed": "Password reset failed.",
+      "avatarRemovedTitle": "Avatar removed",
+      "avatarRemoved": "The avatar of {userName} has been removed.",
+      "avatarFailed": "Could not remove the avatar."
+    },
+    "button": {
+      "ok": "OK",
+      "cancel": "Cancel"
     }
   },
   "Player": {

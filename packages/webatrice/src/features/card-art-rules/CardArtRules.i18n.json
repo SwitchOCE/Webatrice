@@ -1,0 +1,23 @@
+{
+  "CardArtRules": {
+    "title": "Card Art Rules",
+    "label": {
+      "card": "Card",
+      "cardPlaceholder": "Type a card name...",
+      "providerId": "ProviderId",
+      "mode": "Mode",
+      "reason": "Reason"
+    },
+    "column": {
+      "card": "Card",
+      "providerId": "ProviderId",
+      "mode": "Mode",
+      "reason": "Reason"
+    },
+    "button": {
+      "add": "Add rule",
+      "remove": "Remove rule",
+      "refresh": "Refresh"
+    }
+  }
+}
