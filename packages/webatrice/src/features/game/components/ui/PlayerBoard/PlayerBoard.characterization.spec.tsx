@@ -244,9 +244,10 @@ describe('PlayerBoard characterization — menu trees', () => {
       'Create another token (disabled)',
       'Create predefined token (disabled)',
       'Game info...',
+      'Tally',
     ]);
     await dismissMenus();
-    expect(menuLabels(openContextMenu(battlefieldEl(2)))).toEqual(['Graveyard', 'Exile']);
+    expect(menuLabels(openContextMenu(battlefieldEl(2)))).toEqual(['Graveyard', 'Exile', 'Tally']);
     await dismissMenus();
   });
 });

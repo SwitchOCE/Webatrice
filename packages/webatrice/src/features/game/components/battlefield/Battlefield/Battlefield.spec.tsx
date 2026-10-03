@@ -42,9 +42,9 @@ describe('Battlefield', () => {
     expect(menuLabels(openContextMenu(battlefieldEl(1))).slice(0, 5)).toEqual(['Hand', 'Library', 'Graveyard', 'Exile', 'Sideboard']);
   });
 
-  it('gives another viewer only the graveyard and exile views on that board', () => {
+  it('gives another viewer only the graveyard and exile views and Tally on that board', () => {
     renderSeatCell(SPEC, 2);
-    expect(menuLabels(openContextMenu(battlefieldEl(2)))).toEqual(['Graveyard', 'Exile']);
+    expect(menuLabels(openContextMenu(battlefieldEl(2)))).toEqual(['Graveyard', 'Exile', 'Tally']);
   });
 
   it('opens the seat\'s card menu on a card instead of the board menu', () => {
