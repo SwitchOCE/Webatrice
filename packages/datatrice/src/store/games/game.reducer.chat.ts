@@ -25,7 +25,9 @@ export const chatReducers = {
     if (game.messages.length >= MAX_GAME_MESSAGES) {
       game.messages = game.messages.slice(game.messages.length - MAX_GAME_MESSAGES + 1);
     }
-    game.messages.push({ playerId, message, timeReceived, kind: 'chat' });
+    // Resolved now: a player who leaves is deleted from `players`.
+    const senderName = game.players[playerId]?.properties.userInfo?.name;
+    game.messages.push({ playerId, message, timeReceived, kind: 'chat', senderName });
   }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; playerId: number; message: string; timeReceived: number }>>,
 
   zoneShuffled: ((state, action) => {
