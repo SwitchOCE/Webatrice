@@ -5,3 +5,4 @@
 - 14:09Z RTT done (7d414dc core, b2c1695 TopBar LatencyStatus) → playmats
 - 14:09Z RTT done (7d414dc core, b2c1695 TopBar LatencyStatus) → playmats
 - 14:16Z playmat render pushed (352b143) → resolver + SetPlaymat sync, then settings tab
+- 14:19Z SetPlaymat sync pushed (180baaa) → Playmats settings tab
