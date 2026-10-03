@@ -7,11 +7,7 @@ export {
   MenuSeparator,
   MenuSubmenu,
   MENU_ITEM_CLASS,
-  SUBMENU_OPEN_DELAY,
-  SUBMENU_CLOSE_DELAY,
-  TYPEAHEAD_TIMEOUT,
   isContextMenuKey,
-  placeMenu,
   useContextMenu,
 } from './Menu';
 export type {
@@ -21,6 +17,7 @@ export type {
   MenuItemProps,
   MenuCheckboxItemProps,
   MenuRadioItemProps,
+  MenuGroupProps,
   MenuSubmenuProps,
   ContextMenuTrigger,
 } from './Menu';
