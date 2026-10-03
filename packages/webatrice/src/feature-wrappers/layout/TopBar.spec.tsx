@@ -1,10 +1,10 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { useLocation } from 'react-router-dom';
 
 import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
-import { connectedState, makeUser, renderWithProviders } from '../../__test-utils__';
+import { connectedState, createMockWebClient, makeUser, renderWithProviders } from '../../__test-utils__';
 import { RouteEnum } from '@app/types';
-import { openReplay } from '@app/services';
+import { closeReplay, getOpenedReplay, getOpenedReplays, openReplay } from '@app/services';
 import { buildReplay, sayContainer } from '../../services/replay/__mocks__/fixtures';
 
 import { ShellLifecycleProvider, type ShellLifecycle } from './ShellLifecycleContext';
@@ -144,10 +144,40 @@ describe('TopBar replays entry', () => {
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.REPLAYS);
   });
 
+  afterEach(() => {
+    getOpenedReplays().forEach(({ key }) => closeReplay(key));
+  });
+
   it('shows an open replay as a tab titled after it', () => {
-    const replayKey = openReplay(buildReplay([sayContainer(0)]), 'final.cor');
+    const replayKey = openReplay(buildReplay([sayContainer(0)]), 'final.cor', createMockWebClient());
     renderTopBar(`/replay/${replayKey}`);
 
     expect(screen.getByRole('tab', { name: /final\.cor/ })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('keeps the replay tab after switching to another tab, and returns to it', () => {
+    const replayKey = openReplay(buildReplay([sayContainer(0)]), 'final.cor', createMockWebClient());
+    renderTopBar(`/replay/${replayKey}`);
+
+    fireEvent.click(screen.getByRole('tab', { name: /Lobby/ }));
+    expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
+    const replayTab = screen.getByRole('tab', { name: /final\.cor/ });
+    expect(replayTab).toHaveAttribute('aria-selected', 'false');
+
+    fireEvent.click(replayTab);
+    expect(screen.getByTestId('location')).toHaveTextContent(`/replay/${replayKey}`);
+  });
+
+  it('closing a replay tab closes the replay and unloads its game', () => {
+    const webClient = createMockWebClient();
+    const replayKey = openReplay(buildReplay([sayContainer(0)]), 'final.cor', webClient);
+    const { gameId } = getOpenedReplay(replayKey)!;
+    renderTopBar(RouteEnum.SERVER);
+
+    fireEvent.click(within(screen.getByRole('tab', { name: /final\.cor/ })).getByTitle('Close tab'));
+
+    expect(screen.queryByRole('tab', { name: /final\.cor/ })).not.toBeInTheDocument();
+    expect(getOpenedReplay(replayKey)).toBeUndefined();
+    expect(webClient.unloadReplayGame).toHaveBeenCalledWith(gameId);
   });
 });

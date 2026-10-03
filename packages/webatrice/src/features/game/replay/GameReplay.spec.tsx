@@ -1,5 +1,5 @@
 import { combineReducers } from '@reduxjs/toolkit';
-import { fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 
 import { attachResponseHandlers, createStore } from '@cockatrice/datatrice';
@@ -13,7 +13,7 @@ import {
   makePlayerProperties,
   makeZoneEntry,
 } from '@cockatrice/datatrice/testing';
-import { openReplay } from '@app/services';
+import { closeReplay, getOpenedReplay, getOpenedReplays, openReplay } from '@app/services';
 import { rootReducerMap, type RootState } from '@app/store';
 import { RouteEnum } from '@app/types';
 
@@ -26,19 +26,12 @@ import GameReplay from './GameReplay';
 // Block the Dexie-backed settings store from settling after mount.
 vi.mock('../../../hooks/useSettings');
 
-function renderReplayRoute(replayKey: string, webClient: WebClient = createMockWebClient()) {
-  const store = createStore<RootState>({
-    reducer: combineReducers(rootReducerMap),
-    preloadedState: makeStoreState({ ...connectedState, games: { games: {}, pings: {} } }),
-  });
-  // Replay games reach the store the shipped way: WebClient → GameResponseImpl.
-  const response = attachResponseHandlers(store);
-  vi.mocked(webClient.loadReplayGame).mockImplementation((gameId, gameInfo) => response.game.replayGameLoaded?.(gameId, gameInfo));
-  vi.mocked(webClient.unloadReplayGame).mockImplementation((gameId) => response.game.replayGameUnloaded?.(gameId));
+function renderReplayRoute(replayKey: string, webClient: WebClient = createMockWebClient(), store = makeStore()) {
   return renderWithProviders(
     <Routes>
       <Route path={RouteEnum.REPLAY} element={<GameReplay />} />
       <Route path={RouteEnum.REPLAYS} element={<div data-testid="replays-page" />} />
+      <Route path={RouteEnum.SERVER} element={<div data-testid="server-page" />} />
     </Routes>,
     {
       route: `/replay/${replayKey}`,
@@ -48,6 +41,31 @@ function renderReplayRoute(replayKey: string, webClient: WebClient = createMockW
     },
   );
 }
+
+function makeStore() {
+  return createStore<RootState>({
+    reducer: combineReducers(rootReducerMap),
+    preloadedState: makeStoreState({ ...connectedState, games: { games: {}, pings: {} } }),
+  });
+}
+
+/**
+ * Opens a replay with a mock client whose replay-game calls reach the store the
+ * shipped way: WebClient → Datatrice's GameResponseImpl.
+ */
+function openTestReplay(replay = buildReplay([sayContainer(0)])) {
+  const store = makeStore();
+  const webClient = createMockWebClient();
+  const response = attachResponseHandlers(store);
+  vi.mocked(webClient.loadReplayGame).mockImplementation((gameId, gameInfo) => response.game.replayGameLoaded?.(gameId, gameInfo));
+  vi.mocked(webClient.unloadReplayGame).mockImplementation((gameId) => response.game.replayGameUnloaded?.(gameId));
+  const key = openReplay(replay, 'fixture.cor', webClient);
+  return { key, store, webClient, render: () => renderReplayRoute(key, webClient, store) };
+}
+
+afterEach(() => {
+  getOpenedReplays().forEach(({ key }) => closeReplay(key));
+});
 
 /** Every request facade method of the mock client, flattened. */
 function allRequestSpies(webClient: WebClient) {
@@ -63,8 +81,8 @@ describe('GameReplay route', () => {
   });
 
   it('plays an opened replay on the read-only board with the replay dock', () => {
-    const key = openReplay(buildReplay([sayContainer(0), sayContainer(2)]), 'fixture.cor');
-    const { store } = renderReplayRoute(key);
+    const { render, store } = openTestReplay(buildReplay([sayContainer(0), sayContainer(2)]));
+    render();
 
     expect(screen.getByTestId('replay-controls')).toBeInTheDocument();
     expect(screen.getByTestId('replay-time')).toHaveTextContent('0:00 / 0:02');
@@ -78,14 +96,28 @@ describe('GameReplay route', () => {
   });
 
   it('closes the replay from the sidebar instead of leaving a game', () => {
-    const webClient = createMockWebClient();
-    const key = openReplay(buildReplay([sayContainer(0)]), 'fixture.cor');
-    renderReplayRoute(key, webClient);
+    const { key, render, store, webClient } = openTestReplay();
+    render();
 
     fireEvent.click(screen.getByRole('button', { name: /GameReplay\.sidebar\.close/ }));
 
     expect(screen.getByTestId('replays-page')).toBeInTheDocument();
     expect(webClient.request.game.leaveGame).not.toHaveBeenCalled();
+    expect(getOpenedReplay(key)).toBeUndefined();
+    expect(Object.values(store.getState().games.games).filter((g) => g.replay)).toHaveLength(0);
+  });
+
+  it('keeps the replay open and its game loaded when the view is left without closing it', () => {
+    const { key, render, store } = openTestReplay(buildReplay([sayContainer(0), sayContainer(2)]));
+    const { unmount } = render();
+    act(() => getOpenedReplay(key)!.engine.seek(2000));
+    unmount();
+
+    expect(getOpenedReplay(key)).toBeDefined();
+    expect(Object.values(store.getState().games.games).filter((g) => g.replay)).toHaveLength(1);
+
+    render();
+    expect(screen.getByTestId('replay-time')).toHaveTextContent('0:02 / 0:02');
   });
 });
 
