@@ -663,6 +663,24 @@
       "edit": "Edit",
       "changePassword": "Change Password",
       "changeAvatar": "Change Avatar"
+    },
+    "buddies": {
+      "online": "Buddies Online: ?/{total}",
+      "add": "Add to Buddies"
+    },
+    "ignored": {
+      "online": "Ignored Users Online: ?/{total}",
+      "add": "Add to Ignore"
+    },
+    "details": {
+      "location": "Location: ({country})",
+      "userLevel": "User Level: {userLevel}",
+      "accountAge": "Account Age: {accountAge}",
+      "realName": "Real Name: {realName}"
+    },
+    "server": {
+      "name": "Server Name: {serverName}",
+      "version": "Server Version: {serverVersion}"
     }
   },
   "AccountDialogs": {
