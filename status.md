@@ -1,1 +1,2 @@
 - 16:01Z started; base 0412500, branch created → install + read instructions
+- 16:09Z commit 0 (playerMenu.model extraction) pushed → §9 related cards
