@@ -9,5 +9,8 @@ export function replayList(): void {
     onSuccess: (response) => {
       WebClient.instance.response.session.replayList(response.matchList);
     },
+    onError: (responseCode, _raw, failure) => {
+      WebClient.instance.response.session.replayListFailed?.(responseCode, failure);
+    },
   });
 }

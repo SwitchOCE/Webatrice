@@ -1,4 +1,5 @@
 import { create } from '@bufbuild/protobuf';
+import type { CommandFailure } from '../../types/CommandFailure';
 import { WebClient } from '../../WebClient';
 
 import { Command_ReplayDownload_ext, Command_ReplayDownloadSchema, Response_ReplayDownload_ext } from '../../generated';
@@ -13,7 +14,7 @@ import { Command_ReplayDownload_ext, Command_ReplayDownloadSchema, Response_Repl
 export function replayDownload(
   replayId: number,
   onDownloaded?: (replayData: Uint8Array) => void,
-  onFailure?: (responseCode: number) => void,
+  onFailure?: (responseCode: number, failure?: CommandFailure) => void,
 ): void {
   WebClient.instance.protobuf.sendSessionCommand(
     Command_ReplayDownload_ext,
@@ -24,7 +25,7 @@ export function replayDownload(
         WebClient.instance.response.session.replayDownloaded(replayId, response);
         onDownloaded?.(response.replayData);
       },
-      onError: onFailure,
+      onError: (responseCode, _raw, failure) => onFailure?.(responseCode, failure),
     }
   );
 }

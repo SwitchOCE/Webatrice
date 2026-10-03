@@ -10,6 +10,7 @@ import {
   ServerInfo_User_UserLevelFlag,
 } from '@cockatrice/sockatrice/generated';
 import type { WebClient } from '@cockatrice/sockatrice';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { server } from '@cockatrice/datatrice';
 import { ReplayFileDTO } from '@app/services';
 import { RouteEnum } from '@app/types';
@@ -176,6 +177,37 @@ describe('Server replay storage', () => {
     });
 
     expect(screen.getByRole('dialog')).toHaveTextContent('Replays.server.deleteFailed');
+  });
+
+  it('explains a delete the server never answered with the transport reason', () => {
+    const { webClient } = renderReplays();
+    fireEvent.click(serverPane().getByTestId('replay-match-7'));
+    fireEvent.click(serverPane().getByRole('button', { name: 'Replays.action.delete' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Replays.action.delete' }));
+
+    act(() => {
+      lastCallArg<(code: number, failure?: WebsocketTypes.CommandFailure) => void>(
+        webClient.request.session.replayDeleteMatch, 1,
+      )(Response_ResponseCode.RespNotConnected, WebsocketTypes.CommandFailure.Timeout);
+    });
+
+    expect(screen.getByRole('dialog')).toHaveTextContent('CommandFailure.timeout');
+  });
+
+  it('stops loading and explains a replay list the server never answered', () => {
+    const { store } = renderReplays(stateWith({ matches: [] }));
+    expect(serverPane().getByText('Replays.server.loading')).toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(server.Actions.replayListFailed({
+        responseCode: Response_ResponseCode.RespNotConnected,
+        failure: WebsocketTypes.CommandFailure.Disconnected,
+      }));
+    });
+
+    expect(screen.getByRole('dialog')).toHaveTextContent('CommandFailure.disconnected');
+    // The open notice hides the pane from the accessibility tree, so query the DOM directly.
+    expect(screen.queryByText('Replays.server.loading')).not.toBeInTheDocument();
   });
 
   it('shows a share code with a copy button', async () => {

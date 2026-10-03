@@ -624,8 +624,8 @@ describe('replayDeleteMatch', () => {
   it('forwards onFailure without touching the store', () => {
     const onFailure = vi.fn();
     replayDeleteMatch(7, onFailure);
-    invokeCallback('onError', 18);
-    expect(onFailure).toHaveBeenCalledWith(18);
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Timeout);
+    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespNotConnected, CommandFailure.Timeout);
     expect(WebClient.instance.response.session.replayDeleteMatch).not.toHaveBeenCalled();
   });
 });
@@ -646,6 +646,14 @@ describe('replayList', () => {
     invokeOnSuccess(resp, { responseCode: 0 });
     expect(WebClient.instance.response.session.replayList).toHaveBeenCalledWith([]);
   });
+
+  it('reports a failure to replayListFailed', () => {
+    replayList();
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Timeout);
+    expect(WebClient.instance.response.session.replayListFailed).toHaveBeenCalledWith(
+      Response_ResponseCode.RespNotConnected, CommandFailure.Timeout,
+    );
+  });
 });
 
 describe('replayModifyMatch', () => {
@@ -665,8 +673,8 @@ describe('replayModifyMatch', () => {
   it('forwards onFailure without touching the store', () => {
     const onFailure = vi.fn();
     replayModifyMatch(7, true, onFailure);
-    invokeCallback('onError', 18);
-    expect(onFailure).toHaveBeenCalledWith(18);
+    invokeOnError(Response_ResponseCode.RespFunctionNotAllowed);
+    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespFunctionNotAllowed, undefined);
     expect(WebClient.instance.response.session.replayModifyMatch).not.toHaveBeenCalled();
   });
 });
@@ -744,8 +752,8 @@ describe('replayGetCode', () => {
     const onCodeReceived = vi.fn();
     const onFailure = vi.fn();
     replayGetCode(42, onCodeReceived, onFailure);
-    invokeCallback('onError', 18);
-    expect(onFailure).toHaveBeenCalledWith(18);
+    invokeOnError(Response_ResponseCode.RespFunctionNotAllowed);
+    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespFunctionNotAllowed, undefined);
     expect(onCodeReceived).not.toHaveBeenCalled();
   });
 });
@@ -768,8 +776,8 @@ describe('replaySubmitCode', () => {
   it('forwards onFailure callback', () => {
     const onFailure = vi.fn();
     replaySubmitCode('42-abc123', undefined, onFailure);
-    invokeCallback('onError', 404);
-    expect(onFailure).toHaveBeenCalledWith(404);
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespNotConnected, CommandFailure.Disconnected);
   });
 });
 
@@ -827,7 +835,7 @@ describe('replayDownload', () => {
   it('forwards onFailure with the response code', () => {
     const onFailure = vi.fn();
     replayDownload(99, undefined, onFailure);
-    invokeCallback('onError', 18);
-    expect(onFailure).toHaveBeenCalledWith(18);
+    invokeOnError(Response_ResponseCode.RespNameNotFound);
+    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespNameNotFound, undefined);
   });
 });
