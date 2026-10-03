@@ -1,3 +1,4 @@
 - 13:57Z started; read brief+task → set up branch 18
 - 14:05Z item1 (optional deck update callbacks) pushed b37db92 → item2 legality
 - 14:06Z items 2 (c5c95f1, desktop bug, kept legal) and 3 pushed → item4 consent
+- 14:11Z items 3+4 pushed (b950b86; item3 fixup squashed, branch force-with-lease on my own branch) → full gate
