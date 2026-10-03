@@ -17,7 +17,7 @@ Vitest + Testing Library + jsdom. [src/setupTests.ts](../../packages/webatrice/s
 ## Mocking footguns
 
 - **Never add `vi.resetAllMocks()` to `setupTests.ts`.** It resets `vi.fn()` instances created inside `vi.mock(...)` factories at file load, breaking any spec that mocks something once (e.g. `store.dispatch`) and expects it to persist across tests in the file.
-- **`vi.restoreAllMocks()` only restores `vi.spyOn` targets.** Bare `Object.defineProperty` writes (e.g. on `window.location`) and global reassignments (e.g. `globalThis.WebSocket = ...`) leak between tests in the same file. Use `withMockLocation` from [src/__test-utils__/globalGuards.ts](../../packages/webatrice/src/__test-utils__/globalGuards.ts) for scoped overrides that clean up after themselves.
+- **`vi.restoreAllMocks()` only restores `vi.spyOn` targets.** Bare `Object.defineProperty` writes (e.g. on `window.location`) and global reassignments (e.g. `globalThis.WebSocket = ...`) leak between tests in the same file. Use `withMockLocation` (and `withMockColorSchemeMedia` for `matchMedia('(prefers-color-scheme: dark)')`) from [src/__test-utils__/globalGuards.ts](../../packages/webatrice/src/__test-utils__/globalGuards.ts) for scoped overrides that clean up after themselves.
 
 ## Shared scaffolding
 
