@@ -18,6 +18,7 @@ import { leaveRoom } from './leaveRoom';
 import { roomSay } from './roomSay';
 import { create } from '@bufbuild/protobuf';
 import { CommandFailure } from '../../types/CommandFailure';
+import { StatusEnum } from '../../types/StatusEnum';
 import { Mock } from 'vitest';
 
 const { invokeOnSuccess, invokeResponseCode, invokeOnError } = makeCallbackHelpers(
@@ -170,11 +171,20 @@ describe('roomSay', () => {
   });
 
   it('reports a message the server never answered with the transport reason', () => {
+    WebClient.instance.status = StatusEnum.RECONNECTING;
     roomSay(2, 'hello');
     invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    WebClient.instance.status = StatusEnum.DISCONNECTED;
     expect(WebClient.instance.response.room.roomSayFailed).toHaveBeenCalledWith(
       2, 'hello', Response_ResponseCode.RespNotConnected, CommandFailure.Disconnected,
     );
+  });
+
+  it('does not report a message failed because the session ended, whose state is already reset', () => {
+    WebClient.instance.status = StatusEnum.DISCONNECTED;
+    roomSay(2, 'hello');
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    expect(WebClient.instance.response.room.roomSayFailed).not.toHaveBeenCalled();
   });
 
   it('keeps other server rejections silent, as desktop does', () => {

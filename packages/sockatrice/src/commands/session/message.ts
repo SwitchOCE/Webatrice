@@ -2,6 +2,7 @@ import { create } from '@bufbuild/protobuf';
 import { WebClient } from '../../WebClient';
 
 import { Command_Message_ext, Command_MessageSchema, Response_ResponseCode } from '../../generated';
+import { outlivedSession } from '../outlivedSession';
 
 // Rejections reported back with the unsent text: the two desktop TabMessage::messageSent
 // handles (recipient ignores you, recipient offline) plus the flood rejection that
@@ -23,7 +24,7 @@ export function message(userName: string, message: string): void {
   WebClient.instance.protobuf.sendSessionCommand(Command_Message_ext, create(Command_MessageSchema, { userName, message }), {
     onResponseCode,
     onError: (responseCode, _raw, failure) => {
-      if (failure) {
+      if (failure && !outlivedSession(failure)) {
         session.privateMessageFailed?.(userName, message, responseCode, failure);
       }
     },

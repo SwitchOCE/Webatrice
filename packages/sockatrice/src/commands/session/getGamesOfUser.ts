@@ -2,6 +2,7 @@ import { create } from '@bufbuild/protobuf';
 import { WebClient } from '../../WebClient';
 
 import { Command_GetGamesOfUser_ext, Command_GetGamesOfUserSchema, Response_GetGamesOfUser_ext } from '../../generated';
+import { outlivedSession } from '../outlivedSession';
 
 /**
  * Desktop "Show this user's games" (UserContextMenu::execShowGames). Every failure is
@@ -18,7 +19,9 @@ export function getGamesOfUser(userName: string): void {
       WebClient.instance.response.session.getGamesOfUser(userName, gamesOfUser);
     },
     onError: (responseCode, _raw, failure) => {
-      WebClient.instance.response.session.getGamesOfUserFailed?.(userName, responseCode, failure);
+      if (!outlivedSession(failure)) {
+        WebClient.instance.response.session.getGamesOfUserFailed?.(userName, responseCode, failure);
+      }
     },
   });
 }

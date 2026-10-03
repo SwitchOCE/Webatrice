@@ -29,9 +29,10 @@ import {
   ServerInfo_UserSchema,
 } from '@cockatrice/sockatrice/generated';
 import { store } from '../helpers/setup';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { RoomCommands, SessionCommands } from '@cockatrice/sockatrice';
 
-import { connectAndHandshake } from '../helpers/setup';
+import { connectAndHandshake, getMockWebSocket } from '../helpers/setup';
 import {
   buildResponse,
   buildResponseMessage,
@@ -352,5 +353,27 @@ describe('rooms', () => {
     expect(messages.map((m) => m.message)).toEqual(['bob: from history']);
     // The history line keeps its server time for the chat to render.
     expect(messages[0].timeOf).toBe(1791000000000n);
+  });
+
+  it('leaves no failure from commands pending at a disconnect in the reset store', () => {
+    connectAndHandshake();
+    setupJoinedRoom(1);
+    RoomCommands.roomSay(1, 'unanswered');
+    SessionCommands.message('bob', 'unanswered');
+    SessionCommands.joinRoom(3);
+    SessionCommands.getGamesOfUser('bob');
+
+    // A socket error ends the session with a single DISCONNECTED (the close that
+    // follows reports nothing more), the path where failures could outlive the reset.
+    const mock = getMockWebSocket();
+    mock.onerror?.(new Event('error'));
+    mock.onclose?.({ code: 1006, reason: '', wasClean: false } as CloseEvent);
+
+    const state = store.getState();
+    expect(state.server.status.state).toBe(WebsocketTypes.StatusEnum.DISCONNECTED);
+    expect(state.rooms.messages).toEqual({});
+    expect(state.rooms.joinRoomError).toBeNull();
+    expect(state.server.privateChatNotices).toEqual({});
+    expect(state.server.gamesOfUserStatus).toEqual({});
   });
 });
