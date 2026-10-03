@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -235,7 +236,7 @@ const DeckEditor = () => {
     return <DeckEditorSkeleton loaded={0} total={0} />;
   }
   if (editor.notFound || !editor.deck) {
-    return <NotFoundShell />;
+    return <NotFoundShell reason={editor.loadError} />;
   }
   if (!preload.ready) {
     return <DeckEditorSkeleton loaded={preload.loaded} total={preload.total} />;
@@ -2606,16 +2607,19 @@ function DeckEditorSkeleton({ loaded, total }: { loaded: number; total: number }
   );
 }
 
-function NotFoundShell() {
+function NotFoundShell({ reason }: { reason: string | null }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   return (
     <Layout>
       <AuthGuard />
       <div className="h-full flex flex-col items-center justify-center bg-bg-base gap-3">
         <CircleAlert size={32} className="text-red-400" />
-        <div className="text-text-primary font-medium">Deck not found</div>
+        <div className="text-text-primary font-medium">
+          {reason ? t('DeckEditor.loadFailedTitle') : 'Deck not found'}
+        </div>
         <div className="text-sm text-text-muted">
-          Servatrice didn't return this deck. Might have been deleted.
+          {reason ?? <>Servatrice didn't return this deck. Might have been deleted.</>}
         </div>
         <button
           type="button"
@@ -2632,6 +2636,15 @@ function NotFoundShell() {
   );
 }
 
+function SaveFailedIndicator() {
+  const { t } = useTranslation();
+  return (
+    <span role="status" className="inline-flex items-center gap-1 text-red-400" title={t('DeckEditor.saveFailedHint')}>
+      <CircleAlert size={10} /> {t('DeckEditor.saveFailed')}
+    </span>
+  );
+}
+
 function SaveIndicator({ state }: { state: SaveState }) {
   switch (state) {
     case 'saving':
@@ -2642,6 +2655,8 @@ function SaveIndicator({ state }: { state: SaveState }) {
       );
     case 'dirty':
       return <span className="text-yellow-400">Unsaved changes</span>;
+    case 'failed':
+      return <SaveFailedIndicator />;
     case 'saved':
       return (
         <span className="inline-flex items-center gap-1 text-emerald-400">
