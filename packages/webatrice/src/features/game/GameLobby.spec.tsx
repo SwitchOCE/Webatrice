@@ -1,4 +1,5 @@
 import { act, fireEvent, screen, within } from '@testing-library/react';
+import { create } from '@bufbuild/protobuf';
 import { games } from '@cockatrice/datatrice';
 import {
   makeGameEntry,
@@ -6,7 +7,7 @@ import {
   makePlayerProperties,
 } from '@cockatrice/datatrice/testing';
 import type { WebClient } from '@cockatrice/sockatrice';
-import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
+import { Response_ResponseCode, ServerInfo_PlayerPropertiesSchema } from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import {
@@ -23,6 +24,13 @@ const DECK = `<?xml version="1.0" encoding="UTF-8"?>
   <zone name="main"><card number="2" name="Lightning Bolt"/><card number="1" name="Mountain"/></zone>
   <zone name="side"><card number="1" name="Smash to Smithereens"/></zone>
 </cockatrice_deck>`;
+
+// The current plan (`<sideboard_plan><name></name>`) moves the Mountain to the sideboard.
+const WITH_PLAN = DECK.replace(
+  '</cockatrice_deck>',
+  '<sideboard_plan><name></name><move_card_to_zone><card_name>Mountain</card_name>'
+    + '<start_zone>main</start_zone><target_zone>side</target_zone></move_card_to_zone></sideboard_plan></cockatrice_deck>',
+);
 
 interface LobbySpec {
   hostId?: number;
@@ -79,6 +87,13 @@ function renderLobby(spec?: LobbySpec) {
   const utils = renderWithProviders(<GameLobby gameId={1} />, { preloadedState: lobbyState(spec), webClient });
   return { ...utils, webClient };
 }
+
+// Event_PlayerPropertiesChanged for the local player's sideboard lock.
+const setLocalSideboardLock = (sideboardLocked: boolean) => games.Actions.playerPropertiesChanged({
+  gameId: 1,
+  playerId: 1,
+  properties: create(ServerInfo_PlayerPropertiesSchema, { sideboardLocked }),
+});
 
 const button = (name: string) => screen.getByRole('button', { name });
 
@@ -238,12 +253,31 @@ describe('GameLobby — sideboarding before ready (GAME-014)', () => {
   });
 
   it('shows the plan stored in the deck while unlocked', () => {
-    const withPlan = DECK.replace(
-      '</cockatrice_deck>',
-      '<sideboard_plan><name></name><move_card_to_zone><card_name>Mountain</card_name>'
-        + '<start_zone>main</start_zone><target_zone>side</target_zone></move_card_to_zone></sideboard_plan></cockatrice_deck>',
-    );
-    renderLobby({ deckList: withPlan, sideboardLocked: false });
+    renderLobby({ deckList: WITH_PLAN, sideboardLocked: false });
+    expect(within(screen.getByTestId('lobby-deck-side')).getByText('Mountain')).toBeInTheDocument();
+  });
+
+  it('shows the stored plan while locked: Command_DeckSelect locks without clearing it', () => {
+    renderLobby({ deckList: WITH_PLAN, sideboardLocked: true });
+    expect(within(screen.getByTestId('lobby-deck-side')).getByText('Mountain')).toBeInTheDocument();
+    expect(within(screen.getByTestId('lobby-deck-main')).queryByText('Mountain')).not.toBeInTheDocument();
+  });
+
+  it('an explicit lock on the same deck resets the view to the bare deck, as the server clears the plan', () => {
+    const { store } = renderLobby({ deckList: WITH_PLAN, sideboardLocked: false });
+    act(() => {
+      store.dispatch(setLocalSideboardLock(true));
+    });
+    expect(within(screen.getByTestId('lobby-deck-main')).getByText('Mountain')).toBeInTheDocument();
+    expect(within(screen.getByTestId('lobby-deck-side')).queryByText('Mountain')).not.toBeInTheDocument();
+  });
+
+  it('re-selecting a deck after unlocking shows the stored plan again (the lock came from the deck select)', () => {
+    const { store } = renderLobby({ deckList: WITH_PLAN, sideboardLocked: false });
+    act(() => {
+      store.dispatch(setLocalSideboardLock(true));
+      store.dispatch(games.Actions.deckSelected({ gameId: 1, deckList: WITH_PLAN }));
+    });
     expect(within(screen.getByTestId('lobby-deck-side')).getByText('Mountain')).toBeInTheDocument();
   });
 });

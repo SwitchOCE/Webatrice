@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { games } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
@@ -43,15 +43,19 @@ interface PlanOverride {
  * State and commands behind the pre-game deck view — desktop's
  * `DeckViewContainer` deck-loaded state (`deck_view_container.cpp`).
  *
- * The plan shown is, in order: the user's edits since the deck arrived; the
- * plan stored in the deck string when the sideboard is unlocked; no plan
- * while it is locked. Locking clears the server's plan
- * (`Server_Player::cmdSetSideboardLock`), so a lock also resets the view to
- * the bare deck (`DeckViewContainer::setSideboardLocked` → `resetSideboardPlan`).
+ * The plan shown is the one the server will deal with
+ * (`Server_Player::setupZones` applies `getCurrentSideboardPlan()` whatever
+ * the lock state): the user's edits since the deck arrived, else the plan
+ * stored in the deck string (`DeckViewScene::setDeck`). Selecting a deck locks
+ * the sideboard but keeps its stored plan (`Server_Player::cmdDeckSelect`);
+ * only an explicit lock clears it (`cmdSetSideboardLock`), so only a lock
+ * transition on the same deck resets the view to the bare deck
+ * (`DeckViewContainer::setSideboardLocked` → `resetSideboardPlan`).
  */
 export function useLobbyDeckView(gameId: number): LobbyDeckView {
   const webClient = useWebClient();
   const localPlayer = useAppSelector((state) => games.Selectors.getLocalPlayer(state, gameId));
+  const localPlayerId = localPlayer?.properties.playerId;
   const deckList = localPlayer?.deckList ?? '';
   const ready = localPlayer?.properties.readyStart ?? false;
   const sideboardLocked = localPlayer?.properties.sideboardLocked ?? true;
@@ -62,27 +66,39 @@ export function useLobbyDeckView(gameId: number): LobbyDeckView {
   const [unloaded, setUnloaded] = useState(false);
 
   // A deck-select response re-enters the deck-loaded view even when the
-  // server returned the same string (desktop's deckSelectFinished).
+  // server returned the same string (desktop's deckSelectFinished). It also
+  // drops any plan reset: the server broadcasts the deck select's own lock
+  // event before this response, and that lock keeps the deck's stored plan.
   useReduxEffect<{ gameId: number }>(({ payload }) => {
     if (payload.gameId === gameId) {
       setUnloaded(false);
+      setOverride(null);
     }
   }, games.Types.DECK_SELECTED, [gameId]);
 
-  const wasLocked = useRef(sideboardLocked);
-  useEffect(() => {
-    if (sideboardLocked && !wasLocked.current) {
-      setOverride({ deckList, plan: [] });
+  // An explicit lock clears the server's plan. Handled as the event arrives,
+  // not on a re-render, so a deck select's lock event followed by its
+  // response in the same batch still ends on the stored plan.
+  const lockState = useRef({ sideboardLocked, deckList });
+  lockState.current = { sideboardLocked, deckList };
+  useReduxEffect<{ gameId: number; playerId: number; properties: { sideboardLocked?: boolean } }>(({ payload }) => {
+    const current = lockState.current;
+    if (
+      payload.gameId === gameId
+      && payload.playerId === localPlayerId
+      && payload.properties.sideboardLocked
+      && !current.sideboardLocked
+    ) {
+      setOverride({ deckList: current.deckList, plan: [] });
     }
-    wasLocked.current = sideboardLocked;
-  }, [sideboardLocked, deckList]);
+  }, games.Types.PLAYER_PROPERTIES_CHANGED, [gameId, localPlayerId]);
 
   const plan = useMemo(() => {
-    if (!parsed || sideboardLocked) {
+    if (!parsed) {
       return [];
     }
     return override?.deckList === deckList ? override.plan : parsed.currentPlan;
-  }, [parsed, sideboardLocked, override, deckList]);
+  }, [parsed, override, deckList]);
 
   const view = useMemo(() => (parsed ? applySideboardPlan(parsed.view, plan) : null), [parsed, plan]);
   const editable = !!view && !ready && !sideboardLocked;
