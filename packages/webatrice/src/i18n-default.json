@@ -1228,7 +1228,7 @@
     },
     "cardData": {
       "label": "Card database",
-      "description": "The cards, sets and tokens you imported, and the files they came from. Set preferences, download URLs, settings, shortcuts and servers are kept.",
+      "description": "The cards, sets and tokens you imported, and the files they came from. Tokens you made in the token editor, set preferences, download URLs, settings, shortcuts and servers are kept.",
       "count": "{count, plural, one {# entry} other {# entries}}",
       "button": "Delete card data",
       "confirm": {
