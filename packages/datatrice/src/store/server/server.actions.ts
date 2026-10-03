@@ -3,7 +3,7 @@ import type { Response_DeckShareCreate, Response_DeckShareList } from '@cockatri
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { serverSlice } from './server.reducer';
-import type { CommandFailedPayload } from './server.interfaces';
+import type { CommandFailedPayload, SessionCommandFailedPayload } from './server.interfaces';
 
 const SignalActions = {
   accountAwaitingActivation: createAction<{ options: WebsocketTypes.PendingActivationContext }>('server/accountAwaitingActivation'),
@@ -32,9 +32,7 @@ const SignalActions = {
   moderatorCommandFailed: createAction<CommandFailedPayload & { command: WebsocketTypes.ModeratorCommandName; target: string }>(
     'server/moderatorCommandFailed'
   ),
-  sessionCommandFailed: createAction<CommandFailedPayload & { command: WebsocketTypes.SessionCommandName; target: string }>(
-    'server/sessionCommandFailed'
-  ),
+  sessionCommandFailed: createAction<SessionCommandFailedPayload>('server/sessionCommandFailed'),
   adminCommandFailed: createAction<CommandFailedPayload & { command: WebsocketTypes.AdminCommandName; target: string }>(
     'server/adminCommandFailed'
   ),

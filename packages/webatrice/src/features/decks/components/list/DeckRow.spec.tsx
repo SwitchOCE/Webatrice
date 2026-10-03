@@ -81,4 +81,41 @@ describe('DeckRow', () => {
     expect(screen.queryByRole('button', { name: 'DeckFolders.moveDeckNamed' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'DeckFolders.downloadDeckNamed' })).toBeNull();
   });
+
+  it.each(['card', 'compact'] as const)('%s layout offers share and publish when given', (mode) => {
+    const onShare = vi.fn();
+    const onTogglePublic = vi.fn();
+    const onOpen = vi.fn();
+    render(
+      <DeckRow
+        deck={{ ...deck, visibility: 'public' }}
+        summary={{}}
+        mode={mode}
+        onOpen={onOpen}
+        onDelete={() => {}}
+        onShare={onShare}
+        onTogglePublic={onTogglePublic}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'DeckSharing.shareDeckNamed' }));
+    const publish = screen.getByRole('button', { name: 'DeckSharing.publishNamed' });
+    expect(publish).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(publish);
+    expect(onShare).toHaveBeenCalled();
+    expect(onTogglePublic).toHaveBeenCalled();
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('shows desktop\'s Public / Public (inherited) state, and nothing for a private deck', () => {
+    const row = (visibility: FlatDeck['visibility']) => (
+      <DeckRow deck={{ ...deck, visibility }} summary={{}} mode="compact" onOpen={() => {}} onDelete={() => {}} />
+    );
+    const { rerender } = render(row('public'));
+    expect(screen.getByText('DeckSharing.public')).toHaveAttribute('title', 'DeckSharing.deckPublic');
+    rerender(row('inherited'));
+    expect(screen.getByText('DeckSharing.inherited')).toHaveAttribute('title', 'DeckSharing.deckInherited');
+    rerender(row('private'));
+    expect(screen.queryByText(/DeckSharing.public|DeckSharing.inherited/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'DeckSharing.shareDeckNamed' })).toBeNull();
+  });
 });

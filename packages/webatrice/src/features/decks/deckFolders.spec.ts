@@ -14,6 +14,7 @@ import {
   findDeckFolder,
   isUnderPublicFolder,
   joinDeckPath,
+  listPublicDecks,
   listDeckFolder,
   parentDeckPath,
 } from './deckFolders';
@@ -127,6 +128,18 @@ describe('public folders', () => {
     expect(inner.decks.map((d) => d.visibility)).toEqual(['inherited']);
     expect(listDeckFolder(publicTree, 'Shared').folders[0].visibility).toBe('inherited');
     expect(decksUnderFolder(publicTree, 'Shared/Inner')[0].visibility).toBe('inherited');
+  });
+});
+
+describe('listPublicDecks', () => {
+  it('flattens another user\'s public tree with folder paths', () => {
+    expect(listPublicDecks(root).map((d) => [d.id, d.name, d.path])).toEqual([
+      [1, 'Root deck', ''],
+      [2, 'Burn', 'Modern'],
+      [3, 'Affinity', 'Modern/Old'],
+      [4, 'Newer root deck', ''],
+    ]);
+    expect(listPublicDecks(undefined)).toEqual([]);
   });
 });
 

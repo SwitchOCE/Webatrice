@@ -4,7 +4,7 @@ import { RouteEnum } from '@app/types';
 import { Account } from '@app/features/account';
 import { Administration } from '@app/features/administration';
 import { CardArtRules } from '@app/features/card-art-rules';
-import { Decks, DeckEditor } from '@app/features/decks';
+import { Decks, DeckEditor, PublicDecks, SharedDeck } from '@app/features/decks';
 import { Developer } from '@app/features/developer';
 import { Game, GameReplay } from '@app/features/game';
 import { Logs } from '@app/features/logs';
@@ -29,6 +29,8 @@ const AppShellRoutes = () => (
       <Route path={RouteEnum.CARD_ART_RULES} element={<CardArtRules />} />
       <Route path={RouteEnum.DECKS} element={<Decks />} />
       <Route path={RouteEnum.DECK} element={<DeckEditor />} />
+      <Route path={RouteEnum.SHARED_DECK} element={<SharedDeck />} />
+      <Route path={RouteEnum.PUBLIC_DECKS} element={<PublicDecks />} />
       <Route path={RouteEnum.DEVELOPER} element={<Developer />} />
       <Route path={RouteEnum.GAME} element={<Game />} />
       <Route path={RouteEnum.LOGS} element={<Logs />} />

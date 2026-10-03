@@ -105,6 +105,13 @@ export interface CommandFailedPayload {
   failure?: WebsocketTypes.CommandFailure;
 }
 
+// Payload of `sessionCommandFailed`: which session command failed and what it
+// acted on (see ISessionResponse.commandFailed).
+export interface SessionCommandFailedPayload extends CommandFailedPayload {
+  command: WebsocketTypes.SessionCommandName;
+  target: string;
+}
+
 // `failed` carries the raw Response.ResponseCode, which the UI maps to desktop's
 // UserContextMenu::gamesOfUserReceived message, and `failure` when the server never answered.
 export type GamesOfUserStatus =
