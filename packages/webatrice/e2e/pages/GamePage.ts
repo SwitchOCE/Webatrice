@@ -7,13 +7,13 @@ import { dragTo } from '../fixtures/dnd';
 // sequence (deck-select → ready → board) and a small set of in-game
 // actions.
 //
-// DOM CONTRACT (as of the PlayerBox monolith rewrite):
+// DOM CONTRACT (the PlayerBoard seat):
 //   • Board scaffolding still exposes `data-testid`s:
 //       - `game-container`, `game-empty` (Game.tsx)
 //       - `right-panel`, `spectating-tag` (BattlefieldSidebar.tsx)
 //       - `.game__board-grid`, `.game__board-cell`,
 //         `.game__board-cell--mirrored` (GameBoardCell.tsx)
-//   • Per-seat rendering is the PlayerBox monolith. It does NOT emit
+//   • Per-seat rendering is PlayerBoard and its regions. It does NOT emit
 //     `data-testid`. Selectable structure:
 //       - `.game__board-cell` — one per seat. `--mirrored` modifier is
 //         absent ONLY on the local seat (useGameBoardLayout guarantees
@@ -27,12 +27,12 @@ import { dragTo } from '../fixtures/dnd';
 //         cards are `[data-card][data-zone="battlefield"]`, and hand
 //         cards are `[data-card][data-zone="hand"]`. Card DOM wraps a
 //         `<Card>` whose outer div carries `title="{cardName}"`.
-//       - PlayerBox context menus are portal-rendered `<div>`s tagged
+//       - The seat context menus are portal-rendered `<div>`s tagged
 //         `[data-card-context-menu]` (per-card) or `[data-context-menu]`
 //         (per-zone/player). Items are plain `<button>` elements (no
 //         `role="menuitem"`).
 //   • Pile-view popup: opening the Library / Graveyard / Exile view
-//     from PlayerBox's context menu mounts a ZoneViewDialog, which
+//     from the seat's context menu mounts a ZoneViewDialog, which
 //     lists the zone through ZoneViewPanel. That renders an `<h2>` with
 //     the pile title ("Graveyard — <name>", "Exile — <name>", or
 //     "<name>'s library") and cards keyed by `[data-card][data-card-id]`.
@@ -43,8 +43,8 @@ import { dragTo } from '../fixtures/dnd';
 // Graveyard" (spec regex) are mapped to the "Move to → Graveyard"
 // submenu path.
 
-// Map `zoneName` (spec-level, Cockatrice wire strings) → PlayerBox pile
-// title prefix. PlayerBox draws the pile as a `<div title="Library — N">`
+// Map `zoneName` (spec-level, Cockatrice wire strings) → the seat pile
+// title prefix. The seat draws the pile as a `<div title="Library — N">`
 // (with an optional " (top: X)" suffix when a face-up top card is
 // showing). Anchoring on the `— ` separator keeps us safe against both
 // count changes and the top-card suffix.
@@ -55,7 +55,7 @@ const ZONE_TITLE_PREFIX: Record<string, string> = {
 };
 
 // Card-menu translation for spec regexes like `/send to graveyard/i`.
-// PlayerBox's buildCardContextMenu places these under "Move to →
+// The seat's buildCardContextMenu places these under "Move to →
 // {Graveyard|Hand|Exile|Table|Top of library in random order|...}".
 // The POM opens the submenu when the requested item lives under it.
 interface MoveViaSubmenu {
@@ -150,7 +150,7 @@ export class GamePage {
   // ---- Card actions ----
 
   async drawCard(): Promise<void> {
-    // PlayerBox library pile: right-click → "Draw card" (ports the
+    // The seat's library pile: right-click → "Draw card" (ports the
     // Cockatrice LibraryMenu order). No `zone-context-menu` testid on
     // the new menu — it's a plain `<div data-context-menu>` portal.
     const deckStack = this.zoneStack('deck');
@@ -181,7 +181,7 @@ export class GamePage {
     await card.dblclick();
   }
 
-  // End turn via keyboard shortcut. PlayerBox / useGameShortcuts binds
+  // End turn via keyboard shortcut. useGameShortcuts binds
   // `game.endTurn` to Ctrl+Enter (defaults.ts), matching Cockatrice
   // desktop's aNextTurn. There's no visible "End Turn" button in the
   // Tailwind rewrite — the phase track pill is display-only.
@@ -216,7 +216,7 @@ export class GamePage {
   // ---- Zones / cards / popups ----
 
   // Locate a pile (library / graveyard / exile) by its `title` attribute.
-  // PlayerBox's CardBackZone / LargeZoneBox both set
+  // ZoneStack's CardBackZone / LargeZoneBox both set
   // `title="{Label} — {count}"` (with an optional " (top: X)" suffix),
   // so anchoring on the shared prefix picks the pile regardless of the
   // current count or top-card state.
@@ -229,9 +229,9 @@ export class GamePage {
   }
 
   // Battlefield row 0 for the given seat. Rows aren't individually
-  // addressable after the PlayerBox rewrite, but `BattlefieldSlotOverlay`
+  // addressable after the seat rewrite, but `BattlefieldSlotOverlay`
   // renders one absolutely-positioned `<div>` per snap slot (see the
-  // overlay in PlayerBox.tsx). Return the first slot div (row 0, col 0
+  // overlay in Battlefield.tsx). Return the first slot div (row 0, col 0
   // in display coords) so `.boundingBox()` lands on a card-sized rect
   // instead of the whole play area — matches the intent of the legacy
   // `[data-testid="battlefield-row-0"]` selector so specs computing
@@ -284,7 +284,7 @@ export class GamePage {
     return dialog.locator('> div').first();
   }
 
-  // Open a pile view. Left-click on the PlayerBox pile does nothing
+  // Open a pile view. Left-click on the seat's pile does nothing
   // (LargeZoneBox / CardBackZone have no onClick — pointerdown starts
   // a drag), so we open via right-click → "View library" / "View
   // graveyard" / "View exile", matching Cockatrice's pile-menu path.
@@ -323,7 +323,7 @@ export class GamePage {
   // Handles the "Move to" submenu path: specs pass regexes like
   // `/send to graveyard/i` that resolve to "Move to → Graveyard".
   //
-  // Hand-source shim: PlayerBox's hand row does NOT wire per-card
+  // Hand-source shim: the seat's hand row does NOT wire per-card
   // right-clicks (right-clicking a hand card opens the HAND-level menu
   // — View hand, Sort hand, etc. — not a card-move menu). Callers that
   // ask for "send to graveyard" on a hand card actually mean "get this
@@ -334,7 +334,7 @@ export class GamePage {
     const resolved = resolveCardMenuItem(item);
 
     // Shim #1: hand cards no longer expose a per-card context menu
-    // in PlayerBox (right-click bubbles to the HAND-level menu, which
+    // in the seat (right-click bubbles to the HAND-level menu, which
     // only has View hand / Sort hand). Emulate the intended move by
     // dragging onto the target pile.
     //
@@ -377,7 +377,7 @@ export class GamePage {
     if (resolved instanceof RegExp) {
       await this.clickCardContextMenuItem(resolved);
     } else {
-      // Hover the parent item so the submenu opens (PlayerBox opens
+      // Hover the parent item so the submenu opens (the seat opens
       // submenus on hover, matching desktop). Click the leaf.
       await this.hoverCardContextMenuItem(resolved.submenu);
       await this.clickCardContextMenuItem(resolved.item);
@@ -407,7 +407,7 @@ export class GamePage {
     await this.page.mouse.up();
   }
 
-  // ---- Internal: PlayerBox context-menu helpers ----
+  // ---- Internal: seat context-menu helpers ----
 
   // Zone / player context menu (`<div data-context-menu>`). Items are
   // plain `<button>` whose label lives in a `<span class="flex-1">`
@@ -436,7 +436,7 @@ export class GamePage {
     await this.menuItemButton(menu, name).first().click();
   }
 
-  // Hover a card-menu item to open its submenu (PlayerBox opens
+  // Hover a card-menu item to open its submenu (the seat opens
   // submenus on hover — see CardContextMenuPopup.renderItems). Waits
   // for the submenu portal to mount so the next click hits its leaf.
   private async hoverCardContextMenuItem(name: RegExp): Promise<void> {

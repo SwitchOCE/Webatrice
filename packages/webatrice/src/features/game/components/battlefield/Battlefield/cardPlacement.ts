@@ -9,7 +9,7 @@
 //     (0 land, 1 creature, 2 other permanent, 3 instant/sorcery), and drives
 //     playCardViaTableRow and token creation;
 //   - the legacy type-line policy classifies a type line itself and puts
-//     creatures in row 2, and drives PlayerBox's double-click play.
+//     creatures in row 2, and drives the seat's double-click play.
 //
 // Rows here are owner-perspective visual rows (0 = top). Inverting them for a
 // mirrored board is gridMath.applyInvertY's job, done once by the caller.
@@ -56,7 +56,7 @@ export function tokenGridYFromCardDatabaseRow(tablerow: number | null, faceDown:
 }
 
 /**
- * Legacy type-line policy (PlayerBox double-click): instants and sorceries 3,
+ * Legacy type-line policy (the seat's hand / stack double-click): instants and sorceries 3,
  * creatures 2, lands 0, any other permanent 1. Checked in that order, so an
  * artifact creature or a creature land counts as a creature.
  *

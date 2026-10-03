@@ -9,7 +9,7 @@ import { useAppDispatch, type RootState } from '@app/store';
 
 /**
  * Resolve a battlefield drop to a free sub-slot on the target player's board.
- * PlayerBox only sees its own seat, so it always asks for sub-slot 0; without
+ * A seat only sees its own board, so it always asks for sub-slot 0; without
  * this an opponent gift would land on sub-slot 0 and only settle when the
  * server echo arrives.
  *

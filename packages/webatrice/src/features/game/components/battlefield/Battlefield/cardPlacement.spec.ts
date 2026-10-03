@@ -50,7 +50,7 @@ describe('cardPlacement', () => {
     });
   });
 
-  describe('legacy type-line policy (PlayerBox double-click)', () => {
+  describe('legacy type-line policy (seat double-click)', () => {
     it.each([
       ['Basic Land — Forest', 0],
       ['Artifact', 1],

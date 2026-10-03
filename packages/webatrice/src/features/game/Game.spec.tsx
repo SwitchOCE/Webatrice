@@ -116,9 +116,9 @@ describe('Game container', () => {
     expect(screen.getByTestId('right-panel')).toBeInTheDocument();
   });
 
-  // The seat surface is PlayerBox (one per player, rendered by GameBoardCell).
+  // The seat surface is PlayerBoard (one per player, rendered by GameBoardCell).
   // These pin the per-seat layout through Game; seat interactions are pinned in
-  // components/PlayerBox/PlayerBox.characterization.spec.tsx and the seat
+  // components/ui/PlayerBoard/PlayerBoard.characterization.spec.tsx and the seat
   // adapter in components/ui/GameBoardCell/GameBoardCell.spec.tsx.
   it('renders one battlefield per seat and mirrors every board above the local one', () => {
     renderWithProviders(<Game />, {

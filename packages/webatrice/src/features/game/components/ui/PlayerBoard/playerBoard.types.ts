@@ -4,7 +4,7 @@
 // (usePlayer*Commands); views receive only these interfaces, never selectors or
 // request builders. See docs/webatrice-solid-refactor-plan.md §5 (PB-01).
 //
-// Type-only: this module must not construct requests or import PlayerBox.
+// Type-only: this module must not construct requests.
 
 import type { ZoneNameValue } from '@cockatrice/sockatrice';
 import type { MoveCardParams } from '@cockatrice/sockatrice/generated';
@@ -169,7 +169,7 @@ export interface PlayerZoneCommands {
    * nearest free sub-slot on the target player's board; a single known public
    * card moves optimistically and rolls back if the server rejects it.
    *
-   * Takes the wire shape for now: the seat still builds it (PlayerBox
+   * Takes the wire shape for now: the seat still builds it (the drop plan
    * `applyMove`). The destination translation moves here with DnD convergence.
    */
   move(params: MoveCardParams): void;

@@ -1,8 +1,6 @@
 import { useMemo, useRef } from 'react';
 import { useShortcutHints } from '@app/feature-widgets/shortcuts';
 
-import {
-} from '../../../hooks/dialogs/seatPrompts';
 import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
 import { useMoveTopUntil } from '../../../hooks/useMoveTopUntil';
 import { useSeatSelection } from '../../../hooks/useSeatSelection';
@@ -19,7 +17,6 @@ import { useHandMenuItems } from '../HandZone/useHandMenuItems';
 import { useActiveSeatDrag } from '../SeatDragContext';
 import { useLibraryMenuItems } from '../ZoneStack/useLibraryMenuItems';
 import { usePileMenus } from '../ZoneStack/usePileMenus';
-import { MAX_COUNTER_VALUE } from './counterLimits';
 import type {
   PlayerBoardCommands,
   PlayerBoardModel,
@@ -42,12 +39,11 @@ export type PlayerSeatProps = {
   onOpenDeckInEditor?: () => void;
 };
 
-
 /**
- * The seat's state, layout and actions: everything PlayerBox renders,
- * computed from the seat model and command ports. PlayerBox's regions read the result
- * through PlayerSeatContext while they move to their target owners
- * (refactor plan Phase 7).
+ * The seat controller: composes the seat's hooks (card metadata, selection,
+ * marquee, prompts, pending arrows, menus, shortcuts, drag and drop) over the
+ * seat model and command ports. PlayerBoard provides the result to its
+ * regions through PlayerSeatContext.
  */
 export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSeatProps) {
   const { seat, zones, counters } = model;
@@ -79,12 +75,8 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     onSet: (value: number) => counterCommands.set(lifeCounter.id, value),
   }, [lifeCounter, counterCommands]);
   const name = seat.displayName;
-  // The seat's zone views (library, top / bottom N, graveyard, exile,
-  // hand, sideboard) are game dialogs: openZoneView stacks one and dumps a
-  // hidden zone. Hand-menu handlers already wired at the dialog layer:
-  // `handleRequestSortHandBy` fires per-card moveCard dispatches
-  // (hand_menu.cpp parity), `handleRequestChooseMulligan` opens a numeric
-  // prompt then dispatches Command_Mulligan.
+  // The seat's zone views, card menus and move-top-until dialog are game
+  // dialogs.
   const {
     openZoneView,
     openMoveTopUntil,
@@ -120,15 +112,11 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
   const draw = (n: number) => {
     // Server pops N off the top of the deck and broadcasts
     // Event_DrawCards; Redux updates hand + deck.cardCount from the
-    // event, and the draw beacon triggers the library→hand flight
-    // animation via the effect below.
+    // event, and the draw beacon starts the library→hand flights.
     zoneCommands.draw(n);
   };
 
-
-  // Zone display data (hand/battlefield/grave/exile/stack) all comes from
-  // Redux via props — see the *DisplayList expressions below. Refs are
-  // kept locally so the drag hit-tester can measure each zone's rect.
+  // The zones' elements, measured by the drop resolvers and the marquee.
   const graveyardRef = useRef<HTMLDivElement>(null);
   const exileRef = useRef<HTMLDivElement>(null);
   const stackRef = useRef<HTMLDivElement>(null);
@@ -146,7 +134,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     [zones.hand.cards, zones.battlefield.cards, zones.stack.cards],
   );
   const { selection, setSelection, clearAllSelection } = useSeatSelection(playerId, selectableCards);
-  // The seat drag in progress from this seat (see the seat DnD block below).
+  // The seat drag in progress from this seat, if any.
   const seatId = playerId;
   const activeSeatDrag = useActiveSeatDrag();
   const seatDrag = activeSeatDrag?.seatPlayerId === seatId ? activeSeatDrag : null;
@@ -165,7 +153,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
   // finalizing the selection.
   const boxRef = useRef<HTMLDivElement>(null);
 
-
   // The hand row scrolls sideways under the mouse wheel (the battlefield
   // does the same for its own board).
   useHorizontalWheelScroll(handRef);
@@ -178,10 +165,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
   // are user-customizable).
   const shortcutHints = useShortcutHints();
 
-
-
   const { marquee, onPointerDownBox } = useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelection, clearAllSelection });
-
 
   const {
     life,
@@ -219,31 +203,22 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     setDrawArrowPending,
     pendingArrowPointer,
   } = usePendingArrows({ playerId, targetCommands });
-  // Placeholder values — real state lands with the game-state iteration.
   // Displayed counts mirror Cockatrice desktop: read straight from the
   // server-authoritative `zone.cardCount` and DON'T decrement while a
   // card is under the cursor mid-drag. The desktop client also shows
   // the same pre-drop count until the server broadcasts the move back;
   // the visible "card in flight" is the drag ghost, not a badge tweak.
-  // Fall back to the local mock zone length only for the pre-hydration
-  // transient (before Redux has any zone data at all).
+  // Zero before the player hydrates.
   const displayedDeckCount = zones.library.cardCount ?? 0;
   const displayedGraveyardCount = zones.graveyard.cardCount ?? 0;
   const displayedExileCount = zones.exile.cardCount ?? 0;
 
-  // All zone display lists come straight from Redux — there is no local
-  // mock any more. Empty arrays are truthful (an empty zone renders
-  // empty, not "the last thing we knew about"). Owner-side pile drags
-  // grab the last card in the display list; opponent-side pile drags
-  // show a card-back count only (Redux gives us `zone.cardCount`
-  // without the actual card identities for hidden zones).
+  // Zone lists come straight from the seat model: an empty zone renders
+  // empty, not "the last thing we knew about".
   const graveDisplayList = zones.graveyard.cards;
   const exileDisplayList = zones.exile.cards;
   const handDisplayList = zones.hand.cards;
   const handCount = zones.hand.cardCount ?? handDisplayList.length;
-
-  // Same "trust Redux in real games" rule as grave/exile above — see
-  // that comment for the mock-id mismatch bug this avoids.
   const stackDisplayList = zones.stack.cards;
 
   // "Put top cards on stack until…": the dialog is a game dialog; the
@@ -382,7 +357,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     CARD_H_PX,
     CARD_W_PX,
     DRAW_ANIMATION_MS,
-    MAX_COUNTER_VALUE,
     STACK_HOFFSET_PX,
     alwaysLookAtTopCard,
     alwaysRevealTopCard,
