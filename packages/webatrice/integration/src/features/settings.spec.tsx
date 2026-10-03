@@ -22,6 +22,7 @@ describe('Settings (integration)', () => {
     renderFeatureScreen(<Settings />);
 
     expect(screen.getByRole('tab', { name: /Settings\.section\.general/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /Settings\.section\.storage/ })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('tab', { name: /Settings\.section\.shortcuts/ }));
 
