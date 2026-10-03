@@ -1,15 +1,14 @@
 import { useCallback, useState } from 'react';
-import { generatePath, useNavigate } from 'react-router-dom';
 import { Filter, FilterX, Plus, LogIn, Eye, Gavel, ArrowUp, ArrowDown } from 'lucide-react';
 
-import { server, rooms, games, type GameFilters, type Room, type Game } from '@cockatrice/datatrice';
+import { server, rooms, type GameFilters, type Room, type Game } from '@cockatrice/datatrice';
 import { useAppDispatch, useAppSelector } from '@app/store';
 import { VirtualRows } from '@app/components';
-import { useJoinGameErrorMessage, useReduxEffect } from '@app/hooks';
+import { useJoinGame, useJoinGameErrorMessage, useNavigateOnGameJoined } from '@app/hooks';
 import { useWebClient } from '@cockatrice/datatrice/react';
-import type { CreateGameParams, Event_GameJoined, JoinGameParams, ServerInfo_Game } from '@cockatrice/sockatrice/generated';
-import { RouteEnum } from '@app/types';
+import type { CreateGameParams } from '@cockatrice/sockatrice/generated';
 import { AlertDialog, PromptDialog } from '@app/dialogs';
+import { formatRestrictions, formatSpectators } from '@app/utils';
 
 import CreateGameDialog from '../dialogs/CreateGameDialog/CreateGameDialog';
 import FilterGamesDialog from '../dialogs/FilterGamesDialog/FilterGamesDialog';
@@ -22,12 +21,6 @@ const TOOLBAR_BUTTON_CLASS =
 
 interface GamesListProps {
   room: Room;
-}
-
-interface PendingPasswordJoin {
-  gameId: number;
-  asSpectator: boolean;
-  asJudge: boolean;
 }
 
 // Column definitions kept next to the grid so header labels + sort
@@ -48,40 +41,6 @@ const GRID_COLS = 'grid grid-cols-[6rem_minmax(0,1fr)_10rem_8rem_14rem_5rem_8rem
 // px-3 py-2 text-sm cells: 16px padding + 20px line box + 1px bottom border.
 const GAME_ROW_HEIGHT = 37;
 
-function formatRestrictions(info: ServerInfo_Game): string {
-  const parts: string[] = [];
-  if (info.withPassword) {
-    parts.push('password');
-  }
-  if (info.onlyBuddies) {
-    parts.push('buddies only');
-  }
-  if (info.onlyRegistered) {
-    parts.push('reg. users only');
-  }
-  if (info.shareDecklistsOnLoad) {
-    parts.push('open decklists');
-  }
-  return parts.join(', ');
-}
-
-function formatSpectators(info: ServerInfo_Game): string {
-  if (!info.spectatorsAllowed) {
-    return 'not allowed';
-  }
-  const flags: string[] = [];
-  if (info.spectatorsCanChat) {
-    flags.push('can chat');
-  }
-  if (info.spectatorsOmniscient) {
-    flags.push('see hands');
-  }
-  if (flags.length === 0) {
-    return String(info.spectatorsCount);
-  }
-  return `${info.spectatorsCount} (${flags.join(' & ')})`;
-}
-
 /**
  * Fancy-themed replacement for `<GameSelector>`. Keeps all og redux
  * hooks + dialogs (create/filter/password/error) so backend behavior
@@ -90,8 +49,18 @@ function formatSpectators(info: ServerInfo_Game): string {
 export default function GamesList({ room }: GamesListProps) {
   const roomId = room.info.roomId;
   const webClient = useWebClient();
-  const navigate = useNavigate();
   const dispatch = useAppDispatch();
+  const {
+    beginJoin: joinGame,
+    passwordRequired,
+    submitPassword,
+    cancelPassword,
+    joinPending,
+    joinError,
+    clearJoinError,
+  } = useJoinGame();
+  const joinErrorMessage = useJoinGameErrorMessage(joinError);
+  useNavigateOnGameJoined();
 
   const { sortBy, games: gameList, selectedGameId, handleSort, handleSelect, handleActivate } =
     useOpenGames({ roomId, onActivateGame: (_id) => beginJoin(false, false) });
@@ -103,55 +72,14 @@ export default function GamesList({ room }: GamesListProps) {
   const isFilterActive = useAppSelector((state) => rooms.Selectors.isGameFilterActive(state, roomId));
   const filters = useAppSelector((state) => rooms.Selectors.getGameFilters(state, roomId));
   const isJudgeUser = useAppSelector(server.Selectors.getIsUserJudge);
-  const joinPending = useAppSelector(rooms.Selectors.getJoinGamePending);
-  const joinError = useAppSelector(rooms.Selectors.getJoinGameError);
-  const joinErrorMessage = useJoinGameErrorMessage(joinError);
-  const activeGameIds = useAppSelector(games.Selectors.getActiveGameIds);
-
-  useReduxEffect<{ data: Event_GameJoined }>((action) => {
-    const gameId = action.payload.data.gameInfo?.gameId;
-    if (gameId == null) {
-      return;
-    }
-    navigate(generatePath(RouteEnum.GAME, { gameId: gameId.toString() }));
-  }, games.Types.GAME_JOINED, [navigate]);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [pendingPasswordJoin, setPendingPasswordJoin] = useState<PendingPasswordJoin | null>(null);
-
-  const sendJoin = useCallback(
-    (gameId: number, asSpectator: boolean, asJudge: boolean, password: string) => {
-      if (activeGameIds.includes(gameId)) {
-        navigate(generatePath(RouteEnum.GAME, { gameId: gameId.toString() }));
-        return;
-      }
-      const params: JoinGameParams = {
-        gameId,
-        password,
-        spectator: asSpectator,
-        overrideRestrictions: false,
-        joinAsJudge: asJudge,
-      };
-      webClient.request.rooms.joinGame(roomId, params);
-    },
-    [activeGameIds, navigate, roomId, webClient],
-  );
 
   function beginJoin(asSpectator: boolean, asJudge: boolean) {
-    const game = selectedGame;
-    if (!game) {
-      return;
+    if (selectedGame) {
+      joinGame(roomId, selectedGame.info, asSpectator, asJudge);
     }
-    const info = game.info;
-    const effectiveSpectator = asSpectator || info.playerCount >= info.maxPlayers;
-    const needsPassword =
-      info.withPassword && !(effectiveSpectator && !info.spectatorsNeedPassword);
-    if (needsPassword) {
-      setPendingPasswordJoin({ gameId: info.gameId, asSpectator: effectiveSpectator, asJudge });
-      return;
-    }
-    sendJoin(info.gameId, effectiveSpectator, asJudge, '');
   }
 
   const canJoin =
@@ -166,14 +94,6 @@ export default function GamesList({ room }: GamesListProps) {
   const handleFilterSubmit = (next: GameFilters) => {
     dispatch(rooms.Actions.setGameFilters({ roomId, filters: next }));
     setFilterOpen(false);
-  };
-
-  const handlePasswordSubmit = (password: string) => {
-    if (!pendingPasswordJoin) {
-      return;
-    }
-    sendJoin(pendingPasswordJoin.gameId, pendingPasswordJoin.asSpectator, pendingPasswordJoin.asJudge, password);
-    setPendingPasswordJoin(null);
   };
 
   const sortOrder = sortBy.order.toLowerCase() === 'asc' ? 'asc' : 'desc';
@@ -377,18 +297,18 @@ export default function GamesList({ room }: GamesListProps) {
         onSubmit={handleFilterSubmit}
       />
       <PromptDialog
-        isOpen={pendingPasswordJoin !== null}
+        isOpen={passwordRequired}
         title="Password required"
         label="Password"
         submitLabel="Join"
-        onSubmit={handlePasswordSubmit}
-        onCancel={() => setPendingPasswordJoin(null)}
+        onSubmit={submitPassword}
+        onCancel={cancelPassword}
       />
       <AlertDialog
         isOpen={joinError !== null}
         title="Error"
         message={joinErrorMessage}
-        onDismiss={() => dispatch(rooms.Actions.clearJoinGameError())}
+        onDismiss={clearJoinError}
       />
     </section>
   );

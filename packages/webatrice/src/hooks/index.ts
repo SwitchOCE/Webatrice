@@ -12,3 +12,4 @@ export * from './useCommandFailureMessage';
 export * from './useRequestTracker';
 export * from './useJoinGameErrorMessage';
 export * from './useUserCapabilities';
+export * from './useJoinGame';
