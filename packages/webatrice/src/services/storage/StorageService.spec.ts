@@ -73,15 +73,17 @@ describe('StorageService', () => {
     expect(clear).toHaveBeenCalledWith([Stores.SCRYFALL_CACHE]);
   });
 
-  test('clears every imported card table, and never settings or hosts', async () => {
+  test('clears every imported card table and the files they were built from, and never preferences, settings or hosts', async () => {
     const clear = vi.spyOn(dexieService, 'clear').mockResolvedValue();
 
     await clearCardData();
 
     expect(clear).toHaveBeenCalledWith(CARD_DATA_STORES);
     expect(CARD_DATA_STORES).toEqual(
-      expect.arrayContaining([Stores.CARDS, Stores.SETS, Stores.TOKENS, Stores.FORMATS, Stores.INFO]),
+      expect.arrayContaining([Stores.CARDS, Stores.SETS, Stores.TOKENS, Stores.FORMATS, Stores.INFO, Stores.CARD_SOURCES]),
     );
+    expect(CARD_DATA_STORES).not.toContain(Stores.SET_PREFERENCES);
+    expect(CARD_DATA_STORES).not.toContain(Stores.CARD_DATA_SETTINGS);
     expect(CARD_DATA_STORES).not.toContain(Stores.SETTINGS);
     expect(CARD_DATA_STORES).not.toContain(Stores.HOSTS);
   });
