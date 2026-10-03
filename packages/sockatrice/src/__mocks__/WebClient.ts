@@ -147,6 +147,7 @@ const game = {
   zonePropertiesChanged: vi.fn(),
   gameLogNotice: vi.fn(),
   deckSelected: vi.fn(),
+  deckSelectFailed: vi.fn(),
 };
 
 const admin = {

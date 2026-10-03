@@ -37,7 +37,9 @@ import {
   Command_Unconcede_ext,
   Command_SetPlaymat_ext,
   Response_DeckDownload_ext,
+  Response_ResponseCode,
 } from '../../generated';
+import { CommandFailure } from '../../types/CommandFailure';
 
 import { attachCard } from './attachCard';
 import { changeZoneProperties } from './changeZoneProperties';
@@ -133,6 +135,18 @@ describe('Game commands — delegate to WebClient.instance.protobuf.sendGameComm
     const options = calls[calls.length - 1][3] as { onSuccess: (resp: unknown) => void };
     options.onSuccess({ deck: '<cockatrice_deck version="1"/>' });
     expect(WebClient.instance.response.game.deckSelected).toHaveBeenCalledWith(gameId, '<cockatrice_deck version="1"/>');
+  });
+
+  it('deckSelect onError reports the failure with gameId, code and transport reason', () => {
+    deckSelect(gameId, { deckId: 5 });
+    const calls = vi.mocked(WebClient.instance.protobuf.sendGameCommand).mock.calls;
+    const options = calls[calls.length - 1][3] as {
+      onError: (responseCode: number, raw: unknown, failure?: CommandFailure) => void;
+    };
+    options.onError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Timeout);
+    expect(WebClient.instance.response.game.deckSelectFailed).toHaveBeenCalledWith(
+      gameId, Response_ResponseCode.RespNotConnected, CommandFailure.Timeout,
+    );
   });
 
   it('delCounter sends Command_DelCounter', () => {

@@ -216,6 +216,8 @@ export interface IGameResponse {
   gameLogNotice?(gameId: number, playerId: number, noticeType: Event_GameLogNotice_NoticeType): void;
   // Optional so existing IGameResponse implementations keep compiling.
   deckSelected?(gameId: number, deckList: string): void;
+  /** Command_DeckSelect failed; `failure` is set when the server never answered (see CommandFailure). */
+  deckSelectFailed?(gameId: number, responseCode: number, failure?: CommandFailure): void;
 }
 
 /** Admin commands whose non-OK response the desktop client reports to the admin. */

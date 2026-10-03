@@ -1,6 +1,6 @@
 import { CaseReducer, PayloadAction } from '@reduxjs/toolkit';
 import { ServerInfo_PlayerProperties } from '@cockatrice/sockatrice/generated';
-import { GamesState } from './game.interfaces';
+import { GameCommandFailedPayload, GamesState } from './game.interfaces';
 
 export const playerReducers = {
   playerJoined: ((state, action) => {
@@ -48,6 +48,9 @@ export const playerReducers = {
     }
     player.deckList = deckList;
   }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; deckList: string }>>,
+
+  // Signal only: the lobby reports a failed Command_DeckSelect and stays on the deck picker.
+  deckSelectFailed: (() => {}) as CaseReducer<GamesState, PayloadAction<GameCommandFailedPayload>>,
 
   playerPropertiesChanged: (() => {}) as CaseReducer<GamesState, PayloadAction<{
     gameId: number;
