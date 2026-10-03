@@ -1,2 +1,3 @@
 - 22:07Z started f26; read brief/task/rv13 → npm ci + gate baseline
 - 22:14Z dialog focus majors+minors pushed (e690b3c) → toasts (report persistent, cap)
+- 22:24Z toasts + Menu (gaps 1-7) pushed (ef177d5) → contrast, nits, integration + e2e keyboard
