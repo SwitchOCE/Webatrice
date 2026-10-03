@@ -233,7 +233,11 @@ const ManageSets = ({ onSaved, onCancel }: ManageSetsProps) => {
         <p>{t('ManageSets.hints.cardArt')}</p>
       </details>
 
-      {manage.error && <div className="cardDatabase-error" role="alert">{manage.error}</div>}
+      {manage.error && (
+        <div className="cardDatabase-error" role="alert">
+          {t(`ManageSets.error.${manage.error.key}`, { error: manage.error.detail })}
+        </div>
+      )}
 
       <div className="cardDatabase-actions is-end">
         <Button onClick={cancel} disabled={manage.saving}>{t('ManageSets.button.cancel')}</Button>

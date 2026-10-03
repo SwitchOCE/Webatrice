@@ -118,6 +118,6 @@ describe('useManageSets', () => {
       ok = await result.current.save();
     });
     expect(ok).toBe(false);
-    expect(result.current.error).toBe('quota');
+    expect(result.current.error).toEqual({ key: 'save', detail: 'quota' });
   });
 });

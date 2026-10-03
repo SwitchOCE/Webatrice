@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Set } from '@app/services';
 
 import { cardDatabaseService } from './CardDatabaseService';
+import { toCardDataError, type CardDataError } from './cardDataError';
 import {
   buildSetRows,
   filterSetRows,
@@ -29,7 +30,7 @@ export interface SelectModifiers {
 export interface ManageSets {
   loading: boolean;
   saving: boolean;
-  error: string | null;
+  error: CardDataError | null;
   dirty: boolean;
   rows: SetRow[];
   visibleRows: SetRow[];
@@ -61,7 +62,7 @@ export function useManageSets(): ManageSets {
   const [sort, setSort] = useState<SetSort | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<CardDataError | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -76,7 +77,7 @@ export function useManageSets(): ManageSets {
       setLoading(false);
     }).catch((e: Error) => {
       if (!cancelled) {
-        setError(e.message);
+        setError(toCardDataError('load', e));
         setLoading(false);
       }
     });
@@ -147,7 +148,7 @@ export function useManageSets(): ManageSets {
       setSaved(rows);
       return true;
     } catch (e) {
-      setError((e as Error).message);
+      setError(toCardDataError('save', e));
       return false;
     } finally {
       setSaving(false);
