@@ -8,6 +8,8 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
+import { usePreference } from '../../hooks/useSettings';
+import { PREFERENCE_DEFAULTS, type PreferenceKey } from '../../types';
 import {
   buildSeatGameState,
   cardEl,
@@ -405,8 +407,19 @@ describe('seat card menu ownership', () => {
     expect(zLayer(menu)).toBeGreaterThan(zLayer(card));
     expect(menu.parentElement).toBe(document.body);
   });
-});
 
+  it('leaves the shortcut hints out with "Show keyboard shortcuts in right-click menus" off', () => {
+    vi.mocked(usePreference).mockImplementation(((key: PreferenceKey) =>
+      key === 'showShortcutsInMenus' ? false : PREFERENCE_DEFAULTS[key]) as typeof usePreference);
+    renderSeats();
+
+    const tree = menuTree(cardEl(BOLT.id, 'battlefield'));
+
+    expect(tree).toContain('Tap / Untap');
+    expect(tree).not.toContain('⟨');
+    vi.mocked(usePreference).mockImplementation(((key: PreferenceKey) => PREFERENCE_DEFAULTS[key]) as typeof usePreference);
+  });
+});
 
 describe('hand card menu', () => {
   const OPT = makeCard({ id: 60, name: 'Opt' });

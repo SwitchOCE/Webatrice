@@ -23,6 +23,7 @@ import type { CardMenuItem } from './cardContextMenu.model';
 import { useViewportClampedMenu } from '../useViewportClampedMenu';
 
 import './CardContextMenu.css';
+import { usePreference } from '@app/hooks';
 
 const COUNTER_TYPE_IDS: ReadonlyArray<number> = Array.from(
   { length: COUNTER_TYPE_COUNT },
@@ -211,6 +212,8 @@ export function CardMenuPopup({ items, anchor, disabled, onClose }: CardMenuPopu
     y: number;
   } | null>(null);
   const { ref: mainRef, position: mainPos } = useViewportClampedMenu(anchor.x, anchor.y);
+  // Desktop's "Show keyboard shortcuts in right-click menus".
+  const showShortcuts = usePreference('showShortcutsInMenus');
 
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
@@ -282,7 +285,7 @@ export function CardMenuPopup({ items, anchor, disabled, onClose }: CardMenuPopu
             </span>
           )}
           <span className="flex-1 truncate">{item.label}</span>
-          {item.shortcut && (
+          {showShortcuts && item.shortcut && (
             <span className="text-xs text-text-muted">{item.shortcut}</span>
           )}
           {hasSubmenu && (

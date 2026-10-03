@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
 import type { ServerInfo_User } from '@cockatrice/sockatrice/generated';
+import { usePreference } from '@app/hooks';
 
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import { useViewportClampedMenu } from '../../context-menus/useViewportClampedMenu';
@@ -225,6 +226,8 @@ function MenuList({
   const [openSubmenu, setOpenSubmenu] = useState<number>(-1);
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const { ref: popupRef, position: pos } = useViewportClampedMenu(x, y);
+  // Desktop's "Show keyboard shortcuts in right-click menus".
+  const showShortcuts = usePreference('showShortcutsInMenus');
   return (
     <div
       ref={popupRef}
@@ -278,7 +281,7 @@ function MenuList({
                 <span className="text-xs text-text-muted" aria-hidden>
                   ▶
                 </span>
-              ) : item.shortcut ? (
+              ) : showShortcuts && item.shortcut ? (
                 <span className="text-xs text-text-muted">{item.shortcut}</span>
               ) : null}
             </button>
