@@ -191,4 +191,11 @@ describe('report queue failures', () => {
     expect(WebClient.instance.response.moderator.reportAssigned).not.toHaveBeenCalled();
   });
 
+  it('replayDownloadByGameId announces the request before sending it', () => {
+    replayDownloadByGameId(77);
+    expect(WebClient.instance.response.moderator.replayDownloadByGameIdPending).toHaveBeenCalledWith(77);
+    const pendingOrder = (WebClient.instance.response.moderator.replayDownloadByGameIdPending as Mock).mock.invocationCallOrder[0];
+    const sendOrder = (WebClient.instance.protobuf.sendModeratorCommand as Mock).mock.invocationCallOrder[0];
+    expect(pendingOrder).toBeLessThan(sendOrder);
+  });
 });

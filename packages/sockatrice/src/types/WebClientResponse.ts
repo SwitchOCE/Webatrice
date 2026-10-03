@@ -348,6 +348,8 @@ export interface IModeratorResponse {
   reportResolved?(reportId: number, dismissed: boolean): void;
   reportUserInfo?(info: Response_ReportUserInfo): void;
   reportStats?(stats: Response_ReportStats): void;
+  /** Sent before the request, so a stored replay of the same game can't stand in for the answer. */
+  replayDownloadByGameIdPending?(gameId: number): void;
   replayDownloadedByGameId?(gameId: number, response: Response_ReplayDownloadByGameId): void;
 
   /**
