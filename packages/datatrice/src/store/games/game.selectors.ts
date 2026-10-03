@@ -229,13 +229,18 @@ export const Selectors = {
   getMessages: ({ games }: State, gameId: number) =>
     games.games[gameId]?.messages ?? EMPTY_ARRAY,
 
+  // Server games only: a replay being played back is not a joined game, so it
+  // gets no game tab, no leave command and no auto-routing.
   getActiveGameIds: createSelector(
     [({ games }: State) => games.games],
-    (games) => Object.keys(games).map(Number)
+    (games) => Object.keys(games).map(Number).filter((id) => !games[id].replay)
   ),
 
   getActiveGames: createSelector(
     [({ games }: State) => games.games],
-    (games): Enriched.GameEntry[] => Object.values(games)
+    (games): Enriched.GameEntry[] => Object.values(games).filter((game) => !game.replay)
   ),
+
+  getIsReplayGame: ({ games }: State, gameId: number): boolean =>
+    games.games[gameId]?.replay === true,
 };

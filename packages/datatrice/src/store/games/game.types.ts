@@ -7,6 +7,8 @@ export const Types = {
   GAME_JOINED: a.gameJoined.type,
   GAME_LEFT: a.gameLeft.type,
   GAME_CLOSED: a.gameClosed.type,
+  REPLAY_GAME_LOADED: a.replayGameLoaded.type,
+  REPLAY_GAME_UNLOADED: a.replayGameUnloaded.type,
   GAME_HOST_CHANGED: a.gameHostChanged.type,
   GAME_STATE_CHANGED: a.gameStateChanged.type,
   PLAYER_JOINED: a.playerJoined.type,
