@@ -9,9 +9,6 @@ import type { GameDialogSetters } from './useGameDialogState';
 import { readShuffleOnClose } from '../../dialogs/ZoneViewDialog/zoneViewPreferences';
 import { isHiddenZone, offersShuffleOnClose } from '../../dialogs/ZoneViewDialog/zoneViewTarget';
 
-const PILE_ZONES: ReadonlySet<string> = new Set([ZoneName.GRAVE, ZoneName.EXILE, ZoneName.HAND]);
-const isPileZone = (zoneName: string) => PILE_ZONES.has(zoneName);
-
 export type ZoneDialogActions = Pick<
   GameDialogsActions,
   | 'openZoneView'
@@ -53,22 +50,19 @@ export function useZoneDialogActions({
 
   // One view per zone. Re-opening the same view is a no-op (no re-dump); a
   // different count of the same hidden zone replaces it and dumps afresh, as
-  // both read the zone's one revealed snapshot. A seat holds one pile view, so
-  // its graveyard, exile and hand views replace each other. Only the local
-  // player's hidden zones are dumped (Command_DumpZone; desktop actViewLibrary,
+  // both read the zone's one revealed snapshot. Only the local player's hidden
+  // zones are dumped (Command_DumpZone; desktop actViewLibrary,
   // actViewTopCards / actViewBottomCards, actViewSideboard).
   const openZoneView = useCallback((view: ZoneViewTarget) => {
     const game = readGame();
     const sameZone = (v: ZoneViewTarget) => v.playerId === view.playerId && v.zoneName === view.zoneName;
-    const sameSlot = (v: ZoneViewTarget) =>
-      sameZone(v) || (v.playerId === view.playerId && isPileZone(v.zoneName) && isPileZone(view.zoneName));
     const open = zoneViews.find(sameZone);
     if (open && open.numberCards === view.numberCards && open.isReversed === view.isReversed) {
       return;
     }
     setZoneViews((prev) =>
-      prev.some(sameSlot)
-        ? prev.map((v) => (sameSlot(v) ? view : v))
+      prev.some(sameZone)
+        ? prev.map((v) => (sameZone(v) ? view : v))
         : [...prev, view],
     );
     if (gameId != null && view.playerId === game?.localPlayerId && isHiddenZone(view.zoneName)) {
