@@ -4,7 +4,7 @@ import Routes from './AppShellRoutes';
 
 import './AppShell.css';
 
-import { ToastProvider } from '@app/components';
+import { RouteErrorBoundary, ToastProvider } from '@app/components';
 import { useSyncLocaleToStore } from '@app/hooks';
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 import { ModerationProvider } from '@app/feature-widgets/moderation';
@@ -55,7 +55,9 @@ function AppShell() {
                *  nothing until one fails. */}
               <CommandFailureNotices />
               <ModerationProvider>
-                <Routes />
+                <RouteErrorBoundary>
+                  <Routes />
+                </RouteErrorBoundary>
               </ModerationProvider>
             </ShortcutProvider>
           </ShellLifecycleProvider>
