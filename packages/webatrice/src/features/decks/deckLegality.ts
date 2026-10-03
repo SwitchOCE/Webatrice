@@ -140,8 +140,12 @@ export function cardLegality(
   }
   const allowed = rules.allowedCounts.find((c) => c.label === label);
   // Desktop's `maxAllowedForLegality` returns -1 both for "label not listed"
-  // and for an `unlimited` count, and treats both as illegal; only the
-  // missing label is illegal here (see the PR notes).
+  // and for an `unlimited` count, so `isCardQuantityLegalForFormat` paints
+  // both red. That is a sentinel collision, not intent: the same change
+  // (Cockatrice #6166) parses `unlimited` as -1, documents -1 as unlimited
+  // in `AllowedCount`, and adds a `maxAllowed < 0 // unlimited` → legal
+  // branch that the `== -1` check before it makes unreachable. Only the
+  // missing label is illegal here.
   if (!allowed) {
     return notLegal(label);
   }
