@@ -1,7 +1,7 @@
 import type { GameEventContainer } from '@cockatrice/sockatrice/generated';
 
 import { buildReplay, pingContainer, sayContainer } from './__mocks__/fixtures';
-import { ReplayEngine, type ReplaySink } from './ReplayEngine';
+import { MIN_TICK_INTERVAL_MS, ReplayEngine, type ReplaySink } from './ReplayEngine';
 
 /** Records what the engine fed in, as the seconds of each applied container. */
 function makeSink() {
@@ -83,10 +83,27 @@ describe('ReplayEngine playback timing', () => {
 
     engine.setTimeScaleFactor(10);
     engine.play();
-    // 10 s of replay time in 1 s of wall time: one 200 ms tick every 20 ms.
-    vi.advanceTimersByTime(1020);
+    // 10 s of replay time in 1 s of wall time, in 50 ms timer steps.
+    vi.advanceTimersByTime(1050);
     expect(applied).toEqual([0, 10]);
     expect(engine.getState().timeScaleFactor).toBe(10);
+  });
+
+  it('keeps pace at speeds whose 200 ms tick would be shorter than a browser timer allows', () => {
+    const { engine, applied } = makeEngine([sayContainer(0), sayContainer(60), sayContainer(120)]);
+    const listener = vi.fn();
+    engine.subscribe(listener);
+
+    engine.setTimeScaleFactor(99.9);
+    engine.play();
+    listener.mockClear();
+    // 2 min of replay time at 99.9x is about 1.2 s of wall time.
+    vi.advanceTimersByTime(1250);
+
+    expect(applied).toEqual([0, 60, 120]);
+    expect(engine.getState().finished).toBe(true);
+    // At most one update per 50 ms timer step, not one per 200 ms of replay time.
+    expect(listener.mock.calls.length).toBeLessThanOrEqual(1250 / MIN_TICK_INTERVAL_MS + 1);
   });
 
   it('notifies subscribers with a fresh snapshot on every tick', () => {

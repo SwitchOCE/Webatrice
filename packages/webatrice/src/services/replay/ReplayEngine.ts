@@ -12,6 +12,13 @@ export const BIG_SKIP_MS = 10000;
 /** Desktop defaults from `InterfaceSettings` (`replay/*`). */
 export const DEFAULT_FAST_FORWARD_SPEED = 10;
 export const DEFAULT_REWIND_BUFFERING_MS = 200;
+/**
+ * Shortest playback timer interval. Browsers clamp short intervals (≥4 ms,
+ * about 1 s in a hidden tab), so the clock advances by elapsed wall time rather
+ * than by one tick per timer callback; this floor also caps state updates
+ * (and timeline repaints) at 20 per second however fast the replay runs.
+ */
+export const MIN_TICK_INTERVAL_MS = 50;
 
 /**
  * Where replayed events go. `rewind` resets the target game to the replay's
@@ -67,6 +74,9 @@ export class ReplayEngine {
   private currentEvent = 0;
   private finished = false;
   private tickTimer: ReturnType<typeof setInterval> | null = null;
+  // Wall-clock time of the last tick, and replay time owed below one tick.
+  private lastTickAt = 0;
+  private pendingReplayMs = 0;
   private rewindTimer: ReturnType<typeof setTimeout> | null = null;
   private snapshot: ReplayPlaybackState;
 
@@ -194,7 +204,16 @@ export class ReplayEngine {
   }
 
   private tick = (): void => {
-    this.currentVisualTime += REPLAY_TICK_MS;
+    const now = Date.now();
+    this.pendingReplayMs += (now - this.lastTickAt) * this.timeScaleFactor;
+    this.lastTickAt = now;
+    // Desktop's clock moves in whole 200 ms steps; keep the rest for the next tick.
+    const steps = Math.floor(this.pendingReplayMs / REPLAY_TICK_MS);
+    if (steps === 0) {
+      return;
+    }
+    this.pendingReplayMs -= steps * REPLAY_TICK_MS;
+    this.currentVisualTime += steps * REPLAY_TICK_MS;
     this.processNewEvents();
     if (this.skipEmptySections) {
       this.handleSkipEmptySection();
@@ -241,7 +260,9 @@ export class ReplayEngine {
   }
 
   private startTicking(): void {
-    const interval = Math.max(1, Math.round(REPLAY_TICK_MS / this.timeScaleFactor));
+    const interval = Math.max(MIN_TICK_INTERVAL_MS, Math.round(REPLAY_TICK_MS / this.timeScaleFactor));
+    this.lastTickAt = Date.now();
+    this.pendingReplayMs = 0;
     this.tickTimer = setInterval(this.tick, interval);
   }
 
