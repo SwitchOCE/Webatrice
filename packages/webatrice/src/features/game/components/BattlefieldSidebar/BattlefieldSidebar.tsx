@@ -12,7 +12,7 @@ import { useGameReadOnly } from '../ui/GameReadOnlyContext';
 import { useLocalIdentity } from '../../hooks/useLocalIdentity';
 import { useGameAffordances } from '../../hooks/useGameAffordances';
 import { useCardPreview } from '../ui/CardPreviewContext';
-import { CARD_CORNER_RADIUS } from '../PlayerBox/cardSize';
+import { CARD_CORNER_RADIUS } from '../ui/SeatCard/cardSize';
 import { ManaSymbols, SymbolText } from '../PlayerBox/ManaSymbols';
 import { useCardPreviewPopup } from '../CardPreviewPopup/useCardPreviewPopup';
 

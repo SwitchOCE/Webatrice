@@ -1,7 +1,7 @@
 import { CardImage } from '@app/components';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from './cardSize';
-import { useCardPreviewActions } from '../ui/CardPreviewContext';
-import { counterColorForId } from '../ui/CardSlot/counterColors';
+import { useCardPreviewActions } from '../CardPreviewContext';
+import { counterColorForId } from '../CardSlot/counterColors';
 
 
 /**

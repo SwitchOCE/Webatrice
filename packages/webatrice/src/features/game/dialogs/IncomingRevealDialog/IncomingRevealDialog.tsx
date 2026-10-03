@@ -5,18 +5,18 @@ import { Loader2, X } from 'lucide-react';
 import { games } from '@cockatrice/datatrice';
 import { useAppDispatch, useAppSelector } from '@app/store';
 
-import Card from './Card';
-import { CARD_HEIGHT, CARD_WIDTH } from './cardSize';
-import { useSeatDragSource } from '../ui/SeatDragContext';
-import { useCardPreviewActions } from '../ui/CardPreviewContext';
-import type { DeckCard } from './mockTypes';
+import Card from '../../components/ui/SeatCard/SeatCard';
+import { CARD_HEIGHT, CARD_WIDTH } from '../../components/ui/SeatCard/cardSize';
+import { useSeatDragSource } from '../../components/ui/SeatDragContext';
+import { useCardPreviewActions } from '../../components/ui/CardPreviewContext';
 import {
   compareCards,
   groupCards,
   type EnrichedCard,
   type GroupMode,
   type SortMode,
-} from '../../dialogs/ZoneViewDialog/zoneViewSort';
+  type ZoneViewCardMetadata,
+} from '../ZoneViewDialog/zoneViewSort';
 import { lookupCardsCached } from '@app/services';
 
 const TOOLBAR_SELECT_CLASS =
@@ -163,21 +163,15 @@ function zoneLabel(zoneName: string): string {
 /** Placeholder metadata used before Scryfall lookup returns (or when
  *  lookup fails). Sort/group treats it as "unknown" — sorts to the top
  *  under Ungrouped, buckets to "Other" under group-by-type. */
-function placeholderMeta(name: string): DeckCard {
+function placeholderMeta(name: string): ZoneViewCardMetadata {
   return {
-    id: `reveal-${name}`,
-    card_scryfall_id: '',
     name,
-    mana_cost: null,
     type_line: null,
     cmc: null,
     colors: [],
     set: null,
-    collector_number: null,
     power: null,
     toughness: null,
-    quantity: 1,
-    category: 'main',
   };
 }
 
@@ -392,7 +386,7 @@ export default function IncomingRevealDialog() {
   // synchronously; misses fall back to a single Scryfall /cards/collection
   // POST (up to 75 identifiers per request). Cards render immediately
   // with placeholder metadata; once lookup lands the grid re-buckets.
-  const [metaByName, setMetaByName] = useState<Map<string, DeckCard>>(
+  const [metaByName, setMetaByName] = useState<Map<string, ZoneViewCardMetadata>>(
     () => new Map(),
   );
   useEffect(() => {
@@ -412,22 +406,16 @@ export default function IncomingRevealDialog() {
       if (cancelled) {
         return;
       }
-      const next = new Map<string, DeckCard>();
+      const next = new Map<string, ZoneViewCardMetadata>();
       for (const [name, r] of results) {
         next.set(name, {
-          id: `reveal-${name}`,
-          card_scryfall_id: r.printings[0]?.scryfallId ?? '',
           name,
-          mana_cost: r.manaCost ?? null,
           type_line: r.typeLine ?? null,
           cmc: r.cmc ?? null,
           colors: r.colors ?? [],
           set: r.printings[0]?.set ?? null,
-          collector_number: r.printings[0]?.collectorNumber ?? null,
           power: r.power ?? null,
           toughness: r.toughness ?? null,
-          quantity: 1,
-          category: 'main',
         });
       }
       setMetaByName(next);

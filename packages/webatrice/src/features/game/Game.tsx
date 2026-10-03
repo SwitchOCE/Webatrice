@@ -24,7 +24,7 @@ import { CardDragOverlayHost } from './components/ui/CardDragOverlay/CardDragOve
 import GameBoardCell from './components/ui/GameBoardCell/GameBoardCell';
 import { BigCardPreview } from './components/PlayerBox/bigCardPreview';
 import { CardScaleProvider } from './components/PlayerBox/cardScale';
-import IncomingRevealDialog from './components/PlayerBox/IncomingRevealDialog';
+import IncomingRevealDialog from './dialogs/IncomingRevealDialog/IncomingRevealDialog';
 import CreateTokenDialog from './dialogs/CreateTokenDialog/CreateTokenDialog';
 import DeckSelectDialog from './dialogs/DeckSelectDialog/DeckSelectDialog';
 import GameInfoDialog from './dialogs/GameInfoDialog/GameInfoDialog';
