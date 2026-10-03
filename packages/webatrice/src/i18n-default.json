@@ -1591,7 +1591,7 @@
     },
     "toasts": {
       "accountActivationSuccess": "Account Activated Successfully",
-      "passwordResetSuccess": "Password Reset Successfully"
+      "passwordResetSuccessToast": "Password Reset Successfully"
     },
     "status": {
       "serverUnreachable": "Trouble reaching the server. Wait a minute and try again.",
