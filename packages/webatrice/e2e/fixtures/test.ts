@@ -9,7 +9,9 @@ export { expect } from '@playwright/test';
 // - `context` (and so `page`) is network-isolated; see `./network.ts`.
 // - `newContext()` replaces `browser.newContext()` for multi-client specs: it
 //   applies the same isolation (a raw `browser.newContext()` would bypass it)
-//   and closes every context it made when the test ends, pass or fail.
+//   and closes every context it made when the test ends, pass or fail. Specs
+//   should not close them in a `finally`: closing before the failure is
+//   recorded loses the page snapshot Playwright attaches to a failed test.
 
 interface E2EFixtures {
   newContext: (options?: BrowserContextOptions) => Promise<BrowserContext>;
