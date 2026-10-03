@@ -1,7 +1,8 @@
 import { execFileSync } from 'node:child_process';
 
-import { expect, test, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
+import { expect, test } from '../fixtures/test';
 import { E2E_ADMIN, E2E_MODERATOR, reachRoomsAs, registerAndReachRooms } from '../fixtures/flows';
 import { randomSuffix } from '../fixtures/users';
 
@@ -52,11 +53,11 @@ test('an admin publishes a new server message from Administration', async ({ pag
   await expect(page.getByText(message)).toBeVisible({ timeout: 15_000 });
 });
 
-test('a moderator looks up the alts of an account from Moderation', async ({ browser, page }) => {
+test('a moderator looks up the alts of an account from Moderation', async ({ newContext, page }) => {
   test.setTimeout(120_000);
 
   // A fresh account to investigate, registered from its own browser session.
-  const suspectContext = await browser.newContext();
+  const suspectContext = await newContext();
   const suspectPage = await suspectContext.newPage();
   const { user: suspect } = await registerAndReachRooms(suspectPage);
 
