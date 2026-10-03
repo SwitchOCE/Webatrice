@@ -3,15 +3,16 @@ import { combineReducers } from '@reduxjs/toolkit';
 import { server } from '@cockatrice/datatrice';
 import { endSession } from '@app/services/session';
 import { rootReducerMap, type RootState } from '@app/store';
-import { connectedState, createMockWebClient } from '../../__test-utils__';
-import { makeReduxWebClientHookWrapper } from '../../__test-utils__/makeHookWrapper';
+import { connectedState, createMockWebClient } from '../../../__test-utils__';
+import { makeReduxWebClientHookWrapper } from '../../../__test-utils__/makeHookWrapper';
 import { emptyCod } from '@app/services';
-import { hydrateDeck } from './hydrate';
-import { clearDeckEditorCache, useDeckEditor } from './useDeckEditor';
-import type { HydratedDeck } from './types';
+import { hydrateDeck } from '../hydrate';
+import { clearDeckEditorCache } from '../deckEditorCache';
+import { useDeckEditor } from './useDeckEditor';
+import type { HydratedDeck } from '../types';
 
-vi.mock('./hydrate', async (original) => ({
-  ...await original<typeof import('./hydrate')>(), hydrateDeck: vi.fn(),
+vi.mock('../hydrate', async (original) => ({
+  ...await original<typeof import('../hydrate')>(), hydrateDeck: vi.fn(),
 }));
 const hydrated = (name: string): HydratedDeck => ({ name, cards: [], format: 'modern', meta: { v: 1, updatedAt: 'x' } });
 function setup() {

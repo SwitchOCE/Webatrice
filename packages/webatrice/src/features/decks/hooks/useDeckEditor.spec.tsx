@@ -3,9 +3,9 @@ import { combineReducers } from '@reduxjs/toolkit';
 
 import { server } from '@cockatrice/datatrice';
 
-import { rootReducerMap, type RootState } from '../../store';
-import { connectedState, createMockWebClient } from '../../__test-utils__';
-import { makeReduxWebClientHookWrapper } from '../../__test-utils__/makeHookWrapper';
+import { rootReducerMap, type RootState } from '../../../store';
+import { connectedState, createMockWebClient } from '../../../__test-utils__';
+import { makeReduxWebClientHookWrapper } from '../../../__test-utils__/makeHookWrapper';
 
 vi.mock('@app/services', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@app/services')>();
@@ -13,7 +13,7 @@ vi.mock('@app/services', async (importOriginal) => {
 });
 
 import { emptyCod } from '@app/services';
-import { clearDeckEditorCache } from './deckEditorCache';
+import { clearDeckEditorCache } from '../deckEditorCache';
 import { useDeckEditor } from './useDeckEditor';
 
 const reducer = combineReducers(rootReducerMap);
