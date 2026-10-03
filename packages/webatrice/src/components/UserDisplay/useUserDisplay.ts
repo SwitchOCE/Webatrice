@@ -1,15 +1,14 @@
-import { useState } from 'react';
-
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { server } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
 
+import { useContextMenu, type ContextMenuTrigger } from '../Menu';
+
 export interface UserDisplay {
-  position: { x: number; y: number } | null;
+  /** The user's context menu: right-click, Shift+F10 or the Menu key on the name open it. */
+  menu: ContextMenuTrigger;
   isABuddy: boolean;
   isIgnored: boolean;
-  handleClick: (event: React.MouseEvent) => void;
-  handleClose: () => void;
   onAddBuddy: () => void;
   onRemoveBuddy: () => void;
   onAddIgnore: () => void;
@@ -19,42 +18,33 @@ export interface UserDisplay {
 export function useUserDisplay(userName: string): UserDisplay {
   const buddyList = useAppSelector((state) => server.Selectors.getBuddyList(state));
   const ignoreList = useAppSelector((state) => server.Selectors.getIgnoreList(state));
-  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  const menu = useContextMenu();
   const webClient = useWebClient();
-
-  const handleClick = (event: React.MouseEvent) => {
-    event.preventDefault();
-    setPosition({ x: event.clientX + 2, y: event.clientY + 4 });
-  };
-
-  const handleClose = () => setPosition(null);
 
   const isABuddy = Boolean(buddyList[userName]);
   const isIgnored = Boolean(ignoreList[userName]);
 
   const onAddBuddy = () => {
     webClient.request.session.addToBuddyList(userName);
-    handleClose();
+    menu.close();
   };
   const onRemoveBuddy = () => {
     webClient.request.session.removeFromBuddyList(userName);
-    handleClose();
+    menu.close();
   };
   const onAddIgnore = () => {
     webClient.request.session.addToIgnoreList(userName);
-    handleClose();
+    menu.close();
   };
   const onRemoveIgnore = () => {
     webClient.request.session.removeFromIgnoreList(userName);
-    handleClose();
+    menu.close();
   };
 
   return {
-    position,
+    menu,
     isABuddy,
     isIgnored,
-    handleClick,
-    handleClose,
     onAddBuddy,
     onRemoveBuddy,
     onAddIgnore,

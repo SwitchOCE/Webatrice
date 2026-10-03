@@ -16,11 +16,9 @@ interface UserDisplayProps {
 const UserDisplay = ({ user }: UserDisplayProps) => {
   const { name, country, userLevel } = user;
   const {
-    position,
+    menu,
     isABuddy,
     isIgnored,
-    handleClick,
-    handleClose,
     onAddBuddy,
     onRemoveBuddy,
     onAddIgnore,
@@ -29,18 +27,18 @@ const UserDisplay = ({ user }: UserDisplayProps) => {
 
   return (
     <div className="user-display">
-      <NavLink to={generatePath(RouteEnum.PLAYER, { name })} className="plain-link">
-        <div className="user-display__details" onContextMenu={handleClick}>
+      <NavLink to={generatePath(RouteEnum.PLAYER, { name })} className="plain-link" {...menu.getTriggerProps()}>
+        <div className="user-display__details">
           <img className="user-display__country" src={Images.Countries[country]} alt={country} />
           <div className="user-display__name single-line-ellipsis">{name}</div>
           <UserBadges userLevel={userLevel} size={12} className="ml-1" />
         </div>
       </NavLink>
-      {position && (
+      {menu.anchor && (
         <UserActionsMenu
-          x={position.x}
-          y={position.y}
-          onClose={handleClose}
+          anchor={menu.anchor}
+          triggerRef={menu.triggerRef}
+          onClose={menu.close}
           name={name}
           userLevel={userLevel}
           isABuddy={isABuddy}
