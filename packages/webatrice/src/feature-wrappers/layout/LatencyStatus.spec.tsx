@@ -18,14 +18,15 @@ function stateWithLatency(sampleCount: number, samplesMs: number[]) {
 describe('LatencyStatus', () => {
   it('stays hidden before the first sample', () => {
     renderWithProviders(<LatencyStatus />, { preloadedState: connectedState });
-    expect(screen.queryByRole('button', { name: 'LatencyStatus.accessibleName' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'LatencyStatus.ping' })).not.toBeInTheDocument();
   });
 
   it('shows the last ping with a bar per sample and the stats as its tooltip', () => {
     renderWithProviders(<LatencyStatus />, { preloadedState: stateWithLatency(3, [30, 90, 40]) });
 
-    const button = screen.getByRole('button', { name: 'LatencyStatus.accessibleName' });
-    expect(button).toHaveTextContent('LatencyStatus.ping');
+    // The accessible name is the visible "Ping: N ms"; the stats describe it.
+    const button = screen.getByRole('button', { name: 'LatencyStatus.ping' });
+    expect(button).toHaveAccessibleDescription(/LatencyStatus\.median/);
     expect(button.getAttribute('title')?.split('\n')).toEqual([
       'LatencyStatus.summary',
       'LatencyStatus.last',
@@ -39,7 +40,7 @@ describe('LatencyStatus', () => {
   it('opens the larger graph with the stats on click', () => {
     renderWithProviders(<LatencyStatus />, { preloadedState: stateWithLatency(2, [30, 90]) });
 
-    fireEvent.click(screen.getByRole('button', { name: 'LatencyStatus.accessibleName' }));
+    fireEvent.click(screen.getByRole('button', { name: 'LatencyStatus.ping' }));
 
     const details = screen.getByRole('group', { name: 'LatencyStatus.detailsName' });
     expect(details).toHaveTextContent('LatencyStatus.median');
