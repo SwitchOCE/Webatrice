@@ -6,7 +6,7 @@ import {
   type ServerInfo_DeckStorage_TreeItem,
 } from '@cockatrice/sockatrice/generated';
 
-import { flattenFolder, formatDeckAge } from './deckTree';
+import { deckVisibility, flattenFolder, formatDeckAge } from './deckTree';
 
 function file(id: number, name: string, creationTime: number): ServerInfo_DeckStorage_TreeItem {
   return create(ServerInfo_DeckStorage_TreeItemSchema, {
@@ -32,9 +32,9 @@ describe('flattenFolder', () => {
       ],
     });
     expect(flattenFolder(root, '')).toEqual([
-      { id: 1, name: 'Root', path: '', creationTime: 100 },
-      { id: 2, name: 'Inner', path: 'Cube', creationTime: 300 },
-      { id: 3, name: 'Deep', path: 'Cube/Old', creationTime: 200 },
+      { id: 1, name: 'Root', path: '', creationTime: 100, visibility: 'private' },
+      { id: 2, name: 'Inner', path: 'Cube', creationTime: 300, visibility: 'private' },
+      { id: 3, name: 'Deep', path: 'Cube/Old', creationTime: 200, visibility: 'private' },
     ]);
   });
 
@@ -42,7 +42,50 @@ describe('flattenFolder', () => {
     const root = create(ServerInfo_DeckStorage_FolderSchema, {
       items: [file(4, '', 1), file(0, 'Ghost', 2)],
     });
-    expect(flattenFolder(root, 'A')).toEqual([{ id: 4, name: 'Deck #4', path: 'A', creationTime: 1 }]);
+    expect(flattenFolder(root, 'A')).toEqual([{ id: 4, name: 'Deck #4', path: 'A', creationTime: 1, visibility: 'private' }]);
+  });
+});
+
+describe('flattenFolder visibility', () => {
+  const file = (id: number, isPublic = false) =>
+    create(ServerInfo_DeckStorage_TreeItemSchema, { id, name: `D${id}`, file: create(ServerInfo_DeckStorage_FileSchema, { isPublic }) });
+
+  it('marks a deck public by its own bit and inherited under a public folder', () => {
+    const root = create(ServerInfo_DeckStorage_FolderSchema, {
+      items: [
+        file(1, true),
+        file(2),
+        create(ServerInfo_DeckStorage_TreeItemSchema, {
+          name: 'Shared',
+          folder: create(ServerInfo_DeckStorage_FolderSchema, {
+            isPublic: true,
+            items: [file(3), file(4, true)],
+          }),
+        }),
+      ],
+    });
+    expect(flattenFolder(root, '').map((d) => [d.id, d.visibility])).toEqual([
+      [1, 'public'],
+      [2, 'private'],
+      [3, 'inherited'],
+      [4, 'public'],
+    ]);
+  });
+
+  it('inherits from above the flattened folder when told', () => {
+    const folder = create(ServerInfo_DeckStorage_FolderSchema, { items: [file(5)] });
+    expect(flattenFolder(folder, 'A', true)[0].visibility).toBe('inherited');
+  });
+});
+
+describe('deckVisibility', () => {
+  it.each([
+    [true, false, 'public'],
+    [true, true, 'public'],
+    [false, true, 'inherited'],
+    [undefined, false, 'private'],
+  ] as const)('own bit %s, under a public folder %s → %s', (own, under, expected) => {
+    expect(deckVisibility(own, under)).toBe(expected);
   });
 });
 

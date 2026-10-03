@@ -126,7 +126,7 @@ describe('useDeckList', () => {
   it('deletes a deck and forgets its editor copy', () => {
     const { webClient } = setup();
     setCachedDeck(4, { deck: { name: 'x', meta: { v: 1, updatedAt: 'x' }, cards: [], format: '' }, savedSignature: null });
-    act(() => latest.deleteDeck({ id: 4, name: 'x', path: '', creationTime: 0 }));
+    act(() => latest.deleteDeck({ id: 4, name: 'x', path: '', creationTime: 0, visibility: 'private' }));
     expect(webClient.request.session.deckDel).toHaveBeenCalledWith(4);
     expect(getCachedDeck(4)).toBeUndefined();
   });
