@@ -68,7 +68,12 @@ describe('useSeatMarquee', () => {
       fireEvent.pointerMove(window, { clientX: 300, clientY: 50 });
     });
     expect(setSelection).toHaveBeenLastCalledWith({ zone: 'battlefield', ids: new Set(['10']) });
-    expect(result.current.marquee).toMatchObject({ x2: 300, y2: 50 });
+    expect(result.current.marquee).toMatchObject({ x2: 300, y2: 50, count: 1 });
+
+    act(() => {
+      fireEvent.pointerMove(window, { clientX: 500, clientY: 50 });
+    });
+    expect(result.current.marquee).toMatchObject({ count: 2 });
 
     act(() => {
       fireEvent.pointerUp(window);

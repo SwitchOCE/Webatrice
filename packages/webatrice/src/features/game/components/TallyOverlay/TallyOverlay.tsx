@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { usePreference } from '@app/hooks';
 
 import { useSelectionTally } from '../../hooks/useSelectionTally';
 
@@ -13,13 +14,15 @@ const PANEL_CLASS = [
  * count label, game_view.cpp:206-320): the count shows from two selected
  * cards, the tally above it while it has rows.
  *
- * Desktop gates the count behind its "show total selection count" setting;
- * the web client always shows it. Only the tally is announced: the count
- * changes with every click, so its region stays silent.
+ * The count follows desktop's "Show total selection count" (on by default).
+ * Only the tally is announced: the count changes with every click, so its
+ * region stays silent.
  */
 export default function TallyOverlay() {
   const { t } = useTranslation();
-  const { rows, count } = useSelectionTally();
+  const { rows, count: selected } = useSelectionTally();
+  const showCount = usePreference('showTotalSelectionCount');
+  const count = showCount ? selected : 0;
   if (rows.length === 0 && count <= 1) {
     return null;
   }

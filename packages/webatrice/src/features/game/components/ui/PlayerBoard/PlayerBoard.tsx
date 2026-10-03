@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom';
 
 import Battlefield from '../../battlefield/Battlefield/Battlefield';
+import { DragSelectionCount } from '../../SelectionCount/SelectionCount';
 import BattlefieldCardMenu from '../../context-menus/SeatCardMenus/BattlefieldCardMenu';
 import HandCardMenu from '../../context-menus/SeatCardMenus/HandCardMenu';
 import PileCardMenu from '../../context-menus/SeatCardMenus/PileCardMenu';
@@ -130,7 +131,9 @@ function PlayerBoard(props: PlayerSeatProps) {
               pointerEvents: 'none',
               zIndex: 275,
             }}
-          />,
+          >
+            <DragSelectionCount band={marquee} count={marquee.count} />
+          </div>,
           document.body,
         )}
 

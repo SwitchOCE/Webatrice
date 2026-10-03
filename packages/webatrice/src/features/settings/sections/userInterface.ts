@@ -47,6 +47,16 @@ export const userInterfaceSection: SettingsSection = {
           labelKey: 'SettingsUserInterface.focusCardViewSearchBar.label',
           control: { kind: 'toggle', key: 'focusCardViewSearchBar' },
         },
+        {
+          id: 'showDragSelectionCount',
+          labelKey: 'SettingsUserInterface.showDragSelectionCount.label',
+          control: { kind: 'toggle', key: 'showDragSelectionCount' },
+        },
+        {
+          id: 'showTotalSelectionCount',
+          labelKey: 'SettingsUserInterface.showTotalSelectionCount.label',
+          control: { kind: 'toggle', key: 'showTotalSelectionCount' },
+        },
       ],
     },
     {
