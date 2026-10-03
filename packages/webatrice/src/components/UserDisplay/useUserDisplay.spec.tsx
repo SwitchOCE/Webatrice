@@ -39,7 +39,7 @@ describe('useUserDisplay', () => {
         preventDefault: vi.fn(),
       } as never);
     });
-    expect(result.current.menu.anchor).toEqual({ x: 102, y: 204 });
+    expect(result.current.menu.anchor).toEqual({ x: 100, y: 200 });
 
     act(() => {
       result.current.menu.close();
