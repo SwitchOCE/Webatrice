@@ -1,1 +1,2 @@
 - 18:39Z started f23d; read brief, template, rv10 → set up branch work from origin/parity/23d-deck-share
+- 18:42Z M1-fix fragment token committed+pushed → fail-closed server check
