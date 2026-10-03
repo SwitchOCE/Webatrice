@@ -34,6 +34,9 @@ export interface ServerState {
   // server is not answering pings (lagged or unreachable); 0 = healthy. The
   // transport never self-disconnects on silence — see sockatrice KeepAliveService.
   connectionHealth: ServerConnectionHealth;
+  // Command round-trip times measured by the transport (Cockatrice #7153): the
+  // aggregates plus the rolling window, oldest first. Zeroed on disconnect.
+  latency: ServerLatency;
   connectUnreachable: boolean;
   // Response.ResponseCode the server rejected the last login with (e.g.
   // RespPasswordChangeRequired, RespServerFull), so the login screen can explain
@@ -133,6 +136,11 @@ export interface ServerStateStatus {
 export interface ServerConnectionHealth {
   missedPongs: number;
   silentForMs: number;
+}
+
+export interface ServerLatency {
+  stats: WebsocketTypes.LatencyStats;
+  samplesMs: number[];
 }
 
 export interface ServerStateInfo {

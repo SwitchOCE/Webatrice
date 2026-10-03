@@ -8,7 +8,7 @@
 import { create, toBinary } from '@bufbuild/protobuf';
 import type { GenExtension } from '@bufbuild/protobuf/codegenv2';
 
-import { DEFAULT_COMMAND_TIMEOUT_MS, ProtobufService } from './ProtobufService';
+import { DEFAULT_COMMAND_TIMEOUT_MS, LATENCY_STATS_INTERVAL_MS, ProtobufService } from './ProtobufService';
 import { CommandFailure } from './command-options';
 import {
   Command_Ping_ext,
@@ -300,5 +300,78 @@ describe('raw sendCommand', () => {
     vi.advanceTimersByTime(100);
     expect(onFailure).toHaveBeenCalledWith(CommandFailure.Timeout);
     expect(onResponse).not.toHaveBeenCalled();
+  });
+});
+
+// Desktop AbstractClient::recordLatency / clearLatencyStats (#7153).
+describe('round-trip timing', () => {
+  const makeTimedService = (onLatencyStats: ReturnType<typeof vi.fn>) =>
+    new ProtobufService(socket, { game: [], room: [], session: [] }, undefined, onLatencyStats);
+
+  it('times an answered command from send to response', () => {
+    const onLatencyStats = vi.fn();
+    const service = makeTimedService(onLatencyStats);
+    service.sendSessionCommand(pingExt, {});
+
+    vi.advanceTimersByTime(120);
+    deliverResponse(service, 1);
+
+    expect(onLatencyStats).toHaveBeenCalledWith(
+      { lastMs: 120, medianMs: 120, p95Ms: 120, maxMs: 120, sampleCount: 1 },
+      [120],
+    );
+  });
+
+  it('pushes stats at most once per interval while still recording every sample', () => {
+    const onLatencyStats = vi.fn();
+    const service = makeTimedService(onLatencyStats);
+
+    service.sendSessionCommand(pingExt, {});
+    vi.advanceTimersByTime(10);
+    deliverResponse(service, 1);
+    service.sendSessionCommand(pingExt, {});
+    vi.advanceTimersByTime(30);
+    deliverResponse(service, 2);
+    expect(onLatencyStats).toHaveBeenCalledTimes(1);
+
+    service.sendSessionCommand(pingExt, {});
+    vi.advanceTimersByTime(LATENCY_STATS_INTERVAL_MS);
+    deliverResponse(service, 3);
+    expect(onLatencyStats).toHaveBeenCalledTimes(2);
+    expect(onLatencyStats).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sampleCount: 3, lastMs: LATENCY_STATS_INTERVAL_MS }),
+      [10, 30, LATENCY_STATS_INTERVAL_MS],
+    );
+  });
+
+  it('records nothing for a command that times out', () => {
+    const onLatencyStats = vi.fn();
+    const service = makeTimedService(onLatencyStats);
+    service.sendSessionCommand(pingExt, {});
+
+    vi.advanceTimersByTime(DEFAULT_COMMAND_TIMEOUT_MS);
+    deliverResponse(service, 1);
+
+    expect(onLatencyStats).not.toHaveBeenCalled();
+  });
+
+  it('clears the window and pushes zeroed stats on reset', () => {
+    const onLatencyStats = vi.fn();
+    const service = makeTimedService(onLatencyStats);
+    service.sendSessionCommand(pingExt, {});
+    vi.advanceTimersByTime(50);
+    deliverResponse(service, 1);
+
+    service.resetCommands();
+    expect(onLatencyStats).toHaveBeenLastCalledWith(
+      { lastMs: 0, medianMs: 0, p95Ms: 0, maxMs: 0, sampleCount: 0 },
+      [],
+    );
+
+    // The throttle restarts with the window, so the first sample after a reconnect shows at once.
+    service.sendSessionCommand(pingExt, {});
+    vi.advanceTimersByTime(70);
+    deliverResponse(service, 1);
+    expect(onLatencyStats).toHaveBeenLastCalledWith(expect.objectContaining({ sampleCount: 1, lastMs: 70 }), [70]);
   });
 });
