@@ -1,16 +1,13 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 
-import { useWebClient } from '@cockatrice/datatrice/react';
 import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 import { useSettings } from '@app/hooks';
 import {
   BIG_SKIP_MS,
   DEFAULT_FAST_FORWARD_SPEED,
-  ReplayEngine,
   SMALL_SKIP_MS,
   type OpenedReplay,
   type ReplayPlaybackState,
-  type ReplaySink,
 } from '@app/services';
 
 export interface ReplayPlayback {
@@ -41,39 +38,19 @@ const subscribeNothing = () => () => {};
 const getIdleState = () => IDLE_STATE;
 
 /**
- * Plays an opened replay into its local game, desktop's ReplayWidget +
- * ReplayManager wiring. Rewinds load a fresh replay game
- * (`WebClient.loadReplayGame`); each recorded container runs through the live
- * game-event pipeline (`WebClient.replayGameEventContainer`), so the board, log
- * and selectors behave exactly as for a live game. Both reach the store through
- * Datatrice's GameResponseImpl, never by dispatching from the UI. The game is
- * unloaded on unmount.
+ * Drives an opened replay's playback, desktop's ReplayWidget wiring. The
+ * replay's engine and local game belong to the opened replay (see
+ * `openReplay`), not to this view: they keep running while the user is on
+ * another tab and are only torn down by `closeReplay`. Rewinds reload the game
+ * through `WebClient.loadReplayGame` and each recorded container runs through
+ * the live game-event pipeline, so the board, log and selectors behave exactly
+ * as for a live game.
  */
 export function useReplayPlayback(opened: OpenedReplay | undefined): ReplayPlayback {
-  const webClient = useWebClient();
   const settings = useSettings();
-  const [engine, setEngine] = useState<ReplayEngine | null>(null);
-  const [fastForward, setFastForward] = useState(false);
-
-  useEffect(() => {
-    if (!opened?.replay.gameInfo) {
-      return;
-    }
-    const { gameId, replay } = opened;
-    const gameInfo = opened.replay.gameInfo;
-    const sink: ReplaySink = {
-      rewind: () => webClient.loadReplayGame(gameId, gameInfo),
-      apply: (container) => webClient.replayGameEventContainer(container, gameId),
-    };
-    const next = new ReplayEngine(replay, sink);
-    next.load();
-    setEngine(next);
-    return () => {
-      next.dispose();
-      webClient.unloadReplayGame(gameId);
-      setEngine(null);
-    };
-  }, [opened, webClient]);
+  const engine = opened?.engine ?? null;
+  // Coming back to a replay that was fast-forwarding keeps fast-forwarding.
+  const [fastForward, setFastForward] = useState(() => (engine?.getState().timeScaleFactor ?? 1) !== 1);
 
   const state = useSyncExternalStore(engine?.subscribe ?? subscribeNothing, engine?.getState ?? getIdleState);
 

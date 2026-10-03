@@ -5,12 +5,11 @@ import { server, type CommandFailedPayload } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { Response_ResponseCode, type ServerInfo_ReplayMatch } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
+import { useCommandFailureMessage, useReduxEffect, useWatchReplay } from '@app/hooks';
 import { ReplayFileDTO, replayFileName } from '@app/services';
 import { useAppSelector } from '@app/store';
 
 import { saveReplayFile } from './replayFiles';
-import { useWatchReplay } from './useWatchReplay';
 
 /** A row of the server catalogue: a match folder or one of its replays. */
 export type ServerReplaySelection =
