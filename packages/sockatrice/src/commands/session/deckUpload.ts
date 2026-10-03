@@ -3,10 +3,12 @@ import { WebClient } from '../../WebClient';
 
 import { Command_DeckUpload_ext, Command_DeckUploadSchema, Response_DeckUpload_ext } from '../../generated';
 
-export function deckUpload(path: string, deckId: number, deckList: string): void {
+// `isPublic` and `colorIdentity` are 3.1 fields (#7241): publish on upload, and the
+// color identity the server cannot derive itself. 3.0 servers ignore them.
+export function deckUpload(path: string, deckId: number, deckList: string, isPublic?: boolean, colorIdentity?: string): void {
   WebClient.instance.protobuf.sendSessionCommand(
     Command_DeckUpload_ext,
-    create(Command_DeckUploadSchema, { path, deckId, deckList }),
+    create(Command_DeckUploadSchema, { path, deckId, deckList, isPublic, colorIdentity }),
     {
       responseExt: Response_DeckUpload_ext,
       onSuccess: (response) => {

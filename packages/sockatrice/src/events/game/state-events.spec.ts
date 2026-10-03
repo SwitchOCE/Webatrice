@@ -1,10 +1,13 @@
 vi.mock('../../WebClient');
 import { create } from '@bufbuild/protobuf';
 import {
+  Event_GameLogNotice_NoticeType,
+  Event_GameLogNoticeSchema,
   Event_GameStateChangedSchema,
   ServerInfo_PlayerPropertiesSchema,
 } from '../../generated';
 import { WebClient } from '../../WebClient';
+import { gameLogNotice } from './gameLogNotice';
 import { gameStateChanged } from './gameStateChanged';
 import { playerPropertiesChanged } from './playerPropertiesChanged';
 
@@ -43,5 +46,19 @@ describe('playerPropertiesChanged event', () => {
     const data = { playerProperties: undefined as unknown as ReturnType<typeof create<typeof ServerInfo_PlayerPropertiesSchema>> };
     playerPropertiesChanged(data, meta);
     expect(WebClient.instance.response.game.playerPropertiesChanged).toHaveBeenCalledWith(5, 2, undefined);
+  });
+});
+
+describe('gameLogNotice event', () => {
+  it('forwards the notice type with the game and acting player', () => {
+    const data = create(Event_GameLogNoticeSchema, { noticeType: Event_GameLogNotice_NoticeType.UNDO_DRAW_FAILED });
+    gameLogNotice(data, meta);
+    expect(WebClient.instance.response.game.gameLogNotice).toHaveBeenCalledWith(5, 2, Event_GameLogNotice_NoticeType.UNDO_DRAW_FAILED);
+  });
+
+  it('forwards notice types newer than this client unchanged (consumers drop unknown ones)', () => {
+    const data = create(Event_GameLogNoticeSchema, { noticeType: 99 as Event_GameLogNotice_NoticeType });
+    gameLogNotice(data, meta);
+    expect(WebClient.instance.response.game.gameLogNotice).toHaveBeenCalledWith(5, 2, 99);
   });
 });

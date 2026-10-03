@@ -252,7 +252,29 @@ describe('login', () => {
   it('onError calls onLoginError with unknown error message', () => {
     login(makeLoginOpts(), 'pw');
     invokeOnError(999);
-    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalled();
+    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith(999);
+  });
+
+  it('reports the rejecting response code to loginFailed', () => {
+    login(makeLoginOpts(), 'pw');
+    invokeResponseCode(Response_ResponseCode.RespWrongPassword);
+    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith(Response_ResponseCode.RespWrongPassword);
+  });
+
+  it('onResponseCode RespPasswordChangeRequired fails the login with its code and disconnects', () => {
+    login(makeLoginOpts(), 'pw');
+    invokeResponseCode(Response_ResponseCode.RespPasswordChangeRequired);
+    expect(SessionIndexMocks.updateStatus).toHaveBeenCalledWith(StatusEnum.DISCONNECTED, 'Login failed: password change required');
+    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith(Response_ResponseCode.RespPasswordChangeRequired);
+    expect(SessionIndexMocks.disconnect).toHaveBeenCalled();
+  });
+
+  it('onResponseCode RespServerFull fails the login with its code and disconnects', () => {
+    login(makeLoginOpts(), 'pw');
+    invokeResponseCode(Response_ResponseCode.RespServerFull);
+    expect(SessionIndexMocks.updateStatus).toHaveBeenCalledWith(StatusEnum.DISCONNECTED, 'Login failed: server is full');
+    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith(Response_ResponseCode.RespServerFull);
+    expect(SessionIndexMocks.disconnect).toHaveBeenCalled();
   });
 });
 

@@ -76,6 +76,16 @@ const session = {
   replayModifyMatch: vi.fn(),
   replayDeleteMatch: vi.fn(),
   replayDownloaded: vi.fn(),
+  deckShareCreated: vi.fn(),
+  deckShareListed: vi.fn(),
+  deckShareDownloaded: vi.fn(),
+  deckSharesMine: vi.fn(),
+  deckShareRemoved: vi.fn(),
+  otherUserDecks: vi.fn(),
+  deckVisibilityChanged: vi.fn(),
+  publicDeckDownloaded: vi.fn(),
+  reportMyList: vi.fn(),
+  reportDetails: vi.fn(),
 };
 
 const room = {
@@ -126,6 +136,7 @@ const game = {
   turnReversed: vi.fn(),
   zoneDumped: vi.fn(),
   zonePropertiesChanged: vi.fn(),
+  gameLogNotice: vi.fn(),
 };
 
 const admin = {
@@ -146,6 +157,23 @@ const moderator = {
   forceActivateUser: vi.fn(),
   getAdminNotes: vi.fn(),
   updateAdminNotes: vi.fn(),
+  cardArtRules: vi.fn(),
+  cardArtRuleAdded: vi.fn(),
+  cardArtRuleRemoved: vi.fn(),
+  userSessions: vi.fn(),
+  userAlts: vi.fn(),
+  moderatorLastLogins: vi.fn(),
+  userAvatarRemoved: vi.fn(),
+  reportList: vi.fn(),
+  reportAssigned: vi.fn(),
+  reportResolved: vi.fn(),
+  reportUserInfo: vi.fn(),
+  reportStats: vi.fn(),
+  replayDownloadedByGameId: vi.fn(),
+};
+
+const developer = {
+  serverStats: vi.fn(),
 };
 
 export const WebClient = {
@@ -173,9 +201,10 @@ export const WebClient = {
       sendGameCommands: vi.fn(),
       sendAdminCommand: vi.fn(),
       sendModeratorCommand: vi.fn(),
+      sendDeveloperCommand: vi.fn(),
       resetCommands: vi.fn(),
     },
-    response: { session, room, game, admin, moderator },
+    response: { session, room, game, admin, moderator, developer },
   },
 };
 
