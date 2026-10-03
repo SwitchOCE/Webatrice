@@ -79,7 +79,7 @@
 
 /* The brand green is too pale to read on the light palette's white card. */
 :root[data-theme='light'] .login-content__header {
-  color: #2E7D0F;
+  color: rgb(var(--status-success));
 }
 
 .login-content__header img {
