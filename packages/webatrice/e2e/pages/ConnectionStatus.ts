@@ -16,7 +16,7 @@ export class ConnectionStatus {
   // LatencyStatus: "Ping: N ms" plus a sparkline, hidden until the first
   // command round trip has been timed.
   get latency(): Locator {
-    return this.page.getByRole('button', { name: /^ping$/i });
+    return this.page.getByRole('button', { name: /^ping: \d+ ms$/i });
   }
 
   async expectConnected(timeoutMs = 5_000): Promise<void> {
