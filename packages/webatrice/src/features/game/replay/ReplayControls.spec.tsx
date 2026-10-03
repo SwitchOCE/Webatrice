@@ -114,4 +114,21 @@ describe('ReplayControls', () => {
     expect(timeline).toHaveAttribute('aria-valuemax', '600000');
   });
 
+  it('seeks from the keyboard once the timeline is focused', () => {
+    const playback = makePlayback();
+    renderWithProviders(<ReplayControls playback={playback} />);
+    const timeline = screen.getByRole('slider', { name: 'GameReplay.timeline.label' });
+    expect(timeline).toHaveAttribute('tabindex', '0');
+
+    fireEvent.keyDown(timeline, { key: 'ArrowRight' });
+    expect(playback.seek).toHaveBeenLastCalledWith(66000);
+    fireEvent.keyDown(timeline, { key: 'PageDown' });
+    expect(playback.seek).toHaveBeenLastCalledWith(55000);
+    fireEvent.keyDown(timeline, { key: 'Home' });
+    expect(playback.seek).toHaveBeenLastCalledWith(0);
+    fireEvent.keyDown(timeline, { key: 'End' });
+    expect(playback.seek).toHaveBeenLastCalledWith(600000);
+    fireEvent.keyDown(timeline, { key: 'a' });
+    expect(playback.seek).toHaveBeenCalledTimes(4);
+  });
 });
