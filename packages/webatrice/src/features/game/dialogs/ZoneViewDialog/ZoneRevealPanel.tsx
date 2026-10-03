@@ -10,8 +10,8 @@ import { createPortal } from 'react-dom';
 import { setRef } from '@mui/material/utils';
 import { X } from 'lucide-react';
 
-import Card from '../ui/SeatCard/SeatCard';
-import { CARD_HEIGHT, CARD_WIDTH } from '../ui/SeatCard/cardSize';
+import Card from '../../components/ui/SeatCard/SeatCard';
+import { CARD_HEIGHT, CARD_WIDTH } from '../../components/ui/SeatCard/cardSize';
 
 type HandCard = { id: string; name: string; scryfallId: string };
 
@@ -35,7 +35,7 @@ type HandCard = { id: string; name: string; scryfallId: string };
  * "View graveyard" / "View exile" variants — zone-specific bits
  * (title, wire source zone, drag wiring) live in the caller.
  */
-export interface ZoneRevealDialogProps {
+export interface ZoneRevealPanelProps {
   isOpen: boolean;
   /** Human-readable title for the modal header. Caller composes
    *  something like "Top 5 cards — SonicBliss" or "Graveyard — SonicBliss". */
@@ -178,7 +178,7 @@ function clampSizeToViewport(size: { w: number; h: number }): {
   };
 }
 
-export default function ZoneRevealDialog({
+export default function ZoneRevealPanel({
   isOpen,
   title,
   subtitle,
@@ -188,7 +188,7 @@ export default function ZoneRevealDialog({
   dropRef,
   draggingCardIds,
   onClose,
-}: ZoneRevealDialogProps) {
+}: ZoneRevealPanelProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   // Position — `null` until the layout effect measures the dialog and
   // either restores a saved position or centers it. Once set, the
