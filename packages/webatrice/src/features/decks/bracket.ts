@@ -68,16 +68,26 @@ export interface BracketReport {
 
 // ---------- Fingerprinting ----------
 //
-// The bracket assessment only depends on the deck's (card name, quantity)
-// shape — printing swaps and category toggles don't matter. We store a
-// short hash of that shape in the cached `<bracketAssessment>` element
-// so consumers can tell at a glance whether the cache is still valid.
+// The bracket assessment depends on the deck's card names and quantities
+// and, since the Spellbook lookup sends only the main deck with the
+// commanders apart, on each card's zone and commander flag. Printing swaps
+// don't matter. We store a short hash of that shape in the cached
+// `<bracketAssessment>` element so consumers can tell at a glance whether
+// the cache is still valid.
 
 /** Canonical string form of a deck for fingerprinting. Case-insensitive
- *  on names, quantity-aware, order-independent. */
+ *  on names, quantity-, zone- and commander-aware, order-independent.
+ *  A plain main-deck card keeps the original `namexqty` form, so caches
+ *  written before zones mattered stay valid for decks they still fit. */
 export function deckFingerprintSource(cards: DeckCard[]): string {
   return cards
-    .map((c) => `${c.name.toLowerCase()}x${c.quantity}`)
+    .map((c) => {
+      const base = `${c.name.toLowerCase()}x${c.quantity}`;
+      if (c.category === 'sideboard') {
+        return `${base}@side`;
+      }
+      return c.isCommander ? `${base}@commander` : base;
+    })
     .sort()
     .join('|');
 }

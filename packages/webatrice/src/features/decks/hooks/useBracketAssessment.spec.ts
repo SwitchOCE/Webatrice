@@ -41,6 +41,19 @@ describe('useBracketAssessment', () => {
     expect(persist).not.toHaveBeenCalled();
   });
 
+  it('re-analyses when a card moves to the sideboard, instead of serving the cached assessment', async () => {
+    const cached: BracketAssessment = {
+      level: 4, fingerprint: deckFingerprint(cards), gameChangers: [], turns: [], turnsRestricted: [],
+      denial: [], denialRestricted: [], earlyCombos: [], lateCombos: [],
+    };
+    vi.mocked(analyzeBracket).mockResolvedValue(complete);
+    const moved: DeckCard[] = [{ ...cards[0], category: 'sideboard' }];
+    const { result } = renderHook(() => useBracketAssessment(moved, cached, vi.fn(), true));
+
+    await waitFor(() => expect(result.current.status === 'complete' && result.current.report.level).toBe(1));
+    expect(analyzeBracket).toHaveBeenCalledWith(moved);
+  });
+
   it('persists a complete analysis with the deck fingerprint', async () => {
     vi.mocked(analyzeBracket).mockResolvedValue(complete);
     const persist = vi.fn();
