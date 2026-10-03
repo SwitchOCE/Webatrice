@@ -16,3 +16,14 @@ Expected conflicts: 26/27/28 all touch TopBar and chat. 25a's mention completer 
 Gate at the 28 tip: the full gate plus webatrice e2e on all browsers.
 
 **Squash carried from rv11/f27:** in row 3 (27), fold the commit that updates `integration/src/features/rooms-components.spec.tsx` (old 94a1ecb, "integration spec imported deleted comps") into the commit that deletes GameSelector/OpenGames/SayMessage (old baf3b91), so the integration suite imports at every commit. Do it while replaying the row: cherry-pick in order, then use `git commit --amend` or `git reset --soft` plus re-commit. No interactive rebase, since the session classifier blocks `rebase -i`. Check with typecheck plus the integration import at each commit of the row.
+
+**Duplicate deletion (27 and 28):** both PRs delete GameSelector, OpenGames and SayMessage plus their specs. Keep the deletion in 27, as the squashed commit above. When replaying 28, its deletion becomes a no-op: drop those hunks, and make sure 28 doesn't re-add anything.
+
+**Coverage port (with 27's deletion commit, or a test commit right after it):** the deleted `GameSelector.spec`/`OpenGames.spec` asserted behaviour that the live `GamesList` + `useJoinGame` still own. `useJoinGame.spec` already covers password, full-game spectate, already-open routing and join errors. Port the rest into `GamesList.spec` against the live component, wherever the behaviour exists there:
+- Join is disabled until a game is selected, while `joinGamePending`, and when the game is full.
+- Spectate is disabled when spectators are not allowed.
+- Judge buttons show only with the IsJudge flag.
+- The filter dialog applies and cancels correctly, and Clear filter dispatches `clearGameFilters`.
+- Create submits `createGame`.
+
+List the ported tests in 27's PR file.
