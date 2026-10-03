@@ -1,2 +1,3 @@
 - 15:24Z started f24, read brief/review → inspect branch
 - 15:38Z pushed c36eceb (sockatrice plain-pw fallback), 87a5073 (pin target), 9d33362 (classic preflight); typecheck/lint/unit green → integration + build + e2e
+- 16:02Z DONE f24: claude/parity-24-platform-gates tip 61fd4f4. Full gate green (typecheck 5/5, lint 3/3, unit 781/1196/1507, integ 166/136/160, webatrice e2e 48/48, sockatrice e2e 5/5). PR file updated.
