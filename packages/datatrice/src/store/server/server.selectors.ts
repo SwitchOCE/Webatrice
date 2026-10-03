@@ -10,7 +10,7 @@ import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { SortUtil } from '../../common';
 import { Enriched } from '../../types';
 import { ServerCapability, serverSupports } from './server.capabilities';
-import { GamesOfUserStatus, PrivateChatNotice, PrivateConversationEntry, ServerState } from './server.interfaces';
+import { GamesOfUserStatus, PrivateChatNotice, PrivateConversationEntry, ServerState, UserInvestigation } from './server.interfaces';
 import { HEALTHY_CONNECTION_HEALTH } from './server.reducer.connection';
 
 type State = { server: ServerState };
@@ -131,6 +131,12 @@ export const Selectors = {
   getWarnListForUser: ({ server }: State, userName: string): Response_WarnList | undefined =>
     server.warnListOptions.find((list) => list.userName === userName),
   getLogs: ({ server }: State) => server.logs,
+  // Staff tooling (see server.reducer.staff.ts). Lists are null until loaded.
+  getUserInvestigation: ({ server }: State, userName: string): UserInvestigation | undefined =>
+    server.staff.investigations[userName],
+  getModeratorLastLogins: ({ server }: State) => server.staff.moderatorLastLogins,
+  getCardArtRules: ({ server }: State) => server.staff.cardArtRules,
+  getServerStats: ({ server }: State) => server.staff.serverStats,
   getBackendDecks: ({ server }: State) => server.backendDecks,
   getDownloadedDeck: ({ server }: State) => server.downloadedDeck,
   getDownloadedReplay: ({ server }: State) => server.downloadedReplay,

@@ -24,6 +24,8 @@ export type {
   ServerStateStatus,
   ServerStateInfo,
   ServerStateLogs,
+  ServerStateStaff,
+  UserInvestigation,
   ServerConnectionHealth,
   TestConnectionStatus,
 } from './server/server.interfaces';

@@ -3,6 +3,7 @@ import { App } from '../../types';
 import { Event_ServerShutdown } from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { ServerConnectionHealth, ServerState, ServerStateStatus } from './server.interfaces';
+import { initialStaffState } from './server.reducer.staff';
 
 // Healthy baseline (no missed pongs) shared by initialState, the updateStatus
 // lifecycle reset, the getConnectionHealth selector fallback, and test fixtures
@@ -62,6 +63,7 @@ export const initialState: ServerState = {
   gamesOfUser: {},
   gamesOfUserStatus: {},
   registrationError: null,
+  staff: initialStaffState,
 };
 
 export const connectionReducers = {
