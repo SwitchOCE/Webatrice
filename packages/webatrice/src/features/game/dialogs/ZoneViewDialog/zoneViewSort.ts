@@ -1,20 +1,24 @@
 /**
- * Shared sort / group helpers for the two zone-view dialogs
- * (LibrarySearchDialog and IncomingRevealDialog). Both ports match
- * Cockatrice's ZoneViewWidget controls (view_zone_widget.cpp:234-250):
- * a common menu of sort keys and grouping buckets so any zone viewer
- * feels the same.
+ * Filter, sort and group policy for zone views, matching desktop's
+ * ZoneViewWidget controls (view_zone_widget.cpp:234-250) so every zone
+ * viewer offers the same sort keys and grouping buckets.
  *
- * `EnrichedCard.meta` is typed against `DeckCard` because that's what
- * both dialogs already carry — either from the user's deck data
- * (LibrarySearchDialog) or from a synthesized-from-Scryfall lookup
- * (IncomingRevealDialog). Either way we need name / type_line / cmc /
- * colors / set / power / toughness populated on `meta` for sort /
- * group to bucket sensibly.
+ * Works on `ZoneViewCardMetadata`, the card-catalog fields a view needs,
+ * rather than any deck-feature type. A card with unknown metadata (null
+ * type line, mana value, set, P/T) still sorts and groups: it lands in
+ * "Other", mana value 0 and the trailing P/T bucket.
  */
 
-import type { DeckCard } from './mockTypes';
-import { primaryType } from './mockTypes';
+/** The card fields zone views filter, sort and group on. */
+export interface ZoneViewCardMetadata {
+  name: string;
+  type_line: string | null;
+  cmc: number | null;
+  colors: readonly string[];
+  set: string | null;
+  power: string | null;
+  toughness: string | null;
+}
 
 type HandCard = { id: string; name: string; scryfallId: string };
 
@@ -26,17 +30,18 @@ export type GroupMode = 'none' | 'type' | 'cmc' | 'color';
  *  Unsorted, By Name, By Type, By Mana Cost, By Color, By P/T, By Set. */
 export type SortMode = 'none' | 'name' | 'cmc' | 'type' | 'color' | 'set' | 'pt';
 
-export interface EnrichedCard {
+export interface EnrichedCard<M extends ZoneViewCardMetadata = ZoneViewCardMetadata> {
   handCard: HandCard;
-  meta: DeckCard;
+  meta: M;
 }
 
-export interface CardGroup {
+export interface CardGroup<M extends ZoneViewCardMetadata = ZoneViewCardMetadata> {
   key: string;
   label: string;
-  cards: EnrichedCard[];
+  cards: EnrichedCard<M>[];
 }
 
+/** "Group by type" buckets, in display order. */
 const TYPE_ORDER = [
   'Creature',
   'Planeswalker',
@@ -48,6 +53,22 @@ const TYPE_ORDER = [
   'Land',
   'Other',
 ] as const;
+
+type CardTypeGroup = (typeof TYPE_ORDER)[number];
+
+/** Reduce a type line to its primary bucket. */
+function primaryType(typeLine: string | null): CardTypeGroup {
+  if (!typeLine) {
+    return 'Other';
+  }
+  const front = typeLine.split('—')[0];
+  for (const t of TYPE_ORDER) {
+    if (front.includes(t)) {
+      return t;
+    }
+  }
+  return 'Other';
+}
 
 const COLOR_KEY_ORDER = ['W', 'U', 'B', 'R', 'G', 'C'] as const;
 const COLOR_ALIASES: Record<string, string> = {
@@ -67,7 +88,7 @@ const COLOR_ALIASES: Record<string, string> = {
 
 /** Filter a card by a search query supporting bare-token (name substring)
  *  and prefixed key:value expressions (t:type, c:color, cmc:N, set:XXX). */
-export function matchesQuery(card: DeckCard, query: string): boolean {
+export function matchesQuery(card: ZoneViewCardMetadata, query: string): boolean {
   const trimmed = query.trim();
   if (!trimmed) {
     return true;
@@ -141,7 +162,7 @@ function ptSortKey(v: string | null): number {
   return 1e6; // variable/non-numeric groups after real numbers
 }
 
-export function compareCards(a: DeckCard, b: DeckCard, mode: SortMode): number {
+export function compareCards(a: ZoneViewCardMetadata, b: ZoneViewCardMetadata, mode: SortMode): number {
   switch (mode) {
     case 'none':
       // Preserve caller order — matches Cockatrice's NoSort.
@@ -177,13 +198,13 @@ export function compareCards(a: DeckCard, b: DeckCard, mode: SortMode): number {
   }
 }
 
-export function groupCards(cards: EnrichedCard[], mode: GroupMode): CardGroup[] {
+export function groupCards<M extends ZoneViewCardMetadata>(cards: EnrichedCard<M>[], mode: GroupMode): CardGroup<M>[] {
   if (mode === 'none') {
     return cards.length === 0 ? [] : [{ key: 'all', label: '', cards }];
   }
 
-  const buckets = new Map<string, EnrichedCard[]>();
-  const push = (key: string, c: EnrichedCard) => {
+  const buckets = new Map<string, EnrichedCard<M>[]>();
+  const push = (key: string, c: EnrichedCard<M>) => {
     const list = buckets.get(key) ?? [];
     list.push(c);
     buckets.set(key, list);

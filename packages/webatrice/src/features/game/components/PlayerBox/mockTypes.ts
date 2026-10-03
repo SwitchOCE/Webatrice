@@ -50,33 +50,3 @@ export interface RoomMemberWithProfile {
     avatar_url: string | null;
   } | null;
 }
-
-/** Card type buckets used by the library-search dialog's "Group by type"
- *  view. Ported verbatim from fancy's `src/lib/decks.ts`. */
-export const TYPE_ORDER = [
-  'Creature',
-  'Planeswalker',
-  'Battle',
-  'Instant',
-  'Sorcery',
-  'Enchantment',
-  'Artifact',
-  'Land',
-  'Other',
-] as const;
-
-export type CardTypeGroup = (typeof TYPE_ORDER)[number];
-
-/** Reduce a Scryfall type line to its primary bucket. */
-export function primaryType(typeLine: string | null): CardTypeGroup {
-  if (!typeLine) {
-    return 'Other';
-  }
-  const front = typeLine.split('—')[0];
-  for (const t of TYPE_ORDER) {
-    if (front.includes(t)) {
-      return t;
-    }
-  }
-  return 'Other';
-}
