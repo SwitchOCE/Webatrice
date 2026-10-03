@@ -959,6 +959,57 @@
       "label": "Master volume"
     }
   },
+  "SettingsStorage": {
+    "group": {
+      "usage": "Browser storage",
+      "clear": "Cached and imported data"
+    },
+    "loading": "Reading storage...",
+    "cancel": "Cancel",
+    "clearFailed": "Could not clear. Try again.",
+    "usage": {
+      "label": "Storage used",
+      "description": "Webatrice keeps cards, settings and caches in this browser. The browser's own estimate.",
+      "value": "{used} of {quota}",
+      "unavailable": "This browser does not report its storage use."
+    },
+    "table": {
+      "cards": "Cards",
+      "sets": "Sets",
+      "tokens": "Tokens",
+      "formats": "Formats",
+      "info": "Card database info",
+      "scryfallCache": "Scryfall card cache",
+      "hosts": "Known servers",
+      "settings": "Settings"
+    },
+    "persistent": {
+      "label": "Persistent storage",
+      "description": "Without it, the browser may delete this data when the disk runs low.",
+      "request": "Keep my data",
+      "status": {
+        "granted": "Granted",
+        "refused": "The browser declined",
+        "default": "Not granted"
+      }
+    },
+    "scryfallCache": {
+      "label": "Scryfall card cache",
+      "description": "Card details fetched from Scryfall. They are fetched again when needed.",
+      "count": "{count, plural, one {# card} other {# cards}}",
+      "button": "Clear cache"
+    },
+    "cardData": {
+      "label": "Card database",
+      "description": "The cards, sets and tokens you imported. Settings, shortcuts and servers are kept.",
+      "count": "{count, plural, one {# entry} other {# entries}}",
+      "button": "Delete card data",
+      "confirm": {
+        "title": "Delete card data?",
+        "message": "This deletes the imported card database. You will need to import it again to see card details offline."
+      }
+    }
+  },
   "SettingsUserInterface": {
     "group": {
       "general": "General interface settings",
