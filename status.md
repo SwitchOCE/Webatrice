@@ -1,3 +1,5 @@
 - 22:13Z started w17r → read notes
 - 22:19Z 17a rebased onto restack-16 (3 conflicts resolved), typecheck green, pushed → unit tests + per-commit typecheck
 - QUESTION Q1: 17b commit 0 (157c0a5, extract PlayerBox menu arrays into playerMenu.model) is superseded by stage 5's per-region hooks (useLibraryMenuItems/useHandMenuItems/useBattlefieldMenuItems/usePileMenus). | default: drop the verbatim extraction; land 17b's NEW builders (reveal-to submenu, tally, custom zones, Say) as a small pure playerMenu.model.ts spliced into the stage-5 hooks, and record it in the PR file
+- ACK M1: 157c0a5 dropped; new 17b builders will be colocated with their stage-5 owner hooks, no central playerMenu.model.ts
+- 22:29Z 17a tip 57a3449 pushed (G1 guard commit added; unit 895/1316/3532 green before G1) → per-commit typecheck, then 17b port
