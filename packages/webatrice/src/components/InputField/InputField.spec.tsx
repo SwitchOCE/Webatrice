@@ -34,6 +34,17 @@ describe('InputField', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Required');
   });
 
+  it('adds a shown error to the caller\'s own description instead of replacing it', () => {
+    render(
+      <>
+        <span id="hint">Letters only</span>
+        <InputField {...defaultProps} touched error="Required" aria-describedby="hint" />
+      </>,
+    );
+
+    expect(screen.getByRole('textbox', { name: 'Test Field' })).toHaveAccessibleDescription('Required Letters only');
+  });
+
   it('does not show validation messages when not touched', () => {
     render(<InputField {...defaultProps} touched={false} error="Required" />);
     expect(screen.queryByText('Required')).not.toBeInTheDocument();
