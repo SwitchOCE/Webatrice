@@ -1,3 +1,4 @@
 - 15:24Z started f1204, read brief/task/rv2 → fix 12
 - 15:32Z 12: dev-role gate + GetUserInfo failure committed/pushed → full gate on 12
 - 15:37Z 12 pushed c4b5163→54287c0 (dropped hook i18n reorder); 04 rebased onto it → e2e 12 in docker, 04 fixes
+- 15:48Z 12 e2e (docker): 16 passed, 5 failed = known Scryfall CA (app-boots, bulk-card-actions); 04 rebased+squashed+3 fixes committed → per-commit check running
