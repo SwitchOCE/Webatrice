@@ -27,3 +27,12 @@ Gate at the 28 tip: the full gate plus webatrice e2e on all browsers.
 - Create submits `createGame`.
 
 List the ported tests in 27's PR file.
+
+**Folds carried from rv13/f26 (row 2, PR 26):**
+- Fold `0a0ab4d`'s `integration/src/features/player.spec.tsx` change into `f6ac60e`.
+- Fold `542cf5d`'s `e2e/specs/browser-support.spec.ts` fix into `f6ac60e`.
+- Split `36cd584` into `fix(a11y): hand the opener across swapped dialogs` (the hook + unit spec) and `test(a11y): …` (the e2e).
+
+The SHAs are pre-restack. Match by message, and use cherry-pick plus amend or `reset --soft`, never `rebase -i`. Every commit of the row must typecheck, and the integration suite must pass at f6ac60e's replacement.
+
+**document.title after 28:** at the 28 tip, check that `document.title` uses the translated tab titles (28 derives them at render time from keys). Add a spec if neither 26 nor 28 has one.
