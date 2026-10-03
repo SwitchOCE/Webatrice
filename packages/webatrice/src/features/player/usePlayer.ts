@@ -2,9 +2,12 @@ import { useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { useWebClient } from '@cockatrice/datatrice/react';
-import { server } from '@cockatrice/datatrice';
+import { server, type PrivateConversationEntry } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
-import { Event_UserMessage, ServerInfo_User } from '@cockatrice/sockatrice/generated';
+import { ServerInfo_User } from '@cockatrice/sockatrice/generated';
+
+const NO_CONVERSATION: PrivateConversationEntry[] = [];
+
 export interface PlayerViewModel {
   name: string | null;
   userInfo: ServerInfo_User | undefined;
@@ -12,11 +15,13 @@ export interface PlayerViewModel {
   isSelf: boolean;
   isABuddy: boolean;
   isIgnored: boolean;
-  // Full private-chat history with this user (both sides). Empty until
-  // the first message goes either way. Cockatrice's shared reducer
-  // keys both sent + received under the OTHER user's name, so a
-  // single lookup returns the conversation.
-  privateMessages: Event_UserMessage[];
+  // Full private-chat history with this user (both sides), with the client's
+  // notices (delivery failures, the user leaving/joining) in place. Empty until
+  // the first message goes either way. The reducer keys both sent + received
+  // under the OTHER user's name, so a single lookup returns the conversation.
+  conversation: PrivateConversationEntry[];
+  // Whether the user is in the server's online user list.
+  isOnline: boolean;
 
   onAddBuddy: () => void;
   onRemoveBuddy: () => void;
@@ -36,9 +41,10 @@ export function usePlayer(): PlayerViewModel {
   const currentUser = useAppSelector(server.Selectors.getUser);
   const buddyList = useAppSelector(server.Selectors.getBuddyList);
   const ignoreList = useAppSelector(server.Selectors.getIgnoreList);
-  const privateMessages = useAppSelector((state) =>
-    name ? server.Selectors.getPrivateMessagesForUser(state, name) : [],
+  const conversation = useAppSelector((state) =>
+    name ? server.Selectors.getPrivateConversation(state, name) : NO_CONVERSATION,
   );
+  const isOnline = useAppSelector((state) => Boolean(name && server.Selectors.getIsUserOnline(state, name)));
 
   useEffect(() => {
     if (name) {
@@ -65,7 +71,8 @@ export function usePlayer(): PlayerViewModel {
     isSelf,
     isABuddy,
     isIgnored,
-    privateMessages,
+    conversation,
+    isOnline,
     onAddBuddy,
     onRemoveBuddy,
     onAddIgnore,

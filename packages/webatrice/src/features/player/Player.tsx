@@ -79,7 +79,8 @@ const Player = () => {
     isSelf,
     isABuddy,
     isIgnored,
-    privateMessages,
+    conversation,
+    isOnline,
     onAddBuddy,
     onRemoveBuddy,
     onAddIgnore,
@@ -181,7 +182,9 @@ const Player = () => {
             <PrivateChat
               peerName={name}
               selfName={currentUser?.name ?? null}
-              messages={privateMessages}
+              entries={conversation}
+              isOnline={isOnline}
+              isIgnored={isIgnored}
               onSend={onSendMessage}
             />
           </div>

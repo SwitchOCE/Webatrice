@@ -190,6 +190,7 @@ export function makeServerState(overrides: Partial<ServerState> = {}): ServerSta
     },
     locale: undefined,
     messages: {},
+    privateChatNotices: {},
     userInfo: {},
     notifications: [],
     serverShutdown: null,
