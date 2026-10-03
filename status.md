@@ -1,3 +1,4 @@
 - 15:24Z started f1011; read brief/task/rv3 → fix PR 10
 - 15:30Z PR10: semver shim (1da0e8b) + public-server URL (631bd64) pushed → PR10 gate
 - 15:39Z PR10 tip 4119363 pushed; typecheck/lint/unit/integration green → rebase+fold PR11
+- 15:46Z PR11 rebased onto PR10 4119363, c1e3fa8/900ed97 spec squashed, a6642c3 folded into 15f622b/d6930a9/8c9212e/900ed97 (tree == old tip + PR10 diff), every commit typechecks; pushed ca08d9d → join-error owner, stale failures, keyboard
