@@ -10,13 +10,26 @@ import { GamePage, LoginPage } from '../pages';
 // Enter), so a regression in any step's focusability or key handling fails
 // here. Account creation and the host's game are mouse-driven setup.
 
-// Press Tab until `target` has focus, proving it is in the tab order.
+// Press Tab (Shift+Tab when the target comes earlier in the document) until
+// `target` has focus, proving it is in the tab order. Never relies on
+// wrapping past the end of the page: Firefox wraps into the browser chrome.
 async function tabTo(page: Page, target: Locator, maxPresses = 60): Promise<void> {
+  await target.waitFor();
   for (let i = 0; i < maxPresses; i++) {
-    if (await target.evaluate((element) => element === document.activeElement).catch(() => false)) {
+    const position = await target.evaluate((element) => {
+      const active = document.activeElement;
+      if (element === active) {
+        return 'focused';
+      }
+      if (!active || active === document.body) {
+        return 'after';
+      }
+      return active.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_PRECEDING ? 'before' : 'after';
+    });
+    if (position === 'focused') {
       return;
     }
-    await page.keyboard.press('Tab');
+    await page.keyboard.press(position === 'before' ? 'Shift+Tab' : 'Tab');
   }
   throw new Error(`Tab never reached ${target}`);
 }
@@ -69,7 +82,10 @@ test('log in, join a room and join a game with the keyboard only', async ({ newC
     await page.keyboard.press('ArrowDown');
   }
   await expect(gameRow).toBeFocused();
+  // Tabbing in only focuses the row; Space selects it, which enables Join.
+  await page.keyboard.press('Space');
   await expect(gameRow).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('button', { name: /^join$/i })).toBeEnabled();
   await page.keyboard.press('Enter');
 
   await new GamePage(page).deckSelect.waitForOpen();
