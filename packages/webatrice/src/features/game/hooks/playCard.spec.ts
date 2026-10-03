@@ -103,3 +103,26 @@ describe('autoPlayCard — "Play all nonlands onto the stack"', () => {
     await expect(autoPlayCard({ ...baseArgs, webClient, sourcePlayerId: 1 })).resolves.toBe(ZoneName.STACK);
   });
 });
+
+describe('playCardViaTableRow — row placement (card-database policy)', () => {
+  // Golden wire rows: the visual row from cardPlacement, inverted once on a mirrored board.
+  it.each([
+    ['0', false, ZoneName.TABLE, 2],
+    ['0', true, ZoneName.TABLE, 0],
+    ['1', false, ZoneName.TABLE, 1],
+    ['1', true, ZoneName.TABLE, 1],
+    ['2', false, ZoneName.TABLE, 0],
+    ['2', true, ZoneName.TABLE, 2],
+    ['3', true, ZoneName.STACK, 0],
+    ['9', false, ZoneName.TABLE, 0],
+    ['x', true, ZoneName.TABLE, 2],
+    [undefined, false, ZoneName.TABLE, 0],
+  ])('tablerow %j (inverted: %s) plays to %s row %i', async (raw, isInverted, zone, y) => {
+    vi.mocked(CardDTO.get).mockResolvedValue((raw === undefined ? undefined : { tablerow: { value: raw } }) as never);
+    const { webClient, moveCard } = makeWebClient();
+
+    await playCardViaTableRow({ ...baseArgs, isInverted, webClient, sourcePlayerId: 1 });
+
+    expect(moveCard).toHaveBeenCalledWith(1, expect.objectContaining({ targetZone: zone, x: 0, y }), undefined);
+  });
+});
