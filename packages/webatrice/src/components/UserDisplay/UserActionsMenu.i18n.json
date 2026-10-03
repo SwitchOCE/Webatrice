@@ -3,6 +3,7 @@
     "label": "Actions for {name}",
     "privateChat": "Private chat",
     "viewPublicDecks": "View this user's public decks",
+    "viewPublicDecksSelf": "Your own decks are in My Decks.",
     "addBuddy": "Add to Buddy List",
     "removeBuddy": "Remove from Buddy List",
     "addIgnore": "Add to Ignore List",

@@ -50,6 +50,7 @@
       "spam": "Repeated unwanted messages or advertisements",
       "other": "Any behavior not covered by the above categories"
     },
-    "menuItem": "Report user"
+    "menuItem": "Report user",
+    "menuItemSelf": "You can't report yourself."
   }
 }

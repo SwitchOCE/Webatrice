@@ -12,7 +12,8 @@
       "promoteJudge": "Promote user to judge",
       "demoteJudge": "Demote user from judge",
       "promoteDeveloper": "Promote user to developer",
-      "demoteDeveloper": "Demote user from developer"
+      "demoteDeveloper": "Demote user from developer",
+      "self": "You can't use moderator actions on yourself."
     },
     "common": {
       "ok": "OK",
