@@ -10,6 +10,7 @@ import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../S
 import Card from '../SeatCard/SeatCard';
 import type { PlayerCardViewModel } from '../PlayerBoard/playerBoard.types';
 import { layoutVerticalHand } from './verticalHandLayout';
+import { OVER_ART_SHADOW_SMALL, SELECTED_RING } from '../seatColors/seatColors';
 
 /**
  * Hand — every player gets one. Desktop's Appearance › Hand layout picks a
@@ -95,7 +96,7 @@ export default function HandZone() {
           cursor: 'grab',
           opacity: dragging ? 0 : 1,
           boxShadow: selected
-            ? '0 0 0 2px rgb(59 130 246), 0 0 12px 2px rgb(59 130 246 / 0.6)'
+            ? SELECTED_RING
             : undefined,
           borderRadius: CARD_CORNER_RADIUS,
         }}
@@ -171,7 +172,7 @@ export default function HandZone() {
             + 'text-[1.3rem] font-bold text-text-primary '
             + 'pointer-events-none tabular-nums'
           }
-          style={{ textShadow: '0 0 3px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1)' }}
+          style={{ textShadow: OVER_ART_SHADOW_SMALL }}
         >
           {handSize}
         </span>
@@ -196,7 +197,7 @@ export default function HandZone() {
           + 'text-[1.3rem] font-bold text-text-primary '
           + 'pointer-events-none tabular-nums'
         }
-        style={{ textShadow: '0 0 3px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1)' }}
+        style={{ textShadow: OVER_ART_SHADOW_SMALL }}
       >
         {handSize}
       </span>

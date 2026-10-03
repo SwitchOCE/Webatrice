@@ -35,6 +35,25 @@
   /* Board: life-change and damage flashes, drawn as translucent washes (desktop's colours). */
   --seat-flash-gain: 52 224 122;    /* #34E07A */
   --seat-flash-loss: 239 68 68;     /* #EF4444 */
+  /* Board: the rings around a selected card, an attach source and a card that doesn't untap.
+     Non-text indicators, so at least 3:1 on the surfaces they sit on. */
+  --seat-select: 59 130 246;        /* #3B82F6 */
+  --seat-attach: 34 197 94;         /* #22C55E */
+  --seat-doesnt-untap: 251 191 36;  /* #FBBF24 */
+  /* Text over card art and avatars: light on a dark pill or shadow in either palette, since
+     the art underneath does not follow the theme. */
+  --over-art-text: 255 255 255;     /* #FFFFFF */
+  --over-art-backdrop: 0 0 0;       /* #000000 */
+  /* A modified P/T, over art (desktop's orange). */
+  --pt-modified: 255 150 0;         /* #FF9600 */
+  /* Mana pool pips, in pool order (W U B R G, colorless, other/storm). */
+  --mana-w: 249 241 200;            /* #F9F1C8 */
+  --mana-u: 59 130 246;             /* #3B82F6 */
+  --mana-b: 75 85 99;               /* #4B5563 */
+  --mana-r: 239 68 68;              /* #EF4444 */
+  --mana-g: 16 185 129;             /* #10B981 */
+  --mana-c: 156 163 175;            /* #9CA3AF */
+  --mana-o: 249 115 22;             /* #F97316 */
 }
 
 /* Same roles, inverted: white surfaces, near-black text, and the
@@ -59,4 +78,23 @@
   /* Board: life-change and damage flashes, drawn as translucent washes (desktop's colours). */
   --seat-flash-gain: 52 224 122;    /* #34E07A */
   --seat-flash-loss: 239 68 68;     /* #EF4444 */
+  /* Board: the rings around a selected card, an attach source and a card that doesn't untap.
+     Non-text indicators, so at least 3:1 on the surfaces they sit on. */
+  --seat-select: 59 130 246;        /* #3B82F6 */
+  --seat-attach: 21 128 61;         /* #15803D */
+  --seat-doesnt-untap: 180 83 9;    /* #B45309 */
+  /* Text over card art and avatars: light on a dark pill or shadow in either palette, since
+     the art underneath does not follow the theme. */
+  --over-art-text: 255 255 255;     /* #FFFFFF */
+  --over-art-backdrop: 0 0 0;       /* #000000 */
+  /* A modified P/T, over art (desktop's orange). */
+  --pt-modified: 255 150 0;         /* #FF9600 */
+  /* Mana pool pips, in pool order (W U B R G, colorless, other/storm). */
+  --mana-w: 249 241 200;            /* #F9F1C8 */
+  --mana-u: 59 130 246;             /* #3B82F6 */
+  --mana-b: 75 85 99;               /* #4B5563 */
+  --mana-r: 239 68 68;              /* #EF4444 */
+  --mana-g: 16 185 129;             /* #10B981 */
+  --mana-c: 156 163 175;            /* #9CA3AF */
+  --mana-o: 249 115 22;             /* #F97316 */
 }

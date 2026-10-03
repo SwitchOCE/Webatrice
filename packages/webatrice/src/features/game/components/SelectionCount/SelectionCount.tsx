@@ -2,7 +2,8 @@ import type { CSSProperties } from 'react';
 import { usePreference } from '@app/hooks';
 
 // Desktop's count labels (GameView): white bold monospace on translucent black.
-const LABEL_CLASS = 'pointer-events-none select-none font-mono font-bold text-white bg-black/60 rounded-[3px] px-0.5 py-px';
+const LABEL_CLASS =
+  'pointer-events-none select-none font-mono font-bold text-over-art-text bg-over-art-backdrop/60 rounded-[3px] px-0.5 py-px';
 
 /** Desktop's padding between the drag count and the band's edges. */
 const LABEL_PADDING_PX = 4;

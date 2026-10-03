@@ -23,6 +23,7 @@ import {
   type ZoneViewCardMetadata,
 } from './zoneViewSort';
 import { readShuffleOnClose, writeShuffleOnClose } from './zoneViewPreferences';
+import { MARQUEE_BORDER, MARQUEE_FILL, SELECTED_RING } from '../../components/ui/seatColors/seatColors';
 
 const TOOLBAR_SELECT_CLASS =
   'px-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm text-text-primary '
@@ -949,7 +950,7 @@ export default function ZoneViewPanel({
                                 : `calc(${CARD_HEIGHT} * ${PILE_STEP_FRACTION})`,
                               borderRadius: '7.5%',
                               boxShadow: selected
-                                ? '0 0 0 2px rgb(59 130 246), 0 0 12px 2px rgb(59 130 246 / 0.6)'
+                                ? SELECTED_RING
                                 : undefined,
                               opacity: dragging ? 0 : 1,
                               touchAction: onCardPointerDown ? 'none' : undefined,
@@ -1006,7 +1007,7 @@ export default function ZoneViewPanel({
                               height: CARD_HEIGHT,
                               borderRadius: '7.5%',
                               boxShadow: selected
-                                ? '0 0 0 2px rgb(59 130 246), 0 0 12px 2px rgb(59 130 246 / 0.6)'
+                                ? SELECTED_RING
                                 : undefined,
                               opacity: dragging ? 0 : 1,
                               touchAction: onCardPointerDown ? 'none' : undefined,
@@ -1039,8 +1040,8 @@ export default function ZoneViewPanel({
             top: Math.min(marquee.y1, marquee.y2),
             width: Math.abs(marquee.x2 - marquee.x1),
             height: Math.abs(marquee.y2 - marquee.y1),
-            border: '1px dashed rgb(59 130 246)',
-            background: 'rgb(59 130 246 / 0.12)',
+            border: MARQUEE_BORDER,
+            background: MARQUEE_FILL,
             zIndex: 1001,
           }}
         />
