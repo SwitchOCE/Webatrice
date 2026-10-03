@@ -80,6 +80,6 @@ describe('useEditTokens', () => {
       await result.current.addToken('Angel').catch(() => undefined);
     });
     expect(result.current.tokens.map((t) => t.name.value)).toEqual(['Spirit']);
-    expect(result.current.error).toBe('quota');
+    expect(result.current.error).toEqual({ key: 'save', detail: 'quota' });
   });
 });

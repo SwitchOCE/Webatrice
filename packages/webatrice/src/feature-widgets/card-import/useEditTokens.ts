@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Token } from '@app/services';
 
 import { cardDatabaseService, CUSTOM_TOKEN_SET } from './CardDatabaseService';
+import { toCardDataError, type CardDataError } from './cardDataError';
 import { writeCockatriceXml } from './CockatriceXmlWriter';
 import { applyTokenData, createCustomToken, type TokenData } from './customTokens';
 
@@ -10,7 +11,7 @@ export type AddTokenOutcome = 'added' | 'conflict';
 
 export interface EditTokens {
   loading: boolean;
-  error: string | null;
+  error: CardDataError | null;
   tokens: Token[];
   selected: Token | null;
   select: (name: string | null) => void;
@@ -33,7 +34,7 @@ export function useEditTokens(): EditTokens {
   const [tokens, setTokens] = useState<Token[]>([]);
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<CardDataError | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,7 +45,7 @@ export function useEditTokens(): EditTokens {
       }
     }).catch((e: Error) => {
       if (!cancelled) {
-        setError(e.message);
+        setError(toCardDataError('load', e));
         setLoading(false);
       }
     });
@@ -59,7 +60,7 @@ export function useEditTokens(): EditTokens {
       await cardDatabaseService.saveCustomTokens(next, removed);
       setTokens(next);
     } catch (e) {
-      setError((e as Error).message);
+      setError(toCardDataError('save', e));
       throw e;
     }
   }, []);

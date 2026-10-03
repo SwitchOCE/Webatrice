@@ -18,6 +18,10 @@
     },
     "message": {
       "reset": "Download URLs have been reset."
+    },
+    "error": {
+      "load": "Could not read the download URLs: {error}",
+      "save": "Could not save the download URLs: {error}"
     }
   }
 }

@@ -126,7 +126,11 @@ const CardSourcesSettings = ({ labelId, describedBy }: CardSourcesSettingsProps)
       </details>
 
       {message && <div role="status">{message}</div>}
-      {sources.error && <div className="cardDatabase-error" role="alert">{sources.error}</div>}
+      {sources.error && (
+        <div className="cardDatabase-error" role="alert">
+          {t(`CardSourcesSettings.error.${sources.error.key}`, { error: sources.error.detail })}
+        </div>
+      )}
     </div>
   );
 };
