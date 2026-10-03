@@ -1,0 +1,1 @@
+- 16:01Z started; base 0412500, read brief/task/PR/plan → survey PlayerBox + setup gate
