@@ -1,8 +1,8 @@
 import type { ServerInfo_DeckStorage_Folder } from '@cockatrice/sockatrice/generated';
 
 /**
- * A deck file from the Servatrice deck-storage tree, flattened for the
- * MyDecks list. Folders are intentionally flattened into a `path` label.
+ * A deck file from the Servatrice deck-storage tree, with the path of the
+ * folder it sits in (see `deckFolders` for the folders themselves).
  */
 export interface FlatDeck {
   id: number;
@@ -33,17 +33,6 @@ export function flattenFolder(folder: ServerInfo_DeckStorage_Folder, pathPrefix:
     }
   }
   return out;
-}
-
-/**
- * Every deck in the tree, newest first (by creation time — the list has
- * no `updated_at`).
- */
-export function flattenDeckTree(root: ServerInfo_DeckStorage_Folder | undefined): FlatDeck[] {
-  if (!root) {
-    return [];
-  }
-  return flattenFolder(root, '').sort((a, b) => b.creationTime - a.creationTime);
 }
 
 /**
