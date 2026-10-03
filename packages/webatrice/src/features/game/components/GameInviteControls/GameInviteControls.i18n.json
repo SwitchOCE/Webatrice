@@ -6,6 +6,12 @@
     "linkCopied": "Game link copied",
     "linkCopyFailed": "Could not copy the game link",
     "inviteSent": "Invitation sent to {name}",
+    "inviteFailed": {
+      "ignoring": "{name} is ignoring you, so the invitation was not delivered",
+      "offline": "{name} is no longer online, so the invitation was not delivered",
+      "rejected": "The server did not deliver the invitation to {name}",
+      "notSent": "The invitation to {name} was not sent: {reason}"
+    },
     "message": "Join my game (#{gameId}):",
     "messageWithDescription": "Join my game \"{description}\" (#{gameId}):",
     "dialog": {
