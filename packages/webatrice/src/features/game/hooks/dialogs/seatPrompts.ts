@@ -98,7 +98,7 @@ export function cardCounterPrompt({ cardName, counterLetter, current, onSubmit }
     description: cardName,
     initialValue: String(current),
     submitLabel: 'Set',
-    inputMode: 'numeric',
+    type: 'number',
     selectOnFocus: true,
     validate: (value) => {
       const n = parseWhole(value);
@@ -130,7 +130,7 @@ export function libraryCountPrompt({ title, submitLabel, deckSize, initial, onSu
     description: `Library size: ${size}`,
     initialValue: String(initial),
     submitLabel,
-    inputMode: 'numeric',
+    type: 'number',
     selectOnFocus: true,
     validate: (value) => {
       if (size <= 0) {
@@ -162,7 +162,7 @@ export function moveXFromTopPrompt({ cardName, deckSize, initial, onSubmit }: Mo
     description: cardName,
     initialValue: String(initial),
     submitLabel: 'Move',
-    inputMode: 'numeric',
+    type: 'number',
     selectOnFocus: true,
     validate: (value) => {
       const n = parseWhole(value);

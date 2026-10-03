@@ -46,6 +46,7 @@ import {
   annotationPrompt,
   cardCounterPrompt,
   expressionPrompt,
+  libraryCountPrompt,
   powerToughnessPrompt,
 } from '../../hooks/dialogs/seatPrompts';
 import type {
@@ -877,123 +878,6 @@ const CardBackZone = forwardRef<
       }
       );
 
-/** Mirrors Cockatrice desktop's `actRequestViewTopCardsDialog`
- *  / `actRequestViewBottomCardsDialog` (player_actions.cpp:177-197):
- *  prompts for how many cards from the top/bottom of the library to
- *  reveal. Submit fires `Command_DumpZone(zone=DECK, numberCards=N,
- *  isReversed)` and the server response populates `revealedCards`. */
-function ViewNCardsModal({
-  isReversed,
-  deckSize,
-  initial,
-  onCancel,
-  onConfirm,
-  titleOverride,
-  submitLabel,
-}: {
-  isReversed: boolean;
-  deckSize: number;
-  initial: number;
-  onCancel: () => void;
-  onConfirm: (value: number) => void;
-  /** Optional title override. When set, wins over the isReversed-derived
-   *  default — useful for the "Reveal top cards to <player>" flow which
-   *  shares this modal but wants "Reveal top N of library to Bob". */
-  titleOverride?: string;
-  /** Optional submit-button label. Defaults to "View" for the original
-   *  view-top / view-bottom flow. The Top/Bottom-of-library submenus
-   *  (Move N to grave/exile, Draw bottom N, Shuffle top/bottom N) reuse
-   *  this modal with verb-appropriate labels ("Move", "Draw", "Shuffle"). */
-  submitLabel?: string;
-}) {
-  const [draft, setDraft] = useState(String(initial));
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onCancel();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onCancel]);
-  const parsed = parseInt(draft, 10);
-  const valid = Number.isFinite(parsed) && parsed >= 1;
-  const title = titleOverride ??
-    (isReversed
-      ? 'View bottom cards of library'
-      : 'View top cards of library');
-  return (
-    <div
-      className="fixed inset-0 z-[400] flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-    >
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onCancel}
-        aria-hidden
-      />
-      <div className="relative w-full max-w-sm rounded-lg bg-bg-surface border border-border-subtle shadow-glow overflow-hidden">
-        <div className="px-4 py-3 border-b border-border-subtle">
-          <h2 className="font-modern text-base font-semibold text-text-primary">
-            {title}
-          </h2>
-          <p className="text-xs text-text-muted mt-0.5">
-            Library size: {Math.max(0, deckSize)}
-          </p>
-        </div>
-        <form
-          className="px-4 py-3 flex flex-col gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!valid) {
-              return;
-            }
-            const clamped = Math.min(parsed, Math.max(0, deckSize));
-            if (clamped <= 0) {
-              return;
-            }
-            onConfirm(clamped);
-          }}
-        >
-          <label className="text-xs text-text-secondary">
-            Number of cards
-          </label>
-          <input
-            autoFocus
-            type="number"
-            min={1}
-            max={Math.max(1, deckSize)}
-            step={1}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onFocus={(e) => e.currentTarget.select()}
-            className={DIALOG_INPUT_CLASS}
-          />
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className={DIALOG_SECONDARY_BUTTON_CLASS}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!valid || deckSize <= 0}
-              className={DIALOG_SUBMIT_BUTTON_CLASS}
-            >
-              {submitLabel ?? 'View'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
 /** Cockatrice's `DlgMoveTopCardsUntil`. Reveals library cards from
  *  the top one at a time, moving each to the stack, until N cards
  *  matching the name are found (or the library runs out). Optional
@@ -1112,108 +996,6 @@ function MoveTopUntilModal({
               className={DIALOG_SUBMIT_BUTTON_CLASS}
             >
               Start
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-/** Mirrors Cockatrice desktop's `actRequestDrawCardsDialog`
- *  (player_actions.cpp:356-361): prompts for how many cards to draw
- *  from the top of the library. Submit sends Command_DrawCards with
- *  the entered number. Escape cancels; Enter submits. */
-function DrawCardsModal({
-  deckSize,
-  initial,
-  onCancel,
-  onConfirm,
-}: {
-  deckSize: number;
-  initial: number;
-  onCancel: () => void;
-  onConfirm: (value: number) => void;
-}) {
-  const [draft, setDraft] = useState(String(initial));
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onCancel();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onCancel]);
-  const parsed = parseInt(draft, 10);
-  const valid = Number.isFinite(parsed) && parsed >= 1;
-  return (
-    <div
-      className="fixed inset-0 z-[400] flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Draw cards"
-    >
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onCancel}
-        aria-hidden
-      />
-      <div className="relative w-full max-w-sm rounded-lg bg-bg-surface border border-border-subtle shadow-glow overflow-hidden">
-        <div className="px-4 py-3 border-b border-border-subtle">
-          <h2 className="font-modern text-base font-semibold text-text-primary">
-            Draw cards
-          </h2>
-          <p className="text-xs text-text-muted mt-0.5">
-            Library size: {Math.max(0, deckSize)}
-          </p>
-        </div>
-        <form
-          className="px-4 py-3 flex flex-col gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!valid) {
-              return;
-            }
-            // Clamp to library size — Cockatrice's server also clamps,
-            // but showing the clamped intent here avoids a "why did I
-            // only draw 5 when I asked for 100" surprise.
-            const clamped = Math.min(parsed, Math.max(0, deckSize));
-            if (clamped <= 0) {
-              return;
-            }
-            onConfirm(clamped);
-          }}
-        >
-          <label className="text-xs text-text-secondary">
-            Number of cards
-          </label>
-          <input
-            autoFocus
-            type="number"
-            min={1}
-            max={Math.max(1, deckSize)}
-            step={1}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onFocus={(e) => e.currentTarget.select()}
-            className={DIALOG_INPUT_CLASS}
-          />
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className={DIALOG_SECONDARY_BUTTON_CLASS}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!valid || deckSize <= 0}
-              className={DIALOG_SUBMIT_BUTTON_CLASS}
-            >
-              Draw
             </button>
           </div>
         </form>
@@ -2318,13 +2100,13 @@ function PlayerBox(
     if (!isSelf || deckCount <= 0) {
       return;
     }
-    setViewNCardsModal({ isReversed: false, deckSize: deckCount });
+    openViewLibraryCountPrompt({ isReversed: false, deckSize: deckCount });
   };
   seatShortcuts['game.viewBottomCards'] = () => {
     if (!isSelf || deckCount <= 0) {
       return;
     }
-    setViewNCardsModal({ isReversed: true, deckSize: deckCount });
+    openViewLibraryCountPrompt({ isReversed: true, deckSize: deckCount });
   };
 
   // Create token (Ctrl+K, rebound from Cockatrice's Ctrl+T).
@@ -3442,19 +3224,44 @@ function PlayerBox(
   const [moveXModal, setMoveXModal] = useState<
     { cardId: number; cardName: string; deckSize: number } | null
   >(null);
-  // "Draw cards..." modal — Cockatrice's `actRequestDrawCardsDialog`.
-  // Snapshots deck size at open time; the DrawCardsModal clamps input
-  // to that snapshot so a concurrent draw doesn't move the goalposts.
-  const [drawCardsModal, setDrawCardsModal] = useState<
-    { deckSize: number } | null
-  >(null);
-  // "View top / bottom cards of library..." modal + dialog. The modal
-  // asks for N, then the dialog opens with `revealedDeckCards` after
-  // the server responds to Command_DumpZone. `isReversed` distinguishes
-  // top (false) from bottom (true).
-  const [viewNCardsModal, setViewNCardsModal] = useState<
-    { isReversed: boolean; deckSize: number } | null
-  >(null);
+  // Library count prompts: Draw cards..., View top / bottom cards..., Reveal
+  // top cards to..., and the Top / Bottom of library "N cards" items. Each
+  // snapshots the library size when it opens and clamps the answer to it, so
+  // a concurrent draw doesn't move the goalposts while the user types.
+  // Defaults: 1 for Draw cards (desktop's actRequestDrawCardsDialog), else 3.
+  const countDefault = (deckSize: number) => Math.min(3, Math.max(1, deckSize));
+  const openCountPrompt = ({ title, submitLabel, deckSize, onSubmit }: {
+    title: string;
+    submitLabel: string;
+    deckSize: number;
+    onSubmit: (n: number) => void;
+  }) => openPrompt(libraryCountPrompt({ title, submitLabel, deckSize, initial: countDefault(deckSize), onSubmit }));
+  const openDrawCardsPrompt = ({ deckSize }: { deckSize: number }) =>
+    openPrompt(libraryCountPrompt({ title: 'Draw cards', submitLabel: 'Draw', deckSize, initial: 1, onSubmit: (n) => draw(n) }));
+  // View top / bottom: Command_DumpZone for N cards, then the zone view opens
+  // on the revealed snapshot (desktop actViewTopCards / actViewBottomCards).
+  const openViewLibraryCountPrompt = ({ isReversed, deckSize }: { isReversed: boolean; deckSize: number }) =>
+    openCountPrompt({
+      title: isReversed ? 'View bottom cards of library' : 'View top cards of library',
+      submitLabel: 'View',
+      deckSize,
+      onSubmit: (n) => {
+        onDumpTopCards?.(n, isReversed);
+        setTopCardsView({ isReversed });
+      },
+    });
+  // Reveal top N to a player: Command_RevealCards via onRevealTopCards
+  // (`-1` = all players, sent with no player_id).
+  const openRevealTopCardsPrompt = ({ targetPlayerId, targetName, deckSize }: {
+    targetPlayerId: number;
+    targetName: string;
+    deckSize: number;
+  }) => openCountPrompt({
+    title: `Reveal top cards of library to ${targetName}`,
+    submitLabel: 'View',
+    deckSize,
+    onSubmit: (n) => onRevealTopCards?.(targetPlayerId, n),
+  });
   // The ViewTopCardsDialog carries the direction so its header can
   // read "Top N" or "Bottom N" correctly. `null` = closed.
   const [topCardsView, setTopCardsView] = useState<{ isReversed: boolean } | null>(
@@ -3504,30 +3311,6 @@ function PlayerBox(
     closeViewGraveyard();
   }, [viewGraveyardOpen, isSelf, closeViewGraveyard]);
 
-  // "Reveal top cards to..." prompt. Reuses ViewNCardsModal — the
-  // input math (deck-size-clamped positive integer) is identical to
-  // the "View top cards" flow. `targetPlayerId === -1` means "All
-  // players" and translates to no player_id on the wire (proto2 field
-  // presence trap). `deckSize` is snapshotted at open time so a
-  // concurrent draw doesn't move the max value while the user types.
-  const [revealTopCardsPrompt, setRevealTopCardsPrompt] = useState<
-    { targetPlayerId: number; targetName: string; deckSize: number } | null
-  >(null);
-  // Generic numeric-prompt for the Top-of-library / Bottom-of-library
-  // multi-card submenu items (Move top N to grave/exile ± face-down,
-  // Draw bottom N, Move bottom N to grave/exile ± face-down, Shuffle
-  // top/bottom N). All reuse ViewNCardsModal — same input math (positive
-  // integer clamped to deck size) — with a per-action title, submit
-  // label, and inline `onSubmit` that fires the wire. Snapshotting the
-  // deck size at open time matches other prompts here.
-  const [countPrompt, setCountPrompt] = useState<
-    {
-      title: string;
-      submitLabel: string;
-      deckSize: number;
-      onSubmit: (n: number) => void;
-        } | null
-        >(null);
   // "Set counters (X)..." prompt, seeded with the clicked (or first
   // selected) card's value. The target ids are snapshotted when it opens;
   // the answer goes to every one of them in one atomic CommandContainer, as
@@ -4245,7 +4028,7 @@ function PlayerBox(
     if (!onMoveCards || size <= 0) {
       return;
     }
-    setCountPrompt({
+    openCountPrompt({
       title,
       submitLabel: 'Move',
       deckSize: size,
@@ -4275,7 +4058,7 @@ function PlayerBox(
     if (!onMoveCards || size <= 0) {
       return;
     }
-    setCountPrompt({
+    openCountPrompt({
       title,
       submitLabel,
       deckSize: size,
@@ -4320,7 +4103,7 @@ function PlayerBox(
         {
           label: 'All players',
           onClick: () =>
-            setRevealTopCardsPrompt({
+            openRevealTopCardsPrompt({
               targetPlayerId: -1,
               targetName: 'all players',
               deckSize: deckCount,
@@ -4330,7 +4113,7 @@ function PlayerBox(
         ...revealTargets.map((t) => ({
           label: t.name,
           onClick: () =>
-            setRevealTopCardsPrompt({
+            openRevealTopCardsPrompt({
               targetPlayerId: t.playerId,
               targetName: t.name,
               deckSize: deckCount,
@@ -4347,7 +4130,7 @@ function PlayerBox(
     },
     {
       label: 'Draw cards...',
-      onClick: () => setDrawCardsModal({ deckSize: deckCount }),
+      onClick: () => openDrawCardsPrompt({ deckSize: deckCount }),
       disabled: deckCount <= 0,
       shortcut: shortcutHints['game.drawMultipleCards'],
     },
@@ -4378,14 +4161,14 @@ function PlayerBox(
     {
       label: 'View top cards of library...',
       onClick: () =>
-        setViewNCardsModal({ isReversed: false, deckSize: deckCount }),
+        openViewLibraryCountPrompt({ isReversed: false, deckSize: deckCount }),
       disabled: deckCount <= 0,
       shortcut: shortcutHints['game.viewTopCards'],
     },
     {
       label: 'View bottom cards of library...',
       onClick: () =>
-        setViewNCardsModal({ isReversed: true, deckSize: deckCount }),
+        openViewLibraryCountPrompt({ isReversed: true, deckSize: deckCount }),
       disabled: deckCount <= 0,
       shortcut: shortcutHints['game.viewBottomCards'],
     },
@@ -4481,7 +4264,7 @@ function PlayerBox(
             if (!onShuffleRange || size <= 0) {
               return;
             }
-            setCountPrompt({
+            openCountPrompt({
               title: 'Shuffle top cards',
               submitLabel: 'Shuffle',
               deckSize: size,
@@ -4591,7 +4374,7 @@ function PlayerBox(
             if (!onShuffleRange || size <= 0) {
               return;
             }
-            setCountPrompt({
+            openCountPrompt({
               title: 'Shuffle bottom cards',
               submitLabel: 'Shuffle',
               deckSize: size,
@@ -5568,7 +5351,7 @@ function PlayerBox(
                 {
                   label: 'Draw cards...',
                   onClick: () =>
-                    setDrawCardsModal({ deckSize: deckCount }),
+                    openDrawCardsPrompt({ deckSize: deckCount }),
                   disabled: deckCount <= 0,
                   shortcut: shortcutHints['game.drawMultipleCards'],
                 },
@@ -5606,7 +5389,7 @@ function PlayerBox(
                 {
                   label: 'View top cards of library...',
                   onClick: () =>
-                    setViewNCardsModal({
+                    openViewLibraryCountPrompt({
                       isReversed: false,
                       deckSize: deckCount,
                     }),
@@ -5621,7 +5404,7 @@ function PlayerBox(
                   // (deckSize-N .. deckSize-1). Reveal dialog labels
                   // and reorder math already branch on isReversed.
                   onClick: () =>
-                    setViewNCardsModal({
+                    openViewLibraryCountPrompt({
                       isReversed: true,
                       deckSize: deckCount,
                     }),
@@ -5684,7 +5467,7 @@ function PlayerBox(
                           {
                             label: 'All players',
                             onClick: () =>
-                              setRevealTopCardsPrompt({
+                              openRevealTopCardsPrompt({
                                 targetPlayerId: -1,
                                 targetName: 'all players',
                                 deckSize: deckCount,
@@ -5694,7 +5477,7 @@ function PlayerBox(
                           ...revealTargets.map((t) => ({
                             label: t.name,
                             onClick: () =>
-                              setRevealTopCardsPrompt({
+                              openRevealTopCardsPrompt({
                                 targetPlayerId: t.playerId,
                                 targetName: t.name,
                                 deckSize: deckCount,
@@ -5792,7 +5575,7 @@ function PlayerBox(
                         ) {
                           return;
                         }
-                        setCountPrompt({
+                        openCountPrompt({
                           title: 'Move top cards to graveyard',
                           submitLabel: 'Move',
                           deckSize: size,
@@ -5826,7 +5609,7 @@ function PlayerBox(
                         ) {
                           return;
                         }
-                        setCountPrompt({
+                        openCountPrompt({
                           title:
                               'Move top cards to graveyard face down',
                           submitLabel: 'Move',
@@ -5865,7 +5648,7 @@ function PlayerBox(
                         ) {
                           return;
                         }
-                        setCountPrompt({
+                        openCountPrompt({
                           title: 'Move top cards to exile',
                           submitLabel: 'Move',
                           deckSize: size,
@@ -5894,7 +5677,7 @@ function PlayerBox(
                         ) {
                           return;
                         }
-                        setCountPrompt({
+                        openCountPrompt({
                           title: 'Move top cards to exile face down',
                           submitLabel: 'Move',
                           deckSize: size,
@@ -5928,7 +5711,7 @@ function PlayerBox(
                         if (!onShuffleRange || size <= 0) {
                           return;
                         }
-                        setCountPrompt({
+                        openCountPrompt({
                           title: 'Shuffle top cards',
                           submitLabel: 'Shuffle',
                           deckSize: size,
@@ -5980,7 +5763,7 @@ function PlayerBox(
                         ) {
                           return;
                         }
-                        setCountPrompt({
+                        openCountPrompt({
                           title: 'Draw bottom cards',
                           submitLabel: 'Draw',
                           deckSize: size,
@@ -6056,7 +5839,7 @@ function PlayerBox(
                         ) {
                           return;
                         }
-                        setCountPrompt({
+                        openCountPrompt({
                           title: 'Move bottom cards to graveyard',
                           submitLabel: 'Move',
                           deckSize: size,
@@ -6086,7 +5869,7 @@ function PlayerBox(
                         ) {
                           return;
                         }
-                        setCountPrompt({
+                        openCountPrompt({
                           title:
                               'Move bottom cards to graveyard face down',
                           submitLabel: 'Move',
@@ -6125,7 +5908,7 @@ function PlayerBox(
                         ) {
                           return;
                         }
-                        setCountPrompt({
+                        openCountPrompt({
                           title: 'Move bottom cards to exile',
                           submitLabel: 'Move',
                           deckSize: size,
@@ -6154,7 +5937,7 @@ function PlayerBox(
                         ) {
                           return;
                         }
-                        setCountPrompt({
+                        openCountPrompt({
                           title: 'Move bottom cards to exile face down',
                           submitLabel: 'Move',
                           deckSize: size,
@@ -6181,7 +5964,7 @@ function PlayerBox(
                         if (!onShuffleRange || size <= 0) {
                           return;
                         }
-                        setCountPrompt({
+                        openCountPrompt({
                           title: 'Shuffle bottom cards',
                           submitLabel: 'Shuffle',
                           deckSize: size,
@@ -7302,30 +7085,6 @@ function PlayerBox(
           );
         })()}
 
-      {/* View top/bottom N cards modal — from the "View top cards of
-          library..." (and eventually "View bottom cards...") library
-          context menu items. Submit dispatches Command_DumpZone with
-          the requested count + direction, then opens the search dialog
-          keyed to the revealed snapshot. */}
-      {viewNCardsModal &&
-        createPortal(
-          <ViewNCardsModal
-            isReversed={viewNCardsModal.isReversed}
-            deckSize={viewNCardsModal.deckSize}
-            initial={Math.min(
-              3,
-              Math.max(1, viewNCardsModal.deckSize),
-            )}
-            onCancel={() => setViewNCardsModal(null)}
-            onConfirm={(value) => {
-              onDumpTopCards?.(value, viewNCardsModal.isReversed);
-              setTopCardsView({ isReversed: viewNCardsModal.isReversed });
-              setViewNCardsModal(null);
-            }}
-          />,
-          document.body,
-        )}
-
       {/* "Put top cards on stack until…" — Cockatrice's aMoveTopCardsUntil.
           Submit kicks off the iterative loop; the useEffect above
           drives the reveal / match / decide cycle on each stackCards
@@ -7338,52 +7097,6 @@ function PlayerBox(
             onConfirm={(args) => {
               setMoveTopUntilModalOpen(false);
               startMoveTopUntil(args);
-            }}
-          />,
-          document.body,
-        )}
-
-      {/* "Reveal top cards to <player>" numeric prompt. Same modal as
-          "View top cards" — same input math, same clamp — with a
-          reveal-specific title. Submit fires Command_RevealCards
-          (via onRevealTopCards); server sends face-up card list to
-          the target (and originator), summary to spectators. Our
-          IncomingRevealDialog picks up the receiver-side popup for
-          anyone in the reveal audience. */}
-      {revealTopCardsPrompt &&
-        createPortal(
-          <ViewNCardsModal
-            isReversed={false}
-            deckSize={revealTopCardsPrompt.deckSize}
-            initial={Math.min(3, Math.max(1, revealTopCardsPrompt.deckSize))}
-            titleOverride={`Reveal top cards of library to ${revealTopCardsPrompt.targetName}`}
-            onCancel={() => setRevealTopCardsPrompt(null)}
-            onConfirm={(value) => {
-              onRevealTopCards?.(revealTopCardsPrompt.targetPlayerId, value);
-              setRevealTopCardsPrompt(null);
-            }}
-          />,
-          document.body,
-        )}
-
-      {/* Generic count prompt for the Top-of-library / Bottom-of-library
-          multi-card submenu items (Move N to grave/exile ± FD, Draw
-          bottom N, Shuffle top/bottom N). Reuses ViewNCardsModal — the
-          input is a positive integer clamped to deck size, same as
-          view/reveal-top-cards. Per-action title, submit label, and
-          inline `onSubmit` come from the menu item that opened it. */}
-      {countPrompt &&
-        createPortal(
-          <ViewNCardsModal
-            isReversed={false}
-            deckSize={countPrompt.deckSize}
-            initial={Math.min(3, Math.max(1, countPrompt.deckSize))}
-            titleOverride={countPrompt.title}
-            submitLabel={countPrompt.submitLabel}
-            onCancel={() => setCountPrompt(null)}
-            onConfirm={(value) => {
-              countPrompt.onSubmit(value);
-              setCountPrompt(null);
             }}
           />,
           document.body,
@@ -7549,23 +7262,6 @@ function PlayerBox(
           }}
         />
       )}
-
-      {/* Draw cards modal — from the "Draw cards..." library context
-          menu item. Submit calls `draw(N)` which fires the same wire
-          + local flow used by Ctrl+D. */}
-      {drawCardsModal &&
-        createPortal(
-          <DrawCardsModal
-            deckSize={drawCardsModal.deckSize}
-            initial={Math.min(1, Math.max(1, drawCardsModal.deckSize))}
-            onCancel={() => setDrawCardsModal(null)}
-            onConfirm={(value) => {
-              draw(value);
-              setDrawCardsModal(null);
-            }}
-          />,
-          document.body,
-        )}
 
       {/* "Create token..." modal — from the battlefield context menu's
           Create-token item. Submit fires Command_CreateToken via
