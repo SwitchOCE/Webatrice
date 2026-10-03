@@ -215,6 +215,14 @@ export interface IGameResponse {
   zonePropertiesChanged(gameId: number, playerId: number, data: Event_ChangeZoneProperties): void;
   /** Event_GameLogNotice (3.1): a droppable, log-only notice about `playerId`. */
   gameLogNotice?(gameId: number, playerId: number, noticeType: Event_GameLogNotice_NoticeType): void;
+  /**
+   * A replay is (re)started in the local game `gameId`: create it, or reset it
+   * for a rewind, from the replay's `game_info`. Raised by `WebClient.loadReplayGame`,
+   * never by the server.
+   */
+  replayGameLoaded?(gameId: number, gameInfo: ServerInfo_Game): void;
+  /** The replay played into the local game `gameId` was closed. Raised by `WebClient.unloadReplayGame`. */
+  replayGameUnloaded?(gameId: number): void;
 }
 
 /** Admin commands whose non-OK response the desktop client reports to the admin. */

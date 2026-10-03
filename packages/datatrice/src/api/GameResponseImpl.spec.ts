@@ -23,6 +23,7 @@ import {
   Event_SetCounterSchema,
   Event_ShuffleSchema,
   ServerInfo_CardSchema,
+  ServerInfo_GameSchema,
   ServerInfo_PlayerPropertiesSchema,
 } from '@cockatrice/sockatrice/generated';
 import { Actions as GameActions } from '../store/games/game.actions';
@@ -265,5 +266,18 @@ describe('GameResponseImpl', () => {
     expect(dispatch).toHaveBeenCalledWith(GameActions.gameLogNotice({
       gameId: 7, playerId: 3, noticeType: Event_GameLogNotice_NoticeType.UNDO_DRAW_FAILED,
     }));
+  });
+
+  it('replayGameLoaded dispatches the replayGameLoaded action', () => {
+    const { impl, dispatch } = setup();
+    const gameInfo = create(ServerInfo_GameSchema, { gameId: 7, description: 'recorded' });
+    impl.replayGameLoaded(-1001, gameInfo);
+    expect(dispatch).toHaveBeenCalledWith(GameActions.replayGameLoaded({ gameId: -1001, gameInfo }));
+  });
+
+  it('replayGameUnloaded dispatches the replayGameUnloaded action', () => {
+    const { impl, dispatch } = setup();
+    impl.replayGameUnloaded(-1001);
+    expect(dispatch).toHaveBeenCalledWith(GameActions.replayGameUnloaded({ gameId: -1001 }));
   });
 });
