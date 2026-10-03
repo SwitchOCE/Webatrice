@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 
 import GameSelector from '../../../src/features/rooms/components/GameSelector/GameSelector';

@@ -41,7 +41,7 @@ import {
   deliverMessage,
 } from '../helpers/protobuf-builders';
 import { findLastSessionCommand, findLastRoomCommand, captureAllOutbound } from '../helpers/command-capture';
-import { fromBinary, hasExtension, getExtension } from '@bufbuild/protobuf';
+import { hasExtension, getExtension } from '@bufbuild/protobuf';
 
 function makeRoom(overrides: Partial<{
   roomId: number;

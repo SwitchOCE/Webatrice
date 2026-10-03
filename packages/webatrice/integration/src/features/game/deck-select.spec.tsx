@@ -2,7 +2,12 @@ import { act, waitFor, screen } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 import { describe, expect, it } from 'vitest';
 
-import { Event_GameStateChangedSchema, ServerInfo_PlayerPropertiesSchema, ServerInfo_PlayerSchema, ServerInfo_UserSchema } from '@cockatrice/sockatrice/generated';
+import {
+  Event_GameStateChangedSchema,
+  ServerInfo_PlayerPropertiesSchema,
+  ServerInfo_PlayerSchema,
+  ServerInfo_UserSchema,
+} from '@cockatrice/sockatrice/generated';
 import { store } from '../../helpers/setup';
 import { games } from '@cockatrice/datatrice';
 
