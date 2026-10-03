@@ -1,8 +1,17 @@
 /* Design tokens ported from fancy webatrice. Stored as space-separated
    RGB channels so Tailwind's <alpha-value> slot works, e.g.
-   rgb(var(--accent-primary) / 0.35). Only the dark palette exists. */
+   rgb(var(--accent-primary) / 0.35).
 
-:root {
+   @critical Keep in sync with src/services/theme/palettes.ts, which feeds
+   the MUI theme and is checked against this file (palettes.spec.ts).
+
+   The palette follows <html data-theme>, which the appearance preference
+   (Light / Dark / System) sets at boot and on every change. Dark is the
+   default so a page without the attribute keeps the original look. */
+
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
   --bg-base: 20 16 31;              /* #14101F */
   --bg-surface: 31 24 48;           /* #1F1830 */
   --bg-elevated: 42 33 64;          /* #2A2140 */
@@ -18,4 +27,29 @@
      as "off" rather than "dimmer purple". Warm-neutral gray with
      ~5:1 contrast on bg-surface — legible, obviously not active. */
   --text-disabled: 168 158 165;     /* #A89EA5 */
+  /* Status text: errors, success notes, warnings. */
+  --status-danger: 248 113 113;     /* #F87171 */
+  --status-success: 52 211 153;     /* #34D399 */
+  --status-warning: 250 204 21;     /* #FACC15 */
+}
+
+/* Same roles, inverted: white surfaces, near-black text, and the
+   accent darkened one step so it keeps >= 4.5:1 on white. */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg-base: 246 243 250;           /* #F6F3FA */
+  --bg-surface: 255 255 255;        /* #FFFFFF */
+  --bg-elevated: 238 233 245;       /* #EEE9F5 */
+  --border-subtle: 220 211 233;     /* #DCD3E9 */
+  --border-strong: 180 166 207;     /* #B4A6CF */
+  --accent-primary: 107 70 193;     /* #6B46C1 */
+  --accent-primary-hover: 85 60 154; /* #553C9A */
+  --accent-secondary: 159 122 234;  /* #9F7AEA */
+  --text-primary: 29 22 48;         /* #1D1630 */
+  --text-secondary: 70 60 92;       /* #463C5C */
+  --text-muted: 103 93 126;         /* #675D7E */
+  --text-disabled: 133 125 132;     /* #857D84 */
+  --status-danger: 185 28 28;       /* #B91C1C */
+  --status-success: 4 120 87;       /* #047857 */
+  --status-warning: 138 89 5;       /* #8A5905 */
 }

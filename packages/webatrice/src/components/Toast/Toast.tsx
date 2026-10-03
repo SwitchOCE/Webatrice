@@ -19,9 +19,8 @@ export interface ToastProps {
   icon?: LucideIcon;
 }
 
-// Severity → icon + accent color. Uses tailwind palette values that
-// contrast well against bg-surface without depending on fancy tokens
-// so a toast severity feels universal, not theme-specific.
+// Severity → icon + accent color. The status tokens keep each severity
+// legible on bg-surface under both palettes.
 const SEVERITY_ICON: Record<ToastSeverity, LucideIcon> = {
   success: CheckCircle,
   info: Info,
@@ -29,10 +28,10 @@ const SEVERITY_ICON: Record<ToastSeverity, LucideIcon> = {
   error: AlertCircle,
 };
 const SEVERITY_COLOR: Record<ToastSeverity, string> = {
-  success: 'text-emerald-400',
-  info: 'text-sky-400',
-  warning: 'text-yellow-400',
-  error: 'text-red-400',
+  success: 'text-success',
+  info: 'text-sky-400 light:text-sky-700',
+  warning: 'text-warning',
+  error: 'text-danger',
 };
 
 /**

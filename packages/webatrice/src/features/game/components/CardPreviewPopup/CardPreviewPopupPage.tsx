@@ -124,7 +124,7 @@ export default function CardPreviewPopupPage() {
         <span
           className={[
             'text-[10px] font-medium',
-            connected ? 'text-emerald-400' : 'text-yellow-400',
+            connected ? 'text-success' : 'text-warning',
           ].join(' ')}
           title={connected
             ? 'Receiving updates from the main window.'

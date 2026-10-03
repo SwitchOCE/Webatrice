@@ -9,7 +9,7 @@
 .message-wrapper {
   padding: 5px 0;
   margin: 2px 0;
-  border-bottom: 1px dashed rgba(0, 0, 0, 0.25);
+  border-bottom: 1px dashed rgb(var(--border-subtle));
 }
 
 .message-wrapper:last-of-type {
