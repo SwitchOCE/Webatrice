@@ -214,6 +214,8 @@ export interface IGameResponse {
   zonePropertiesChanged(gameId: number, playerId: number, data: Event_ChangeZoneProperties): void;
   /** Event_GameLogNotice (3.1): a droppable, log-only notice about `playerId`. */
   gameLogNotice?(gameId: number, playerId: number, noticeType: Event_GameLogNotice_NoticeType): void;
+  // Optional so existing IGameResponse implementations keep compiling.
+  deckSelected?(gameId: number, deckList: string): void;
 }
 
 /** Admin commands whose non-OK response the desktop client reports to the admin. */

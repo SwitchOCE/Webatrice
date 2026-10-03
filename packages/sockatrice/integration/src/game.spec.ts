@@ -442,6 +442,35 @@ describe('game', () => {
     expect(findLastGameCommand(Data.Command_SetSideboardLock_ext).value.locked).toBe(true);
   });
 
+  it('pre-game: deck select routes Response_DeckDownload to deckSelected', () => {
+    connectAndLogin();
+    joinGame(42);
+
+    GameCommands.deckSelect(42, { deckId: 7 });
+    const deckCmd = findLastGameCommand(Data.Command_DeckSelect_ext);
+    expect(deckCmd.value.deckId).toBe(7);
+
+    const serverDeck = '<cockatrice_deck version="1"><zone name="main"><card number="1" name="Forest"/></zone></cockatrice_deck>';
+    deliverMessage(buildResponseMessage(buildResponse({
+      cmdId: deckCmd.cmdId,
+      responseCode: Data.Response_ResponseCode.RespOk,
+      ext: Data.Response_DeckDownload_ext,
+      value: create(Data.Response_DeckDownloadSchema, { deck: serverDeck }),
+    })));
+    expect(getMockResponse().game.deckSelected).toHaveBeenCalledWith(42, serverDeck);
+  });
+
+  it('pre-game: force start is one Command_ReadyStart carrying ready and force_start', () => {
+    connectAndLogin();
+    joinGame(42);
+
+    GameCommands.readyStart(42, { ready: true, forceStart: true });
+    const cmd = findLastGameCommand(Data.Command_ReadyStart_ext);
+    expect(cmd.value.ready).toBe(true);
+    expect(cmd.value.forceStart).toBe(true);
+    expect(() => findLastGameCommand(Data.Command_KickFromGame_ext)).toThrow();
+  });
+
   it('host transition: another player joins, host kicks them, host changes', () => {
     connectAndLogin();
     joinGame(42);

@@ -201,6 +201,12 @@ describe('WebClient', () => {
       client.connect(target);
       expect(client.socket.connect).toHaveBeenCalledWith(target);
     });
+
+    it('exposes the socket target as connectTarget', () => {
+      const target: ConnectTarget = { host: 'h', port: '1' };
+      (client.socket as unknown as { target: ConnectTarget | null }).target = target;
+      expect(client.connectTarget).toBe(target);
+    });
   });
 
   describe('testConnect', () => {
