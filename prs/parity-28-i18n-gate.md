@@ -45,7 +45,7 @@ All run from the repo root on the tip, after `npm ci` (lockfile changed), with V
 - `npm run -w @cockatrice/webatrice i18n:check`: 79 catalogues, 539 sources, all keys resolve.
 - `npm test`: sockatrice 880 passed; datatrice 1281 passed; webatrice **2211 passed, 2 skipped** (pre-existing `describe.skip` in `features/game`). This includes the 15 `check-i18n.spec.mjs` tests and 5 `gameInfo.spec.ts` tests.
 - `npm run test:integration`: sockatrice 171; datatrice 140; webatrice **206 passed, 2 skipped** (pre-existing).
-- `npm run test:e2e -w @cockatrice/webatrice`: built on the host. The browsers ran inside `mcr.microsoft.com/playwright:v1.60.0-noble` against Servatrice 3.0.0: **51 passed, 6 failed** (63 tests in 13.3 min). Neither failing spec is caused by this branch:
+- `npm run test:e2e -w @cockatrice/webatrice`: built on the host. The browsers ran inside `mcr.microsoft.com/playwright:v1.60.0-noble` against Servatrice 3.0.0: **51 passed, 6 failed, 6 skipped** (63 tests in 13.3 min). Neither failing spec is caused by this branch:
   - `replays.spec.ts` "a finished game can be … watched from the Replays tab" fails on all 3 browsers (the local `replay_N.cor` never appears). It **fails the same way on the base `13351fd`**, which I re-ran on chromium.
   - `staff-tools.spec.ts` fails on all 3 browsers with `spawnSync docker ENOENT`. Its SQL seeding needs the docker CLI, which this container run did not mount (environment).
 
