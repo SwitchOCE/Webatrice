@@ -1,2 +1,3 @@
 - 17:36Z started f17a; branch work on 9ee37d1 → apply rv9 minors
 - 17:47Z 4 fix commits pushed (reverse-turn log, wrap gate+double press, dedup, defaults spec) → full gate
+- 18:01Z gate green on ef48c93; PR file updated → done
