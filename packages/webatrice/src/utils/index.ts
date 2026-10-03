@@ -11,7 +11,7 @@ export type { ChatAlertContext, ChatAlertKind, ChatHighlight, Mention, TextSegme
 export { cx } from './cx';
 export type { CxArg } from './cx';
 export { DefaultHosts, getHostPort } from './HostService';
-export { detectBrowserSupport } from './browserSupport';
+export { getBrowserSupport } from './browserSupport';
 export type { BrowserFeature, BrowserSupport } from './browserSupport';
 export { LANGUAGE_STORAGE_KEY, resolveSupportedLanguage, toBcp47, toSupportedLanguage } from './locale';
 export { getRoomPermissionDisplay } from './roomPermission';

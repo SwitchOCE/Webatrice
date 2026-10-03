@@ -21,5 +21,11 @@ interface Window {
     env?: {
       RR_GA_KEY?: string;
     };
+    // Result of the capability preflight in public/preflight.js; read through
+    // utils/browserSupport.ts.
+    browserSupport?: {
+      missingRequired: string[];
+      missingOptional: string[];
+    };
   };
 }
