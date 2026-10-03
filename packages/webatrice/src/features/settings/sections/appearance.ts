@@ -68,6 +68,42 @@ export const appearanceSection: SettingsSection = {
       ],
     },
     {
+      id: 'appearance.cardCounters',
+      titleKey: 'SettingsAppearance.group.cardCounters',
+      entries: [
+        {
+          id: 'cardCounterColorA',
+          labelKey: 'SettingsAppearance.cardCounterColor.A',
+          control: { kind: 'color', key: 'cardCounterColorA' },
+        },
+        {
+          id: 'cardCounterColorB',
+          labelKey: 'SettingsAppearance.cardCounterColor.B',
+          control: { kind: 'color', key: 'cardCounterColorB' },
+        },
+        {
+          id: 'cardCounterColorC',
+          labelKey: 'SettingsAppearance.cardCounterColor.C',
+          control: { kind: 'color', key: 'cardCounterColorC' },
+        },
+        {
+          id: 'cardCounterColorD',
+          labelKey: 'SettingsAppearance.cardCounterColor.D',
+          control: { kind: 'color', key: 'cardCounterColorD' },
+        },
+        {
+          id: 'cardCounterColorE',
+          labelKey: 'SettingsAppearance.cardCounterColor.E',
+          control: { kind: 'color', key: 'cardCounterColorE' },
+        },
+        {
+          id: 'cardCounterColorF',
+          labelKey: 'SettingsAppearance.cardCounterColor.F',
+          control: { kind: 'color', key: 'cardCounterColorF' },
+        },
+      ],
+    },
+    {
       id: 'appearance.handLayout',
       titleKey: 'SettingsAppearance.group.handLayout',
       entries: [

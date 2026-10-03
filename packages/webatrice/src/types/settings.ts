@@ -44,6 +44,15 @@ export class Setting {
   cardViewInitialRowsMax: number;
   cardViewExpandedRowsMax: number;
 
+  // Appearance — card counters (desktop card_counters.ini `cards/counters/<id>/color`), hex
+  // without '#', as the chat colours.
+  cardCounterColorA: string;
+  cardCounterColorB: string;
+  cardCounterColorC: string;
+  cardCounterColorD: string;
+  cardCounterColorE: string;
+  cardCounterColorF: string;
+
   // Appearance — hand layout (desktop interface `hand/horizontal`, `leftJustified`)
   horizontalHand: boolean;
   leftJustifiedHand: boolean;
@@ -156,6 +165,14 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   verticalCardOverlapPercent: 33,
   cardViewInitialRowsMax: 14,
   cardViewExpandedRowsMax: 20,
+
+  // QColor::fromHsv(id × 60, 150, 255), desktop's defaults.
+  cardCounterColorA: 'FF6969',
+  cardCounterColorB: 'FFFF69',
+  cardCounterColorC: '69FF69',
+  cardCounterColorD: '69FFFF',
+  cardCounterColorE: '6969FF',
+  cardCounterColorF: 'FF69FF',
 
   horizontalHand: true,
   leftJustifiedHand: false,

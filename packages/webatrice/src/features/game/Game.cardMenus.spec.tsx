@@ -173,23 +173,23 @@ describe('seat card menu trees', () => {
       Select Row  ⟨Ctrl+Shift+X⟩
       ---
       Card counters  ▶
-        ●rgb(224, 133, 133) Add counter (A)  ⟨Alt+.⟩
-        ●rgb(224, 133, 133) Set counters (A)...  ⟨Alt+/⟩
+        ●var(--card-counter-0, #FF6969) Add counter (A)  ⟨Alt+.⟩
+        ●var(--card-counter-0, #FF6969) Set counters (A)...  ⟨Alt+/⟩
         ---
-        ●rgb(224, 224, 133) Add counter (B)  ⟨Ctrl+.⟩
-        ●rgb(224, 224, 133) Set counters (B)...  ⟨Ctrl+/⟩
+        ●var(--card-counter-1, #FFFF69) Add counter (B)  ⟨Ctrl+.⟩
+        ●var(--card-counter-1, #FFFF69) Set counters (B)...  ⟨Ctrl+/⟩
         ---
-        ●rgb(133, 224, 133) Add counter (C)  ⟨Ctrl+Shift+.⟩
-        ●rgb(133, 224, 133) Set counters (C)...  ⟨Ctrl+Shift+/⟩
+        ●var(--card-counter-2, #69FF69) Add counter (C)  ⟨Ctrl+Shift+.⟩
+        ●var(--card-counter-2, #69FF69) Set counters (C)...  ⟨Ctrl+Shift+/⟩
         ---
-        ●rgb(133, 224, 224) Add counter (D)
-        ●rgb(133, 224, 224) Set counters (D)...
+        ●var(--card-counter-3, #69FFFF) Add counter (D)
+        ●var(--card-counter-3, #69FFFF) Set counters (D)...
         ---
-        ●rgb(133, 133, 224) Add counter (E)
-        ●rgb(133, 133, 224) Set counters (E)...
+        ●var(--card-counter-4, #6969FF) Add counter (E)
+        ●var(--card-counter-4, #6969FF) Set counters (E)...
         ---
-        ●rgb(224, 133, 224) Add counter (F)
-        ●rgb(224, 133, 224) Set counters (F)...
+        ●var(--card-counter-5, #FF69FF) Add counter (F)
+        ●var(--card-counter-5, #FF69FF) Set counters (F)...
       "
     `);
     await dismissMenus();
@@ -242,23 +242,23 @@ describe('seat card menu trees', () => {
       Select Row  ⟨Ctrl+Shift+X⟩
       ---
       Card counters  ▶
-        ●rgb(224, 133, 133) Add counter (A)  ⟨Alt+.⟩
-        ●rgb(224, 133, 133) Set counters (A)...  ⟨Alt+/⟩
+        ●var(--card-counter-0, #FF6969) Add counter (A)  ⟨Alt+.⟩
+        ●var(--card-counter-0, #FF6969) Set counters (A)...  ⟨Alt+/⟩
         ---
-        ●rgb(224, 224, 133) Add counter (B)  ⟨Ctrl+.⟩
-        ●rgb(224, 224, 133) Set counters (B)...  ⟨Ctrl+/⟩
+        ●var(--card-counter-1, #FFFF69) Add counter (B)  ⟨Ctrl+.⟩
+        ●var(--card-counter-1, #FFFF69) Set counters (B)...  ⟨Ctrl+/⟩
         ---
-        ●rgb(133, 224, 133) Add counter (C)  ⟨Ctrl+Shift+.⟩
-        ●rgb(133, 224, 133) Set counters (C)...  ⟨Ctrl+Shift+/⟩
+        ●var(--card-counter-2, #69FF69) Add counter (C)  ⟨Ctrl+Shift+.⟩
+        ●var(--card-counter-2, #69FF69) Set counters (C)...  ⟨Ctrl+Shift+/⟩
         ---
-        ●rgb(133, 224, 224) Add counter (D)
-        ●rgb(133, 224, 224) Set counters (D)...
+        ●var(--card-counter-3, #69FFFF) Add counter (D)
+        ●var(--card-counter-3, #69FFFF) Set counters (D)...
         ---
-        ●rgb(133, 133, 224) Add counter (E)
-        ●rgb(133, 133, 224) Set counters (E)...
+        ●var(--card-counter-4, #6969FF) Add counter (E)
+        ●var(--card-counter-4, #6969FF) Set counters (E)...
         ---
-        ●rgb(224, 133, 224) Add counter (F)
-        ●rgb(224, 133, 224) Set counters (F)...
+        ●var(--card-counter-5, #FF69FF) Add counter (F)
+        ●var(--card-counter-5, #FF69FF) Set counters (F)...
       "
     `);
   });
