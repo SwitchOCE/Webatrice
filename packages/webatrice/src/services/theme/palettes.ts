@@ -38,7 +38,7 @@ export const PALETTES: Readonly<Record<ColorScheme, Palette>> = {
     'accent-secondary': '#6B46C1',
     'text-primary': '#F5F0F6',
     'text-secondary': '#C7BFD4',
-    'text-muted': '#7A6E8F',
+    'text-muted': '#9388A5',
     'text-disabled': '#A89EA5',
     'status-danger': '#F87171',
     'status-success': '#34D399',
