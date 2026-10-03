@@ -8,6 +8,7 @@ import {
   previewCardFromServerCard,
   type CardPreviewStore,
 } from '../components/ui/CardPreviewContext';
+import { createSeatShortcutRegistry, type SeatShortcutRegistry } from '../components/ui/SeatShortcutsContext';
 import { createCardRegistry, type CardRegistry } from '../utils/CardRegistry/CardRegistryContext';
 import { resolveSelectedCards, type SelectedCard } from '../utils/selection';
 import { useCurrentGame, type CurrentGame } from './useCurrentGame';
@@ -29,6 +30,8 @@ export interface Game extends CurrentGame {
   sensors: ReturnType<typeof useSensors>;
   /** The game's one card-preview owner (hover, keyboard focus, zoom). */
   previewStore: CardPreviewStore;
+  /** Seat-scoped shortcut operations the local seat publishes. */
+  seatShortcuts: SeatShortcutRegistry;
   /** Publishes a structured leaf's hovered server card to the preview store. */
   setHoveredCard: (card: ServerInfo_Card | null) => void;
   selectedCardKeys: ReadonlySet<string>;
@@ -63,6 +66,7 @@ export function useGame(): Game {
     useSensor(KeyboardSensor),
   );
   const previewStore = useMemo(() => createCardPreviewStore(), []);
+  const seatShortcuts = useMemo(() => createSeatShortcutRegistry(), []);
   const setHoveredCard = useCallback(
     (card: ServerInfo_Card | null) => previewStore.setHoveredCard(previewCardFromServerCard(card)),
     [previewStore],
@@ -123,6 +127,7 @@ export function useGame(): Game {
 
   useGameShortcuts({
     gameId,
+    seatShortcuts,
     onRequestConcede: dialogs.openConcede,
     onRequestDrawMultiple: dialogs.handleRequestDrawN,
     onRequestUndoDraw: dialogs.handleRequestUndoDraw,
@@ -155,6 +160,7 @@ export function useGame(): Game {
     cardRegistry,
     sensors,
     previewStore,
+    seatShortcuts,
     setHoveredCard,
     selectedCardKeys: selection.selectedCardKeys,
     selectedCards,

@@ -181,6 +181,13 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // Cockatrice's `aReduceLifeByPower` (Ctrl+Shift+L) — sums selection
   // powers and subtracts from local player's life.
   'game.reduceLifeByPower': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+KeyL'] },
+  // Cockatrice's `aMulligan` (Ctrl+M) opens the choose-hand-size prompt,
+  // `aSet` (Ctrl+L) the set-life prompt, and `aRemoveLocalArrows` (Ctrl+R)
+  // deletes the arrows the local player drew (and keeps Ctrl+R from
+  // reloading the page mid-game).
+  'game.mulligan': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyM'] },
+  'game.setLife': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyL'] },
+  'game.removeLocalArrows': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyR'] },
   // Matches Cockatrice desktop's `aFocusChat` (Shift+Return). Fires in
   // text inputs too so the user can jump to chat from search boxes, etc.
   // Ordered last in the game group so it sits at the bottom of the

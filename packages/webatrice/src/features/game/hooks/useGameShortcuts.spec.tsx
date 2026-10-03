@@ -15,7 +15,7 @@ import { CardAttribute } from '@cockatrice/sockatrice/generated';
 import { makeReduxWebClientHookWrapper } from '../../../__test-utils__/makeHookWrapper';
 
 interface ShortcutRegistration {
-  handler: () => void;
+  handler: (event?: KeyboardEvent) => void;
   enabled: boolean;
   scope: unknown;
 }
@@ -39,9 +39,27 @@ vi.mock('@app/feature-widgets/shortcuts', async (importOriginal) => {
         scope: options.scope,
       });
     },
+    useShortcutGroup: (
+      actionIds: readonly string[],
+      handler: (actionId: string, event: KeyboardEvent) => void,
+      options: { scope: unknown; enabled?: boolean },
+    ) => {
+      for (const actionId of actionIds) {
+        registrations.set(actionId, {
+          handler: (event?: KeyboardEvent) => handler(actionId, event ?? new KeyboardEvent('keydown')),
+          enabled: options.enabled ?? true,
+          scope: options.scope,
+        });
+      }
+    },
   };
 });
 
+import {
+  SEAT_SHORTCUT_ACTIONS,
+  createSeatShortcutRegistry,
+  type SeatShortcutRegistry,
+} from '../components/ui/SeatShortcutsContext';
 import { useGameShortcuts } from './useGameShortcuts';
 
 interface SetupOpts {
@@ -52,6 +70,7 @@ interface SetupOpts {
   conceded?: boolean;
   activePhase?: number;
   tableCards?: ReturnType<typeof makeCard>[];
+  seatShortcuts?: SeatShortcutRegistry;
 }
 
 function setup(opts: SetupOpts = {}) {
@@ -64,6 +83,7 @@ function setup(opts: SetupOpts = {}) {
     conceded = false,
     activePhase = 2,
     tableCards = [],
+    seatShortcuts = createSeatShortcutRegistry(),
   } = opts;
 
   const localPlayerId = 7;
@@ -114,6 +134,7 @@ function setup(opts: SetupOpts = {}) {
   const onCloseRecentZoneView = vi.fn(() => false);
   renderHook(() => useGameShortcuts({
     gameId: 1,
+    seatShortcuts,
     onRequestConcede,
     onRequestDrawMultiple,
     onRequestUndoDraw,
@@ -250,5 +271,40 @@ describe('useGameShortcuts', () => {
     expect(webClient.request.game.setActivePhase).not.toHaveBeenCalled();
     expect(onRequestConcede).not.toHaveBeenCalled();
   });
-});
 
+  describe('seat-scoped shortcuts', () => {
+    it('registers every seat action once, for the live game', () => {
+      setup();
+      for (const actionId of SEAT_SHORTCUT_ACTIONS) {
+        expect(registrations.get(actionId)).toMatchObject({ enabled: true });
+      }
+      expect(SEAT_SHORTCUT_ACTIONS).toEqual(expect.arrayContaining([
+        'game.mulligan',
+        'game.setLife',
+        'game.removeLocalArrows',
+      ]));
+    });
+
+    it('runs the published seat operation and consumes the key', () => {
+      const seatShortcuts = createSeatShortcutRegistry();
+      const removeLocalArrows = vi.fn();
+      seatShortcuts.publish(() => ({ 'game.removeLocalArrows': removeLocalArrows }));
+      setup({ seatShortcuts });
+
+      const event = new KeyboardEvent('keydown', { cancelable: true });
+      registrations.get('game.removeLocalArrows')!.handler(event);
+
+      expect(removeLocalArrows).toHaveBeenCalledTimes(1);
+      expect(event.defaultPrevented).toBe(true);
+    });
+
+    it('leaves the key to the browser when no seat handles it (spectators)', () => {
+      setup({ spectator: true });
+
+      const event = new KeyboardEvent('keydown', { cancelable: true });
+      registrations.get('game.removeLocalArrows')!.handler(event);
+
+      expect(event.defaultPrevented).toBe(false);
+    });
+  });
+});
