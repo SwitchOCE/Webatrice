@@ -104,6 +104,7 @@ describe('Cockatrice 3.1 protocol', () => {
       'reportUserInfo',
       Data.Response_ResponseCode.RespNameNotFound,
       'mallory',
+      undefined,
     );
     expect(getMockResponse().moderator.reportUserInfo).not.toHaveBeenCalled();
   });

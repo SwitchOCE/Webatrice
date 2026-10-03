@@ -246,7 +246,11 @@ export type SessionCommandName =
   | 'reportDetails';
 
 /** Admin commands whose non-OK response the desktop client reports to the admin. */
-export type AdminCommandName = 'adjustMod';
+export type AdminCommandName =
+  | 'adjustMod'
+  | 'updateServerMessage'
+  | 'shutdownServer'
+  | 'reloadConfig';
 
 /**
  * Moderator commands whose non-OK response the desktop client reports to the
@@ -339,7 +343,7 @@ export interface IModeratorResponse {
 export interface IDeveloperResponse {
   serverStats?(stats: Response_GetServerStats): void;
   /** A developer command failed; same contract as IModeratorResponse.commandFailed. */
-  commandFailed?(command: DeveloperCommandName, responseCode: number, target: string): void;
+  commandFailed?(command: DeveloperCommandName, responseCode: number, target: string, failure?: CommandFailure): void;
 }
 
 export interface IWebClientResponse<

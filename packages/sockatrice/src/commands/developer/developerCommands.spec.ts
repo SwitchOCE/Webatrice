@@ -84,3 +84,13 @@ describe('viewLogHistory (developer family)', () => {
     );
   });
 });
+
+describe('getServerStats failure', () => {
+  it('reports through response.developer.commandFailed so the page can leave its pending state', () => {
+    getServerStats();
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Timeout);
+    expect(WebClient.instance.response.developer!.commandFailed).toHaveBeenCalledWith(
+      'getServerStats', Response_ResponseCode.RespNotConnected, '', CommandFailure.Timeout,
+    );
+  });
+});

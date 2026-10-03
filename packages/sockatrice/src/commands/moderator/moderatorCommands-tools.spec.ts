@@ -5,6 +5,7 @@ vi.mock('../../WebClient');
 import { create, isFieldSet } from '@bufbuild/protobuf';
 import { Mock } from 'vitest';
 import { makeCallbackHelpers } from '../../testing/callback-helpers';
+import { CommandFailure } from '../../types/CommandFailure';
 import { WebClient } from '../../WebClient';
 import {
   Command_AddCardArtRule_ext,
@@ -34,6 +35,7 @@ import { getUserSessions } from './getUserSessions';
 import { listCardArtRules } from './listCardArtRules';
 import { removeCardArtRule } from './removeCardArtRule';
 import { removeUserAvatar } from './removeUserAvatar';
+import { reportUserInfo } from './reportUserInfo';
 
 const { invokeOnSuccess, invokeOnError } = makeCallbackHelpers(
   WebClient.instance.protobuf.sendModeratorCommand as Mock,
@@ -175,5 +177,30 @@ describe('removeUserAvatar', () => {
     removeUserAvatar('ghost');
     invokeOnError(Response_ResponseCode.RespNameNotFound);
     expect(WebClient.instance.response.moderator.userAvatarRemoved).not.toHaveBeenCalled();
+  });
+});
+
+describe('staff lookup failures', () => {
+  const { commandFailed } = WebClient.instance.response.moderator as unknown as { commandFailed: Mock };
+
+  it.each([
+    ['reportUserInfo', () => reportUserInfo('alice'), 'alice'],
+    ['getUserAlts', () => getUserAlts('alice'), 'alice'],
+    ['getUserSessions', () => getUserSessions('alice'), 'alice'],
+    ['getModeratorLastLogins', () => getModeratorLastLogins(), ''],
+    ['removeUserAvatar', () => removeUserAvatar('alice'), 'alice'],
+    ['listCardArtRules', () => listCardArtRules(), ''],
+  ])('reports a failed %s through commandFailed with its target', (command, send, target) => {
+    send();
+    invokeOnError(Response_ResponseCode.RespInternalError);
+    expect(commandFailed).toHaveBeenCalledWith(command, Response_ResponseCode.RespInternalError, target, undefined);
+  });
+
+  it('passes the transport reason when the server never answered', () => {
+    getUserAlts('alice');
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    expect(commandFailed).toHaveBeenCalledWith(
+      'getUserAlts', Response_ResponseCode.RespNotConnected, 'alice', CommandFailure.Disconnected,
+    );
   });
 });

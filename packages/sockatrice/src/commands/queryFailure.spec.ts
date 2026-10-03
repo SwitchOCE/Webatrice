@@ -68,7 +68,11 @@ describe('3.1 query failure reporting', () => {
     run();
     answer(scope, Response_ResponseCode.RespFunctionNotAllowed);
 
-    expect(responseScope(scope).commandFailed).toHaveBeenCalledWith(command, Response_ResponseCode.RespFunctionNotAllowed, target);
+    expect(responseScope(scope).commandFailed).toHaveBeenCalledTimes(1);
+    const [failed] = responseScope(scope).commandFailed.mock.calls;
+    expect(failed.slice(0, 3)).toEqual([command, Response_ResponseCode.RespFunctionNotAllowed, target]);
+    // A server refusal carries no transport failure.
+    expect(failed[3]).toBeUndefined();
     expect(responseScope(scope)[onSuccess]).not.toHaveBeenCalled();
   });
 
