@@ -1,12 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 
-import {
-  detailTargetKey,
-  fetchScryfallDetail,
-  type BrowsedCard,
-  type DetailTarget,
-  type ScryfallDetail,
-} from '../cardDetail';
+import { detailTargetKey, fetchScryfallDetail, type DetailTarget, type ScryfallDetail } from '@app/services';
+
+import type { BrowsedCard } from '../cardDetail';
 import type { DeckCard } from '../types';
 
 export interface CardDetailState {
