@@ -1,12 +1,37 @@
-// "Token: …" and transform items for a card's related cards, built from
-// card-catalog lookups (refactor plan PB-09). Ports desktop
-// addRelatedCardActions (card_menu.cpp:407-479); the items fire the caller's
-// create-token command and never construct a request themselves.
+// "View related cards", "Token: …" and transform items for a card's related
+// cards, built from card-catalog lookups (refactor plan PB-09). Ports desktop
+// addRelatedCardView / addRelatedCardActions (card_menu.cpp:371-479); the
+// items fire the caller's handlers and never construct a request themselves.
 
 import type { LookupCardFace, LookupResult, RelatedCardRef } from '@app/services';
 
 import type { CreateTokenRequest } from '../../ui/PlayerBoard/playerBoard.types';
 import type { CardMenuItem } from './cardContextMenu.model';
+
+/**
+ * The "View related cards" submenu, led by its separator. Ports desktop
+ * addRelatedCardView (card_menu.cpp:371-406): one item per relation
+ * (related and reverse-related alike, in list order), offered only when at
+ * least one relation resolves in the card database; empty otherwise. An item
+ * shows that card in the card-info pane (desktop's cardInfoRequested) and
+ * sends nothing.
+ */
+export function buildRelatedViewItems(
+  related: readonly RelatedCardRef[],
+  resolvable: (name: string) => boolean,
+  onView: (ref: RelatedCardRef) => void,
+): CardMenuItem[] {
+  if (!related.some((ref) => resolvable(ref.name))) {
+    return [];
+  }
+  return [
+    { divider: true },
+    {
+      label: 'View related cards',
+      submenu: related.map((ref) => ({ label: ref.name, onClick: () => onView(ref) })),
+    },
+  ];
+}
 
 /**
  * Build "Token: …" menu items for a card's related list. Shared by

@@ -50,7 +50,11 @@ import {
   buildLibraryMenu,
   buildOpponentBattlefieldMenu,
 } from '../context-menus/PlayerContextMenu/playerMenu.model';
-import { buildRelatedTokenItems, buildTransformItems } from '../context-menus/CardContextMenu/relatedCardActions';
+import {
+  buildRelatedTokenItems,
+  buildRelatedViewItems,
+  buildTransformItems,
+} from '../context-menus/CardContextMenu/relatedCardActions';
 import {
   annotationPrompt,
   cardCounterPrompt,
@@ -1184,6 +1188,16 @@ function PlayerBox(
     }
     return meta.faces.find((f) => f.name === cardName)?.imageUri;
   };
+  // "View related cards" for a card menu (desktop addRelatedCardView). A
+  // relation resolves once the catalog has found it; the item shows that
+  // card in the sidebar's card-info pane.
+  const { showCardInfo } = useCardPreviewActions();
+  const relatedViewItemsFor = (cardName: string): CardMenuItem[] =>
+    buildRelatedViewItems(
+      cardMetaByName.get(cardName)?.related ?? [],
+      (name) => tokenMetaByName.get(name)?.found ?? false,
+      (ref) => showCardInfo({ name: ref.name, scryfallId: ref.scryfallId }),
+    );
   useEffect(() => {
     if (!isSelf || cards.length === 0) {
       return;
@@ -5720,12 +5734,7 @@ function PlayerBox(
                   close();
                 },
               },
-              { divider: true },
-              // Cockatrice reads the card's `related` field from the
-              // card DB and pops up a small dialog. We don't have that
-              // wire yet; leave as a disabled placeholder so the menu
-              // shape matches desktop 1:1 (card_menu.cpp:194).
-              { label: 'View related cards' },
+              ...(card ? relatedViewItemsFor(card.name) : []),
               // "Token: …" items — same shape as the own-card menu
               // below. Ports Cockatrice's addRelatedCardActions
               // (card_menu.cpp:407-479). Command_CreateToken fires as
@@ -6220,6 +6229,7 @@ function PlayerBox(
               close();
             },
             tokenItems,
+            relatedViewItems: card ? relatedViewItemsFor(card.name) : [],
           });
           return (
             <CardMenuPopup
@@ -6321,6 +6331,7 @@ function PlayerBox(
               shortcut: shortcutHints['game.selectColumnBattlefield'],
               onClick: () => selectPileCards(pileCardMenu.columnCardIds),
             },
+            ...relatedViewItemsFor(pileCardMenu.cardName),
           ];
           return (
             <CardMenuPopup
@@ -6411,6 +6422,7 @@ function PlayerBox(
                   close();
                 },
               },
+              ...(card ? relatedViewItemsFor(card.name) : []),
               // Related "Token: …" items — same as the battlefield
               // menu. Fires as the LOCAL player so the token lands on
               // OUR side even when right-clicking an opponent's stack
@@ -6592,6 +6604,7 @@ function PlayerBox(
                 close();
               },
             },
+            ...(card ? relatedViewItemsFor(card.name) : []),
             // Related "Token: …" items — same block as the battlefield
             // menu. Divider prefix when non-empty, otherwise omitted so
             // there's no dangling separator at the bottom of the menu.

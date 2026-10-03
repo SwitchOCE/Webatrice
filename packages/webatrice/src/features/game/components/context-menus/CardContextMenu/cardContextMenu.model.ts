@@ -109,6 +109,10 @@ export interface BuildCardContextMenuArgs {
    *  the finished items in so this builder stays wire-agnostic
    *  (no Dexie / token lookups needed here). */
   tokenItems?: CardMenuItem[];
+  /** The "View related cards" submenu with its leading separator
+   *  (`buildRelatedViewItems`); desktop adds it after Card counters and
+   *  before the token actions (card_menu.cpp:232-233). */
+  relatedViewItems?: CardMenuItem[];
 }
 
 export function buildCardContextMenu(args: BuildCardContextMenuArgs): CardMenuItem[] {
@@ -247,6 +251,7 @@ export function buildCardContextMenu(args: BuildCardContextMenuArgs): CardMenuIt
     { label: 'Select Row', shortcut: args.shortcutHints['game.selectRowBattlefield'], onClick: args.onSelectRow },
     { divider: true },
     { label: 'Card counters', submenu: counterItems },
+    ...(args.relatedViewItems ?? []),
     // "Token: …" items — mirrors Cockatrice's addRelatedCardActions
     // (card_menu.cpp:407-479). The parent caller resolves each token
     // name into a menu item (label + onClick) and passes them in as
