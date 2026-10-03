@@ -3,3 +3,4 @@
 - 23:12Z pushed all rv14 unit-level fixes (9 commits) → Playwright menu-placement e2e, then gate
 - 23:17Z all rv14 items committed+pushed (tip fd17dd8) → full gate + e2e all browsers
 - 23:24Z gate: typecheck 5/5, lint 3/3, unit+integration green → waiting on full e2e (3 browsers)
+- 23:35Z DONE: tip fd17dd8 pushed; e2e 57 pass / 6 fail (known replays + staff-tools docker ENOENT) / 6 skip; PR file updated

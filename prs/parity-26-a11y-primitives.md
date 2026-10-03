@@ -69,19 +69,19 @@ Cockatrice `add65caa`.
 
 ## Testing
 
-All from the repo root on tip `9681c1f` (after the rv13 fixes), Servatrice 3.0.0 (the default image), Vitest at `--maxWorkers=2`.
+All from the repo root on tip `fd17dd8` (after the rv14 fixes), Servatrice 3.0.0 (the default image), Vitest at `--maxWorkers=2`.
 
 - `git submodule update --init && npm ci` — clean. The only lockfile change on this branch is `@testing-library/user-event@^14.6.7` as a dev dependency of `@cockatrice/webatrice`, for the keyboard specs.
 - `npx turbo run typecheck --concurrency=1` — 5/5 tasks passed (includes `tsc -p e2e`).
-- `npm run lint` — 3/3 packages, 0 problems.
-- `npm test -- -- --maxWorkers=2` — sockatrice **880 passed**, datatrice **1281 passed**, webatrice **2303 passed, 2 skipped** (the 2 skips are the pre-existing `Game.dragdrop` and `GameSelector` suites).
-- `npm run test:integration -- -- --maxWorkers=2` — sockatrice **171**, datatrice **140**, webatrice **210 passed, 2 skipped** (+1: the keyboard ban case through the real `ModerationMenuItems`).
-- New and changed specs for rv13 were each run against the code before their fix and failed there: `useDialogFocus` (autoFocus opener, `returnFocusTo`, landmark fallback, re-home after unmount, `tabbableElements`), `DialogShell` (list fallback through the context; menu → `autoFocus` dialog), `ReportNotifier` (persists past 60 s), `Toast` (cap), `InputField` (joined description), `Menu` (disabled reasons, close on select, radio, shortcut split, type-ahead buffer, hover delays, submenu flip, `placeMenu`, `isContextMenuKey`).
-- `npm run test:e2e -w @cockatrice/webatrice`: the three-browser matrix ran in the pre-pulled `mcr.microsoft.com/playwright:v1.60.0-noble` image, because this host's browser build does not match the pinned Playwright. Result: **54 passed, 6 failed, 6 skipped** (66). Both failing tests also fail on the base branch, so neither comes from this PR:
-  - `replays.spec.ts` ("a finished game can be found, managed and watched") fails on all three browsers at the same locator (`Local replays` › `replay_*.cor`). It also failed on the base `claude/restack-23-playmats`, which was checked out, rebuilt and reproduced on all three in the earlier run.
-  - `staff-tools.spec.ts:38` fails on all three with `spawnSync docker ENOENT` at its first `runSql`, before the app is touched. The Playwright container has no docker CLI, so the failure comes from the environment.
-  - **`keyboard-moderation.spec.ts`: 3/3 browsers**, now key presses only after the first focus. **`browser-support.spec.ts`: 9/9.**
-- `npm run test:e2e -w @cockatrice/sockatrice` was **not run**. This branch changes no command shape, response handling or server flow, only Webatrice UI.
+- `npm run lint` — 3/3 packages, 0 problems. Each rv14 commit's changed files were also linted on that commit's own tree.
+- `npm test -- -- --maxWorkers=2` — sockatrice **880 passed**, datatrice **1281 passed**, webatrice **2321 passed, 2 skipped** (2323; +18 since rv13; the 2 skips predate this PR).
+- `npm run test:integration -- -- --maxWorkers=2` — sockatrice **171**, datatrice **140**, webatrice **210 passed, 2 skipped** (212).
+- Failing-first: every rv14 behaviour spec was run against its commit's parent sources and failed there (`Menu` placement ×2, point flip ×3 incl. right-click position, Space type-ahead, submenu close ×3, type-ahead reset ×2, `useDialogFocus` tabindex, `Toast` focused fold). `menu-placement.spec.ts` fails against `9681c1f`'s `Menu` (chromium: right-click at bottom-right covers its anchor).
+- `npm run test:e2e -w @cockatrice/webatrice`: three-browser matrix in the pre-pulled `mcr.microsoft.com/playwright:v1.60.0-noble` image (this host's browser build does not match the pinned Playwright). Result: **57 passed, 6 failed, 6 skipped** (69; +3 for the new `menu-placement.spec.ts`). The 6 failures are the same two tests as in the rv13 run, both failing on the base branch too:
+  - `replays.spec.ts` ("a finished game can be found, managed and watched") on all three browsers, at the same locator (`Local replays` › `replay_*.cor`).
+  - `staff-tools.spec.ts:38` on all three with `spawnSync docker ENOENT` at its first `runSql`; the Playwright container has no docker CLI.
+  - **`menu-placement.spec.ts`: 3/3**, **`keyboard-moderation.spec.ts`: 3/3**, **`browser-support.spec.ts`: 9/9.**
+- `npm run test:e2e -w @cockatrice/sockatrice` was **not run**: no command shape, response handling or server flow changed.
 
 ## Notes for reviewers
 
