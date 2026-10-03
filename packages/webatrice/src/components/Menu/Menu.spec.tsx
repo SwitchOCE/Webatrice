@@ -320,6 +320,39 @@ describe('Menu entries', () => {
   });
 });
 
+describe('Menu type-ahead', () => {
+  function Moves({ onSelect }: { onSelect: (value: string) => void }) {
+    return (
+      <Menu anchor={{ x: 10, y: 10 }} label="Card" onClose={vi.fn()}>
+        <MenuItem onSelect={() => onSelect('mulligan')}>Mulligan</MenuItem>
+        <MenuItem onSelect={() => onSelect('hand')}>Move to hand</MenuItem>
+        <MenuItem onSelect={() => onSelect('card')}>Move card</MenuItem>
+      </Menu>
+    );
+  }
+
+  it('reads a Space typed during a search as part of it, without running the focused item', async () => {
+    const onSelect = vi.fn();
+    const user = userEvent.setup();
+    render(<Moves onSelect={onSelect} />);
+
+    await user.keyboard('move c');
+
+    expect(screen.getByRole('menuitem', { name: 'Move card' })).toHaveFocus();
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('still runs the focused item on Space outside a search', async () => {
+    const onSelect = vi.fn();
+    const user = userEvent.setup();
+    render(<Moves onSelect={onSelect} />);
+
+    await user.keyboard(' ');
+
+    expect(onSelect).toHaveBeenCalledWith('mulligan');
+  });
+});
+
 describe('MenuSubmenu pointer behaviour', () => {
   beforeEach(() => {
     vi.useFakeTimers();
