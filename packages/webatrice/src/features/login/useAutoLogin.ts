@@ -1,22 +1,16 @@
 import { useEffect } from 'react';
 
-import type { HostDTO } from '@app/services';
-
 import { getKnownHosts } from '@app/feature-widgets/known-hosts';
 import { getSettings } from '../../hooks/useSettings';
+import type { LoginFormValues } from './forms/LoginForm/loginFormSchema';
 
-export interface LoginFormValues {
-  userName: string;
-  password?: string;
-  selectedHost: HostDTO;
-  remember: boolean;
-  autoConnect?: boolean;
-}
+/** The login form's values minus its auto-connect preference, which auto-login only reads from settings. */
+export type AutoLoginValues = Omit<LoginFormValues, 'autoConnect'>;
 
 export const autoLoginGate = { hasChecked: false };
 
 export function useAutoLogin(
-  onLogin: (values: LoginFormValues) => void,
+  onLogin: (values: AutoLoginValues) => void,
   connectionAttemptMade: boolean,
 ): void {
   useEffect(() => {

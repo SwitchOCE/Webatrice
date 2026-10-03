@@ -1,3 +1,5 @@
+import { DECK_ZONE_MAIN, DECK_ZONE_SIDE } from '@app/types';
+
 /**
  * Pre-game deck view model — a port of desktop's `DeckViewScene`
  * (`cockatrice/src/game_graphics/deckview/deck_view.cpp`).
@@ -10,9 +12,6 @@
  * `Server_Player::setupZones` only applies plan moves between `main` and
  * `side`.
  */
-
-export const DECK_ZONE_MAIN = 'main';
-export const DECK_ZONE_SIDE = 'side';
 
 export type DeckZone = typeof DECK_ZONE_MAIN | typeof DECK_ZONE_SIDE;
 

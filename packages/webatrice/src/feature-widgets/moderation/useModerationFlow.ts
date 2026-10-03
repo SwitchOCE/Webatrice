@@ -7,6 +7,7 @@ import type { Response_WarnList, ServerInfo_Ban, ServerInfo_User, ServerInfo_War
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { useCommandFailureMessage, useOpenUserInvestigation, useReduxEffect } from '@app/hooks';
 import { useAppSelector } from '@app/store';
+import type { ModerationNotice } from '@app/types';
 
 import type { ModerationAction } from './moderationMenu';
 import { banMinutes, type BanUserFormValues, type WarnUserFormValues } from './moderationFormSchemas';
@@ -34,12 +35,6 @@ export type ModerationFlow =
   | { kind: 'warnUser'; userName: string; stage: Stage; clientId: string | null }
   | { kind: 'banUser'; userName: string; stage: Stage; noUserInfo: boolean }
   | { kind: 'warnHistory' | 'banHistory' | 'adminNotes'; userName: string; stage: Stage };
-
-export interface ModerationNotice {
-  title: string;
-  message: string;
-  severity: 'info' | 'error';
-}
 
 export interface ModerationFlowState {
   flow: ModerationFlow | null;

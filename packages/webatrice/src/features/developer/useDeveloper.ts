@@ -7,8 +7,8 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import type { Response_GetServerStats } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { useAppSelector } from '@app/store';
+import { formatLocalDateTime } from '@app/utils';
 
-import { formatTimestamp } from './serverStatsRows';
 
 // Desktop TabDeveloper: the interval spin box runs 5..3600 s, default 30.
 export const MIN_REFRESH_INTERVAL_SECS = 5;
@@ -45,7 +45,7 @@ export function useDeveloper(): Developer {
 
   useReduxEffect(() => {
     pendingRef.current = false;
-    setStatus(t('Developer.status.updated', { time: formatTimestamp(new Date()) }));
+    setStatus(t('Developer.status.updated', { time: formatLocalDateTime(new Date()) }));
   }, server.Types.SERVER_STATS, [t]);
 
   // Desktop: any non-OK answer reads "No server statistics available yet."; a

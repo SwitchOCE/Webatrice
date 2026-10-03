@@ -2,8 +2,7 @@ import type { ListenerMiddlewareInstance } from '@reduxjs/toolkit';
 
 import { GamesState } from './game.interfaces';
 import { Actions } from './game.actions';
-import { formatLeaveMessage } from './game.reducer.helpers';
-import { diffPlayerProperties, formatPlayerJoined, formatPropertyDiff } from './messageLog';
+import { diffPlayerProperties, formatLeaveMessage, formatPlayerJoined, formatPropertyDiff } from './messageLog';
 
 // Player listeners: joins, leaves and property changes.
 export function registerPlayersListeners(mw: ListenerMiddlewareInstance<unknown>): void {

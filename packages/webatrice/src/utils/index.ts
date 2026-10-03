@@ -16,6 +16,7 @@ export type { BrowserFeature, BrowserSupport } from './browserSupport';
 export { LANGUAGE_STORAGE_KEY, resolveSupportedLanguage, toBcp47, toSupportedLanguage } from './locale';
 export { getRoomPermissionDisplay } from './roomPermission';
 export { formatChatHistoryTime } from './chatTime';
+export { formatLocalDateTime } from './localDateTime';
 export { formatRestrictions, formatSpectators } from './gameInfo';
 export { downloadBlob } from './downloadBlob';
 export { computeArtSourceRect, coverFitRect, playmatImageBox } from './playmatCrop';

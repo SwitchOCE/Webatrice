@@ -691,11 +691,17 @@ export function formatPlayerJoined(game: Enriched.GameEntry, playerId: number): 
   return L`${p(nameOf(game, playerId))} has joined the game.`;
 }
 
-export function formatLeaveMessage(game: Enriched.GameEntry, playerId: number, reason?: string): LogEntry {
-  const actor = nameOf(game, playerId);
-  return reason
-    ? L`${p(actor)} has left the game (${reason}).`
-    : L`${p(actor)} has left the game.`;
+/** Event_Leave reasons (`event_leave.proto` LeaveReason), as desktop words them. */
+const LEAVE_REASON_MESSAGES: Record<number, string> = {
+  1: 'reason unknown',
+  2: 'kicked by game host or moderator',
+  3: 'player left the game',
+  4: 'player disconnected from server',
+};
+
+export function formatLeaveMessage(playerName: string, reason: number): LogEntry {
+  const reasonText = LEAVE_REASON_MESSAGES[reason] ?? LEAVE_REASON_MESSAGES[1];
+  return L`${p(playerName)} has left the game (${reasonText}).`;
 }
 
 export function formatGameStart(): LogEntry {
