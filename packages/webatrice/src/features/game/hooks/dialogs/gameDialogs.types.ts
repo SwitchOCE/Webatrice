@@ -2,7 +2,6 @@ import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
 
 import type { CreateTokenSubmit } from '../../dialogs/CreateTokenDialog/CreateTokenDialog';
 import type { MoveTopUntilRequest } from '../useMoveTopUntil';
-import type { SideboardPlanMove } from '../../dialogs/SideboardDialog/SideboardDialog';
 
 // The game dialog and menu contract. `useGameDialogs` is the façade that builds
 // it; the hooks beside this file each own one domain of it.
@@ -120,7 +119,6 @@ export interface GameDialogsState {
   cardMenu: CardMenuState | null;
   seatCardMenu: SeatCardMenuState | null;
   zoneMenu: ZoneMenuState | null;
-  playerMenu: AnchorPosition | null;
   handMenu: AnchorPosition | null;
   zoneViews: ZoneViewTarget[];
   prompt: PromptState | null;
@@ -131,7 +129,6 @@ export interface GameDialogsState {
   createTokenOpen: boolean;
   /** The values the create-token dialog opens with; null for blank. */
   createTokenInitial: CreateTokenSubmit | null;
-  sideboardOpen: boolean;
   gameInfoOpen: boolean;
   concedeConfirm: ConcedeConfirm;
   /** True while the leave-game confirmation dialog is open. Mirrors
@@ -148,7 +145,6 @@ export interface GameDialogsActions {
   openSeatCardMenu: (menu: SeatCardMenuState) => void;
   closeSeatCardMenu: () => void;
   closeZoneMenu: () => void;
-  closePlayerMenu: () => void;
   closeHandMenu: () => void;
   handleCardContextMenu: (
     sourcePlayerId: number | undefined,
@@ -161,7 +157,6 @@ export interface GameDialogsActions {
     zoneName: string,
     event: React.MouseEvent,
   ) => void;
-  handlePlayerContextMenu: (event: React.MouseEvent) => void;
   handleHandContextMenu: (event: React.MouseEvent) => void;
 
   // Zone-view dialog stack
@@ -198,10 +193,6 @@ export interface GameDialogsActions {
     providerId?: string;
   }) => void;
 
-  openSideboard: () => void;
-  closeSideboard: () => void;
-  handleSideboardSubmit: (moveList: SideboardPlanMove[]) => void;
-  handleToggleSideboardLock: (locked: boolean) => void;
 
   /** Open the local seat's own sideboard / library / graveyard view. */
   openViewSideboard: () => void;
@@ -281,11 +272,9 @@ export const NOOP_GAME_DIALOGS_ACTIONS: GameDialogsActions = {
   openSeatCardMenu: noopDialogAction,
   closeSeatCardMenu: noopDialogAction,
   closeZoneMenu: noopDialogAction,
-  closePlayerMenu: noopDialogAction,
   closeHandMenu: noopDialogAction,
   handleCardContextMenu: noopDialogAction,
   handleZoneContextMenu: noopDialogAction,
-  handlePlayerContextMenu: noopDialogAction,
   handleHandContextMenu: noopDialogAction,
   openZoneView: noopDialogAction,
   handleZoneClick: noopDialogAction,
@@ -300,10 +289,6 @@ export const NOOP_GAME_DIALOGS_ACTIONS: GameDialogsActions = {
   openCreateToken: noopDialogAction,
   closeCreateToken: noopDialogAction,
   handleCreateTokenSubmit: noopDialogAction,
-  openSideboard: noopDialogAction,
-  closeSideboard: noopDialogAction,
-  handleSideboardSubmit: noopDialogAction,
-  handleToggleSideboardLock: noopDialogAction,
   openViewSideboard: noopDialogAction,
   openViewLibrary: noopDialogAction,
   openViewGraveyard: noopDialogAction,

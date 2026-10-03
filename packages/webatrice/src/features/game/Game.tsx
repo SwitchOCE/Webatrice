@@ -14,7 +14,6 @@ import GameArrowOverlay from './components/arrows/GameArrowOverlay/GameArrowOver
 import BoxSelectOverlay from './components/ui/BoxSelectOverlay/BoxSelectOverlay';
 import CardContextMenu from './components/context-menus/CardContextMenu/CardContextMenu';
 import HandContextMenu from './components/context-menus/HandContextMenu/HandContextMenu';
-import PlayerContextMenu from './components/context-menus/PlayerContextMenu/PlayerContextMenu';
 import ZoneContextMenu from './components/context-menus/ZoneContextMenu/ZoneContextMenu';
 import PhaseTrack from './components/PhaseTrack/PhaseTrack';
 import BattlefieldSidebar from './components/BattlefieldSidebar/BattlefieldSidebar';
@@ -31,7 +30,6 @@ import DeckSelectDialog from './dialogs/DeckSelectDialog/DeckSelectDialog';
 import GameInfoDialog from './dialogs/GameInfoDialog/GameInfoDialog';
 import RevealCardsDialog from './dialogs/RevealCardsDialog/RevealCardsDialog';
 import RollDieDialog from './dialogs/RollDieDialog/RollDieDialog';
-import SideboardDialog from './dialogs/SideboardDialog/SideboardDialog';
 import ZoneViewDialog from './dialogs/ZoneViewDialog/ZoneViewDialog';
 import { useGame } from './hooks/useGame';
 import { CardRegistryContext } from './utils/CardRegistry/CardRegistryContext';
@@ -332,8 +330,6 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
 
                                 <ZoneContextMenu />
 
-                                <PlayerContextMenu />
-
                                 <HandContextMenu />
 
                                 {dialogs.prompt && (
@@ -349,13 +345,6 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                                 <CreateTokenDialog />
 
                                 <MoveTopUntilDialog />
-
-                                {/* No live trigger: its only opener is PlayerContextMenu, whose
-                                    openPlayerMenu has no caller, and a started game's hidden
-                                    zones hold no deck list to plan from. Sideboarding moves to
-                                    the pre-game lobby; Phase 8 of the seat refactor deletes this
-                                    dialog with PlayerContextMenu. */}
-                                <SideboardDialog />
 
                                 <RevealCardsDialog />
 
