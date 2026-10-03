@@ -21,14 +21,20 @@ async function probe(): Promise<string | null> {
     const ws = new WebSocket(E2E_WS_URL);
     let settled = false;
     const done = (version: string | null) => {
-      if (settled) return;
+      if (settled) {
+        return;
+      }
       settled = true;
-      try { ws.close(); } catch { /* ignore */ }
       clearTimeout(timer);
+      try {
+        ws.close();
+      } catch {
+        // A socket that never opened has nothing to close.
+      }
       resolve(version);
     };
-    ws.binaryType = 'arraybuffer';
     const timer = setTimeout(() => done(null), 5_000);
+    ws.binaryType = 'arraybuffer';
     ws.on('message', (data) => {
       const bytes = Array.isArray(data) ? Buffer.concat(data) : new Uint8Array(data as ArrayBuffer);
       const message = fromBinary(ServerMessageSchema, bytes);
@@ -53,6 +59,7 @@ export default async function globalSetup(): Promise<void> {
   }
   throw new Error(
     `Servatrice did not become ready on ${E2E_WS_URL} within ${READINESS_TIMEOUT_MS}ms. ` +
-    'Did `npm run test:e2e:up` finish? Check `npm run test:e2e:up` output and `docker compose --env-file ../../.env.e2e --env-file .env.e2e -f ../../docker/servatrice/docker-compose.e2e.yml logs`.',
+    'Did `npm run test:e2e:up` finish? Check `npm run test:e2e:up` output and ' +
+    '`docker compose --env-file ../../.env.e2e --env-file .env.e2e -f ../../docker/servatrice/docker-compose.e2e.yml logs`.',
   );
 }
