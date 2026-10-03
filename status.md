@@ -1,1 +1,2 @@
 - 18:39Z started f17b, read brief/review → inline menu handler extraction
+- 18:46Z menu handler extracted (84f009a, pushed) → play pt / X-from-top / deck draft upload
