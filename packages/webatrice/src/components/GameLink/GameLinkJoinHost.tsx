@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { generatePath, useNavigate } from 'react-router-dom';
 
 import { games, rooms, server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { ServerInfo_Game } from '@cockatrice/sockatrice/generated';
 import { AlertDialog, ConfirmDialog, PromptDialog } from '@app/dialogs';
-import { useReduxEffect } from '@app/hooks';
-import { useAppDispatch, useAppSelector } from '@app/store';
-import { RouteEnum } from '@app/types';
+import { useJoinGame, useNavigateOnGameJoined } from '@app/hooks';
+import { useAppSelector } from '@app/store';
 import { gameLinkServer, isSameServerHost, parseGameJoinLink, type GameJoinLink } from '@app/utils';
 
 import { clearGameLinkRequest, useGameLinkRequest } from './gameLinkRequests';
@@ -22,34 +20,40 @@ type Flow =
   | { step: 'confirm'; link: GameJoinLink }
   | { step: 'awaitGame'; link: GameJoinLink }
   | { step: 'confirmSpectate'; link: GameJoinLink; game: ServerInfo_Game }
-  | { step: 'password'; link: GameJoinLink; game: ServerInfo_Game; spectator: boolean }
-  | { step: 'joining'; link: GameJoinLink };
+  | { step: 'joining'; link: GameJoinLink; game: ServerInfo_Game };
 
 const IDLE: Flow = { step: 'idle' };
+
+/** Routes to the game once the server confirms the join; mounted only while a link join is in flight. */
+function NavigateOnLinkJoin({ onJoined }: { onJoined: (gameId: number) => void }) {
+  useNavigateOnGameJoined(onJoined);
+  return null;
+}
 
 /**
  * Runs a clicked game link through desktop's join chain
  * (url_parser.cpp createJoinGameIntent → IntentJoinServerGame →
  * GameSelector::joinGame): validate, confirm, join the room if needed, wait
- * for the game to be listed, offer spectating when it is full, ask for the
- * password, then send Command_JoinGame and open the game.
+ * for the game to be listed, offer spectating when it is full, then hand the
+ * join to the shared `useJoinGame` flow (password, Command_JoinGame, open
+ * the game).
  *
  * Desktop can also log in to another server first; a browser session holds
  * one connection, so a link for another server explains that instead.
- * Mounted once in AppShell, inside the router.
+ * Mounted once in AppShell, inside the router. The host owns the join it
+ * sends, so it reports that join's rejection on every page (useJoinGame shows
+ * a rejection only in the flow that sent the join).
  */
 export default function GameLinkJoinHost() {
   const { t } = useTranslation();
   const webClient = useWebClient();
-  const navigate = useNavigate();
-  const dispatch = useAppDispatch();
   const request = useGameLinkRequest();
   const [flow, setFlow] = useState<Flow>(IDLE);
+  const { beginJoin, passwordRequired, submitPassword, cancelPassword, joinError, clearJoinError } = useJoinGame();
 
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
   const joinedRoomIds = useAppSelector(rooms.Selectors.getJoinedRoomIds);
   const activeGameIds = useAppSelector(games.Selectors.getActiveGameIds);
-  const joinError = useAppSelector(rooms.Selectors.getJoinGameError);
   const roomId = flow.step === 'idle' || flow.step === 'notice' ? undefined : flow.link.roomId;
   const room = useAppSelector((state) => (roomId != null ? rooms.Selectors.getRoom(state, roomId) : undefined));
   const awaitedGame = flow.step === 'awaitGame' ? room?.games[flow.link.gameId]?.info : undefined;
@@ -72,46 +76,25 @@ export default function GameLinkJoinHost() {
     setFlow({ step: 'confirm', link: parsed.link });
   }, [request, t]);
 
-  const sendJoin = useCallback(
-    (link: GameJoinLink, spectator: boolean, password: string) => {
-      setFlow({ step: 'joining', link });
-      webClient.request.rooms.joinGame(link.roomId, {
-        gameId: link.gameId,
-        password,
-        spectator,
-        overrideRestrictions: false,
-        joinAsJudge: false,
-      });
-    },
-    [webClient],
-  );
-
-  // GameSelector::joinGame, minus the room-tab lookup the caller already did.
-  const beginGameJoin = useCallback(
+  const startJoin = useCallback(
     (link: GameJoinLink, game: ServerInfo_Game, spectator: boolean) => {
-      if (game.withPassword && !(spectator && !game.spectatorsNeedPassword)) {
-        setFlow({ step: 'password', link, game, spectator });
-        return;
-      }
-      sendJoin(link, spectator, '');
+      // useJoinGame routes straight to a game that is already open.
+      setFlow(activeGameIds.includes(game.gameId) ? IDLE : { step: 'joining', link, game });
+      beginJoin(link.roomId, game, spectator, false);
     },
-    [sendJoin],
+    [activeGameIds, beginJoin],
   );
 
+  // IntentJoinServerGame asks before spectating a full game; useJoinGame would spectate silently.
   const joinListedGame = useCallback(
     (link: GameJoinLink, game: ServerInfo_Game) => {
-      if (activeGameIds.includes(link.gameId)) {
-        setFlow(IDLE);
-        navigate(generatePath(RouteEnum.GAME, { gameId: String(link.gameId) }));
-        return;
-      }
-      if (game.playerCount >= game.maxPlayers) {
+      if (!activeGameIds.includes(game.gameId) && game.playerCount >= game.maxPlayers) {
         setFlow({ step: 'confirmSpectate', link, game });
         return;
       }
-      beginGameJoin(link, game, false);
+      startJoin(link, game, false);
     },
-    [activeGameIds, navigate, beginGameJoin],
+    [activeGameIds, startJoin],
   );
 
   const confirmJoin = useCallback(
@@ -151,20 +134,26 @@ export default function GameLinkJoinHost() {
     return () => clearTimeout(timer);
   }, [flow, awaitedGame, joinListedGame, t]);
 
-  useReduxEffect<{ data: { gameInfo?: { gameId: number } } }>(
-    ({ payload }) => {
-      if (flow.step === 'joining' && payload.data.gameInfo?.gameId === flow.link.gameId) {
+  const joining = flow.step === 'joining' ? flow : null;
+  const onLinkJoined = useCallback(
+    (gameId: number) => {
+      if (joining?.link.gameId === gameId) {
         setFlow(IDLE);
-        navigate(generatePath(RouteEnum.GAME, { gameId: String(flow.link.gameId) }));
       }
     },
-    games.Types.GAME_JOINED,
-    [flow, navigate],
+    [joining],
   );
 
-  const joinFailed = flow.step === 'joining' && joinError !== null;
+  // A rejection of the link's join is this flow's to show.
+  const joinFailed = joining !== null && joinError !== null;
+
   const dismissJoinError = () => {
-    dispatch(rooms.Actions.clearJoinGameError());
+    clearJoinError();
+    setFlow(IDLE);
+  };
+
+  const cancelJoinPassword = () => {
+    cancelPassword();
     setFlow(IDLE);
   };
 
@@ -194,20 +183,20 @@ export default function GameLinkJoinHost() {
         message={t('GameLink.full')}
         confirmLabel={t('GameLink.yes')}
         cancelLabel={t('GameLink.no')}
-        onConfirm={() => flow.step === 'confirmSpectate' && beginGameJoin(flow.link, flow.game, true)}
+        onConfirm={() => flow.step === 'confirmSpectate' && startJoin(flow.link, flow.game, true)}
         onCancel={close}
       />
       <PromptDialog
-        isOpen={flow.step === 'password'}
+        isOpen={joining !== null && passwordRequired}
         title={t('GameLink.confirm.title')}
         label={
-          flow.step === 'password' && flow.game.description
-            ? t('GameLink.password.description', { description: flow.game.description })
-            : t('GameLink.password.id', { gameId: flow.step === 'password' ? flow.link.gameId : 0 })
+          joining?.game.description
+            ? t('GameLink.password.description', { description: joining.game.description })
+            : t('GameLink.password.id', { gameId: joining?.link.gameId ?? 0 })
         }
         submitLabel={t('GameLink.join')}
-        onSubmit={(password) => flow.step === 'password' && sendJoin(flow.link, flow.spectator, password)}
-        onCancel={close}
+        onSubmit={submitPassword}
+        onCancel={cancelJoinPassword}
       />
       <AlertDialog
         isOpen={flow.step === 'notice'}
@@ -215,6 +204,7 @@ export default function GameLinkJoinHost() {
         message={flow.step === 'notice' ? flow.message : ''}
         onDismiss={close}
       />
+      {joining && <NavigateOnLinkJoin onJoined={onLinkJoined} />}
       <AlertDialog
         isOpen={joinFailed}
         title={t('GameLink.confirm.title')}

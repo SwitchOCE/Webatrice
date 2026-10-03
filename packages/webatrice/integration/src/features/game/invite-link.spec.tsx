@@ -1,3 +1,4 @@
+import { Route, Routes, useNavigate } from 'react-router-dom';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 import { describe, expect, it } from 'vitest';
@@ -7,23 +8,75 @@ import {
   Command_JoinGame_ext,
   Command_Message_ext,
   Event_GameJoined_ext,
+  Event_RoomSay_RoomMessageType,
+  Event_RoomSay_ext,
+  Event_RoomSaySchema,
   Event_UserMessage_ext,
+  Response_ResponseCode,
   Event_UserMessageSchema,
   ServerInfo_GameSchema,
   ServerInfo_RoomSchema,
   ServerInfo_UserSchema,
 } from '@cockatrice/sockatrice/generated';
 import { GameLinkJoinHost, Message } from '@app/components';
+import { Room } from '@app/features/rooms';
 import GameInviteControls from '../../../../src/features/game/components/GameInviteControls/GameInviteControls';
 import { connectRaw, store } from '../../helpers/setup';
 import { findLastRoomCommand, findLastSessionCommand } from '../../helpers/command-capture';
-import { buildSessionEventMessage, deliverMessage } from '../../helpers/protobuf-builders';
+import {
+  buildResponse,
+  buildResponseMessage,
+  buildRoomEventMessage,
+  buildSessionEventMessage,
+  deliverMessage,
+} from '../../helpers/protobuf-builders';
 import { renderFeatureScreen } from '../helpers';
 import { LocationProbe, buildEventGameJoined, registerGameBoardHooks, simulateConnected } from './helpers';
 
 registerGameBoardHooks();
 
 const user = (name: string) => create(ServerInfo_UserSchema, { name });
+
+/** Browser Back: one step from the game must land on the room, which a doubled push of /game/77 breaks. */
+function BackButton() {
+  const navigate = useNavigate();
+  return <button type="button" onClick={() => navigate(-1)}>back</button>;
+}
+
+/** The Room page (GamesList included) with a game link posted in its chat, and the app-wide link host. */
+function renderRoomWithLink() {
+  connectRaw();
+  simulateConnected();
+  act(() => {
+    store.dispatch(rooms.Actions.joinRoom({
+      roomInfo: create(ServerInfo_RoomSchema, {
+        roomId: 1,
+        name: 'Main',
+        gameList: [create(ServerInfo_GameSchema, { gameId: 77, roomId: 1, description: 'Bo3', playerCount: 1, maxPlayers: 2 })],
+      }),
+    }));
+    deliverMessage(buildRoomEventMessage(1, Event_RoomSay_ext, create(Event_RoomSaySchema, {
+      name: 'bob',
+      message: 'Join my game "Bo3" (#77): cockatrice://joingame?hostname=localhost&port=4747&roomid=1&gameid=77&game=Bo3',
+      messageType: Event_RoomSay_RoomMessageType.UserMessage,
+    })));
+  });
+  renderFeatureScreen(
+    <>
+      <Routes>
+        <Route path="/room/:roomId" element={<Room />} />
+        <Route path="*" element={null} />
+      </Routes>
+      <GameLinkJoinHost />
+      <LocationProbe />
+      <BackButton />
+    </>,
+    '/room/1',
+  );
+  fireEvent.click(screen.getByRole('button', { name: /GameLink\.anchor\.withDescription/ }));
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'GameLink.yes' }));
+  return findLastRoomCommand(Command_JoinGame_ext);
+}
 
 describe('Game invites and links (GAME-033)', () => {
   it('Invite to Game sends the desktop join link as a private message', () => {
@@ -107,6 +160,31 @@ describe('Game invites and links (GAME-033)', () => {
       deliverMessage(buildSessionEventMessage(Event_GameJoined_ext, buildEventGameJoined({ gameId: 77, localPlayerId: 2, hostId: 1 })));
     });
     await waitFor(() => expect(screen.getByTestId('app-location')).toHaveTextContent('/game/77'));
+  });
+
+  it('a link clicked in a room\'s chat opens the game with one navigation (Back returns to the room)', async () => {
+    const join = renderRoomWithLink();
+    expect(join.value.gameId).toBe(77);
+
+    act(() => {
+      deliverMessage(buildResponseMessage(buildResponse({ cmdId: join.cmdId })));
+      deliverMessage(buildSessionEventMessage(Event_GameJoined_ext, buildEventGameJoined({ gameId: 77, localPlayerId: 2, hostId: 1 })));
+    });
+    await waitFor(() => expect(screen.getByTestId('app-location')).toHaveTextContent('/game/77'));
+    fireEvent.click(screen.getByRole('button', { name: 'back' }));
+    await waitFor(() => expect(screen.getByTestId('app-location')).toHaveTextContent('/room/1'));
+  });
+
+  it('a link join the server rejects on a room page shows one error', async () => {
+    const join = renderRoomWithLink();
+    act(() => {
+      deliverMessage(buildResponseMessage(buildResponse({ cmdId: join.cmdId, responseCode: Response_ResponseCode.RespGameFull })));
+    });
+    const { message } = rooms.Selectors.getJoinGameError(store.getState())!;
+    await screen.findByText(message);
+    // Count hidden dialogs too: MUI marks every modal under the top one aria-hidden.
+    const errorDialogs = screen.getAllByRole('dialog', { hidden: true }).filter((dialog) => dialog.textContent?.includes(message));
+    expect(errorDialogs).toHaveLength(1);
   });
 
   it('an invite arriving as a private message is stored with its link intact', () => {
