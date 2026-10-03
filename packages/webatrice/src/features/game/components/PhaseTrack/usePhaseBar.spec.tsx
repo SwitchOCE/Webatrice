@@ -119,6 +119,20 @@ describe('usePhaseBar', () => {
     );
   });
 
+  it('handlePassAndUntap passes the turn, then untaps, even off turn', () => {
+    const { result, webClient } = setup({ gamesState: stateWith({ activePlayerId: 2 }) });
+
+    expect(result.current.canAdvancePhase).toBe(false);
+    act(() => {
+      result.current.handlePassAndUntap();
+    });
+
+    expect(webClient.request.game.nextTurn).toHaveBeenCalledWith(1);
+    expect(webClient.request.game.setCardAttr).toHaveBeenCalledWith(1, expect.objectContaining({ cardId: -1 }));
+    expect(vi.mocked(webClient.request.game.nextTurn).mock.invocationCallOrder[0])
+      .toBeLessThan(vi.mocked(webClient.request.game.setCardAttr).mock.invocationCallOrder[0]);
+  });
+
   it('no-ops every action when gameId is undefined', () => {
     const { result, webClient } = setup({ gameId: undefined });
 
@@ -127,6 +141,7 @@ describe('usePhaseBar', () => {
       result.current.handlePass();
       result.current.handleDrawOne();
       result.current.handleUntapAll();
+      result.current.handlePassAndUntap();
     });
 
     expect(webClient.request.game.setActivePhase).not.toHaveBeenCalled();
