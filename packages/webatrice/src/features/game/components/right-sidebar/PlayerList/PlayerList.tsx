@@ -6,6 +6,7 @@ import { Crown, Eye, User } from 'lucide-react';
 import { games, server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { useAppSelector } from '@app/store';
+import { useAdminLocked } from '@app/hooks';
 import { UserBadges } from '@app/components';
 import { MODERATION_MENU_LABEL_KEYS, useModerationMenu } from '@app/feature-widgets/moderation';
 import { RouteEnum } from '@app/types';
@@ -56,6 +57,9 @@ function PlayerList() {
   // only exists while it's open).
   const isRegistered = useAppSelector((state) => server.Selectors.getIsUserRegistered(state));
   const isModerator = useAppSelector((state) => server.Selectors.getIsUserModerator(state));
+  // Desktop grants in-game moderator powers only while the Administration
+  // tab is unlocked (TabSupervisor::getAdminLocked).
+  const adminLocked = useAdminLocked();
   const buddyList = useAppSelector((state) => server.Selectors.getBuddyList(state));
   const ignoreList = useAppSelector((state) => server.Selectors.getIgnoreList(state));
   // Server-side user directory: the User details modal renders the
@@ -244,7 +248,7 @@ function PlayerList() {
         local={{
           isHost: hostId != null && hostId === localPlayerId,
           isRegistered,
-          isModerator,
+          isModerator: isModerator && !adminLocked,
         }}
         buddyList={buddyList}
         ignoreList={ignoreList}
