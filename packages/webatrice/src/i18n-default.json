@@ -457,6 +457,8 @@
       "game.shuffleLibrary": "Shuffle library",
       "game.nextPhase": "Next phase",
       "game.prevPhase": "Previous phase",
+      "game.nextPhaseAction": "Next phase with action",
+      "game.reverseTurn": "Reverse turn order",
       "game.drawMultipleCards": "Draw multiple cards…",
       "game.undoDraw": "Undo draw",
       "game.rollDice": "Roll dice…",
@@ -762,6 +764,16 @@
     "title": "The game board hit an unexpected error",
     "message": "You are still in the game. Reload the board to pick up where you left off.",
     "retry": "Reload board"
+  },
+  "GameMenu": {
+    "button": "Game",
+    "title": "Game actions",
+    "item": {
+      "nextPhase": "Next phase",
+      "nextPhaseAction": "Next phase with action",
+      "nextTurn": "Next turn",
+      "reverseTurn": "Reverse turn order"
+    }
   },
   "Login": {
     "header": {

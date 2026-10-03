@@ -18,7 +18,12 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'game.shuffleLibrary': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyS'] },
   // Cockatrice's `aNextPhase` accepts Ctrl+Space OR Tab; keep both.
   'game.nextPhase': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: ['Tab', 'Ctrl+Space'] },
-  'game.prevPhase': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: ['Shift+Tab'] },
+  // Webatrice-only, so it yields Shift+Tab to desktop's `aNextPhaseAction`; still rebindable.
+  'game.prevPhase': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
+  'game.nextPhaseAction': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: ['Shift+Tab'] },
+  // Desktop reads `Player/aReverseTurn` but never registers a default, so it has no key there.
+  // Listed here (unbound) so it can be bound.
+  'game.reverseTurn': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
 
   // New bindings (Cockatrice-parity, browser-safe):
   'game.drawMultipleCards': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyE'] },

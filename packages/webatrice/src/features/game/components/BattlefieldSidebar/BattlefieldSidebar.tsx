@@ -13,6 +13,13 @@ import { useCardPreview } from '../ui/CardPreviewContext';
 import { CARD_CORNER_RADIUS } from '../ui/SeatCard/cardSize';
 import { ManaSymbols, SymbolText } from '../PlayerBox/ManaSymbols';
 import { useCardPreviewPopup } from '../CardPreviewPopup/useCardPreviewPopup';
+import GameMenu from '../GameMenu/GameMenu';
+
+const SIDEBAR_HEADER_BUTTON_CLASS = [
+  'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium',
+  'text-text-primary bg-bg-elevated hover:bg-border-subtle border',
+  'border-border-subtle disabled:opacity-60 disabled:cursor-not-allowed transition-colors',
+].join(' ');
 
 const SIDEBAR_ACTION_BUTTON_CLASS =
   'flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-xs '
@@ -580,25 +587,26 @@ export default function BattlefieldSidebar() {
       </div>
 
       {/* Player list — og's PlayerList inside a section header row
-           that carries the Leave button (fancy's pattern). */}
+           that carries the game menu and the Leave button (fancy's
+           pattern). The game menu sits here, not in the action row,
+           because spectators can use some of its items. */}
       <div className="shrink-0 border-b border-border-subtle">
         <div className="px-3 py-2 flex items-center justify-between">
           <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
             Players
           </span>
-          <button
-            type="button"
-            onClick={handleLeave}
-            disabled={gameId == null}
-            title="Leave the game"
-            className={[
-              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium',
-              'text-text-primary bg-bg-elevated hover:bg-border-subtle border',
-              'border-border-subtle disabled:opacity-60 disabled:cursor-not-allowed transition-colors',
-            ].join(' ')}
-          >
-            <LogOut size={12} /> Leave
-          </button>
+          <div className="flex items-center gap-2">
+            <GameMenu className={SIDEBAR_HEADER_BUTTON_CLASS} />
+            <button
+              type="button"
+              onClick={handleLeave}
+              disabled={gameId == null}
+              title="Leave the game"
+              className={SIDEBAR_HEADER_BUTTON_CLASS}
+            >
+              <LogOut size={12} /> Leave
+            </button>
+          </div>
         </div>
         <PlayerList />
       </div>

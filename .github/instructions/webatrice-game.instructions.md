@@ -43,6 +43,7 @@ Port of `table_zone.cpp:153-185`.
 - Phase 0 (Untap) double-click → "untap all"; phase 2 (Draw) double-click → "draw a card".
 - **`canPassTurn`** (drives `cmdNextTurn` / `cmdReverseTurn`): any non-conceded participant or judge. Does **not** require the active-player flag. Matches `server_player.cpp`.
 - **`canAdvancePhase`** (drives `cmdSetActivePhase`): local player must be the active player **or** a judge. Different gate from `canPassTurn` — easy to conflate.
+- **Next phase with action** ([phaseActions.ts](../../packages/webatrice/src/features/game/components/PhaseTrack/phaseActions.ts), desktop `actNextPhaseAction`): advance one phase (wrapping past End sends `cmdNextTurn`, not phase 0), then run the new phase's double-click action. The whole action is gated on `canAdvancePhase`, plus `canPassTurn` on the wrap — stricter than desktop, which lets the server reject the phase change while the draw or untap still lands.
 
 ## Lifecycle
 

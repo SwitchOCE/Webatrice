@@ -209,6 +209,30 @@ export class GamePage {
     await expect(this.container).toBeHidden({ timeout: 30_000 });
   }
 
+  // BattlefieldSidebar's "Game" button opens the game menu (desktop's Game
+  // menu: phase and turn actions). An MUI Menu, so items carry
+  // role="menuitem"; their names end in the shortcut hint, so callers
+  // anchor the regex at the start only.
+  async clickGameMenuItem(name: RegExp): Promise<void> {
+    await this.rightPanel.getByRole('button', { name: /^game$/i }).click();
+    const menu = this.page.getByTestId('game-menu');
+    const item = menu.getByRole('menuitem', { name });
+    await expect(item).toBeEnabled({ timeout: 10_000 });
+    await item.click();
+    await expect(menu).toBeHidden();
+  }
+
+  // Whether the local player may change phases (the active player or a
+  // judge): PhaseTrack disables its phase buttons otherwise.
+  async canAdvancePhase(): Promise<boolean> {
+    return this.page.getByTestId('phase-bar').locator('button[data-phase="1"]').isEnabled();
+  }
+
+  // A line in the game's message log (ChatLog, in the right panel).
+  logLine(text: string | RegExp): Locator {
+    return this.rightPanel.getByText(text);
+  }
+
   async isSpectator(): Promise<boolean> {
     return (await this.spectatingTag.count()) > 0;
   }
