@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 
 import { expect, test } from '../fixtures/test';
 import { E2E_HOST_LABEL, registerAndReachRooms } from '../fixtures/flows';
+import { topBarTab } from '../pages';
 
 // Account self-service against the real Servatrice (which supports password
 // hashing): the user menu reaches the Account page, a profile edit that
@@ -13,7 +14,7 @@ async function openAccount(page: Page, userName: string): Promise<void> {
   await page.getByRole('button', { name: userName }).click();
   await page.getByRole('menuitem', { name: /^account$/i }).click();
   // MemoryRouter: the address bar never changes, so assert on the Account tab instead.
-  await expect(page.getByRole('tab', { name: /^account/i })).toHaveAttribute('aria-selected', 'true');
+  await expect(topBarTab(page, /^account/i)).toHaveAttribute('aria-current', 'page');
 }
 
 test('edit profile and change password, then log in with the new password', async ({ page }) => {

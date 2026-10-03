@@ -6,6 +6,7 @@ import { server, ServerCapability } from '@cockatrice/datatrice';
 import { expect, test } from '../fixtures/test';
 import { E2E_ADMIN, E2E_MODERATOR, reachRoomsAs, registerAndReachRooms } from '../fixtures/flows';
 import { randomSuffix } from '../fixtures/users';
+import { topBarTab } from '../pages';
 
 // Staff pages against the real Servatrice: the Administration tab's "Update
 // server message" (desktop TabAdmin) and the Moderation tab's alts lookup
@@ -51,7 +52,7 @@ test('an admin publishes a new server message from Administration', async ({ pag
   await expect(page.getByText('Server message updated')).toBeVisible({ timeout: 15_000 });
 
   // The broadcast Event_ServerMessage replaced the MOTD shown on the server tab.
-  await page.getByRole('tab').first().click();
+  await topBarTab(page).first().click();
   await expect(page.getByText(message)).toBeVisible({ timeout: 15_000 });
 });
 
