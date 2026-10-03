@@ -22,9 +22,8 @@ export function DeckBreakdown({
   onAssessmentComputed,
 }: {
   cards: DeckCard[];
-  /** Deck format. Bracket section only renders for Commander proper
-   *  (not Pauper Commander, Oathbreaker, etc. — brackets are a
-   *  Commander-format concept). */
+  /** Deck format. The bracket section renders only for the formats
+   *  `isCommanderFormat` accepts (Commander and Pauper Commander). */
   format: string;
   /** Previously-persisted bracket assessment from the .cod. When its
    *  fingerprint matches the current deck we skip the Scryfall +

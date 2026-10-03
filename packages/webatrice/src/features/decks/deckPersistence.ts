@@ -47,6 +47,10 @@ export function serializeDeckForSave(deck: HydratedDeck): string {
  * update would duplicate the deck in the local tree. Instead `deckList()`
  * is refetched on success: its response replaces `backendDecks`
  * wholesale, so MyDecks and the tab titles see server truth.
+ *
+ * This raw call is a known layering exception, not a pattern: the fix is
+ * a Sockatrice `request.session.deckUpdate` that leaves `path` unset
+ * (parity follow-up #18), after which this module goes through it.
  */
 export function uploadDeckUpdate(
   webClient: WebClient,
