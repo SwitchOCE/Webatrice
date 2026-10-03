@@ -21,6 +21,7 @@ import {
   type BattlefieldLayoutOpts,
 } from './battlefieldLayout';
 import { useBattlefieldLayout } from './useBattlefieldLayout';
+import { ATTACH_SOURCE_RING, DOESNT_UNTAP_RING, SELECTED_DOESNT_UNTAP_RING, SELECTED_RING } from '../../ui/seatColors/seatColors';
 
 /**
  * Non-interactive overlay: dashed outline at every snap slot + the divider
@@ -407,17 +408,18 @@ export default function Battlefield() {
                     //   • attach source → green (Cockatrice's arrow color)
                     //   • marquee-selected → blue
                     //   • doesntUntap → amber
+                    // (the seat tokens; see seatColors)
                     // When multiple apply they layer, but attach-source
                     // takes visual precedence since it's the ephemeral
                     // "you're mid-flow" cue.
                     boxShadow: isAttachSource
-                      ? '0 0 0 3px rgb(34 197 94), 0 0 16px 3px rgb(34 197 94 / 0.75)'
+                      ? ATTACH_SOURCE_RING
                       : selected
                         ? c.doesntUntap
-                          ? '0 0 0 2px rgb(59 130 246), 0 0 0 4px rgb(251 191 36), 0 0 12px 2px rgb(251 191 36 / 0.7)'
-                          : '0 0 0 2px rgb(59 130 246), 0 0 12px 2px rgb(59 130 246 / 0.6)'
+                          ? SELECTED_DOESNT_UNTAP_RING
+                          : SELECTED_RING
                         : c.doesntUntap
-                          ? '0 0 0 2px rgb(251 191 36), 0 0 10px 2px rgb(251 191 36 / 0.6)'
+                          ? DOESNT_UNTAP_RING
                           : undefined,
                     borderRadius: CARD_CORNER_RADIUS,
                     // Tapped cards rotate 90° clockwise in place.

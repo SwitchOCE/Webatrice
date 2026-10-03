@@ -21,7 +21,20 @@ export type PaletteToken =
   | 'status-success'
   | 'status-warning'
   | 'seat-flash-gain'
-  | 'seat-flash-loss';
+  | 'seat-flash-loss'
+  | 'seat-select'
+  | 'seat-attach'
+  | 'seat-doesnt-untap'
+  | 'over-art-text'
+  | 'over-art-backdrop'
+  | 'pt-modified'
+  | 'mana-w'
+  | 'mana-u'
+  | 'mana-b'
+  | 'mana-r'
+  | 'mana-g'
+  | 'mana-c'
+  | 'mana-o';
 
 export type Palette = Readonly<Record<PaletteToken, string>>;
 
@@ -51,6 +64,19 @@ export const PALETTES: Readonly<Record<ColorScheme, Palette>> = {
     'status-warning': '#FACC15',
     'seat-flash-gain': '#34E07A',
     'seat-flash-loss': '#EF4444',
+    'seat-select': '#3B82F6',
+    'seat-attach': '#22C55E',
+    'seat-doesnt-untap': '#FBBF24',
+    'over-art-text': '#FFFFFF',
+    'over-art-backdrop': '#000000',
+    'pt-modified': '#FF9600',
+    'mana-w': '#F9F1C8',
+    'mana-u': '#3B82F6',
+    'mana-b': '#4B5563',
+    'mana-r': '#EF4444',
+    'mana-g': '#10B981',
+    'mana-c': '#9CA3AF',
+    'mana-o': '#F97316',
   },
   light: {
     'bg-base': '#F6F3FA',
@@ -72,5 +98,18 @@ export const PALETTES: Readonly<Record<ColorScheme, Palette>> = {
     'status-warning': '#8A5905',
     'seat-flash-gain': '#34E07A',
     'seat-flash-loss': '#EF4444',
+    'seat-select': '#3B82F6',
+    'seat-attach': '#15803D',
+    'seat-doesnt-untap': '#B45309',
+    'over-art-text': '#FFFFFF',
+    'over-art-backdrop': '#000000',
+    'pt-modified': '#FF9600',
+    'mana-w': '#F9F1C8',
+    'mana-u': '#3B82F6',
+    'mana-b': '#4B5563',
+    'mana-r': '#EF4444',
+    'mana-g': '#10B981',
+    'mana-c': '#9CA3AF',
+    'mana-o': '#F97316',
   },
 };

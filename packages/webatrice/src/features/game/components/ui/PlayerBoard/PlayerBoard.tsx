@@ -16,6 +16,7 @@ import PendingTargetArrows from './PendingTargetArrows';
 import { PlayerSeatProvider } from './PlayerSeatContext';
 import SeatDragGhostCards from './SeatDragGhostCards';
 import { usePlayerSeat, type PlayerSeatProps } from './usePlayerSeat';
+import { MARQUEE_BORDER, MARQUEE_FILL } from '../seatColors/seatColors';
 
 /**
  * One player's seat: the info column (PlayerInfoPanel: name, life, mana pool
@@ -126,8 +127,8 @@ function PlayerBoard(props: PlayerSeatProps) {
               top: Math.min(marquee.y1, marquee.y2),
               width: Math.abs(marquee.x2 - marquee.x1),
               height: Math.abs(marquee.y2 - marquee.y1),
-              border: '1px dashed rgb(59 130 246)',
-              background: 'rgb(59 130 246 / 0.12)',
+              border: MARQUEE_BORDER,
+              background: MARQUEE_FILL,
               pointerEvents: 'none',
               zIndex: 275,
             }}

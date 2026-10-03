@@ -44,6 +44,17 @@ export default {
         danger: 'rgb(var(--status-danger) / <alpha-value>)',
         success: 'rgb(var(--status-success) / <alpha-value>)',
         warning: 'rgb(var(--status-warning) / <alpha-value>)',
+        // Board: selection / attach / doesn't-untap rings, and text drawn over card art.
+        seat: {
+          select: 'rgb(var(--seat-select) / <alpha-value>)',
+          attach: 'rgb(var(--seat-attach) / <alpha-value>)',
+          'doesnt-untap': 'rgb(var(--seat-doesnt-untap) / <alpha-value>)',
+        },
+        'over-art': {
+          text: 'rgb(var(--over-art-text) / <alpha-value>)',
+          backdrop: 'rgb(var(--over-art-backdrop) / <alpha-value>)',
+        },
+        'pt-modified': 'rgb(var(--pt-modified) / <alpha-value>)',
       },
       boxShadow: {
         glow: '0 0 24px -4px rgb(var(--accent-primary) / 0.35)',
