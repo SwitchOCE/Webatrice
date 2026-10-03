@@ -209,7 +209,7 @@ export default function TopBar() {
 
   // Enrich a deck-editor sticky tab with the actual deck name once
   // backendDecks has loaded it. Falls back to `Deck #N` before that.
-  const deckIdToName = useMemo(() => flattenDeckNames(backendDecks), [backendDecks]);
+  const deckIdToName = useMemo(() => flattenDeckNames(backendDecks, t), [backendDecks, t]);
 
   // Whenever the deck name enrichment ("Deck #N" → real name) resolves,
   // persist the freshly enriched title back into the sticky-tab list.
@@ -247,7 +247,7 @@ export default function TopBar() {
       {
         key: 'server',
         type: 'server',
-        title: 'Lobby',
+        title: t('TopBar.tab.lobby'),
         route: generatePath(RouteEnum.SERVER),
         closeable: false,
       },
@@ -258,7 +258,7 @@ export default function TopBar() {
       list.push({
         key: `room:${roomId}`,
         type: 'room',
-        title: room.info.name || `Room ${roomId}`,
+        title: room.info.name || t('TopBar.tab.room', { id: String(roomId) }),
         route: generatePath(RouteEnum.ROOM, { roomId: roomId.toString() }),
         closeable: true,
         onClose: () => {
@@ -269,7 +269,7 @@ export default function TopBar() {
 
     for (const game of activeGames) {
       const gameId = game.info.gameId;
-      const title = game.info.description || `Game ${gameId}`;
+      const title = game.info.description || t('TopBar.tab.game', { id: String(gameId) });
       list.push({
         key: `game:${gameId}`,
         type: 'game',
@@ -391,9 +391,9 @@ export default function TopBar() {
               'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium',
               'text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors',
             ].join(' ')}
-            title="View your decks"
+            title={t('TopBar.decks.title')}
           >
-            <Library size={16} /> Decks
+            <Library size={16} /> {t('TopBar.decks.button')}
           </button>
           <button
             onClick={() => navigate(generatePath(RouteEnum.REPLAYS))}
@@ -628,12 +628,12 @@ function routeMatches(pathname: string, route: string): boolean {
   return matchPath({ path: route, end: true }, pathname) !== null;
 }
 
-const STAFF_TABS: { key: string; title: string; route: RouteEnum }[] = [
-  { key: 'administration', title: 'Administration', route: RouteEnum.ADMINISTRATION },
-  { key: 'moderation', title: 'Moderation', route: RouteEnum.MODERATION },
-  { key: 'card-art-rules', title: 'Card Art Rules', route: RouteEnum.CARD_ART_RULES },
-  { key: 'developer', title: 'Developer', route: RouteEnum.DEVELOPER },
-  { key: 'report-queue', title: 'Report Queue', route: RouteEnum.REPORT_QUEUE },
+const STAFF_TABS: { key: string; titleKey: string; route: RouteEnum }[] = [
+  { key: 'administration', titleKey: 'UserMenu.administration', route: RouteEnum.ADMINISTRATION },
+  { key: 'moderation', titleKey: 'UserMenu.moderation', route: RouteEnum.MODERATION },
+  { key: 'card-art-rules', titleKey: 'UserMenu.cardArtRules', route: RouteEnum.CARD_ART_RULES },
+  { key: 'developer', titleKey: 'UserMenu.developer', route: RouteEnum.DEVELOPER },
+  { key: 'report-queue', titleKey: 'UserMenu.reportQueue', route: RouteEnum.REPORT_QUEUE },
 ];
 
 /** Build a transient tab for the current route if it's one of the
@@ -642,7 +642,7 @@ const STAFF_TABS: { key: string; title: string; route: RouteEnum }[] = [
  *  (Server, Room, Game). */
 function detectTransientTab(pathname: string, t: TFunction): Tab | null {
   if (matchPath({ path: RouteEnum.DECKS, end: true }, pathname)) {
-    return { key: 'decks', type: 'decks', title: 'My Decks', route: pathname, closeable: true };
+    return { key: 'decks', type: 'decks', title: t('TopBar.tab.myDecks'), route: pathname, closeable: true };
   }
   const deckMatch = matchPath({ path: RouteEnum.DECK, end: true }, pathname);
   if (deckMatch) {
@@ -650,7 +650,7 @@ function detectTransientTab(pathname: string, t: TFunction): Tab | null {
     return {
       key: `deck:${id}`,
       type: 'deck',
-      title: `Deck #${id}`, // TopBar re-titles this from backendDecks once loaded
+      title: t('TopBar.tab.deck', { id }), // TopBar re-titles this from backendDecks once loaded
       route: pathname,
       closeable: true,
     };
@@ -663,38 +663,38 @@ function detectTransientTab(pathname: string, t: TFunction): Tab | null {
     return {
       key: `deck-draft:${draftMatch.params.token ?? '?'}`,
       type: 'deck',
-      title: 'Unsaved deck',
+      title: t('TopBar.tab.unsavedDeck'),
       route: pathname,
       closeable: true,
     };
   }
   if (matchPath({ path: RouteEnum.SETTINGS, end: true }, pathname)) {
-    return { key: 'settings', type: 'settings', title: 'Settings', route: pathname, closeable: true };
+    return { key: 'settings', type: 'settings', title: t('UserMenu.settings'), route: pathname, closeable: true };
   }
   if (matchPath({ path: RouteEnum.SHORTCUTS, end: true }, pathname)) {
-    return { key: 'shortcuts', type: 'shortcuts', title: 'Shortcuts', route: pathname, closeable: true };
+    return { key: 'shortcuts', type: 'shortcuts', title: t('UserMenu.shortcuts'), route: pathname, closeable: true };
   }
   if (matchPath({ path: RouteEnum.ACCOUNT, end: true }, pathname)) {
-    return { key: 'account', type: 'account', title: 'Account', route: pathname, closeable: true };
+    return { key: 'account', type: 'account', title: t('UserMenu.account'), route: pathname, closeable: true };
   }
   if (matchPath({ path: RouteEnum.LOGS, end: true }, pathname)) {
-    return { key: 'logs', type: 'logs', title: 'Logs', route: pathname, closeable: true };
+    return { key: 'logs', type: 'logs', title: t('UserMenu.logs'), route: pathname, closeable: true };
   }
   const staffTab = STAFF_TABS.find(({ route }) => matchPath({ path: route, end: true }, pathname));
   if (staffTab) {
-    return { key: staffTab.key, type: 'staff', title: staffTab.title, route: pathname, closeable: true };
+    return { key: staffTab.key, type: 'staff', title: t(staffTab.titleKey), route: pathname, closeable: true };
   }
   if (matchPath({ path: RouteEnum.MY_REPORTS, end: true }, pathname)) {
-    return { key: 'my-reports', type: 'my-reports', title: 'My Reports', route: pathname, closeable: true };
+    return { key: 'my-reports', type: 'my-reports', title: t('UserMenu.myReports'), route: pathname, closeable: true };
   }
   const publicDecksMatch = matchPath({ path: RouteEnum.PUBLIC_DECKS, end: true }, pathname);
   if (publicDecksMatch) {
     const name = publicDecksMatch.params.userName ?? '';
-    return { key: `public-decks:${name}`, type: 'decks', title: `Public decks of ${name}`, route: pathname, closeable: true };
+    return { key: `public-decks:${name}`, type: 'decks', title: t('TopBar.tab.publicDecks', { name }), route: pathname, closeable: true };
   }
   const playerMatch = matchPath({ path: RouteEnum.PLAYER, end: true }, pathname);
   if (playerMatch) {
-    const name = playerMatch.params.name ?? 'Player';
+    const name = playerMatch.params.name ?? t('TopBar.tab.player');
     return { key: `player:${name}`, type: 'player', title: name, route: pathname, closeable: true };
   }
   if (matchPath({ path: RouteEnum.REPLAYS, end: true }, pathname)) {
@@ -715,6 +715,7 @@ function detectTransientTab(pathname: string, t: TFunction): Tab | null {
  *  sticky tab once the deck list is loaded. */
 function flattenDeckNames(
   backendDecks: ReturnType<typeof server.Selectors.getBackendDecks>,
+  t: TFunction,
 ): Map<number, string> {
   const out = new Map<number, string>();
   const walk = (items: readonly ServerInfo_DeckStorage_TreeItem[] | undefined) => {
@@ -723,7 +724,7 @@ function flattenDeckNames(
     }
     for (const item of items) {
       if (item.file && item.id) {
-        out.set(item.id, item.name || `Deck #${item.id}`);
+        out.set(item.id, item.name || t('TopBar.tab.deck', { id: String(item.id) }));
       } else if (item.folder) {
         walk(item.folder.items);
       }
