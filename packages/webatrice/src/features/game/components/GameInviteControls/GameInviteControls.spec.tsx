@@ -5,7 +5,10 @@ import {
   makePlayerEntry,
   makePlayerProperties,
 } from '@cockatrice/datatrice/testing';
+import { server } from '@cockatrice/datatrice';
 import type { WebClient } from '@cockatrice/sockatrice';
+import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import {
   connectedWithRoomsState,
@@ -157,5 +160,50 @@ describe('GameInviteControls (GAME-033)', () => {
       'alice',
       'GameInvite.message cockatrice://joingame?hostname=localhost&port=4748&roomid=3&gameid=5',
     );
+  });
+
+  function inviteAlice() {
+    const utils = renderControls();
+    fireEvent.click(screen.getByRole('button', { name: 'GameInvite.inviteToGame' }));
+    mountRows();
+    fireEvent.doubleClick(within(screen.getByTestId('invite-user-list')).getByText('alice'));
+    return utils;
+  }
+
+  it('reports an invite the server rejects', async () => {
+    const { store } = inviteAlice();
+    act(() => {
+      store.dispatch(server.Actions.privateMessageFailed({
+        userName: 'alice',
+        message: `GameInvite.messageWithDescription ${LINK}`,
+        responseCode: Response_ResponseCode.RespInIgnoreList,
+      }));
+    });
+    expect(await screen.findByText('GameInvite.inviteFailed.ignoring')).toBeInTheDocument();
+  });
+
+  it('reports an invite that was never answered with the transport reason', async () => {
+    const { store } = inviteAlice();
+    act(() => {
+      store.dispatch(server.Actions.privateMessageFailed({
+        userName: 'alice',
+        message: `GameInvite.messageWithDescription ${LINK}`,
+        responseCode: Response_ResponseCode.RespNotConnected,
+        failure: WebsocketTypes.CommandFailure.Timeout,
+      }));
+    });
+    expect(await screen.findByText('GameInvite.inviteFailed.notSent')).toBeInTheDocument();
+  });
+
+  it('ignores a failed private message that was not an invite', () => {
+    const { store } = inviteAlice();
+    act(() => {
+      store.dispatch(server.Actions.privateMessageFailed({
+        userName: 'alice',
+        message: 'hello',
+        responseCode: Response_ResponseCode.RespInIgnoreList,
+      }));
+    });
+    expect(screen.queryByText(/GameInvite\.inviteFailed/)).not.toBeInTheDocument();
   });
 });
