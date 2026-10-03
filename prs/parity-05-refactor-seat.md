@@ -552,3 +552,35 @@ Notes for reviewers (Stage 4, completing the notes above):
   - The skipped `integration/.../library-view.spec.tsx` could now be revived against `ZoneViewDialog`. Its DOM anchors (`zone-view-dialog` test ids) would need updating.
 - **Pinned, not fixed:** auto play in move-top-until sends the hit to the battlefield with `x = -3`. This is the same `resolveBattlefieldDropX` "any free column" finding `Game.menuMoves.spec` pins.
 - The move-top-until modal and the zone panels keep their Tailwind markup. As with PB-12, whether these become MUI dialogs is a maintainer call.
+
+### Rebase onto line A
+
+The 53 commits now sit on `parity/06-e2e-hardening` (`d2e3d1e`) instead of `a5fbad4`. That base adds 03 protocol, 12 moderation, 04 command outcomes, 10 account, 11 rooms/chat, 13 administration and 06 e2e hardening. The tip is `0412500`. There are still 53 commits, in the same order, and none were squashed. Stage 1's changeset commit (`f8d0250` before the rebase) is now `dc77ebd`.
+
+- **No logic needed porting.** Line A never touches `PlayerBox.tsx` or any code the refactor moved out of it. In the game feature, line A only changes `Game.tsx` (its error boundary) and the right-sidebar `PlayerList*` files. Both merged cleanly. `PlayerListContextMenu` keeps 12's moderation items and switches to `useViewportClampedMenu`.
+- **Conflicts resolved:**
+  - `useDeckEditor.ts` (card lookup and codec commits): keeps 04's `useCommandFailureMessage` and takes the codec imports from `@app/services`.
+  - `webatrice.instructions.md` (boundaries commit): keeps line A's wrapper list, which no longer mentions LeftNav, and adds the refactor's rule that a feature never imports another feature.
+  - `eslint.config.mjs` (PlayerBox import guard): keeps both 06's e2e network rules and the refactor's guard.
+  - `i18n-default.json` (zone-view pin commit): resolved with a key-level 3-way merge. That commit's only change to the file was a key reorder, so the file stays exactly as line A has it. Running `npm run translate` at the tip leaves it unchanged.
+- **One fix after the rebase**, folded into the codec commit (`43b16d3`): 04's new `useDeckEditor.spec.tsx` imported `emptyCod` from `./cod`, which the codec commit moves. It now imports it from `@app/services`.
+- The characterization specs and the `Game.*` specs are unchanged and green. Line A adds no seat-menu items or seat requests, so no exact menu snapshot or request spy changed.
+
+Testing (tip `0412500`, repo root, `--maxWorkers=2`):
+
+- Every one of the 53 commits passes `tsc --noEmit` and `eslint src integration e2e` in webatrice.
+- Webatrice unit tests at the earlier stage ends:
+  - `dc77ebd` (Stage 1): 206 / 1581.
+  - `20ce1b2` (Stage 2): 220 / 1756.
+  - `7c61771` (Stage 3): 229 / 1830.
+- `npx turbo run typecheck --concurrency=1`: pass. `npm run lint`: 0 errors.
+- Unit tests:
+  - sockatrice: 39 / 775.
+  - datatrice: 29 / 1196.
+  - webatrice: **244 files / 1979 tests**.
+- Integration tests:
+  - sockatrice: 19 / 166.
+  - datatrice: 9 / 136.
+  - webatrice: 36 passed + 2 skipped files, 160 passed + 2 skipped tests. These are the same pre-existing `library-view` / `judge-override` skips.
+- Sockatrice e2e: 4 files / 5 tests passed.
+- Webatrice e2e (default 3.0.0 image, chromium + firefox + webkit, after `playwright install-deps`): **36 passed (8.4 min)**. That includes `app-boots` and the `bulk-card-actions` release gate in all three browsers, now that 06's hermetic network fixture is in the base.
