@@ -10,6 +10,7 @@ import { games, type GamesState } from '@cockatrice/datatrice';
 import { makeCard, makeGameEntry, makePlayerEntry, makePlayerProperties, makeZoneEntry } from '@cockatrice/datatrice/testing';
 import { makeReduxWebClientHookWrapper } from '../../../__test-utils__/makeHookWrapper';
 import { CardDTO } from '../../../services/dexie/DexieDTOs/CardDTO';
+import { usePreference } from '../../../hooks/useSettings';
 import { useGameArrowInteractions } from './useGameArrowInteractions';
 
 vi.mock('../../../services/dexie/DexieDTOs/CardDTO', () => ({
@@ -547,6 +548,26 @@ describe('useGameArrowInteractions', () => {
         }),
         undefined,
       );
+    });
+
+    it('routes a creature from hand straight to the TABLE when playToStack is off', async () => {
+      vi.mocked(CardDTO.get).mockResolvedValue(makeCardMeta('1') as never);
+      vi.mocked(usePreference).mockImplementation(((key: string) => key !== 'playToStack') as never);
+      const { result, webClient } = setup({ localPlayerId: 1 });
+
+      act(() => {
+        result.current.handleCardDoubleClick(1, ZoneName.HAND, makeCard({ id: 8, name: 'Bear' }));
+      });
+
+      await waitFor(() => {
+        expect(webClient.request.game.moveCard).toHaveBeenCalled();
+      });
+      expect(webClient.request.game.moveCard).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ startZone: ZoneName.HAND, targetZone: ZoneName.TABLE }),
+        undefined,
+      );
+      vi.mocked(usePreference).mockRestore();
     });
 
     it('routes an unknown card (no tablerow) from hand to the STACK', async () => {
