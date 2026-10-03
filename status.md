@@ -2,3 +2,4 @@
 - 16:15Z 09 rebased onto dc77ebd + gate green, pushed claude/parity-09-refactor-decks ba8a091 → rebase 18
 - 16:15Z 09 rebased onto dc77ebd + gate green, pushed claude/parity-09-refactor-decks ba8a091 → rebase 18
 - 16:23Z 18 rebased onto new 09 (typecheck+lint green) → full gate + e2e on 18
+- 16:47Z 18 gate green incl. e2e 39/39; pushed claude/parity-18-decks a7b9684; PR notes updated → done

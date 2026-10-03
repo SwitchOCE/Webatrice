@@ -84,6 +84,26 @@ Run from the worktree root on 2026-10-03.
 
 `npm run test:e2e -w @cockatrice/webatrice` (under the shared e2e lock): 18 passed (6.5m).
 
+## Rebase (w0918r)
+
+Rebased from old `f8d0250` onto `dc77ebd` (`parity/05-refactor-seat` on line A: 03, 12, 04, 10, 11, 13, 06). Line A's
+deck command-failure handling (01) is carried into the split modules rather than dropped:
+
+- **Deck list failure** (`DECK_LIST_FAILED`): now owned by `hooks/useDeckList` (`listError`, cleared by `refresh`);
+  `Decks` renders the new `DeckListError` (in `components/list/DeckListStates`) with Retry instead of the spinner.
+- **Deck download failure** (`DECK_DOWNLOAD_FAILED`): `hooks/useDeckEditor` exposes `loadError`; `DeckNotFound`
+  (in `components/editor/DeckEditorShells`) takes a `reason` and shows `DeckEditor.loadFailedTitle` plus the reason.
+- **Autosave failure**: `uploadDeckUpdate` (`deckPersistence`) takes an `onFailed`; `useDeckAutosave` adds the
+  `failed` save state and rolls back the optimistic signature (ref and session cache) so the next save resends;
+  `DeckSidebar` shows the failed indicator.
+- Line A's `useDeckEditor.spec` tests moved into the per-module specs (`hooks/useDeckEditor.spec`,
+  `hooks/useDeckAutosave.spec`, `deckPersistence.spec`), plus `DeckEditorShells`/`DeckSidebar` cases for the
+  new props/states. One lint fix for this base's `brace-style` rule in `integration/src/features/deck-editor.spec.tsx`.
+
+Gate on the rebased tip `ba8a091`: typecheck 5/5; lint 3/3; unit sockatrice 775, datatrice 1196, webatrice 1861
+(261 files); integration sockatrice 166, datatrice 136, webatrice 185 passed + 2 skipped (pre-existing
+`describe.skip` in game specs).
+
 ## Notes for reviewers
 
 - **Pre-existing, kept.** Every scheduled autosave uploads, because `touchMeta` bumps `updatedAt` before the
