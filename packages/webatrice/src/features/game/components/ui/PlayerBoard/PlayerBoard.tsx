@@ -5,6 +5,7 @@ import { ArrowColor, rgbaToCss } from '@app/types';
 import { buildArrowGeometry } from '../../arrows/GameArrowOverlay/arrowPath';
 import Battlefield from '../../battlefield/Battlefield/Battlefield';
 import BattlefieldCardMenu from '../../context-menus/SeatCardMenus/BattlefieldCardMenu';
+import HandCardMenu from '../../context-menus/SeatCardMenus/HandCardMenu';
 import PileCardMenu from '../../context-menus/SeatCardMenus/PileCardMenu';
 import StackCardMenu from '../../context-menus/SeatCardMenus/StackCardMenu';
 import PlayerInfoPanel from '../../right-sidebar/PlayerInfoPanel/PlayerInfoPanel';
@@ -249,6 +250,8 @@ function PlayerBoard(props: PlayerSeatProps) {
         <BattlefieldCardMenu />
 
         <PileCardMenu />
+
+        <HandCardMenu />
 
         <StackCardMenu />
 

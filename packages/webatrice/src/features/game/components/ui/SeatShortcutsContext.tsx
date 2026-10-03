@@ -58,6 +58,7 @@ export const SEAT_SHORTCUT_ACTIONS = [
   'game.setAnnotation',
   'game.moveSelectedToLibraryBottom',
   'game.cloneCard',
+  'game.revealSelectedToAll',
 ] as const satisfies readonly ActionId[];
 
 export type SeatShortcutActionId = (typeof SEAT_SHORTCUT_ACTIONS)[number];
