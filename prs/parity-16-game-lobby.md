@@ -140,9 +140,10 @@ Seven commits on top of `b2158d5`, parent still `dc77ebd`. Tip is `c8f8c37` on `
 
 ## Restack notes (wR2)
 
-Rebased onto the restacked #23d (`a28e53e`); new tip `153f735`.
+Rebased onto the restacked #23d (`a28e53e`); new tip `d2e516c`.
 
 - The in-game `SideboardDialog` stays deleted (#05 stage 5); the lobby drops the mock-deck imports #05 (PB-21) deleted.
 - `deckSelectFailed` stays: #04's per-command failure signal for a UI that waits on the answer (not a #03 query).
 - Additive merges with #15/#14/#21: `IGameResponse` (replay + deck select), `AppShell` (`AppAlerts` + `GameLinkJoinHost`), the components and utils barrels, the mock client.
 - #21 tokens on the new force-start button and the deck-select error.
+- **#11's "show a rejected join in one list only"** makes the flow that sent a join own its rejection, so `GameLinkJoinHost` no longer defers to the room's `GamesList` on a room page: it reports its own join's rejection everywhere (the integration spec "a link join the server rejects on a room page shows one error" pins it). New tip `d2e516c`.
