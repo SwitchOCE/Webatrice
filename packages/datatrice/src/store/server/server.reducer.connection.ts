@@ -2,7 +2,7 @@ import { CaseReducer, PayloadAction } from '@reduxjs/toolkit';
 import { App } from '../../types';
 import { Event_ServerShutdown } from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { ServerConnectionHealth, ServerState, ServerStateStatus } from './server.interfaces';
+import { ServerConnectionHealth, ServerLatency, ServerState, ServerStateStatus } from './server.interfaces';
 import { initialStaffState } from './server.reducer.staff';
 
 // Healthy baseline (no missed pongs) shared by initialState, the updateStatus
@@ -12,6 +12,13 @@ import { initialStaffState } from './server.reducer.staff';
 export const HEALTHY_CONNECTION_HEALTH: ServerConnectionHealth = {
   missedPongs: 0,
   silentForMs: 0,
+};
+
+// No samples yet: the latency display stays hidden. Shared like the health
+// baseline above; latencyStatsUpdated assigns a fresh object.
+export const EMPTY_LATENCY: ServerLatency = {
+  stats: { lastMs: 0, medianMs: 0, p95Ms: 0, maxMs: 0, sampleCount: 0 },
+  samplesMs: [],
 };
 
 export const initialState: ServerState = {
@@ -26,6 +33,7 @@ export const initialState: ServerState = {
     description: null
   },
   connectionHealth: HEALTHY_CONNECTION_HEALTH,
+  latency: EMPTY_LATENCY,
   connectUnreachable: false,
   loginFailureCode: null,
   info: {
@@ -166,6 +174,10 @@ export const connectionReducers = {
     const { missedPongs, silentForMs } = action.payload;
     state.connectionHealth = { missedPongs, silentForMs };
   }) as CaseReducer<ServerState, PayloadAction<{ missedPongs: number; silentForMs: number }>>,
+
+  latencyStatsUpdated: ((state, action) => {
+    state.latency = action.payload;
+  }) as CaseReducer<ServerState, PayloadAction<ServerLatency>>,
 
   serverShutdown: ((state, action) => {
     state.serverShutdown = action.payload.data;

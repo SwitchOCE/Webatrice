@@ -19,7 +19,7 @@ import {
 } from '@cockatrice/sockatrice/generated';
 import { ServerCapability } from './server.capabilities';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { HEALTHY_CONNECTION_HEALTH } from './server.reducer.connection';
+import { EMPTY_LATENCY, HEALTHY_CONNECTION_HEALTH } from './server.reducer.connection';
 
 function rootState(server: ServerState) {
   return { server };
@@ -129,6 +129,16 @@ describe('Selectors', () => {
   it('getConnectionHealth → falls back to the healthy baseline for a partial state missing the field', () => {
     const state = { ...makeServerState(), connectionHealth: undefined } as unknown as ServerState;
     expect(Selectors.getConnectionHealth(rootState(state))).toBe(HEALTHY_CONNECTION_HEALTH);
+  });
+
+  it('getLatency → returns the stored latency', () => {
+    const latency = { stats: { lastMs: 25, medianMs: 25, p95Ms: 25, maxMs: 25, sampleCount: 1 }, samplesMs: [25] };
+    expect(Selectors.getLatency(rootState(makeServerState({ latency })))).toBe(latency);
+  });
+
+  it('getLatency → falls back to the empty window for a partial state missing the field', () => {
+    const state = { ...makeServerState(), latency: undefined } as unknown as ServerState;
+    expect(Selectors.getLatency(rootState(state))).toBe(EMPTY_LATENCY);
   });
 
   it('getIsServerUnresponsive → true when missedPongs > 0', () => {

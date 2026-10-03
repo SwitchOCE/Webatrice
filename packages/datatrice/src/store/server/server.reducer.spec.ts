@@ -322,6 +322,12 @@ describe('Connection Health', () => {
     expect(result.connectionHealth).toEqual({ missedPongs: 0, silentForMs: 0 });
   });
 
+  it('latencyStatsUpdated → stores the round-trip stats and window', () => {
+    const stats = { lastMs: 80, medianMs: 60, p95Ms: 80, maxMs: 80, sampleCount: 2 };
+    const result = serverReducer(makeServerState(), Actions.latencyStatsUpdated({ stats, samplesMs: [40, 80] }));
+    expect(result.latency).toEqual({ stats, samplesMs: [40, 80] });
+  });
+
   it('updateStatus → resets stale health from the previous socket', () => {
     const state = makeServerState({ connectionHealth: { missedPongs: 4, silentForMs: 20000 } });
     const result = serverReducer(state, Actions.updateStatus({

@@ -96,6 +96,10 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.connectionHealthChanged({ missedPongs, silentForMs }));
   }
 
+  updateLatencyStats(stats: WebsocketTypes.LatencyStats, samplesMs: number[]): void {
+    this.store.dispatch(ServerActions.latencyStatsUpdated({ stats, samplesMs }));
+  }
+
   updateUser(user: ServerInfo_User): void {
     this.store.dispatch(ServerActions.updateUser({ user }));
   }

@@ -11,7 +11,7 @@ import { SortUtil } from '../../common';
 import { Enriched } from '../../types';
 import { ServerCapability, serverSupports } from './server.capabilities';
 import { GamesOfUserStatus, PrivateChatNotice, PrivateConversationEntry, ServerState, UserInvestigation } from './server.interfaces';
-import { HEALTHY_CONNECTION_HEALTH } from './server.reducer.connection';
+import { EMPTY_LATENCY, HEALTHY_CONNECTION_HEALTH } from './server.reducer.connection';
 
 type State = { server: ServerState };
 
@@ -38,6 +38,7 @@ export const Selectors = {
   // fixtures) may predate the connectionHealth field.
   getConnectionHealth: ({ server }: State) => server.connectionHealth ?? HEALTHY_CONNECTION_HEALTH,
   getIsServerUnresponsive: ({ server }: State) => (server.connectionHealth?.missedPongs ?? 0) > 0,
+  getLatency: ({ server }: State) => server.latency ?? EMPTY_LATENCY,
   getConnectUnreachable: ({ server }: State) => server.connectUnreachable ?? false,
   getLoginFailureCode: ({ server }: State) => server.loginFailureCode ?? null,
   // Capability gate for 3.1-only actions; see server.capabilities.ts and

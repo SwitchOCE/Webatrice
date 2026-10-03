@@ -19,3 +19,4 @@ export * from './StatusEnum';
 export * from './ConnectOptions';
 export * from './SignalContexts';
 export * from './CommandFailure';
+export * from './LatencyStats';
