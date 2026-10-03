@@ -35,6 +35,7 @@ function makeHook(overrides = {}) {
     sort: null,
     setSearch: vi.fn(),
     select: vi.fn(),
+    selectAll: vi.fn(),
     toggleEnabled: vi.fn(),
     enableAll: vi.fn(),
     enableSelected: vi.fn(),
@@ -123,6 +124,45 @@ describe('ManageSets', () => {
     fireEvent.click(screen.getByRole('button', { name: 'ManageSets.button.cancel' }));
     expect(hook.discard).toHaveBeenCalled();
     expect(onCancel).toHaveBeenCalled();
+  });
+
+  it('moves and selects rows from the keyboard like desktop', () => {
+    const rows = [row('NEO'), row('LEA'), row('M10')];
+    const hook = makeHook({ rows, visibleRows: rows });
+    hoisted.useManageSets.mockReturnValue(hook);
+    renderWithProviders(<ManageSets />);
+
+    const grid = screen.getByRole('grid', { name: 'ManageSets.label.sets' });
+    expect(grid).toHaveAttribute('tabindex', '0');
+    expect(grid).toHaveAttribute('aria-multiselectable', 'true');
+
+    fireEvent.keyDown(grid, { key: 'ArrowDown' });
+    expect(hook.select).toHaveBeenLastCalledWith('NEO', { range: false });
+    const neo = screen.getByText('NEO long').closest('[role="row"]')!;
+    expect(grid).toHaveAttribute('aria-activedescendant', neo.id);
+
+    fireEvent.keyDown(grid, { key: 'ArrowDown', shiftKey: true });
+    expect(hook.select).toHaveBeenLastCalledWith('LEA', { range: true });
+
+    hook.select.mockClear();
+    fireEvent.keyDown(grid, { key: 'End', ctrlKey: true });
+    expect(hook.select).not.toHaveBeenCalled();
+    fireEvent.keyDown(grid, { key: ' ', ctrlKey: true });
+    expect(hook.select).toHaveBeenCalledWith('M10', { toggle: true, range: false });
+    fireEvent.keyDown(grid, { key: 'Enter' });
+    expect(hook.select).toHaveBeenLastCalledWith('M10', { toggle: false, range: false });
+
+    fireEvent.keyDown(grid, { key: 'a', ctrlKey: true });
+    expect(hook.selectAll).toHaveBeenCalled();
+  });
+
+  it('leaves keys typed in a row\'s checkbox to the checkbox', () => {
+    const hook = makeHook();
+    hoisted.useManageSets.mockReturnValue(hook);
+    renderWithProviders(<ManageSets />);
+
+    fireEvent.keyDown(screen.getByRole('checkbox', { name: 'NEO' }), { key: 'ArrowDown' });
+    expect(hook.select).not.toHaveBeenCalled();
   });
 
   it('explains when no sets are loaded', () => {
