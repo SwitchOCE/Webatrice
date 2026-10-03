@@ -54,7 +54,8 @@ function AlertDialog({
         </div>
       </DialogTitle>
       <DialogContent className="dialog-content alert-dialog__body">
-        <DialogContentText>{message}</DialogContentText>
+        {/* pre-line: multi-line messages (desktop message-box text) keep their breaks. */}
+        <DialogContentText sx={{ whiteSpace: 'pre-line' }}>{message}</DialogContentText>
       </DialogContent>
       <DialogActions>
         <Button

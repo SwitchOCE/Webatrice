@@ -10,7 +10,7 @@ import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 import { ModerationProvider } from '@app/feature-widgets/moderation';
 import { loadPersistedLastRoute, ShellLifecycleProvider } from '@app/feature-wrappers/layout';
 import { PrivateMessageNotifier } from '@app/features/player';
-import { CommandFailureNotices, FeatureDetection } from '@app/features/shell';
+import { CommandFailureNotices, FeatureDetection, ServerNotices } from '@app/features/shell';
 import { appShellLifecycle } from './appShellLifecycle';
 
 // CssBaseline removed: it was MUI's global body reset (font, color,
@@ -54,6 +54,8 @@ function AppShell() {
                *  server answers (join room, create game, deck upload). Renders
                *  nothing until one fails. */}
               <CommandFailureNotices />
+              {/* Server shutdown countdown and Event_NotifyUser messages. */}
+              <ServerNotices />
               <ModerationProvider>
                 <RouteErrorBoundary>
                   <Routes />
