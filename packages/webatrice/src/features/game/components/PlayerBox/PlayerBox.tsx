@@ -42,7 +42,7 @@ import { applyPTDelta, applyPTSet, parsePT } from '../context-menus/CardContextM
 import { buildCardContextMenu, type CardMenuItem } from '../context-menus/CardContextMenu/cardContextMenu.model';
 import { CardMenuPopup } from '../context-menus/CardContextMenu/CardContextMenu';
 import { buildRelatedTokenItems, buildTransformItems } from '../context-menus/CardContextMenu/relatedCardActions';
-import { expressionPrompt } from '../../hooks/dialogs/seatPrompts';
+import { annotationPrompt, expressionPrompt, powerToughnessPrompt } from '../../hooks/dialogs/seatPrompts';
 import { counterColorForId } from '../ui/CardSlot/counterColors';
 import type {
   BattlefieldCardViewModel,
@@ -117,6 +117,13 @@ type DragSourceZone = SeatZone;
 type Selection = SeatSelection;
 
 const NO_CARDS: readonly HandCard[] = [];
+
+/** The cards a card prompt applies to, and the clicked card that seeds it. */
+interface PromptTargets {
+  targetIds: number[];
+  cardName: string;
+  current: string;
+}
 
 /** Synthetic drag payload for pulling the top of the library. The library
  *  is a HiddenZone — the client never knows which face is at deck[0]
@@ -860,90 +867,6 @@ const CardBackZone = forwardRef<
         );
       }
       );
-
-/** Mirrors Cockatrice desktop's `actRequestSetPTDialog` + `actSetPT`:
- *  a small modal pre-filled with the card's current PT. Free-form input
- *  is applied via `applyPTSet` so tokens like `+1/+1` behave the same as
- *  in the desktop client. Escape cancels; Enter submits. */
-function SetPTModal({
-  cardName,
-  currentPT,
-  onCancel,
-  onConfirm,
-}: {
-  cardName: string;
-  currentPT: string;
-  onCancel: () => void;
-  onConfirm: (value: string) => void;
-}) {
-  const [draft, setDraft] = useState(currentPT);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onCancel();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onCancel]);
-  return (
-    <div
-      className="fixed inset-0 z-[400] flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Set power and toughness"
-    >
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onCancel}
-        aria-hidden
-      />
-      <div className="relative w-full max-w-sm rounded-lg bg-bg-surface border border-border-subtle shadow-glow overflow-hidden">
-        <div className="px-4 py-3 border-b border-border-subtle">
-          <h2 className="font-modern text-base font-semibold text-text-primary">
-            Set power and toughness
-          </h2>
-          <p className="text-xs text-text-muted mt-0.5 truncate">
-            {cardName}
-          </p>
-        </div>
-        <form
-          className="px-4 py-3 flex flex-col gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            onConfirm(draft);
-          }}
-        >
-          <input
-            autoFocus
-            type="text"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onFocus={(e) => e.currentTarget.select()}
-            placeholder="e.g. 3/4, +1/+1, or blank to clear"
-            className={DIALOG_INPUT_CLASS}
-          />
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className={DIALOG_SECONDARY_BUTTON_CLASS}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className={DIALOG_PRIMARY_BUTTON_CLASS}
-            >
-              Save
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
 
 /** Mirrors Cockatrice desktop's `actRequestViewTopCardsDialog`
  *  / `actRequestViewBottomCardsDialog` (player_actions.cpp:177-197):
@@ -1693,92 +1616,6 @@ function MoveXCardsFromTopModal({
               className={DIALOG_SUBMIT_BUTTON_CLASS}
             >
               Move
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-/** Mirrors Cockatrice desktop's `actRequestSetAnnotationDialog`: a
- *  small modal pre-filled with the card's current annotation. On
- *  submit the parent fires `Command_SetCardAttr` with
- *  `AttrAnnotation`; the server broadcasts the change and the pill
- *  on the card updates from Redux. Empty text clears the annotation.
- *  Escape cancels; Enter submits. */
-function SetAnnotationModal({
-  cardName,
-  currentAnnotation,
-  onCancel,
-  onConfirm,
-}: {
-  cardName: string;
-  currentAnnotation: string;
-  onCancel: () => void;
-  onConfirm: (value: string) => void;
-}) {
-  const [draft, setDraft] = useState(currentAnnotation);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onCancel();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onCancel]);
-  return (
-    <div
-      className="fixed inset-0 z-[400] flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Set annotation"
-    >
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onCancel}
-        aria-hidden
-      />
-      <div className="relative w-full max-w-sm rounded-lg bg-bg-surface border border-border-subtle shadow-glow overflow-hidden">
-        <div className="px-4 py-3 border-b border-border-subtle">
-          <h2 className="font-modern text-base font-semibold text-text-primary">
-            Set annotation
-          </h2>
-          <p className="text-xs text-text-muted mt-0.5 truncate">
-            {cardName}
-          </p>
-        </div>
-        <form
-          className="px-4 py-3 flex flex-col gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            onConfirm(draft);
-          }}
-        >
-          <input
-            autoFocus
-            type="text"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onFocus={(e) => e.currentTarget.select()}
-            placeholder="Leave blank to clear"
-            className={DIALOG_INPUT_CLASS}
-          />
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className={DIALOG_SECONDARY_BUTTON_CLASS}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className={DIALOG_PRIMARY_BUTTON_CLASS}
-            >
-              Save
             </button>
           </div>
         </form>
@@ -2830,7 +2667,7 @@ function PlayerBox(
     }
     const first = selectedCards[0];
     const current = first.pt || (cardMetaByName.get(first.name)?.pt ?? '');
-    setPTModal({ targetIds, cardName: first.name, current });
+    openPTPrompt({ targetIds, cardName: first.name, current });
   };
 
   // Shared helper for the P/T delta shortcuts (Ctrl/Alt/Ctrl+Alt with
@@ -3056,7 +2893,7 @@ function PlayerBox(
       return;
     }
     const first = selectedCards[0];
-    setAnnotationModal({ targetIds, cardName: first.name, current: first.annotation ?? '' });
+    openAnnotationPrompt({ targetIds, cardName: first.name, current: first.annotation ?? '' });
   };
 
   // Move selection → Bottom of Library (Ctrl+B). Same shape as
@@ -3659,22 +3496,46 @@ function PlayerBox(
   const [moveTopUntil, setMoveTopUntil] = useState<
     { filter: CardFilter; remainingHits: number; autoPlay: boolean } | null
   >(null);
-  // Annotation modal state — carries the target card ids + current
-  // annotation so submit knows what to send. `targetIds` is snapshotted
-  // at open time so the confirmed text applies to every card that was
-  // selected when the menu opened, even if the selection changes
-  // mid-modal (matches Cockatrice's cardMenuAction pattern). Single-
-  // card right-click carries just that card's id.
-  const [annotationModal, setAnnotationModal] = useState<
-    { targetIds: number[]; cardName: string; current: string } | null
-  >(null);
-  // Set-PT modal state. `targetIds` snapshotted at open time; confirm
-  // applies applyPTSet to every card, using each card's own current
-  // PT as the base for the DSL. `cardName` and `current` reflect the
-  // clicked card for the modal's label/pre-fill.
-  const [ptModal, setPTModal] = useState<
-    { targetIds: number[]; cardName: string; current: string } | null
-  >(null);
+  // Set annotation / Set P/T prompts. The target ids are snapshotted when
+  // the prompt opens, so the answer applies to every card that was selected
+  // then, even if the selection changes meanwhile (Cockatrice's
+  // cardMenuAction pattern); a single right-click carries just that card.
+  // Each P/T target uses ITS OWN current P/T as the applyPTSet base, read at
+  // submit time (so `+1/+1` bumps a 2/2 to 3/3 and a 4/5 to 5/6 in one
+  // atomic onSetPT batch, like desktop's actSetPT loop).
+  const ptBaseRef = useRef({ battlefieldDisplayList, cardMetaByName });
+  ptBaseRef.current = { battlefieldDisplayList, cardMetaByName };
+  const openAnnotationPrompt = ({ targetIds, cardName, current }: PromptTargets) =>
+    openPrompt(annotationPrompt({
+      cardName,
+      current,
+      // No bulk-annotation wire: one Command_SetCardAttr per card, as
+      // desktop's actSetAnnotation iterates selectedCards.
+      onSubmit: (value) => {
+        for (const id of targetIds) {
+          onSetAnnotation?.(id, value);
+        }
+      },
+    }));
+  const openPTPrompt = ({ targetIds, cardName, current }: PromptTargets) =>
+    openPrompt(powerToughnessPrompt({
+      cardName,
+      current,
+      onSubmit: (value) => {
+        if (!onSetPT) {
+          return;
+        }
+        const { battlefieldDisplayList: board, cardMetaByName: meta } = ptBaseRef.current;
+        const entries = targetIds.map((id) => {
+          const bc = board.find((x) => Number(x.id) === id);
+          const base = bc?.pt || (bc ? meta.get(bc.name)?.pt ?? '' : '');
+          return { cardId: id, pt: applyPTSet(base, value) };
+        });
+        if (entries.length > 0) {
+          onSetPT(entries);
+        }
+      },
+    }));
   // "Move X cards from top of library..." modal. Snapshot the deck size
   // at open time so the input's max/clamp stay stable even if a draw
   // shrinks the deck mid-dialog.
@@ -7449,31 +7310,6 @@ function PlayerBox(
         draggingCardIds={draggingIdsFrom('library')}
       />
 
-      {/* Annotation modal — opens from the "Set annotation..." card
-          context menu item. Submit sends Command_SetCardAttr with
-          AttrAnnotation; empty text clears the annotation. */}
-      {annotationModal &&
-        createPortal(
-          <SetAnnotationModal
-            cardName={annotationModal.cardName}
-            currentAnnotation={annotationModal.current}
-            onCancel={() => setAnnotationModal(null)}
-            onConfirm={(value) => {
-              // Loop over the snapshotted target set — server has no
-              // bulk-annotation wire, so one Command_SetCardAttr per
-              // card. Matches Cockatrice's actSetAnnotation which
-              // iterates selectedCards.
-              if (onSetAnnotation) {
-                for (const id of annotationModal.targetIds) {
-                  onSetAnnotation(id, value);
-                }
-              }
-              setAnnotationModal(null);
-            }}
-          />,
-          document.body,
-        )}
-
       {/* Menu-initiated arrow visuals — live arrow from the source card
           to the cursor. Green for "Attach to card...", red for "Draw
           arrow...". Ports Cockatrice's ArrowAttachItem / ArrowDragItem
@@ -7891,45 +7727,6 @@ function PlayerBox(
           document.body,
         )}
 
-      {/* Set-PT modal — opens from the "Set power and toughness..."
-          card context menu item. Input is passed through applyPTSet so
-          Cockatrice's DSL (`+1/+1`, `3/4`, `2/*`) behaves identically. */}
-      {ptModal &&
-        createPortal(
-          <SetPTModal
-            cardName={ptModal.cardName}
-            currentPT={ptModal.current}
-            onCancel={() => setPTModal(null)}
-            onConfirm={(value) => {
-              // Apply applyPTSet to every snapshotted target — each
-              // card uses ITS OWN current PT as the base for the DSL
-              // (so `+1/+1` bumps a 2/2 to 3/3 and a 4/5 to 5/6 in
-              // the same batch). Single onSetPT batch keeps the wire
-              // atomic. Matches Cockatrice's actSetPT loop.
-              if (onSetPT) {
-                const entries: { cardId: number; pt: string }[] = [];
-                for (const id of ptModal.targetIds) {
-                  const bc = battlefieldDisplayList.find(
-                    (x) => Number(x.id) === id,
-                  );
-                  const base =
-                    bc?.pt ||
-                    (bc ? cardMetaByName.get(bc.name)?.pt ?? '' : '');
-                  entries.push({
-                    cardId: id,
-                    pt: applyPTSet(base, value),
-                  });
-                }
-                if (entries.length > 0) {
-                  onSetPT(entries);
-                }
-              }
-              setPTModal(null);
-            }}
-          />,
-          document.body,
-        )}
-
       {/* Card context menu — right-click a battlefield card to open.
           All actions apply to a single card via its real numeric id;
           the menu no-ops for optimistic mock cards without one. */}
@@ -8302,7 +8099,7 @@ function PlayerBox(
               // now so a mid-modal selection change doesn't shift the
               // target set. Pre-fill from the clicked card.
               if (targetIds.length > 0 && card) {
-                setAnnotationModal({
+                openAnnotationPrompt({
                   targetIds,
                   cardName: card.name,
                   current: card.annotation ?? '',
@@ -8387,7 +8184,7 @@ function PlayerBox(
               // target ids at open time so a mid-modal selection
               // change doesn't shift the target set.
               if (targetIds.length > 0 && card) {
-                setPTModal({
+                openPTPrompt({
                   targetIds,
                   cardName: card.name,
                   current: currentPT,
