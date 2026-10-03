@@ -48,6 +48,30 @@ export default tseslint.config(
   },
   { files: ['integration/**'], rules: { '@typescript-eslint/no-restricted-imports': 'off' } },
 
+  // E2E specs run against real browsers, so their network must be isolated:
+  // `e2e/fixtures/test.ts` routes every context it hands out. Importing
+  // Playwright's own `test`, or opening a context straight off `browser`,
+  // would skip that and let a spec reach the internet.
+  {
+    files: ['e2e/specs/**'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': ['error', {
+        paths: [{
+          name: '@playwright/test',
+          importNames: ['test'],
+          message: 'Import `test` from e2e/fixtures/test.ts, which isolates the network of every browser context.',
+        }],
+      }],
+      'no-restricted-properties': ['error', {
+        object: 'browser',
+        property: 'newContext',
+        message: 'Use the `newContext` fixture from e2e/fixtures/test.ts, which isolates the network of the context.',
+      }],
+    },
+  },
+  // Playwright fixtures receive a `use` callback, which is not React's `use`.
+  { files: ['e2e/**'], rules: { 'react-hooks/rules-of-hooks': 'off' } },
+
   // Project-specific config
   {
     languageOptions: {

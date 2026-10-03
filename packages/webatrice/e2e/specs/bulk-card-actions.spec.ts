@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../fixtures/test';
 
 import { GamePage } from '../pages';
 import { registerAndJoinFirstRoom } from '../fixtures/flows';
@@ -21,9 +21,9 @@ import { randomSuffix } from '../fixtures/users';
 
 const DECK_PATH = resolve(__dirname, '..', 'fixtures', 'decks', 'forest-60.cod');
 
-test('bulk tap and bulk move act on every selected battlefield card', async ({ browser }) => {
+test('bulk tap and bulk move act on every selected battlefield card', async ({ newContext }) => {
   test.setTimeout(180_000);
-  const ctx = await browser.newContext();
+  const ctx = await newContext();
 
   try {
     const page = await ctx.newPage();
