@@ -2,3 +2,4 @@
 - 18:44Z read rv8 + code; plan: split f77215a (A pure move keeps one-pile-view + per-view Esc listeners; B feat), then tip fixes 1-3 + dead-port cleanup → building A
 - 18:48Z split f77215a into 3bb953d (pure move, 0df8125 pins unchanged) + feat commit; rebased 34 commits clean; pushed claude/parity-05-refactor-seat → per-commit tsc running; starting tip fixes 1-3
 - 19:07Z fixes 1-3 + dead-port cleanup committed with failing-first specs; folded origin spec fix into b83bb74 so every commit typechecks (verified 3bb953d..tip); pushed → running full gate
+- 19:13Z gate green (tsc, lint, unit 256/1988, integration 38/163); PR file updated; e2e running in playwright container

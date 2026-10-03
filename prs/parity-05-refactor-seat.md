@@ -158,9 +158,10 @@ Commits (oldest first):
 Gate checks:
 
 - The new owners import nothing from `components/PlayerBox`. Lint now enforces this.
-- The Stage 1 characterization specs are unmodified and green at every commit:
-  `PlayerBox.characterization`, `GameBoardCell`, `Game`, `Game.dragdrop`,
-  `Game.orchestration`.
+- The Stage 1 characterization specs (`PlayerBox.characterization`, `GameBoardCell`, `Game`,
+  `Game.dragdrop`, `Game.orchestration`) are green at every commit, and no Stage 2 commit edits
+  them. Edits in other stages are listed, with their reasons, under
+  "Characterization spec edits" below.
 
 Testing (final commit, worktree root; Vitest with `--maxWorkers=2`):
 
@@ -283,9 +284,10 @@ Commits (oldest first):
 
 Gate checks for each subphase:
 
-- The Stage 1 characterization specs are unmodified and green at every commit (`PlayerBox.characterization`,
-  `GameBoardCell`, `Game`, `Game.orchestration`), except one test in `Game.dragdrop`. That test pinned the
-  opponent-drag gap, and commit 10 replaces it on purpose.
+- The Stage 1 characterization specs (`PlayerBox.characterization`, `GameBoardCell`, `Game`,
+  `Game.orchestration`, `Game.dragdrop`) are green at every commit. Two Stage 3 commits edit `Game.dragdrop`:
+  `75f6696` adds a spectator lent-drag case, and `4d56389` (commit 10) replaces the test that pinned the
+  opponent-drag gap and rewrites the file's header comment. See "Characterization spec edits" below.
 - Listener and portal cleanup is checked by:
   - `Game.shortcuts.spec`: the seats add no keydown listener; only the provider and the game's Escape
     handler listen.
@@ -466,9 +468,11 @@ Commits (oldest first, on top of `1ef4dab`):
    - `LibrarySearchDialog` / `ZoneRevealDialog` are renamed to `dialogs/ZoneViewDialog/ZoneViewPanel` / `ZoneRevealPanel` with `git mv`.
    - The panel's metadata is typed as `ZoneViewCardMetadata` instead of the mock `DeckCard`.
    - The lint guard against importing PlayerBox now covers the whole directory.
-3. `refactor(game): open the seat's zone views as ZoneViewDialogs from the game dialogs (PB-13)`
+3. `refactor(game): open the seat's zone views as ZoneViewDialogs from the game dialogs (PB-13)` (`3bb953d`, a pure move: every `Game.zoneViews.spec` pin passes unchanged)
    - `ZoneViewTarget` gains desktop's `numberCards` / `isReversed`.
-   - New `openZoneView`. It dumps a local hidden zone (deck or sideboard). Opening the same view again does nothing. A different count of the same zone replaces the open view and dumps again.
+   - New `openZoneView`. It dumps a local hidden zone (deck or sideboard). Opening the same view again does nothing. A different count of the same zone replaces the open view and dumps again. As in the seat, graveyard, exile and hand views replace each other (one pile view per seat).
+   - Each view still closes itself on Escape, as the seat's viewers did, so one Esc closes them all; the close-recent-view shortcut closes nothing at this commit.
+   - `Game.spec`'s two zone-view checks looked for a "close zone view" label that no longer exists, so they could not fail. They now look for the views' headings (this was in the `docs:` commit before; it belongs with the move that made them stale).
    - `handleCloseZoneView` shuffles a whole-library view and clears a hidden zone's snapshot. It only acts on a view that is open, so a double close cannot send twice.
    - `viewLibraryOpen` / `viewGraveyardOpen` / `viewSideboardOpen` and their PlayerBox effects are removed. `openViewLibrary` / `openViewGraveyard` / `openViewSideboard` now open the local seat's own views, for seated players only.
    - `ZoneViewDialog` is now a container:
@@ -478,6 +482,10 @@ Commits (oldest first, on top of `1ef4dab`):
      - its selection is the game selection.
    - PlayerBox loses four dialog states, four drag sources, four drop zones and four dialog renders.
    - The old structured CardSlot body of `ZoneViewDialog` is replaced, and its stylesheet is deleted. Its only trigger was the unmounted `PlayerInfoPanel`.
+3b. `feat(game): keep zone views open side by side; Esc closes the most recent` (`c73932d`, the deliberate behaviour change, split out of the move)
+   - Graveyard, exile and hand views stay open side by side (desktop `GameScene::toggleZoneView` keeps a view per zone).
+   - The views drop their own Escape listeners; the game's close-recent-view shortcut closes the newest view, honouring the remembered "shuffle when closing" choice for a library view (desktop `closeMostRecentZoneView`). The search box, where shortcuts don't fire, closes its own view.
+   - It flips the `0df8125` pin ("replaces the graveyard view…" → "keeps … side by side"), presses Escape through the game's shortcuts in the Escape pin (`ShortcutProvider`, the key's `code`), adds the search-box Escape case, and flips the matching `useZoneDialogActions` unit case.
 4. `feat(game): select all / select column in graveyard and exile views (GAME-018)`
    - Select All selects every card the view shows. Select Column selects the clicked card's group.
    - Clone applies to the selection when the clicked card is part of it.
@@ -488,23 +496,23 @@ Commits (oldest first, on top of `1ef4dab`):
    - `hooks/useMoveTopUntil.ts` holds the loop, unchanged.
    - `dialogs/MoveTopUntilDialog` holds the modal with its markup unchanged. It is opened through the game dialogs (`openMoveTopUntil`, which closes itself after submit like `openPrompt`) and reads the local library size from the store.
    - `Game.moveTopUntil.spec` is unchanged and green before and after.
-7. `docs(game): leave the unwired SideboardDialog for Phase 8 and retarget the zone-view specs`
-   - Records the decision (below).
-   - Updates the comment-only spec headers and `Game.spec`'s zone-view checks, which looked for a close label that no longer exists.
+7. `docs(game): leave the unwired SideboardDialog for Phase 8`
+   - Records the decision (below) and updates the comment-only `Game.orchestration.spec` header.
 8. `chore(changeset): note the converged menus, prompts and zone views`
    - Adds the changeset entry the paused note asked for, covering the prompts, the token dialog, the single card menu, the zone views and GAME-018.
 
 Gate checks:
 
-- `PlayerBox.characterization`, `GameBoardCell`, and every `Game.*` spec (`cardMenus`, `menuMoves`, `seatPrompts`, `seatDnd`, `dragdrop`, `orchestration`, `selection`, `shortcuts`, `preview`, `seatComposition`) pass with no edits, except:
-  - the comment-only header in `Game.orchestration.spec`;
-  - the two `Game.spec` zone-view checks noted above.
+- `PlayerBox.characterization`, `GameBoardCell`, and every `Game.*` spec (`cardMenus`, `menuMoves`, `seatPrompts`, `seatDnd`, `dragdrop`, `orchestration`, `selection`, `shortcuts`, `preview`, `seatComposition`) pass at every commit. Stage 4 edits three Stage 1 specs before the pause (`084951c`, `e02fe79`, `1ac4edf`) and two after it:
+  - the two `Game.spec` zone-view checks, in the move commit `3bb953d`;
+  - the comment-only header in `Game.orchestration.spec`, in `4b7455f`.
+  - Each edit and its reason is listed under "Characterization spec edits" below.
 - The exact menu-tree snapshots (`Game.cardMenus.spec`) are unchanged. That includes the pile-view trees, whose Select All / Select Column rows now act.
 - Request spies show no new command payloads:
   - opening and closing a view sends the same `dumpZone` / `shuffle` payloads the seat sent;
   - a drag out of or into a view sends the same `moveCard` payloads;
   - Clone over a selection sends one `createToken` per card, with the existing payload.
-- The new pin specs passed before each move and pass after it. The two deliberate changes each flip one pinned test (see notes).
+- The new pin specs passed before each move and pass after it, unchanged. The two deliberate changes each flip their pinned tests in their own `feat:` commit (`c73932d`, GAME-018).
 - New unit specs: `useZoneViewDialog` (rewritten), `ZoneViewDialog` (rewritten), `useZoneDialogActions` (eight new cases), `useMoveTopUntil`, `MoveTopUntilDialog`, and `useGameDialogState` (one new case).
 
 Testing (final commit `3667fd7`, repo root; Vitest with `--maxWorkers=2`):
@@ -665,7 +673,7 @@ Gate checks:
 
 - Behaviour is unchanged:
   - `PlayerBoard.characterization` (moved, assertions identical), `GameBoardCell`, and every `Game.*` spec (`cardMenus`, `menuMoves`, `seatPrompts`, `seatDnd`, `dragdrop`, `orchestration`, `selection`, `shortcuts`, `preview`, `seatComposition`, `zoneViews`, `moveTopUntil`) are green at every commit.
-  - Their only edits are comments, and `Game.spec`'s pointer to the moved characterization file.
+  - Their edits: `c69b7a5` asserts `GameBoardCell.spec`'s requests through the ports, because the flat-prop adapter it pinned is deleted (same requests, same payloads); `295c6ed` moves the characterization file to `PlayerBoard/` (import paths, `describe` names, header) and repoints `GameBoardCell.spec`'s seat mock; `e90f23b` and `098b7b1` change comments only. No assertion changes.
   - The exact card-menu snapshots (`Game.cardMenus.spec`) and the menu-move wire table (`Game.menuMoves.spec`) are unchanged, so request spies show no new command payloads.
 - The menu arrays the parallel 17a / 17b branches splice into moved wholesale:
   - pile, library, hand and battlefield menus → their hooks;
@@ -709,3 +717,38 @@ Notes for reviewers (Stage 5):
   - the CardSlot and BattlefieldRow half of `useGameDnd`.
   - Deleting it touches the card-menu files the parallel 17a / 17b branches are editing, so it is kept out of this PR. `CardSlot/counterColors.ts` stays live, because the seat card and the card menu model use it.
 - `GameBoardCell`'s spec now asserts against the ports. The "-1 = every player" mapping and the life counter routing are covered by the characterization reveal and life tests.
+
+## Characterization spec edits
+
+An earlier version of this description said the Stage 1 characterization specs were "unmodified at every commit". That was wrong. They are green at every commit, but these commits edit them. None of the edits weakens an assertion:
+
+| commit | spec | what changes and why |
+|---|---|---|
+| `dd70e7c` (Stage 1) | `PlayerBox.characterization`, `Game`, `Game.dragdrop`, `Game.orchestration` | The `vi.mock` path follows the card lookup to `services/cards/cardCatalog`. |
+| `75f6696` (Stage 3) | `Game.dragdrop` | Adds a test: a spectator cannot drag a lent card. |
+| `4d56389` (Stage 3) | `Game.dragdrop` | Replaces the test that pinned the opponent-drag gap with two tests: the press only selects, and a judge's drag is judge-wrapped. Rewrites the header comment to match. This is the deliberate fix. |
+| `084951c` (Stage 4) | `GameBoardCell` | The move-adapter cases call `onMoveCards(zone, ids, dest)` instead of the retired raw `onMoveCard(params)`. The gift case moves to `usePlayerZoneCommands.spec`, because it now tests the port and not the adapter, and it checks the same `{ targetPlayerId: 2, x: 1, y: 0 }`. The spec goes from 30 to 29 tests. |
+| `e02fe79` (Stage 4) | `PlayerBox.characterization` | Escape goes to the prompt dialog instead of `window`, because the seat's window keydown listener the test used was replaced by the shared dialog. |
+| `1ac4edf` (Stage 4) | `PlayerBox.characterization` | The token name field's label is CreateTokenDialog's label now. |
+| `3bb953d` (Stage 4) | `Game` | The two zone-view checks looked for a "close zone view" label that the move deleted, so they could not fail. They now look for the views' headings. |
+| `4b7455f` (Stage 4) | `Game.orchestration` | Header comment only. |
+| `c69b7a5` (Stage 5) | `GameBoardCell` | The flat-prop adapter is deleted, so the cases assert the same requests through the ports and read the projection from the model. |
+| `295c6ed` (Stage 5) | `PlayerBox.characterization` → `PlayerBoard.characterization`; `GameBoardCell` | The file moves with the seat: import paths, `describe` names and the header change. `GameBoardCell.spec`'s seat mock points at PlayerBoard. |
+| `e90f23b`, `098b7b1` (Stage 5) | `Game.orchestration`, `Game` | Comments only. |
+| `4759aaf` (review fix) | `Game.dragdrop` | Adds the cross-seat attachment cases (owner-based drag gate). |
+| `dc7ce0b` (review fix) | `GameBoardCell` | Drops the zone-view dump/clear case and the single set-card-counter half of the counter case, which pinned port methods nothing calls (see the review response). |
+
+The shared fixture `__test-utils__/seatFixtures.ts` only gains helpers after Stage 1 (`68a60e2`, `752c192`), plus comment edits in `098b7b1`.
+
+## Review response (rv8)
+
+The history from PB-13 on was rewritten (`git rebase -i` with a scripted sequence editor). Commits up to `2226a78` keep their SHAs. Every commit from `3bb953d` to the tip typechecks (`tsc --noEmit`) and lints its changed files.
+
+- **Top-N view replaced the whole-library view without closing it** (no "shuffle when closing" shuffle). Fixed in `4ef429c`. Opening a different count of an open hidden zone now closes the old view first through the same close path as the button and Esc (shuffle per the remembered choice, then `zoneViewCleared`), and only then dumps the new view. Specs: `Game.zoneViews` (view library → view top 3 sends one shuffle before the second dump; with the box unticked, no shuffle) and `useZoneDialogActions` (order, and replacing a top-N view never shuffles). Both fail before the fix. One view per zone is kept, because both views read the zone's one revealed snapshot. The comment no longer claims desktop parity for re-opening an open view.
+- **Zone views outlived their seat.** Fixed in `bf814e2`. A view whose player or zone has left the store is dropped, and nothing is sent (desktop `ZoneViewZone::closed` → `zoneDeleted`). The selector only answers whether any view has lost its zone, so game updates don't re-render the dialogs. Spec: `Game.zoneViews`. P2's graveyard view closes when P2 leaves, and P1's stays open. The spec failed before the fix: the orphaned view had re-titled itself "Graveyard — Player 2", so the spec checks both titles and the view count. Not done: closing every view on game stop (desktop `clearViews`). The task scoped this finding to leaving players and vanishing zones.
+- **Drag gate by seat, not card owner.** Fixed in `4759aaf`. Each dragged card carries `ownerPlayerId`, and a press drags only when the user may act for every dragged card's owner (`card_item.cpp` `getLocalOrJudge` on the owner). A selection drag takes only the selected cards in the pressed card's own zone, as desktop does. `planSeatMove` starts in the owner's zone (`TableZone::handleDropEventByGrid`). Drop zones accept the owner's zones, and a judge's drag is wrapped for the owner. Specs: `Game.dragdrop` covers the local player's aura dragged off the opponent's board to their own graveyard, the opponent's aura on the local board (it only selects), and a judge's drag of it. `seatDropPlan` has table cases. All fail before the fix. The changeset line is reworded.
+- **f77215a bundled a behaviour change.** It is split into `3bb953d` and `c73932d`. `3bb953d` is the pure move: one pile view per seat, each view closing itself on Esc, and every `0df8125` pin green unchanged. `c73932d` is `feat(game)`: side-by-side views, Esc closes the newest view, and the pin flips. The stale `Game.spec` checks are fixed in the move commit. `2d7bf8e` keeps only its comment changes and is retitled `docs(game): leave the unwired SideboardDialog for Phase 8` (`4b7455f`).
+- **Pins on adapter callbacks PlayerBox never read.** Stage 5 had already deleted the adapter and its five props, and retargeted those pins at the ports behind them. `dc7ce0b` deletes those dead port methods (`viewLibrary`, `closeLibraryView`, `viewSideboard`, `closeSideboardView`, the single `setCardCounter`) with their types and the spec cases that only pinned them. This is one small cleanup commit at the tip, rather than an edit to the commit where each method went dead: those commits are deep in Stage 4 and Stage 5, and Stage 5 rewrote the surrounding code.
+- **PR text.** The claim is corrected per stage, and every edit is listed in "Characterization spec edits" above.
+- **Also fixed:** `b83bb74` (Stage 5, the `useSeatCardMetadata` move) did not typecheck. Its spec built related-card refs without `origin`. The next commit fixed that, so the fix is folded into `b83bb74` and dropped from that commit's message.
+- **Not in this round** (rv8 minors the task did not list): `x = -1 → -3`, the PB-17 stale `start` closure, the undisclosed Stage 3 changes, shared zone-view position, additive Select All, the a11y nits, the changeset tone, commit sizes and authorship.
