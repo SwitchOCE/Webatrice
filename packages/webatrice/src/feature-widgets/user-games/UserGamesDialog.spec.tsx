@@ -152,6 +152,46 @@ describe('UserGamesDialog', () => {
     expect(mockWebClient.request.rooms.joinGame).toHaveBeenCalledWith(2, expect.objectContaining({ joinAsJudge: true }));
   });
 
+  describe('keyboard', () => {
+    const twoGames = () => [makeGame(), makeGame({ gameId: 8, description: 'Late night' })];
+    const rows = () => screen.getAllByRole('row').slice(1);
+
+    it('makes the first row the grid\'s one Tab stop until a row is selected', () => {
+      renderDialog({ status: loaded, gameList: twoGames() });
+      expect(screen.getByRole('grid')).toBeInTheDocument();
+      expect(rows().map((row) => row.tabIndex)).toEqual([0, -1]);
+    });
+
+    it('moves the selection and focus with the arrow keys', () => {
+      renderDialog({ status: loaded, gameList: twoGames() });
+      const [first, second] = rows();
+      first.focus();
+      fireEvent.keyDown(first, { key: 'ArrowDown' });
+      expect(second).toHaveFocus();
+      expect(second).toHaveAttribute('aria-selected', 'true');
+      expect(rows().map((row) => row.tabIndex)).toEqual([-1, 0]);
+
+      fireEvent.keyDown(second, { key: 'ArrowUp' });
+      expect(first).toHaveFocus();
+      expect(first).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('selects with Space so Join and Spectate can act on the row', () => {
+      renderDialog({ status: loaded, gameList: twoGames() });
+      fireEvent.keyDown(rows()[1], { key: ' ' });
+      fireEvent.click(screen.getByRole('button', { name: 'UserGamesDialog.action.join' }));
+      expect(mockWebClient.request.rooms.joinGame).toHaveBeenCalledWith(2, expect.objectContaining({ gameId: 8 }));
+    });
+
+    it('joins the row with Enter', () => {
+      renderDialog({ status: loaded, gameList: twoGames() });
+      fireEvent.keyDown(rows()[0], { key: 'Enter' });
+      expect(mockWebClient.request.rooms.joinGame).toHaveBeenCalledWith(2, expect.objectContaining({
+        gameId: 7, spectator: false,
+      }));
+    });
+  });
+
   it('asks for the password of a protected game before joining', () => {
     renderDialog({ status: loaded, gameList: [makeGame({ withPassword: true })] });
     fireEvent.doubleClick(screen.getByText('Friday casual'));

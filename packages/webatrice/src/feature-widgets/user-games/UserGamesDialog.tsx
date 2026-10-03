@@ -5,7 +5,7 @@ import { rooms, server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { Response_ResponseCode, type ServerInfo_Game } from '@cockatrice/sockatrice/generated';
 import { AlertDialog, DialogShell, PromptDialog } from '@app/dialogs';
-import { useCommandFailureMessage, useJoinGame, useNavigateOnGameJoined } from '@app/hooks';
+import { useCommandFailureMessage, useGridRows, useJoinGame, useNavigateOnGameJoined } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 import { formatRestrictions, formatSpectators } from '@app/utils';
 
@@ -83,6 +83,20 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
     [beginJoin, joinedRoomIds],
   );
 
+  // The rows form a grid with one roving tab stop; Enter joins like a double-click.
+  const { getRowProps } = useGridRows({
+    keys: gameList.map(({ info }) => String(info.gameId)),
+    selectedKey: selectedGameId == null ? null : String(selectedGameId),
+    onSelect: (key) => setSelectedGameId(Number(key)),
+    onActivate: (key) => {
+      const info = gameList.find((game) => String(game.info.gameId) === key)?.info;
+      if (info) {
+        setSelectedGameId(info.gameId);
+        join(info, false, false);
+      }
+    },
+  });
+
   // Desktop GameSelector::enableButtonsForIndex, plus no second join while one is in flight.
   const canJoin = Boolean(selected && selected.playerCount < selected.maxPlayers) && !joinPending;
   const canSpectate = Boolean(selected?.spectatorsAllowed) && !joinPending;
@@ -98,11 +112,16 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
     body = <p className="text-sm text-text-muted">{t('UserGamesDialog.empty', { name: userName })}</p>;
   } else {
     body = (
-      <table className="w-full text-sm text-text-secondary border-separate" style={{ borderSpacing: 0 }}>
+      <table
+        role="grid"
+        aria-label={t('UserGamesDialog.title', { name: userName })}
+        className="w-full text-sm text-text-secondary border-separate"
+        style={{ borderSpacing: 0 }}
+      >
         <thead>
           <tr>
             {COLUMNS.map((column) => (
-              <th key={column} className={HEADER_CELL_CLASS}>{t(`UserGamesDialog.column.${column}`)}</th>
+              <th key={column} role="columnheader" className={HEADER_CELL_CLASS}>{t(`UserGamesDialog.column.${column}`)}</th>
             ))}
           </tr>
         </thead>
@@ -110,21 +129,24 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
           {gameList.map(({ info, gameType }) => (
             <tr
               key={info.gameId}
+              {...getRowProps(String(info.gameId))}
+              role="row"
               aria-selected={info.gameId === selectedGameId}
               onClick={() => setSelectedGameId(info.gameId)}
               onDoubleClick={() => join(info, false, false)}
               className={[
-                'cursor-pointer transition-colors',
+                'cursor-pointer transition-colors focus-visible:outline focus-visible:outline-2 '
+                  + 'focus-visible:-outline-offset-2 focus-visible:outline-accent',
                 info.gameId === selectedGameId ? 'bg-accent/20' : 'hover:bg-bg-elevated',
               ].join(' ')}
             >
-              <td className={CELL_CLASS}>{allRooms[info.roomId]?.info.name ?? `#${info.roomId}`}</td>
-              <td className={`${CELL_CLASS} text-text-primary`}>{info.description}</td>
-              <td className={CELL_CLASS}>{info.creatorInfo?.name ?? ''}</td>
-              <td className={CELL_CLASS}>{gameType}</td>
-              <td className={CELL_CLASS}>{formatRestrictions(info)}</td>
-              <td className={`${CELL_CLASS} tabular-nums`}>{info.playerCount}/{info.maxPlayers}</td>
-              <td className={CELL_CLASS}>{formatSpectators(info)}</td>
+              <td role="gridcell" className={CELL_CLASS}>{allRooms[info.roomId]?.info.name ?? `#${info.roomId}`}</td>
+              <td role="gridcell" className={`${CELL_CLASS} text-text-primary`}>{info.description}</td>
+              <td role="gridcell" className={CELL_CLASS}>{info.creatorInfo?.name ?? ''}</td>
+              <td role="gridcell" className={CELL_CLASS}>{gameType}</td>
+              <td role="gridcell" className={CELL_CLASS}>{formatRestrictions(info)}</td>
+              <td role="gridcell" className={`${CELL_CLASS} tabular-nums`}>{info.playerCount}/{info.maxPlayers}</td>
+              <td role="gridcell" className={CELL_CLASS}>{formatSpectators(info)}</td>
             </tr>
           ))}
         </tbody>
