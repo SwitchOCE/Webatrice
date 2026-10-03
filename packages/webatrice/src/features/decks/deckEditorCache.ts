@@ -52,8 +52,19 @@ export function getDraftDocument(token: string): string | undefined {
   return draftDocuments.get(token);
 }
 
+/** Drafts share the one deck-editor tab, so only the latest few can still be
+ *  reached; older ones are dropped rather than kept for the whole session. */
+const MAX_DRAFTS = 4;
+
 export function setDraftDocument(token: string, cod: string): void {
   draftDocuments.set(token, cod);
+  for (const oldest of draftDocuments.keys()) {
+    if (draftDocuments.size <= MAX_DRAFTS) {
+      break;
+    }
+    draftDocuments.delete(oldest);
+    draftCache.delete(oldest);
+  }
 }
 
 export function getCachedDraft(token: string): HydratedDeck | undefined {
