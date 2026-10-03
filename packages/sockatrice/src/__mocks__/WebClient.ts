@@ -181,6 +181,7 @@ const moderator = {
   reportResolved: vi.fn(),
   reportUserInfo: vi.fn(),
   reportStats: vi.fn(),
+  replayDownloadByGameIdPending: vi.fn(),
   replayDownloadedByGameId: vi.fn(),
   commandFailed: vi.fn(),
 };
