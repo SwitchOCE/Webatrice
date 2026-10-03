@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 
 import { Settings } from '@app/features/settings';
 
@@ -18,12 +18,13 @@ beforeEach(() => {
 });
 
 describe('Settings (integration)', () => {
-  it('renders the shortcuts tab when the user is logged in', () => {
+  it('lists the settings sections when the user is logged in, and opens Shortcuts', () => {
     renderFeatureScreen(<Settings />);
 
-    expect(
-      screen.getByRole('tab', { name: /Settings\.tab\.shortcuts/ }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Settings\.section\.appearance/ })).toHaveAttribute('aria-selected', 'true');
+
+    fireEvent.click(screen.getByRole('tab', { name: /Settings\.section\.shortcuts/ }));
+
     expect(screen.getByTestId('shortcuts-tab')).toBeInTheDocument();
   });
 });
