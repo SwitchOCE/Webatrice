@@ -15,6 +15,11 @@ describe('buildModerationMenu', () => {
     expect(buildModerationMenu({ localUserLevel: REGULAR, targetUserLevel: REGULAR, isSelf: false })).toEqual([]);
   });
 
+  it('gives a developer without moderator rights nothing', () => {
+    const developer = REGULAR | Flag.IsDeveloper;
+    expect(buildModerationMenu({ localUserLevel: developer, targetUserLevel: REGULAR, isSelf: false })).toEqual([]);
+  });
+
   it('offers nothing to an unregistered user', () => {
     expect(buildModerationMenu({ localUserLevel: UNREGISTERED, targetUserLevel: REGULAR, isSelf: false })).toEqual([]);
   });
@@ -31,21 +36,21 @@ describe('buildModerationMenu', () => {
 
   it('gives an admin promote entries for a registered regular user', () => {
     const groups = buildModerationMenu({ localUserLevel: ADMIN, targetUserLevel: REGULAR, isSelf: false });
-    expect(actions(groups).at(-1)).toEqual(['promoteMod', 'promoteJudge']);
+    expect(actions(groups).at(-1)).toEqual(['promoteMod', 'promoteJudge', 'promoteDeveloper']);
   });
 
-  it('gives an admin demote entries for a moderator judge', () => {
+  it('gives an admin demote entries for a moderator judge developer', () => {
     const groups = buildModerationMenu({
       localUserLevel: ADMIN,
-      targetUserLevel: MODERATOR | Flag.IsJudge,
+      targetUserLevel: MODERATOR | Flag.IsJudge | Flag.IsDeveloper,
       isSelf: false,
     });
-    expect(actions(groups).at(-1)).toEqual(['demoteMod', 'demoteJudge']);
+    expect(actions(groups).at(-1)).toEqual(['demoteMod', 'demoteJudge', 'demoteDeveloper']);
   });
 
   it('mixes demote and promote per role', () => {
     const groups = buildModerationMenu({ localUserLevel: ADMIN, targetUserLevel: REGULAR | Flag.IsJudge, isSelf: false });
-    expect(actions(groups).at(-1)).toEqual(['promoteMod', 'demoteJudge']);
+    expect(actions(groups).at(-1)).toEqual(['promoteMod', 'demoteJudge', 'promoteDeveloper']);
   });
 
   it('offers no role changes for an unregistered target', () => {

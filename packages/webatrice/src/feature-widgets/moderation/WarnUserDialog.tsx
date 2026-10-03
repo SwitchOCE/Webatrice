@@ -15,10 +15,16 @@ import {
   LABEL_CLASS,
 } from './moderationStyles';
 
+export interface WarningOption {
+  warning: string;
+  /** Recommended starting intervention level (Response_WarnList.warning_il); 1 when the server sends none. */
+  startingIl: number;
+}
+
 export interface WarnUserDialogProps {
   userName: string;
   /** Official warning reasons from Response_WarnList, in server order. */
-  warnings: string[];
+  warnings: WarningOption[];
   onSubmit: (values: WarnUserFormValues) => void;
   onCancel: () => void;
 }
@@ -26,7 +32,9 @@ export interface WarnUserDialogProps {
 /**
  * Port of desktop's WarningDialog (user_list_dialog.cpp). The reason is picked
  * from the server's official warnings (Command_GetWarnList) — there is no free
- * text — behind a leading blank entry that must be changed before sending.
+ * text — behind a leading blank entry that must be changed before sending. A
+ * reason whose starting intervention level is above 1 is labelled "%1 (IL %2)"
+ * (WarningDialog::addWarningOption); the value sent is always the bare reason.
  */
 const WarnUserDialog = ({ userName, warnings, onSubmit, onCancel }: WarnUserDialogProps) => {
   const { t } = useTranslation();
@@ -59,8 +67,10 @@ const WarnUserDialog = ({ userName, warnings, onSubmit, onCancel }: WarnUserDial
               <span className={LABEL_CLASS}>{t('Moderation.warn.reason')}</span>
               <select {...field} className={FIELD_CLASS} autoFocus>
                 <option value="" />
-                {warnings.map((warning) => (
-                  <option key={warning} value={warning}>{warning}</option>
+                {warnings.map(({ warning, startingIl }) => (
+                  <option key={warning} value={warning}>
+                    {startingIl > 1 ? t('Moderation.warn.withLevel', { warning, level: startingIl }) : warning}
+                  </option>
                 ))}
               </select>
               {fieldState.error && <span role="alert" className={ERROR_CLASS}>{fieldState.error.message}</span>}

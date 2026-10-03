@@ -81,9 +81,14 @@ export function useModerationFlow(): ModerationFlowState {
   const close = useCallback(() => setFlow(null), []);
   const dismissNotice = useCallback(() => setNotice(null), []);
 
-  const changeRole = useCallback((userName: string, change: { shouldBeMod?: boolean; shouldBeJudge?: boolean }) => {
-    pendingRoleChanges.current.set(userName, Boolean(change.shouldBeMod || change.shouldBeJudge));
-    webClient.request.admin.adjustMod(userName, change.shouldBeMod, change.shouldBeJudge);
+  // Desktop sends only the flag of the role being changed (execAdjustMod /
+  // execAdjustJudge / execAdjustDeveloper); the others stay unset.
+  const changeRole = useCallback((
+    userName: string,
+    change: { shouldBeMod?: boolean; shouldBeJudge?: boolean; shouldBeDeveloper?: boolean },
+  ) => {
+    pendingRoleChanges.current.set(userName, Boolean(change.shouldBeMod || change.shouldBeJudge || change.shouldBeDeveloper));
+    webClient.request.admin.adjustMod(userName, change.shouldBeMod, change.shouldBeJudge, change.shouldBeDeveloper);
   }, [webClient]);
 
   const open = useCallback((action: ModerationAction, userName: string) => {
@@ -115,6 +120,10 @@ export function useModerationFlow(): ModerationFlowState {
       case 'promoteJudge':
       case 'demoteJudge':
         changeRole(userName, { shouldBeJudge: action === 'promoteJudge' });
+        break;
+      case 'promoteDeveloper':
+      case 'demoteDeveloper':
+        changeRole(userName, { shouldBeDeveloper: action === 'promoteDeveloper' });
         break;
     }
   }, [webClient, changeRole]);
