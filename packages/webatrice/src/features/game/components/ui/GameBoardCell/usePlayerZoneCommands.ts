@@ -22,7 +22,7 @@ export function usePlayerZoneCommands(playerId: number): PlayerZoneCommands | un
   const gameId = useGameId();
   const webClient = useWebClient();
   const dispatch = useAppDispatch();
-  const moveCard = useMoveCard();
+  const moveCard = useMoveCard(gameId);
 
   return useMemo(() => {
     if (gameId == null || !moveCard) {

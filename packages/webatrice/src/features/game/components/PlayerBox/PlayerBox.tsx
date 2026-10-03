@@ -7,6 +7,7 @@ import {
   forwardRef,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { useForkRef } from '@mui/material/utils';
 import { motion } from 'motion/react';
 import { Hand, Heart, Skull, Sparkles } from 'lucide-react';
 import type { RoomMemberWithProfile, DeckCard } from './mockTypes';
@@ -63,6 +64,14 @@ import { deckCardImageUrl } from './deckCardImageUrl';
 import { useCardPreviewActions } from '../ui/CardPreviewContext';
 import { usePublishSeatShortcuts, type SeatShortcutOperations } from '../ui/SeatShortcutsContext';
 import { useSeatSelection, type SeatSelection } from '../../hooks/useSeatSelection';
+import { SEAT_DROP_PRIORITY } from '../../hooks/seatDropPlan';
+import {
+  SeatDragGhost,
+  useActiveSeatDrag,
+  useSeatDragSource,
+  useSeatDropZone,
+  type SeatDragStart,
+} from '../ui/SeatDragContext';
 import { useViewportClampedPopup } from './useViewportClampedPopup';
 import ZoneRevealDialog from './ZoneRevealDialog';
 import { PlayerPlaymat } from '../PlayerPlaymat';
@@ -71,7 +80,7 @@ import { useGameDialogsContext } from '../ui/GameDialogsContext';
 import { useShortcutHints } from '@app/feature-widgets/shortcuts';
 import { isFilterEmpty, matchCard, parseCardFilter, type CardFilter, type FilterableCard } from '../../utils/cardFilter';
 import { buildArrowGeometry } from '../arrows/GameArrowOverlay/arrowPath';
-import { planHandReorder } from './handReorder';
+import { planHandReorder } from '../../hooks/handReorder';
 import { ArrowColor, rgbaToCss } from '@app/types';
 import {
   lookupCard,
@@ -3854,10 +3863,11 @@ function PlayerBox(
    *  Only returns true after the pointer has moved past the threshold —
    *  a click that never becomes a drag doesn't hide its source. */
   const isDragging = (id: string, zone: DragSourceZone) =>
-    !!drag &&
-    drag.moved &&
-    drag.sourceZone === zone &&
-    drag.cards.some((c) => c.id === id);
+    (!!drag &&
+      drag.moved &&
+      drag.sourceZone === zone &&
+      drag.cards.some((c) => c.id === id)) ||
+    (seatDrag?.zone === zone && seatDrag.cards.some((c) => c.id === id));
 
   // Force the grabbing cursor on the whole document while a drag is
   // active. Without this, the OS cursor picks up the style of whatever
@@ -3881,6 +3891,76 @@ function PlayerBox(
       styleEl.remove();
     };
   }, [isDragActive]);
+
+  // A press released before the drag threshold (a click). Two readings:
+  //   1. Pending-attach mode: the previous "Attach to card..." menu choice
+  //      set `attachPending`; this click on a battlefield card resolves the
+  //      attach (or cancels if the user clicked the source card again).
+  //   2. Normal click: replace the selection with the clicked card.
+  const releaseCardPress = (zone: DragSourceZone, clickedCardId: string, e: PointerEvent) => {
+    const clickedCardIdNum = Number(clickedCardId);
+    const pending = attachPendingRef.current;
+    if (
+      pending &&
+      zone === 'battlefield' &&
+      Number.isFinite(clickedCardIdNum) &&
+      playerId != null
+    ) {
+      const extras = attachExtraSourceIdsRef.current;
+      const allSources = [pending.sourceCardId, ...extras];
+      if (allSources.includes(clickedCardIdNum)) {
+        // Clicked a source card = cancel. Cockatrice's
+        // ArrowAttachItem does the same via `targetItem == startItem`
+        // short-circuit; we extend to any source in a multi-attach.
+        setAttachPending(null);
+        setAttachExtraSourceIds([]);
+      } else {
+        // Attach every source card to the clicked target. Server
+        // treats each attach independently (no batch wire), so we
+        // loop.
+        for (const sourceCardId of allSources) {
+          onAttachCard?.(sourceCardId, { playerId, cardId: clickedCardIdNum });
+        }
+        setAttachPending(null);
+        setAttachExtraSourceIds([]);
+      }
+    } else if (
+      zone === 'hand' ||
+      zone === 'battlefield' ||
+      zone === 'stack'
+    ) {
+      // Ctrl (Windows/Linux) / ⌘ (Mac) adds to or toggles the
+      // multi-selection instead of replacing it — matches
+      // Cockatrice desktop's `Qt::ControlModifier` branch in
+      // `AbstractCardItem::mousePressEvent` (line 294-295).
+      //
+      // Cockatrice technically allows the selection to span
+      // multiple zones (drag filters back down to same-zone), but
+      // our Selection shape is single-zoned (used to gate drag +
+      // context-menu bulk actions), so Ctrl+Click in a DIFFERENT
+      // zone replaces the selection with a new single-card set
+      // rooted in the clicked zone. Same-zone Ctrl+Click toggles.
+      const isCtrl = e.ctrlKey || e.metaKey;
+      if (isCtrl && selection && selection.zone === zone) {
+        const nextIds = new Set(selection.ids);
+        if (nextIds.has(clickedCardId)) {
+          nextIds.delete(clickedCardId);
+        } else {
+          nextIds.add(clickedCardId);
+        }
+        if (nextIds.size === 0) {
+          setSelection(null);
+        } else {
+          setSelection({ zone, ids: nextIds });
+        }
+      } else {
+        setSelection({
+          zone,
+          ids: new Set([clickedCardId]),
+        });
+      }
+    }
+  };
 
   // Global pointer listeners while dragging. Effect re-registers on every
   // pointer move (drag state churns) — negligible cost, keeps the closure
@@ -3911,76 +3991,7 @@ function PlayerBox(
         }
         setSelection(null);
       } else if (drag.cards.length === 1) {
-        // Click, not drag. Two possible interpretations:
-        //   1. Pending-attach mode: the previous "Attach to card..."
-        //      menu selection set `attachPending`; this click on a
-        //      battlefield card resolves the attach (or cancels if the
-        //      user clicked the source card again).
-        //   2. Normal click: replace the selection with the clicked card.
-        const zone = drag.sourceZone;
-        const clickedCardId = drag.cards[0].id;
-        const clickedCardIdNum = Number(clickedCardId);
-        const pending = attachPendingRef.current;
-        if (
-          pending &&
-          zone === 'battlefield' &&
-          Number.isFinite(clickedCardIdNum) &&
-          playerId != null
-        ) {
-          const extras = attachExtraSourceIdsRef.current;
-          const allSources = [pending.sourceCardId, ...extras];
-          if (allSources.includes(clickedCardIdNum)) {
-            // Clicked a source card = cancel. Cockatrice's
-            // ArrowAttachItem does the same via `targetItem == startItem`
-            // short-circuit; we extend to any source in a multi-attach.
-            setAttachPending(null);
-            setAttachExtraSourceIds([]);
-          } else {
-            // Attach every source card to the clicked target. Server
-            // treats each attach independently (no batch wire), so we
-            // loop.
-            for (const sourceCardId of allSources) {
-              onAttachCard?.(sourceCardId, { playerId, cardId: clickedCardIdNum });
-            }
-            setAttachPending(null);
-            setAttachExtraSourceIds([]);
-          }
-        } else if (
-          zone === 'hand' ||
-          zone === 'battlefield' ||
-          zone === 'stack'
-        ) {
-          // Ctrl (Windows/Linux) / ⌘ (Mac) adds to or toggles the
-          // multi-selection instead of replacing it — matches
-          // Cockatrice desktop's `Qt::ControlModifier` branch in
-          // `AbstractCardItem::mousePressEvent` (line 294-295).
-          //
-          // Cockatrice technically allows the selection to span
-          // multiple zones (drag filters back down to same-zone), but
-          // our Selection shape is single-zoned (used to gate drag +
-          // context-menu bulk actions), so Ctrl+Click in a DIFFERENT
-          // zone replaces the selection with a new single-card set
-          // rooted in the clicked zone. Same-zone Ctrl+Click toggles.
-          const isCtrl = e.ctrlKey || e.metaKey;
-          if (isCtrl && selection && selection.zone === zone) {
-            const nextIds = new Set(selection.ids);
-            if (nextIds.has(clickedCardId)) {
-              nextIds.delete(clickedCardId);
-            } else {
-              nextIds.add(clickedCardId);
-            }
-            if (nextIds.size === 0) {
-              setSelection(null);
-            } else {
-              setSelection({ zone, ids: nextIds });
-            }
-          } else {
-            setSelection({
-              zone,
-              ids: new Set([clickedCardId]),
-            });
-          }
-        }
+        releaseCardPress(drag.sourceZone, drag.cards[0].id, e);
       }
       setDrag(null);
     };
@@ -6619,6 +6630,252 @@ function PlayerBox(
     { label: 'Exile', submenu: exileMenuItemsOpponent },
   ];
 
+  // The drag ghost: the dragged cards under the pointer, anchored where the
+  // first was grabbed. Library drags show a card back: the server's position
+  // is authoritative, so the local top card's face could be the wrong card.
+  const renderDragGhost = (
+    cards: readonly HandCard[],
+    zone: DragSourceZone,
+    lent: boolean,
+    origin: { x: number; y: number },
+  ) =>
+    cards.map((c, i) => {
+      // Runtime object is the FULL BattlefieldCard when the
+      // source is the battlefield (BattlefieldCard extends
+      // HandCard so the widening at drag start doesn't strip
+      // the fields — they just get erased in the static type).
+      // Cast to read the extended props so the ghost mirrors
+      // what the resting card looks like: modified P/T, on-card
+      // counters, annotation pill, face-down flip, tapped
+      // rotation, picked printing. Non-battlefield sources
+      // (hand / graveyard / exile / stack) leave the extended
+      // fields undefined, and Card handles that gracefully.
+      const bc = c as BattlefieldCard;
+      const baseMeta = cardMetaByName.get(c.name);
+      const isLibraryBack = zone === 'library' && !lent;
+      return (
+        <div
+          key={c.id}
+          data-drag-ghost
+          style={{
+            position: 'fixed',
+            left: origin.x + i * 4,
+            top: origin.y + i * 4,
+            width: CARD_WIDTH,
+            height: CARD_HEIGHT,
+            pointerEvents: 'none',
+            // Above the search-library dialog (z-1000) so a
+            // card dragged out of the dialog is visible under
+            // the cursor from the moment the drag starts.
+            zIndex: 1100 + i,
+            // Tapped cards drag rotated 90° like they render
+            // on the board (plus a small tilt for depth).
+            transform: `rotate(${bc.tapped ? 92 : 2}deg)`,
+            filter: 'drop-shadow(0 8px 12px rgba(0,0,0,0.4))',
+          }}
+        >
+          {isLibraryBack ? (
+            <img
+              src={CARD_BACK_URL}
+              alt=''
+              draggable={false}
+              className='w-full h-full select-none pointer-events-none'
+              style={{ borderRadius: CARD_CORNER_RADIUS }}
+            />
+          ) : (
+            <Card
+              id={c.id}
+              name={c.name}
+              scryfallId={c.scryfallId || baseMeta?.scryfallId}
+              pt={bc.pt || (bc.faceDown ? undefined : baseMeta?.pt)}
+              basePT={baseMeta?.pt}
+              annotation={bc.annotation}
+              counters={bc.counters}
+              faceDown={bc.faceDown}
+              imageUri={resolveFaceImageUri(c.name)}
+            />
+          )}
+        </div>
+      );
+    });
+
+  // ---- Seat drag and drop (useGameDnd) ------------------------------------
+  // The game's DnD coordinator drives these drags; this seat says what is
+  // dragged and, for each zone it renders, where a drop on it lands (it owns
+  // the zone's layout).
+  const seatId = playerId ?? Number(player.user_id);
+  const activeSeatDrag = useActiveSeatDrag();
+  const seatDrag = activeSeatDrag?.seatPlayerId === seatId ? activeSeatDrag : null;
+
+  const handDragSource = useSeatDragSource(`seat-${seatId}-hand`, { seatPlayerId: seatId, zone: 'hand' });
+  const stackDragSource = useSeatDragSource(`seat-${seatId}-stack`, { seatPlayerId: seatId, zone: 'stack' });
+  const seatDragSources: Partial<Record<DragSourceZone, SeatDragStart>> = {
+    hand: handDragSource,
+    stack: stackDragSource,
+  };
+
+  // Same group rule as startCardDrag: a press on a card in the selection
+  // drags the selection, in display order; anything else drags the card. A
+  // click on a single card goes to releaseCardPress.
+  const startSeatCardDrag = (
+    e: React.PointerEvent<HTMLElement>,
+    card: HandCard,
+    zone: Selection['zone'],
+    zoneCards: readonly HandCard[],
+  ) => {
+    const start = seatDragSources[zone];
+    if (!start) {
+      return;
+    }
+    if (selection && selection.zone === zone && selection.ids.has(card.id)) {
+      const group = zoneCards.filter((c) => selection.ids.has(c.id));
+      start(e, group, group.length === 1 ? (up) => releaseCardPress(zone, card.id, up) : undefined);
+    } else {
+      start(e, [card], (up) => releaseCardPress(zone, card.id, up));
+    }
+  };
+
+  const battlefieldDropRef = useSeatDropZone(`seat-${seatId}-battlefield`, {
+    seatPlayerId: seatId,
+    acceptsOtherSeats: true,
+    priority: SEAT_DROP_PRIORITY.battlefield,
+    // Snap the dragged card's top-left against this board's own columns, in
+    // its visual orientation, then flip the row back to wire orientation on
+    // a mirrored board.
+    resolve: ({ cardOrigin }) => {
+      const content = battlefieldRef.current;
+      if (!content) {
+        return null;
+      }
+      const rect = content.getBoundingClientRect();
+      const snap = snapPxToSlot(cardOrigin.x - rect.left, cardOrigin.y - rect.top, cellWidths, battlefieldLayout);
+      return {
+        zone: 'battlefield',
+        playerId: seatId,
+        slot: { row: handOnTop ? BATTLEFIELD_ROWS - 1 - snap.row : snap.row, col: snap.col },
+        grid: { rows: gridRows, cols: gridCols },
+      };
+    },
+  });
+  const stackDropRef = useSeatDropZone(`seat-${seatId}-stack`, {
+    seatPlayerId: seatId,
+    priority: SEAT_DROP_PRIORITY.stack,
+    // Insertion index against the pile the user sees: cards dragged out of
+    // the stack are hidden, so the pile re-flows without them.
+    resolve: ({ pointer }, source) => {
+      const stackEl = stackRef.current;
+      if (!stackEl) {
+        return null;
+      }
+      const rect = stackEl.getBoundingClientRect();
+      const layoutCount = stackDisplayList.length - (source.zone === 'stack' ? source.cards.length : 0);
+      const positions = layoutStackPile(layoutCount, rect.width, rect.height, CARD_W_PX, CARD_H_PX, STACK_HOFFSET_PX);
+      const index = positions.filter((pos) => pointer.y > rect.top + pos.y + CARD_H_PX / 2).length;
+      return { zone: 'stack', index };
+    },
+  });
+  const handDropRef = useSeatDropZone(`seat-${seatId}-hand`, {
+    seatPlayerId: seatId,
+    priority: SEAT_DROP_PRIORITY.hand,
+    // Insertion index = hand cards whose centre is left of the pointer,
+    // not counting the cards being dragged: the post-removal position.
+    resolve: ({ pointer }, source) => {
+      const dragged = new Set(source.zone === 'hand' ? source.cards.map((c) => c.id) : []);
+      let index = 0;
+      boxRef.current?.querySelectorAll<HTMLElement>('[data-card][data-zone="hand"]').forEach((el) => {
+        const id = el.dataset.cardId;
+        if (!id || dragged.has(id)) {
+          return;
+        }
+        const r = el.getBoundingClientRect();
+        if (pointer.x > r.left + r.width / 2) {
+          index++;
+        }
+      });
+      return { zone: 'hand', index, order: handDisplayList.map((c) => c.id) };
+    },
+  });
+  const libraryDropRef = useSeatDropZone(`seat-${seatId}-library`, {
+    seatPlayerId: seatId,
+    priority: SEAT_DROP_PRIORITY.library,
+    resolve: () => ({ zone: 'library' }),
+  });
+  const graveyardDropRef = useSeatDropZone(`seat-${seatId}-graveyard`, {
+    seatPlayerId: seatId,
+    priority: SEAT_DROP_PRIORITY.graveyard,
+    resolve: () => ({ zone: 'graveyard' }),
+  });
+  const exileDropRef = useSeatDropZone(`seat-${seatId}-exile`, {
+    seatPlayerId: seatId,
+    priority: SEAT_DROP_PRIORITY.exile,
+    resolve: () => ({ zone: 'exile' }),
+  });
+  // The seat's dialogs float over the board and take drops before it.
+  const librarySearchDropRef = useSeatDropZone(`seat-${seatId}-library-search`, {
+    seatPlayerId: seatId,
+    priority: SEAT_DROP_PRIORITY.librarySearchDialog,
+    resolve: () => ({ zone: 'library' }),
+  });
+  // The graveyard / exile view resolves to the pile it shows, so a drop back
+  // onto it is a same-zone no-op. The hand view appends: it sorts and groups,
+  // so a positional insert wouldn't match what the user sees. That append is
+  // meaningless for a hand card dropped back on its own viewer, so that drop
+  // resolves to no target and the card snaps back.
+  const pileViewDropRef = useSeatDropZone(`seat-${seatId}-pile-view`, {
+    seatPlayerId: seatId,
+    priority: SEAT_DROP_PRIORITY.pileViewDialog,
+    resolve: (_drop, source) => {
+      if (!pileView) {
+        return null;
+      }
+      if (pileView.zone === 'hand') {
+        return source.zone === 'hand' ? null : { zone: 'hand', index: handDisplayList.length };
+      }
+      return { zone: pileView.zone };
+    },
+  });
+  // The sideboard is hidden: drops append (x = -1).
+  const sideboardDropRef = useSeatDropZone(`seat-${seatId}-sideboard-view`, {
+    seatPlayerId: seatId,
+    priority: SEAT_DROP_PRIORITY.sideboardDialog,
+    resolve: () => (viewSideboardOpen ? { zone: 'sideboard' } : null),
+  });
+  // The top/bottom-N reveal: the drop lands between two revealed cards (past
+  // a card's centre means after it), at the deck position that slot shows.
+  // Top view: slot k is position k; bottom-N view: deckCount - N + k.
+  const revealDropRef = useSeatDropZone(`seat-${seatId}-reveal`, {
+    seatPlayerId: seatId,
+    priority: SEAT_DROP_PRIORITY.revealDialog,
+    resolve: ({ pointer }) => {
+      const cardEls = zoneRevealDialogRef.current?.querySelectorAll<HTMLElement>('[data-card][data-card-id]');
+      let slot = 0;
+      let best = Infinity;
+      cardEls?.forEach((el, i) => {
+        const r = el.getBoundingClientRect();
+        const cx = r.left + r.width / 2;
+        const cy = r.top + r.height / 2;
+        const dist = (pointer.x - cx) ** 2 + (pointer.y - cy) ** 2;
+        if (dist < best) {
+          best = dist;
+          slot = pointer.x > cx ? i + 1 : i;
+        }
+      });
+      const revealCount = revealedDeckCards?.length ?? 0;
+      const base = topCardsView?.isReversed ? deckCount - revealCount : 0;
+      return { zone: 'library', position: Math.max(0, Math.min(deckCount, base + slot)) };
+    },
+  });
+  const battlefieldScrollRef = useForkRef(scrollContainerRef, battlefieldDropRef);
+  const stackZoneRef = useForkRef(stackRef, stackDropRef);
+  const handZoneRef = useForkRef(handRef, handDropRef);
+  const libraryZoneRef = useForkRef(libraryRef, libraryDropRef);
+  const graveyardZoneRef = useForkRef(graveyardRef, graveyardDropRef);
+  const exileZoneRef = useForkRef(exileRef, exileDropRef);
+  const librarySearchDialogZoneRef = useForkRef(librarySearchDialogRef, librarySearchDropRef);
+  const pileViewDialogZoneRef = useForkRef(pileViewDialogRef, pileViewDropRef);
+  const sideboardDialogZoneRef = useForkRef(sideboardDialogRef, sideboardDropRef);
+  const revealDialogZoneRef = useForkRef(zoneRevealDialogRef, revealDropRef);
+
   return (
     <div
       ref={boxRef}
@@ -7679,7 +7936,7 @@ function PlayerBox(
               ]}
             >
               <CardBackZone
-                ref={libraryRef}
+                ref={libraryZoneRef}
                 label="Library"
                 count={displayedDeckCount}
                 // Pile face: show whatever `deckTopCard` is currently
@@ -7712,7 +7969,7 @@ function PlayerBox(
           // DOM shape the layout above expected from <ContextMenu>.
             <div>
               <CardBackZone
-                ref={libraryRef}
+                ref={libraryZoneRef}
                 label="Library"
                 count={displayedDeckCount}
                 // Opponent pile: same principle as the own-pile
@@ -7727,7 +7984,7 @@ function PlayerBox(
           {isSelf ? (
             <ContextMenu items={graveMenuItemsSelf}>
               <LargeZoneBox
-                ref={graveyardRef}
+                ref={graveyardZoneRef}
                 icon={Skull}
                 label="Graveyard"
                 count={displayedGraveyardCount}
@@ -7753,7 +8010,7 @@ function PlayerBox(
           // graveyard" since the zone is public.
             <ContextMenu items={graveMenuItemsOpponent}>
               <LargeZoneBox
-                ref={graveyardRef}
+                ref={graveyardZoneRef}
                 icon={Skull}
                 label="Graveyard"
                 count={displayedGraveyardCount}
@@ -7766,7 +8023,7 @@ function PlayerBox(
           {isSelf ? (
             <ContextMenu items={exileMenuItemsSelf}>
               <LargeZoneBox
-                ref={exileRef}
+                ref={exileZoneRef}
                 icon={Sparkles}
                 label="Exile"
                 count={displayedExileCount}
@@ -7790,7 +8047,7 @@ function PlayerBox(
           // (rfg_menu.cpp:16); "View exile" is available to any viewer.
             <ContextMenu items={exileMenuItemsOpponent}>
               <LargeZoneBox
-                ref={exileRef}
+                ref={exileZoneRef}
                 icon={Sparkles}
                 label="Exile"
                 count={displayedExileCount}
@@ -7813,7 +8070,7 @@ function PlayerBox(
         {/* Stack — spells/abilities waiting to resolve. Cards zig-zag
             vertically; index 0 renders topmost. Dropping between two
             existing cards inserts at that position. */}
-        <div ref={stackRef} className="flex-1 min-h-0 relative">
+        <div ref={stackZoneRef} className="flex-1 min-h-0 relative">
           {(() => {
             const visible = stackDisplayList.filter(
               (c) => !isDragging(c.id, 'stack'),
@@ -7847,7 +8104,7 @@ function PlayerBox(
                   data-card-owner={playerId}
                   data-card-zone={ZoneName.STACK}
                   onPointerDown={(e) =>
-                    startCardDrag(e, c, 'stack', stackDisplayList)
+                    startSeatCardDrag(e, c, 'stack', stackDisplayList)
                   }
                   onContextMenu={(e) => {
                     e.preventDefault();
@@ -8008,7 +8265,7 @@ function PlayerBox(
             );
           })()}
         <div
-          ref={scrollContainerRef}
+          ref={battlefieldScrollRef}
           data-battlefield-owner={player.user_id}
           data-battlefield-mirrored={handOnTop ? 'true' : 'false'}
           // Cockatrice-style layout: the outer scroll container has no
@@ -8420,7 +8677,7 @@ function PlayerBox(
             (top hand stays put — its expansion is downward and
             handled by the outer's overflow flip alone). */}
         <motion.div
-          ref={handRef}
+          ref={handZoneRef}
           data-testid={`hand-zone-${playerId}`}
           // `overflow-y-hidden` set explicitly alongside overflow-x-auto
           // to short-circuit the CSS spec's promotion of the other
@@ -8484,7 +8741,7 @@ function PlayerBox(
                       data-card-id={c.id}
                       data-selected={selected || undefined}
                       onPointerDown={(e) =>
-                        startCardDrag(e, c, 'hand', handDisplayList)
+                        startSeatCardDrag(e, c, 'hand', handDisplayList)
                       }
                       onDoubleClick={async () => {
                         // Double-click auto-play chain: lands go straight to
@@ -8717,7 +8974,7 @@ function PlayerBox(
         library={revealedDeckCards ?? []}
         deckCards={enrichedDeckCards}
         playerName={name}
-        dropRef={librarySearchDialogRef}
+        dropRef={librarySearchDialogZoneRef}
         // Pointer-down on a card in the dialog kicks off a normal
         // library-source drag. The card's id is the revealed-card's
         // server-side deck position, which the wire path forwards
@@ -9011,7 +9268,7 @@ function PlayerBox(
               ? (e, c) => beginDrag(e, [c], 'library')
               : undefined
           }
-          dropRef={zoneRevealDialogRef}
+          dropRef={revealDialogZoneRef}
           draggingCardIds={
             drag?.sourceZone === 'library'
               ? new Set(drag.cards.map((c) => c.id))
@@ -9094,7 +9351,7 @@ function PlayerBox(
           // exile resolve to the source pile, hand to no target)
           // instead of falling through to the battlefield behind.
           // Without this the modal was invisible to drop detection.
-          dropRef={pileViewDialogRef}
+          dropRef={pileViewDialogZoneRef}
           draggingCardIds={
             drag?.sourceZone === pileView.zone
               ? new Set(drag.cards.map((c) => c.id))
@@ -9124,7 +9381,7 @@ function PlayerBox(
           deckCards={enrichedDeckCards}
           playerName={name}
           onCardPointerDown={(e, c) => beginDrag(e, [c], 'sideboard')}
-          dropRef={sideboardDialogRef}
+          dropRef={sideboardDialogZoneRef}
           draggingCardIds={
             drag?.sourceZone === 'sideboard'
               ? new Set(drag.cards.map((c) => c.id))
@@ -10394,67 +10651,18 @@ function PlayerBox(
       {drag &&
         drag.moved &&
         createPortal(
-          <>
-            {drag.cards.map((c, i) => {
-              // Runtime object is the FULL BattlefieldCard when the
-              // source is the battlefield (BattlefieldCard extends
-              // HandCard so the widening at drag start doesn't strip
-              // the fields — they just get erased in the static type).
-              // Cast to read the extended props so the ghost mirrors
-              // what the resting card looks like: modified P/T, on-card
-              // counters, annotation pill, face-down flip, tapped
-              // rotation, picked printing. Non-battlefield sources
-              // (hand / graveyard / exile / stack) leave the extended
-              // fields undefined, and Card handles that gracefully.
-              const bc = c as BattlefieldCard;
-              const baseMeta = cardMetaByName.get(c.name);
-              const isLibraryBack =
-                drag.sourceZone === 'library' && drag.sourcePlayerId === undefined;
-              return (
-                <div
-                  key={c.id}
-                  style={{
-                    position: 'fixed',
-                    left: drag.pointerX - drag.offsetX + i * 4,
-                    top: drag.pointerY - drag.offsetY + i * 4,
-                    width: CARD_WIDTH,
-                    height: CARD_HEIGHT,
-                    pointerEvents: 'none',
-                    // Above the search-library dialog (z-1000) so a
-                    // card dragged out of the dialog is visible under
-                    // the cursor from the moment the drag starts.
-                    zIndex: 1100 + i,
-                    // Tapped cards drag rotated 90° like they render
-                    // on the board (plus a small tilt for depth).
-                    transform: `rotate(${bc.tapped ? 92 : 2}deg)`,
-                    filter: 'drop-shadow(0 8px 12px rgba(0,0,0,0.4))',
-                  }}
-                >
-                  {isLibraryBack ? (
-                    <img
-                      src={CARD_BACK_URL}
-                      alt=''
-                      draggable={false}
-                      className='w-full h-full select-none pointer-events-none'
-                      style={{ borderRadius: CARD_CORNER_RADIUS }}
-                    />
-                  ) : (
-                    <Card
-                      id={c.id}
-                      name={c.name}
-                      scryfallId={c.scryfallId || baseMeta?.scryfallId}
-                      pt={bc.pt || (bc.faceDown ? undefined : baseMeta?.pt)}
-                      basePT={baseMeta?.pt}
-                      annotation={bc.annotation}
-                      counters={bc.counters}
-                      faceDown={bc.faceDown}
-                      imageUri={resolveFaceImageUri(c.name)}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </>,
+          renderDragGhost(drag.cards, drag.sourceZone, drag.sourcePlayerId !== undefined, {
+            x: drag.pointerX - drag.offsetX,
+            y: drag.pointerY - drag.offsetY,
+          }),
+          document.body,
+        )}
+      {seatDrag &&
+        createPortal(
+          <SeatDragGhost>
+            {(origin) =>
+              renderDragGhost(seatDrag.cards as readonly HandCard[], seatDrag.zone, seatDrag.lenderPlayerId !== undefined, origin)}
+          </SeatDragGhost>,
           document.body,
         )}
     </div>

@@ -1,6 +1,6 @@
 import { RefObject, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core';
 
 import { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
 import {
@@ -9,6 +9,8 @@ import {
   type CardPreviewStore,
 } from '../components/ui/CardPreviewContext';
 import { createSeatShortcutRegistry, type SeatShortcutRegistry } from '../components/ui/SeatShortcutsContext';
+import { useMoveCard } from '../components/ui/GameBoardCell/useMoveCard';
+import { GamePointerSensor } from './gamePointerSensor';
 import { createCardRegistry, type CardRegistry } from '../utils/CardRegistry/CardRegistryContext';
 import { resolveSelectedCards, type SelectedCard } from '../utils/selection';
 import { useCurrentGame, type CurrentGame } from './useCurrentGame';
@@ -74,7 +76,7 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
   const cardRegistry = useMemo(() => createCardRegistry(), []);
   // See .github/instructions/webatrice-game.instructions.md#pointer--click-vs-drag.
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 0 } }),
+    useSensor(GamePointerSensor, { activationDistance: 0 }),
     useSensor(KeyboardSensor),
   );
   const previewStore = useMemo(() => createCardPreviewStore(), []);
@@ -129,12 +131,15 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
     collapseUnlessSelected: selection.collapseUnlessSelected,
     getSelectedCards,
   });
+  const moveCard = useMoveCard(gameId);
   const dnd = useGameDnd({
     gameId,
     judgeTarget,
     cancelPendingArrow: arrows.cancelPendingOnDragStart,
     collapseUnlessSelected: selection.collapseUnlessSelected,
     getSelectedCards,
+    clearSelection: selection.clearSelection,
+    moveCard,
   });
 
   useGameShortcuts({
