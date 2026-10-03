@@ -1,2 +1,3 @@
 - 14:01Z rebased 20 onto 21 (conflicts: DexieService, services/hooks barrels, i18n-default); schema now v7 → wire Settings Card Sources + Storage
 - 14:07Z pushed 4c1af64 (v7 migration spec, Settings › Card Sources, Storage tables) → full gate
+- 14:24Z full gate green; e2e 25/30, 5 = known Scryfall cert failures, same on base 4156694 → PR notes written, done
