@@ -39,10 +39,9 @@ export interface UseGameLogArgs {
 
 export function useGameLog({ gameId, listRef }: UseGameLogArgs): GameLog {
   const webClient = useWebClient();
-  // Selector's EMPTY_ARRAY fallback is typed ServerInfo_Card[]; cast is safe at runtime.
   const messages = useAppSelector((state) =>
     gameId != null ? games.Selectors.getMessages(state, gameId) : EMPTY_MESSAGES,
-  ) as GameMessage[];
+  );
   const players = useAppSelector((state) =>
     gameId != null ? games.Selectors.getPlayers(state, gameId) : undefined,
   );
