@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie';
 
 import { schemaV1 } from './DexieSchemas/v1.schema';
 import { Stores, schemaV2 } from './DexieSchemas/v2.schema';
+import { schemaV6 } from './DexieSchemas/v6.schema';
 
 class DexieService {
   private db: Dexie = new Dexie('Webatrice');
@@ -9,6 +10,7 @@ class DexieService {
   constructor() {
     schemaV1(this.db);
     schemaV2(this.db);
+    schemaV6(this.db);
   }
 
   get settings() {
