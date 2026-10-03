@@ -23,6 +23,7 @@ import {
   type ZoneViewCardMetadata,
 } from './zoneViewSort';
 import { readShuffleOnClose, writeShuffleOnClose } from './zoneViewPreferences';
+import { cardViewRowsHeight, toggledCardViewHeight } from './cardViewHeight';
 import { MARQUEE_BORDER, MARQUEE_FILL, SELECTED_RING } from '../../components/ui/seatColors/seatColors';
 
 const TOOLBAR_SELECT_CLASS =
@@ -42,6 +43,24 @@ const PILE_VIEW_STORAGE_KEY = 'webatrice.searchLibraryPileView';
 
 const MIN_DIALOG_W = 400;
 const MIN_DIALOG_H = 300;
+/** The card height inside a card view (its --card-height). */
+const CARD_VIEW_CARD_HEIGHT_REM = 12.6;
+
+/**
+ * A card view's measurements for desktop's row-based heights: everything around its card area
+ * (title bar, controls, padding), the card area itself, and its card height in pixels.
+ */
+function measureCardView(dialog: HTMLElement, content: HTMLElement): { chrome: number; area: number; cardHeightPx: number } {
+  const style = window.getComputedStyle(content);
+  const paddingY = (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0);
+  const area = content.getBoundingClientRect().height - paddingY;
+  const rootFontSize = parseFloat(window.getComputedStyle(document.documentElement).fontSize) || 16;
+  return {
+    chrome: dialog.getBoundingClientRect().height - area,
+    area,
+    cardHeightPx: CARD_VIEW_CARD_HEIGHT_REM * rootFontSize,
+  };
+}
 
 function readStoredPosition(): { x: number; y: number } | null {
   if (typeof window === 'undefined') {
@@ -225,6 +244,8 @@ export default function ZoneViewPanel({
   const { setHoveredCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
   const [query, setQuery] = useState('');
   const focusSearchBar = usePreference('focusCardViewSearchBar');
+  const cardViewInitialRowsMax = usePreference('cardViewInitialRowsMax');
+  const cardViewExpandedRowsMax = usePreference('cardViewExpandedRowsMax');
   // Desktop hides the search box while "Keep game chat focused" is on: typing goes to the chat.
   const showSearchBar = !usePreference('keepGameChatFocus');
   const activeQuery = showSearchBar ? query : '';
@@ -335,6 +356,7 @@ export default function ZoneViewPanel({
   // centered by the flex parent (used on first open before we've
   // measured its size).
   const dialogRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const dragOffset = useRef<{ x: number; y: number } | null>(null);
   // Only true after the user has actively grabbed the header at least
@@ -357,8 +379,38 @@ export default function ZoneViewPanel({
       const clamped = clampSizeToViewport(storedSize);
       el.style.width = `${clamped.w}px`;
       el.style.height = `${clamped.h}px`;
+    } else if (contentRef.current) {
+      // Desktop's "Maximum initial height for card view window", in rows. A size the user set
+      // by hand, stored above, wins.
+      const { chrome, cardHeightPx } = measureCardView(el, contentRef.current);
+      // As on desktop, no taller than the cards need (unknown, 0, before layout).
+      const style = window.getComputedStyle(contentRef.current);
+      const cardsHeight = contentRef.current.scrollHeight
+        - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0);
+      const rowsHeight = cardViewRowsHeight(cardViewInitialRowsMax, cardHeightPx);
+      const height = chrome + (cardsHeight > 0 ? Math.min(rowsHeight, cardsHeight) : rowsHeight);
+      el.style.height = `${Math.round(clampSizeToViewport({ w: el.getBoundingClientRect().width, h: height }).h)}px`;
     }
+    // Read once, at open, as desktop sizes a new view.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Desktop's title-bar double-click (ZoneViewWidget::expandWindow): between the initial height
+  // and "Maximum expanded height for card view window".
+  const toggleExpanded = () => {
+    const el = dialogRef.current;
+    const content = contentRef.current;
+    if (!el || !content) {
+      return;
+    }
+    const { chrome, area, cardHeightPx } = measureCardView(el, content);
+    const next = toggledCardViewHeight(area, {
+      initial: cardViewRowsHeight(cardViewInitialRowsMax, cardHeightPx),
+      expanded: cardViewRowsHeight(cardViewExpandedRowsMax, cardHeightPx),
+      maxHeight: window.innerHeight - chrome,
+    });
+    el.style.height = `${Math.round(Math.max(MIN_DIALOG_H, chrome + next))}px`;
+  };
 
   // Position the dialog whenever it opens. Prefer a saved position from
   // a previous session (so the dialog reappears where the user last put
@@ -482,7 +534,6 @@ export default function ZoneViewPanel({
 
   // Marquee selection scoped to the view: the marquee never spans into
   // the play area behind it. The selection itself is the caller's.
-  const contentRef = useRef<HTMLDivElement>(null);
   const [marquee, setMarquee] = useState<
     { x1: number; y1: number; x2: number; y2: number } | null
   >(null);
@@ -714,7 +765,7 @@ export default function ZoneViewPanel({
         style={
           {
             '--card-width': '9rem',
-            '--card-height': '12.6rem',
+            '--card-height': `${CARD_VIEW_CARD_HEIGHT_REM}rem`,
             minWidth: `${MIN_DIALOG_W}px`,
             minHeight: `${MIN_DIALOG_H}px`,
             ...(pos
@@ -726,6 +777,7 @@ export default function ZoneViewPanel({
         {/* Header */}
         <div
           onPointerDown={onHeaderPointerDown}
+          onDoubleClick={toggleExpanded}
           className={[
             'flex items-center justify-between px-4 py-3 border-b border-border-subtle shrink-0 select-none',
             dragging ? 'cursor-grabbing' : 'cursor-grab',

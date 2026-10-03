@@ -46,6 +46,28 @@ export const appearanceSection: SettingsSection = {
       ],
     },
     {
+      id: 'appearance.cardLayout',
+      titleKey: 'SettingsAppearance.group.cardLayout',
+      entries: [
+        {
+          id: 'verticalCardOverlapPercent',
+          labelKey: 'SettingsAppearance.verticalCardOverlapPercent.label',
+          control: { kind: 'number', key: 'verticalCardOverlapPercent', min: 0, max: 80, unitKey: 'SettingsAppearance.percentSuffix' },
+        },
+        {
+          id: 'cardViewInitialRowsMax',
+          labelKey: 'SettingsAppearance.cardViewInitialRowsMax.label',
+          control: { kind: 'number', key: 'cardViewInitialRowsMax', min: 1, max: 999, unitKey: 'SettingsAppearance.rowsSuffix' },
+        },
+        {
+          id: 'cardViewExpandedRowsMax',
+          labelKey: 'SettingsAppearance.cardViewExpandedRowsMax.label',
+          descriptionKey: 'SettingsAppearance.cardViewExpandedRowsMax.description',
+          control: { kind: 'number', key: 'cardViewExpandedRowsMax', min: 1, max: 999, unitKey: 'SettingsAppearance.rowsSuffix' },
+        },
+      ],
+    },
+    {
       id: 'appearance.handLayout',
       titleKey: 'SettingsAppearance.group.handLayout',
       entries: [
