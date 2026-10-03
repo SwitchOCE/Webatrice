@@ -63,7 +63,7 @@ export function ExportDeckDialog({
     if (open) {
       setCopied(false);
     }
-  }, [open, onClose]);
+  }, [open]);
   useEscapeKey(open, onClose);
   const titleId = useId();
 
