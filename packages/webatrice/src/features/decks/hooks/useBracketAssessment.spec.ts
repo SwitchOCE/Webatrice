@@ -33,7 +33,7 @@ describe('useBracketAssessment', () => {
       denial: [], denialRestricted: [], earlyCombos: [], lateCombos: [],
     };
     const persist = vi.fn();
-    const { result } = renderHook(() => useBracketAssessment(cards, cached, persist));
+    const { result } = renderHook(() => useBracketAssessment(cards, cached, persist, true));
 
     expect(result.current).toEqual(expect.objectContaining({ status: 'complete' }));
     expect(result.current.status === 'complete' && result.current.report.level).toBe(4);
@@ -44,7 +44,7 @@ describe('useBracketAssessment', () => {
   it('persists a complete analysis with the deck fingerprint', async () => {
     vi.mocked(analyzeBracket).mockResolvedValue(complete);
     const persist = vi.fn();
-    const { result } = renderHook(() => useBracketAssessment(cards, undefined, persist));
+    const { result } = renderHook(() => useBracketAssessment(cards, undefined, persist, true));
 
     expect(result.current.status).toBe('loading');
     await waitFor(() => expect(result.current.status).toBe('complete'));
@@ -54,7 +54,7 @@ describe('useBracketAssessment', () => {
   it('reports a degraded analysis without persisting it, and retries on demand', async () => {
     vi.mocked(analyzeBracket).mockResolvedValue(degraded);
     const persist = vi.fn();
-    const { result } = renderHook(() => useBracketAssessment(cards, undefined, persist));
+    const { result } = renderHook(() => useBracketAssessment(cards, undefined, persist, true));
 
     await waitFor(() => expect(result.current.status).toBe('degraded'));
     expect(result.current).toEqual(expect.objectContaining({ unavailable: degraded.unavailable }));
@@ -71,9 +71,55 @@ describe('useBracketAssessment', () => {
   it('reports an unexpected failure and clears the persisted assessment', async () => {
     vi.mocked(analyzeBracket).mockRejectedValue(new Error('boom'));
     const persist = vi.fn();
-    const { result } = renderHook(() => useBracketAssessment(cards, undefined, persist));
+    const { result } = renderHook(() => useBracketAssessment(cards, undefined, persist, true));
 
     await waitFor(() => expect(result.current).toEqual(expect.objectContaining({ status: 'error', message: 'boom' })));
     expect(persist).toHaveBeenCalledWith(undefined);
+  });
+
+  describe('without consent for the third-party lookups', () => {
+    const cachedFor = (deck: DeckCard[]): BracketAssessment => ({
+      level: 3, fingerprint: deckFingerprint(deck), gameChangers: [], turns: [], turnsRestricted: [],
+      denial: [], denialRestricted: [], earlyCombos: [], lateCombos: [],
+    });
+
+    it('asks for consent and makes no request', () => {
+      const persist = vi.fn();
+      const { result } = renderHook(() => useBracketAssessment(cards, undefined, persist, false));
+
+      expect(result.current.status).toBe('consentRequired');
+      expect(analyzeBracket).not.toHaveBeenCalled();
+      expect(persist).not.toHaveBeenCalled();
+    });
+
+    it('still shows a cached assessment that matches the deck', () => {
+      const { result } = renderHook(() => useBracketAssessment(cards, cachedFor(cards), vi.fn(), false));
+
+      expect(result.current.status === 'complete' && result.current.report.level).toBe(3);
+      expect(analyzeBracket).not.toHaveBeenCalled();
+    });
+
+    it('clears a cached assessment for an older version of the deck', () => {
+      const older = cachedFor([{ ...cards[0], quantity: 2 }]);
+      const persist = vi.fn();
+      const { result } = renderHook(() => useBracketAssessment(cards, older, persist, false));
+
+      expect(result.current.status).toBe('consentRequired');
+      expect(persist).toHaveBeenCalledWith(undefined);
+      expect(analyzeBracket).not.toHaveBeenCalled();
+    });
+
+    it('analyses once consent is given', async () => {
+      vi.mocked(analyzeBracket).mockResolvedValue(complete);
+      const { result, rerender } = renderHook(
+        ({ allowed }) => useBracketAssessment(cards, undefined, vi.fn(), allowed),
+        { initialProps: { allowed: false } },
+      );
+      expect(result.current.status).toBe('consentRequired');
+
+      rerender({ allowed: true });
+      await waitFor(() => expect(result.current.status).toBe('complete'));
+      expect(analyzeBracket).toHaveBeenCalledTimes(1);
+    });
   });
 });

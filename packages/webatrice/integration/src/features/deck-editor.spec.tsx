@@ -4,7 +4,13 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { create, isFieldSet } from '@bufbuild/protobuf';
 
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
-import { DeckEditor, clearBracketSourceCaches, clearDeckEditorCache, clearDecksListCache } from '@app/features/decks';
+import {
+  DeckEditor,
+  clearBracketSourceCaches,
+  clearDeckEditorCache,
+  clearDecksListCache,
+  writeBracketLookupsAllowed,
+} from '@app/features/decks';
 import { parseCod } from '@app/services';
 import { RouteEnum, type ParsedDeck } from '@app/types';
 import {
@@ -70,6 +76,8 @@ beforeEach(() => {
   clearDeckEditorCache();
   clearDecksListCache();
   clearBracketSourceCaches();
+  // Most specs exercise the bracket estimate; the consent spec turns it off.
+  writeBracketLookupsAllowed(true);
   fetchMock = stubThirdPartyFetch();
   stubImagePreload();
   connectAndLogin();
@@ -77,6 +85,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  window.localStorage.clear();
 });
 
 async function openDeck(xml: string) {
@@ -158,6 +167,24 @@ describe('DeckEditor (integration)', () => {
     const saved = await autosaved((d) => d.bracketAssessment?.level === 1 && d.meta.priceUsd === 24.75);
     expect(saved.meta.bracketLevel).toBe(1);
     expect(saved.bracketAssessment?.fingerprint).toMatch(/^[0-9a-z]{8}$/);
+  });
+
+  it('makes no third-party bracket request until the user allows it', async () => {
+    writeBracketLookupsAllowed(false);
+    await openDeck(COMMANDER_DECK);
+
+    expect(await screen.findByText('DeckBracket.consent.prompt')).toBeInTheDocument();
+    // The price still autosaves from the card lookup; no bracket is computed or saved.
+    const saved = await autosaved((d) => d.meta.priceUsd === 24.75);
+    expect(saved.bracketAssessment).toBeUndefined();
+    expect(fetchCalls(fetchMock, 'https://backend.commanderspellbook.com/')).toEqual([]);
+    expect(fetchCalls(fetchMock, 'https://api.scryfall.com/cards/search?q=is%3Agamechanger')).toEqual([]);
+
+    fireEvent.click(screen.getByRole('button', { name: /DeckBracket\.consent\.allow/ }));
+
+    expect(await screen.findByText('DeckBracket.title', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(fetchCalls(fetchMock, 'https://backend.commanderspellbook.com/find-my-combos/')).toHaveLength(1);
+    await autosaved((d) => d.bracketAssessment?.level === 1);
   });
 
   describe('bracket assessment with a third-party outage (DATA-001)', () => {

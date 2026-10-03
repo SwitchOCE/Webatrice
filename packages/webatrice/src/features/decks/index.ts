@@ -3,6 +3,7 @@ export { clearDecksListCache } from './hooks/useDeckList';
 export { default as DeckEditor } from './DeckEditor';
 export { clearDeckEditorCache } from './deckEditorCache';
 export { clearBracketSourceCaches } from './bracketSources';
+export { writeBracketLookupsAllowed } from './bracketConsent';
 
 // --- Data layer (Piece 1: foundation for MyDecks feature) ---
 // The Cockatrice deck document codec and its types are root owners
