@@ -41,6 +41,38 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+describe('Scryfall request shapes (characterization)', () => {
+  it('asks for the Game Changers list with only a timeout signal', async () => {
+    fetchMock.mockResolvedValue(json({ data: [{ name: 'Sol Ring' }] }));
+
+    await fetchGameChangers();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.scryfall.com/cards/search?q=is%3Agamechanger&order=name&unique=cards',
+      { signal: expect.any(AbortSignal) },
+    );
+    expect(Object.keys(fetchMock.mock.calls[0][1])).toEqual(['signal']);
+  });
+
+  it('posts oracle-text names 75 to a request, one request at a time', async () => {
+    fetchMock.mockImplementation(async () => json({ data: [] }));
+    const names = Array.from({ length: 76 }, (_, i) => `Card ${i}`);
+
+    await fetchOracleText(names);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://api.scryfall.com/cards/collection');
+    expect(init).toEqual({
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifiers: names.slice(0, 75).map((name) => ({ name })) }),
+      signal: expect.any(AbortSignal),
+    });
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1].body))).toEqual({ identifiers: [{ name: 'Card 75' }] });
+  });
+});
+
 describe('fetchGameChangers', () => {
   it.each([null, {}, { name: 42 }, { name: '' }, { name: '  ' }])(
     'keeps valid names but retries a list containing %j', async (invalid) => {
