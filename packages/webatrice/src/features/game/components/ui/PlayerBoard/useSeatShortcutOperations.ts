@@ -1,10 +1,10 @@
-import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
+import { ZoneName } from '@cockatrice/sockatrice';
 
 import type { SeatSelection, SeatSelectionApi } from '../../../hooks/useSeatSelection';
 import { applyPTDelta, parsePT } from '../../context-menus/CardContextMenu/cardAttributeEdits';
+import { selectedHiddenZoneCards } from '../../context-menus/CardContextMenu/handCardMenu.actions';
 import { useGameDialogsContext } from '../GameDialogsContext';
 import { usePublishSeatShortcuts, type SeatShortcutOperations } from '../SeatShortcutsContext';
-import { parseCardKey } from '../../../utils/CardRegistry/CardRegistryContext';
 import { MAX_COUNTER_VALUE } from './counterLimits';
 import type {
   BattlefieldCardViewModel,
@@ -658,26 +658,10 @@ export function useSeatShortcutOperations({
   // of one hidden zone of this seat — the hand, or an open library /
   // sideboard view (the card menu's "Reveal to... > All players").
   seatShortcuts['game.revealSelectedToAll'] = () => {
-    if (!isSelf) {
-      return;
+    const picked = isSelf ? selectedHiddenZoneCards(seatId, selection, selectedCardKeys) : null;
+    if (picked) {
+      zoneCommands.reveal(picked.zone, toRecipient(-1), { cardIds: picked.cardIds });
     }
-    if (selection?.zone === 'hand') {
-      const ids = Array.from(selection.ids, Number).filter((n) => Number.isFinite(n));
-      if (ids.length > 0) {
-        zoneCommands.reveal(ZoneName.HAND, toRecipient(-1), { cardIds: ids });
-      }
-      return;
-    }
-    const picked = Array.from(selectedCardKeys, (key) => parseCardKey(key));
-    const zone = picked[0]?.zone;
-    if (
-      picked.length === 0 ||
-      (zone !== ZoneName.DECK && zone !== ZoneName.SIDEBOARD) ||
-      !picked.every((p) => p?.playerId === seatId && p.zone === zone)
-    ) {
-      return;
-    }
-    zoneCommands.reveal(zone as ZoneNameValue, toRecipient(-1), { cardIds: picked.map((p) => p!.cardId) });
   };
 
   // Clone Card (Ctrl+J). Fires one Command_CreateToken per selected
