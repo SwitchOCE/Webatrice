@@ -45,7 +45,7 @@ function renderGame() {
 }
 
 function tally() {
-  return screen.queryByRole('status', { name: 'Tally' });
+  return screen.queryByRole('status', { name: 'TallyOverlay.tally' });
 }
 
 beforeEach(() => {
@@ -85,12 +85,14 @@ describe('TallyOverlay', () => {
 
   it('shows the selection count from two selected cards, with no tally chosen', () => {
     renderGame();
-    expect(screen.queryByRole('status', { name: /cards selected/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'TallyOverlay.selectedCount' })).not.toBeInTheDocument();
 
     openContextMenu(cardEl(OGRE.id, 'battlefield'));
     chooseMenuPath('Select All');
 
-    expect(screen.getByRole('status', { name: '2 cards selected' })).toHaveTextContent('2');
+    expect(screen.getByRole('status', { name: 'TallyOverlay.selectedCount' })).toHaveTextContent('2');
+    // Not announced on every selection change; the tally region is.
+    expect(screen.getByRole('status', { name: 'TallyOverlay.selectedCount' })).toHaveAttribute('aria-live', 'off');
     expect(tally()).not.toBeInTheDocument();
   });
 });
