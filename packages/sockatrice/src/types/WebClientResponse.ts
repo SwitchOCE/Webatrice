@@ -200,9 +200,27 @@ export interface IGameResponse {
   gameLogNotice?(gameId: number, playerId: number, noticeType: Event_GameLogNotice_NoticeType): void;
 }
 
+/** Admin commands whose non-OK response the desktop client reports to the admin. */
+export type AdminCommandName = 'adjustMod';
+
+/**
+ * Moderator commands whose non-OK response the desktop client reports to the
+ * moderator (a message box in user_context_menu.cpp, tab_admin.cpp, tab_logs.cpp).
+ */
+export type ModeratorCommandName =
+  | 'banHistory'
+  | 'warnHistory'
+  | 'warnList'
+  | 'getAdminNotes'
+  | 'viewLogHistory'
+  | 'grantReplayAccess'
+  | 'forceActivateUser';
+
 export interface IAdminResponse {
   /** Each flag is `undefined` when the command left that role unchanged (proto2 presence). */
   adjustMod(userName: string, shouldBeMod?: boolean, shouldBeJudge?: boolean, shouldBeDeveloper?: boolean): void;
+  /** A command failed; `target` names what it acted on (the user name). Optional for backward compatibility. */
+  commandFailed?(command: AdminCommandName, responseCode: number, target: string): void;
   reloadConfig(): void;
   shutdownServer(): void;
   updateServerMessage(): void;
@@ -238,6 +256,12 @@ export interface IModeratorResponse {
   reportUserInfo?(info: Response_ReportUserInfo): void;
   reportStats?(stats: Response_ReportStats): void;
   replayDownloadedByGameId?(gameId: number, response: Response_ReplayDownloadByGameId): void;
+
+  /**
+   * A command failed; `target` names what it acted on (a user name, or the
+   * replay id as a string). Optional for backward compatibility.
+   */
+  commandFailed?(command: ModeratorCommandName, responseCode: number, target: string): void;
 }
 
 /** Developer staff role (#7211, #7212). Developer log lookups route to IModeratorResponse.viewLogs. */

@@ -11,6 +11,9 @@ export function grantReplayAccess(replayId: number, moderatorName: string): void
       onSuccess: () => {
         WebClient.instance.response.moderator.grantReplayAccess(replayId, moderatorName);
       },
+      onError: (responseCode) => {
+        WebClient.instance.response.moderator.commandFailed?.('grantReplayAccess', responseCode, String(replayId));
+      },
     },
   );
 }
