@@ -6,6 +6,8 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import { makeArrow, makeCard } from '@cockatrice/datatrice/testing';
 
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
+import { usePreferences } from '@app/hooks';
+import { PREFERENCE_DEFAULTS } from '@app/types';
 import { shortcuts } from '@app/store';
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
 import {
@@ -154,29 +156,28 @@ describe('Game seat shortcuts', () => {
     expect(game.revealCards).toHaveBeenCalledWith(1, { zoneName: 'hand', cardId: [60, 61] });
   });
 
+  // The macros come from the settings store (Settings > Chat).
+  const withMacros = (messageMacros: readonly string[]) =>
+    vi.mocked(usePreferences).mockReturnValue({ ...PREFERENCE_DEFAULTS, messageMacros });
+  afterEach(() => {
+    vi.mocked(usePreferences).mockImplementation(() => PREFERENCE_DEFAULTS);
+  });
+
   it('Alt+digit sends the matching message macro verbatim, and nothing without one', () => {
-    window.localStorage.setItem('webatrice.messageMacros', JSON.stringify(['gg', 'Respond?']));
-    try {
-      const { game } = renderGame();
+    withMacros(['gg', 'Respond?']);
+    const { game } = renderGame();
 
-      press('Digit2', { altKey: true });
-      press('Digit3', { altKey: true });
+    press('Digit2', { altKey: true });
+    press('Digit3', { altKey: true });
 
-      expect(vi.mocked(game.gameSay).mock.calls).toEqual([[1, { message: 'Respond?' }]]);
-    } finally {
-      window.localStorage.removeItem('webatrice.messageMacros');
-    }
+    expect(vi.mocked(game.gameSay).mock.calls).toEqual([[1, { message: 'Respond?' }]]);
   });
 
   it('a spectator has no Say macros', () => {
-    window.localStorage.setItem('webatrice.messageMacros', JSON.stringify(['gg']));
-    try {
-      const { game } = renderGame({ localPlayerId: 3, spectator: true });
-      press('Digit1', { altKey: true });
-      expect(game.gameSay).not.toHaveBeenCalled();
-    } finally {
-      window.localStorage.removeItem('webatrice.messageMacros');
-    }
+    withMacros(['gg']);
+    const { game } = renderGame({ localPlayerId: 3, spectator: true });
+    press('Digit1', { altKey: true });
+    expect(game.gameSay).not.toHaveBeenCalled();
   });
 
   it('seats install no keydown listener of their own', () => {

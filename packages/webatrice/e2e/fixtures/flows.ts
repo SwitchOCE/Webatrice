@@ -47,7 +47,7 @@ async function reachHost(login: LoginPage): Promise<void> {
 // (setCurrent = false), the auto-join opens the room without leaving the
 // Lobby, so the row's button reads "Join" or "Open" and the click is what
 // enters the room — the manual path is exercised on every run.
-async function joinFirstRoom(page: Page, rooms: RoomsPage): Promise<void> {
+export async function joinFirstRoom(page: Page, rooms: RoomsPage): Promise<void> {
   const roomsTable = page.getByRole('table').filter({
     has: page.getByRole('columnheader', { name: /^name$/i }),
   });
