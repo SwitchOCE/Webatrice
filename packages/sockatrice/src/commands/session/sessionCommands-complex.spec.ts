@@ -454,7 +454,7 @@ describe('activate', () => {
   it('an activation cut off by a disconnect settles the dialog without disconnecting again', () => {
     activate(makeActivateOpts());
     invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
-    expect(WebClient.instance.response.session.accountActivationFailed).toHaveBeenCalled();
+    expect(WebClient.instance.response.session.accountActivationFailed).toHaveBeenCalledWith(CommandFailure.Disconnected);
     expect(SessionIndexMocks.updateStatus).not.toHaveBeenCalled();
     expect(SessionIndexMocks.disconnect).not.toHaveBeenCalled();
   });

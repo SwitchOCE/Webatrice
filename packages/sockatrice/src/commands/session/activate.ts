@@ -37,7 +37,7 @@ export function activate(options: ConnectTarget & ActivateParams, password?: str
         updateStatus(StatusEnum.DISCONNECTED, 'Account Activation Failed');
         disconnect();
       }
-      WebClient.instance.response.session.accountActivationFailed();
+      WebClient.instance.response.session.accountActivationFailed(failure);
     },
   });
 }

@@ -264,6 +264,12 @@ describe('SessionResponseImpl forwards', () => {
     expect(dispatch).toHaveBeenCalledWith(ServerActions.accountActivationFailed());
   });
 
+  it('accountActivationFailed carries a transport failure reason', () => {
+    const { impl, dispatch } = setup();
+    impl.accountActivationFailed(WebsocketTypes.CommandFailure.Timeout);
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.accountActivationFailed({ failure: WebsocketTypes.CommandFailure.Timeout }));
+  });
+
   it('registrationRequiresEmail', () => {
     const { impl, dispatch } = setup();
     impl.registrationRequiresEmail();
