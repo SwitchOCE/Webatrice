@@ -1,1 +1,2 @@
 - 17:36Z started f0918; read brief/template/rv9 → fix 09
+- 17:44Z 09: adapter malformed paths + bracket i18n/focus pushed → 09 remaining minors
