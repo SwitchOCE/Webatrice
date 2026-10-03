@@ -61,6 +61,11 @@ export function zoneToSeatCards(zone: ZoneCards | undefined): PlayerCardViewMode
   });
 }
 
+/** The name a seat shows: the player's, or a placeholder until it arrives. */
+export function seatDisplayName(realName: string | undefined, isLocal: boolean, playerId: number): string {
+  return realName ?? (isLocal ? 'You' : `Player ${playerId}`);
+}
+
 /** Project a Response_DumpZone snapshot. Falls back to the array index when the
  *  server didn't set an id (Cockatrice reveal-list quirk). */
 export function revealedCardsToSeatCards(
@@ -231,7 +236,7 @@ export function usePlayerSeatViewModel(cell: BoardCell, totalPlayers: number): P
       isLocal,
       mirrored,
       isActive,
-      displayName: realName ?? (isLocal ? 'You' : `Player ${playerId}`),
+      displayName: seatDisplayName(realName, isLocal, playerId),
       username: realName ?? (isLocal ? 'you' : `player-${playerId}`),
       avatarUrl,
       flipHandCardBacks,

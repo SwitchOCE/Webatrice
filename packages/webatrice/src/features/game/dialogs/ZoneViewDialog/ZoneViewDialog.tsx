@@ -1,183 +1,263 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useForkRef } from '@mui/material/utils';
 import { ZoneName } from '@cockatrice/sockatrice';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useDroppable } from '@dnd-kit/core';
-import IconButton from '@mui/material/IconButton';
-import CloseIcon from '@mui/icons-material/Close';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Checkbox from '@mui/material/Checkbox';
 
 import { usePreference } from '@app/hooks';
-import { cx } from '@app/utils';
 
-import CardSlot from '../../components/ui/CardSlot/CardSlot';
-import { makeCardKey } from '../../utils/CardRegistry/CardRegistryContext';
-import { useGameInteraction } from '../../components/ui/GameInteractionContext';
-import { useCardVisualState } from '../../components/ui/CardVisualStateContext';
+import { useCanActFor } from '../../components/ui/CardVisualStateContext';
+import { useGameDialogsContext } from '../../components/ui/GameDialogsContext';
 import { useGameId } from '../../components/ui/GameIdContext';
-import { useGameAccess } from '../../hooks/useGameAccess';
+import { useGameSelectionState } from '../../components/ui/GameSelectionContext';
+import { useActiveSeatDrag, useSeatDragSource, useSeatDropZone } from '../../components/ui/SeatDragContext';
+import type { ZoneViewTarget } from '../../hooks/dialogs/gameDialogs.types';
+import {
+  SEAT_DROP_PRIORITY,
+  type SeatDragSource,
+  type SeatDropPoint,
+  type SeatDropTarget,
+  type SeatZone,
+} from '../../hooks/seatDropPlan';
+import { makeCardKey } from '../../utils/CardRegistry/CardRegistryContext';
+import { EMPTY_SELECTION } from '../../utils/selection';
+import ZoneRevealPanel from './ZoneRevealPanel';
+import ZoneViewPanel from './ZoneViewPanel';
 import { useZoneViewDialog } from './useZoneViewDialog';
-
-import './ZoneViewDialog.css';
+import { readShuffleOnClose } from './zoneViewPreferences';
+import { isOrderedView, offersShuffleOnClose } from './zoneViewTarget';
 
 export interface ZoneViewDialogProps {
-  isOpen: boolean;
-  playerId: number | undefined;
-  zoneName: string | undefined;
+  view: ZoneViewTarget;
+  /** Closes the view; a whole-library view passes its "shuffle when closing" box. */
   handleClose: (shuffleOnClose?: boolean) => void;
-  initialPosition?: { x: number; y: number };
 }
 
-const DEFAULT_POSITION = { x: 80, y: 80 };
+/** The seat zone each wire zone a view can show is dragged from and dropped on. */
+const SEAT_ZONE: Partial<Record<string, SeatZone>> = {
+  [ZoneName.DECK]: 'library',
+  [ZoneName.GRAVE]: 'graveyard',
+  [ZoneName.EXILE]: 'exile',
+  [ZoneName.HAND]: 'hand',
+  [ZoneName.SIDEBOARD]: 'sideboard',
+};
 
-// Keeps its positional props (which seat/zone, where it opens, how it closes —
-// all from the zoneViews stack entry) but self-sources the feature-global gameId
-// and the shared selection set from context.
-function ZoneViewDialog({
-  isOpen,
-  playerId,
-  zoneName,
-  handleClose,
-  initialPosition = DEFAULT_POSITION,
-}: ZoneViewDialogProps) {
+/** Graveyard and exile cards get desktop's zone-view card menu (Draw arrow,
+ *  Clone, Select All, Select Column), rendered by the owning seat. */
+const ZONES_WITH_CARD_MENU: ReadonlySet<string> = new Set([ZoneName.GRAVE, ZoneName.EXILE]);
+
+/**
+ * One zone view (desktop ZoneViewWidget), stacked by Game from the game
+ * dialog state's `zoneViews`. A whole zone lists through ZoneViewPanel
+ * (search, sort, group, pile view); a top / bottom N library view lists its
+ * cards in server order through ZoneRevealPanel.
+ *
+ * The view owns its seat DnD surface: the local player drags cards out of
+ * their own zone, and a drop on the view lands in the zone it shows. Its card
+ * selection is the game's (useGameSelection), keyed like every other card.
+ */
+function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
   const gameId = useGameId();
-  const { selectedCardKeys } = useCardVisualState();
-  const { onCardHover, onCardFocus, onCardBlur, onCardClick, onCardContextMenu, onCardDoubleClick } =
-    useGameInteraction();
-  const { cards, count, title, position, handlePointerDown, handlePointerMove, handlePointerUp } =
-    useZoneViewDialog({ gameId, playerId, zoneName, initialPosition });
-
-  // Drags into/within the popup are gated by the same "can act on this seat"
-  // rule as the board; the body is a drop target so cards can be dragged in.
-  const { canAct } = useGameAccess(gameId, playerId);
-  // Only targetZone is authoritative for a drop-in: the destination player is
-  // resolved from the dragged card's owner tree (see moveTargetPlayerId), so a
-  // targetPlayerId on this droppable would be ignored.
-  const { setNodeRef: setDropRef, isOver } = useDroppable({
-    id: `zoneview-${playerId}-${zoneName}`,
-    data: { targetZone: zoneName },
-    disabled: !canAct || playerId == null || zoneName == null,
-  });
-
-  // "Shuffle on close" applies to the library only (desktop parity); defaults on.
-  const isDeck = zoneName === ZoneName.DECK;
-  const [shuffleOnClose, setShuffleOnClose] = useState(true);
-  const onClose = useCallback(
-    () => handleClose(isDeck ? shuffleOnClose : false),
-    [handleClose, isDeck, shuffleOnClose],
-  );
+  const { playerId, zoneName } = view;
+  const { cards, count, title, isLocal } = useZoneViewDialog(gameId, view);
+  const ordered = isOrderedView(view);
+  const seatZone = SEAT_ZONE[zoneName];
 
   // "Close card view window when last card is removed" (desktop ViewZoneLogic): close once the
-  // view goes from showing cards to showing none, not when it opens on an empty zone.
+  // view goes from showing cards to showing none, not when it opens on an empty zone. A
+  // whole-library view closes through its "shuffle when closing" choice, as closing by hand does.
+  // Game keys views by seat and zone, so a top N view replacing a library view reuses this
+  // instance: the count is tracked per view so the replacement opening empty is not a removal.
   const closeEmptyCardView = usePreference('closeEmptyCardView');
-  const shownCount = useRef(cards.length);
+  const viewKey = `${view.numberCards ?? -1}:${view.isReversed ?? false}`;
+  const shown = useRef({ viewKey, count: cards.length });
   useEffect(() => {
-    const previous = shownCount.current;
-    shownCount.current = cards.length;
-    if (isOpen && closeEmptyCardView && previous > 0 && cards.length === 0) {
-      onClose();
+    const previous = shown.current;
+    shown.current = { viewKey, count: cards.length };
+    if (closeEmptyCardView && previous.viewKey === viewKey && previous.count > 0 && cards.length === 0) {
+      handleClose(offersShuffleOnClose(view) && readShuffleOnClose());
     }
-  }, [cards.length, isOpen, closeEmptyCardView, onClose]);
+  }, [cards.length, closeEmptyCardView, handleClose, view, viewKey]);
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
+  // Desktop starts a drag only on the local player's cards
+  // (CardItem::mouseMoveEvent); another player's view is read-only.
+  const canMove = useCanActFor()(playerId);
+  const viewId = `zone-view-${playerId}-${zoneName}`;
+  const startDrag = useSeatDragSource(viewId, {
+    seatPlayerId: playerId,
+    zone: seatZone ?? 'library',
+    canDrag: canMove,
+    disabled: !isLocal || seatZone == null,
+  });
+  const onCardPointerDown = isLocal && seatZone != null
+    ? (e: React.PointerEvent<HTMLElement>, card: { id: string }) => startDrag(e, [card])
+    : undefined;
+
+  const activeDrag = useActiveSeatDrag();
+  const draggingCardIds = activeDrag?.seatPlayerId === playerId && activeDrag.zone === seatZone
+    ? new Set(activeDrag.cards.map((c) => c.id))
+    : undefined;
+
+  // A drop on the view lands in the zone it shows, so a drop back on it is a
+  // same-zone no-op. The hand view appends (it sorts and groups, so a
+  // positional insert wouldn't match what the user sees), except for a hand
+  // card dropped back on it: that append would send it to the end of the
+  // hand, so the drop resolves to no target and the card snaps back. The
+  // sideboard is hidden and appends too. A top / bottom N view inserts
+  // between two of its cards (past a card's centre means after it), at the
+  // deck position that slot shows: slot k is position k from the top, or
+  // deckCount - N + k.
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const resolveDrop = ({ pointer }: SeatDropPoint, source: SeatDragSource): SeatDropTarget | null => {
+    switch (seatZone) {
+      case 'hand':
+        return source.zone === 'hand' ? null : { zone: 'hand', index: cards.length };
+      case 'graveyard':
+      case 'exile':
+      case 'sideboard':
+        return { zone: seatZone };
+      case 'library':
+        if (!ordered) {
+          return { zone: 'library' };
+        }
+        break;
+      default:
+        return null;
     }
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
+    let slot = 0;
+    let best = Infinity;
+    panelRef.current?.querySelectorAll<HTMLElement>('[data-card][data-card-id]').forEach((el, i) => {
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const dist = (pointer.x - cx) ** 2 + (pointer.y - cy) ** 2;
+      if (dist < best) {
+        best = dist;
+        slot = pointer.x > cx ? i + 1 : i;
       }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isOpen, onClose]);
+    });
+    const base = view.isReversed ? count - cards.length : 0;
+    return { zone: 'library', position: Math.max(0, Math.min(count, base + slot)) };
+  };
+  const dropRef = useSeatDropZone(
+    viewId,
+    { seatPlayerId: playerId, priority: dropPriority(view), resolve: resolveDrop },
+    seatZone == null,
+  );
+  const panelDropRef = useForkRef(panelRef, dropRef);
 
-  if (!isOpen) {
-    return null;
+  const { selectedIds, setSelectedIds } = useZoneViewSelection(playerId, zoneName, cards);
+
+  const { openSeatCardMenu } = useGameDialogsContext();
+  const onCardContextMenu = ZONES_WITH_CARD_MENU.has(zoneName)
+    ? (e: React.MouseEvent<HTMLElement>, card: { id: string; name: string }) => {
+      openSeatCardMenu({
+        kind: 'pile',
+        playerId,
+        zone: zoneName,
+        cardId: card.id,
+        cardName: card.name,
+        x: e.clientX,
+        y: e.clientY,
+      });
+    }
+    : undefined;
+
+  if (ordered) {
+    return (
+      <ZoneRevealPanel
+        title={title}
+        cards={cards}
+        // The snapshot's ids are deck positions (the reveal reindex,
+        // view_zone_logic.cpp); the ends read "Top" / "Bottom".
+        labels={cards.map((c) => {
+          const libraryPos = Number(c.id);
+          if (!Number.isFinite(libraryPos)) {
+            return '';
+          }
+          if (libraryPos <= 0) {
+            return 'Top';
+          }
+          if (libraryPos >= count - 1) {
+            return 'Bottom';
+          }
+          return String(libraryPos);
+        })}
+        onCardPointerDown={onCardPointerDown}
+        dropRef={panelDropRef}
+        draggingCardIds={draggingCardIds}
+        onClose={() => handleClose(false)}
+      />
+    );
   }
 
   return (
-    <div
-      className="zone-view-dialog"
-      role="dialog"
-      aria-label={title}
-      data-testid="zone-view-dialog"
-      style={{ left: position.x, top: position.y }}
-    >
-      <div
-        className="zone-view-dialog__header"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-      >
-        <span className="zone-view-dialog__title">{title}</span>
-        <IconButton
-          onClick={() => onClose()}
-          size="small"
-          aria-label="close zone view"
-          className="zone-view-dialog__close"
-        >
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </div>
-      <div
-        ref={setDropRef}
-        className={cx('zone-view-dialog__body scrollable', {
-          'zone-view-dialog__body--drop-over': isOver,
-        })}
-        data-zone-box-select=""
-      >
-        {cards.length === 0 ? (
-          <div className="zone-view-dialog__empty">
-            {count > 0
-              ? `${count} hidden card${count === 1 ? '' : 's'}`
-              : 'This zone is empty.'}
-          </div>
-        ) : (
-          <div className="zone-view-dialog__grid">
-            {cards.map((card, index) => {
-              const key =
-                playerId != null && zoneName != null
-                  ? makeCardKey(playerId, zoneName, card.id)
-                  : null;
-              return (
-                <div key={card.id} className="zone-view-dialog__card" data-testid={`zone-view-card-${card.id}`}>
-                  <CardSlot
-                    card={card}
-                    draggable={canAct}
-                    ownerPlayerId={playerId}
-                    zone={zoneName}
-                    dropIndex={index}
-                    isSelected={key != null && selectedCardKeys.has(key)}
-                    onMouseEnter={onCardHover}
-                    onFocus={onCardFocus}
-                    onBlur={onCardBlur}
-                    onClick={onCardClick}
-                    onContextMenu={onCardContextMenu}
-                    onDoubleClick={onCardDoubleClick}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-      {isDeck && (
-        <div className="zone-view-dialog__footer">
-          <FormControlLabel
-            control={
-              <Checkbox
-                size="small"
-                checked={shuffleOnClose}
-                onChange={(e) => setShuffleOnClose(e.target.checked)}
-              />
-            }
-            label="Shuffle on close"
-          />
-        </div>
-      )}
-    </div>
+    <ZoneViewPanel
+      title={title}
+      library={cards}
+      showShuffleOnClose={offersShuffleOnClose(view)}
+      onClose={handleClose}
+      onCardPointerDown={onCardPointerDown}
+      onCardContextMenu={onCardContextMenu}
+      dropRef={panelDropRef}
+      draggingCardIds={draggingCardIds}
+      selectedIds={selectedIds}
+      onSelectedIdsChange={setSelectedIds}
+    />
   );
+}
+
+/** Views float over the board and take drops before it; the order among
+ *  them is the one PlayerBox hit-tested its dialogs in. */
+function dropPriority(view: ZoneViewTarget): number {
+  switch (view.zoneName) {
+    case ZoneName.DECK:
+      return isOrderedView(view) ? SEAT_DROP_PRIORITY.revealDialog : SEAT_DROP_PRIORITY.librarySearchDialog;
+    case ZoneName.SIDEBOARD:
+      return SEAT_DROP_PRIORITY.sideboardDialog;
+    default:
+      return SEAT_DROP_PRIORITY.pileViewDialog;
+  }
+}
+
+/**
+ * The view's share of the game selection, as the ids its cards carry. A new
+ * set replaces the game selection; closing the view drops its cards from it.
+ * Outside a game (isolated renders) the view keeps a selection of its own.
+ */
+function useZoneViewSelection(playerId: number, zoneName: string, cards: readonly { id: string }[]) {
+  const game = useGameSelectionState();
+  const [localKeys, setLocalKeys] = useState<ReadonlySet<string>>(EMPTY_SELECTION);
+  const selectedCardKeys = game?.selectedCardKeys ?? localKeys;
+  const setSelectedCardKeys = game?.setSelectedCardKeys ?? setLocalKeys;
+
+  const keyOf = useCallback((id: string) => makeCardKey(playerId, zoneName, Number(id)), [playerId, zoneName]);
+  const selectedIds = useMemo(
+    () => new Set(cards.filter((c) => selectedCardKeys.has(keyOf(c.id))).map((c) => c.id)),
+    [cards, selectedCardKeys, keyOf],
+  );
+  const setSelectedIds = useCallback(
+    (ids: ReadonlySet<string>) => {
+      setSelectedCardKeys(ids.size === 0 ? EMPTY_SELECTION : new Set([...ids].map(keyOf)));
+    },
+    [setSelectedCardKeys, keyOf],
+  );
+
+  const shownKeys = useRef<string[]>([]);
+  shownKeys.current = cards.map((c) => keyOf(c.id));
+  useEffect(
+    () => () => {
+      const shown = new Set(shownKeys.current);
+      setSelectedCardKeys((prev) => {
+        if (![...prev].some((key) => shown.has(key))) {
+          return prev;
+        }
+        const kept = new Set([...prev].filter((key) => !shown.has(key)));
+        return kept.size === 0 ? EMPTY_SELECTION : kept;
+      });
+    },
+    [setSelectedCardKeys],
+  );
+
+  return { selectedIds, setSelectedIds };
 }
 
 export default ZoneViewDialog;

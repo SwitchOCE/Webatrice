@@ -36,7 +36,7 @@ const TOOLBAR_SELECT_CLASS =
  * summary event instead).
  *
  * Sort / group / pile-view controls share their logic with
- * LibrarySearchDialog (see cardListSort). Metadata (type_line, cmc,
+ * ZoneViewPanel (see zoneViewSort). Metadata (type_line, cmc,
  * colors, P/T, set) is backfilled from Dexie/Scryfall on open — the
  * receiver doesn't have the source's deck data locally, so we look it
  * up by name in a single batch request.
@@ -297,7 +297,7 @@ export default function IncomingRevealDialog() {
   const [dragging, setDragging] = useState(false);
   const hasBeenDraggedRef = useRef(false);
 
-  // Sort / group / pile-view state — same defaults as LibrarySearchDialog
+  // Sort / group / pile-view state — same defaults as ZoneViewPanel
   // (view_zone_widget.cpp:234-250 + cache_settings.cpp:383-384): group by
   // type, sort by name, pile view on. Persisted separately so the two
   // dialogs can be tuned independently.
@@ -732,7 +732,7 @@ export default function IncomingRevealDialog() {
           </select>
         </div>
 
-        {/* Card grid — same two-mode layout as LibrarySearchDialog:
+        {/* Card grid — same two-mode layout as ZoneViewPanel:
             pile view stacks each group into a fanned column; flat view
             wraps each group's cards into a grid. During the initial
             metadata backfill we render Ungrouped/Unsorted so a
@@ -788,7 +788,7 @@ export default function IncomingRevealDialog() {
                     >
                       {g.cards.map((c, i) => {
                         const isLast = i === g.cards.length - 1;
-                        // See LibrarySearchDialog for the rationale — outer
+                        // See ZoneViewPanel for the rationale — outer
                         // strip is the DOM box for hover detection so
                         // browsing a pile down never gets stuck on an
                         // expanded card, inner Card is pointer-events:none

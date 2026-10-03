@@ -319,14 +319,11 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
 
                                 {!readOnly && <DeckSelectDialog />}
 
-                                {dialogs.zoneViews.map((v, idx) => (
+                                {dialogs.zoneViews.map((v) => (
                                   <ZoneViewDialog
                                     key={`${v.playerId}-${v.zoneName}`}
-                                    isOpen
-                                    playerId={v.playerId}
-                                    zoneName={v.zoneName}
+                                    view={v}
                                     handleClose={(shuffleOnClose) => dialogs.handleCloseZoneView(v.playerId, v.zoneName, shuffleOnClose)}
-                                    initialPosition={{ x: 80 + idx * 36, y: 80 + idx * 36 }}
                                   />
                                 ))}
 

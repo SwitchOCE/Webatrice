@@ -11,9 +11,17 @@ export interface AnchorPosition {
   left: number;
 }
 
+/**
+ * One open zone view (desktop ZoneViewWidget): a player's zone and, for a
+ * hidden zone, how much of it the view dumps.
+ */
 export interface ZoneViewTarget {
   playerId: number;
   zoneName: string;
+  /** Cards from the top the view shows (`-1` or absent: the whole zone). */
+  numberCards?: number;
+  /** With `numberCards`: count from the bottom instead. */
+  isReversed?: boolean;
 }
 
 export interface CardMenuState {
@@ -105,23 +113,6 @@ export interface GameDialogsState {
   /** The values the create-token dialog opens with; null for blank. */
   createTokenInitial: CreateTokenSubmit | null;
   sideboardOpen: boolean;
-  /** In-game live sideboard viewer — separate from `sideboardOpen`
-   *  (which drives the older MUI sideboard-PLAN editor). Owner-only
-   *  view, mounts the fancy LibrarySearchDialog against the player's
-   *  own SIDEBOARD zone. Toggled from both the right-sidebar's
-   *  Sideboard button and the battlefield menu's Sideboard → View
-   *  sideboard item. */
-  viewSideboardOpen: boolean;
-  /** Trigger flags for the local player's PlayerBox to open its own
-   *  LibrarySearchDialog / pileView. State lives in PlayerBox because
-   *  the dialog is entangled with local props (enrichedDeckCards,
-   *  onDumpTopCards, shuffle-on-close, drag refs). These booleans let
-   *  external triggers — F3/F4 shortcuts, sidebar buttons — request
-   *  the same dialog the battlefield menu opens, without duplicating
-   *  the wire/dump/close plumbing. Owner-only: PlayerBox no-ops if
-   *  `!isSelf`. */
-  viewLibraryOpen: boolean;
-  viewGraveyardOpen: boolean;
   gameInfoOpen: boolean;
   concedeConfirm: ConcedeConfirm;
   /** True while the leave-game confirmation dialog is open. Mirrors
@@ -155,6 +146,8 @@ export interface GameDialogsActions {
   handleHandContextMenu: (event: React.MouseEvent) => void;
 
   // Zone-view dialog stack
+  /** Opens a zone view (see ZoneViewTarget), dumping a local hidden zone. */
+  openZoneView: (view: ZoneViewTarget) => void;
   handleZoneClick: (playerId: number, zoneName: string) => void;
   handleCloseZoneView: (playerId: number, zoneName: string, shuffleOnClose?: boolean) => void;
 
@@ -186,13 +179,10 @@ export interface GameDialogsActions {
   handleSideboardSubmit: (moveList: SideboardPlanMove[]) => void;
   handleToggleSideboardLock: (locked: boolean) => void;
 
+  /** Open the local seat's own sideboard / library / graveyard view. */
   openViewSideboard: () => void;
-  closeViewSideboard: () => void;
-
   openViewLibrary: () => void;
-  closeViewLibrary: () => void;
   openViewGraveyard: () => void;
-  closeViewGraveyard: () => void;
 
   openGameInfo: () => void;
   closeGameInfo: () => void;
@@ -273,6 +263,7 @@ export const NOOP_GAME_DIALOGS_ACTIONS: GameDialogsActions = {
   handleZoneContextMenu: noopDialogAction,
   handlePlayerContextMenu: noopDialogAction,
   handleHandContextMenu: noopDialogAction,
+  openZoneView: noopDialogAction,
   handleZoneClick: noopDialogAction,
   handleCloseZoneView: noopDialogAction,
   openPrompt: noopDialogAction,
@@ -288,11 +279,8 @@ export const NOOP_GAME_DIALOGS_ACTIONS: GameDialogsActions = {
   handleSideboardSubmit: noopDialogAction,
   handleToggleSideboardLock: noopDialogAction,
   openViewSideboard: noopDialogAction,
-  closeViewSideboard: noopDialogAction,
   openViewLibrary: noopDialogAction,
-  closeViewLibrary: noopDialogAction,
   openViewGraveyard: noopDialogAction,
-  closeViewGraveyard: noopDialogAction,
   openGameInfo: noopDialogAction,
   closeGameInfo: noopDialogAction,
   openConcede: noopDialogAction,

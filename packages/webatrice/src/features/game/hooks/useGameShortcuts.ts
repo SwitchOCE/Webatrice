@@ -275,13 +275,9 @@ export function useGameShortcuts({
     { scope: ShortcutScope.GAME, enabled: inGame && isParticipant },
   );
 
-  // View Library / Graveyard — opens the local player's full-pile
-  // viewer (LibrarySearchDialog with search/group/sort). Owner-only.
-  // Both routes trigger the same dialog the battlefield right-click
-  // "View library" / "View graveyard" menus open — the actual dialog
-  // state lives inside PlayerBox (entangled with enrichedDeckCards
-  // and the dump/close plumbing), so these hooks flip a boolean via
-  // useGameDialogs that PlayerBox subscribes to.
+  // View Library / Graveyard — opens the local player's zone view
+  // (ZoneViewDialog, with search/group/sort), the same one the seat's
+  // "View library" / "View graveyard" menus open. Owner-only.
   useShortcut(
     'game.viewLibrary',
     () => {
