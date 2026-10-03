@@ -6,7 +6,7 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import { Response_ResponseCode, type ServerInfo_ReplayMatch } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { useCommandFailureMessage, useReduxEffect, useWatchReplay } from '@app/hooks';
-import { ReplayFileDTO, replayFileName } from '@app/services';
+import { ReplayFileDTO, ReplayNameTakenError, replayFileName } from '@app/services';
 import { useAppSelector } from '@app/store';
 
 import { saveReplayFile } from './replayFiles';
@@ -51,6 +51,21 @@ export interface ServerReplays {
   dismissNotice: () => void;
   /** Bumped after a server replay is saved into the local library. */
   librarySaves: number;
+}
+
+/** The folder `name` in `parentId`, created unless a folder of that name is already there. */
+async function matchFolder(parentId: number, name: string): Promise<number> {
+  try {
+    return await ReplayFileDTO.addFolder(parentId, name);
+  } catch (err) {
+    const existing = err instanceof ReplayNameTakenError
+      ? (await ReplayFileDTO.listFolder(parentId)).find((entry) => entry.kind === 'folder' && entry.name === name)
+      : undefined;
+    if (existing?.id == null) {
+      throw err;
+    }
+    return existing.id;
+  }
 }
 
 function replaysOf(match: ServerInfo_ReplayMatch | undefined, selection: ServerReplaySelection | null) {
@@ -163,18 +178,29 @@ export function useServerReplays(): ServerReplays {
     }
   }, [selectedMatch, selection, webClient, failed, t]);
 
+  // Desktop's downloadNodeAtIndex: a match lands in a new `<gameId>_<gameName>`
+  // folder of the current local folder, a single replay straight in it.
   const saveToLibrary = useCallback((folderId: number) => {
-    for (const replay of replaysOf(selectedMatch, selection)) {
-      webClient.request.session.replayDownload(
-        replay.replayId,
-        (data) => {
-          ReplayFileDTO.addReplay(folderId, replayFileName(replay.replayId), data)
-            .then(() => setLibrarySaves((n) => n + 1))
-            .catch(() => showError(t('Replays.notice.failed'), t('Replays.local.saveFailed')));
-        },
-        failed(t('Replays.server.downloadFailed')),
-      );
+    const replays = replaysOf(selectedMatch, selection);
+    if (!replays.length) {
+      return;
     }
+    const target = selection?.kind === 'match' && selectedMatch
+      ? matchFolder(folderId, `${selectedMatch.gameId}_${selectedMatch.gameName}`)
+      : Promise.resolve(folderId);
+    target.then((targetId) => {
+      for (const replay of replays) {
+        webClient.request.session.replayDownload(
+          replay.replayId,
+          (data) => {
+            ReplayFileDTO.addReplay(targetId, replayFileName(replay.replayId), data)
+              .then(() => setLibrarySaves((n) => n + 1))
+              .catch(() => showError(t('Replays.notice.failed'), t('Replays.local.saveFailed')));
+          },
+          failed(t('Replays.server.downloadFailed')),
+        );
+      }
+    }, () => showError(t('Replays.notice.failed'), t('Replays.local.saveFailed')));
   }, [selectedMatch, selection, webClient, showError, failed, t]);
 
   const toggleKeep = useCallback(() => {
