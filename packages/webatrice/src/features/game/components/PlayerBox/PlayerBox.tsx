@@ -1,7 +1,6 @@
 import {
   useCallback,
   useEffect,
-  useImperativeHandle,
   useMemo,
   useRef,
   useState,
@@ -35,7 +34,6 @@ import {
   SEAT_CARD_WIDTH_PX as CARD_W_PX_BASE,
   STACK_PILE_HORIZONTAL_OFFSET_PX,
   type BattlefieldLayoutOpts,
-  type BattlefieldSlot,
 } from '../battlefield/Battlefield/battlefieldLayout';
 import { legacyTableRowFromTypeLine, tableRowToGridY } from '../battlefield/Battlefield/cardPlacement';
 import { MAX_SUBPOS } from '../battlefield/Battlefield/gridMath';
@@ -543,22 +541,6 @@ type MarqueeStartZone =
   | { zone: 'hand' }
   | { zone: 'stack' };
 
-/** Imperative handle exposed by every PlayerBox so a sibling box (via
- *  Battlefield's ref map) can push cards into this player's battlefield,
- *  highlight this player's battlefield cards as part of the viewer's
- *  cross-player marquee, or hand off a marquee-start event. */
-export type PlayerBoxHandle = {
-  receiveBattlefieldCards: (
-    cards: HandCard[],
-    intendedSlots: BattlefieldSlot[],
-  ) => void;
-  /** Begin a marquee from the given viewport coordinates. Non-self
-   *  PlayerBoxes call this via the Battlefield router so the viewer's
-   *  marquee can start over any player's board — including opponents'
-   *  battlefields, which the viewer can select-highlight but not drag. */
-  startMarquee: (x: number, y: number) => void;
-};
-
 const MANA_COLORS: Array<{
   symbol: 'W' | 'U' | 'B' | 'R' | 'G' | 'C' | 'O';
   label: string;
@@ -1008,7 +990,6 @@ function PlayerBox(
     drawSeq,
     lastDrawCount,
   }: Props,
-  ref: React.Ref<PlayerBoxHandle>,
 ) {
   const name = player.profile?.display_name ?? player.profile?.username ?? 'Unknown';
   // Dialog-opening actions surfaced by the game-level provider. Used
@@ -2605,26 +2586,6 @@ function PlayerBox(
     });
   };
 
-  // Cross-player "receive" (gifts) and cross-board marquee forwarding.
-  // receiveBattlefieldCards is now a no-op — Redux picks up the gifted
-  // card from Servatrice's Event_MoveCard broadcast, so there's no
-  // local state to seed; the handle is kept so the type contract with
-  // Battlefield.tsx stays stable.
-  useImperativeHandle(ref, () => ({
-    receiveBattlefieldCards: () => {},
-    startMarquee: (x: number, y: number) => {
-      // Same as the local pointerdown path, but coords come from an
-      // opponent's PlayerBox forwarding the interaction to us.
-      setSelection(null);
-      setMarquee({
-        x1: x,
-        y1: y,
-        x2: x,
-        y2: y,
-        startZone: zoneAtPoint(x, y),
-      });
-    },
-  }));
 
   // Life total — starts at Commander 40. Only mutable by the owning
   // player; opponents render the number read-only. Capped at 9999 so
@@ -7388,4 +7349,4 @@ function PlayerBox(
   );
 }
 
-export default forwardRef(PlayerBox);
+export default PlayerBox;
