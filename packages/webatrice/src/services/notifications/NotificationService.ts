@@ -28,6 +28,36 @@ export function getNotificationPermission(): NotificationPermissionState {
 }
 
 /**
+ * Calls `onChange` with the permission whenever it may have changed, including from the browser's
+ * own site settings: on the Permissions API's change event where the browser reports
+ * notifications there, and whenever the window regains focus. Returns the unsubscribe.
+ */
+export function watchNotificationPermission(onChange: (permission: NotificationPermissionState) => void): () => void {
+  if (!isSupported()) {
+    return () => {};
+  }
+  let active = true;
+  let status: PermissionStatus | undefined;
+  const report = () => onChange(getNotificationPermission());
+
+  window.addEventListener('focus', report);
+  navigator.permissions?.query({ name: 'notifications' }).then(
+    (result) => {
+      if (active) {
+        status = result;
+        status.addEventListener('change', report);
+      }
+    },
+    () => {},
+  );
+  return () => {
+    active = false;
+    window.removeEventListener('focus', report);
+    status?.removeEventListener('change', report);
+  };
+}
+
+/**
  * Asks the browser for notification permission. Browsers only honour this from a user gesture,
  * so call it from a click handler (the Settings page), never on load.
  */
