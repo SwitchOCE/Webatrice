@@ -1,10 +1,11 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 
-const { getNotificationPermission, requestNotificationPermission } = vi.hoisted(() => ({
+const { getNotificationPermission, requestNotificationPermission, watchNotificationPermission } = vi.hoisted(() => ({
   getNotificationPermission: vi.fn(),
   requestNotificationPermission: vi.fn(),
+  watchNotificationPermission: vi.fn(() => () => {}),
 }));
-vi.mock('@app/services', () => ({ getNotificationPermission, requestNotificationPermission }));
+vi.mock('@app/services', () => ({ getNotificationPermission, requestNotificationPermission, watchNotificationPermission }));
 
 import NotificationPermissionControl from './NotificationPermissionControl';
 
@@ -25,6 +26,17 @@ describe('NotificationPermissionControl', () => {
 
     expect(requestNotificationPermission).toHaveBeenCalledTimes(1);
     expect(screen.getByText(/status\.granted/)).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('follows a change made in the browser\'s site settings', () => {
+    getNotificationPermission.mockReturnValue('default');
+    renderControl();
+    const [[onChange]] = watchNotificationPermission.mock.calls as unknown as [[(p: string) => void]];
+
+    act(() => onChange('denied'));
+
+    expect(screen.getByText(/status\.denied/)).toHaveAttribute('aria-live', 'polite');
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
