@@ -6,3 +6,4 @@
 - 16:08Z all fixes+minors+docs pushed → folding red intermediate commits (rebase), then full gate
 - 16:21Z history rebuilt (specs+i18n folded into feat commits, tree identical), 28/28 commits typecheck, force-pushed → full gate
 - 16:28Z gate: typecheck 5/5, lint 3/3 (fixed 1 lint error, folded), unit+integration green → e2e running
+- 16:51Z DONE: tip 50214e1, full gate green incl. e2e 39/39; PR file updated
