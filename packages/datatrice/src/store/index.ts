@@ -27,13 +27,17 @@ export type {
   ServerStateStaff,
   UserInvestigation,
   ServerConnectionHealth,
+  ServerStateReports,
   TestConnectionStatus,
 } from './server/server.interfaces';
 export type { CommandFailedPayload } from './server/server.interfaces';
 export type { RoomCommandFailedPayload } from './rooms/rooms.interfaces';
-// ServerCapability is a const and a type of the same name; tsup's namespace bundle
-// keeps only the type, so the value is re-exported flat as well.
+export type { ReportStatusCounts } from './server/server.reports';
+// Const-and-type pairs are emitted type-only inside tsup's namespace bundles, so
+// their runtime values are re-exported flat as well (`server.ServerCapability`
+// still names the type).
 export { ServerCapability } from './server/server.capabilities';
+export { ReportStatus } from './server/server.reports';
 
 // Flat re-exports for utilities consumers reach for without going
 // through a slice namespace. `classifyLogTone` + `LogTone` are used

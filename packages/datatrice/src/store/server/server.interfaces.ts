@@ -6,12 +6,14 @@ import {
   Response_CardArtRuleEntry,
   Response_DeckList,
   Response_GetServerStats,
+  Response_ReportStats,
   Response_ReportUserInfo,
   Response_WarnList,
   ServerInfo_Ban,
   ServerInfo_ChatMessage,
   ServerInfo_ModeratorLogin,
   ServerInfo_ReplayMatch,
+  ServerInfo_Report,
   ServerInfo_User,
   ServerInfo_UserAlt,
   ServerInfo_UserSession,
@@ -80,6 +82,7 @@ export interface ServerState {
   gamesOfUserStatus: { [userName: string]: GamesOfUserStatus };
   registrationError: string | null;
   staff: ServerStateStaff;
+  reports: ServerStateReports;
 }
 
 // Payload of every `*Failed` command-outcome signal action.
@@ -168,4 +171,20 @@ export interface UserInvestigation {
 
 export interface ServerStateSortUsersBy extends App.SortBy {
   field: App.UserSortField;
+}
+
+// User reports and the moderator queue (Cockatrice #7091). Rows are normalized:
+// `mine` and `queue` hold ids in server order (newest first; null until the
+// first load) and `byId` holds the shared list rows. `details` holds the full
+// report (chat log + comment thread) Command_ReportDetails returns, which the
+// lists omit.
+export interface ServerStateReports {
+  mine: number[] | null;
+  queue: number[] | null;
+  queueTotalCount: number;
+  byId: { [reportId: number]: ServerInfo_Report };
+  details: { [reportId: number]: ServerInfo_Report };
+  stats: Response_ReportStats | null;
+  replay: { gameId: number; replayId: number; replayData: Uint8Array } | null;
+  lastNotice: { seq: number; notification: Event_NotifyUser } | null;
 }

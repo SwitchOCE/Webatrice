@@ -2,6 +2,7 @@ import type { Store } from '@reduxjs/toolkit';
 import {
   Event_GameJoined,
   Event_NotifyUser,
+  Event_NotifyUser_NotificationType,
   Event_PlayerPropertiesChanged,
   Event_ServerShutdown,
   Event_UserMessage,
@@ -11,6 +12,7 @@ import {
   Response_ReplayDownload,
   ServerInfo_DeckStorage_TreeItem,
   ServerInfo_ReplayMatch,
+  ServerInfo_Report,
   ServerInfo_User,
 } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
@@ -202,6 +204,14 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
 
   notifyUser(notification: Event_NotifyUser): void {
     this.store.dispatch(ServerActions.notifyUser({ notification }));
+    // Desktop TabSupervisor::processNotifyUserEvent pops these up; the report
+    // views also refresh on them, so they get their own signal.
+    if (
+      notification.type === Event_NotifyUser_NotificationType.REPORT_RESOLVED
+      || notification.type === Event_NotifyUser_NotificationType.REPORT_COMMENT
+    ) {
+      this.store.dispatch(ServerActions.reportNotified({ notification }));
+    }
   }
 
   playerPropertiesChanged(gameId: number, playerId: number, payload: Event_PlayerPropertiesChanged): void {
@@ -288,5 +298,13 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
 
   replayListFailed(responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
     this.store.dispatch(ServerActions.replayListFailed({ responseCode, failure }));
+  }
+
+  reportMyList(reports: ServerInfo_Report[]): void {
+    this.store.dispatch(ServerActions.reportMyList({ reports }));
+  }
+
+  reportDetails(report: ServerInfo_Report): void {
+    this.store.dispatch(ServerActions.reportDetails({ report }));
   }
 }
