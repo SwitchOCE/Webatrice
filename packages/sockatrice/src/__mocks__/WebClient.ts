@@ -92,6 +92,7 @@ const session = {
   deckListFailed: vi.fn(),
   deckDownloadFailed: vi.fn(),
   deckUploadFailed: vi.fn(),
+  replayListFailed: vi.fn(),
 };
 
 const room = {

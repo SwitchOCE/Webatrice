@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { server } from '@cockatrice/datatrice';
+import { server, type CommandFailedPayload } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { Response_ResponseCode, type ServerInfo_ReplayMatch } from '@cockatrice/sockatrice/generated';
-import { useReduxEffect } from '@app/hooks';
+import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
+import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { ReplayFileDTO, replayFileName } from '@app/services';
 import { useAppSelector } from '@app/store';
 
@@ -70,6 +71,7 @@ function replaysOf(match: ServerInfo_ReplayMatch | undefined, selection: ServerR
  */
 export function useServerReplays(): ServerReplays {
   const { t } = useTranslation();
+  const describeFailure = useCommandFailureMessage();
   const webClient = useWebClient();
   const watchReplay = useWatchReplay();
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
@@ -122,9 +124,15 @@ export function useServerReplays(): ServerReplays {
     setNotice({ title, message, severity: 'error' });
   }, []);
 
+  useReduxEffect<CommandFailedPayload>(({ payload: { failure } }) => {
+    setLoading(false);
+    showError(t('Replays.notice.failed'), describeFailure(failure, t('Replays.server.listFailed')));
+  }, server.Types.REPLAY_LIST_FAILED, [showError, describeFailure, t]);
+
   const failed = useCallback(
-    (message: string) => () => showError(t('Replays.notice.failed'), message),
-    [showError, t],
+    (message: string) => (_responseCode: number, failure?: WebsocketTypes.CommandFailure) =>
+      showError(t('Replays.notice.failed'), describeFailure(failure, message)),
+    [showError, describeFailure, t],
   );
 
   const watch = useCallback((target: ServerReplaySelection | undefined = selection ?? undefined) => {
@@ -202,15 +210,15 @@ export function useServerReplays(): ServerReplays {
     webClient.request.session.replayGetCode(
       selectedMatch.gameId,
       (code) => setShareCode(code),
-      (responseCode) => {
+      (responseCode, failure) => {
         if (responseCode === Response_ResponseCode.RespFunctionNotAllowed) {
           showError(t('Replays.share.getFailedTitle'), t('Replays.share.notPermitted'));
         } else {
-          showError(t('Replays.notice.failed'), t('Replays.share.getFailed'));
+          showError(t('Replays.notice.failed'), describeFailure(failure, t('Replays.share.getFailed')));
         }
       },
     );
-  }, [selectedMatch, webClient, showError, t]);
+  }, [selectedMatch, webClient, showError, describeFailure, t]);
 
   const submitShareCode = useCallback((code: string) => {
     setSubmitPromptOpen(false);
@@ -221,17 +229,17 @@ export function useServerReplays(): ServerReplays {
         message: t('Replays.share.found'),
         severity: 'info',
       }),
-      (responseCode) => {
+      (responseCode, failure) => {
         if (responseCode === Response_ResponseCode.RespNameNotFound) {
           showError(t('Replays.notice.failed'), t('Replays.share.notFound'));
         } else if (responseCode === Response_ResponseCode.RespFunctionNotAllowed) {
           showError(t('Replays.share.submitFailedTitle'), t('Replays.share.notPermitted'));
         } else {
-          showError(t('Replays.notice.failed'), t('Replays.share.unexpected'));
+          showError(t('Replays.notice.failed'), describeFailure(failure, t('Replays.share.unexpected')));
         }
       },
     );
-  }, [webClient, showError, t]);
+  }, [webClient, showError, describeFailure, t]);
 
   return {
     availability,
