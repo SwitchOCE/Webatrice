@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useSyncExternalStore } from 'react';
 
 import { migrateSetting, SettingDTO } from '@app/services';
 import { APP_USER, PREFERENCE_DEFAULTS, PreferenceKey, Preferences } from '@app/types';
@@ -50,9 +50,12 @@ export function usePreferences(): Preferences {
   );
 }
 
-/** One preference's current value; the desktop default until settings have loaded. */
+/**
+ * One preference's current value; the desktop default until settings have loaded. Re-renders only
+ * when that preference changes, so board components can read one without following the rest.
+ */
 export function usePreference<K extends PreferenceKey>(key: K): Preferences[K] {
-  return usePreferences()[key];
+  return useSyncExternalStore(store.subscribe, () => getPreferencesSnapshot()[key]);
 }
 
 /**
