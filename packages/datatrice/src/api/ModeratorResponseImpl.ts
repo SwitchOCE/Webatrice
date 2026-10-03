@@ -1,5 +1,15 @@
 import type { Store } from '@reduxjs/toolkit';
-import { Response_WarnList, ServerInfo_Ban, ServerInfo_ChatMessage, ServerInfo_Warning } from '@cockatrice/sockatrice/generated';
+import {
+  Response_CardArtRuleEntry,
+  Response_ReportUserInfo,
+  Response_WarnList,
+  ServerInfo_Ban,
+  ServerInfo_ChatMessage,
+  ServerInfo_ModeratorLogin,
+  ServerInfo_UserAlt,
+  ServerInfo_UserSession,
+  ServerInfo_Warning,
+} from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { Actions as ServerActions } from '../store/server/server.actions';
@@ -55,5 +65,39 @@ export class ModeratorResponseImpl implements WebsocketTypes.IModeratorResponse 
     requestId?: string,
   ): void {
     this.store.dispatch(ServerActions.moderatorCommandFailed({ command, responseCode, target, failure, requestId }));
+  }
+
+  // ── Staff tools (Cockatrice 3.1: TabModeration, TabCardArtRules) ──────────
+
+  reportUserInfo(info: Response_ReportUserInfo): void {
+    this.store.dispatch(ServerActions.userInfoReport({ info }));
+  }
+
+  userAlts(userName: string, alts: ServerInfo_UserAlt[]): void {
+    this.store.dispatch(ServerActions.userAlts({ userName, alts }));
+  }
+
+  userSessions(userName: string, sessions: ServerInfo_UserSession[]): void {
+    this.store.dispatch(ServerActions.userSessions({ userName, sessions }));
+  }
+
+  moderatorLastLogins(logins: ServerInfo_ModeratorLogin[]): void {
+    this.store.dispatch(ServerActions.moderatorLastLogins({ logins }));
+  }
+
+  userAvatarRemoved(userName: string): void {
+    this.store.dispatch(ServerActions.userAvatarRemoved({ userName }));
+  }
+
+  cardArtRules(entries: Response_CardArtRuleEntry[]): void {
+    this.store.dispatch(ServerActions.cardArtRules({ entries }));
+  }
+
+  cardArtRuleAdded(cardName: string, cardProviderId: string, mode: string, reason: string): void {
+    this.store.dispatch(ServerActions.cardArtRuleAdded({ cardName, cardProviderId, mode, reason }));
+  }
+
+  cardArtRuleRemoved(cardName: string, cardProviderId: string): void {
+    this.store.dispatch(ServerActions.cardArtRuleRemoved({ cardName, cardProviderId }));
   }
 }

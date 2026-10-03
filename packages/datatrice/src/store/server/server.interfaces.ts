@@ -3,12 +3,18 @@ import {
   Event_NotifyUser,
   Event_ServerShutdown,
   Event_UserMessage,
+  Response_CardArtRuleEntry,
   Response_DeckList,
+  Response_GetServerStats,
+  Response_ReportUserInfo,
   Response_WarnList,
   ServerInfo_Ban,
   ServerInfo_ChatMessage,
+  ServerInfo_ModeratorLogin,
   ServerInfo_ReplayMatch,
   ServerInfo_User,
+  ServerInfo_UserAlt,
+  ServerInfo_UserSession,
   ServerInfo_Warning,
 } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
@@ -77,6 +83,7 @@ export interface ServerState {
   // Lifecycle of the latest Command_GetGamesOfUser per user (desktop's "Show games").
   gamesOfUserStatus: { [userName: string]: GamesOfUserStatus };
   registrationError: string | null;
+  staff: ServerStateStaff;
 }
 
 // Payload of every `*Failed` command-outcome signal action.
@@ -144,6 +151,25 @@ export interface ServerStateLogs {
   room: ServerInfo_ChatMessage[];
   game: ServerInfo_ChatMessage[];
   chat: ServerInfo_ChatMessage[];
+}
+
+/** Staff tooling results: Moderation, Card Art Rules and Developer tabs. */
+export interface ServerStateStaff {
+  /** Moderation-tab lookups per investigated user name. */
+  investigations: { [userName: string]: UserInvestigation };
+  /** null until the first Command_GetModeratorLastLogins answer. */
+  moderatorLastLogins: ServerInfo_ModeratorLogin[] | null;
+  /** null until the first Command_ListCardArtRules answer. */
+  cardArtRules: Response_CardArtRuleEntry[] | null;
+  /** Latest Command_GetServerStats snapshot (developer role). */
+  serverStats: Response_GetServerStats | null;
+}
+
+/** Each part is undefined until its lookup has answered. */
+export interface UserInvestigation {
+  info?: Response_ReportUserInfo;
+  alts?: ServerInfo_UserAlt[];
+  sessions?: ServerInfo_UserSession[];
 }
 
 export interface ServerStateSortUsersBy extends App.SortBy {

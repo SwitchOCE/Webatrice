@@ -6,6 +6,7 @@ import { connectionReducers, initialState } from './server.reducer.connection';
 import { deckReducers } from './server.reducer.decks';
 import { moderationReducers } from './server.reducer.moderation';
 import { replayReducers } from './server.reducer.replays';
+import { staffReducers } from './server.reducer.staff';
 import { userReducers } from './server.reducer.users';
 
 export { MAX_USER_MESSAGES, MAX_NOTIFICATIONS } from './server.reducer.users';
@@ -21,6 +22,7 @@ export const serverSlice = createSlice({
     ...replayReducers,
     ...deckReducers,
     ...accountReducers,
+    ...staffReducers,
   },
 });
 

@@ -2,9 +2,14 @@ import { create } from '@bufbuild/protobuf';
 
 import { createStore } from '../store/createStore';
 import {
+  Response_CardArtRuleEntrySchema,
+  Response_ReportUserInfoSchema,
   Response_WarnListSchema,
   ServerInfo_BanSchema,
   ServerInfo_ChatMessageSchema,
+  ServerInfo_ModeratorLoginSchema,
+  ServerInfo_UserAltSchema,
+  ServerInfo_UserSessionSchema,
   ServerInfo_WarningSchema,
 } from '@cockatrice/sockatrice/generated';
 import { Actions as ServerActions } from '../store/server/server.actions';
@@ -100,5 +105,46 @@ describe('ModeratorResponseImpl', () => {
         command: 'viewLogHistory', responseCode: -1, target: 'alice', failure: WebsocketTypes.CommandFailure.Disconnected,
       }),
     );
+  });
+
+  describe('staff tools', () => {
+    it('reportUserInfo dispatches userInfoReport', () => {
+      const { impl, dispatch } = setup();
+      const info = create(Response_ReportUserInfoSchema, { userName: 'alice' });
+      impl.reportUserInfo(info);
+      expect(dispatch).toHaveBeenCalledWith(ServerActions.userInfoReport({ info }));
+    });
+
+    it('userAlts and userSessions dispatch the lookups keyed by user', () => {
+      const { impl, dispatch } = setup();
+      const alts = [create(ServerInfo_UserAltSchema, { userName: 'alice2' })];
+      const sessions = [create(ServerInfo_UserSessionSchema, { ipAddress: '1.2.3.4' })];
+      impl.userAlts('alice', alts);
+      impl.userSessions('alice', sessions);
+      expect(dispatch).toHaveBeenCalledWith(ServerActions.userAlts({ userName: 'alice', alts }));
+      expect(dispatch).toHaveBeenCalledWith(ServerActions.userSessions({ userName: 'alice', sessions }));
+    });
+
+    it('moderatorLastLogins and userAvatarRemoved dispatch their actions', () => {
+      const { impl, dispatch } = setup();
+      const logins = [create(ServerInfo_ModeratorLoginSchema, { userName: 'mod' })];
+      impl.moderatorLastLogins(logins);
+      impl.userAvatarRemoved('alice');
+      expect(dispatch).toHaveBeenCalledWith(ServerActions.moderatorLastLogins({ logins }));
+      expect(dispatch).toHaveBeenCalledWith(ServerActions.userAvatarRemoved({ userName: 'alice' }));
+    });
+
+    it('card-art rule responses dispatch list, add and remove', () => {
+      const { impl, dispatch } = setup();
+      const entries = [create(Response_CardArtRuleEntrySchema, { cardName: 'Island' })];
+      impl.cardArtRules(entries);
+      impl.cardArtRuleAdded('Island', 'p1', 'DENY', 'why');
+      impl.cardArtRuleRemoved('Island', 'p1');
+      expect(dispatch).toHaveBeenCalledWith(ServerActions.cardArtRules({ entries }));
+      expect(dispatch).toHaveBeenCalledWith(
+        ServerActions.cardArtRuleAdded({ cardName: 'Island', cardProviderId: 'p1', mode: 'DENY', reason: 'why' }),
+      );
+      expect(dispatch).toHaveBeenCalledWith(ServerActions.cardArtRuleRemoved({ cardName: 'Island', cardProviderId: 'p1' }));
+    });
   });
 });
