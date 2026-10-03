@@ -5,9 +5,8 @@ import { expect, type Locator, type Page } from '@playwright/test';
 // The Tailwind rewrite replaced the MUI Select KnownHosts picker with a
 // custom dropdown built from a trigger `<button>` (accessible-named via
 // aria-labelledby against the visible "Host" caption) plus refresh and
-// chevron buttons in a non-label wrapper (KnownHosts.tsx). No
-// `role="combobox"`, no `role="option"` — options are plain `<div>` rows
-// with click handlers.
+// chevron buttons in a non-label wrapper (KnownHosts.tsx). Saved hosts
+// are a `role="listbox"` of `<button role="option">`s.
 //
 // Login button + Register button both still resolve by role/name. The
 // login button remains disabled until the test-connection probe reports
@@ -39,6 +38,17 @@ export class LoginPage {
   // its OWN independent KnownHosts picker per RegisterForm.tsx).
   private hostPickerIn(scope: Page | Locator): Locator {
     return scope.getByRole('button', { name: 'Host', exact: true }).first();
+  }
+
+  // A saved host's option renders the host name and address in adjacent
+  // <span>s whose text collapses to one name like "e2elocalhost:4748" (no
+  // separator). Match the option by the dedicated
+  // `<span class="font-medium">{host.name}</span>` so an anchored equality on
+  // the host name doesn't collide with the address.
+  private hostOption(scope: Page | Locator, label: string): Locator {
+    return scope.getByRole('option').filter({
+      has: this.page.locator('span.font-medium', { hasText: new RegExp(`^${label}$`, 'i') }),
+    }).first();
   }
 
   get loginButton(): Locator {
@@ -80,18 +90,9 @@ export class LoginPage {
 
   async selectHost(label: string): Promise<void> {
     await this.openHostPicker();
-    // Dropdown options are plain <div class="group ...">s (no role). Each
-    // row renders the host name and address in adjacent <span>s inside a
-    // wrapping <span class="flex-1 min-w-0 truncate"> — the two collapse
-    // to one textContent like "e2elocalhost:4748" (no separator). Match
-    // the row by the dedicated `<span class="font-medium">{host.name}</span>`
-    // so an anchored equality on the host name doesn't collide with the
-    // address, and no word-boundary tricks are needed.
-    const option = this.page.locator('div.group', {
-      has: this.page.locator('span.font-medium', { hasText: new RegExp(`^${label}$`, 'i') }),
-    });
-    await expect(option.first()).toBeVisible();
-    await option.first().click();
+    const option = this.hostOption(this.page, label);
+    await expect(option).toBeVisible();
+    await option.click();
     await expect(this.loginButton).toBeEnabled({ timeout: 15_000 });
   }
 
@@ -141,12 +142,8 @@ export class LoginPage {
     if (!alreadyPicked) {
       await this.openHostPicker(dialog);
       const option = options.hostLabel
-        ? dialog.locator('div.group', {
-          has: dialog.locator('span.font-medium', {
-            hasText: new RegExp(`^${options.hostLabel}$`, 'i'),
-          }),
-        }).first()
-        : dialog.locator('div.group').first();
+        ? this.hostOption(dialog, options.hostLabel)
+        : dialog.getByRole('option').first();
       await expect(option).toBeVisible();
       await option.click();
     }

@@ -1,4 +1,6 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
+
+import { server } from '@cockatrice/datatrice';
 
 import { connectedState, renderWithProviders } from '../../__test-utils__';
 import { makeHost, makeKnownHostsHook } from './__mocks__/useKnownHosts';
@@ -109,5 +111,82 @@ describe('KnownHosts public servers', () => {
     });
 
     expect(loadPublicServers).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('KnownHosts keyboard and screen-reader access', () => {
+  beforeEach(() => {
+    publicServersStore.reset();
+    loadPublicServers.mockResolvedValue({ stale: false, servers: [] });
+  });
+
+  it('exposes the open state on the toggles', async () => {
+    setup();
+    const toggle = screen.getByRole('button', { name: 'KnownHosts.toggle' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    await openPicker();
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'KnownHosts.label' })).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('lists saved hosts as options, marking the selected one', async () => {
+    setup();
+    await openPicker();
+
+    const listbox = screen.getByRole('listbox', { name: 'KnownHosts.saved' });
+    const [option] = within(listbox).getAllByRole('option');
+    expect(option).toHaveTextContent('Rooster');
+    expect(option).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('picks a host from the keyboard and returns focus to the picker', async () => {
+    const { hook } = setup();
+    await openPicker();
+
+    const option = screen.getByRole('option', { name: /Rooster/ });
+    option.focus();
+    await act(async () => {
+      fireEvent.click(option);
+    });
+
+    expect(hook.select).toHaveBeenCalledWith(SAVED.id);
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'KnownHosts.label' })).toHaveFocus();
+  });
+
+  it('closes on Escape and returns focus to the picker', async () => {
+    setup();
+    await openPicker();
+
+    screen.getByRole('option', { name: /Rooster/ }).focus();
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'KnownHosts.label' })).toHaveFocus();
+  });
+
+  it('names each Edit button after its host', async () => {
+    const hook = makeKnownHostsHook();
+    const editable = makeHost({ id: 3, name: 'Mine', editable: true });
+    hook.value = { hosts: [editable], selectedHost: editable };
+    vi.mocked(useKnownHosts).mockReturnValue(hook);
+    renderWithProviders(<KnownHosts value={editable} onChange={vi.fn()} />, { preloadedState: connectedState });
+    await openPicker();
+
+    expect(screen.getByRole('button', { name: 'KnownHosts.edit' })).toBeInTheDocument();
+  });
+
+  it('announces the connection test result in a status region', () => {
+    const { store } = setup();
+    // Selecting a host on mount starts a connection test.
+    expect(screen.getByText('KnownHosts.status.testing')).toHaveAttribute('role', 'status');
+
+    act(() => {
+      store.dispatch(server.Actions.testConnectionFailed());
+    });
+
+    expect(screen.getByText('KnownHosts.status.failed')).toHaveAttribute('role', 'status');
   });
 });
