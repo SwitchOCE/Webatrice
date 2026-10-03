@@ -8,10 +8,9 @@ import {
 import { createPortal } from 'react-dom';
 import { setRef } from '@mui/material/utils';
 import { Search, X } from 'lucide-react';
-import type { DeckCard } from './mockTypes';
-import Card from '../ui/SeatCard/SeatCard';
-import { CARD_HEIGHT, CARD_WIDTH } from '../ui/SeatCard/cardSize';
-import { useCardPreviewActions } from '../ui/CardPreviewContext';
+import Card from '../../components/ui/SeatCard/SeatCard';
+import { CARD_HEIGHT, CARD_WIDTH } from '../../components/ui/SeatCard/cardSize';
+import { useCardPreviewActions } from '../../components/ui/CardPreviewContext';
 import { lookupCardsCached } from '@app/services';
 import {
   compareCards,
@@ -20,7 +19,8 @@ import {
   type EnrichedCard,
   type GroupMode,
   type SortMode,
-} from '../../dialogs/ZoneViewDialog/zoneViewSort';
+  type ZoneViewCardMetadata,
+} from './zoneViewSort';
 
 const TOOLBAR_SELECT_CLASS =
   'px-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm text-text-primary '
@@ -148,7 +148,9 @@ type Props = {
    *  render the toggle and always receive `false` here. */
   onClose: (shuffleOnClose: boolean) => void;
   library: readonly HandCard[];
-  deckCards: DeckCard[];
+  /** Metadata already known for some names (the seat's deck list); the
+   *  rest is looked up in the card catalog. */
+  deckCards: readonly ZoneViewCardMetadata[];
   playerName: string;
   /** Header title override. Defaults to `${playerName}'s library` for
    *  the library-view flow; the graveyard / exile pile viewers pass
@@ -191,7 +193,7 @@ type Props = {
  *  title pill on top. Last card in a pile still renders fully. */
 const PILE_STEP_FRACTION = 0.25;
 
-export default function LibrarySearchDialog({
+export default function ZoneViewPanel({
   isOpen,
   onClose,
   library,
@@ -657,7 +659,7 @@ export default function LibrarySearchDialog({
     return () => document.removeEventListener('keydown', onKey);
   }, [isOpen, onClose, showShuffleOnClose, shuffleOnClose]);
 
-  // Build a name → DeckCard map so we can look up metadata for each
+  // Build a name → metadata map so we can look up metadata for each
   // revealed card. Name-keyed (not scryfall-id-keyed) because both
   // Cockatrice server-side dumps AND .cod parsed decks routinely
   // leave provider_id / card_scryfall_id empty — everything with a
@@ -667,7 +669,7 @@ export default function LibrarySearchDialog({
   // read display metadata (type_line, cmc, colors, P/T) which is
   // stable across printings.
   const metaByName = useMemo(() => {
-    const m = new Map<string, DeckCard>();
+    const m = new Map<string, ZoneViewCardMetadata>();
     for (const c of deckCards) {
       if (c.name) {
         m.set(c.name, c);
@@ -684,7 +686,7 @@ export default function LibrarySearchDialog({
   // Other" bug. Mirrors IncomingRevealDialog's pattern: fetch via
   // `lookupCardsCached`, then override the group/sort mode until every
   // unique name has a resolved `type_line`.
-  const [lookupMetaByName, setLookupMetaByName] = useState<Map<string, DeckCard>>(
+  const [lookupMetaByName, setLookupMetaByName] = useState<Map<string, ZoneViewCardMetadata>>(
     () => new Map(),
   );
   const uniqueNames = useMemo(
@@ -716,19 +718,13 @@ export default function LibrarySearchDialog({
         const next = new Map(prev);
         for (const [name, r] of results) {
           next.set(name, {
-            id: `lookup-${name}`,
-            card_scryfall_id: r.printings[0]?.scryfallId ?? '',
             name,
-            mana_cost: r.manaCost ?? null,
             type_line: r.typeLine ?? null,
             cmc: r.cmc ?? null,
             colors: r.colors ?? [],
             set: r.printings[0]?.set ?? null,
-            collector_number: r.printings[0]?.collectorNumber ?? null,
             power: r.power ?? null,
             toughness: r.toughness ?? null,
-            quantity: 1,
-            category: 'main',
           });
         }
         return next;
@@ -743,7 +739,7 @@ export default function LibrarySearchDialog({
   // lookup for anything the deck doesn't cover. If deck meta HAS an
   // entry but its type_line is null (partial data), fill in from the
   // lookup so grouping / sorting stops burying it in "Other".
-  const resolveMeta = (name: string, scryfallId: string): DeckCard => {
+  const resolveMeta = (name: string): ZoneViewCardMetadata => {
     const deck = metaByName.get(name);
     const lookup = lookupMetaByName.get(name);
     if (deck && deck.type_line) {
@@ -753,7 +749,6 @@ export default function LibrarySearchDialog({
       return {
         ...deck,
         type_line: deck.type_line ?? lookup.type_line,
-        mana_cost: deck.mana_cost ?? lookup.mana_cost,
         cmc: deck.cmc ?? lookup.cmc,
         colors: deck.colors.length > 0 ? deck.colors : lookup.colors,
         power: deck.power ?? lookup.power,
@@ -767,19 +762,13 @@ export default function LibrarySearchDialog({
       return lookup;
     }
     return {
-      id: `unknown-${name}`,
-      card_scryfall_id: scryfallId,
       name,
-      mana_cost: null,
       type_line: null,
       cmc: null,
       colors: [],
       set: null,
-      collector_number: null,
       power: null,
       toughness: null,
-      quantity: 1,
-      category: 'main',
     };
   };
 
@@ -801,7 +790,7 @@ export default function LibrarySearchDialog({
   const groups = useMemo(() => {
     const enriched: EnrichedCard[] = [];
     for (const hc of library) {
-      const meta = resolveMeta(hc.name, hc.scryfallId);
+      const meta = resolveMeta(hc.name);
       if (!matchesQuery(meta, query)) {
         continue;
       }
