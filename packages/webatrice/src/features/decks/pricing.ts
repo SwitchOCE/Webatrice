@@ -345,6 +345,54 @@ export function computeDeckPrice(
   return { total, missing };
 }
 
+function hasUsd(info: PriceInfo | undefined): boolean {
+  return info?.usd != null && Number.isFinite(info.usd);
+}
+
+/**
+ * Unique-name pricing progress for the loading caption. Unique names,
+ * not quantities: "45 of 100" is what the user perceives as cards being
+ * looked up — quantities affect the total but not the pending lookups.
+ */
+export function pricingProgress(
+  cards: DeckCard[],
+  prices: PriceLookup,
+): { pricedUnique: number; totalUnique: number } {
+  const seen = new Set<string>();
+  let priced = 0;
+  for (const card of cards) {
+    if (seen.has(card.name)) {
+      continue;
+    }
+    seen.add(card.name);
+    if (hasUsd(priceForCard(prices, card))) {
+      priced += 1;
+    }
+  }
+  return { pricedUnique: priced, totalUnique: seen.size };
+}
+
+/**
+ * Cards `priceForCard` couldn't price, grouped by name with summed
+ * quantities and sorted by name, so the user can tell a surprising miss
+ * ("Sol Ring") from an expected one (a custom token).
+ */
+export function unpricedCards(
+  cards: DeckCard[],
+  prices: PriceLookup,
+): Array<{ name: string; qty: number }> {
+  const grouped = new Map<string, number>();
+  for (const card of cards) {
+    if (hasUsd(priceForCard(prices, card))) {
+      continue;
+    }
+    grouped.set(card.name, (grouped.get(card.name) ?? 0) + card.quantity);
+  }
+  return Array.from(grouped, ([name, qty]) => ({ name, qty })).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
+}
+
 /**
  * Build TCGplayer's Mass Entry cart URL for the whole deck. TCGplayer's
  * parser is fussy: `||` between entries (literal, not encoded), `%20`

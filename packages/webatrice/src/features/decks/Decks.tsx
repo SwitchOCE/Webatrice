@@ -20,24 +20,34 @@ import { AuthGuard } from '@app/components';
 import { Layout } from '@app/feature-wrappers/layout';
 import { server } from '@cockatrice/datatrice';
 import type { CommandFailedPayload } from '@cockatrice/datatrice';
-import type { ServerInfo_DeckStorage_Folder, ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
+import type { ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
 import { useAppSelector } from '@app/store';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { useWebClient } from '@cockatrice/datatrice/react';
-import { MTG_FORMAT_LABELS, MTG_FORMATS, RouteEnum, normalizeFormat, type ParsedDeck } from '@app/types';
+import { MTG_FORMAT_LABELS, RouteEnum, normalizeFormat, type ParsedDeck } from '@app/types';
 
+import { emptyCod, parseCod } from '@app/services';
+import { bracketToneClass } from './bracketTone';
+import { parseDecklist } from './decklistParser';
 import {
-  defaultMeta,
-  emptyCod,
-  lookupCards,
-  parseCod,
-  serializeCod,
-  type LookupResult,
-} from '@app/services';
-import { parseDecklist, type ParsedEntry } from './decklistParser';
-import { assembleDeckCard } from './hydrate';
+  buildPastedDeckCod,
+  buildUploadedDeckCod,
+  countResolvedRows,
+  resolveImportEntries,
+  summarizeUploadedDeck,
+  type ResolvedImportRow,
+} from './deckImport';
+import {
+  deckArtUrl,
+  deckSectionLabel,
+  formatDisplayLabel,
+  groupDecksByFormat,
+  summariesEqual,
+  summarizeDeck,
+  type DeckSummary,
+} from './deckSummary';
+import { flattenDeckTree, formatDeckAge, type FlatDeck } from './deckTree';
 import { SELECT_CHEVRON_BACKGROUND } from './selectChevron';
-import type { DeckCard } from './types';
 import { clearDeckEditorCache, deleteCachedDeck } from './useDeckEditor';
 
 const NEW_DECK_BUTTON_CLASS =
@@ -71,48 +81,6 @@ const IMPORT_PRIMARY_BUTTON_CLASS =
  * Rename is deferred to Piece 3 (handled by the editor via the
  * deckname field).
  */
-
-interface FlatDeck {
-  id: number;
-  name: string;
-  /** Folder path from root, `""` for root-level decks. */
-  path: string;
-  /** Unix seconds. Not `updated_at` — Servatrice only tracks creation. */
-  creationTime: number;
-}
-
-/**
- * Category slugs used by the deck-list grouping. MTG format slugs get
- * their pretty labels from MTG_FORMAT_LABELS; three extra sentinels
- * cover the non-MTG / not-yet-known cases. Kept as string constants
- * so the grouping code and the section-label lookup stay in sync.
- */
-const CATEGORY_OTHER = 'other';
-const CATEGORY_LOADING = 'loading';
-const CATEGORY_UNKNOWN = 'unknown';
-const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
-  MTG_FORMAT_LABELS.map((f) => [f.value, f.label]),
-);
-CATEGORY_LABELS[CATEGORY_OTHER] = 'Other';
-CATEGORY_LABELS[CATEGORY_LOADING] = 'Loading…';
-CATEGORY_LABELS[CATEGORY_UNKNOWN] = 'Unknown format';
-
-/** Bucket a deck into a category slug. Absent summary → LOADING (its
- *  XML hasn't landed yet); empty format → UNKNOWN; MTG format → its
- *  own slug; anything else → OTHER. */
-function categoryOfDeck(summary: DeckSummary | undefined): string {
-  if (!summary) {
-    return CATEGORY_LOADING;
-  }
-  const n = normalizeFormat(summary.format ?? '');
-  if (!n) {
-    return CATEGORY_UNKNOWN;
-  }
-  if (MTG_FORMATS.includes(n)) {
-    return n;
-  }
-  return CATEGORY_OTHER;
-}
 
 // Module-level cache so navigating away from the Decks page and back
 // doesn't re-download every deck's XML + re-run the price / format /
@@ -181,12 +149,7 @@ function Decks() {
   // creationTime desc (newest first) since we don't yet have
   // updated_at at the list level.
   const decks = useMemo<FlatDeck[]>(() => {
-    if (!backendDecks?.root) {
-      return [];
-    }
-    return flattenFolder(backendDecks.root, '').sort(
-      (a, b) => b.creationTime - a.creationTime,
-    );
+    return flattenDeckTree(backendDecks?.root);
   }, [backendDecks]);
 
   // --- Create ---
@@ -275,20 +238,7 @@ function Decks() {
   useReduxEffect<{ deckId: number; deck: string }>(
     ({ payload }) => {
       try {
-        const parsed = parseCod(payload.deck);
-        const commander = parsed.cards.find((c) => c.isCommander);
-        const next: DeckSummary = {
-          usd: parsed.meta.priceUsd,
-          missing: parsed.meta.priceMissingCount,
-          // Prefer the richer <bracketAssessment> level (matches what the
-          // GameLobby reads); fall back to meta.bracketLevel for decks
-          // last saved before the new element existed.
-          bracketLevel: parsed.bracketAssessment?.level ?? parsed.meta.bracketLevel,
-          format: parsed.format || undefined,
-          bannerCard: parsed.bannerCard,
-          commanderName: commander?.name,
-          commanderScryfallId: commander?.scryfallId,
-        };
+        const next = summarizeDeck(parseCod(payload.deck));
         // Mirror into the module cache so a tab switch away and back
         // keeps this summary without re-downloading. The state update
         // and the cache write need to stay in sync — this branch owns
@@ -323,23 +273,7 @@ function Decks() {
   //   4. Unknown (deck fetched, but its `<format>` was empty / missing).
   // Inside each section, decks stay sorted by creationTime desc (newest
   // first — same order the flat list used).
-  const groupedDecks = useMemo(() => {
-    const groups = new Map<string, FlatDeck[]>();
-    for (const deck of decks) {
-      const summary = summaryMap.get(deck.id);
-      const cat = categoryOfDeck(summary);
-      const bucket = groups.get(cat) ?? [];
-      bucket.push(deck);
-      groups.set(cat, bucket);
-    }
-    // decks[] is already sorted newest-first; the per-bucket order
-    // inherits that, so no re-sort needed.
-    const order: string[] = MTG_FORMAT_LABELS.map((f) => f.value);
-    order.push(CATEGORY_OTHER, CATEGORY_LOADING, CATEGORY_UNKNOWN);
-    return order
-      .filter((cat) => groups.has(cat))
-      .map((cat) => ({ category: cat, decks: groups.get(cat)! }));
-  }, [decks, summaryMap]);
+  const groupedDecks = useMemo(() => groupDecksByFormat(decks, summaryMap), [decks, summaryMap]);
 
   // --- View mode (persisted to localStorage) ---
   //
@@ -478,10 +412,10 @@ function Decks() {
             {!loading && decks.length === 0 && <EmptyState onCreate={() => setCreateOpen(true)} disabled={!isConnected} />}
             {!loading && decks.length > 0 && (
               <div className="space-y-6">
-                {groupedDecks.map(({ category, decks: bucket }) => (
-                  <section key={category} className="space-y-2">
+                {groupedDecks.map(({ section, decks: bucket }) => (
+                  <section key={section} className="space-y-2">
                     <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-text-muted">
-                      <span>{CATEGORY_LABELS[category] ?? category}</span>
+                      <span>{deckSectionLabel(section)}</span>
                       <span className="text-text-muted/70 tabular-nums">{bucket.length}</span>
                     </h2>
                     <ul className="space-y-2">
@@ -528,84 +462,8 @@ function Decks() {
   );
 }
 
-/**
- * Per-deck summary extracted from the deck's XML. Fetched in parallel
- * for every row on mount; drives the price badge, bracket badge, and
- * the commander-art background on each row.
- */
-interface DeckSummary {
-  usd?: number;
-  missing?: number;
-  /** Assessed commander bracket 1..5, from either the new
-   *  `<bracketAssessment>` element or the legacy meta blob. */
-  bracketLevel?: number;
-  /** `<format>` element — used for the format label chip. */
-  format?: string;
-  /** `<bannerCard>` element — Cockatrice's "featured card" for the
-   *  deck. Wins over the commander art per the user's ask. Just a
-   *  card name (no scryfallId), so we resolve art via Scryfall's
-   *  `/cards/named` endpoint. */
-  bannerCard?: string;
-  /** First card marked with `commander="1"`'s name — Scryfall art fallback
-   *  when there's no scryfallId hint on the card. */
-  commanderName?: string;
-  /** First card marked with `commander="1"`'s scryfallId — preferred
-   *  because it resolves to the exact chosen printing's art. */
-  commanderScryfallId?: string;
-}
-
-function summariesEqual(a: DeckSummary, b: DeckSummary): boolean {
-  return (
-    a.usd === b.usd &&
-    a.missing === b.missing &&
-    a.bracketLevel === b.bracketLevel &&
-    a.format === b.format &&
-    a.bannerCard === b.bannerCard &&
-    a.commanderName === b.commanderName &&
-    a.commanderScryfallId === b.commanderScryfallId
-  );
-}
-
-/**
- * Resolve the URL for a deck's background art per the user's rule:
- *   1. `<bannerCard>` → Scryfall `/cards/named?exact=…` (name-based).
- *   2. Commander card's `scryfallId` → `/cards/:uuid` (exact printing).
- *   3. Commander card's name → `/cards/named?exact=…`.
- *   4. Nothing → `null` (row renders the placeholder gradient).
- *
- * Both endpoints support `format=image&version=art_crop`, which
- * returns a landscape crop with no card frame — ideal as a row
- * background. Scryfall follows a 302 redirect to its CDN, and the
- * browser caches the CDN URL aggressively across page loads.
- */
-function deckArtUrl(s: DeckSummary | undefined): string | null {
-  if (!s) {
-    return null;
-  }
-  if (s.bannerCard && s.bannerCard.trim()) {
-    return `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(s.bannerCard.trim())}&format=image&version=art_crop`;
-  }
-  if (s.commanderScryfallId) {
-    return `https://api.scryfall.com/cards/${encodeURIComponent(s.commanderScryfallId)}?format=image&version=art_crop`;
-  }
-  if (s.commanderName && s.commanderName.trim()) {
-    return `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(s.commanderName.trim())}&format=image&version=art_crop`;
-  }
-  return null;
-}
-
-// Bracket tone palette — same tokens as the DeckBreakdown + GameLobby
-// badges so a B3 chip reads the same everywhere.
-const BRACKET_TONE: Record<number, string> = {
-  1: 'text-emerald-300 bg-emerald-500/15 border-emerald-500/40',
-  2: 'text-emerald-300 bg-emerald-500/15 border-emerald-500/40',
-  3: 'text-yellow-300 bg-yellow-500/15 border-yellow-500/40',
-  4: 'text-red-300 bg-red-500/15 border-red-500/40',
-  5: 'text-red-300 bg-red-500/15 border-red-500/40',
-};
-
 function BracketBadge({ level }: { level: number }) {
-  const tone = BRACKET_TONE[level] ?? 'text-text-secondary bg-bg-elevated border-border-subtle';
+  const tone = bracketToneClass(level);
   return (
     <span
       className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded border text-xs font-bold tabular-nums shrink-0 ${tone}`}
@@ -766,7 +624,7 @@ function DeckRowCard({ deck, summary, onOpen, onDelete }: DeckRowProps) {
                 <span>·</span>
               </>
             )}
-            <span>Created {formatTimestamp(deck.creationTime)}</span>
+            <span>Created {formatDeckAge(deck.creationTime)}</span>
             {deck.path && (
               <>
                 <span>·</span>
@@ -862,7 +720,7 @@ function DeckRowCompact({ deck, summary, onOpen, onDelete }: DeckRowProps) {
                 <span>·</span>
               </>
             )}
-            <span>Created {formatTimestamp(deck.creationTime)}</span>
+            <span>Created {formatDeckAge(deck.creationTime)}</span>
             {deck.path && (
               <>
                 <span>·</span>
@@ -889,16 +747,6 @@ function DeckRowCompact({ deck, summary, onOpen, onDelete }: DeckRowProps) {
       </button>
     </div>
   );
-}
-
-/** Turn a format slug into its display label. Falls back to the raw
- *  value (title-cased) for custom / non-MTG formats. */
-function formatDisplayLabel(format: string): string {
-  const known = MTG_FORMAT_LABELS.find((f) => f.value === normalizeFormat(format));
-  if (known) {
-    return known.label;
-  }
-  return format.replace(/^\w/, (c) => c.toUpperCase());
 }
 
 function LoadingState() {
@@ -965,10 +813,6 @@ function EmptyState({ onCreate, disabled }: { onCreate: () => void; disabled: bo
 
 type ImportPhase = 'input' | 'resolving' | 'review' | 'importing';
 
-interface ResolvedRow {
-  entry: ParsedEntry;
-  lookup: LookupResult;
-}
 
 const IMPORT_PLACEHOLDER = `Paste your deck list (Arena / MTGO / Moxfield export). Example:
 
@@ -1002,7 +846,7 @@ function ImportDeckModal({
   const [format, setFormat] = useState('commander');
   const [text, setText] = useState('');
   const [phase, setPhase] = useState<ImportPhase>('input');
-  const [resolved, setResolved] = useState<ResolvedRow[]>([]);
+  const [resolved, setResolved] = useState<ResolvedImportRow[]>([]);
   const [ignored, setIgnored] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   // .cod file upload state — parallel path to the paste textarea.
@@ -1113,25 +957,9 @@ function ImportDeckModal({
     }
     setError(null);
     setPhase('importing');
-    // Round-trip via serializeCod so we can apply the user's typed
-    // deck name (or fall back to the file's original name) while
-    // preserving the file's metadata (priceUsd, description, printing
-    // hints) and normalising the XML to what the rest of the app
-    // reads. Pass the parsed cards through as-is — they carry
-    // set/collector/scryfallId hints that serializeCod emits back
-    // onto the <card> attributes.
-    const nextName = name.trim() || fileParsed.name || 'Imported deck';
-    const xml = serializeCod({
-      name: nextName,
-      meta: fileParsed.meta,
-      cards: fileParsed.cards as unknown as DeckCard[],
-      format: format.trim().toLowerCase() || fileParsed.format || 'commander',
-      bannerCard: fileParsed.bannerCard,
-      // Preserve Cockatrice-desktop bookkeeping through the import
-      // round-trip so a file that had these elements keeps them.
-      lastLoadedTimestamp: fileParsed.lastLoadedTimestamp,
-      tagsXml: fileParsed.tagsXml,
-    });
+    // Round-trip through the serializer to apply the typed name and
+    // format while keeping the file's metadata and printing hints.
+    const xml = buildUploadedDeckCod(fileParsed, name, format);
     onImport(xml);
   };
 
@@ -1144,38 +972,7 @@ function ImportDeckModal({
     }
     setPhase('resolving');
     try {
-      // Pass set + collector alongside name so Scryfall's collection
-      // batch can identify freshly-printed / Universe-Beyond cards
-      // by exact printing rather than fuzzy-matching on name (which
-      // silently misses when the export's name doesn't byte-match
-      // Scryfall's canonical form). Dedup by name — the first hint
-      // wins if the same card appears at different printings across
-      // deck lines (rare, and printing selection happens later in
-      // `pickPrinting`).
-      const uniqueHints = new Map<string, {
-        name: string;
-        set?: string;
-        collectorNumber?: string;
-      }>();
-      for (const e of entries) {
-        if (!uniqueHints.has(e.name)) {
-          uniqueHints.set(e.name, {
-            name: e.name,
-            set: e.set,
-            collectorNumber: e.collectorNumber,
-          });
-        }
-      }
-      const lookupMap = await lookupCards(Array.from(uniqueHints.values()));
-      const rows: ResolvedRow[] = entries.map((entry) => ({
-        entry,
-        lookup: lookupMap.get(entry.name) ?? {
-          found: false,
-          source: 'unknown',
-          name: entry.name,
-          printings: [],
-        },
-      }));
+      const rows = await resolveImportEntries(entries);
       setResolved(rows);
       setIgnored(skipped);
       setPhase('review');
@@ -1188,29 +985,12 @@ function ImportDeckModal({
   const handleConfirmImport = () => {
     setError(null);
     setPhase('importing');
-    // Include unmatched entries too — the deck editor will render
-    // them with a warning icon (lookupSource === 'unknown'). Dropping
-    // them silently would surprise the user; showing them lets them
-    // fix typos and hit save.
-    const cards: DeckCard[] = resolved.map((r) => assembleDeckCard(r.entry, r.lookup));
-    const deckName = name.trim() || 'Imported deck';
-    const xml = serializeCod({
-      name: deckName,
-      meta: defaultMeta(),
-      cards,
-      format: format.trim().toLowerCase() || 'commander',
-    });
+    // Unmatched entries are imported too; the editor flags them.
+    const xml = buildPastedDeckCod(resolved, name, format);
     onImport(xml);
   };
 
-  const matchedCount = resolved.reduce(
-    (sum, r) => sum + (r.lookup.found ? r.entry.quantity : 0),
-    0,
-  );
-  const missingCount = resolved.reduce(
-    (sum, r) => sum + (r.lookup.found ? 0 : r.entry.quantity),
-    0,
-  );
+  const { matched: matchedCount, missing: missingCount } = countResolvedRows(resolved);
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
@@ -1682,24 +1462,7 @@ function FileSummary({
   fileName: string;
   parsed: ParsedDeck;
 }) {
-  const totals = parsed.cards.reduce(
-    (acc, c) => {
-      acc[c.category] = (acc[c.category] ?? 0) + c.quantity;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
-  const totalCount = parsed.cards.reduce((sum, c) => sum + c.quantity, 0);
-  const parts: string[] = [];
-  if (totals.commander) {
-    parts.push(`${totals.commander} commander`);
-  }
-  if (totals.main) {
-    parts.push(`${totals.main} main`);
-  }
-  if (totals.sideboard) {
-    parts.push(`${totals.sideboard} sideboard`);
-  }
+  const { total: totalCount, parts } = summarizeUploadedDeck(parsed);
 
   return (
     <div
@@ -1788,51 +1551,6 @@ function DeleteConfirmDialog({ deckName, onCancel, onConfirm }: DeleteConfirmDia
       </div>
     </div>
   );
-}
-
-// --- Helpers ---
-
-/** Recursively walk a Servatrice folder tree collecting only files
- *  (leaf decks). `pathPrefix` is the display path from the root. */
-function flattenFolder(folder: ServerInfo_DeckStorage_Folder, pathPrefix: string): FlatDeck[] {
-  const out: FlatDeck[] = [];
-  for (const item of folder.items) {
-    if (item.file && item.id) {
-      out.push({
-        id: item.id,
-        name: item.name || `Deck #${item.id}`,
-        path: pathPrefix,
-        creationTime: item.file.creationTime ?? 0,
-      });
-    } else if (item.folder) {
-      const nextPath = pathPrefix ? `${pathPrefix}/${item.name}` : item.name;
-      out.push(...flattenFolder(item.folder, nextPath));
-    }
-  }
-  return out;
-}
-
-/** Loose "3 hours ago" formatter for Unix seconds. Good enough for
- *  the list view; the editor can show absolute timestamps. */
-function formatTimestamp(unixSeconds: number): string {
-  if (!unixSeconds) {
-    return 'unknown';
-  }
-  const then = new Date(unixSeconds * 1000);
-  const diffSec = (Date.now() - then.getTime()) / 1000;
-  if (diffSec < 60) {
-    return 'just now';
-  }
-  if (diffSec < 3600) {
-    return `${Math.floor(diffSec / 60)}m ago`;
-  }
-  if (diffSec < 86400) {
-    return `${Math.floor(diffSec / 3600)}h ago`;
-  }
-  if (diffSec < 604800) {
-    return `${Math.floor(diffSec / 86400)}d ago`;
-  }
-  return then.toLocaleDateString();
 }
 
 export default Decks;

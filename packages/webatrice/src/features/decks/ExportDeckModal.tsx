@@ -2,10 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Copy, Check, Download, FileText, Swords, Package } from 'lucide-react';
 
-import { serializeCod } from '@app/services';
-import type { DeckMeta } from '@app/types';
-
-import type { DeckCard } from './types';
+import { exportDeck, exportFileName, type DeckExportFormat } from './deckExport';
+import type { HydratedDeck } from './types';
 
 /**
  * Deck exporter. Portal modal with a format picker, live preview
@@ -20,10 +18,8 @@ import type { DeckCard } from './types';
  *     Cockatrice desktop is lossless.
  */
 
-type Format = 'plain' | 'arena' | 'cockatrice';
-
 interface FormatDef {
-  id: Format;
+  id: DeckExportFormat;
   label: string;
   icon: typeof FileText;
   extension: string;
@@ -58,124 +54,19 @@ const FORMATS: FormatDef[] = [
   },
 ];
 
-// ---------- Format writers ----------
-
-function toPlain(cards: DeckCard[]): string {
-  // Commander is a per-card flag, not a category — cards live in
-  // main + isCommander=true. Filter main to exclude them so we
-  // don't list a commander under both the Commander and Deck
-  // sections in the exported list.
-  const commanders = cards.filter((c) => c.isCommander);
-  const main = cards.filter((c) => c.category === 'main' && !c.isCommander);
-  const side = cards.filter((c) => c.category === 'sideboard');
-  const parts: string[] = [];
-  if (commanders.length > 0) {
-    parts.push('// Commander');
-    for (const c of commanders) {
-      parts.push(`${c.quantity} ${c.name}`);
-    }
-  }
-  if (main.length > 0) {
-    if (parts.length > 0) {
-      parts.push('');
-    }
-    parts.push('// Deck');
-    for (const c of main) {
-      parts.push(`${c.quantity} ${c.name}`);
-    }
-  }
-  if (side.length > 0) {
-    if (parts.length > 0) {
-      parts.push('');
-    }
-    parts.push('// Sideboard');
-    for (const c of side) {
-      parts.push(`${c.quantity} ${c.name}`);
-    }
-  }
-  return parts.join('\n');
-}
-
-function toArena(cards: DeckCard[]): string {
-  const line = (c: DeckCard) => {
-    const set = c.set ? c.set.toUpperCase() : '';
-    const num = c.collectorNumber ?? '';
-    if (set && num) {
-      return `${c.quantity} ${c.name} (${set}) ${num}`;
-    }
-    return `${c.quantity} ${c.name}`;
-  };
-  // Commander is a per-card flag, not a category — cards live in
-  // main + isCommander=true. Filter main to exclude them so we
-  // don't list a commander under both the Commander and Deck
-  // sections in the exported list.
-  const commanders = cards.filter((c) => c.isCommander);
-  const main = cards.filter((c) => c.category === 'main' && !c.isCommander);
-  const side = cards.filter((c) => c.category === 'sideboard');
-  const parts: string[] = [];
-  if (commanders.length > 0) {
-    parts.push('Commander');
-    for (const c of commanders) {
-      parts.push(line(c));
-    }
-  }
-  if (main.length > 0) {
-    if (parts.length > 0) {
-      parts.push('');
-    }
-    parts.push('Deck');
-    for (const c of main) {
-      parts.push(line(c));
-    }
-  }
-  if (side.length > 0) {
-    if (parts.length > 0) {
-      parts.push('');
-    }
-    parts.push('Sideboard');
-    for (const c of side) {
-      parts.push(line(c));
-    }
-  }
-  return parts.join('\n');
-}
-
-function slugify(s: string): string {
-  return (
-    s
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '') || 'deck'
-  );
-}
-
 // ---------- Component ----------
 
 export default function ExportDeckModal({
   open,
   onClose,
-  deckName,
-  cards,
-  meta,
-  format,
-  bannerCard,
-  lastLoadedTimestamp,
-  tagsXml,
+  deck,
 }: {
   open: boolean;
   onClose: () => void;
-  deckName: string;
-  cards: DeckCard[];
-  /** Deck metadata + format bits — passed straight to `serializeCod`
-   *  so the Cockatrice export is a lossless round-trip of everything
-   *  the file was carrying. */
-  meta: DeckMeta;
-  format: string;
-  bannerCard?: string;
-  lastLoadedTimestamp?: string;
-  tagsXml?: string;
+  /** The live editor deck; the preview re-renders as it changes. */
+  deck: HydratedDeck;
 }) {
-  const [exportFormat, setExportFormat] = useState<Format>('plain');
+  const [exportFormat, setExportFormat] = useState<DeckExportFormat>('plain');
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -192,28 +83,7 @@ export default function ExportDeckModal({
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  const content = useMemo(() => {
-    switch (exportFormat) {
-      case 'arena':
-        return toArena(cards);
-      case 'cockatrice':
-        // Reuse the canonical serializer so the exported .cod is
-        // byte-compatible with what autosave writes to Servatrice —
-        // and preserves format, banner, tags, and metadata JSON.
-        return serializeCod({
-          name: deckName,
-          meta,
-          cards,
-          format,
-          bannerCard,
-          lastLoadedTimestamp,
-          tagsXml,
-        });
-      case 'plain':
-      default:
-        return toPlain(cards);
-    }
-  }, [exportFormat, cards, deckName, meta, format, bannerCard, lastLoadedTimestamp, tagsXml]);
+  const content = useMemo(() => exportDeck(deck, exportFormat), [deck, exportFormat]);
 
   const currentFormat = FORMATS.find((f) => f.id === exportFormat)!;
 
@@ -233,7 +103,7 @@ export default function ExportDeckModal({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${slugify(deckName)}.${currentFormat.extension}`;
+    a.download = exportFileName(deck.name, currentFormat.extension);
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -264,7 +134,7 @@ export default function ExportDeckModal({
 
         <div className="mb-4">
           <h2 className="font-modern text-xl font-bold text-text-primary">Export deck</h2>
-          <p className="text-xs text-text-muted mt-1 truncate">{deckName}</p>
+          <p className="text-xs text-text-muted mt-1 truncate">{deck.name}</p>
         </div>
 
         <div className="grid grid-cols-3 gap-2 mb-4">
