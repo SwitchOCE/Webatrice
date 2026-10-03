@@ -1,2 +1,3 @@
 - 14:17Z started w24 → read context, set up branch
 - 14:24Z PLAT-026 preflight + unsupported screen pushed (e9f8cc3-amended) → e2e tsconfig, e2e specs
+- 14:31Z PLAT-028 e2e tsconfig + connection-drop + browser-support e2e pushed (66f0806), 9/9 on 3 browsers → full gate
