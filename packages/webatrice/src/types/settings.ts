@@ -15,6 +15,15 @@ export class Setting {
   // General — startup
   autoConnect: boolean;
 
+  // General — language. A `Language` code, or '' to follow the browser's language.
+  language: string;
+
+  // General — debug log (desktop servers_settings `clearDebugLogStatus`)
+  clearDebugLogOnClose: boolean;
+
+  // Appearance — theme palette
+  themeMode: ThemeMode;
+
   // Appearance — table grid layout
   invertVerticalCoordinate: boolean;
 
@@ -54,6 +63,13 @@ export class Setting {
 
 export const APP_USER = '*app';
 
+/** Desktop's "Active theme palette": a fixed palette, or follow the operating system. */
+export enum ThemeMode {
+  System = 'system',
+  Light = 'light',
+  Dark = 'dark',
+}
+
 /** Every user-editable preference on the settings row. */
 export type Preferences = Omit<Setting, 'user' | 'version' | 'shortcuts'>;
 export type PreferenceKey = keyof Preferences;
@@ -69,6 +85,13 @@ export const DEFAULT_CHAT_COLOR = 'A6120D';
 /** Desktop defaults, so a fresh browser behaves like a fresh desktop install. */
 export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   autoConnect: false,
+
+  language: '',
+
+  clearDebugLogOnClose: false,
+
+  // Desktop writes an unset scheme as "System" (theme_config.cpp).
+  themeMode: ThemeMode.System,
 
   invertVerticalCoordinate: false,
 
@@ -102,4 +125,4 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
 });
 
 /** Current settings-row schema version. See `services/dexie/settingsMigration.ts`. */
-export const SETTINGS_VERSION = 1;
+export const SETTINGS_VERSION = 2;

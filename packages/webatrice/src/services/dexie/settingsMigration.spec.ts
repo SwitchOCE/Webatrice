@@ -1,4 +1,5 @@
-import { PREFERENCE_DEFAULTS, SETTINGS_VERSION } from '@app/types';
+import { PREFERENCE_DEFAULTS, SETTINGS_VERSION, ThemeMode } from '@app/types';
+import { LANGUAGE_STORAGE_KEY } from '@app/utils';
 import { fillPreferenceDefaults, migrateSetting } from './settingsMigration';
 
 describe('migrateSetting', () => {
@@ -57,5 +58,37 @@ describe('fillPreferenceDefaults', () => {
     const row: Record<string, unknown> = {};
     fillPreferenceDefaults(row);
     expect(Object.keys(row).sort()).toEqual(Object.keys(PREFERENCE_DEFAULTS).sort());
+  });
+});
+
+describe('v2: theme palette and language', () => {
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it('keeps an existing user on the dark palette they have always had', () => {
+    expect(migrateSetting({ user: '*app', version: 1 }).themeMode).toBe(ThemeMode.Dark);
+    expect(migrateSetting({ user: '*app' }).themeMode).toBe(ThemeMode.Dark);
+  });
+
+  it('adopts the language i18next cached before the preference existed', () => {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, 'pt-BR');
+    expect(migrateSetting({ user: '*app', version: 1 }).language).toBe('pt_BR');
+  });
+
+  it('follows the browser language when nothing usable was cached', () => {
+    expect(migrateSetting({ user: '*app', version: 1 }).language).toBe('');
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, 'ja');
+    expect(migrateSetting({ user: '*app', version: 1 }).language).toBe('');
+  });
+
+  it('leaves a current row alone', () => {
+    const row = migrateSetting({ user: '*app', version: 2, themeMode: ThemeMode.Light, language: 'fr' });
+    expect(row.themeMode).toBe(ThemeMode.Light);
+    expect(row.language).toBe('fr');
+  });
+
+  it('gives a fresh row the desktop default of following the system', () => {
+    expect(PREFERENCE_DEFAULTS.themeMode).toBe(ThemeMode.System);
   });
 });
