@@ -10,6 +10,9 @@ import {
   STACK_PILE_HORIZONTAL_OFFSET_PX,
 } from '../../battlefield/Battlefield/battlefieldLayout';
 import { useBattlefieldMenuItems } from '../../battlefield/Battlefield/useBattlefieldMenuItems';
+import type { CardMenuItem } from '../../context-menus/CardContextMenu/cardContextMenu.model';
+import { buildRelatedViewItems } from '../../context-menus/CardContextMenu/relatedCardActions';
+import { useCardPreviewActions } from '../CardPreviewContext';
 import { useCardScale } from '../CardScaleContext';
 import { useGameDialogsContext } from '../GameDialogsContext';
 import { useGameSelectionState } from '../GameSelectionContext';
@@ -99,6 +102,16 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     resolveFaceImageUri,
     describeCard,
   } = useSeatCardMetadata({ isSelf, deckCards, battlefieldCards: zones.battlefield.cards });
+  // "View related cards" for a card menu (desktop addRelatedCardView). A
+  // relation resolves once the catalog has found it; the item shows that
+  // card in the sidebar's card-info pane.
+  const { showCardInfo } = useCardPreviewActions();
+  const relatedViewItemsFor = (cardName: string): CardMenuItem[] =>
+    buildRelatedViewItems(
+      cardMetaByName.get(cardName)?.related ?? [],
+      (name) => tokenMetaByName.get(name)?.found ?? false,
+      (ref) => showCardInfo({ name: ref.name, scryfallId: ref.scryfallId }),
+    );
 
   const deckCount = zones.library.cardCount ?? 0;
 
@@ -421,6 +434,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     pendingArrowPointer,
     pileCardMenu,
     playerId,
+    relatedViewItemsFor,
     resolveFaceImageUri,
     revealTargets,
     seat,

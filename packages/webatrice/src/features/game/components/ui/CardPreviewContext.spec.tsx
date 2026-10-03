@@ -53,6 +53,21 @@ describe('createCardPreviewStore', () => {
     expect(listener).toHaveBeenCalledTimes(3);
   });
 
+  it('publishes each showCardInfo call as a new request', () => {
+    const store = createCardPreviewStore();
+    const listener = vi.fn();
+    store.subscribe(listener);
+    expect(store.getCardInfoRequest()).toBeNull();
+
+    store.showCardInfo(BOLT);
+    const first = store.getCardInfoRequest();
+    expect(first?.card).toBe(BOLT);
+
+    store.showCardInfo(BOLT);
+    expect(store.getCardInfoRequest()).not.toBe(first);
+    expect(listener).toHaveBeenCalledTimes(2);
+  });
+
   it('projects a structured-leaf server card to the presentation payload', () => {
     expect(previewCardFromServerCard(makeCard({ id: 1, name: 'Bear', pt: '2/2', annotation: 'big' })))
       .toEqual({ name: 'Bear', pt: '2/2', annotation: 'big' });

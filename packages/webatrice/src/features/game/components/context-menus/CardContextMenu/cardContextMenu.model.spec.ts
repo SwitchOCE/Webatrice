@@ -148,6 +148,14 @@ describe('buildCardContextMenu', () => {
     expect(tree(buildCardContextMenu(makeArgs({ tokenItems: [] }))).at(-1)).toMatch(/^ {2}Set counters \(F\)/);
   });
 
+  it('places "View related cards" between Card counters and the token items', () => {
+    const rows = tree(buildCardContextMenu(makeArgs({
+      relatedViewItems: [{ divider: true }, { label: 'View related cards', submenu: [{ label: 'Spark Elemental' }] }],
+      tokenItems: [{ label: 'Token: 1/1 Soldier' }],
+    })));
+    expect(rows.slice(-5)).toEqual(['---', 'View related cards', '  Spark Elemental', '---', 'Token: 1/1 Soldier']);
+  });
+
   it('wires each row to its handler, passing the counter slot', () => {
     const args = makeArgs();
     const menu = buildCardContextMenu(args);
