@@ -9,6 +9,7 @@ import { useReportUser } from '@app/dialogs';
 import { Images } from '@app/images';
 import { Layout } from '@app/feature-wrappers/layout';
 import { MODERATION_MENU_LABEL_KEYS, useModerationMenu } from '@app/feature-widgets/moderation';
+import { useUserGames } from '@app/feature-widgets/user-games';
 import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 import PrivateChat from './PrivateChat';
 import { usePlayer } from './usePlayer';
@@ -93,6 +94,7 @@ const Player = () => {
   const moderation = useModerationMenu(name ?? '', userInfo?.userLevel);
 
   const { canReportUser, openReportUser } = useReportUser();
+  const userGames = useUserGames();
   const avatar = useMemo(() => avatarSrc(userInfo?.avatarBmp), [userInfo?.avatarBmp]);
   const countryCode = userInfo?.country?.toUpperCase() ?? '';
 
@@ -163,6 +165,13 @@ const Player = () => {
                   <Button variant="outlined" onClick={isIgnored ? onRemoveIgnore : onAddIgnore}>
                     {isIgnored ? t('Player.action.removeIgnore') : t('Player.action.addIgnore')}
                   </Button>
+                  {/* Desktop's UserContextMenu entry, enabled only while the user is online
+                   *  (aShowGames->setEnabled(online)). The context menu is the other way in. */}
+                  {name && userGames && (
+                    <Button variant="outlined" disabled={!isOnline} onClick={() => userGames.open(name)}>
+                      {t('UserGamesDialog.menu.showGames')}
+                    </Button>
+                  )}
                   {name && canReportUser(name) && (
                     <Button variant="outlined" color="warning" onClick={() => openReportUser({ userName: name })}>
                       {t('ReportUserDialog.menuItem')}
