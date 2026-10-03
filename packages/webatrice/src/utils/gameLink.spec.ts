@@ -75,6 +75,14 @@ describe('gameLinkServer', () => {
     });
     expect(gameLinkServer({ host: 'localhost/servatrice', port: '4748' })).toEqual({ hostname: 'localhost', port: '80' });
   });
+
+  it('uses the port written before the path, which the socket dials', () => {
+    expect(gameLinkServer({ host: 'example.com:8443/servatrice', port: '4748' })).toEqual({
+      hostname: 'example.com',
+      port: '8443',
+    });
+    expect(gameLinkServer({ host: '[::1]:4747/servatrice', port: '4748' })).toEqual({ hostname: '[::1]', port: '4747' });
+  });
 });
 
 describe('isSameServerHost', () => {
