@@ -9,7 +9,7 @@ import { createPortal } from 'react-dom';
 import { setRef } from '@mui/material/utils';
 import { Search, X } from 'lucide-react';
 import Card from '../../components/ui/SeatCard/SeatCard';
-import { CARD_HEIGHT, CARD_WIDTH } from '../../components/ui/SeatCard/cardSize';
+import { CARD_HEIGHT, CARD_WIDTH, SELECTED_CARD_GLOW } from '../../components/ui/SeatCard/cardSize';
 import { useCardPreviewActions } from '../../components/ui/CardPreviewContext';
 import { lookupCardsCached } from '@app/services';
 import {
@@ -939,7 +939,7 @@ export default function ZoneViewPanel({
                                 : `calc(${CARD_HEIGHT} * ${PILE_STEP_FRACTION})`,
                               borderRadius: '7.5%',
                               boxShadow: selected
-                                ? '0 0 0 2px rgb(59 130 246), 0 0 12px 2px rgb(59 130 246 / 0.6)'
+                                ? SELECTED_CARD_GLOW
                                 : undefined,
                               opacity: dragging ? 0 : 1,
                               touchAction: onCardPointerDown ? 'none' : undefined,
@@ -996,7 +996,7 @@ export default function ZoneViewPanel({
                               height: CARD_HEIGHT,
                               borderRadius: '7.5%',
                               boxShadow: selected
-                                ? '0 0 0 2px rgb(59 130 246), 0 0 12px 2px rgb(59 130 246 / 0.6)'
+                                ? SELECTED_CARD_GLOW
                                 : undefined,
                               opacity: dragging ? 0 : 1,
                               touchAction: onCardPointerDown ? 'none' : undefined,

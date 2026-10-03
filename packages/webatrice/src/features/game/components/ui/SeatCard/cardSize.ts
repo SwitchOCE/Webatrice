@@ -26,3 +26,6 @@ export const CARD_BACK_URL =
  * eating into meaningful art.
  */
 export const CARD_CORNER_RADIUS = '7.5%';
+
+/** Ring and glow on a selected card, wherever cards are selectable. */
+export const SELECTED_CARD_GLOW = '0 0 0 2px rgb(59 130 246), 0 0 12px 2px rgb(59 130 246 / 0.6)';

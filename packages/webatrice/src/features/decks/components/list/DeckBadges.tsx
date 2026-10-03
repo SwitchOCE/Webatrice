@@ -1,4 +1,4 @@
-import { bracketToneClass } from '../../bracketTone';
+import { bracketToneClass } from '@app/services';
 
 export function BracketBadge({ level }: { level: number }) {
   return (

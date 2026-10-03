@@ -1,6 +1,5 @@
 import type { BracketSignals } from './bracket';
 import { bracketSignalBadges } from './bracketBadges';
-import { bracketToneClass } from './bracketTone';
 
 function signals(overrides: Partial<BracketSignals> = {}): BracketSignals {
   return {
@@ -47,12 +46,5 @@ describe('bracketSignalBadges', () => {
     expect(turns.count).toBe(1);
     expect(turns.items).toEqual(['Time Warp']);
     expect(turns.chainable).toEqual(['Nexus of Fate']);
-  });
-});
-
-describe('bracketToneClass', () => {
-  it('maps levels to the shared palette with a neutral fallback', () => {
-    expect(bracketToneClass(3)).toBe('text-warning bg-yellow-500/15 border-yellow-500/40');
-    expect(bracketToneClass(9)).toBe('text-text-secondary bg-bg-elevated border-border-subtle');
   });
 });

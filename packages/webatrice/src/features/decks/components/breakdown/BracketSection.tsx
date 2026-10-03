@@ -2,13 +2,13 @@ import { useRef } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { CircleAlert, Globe, Loader2, RefreshCw } from 'lucide-react';
 
+import { BRACKET_TONE } from '@app/services';
 import type { BracketAssessment } from '@app/types';
 
 import type { UnavailableSource } from '../../bracket';
 import { bracketSignalBadges } from '../../bracketBadges';
 import { useBracketLookupsConsent } from '../../bracketConsent';
 import type { SourceFailure } from '../../bracketSources';
-import { BRACKET_TONE } from '../../bracketTone';
 import { useBracketAssessment, type BracketAssessmentState } from '../../hooks/useBracketAssessment';
 import type { DeckCard } from '../../types';
 import { SignalBadge } from './SignalBadge';

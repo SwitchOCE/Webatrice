@@ -1,33 +1,12 @@
 ﻿import { create } from '@bufbuild/protobuf';
 import { ServerInfo_CardCounterSchema, ServerInfo_PlayerSchema } from '@cockatrice/sockatrice/generated';
 import {
-  formatLeaveMessage,
   MAX_GAME_MESSAGES,
   normalizePlayers,
   pushEventMessage,
   resetCardState,
 } from './game.reducer.helpers';
 import { makeCard, makeGameEntry, makePlayerProperties } from '../../testing/fixtures/games';
-
-describe('formatLeaveMessage', () => {
-  it('maps a known leave reason to its message', () => {
-    expect(formatLeaveMessage('Alice', 2).text).toBe('Alice has left the game (kicked by game host or moderator).');
-    expect(formatLeaveMessage('Alice', 3).text).toBe('Alice has left the game (player left the game).');
-    expect(formatLeaveMessage('Alice', 4).text).toBe('Alice has left the game (player disconnected from server).');
-  });
-
-  it('falls back to "reason unknown" for an unrecognized reason code', () => {
-    expect(formatLeaveMessage('Bob', 999).text).toBe('Bob has left the game (reason unknown).');
-  });
-
-  it('splits the leave message into player-name + plain segments', () => {
-    const entry = formatLeaveMessage('Alice', 2);
-    expect(entry.segments).toEqual([
-      { text: 'Alice', kind: 'player' },
-      { text: ' has left the game (kicked by game host or moderator).', kind: 'plain' },
-    ]);
-  });
-});
 
 describe('pushEventMessage', () => {
   it('no-ops when the message is null or empty', () => {

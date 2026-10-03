@@ -6,7 +6,7 @@ import { lookupCard } from '@app/services';
 import { layoutStackPile } from '../../battlefield/Battlefield/battlefieldLayout';
 import { legacyTableRowFromTypeLine, tableRowToGridY } from '../../battlefield/Battlefield/cardPlacement';
 import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
-import { CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
+import { CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH, SELECTED_CARD_GLOW } from '../SeatCard/cardSize';
 import Card from '../SeatCard/SeatCard';
 
 /**
@@ -172,7 +172,7 @@ export default function StackColumn() {
                   touchAction: isSelf ? 'none' : undefined,
                   cursor: isSelf ? 'grab' : 'default',
                   boxShadow: selected
-                    ? '0 0 0 2px rgb(59 130 246), 0 0 12px 2px rgb(59 130 246 / 0.6)'
+                    ? SELECTED_CARD_GLOW
                     : undefined,
                   borderRadius: CARD_CORNER_RADIUS,
                 }}

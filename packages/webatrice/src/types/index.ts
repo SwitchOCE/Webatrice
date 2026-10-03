@@ -4,6 +4,7 @@ export * from './countries';
 export * from './deckFormat';
 export * from './forms';
 export * from './languages';
+export * from './moderation';
 export * from './regex-patterns';
 export * from './routes';
 export * from './server';

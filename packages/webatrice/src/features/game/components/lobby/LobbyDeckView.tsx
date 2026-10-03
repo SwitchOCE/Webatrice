@@ -2,7 +2,9 @@ import { memo, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeftRight } from 'lucide-react';
 
-import { DECK_ZONE_MAIN, DECK_ZONE_SIDE, groupDeckZone, type DeckView, type DeckZone } from './deckViewModel';
+import { DECK_ZONE_MAIN, DECK_ZONE_SIDE } from '@app/types';
+
+import { groupDeckZone, type DeckView, type DeckZone } from './deckViewModel';
 
 interface LobbyDeckViewProps {
   view: DeckView;

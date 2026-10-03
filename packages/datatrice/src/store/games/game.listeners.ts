@@ -20,7 +20,7 @@ import {
   moveOpKey,
 } from './optimistic';
 import { cloneWith } from '../../common';
-import { buildEmptyCard, formatLeaveMessage, normalizePlayers, resetCardState } from './game.reducer.helpers';
+import { buildEmptyCard, normalizePlayers, resetCardState } from './game.reducer.helpers';
 import {
   EVENT_PLAYER_ID_SYSTEM,
   diffPlayerProperties,
@@ -40,6 +40,7 @@ import {
   formatCardsDrawn,
   formatCounterSet,
   formatGameStart,
+  formatLeaveMessage,
   formatPlayerJoined,
   formatPropertyDiff,
   formatTokenCreated,

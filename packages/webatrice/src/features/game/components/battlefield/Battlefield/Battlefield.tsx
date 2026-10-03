@@ -5,7 +5,7 @@ import { usePreference, useSnapGridVisible } from '@app/hooks';
 import ContextMenu from '../../context-menus/ContextMenu/ContextMenu';
 import { PlayerPlaymat } from '../../PlayerPlaymat';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
-import { CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../../ui/SeatCard/cardSize';
+import { CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH, SELECTED_CARD_GLOW } from '../../ui/SeatCard/cardSize';
 import Card from '../../ui/SeatCard/SeatCard';
 import { SEAT_DROP_PRIORITY } from '../../../hooks/seatDropPlan';
 import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
@@ -434,7 +434,7 @@ export default function Battlefield() {
                       : selected
                         ? c.doesntUntap
                           ? '0 0 0 2px rgb(59 130 246), 0 0 0 4px rgb(251 191 36), 0 0 12px 2px rgb(251 191 36 / 0.7)'
-                          : '0 0 0 2px rgb(59 130 246), 0 0 12px 2px rgb(59 130 246 / 0.6)'
+                          : SELECTED_CARD_GLOW
                         : c.doesntUntap
                           ? '0 0 0 2px rgb(251 191 36), 0 0 10px 2px rgb(251 191 36 / 0.6)'
                           : undefined,

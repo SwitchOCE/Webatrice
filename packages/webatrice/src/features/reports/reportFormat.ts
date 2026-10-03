@@ -1,19 +1,16 @@
 import { ReportStatus } from '@cockatrice/datatrice';
 
+import { formatLocalDateTime } from '@app/utils';
+
 /** Desktop report_utils::formatReportCategory: "bug_abuse" -> "Bug abuse". */
 export function formatReportCategory(category: string): string {
   const spaced = category.replace(/_/g, ' ');
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
-function pad(n: number): string {
-  return String(n).padStart(2, '0');
-}
-
 /** Desktop report_utils::formatReportTime: epoch seconds as local "yyyy-MM-dd hh:mm". */
 export function formatReportTime(secondsSinceEpoch: bigint): string {
-  const d = new Date(Number(secondsSinceEpoch) * 1000);
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return formatLocalDateTime(new Date(Number(secondsSinceEpoch) * 1000));
 }
 
 /** Local "yyyy-MM-dd" for an epoch-seconds timestamp. */

@@ -14,6 +14,7 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import type { Response_ReportUserInfo, ServerInfo_ModeratorLogin } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { useAppSelector } from '@app/store';
+import type { ModerationNotice } from '@app/types';
 
 export type InvestigationPart = 'info' | 'alts' | 'sessions';
 
@@ -21,12 +22,6 @@ type PartFlags = Record<InvestigationPart, boolean>;
 
 const NONE: PartFlags = { info: false, alts: false, sessions: false };
 const ALL: PartFlags = { info: true, alts: true, sessions: true };
-
-export interface ModerationNotice {
-  title: string;
-  message: string;
-  severity: 'info' | 'error';
-}
 
 export type ModerationConfirm = 'resetPassword' | 'removeAvatar';
 
