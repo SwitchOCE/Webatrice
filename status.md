@@ -3,3 +3,4 @@
 - 16:15Z §9 related cards pushed (b6397fa) → §7 reveal to (hand card menu)
 - 16:28Z §7 reveal-to pushed → §8 hide
 - 16:35Z §8 hide pushed → §4 deck in editor
+- 16:42Z §4 deck-in-editor draft pushed → §6 tally
