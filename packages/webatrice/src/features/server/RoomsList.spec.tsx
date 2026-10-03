@@ -74,4 +74,15 @@ describe('RoomsList', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open' }));
     expect(hoisted.mockWebClient.request.session.joinRoom).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['the permission level when it is set', { permissionlevel: 'REGISTERED', privilegelevel: 'VIP' }, 'registered'],
+    ['the privilege level when the permission level is none', { permissionlevel: 'none', privilegelevel: 'VIP' }, 'vip'],
+    ['none when neither level is set', { permissionlevel: 'none', privilegelevel: '' }, 'none'],
+  ])('shows %s in the Permissions column', (_label, levels, expected) => {
+    renderWithProviders(<RoomsList rooms={{ 1: makeRoom(levels) }} joinedRooms={[]} />, {
+      preloadedState: connectedState,
+    });
+    expect(screen.getByText(expected)).toBeInTheDocument();
+  });
 });
