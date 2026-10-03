@@ -15,7 +15,7 @@ import type { ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/gen
 import { useAppSelector } from '@app/store';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import {
-  useDocumentTitle, useLeaveGame, useOpenedReplays, usePhaseTrackPinnedSetting, useSnapGridSetting,
+  useDocumentTitle, useLeaveGame, useOpenedReplays, usePhaseTrackPinnedSetting, usePreference, useSnapGridSetting,
 } from '@app/hooks';
 import { Images } from '@app/images';
 import { closeReplay } from '@app/services';
@@ -122,6 +122,9 @@ export default function TopBar() {
   // every navigation, which would wipe a normal useState. The
   // singleton + useSyncExternalStore pair survives remounts.
   const [stickyTabs, setStickyTabs] = useStickyTabs();
+  // Settings > User Interface: desktop's "Open deck in new tab by default". Off (desktop's
+  // default) the deck editor keeps one tab, as it always has here; on, each deck opens its own.
+  const openDeckInNewTab = usePreference('openDeckInNewTab');
   useEffect(() => {
     const transient = detectTransientTab(location.pathname);
     if (!transient) {
@@ -141,15 +144,15 @@ export default function TopBar() {
       return;
     }
     setStickyTabs((prev) => {
-      // Deck editor: single-slot — replace the previous 'deck' tab if any.
-      if (transient.type === 'deck') {
+      // Deck editor: single-slot unless the user asked for a tab per deck.
+      if (transient.type === 'deck' && !openDeckInNewTab) {
         const others = prev.filter((t) => t.type !== 'deck');
         return [...others, transient];
       }
       // Decks list / Shortcuts / Player: additive, no-op if already present.
       return prev.some((t) => t.key === transient.key) ? prev : [...prev, transient];
     });
-  }, [location.pathname, setStickyTabs]);
+  }, [location.pathname, openDeckInNewTab, setStickyTabs]);
 
   // Mirror the current pathname to localStorage so an F5 refresh drops
   // the user back on the same route (MemoryRouter has no URL to lean

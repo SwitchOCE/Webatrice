@@ -68,6 +68,18 @@ export const userInterfaceSection: SettingsSection = {
       ],
     },
     {
+      id: 'userInterface.deckEditor',
+      titleKey: 'SettingsUserInterface.group.deckEditor',
+      entries: [
+        {
+          id: 'openDeckInNewTab',
+          labelKey: 'SettingsUserInterface.openDeckInNewTab.label',
+          descriptionKey: 'SettingsUserInterface.openDeckInNewTab.description',
+          control: { kind: 'toggle', key: 'openDeckInNewTab' },
+        },
+      ],
+    },
+    {
       id: 'userInterface.replay',
       titleKey: 'SettingsUserInterface.group.replay',
       entries: [
