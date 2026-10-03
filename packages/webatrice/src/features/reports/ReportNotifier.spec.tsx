@@ -42,6 +42,24 @@ describe('ReportNotifier', () => {
     expect(screen.getByText('my reports page')).toBeTruthy();
   });
 
+  it('keeps the notice up until it is dismissed or opened, since it leads somewhere', () => {
+    vi.useFakeTimers();
+    try {
+      const { store } = renderNotifier();
+      act(() => {
+        store.dispatch(notice(Type.REPORT_RESOLVED, 'Report Resolved', 'Your report has been resolved.'));
+      });
+
+      act(() => {
+        vi.advanceTimersByTime(60_000);
+      });
+
+      expect(screen.getByTestId('report-notice')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('opens the queue for a moderator comment notice', () => {
     const { store } = renderNotifier(true);
     act(() => {

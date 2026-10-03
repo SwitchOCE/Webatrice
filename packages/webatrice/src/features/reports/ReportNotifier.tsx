@@ -13,6 +13,7 @@ import { RouteEnum } from '@app/types';
  * TabSupervisor::processNotifyUserEvent shows them: the server's title and
  * content, skipped when either is blank. Clicking opens where the report can
  * be read: the queue for a moderator's comment notice, My Reports otherwise.
+ * The popup stays until it is opened or dismissed.
  * Renders nothing; mounted once in AppShell inside the Router.
  */
 export default function ReportNotifier() {
@@ -52,7 +53,8 @@ export default function ReportNotifier() {
         <span className="text-xs font-semibold text-accent truncate">{title}</span>
         <span className="text-sm text-text-primary whitespace-pre-wrap break-words line-clamp-4">{content}</span>
       </button>,
-      { icon: Flag },
+      // It opens the report, so it must not time out (WCAG 2.2.1).
+      { icon: Flag, persistent: true },
     );
   }, [lastNotice, isModerator, navigate, pushToast]);
 
