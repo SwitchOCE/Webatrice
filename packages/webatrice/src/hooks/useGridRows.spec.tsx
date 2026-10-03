@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 
 import { useGridRows, type GridRowsOptions } from './useGridRows';
 
@@ -87,5 +87,39 @@ describe('useGridRows', () => {
     fireEvent.keyDown(screen.getByTestId('a'), { key: 'ArrowLeft' });
     expect(onExpand).toHaveBeenCalledWith('a');
     expect(onCollapse).toHaveBeenCalledWith('a');
+  });
+  it('re-homes the tab stop to the first visible row while the selected row is scrolled out of a window', () => {
+    const keys = ['a', 'b', 'c', 'd', 'e'];
+    let report: (visible: [number, number], all: [number, number]) => void = () => {};
+    // Mounts only the rows in the reported window, the way react-window does.
+    function WindowedGrid() {
+      const [window, setWindow] = useState<[number, number]>([0, 1]);
+      const rows = useGridRows({ keys, selectedKey: 'a', onSelect: vi.fn(), onActivate: vi.fn() });
+      report = (visible, all) => {
+        setWindow(all);
+        rows.onRowsRendered({ startIndex: visible[0], stopIndex: visible[1] }, { startIndex: all[0], stopIndex: all[1] });
+      };
+      return (
+        <div role="grid">
+          {keys.slice(window[0], window[1] + 1).map((key) => (
+            <div key={key} role="row" data-testid={key} {...rows.getRowProps(key)} />
+          ))}
+        </div>
+      );
+    }
+    render(<WindowedGrid />);
+    act(() => report([0, 0], [0, 1]));
+    expect(screen.getByTestId('a').tabIndex).toBe(0);
+
+    // Scrolled so 'c'..'d' are visible and 'b'..'e' rendered (overscan): 'a' is gone.
+    act(() => report([2, 3], [1, 4]));
+    expect(screen.queryByTestId('a')).not.toBeInTheDocument();
+    expect(screen.getByTestId('c').tabIndex).toBe(0);
+    expect(['b', 'd', 'e'].map((key) => screen.getByTestId(key).tabIndex)).toEqual([-1, -1, -1]);
+
+    // Scrolled back: the selected row holds the tab stop again.
+    act(() => report([0, 1], [0, 2]));
+    expect(screen.getByTestId('a').tabIndex).toBe(0);
+    expect(screen.getByTestId('b').tabIndex).toBe(-1);
   });
 });
