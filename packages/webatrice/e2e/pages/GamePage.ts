@@ -323,20 +323,15 @@ export class GamePage {
   // Handles the "Move to" submenu path: specs pass regexes like
   // `/send to graveyard/i` that resolve to "Move to → Graveyard".
   //
-  // Hand-source shim: PlayerBox's hand row does NOT wire per-card
-  // right-clicks (right-clicking a hand card opens the HAND-level menu
-  // — View hand, Sort hand, etc. — not a card-move menu). Callers that
-  // ask for "send to graveyard" on a hand card actually mean "get this
-  // card into the graveyard"; the interaction the user would perform
-  // now is drag-onto-graveyard, so we do that in POM.
+  // Hand-source shim: callers that ask for "send to graveyard" on a hand
+  // card mean "get this card into the graveyard"; the POM drags it onto
+  // the pile, which these specs have always exercised. (Hand cards also
+  // have desktop's card menu now; see chooseCardMenuPath.)
   async moveViaCardMenu(card: Locator, item: RegExp): Promise<void> {
     const zone = await card.getAttribute('data-zone');
     const resolved = resolveCardMenuItem(item);
 
-    // Shim #1: hand cards no longer expose a per-card context menu
-    // in PlayerBox (right-click bubbles to the HAND-level menu, which
-    // only has View hand / Sort hand). Emulate the intended move by
-    // dragging onto the target pile.
+    // Shim #1: hand cards move by dragging onto the target pile.
     //
     // Shim #2: cards inside a pile-view popup (`data-zone` is null
     // because the popup card wrapper doesn't set `data-zone`) also
@@ -381,6 +376,34 @@ export class GamePage {
       // submenus on hover, matching desktop). Click the leaf.
       await this.hoverCardContextMenuItem(resolved.submenu);
       await this.clickCardContextMenuItem(resolved.item);
+    }
+  }
+
+  // A local hand card by name (`[data-card][data-zone="hand"]`, whose Card
+  // carries `title="{cardName}"`).
+  handCard(cardName: string): Locator {
+    return this.localBoard
+      .locator('[data-card][data-zone="hand"]')
+      .filter({ has: this.page.locator(`[title="${cardName}"]`) })
+      .first();
+  }
+
+  // Right-click `card` and follow a card-menu path: hover each submenu
+  // parent, click the leaf (`chooseCardMenuPath(card, /^reveal to/i, /^all players$/i)`).
+  async chooseCardMenuPath(card: Locator, ...path: RegExp[]): Promise<void> {
+    await card.click({ button: 'right' });
+    for (const [i, label] of path.entries()) {
+      if (i < path.length - 1) {
+        const menu = this.page.locator('[data-card-context-menu]').last();
+        await expect(menu).toBeVisible({ timeout: 5_000 });
+        const before = await this.page.locator('[data-card-context-menu]').count();
+        await this.menuItemButton(menu, label).first().hover();
+        await expect
+          .poll(() => this.page.locator('[data-card-context-menu]').count(), { timeout: 5_000 })
+          .toBeGreaterThan(before);
+      } else {
+        await this.clickCardContextMenuItem(label);
+      }
     }
   }
 
