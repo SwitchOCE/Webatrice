@@ -243,8 +243,8 @@ describe('GameResponseImpl', () => {
 
   it('turnReversed dispatches the turnReversed action', () => {
     const { impl, dispatch } = setup();
-    impl.turnReversed(7, true);
-    expect(dispatch).toHaveBeenCalledWith(GameActions.turnReversed({ gameId: 7, reversed: true }));
+    impl.turnReversed(7, true, 2);
+    expect(dispatch).toHaveBeenCalledWith(GameActions.turnReversed({ gameId: 7, reversed: true, playerId: 2 }));
   });
 
   it('zoneDumped dispatches the zoneDumped action', () => {
