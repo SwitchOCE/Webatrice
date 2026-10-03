@@ -144,12 +144,16 @@ describe('DeckEditor (integration)', () => {
     expect(groupHeadings()).toEqual(['Commander1', 'Instant1', 'Artifact1', 'Land10', 'Sideboard1']);
     expect(await screen.findByText('DeckBracket.title', {}, { timeout: 3000 })).toBeInTheDocument();
 
+    // Spellbook gets the main deck and the commander, never the sideboard.
     const spellbook = fetchCalls(fetchMock, 'https://backend.commanderspellbook.com/find-my-combos/');
     expect(spellbook).toHaveLength(1);
-    expect(JSON.parse(String(spellbook[0][1]?.body)).main).toEqual(expect.arrayContaining([
+    const body = JSON.parse(String(spellbook[0][1]?.body));
+    expect(body.main).toEqual(expect.arrayContaining([
       { card: 'Sol Ring', quantity: 1 },
-      { card: 'Llanowar Elves', quantity: 1 },
+      { card: 'Forest', quantity: 10 },
     ]));
+    expect(body.main).not.toContainEqual(expect.objectContaining({ card: 'Llanowar Elves' }));
+    expect(body.commanders).toEqual([{ card: 'Atraxa, Grand Unifier', quantity: 1 }]);
 
     const saved = await autosaved((d) => d.bracketAssessment?.level === 1 && d.meta.priceUsd === 24.75);
     expect(saved.meta.bracketLevel).toBe(1);

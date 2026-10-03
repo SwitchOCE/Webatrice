@@ -244,14 +244,15 @@ describe('fetchSpellbookCombos', () => {
     { name: 'Negate', quantity: 2, category: 'sideboard', lookupSource: 'scryfall' },
   ];
 
-  it('sends only names and merged quantities, and returns the included combos', async () => {
+  it('sends only main-deck names and quantities, and returns the included combos', async () => {
     fetchMock.mockResolvedValue(json({ results: { included: [{ id: 'c1' }] } }));
 
     expect(await fetchSpellbookCombos(cards)).toEqual({ status: 'ok', data: [{ id: 'c1' }] });
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('https://backend.commanderspellbook.com/find-my-combos/');
     expect(JSON.parse(String(init.body))).toEqual({
-      main: [{ card: 'Sol Ring', quantity: 1 }, { card: 'Negate', quantity: 3 }],
+      main: [{ card: 'Sol Ring', quantity: 1 }, { card: 'Negate', quantity: 1 }],
+      commanders: [],
     });
   });
 
@@ -264,6 +265,24 @@ describe('fetchSpellbookCombos', () => {
     };
     fetchMock.mockResolvedValue(json({ results: { included: [combo, { id: 'legacy' }] } }));
     expect(await fetchSpellbookCombos(cards)).toEqual({ status: 'ok', data: [combo, { id: 'legacy' }] });
+  });
+
+  it('sends designated commanders in their own list', async () => {
+    fetchMock.mockResolvedValue(json({ results: { included: [] } }));
+
+    await fetchSpellbookCombos([
+      { name: 'Thrasios, Triton Hero', quantity: 1, category: 'main', isCommander: true, lookupSource: 'scryfall' },
+      ...cards,
+    ]);
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual({
+      main: [{ card: 'Sol Ring', quantity: 1 }, { card: 'Negate', quantity: 1 }],
+      commanders: [{ card: 'Thrasios, Triton Hero', quantity: 1 }],
+    });
+  });
+
+  it('makes no request when only the sideboard has cards', async () => {
+    expect(await fetchSpellbookCombos([cards[2]])).toEqual({ status: 'ok', data: [] });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('returns an empty included list as no combos', async () => {
