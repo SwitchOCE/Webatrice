@@ -23,6 +23,10 @@ const MIGRATIONS: Record<number, (row: SettingRow) => void> = {
     row.themeMode = ThemeMode.Dark;
     row.language = legacyLanguageChoice() ?? '';
   },
+  // v3: desktop's playmat settings move from their own localStorage key into the app row.
+  // The board preferences (hand and table layout, card clicks, arrows, selection counts,
+  // animations, card rendering) arrived without a step: every one is new, so
+  // migrateSetting's closing fillPreferenceDefaults gives each its desktop default.
   3: (row) => {
     if (row.user !== '*app') {
       return;

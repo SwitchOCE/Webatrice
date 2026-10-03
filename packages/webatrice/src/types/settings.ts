@@ -42,6 +42,8 @@ export class Setting {
 
   // Appearance — table grid layout
   invertVerticalCoordinate: boolean;
+  /** Seated players at which the board splits into two columns (desktop `minPlayersMulticolumn`). */
+  minPlayersForMultiColumnLayout: number;
 
   // User interface — general (desktop interface_settings / cards_display_settings)
   playToStack: boolean;
@@ -150,6 +152,7 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   themeMode: ThemeMode.System,
 
   invertVerticalCoordinate: false,
+  minPlayersForMultiColumnLayout: 4,
 
   playToStack: true,
   closeEmptyCardView: true,

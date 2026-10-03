@@ -163,6 +163,18 @@ function BuiltInControl({ id, control, preferences, disabled, describedBy, onCha
   }
 }
 
+/**
+ * A spin box's value: a whole number within its range, as QSpinBox keeps it. A cleared or
+ * unparsable box saves nothing, and the box shows the stored value again.
+ */
+export function clampWhole(raw: string, min: number, max: number): number | undefined {
+  const value = Number(raw);
+  if (raw.trim() === '' || !Number.isFinite(value)) {
+    return undefined;
+  }
+  return Math.min(max, Math.max(min, Math.round(value)));
+}
+
 type RangeControlProps = Omit<BuiltInControlProps, 'control'> & {
   control: Extract<SettingControl, { kind: 'range' }>;
 };
@@ -207,12 +219,10 @@ function NumberControl({ id, control, preferences, disabled, describedBy, onChan
   const { unitKey } = control;
   const unitId = unitKey ? `${id}-unit` : undefined;
   const commit = (raw: string) => {
-    const value = Number(raw);
-    // An emptied or invalid field goes back to the saved value, as a spin box cannot be emptied.
-    if (raw.trim() === '' || !Number.isFinite(value)) {
-      return;
+    const value = clampWhole(raw, control.min, control.max);
+    if (value !== undefined) {
+      onChange({ [control.key]: value });
     }
-    onChange({ [control.key]: Math.min(control.max, Math.max(control.min, Math.round(value))) });
   };
 
   return (

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 
 import { GameEntry, games } from '@cockatrice/datatrice';
+import { PREFERENCE_DEFAULTS } from '@app/types';
 
 import { computeCanAct } from './useGameAccess';
 
@@ -33,10 +34,6 @@ export type RotationStep = 1 | -1;
 export const ROTATE_CLOCKWISE: RotationStep = -1;
 export const ROTATE_COUNTERCLOCKWISE: RotationStep = 1;
 
-// Cockatrice switches to a 2-column board at this player count
-// (its getMinPlayersForMultiColumnLayout default; see Cockatrice issue #3533).
-const MIN_PLAYERS_FOR_TWO_COLUMNS = 4;
-
 const EMPTY_LAYOUT: GameBoardLayout = {
   cells: [],
   columns: 1,
@@ -58,8 +55,16 @@ const EMPTY_LAYOUT: GameBoardLayout = {
  * step turns the ring one seat further, -1 per "Rotate View Clockwise" and +1
  * per "Rotate View Counterclockwise". Mirroring stays by row, as on desktop, so
  * a rotated local seat away from the bottom row renders mirrored.
+ *
+ * `minPlayersForMultiColumn` is desktop's "Minimum player count for multi-column layout"
+ * (Appearance › Table grid layout, default 4; see Cockatrice issue #3533): at that many seated
+ * players the board splits into two columns.
  */
-export function useGameBoardLayout(game: GameEntry | undefined, rotation = 0): GameBoardLayout {
+export function useGameBoardLayout(
+  game: GameEntry | undefined,
+  rotation = 0,
+  minPlayersForMultiColumn: number = PREFERENCE_DEFAULTS.minPlayersForMultiColumnLayout,
+): GameBoardLayout {
   return useMemo<GameBoardLayout>(() => {
     if (!game) {
       return EMPTY_LAYOUT;
@@ -94,7 +99,7 @@ export function useGameBoardLayout(game: GameEntry | undefined, rotation = 0): G
         ? { playerId: localPlayerId, canAct: computeCanAct(game, localPlayerId) }
         : undefined;
 
-    const columns = n >= MIN_PLAYERS_FOR_TWO_COLUMNS ? 2 : 1;
+    const columns = n >= minPlayersForMultiColumn ? 2 : 1;
     const rows = Math.ceil(n / columns);
 
     // Rotate the ring so the anchored (local) player leads, then by the view
@@ -134,5 +139,5 @@ export function useGameBoardLayout(game: GameEntry | undefined, rotation = 0): G
     });
 
     return { cells, columns, rows, handMode, bottomHand };
-  }, [game, rotation]);
+  }, [game, rotation, minPlayersForMultiColumn]);
 }

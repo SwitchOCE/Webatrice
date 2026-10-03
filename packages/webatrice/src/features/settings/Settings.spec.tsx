@@ -119,6 +119,37 @@ describe('Settings', () => {
     test.mockRestore();
   });
 
+  it('saves a spin box once its number is committed, kept within its range', async () => {
+    await renderSettings();
+    openSection(/Settings\.section\.appearance/);
+    const box = screen.getByLabelText(/SettingsAppearance\.minPlayersForMultiColumnLayout\.label/);
+    expect(box).toHaveValue(4);
+    // As a browser does: an input event per keystroke, then one change event on Enter or blur.
+    const commit = async (value: string) => {
+      fireEvent.input(box, { target: { value } });
+      await act(async () => {
+        fireEvent.change(box);
+      });
+    };
+
+    fireEvent.input(box, { target: { value: '6' } });
+    expect(getPreferencesSnapshot().minPlayersForMultiColumnLayout).toBe(4);
+    await act(async () => {
+      fireEvent.change(box);
+    });
+    expect(getPreferencesSnapshot().minPlayersForMultiColumnLayout).toBe(6);
+
+    // Below desktop's minimum of 2: clamped, as QSpinBox does.
+    await commit('1');
+    expect(getPreferencesSnapshot().minPlayersForMultiColumnLayout).toBe(2);
+    expect(box).toHaveValue(2);
+
+    // A cleared box saves nothing and shows the stored value again.
+    await commit('');
+    expect(getPreferencesSnapshot().minPlayersForMultiColumnLayout).toBe(2);
+    expect(box).toHaveValue(2);
+  });
+
   it('stores colors as desktop does, as hex without the hash', async () => {
     await renderSettings();
     openSection(/Settings\.section\.chat/);

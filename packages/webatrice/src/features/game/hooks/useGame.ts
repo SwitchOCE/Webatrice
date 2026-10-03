@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core';
 
 import { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
+import { usePreference } from '@app/hooks';
 import {
   createCardPreviewStore,
   previewCardFromServerCard,
@@ -113,7 +114,7 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
   const getSelectedCards = useCallback(() => selectedCardsRef.current, []);
 
   const { rotationSteps, rotateView } = useGameRotation(gameId);
-  const layout = useGameBoardLayout(game, rotationSteps);
+  const layout = useGameBoardLayout(game, rotationSteps, usePreference('minPlayersForMultiColumnLayout'));
   const localAccess = useGameAccess(gameId, game?.localPlayerId);
   const judgeTarget = useJudgeTarget(gameId);
 
