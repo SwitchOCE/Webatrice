@@ -636,6 +636,13 @@
     "add": "Add new host",
     "refresh": "Test connection",
     "toggle": "Toggle host list",
+    "saved": "Saved hosts",
+    "edit": "Edit {name}",
+    "status": {
+      "testing": "Testing the connection…",
+      "success": "Server reachable",
+      "failed": "Couldn't reach the server"
+    },
     "toast": "Host successfully {mode, select, created {created} deleted {deleted} other {edited}}.",
     "public": {
       "title": "Public servers",
