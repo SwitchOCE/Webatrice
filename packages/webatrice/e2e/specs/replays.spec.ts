@@ -1,7 +1,7 @@
 import { copyFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-import { GamePage } from '../pages';
+import { GamePage, topBarTab } from '../pages';
 import { ReplaysPage } from '../pages/ReplaysPage';
 import { registerAndJoinFirstRoom } from '../fixtures/flows';
 import { expect, test } from '../fixtures/test';
@@ -86,9 +86,9 @@ test('a finished game can be found, managed and watched from the replays tab', a
   await expect(replays.time).toHaveText(/^0:00 \/ \d+:\d\d$/);
 
   // The replay keeps its tab after switching away, like a desktop replay tab.
-  await hostPage.getByRole('tab', { name: /Lobby/ }).click();
+  await topBarTab(hostPage, /Lobby/).click();
   await expect(replays.controls).toBeHidden();
-  await hostPage.getByRole('tab', { name: new RegExp(gameName) }).click();
+  await topBarTab(hostPage, new RegExp(gameName)).click();
   await expect(replays.controls).toBeVisible();
 
   // Step forward until both players have joined the recorded game. (A scripted
