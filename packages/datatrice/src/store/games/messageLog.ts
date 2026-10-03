@@ -702,6 +702,14 @@ export function formatGameStart(): LogEntry {
   return L`The game has started.`;
 }
 
+export function formatGameClosed(): LogEntry {
+  return L`The game has been closed.`;
+}
+
+export function formatReplayStarted(gameId: number): LogEntry {
+  return L`You are watching a replay of game #${String(gameId)}.`;
+}
+
 export function formatArrowCreated(
   game: Enriched.GameEntry,
   playerId: number,
@@ -834,6 +842,7 @@ export function classifyLogTone(input: string | LogEntry): LogTone {
   }
   if (
     /^The game has (started|been closed)\.$/.test(text)
+    || /^You are watching a replay of game #/.test(text)
     || / has joined the game\.$/.test(text)
     || / has left the game/.test(text)
     || / has (?:un)?conceded the game\.$/.test(text)

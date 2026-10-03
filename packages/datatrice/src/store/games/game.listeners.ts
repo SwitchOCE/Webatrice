@@ -706,6 +706,11 @@ export function registerGameListeners(mw: ListenerMiddlewareInstance<unknown>): 
         cards: data.cards,
         isReversed: false,
       }));
+      // A replay has no viewer to reveal to; the reveal is already logged and
+      // seeded into the zone view above.
+      if (game.replay) {
+        return;
+      }
       api.dispatch(Actions.incomingRevealShown({
         gameId,
         sourceOwnerId: playerId,
