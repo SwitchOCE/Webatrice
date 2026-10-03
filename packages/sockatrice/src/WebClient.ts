@@ -145,6 +145,14 @@ export class WebClient {
     this.response.session.initialized();
   }
 
+  /**
+   * The host/port this client last connected to (null before the first connect). Read-only;
+   * consumers use it to name the current server, e.g. in a desktop `cockatrice://joingame` link.
+   */
+  public get connectTarget(): ConnectTarget | null {
+    return this.socket.target;
+  }
+
   public connect(target: ConnectTarget): void {
     if (this.disposed || this.resetting) {
       return;

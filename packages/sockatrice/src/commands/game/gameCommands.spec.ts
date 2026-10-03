@@ -36,6 +36,7 @@ import {
   Command_UndoDraw_ext,
   Command_Unconcede_ext,
   Command_SetPlaymat_ext,
+  Response_DeckDownload_ext,
 } from '../../generated';
 
 import { attachCard } from './attachCard';
@@ -116,11 +117,22 @@ describe('Game commands — delegate to WebClient.instance.protobuf.sendGameComm
     );
   });
 
-  it('deckSelect sends Command_DeckSelect', () => {
+  it('deckSelect sends Command_DeckSelect with a Response_DeckDownload handler', () => {
     deckSelect(gameId, { deckId: 5 });
     expect(WebClient.instance.protobuf.sendGameCommand).toHaveBeenCalledWith(
-      gameId, Command_DeckSelect_ext, expect.objectContaining({ deckId: 5 })
+      gameId,
+      Command_DeckSelect_ext,
+      expect.objectContaining({ deckId: 5 }),
+      expect.objectContaining({ responseExt: Response_DeckDownload_ext, onSuccess: expect.any(Function) }),
     );
+  });
+
+  it('deckSelect onSuccess routes the server deck list to response.game.deckSelected', () => {
+    deckSelect(gameId, { deck: '<cockatrice_deck/>' });
+    const calls = vi.mocked(WebClient.instance.protobuf.sendGameCommand).mock.calls;
+    const options = calls[calls.length - 1][3] as { onSuccess: (resp: unknown) => void };
+    options.onSuccess({ deck: '<cockatrice_deck version="1"/>' });
+    expect(WebClient.instance.response.game.deckSelected).toHaveBeenCalledWith(gameId, '<cockatrice_deck version="1"/>');
   });
 
   it('delCounter sends Command_DelCounter', () => {
@@ -229,6 +241,13 @@ describe('Game commands — delegate to WebClient.instance.protobuf.sendGameComm
     readyStart(gameId, { ready: true });
     expect(WebClient.instance.protobuf.sendGameCommand).toHaveBeenCalledWith(
       gameId, Command_ReadyStart_ext, expect.objectContaining({ ready: true })
+    );
+  });
+
+  it('readyStart carries force_start alongside ready (desktop DeckViewContainer::forceStart)', () => {
+    readyStart(gameId, { ready: true, forceStart: true });
+    expect(WebClient.instance.protobuf.sendGameCommand).toHaveBeenCalledWith(
+      gameId, Command_ReadyStart_ext, expect.objectContaining({ ready: true, forceStart: true })
     );
   });
 
