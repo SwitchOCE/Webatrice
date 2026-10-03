@@ -13,6 +13,7 @@ export enum RouteEnum {
   CARD_ART_RULES = '/card-art-rules',
   DEVELOPER = '/developer',
   REPLAYS = '/replays',
+  REPLAY = '/replay/:replayKey',
   SETTINGS = '/settings',
   SHORTCUTS = '/shortcuts',
   INITIALIZE = '/initialize',

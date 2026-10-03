@@ -39,14 +39,25 @@ export interface Game extends CurrentGame {
   dnd: GameDnd;
 }
 
-export function useGame(): Game {
+export interface UseGameOptions {
+  /** Game to drive; defaults to the `/game/:gameId` route param. */
+  gameId?: number;
+  /** Replay playback: no drag sensors and no kicked/closed/left navigation. */
+  readOnly?: boolean;
+}
+
+const NO_SENSORS: ReturnType<typeof useSensors> = [];
+
+export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOptions = {}): Game {
   const params = useParams<{ gameId?: string }>();
   const parsed = params.gameId != null ? Number(params.gameId) : NaN;
   const routeGameId = Number.isFinite(parsed) ? parsed : undefined;
-  const current = useCurrentGame(routeGameId);
+  const current = useCurrentGame(boardGameId ?? routeGameId);
   const { gameId, game, isSpectator } = current;
 
-  useGameLifecycleNavigation(gameId);
+  // A replay ends with its recorded Event_GameClosed; that must not bounce the
+  // viewer to the lobby like a live game closing does.
+  useGameLifecycleNavigation(readOnly ? undefined : gameId);
 
   const boardRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<HTMLDivElement>(null);
@@ -139,7 +150,7 @@ export function useGame(): Game {
     boardRef,
     gameRef,
     cardRegistry,
-    sensors,
+    sensors: readOnly ? NO_SENSORS : sensors,
     hoveredCard,
     setHoveredCard,
     previewCard,
