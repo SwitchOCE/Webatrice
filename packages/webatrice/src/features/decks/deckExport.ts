@@ -87,6 +87,7 @@ export function exportDeck(deck: HydratedDeck, format: DeckExportFormat): string
         bannerCardProviderId: deck.bannerCardProviderId,
         lastLoadedTimestamp: deck.lastLoadedTimestamp,
         playmatXml: deck.playmatXml,
+        sideboardPlansXml: deck.sideboardPlansXml,
         tagsXml: deck.tagsXml,
       });
     case 'plain':
