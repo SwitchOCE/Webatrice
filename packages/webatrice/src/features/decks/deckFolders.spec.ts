@@ -12,6 +12,7 @@ import {
   deckPathCrumbs,
   decksUnderFolder,
   findDeckFolder,
+  isUnderPublicFolder,
   joinDeckPath,
   listDeckFolder,
   parentDeckPath,
@@ -61,8 +62,8 @@ describe('listDeckFolder', () => {
   it('lists the root: subfolders by name with recursive counts, then its own decks newest first', () => {
     const view = listDeckFolder(root, '');
     expect(view.folders).toEqual([
-      { name: 'Cube', path: 'Cube', deckCount: 0, folderCount: 0 },
-      { name: 'Modern', path: 'Modern', deckCount: 2, folderCount: 2 },
+      { name: 'Cube', path: 'Cube', deckCount: 0, folderCount: 0, visibility: 'private' },
+      { name: 'Modern', path: 'Modern', deckCount: 2, folderCount: 2, visibility: 'private' },
     ]);
     expect(view.decks.map((d) => d.name)).toEqual(['Newer root deck', 'Root deck']);
   });
@@ -92,6 +93,40 @@ describe('decksUnderFolder / allDeckFolderPaths', () => {
   it('lists every folder path, root first', () => {
     expect(allDeckFolderPaths(root)).toEqual(['', 'Cube', 'Modern', 'Modern/Empty', 'Modern/Old']);
     expect(allDeckFolderPaths(undefined)).toEqual(['']);
+  });
+});
+
+describe('public folders', () => {
+  const publicTree = create(ServerInfo_DeckStorage_FolderSchema, {
+    items: [
+      create(ServerInfo_DeckStorage_TreeItemSchema, {
+        name: 'Shared',
+        folder: create(ServerInfo_DeckStorage_FolderSchema, {
+          isPublic: true,
+          items: [folder('Inner', [file(7, 'Inherited', 1)])],
+        }),
+      }),
+      folder('Private', [file(8, 'Hidden', 1)]),
+    ],
+  });
+
+  it('finds a public folder at or above a path', () => {
+    expect(isUnderPublicFolder(publicTree, 'Shared')).toBe(true);
+    expect(isUnderPublicFolder(publicTree, 'Shared/Inner')).toBe(true);
+    expect(isUnderPublicFolder(publicTree, 'Private')).toBe(false);
+    expect(isUnderPublicFolder(publicTree, '')).toBe(false);
+    expect(isUnderPublicFolder(undefined, 'Shared')).toBe(false);
+  });
+
+  it('shows a folder\'s own bit and what its contents inherit', () => {
+    expect(listDeckFolder(publicTree, '').folders.map((f) => [f.name, f.visibility])).toEqual([
+      ['Private', 'private'],
+      ['Shared', 'public'],
+    ]);
+    const inner = listDeckFolder(publicTree, 'Shared/Inner');
+    expect(inner.decks.map((d) => d.visibility)).toEqual(['inherited']);
+    expect(listDeckFolder(publicTree, 'Shared').folders[0].visibility).toBe('inherited');
+    expect(decksUnderFolder(publicTree, 'Shared/Inner')[0].visibility).toBe('inherited');
   });
 });
 
