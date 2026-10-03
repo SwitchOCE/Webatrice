@@ -8,7 +8,7 @@ import { StyledEngineProvider } from '@mui/material';
 import { DatatriceProvider, WebClientProvider } from '@cockatrice/datatrice/react';
 import { extensions } from '@app/store';
 import { AppThemeProvider } from '@app/components';
-import { bootColorScheme, debugLog, initAnalytics, installConsoleCapture } from '@app/services';
+import { bootColorScheme, debugLog, followBootColorScheme, initAnalytics, installConsoleCapture } from '@app/services';
 import { CLIENT_CONFIG, CLIENT_OPTIONS } from './clientConfig';
 import AppShell from './AppShell';
 import CardPreviewPopupPage from './features/game/components/CardPreviewPopup/CardPreviewPopupPage';
@@ -64,6 +64,9 @@ const isCardPreviewPopup =
 // Paint with the user's palette from the first frame (both the app and the popup window);
 // AppThemeProvider takes over once settings load and follows every later change.
 bootColorScheme();
+if (isCardPreviewPopup) {
+  followBootColorScheme();
+}
 
 // Bootstrap Google Analytics from the per-deploy runtime config. No-ops when no
 // measurement id was injected for this environment (see services/analytics.ts).
