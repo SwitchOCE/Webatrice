@@ -1,37 +1,21 @@
 import { useTranslation } from 'react-i18next';
-import { Navigate } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
 
-import { server, ServerCapability } from '@cockatrice/datatrice';
-import { AuthGuard } from '@app/components';
+import { ServerCapability } from '@cockatrice/datatrice';
+import { AuthGuard, CapabilityGuard } from '@app/components';
 import { Layout } from '@app/feature-wrappers/layout';
-import { useAppSelector } from '@app/store';
-import { RouteEnum } from '@app/types';
 
 import ReportTable, { MY_REPORT_COLUMNS } from './components/ReportTable';
 import ReportThread from './components/ReportThread';
 import { useMyReports } from './hooks/useMyReports';
 import { listStatusText, REPORT_BUTTON_CLASS } from './components/reportUi';
 
-/**
- * "My Reports" (desktop DlgMyReports, opened from the Account tab): the
- * reports you filed with their status, and for the selected one its
- * description, chat log and comment thread with a reply box.
- */
-const MyReports = () => {
-  const supported = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.REPORTS));
-  // Hidden on 3.0 servers; a stale route (e.g. restored after reconnecting
-  // to an older server) falls back to the lobby instead of erroring.
-  return supported ? <MyReportsView /> : <Navigate to={RouteEnum.SERVER} />;
-};
-
-const MyReportsView = () => {
+const MyReportsContent = () => {
   const { t } = useTranslation();
   const { reports, loadState, refresh, selectedId, selected, select, thread } = useMyReports();
 
   return (
-    <Layout>
-      <AuthGuard />
+    <>
       <div className="flex h-full flex-col gap-3 p-4" data-testid="my-reports">
         <h1 className="font-modern text-xl font-semibold text-text-primary">{t('Reports.mine.title')}</h1>
         <div className="flex min-h-0 flex-1 gap-4">
@@ -67,8 +51,24 @@ const MyReportsView = () => {
           </section>
         </div>
       </div>
-    </Layout>
+    </>
   );
 };
+
+/**
+ * "My Reports" (desktop DlgMyReports, opened from the Account tab): the
+ * reports you filed with their status, and for the selected one its
+ * description, chat log and comment thread with a reply box. Hidden on 3.0
+ * servers; a stale route (e.g. restored after reconnecting to an older
+ * server) falls back to the lobby before the body sends anything.
+ */
+const MyReports = () => (
+  <Layout>
+    <AuthGuard />
+    <CapabilityGuard capability={ServerCapability.REPORTS}>
+      <MyReportsContent />
+    </CapabilityGuard>
+  </Layout>
+);
 
 export default MyReports;

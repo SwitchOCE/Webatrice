@@ -1,13 +1,11 @@
 import { useTranslation } from 'react-i18next';
-import { Navigate } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
 
 import { rooms, server, ServerCapability } from '@cockatrice/datatrice';
-import { AuthGuard, ModGuard } from '@app/components';
+import { AuthGuard, CapabilityGuard, ModGuard } from '@app/components';
 import { AlertDialog, PromptDialog } from '@app/dialogs';
 import { Layout } from '@app/feature-wrappers/layout';
 import { useAppDispatch, useAppSelector } from '@app/store';
-import { RouteEnum } from '@app/types';
 
 import ReportStatsPanel from './components/ReportStatsPanel';
 import ReportTable, { QUEUE_COLUMNS } from './components/ReportTable';
@@ -22,16 +20,7 @@ const INPUT_CLASS =
   'bg-bg-base border border-border-subtle rounded-md px-3 py-1.5 text-sm text-text-primary '
   + 'focus:outline-none focus:border-accent';
 
-/**
- * Moderator "Report Queue" (desktop TabReport). Moderator-only, and hidden on
- * servers without the 3.1 moderation commands.
- */
-const ReportQueue = () => {
-  const supported = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.MODERATION_TOOLS));
-  return supported ? <ReportQueueView /> : <Navigate to={RouteEnum.SERVER} />;
-};
-
-const ReportQueueView = () => {
+const ReportQueueContent = () => {
   const { t } = useTranslation();
   const dispatch = useAppDispatch();
   const joinError = useAppSelector(rooms.Selectors.getJoinGameError);
@@ -41,9 +30,7 @@ const ReportQueueView = () => {
   const counts = useAppSelector(server.Selectors.getReportQueueStatusCounts);
 
   return (
-    <Layout>
-      <AuthGuard />
-      <ModGuard />
+    <>
       <div className="flex h-full flex-col gap-3 overflow-y-auto p-4" data-testid="report-queue">
         <h1 className="font-modern text-xl font-semibold text-text-primary">{t('Reports.queue.title')}</h1>
 
@@ -172,8 +159,25 @@ const ReportQueueView = () => {
         message={joinError?.message ?? ''}
         onDismiss={() => dispatch(rooms.Actions.clearJoinGameError())}
       />
-    </Layout>
+    </>
   );
 };
+
+/**
+ * Moderator "Report Queue" (desktop TabReport). Moderator-only, and hidden on
+ * servers without the 3.1 moderation commands. The guards mount the body only
+ * when both allow it, so its load effects never send a moderator command for
+ * anyone else.
+ */
+const ReportQueue = () => (
+  <Layout>
+    <AuthGuard />
+    <ModGuard>
+      <CapabilityGuard capability={ServerCapability.MODERATION_TOOLS}>
+        <ReportQueueContent />
+      </CapabilityGuard>
+    </ModGuard>
+  </Layout>
+);
 
 export default ReportQueue;
