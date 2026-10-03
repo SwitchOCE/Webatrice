@@ -74,11 +74,17 @@ describe('analyzeBracket', () => {
 });
 
 describe('fingerprints and the persisted form', () => {
-  it('fingerprints the (name, quantity) shape only', () => {
+  it('fingerprints names and quantities, ignoring case, order and printing', () => {
     const a = deckFingerprint([card('A'), card('b', 2)]);
     expect(a).toMatch(/^[0-9a-z]{8}$/);
-    expect(deckFingerprint([{ ...card('B', 2), category: 'sideboard', set: 'x' }, card('a')])).toBe(a);
+    expect(deckFingerprint([{ ...card('B', 2), set: 'x' }, card('a')])).toBe(a);
     expect(deckFingerprint([card('A'), card('b', 3)])).not.toBe(a);
+  });
+
+  it('changes when a card changes zone or commander status, since the combo lookup depends on both', () => {
+    const a = deckFingerprint([card('A'), card('b', 2)]);
+    expect(deckFingerprint([card('A'), { ...card('b', 2), category: 'sideboard' }])).not.toBe(a);
+    expect(deckFingerprint([{ ...card('A'), isCommander: true }, card('b', 2)])).not.toBe(a);
   });
 
   it('round-trips a report through the persisted assessment', async () => {
