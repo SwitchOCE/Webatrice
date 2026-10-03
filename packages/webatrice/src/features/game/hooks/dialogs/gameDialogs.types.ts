@@ -1,6 +1,7 @@
 import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
 
 import type { CreateTokenSubmit } from '../../dialogs/CreateTokenDialog/CreateTokenDialog';
+import type { MoveTopUntilRequest } from '../useMoveTopUntil';
 import type { SideboardPlanMove } from '../../dialogs/SideboardDialog/SideboardDialog';
 
 // The game dialog and menu contract. `useGameDialogs` is the façade that builds
@@ -87,6 +88,11 @@ export interface CreateTokenRequest {
   onSubmit?: (token: CreateTokenSubmit) => void;
 }
 
+/** The open "Put top cards on stack until…" dialog: the seat's loop to start. */
+export interface MoveTopUntilState {
+  onSubmit: (request: MoveTopUntilRequest) => void;
+}
+
 export interface RevealState {
   title: string;
   zoneName: string;
@@ -118,6 +124,7 @@ export interface GameDialogsState {
   handMenu: AnchorPosition | null;
   zoneViews: ZoneViewTarget[];
   prompt: PromptState | null;
+  moveTopUntil: MoveTopUntilState | null;
   rollDieOpen: boolean;
   lastDieSides: number;
   lastDieCount: number;
@@ -167,6 +174,11 @@ export interface GameDialogsActions {
   /** Opens the prompt; it closes itself after `onSubmit` runs. */
   openPrompt: (prompt: PromptState) => void;
   closePrompt: () => void;
+
+  // "Put top cards on stack until…" dialog
+  /** Opens the dialog; it closes itself after `onSubmit` runs. */
+  openMoveTopUntil: (dialog: MoveTopUntilState) => void;
+  closeMoveTopUntil: () => void;
 
   // Roll die dialog
   openRollDie: () => void;
@@ -280,6 +292,8 @@ export const NOOP_GAME_DIALOGS_ACTIONS: GameDialogsActions = {
   handleCloseZoneView: noopDialogAction,
   openPrompt: noopDialogAction,
   closePrompt: noopDialogAction,
+  openMoveTopUntil: noopDialogAction,
+  closeMoveTopUntil: noopDialogAction,
   openRollDie: noopDialogAction,
   closeRollDie: noopDialogAction,
   handleRollDieSubmit: noopDialogAction,

@@ -7,6 +7,7 @@ import type {
   ConcedeConfirm,
   CreateTokenRequest,
   GameDialogsActions,
+  MoveTopUntilState,
   GameDialogsState,
   PromptState,
   RevealState,
@@ -44,6 +45,8 @@ export type GameDialogToggleActions = Pick<
   | 'closeHandMenu'
   | 'openPrompt'
   | 'closePrompt'
+  | 'openMoveTopUntil'
+  | 'closeMoveTopUntil'
   | 'openRollDie'
   | 'closeRollDie'
   | 'openCreateToken'
@@ -78,6 +81,7 @@ export function useGameDialogState(): GameDialogStateHandle {
   const [seatCardMenu, setSeatCardMenu] = useState<SeatCardMenuState | null>(null);
   const [zoneMenu, setZoneMenu] = useState<ZoneMenuState | null>(null);
   const [prompt, setPrompt] = useState<PromptState | null>(null);
+  const [moveTopUntil, setMoveTopUntil] = useState<MoveTopUntilState | null>(null);
   const [rollDieOpen, setRollDieOpen] = useState(false);
   const [lastDieSides, setLastDieSides] = useState(DEFAULT_DIE_SIDES);
   const [lastDieCount, setLastDieCount] = useState(DEFAULT_DIE_COUNT);
@@ -133,6 +137,13 @@ export function useGameDialogState(): GameDialogStateHandle {
       },
     }),
     closePrompt: () => setPrompt(null),
+    openMoveTopUntil: (next) => setMoveTopUntil({
+      onSubmit: (request) => {
+        next.onSubmit(request);
+        setMoveTopUntil(null);
+      },
+    }),
+    closeMoveTopUntil: () => setMoveTopUntil(null),
     openRollDie: () => setRollDieOpen(true),
     closeRollDie: () => setRollDieOpen(false),
     openCreateToken: (request) => setCreateTokenRequest({ ...request }),
@@ -158,6 +169,7 @@ export function useGameDialogState(): GameDialogStateHandle {
       handMenu,
       zoneViews,
       prompt,
+      moveTopUntil,
       rollDieOpen,
       lastDieSides,
       lastDieCount,
@@ -177,6 +189,7 @@ export function useGameDialogState(): GameDialogStateHandle {
       handMenu,
       zoneViews,
       prompt,
+      moveTopUntil,
       rollDieOpen,
       lastDieSides,
       lastDieCount,

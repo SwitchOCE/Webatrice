@@ -25,6 +25,7 @@ import { BigCardPreview } from './components/PlayerBox/bigCardPreview';
 import { CardScaleProvider } from './components/PlayerBox/cardScale';
 import IncomingRevealDialog from './dialogs/IncomingRevealDialog/IncomingRevealDialog';
 import CreateTokenDialog from './dialogs/CreateTokenDialog/CreateTokenDialog';
+import MoveTopUntilDialog from './dialogs/MoveTopUntilDialog/MoveTopUntilDialog';
 import DeckSelectDialog from './dialogs/DeckSelectDialog/DeckSelectDialog';
 import GameInfoDialog from './dialogs/GameInfoDialog/GameInfoDialog';
 import RevealCardsDialog from './dialogs/RevealCardsDialog/RevealCardsDialog';
@@ -280,6 +281,8 @@ function GameBoard() {
                                 <RollDieDialog />
 
                                 <CreateTokenDialog />
+
+                                <MoveTopUntilDialog />
 
                                 <SideboardDialog />
 
