@@ -1,7 +1,6 @@
 {
   "Settings": {
     "title": "Settings",
-    "navLabel": "Settings",
     "searchLabel": "Search settings",
     "searchPlaceholder": "Search settings...",
     "searchResults": "Search results",
@@ -18,7 +17,10 @@
       "userInterface": "User Interface",
       "chat": "Chat",
       "sound": "Sound",
-      "shortcuts": "Shortcuts"
+      "shortcuts": "Shortcuts",
+      "general": "General",
+      "cardSources": "Card Sources",
+      "storage": "Storage"
     }
   }
 }

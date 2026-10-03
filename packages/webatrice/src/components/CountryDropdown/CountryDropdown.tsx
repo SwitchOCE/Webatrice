@@ -26,11 +26,11 @@ const CountryDropdown = ({ value, onChange, onBlur, name }: CountryDropdownProps
 
   return (
     <FormControl size="small" variant="outlined" className="CountryDropdown">
-      <InputLabel id="CountryDropdown-label">Country</InputLabel>
+      <InputLabel id="CountryDropdown-label">{t('Common.label.country')}</InputLabel>
       <Select
         id="CountryDropdown-select"
         labelId="CountryDropdown-label"
-        label="Country"
+        label={t('Common.label.country')}
         margin="dense"
         fullWidth
         name={name}
@@ -40,7 +40,7 @@ const CountryDropdown = ({ value, onChange, onBlur, name }: CountryDropdownProps
       >
         <MenuItem value="" key="none">
           <div className="CountryDropdown-item">
-            <span className="CountryDropdown-item__label">None</span>
+            <span className="CountryDropdown-item__label">{t('Common.label.none')}</span>
           </div>
         </MenuItem>
 

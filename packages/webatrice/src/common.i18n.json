@@ -1,6 +1,5 @@
 {
   "Common": {
-    "language": "English",
     "disconnect": "Disconnect",
     "label": {
       "confirmEmail": "Confirm Email",
@@ -17,7 +16,8 @@
       "realName": "Real Name",
       "saveChanges": "Save Changes",
       "token": "Token",
-      "username": "Username"
+      "username": "Username",
+      "none": "None"
     },
     "validation": {
       "emailsMustMatch": "Emails don't match",
@@ -293,5 +293,5 @@
       "tok": "Toki Pona",
       "yue": "Cantonese"
     }
-  } 
+  }
 }
