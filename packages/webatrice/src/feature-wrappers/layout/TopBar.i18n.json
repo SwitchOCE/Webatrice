@@ -1,0 +1,10 @@
+{
+  "TopBar": {
+    "replays": {
+      "button": "Replays",
+      "title": "Watch and manage replays",
+      "tab": "Replays"
+    },
+    "replayTab": "Replay"
+  }
+}

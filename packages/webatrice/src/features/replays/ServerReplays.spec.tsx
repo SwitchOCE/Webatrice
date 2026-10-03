@@ -12,7 +12,7 @@ import {
 import type { WebClient } from '@cockatrice/sockatrice';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { server } from '@cockatrice/datatrice';
-import { ReplayFileDTO, ReplayNameTakenError } from '@app/services';
+import { ReplayFileDTO, ReplayNameTakenError, getOpenedReplays } from '@app/services';
 import { RouteEnum } from '@app/types';
 
 import {
@@ -313,6 +313,7 @@ describe('Server replay storage', () => {
     });
 
     expect(screen.getByTestId('replay-view')).toBeInTheDocument();
+    expect(getOpenedReplays().at(-1)?.title).toBe('Replays.server.matchReplayTitle');
   });
 
   it('saves every replay of a match as a .cor download', () => {
