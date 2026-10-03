@@ -17,6 +17,8 @@
  *     (`services/cards/cardCatalog.ts`).
  */
 
+import type { DeckCard } from './types';
+
 export interface SearchResult {
   name: string;
   source: 'scryfall';
@@ -91,4 +93,33 @@ export async function searchScryfallCards(
     }
     return [];
   }
+}
+
+/** A search result's art: its own image, else its front face's. */
+export function searchCardImage(card: ScryfallSearchCard): string | undefined {
+  return (
+    card.image_uris?.normal ??
+    card.image_uris?.small ??
+    card.card_faces?.[0]?.image_uris?.normal ??
+    card.card_faces?.[0]?.image_uris?.small
+  );
+}
+
+/**
+ * A search result as a (not-in-deck) `DeckCard`, so hovering it can
+ * drive the sidebar preview with the same fields a deck row has.
+ */
+export function searchCardAsPreview(card: ScryfallSearchCard): DeckCard {
+  return {
+    name: card.name,
+    quantity: 1,
+    category: 'main',
+    typeLine: card.type_line,
+    manaCost: card.mana_cost,
+    set: card.set,
+    collectorNumber: card.collector_number,
+    scryfallId: card.id,
+    imageUri: searchCardImage(card),
+    lookupSource: 'scryfall',
+  };
 }
