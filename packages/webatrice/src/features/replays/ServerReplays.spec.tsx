@@ -317,8 +317,8 @@ describe('Server replay storage', () => {
   });
 
   it('saves every replay of a match as a .cor download', () => {
-    const createObjectURL = vi.fn(() => 'blob:replay');
-    Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() });
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:replay');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
     const clicks: string[] = [];
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function record(this: HTMLAnchorElement) {
       clicks.push(this.download);
