@@ -127,6 +127,14 @@ export class WebClient {
     this.response.session.initialized();
   }
 
+  /**
+   * The host/port this client last connected to (null before the first connect). Read-only;
+   * consumers use it to name the current server, e.g. in a desktop `cockatrice://joingame` link.
+   */
+  public get connectTarget(): ConnectTarget | null {
+    return this.socket.target;
+  }
+
   public connect(target: ConnectTarget): void {
     // connect() over an open socket retires it without an onclose, so no
     // DISCONNECTED/RECONNECTING status resets the old session's commands. Fail
