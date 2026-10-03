@@ -110,6 +110,78 @@ describe('useDeckEditor draft', () => {
     }
   });
 
+  const uploaded = (id: number, name: string, path = '') => server.Actions.deckUpload({
+    path,
+    treeItem: { id, name } as Parameters<typeof server.Actions.deckUpload>[0]['treeItem'],
+  });
+
+  it('saves edits made during the first upload to the new deck once its id arrives', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { webClient, store } = setupDraft(stageDeckDocument(GAME_DECK));
+      await waitFor(() => expect(editor.current!.loading).toBe(false));
+
+      act(() => editor.current!.setName('Burn v2'));
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+
+      // Edited while the upload is in flight: nothing more is sent yet.
+      act(() => editor.current!.setName('Burn v3'));
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+      expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+
+      // Another root upload (say, My Decks' "New deck") is not this draft's answer.
+      act(() => {
+        store.dispatch(uploaded(41, 'Something else'));
+      });
+      expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+      expect(editor.current!.saveState).not.toBe('saved');
+
+      act(() => {
+        store.dispatch(uploaded(42, 'Burn v2'));
+      });
+      expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+      expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);
+      const [deckId, deckList] = vi.mocked(webClient.request.session.deckUpdate).mock.calls[0];
+      expect(deckId).toBe(42);
+      expect(deckList).toContain('<deckname>Burn v3</deckname>');
+      expect(editor.current!.saveState).toBe('saving');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('saves an edit still waiting on the autosave debounce to the new deck', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { webClient, store } = setupDraft(stageDeckDocument(GAME_DECK));
+      await waitFor(() => expect(editor.current!.loading).toBe(false));
+
+      act(() => editor.current!.setName('Burn v2'));
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      act(() => editor.current!.setName('Burn v3'));
+      act(() => {
+        store.dispatch(uploaded(42, 'Burn v2'));
+      });
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+
+      expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+      expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(webClient.request.session.deckUpdate).mock.calls[0][0]).toBe(42);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('is not found for an unknown token', async () => {
     setupDraft('missing');
     await waitFor(() => expect(editor.current!.loading).toBe(false));

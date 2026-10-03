@@ -59,8 +59,14 @@ export function useDeckAutosave(
   const inFlightRef = useRef<string[]>([]);
   // What the indicator falls back to when a dirty deck turns out unchanged.
   const settledStateRef = useRef<SaveState>('idle');
-  // A draft's first save while its deckUpload is in flight: its signature.
-  const draftUploadRef = useRef<string | null>(null);
+  // A draft's first save while its deckUpload is in flight: its signature
+  // and the deck name Servatrice files it under, which identifies the answer.
+  const draftUploadRef = useRef<{ signature: string; name: string } | null>(null);
+  // An edit came in while that upload was in flight; it is saved to the new
+  // deck once its id arrives.
+  const draftEditedRef = useRef(false);
+  // The id the draft was stored under; later saves update that deck.
+  const storedIdRef = useRef<number | null>(null);
   const draftRef = useRef(draft);
   draftRef.current = draft;
 
@@ -71,13 +77,19 @@ export function useDeckAutosave(
 
   const persistNow = useCallback(() => {
     const current = readDeck();
-    if (!current || (deckId == null && !draftRef.current)) {
+    const targetId = deckId ?? storedIdRef.current;
+    if (!current || (targetId == null && !draftRef.current)) {
       return;
     }
     const signature = deckSaveSignature(current);
-    if (deckId == null) {
-      if (draftUploadRef.current == null && signature !== savedSignatureRef.current) {
-        draftUploadRef.current = signature;
+    if (targetId == null) {
+      const upload = draftUploadRef.current;
+      if (upload != null) {
+        draftEditedRef.current ||= signature !== upload.signature;
+      } else if (signature !== savedSignatureRef.current) {
+        // Servatrice files the deck under its name, or "Unnamed deck"
+        // (serversocketinterface.cpp:997-1000).
+        draftUploadRef.current = { signature, name: current.name || 'Unnamed deck' };
         setSaveState('saving');
         webClient.request.session.deckUpload('', 0, serializeDeckForSave(current), undefined, deckColorIdentity(current.cards));
       }
@@ -93,13 +105,14 @@ export function useDeckAutosave(
     setSaveState('saving');
     // Visibility is left as is; the color identity is sent every time,
     // since the server overwrites it on each update.
-    webClient.request.session.deckUpdate(deckId, serializeDeckForSave(current), undefined, deckColorIdentity(current.cards));
+    webClient.request.session.deckUpdate(targetId, serializeDeckForSave(current), undefined, deckColorIdentity(current.cards));
   }, [deckId, webClient, readDeck]);
 
   useReduxEffect<{ deckId: number }>(
     ({ type, payload }) => {
       // An answer with nothing in flight belongs to an earlier mount.
-      if (deckId == null || payload.deckId !== deckId || inFlightRef.current.length === 0) {
+      const targetId = deckId ?? storedIdRef.current;
+      if (targetId == null || payload.deckId !== targetId || inFlightRef.current.length === 0) {
         return;
       }
       const signature = inFlightRef.current.shift()!;
@@ -110,9 +123,9 @@ export function useDeckAutosave(
       savedSignatureRef.current = signature;
       // Keep the cached signature current so a remount after this save
       // sees the deck as clean and doesn't queue a spurious re-save.
-      const cached = getCachedDeck(deckId);
+      const cached = getCachedDeck(targetId);
       if (cached) {
-        setCachedDeck(deckId, { ...cached, savedSignature: signature });
+        setCachedDeck(targetId, { ...cached, savedSignature: signature });
       }
       if (inFlightRef.current.length === 0) {
         settledStateRef.current = 'saved';
@@ -126,25 +139,40 @@ export function useDeckAutosave(
     [deckId],
   );
 
-  // A draft's first save came back as a new stored deck.
-  useReduxEffect<{ path: string; treeItem: { id: number } }>(
+  // A draft's first save came back as a new stored deck: the root-level
+  // upload filed under this deck's name. Edits made while it was in flight,
+  // or still waiting on the debounce, are saved to the new deck now.
+  useReduxEffect<{ path: string; treeItem: { id: number; name: string } }>(
     ({ payload }) => {
-      const signature = draftUploadRef.current;
-      if (signature == null || deckId != null) {
+      const upload = draftUploadRef.current;
+      if (upload == null || deckId != null || payload.path !== '' || payload.treeItem.name !== upload.name) {
         return;
       }
       draftUploadRef.current = null;
-      savedSignatureRef.current = signature;
-      settle('saved');
-      draftRef.current?.onStored(payload.treeItem.id, signature);
+      storedIdRef.current = payload.treeItem.id;
+      savedSignatureRef.current = upload.signature;
+      const edited = draftEditedRef.current || saveTimerRef.current != null;
+      draftEditedRef.current = false;
+      if (saveTimerRef.current != null) {
+        window.clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      if (edited) {
+        persistNow();
+      } else {
+        settle('saved');
+      }
+      draftRef.current?.onStored(payload.treeItem.id, upload.signature);
     },
     server.Types.DECK_UPLOAD,
-    [deckId, settle],
+    [deckId, settle, persistNow],
   );
-  useReduxEffect(
-    () => {
-      if (draftUploadRef.current != null) {
+  useReduxEffect<{ path: string }>(
+    ({ payload }) => {
+      if (draftUploadRef.current != null && payload.path === '') {
         draftUploadRef.current = null;
+        // The in-flight edits are in the next attempt's deck.
+        draftEditedRef.current = false;
         settle('failed');
       }
     },
