@@ -8,9 +8,11 @@ export type PaletteToken =
   | 'bg-elevated'
   | 'border-subtle'
   | 'border-strong'
+  | 'border-control'
   | 'accent-primary'
   | 'accent-primary-hover'
   | 'accent-secondary'
+  | 'text-on-accent'
   | 'text-primary'
   | 'text-secondary'
   | 'text-muted'
@@ -33,9 +35,11 @@ export const PALETTES: Readonly<Record<ColorScheme, Palette>> = {
     'bg-elevated': '#2A2140',
     'border-subtle': '#3A2E5A',
     'border-strong': '#5A4A85',
+    'border-control': '#7C6AA8',
     'accent-primary': '#9F7AEA',
     'accent-primary-hover': '#B794F4',
     'accent-secondary': '#6B46C1',
+    'text-on-accent': '#14101F',
     'text-primary': '#F5F0F6',
     'text-secondary': '#C7BFD4',
     'text-muted': '#9388A5',
@@ -50,9 +54,11 @@ export const PALETTES: Readonly<Record<ColorScheme, Palette>> = {
     'bg-elevated': '#EEE9F5',
     'border-subtle': '#DCD3E9',
     'border-strong': '#B4A6CF',
+    'border-control': '#857799',
     'accent-primary': '#6B46C1',
     'accent-primary-hover': '#553C9A',
     'accent-secondary': '#9F7AEA',
+    'text-on-accent': '#FFFFFF',
     'text-primary': '#1D1630',
     'text-secondary': '#463C5C',
     'text-muted': '#675D7E',

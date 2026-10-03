@@ -115,7 +115,7 @@ export default function FilterGamesDialog({
             form={formId}
             className={[
               'px-4 py-1.5 rounded-md text-sm font-semibold bg-accent',
-              'text-white hover:bg-accent-hover shadow-glow transition-colors',
+              'text-on-accent hover:bg-accent-hover shadow-glow transition-colors',
             ].join(' ')}
           >
             Apply
@@ -273,7 +273,7 @@ function TextInput({ label, value, onChange, autoFocus }: TextInputProps) {
         autoFocus={autoFocus}
         className={[
           'w-full px-3 py-2 rounded-md bg-bg-elevated border',
-          'border-border-subtle text-sm text-text-primary',
+          'border-border-control text-sm text-text-primary',
           'focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
         ].join(' ')}
       />
@@ -300,7 +300,7 @@ function NumberInput({ label, value, onChange, min, max }: NumberInputProps) {
         max={max}
         onChange={(e) => onChange(Number(e.target.value))}
         className={[
-          'w-full px-3 py-2 rounded-md bg-bg-elevated border border-border-subtle text-sm text-text-primary',
+          'w-full px-3 py-2 rounded-md bg-bg-elevated border border-border-control text-sm text-text-primary',
           'tabular-nums focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
         ].join(' ')}
       />
@@ -334,7 +334,7 @@ function SelectInput<V extends string | number>({
           }}
           className={[
             'w-full appearance-none px-3 py-2 pr-8 rounded-md bg-bg-elevated',
-            'border border-border-subtle text-sm text-text-primary',
+            'border border-border-control text-sm text-text-primary',
             'focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
           ].join(' ')}
         >
@@ -388,7 +388,7 @@ function Checkbox({ label, checked, onChange, disabled }: CheckboxProps) {
             'h-4 w-4 rounded border flex items-center justify-center transition-colors',
             checked
               ? 'bg-accent border-accent'
-              : 'bg-bg-elevated border-border-strong',
+              : 'bg-bg-elevated border-border-control',
             !disabled && !checked && 'peer-hover:border-accent',
             !disabled && 'peer-focus-visible:ring-2 peer-focus-visible:ring-accent',
             !disabled && 'peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-bg-surface',
@@ -396,7 +396,7 @@ function Checkbox({ label, checked, onChange, disabled }: CheckboxProps) {
             .filter(Boolean)
             .join(' ')}
         >
-          {checked && <Check size={11} strokeWidth={3} className="text-white" />}
+          {checked && <Check size={11} strokeWidth={3} className="text-on-accent" />}
         </span>
       </span>
       <span className="text-sm text-text-secondary">{label}</span>

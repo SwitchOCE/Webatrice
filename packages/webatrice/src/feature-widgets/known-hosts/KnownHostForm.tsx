@@ -88,7 +88,7 @@ const KnownHostForm = ({ host, onRemove, onSubmit }: KnownHostFormProps) => {
         type="submit"
         className={[
           'w-full px-4 py-2.5 rounded-md text-sm font-semibold bg-accent',
-          'text-white hover:bg-accent-hover shadow-glow transition-colors',
+          'text-on-accent hover:bg-accent-hover shadow-glow transition-colors',
         ].join(' ')}
       >
         {host ? t('Common.label.saveChanges') : t('KnownHostForm.label.add')}

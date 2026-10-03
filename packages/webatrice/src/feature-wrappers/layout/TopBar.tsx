@@ -14,7 +14,9 @@ import { server, rooms, games } from '@cockatrice/datatrice';
 import type { ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
 import { useAppSelector } from '@app/store';
 import { useWebClient } from '@cockatrice/datatrice/react';
-import { useLeaveGame, useOpenedReplays, usePhaseTrackPinnedSetting, useSnapGridSetting } from '@app/hooks';
+import {
+  useDocumentTitle, useLeaveGame, useOpenedReplays, usePhaseTrackPinnedSetting, useSnapGridSetting,
+} from '@app/hooks';
 import { Images } from '@app/images';
 import { closeReplay } from '@app/services';
 import { Menu, MenuCheckboxItem, MenuItem, MenuSeparator, type MenuAnchor } from '@app/components';
@@ -322,6 +324,8 @@ export default function TopBar() {
     const match = tabs.find((t) => routeMatches(location.pathname, t.route));
     return match?.key ?? 'server';
   }, [tabs, location.pathname]);
+  // The browser tab follows the active app tab, as a desktop window title does.
+  useDocumentTitle(tabs.find((tab) => tab.key === activeKey)?.title ?? null);
 
   const handleClose = (tab: Tab) => {
     tab.onClose?.();
@@ -475,7 +479,7 @@ function TabList({ tabs, activeKey, onActivate, onClose }: TabListProps) {
                 }}
                 className={[
                   'p-0.5 rounded hover:bg-border-subtle text-text-muted',
-                  'hover:text-text-primary opacity-60 group-hover:opacity-100 transition-opacity',
+                  'hover:text-text-primary',
                 ].join(' ')}
                 title="Close tab"
               >

@@ -92,7 +92,7 @@ body .MuiButton-text:hover {
 }
 body .MuiButton-contained {
   background-color: rgb(var(--accent-primary));
-  color: white;
+  color: rgb(var(--text-on-accent));
   box-shadow: 0 0 24px -4px rgb(var(--accent-primary) / 0.35);
 }
 body .MuiButton-contained:hover {
@@ -121,10 +121,10 @@ body .MuiOutlinedInput-root {
   border-radius: 8px;
 }
 body .MuiOutlinedInput-notchedOutline {
-  border-color: rgb(var(--border-subtle));
+  border-color: rgb(var(--border-control));
 }
 body .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
-  border-color: rgb(var(--border-strong));
+  border-color: rgb(var(--text-muted));
 }
 body .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
   border-color: rgb(var(--accent-primary));
@@ -152,7 +152,7 @@ body .MuiSelect-icon {
 /* --- Checkbox + Radio --- */
 body .MuiCheckbox-root,
 body .MuiRadio-root {
-  color: rgb(var(--border-strong));
+  color: rgb(var(--border-control));
 }
 body .MuiCheckbox-root.Mui-checked,
 body .MuiRadio-root.Mui-checked {
@@ -163,7 +163,7 @@ body .MuiRadio-root.Mui-checked {
    different design element. */
 body .MuiCheckbox-root.Mui-disabled,
 body .MuiRadio-root.Mui-disabled {
-  color: rgb(var(--border-strong));
+  color: rgb(var(--border-control));
   opacity: 1;
 }
 body .MuiFormControlLabel-label {

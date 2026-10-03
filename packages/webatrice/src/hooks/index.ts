@@ -19,6 +19,8 @@ export * from './useCommandFailureMessage';
 export * from './useJoinGame';
 export * from './useGridRows';
 export * from './useDialogFocus';
+export * from './useDocumentLanguage';
+export * from './useDocumentTitle';
 export * from './useWatchReplay';
 export * from './useCardDataPreferences';
 export * from './usePlaymatSettings';
