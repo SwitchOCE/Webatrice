@@ -6,7 +6,7 @@ import { useDialogFocus } from './useDialogFocus';
 
 function Dialog({ isOpen, onEscape, children }: { isOpen: boolean; onEscape?: () => void; children?: React.ReactNode }) {
   const { getDialogProps } = useDialogFocus({ isOpen, onEscape });
-  return isOpen ? <div role="dialog" aria-label="Dialog" {...getDialogProps()}>{children}</div> : null;
+  return isOpen ? <div role="dialog" aria-modal="true" aria-label="Dialog" {...getDialogProps()}>{children}</div> : null;
 }
 
 function Host({ children }: { children?: React.ReactNode }) {
@@ -88,5 +88,33 @@ describe('useDialogFocus', () => {
       </>,
     );
     expect(screen.getByRole('button', { name: 'Other' })).toHaveFocus();
+  });
+
+  it('returns focus to the original opener when a dialog is swapped for one with an autoFocus field', async () => {
+    const user = userEvent.setup();
+    function Flow() {
+      const [stage, setStage] = useState<'idle' | 'loading' | 'form'>('idle');
+      return (
+        <>
+          <button type="button" onClick={() => setStage('loading')}>Warn</button>
+          {stage === 'loading' && (
+            <Dialog isOpen><button type="button" onClick={() => setStage('form')}>Loaded</button></Dialog>
+          )}
+          {stage === 'form' && (
+            <Dialog isOpen onEscape={() => setStage('idle')}>
+              <input aria-label="Reason" autoFocus />
+            </Dialog>
+          )}
+        </>
+      );
+    }
+    render(<Flow />);
+    await user.click(screen.getByRole('button', { name: 'Warn' }));
+    await user.keyboard('{Enter}');
+    expect(screen.getByRole('textbox', { name: 'Reason' })).toHaveFocus();
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByRole('button', { name: 'Warn' })).toHaveFocus();
   });
 });
