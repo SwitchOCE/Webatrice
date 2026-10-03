@@ -139,7 +139,7 @@ describe('DeckEditor (integration)', () => {
     await openDeck(COMMANDER_DECK);
 
     expect(groupHeadings()).toEqual(['Commander1', 'Instant1', 'Artifact1', 'Land10', 'Sideboard1']);
-    expect(await screen.findByText(/Bracket 1 ·/, {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(await screen.findByText('DeckBracket.title', {}, { timeout: 3000 })).toBeInTheDocument();
 
     const spellbook = fetchCalls(fetchMock, 'https://backend.commanderspellbook.com/find-my-combos/');
     expect(spellbook).toHaveLength(1);
@@ -184,7 +184,7 @@ describe('DeckEditor (integration)', () => {
       recover();
       fireEvent.click(screen.getByRole('button', { name: /DeckBracket\.retry/ }));
 
-      expect(await screen.findByText(/Bracket 1 ·/, {}, { timeout: 3000 })).toBeInTheDocument();
+      expect(await screen.findByText('DeckBracket.title', {}, { timeout: 3000 })).toBeInTheDocument();
       expect(screen.queryByText('DeckBracket.partialNotice')).toBeNull();
       const saved = await autosaved((d) => d.bracketAssessment?.level === 1);
       expect(saved.meta.bracketLevel).toBe(1);
