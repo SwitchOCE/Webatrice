@@ -30,6 +30,16 @@ describe('DeckShareLinksDialog', () => {
     expect(screen.queryByText('DeckShareLinks.confirmRevoke')).toBeNull();
   });
 
+  it('brings the confirmation into view and focuses its Revoke button', () => {
+    const scrollIntoView = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    renderDialog();
+    fireEvent.click(screen.getByRole('button', { name: 'DeckShareLinks.revokeNamed' }));
+    expect(screen.getByRole('button', { name: 'DeckShareLinks.revoke' })).toHaveFocus();
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'nearest' });
+    delete (HTMLElement.prototype as Partial<HTMLElement>).scrollIntoView;
+  });
+
   it('keeps the link when the confirmation is cancelled', () => {
     const props = renderDialog();
     fireEvent.click(screen.getByRole('button', { name: 'DeckShareLinks.revokeNamed' }));
