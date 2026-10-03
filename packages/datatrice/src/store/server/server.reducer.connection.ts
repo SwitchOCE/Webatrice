@@ -69,6 +69,8 @@ export const initialState: ServerState = {
   replays: {},
   backendDecks: null,
   downloadedDeck: null,
+  deckSharesMine: null,
+  publicDecks: {},
   downloadedReplay: null,
   gamesOfUser: {},
   gamesOfUserStatus: {},
