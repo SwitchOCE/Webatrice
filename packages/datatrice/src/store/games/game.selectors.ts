@@ -240,7 +240,4 @@ export const Selectors = {
     [({ games }: State) => games.games],
     (games): Enriched.GameEntry[] => Object.values(games).filter((game) => !game.replay)
   ),
-
-  getIsReplayGame: ({ games }: State, gameId: number): boolean =>
-    games.games[gameId]?.replay === true,
 };

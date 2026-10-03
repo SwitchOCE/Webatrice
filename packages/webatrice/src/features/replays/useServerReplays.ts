@@ -31,7 +31,6 @@ export interface ServerReplays {
   selection: ServerReplaySelection | null;
   selectedMatch: ServerInfo_ReplayMatch | undefined;
   select: (selection: ServerReplaySelection | null) => void;
-  refresh: () => void;
   watch: (selection?: ServerReplaySelection) => void;
   download: () => void;
   saveToLibrary: (folderId: number) => void;
@@ -275,7 +274,6 @@ export function useServerReplays(): ServerReplays {
     selection,
     selectedMatch,
     select: setSelection,
-    refresh,
     watch,
     download,
     saveToLibrary,
