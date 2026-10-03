@@ -260,6 +260,8 @@ export function codXml(opts: {
   main?: CodCard[];
   side?: CodCard[];
   bracketLevel?: number;
+  /** Raw `<bannerCard>` / `<tags>` elements, written verbatim. */
+  extraXml?: string;
 }): string {
   const card = (c: CodCard) =>
     `<card number="${c.quantity ?? 1}" name="${c.name}"${c.set ? ` set="${c.set}"` : ''}`
@@ -274,6 +276,7 @@ export function codXml(opts: {
     opts.bracketLevel != null
       ? `<bracketAssessment level="${opts.bracketLevel}" fingerprint="00000000"/>`
       : '',
+    opts.extraXml ?? '',
     `<zone name="main">${(opts.main ?? []).map(card).join('')}</zone>`,
     `<zone name="side">${(opts.side ?? []).map(card).join('')}</zone>`,
     '</cockatrice_deck>',

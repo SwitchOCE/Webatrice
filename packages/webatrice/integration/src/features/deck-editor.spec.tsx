@@ -134,7 +134,7 @@ describe('DeckEditor (integration)', () => {
     expect(screen.getByDisplayValue('Burn')).toBeInTheDocument();
     expect(screen.getByText('12 cards · 1 sideboard')).toBeInTheDocument();
     expect(groupHeadings()).toEqual(['Instant1', 'Artifact1', 'Land10', 'Sideboard1']);
-    expect(screen.getByRole('combobox')).toHaveValue('modern');
+    expect(screen.getByRole('combobox', { name: 'Format' })).toHaveValue('modern');
     expect(screen.queryByText('Bracket estimate')).toBeNull();
     expect(screen.getByRole('heading', { name: 'Mana curve' })).toBeInTheDocument();
   });
@@ -342,10 +342,10 @@ describe('DeckEditor (integration)', () => {
   it('persists a format change from the sidebar picker', async () => {
     await openDeck(MODERN_DECK);
 
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'legacy' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), { target: { value: 'legacy' } });
     await autosaved((d) => d.format === 'legacy');
 
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'other' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), { target: { value: 'other' } });
     fireEvent.change(screen.getByPlaceholderText('e.g. Netrunner, Playtest'), { target: { value: 'Cube' } });
     await autosaved((d) => d.format === 'Cube');
   });
@@ -411,7 +411,7 @@ describe('DeckEditor (integration)', () => {
     // Let the opening price cache land so later uploads are the edits'.
     await autosaved((d) => d.meta.priceUsd !== undefined);
 
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'legacy' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), { target: { value: 'legacy' } });
     fireEvent.click(rowActions('Sol Ring'));
     fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Remove' }));
     await autosaved((d) => d.format === 'legacy' && !card(d, 'Sol Ring'));
@@ -422,16 +422,42 @@ describe('DeckEditor (integration)', () => {
 
     // Ctrl+Z on the page (not in a text field) undoes the format change.
     fireEvent.keyDown(document.body, { key: 'z', code: 'KeyZ', ctrlKey: true });
-    expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('modern');
+    expect((screen.getByRole('combobox', { name: 'Format' }) as HTMLSelectElement).value).toBe('modern');
 
     // Ctrl+Y redoes it; the history list then jumps straight to the end.
     fireEvent.keyDown(document.body, { key: 'y', code: 'KeyY', ctrlKey: true });
-    expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('legacy');
+    expect((screen.getByRole('combobox', { name: 'Format' }) as HTMLSelectElement).value).toBe('legacy');
     fireEvent.click(screen.getByRole('button', { name: 'DeckHistory.history' }));
     const list = screen.getByRole('list', { name: 'DeckHistory.history' });
     fireEvent.click(within(list).getAllByRole('button')[0]);
     expect(screen.queryByRole('button', { name: 'Sol Ring' })).toBeNull();
     await autosaved((d) => d.format === 'legacy' && !card(d, 'Sol Ring'));
+  });
+
+  it('edits the banner card and tags, keeping unknown tag children through the save', async () => {
+    await openDeck(codXml({
+      name: 'Burn',
+      format: 'modern',
+      main: [{ name: 'Lightning Bolt', quantity: 1, set: 'm11', num: '149' }, { name: 'Sol Ring', quantity: 1 }],
+      extraXml: '<bannerCard providerId="">Sol Ring</bannerCard><tags><tag>Aggro</tag><color>red</color></tags>',
+    }));
+
+    const banner = screen.getByRole('combobox', { name: 'DeckBanner.label' }) as HTMLSelectElement;
+    expect(banner.selectedOptions[0].textContent).toBe('Sol Ring');
+    expect(screen.getByRole('list', { name: 'DeckTags.label' })).toHaveTextContent('Aggro');
+
+    const bolt = Array.from(banner.options).find((o) => o.textContent === 'Lightning Bolt')!;
+    fireEvent.change(banner, { target: { value: bolt.value } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'DeckTags.add' }), { target: { value: 'Burn' } });
+    fireEvent.click(screen.getByRole('button', { name: 'DeckTags.add' }));
+
+    const saved = await autosaved((d) => d.bannerCard === 'Lightning Bolt' && (d.tagsXml ?? '').includes('Burn'));
+    expect(saved.tagsXml).toBe('<tags><color>red</color><tag>Aggro</tag><tag>Burn</tag></tags>');
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'DeckTags.remove' })[0]);
+    fireEvent.change(banner, { target: { value: '' } });
+    const cleared = await autosaved((d) => !d.bannerCard && !(d.tagsXml ?? '').includes('Aggro'));
+    expect(cleared.tagsXml).toBe('<tags><color>red</color><tag>Burn</tag></tags>');
   });
 
   it('shows the not-found shell for an unreadable deck and links back to My Decks', async () => {
