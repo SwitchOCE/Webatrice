@@ -296,13 +296,8 @@ describe('useGameDialogs', () => {
     expect(result.current.zoneMenu?.zoneName).toBe(ZoneName.GRAVE);
   });
 
-  it('blocks the player and hand context menus for spectators', () => {
+  it('blocks the hand context menu for spectators', () => {
     const { result } = setup({ isSpectator: true });
-
-    act(() => {
-      result.current.handlePlayerContextMenu(makeMouseEvent());
-    });
-    expect(result.current.playerMenu).toBeNull();
 
     act(() => {
       result.current.handleHandContextMenu(makeMouseEvent());

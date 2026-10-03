@@ -1,15 +1,12 @@
 // Through-<Game /> orchestration: a trigger in the seat or the side panels opens a
 // game-level dialog (owned by useGameDialogs and hosted by Game.tsx), and that
-// dialog sends the command. These are the routes that cross the PlayerBox /
-// Game boundary, so they are the ones the menu/dialog convergence phase can break.
+// dialog sends the command. These are the routes that cross the seat (PlayerBoard)
+// / Game boundary, so they are the ones the menu/dialog convergence phase can break.
 //
-// One dialog Game.tsx still hosts has no live trigger: the SideboardDialog
-// (sideboard plan / lock) was only opened from PlayerContextMenu, whose
-// openPlayerMenu has no caller. It keeps its component spec
-// (SideboardDialog.spec); sideboarding moves to the pre-game lobby and the
-// seat refactor's Phase 8 deletes it. The seat's "Create token..." now opens
-// the game-level CreateTokenDialog (Game.seatPrompts.spec), and its zone views
-// are game-level ZoneViewDialogs (Game.zoneViews.spec).
+// The seat's "Create token..." opens the game-level CreateTokenDialog
+// (Game.seatPrompts.spec), and its zone views are game-level ZoneViewDialogs
+// (Game.zoneViews.spec). The in-game SideboardDialog, which had no live trigger,
+// is gone: sideboarding happens in the pre-game lobby.
 
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
