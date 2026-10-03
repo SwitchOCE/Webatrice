@@ -39,6 +39,10 @@
       "cardArt": "Card Art: image priority is decided in the following order: first the printing a card was chosen with, then the enabled sets in this list (top to bottom), then disabled sets."
     },
     "empty": "No sets loaded. Import a card database first.",
-    "saved": "Set preferences saved."
+    "saved": "Set preferences saved.",
+    "error": {
+      "load": "Could not read the sets: {error}",
+      "save": "Could not save the set preferences: {error}"
+    }
   }
 }

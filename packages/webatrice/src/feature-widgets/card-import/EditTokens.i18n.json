@@ -29,6 +29,10 @@
       "tooLong": "At most {max} characters",
       "conflict": "The chosen name conflicts with an existing card or token. Make sure to enable the 'Token' set in the \"Manage sets\" dialog to display them correctly."
     },
-    "selectHint": "Select a token to edit it."
+    "selectHint": "Select a token to edit it.",
+    "error": {
+      "load": "Could not read your tokens: {error}",
+      "save": "Could not save your tokens: {error}"
+    }
   }
 }

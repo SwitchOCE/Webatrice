@@ -69,6 +69,6 @@ describe('usePictureUrlTemplates', () => {
       await result.current.add('https://c');
     });
     expect(result.current.templates).toHaveLength(2);
-    expect(result.current.error).toBe('quota');
+    expect(result.current.error).toEqual({ key: 'save', detail: 'quota' });
   });
 });
