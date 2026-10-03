@@ -7,6 +7,7 @@ import {
   type RequestPasswordSaltParams,
 } from '../../generated';
 
+import { CommandFailure } from '../../services/command-options';
 import { StatusEnum } from '../../types/StatusEnum';
 import { WebClient } from '../../WebClient';
 import type { ConnectTarget } from '../../types/WebClientConfig';
@@ -33,8 +34,14 @@ export function requestPasswordSalt(
         onFailure();
       },
     },
-    onError: () => {
-      updateStatus(StatusEnum.DISCONNECTED, 'Login failed: Unknown Reason');
+    onError: (_responseCode, _raw, failure) => {
+      // A dropped connection has already reported its own status (desktop's
+      // passwordSaltResponse ignores RespNotConnected); only settle the caller.
+      if (failure !== CommandFailure.Disconnected) {
+        updateStatus(StatusEnum.DISCONNECTED, failure === CommandFailure.Timeout
+          ? 'Login failed: the server did not respond'
+          : 'Login failed: Unknown Reason');
+      }
       onFailure();
     },
   });

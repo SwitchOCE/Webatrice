@@ -8,6 +8,7 @@ import {
   type LoginParams,
 } from '../../generated';
 
+import { CommandFailure } from '../../services/command-options';
 import { StatusEnum } from '../../types/StatusEnum';
 import { WebClient } from '../../WebClient';
 import type { ConnectTarget } from '../../types/WebClientConfig';
@@ -83,7 +84,18 @@ export function login(options: ConnectTarget & LoginParams, password?: string): 
         }
       ),
     },
-    onError: (responseCode) =>
-      onLoginError(responseCode, `Login failed: unknown error: ${responseCode}`),
+    onError: (responseCode, _raw, failure) => {
+      // The connection dropped mid-login and has already reported why (a ban,
+      // a shutdown, a lost socket). Settle the form without overwriting that
+      // status or tearing down again — desktop's loginResponse likewise skips
+      // RespNotConnected.
+      if (failure === CommandFailure.Disconnected) {
+        WebClient.instance.response.session.loginFailed(responseCode);
+        return;
+      }
+      onLoginError(responseCode, failure === CommandFailure.Timeout
+        ? 'Login failed: the server did not respond'
+        : `Login failed: unknown error: ${responseCode}`);
+    },
   });
 }
