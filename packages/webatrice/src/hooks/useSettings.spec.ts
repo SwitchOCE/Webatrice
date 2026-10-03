@@ -148,6 +148,29 @@ describe('usePreference / usePreferences', () => {
 
     expect(result.current.soundEnabled).toBe(true);
   });
+  test('usePreference re-renders only when its own preference changes', async () => {
+    storedSetting = { user: '*app', playToStack: true, soundEnabled: false, save: mockSave };
+    let renders = 0;
+    renderHook(() => {
+      renders++;
+      return useSettingsModule.usePreference('playToStack');
+    });
+    await act(async () => {
+      await useSettingsModule.getSettings();
+    });
+    const settled = renders;
+
+    const { result } = renderHook(() => useSettingsModule.useSettings());
+    await act(async () => {
+      await result.current.update({ soundEnabled: true });
+    });
+    expect(renders).toBe(settled);
+
+    await act(async () => {
+      await result.current.update({ playToStack: false });
+    });
+    expect(renders).toBe(settled + 1);
+  });
 });
 
 describe('getPreferencesSnapshot', () => {
