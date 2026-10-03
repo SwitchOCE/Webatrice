@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import { DialogReturnFocusContext, closestList } from '@app/hooks';
+
 import { renderWithProviders } from '../../__test-utils__';
 import DialogShell from './DialogShell';
 
@@ -124,5 +126,34 @@ describe('DialogShell', () => {
     expect(screen.getByRole('dialog', { name: 'Outer' })).toBeInTheDocument();
     expect(outerClose).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'More' })).toHaveFocus();
+  });
+
+  it('returns focus to the list a DialogReturnFocusContext names when the row that opened it is gone', async () => {
+    const user = userEvent.setup();
+    function Rows() {
+      const [rows, setRows] = useState(['ann', 'bob']);
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <div role="list" aria-label="Players">
+            {rows.map((row) => (
+              <div role="listitem" key={row}><button type="button" onClick={() => setOpen(true)}>{row}</button></div>
+            ))}
+          </div>
+          <DialogReturnFocusContext.Provider value={closestList}>
+            <DialogShell isOpen={open} handleClose={() => setOpen(false)} title="Warn">
+              <button type="button" onClick={() => setRows(['bob'])}>ann leaves</button>
+            </DialogShell>
+          </DialogReturnFocusContext.Provider>
+        </>
+      );
+    }
+    renderWithProviders(<Rows />);
+    await user.click(screen.getByRole('button', { name: 'ann' }));
+    await user.click(screen.getByRole('button', { name: 'ann leaves' }));
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByRole('list', { name: 'Players' })).toHaveFocus();
   });
 });

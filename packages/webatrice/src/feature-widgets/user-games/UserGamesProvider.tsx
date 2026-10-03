@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 
 import { UserMenuSlotProvider, useUserMenuSlot, type UserMenuSlotProps } from '@app/components';
+import { DialogReturnFocusContext, closestList } from '@app/hooks';
 
 import UserGamesDialog from './UserGamesDialog';
 import UserGamesMenuItem from './UserGamesMenuItem';
@@ -11,6 +12,7 @@ import { UserGamesContext, type UserGamesApi } from './useUserGames';
  * the routes, inside any provider that already fills `UserActionsMenu`'s slot
  * (the moderation widget): it adds its entry ahead of theirs, and renders the
  * games selector here so it outlives the menu and the list row that opened it.
+ * If that row has gone by the time it closes, focus returns to its list.
  */
 export const UserGamesProvider = ({ children }: { children: ReactNode }) => {
   const [userName, setUserName] = useState<string | null>(null);
@@ -33,7 +35,9 @@ export const UserGamesProvider = ({ children }: { children: ReactNode }) => {
       <UserMenuSlotProvider value={Slot}>
         {children}
       </UserMenuSlotProvider>
-      {userName && <UserGamesDialog key={userName} userName={userName} onClose={close} />}
+      <DialogReturnFocusContext.Provider value={closestList}>
+        {userName && <UserGamesDialog key={userName} userName={userName} onClose={close} />}
+      </DialogReturnFocusContext.Provider>
     </UserGamesContext.Provider>
   );
 };
