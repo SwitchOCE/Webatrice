@@ -15,7 +15,9 @@ const WEB_CLIENT_IMPORT = {
 
 const SCRYFALL_CLIENT_IMPORT = {
   group: ['**/scryfall/client'],
-  message: 'The raw Scryfall client bypasses the card catalog\'s cache, session memo and retry cap. Look cards up through the catalog (`lookupCard`, `lookupCards`, …) and build image URLs with the `getScryfallUrl*` builders from `@app/services`.',
+  message: 'The raw Scryfall client bypasses the card catalog\'s cache, session memo and retry cap. '
+    + 'Look cards up through the catalog (`lookupCard`, `lookupCards`, …) and build image URLs '
+    + 'with the `getScryfallUrl*` builders from `@app/services`.',
 };
 
 export default tseslint.config(
