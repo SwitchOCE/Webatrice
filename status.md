@@ -1,3 +1,4 @@
 - 23:01Z read brief/rv14 → checkout PR branch, npm ci
 - 23:07Z pushed 3 fixes (measure, point flip, Space type-ahead) → submenu close + type-ahead reset
 - 23:12Z pushed all rv14 unit-level fixes (9 commits) → Playwright menu-placement e2e, then gate
+- 23:17Z all rv14 items committed+pushed (tip fd17dd8) → full gate + e2e all browsers
