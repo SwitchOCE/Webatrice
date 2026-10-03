@@ -132,6 +132,20 @@ export function deleteCachedDeck(deckId: number): void {
  */
 const draftDocuments: Map<string, string> = new Map();
 const draftCache: Map<string, HydratedDeck> = new Map();
+/** Drafts share the one deck-editor tab, so only the latest few can still be
+ *  reached; older ones are dropped rather than kept for the whole session. */
+const MAX_DRAFTS = 4;
+
+function rememberDraftDocument(token: string, cod: string): void {
+  draftDocuments.set(token, cod);
+  for (const oldest of draftDocuments.keys()) {
+    if (draftDocuments.size <= MAX_DRAFTS) {
+      break;
+    }
+    draftDocuments.delete(oldest);
+    draftCache.delete(oldest);
+  }
+}
 
 /**
  * The editor for a stored deck (`deckId`), or for an unsaved draft handed
@@ -190,7 +204,7 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
       setLoading(false);
       return;
     }
-    draftDocuments.set(draftToken, cod);
+    rememberDraftDocument(draftToken, cod);
     let cancelled = false;
     (async () => {
       try {

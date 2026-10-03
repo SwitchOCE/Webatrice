@@ -268,6 +268,25 @@ describe('useDeckEditor draft', () => {
     }
   });
 
+  it('keeps only the latest drafts', async () => {
+    const tokens = Array.from({ length: 5 }, () => stageDeckDocument(GAME_DECK));
+    for (const token of tokens) {
+      const { unmount } = setupDraft(token);
+      await waitFor(() => expect(editor.current!.loading).toBe(false));
+      expect(editor.current!.notFound).toBe(false);
+      unmount();
+    }
+
+    const latest = setupDraft(tokens[4]);
+    await waitFor(() => expect(editor.current!.loading).toBe(false));
+    expect(editor.current!.notFound).toBe(false);
+    latest.unmount();
+
+    setupDraft(tokens[0]);
+    await waitFor(() => expect(editor.current!.loading).toBe(false));
+    expect(editor.current!.notFound).toBe(true);
+  });
+
   it('is not found for an unknown token', async () => {
     setupDraft('missing');
     await waitFor(() => expect(editor.current!.loading).toBe(false));
