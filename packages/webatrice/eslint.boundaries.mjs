@@ -80,8 +80,11 @@ export const boundariesConfig = [
       }],
     },
   },
+  // Test code is not a layer. Integration helpers sit beside the specs that use
+  // them under `integration/src/<layer>/`, which the element patterns above
+  // would otherwise classify as that layer.
   {
-    files: ['**/*.spec.*'],
+    files: ['**/*.spec.*', 'integration/**'],
     rules: { 'boundaries/dependencies': 'off' },
   },
 ];

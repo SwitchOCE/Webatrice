@@ -3,7 +3,18 @@ import { create } from '@bufbuild/protobuf';
 import { useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, vi } from 'vitest';
 
-import { Event_GameJoined, Event_GameJoinedSchema, Event_GameStateChanged, Event_GameStateChangedSchema, ServerInfo_CardSchema, ServerInfo_GameSchema, ServerInfo_PlayerPropertiesSchema, ServerInfo_PlayerSchema, ServerInfo_UserSchema, ServerInfo_ZoneSchema } from '@cockatrice/sockatrice/generated';
+import {
+  Event_GameJoined,
+  Event_GameJoinedSchema,
+  Event_GameStateChanged,
+  Event_GameStateChangedSchema,
+  ServerInfo_CardSchema,
+  ServerInfo_GameSchema,
+  ServerInfo_PlayerPropertiesSchema,
+  ServerInfo_PlayerSchema,
+  ServerInfo_UserSchema,
+  ServerInfo_ZoneSchema,
+} from '@cockatrice/sockatrice/generated';
 import { games, server } from '@cockatrice/datatrice';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 

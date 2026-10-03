@@ -4,7 +4,24 @@ import { create } from '@bufbuild/protobuf';
 import { describe, expect, it } from 'vitest';
 
 import { SessionCommands } from '@cockatrice/sockatrice';
-import { Command_ListUsers_ext, Command_Message_ext, Event_AddToListSchema, Event_AddToList_ext, Event_UserJoinedSchema, Event_UserJoined_ext, Event_UserLeftSchema, Event_UserLeft_ext, Event_UserMessageSchema, Event_UserMessage_ext, Response_ListUsersSchema, Response_ListUsers_ext, Response_ResponseCode, ServerInfo_User, ServerInfo_UserSchema, ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
+import {
+  Command_ListUsers_ext,
+  Command_Message_ext,
+  Event_AddToListSchema,
+  Event_AddToList_ext,
+  Event_UserJoinedSchema,
+  Event_UserJoined_ext,
+  Event_UserLeftSchema,
+  Event_UserLeft_ext,
+  Event_UserMessageSchema,
+  Event_UserMessage_ext,
+  Response_ListUsersSchema,
+  Response_ListUsers_ext,
+  Response_ResponseCode,
+  ServerInfo_User,
+  ServerInfo_UserSchema,
+  ServerInfo_User_UserLevelFlag,
+} from '@cockatrice/sockatrice/generated';
 import { store } from '../helpers/setup';
 
 import { connectAndLogin } from '../helpers/setup';
