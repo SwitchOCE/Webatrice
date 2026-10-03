@@ -41,15 +41,21 @@ function element(rect: DOMRect): HTMLDivElement {
   return el;
 }
 
-function setup(args: Partial<UseSeatDndArgs> = {}) {
+/** A seat holding hand cards 30, 31, 32 at these rects. */
+function seatBox(handRects: DOMRect[]): HTMLDivElement {
   const box = element(new DOMRect(0, 0, 1000, 800));
-  [100, 200, 300].forEach((left, i) => {
-    const handCard = element(new DOMRect(left, 600, 80, 110));
+  handRects.forEach((rect, i) => {
+    const handCard = element(rect);
     handCard.setAttribute('data-card', '');
     handCard.setAttribute('data-zone', 'hand');
     handCard.setAttribute('data-card-id', String(30 + i));
     box.append(handCard);
   });
+  return box;
+}
+
+function setup(args: Partial<UseSeatDndArgs> = {}) {
+  const box = seatBox([100, 200, 300].map((left) => new DOMRect(left, 600, 80, 110)));
   const props: UseSeatDndArgs = {
     seatId: 1,
     seatDrag: null,
@@ -59,6 +65,7 @@ function setup(args: Partial<UseSeatDndArgs> = {}) {
     printedPT: () => undefined,
     stackDisplayList: [card(50), card(51)],
     handDisplayList: [card(30), card(31), card(32)],
+    horizontalHand: true,
     boxRef: { current: box },
     handRef: { current: null },
     stackRef: { current: element(new DOMRect(0, 0, 100, 400)) },
@@ -148,6 +155,20 @@ describe('useSeatDnd', () => {
     const order = ['30', '31', '32'];
     expect(hand.resolve(drop(250), { zone: 'battlefield', cards: [] })).toEqual({ zone: 'hand', index: 2, order });
     expect(hand.resolve(drop(250), { zone: 'hand', cards: [card(30)] })).toEqual({ zone: 'hand', index: 1, order });
+  });
+
+  it('resolves a vertical hand drop to the nearest gap between card tops, as desktop does', () => {
+    // Desktop's vertical hand: cards 50px apart, zig-zagged.
+    const box = seatBox([100, 150, 200].map((top, i) => new DOMRect(i % 2 ? 31 : 5, top, 72, 102)));
+    setup({ horizontalHand: false, boxRef: { current: box } });
+    const hand = dnd.zones.get('seat-1-hand')!;
+    const drop = (y: number) => ({ pointer: { x: 40, y }, cardOrigin: { x: 40, y } });
+    const order = ['30', '31', '32'];
+    expect(hand.resolve(drop(120), { zone: 'battlefield', cards: [] })).toEqual({ zone: 'hand', index: 0, order });
+    expect(hand.resolve(drop(130), { zone: 'battlefield', cards: [] })).toEqual({ zone: 'hand', index: 1, order });
+    expect(hand.resolve(drop(400), { zone: 'battlefield', cards: [] })).toEqual({ zone: 'hand', index: 3, order });
+    // Card 30 is being dragged: the gaps are read from cards 31 and 32.
+    expect(hand.resolve(drop(180), { zone: 'hand', cards: [card(30)] })).toEqual({ zone: 'hand', index: 1, order });
   });
 
   it('resolves pile drops to their zone', () => {
