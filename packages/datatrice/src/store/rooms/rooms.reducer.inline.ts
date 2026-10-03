@@ -4,7 +4,7 @@ import { ServerInfo_Game, ServerInfo_Room, ServerInfo_User } from '@cockatrice/s
 
 import { normalizeRoomInfo, normalizeUserMessage } from '../../common';
 
-import type { GameFilters, JoinGameError, RoomsState } from './rooms.interfaces';
+import type { GameFilters, JoinGameError, JoinRoomFailedPayload, RoomsState } from './rooms.interfaces';
 import { DEFAULT_GAME_FILTERS } from './gameFilters';
 
 export const MAX_ROOM_MESSAGES = 1000;
@@ -31,6 +31,7 @@ export const initialState: RoomsState = {
   gameFilters: {},
   joinGamePending: false,
   joinGameError: null,
+  joinRoomError: null,
 };
 
 export function removeGameFromRooms(state: RoomsState, gameId: number): void {
@@ -212,6 +213,19 @@ export const clearJoinGameError: CaseReducer<RoomsState> = (state) => {
   state.joinGameError = null;
 };
 
+// An autojoin that fails stays silent, as desktop's does (it joins with setCurrent = false).
+export const joinRoomFailed: CaseReducer<RoomsState, PayloadAction<JoinRoomFailedPayload>> = (state, action) => {
+  const { roomId, responseCode, failure, userInitiated } = action.payload;
+  if (!userInitiated) {
+    return;
+  }
+  state.joinRoomError = { roomId, responseCode, failure };
+};
+
+export const clearJoinRoomError: CaseReducer<RoomsState> = (state) => {
+  state.joinRoomError = null;
+};
+
 export const inlineReducers = {
   clearStore,
   updateRooms,
@@ -231,4 +245,6 @@ export const inlineReducers = {
   setJoinGamePending,
   setJoinGameError,
   clearJoinGameError,
+  joinRoomFailed,
+  clearJoinRoomError,
 };

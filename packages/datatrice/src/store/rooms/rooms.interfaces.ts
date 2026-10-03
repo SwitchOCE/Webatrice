@@ -12,6 +12,7 @@ export interface RoomsState {
   gameFilters: RoomsStateGameFilters;
   joinGamePending: boolean;
   joinGameError: JoinGameError | null;
+  joinRoomError: JoinRoomError | null;
 }
 
 // Payload of the rooms `*Failed` command-outcome signal actions. `failure` is
@@ -23,6 +24,8 @@ export interface RoomCommandFailedPayload {
   failure?: WebsocketTypes.CommandFailure;
 }
 
+// A failed user-initiated Command_JoinRoom: the raw Response.ResponseCode, which the UI
+// maps to desktop's joinRoomFinished message, and `failure` when the server never answered.
 export interface JoinRoomFailedPayload extends RoomCommandFailedPayload {
   /** False for an autojoin, which desktop fails without a message box. */
   userInitiated: boolean;
@@ -33,6 +36,8 @@ export interface JoinGameError {
   code: number;
   message: string;
 }
+
+export type JoinRoomError = RoomCommandFailedPayload;
 
 export interface RoomsStateRooms {
   [roomId: number]: Enriched.Room;

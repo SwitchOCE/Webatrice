@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
 import type { Room } from '@cockatrice/datatrice';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { renderWithProviders, createMockWebClient, connectedState } from '../../__test-utils__';
 
@@ -84,5 +85,39 @@ describe('RoomsList', () => {
       preloadedState: connectedState,
     });
     expect(screen.getByText(expected)).toBeInTheDocument();
+  });
+
+  describe('join failures', () => {
+    const withJoinError = (code: number, failure?: WebsocketTypes.CommandFailure) => ({
+      ...connectedState,
+      rooms: { ...(connectedState.rooms as any), joinRoomError: { roomId: 1, responseCode: code, failure } },
+    });
+
+    it.each([
+      [6, 'RoomsList.joinError.notFound'],
+      [11, 'RoomsList.joinError.contextError'],
+      [15, 'RoomsList.joinError.userLevelTooLow'],
+      [3, 'RoomsList.joinError.unknown'],
+    ])('maps response code %i to the desktop message', (code, key) => {
+      renderWithProviders(<RoomsList rooms={{ 1: makeRoom() }} joinedRooms={[]} />, {
+        preloadedState: withJoinError(code),
+      });
+      expect(screen.getByRole('dialog')).toHaveTextContent(key);
+    });
+
+    it('explains a join the server never answered with the transport reason', () => {
+      renderWithProviders(<RoomsList rooms={{ 1: makeRoom() }} joinedRooms={[]} />, {
+        preloadedState: withJoinError(-1, WebsocketTypes.CommandFailure.Disconnected),
+      });
+      expect(screen.getByRole('dialog')).toHaveTextContent('CommandFailure.disconnected');
+    });
+
+    it('clears the error on dismiss so the join can be retried', () => {
+      const { store } = renderWithProviders(<RoomsList rooms={{ 1: makeRoom() }} joinedRooms={[]} />, {
+        preloadedState: withJoinError(6),
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'OK' }));
+      expect(store.getState().rooms.joinRoomError).toBeNull();
+    });
   });
 });
