@@ -19,6 +19,7 @@ import { isFieldSet } from '@bufbuild/protobuf';
 import { makeCallbackHelpers } from '../../testing/callback-helpers';
 import { WebClient } from '../../WebClient';
 import { CommandFailure } from '../../types/CommandFailure';
+import { StatusEnum } from '../../types/StatusEnum';
 import { hashPassword, generateSalt, passwordSaltSupported } from '../../utils';
 
 import { accountEdit } from './accountEdit';
@@ -380,6 +381,13 @@ describe('getGamesOfUser', () => {
       'alice', Response_ResponseCode.RespNotConnected, CommandFailure.Timeout,
     );
   });
+
+  it('stays silent when it failed because the session ended, whose state is already reset', () => {
+    WebClient.instance.status = StatusEnum.DISCONNECTED;
+    getGamesOfUser('alice');
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    expect(WebClient.instance.response.session.getGamesOfUserFailed).not.toHaveBeenCalled();
+  });
 });
 
 describe('getUserInfo', () => {
@@ -477,6 +485,13 @@ describe('joinRoom', () => {
     );
   });
 
+  it('stays silent when it failed because the session ended, whose state is already reset', () => {
+    WebClient.instance.status = StatusEnum.DISCONNECTED;
+    joinRoom(5);
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    expect(WebClient.instance.response.room.joinRoomFailed).not.toHaveBeenCalled();
+  });
+
   it('folds a join for a room whose join is in flight into the pending one', () => {
     joinRoom(5, false);
     joinRoom(5);
@@ -550,6 +565,12 @@ describe('message', () => {
     expect(WebClient.instance.response.session.privateMessageFailed).not.toHaveBeenCalled();
   });
 
+  it('stays silent when it failed because the session ended, whose state is already reset', () => {
+    WebClient.instance.status = StatusEnum.DISCONNECTED;
+    message('bob', 'hi');
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    expect(WebClient.instance.response.session.privateMessageFailed).not.toHaveBeenCalled();
+  });
 });
 
 describe('ping', () => {
