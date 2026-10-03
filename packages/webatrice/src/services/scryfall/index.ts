@@ -14,4 +14,5 @@ export {
   getScryfallUrlById,
   getScryfallUrlByIdOrExactName,
   getScryfallUrlByName,
+  getScryfallSymbolUrl,
 } from './imageUrls';

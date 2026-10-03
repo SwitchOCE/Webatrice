@@ -3,11 +3,10 @@ import { ChevronLeft } from 'lucide-react';
 
 import { ScryfallImageSize } from '@cockatrice/datatrice';
 
-import { CardImage, CardRelatedLinks } from '@app/components';
+import { CardImage, CardRelatedLinks, ManaSymbols, SymbolText } from '@app/components';
 import { getScryfallUrlByIdOrExactName } from '@app/services';
 import type { PreviewMode } from '../BattlefieldSidebar/BattlefieldSidebar';
 import type { PreviewCard } from '../ui/CardPreviewContext';
-import { ManaSymbols, SymbolText } from '../ui/ManaSymbols/ManaSymbols';
 import {
   postCardPreviewMessage,
   subscribeToCardPreviewChannel,
@@ -246,7 +245,7 @@ export default function CardPreviewPopupPage() {
                 </span>
                 {displayMana && (
                   <span className="shrink-0">
-                    <ManaSymbols cost={displayMana} />
+                    <ManaSymbols cost={displayMana} size={16} />
                   </span>
                 )}
               </div>

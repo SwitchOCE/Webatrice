@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 
 import { ScryfallImageSize } from '@cockatrice/datatrice';
 
-import { CardImage, CardRelatedLinks } from '@app/components';
+import { CardImage, CardRelatedLinks, ManaSymbols, SymbolText } from '@app/components';
 import {
   detailTargetKey,
   fetchScryfallDetail,
@@ -15,7 +15,6 @@ import {
 import { useBigPreviewCard, useCardPreviewActions } from '../CardPreviewContext';
 
 import { CARD_CORNER_RADIUS } from '../SeatCard/cardSize';
-import { ManaSymbols, SymbolText } from '../ManaSymbols/ManaSymbols';
 
 /**
  * "Big card preview" — Cockatrice's middle-click card zoom: image plus full

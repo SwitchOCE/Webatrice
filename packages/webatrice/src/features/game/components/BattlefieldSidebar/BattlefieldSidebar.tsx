@@ -4,7 +4,7 @@ import { ChevronLeft, ExternalLink, FileText, Flag, Image as ImageIcon, Layers, 
 
 import { ScryfallImageSize } from '@cockatrice/datatrice';
 
-import { CardImage, CardRelatedLinks } from '@app/components';
+import { CardImage, CardRelatedLinks, ManaSymbols, SymbolText } from '@app/components';
 import { detailTargetKey, fetchScryfallDetail, getScryfallUrlByIdOrExactName, type ScryfallDetail } from '@app/services';
 
 import PlayerList from '../right-sidebar/PlayerList/PlayerList';
@@ -17,7 +17,6 @@ import { useLocalIdentity } from '../../hooks/useLocalIdentity';
 import { useGameAffordances } from '../../hooks/useGameAffordances';
 import { useCardPreview } from '../ui/CardPreviewContext';
 import { CARD_CORNER_RADIUS } from '../ui/SeatCard/cardSize';
-import { ManaSymbols, SymbolText } from '../ui/ManaSymbols/ManaSymbols';
 import { useCardPreviewPopup } from '../CardPreviewPopup/useCardPreviewPopup';
 
 const SIDEBAR_ACTION_BUTTON_CLASS =
@@ -436,7 +435,7 @@ export default function BattlefieldSidebar() {
                     </span>
                     {displayMana && (
                       <span className="shrink-0">
-                        <ManaSymbols cost={displayMana} />
+                        <ManaSymbols cost={displayMana} size={16} />
                       </span>
                     )}
                   </div>

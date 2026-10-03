@@ -1,6 +1,6 @@
 import { Heart } from 'lucide-react';
 
-import { ManaSymbols } from '../../ui/ManaSymbols/ManaSymbols';
+import { ManaSymbols } from '@app/components';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import ZoneStack from '../../ui/ZoneStack/ZoneStack';
 import { MANA_COLORS } from './manaColors';

@@ -5,7 +5,7 @@ import type { DeckCategory } from '@app/types';
 
 import type { CardLegality } from '../../deckLegality';
 import type { DeckCard } from '../../types';
-import { ManaSymbols } from '../ManaSymbols';
+import { ManaSymbols } from '@app/components';
 import { DeckRowActionsMenu } from './DeckRowActionsMenu';
 
 export interface DeckCardRowProps {
