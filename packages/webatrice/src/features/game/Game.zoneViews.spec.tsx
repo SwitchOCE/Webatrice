@@ -207,6 +207,44 @@ describe('seat zone views', () => {
     expect(revealedIn(store, ZoneName.DECK)).toBeUndefined();
   });
 
+  // Desktop closes a library view through ZoneViewWidget::closeEvent, which
+  // shuffles when "shuffle when closing" is set; a top-N view that takes the
+  // whole-library view's place must not skip that close.
+  it('View top cards over an open library view closes it with its shuffle first', () => {
+    const { game, store } = renderSeats();
+    openContextMenu(pileEl('Library', 0));
+    chooseMenuPath('View library');
+    dumpArrives(store, ZoneName.DECK, ['Island', 'Ponder']);
+
+    openContextMenu(pileEl('Library', 0));
+    chooseMenuPath('View top cards of library...');
+    answerCountPrompt(/^view top cards of library$/i, '3');
+
+    expect(game.shuffle).toHaveBeenCalledTimes(1);
+    expect(game.shuffle).toHaveBeenCalledWith(1, { zoneName: ZoneName.DECK, start: 0, end: -1 });
+    expect(vi.mocked(game.shuffle).mock.invocationCallOrder[0])
+      .toBeLessThan(vi.mocked(game.dumpZone).mock.invocationCallOrder[1]);
+    expect(screen.queryByRole('heading', { name: titled('P1\'s library') })).not.toBeInTheDocument();
+    expect(revealedIn(store, ZoneName.DECK)).toBeUndefined();
+    dumpArrives(store, ZoneName.DECK, ['A', 'B', 'C']);
+    expect(zoneView('Top 3 cards — P1')).toBeInTheDocument();
+  });
+
+  it('View top cards over a library view without "shuffle when closing" does not shuffle', () => {
+    const { game, store } = renderSeats();
+    openContextMenu(pileEl('Library', 0));
+    chooseMenuPath('View library');
+    dumpArrives(store, ZoneName.DECK, ['Island']);
+    fireEvent.click(within(zoneView('P1\'s library')).getByRole('checkbox', { name: /shuffle when closing/i }));
+
+    openContextMenu(pileEl('Library', 0));
+    chooseMenuPath('View top cards of library...');
+    answerCountPrompt(/^view top cards of library$/i, '3');
+
+    expect(game.shuffle).not.toHaveBeenCalled();
+    expect(game.dumpZone).toHaveBeenCalledTimes(2);
+  });
+
   it.each([
     ['Graveyard', 'View graveyard', 'Graveyard — P1', 2],
     ['Exile', 'View exile', 'Exile — P1', 1],
