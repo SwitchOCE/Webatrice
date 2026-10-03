@@ -1,1 +1,2 @@
 - 16:00Z started rv8, read brief+template → reading PR file and diff
+- 16:02Z launched 6 parallel reviewers (stage1, stage2, stage3 DnD, stage4 menus/prompts, stage4 zone views, commit hygiene) → consolidate into reviews/rv8.md
