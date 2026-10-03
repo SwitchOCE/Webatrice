@@ -150,7 +150,12 @@ export function matchesQuery(card: ZoneViewCardMetadata, query: string): boolean
 
 /** Sort key for a Scryfall power/toughness string. Variable stats like
  *  "*" and "1+*" get sorted after fixed numeric values; non-creatures
- *  (null) sort last so P/T sort surfaces creatures at the top. */
+ *  (null) sort last so P/T sort surfaces creatures at the top.
+ *
+ *  Deliberate divergence: desktop (card_list.cpp:42-62) compares the P/T
+ *  string zero-padded to ten characters, which puts non-creatures first
+ *  and "2/10" after "3/3". Numeric order is what that string sort
+ *  approximates; the name tie-break below matches desktop. */
 function ptSortKey(v: string | null): number {
   if (v == null) {
     return Number.POSITIVE_INFINITY;
@@ -160,6 +165,13 @@ function ptSortKey(v: string | null): number {
     return n;
   }
   return 1e6; // variable/non-numeric groups after real numbers
+}
+
+/** `Infinity - Infinity` is NaN, which a comparator must never return:
+ *  two non-creatures would compare neither equal nor ordered and skip
+ *  the name tie-break. */
+function comparePtKeys(a: number, b: number): number {
+  return a === b ? 0 : a - b;
 }
 
 export function compareCards(a: ZoneViewCardMetadata, b: ZoneViewCardMetadata, mode: SortMode): number {
@@ -182,17 +194,11 @@ export function compareCards(a: ZoneViewCardMetadata, b: ZoneViewCardMetadata, m
     case 'set':
       return (a.set ?? '').localeCompare(b.set ?? '') ||
         a.name.localeCompare(b.name);
-    case 'pt': {
-      const dp = ptSortKey(a.power) - ptSortKey(b.power);
-      if (dp !== 0) {
-        return dp;
-      }
-      const dt = ptSortKey(a.toughness) - ptSortKey(b.toughness);
-      if (dt !== 0) {
-        return dt;
-      }
-      return a.name.localeCompare(b.name);
-    }
+    case 'pt':
+      return comparePtKeys(ptSortKey(a.power), ptSortKey(b.power)) ||
+        comparePtKeys(ptSortKey(a.toughness), ptSortKey(b.toughness)) ||
+        a.name.localeCompare(b.name) ||
+        (a.set ?? '').localeCompare(b.set ?? '');
     default:
       return 0;
   }
