@@ -1,1 +1,2 @@
 - 20:21Z started w28, branch off restack-23-playmats @13351fd → install + scan i18n
+- 20:28Z pushed key fixes + i18n:check gate (f431b11) → extract platform literals (rooms, TopBar, components)
