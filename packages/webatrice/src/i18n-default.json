@@ -1427,7 +1427,7 @@
       "userJoined": "{name} has joined the server.",
       "notSent": "Message not sent: {reason}"
     },
-    "subtitle": "· private chat",
+    "subtitle": "private chat",
     "empty": "No messages yet — say hi.",
     "placeholder": "Message {name}"
   },
@@ -1676,7 +1676,7 @@
       "chatFlood": "You are flooding the chat. Please wait a couple of seconds.",
       "notSent": "Message not sent: {reason}"
     },
-    "subtitle": "· room chat",
+    "subtitle": "room chat",
     "empty": "No messages yet — say hi.",
     "placeholder": "Message {name}"
   },

@@ -95,7 +95,10 @@ function RoomChatView({ roomId, roomName, messages: allMessages, users, onSay }:
       <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-border-subtle">
         <Hash size={14} className="text-text-muted" />
         <span className="text-sm font-semibold text-text-primary truncate">{roomName}</span>
-        <span className="text-xs text-text-muted">{t('RoomChat.subtitle')}</span>
+        <span className="text-xs text-text-muted">
+          <span aria-hidden>· </span>
+          {t('RoomChat.subtitle')}
+        </span>
       </div>
 
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-2 space-y-1 bg-bg-base/40">
