@@ -1,4 +1,4 @@
-import { act, fireEvent, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -18,7 +18,27 @@ import { buildEventGameJoined, buildEventGameStateChanged, registerGameBoardHook
 
 registerGameBoardHooks();
 
-const handSelector = '[data-card][data-zone="hand"]';
+// Scope to the local hand strip: the hand viewer dialog renders the same cards.
+const handSelector = '[data-testid="hand-zone-1"] [data-card][data-zone="hand"]';
+
+const handOrder = () => Array.from(document.querySelectorAll<HTMLElement>(handSelector), (card) => card.dataset.cardId);
+
+function drag(from: HTMLElement, fromX: number, toX: number, toY = 550, init: Partial<PointerEventInit> = {}) {
+  fireEvent.pointerDown(from, { button: 0, clientX: fromX, clientY: 550, ...init });
+  fireEvent.pointerMove(window, { clientX: toX, clientY: toY });
+  fireEvent.pointerUp(window, { clientX: toX, clientY: toY });
+}
+
+function deliverEcho(cardId: number, x: number) {
+  // Servatrice omits target_zone for a same-zone move.
+  act(() => deliverMessage(buildGameEventMessage({
+    gameId: 42, playerId: 1, ext: Event_MoveCard_ext,
+    value: create(Event_MoveCardSchema, {
+      startPlayerId: 1, startZone: 'hand', targetPlayerId: 1,
+      cardId, newCardId: cardId, position: -1, x, y: 0,
+    }),
+  })));
+}
 
 async function renderHand() {
   connectRaw();
@@ -42,7 +62,7 @@ async function renderHand() {
   cards.forEach((card, index) => {
     vi.spyOn(card, 'getBoundingClientRect').mockReturnValue(new DOMRect(100 + index * 100, 500, 80, 120));
   });
-  vi.spyOn(cards[0].parentElement!.parentElement!, 'getBoundingClientRect')
+  vi.spyOn(screen.getByTestId('hand-zone-1'), 'getBoundingClientRect')
     .mockReturnValue(new DOMRect(90, 500, 320, 120));
   return cards;
 }
@@ -54,9 +74,7 @@ describe('Hand drag reorder', () => {
     { source: 0, dropX: 280, index: 1, expected: ['102', '101', '103'] },
   ])('moves card $source to ordinal $index', async ({ source, dropX, index, expected }) => {
     const cards = await renderHand();
-    fireEvent.pointerDown(cards[source], { button: 0, clientX: 140 + source * 100, clientY: 550 });
-    fireEvent.pointerMove(window, { clientX: dropX, clientY: 550 });
-    fireEvent.pointerUp(window, { clientX: dropX, clientY: 550 });
+    drag(cards[source], 140 + source * 100, dropX);
 
     const commands = findAllGameCommands(Command_MoveCard_ext);
     expect(commands).toHaveLength(1);
@@ -65,18 +83,50 @@ describe('Hand drag reorder', () => {
       startPlayerId: 1, startZone: 'hand', targetPlayerId: 1, targetZone: 'hand',
       cardsToMove: { card: [{ cardId: 101 + source }] }, x: index, y: 0,
     });
+    // Applied optimistically before the server answers.
+    expect(handOrder()).toEqual(expected);
 
-    // Servatrice omits target_zone for a same-zone move.
-    act(() => deliverMessage(buildGameEventMessage({
-      gameId: 42, playerId: 1, ext: Event_MoveCard_ext,
-      value: create(Event_MoveCardSchema, {
-        startPlayerId: 1, startZone: 'hand', targetPlayerId: 1,
-        cardId: 101 + source, newCardId: 101 + source, position: -1, x: index, y: 0,
-      }),
-    })));
-    await waitFor(() => expect(
-      Array.from(document.querySelectorAll<HTMLElement>(handSelector), (card) => card.dataset.cardId),
-    ).toEqual(expected));
+    deliverEcho(101 + source, index);
+    expect(handOrder()).toEqual(expected);
     expect(games.Selectors.getZone(store.getState(), 42, 1, 'hand')?.cardCount).toBe(3);
+  });
+
+  it('applies the server echo, which is authoritative over the optimistic order', async () => {
+    const cards = await renderHand();
+    drag(cards[0], 140, 390);
+    expect(handOrder()).toEqual(['102', '103', '101']);
+
+    // The listener path re-applies the echo's x, so a different x wins.
+    deliverEcho(101, 1);
+
+    expect(handOrder()).toEqual(['102', '101', '103']);
+    expect(games.isOptimisticPending(games.moveOpKey(1, 101))).toBe(false);
+  });
+
+  it('sends the card\'s own index when it is dropped on its own slot', async () => {
+    const cards = await renderHand();
+    drag(cards[1], 240, 250);
+
+    const commands = findAllGameCommands(Command_MoveCard_ext);
+    expect(commands).toHaveLength(1);
+    expect(commands[0].value).toMatchObject({ cardsToMove: { card: [{ cardId: 102 }] }, x: 1 });
+    expect(handOrder()).toEqual(['101', '102', '103']);
+  });
+
+  it('sends nothing when a hand card is dropped on the hand viewer', async () => {
+    const cards = await renderHand();
+    fireEvent.click(screen.getByTitle('Hand — 3 cards'));
+    fireEvent.click(await screen.findByText('View hand'));
+    const viewer = await waitFor(() => {
+      const el = document.querySelector<HTMLElement>('.fixed.inset-0 > .resize');
+      expect(el).not.toBeNull();
+      return el!;
+    });
+    vi.spyOn(viewer, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 1000, 400));
+
+    drag(cards[0], 140, 300, 200);
+
+    expect(findAllGameCommands(Command_MoveCard_ext)).toHaveLength(0);
+    expect(handOrder()).toEqual(['101', '102', '103']);
   });
 });

@@ -5120,17 +5120,20 @@ function PlayerBox(
     }
     // Graveyard / exile / hand view dialog — same overlay-priority
     // principle as the library dialogs above. Resolves to the exact
-    // pile the view was opened on, so a same-zone drop (drag out and
-    // let go on the modal) is absorbed as a no-op by applyMove's
-    // same-zone branch rather than leaking into the battlefield
-    // underneath. Hand needs an `index` field on the DropTarget so a
-    // cross-zone drop into the hand viewer fires
+    // pile the view was opened on, so a same-zone graveyard / exile
+    // drop (drag out and let go on the modal) is absorbed as a no-op by
+    // applyMove's same-zone branch rather than leaking into the
+    // battlefield underneath. Hand needs an `index` field on the
+    // DropTarget so a cross-zone drop into the hand viewer fires
     // Command_MoveCard(target=HAND, x=index) — we append (x=handSize)
     // since the LibrarySearchDialog groups/sorts its display and a
-    // positional insert wouldn't line up with what the user sees.
+    // positional insert wouldn't line up with what the user sees. That
+    // append index is meaningless for a hand card dropped back on its
+    // own viewer (applyMove would send it to the end of the hand), so
+    // that drop resolves to no target and the card snaps back.
     if (pileView && insideRect(pileViewDialogRef.current)) {
       if (pileView.zone === 'hand') {
-        return { zone: 'hand', index: handDisplayList.length };
+        return d.sourceZone === 'hand' ? null : { zone: 'hand', index: handDisplayList.length };
       }
       return { zone: pileView.zone };
     }
@@ -9243,6 +9246,7 @@ function PlayerBox(
             handled by the outer's overflow flip alone). */}
         <motion.div
           ref={handRef}
+          data-testid={`hand-zone-${playerId}`}
           // `overflow-y-hidden` set explicitly alongside overflow-x-auto
           // to short-circuit the CSS spec's promotion of the other
           // axis to `auto` — that's what was spawning a phantom
@@ -9906,10 +9910,10 @@ function PlayerBox(
               }
           }
           // dropRef lets detectDropTarget hit-test the modal so a
-          // drag-and-release inside the dialog resolves to the source
-          // pile (same-zone no-op) instead of falling through to the
-          // battlefield behind. Without this the modal was invisible
-          // to drop detection.
+          // drag-and-release inside the dialog is a no-op (graveyard /
+          // exile resolve to the source pile, hand to no target)
+          // instead of falling through to the battlefield behind.
+          // Without this the modal was invisible to drop detection.
           dropRef={pileViewDialogRef}
           draggingCardIds={
             drag?.sourceZone === pileView.zone
