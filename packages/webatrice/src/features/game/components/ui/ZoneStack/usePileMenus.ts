@@ -1,5 +1,5 @@
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
-import { useShortcutHints } from '@app/feature-widgets/shortcuts';
+import type { useShortcutHints } from '@app/feature-widgets/shortcuts';
 
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import { useGameDialogsContext } from '../GameDialogsContext';
