@@ -141,3 +141,41 @@ describe('TopBar replays entry', () => {
     expect(screen.getByRole('tab', { name: /final\.cor/ })).toHaveAttribute('aria-selected', 'true');
   });
 });
+
+describe('TopBar report entries (#7091)', () => {
+  function renderAs(version: string, userLevel: number) {
+    renderTopBar(RouteEnum.SERVER, {
+      ...connectedState,
+      server: {
+        ...(connectedState.server as any),
+        info: { message: null, name: 'Test Server', version },
+        user: makeUser({ userLevel }),
+      },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'testUser' }));
+  }
+
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('shows My Reports to a registered user on 3.1 and opens it in a tab', () => {
+    renderAs('3.1.0 ()', Level.IsUser | Level.IsRegistered);
+    expect(screen.queryByRole('button', { name: 'UserMenu.reportQueue' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'UserMenu.myReports' }));
+    expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.MY_REPORTS);
+    expect(screen.getByRole('tab', { name: /My Reports/ })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('adds the Report Queue for moderators', () => {
+    renderAs('3.1.0 ()', Level.IsUser | Level.IsRegistered | Level.IsModerator);
+    fireEvent.click(screen.getByRole('button', { name: 'UserMenu.reportQueue' }));
+    expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.REPORT_QUEUE);
+  });
+
+  it('shows neither on a 3.0 server', () => {
+    renderAs('3.0.0 ()', Level.IsUser | Level.IsRegistered | Level.IsModerator);
+    expect(screen.queryByRole('button', { name: 'UserMenu.myReports' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'UserMenu.reportQueue' })).not.toBeInTheDocument();
+  });
+});

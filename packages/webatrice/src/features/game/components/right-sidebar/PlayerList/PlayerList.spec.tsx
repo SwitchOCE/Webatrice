@@ -3,6 +3,7 @@ import { fireEvent, screen } from '@testing-library/react';
 import { ServerInfo_User_UserLevelFlag as Flag } from '@cockatrice/sockatrice/generated';
 import { ModerationProvider } from '@app/feature-widgets/moderation';
 import { connectedState, makeStoreState, renderWithProviders, makeUser } from '../../../../../__test-utils__';
+import { ReportUserProvider } from '../../../../../dialogs';
 import {
   makeGameEntry,
   makePlayerEntry,
@@ -212,5 +213,35 @@ describe('PlayerList', () => {
       expect(screen.getByRole('button', { name: 'Moderation.menu.warnUser' })).toBeDisabled();
       expect(screen.getByRole('button', { name: 'Moderation.menu.demoteMod' })).toBeDisabled();
     });
+  });
+});
+
+describe('PlayerList report user (#7091)', () => {
+  function stateOn(version: string) {
+    const bob = makePlayerEntry({ properties: makePlayerProperties({ playerId: 2, userInfo: makeUser({ name: 'Bob' }) }) });
+    const base = buildState([bob], 2);
+    return makeStoreState({
+      ...base,
+      server: {
+        ...(connectedState.server as object),
+        info: { message: null, name: 'Test Server', version },
+        user: makeUser({ name: 'alice', userLevel: Flag.IsRegistered }),
+      },
+    } as Parameters<typeof makeStoreState>[0]);
+  }
+
+  it('offers "Report user" on a 3.1 server and opens the dialog with this game attached', () => {
+    renderWithProviders(<ReportUserProvider><PlayerList /></ReportUserProvider>, { preloadedState: stateOn('3.1.0 ()') });
+    fireEvent.contextMenu(screen.getByText('Bob'));
+    fireEvent.click(screen.getByRole('button', { name: 'Report user' }));
+    expect(screen.getByTestId('report-reported-user').textContent).toBe('Bob');
+    expect((screen.getByLabelText('ReportUserDialog.chatGroup') as HTMLTextAreaElement).value).toBe('');
+    expect(screen.getByText('1', { selector: '#report-user-game-id' })).toBeTruthy();
+  });
+
+  it('does not offer it on a 3.0 server', () => {
+    renderWithProviders(<ReportUserProvider><PlayerList /></ReportUserProvider>, { preloadedState: stateOn('3.0.0 ()') });
+    fireEvent.contextMenu(screen.getByText('Bob'));
+    expect(screen.queryByRole('button', { name: 'Report user' })).toBeNull();
   });
 });
