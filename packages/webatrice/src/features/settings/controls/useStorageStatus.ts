@@ -19,7 +19,8 @@ export interface StorageStatus {
 const INITIAL: StorageStatus = { loaded: false, usage: null, counts: {}, persisted: null };
 
 let status: StorageStatus = INITIAL;
-let pending: Promise<void> | null = null;
+/** Bumped by every read, so a slower earlier read (the mount-time one) cannot land last. */
+let generation = 0;
 const listeners = new Set<() => void>();
 
 const subscribe = (listener: () => void) => {
@@ -31,22 +32,22 @@ const subscribe = (listener: () => void) => {
 
 /**
  * Re-reads usage, table counts and persistence. The Storage page's controls share one status,
- * so a clear made by one control updates the figures shown by the others.
+ * so a clear made by one control updates the figures shown by the others. Each call starts a
+ * fresh read, since one already in flight may predate the change the caller just made.
  */
 export function refreshStorageStatus(): Promise<void> {
-  pending ??= Promise.all([estimateStorage(), countStoredRecords(), isStoragePersisted()])
-    .then(([usage, counts, persisted]) => {
-      status = { loaded: true, usage, counts, persisted };
-    })
-    .catch(() => {
-      // IndexedDB unavailable (private mode in some browsers): show what is known, nothing more.
-      status = { ...status, loaded: true };
-    })
-    .finally(() => {
-      pending = null;
+  const read = ++generation;
+  const apply = (next: StorageStatus) => {
+    if (read === generation) {
+      status = next;
       listeners.forEach((listener) => listener());
-    });
-  return pending;
+    }
+  };
+  return Promise.all([estimateStorage(), countStoredRecords(), isStoragePersisted()]).then(
+    ([usage, counts, persisted]) => apply({ loaded: true, usage, counts, persisted }),
+    // IndexedDB unavailable (private mode in some browsers): show what is known, nothing more.
+    () => apply({ ...status, loaded: true }),
+  );
 }
 
 /** The shared storage status; reads it when the first control mounts. */
@@ -63,5 +64,5 @@ export function useStorageStatus(): StorageStatus {
 /** Test hook: forget the cached status. */
 export function resetStorageStatus(): void {
   status = INITIAL;
-  pending = null;
+  generation = 0;
 }
