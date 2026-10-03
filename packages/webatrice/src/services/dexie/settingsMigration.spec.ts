@@ -49,6 +49,7 @@ describe('migrateSetting', () => {
 
     expect(b.messageMacros).toEqual([]);
     expect(PREFERENCE_DEFAULTS.messageMacros).toEqual([]);
+    expect(Object.isFrozen(PREFERENCE_DEFAULTS.messageMacros)).toBe(true);
   });
 });
 
