@@ -165,9 +165,17 @@ describe('buildLibraryMenu', () => {
     expect(args.onShuffleRange).toHaveBeenCalledWith(0, 4);
   });
 
-  it('offers only a placeholder with no other players', () => {
-    const items = buildLibraryMenu(libraryArgs({ revealTargets: [] }));
-    expect(tree(find(items, 'Reveal library to...').submenu ?? [])).toEqual(['(no players)']);
+  it('still reveals to all players with no other players, as desktop does', () => {
+    const args = libraryArgs({ revealTargets: [], onRevealLibrary: vi.fn() });
+    const items = buildLibraryMenu(args);
+    expect(tree(find(items, 'Reveal library to...').submenu ?? [])).toEqual(['All players', '---']);
+    expect(tree(find(items, 'Reveal top cards to...').submenu ?? [])).toEqual(['All players', '---']);
+    expect(tree(find(items, 'Lend library to...').submenu ?? [])).toEqual(['(no players)']);
+
+    find(items, 'Reveal library to...', 'All players').onClick?.();
+    find(items, 'Reveal top cards to...', 'All players').onClick?.();
+    expect(args.onRevealLibrary).toHaveBeenCalledWith(-1);
+    expect(args.openRevealTopCardsPrompt).toHaveBeenCalledWith({ targetPlayerId: -1, targetName: 'all players', deckSize: 40 });
   });
 });
 

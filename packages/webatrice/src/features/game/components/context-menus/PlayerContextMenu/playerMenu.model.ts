@@ -185,21 +185,11 @@ export function buildLibraryMenu({
   promptMoveTopNTo, promptMoveBottomNTo, onUndoDraw, onShuffle, onShuffleRange, onRevealLibrary,
   onLendLibrary, onSetAlwaysRevealTopCard, onSetAlwaysLookAtTopCard, onOpenDeckInEditor,
 }: LibraryMenuArgs): ContextMenuItem[] {
-  // Reveal targets → submenu builder for "Reveal library to..." and
-  // "Reveal top cards to...". Reveal-library variant includes an "All
-  // players" option; reveal-top-N variant opens a numeric prompt per
-  // pick. Lend-library variant omits "All players" (library_menu.cpp:280-293).
-  const revealLibraryItems: ContextMenuItem[] =
-    revealTargets && revealTargets.length > 0
-      ? [
-        { label: 'All players', onClick: () => onRevealLibrary?.(-1) },
-        { divider: true },
-        ...revealTargets.map((t) => ({
-          label: t.name,
-          onClick: () => onRevealLibrary?.(t.playerId),
-        })),
-      ]
-      : [{ label: '(no players)' }];
+  // "Reveal library to..." and "Reveal top cards to..." always list "All
+  // players" first, even when playing alone (library_menu.cpp:259-267,
+  // 295-303); the reveal-top-N variant opens a count prompt per pick. Lend
+  // library lists only the other players (library_menu.cpp:280-293).
+  const revealLibraryItems = buildRevealToSubmenu(revealTargets, (targetPlayerId) => onRevealLibrary?.(targetPlayerId));
   const lendLibraryItems: ContextMenuItem[] =
     revealTargets && revealTargets.length > 0
       ? revealTargets.map((t) => ({
@@ -207,30 +197,12 @@ export function buildLibraryMenu({
         onClick: () => onLendLibrary?.(t.playerId),
       }))
       : [{ label: '(no players)' }];
-  const revealTopCardsItems: ContextMenuItem[] =
-    revealTargets && revealTargets.length > 0
-      ? [
-        {
-          label: 'All players',
-          onClick: () =>
-            openRevealTopCardsPrompt({
-              targetPlayerId: -1,
-              targetName: 'all players',
-              deckSize: deckCount,
-            }),
-        },
-        { divider: true },
-        ...revealTargets.map((t) => ({
-          label: t.name,
-          onClick: () =>
-            openRevealTopCardsPrompt({
-              targetPlayerId: t.playerId,
-              targetName: t.name,
-              deckSize: deckCount,
-            }),
-        })),
-      ]
-      : [{ label: '(no players)' }];
+  const revealTopCardsItems = buildRevealToSubmenu(revealTargets, (targetPlayerId) =>
+    openRevealTopCardsPrompt({
+      targetPlayerId,
+      targetName: revealTargets?.find((t) => t.playerId === targetPlayerId)?.name ?? 'all players',
+      deckSize: deckCount,
+    }));
   return [
     {
       label: 'Draw card',
