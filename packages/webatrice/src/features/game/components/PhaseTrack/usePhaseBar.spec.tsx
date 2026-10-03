@@ -125,12 +125,33 @@ describe('usePhaseBar', () => {
     expect(result.current.canAdvancePhase).toBe(false);
     act(() => {
       result.current.handlePassAndUntap();
+      result.current.handleReverseTurn();
     });
 
     expect(webClient.request.game.nextTurn).toHaveBeenCalledWith(1);
     expect(webClient.request.game.setCardAttr).toHaveBeenCalledWith(1, expect.objectContaining({ cardId: -1 }));
     expect(vi.mocked(webClient.request.game.nextTurn).mock.invocationCallOrder[0])
       .toBeLessThan(vi.mocked(webClient.request.game.setCardAttr).mock.invocationCallOrder[0]);
+  });
+
+  it('handleReverseTurn sends Command_ReverseTurn, off turn too', () => {
+    const { result, webClient } = setup({ gamesState: stateWith({ activePlayerId: 2 }) });
+
+    act(() => {
+      result.current.handleReverseTurn();
+    });
+
+    expect(webClient.request.game.reverseTurn).toHaveBeenCalledWith(1);
+  });
+
+  it('handleReverseTurn sends nothing before the game starts', () => {
+    const { result, webClient } = setup({ gamesState: stateWith({ started: false }) });
+
+    act(() => {
+      result.current.handleReverseTurn();
+    });
+
+    expect(webClient.request.game.reverseTurn).not.toHaveBeenCalled();
   });
 
   it('no-ops every action when gameId is undefined', () => {
@@ -142,10 +163,12 @@ describe('usePhaseBar', () => {
       result.current.handleDrawOne();
       result.current.handleUntapAll();
       result.current.handlePassAndUntap();
+      result.current.handleReverseTurn();
     });
 
     expect(webClient.request.game.setActivePhase).not.toHaveBeenCalled();
     expect(webClient.request.game.nextTurn).not.toHaveBeenCalled();
+    expect(webClient.request.game.reverseTurn).not.toHaveBeenCalled();
     expect(webClient.request.game.drawCards).not.toHaveBeenCalled();
     expect(webClient.request.game.setCardAttr).not.toHaveBeenCalled();
     expect(result.current.canAdvancePhase).toBe(false);

@@ -64,7 +64,7 @@ export function useGameShortcuts({
     canConcede,
   } = useGameAffordances(gameId);
   const inGame = hasLiveGame && isStarted;
-  const { handlePhaseClick } = usePhaseBar(gameId);
+  const { handlePhaseClick, handleReverseTurn } = usePhaseBar(gameId);
   const nextPhaseAction = useNextPhaseAction(gameId);
 
   useShortcut(
@@ -161,16 +161,7 @@ export function useGameShortcuts({
     enabled: hasLiveGame,
   });
 
-  useShortcut(
-    'game.reverseTurn',
-    () => {
-      if (!canPassTurn || gameId == null) {
-        return;
-      }
-      webClient.request.game.reverseTurn(gameId);
-    },
-    { scope: ShortcutScope.GAME, enabled: inGame },
-  );
+  useShortcut('game.reverseTurn', handleReverseTurn, { scope: ShortcutScope.GAME, enabled: inGame });
 
   // Drawing utilities — dialog-based, so we only gate on participation
   // rather than active player.
