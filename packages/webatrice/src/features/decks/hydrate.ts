@@ -1,6 +1,6 @@
 import { ScryfallImageSize } from '@cockatrice/datatrice';
 
-import { lookupCards, parseCod, type LookupResult, type PrintingSummary } from '@app/services';
+import { getScryfallUrlById, lookupCards, parseCod, type LookupResult, type PrintingSummary } from '@app/services';
 import type { ParsedCard, ParsedDeck } from '@app/types';
 
 import type { DeckCard, HydratedDeck } from './types';
@@ -97,7 +97,7 @@ export function assembleDeckCard(
   const imageUri =
     chosen?.imageUri ??
     (row.scryfallId
-      ? `https://api.scryfall.com/cards/${encodeURIComponent(row.scryfallId)}?format=image&version=${ScryfallImageSize.Normal}`
+      ? getScryfallUrlById(row.scryfallId, ScryfallImageSize.Normal)
       : undefined);
 
   return {

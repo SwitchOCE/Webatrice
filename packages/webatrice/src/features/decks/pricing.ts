@@ -1,3 +1,5 @@
+import { chunkForCollection, postCollection } from '@app/services';
+
 import type { DeckCard } from './types';
 
 /**
@@ -92,9 +94,6 @@ const nameCache = new Map<string, PriceInfo>();
 // In-flight de-dup: keyed by `id:<uuid>` / `name:<lower>` so parallel
 // callers coalesce onto the same request.
 const inFlight = new Map<string, Promise<void>>();
-
-const COLLECTION_ENDPOINT = 'https://api.scryfall.com/cards/collection';
-const MAX_PER_REQUEST = 75;
 
 /**
  * Fetch prices for a set of cards. Each card contributes an
@@ -196,8 +195,7 @@ export async function fetchPricesForCards(
   onProgress?.(assemble());
 
   if (toFetch.length > 0) {
-    for (let i = 0; i < toFetch.length; i += MAX_PER_REQUEST) {
-      const chunk = toFetch.slice(i, i + MAX_PER_REQUEST);
+    for (const chunk of chunkForCollection(toFetch)) {
       const chunkPromise = fetchChunk(chunk).then((res) => {
         for (const [id, info] of res.byId) {
           idCache.set(id, info);
@@ -273,11 +271,7 @@ interface ChunkResult extends PriceLookup {
 async function fetchChunk(identifiers: Identifier[]): Promise<ChunkResult> {
   const empty: ChunkResult = { ...emptyPriceLookup(), ok: false, notFound: [] };
   try {
-    const res = await fetch(COLLECTION_ENDPOINT, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifiers }),
-    });
+    const res = await postCollection(identifiers);
     if (!res.ok) {
       return empty;
     }

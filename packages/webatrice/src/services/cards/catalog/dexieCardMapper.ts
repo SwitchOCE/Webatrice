@@ -2,6 +2,7 @@ import { ScryfallImageSize } from '@cockatrice/datatrice';
 
 import { resolvePrintingImageUrls, sortBySetPreference, type CardDataPreferences } from '../../cardDatabase';
 import { dexieService, type Card, type CardInSet, type RelatedCard } from '../../dexie';
+import { getScryfallUrlById } from '../../scryfall';
 import type { LookupResult, PrintingSummary, RelatedCardRef } from './types';
 
 /**
@@ -148,7 +149,7 @@ function pickImageUri(
     return printing.picURL;
   }
   if (printing.uuid) {
-    return `https://api.scryfall.com/cards/${encodeURIComponent(printing.uuid)}?format=image&version=${ScryfallImageSize.Small}`;
+    return getScryfallUrlById(printing.uuid, ScryfallImageSize.Small);
   }
   return undefined;
 }

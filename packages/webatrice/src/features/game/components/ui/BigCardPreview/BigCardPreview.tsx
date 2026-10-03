@@ -1,8 +1,16 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { ScryfallImageSize } from '@cockatrice/datatrice';
+
 import { CardRelatedLinks } from '@app/components';
-import { detailTargetKey, fetchScryfallDetail, type ScryfallDetail } from '@app/services';
+import {
+  detailTargetKey,
+  fetchScryfallDetail,
+  getScryfallUrlById,
+  getScryfallUrlByName,
+  type ScryfallDetail,
+} from '@app/services';
 
 import { useBigPreviewCard, useCardPreviewActions } from '../CardPreviewContext';
 
@@ -48,10 +56,8 @@ export function BigCardPreview() {
     ? card.imageUri
       ? card.imageUri
       : card.scryfallId
-        ? `https://api.scryfall.com/cards/${card.scryfallId}?format=image&version=large`
-        : `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(
-          card.name.replace(/\s*\(?\bToken\b\)?\s*$/i, ''),
-        )}&format=image&version=large`
+        ? getScryfallUrlById(card.scryfallId, ScryfallImageSize.Large)
+        : getScryfallUrlByName(card.name, ScryfallImageSize.Large)
     : null;
 
   // Pick the face matching the hovered name — same logic as
