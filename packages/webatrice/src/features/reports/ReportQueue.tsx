@@ -118,10 +118,10 @@ const ReportQueueView = () => {
           <button
             type="button"
             className={REPORT_BUTTON_CLASS}
-            disabled={!q.actions.canDownloadReplay}
-            onClick={q.downloadReplay}
+            disabled={!q.actions.canViewReplay}
+            onClick={q.viewReplay}
           >
-            {t('Reports.queue.downloadReplay')}
+            {t('Reports.queue.viewReplay')}
           </button>
           <button type="button" className={REPORT_BUTTON_CLASS} disabled={!q.actions.canJoinGame} onClick={q.joinGame}>
             {t('Reports.queue.joinGame')}

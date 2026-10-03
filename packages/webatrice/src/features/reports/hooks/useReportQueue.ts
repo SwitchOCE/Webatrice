@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { ReportStatus, server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { ServerInfo_Report } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { useReduxEffect, type ReduxEffectAction } from '@app/hooks';
+import { useReduxEffect, useWatchReplay, type ReduxEffectAction } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 
-import { saveReplayFile } from '../saveReplayFile';
 import { useJoinReportGame } from './useJoinReportGame';
 import { useReportListLoad, type ReportListLoadState } from './useReportListLoad';
 import { useReportThread, type ReportThread } from './useReportThread';
@@ -19,7 +19,7 @@ export const REPORT_QUEUE_REFRESH_MS = 300_000;
 export type QueueActionMessage =
   | 'assigning' | 'assignedDone' | 'assignFailed'
   | 'resolving' | 'dismissing' | 'done' | 'actionFailed'
-  | 'loadingReplay' | 'noReplay' | 'replaySaved'
+  | 'loadingReplay' | 'noReplay' | 'replayOpened' | 'replayParseFailed'
   | 'noRoom' | 'joining';
 
 export interface ResolvePrompt {
@@ -29,7 +29,7 @@ export interface ResolvePrompt {
 export interface ReportQueueActions {
   canAssign: boolean;
   canResolve: boolean;
-  canDownloadReplay: boolean;
+  canViewReplay: boolean;
   canJoinGame: boolean;
 }
 
@@ -57,7 +57,7 @@ export interface ReportQueue {
   resolvePrompt: ResolvePrompt | null;
   submitResolvePrompt: (note: string) => void;
   cancelResolvePrompt: () => void;
-  downloadReplay: () => void;
+  viewReplay: () => void;
   joinGame: () => void;
   userInfoFailed: boolean;
   statsOpen: boolean;
@@ -65,7 +65,7 @@ export interface ReportQueue {
   statsState: ReportListLoadState;
 }
 
-const NO_ACTIONS: ReportQueueActions = { canAssign: false, canResolve: false, canDownloadReplay: false, canJoinGame: false };
+const NO_ACTIONS: ReportQueueActions = { canAssign: false, canResolve: false, canViewReplay: false, canJoinGame: false };
 
 /**
  * The moderator report queue (desktop TabReport): server list with the
@@ -75,6 +75,8 @@ const NO_ACTIONS: ReportQueueActions = { canAssign: false, canResolve: false, ca
  */
 export function useReportQueue(): ReportQueue {
   const webClient = useWebClient();
+  const { t } = useTranslation();
+  const watchReplay = useWatchReplay();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [unresolvedOnly, setUnresolvedOnly] = useState(true);
@@ -203,15 +205,20 @@ export function useReportQueue(): ReportQueue {
     }
   }, server.Types.MODERATOR_COMMAND_FAILED, []);
 
-  // Desktop saves nothing until the matching replay arrives.
+  // Desktop TabReport::viewReplayResponse: once the matching replay arrives,
+  // parse it and open it in a replay tab.
   useEffect(() => {
     if (replay && replayGameId !== null && replay.gameId === replayGameId) {
       setReplayGameId(null);
       setActionBusy(false);
-      saveReplayFile(replay.gameId, replay.replayData);
-      setActionMessage('replaySaved');
+      try {
+        watchReplay(replay.replayData, t('Reports.queue.replayTitle', { gameId: replay.gameId }));
+        setActionMessage('replayOpened');
+      } catch {
+        setActionMessage('replayParseFailed');
+      }
     }
-  }, [replay, replayGameId]);
+  }, [replay, replayGameId, watchReplay, t]);
 
   const actions = useMemo<ReportQueueActions>(() => {
     if (!selected || actionBusy) {
@@ -222,7 +229,7 @@ export function useReportQueue(): ReportQueue {
     return {
       canAssign: selected.status === ReportStatus.OPEN,
       canResolve: open,
-      canDownloadReplay: hasGame && selected.replayId > 0,
+      canViewReplay: hasGame && selected.replayId > 0,
       canJoinGame: hasGame && selected.roomId > 0,
     };
   }, [selected, actionBusy]);
@@ -266,7 +273,7 @@ export function useReportQueue(): ReportQueue {
     );
   }, [selected, webClient, finish]);
 
-  const downloadReplay = useCallback(() => {
+  const viewReplay = useCallback(() => {
     if (!selected || selected.gameId <= 0) {
       return;
     }
@@ -323,7 +330,7 @@ export function useReportQueue(): ReportQueue {
       }
     },
     cancelResolvePrompt: () => setResolvePrompt(null),
-    downloadReplay,
+    viewReplay,
     joinGame,
     userInfoFailed: userInfoFailedFor !== null && userInfoFailedFor === reportedUser,
     statsOpen,
