@@ -1,6 +1,6 @@
 import { Gavel, Shield, ShieldCheck } from 'lucide-react';
-import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 import { useTranslation } from 'react-i18next';
+import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 
 /**
  * Compact role badges shown next to a user's name in every user list:

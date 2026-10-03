@@ -18,6 +18,7 @@
       "empty": "There are no messages for the selected filters.",
       "failed": "Failed to collect message history information."
     },
-    "title": "Log Results"
+    "title": "Log Results",
+    "tabWithCount": "{tab} [{count}]"
   }
 }

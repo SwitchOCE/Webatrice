@@ -1,4 +1,5 @@
 import { Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { UserRows } from '@app/components';
 import type { ServerInfo_User } from '@cockatrice/sockatrice/generated';
@@ -12,18 +13,19 @@ interface ServerUsersProps {
  *  as the Room page's RoomUsers panels but without the Buddies split
  *  — this is the raw connected-users view. */
 export default function ServerUsers({ users }: ServerUsersProps) {
+  const { t } = useTranslation();
   return (
     <aside className="flex h-full flex-col bg-bg-surface border border-border-subtle rounded-lg overflow-hidden">
       <div className="shrink-0 px-4 py-2 border-b border-border-subtle flex items-center gap-2">
         <Users size={14} className="text-text-muted" />
         <h3 className="font-modern text-xs font-bold uppercase tracking-wider text-text-secondary">
-          Players Online
+          {t('ServerUsers.title')}
         </h3>
         <span className="ml-auto text-[0.65rem] text-text-muted tabular-nums">
-          {users.length} connected
+          {t('ServerUsers.count', { count: users.length })}
         </span>
       </div>
-      <UserRows users={users} empty="No one connected." />
+      <UserRows users={users} empty={t('ServerUsers.empty')} />
     </aside>
   );
 }

@@ -82,6 +82,7 @@ const Results = ({ headerCells, logs }: ResultsProps) => (
 
 const LogResults = ({ logs }: LogResultsProps) => {
   const { t } = useTranslation();
+  const tabLabel = (tab: string, count: number) => (count > 0 ? t('Logs.tabWithCount', { tab, count }) : tab);
   const { value, handleChange } = useLogResults();
 
   const headerCells: HeaderCell[] = [
@@ -107,9 +108,9 @@ const LogResults = ({ logs }: LogResultsProps) => {
           indicatorColor="secondary"
           aria-label={t('Logs.title')}
         >
-          <Tab label={`${t('Logs.tab.rooms')}${roomCount > 0 ? ` [${roomCount}]` : ''}`} {...a11yProps(0)} />
-          <Tab label={`${t('Logs.tab.games')}${gameCount > 0 ? ` [${gameCount}]` : ''}`} {...a11yProps(1)} />
-          <Tab label={`${t('Logs.tab.chats')}${chatCount > 0 ? ` [${chatCount}]` : ''}`} {...a11yProps(2)} />
+          <Tab label={tabLabel(t('Logs.tab.rooms'), roomCount)} {...a11yProps(0)} />
+          <Tab label={tabLabel(t('Logs.tab.games'), gameCount)} {...a11yProps(1)} />
+          <Tab label={tabLabel(t('Logs.tab.chats'), chatCount)} {...a11yProps(2)} />
         </Tabs>
       </AppBar>
       <TabPanel value={value} index={0}>
