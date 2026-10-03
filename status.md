@@ -1,1 +1,2 @@
 - 16:01Z started; base 0412500, read brief/task/PR/plan → survey PlayerBox + setup gate
+- 16:18Z pushed 3 prep commits (drop handle, move siblings, deck from Datatrice) → PlayerBox takes model+commands, then usePlayerSeat + regions
