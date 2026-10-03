@@ -48,9 +48,26 @@ export function useZoneDialogActions({
   const { setZoneViews, setZoneMenu, setRevealState } = set;
   const dispatch = useAppDispatch();
 
+  // What closing a view sends: a whole-library view shuffles when "shuffle
+  // when closing" is on (desktop ZoneViewWidget::closeEvent); without an
+  // explicit answer (Esc, or a view replaced by another) the remembered
+  // preference decides. A hidden zone's snapshot is dropped so a later view
+  // dumps it fresh (desktop zoneViewCleared).
+  const sendViewClosed = useCallback((view: ZoneViewTarget, shuffleOnClose?: boolean) => {
+    const { playerId, zoneName } = view;
+    if (gameId == null || playerId !== readGame()?.localPlayerId || !isHiddenZone(zoneName)) {
+      return;
+    }
+    if (offersShuffleOnClose(view) && (shuffleOnClose ?? readShuffleOnClose())) {
+      webClient.request.game.shuffle(gameId, { zoneName, start: 0, end: -1 });
+    }
+    dispatch(games.Actions.zoneViewCleared({ gameId, playerId, zoneName }));
+  }, [gameId, readGame, webClient, dispatch]);
+
   // One view per zone. Re-opening the same view is a no-op (no re-dump); a
-  // different count of the same hidden zone replaces it and dumps afresh, as
-  // both read the zone's one revealed snapshot. Only the local player's hidden
+  // different count of the same hidden zone replaces it, as both read the
+  // zone's one revealed snapshot. The replaced view closes first, shuffle
+  // included, then the new one dumps afresh. Only the local player's hidden
   // zones are dumped (Command_DumpZone; desktop actViewLibrary,
   // actViewTopCards / actViewBottomCards, actViewSideboard).
   const openZoneView = useCallback((view: ZoneViewTarget) => {
@@ -59,6 +76,9 @@ export function useZoneDialogActions({
     const open = zoneViews.find(sameZone);
     if (open && open.numberCards === view.numberCards && open.isReversed === view.isReversed) {
       return;
+    }
+    if (open) {
+      sendViewClosed(open);
     }
     setZoneViews((prev) =>
       prev.some(sameZone)
@@ -73,7 +93,7 @@ export function useZoneDialogActions({
         isReversed: view.isReversed ?? false,
       });
     }
-  }, [zoneViews, gameId, readGame, webClient, setZoneViews]);
+  }, [zoneViews, gameId, readGame, webClient, setZoneViews, sendViewClosed]);
 
   const handleZoneClick = useCallback(
     (playerId: number, zoneName: string) => openZoneView({ playerId, zoneName }),
@@ -91,12 +111,7 @@ export function useZoneDialogActions({
   const openViewGraveyard = useCallback(() => openOwnZoneView(ZoneName.GRAVE), [openOwnZoneView]);
   const openViewSideboard = useCallback(() => openOwnZoneView(ZoneName.SIDEBOARD), [openOwnZoneView]);
 
-  // Closing a whole-library view shuffles it when "shuffle when closing" is
-  // on (desktop ZoneViewWidget::closeEvent); without an explicit answer (Esc)
-  // the remembered preference decides. A hidden zone's snapshot is dropped so
-  // a later view dumps it fresh (desktop zoneViewCleared).
   const handleCloseZoneView = useCallback((playerId: number, zoneName: string, shuffleOnClose?: boolean) => {
-    const game = readGame();
     const view = zoneViews.find((v) => v.playerId === playerId && v.zoneName === zoneName);
     if (!view) {
       return;
@@ -104,14 +119,8 @@ export function useZoneDialogActions({
     setZoneViews((prev) =>
       prev.filter((v) => !(v.playerId === playerId && v.zoneName === zoneName)),
     );
-    if (gameId == null || playerId !== game?.localPlayerId || !isHiddenZone(zoneName)) {
-      return;
-    }
-    if (offersShuffleOnClose(view) && (shuffleOnClose ?? readShuffleOnClose())) {
-      webClient.request.game.shuffle(gameId, { zoneName, start: 0, end: -1 });
-    }
-    dispatch(games.Actions.zoneViewCleared({ gameId, playerId, zoneName }));
-  }, [zoneViews, gameId, readGame, webClient, dispatch, setZoneViews]);
+    sendViewClosed(view, shuffleOnClose);
+  }, [zoneViews, setZoneViews, sendViewClosed]);
 
   const handleZoneContextMenu = useCallback(
     (playerId: number, zoneName: string, event: React.MouseEvent) => {
