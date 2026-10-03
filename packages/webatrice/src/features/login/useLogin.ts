@@ -100,7 +100,7 @@ export function useLogin(): Login {
 
   const passwordResetToast = useToast({
     key: 'password-reset-success',
-    children: t('Login.toasts.passwordResetSuccess'),
+    children: t('Login.toasts.passwordResetSuccessToast'),
   });
   const accountActivatedToast = useToast({
     key: 'account-activation-success',
