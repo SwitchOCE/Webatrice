@@ -21,6 +21,7 @@ export const disconnectedState: Partial<RootState> = {
       description: null,
     },
     connectionHealth: { missedPongs: 0, silentForMs: 0 },
+    latency: { stats: { lastMs: 0, medianMs: 0, p95Ms: 0, maxMs: 0, sampleCount: 0 }, samplesMs: [] },
     connectUnreachable: false,
     loginFailureCode: null,
     info: { message: null, name: null, version: null },

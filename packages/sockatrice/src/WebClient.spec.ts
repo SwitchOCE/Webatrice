@@ -17,6 +17,7 @@ vi.mock('./services/WebSocketService', () => ({
 }));
 
 vi.mock('./services/ProtobufService', () => ({
+  DEFAULT_COMMAND_TIMEOUT_MS: 18_000,
   ProtobufService: vi.fn().mockImplementation(function ProtobufServiceImpl(transport: SocketTransport) {
     captured.pbOptions = transport;
     return {
@@ -201,6 +202,16 @@ describe('WebClient', () => {
 
     it('calls response.session.initialized', () => {
       expect(mockResponse.session.initialized).toHaveBeenCalled();
+    });
+
+    it('forwards round-trip stats from protobuf to response.session.updateLatencyStats', () => {
+      const onLatencyStats = (ProtobufService as Mock).mock.lastCall![3];
+      const stats = { lastMs: 40, medianMs: 40, p95Ms: 40, maxMs: 40, sampleCount: 1 };
+      mockResponse.session.updateLatencyStats = vi.fn();
+
+      onLatencyStats(stats, [40]);
+
+      expect(mockResponse.session.updateLatencyStats).toHaveBeenCalledWith(stats, [40]);
     });
 
     it('sets WebClient.instance to the constructed instance', () => {

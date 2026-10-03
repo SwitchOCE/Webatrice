@@ -60,6 +60,7 @@ import type {
 
 import type { StatusEnum } from './StatusEnum';
 import type { CommandFailure } from './CommandFailure';
+import type { LatencyStats } from './LatencyStats';
 import type { LoginSuccessContext, PendingActivationContext } from './SignalContexts';
 import type {
   KeyOf,
@@ -90,6 +91,9 @@ export interface ISessionResponse {
   /** Keepalive health: missedPongs > 0 while pings go unanswered, 0 on recovery.
    *  Optional for backward compatibility with existing consumers. */
   updateConnectionHealth?(missedPongs: number, silentForMs: number): void;
+  /** Command round-trip stats and the rolling window (oldest first), pushed at most once a second
+   *  and zeroed on disconnect (desktop `pingStatsUpdated`, #7153). Optional: additive. */
+  updateLatencyStats?(stats: LatencyStats, samplesMs: number[]): void;
   updateUser(user: ServerInfo_User): void;
   updateUsers(users: ServerInfo_User[]): void;
   userJoined(user: ServerInfo_User): void;

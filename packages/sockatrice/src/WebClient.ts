@@ -25,7 +25,7 @@ import type { ClientOptions } from './types/ClientOptions';
 import type { ConnectTarget } from './types/WebClientConfig';
 import type { IWebClientResponse } from './types/WebClientResponse';
 import { StatusEnum } from './types/StatusEnum';
-import { ProtobufService } from './services/ProtobufService';
+import { DEFAULT_COMMAND_TIMEOUT_MS, ProtobufService } from './services/ProtobufService';
 import { WebSocketService } from './services/WebSocketService';
 import { buildWebSocketUrl } from './utils/buildWebSocketUrl';
 import { terminateSocket } from './utils/terminateSocket';
@@ -134,6 +134,10 @@ export class WebClient {
           && this.socket.checkReadyState(WebSocket.OPEN),
       },
       { game: GameEvents, room: RoomEvents, session: SessionEvents },
+      DEFAULT_COMMAND_TIMEOUT_MS,
+      (stats, samplesMs) => {
+        this.response.session.updateLatencyStats?.(stats, samplesMs);
+      },
     );
 
     WebClient._instance = this;
