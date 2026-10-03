@@ -330,7 +330,17 @@
     "add": "Add new host",
     "refresh": "Test connection",
     "toggle": "Toggle host list",
-    "toast": "Host successfully {mode, select, created {created} deleted {deleted} other {edited}}."
+    "toast": "Host successfully {mode, select, created {created} deleted {deleted} other {edited}}.",
+    "public": {
+      "title": "Public servers",
+      "refresh": "Refresh the server list with known public servers",
+      "loading": "Loading public servers…",
+      "error": "Couldn't download the public server list.",
+      "stale": "Couldn't refresh; showing the last downloaded list.",
+      "unavailable": {
+        "noWebSocket": "Desktop client only: no WebSocket port"
+      }
+    }
   },
   "Moderation": {
     "menu": {
