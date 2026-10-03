@@ -31,10 +31,10 @@ export class RoomsPage {
 
   // The Server (rooms) view is ready as soon as the RoomsList's <thead>
   // renders. `Name` is the first (unique) column header. Servatrice
-  // auto-joins the "General room" for freshly-registered accounts, so
-  // the caller usually lands on /room/:id (games list) instead of
-  // /server (rooms list). Click the pinned Lobby tab first to force
-  // the /server view before asserting.
+  // auto-joins the "General room" for freshly-registered accounts; that
+  // opens the room without switching to it, so login lands on /server.
+  // Clicking the pinned Lobby tab first also brings back the /server
+  // view from a room or game.
   async waitForRoomList(): Promise<void> {
     const lobbyTab = this.page.getByRole('tab', { name: /^lobby$/i });
     await expect(lobbyTab).toBeVisible({ timeout: 30_000 });
