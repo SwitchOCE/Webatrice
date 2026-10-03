@@ -44,6 +44,12 @@ export interface ServerState {
   messages: {
     [userName: string]: Event_UserMessage[];
   };
+  // Lines the client adds to a private conversation, as desktop TabMessage appends
+  // them to its chat view: delivery failures and the partner's presence changes.
+  // Kept beside `messages` (not inside it) so message consumers stay unchanged.
+  privateChatNotices: {
+    [userName: string]: PrivateChatNotice[];
+  };
   userInfo: {
     [userName: string]: ServerInfo_User;
   };
@@ -72,6 +78,30 @@ export interface CommandFailedPayload {
   responseCode: number;
   failure?: WebsocketTypes.CommandFailure;
 }
+
+export type PrivateChatNoticeKind =
+  | 'ignoredByRecipient'
+  | 'recipientOffline'
+  | 'chatFlood'
+  | 'notSent'
+  | 'userLeft'
+  | 'userJoined';
+
+export interface PrivateChatNotice {
+  // Monotonic client id; conversation rows key on it.
+  id: number;
+  kind: PrivateChatNoticeKind;
+  // How many of the conversation's stored messages precede this notice. Shifted
+  // down when old messages are trimmed, so the notice keeps its place.
+  position: number;
+  // Why a `notSent` message got no answer from the server.
+  failure?: WebsocketTypes.CommandFailure;
+}
+
+// One row of a private conversation: a message or a client notice, in order.
+export type PrivateConversationEntry =
+  | { type: 'message'; message: Event_UserMessage }
+  | { type: 'notice'; notice: PrivateChatNotice };
 
 export interface ServerStateStatus {
   connectionAttemptMade: boolean;

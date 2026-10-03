@@ -372,6 +372,12 @@ describe('SessionResponseImpl forwards', () => {
     expect(dispatch).toHaveBeenCalledWith(ServerActions.getUserInfo({ userInfo }));
   });
 
+  it('privateMessageFailed dispatches privateMessageFailed with the response code', () => {
+    const { impl, dispatch } = setup();
+    impl.privateMessageFailed('alice', 'hi', 18);
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.privateMessageFailed({ userName: 'alice', message: 'hi', responseCode: 18 }));
+  });
+
   it('getGamesOfUser maps method name to gamesOfUser action', () => {
     const { impl, dispatch } = setup();
     const response = create(Response_GetGamesOfUserSchema, {});

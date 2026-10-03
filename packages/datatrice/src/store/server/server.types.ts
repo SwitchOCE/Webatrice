@@ -53,6 +53,7 @@ export const Types = {
   NOTIFY_USER: a.notifyUser.type,
   SERVER_SHUTDOWN: a.serverShutdown.type,
   USER_MESSAGE: a.userMessage.type,
+  PRIVATE_MESSAGE_FAILED: a.privateMessageFailed.type,
   ADD_TO_LIST: a.addToList.type,
   REMOVE_FROM_LIST: a.removeFromList.type,
   BAN_FROM_SERVER: a.banFromServer.type,

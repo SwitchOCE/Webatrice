@@ -7,3 +7,5 @@ Room and chat commands now report their failures the way desktop handles them, w
 **Joining a room.** `joinRoom(roomId, userInitiated = true)` mirrors desktop `TabServer::joinRoom`: `joinRoomFailed` is reported only for joins a user asked for (auto-joins from `Event_ListRooms` fail silently), a join for a room already being joined is folded into the pending one, and a `RespContextError` (the server still counts you as a member) is healed once by leaving and rejoining before it is reported.
 
 **Room chat.** `roomSay` reports a `RespChatFlood` rejection (desktop `TabRoom::sayFinished`), or a message the server never answered, through the new `IRoomResponse.roomSayFailed?(roomId, message, responseCode, failure?)` with the unsent text.
+
+**Private messages.** `message` reports `RespInIgnoreList`, `RespNameNotFound` and `RespChatFlood` rejections (desktop `TabMessage::messageSent`), or a message the server never answered, through the new `ISessionResponse.privateMessageFailed?(userName, message, responseCode, failure?)` with the unsent text.

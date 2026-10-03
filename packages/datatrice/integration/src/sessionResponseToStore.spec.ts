@@ -271,6 +271,27 @@ describe('integration: session messaging and notifications', () => {
     expect(store.getState().server.messages['bob']).toHaveLength(1);
   });
 
+  it('a private conversation records delivery failures and the partner presence in order', () => {
+    const store = createStore();
+    const response = attachResponseHandlers(store);
+    response.session.updateUser(makeUser('alice'));
+    response.session.updateUsers([makeUser('bob')]);
+
+    response.session.userMessage(create(Event_UserMessageSchema, {
+      senderName: 'alice', receiverName: 'bob', message: 'hi bob',
+    }));
+    response.session.privateMessageFailed('bob', 'too fast', 18);
+    response.session.userLeft('bob');
+    expect(server.Selectors.getIsUserOnline(store.getState(), 'bob')).toBe(false);
+    response.session.privateMessageFailed('bob', 'are you there?', 6);
+    response.session.userJoined(makeUser('bob'));
+
+    const rows = server.Selectors.getPrivateConversation(store.getState(), 'bob')
+      .map((e) => (e.type === 'message' ? e.message.message : e.notice.kind));
+    expect(rows).toEqual(['hi bob', 'chatFlood', 'userLeft', 'recipientOffline', 'userJoined']);
+    expect(server.Selectors.getIsUserOnline(store.getState(), 'bob')).toBe(true);
+  });
+
   it('notifyUser appends a notification', () => {
     const store = createStore();
     const response = attachResponseHandlers(store);
