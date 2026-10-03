@@ -53,6 +53,8 @@ export function ReportUserProvider({ children }: { children: ReactNode }) {
 }
 
 export interface ReportUserActions {
+  /** The server takes reports and the local user is registered; desktop then lists "Report user" in user menus. */
+  reportingAvailable: boolean;
   /**
    * Desktop shows "Report user" when the server takes reports and the local
    * user is registered (guests can't report), and enables it for anyone but
@@ -73,9 +75,10 @@ export function useReportUser(): ReportUserActions {
     && (self.userLevel & ServerInfo_User_UserLevelFlag.IsRegistered) === ServerInfo_User_UserLevelFlag.IsRegistered;
   const selfName = self?.name;
 
+  const reportingAvailable = supported && registered;
   const canReportUser = useCallback(
-    (userName: string) => supported && registered && !!userName && userName !== selfName,
-    [supported, registered, selfName],
+    (userName: string) => reportingAvailable && !!userName && userName !== selfName,
+    [reportingAvailable, selfName],
   );
 
   const openReportUser = useCallback((params: OpenReportUserParams) => {
@@ -86,5 +89,8 @@ export function useReportUser(): ReportUserActions {
     });
   }, [open, scope]);
 
-  return useMemo(() => ({ canReportUser, openReportUser }), [canReportUser, openReportUser]);
+  return useMemo(
+    () => ({ reportingAvailable, canReportUser, openReportUser }),
+    [reportingAvailable, canReportUser, openReportUser],
+  );
 }
