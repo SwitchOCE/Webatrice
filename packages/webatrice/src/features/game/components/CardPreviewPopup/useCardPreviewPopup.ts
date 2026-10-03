@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { PreviewMode } from '../BattlefieldSidebar/BattlefieldSidebar';
-import type { HoveredCard } from '../PlayerBox/hoveredCard';
+import type { PreviewCard } from '../ui/CardPreviewContext';
 import {
   postCardPreviewMessage,
   subscribeToCardPreviewChannel,
@@ -31,7 +31,7 @@ const POPUP_FEATURES = 'width=420,height=580,menubar=no,toolbar=no,location=no,s
  *   • popup.window failed to open (blocked / navigation restrictions).
  */
 export function useCardPreviewPopup(
-  card: HoveredCard | null,
+  card: PreviewCard | null,
   mode: PreviewMode,
   detail: CardPreviewDetail | null,
   fetchState: CardPreviewFetchState,

@@ -11,7 +11,7 @@ import { useGameDialogActions } from '../ui/GameDialogActionsContext';
 import { useGameReadOnly } from '../ui/GameReadOnlyContext';
 import { useLocalIdentity } from '../../hooks/useLocalIdentity';
 import { useGameAffordances } from '../../hooks/useGameAffordances';
-import { useHoveredCard } from '../PlayerBox/hoveredCard';
+import { useCardPreview } from '../ui/CardPreviewContext';
 import { CARD_CORNER_RADIUS } from '../PlayerBox/cardSize';
 import { ManaSymbols, SymbolText } from '../PlayerBox/ManaSymbols';
 import { useCardPreviewPopup } from '../CardPreviewPopup/useCardPreviewPopup';
@@ -30,8 +30,8 @@ const SIDEBAR_ACTION_BUTTON_CLASS =
  *   3. Chat & log    — the shared ChatLog component (same one the
  *                      pre-game lobby renders)
  *
- * Card preview reads from the same `HoveredCardProvider` the PlayerBox
- * card components write to on mouse-enter, so hovering any card
+ * Card preview reads the game's preview store (CardPreviewContext), which
+ * every card writes to on mouse-enter or focus, so hovering any card
  * anywhere in the play area updates the preview here. Ported inline
  * from fancy webatrice's BattlefieldSidebar — same 5 : 7 aspect image
  * and dashed placeholder.
@@ -124,7 +124,7 @@ export default function BattlefieldSidebar() {
   const { isSpectator } = useLocalIdentity();
   const readOnly = useGameReadOnly();
   const { t } = useTranslation();
-  const { hoveredCard } = useHoveredCard();
+  const hoveredCard = useCardPreview();
   const {
     onRequestConcede,
     onRequestUnconcede,
@@ -341,7 +341,7 @@ export default function BattlefieldSidebar() {
 
       {/* Card preview — 5 : 7 aspect image when a card is hovered,
            otherwise a dashed placeholder frame. Reads the hover state
-           from PlayerBox's HoveredCardProvider so any card on the
+           from the game's preview store so any card on the
            board (hand / battlefield / library / graveyard / etc.)
            lights up the preview when its mouse-enter fires. Header
            row hosts the image/text toggle — persisted globally in

@@ -1,5 +1,5 @@
 import type { PreviewMode } from '../BattlefieldSidebar/BattlefieldSidebar';
-import type { HoveredCard } from '../PlayerBox/hoveredCard';
+import type { PreviewCard } from '../ui/CardPreviewContext';
 
 // Fixed channel name so the popped-out window can find the main
 // window's broadcasts without needing an opaque handle. Only one main
@@ -24,7 +24,7 @@ const CHANNEL_NAME = 'webatrice-card-preview';
  *              `beforeunload` race.
  */
 export type CardPreviewMessage =
-  | { kind: 'card'; card: HoveredCard | null }
+  | { kind: 'card'; card: PreviewCard | null }
   | {
       kind: 'mode';
       mode: PreviewMode;

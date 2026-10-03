@@ -8,8 +8,7 @@ import { useAppDispatch, useAppSelector } from '@app/store';
 import Card from './Card';
 import { CARD_HEIGHT, CARD_WIDTH } from './cardSize';
 import { useForeignDrag } from './foreignDragContext';
-import { useHoveredCard } from './hoveredCard';
-import { useBigCardPreview } from './bigCardPreview';
+import { useCardPreviewActions } from '../ui/CardPreviewContext';
 import type { DeckCard } from './mockTypes';
 import {
   compareCards,
@@ -226,8 +225,7 @@ export default function IncomingRevealDialog() {
   const reveal = useAppSelector(games.Selectors.getIncomingReveal);
   const dispatch = useAppDispatch();
   const beginForeignDrag = useForeignDrag();
-  const { setHoveredCard } = useHoveredCard();
-  const { openBigPreview, closeBigPreview } = useBigCardPreview();
+  const { setHoveredCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
 
   const sourceName = useAppSelector((state) => {
     if (!reveal) {
