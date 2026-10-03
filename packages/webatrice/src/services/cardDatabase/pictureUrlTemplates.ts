@@ -41,7 +41,10 @@ export interface PictureTemplateContext {
   /** The card's `<prop>` children: side, layout, colors, … */
   props: Readonly<Record<string, string>>;
   set?: PictureTemplateSet;
-  /** Card language for `!sflang!` (desktop `cardsDisplay/cardLang`). */
+  /**
+   * Card language for `!sflang!` (desktop `cardsDisplay/cardLang`). Webatrice
+   * has no card-language setting yet, so callers pass `'en'`.
+   */
   lang: string;
 }
 
