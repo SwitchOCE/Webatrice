@@ -19,8 +19,8 @@
       "subtitle2": "Cross-platform virtual tabletop for multiplayer card games. Forever free."
     },
     "toasts": {
-      "passwordResetSuccessToast": "Password Reset Successfully",
-      "accountActivationSuccess": "Account Activated Successfully"
+      "accountActivationSuccess": "Account Activated Successfully",
+      "passwordResetSuccess": "Password Reset Successfully"
     },
     "status": {
       "serverUnreachable": "Trouble reaching the server. Wait a minute and try again.",

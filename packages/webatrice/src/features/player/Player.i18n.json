@@ -25,7 +25,6 @@
       "removeBuddy": "Remove from Buddy List",
       "addIgnore": "Add to Ignore List",
       "removeIgnore": "Remove from Ignore List",
-      "message": "Message",
       "notFound": "User not found or still loading…"
     }
   }
