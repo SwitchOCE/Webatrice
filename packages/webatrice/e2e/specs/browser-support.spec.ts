@@ -2,31 +2,50 @@ import { expect, test } from '../fixtures/test';
 
 import { LoginPage } from '../pages';
 
-// Startup capability preflight (src/utils/browserSupport.ts) in a real
-// browser. An init script blanks one API before the bundle runs, standing in
-// for a browser that lacks it; jsdom unit specs cover the full feature table.
+// Startup capability preflight (public/preflight.js) in a real browser. An init
+// script blanks one API before any page script runs, standing in for a browser
+// that lacks it; the jsdom spec (src/utils/browserSupport.spec.ts) covers the
+// full feature table, the syntax probe and the module check.
 
-test('a browser without WebSocket gets the unsupported screen instead of the app', async ({ page }) => {
-  await page.addInitScript(() => {
-    Object.defineProperty(window, 'WebSocket', { value: undefined, configurable: true, writable: true });
+const blank = (api: string) => {
+  Object.defineProperty(window, api, { value: undefined, configurable: true, writable: true });
+};
+
+for (const [api, label] of [
+  ['WebSocket', 'WebSockets, used to connect to the server'],
+  ['ResizeObserver', 'Resize observers, used to lay out the game board'],
+]) {
+  test(`a browser without ${api} gets the unsupported screen and never loads the app`, async ({ page }) => {
+    const scripts: string[] = [];
+    page.on('request', (request) => {
+      if (request.resourceType() === 'script') {
+        scripts.push(new URL(request.url()).pathname);
+      }
+    });
+    await page.addInitScript(blank, api);
+
+    await page.goto('/', { waitUntil: 'networkidle' });
+
+    await expect(page.getByRole('main').getByRole('heading', { name: 'Unsupported Browser' })).toBeVisible();
+    await expect(page.getByRole('listitem')).toHaveText([label]);
+    // The screen is all there is: the app never rendered into the root...
+    await expect(page.locator('#root > *')).toHaveCount(1);
+    // ...because the module entry ran but fetched neither the app chunk it
+    // imports once the preflight passes nor any vendor chunk.
+    expect(scripts).toContainEqual(expect.stringMatching(/^\/assets\/index-[\w-]+\.js$/));
+    expect(scripts.filter((path) => /^\/assets\/(boot|vendor)/.test(path))).toEqual([]);
   });
+}
 
-  await page.goto('/');
-
-  await expect(page.getByRole('heading', { name: 'Unsupported Browser' })).toBeVisible();
-  await expect(page.getByRole('listitem')).toHaveText(['WebSockets, used to connect to the server']);
-  // The app did not boot: no login screen behind it.
-  await expect(new LoginPage(page).hostPicker).toBeHidden();
-});
-
-test('a browser without an optional API boots with a notice naming it', async ({ page }) => {
+test('a page without Web Crypto (plain http://) boots with a password-hashing notice', async ({ page }) => {
   await page.addInitScript(() => {
-    Object.defineProperty(window, 'BroadcastChannel', { value: undefined, configurable: true, writable: true });
+    Object.defineProperty(window.crypto, 'subtle', { value: undefined, configurable: true });
   });
 
   const login = new LoginPage(page);
   await login.goto();
 
+  await expect(login.hostPicker).toBeVisible();
   await expect(page.getByRole('alert').filter({ hasText: 'Some features are unavailable in this browser' }))
-    .toContainText('Broadcast channels, used by the pop-out card preview');
+    .toContainText('passwords are sent to the server unhashed instead');
 });

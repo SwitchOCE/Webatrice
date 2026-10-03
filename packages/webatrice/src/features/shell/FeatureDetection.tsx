@@ -5,11 +5,11 @@ import { Navigate } from 'react-router-dom';
 import { usePushToast } from '@app/components';
 import { dexieService } from '@app/services';
 import { RouteEnum } from '@app/types';
-import { detectBrowserSupport } from '@app/utils';
+import { getBrowserSupport } from '@app/utils';
 
 /**
- * Post-boot half of the capability preflight (index.tsx gates the boot on the
- * required features). Routes to the unsupported screen when IndexedDB cannot be
+ * Post-boot half of the capability preflight (public/preflight.js gates the boot
+ * on the required features). Routes to the unsupported screen when IndexedDB cannot be
  * opened, which only an attempt reveals, and names the optional features this
  * browser lacks once so the user knows why e.g. the copy buttons do nothing.
  */
@@ -30,7 +30,7 @@ const FeatureDetection = () => {
     }
     noticeShown.current = true;
 
-    const { missingOptional } = detectBrowserSupport();
+    const { missingOptional } = getBrowserSupport();
     if (missingOptional.length > 0) {
       const features = missingOptional.map((feature) => t(`BrowserFeature.${feature}`)).join('; ');
       pushToast(t('FeatureDetection.degraded', { features }), { severity: 'warning' });
