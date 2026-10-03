@@ -1,1 +1,2 @@
 - 16:59Z setup done, inbox empty → cloning desktop ref, fanning out 4 PR reviews (09,18,16,17a)
+- 17:01Z 4 reviewers running (09,18,16,17a) → consolidate into reviews/rv9.md
