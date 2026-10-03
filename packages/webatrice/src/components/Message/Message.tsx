@@ -2,7 +2,7 @@ import { NavLink, generatePath } from 'react-router-dom';
 import { Fragment, useMemo, type ReactNode } from 'react';
 
 import { CALLOUT_BOUNDARY_REGEX, CARD_CALLOUT_REGEX, MENTION_REGEX, RouteEnum, URL_REGEX } from '@app/types';
-import { isOwnMention, segmentText, type ChatHighlight } from '@app/utils';
+import { parseMention, segmentText, type ChatHighlight } from '@app/utils';
 import UserActionsMenu from '../UserDisplay/UserActionsMenu';
 import { useUserDisplay } from '../UserDisplay/useUserDisplay';
 import CardCallout from './CardCallout';
@@ -146,11 +146,16 @@ function parseMentionChunk(chunk: string, highlight?: MessageHighlight): ReactNo
       const mention = mentionChunk.match(MENTION_REGEX);
 
       if (mention) {
-        const name = mention[0].substr(1);
-        if (highlight && isOwnMention(name, highlight.selfName)) {
-          return (<mark className='message__mention' style={highlight.mentionStyle} key={index}>{mention[0]}</mark>);
-        }
-        return (<PlayerLink name={name} label={mention[0]} key={index} />);
+        const { name, rest, own } = parseMention(mention[0].slice(1), highlight?.selfName ?? null);
+        const label = `@${name}`;
+        return (
+          <Fragment key={index}>
+            {highlight && own
+              ? <mark className='message__mention' style={highlight.mentionStyle}>{label}</mark>
+              : <PlayerLink name={name} label={label} />}
+            {rest && parseText(rest, highlight)}
+          </Fragment>
+        );
       }
 
       return <Fragment key={index}>{parseText(mentionChunk, highlight)}</Fragment>;
