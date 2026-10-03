@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
+import { useReduxEffect } from '@app/hooks';
 
 import { getCachedDeck, setCachedDeck } from '../deckEditorCache';
-import { serializeDeckForSave, uploadDeckUpdate } from '../deckPersistence';
+import { deckSaveSignature, serializeDeckForSave } from '../deckPersistence';
 import type { HydratedDeck } from '../types';
 
 export const AUTOSAVE_DEBOUNCE_MS = 500;
 
+/** `failed` mirrors desktop's "The deck could not be saved." */
 export type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'failed';
 
 export interface DeckAutosave {
@@ -16,62 +19,89 @@ export interface DeckAutosave {
   scheduleSave: () => void;
   /** Save a pending change right now. Also runs on unmount. */
   flushSave: () => void;
-  /** Record `xml` as what the server holds and show the deck as clean. */
-  markSaved: (xml: string) => void;
-  /** Forget the saved signature and show the deck as clean (a fresh download is on its way). */
+  /** Record `signature` (see `deckSaveSignature`) as what the server holds. */
+  markSaved: (signature: string) => void;
+  /** Forget the saved signature and show the deck as clean: the next save uploads whatever the deck holds. */
   resetSaved: () => void;
-  /** The last XML known to be on the server, if any. */
-  savedXml: () => string | null;
+  /** The last signature the server acknowledged, if any. */
+  savedSignature: () => string | null;
 }
 
 /**
- * Debounced autosave for the open deck. Each save serializes the latest
- * deck (read through `readDeck`, so the timer never sees a stale
- * snapshot), skips the upload when the XML matches the last save, and
- * reports "Saving…" → "Saved" from the server's ack (or "failed"
- * when the server rejects it or never answers).
+ * Debounced autosave for the open deck, sent as Sockatrice `deckUpdate`
+ * (desktop `actSaveDeck` for a remote deck).
+ *
+ * Each save reads the latest deck through `readDeck` (so the timer never sees
+ * a stale snapshot) and uploads only when its signature differs from the last
+ * one the server acknowledged — undoing back to the saved state, or a burst of
+ * edits that cancel out, sends nothing. "Saved" and "failed" come from the
+ * server's answer (`DECK_UPDATED` / `DECK_UPDATE_FAILED`); answers arrive in
+ * send order, so a FIFO of in-flight signatures pairs each answer with its save.
  */
 export function useDeckAutosave(
   deckId: number | null,
   readDeck: () => HydratedDeck | null,
-  initialSavedXml: string | null,
+  initialSavedSignature: string | null,
 ): DeckAutosave {
   const webClient = useWebClient();
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const saveTimerRef = useRef<number | null>(null);
-  const savedXmlRef = useRef<string | null>(initialSavedXml);
+  const savedSignatureRef = useRef<string | null>(initialSavedSignature);
+  const inFlightRef = useRef<string[]>([]);
+  // What the indicator falls back to when a dirty deck turns out unchanged.
+  const settledStateRef = useRef<SaveState>('idle');
+
+  const settle = useCallback((state: SaveState) => {
+    settledStateRef.current = state;
+    setSaveState(state);
+  }, []);
 
   const persistNow = useCallback(() => {
     const current = readDeck();
     if (!current || deckId == null) {
       return;
     }
-    const xml = serializeDeckForSave(current);
-    if (xml === savedXmlRef.current) {
+    const signature = deckSaveSignature(current);
+    const inFlight = inFlightRef.current;
+    const latestKnown = inFlight.length > 0 ? inFlight[inFlight.length - 1] : savedSignatureRef.current;
+    if (signature === latestKnown) {
+      setSaveState(inFlight.length > 0 ? 'saving' : settledStateRef.current);
       return;
     }
-    const previousXml = savedXmlRef.current;
-    savedXmlRef.current = xml;
-    // Keep the cached signature current so a remount after this save
-    // sees the deck as clean and doesn't queue a spurious re-save.
-    const cached = getCachedDeck(deckId);
-    if (cached) {
-      setCachedDeck(deckId, { deck: cached.deck, savedXml: xml });
-    }
+    inFlight.push(signature);
     setSaveState('saving');
-    uploadDeckUpdate(webClient, deckId, xml, () => setSaveState('saved'), () => {
-      // Not saved: forget the optimistic signature (here and in the cache) so
-      // the next edit or unmount flush sends this content again.
-      if (savedXmlRef.current === xml) {
-        savedXmlRef.current = previousXml;
-      }
-      const entry = getCachedDeck(deckId);
-      if (entry?.savedXml === xml) {
-        setCachedDeck(deckId, { deck: entry.deck, savedXml: previousXml ?? '' });
-      }
-      setSaveState('failed');
-    });
+    webClient.request.session.deckUpdate(deckId, serializeDeckForSave(current));
   }, [deckId, webClient, readDeck]);
+
+  useReduxEffect<{ deckId: number }>(
+    ({ type, payload }) => {
+      // An answer with nothing in flight belongs to an earlier mount.
+      if (deckId == null || payload.deckId !== deckId || inFlightRef.current.length === 0) {
+        return;
+      }
+      const signature = inFlightRef.current.shift()!;
+      if (type === server.Types.DECK_UPDATE_FAILED) {
+        settle('failed');
+        return;
+      }
+      savedSignatureRef.current = signature;
+      // Keep the cached signature current so a remount after this save
+      // sees the deck as clean and doesn't queue a spurious re-save.
+      const cached = getCachedDeck(deckId);
+      if (cached) {
+        setCachedDeck(deckId, { ...cached, savedSignature: signature });
+      }
+      if (inFlightRef.current.length === 0) {
+        settledStateRef.current = 'saved';
+        // A newer edit still waiting for the debounce keeps the deck dirty.
+        if (saveTimerRef.current == null) {
+          setSaveState('saved');
+        }
+      }
+    },
+    [server.Types.DECK_UPDATED, server.Types.DECK_UPDATE_FAILED],
+    [deckId],
+  );
 
   const scheduleSave = useCallback(() => {
     setSaveState('dirty');
@@ -95,15 +125,15 @@ export function useDeckAutosave(
   }, [persistNow]);
   useEffect(() => flushSave, [flushSave]);
 
-  const markSaved = useCallback((xml: string) => {
-    savedXmlRef.current = xml;
-    setSaveState('idle');
-  }, []);
+  const markSaved = useCallback((signature: string) => {
+    savedSignatureRef.current = signature;
+    settle('idle');
+  }, [settle]);
   const resetSaved = useCallback(() => {
-    savedXmlRef.current = null;
-    setSaveState('idle');
-  }, []);
-  const savedXml = useCallback(() => savedXmlRef.current, []);
+    savedSignatureRef.current = null;
+    settle('idle');
+  }, [settle]);
+  const savedSignature = useCallback(() => savedSignatureRef.current, []);
 
-  return { saveState, scheduleSave, flushSave, markSaved, resetSaved, savedXml };
+  return { saveState, scheduleSave, flushSave, markSaved, resetSaved, savedSignature };
 }

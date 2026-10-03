@@ -22,8 +22,6 @@ const DECK_B = 2;
 
 function setup(initialDeckId: number) {
   const webClient = createMockWebClient();
-  const sendSessionCommand = vi.fn();
-  (webClient as any).protobuf = { sendSessionCommand };
   const { Wrapper, store } = makeReduxWebClientHookWrapper({
     reducer: reducer as never,
     preloadedState: connectedState as Partial<RootState> as never,
@@ -40,7 +38,7 @@ function setup(initialDeckId: number) {
     await waitFor(() => expect(hook.result.current.deck?.name).toBe(name));
   };
   const uploads = () =>
-    sendSessionCommand.mock.calls.map(([, cmd]) => ({ deckId: cmd.deckId, deckList: cmd.deckList as string }));
+    vi.mocked(webClient.request.session.deckUpdate).mock.calls.map(([deckId, deckList]) => ({ deckId, deckList }));
   return { ...hook, Wrapper, download, uploads };
 }
 

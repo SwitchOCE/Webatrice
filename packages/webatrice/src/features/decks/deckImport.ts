@@ -85,6 +85,7 @@ export function buildUploadedDeckCod(file: ParsedDeck, name: string, format: str
     cards: file.cards as unknown as DeckCard[],
     format: format.trim().toLowerCase() || file.format || 'commander',
     bannerCard: file.bannerCard,
+    bannerCardProviderId: file.bannerCardProviderId,
     lastLoadedTimestamp: file.lastLoadedTimestamp,
     tagsXml: file.tagsXml,
   });
