@@ -1,7 +1,8 @@
 {
   "UserGamesDialog": {
     "menu": {
-      "showGames": "Show this user's games"
+      "showGames": "Show this user's games",
+      "offline": "This user is offline."
     },
     "title": "{name}'s games",
     "loading": "Loading games…",

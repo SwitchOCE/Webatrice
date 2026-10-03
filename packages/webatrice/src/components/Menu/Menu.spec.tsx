@@ -2,7 +2,21 @@ import { useRef, useState } from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { Menu, MenuCheckboxItem, MenuItem, MenuSeparator, MenuSubmenu, useContextMenu } from './Menu';
+import {
+  isContextMenuKey,
+  Menu,
+  MenuCheckboxItem,
+  MenuGroup,
+  MenuItem,
+  MenuRadioItem,
+  MenuSeparator,
+  MenuSubmenu,
+  placeMenu,
+  SUBMENU_CLOSE_DELAY,
+  SUBMENU_OPEN_DELAY,
+  TYPEAHEAD_TIMEOUT,
+  useContextMenu,
+} from './Menu';
 
 function Example({ onPick = vi.fn() }: { onPick?: (item: string) => void }) {
   const [open, setOpen] = useState(false);
@@ -17,7 +31,7 @@ function Example({ onPick = vi.fn() }: { onPick?: (item: string) => void }) {
       {open && (
         <Menu anchor={{ x: 10, y: 10 }} label="Options" onClose={() => setOpen(false)} triggerRef={trigger}>
           <MenuItem onSelect={() => onPick('alpha')}>Alpha</MenuItem>
-          <MenuItem onSelect={() => onPick('off')} disabled>Off</MenuItem>
+          <MenuItem onSelect={() => onPick('off')} disabled disabledReason="Not now">Off</MenuItem>
           <MenuCheckboxItem checked={grid} onChange={setGrid}>Grid</MenuCheckboxItem>
           <MenuSeparator />
           <MenuSubmenu label="More">
@@ -49,9 +63,11 @@ describe('Menu', () => {
     expect(screen.getByRole('menuitem', { name: 'More' })).toHaveAttribute('aria-haspopup', 'menu');
   });
 
-  it('moves with the arrows, skipping disabled items and wrapping at the ends', async () => {
+  it('moves with the arrows, stopping on disabled items and wrapping at the ends', async () => {
     const user = await openExample();
 
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getByRole('menuitem', { name: 'Off' })).toHaveFocus();
     await user.keyboard('{ArrowDown}');
     expect(screen.getByRole('menuitemcheckbox', { name: 'Grid' })).toHaveFocus();
     await user.keyboard('{End}');
@@ -64,13 +80,42 @@ describe('Menu', () => {
     expect(screen.getByRole('menuitem', { name: 'Alpha' })).toHaveFocus();
   });
 
+  it('keeps a disabled item focusable, explains it, and does not run it', async () => {
+    const onPick = vi.fn();
+    const user = await openExample(onPick);
+    const off = screen.getByRole('menuitem', { name: 'Off' });
+
+    expect(off).toHaveAttribute('aria-disabled', 'true');
+    expect(off).not.toBeDisabled();
+    expect(off).toHaveAccessibleDescription('Not now');
+    await user.keyboard('{ArrowDown}{Enter}');
+
+    expect(onPick).not.toHaveBeenCalled();
+    expect(screen.getByRole('menu', { name: 'Options' })).toBeInTheDocument();
+  });
+
+  it('closes the whole menu after an item is chosen, from a submenu too', async () => {
+    const onPick = vi.fn();
+    const user = await openExample(onPick);
+
+    screen.getByRole('menuitem', { name: 'More' }).focus();
+    await user.keyboard('{ArrowRight}{Enter}');
+
+    expect(onPick).toHaveBeenCalledWith('beta');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Options' })).toHaveFocus();
+  });
+
   it('jumps to the next item starting with a typed letter', async () => {
     const user = await openExample();
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1_000);
 
     await user.keyboard('d');
     expect(screen.getByRole('menuitem', { name: 'Delta' })).toHaveFocus();
+    now.mockReturnValue(1_000 + TYPEAHEAD_TIMEOUT + 1);
     await user.keyboard('m');
     expect(screen.getByRole('menuitem', { name: 'More' })).toHaveFocus();
+    now.mockRestore();
   });
 
   it('toggles a checkbox item in place and reports its state', async () => {
@@ -109,6 +154,7 @@ describe('Menu', () => {
 
     await user.keyboard('{ArrowRight}{Enter}');
     expect(onPick).toHaveBeenCalledWith('beta');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
   it('closes on Escape and returns focus to the trigger', async () => {
@@ -186,5 +232,221 @@ describe('useContextMenu', () => {
     fireEvent.contextMenu(screen.getByRole('link', { name: 'Target' }), { clientX: 40, clientY: 50 });
 
     expect(screen.getByRole('menu', { name: 'Target actions' })).toHaveStyle({ left: '42px', top: '54px' });
+  });
+});
+
+function Rich({ onSelect = vi.fn() }: { onSelect?: (value: string) => void }) {
+  const [zone, setZone] = useState('hand');
+  const [reveal, setReveal] = useState(false);
+  return (
+    <Menu anchor={{ x: 10, y: 10 }} label="Card" onClose={vi.fn()}>
+      <MenuItem onSelect={() => onSelect('tap')} shortcut="Ctrl+T" keyShortcuts="Control+T">Tap</MenuItem>
+      <MenuItem onSelect={() => onSelect('keep')} closeOnSelect={false}>Keep open</MenuItem>
+      <MenuCheckboxItem checked={reveal} onChange={setReveal} shortcut="Ctrl+R" keyShortcuts="Control+R">Reveal</MenuCheckboxItem>
+      <MenuGroup label="Move to">
+        {['hand', 'graveyard', 'exile'].map((name) => (
+          <MenuRadioItem key={name} checked={zone === name} onSelect={() => setZone(name)}>{name}</MenuRadioItem>
+        ))}
+      </MenuGroup>
+      <MenuItem onSelect={() => onSelect('mulligan')}>Mulligan</MenuItem>
+      <MenuItem onSelect={() => onSelect('move')}>Move top card</MenuItem>
+      <MenuItem onSelect={() => onSelect('morph')}>Morph</MenuItem>
+    </Menu>
+  );
+}
+
+describe('Menu entries', () => {
+  it('shows the formatted shortcut and exposes the ARIA one, on checkbox items too', () => {
+    render(<Rich />);
+
+    const tap = screen.getByRole('menuitem', { name: 'Tap' });
+    expect(tap).toHaveAttribute('aria-keyshortcuts', 'Control+T');
+    expect(tap).toHaveTextContent('Ctrl+T');
+    const reveal = screen.getByRole('menuitemcheckbox', { name: 'Reveal' });
+    expect(reveal).toHaveAttribute('aria-keyshortcuts', 'Control+R');
+    expect(reveal).toHaveTextContent('Ctrl+R');
+  });
+
+  it('checks one radio item of a group at a time and stays open', async () => {
+    const user = userEvent.setup();
+    render(<Rich />);
+    expect(screen.getByRole('group', { name: 'Move to' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', { name: 'hand' })).toHaveAttribute('aria-checked', 'true');
+
+    await user.click(screen.getByRole('menuitemradio', { name: 'exile' }));
+
+    expect(screen.getByRole('menuitemradio', { name: 'exile' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByRole('menuitemradio', { name: 'hand' })).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('menu', { name: 'Card' })).toBeInTheDocument();
+  });
+
+  it('leaves the menu open after an item with closeOnSelect={false}', async () => {
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <Menu anchor={{ x: 0, y: 0 }} label="Card" onClose={onClose}>
+        <MenuItem onSelect={vi.fn()} closeOnSelect={false}>Keep open</MenuItem>
+        <MenuItem onSelect={vi.fn()}>Close</MenuItem>
+      </Menu>,
+    );
+
+    await user.click(screen.getByRole('menuitem', { name: 'Keep open' }));
+    expect(onClose).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('menuitem', { name: 'Close' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('builds a type-ahead prefix from letters typed in quick succession', () => {
+    vi.useFakeTimers();
+    try {
+      render(<Rich />);
+      const menu = screen.getByRole('menu', { name: 'Card' });
+
+      fireEvent.keyDown(menu, { key: 'm' });
+      expect(screen.getByRole('menuitem', { name: 'Mulligan' })).toHaveFocus();
+      fireEvent.keyDown(document.activeElement!, { key: 'o' });
+      expect(screen.getByRole('menuitem', { name: 'Move top card' })).toHaveFocus();
+      fireEvent.keyDown(document.activeElement!, { key: 'r' });
+      expect(screen.getByRole('menuitem', { name: 'Morph' })).toHaveFocus();
+
+      vi.advanceTimersByTime(TYPEAHEAD_TIMEOUT + 1);
+      fireEvent.keyDown(document.activeElement!, { key: 'm' });
+      expect(screen.getByRole('menuitem', { name: 'Mulligan' })).toHaveFocus();
+      fireEvent.keyDown(document.activeElement!, { key: 'm' });
+      expect(screen.getByRole('menuitem', { name: 'Move top card' })).toHaveFocus();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('MenuSubmenu pointer behaviour', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function renderNested() {
+    render(
+      <Menu anchor={{ x: 0, y: 0 }} label="Card" onClose={vi.fn()}>
+        <MenuSubmenu label="Counters">
+          <MenuItem onSelect={vi.fn()}>Add counter</MenuItem>
+        </MenuSubmenu>
+        <MenuItem onSelect={vi.fn()}>Tap</MenuItem>
+      </Menu>,
+    );
+    return {
+      entry: screen.getByRole('menuitem', { name: 'Counters' }),
+      tap: screen.getByRole('menuitem', { name: 'Tap' }),
+    };
+  }
+
+  it('opens after a hover delay without taking focus; → then moves into it', () => {
+    const { entry } = renderNested();
+
+    fireEvent.mouseOver(entry);
+    fireEvent.mouseEnter(entry);
+    expect(entry).toHaveFocus();
+    expect(screen.queryByRole('menu', { name: 'Counters' })).not.toBeInTheDocument();
+    act(() => {
+      vi.advanceTimersByTime(SUBMENU_OPEN_DELAY);
+    });
+
+    expect(screen.getByRole('menu', { name: 'Counters' })).toBeInTheDocument();
+    expect(entry).toHaveFocus();
+    fireEvent.keyDown(entry, { key: 'ArrowRight' });
+    expect(screen.getByRole('menuitem', { name: 'Add counter' })).toHaveFocus();
+  });
+
+  it('does not open when the pointer only passes over the entry', () => {
+    const { entry } = renderNested();
+
+    fireEvent.mouseEnter(entry);
+    fireEvent.mouseLeave(entry);
+    act(() => {
+      vi.advanceTimersByTime(SUBMENU_OPEN_DELAY);
+    });
+
+    expect(screen.queryByRole('menu', { name: 'Counters' })).not.toBeInTheDocument();
+  });
+
+  it('stays open while the pointer crosses a sibling into it, and closes if it rests on the sibling', () => {
+    const { entry, tap } = renderNested();
+    fireEvent.click(entry);
+    expect(screen.getByRole('menuitem', { name: 'Add counter' })).toHaveFocus();
+
+    fireEvent.mouseOver(tap);
+    expect(tap).toHaveFocus();
+    fireEvent.mouseOver(screen.getByRole('menuitem', { name: 'Add counter' }));
+    act(() => {
+      vi.advanceTimersByTime(SUBMENU_CLOSE_DELAY);
+    });
+    expect(screen.getByRole('menu', { name: 'Counters' })).toBeInTheDocument();
+
+    fireEvent.mouseOver(tap);
+    act(() => {
+      vi.advanceTimersByTime(SUBMENU_CLOSE_DELAY);
+    });
+    expect(screen.queryByRole('menu', { name: 'Counters' })).not.toBeInTheDocument();
+  });
+
+  it('opens to the left of its entry when the right side has no room', () => {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function boundingRect(this: HTMLElement) {
+      const rect = this.getAttribute('role') === 'menu'
+        ? { left: 0, top: 0, right: 200, bottom: 100, width: 200, height: 100 }
+        : { left: 900, top: 100, right: 1000, bottom: 124, width: 100, height: 24 };
+      return { ...rect, x: rect.left, y: rect.top, toJSON: () => rect } as DOMRect;
+    });
+    const { entry } = renderNested();
+
+    fireEvent.click(entry);
+
+    expect(screen.getByRole('menu', { name: 'Counters' })).toHaveStyle({ left: '700px', top: '96px' });
+    vi.restoreAllMocks();
+  });
+});
+
+describe('placeMenu', () => {
+  const viewport = { width: 1024, height: 768 };
+  const size = { width: 200, height: 300 };
+
+  it('drops below a control, and flips above it near the bottom of the screen', () => {
+    expect(placeMenu({ rect: { left: 100, top: 100, right: 180, bottom: 120 }, placement: 'below' }, size, viewport))
+      .toMatchObject({ left: 100, top: 122 });
+    expect(placeMenu({ rect: { left: 100, top: 700, right: 180, bottom: 720 }, placement: 'below' }, size, viewport))
+      .toMatchObject({ left: 100, top: 398 });
+  });
+
+  it('opens a submenu to the right, flipping left at the right edge and up at the bottom', () => {
+    expect(placeMenu({ rect: { left: 100, top: 100, right: 300, bottom: 124 }, placement: 'right' }, size, viewport))
+      .toMatchObject({ left: 300, top: 96 });
+    expect(placeMenu({ rect: { left: 824, top: 600, right: 1024, bottom: 624 }, placement: 'right' }, size, viewport))
+      .toMatchObject({ left: 624, top: 328 });
+  });
+
+  it('clamps when neither side has room, and only slides a point anchor', () => {
+    expect(placeMenu({ rect: { left: 0, top: 300, right: 1024, bottom: 324 }, placement: 'right' }, size, viewport))
+      .toMatchObject({ left: 816, top: 296 });
+    expect(placeMenu({ x: 1000, y: 700 }, size, viewport)).toMatchObject({ left: 816, top: 460 });
+  });
+
+  it('lines an end-aligned menu up with the right edge of its control', () => {
+    expect(placeMenu({ rect: { left: 900, top: 10, right: 1000, bottom: 40 }, placement: 'below', align: 'end' }, size, viewport))
+      .toMatchObject({ left: 800, top: 42 });
+  });
+});
+
+describe('isContextMenuKey', () => {
+  const key = (init: Partial<KeyboardEvent>) => ({ shiftKey: false, ctrlKey: false, altKey: false, metaKey: false, ...init }) as never;
+
+  it('accepts Shift+F10 and the Menu key, but not Shift+F10 with another modifier', () => {
+    expect(isContextMenuKey(key({ key: 'F10', shiftKey: true }))).toBe(true);
+    expect(isContextMenuKey(key({ key: 'ContextMenu' }))).toBe(true);
+    expect(isContextMenuKey(key({ key: 'F10' }))).toBe(false);
+    expect(isContextMenuKey(key({ key: 'F10', shiftKey: true, ctrlKey: true }))).toBe(false);
+    expect(isContextMenuKey(key({ key: 'F10', shiftKey: true, altKey: true }))).toBe(false);
+    expect(isContextMenuKey(key({ key: 'F10', shiftKey: true, metaKey: true }))).toBe(false);
   });
 });

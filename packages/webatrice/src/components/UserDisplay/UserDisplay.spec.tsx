@@ -174,9 +174,14 @@ describe('UserDisplay report entry (#7091)', () => {
       .toBe('[12:00:00] TestPlayer: hi');
   });
 
-  it('lists the entry on your own name but disables it, as desktop does', () => {
+  it('lists the entry on your own name but disables it, as desktop does, and says why', () => {
     openMenuFor('me');
-    expect(screen.getByRole('menuitem', { name: 'ReportUserDialog.menuItem' })).toBeDisabled();
+    const entry = screen.getByRole('menuitem', { name: 'ReportUserDialog.menuItem' });
+    expect(entry).toHaveAttribute('aria-disabled', 'true');
+    expect(entry).toHaveAccessibleDescription('ReportUserDialog.menuItemSelf');
+
+    fireEvent.click(entry);
+    expect(screen.queryByTestId('report-reported-user')).not.toBeInTheDocument();
   });
 
   it('offers nothing on a 3.0 server', () => {
