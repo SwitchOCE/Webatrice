@@ -35,7 +35,11 @@ function reportedServerVersion(): string {
   return calls[calls.length - 1][1] as string;
 }
 
-/** Same rule as Datatrice's serverSupports: major.minor of the VERSION_STRING. */
+/**
+ * Whether the server speaks the 3.1 protocol at all (major.minor of the VERSION_STRING).
+ * Datatrice's serverSupports is finer: it also checks the beta that introduced each
+ * capability. The pinned images are 3.0.0 and an untagged master build, which has every one.
+ */
 function speaks31(version: string): boolean {
   const [major, minor] = version.split(/[.\s-]/).map(Number);
   return major > 3 || (major === 3 && minor >= 1);
