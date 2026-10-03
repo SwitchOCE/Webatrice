@@ -3,13 +3,14 @@ import { WebClient } from '../../WebClient';
 import type { CommandFailure } from '../../types/CommandFailure';
 
 import { Command_AccountPassword_ext, Command_AccountPasswordSchema } from '../../generated';
-import { generateSalt, hashPassword } from '../../utils';
+import { generateSalt, hashPassword, passwordHashAvailable } from '../../utils';
 
 /**
  * Changes the logged-in user's password. Mirrors desktop `UserInfoBox::changePassword`: on servers that
  * support password hashing the new password is hashed client-side under a fresh salt and only
  * `hashedNewPassword` is sent; otherwise only the plaintext `newPassword` is. Servatrice reads
- * `new_password` whenever it is present, so the two are never sent together.
+ * `new_password` whenever it is present, so the two are never sent together. A client that cannot hash
+ * (no Web Crypto outside a secure context) sends the plaintext, as `serverIdentification` does at login.
  */
 export async function accountPassword(
   oldPassword: string,
@@ -17,7 +18,7 @@ export async function accountPassword(
   onChanged?: () => void,
   onFailure?: (responseCode: number, failure?: CommandFailure) => void,
 ): Promise<void> {
-  const credential = WebClient.instance.serverSupportsPasswordHash
+  const credential = WebClient.instance.serverSupportsPasswordHash && passwordHashAvailable()
     ? { hashedNewPassword: await hashPassword(generateSalt(), newPassword) }
     : { newPassword };
 

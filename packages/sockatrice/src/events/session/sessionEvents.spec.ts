@@ -20,6 +20,7 @@ vi.mock('../../utils', () => ({
   sanitizeHtml: vi.fn((msg: string) => msg),
   generateSalt: vi.fn().mockReturnValue('randSalt'),
   passwordSaltSupported: vi.fn().mockReturnValue(0),
+  passwordHashAvailable: vi.fn().mockReturnValue(true),
   hashPassword: vi.fn().mockResolvedValue('hashedFromSalt'),
 }));
 
@@ -53,7 +54,7 @@ import { create } from '@bufbuild/protobuf';
 import { WebClient } from '../../WebClient';
 import * as SessionCmds from '../../commands/session';
 import { consumePendingOptions } from '../../utils/connectionState';
-import { passwordSaltSupported } from '../../utils';
+import { passwordHashAvailable, passwordSaltSupported } from '../../utils';
 import { WebSocketConnectReason } from '../../types/ConnectOptions';
 import { StatusEnum } from '../../types/StatusEnum';
 import { Mock } from 'vitest';
@@ -354,6 +355,7 @@ describe('serverIdentification', () => {
   beforeEach(() => {
     (consumePendingOptions as Mock).mockReturnValue(null);
     (passwordSaltSupported as Mock).mockReturnValue(false);
+    (passwordHashAvailable as Mock).mockReturnValue(true);
   });
 
   it('disconnects on protocol version mismatch', () => {
@@ -485,6 +487,40 @@ describe('serverIdentification', () => {
     serverIdentification(makeInfo());
     expect(WebClient.instance.serverSupportsPasswordHash).toBe(true);
     expect(WebClient.instance.response.session.updateInfo).toHaveBeenCalledWith('TestServer', '1.0', true);
+  });
+
+  describe('when the client cannot hash (no Web Crypto outside a secure context)', () => {
+    beforeEach(() => {
+      (passwordSaltSupported as Mock).mockReturnValue(true);
+      (passwordHashAvailable as Mock).mockReturnValue(false);
+    });
+
+    it('LOGIN → logs in with the plain password instead of requesting a salt', () => {
+      (consumePendingOptions as Mock).mockReturnValue(makeLoginOptions());
+      serverIdentification(makeInfo({ serverOptions: 1 }));
+      expect(SessionCmds.requestPasswordSalt).not.toHaveBeenCalled();
+      expect(SessionCmds.login).toHaveBeenCalledWith(expect.objectContaining({ userName: 'alice' }), 'pw');
+    });
+
+    it('REGISTER → registers with the plain password', async () => {
+      (consumePendingOptions as Mock).mockReturnValue({
+        host: 'h', port: '1', userName: 'alice', password: 'pw',
+        email: 'a@b.com', country: 'US', realName: 'Al',
+        reason: WebSocketConnectReason.REGISTER as const,
+      });
+      await serverIdentification(makeInfo({ serverOptions: 1 }));
+      expect(SessionCmds.register).toHaveBeenCalledWith(
+        expect.not.objectContaining({ hashedPassword: expect.anything() }),
+        'pw',
+      );
+    });
+
+    it('still reports the server capability itself', () => {
+      (consumePendingOptions as Mock).mockReturnValue(makeLoginOptions());
+      serverIdentification(makeInfo({ serverOptions: 1 }));
+      expect(WebClient.instance.serverSupportsPasswordHash).toBe(true);
+      expect(WebClient.instance.response.session.updateInfo).toHaveBeenCalledWith('TestServer', '1.0', true);
+    });
   });
 
   it('always calls updateInfo after successful routing', () => {
