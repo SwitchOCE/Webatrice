@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { create, isFieldSet } from '@bufbuild/protobuf';
 
+import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 import { DeckEditor, clearBracketSourceCaches, clearDeckEditorCache, clearDecksListCache } from '@app/features/decks';
 import { parseCod } from '@app/services';
 import { RouteEnum, type ParsedDeck } from '@app/types';
@@ -80,10 +81,12 @@ afterEach(() => {
 
 async function openDeck(xml: string) {
   renderFeatureScreen(
-    <Routes>
-      <Route path={RouteEnum.DECK} element={<DeckEditor />} />
-      <Route path={RouteEnum.DECKS} element={<LocationProbe />} />
-    </Routes>,
+    <ShortcutProvider>
+      <Routes>
+        <Route path={RouteEnum.DECK} element={<DeckEditor />} />
+        <Route path={RouteEnum.DECKS} element={<LocationProbe />} />
+      </Routes>
+    </ShortcutProvider>,
     `/deck/${DECK_ID}`,
   );
   await waitFor(() => expect(findLastSessionCommand(Command_DeckDownload_ext).value.deckId).toBe(DECK_ID));
@@ -400,6 +403,34 @@ describe('DeckEditor (integration)', () => {
     const parsed = parseCod(cod);
     expect(parsed.name).toBe('Burn');
     expect(parsed.cards.map((c) => c.name)).toEqual(['Lightning Bolt', 'Sol Ring', 'Forest', 'Llanowar Elves']);
+  });
+
+  it('undoes and redoes from the buttons, the history list and the keyboard; autosave follows', async () => {
+    await openDeck(MODERN_DECK);
+    // Let the opening price cache land so later uploads are the edits'.
+    await autosaved((d) => d.meta.priceUsd !== undefined);
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'legacy' } });
+    fireEvent.click(rowActions('Sol Ring'));
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Remove' }));
+    await autosaved((d) => d.format === 'legacy' && !card(d, 'Sol Ring'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'DeckHistory.undo' }));
+    expect(screen.getByRole('button', { name: 'Sol Ring' })).toBeInTheDocument();
+    await autosaved((d) => d.format === 'legacy' && card(d, 'Sol Ring')?.quantity === 1);
+
+    // Ctrl+Z on the page (not in a text field) undoes the format change.
+    fireEvent.keyDown(document.body, { key: 'z', code: 'KeyZ', ctrlKey: true });
+    expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('modern');
+
+    // Ctrl+Y redoes it; the history list then jumps straight to the end.
+    fireEvent.keyDown(document.body, { key: 'y', code: 'KeyY', ctrlKey: true });
+    expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('legacy');
+    fireEvent.click(screen.getByRole('button', { name: 'DeckHistory.history' }));
+    const list = screen.getByRole('list', { name: 'DeckHistory.history' });
+    fireEvent.click(within(list).getAllByRole('button')[0]);
+    expect(screen.queryByRole('button', { name: 'Sol Ring' })).toBeNull();
+    await autosaved((d) => d.format === 'legacy' && !card(d, 'Sol Ring'));
   });
 
   it('shows the not-found shell for an unreadable deck and links back to My Decks', async () => {
