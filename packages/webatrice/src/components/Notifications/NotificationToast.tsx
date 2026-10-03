@@ -30,7 +30,10 @@ export default function NotificationToast({ title, body, onActivate }: Notificat
     <button
       type="button"
       onClick={onActivate}
-      className="w-full text-left flex flex-col gap-0.5 min-w-0 focus:outline-none"
+      className={[
+        'w-full text-left flex flex-col gap-0.5 min-w-0 rounded-sm',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+      ].join(' ')}
     >
       {content}
     </button>
