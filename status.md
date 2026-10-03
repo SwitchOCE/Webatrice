@@ -2,3 +2,4 @@
 - 20:34Z prefs+registry (number/text/visibleWhen), startup destination, missing-features notice, replay buffer wired (uncommitted) → mention completer, tests
 - 20:53Z mention completer + all specs + 2 e2e specs written (uncommitted); targeted unit run in progress → fix, full gate, e2e
 - 21:22Z typecheck 5/5, lint 3/3, targeted specs green; open-deck-in-new-tab added → full unit+integration, e2e
+- 21:36Z first full unit run OOM-killed (two vitest runs at once, code 137); re-running webatrice alone → integration, e2e
