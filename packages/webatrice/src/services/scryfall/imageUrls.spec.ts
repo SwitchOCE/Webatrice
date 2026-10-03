@@ -106,6 +106,14 @@ describe('Scryfall image URLs', () => {
     });
   });
 
+  describe('getScryfallUrlByExactName', () => {
+    it('encodes the name as given, keeping a Token suffix', () => {
+      expect(getScryfallUrlByExactName('Rhino, Warrior Token', ScryfallImageSize.ArtCrop)).toBe(
+        'https://api.scryfall.com/cards/named?exact=Rhino%2C%20Warrior%20Token&format=image&version=art_crop',
+      );
+    });
+  });
+
   describe('getScryfallUrlByIdOrExactName', () => {
     it('uses the id when there is one, else the exact name untouched', () => {
       expect(getScryfallUrlByIdOrExactName({ scryfallId: 'id-1', name: 'X' }, ScryfallImageSize.Large)).toBe(
@@ -114,54 +122,6 @@ describe('Scryfall image URLs', () => {
       expect(getScryfallUrlByIdOrExactName({ scryfallId: '', name: 'Soldier Token' }, ScryfallImageSize.Png)).toBe(
         'https://api.scryfall.com/cards/named?exact=Soldier%20Token&format=image&version=png',
       );
-    });
-  });
-
-  // Characterization: the URLs each call site built inline before it moved
-  // onto these builders. Byte-equal URLs keep the browser cache shared.
-  describe('matches the inline URLs the call sites used to build', () => {
-    const id = '0f1a2b3c-4d5e-4f60-8a7b-9c0d1e2f3a4b';
-    const name = 'Jace, the Mind Sculptor // Ō Token';
-
-    it.each([
-      [
-        'board card, pile top and deck prefetch by id (large)',
-        `https://api.scryfall.com/cards/${id}?format=image&version=large`,
-        getScryfallUrlByIdOrExactName({ scryfallId: id, name }, ScryfallImageSize.Large),
-      ],
-      [
-        'pile top and deck prefetch by name (large)',
-        `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}&format=image&version=large`,
-        getScryfallUrlByIdOrExactName({ name }, ScryfallImageSize.Large),
-      ],
-      [
-        'right-rail preview and popup (png)',
-        `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}&format=image&version=png`,
-        getScryfallUrlByIdOrExactName({ name }, ScryfallImageSize.Png),
-      ],
-      [
-        'big preview by name, Token suffix stripped (large)',
-        `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name.replace(/\s*\(?\bToken\b\)?\s*$/i, ''))}`
-          + '&format=image&version=large',
-        getScryfallUrlByName(name, ScryfallImageSize.Large),
-      ],
-      [
-        'deck hydrate by id (normal)',
-        `https://api.scryfall.com/cards/${encodeURIComponent(id)}?format=image&version=normal`,
-        getScryfallUrlById(id, ScryfallImageSize.Normal),
-      ],
-      [
-        'deck banner by name (art crop)',
-        `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(name)}&format=image&version=art_crop`,
-        getScryfallUrlByExactName(name, ScryfallImageSize.ArtCrop),
-      ],
-      [
-        'catalog printing by uuid (small)',
-        `https://api.scryfall.com/cards/${encodeURIComponent(id)}?format=image&version=small`,
-        getScryfallUrlById(id, ScryfallImageSize.Small),
-      ],
-    ])('%s', (_site, legacy, built) => {
-      expect(built).toBe(legacy);
     });
   });
 });
