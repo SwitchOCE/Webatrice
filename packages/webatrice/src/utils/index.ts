@@ -6,8 +6,8 @@ export {
   visiblePrivateMessages,
 } from './chatFilters';
 export type { ChatFilterVerdicts, PrivateConversation, PrivateMessageFilter, RoomChatFilter, RoomChatLine } from './chatFilters';
-export { ALL_MENTION, findChatAlert, highlightStyle, isOwnMention, parseHighlightWords, segmentText } from './chatHighlight';
-export type { ChatAlertContext, ChatAlertKind, ChatHighlight, TextSegment, TextSegmentKind } from './chatHighlight';
+export { ALL_MENTION, findChatAlert, highlightStyle, parseHighlightWords, parseMention, segmentText } from './chatHighlight';
+export type { ChatAlertContext, ChatAlertKind, ChatHighlight, Mention, TextSegment, TextSegmentKind } from './chatHighlight';
 export { cx } from './cx';
 export type { CxArg } from './cx';
 export { DefaultHosts, getHostPort } from './HostService';

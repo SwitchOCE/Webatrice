@@ -1,4 +1,4 @@
-import { findChatAlert, parseHighlightWords, segmentText } from './chatHighlight';
+import { findChatAlert, parseHighlightWords, parseMention, segmentText } from './chatHighlight';
 
 const ctx = { selfName: 'Alice', mentions: true, highlightWords: [] as string[], senderIsModerator: false };
 
@@ -35,11 +35,36 @@ describe('segmentText', () => {
   });
 });
 
+describe('parseMention', () => {
+  it('cuts sentence punctuation off another user\'s name', () => {
+    expect(parseMention('foo.bar.', 'Alice')).toEqual({ name: 'foo.bar', rest: '.', own: false });
+    expect(parseMention('foo-bar', 'Alice')).toEqual({ name: 'foo-bar', rest: '', own: false });
+  });
+
+  it('cuts characters back until it names the reader, as desktop\'s checkMention does', () => {
+    expect(parseMention('alice-.', 'Alice-')).toEqual({ name: 'alice-', rest: '.', own: true });
+    expect(parseMention('alice.', 'Alice')).toEqual({ name: 'alice', rest: '.', own: true });
+    expect(parseMention('alice.b', 'Alice')).toEqual({ name: 'alice.b', rest: '', own: false });
+  });
+});
+
 describe('findChatAlert', () => {
   it('finds a mention of the reader, ignoring case and trailing punctuation', () => {
     expect(findChatAlert('hey @alice, ready?', ctx)).toBe('mention');
     expect(findChatAlert('hey @alicex', ctx)).toBeNull();
     expect(findChatAlert('email@alice.com', ctx)).toBeNull();
+  });
+
+  it('finds a mention of a reader whose name has dots, dashes or underscores', () => {
+    const dotted = { ...ctx, selfName: 'foo.bar-baz_1' };
+    expect(findChatAlert('hi @foo.bar-baz_1', dotted)).toBe('mention');
+    expect(findChatAlert('hi @Foo.Bar-Baz_1.', dotted)).toBe('mention');
+    expect(findChatAlert('hi @foo.bar', dotted)).toBeNull();
+    expect(findChatAlert('hi @foo.bar-baz_1x', dotted)).toBeNull();
+  });
+
+  it('does not take a longer dotted name for the reader\'s', () => {
+    expect(findChatAlert('hi @alice.smith', ctx)).toBeNull();
   });
 
   it('ignores mentions when chat mentions are off', () => {
