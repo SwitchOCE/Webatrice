@@ -477,6 +477,7 @@
       "game.unattachCard": "Unattach card",
       "game.cloneCard": "Clone card",
       "game.revealSelectedToAll": "Reveal selected cards to all players",
+      "game.hideRevealedCard": "Hide revealed card",
       "game.moveSelectedToGrave": "Move selection to graveyard",
       "game.moveSelectedToLibraryBottom": "Move selection to bottom of library",
       "game.setCardPT": "Set power/toughness…",

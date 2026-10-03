@@ -56,6 +56,7 @@ export type ActionId =
   | 'game.unattachCard'
   | 'game.cloneCard'
   | 'game.revealSelectedToAll'
+  | 'game.hideRevealedCard'
   | 'game.moveSelectedToGrave'
   | 'game.moveSelectedToLibraryBottom'
   | 'game.setCardPT'

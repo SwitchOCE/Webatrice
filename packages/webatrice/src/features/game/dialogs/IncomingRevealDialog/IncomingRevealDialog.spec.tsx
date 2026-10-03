@@ -2,12 +2,14 @@
 // (the lender as the move's start player, battlefield-only drops, no drag for
 // a spectator) are pinned in Game.dragdrop.spec.tsx.
 
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
+import { games } from '@cockatrice/datatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
+import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 
 import { createMockWebClient, renderWithProviders } from '../../../../__test-utils__';
-import { buildSeatGameState } from '../../__test-utils__/seatFixtures';
+import { buildSeatGameState, chooseMenuPath, openMenus } from '../../__test-utils__/seatFixtures';
 import Game from '../../Game';
 
 vi.mock('../../../../hooks/useSettings');
@@ -41,9 +43,10 @@ function renderReveal({ grantWriteAccess = false, zoneName = ZoneName.DECK as st
     incomingReveal: { gameId: 1, sourceOwnerId: 2, zoneName, cards: REVEALED, grantWriteAccess },
   } as typeof preloadedState.games;
   preloadedState.games!.games![1]!.players![2]!.zones![zoneName]!.revealedCards = REVEALED;
-  const utils = renderWithProviders(<Game />, { preloadedState, webClient: createMockWebClient() });
+  const webClient = createMockWebClient();
+  const utils = renderWithProviders(<ShortcutProvider><Game /></ShortcutProvider>, { preloadedState, webClient, route: '/game/1' });
   const reveal = () => utils.store.getState().games;
-  return { ...utils, reveal };
+  return { ...utils, reveal, game: webClient.request.game };
 }
 
 function popup() {
@@ -83,5 +86,64 @@ describe('IncomingRevealDialog', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
 
     expect(reveal().incomingReveal).toBeNull();
+  });
+
+  describe('read-only reveal card menu', () => {
+    function rightClick(name: string) {
+      act(() => {
+        fireEvent.contextMenu(within(popup()).getByTitle(name));
+      });
+    }
+
+    it('Hide removes the card from this window only and sends nothing', () => {
+      const { reveal, game } = renderReveal();
+      rightClick('Island');
+      chooseMenuPath('Hide');
+
+      expect(within(popup()).queryByTitle('Island')).not.toBeInTheDocument();
+      expect(within(popup()).getByTitle('Forest')).toBeInTheDocument();
+      expect(openMenus()).toHaveLength(0);
+      expect(reveal().games[1].players[2].zones[ZoneName.DECK].revealedCards).toEqual(REVEALED);
+      for (const send of Object.values(game)) {
+        expect(send).not.toHaveBeenCalled();
+      }
+    });
+
+    it('Select All then Alt+H hides every card and keeps the window open', () => {
+      renderReveal();
+      rightClick('Forest');
+      chooseMenuPath('Select All');
+      act(() => {
+        window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyH', altKey: true, bubbles: true, cancelable: true }));
+      });
+
+      expect(within(popup()).queryByTitle('Island')).not.toBeInTheDocument();
+      expect(within(popup()).queryByTitle('Forest')).not.toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'P2 reveals their library' })).toBeInTheDocument();
+    });
+
+    it('a new reveal shows its cards again', () => {
+      const { store } = renderReveal();
+      rightClick('Island');
+      chooseMenuPath('Hide');
+
+      act(() => {
+        store.dispatch(games.Actions.incomingRevealShown({
+          gameId: 1,
+          sourceOwnerId: 2,
+          zoneName: ZoneName.DECK,
+          cards: REVEALED,
+          grantWriteAccess: false,
+        }));
+      });
+
+      expect(within(popup()).getByTitle('Island')).toBeInTheDocument();
+    });
+
+    it('a lent reveal has no card menu', () => {
+      renderReveal({ grantWriteAccess: true });
+      rightClick('Island');
+      expect(openMenus()).toHaveLength(0);
+    });
   });
 });

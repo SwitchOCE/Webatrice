@@ -1204,7 +1204,10 @@ function PlayerBox(
     buildRelatedViewItems(
       cardMetaByName.get(cardName)?.related ?? [],
       (name) => tokenMetaByName.get(name)?.found ?? false,
-      (ref) => showCardInfo({ name: ref.name, scryfallId: ref.scryfallId }),
+      (ref) => {
+        showCardInfo({ name: ref.name, scryfallId: ref.scryfallId });
+        closeSeatCardMenu();
+      },
     );
   useEffect(() => {
     if (!isSelf || cards.length === 0) {

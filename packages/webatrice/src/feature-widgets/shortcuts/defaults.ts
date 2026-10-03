@@ -61,6 +61,10 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // selected hand cards to every player in one Command_RevealCards,
   // the card menu's "Reveal to... > All players".
   'game.revealSelectedToAll': { scope: ShortcutScope.GAME, group: 'game', sequences: [] },
+  // Cockatrice's `aHide` (Alt+H) — hides the selected cards from a
+  // read-only reveal window. Purely local; registered by the open
+  // IncomingRevealDialog only.
+  'game.hideRevealedCard': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+KeyH'] },
   // Cockatrice's `aMoveToGraveyard` (Ctrl+Del) — moves the selection
   // to the local player's graveyard. Single batched Command_MoveCard
   // with cards_to_move populated, matching the menu's "Send to
