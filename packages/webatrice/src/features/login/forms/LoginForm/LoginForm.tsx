@@ -66,17 +66,22 @@ const LoginFormBody = ({
     }
     lastHostRef.current = formHost;
     onSelectedHostChange(formHost);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the watched field only; handler identity changes every render
+    // Fire on a host change only: lastHostRef dedupes, and the handler reads settings at call time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
   }, [formHost]);
 
   useEffect(() => {
     onUserNameChange(formUserName);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the watched field only; handler identity changes every render
+    // Fire on a username change only: re-firing when selectedHost changes would compare the new
+    // host against the old username and invalidate the new host's stored hash.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
   }, [formUserName]);
 
   useEffect(() => {
     onRememberChange(formRemember);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the watched field only; handler identity changes every render
+    // Fire on a remember toggle only: re-firing on a host change would override the password
+    // label onSelectedHostChange just set.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
   }, [formRemember]);
 
   const testConnectionStatus = useAppSelector(server.Selectors.getTestConnectionStatus);
