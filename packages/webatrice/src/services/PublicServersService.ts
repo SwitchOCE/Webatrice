@@ -54,9 +54,16 @@ export function parsePublicServers(json: unknown): PublicServer[] {
   });
 }
 
-/** True when a browser can connect: the server publishes a WebSocket port and is still active. */
+/**
+ * Desktop dials a public server's WebSocket port as `ws://host:port/servatrice`, using `wss` only on
+ * port 443 (`RemoteClient::connectToHost`). A page served over https may only open `wss`, so the
+ * browser can reach a public server only through its port 443 listener.
+ */
+export const SECURE_WEBSOCKET_PORT = '443';
+
+/** True when a browser can connect: the server is still active and publishes a secure WebSocket port. */
 export const isWebSocketReachable = (server: PublicServer): boolean =>
-  !server.isInactive && server.websocketPort !== undefined;
+  !server.isInactive && server.websocketPort === SECURE_WEBSOCKET_PORT;
 
 function readCache(): PublicServer[] | null {
   try {

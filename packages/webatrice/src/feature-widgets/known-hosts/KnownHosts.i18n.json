@@ -12,7 +12,8 @@
       "error": "Couldn't download the public server list.",
       "stale": "Couldn't refresh; showing the last downloaded list.",
       "unavailable": {
-        "noWebSocket": "Desktop client only: no WebSocket port"
+        "noWebSocket": "Desktop client only: no WebSocket port",
+        "noSecureWebSocket": "Desktop client only: no secure WebSocket port"
       }
     }
   }
