@@ -1,3 +1,4 @@
 - 20:21Z started w28, branch off restack-23-playmats @13351fd → install + scan i18n
 - 20:28Z pushed key fixes + i18n:check gate (f431b11) → extract platform literals (rooms, TopBar, components)
 - 20:36Z pushed rooms + TopBar extraction → components/server/player/login/widgets, then eslint rule
+- 20:48Z all extraction + eslint rule pushed (b8cabd1) → full gate
