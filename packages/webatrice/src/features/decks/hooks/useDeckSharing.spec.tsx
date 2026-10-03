@@ -8,8 +8,9 @@ import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { connected31State, connectedState, createMockWebClient, renderWithProviders } from '../../../__test-utils__';
 import { useDeckShareCreate, useDeckSharingSupported, useDeckVisibility } from './useDeckSharing';
 
+const knownHosts = vi.hoisted(() => ({ selectedHost: { host: 'server.example', port: '4748' } as object | undefined }));
 vi.mock('@app/feature-widgets/known-hosts', () => ({
-  useKnownHosts: () => ({ status: 'loaded', value: { hosts: [], selectedHost: { host: 'server.example', port: '4748' } } }),
+  useKnownHosts: () => ({ status: 'loaded', value: { hosts: [], selectedHost: knownHosts.selectedHost } }),
 }));
 
 let create$: ReturnType<typeof useDeckShareCreate>;
@@ -30,6 +31,7 @@ function setup(preloadedState = connected31State) {
 
 const writeText = vi.fn();
 beforeEach(() => {
+  knownHosts.selectedHost = { host: 'server.example', port: '4748' };
   writeText.mockResolvedValue(undefined);
   Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
 });
@@ -71,6 +73,25 @@ describe('useDeckShareCreate', () => {
       store.dispatch(server.Actions.deckShareCreated({ share: create(Response_DeckShareCreateSchema, { token: 't' }) }));
     });
     expect(create$.state).toMatchObject({ status: 'created', copied: false });
+  });
+
+  it('refuses to make a link that names no server', () => {
+    knownHosts.selectedHost = undefined;
+    const { webClient } = setup();
+    act(() => create$.create({ name: 'x', items: [{ deckId: 1 }] }));
+    expect(webClient.request.session.deckShareCreate).not.toHaveBeenCalled();
+    expect(create$.state).toEqual({ status: 'failed', message: 'DeckSharing.noServer' });
+  });
+
+  it('drops an answer that arrives after a reset', async () => {
+    const { store } = setup();
+    act(() => create$.create({ name: 'x', items: [{ deckId: 1 }] }));
+    act(() => create$.reset());
+    await act(async () => {
+      store.dispatch(server.Actions.deckShareCreated({ share: create(Response_DeckShareCreateSchema, { token: 't' }) }));
+    });
+    expect(create$.state).toEqual({ status: 'idle' });
+    expect(writeText).not.toHaveBeenCalled();
   });
 
   it('ignores a share it did not ask for', () => {
