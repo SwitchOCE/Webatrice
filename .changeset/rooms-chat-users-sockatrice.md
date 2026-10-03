@@ -9,3 +9,5 @@ Room and chat commands now report their failures the way desktop handles them.
 **Room chat flood.** `roomSay` reports a `RespChatFlood` rejection through the new `IRoomResponse.roomSayFlooded(roomId, message)` with the unsent text, mirroring desktop `TabRoom::sayFinished`.
 
 **Private messages.** `message` reports `RespInIgnoreList`, `RespNameNotFound` and `RespChatFlood` rejections through the new `ISessionResponse.privateMessageFailed(userName, message, responseCode)` with the unsent text, as desktop `TabMessage::messageSent` handles them.
+
+**A user's games.** `getGamesOfUser` reports the request through the new `ISessionResponse.getGamesOfUserPending(userName)` and `getGamesOfUserFailed(userName, responseCode)`, alongside the existing success callback.

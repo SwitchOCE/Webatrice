@@ -8,6 +8,7 @@ import { RouteErrorBoundary, ToastProvider } from '@app/components';
 import { useSyncLocaleToStore } from '@app/hooks';
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 import { ModerationProvider } from '@app/feature-widgets/moderation';
+import { UserGamesProvider } from '@app/feature-widgets/user-games';
 import { loadPersistedLastRoute, ShellLifecycleProvider } from '@app/feature-wrappers/layout';
 import { PrivateMessageNotifier } from '@app/features/player';
 import { CommandFailureNotices, FeatureDetection, ServerNotices } from '@app/features/shell';
@@ -57,9 +58,11 @@ function AppShell() {
               {/* Server shutdown countdown and Event_NotifyUser messages. */}
               <ServerNotices />
               <ModerationProvider>
-                <RouteErrorBoundary>
-                  <Routes />
-                </RouteErrorBoundary>
+                <UserGamesProvider>
+                  <RouteErrorBoundary>
+                    <Routes />
+                  </RouteErrorBoundary>
+                </UserGamesProvider>
               </ModerationProvider>
             </ShortcutProvider>
           </ShellLifecycleProvider>

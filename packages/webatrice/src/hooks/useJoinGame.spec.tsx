@@ -3,7 +3,7 @@ import { act, renderHook } from '@testing-library/react';
 import { combineReducers } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
 import { MemoryRouter, useLocation } from 'react-router-dom';
-import { create } from '@bufbuild/protobuf';
+import { create, type MessageInitShape } from '@bufbuild/protobuf';
 import { createStore, games } from '@cockatrice/datatrice';
 import { WebClientContext } from '@cockatrice/datatrice/react';
 import {
@@ -42,11 +42,11 @@ function setup<T>(hook: () => T, preloadedState: Partial<RootState> = connectedS
   return { result, store, webClient, location };
 }
 
-const makeGame = (overrides: Partial<ServerInfo_Game> = {}): ServerInfo_Game =>
+const makeGame = (overrides: MessageInitShape<typeof ServerInfo_GameSchema> = {}): ServerInfo_Game =>
   create(ServerInfo_GameSchema, { gameId: 7, roomId: 2, playerCount: 1, maxPlayers: 2, spectatorsAllowed: true, ...overrides });
 
 describe('useJoinGame', () => {
-  it('sends Command_JoinGame to the game\u2019s room', () => {
+  it('sends Command_JoinGame to the room of the game', () => {
     const { result, webClient } = setup(() => useJoinGame());
     act(() => result.current.beginJoin(2, makeGame(), false, false));
     expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(2, {

@@ -33,6 +33,7 @@
       "@app/feature-widgets/known-hosts": ["./src/feature-widgets/known-hosts/index.ts"],
       "@app/feature-widgets/moderation": ["./src/feature-widgets/moderation/index.ts"],
       "@app/feature-widgets/shortcuts": ["./src/feature-widgets/shortcuts/index.ts"],
+      "@app/feature-widgets/user-games": ["./src/feature-widgets/user-games/index.ts"],
       "@app/store": ["./src/store/index.ts"],
       "@app/types": ["./src/types/index.ts"],
       "@app/utils": ["./src/utils/index.ts"]

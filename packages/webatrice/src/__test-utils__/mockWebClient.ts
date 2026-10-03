@@ -19,6 +19,7 @@ export function createMockWebClient() {
         addToIgnoreList: vi.fn(),
         removeFromIgnoreList: vi.fn(),
         getUserInfo: vi.fn(),
+        getGamesOfUser: vi.fn(),
         accountEdit: vi.fn(),
         accountPassword: vi.fn(),
         accountImage: vi.fn(),
