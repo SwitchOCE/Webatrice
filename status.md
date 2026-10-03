@@ -6,3 +6,4 @@
 - 21:39Z useGridRows re-home pushed → VirtualList style into renderRow
 - 21:42Z VirtualList, CardCallout, changeset pushed → full gate
 - 21:59Z gate: typecheck/lint/unit/integration green; PR file drafted → waiting on webatrice e2e (container, 3 browsers)
+- 22:10Z e2e 54 passed/6 skipped/6 failed (known replays + staff-tools docker) → PR file final, done (tip aee9592)

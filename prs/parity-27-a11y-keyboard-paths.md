@@ -45,25 +45,23 @@ Audit accessibility rows P1, P2, P3, P7, P13, P15, P17 and P19. These are access
 - Desktop tab bar: middle-click closes a tab. That behaviour is kept.
 
 ## Testing
-Tip `0afe92d`, from the repo root:
+Tip `aee9592`, from the repo root:
 - `npx turbo run typecheck --concurrency=1`: pass.
 - `npm run lint`: pass.
-- `npm test -- -- --maxWorkers=2`: sockatrice 880 passed; datatrice 1281 passed; webatrice 2213 passed, 2 skipped.
-- `npm run test:integration -- -- --maxWorkers=2`: sockatrice 171 passed; datatrice 140 passed; webatrice 207 passed, 2 skipped. The first run failed because `rooms-components.spec.tsx` still imported the deleted components; that is fixed in 94a1ecb.
+- `npm test -- -- --maxWorkers=2`: sockatrice 880 passed; datatrice 1281 passed; webatrice 2224 passed, 2 skipped.
+- `npm run test:integration -- -- --maxWorkers=2`: sockatrice 171 passed; datatrice 140 passed; webatrice 207 passed, 2 skipped. Green at the tip; not green at the commits between baf3b91 and 94a1ecb (see Review response).
 - New and extended specs:
   - `GamesList.spec.tsx` (5)
-  - `useGridRows.spec.tsx` (+1, deferred focus)
-  - `VirtualList.spec.tsx` (+2)
-  - `KnownHosts.spec.tsx` (+6)
+  - `useGridRows.spec.tsx` (+2: deferred focus, tab stop re-homed to a visible row)
+  - `VirtualList.spec.tsx` (+3)
+  - `KnownHosts.spec.tsx` (18 total; the listbox keyboard specs use user-event, and the 7 new ones fail on the pre-fix component)
   - `TopBar.spec.tsx` (+2, existing tab assertions moved to link/`aria-current`)
-  - `CardCallout.spec.tsx` (3)
+  - `CardCallout.spec.tsx` (5)
   - `ShortcutsRow.spec.tsx` (2)
   - `ReportTable.spec.tsx` (+1)
-- Webatrice e2e, all browsers, run in `mcr.microsoft.com/playwright:v1.60.0-noble` against Servatrice 3.0.0. The host's pre-installed browsers have no Firefox or WebKit.
-  - Full run: 51 passed, 6 skipped (3.1-only), 9 failed.
-  - **keyboard-only ×3:** the spec was wrong (Tab focuses a row without selecting it; Firefox wraps Tab into the browser chrome). Fixed in 0afe92d. A rerun of keyboard-only and login-join-room on chromium, firefox and webkit gave 6/6 passed.
-  - **replays ×3**, `replays.spec.ts:80` (the local replay file is missing after a double-click on the match folder): pre-existing. It fails identically on the base `claude/restack-23-playmats`, with the base's own src and e2e, on chromium.
-  - **staff-tools "admin publishes a new server message" ×3:** environmental. The spec shells out to `docker compose exec mysql`, and the Playwright container has no docker CLI (`spawnSync docker ENOENT`).
+- Webatrice e2e, all browsers, in `mcr.microsoft.com/playwright:v1.60.0-noble` against Servatrice 3.0.0: **54 passed, 6 skipped (3.1-only), 6 failed**. keyboard-only and login-join-room pass on chromium, firefox and webkit.
+  - **replays ×3** (`replays.spec.ts:80`, local replay file missing): pre-existing, fails identically on the base `claude/restack-23-playmats`.
+  - **staff-tools "admin publishes a new server message" ×3:** environmental; the spec shells out to `docker compose exec mysql` and the Playwright container has no docker CLI (`spawnSync docker ENOENT`).
 - Sockatrice e2e not run: no sockatrice changes.
 
 ## Review response (rv11)
