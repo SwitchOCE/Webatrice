@@ -1,1 +1,5 @@
 - 16:59Z started; verified all 16 old-bases are ancestors, ranges match PR commit lists → push 01/02, rebase 03
+- 01 origin/master..a3f242c → new tip a3f242c (unchanged)
+- 02 a3f242c..d3909f3 → new tip d3909f3 (unchanged)
+- 03 a5fbad4..f1df593 → new tip 1c0e2a4, typecheck ok
+- 12 f24ddd9..54287c0 → new tip 9f7bb2d, typecheck ok (conflicts: command-name unions, i18n regenerated)
