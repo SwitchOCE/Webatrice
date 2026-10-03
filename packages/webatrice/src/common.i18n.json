@@ -295,11 +295,13 @@
     },
     "action": {
       "cancel": "Cancel",
+      "close": "Close",
       "create": "Create",
       "send": "Send",
       "apply": "Apply",
       "reset": "Reset",
-      "join": "Join"
+      "join": "Join",
+      "dismiss": "Dismiss"
     }
   }
 }

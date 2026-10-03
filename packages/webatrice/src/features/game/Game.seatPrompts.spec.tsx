@@ -221,7 +221,7 @@ describe('seat prompts', () => {
     it('sends nothing when cancelled, by button or Escape', () => {
       const game = renderSeats();
       c.open();
-      fireEvent.click(within(promptDialog(c.dialog)).getByRole('button', { name: 'Cancel' }));
+      fireEvent.click(within(promptDialog(c.dialog)).getByRole('button', { name: 'Common.action.cancel' }));
       expect(screen.queryByRole('dialog', { name: c.dialog })).not.toBeInTheDocument();
 
       c.open();

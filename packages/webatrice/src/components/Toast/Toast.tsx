@@ -140,8 +140,8 @@ function Toast({
         type="button"
         onClick={() => onClose()}
         className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors shrink-0"
-        title={t('Toast.dismiss')}
-        aria-label={t('Toast.dismiss')}
+        title={t('Common.action.dismiss')}
+        aria-label={t('Common.action.dismiss')}
       >
         <X size={14} />
       </button>

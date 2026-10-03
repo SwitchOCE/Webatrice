@@ -156,7 +156,7 @@ describe('GameLinkJoinHost (GAME-033 incoming links)', () => {
   it('cancelling the password prompt sends nothing', async () => {
     const { webClient } = renderHost(link(), listedGame({ withPassword: true }));
     fireEvent.click(dialogButton('GameLink.yes'));
-    fireEvent.click(dialogButton('Cancel'));
+    fireEvent.click(dialogButton('Common.action.cancel'));
     expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
