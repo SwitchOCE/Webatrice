@@ -76,9 +76,8 @@ describe('replay playback of a recorded game', () => {
     act(() => seekToFraction(0));
 
     expect(gameOf(gameId).players).toEqual({});
-    expect(gameOf(gameId).messages.map((m) => m.message)).toEqual([
-      expect.stringMatching(/^You are watching a replay of game #\d+\.$/),
-    ]);
+    // Like desktop's resetForRewind: the log is cleared and the start notice not repeated.
+    expect(gameOf(gameId).messages).toEqual([]);
     expect(fullLog).toBeGreaterThan(1);
   });
 
