@@ -2434,6 +2434,31 @@ describe('2J: Turn, phase, and chat', () => {
     expect(result.games[1].reversed).toBe(true);
   });
 
+  describe('TURN_REVERSED log line', () => {
+    const twoSeats = () => makeState({
+      games: {
+        1: makeGameEntry({
+          activePlayerId: 1,
+          players: {
+            1: makePlayerEntry({ properties: makePlayerProperties({ playerId: 1, userInfo: { name: 'Alice' } }) }),
+            2: makePlayerEntry({ properties: makePlayerProperties({ playerId: 2, userInfo: { name: 'Bob' } }) }),
+          },
+        }),
+      },
+    });
+    const lastLine = (result: GamesState) => result.games[1].messages.at(-1);
+
+    it('names the player who reversed the order, not the active player', () => {
+      const result = dispatchThroughStore(twoSeats(), Actions.turnReversed({ gameId: 1, reversed: true, playerId: 2 }));
+      expect(lastLine(result)).toMatchObject({ playerId: 2, message: 'Bob reversed turn order, now it\'s reversed.' });
+    });
+
+    it.each([undefined, -1])('falls back to the active player when the actor is %s', (playerId) => {
+      const result = dispatchThroughStore(twoSeats(), Actions.turnReversed({ gameId: 1, reversed: false, playerId }));
+      expect(lastLine(result)).toMatchObject({ playerId: 1, message: 'Alice reversed turn order, now it\'s normal.' });
+    });
+  });
+
   it('GAME_SAY → appends message with timeReceived from payload', () => {
     const state = makeState();
     const result = gamesReducer(state, Actions.gameSay({

@@ -151,8 +151,8 @@ export class GameResponseImpl implements WebsocketTypes.IGameResponse {
     this.store.dispatch(GameActions.activePhaseSet({ gameId, phase }));
   }
 
-  turnReversed(gameId: number, reversed: boolean): void {
-    this.store.dispatch(GameActions.turnReversed({ gameId, reversed }));
+  turnReversed(gameId: number, reversed: boolean, playerId?: number): void {
+    this.store.dispatch(GameActions.turnReversed({ gameId, reversed, playerId }));
   }
 
   zoneDumped(gameId: number, playerId: number, data: Event_DumpZone): void {

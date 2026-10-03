@@ -30,6 +30,8 @@ import {
   Event_MoveCard_ext,
   Event_PlayerPropertiesChangedSchema,
   Event_PlayerPropertiesChanged_ext,
+  Event_ReverseTurnSchema,
+  Event_ReverseTurn_ext,
   Event_SetCounterSchema,
   Event_SetCounter_ext,
   Response_JoinRoomSchema,
@@ -195,6 +197,37 @@ describe('game', () => {
     }));
 
     expect(store.getState().games.games[42]).toBeUndefined();
+  });
+
+  it('logs Event_ReverseTurn under the player who reversed the order', () => {
+    connectAndLogin();
+    joinGame(42);
+    const seat = (playerId: number, name: string) => create(ServerInfo_PlayerSchema, {
+      properties: create(ServerInfo_PlayerPropertiesSchema, {
+        playerId,
+        userInfo: create(ServerInfo_UserSchema, { name }),
+      }),
+    });
+    deliverMessage(buildGameEventMessage({
+      gameId: 42,
+      ext: Event_GameStateChanged_ext,
+      value: create(Event_GameStateChangedSchema, {
+        playerList: [seat(1, 'alice'), seat(2, 'bob')],
+        gameStarted: true,
+        activePlayerId: 1,
+      }),
+    }));
+
+    deliverMessage(buildGameEventMessage({
+      gameId: 42,
+      playerId: 2,
+      ext: Event_ReverseTurn_ext,
+      value: create(Event_ReverseTurnSchema, { reversed: true }),
+    }));
+
+    const game = store.getState().games.games[42];
+    expect(game.reversed).toBe(true);
+    expect(game.messages.at(-1)).toMatchObject({ playerId: 2, message: 'bob reversed turn order, now it\'s reversed.' });
   });
 
   it('sends outbound Command_GameSay with correct gameId and message', () => {
