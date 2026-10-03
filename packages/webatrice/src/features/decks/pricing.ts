@@ -1,4 +1,4 @@
-import { chunkForCollection, postCollection } from '@app/services';
+import { chunkForCollection, postCollection } from '../../services/scryfall/client';
 
 import type { DeckCard } from './types';
 

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { chunkForCollection, postCollection, scryfallSearchUrl } from '@app/services';
+import { chunkForCollection, postCollection, scryfallSearchUrl } from '../../services/scryfall/client';
 
 import type { DeckCard } from './types';
 
