@@ -323,12 +323,23 @@ export function useGameDnd({
       setActiveSeatDrag(null);
       const zone = event.over?.data.current;
       const target = isSeatDropZone(zone) ? zone.resolve(seatDropPointOf(event), source) : null;
-      if (target && moveCard) {
-        planSeatMove(source, target).forEach((params) => moveCard(params));
+      if (target && moveCard && gameId) {
+        // A judge moving another seat's cards acts as that player through
+        // Command_Judge, like desktop's PlayerActions::sendGameCommand, and
+        // waits for the server rather than moving optimistically. A lent
+        // zone is moved by its borrower under the lender's write permission.
+        const judgeTargetId = source.lenderPlayerId == null ? judgeTarget(source.seatPlayerId) : undefined;
+        for (const params of planSeatMove(source, target)) {
+          if (judgeTargetId != null) {
+            webClient.request.game.moveCard(gameId, params, judgeTargetId);
+          } else {
+            moveCard(params);
+          }
+        }
       }
       clearSelection?.();
     },
-    [moveCard, clearSelection],
+    [gameId, webClient, moveCard, clearSelection, judgeTarget],
   );
 
   const handleDragCancel = useCallback(() => setActiveSeatDrag(null), []);
