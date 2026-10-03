@@ -1,14 +1,19 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Loader2, X } from 'lucide-react';
 
 import { games } from '@cockatrice/datatrice';
+import { ShortcutScope, useShortcut, useShortcutHints } from '@app/feature-widgets/shortcuts';
 import { useAppDispatch, useAppSelector } from '@app/store';
 
 import Card from '../../components/ui/SeatCard/SeatCard';
 import { CARD_HEIGHT, CARD_WIDTH } from '../../components/ui/SeatCard/cardSize';
 import { useSeatDragSource } from '../../components/ui/SeatDragContext';
 import { useCardPreviewActions } from '../../components/ui/CardPreviewContext';
+import { usePlayerCardCommands } from '../../components/ui/GameBoardCell/usePlayerCardCommands';
+import { CardMenuPopup } from '../../components/context-menus/CardContextMenu/CardContextMenu';
+import { buildRelatedViewItems } from '../../components/context-menus/CardContextMenu/relatedCardActions';
+import { buildRevealedCardMenu } from '../../components/context-menus/CardContextMenu/revealedCardMenu.model';
 import {
   compareCards,
   groupCards,
@@ -17,7 +22,7 @@ import {
   type SortMode,
   type ZoneViewCardMetadata,
 } from '../ZoneViewDialog/zoneViewSort';
-import { lookupCardsCached } from '@app/services';
+import { lookupCardsCached, type RelatedCardRef } from '@app/services';
 
 const TOOLBAR_SELECT_CLASS =
   'px-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm text-text-primary '
@@ -186,13 +191,16 @@ function renderRevealCard(
   dragToBattlefield:
     | ((e: React.PointerEvent<HTMLElement>, card: EnrichedCard) => void)
     | undefined,
+  interaction: React.HTMLAttributes<HTMLDivElement>,
 ): React.ReactElement {
   return (
     <div
       key={c.handCard.id}
+      {...interaction}
       className={className}
       style={{
         ...style,
+        ...interaction.style,
         cursor: dragToBattlefield ? 'grab' : undefined,
         touchAction: dragToBattlefield ? 'none' : undefined,
       }}
@@ -215,7 +223,23 @@ function renderRevealCard(
 export default function IncomingRevealDialog() {
   const reveal = useAppSelector(games.Selectors.getIncomingReveal);
   const dispatch = useAppDispatch();
-  const { setHoveredCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
+  const { setHoveredCard, openBigPreview, closeBigPreview, showCardInfo } = useCardPreviewActions();
+  const shortcutHints = useShortcutHints();
+
+  // A read-only reveal gets desktop's revealed-card menu (Hide, Clone, Select
+  // All, View related cards; card_menu.cpp:132-151). Hide and the selection
+  // are local to this window: hiding never touches the shared revealedCards
+  // snapshot (the source's own zone view reads it too) and sends nothing, and
+  // a new reveal starts with nothing hidden or selected.
+  const [hiddenIds, setHiddenIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [cardMenu, setCardMenu] = useState<{ x: number; y: number; id: string; name: string } | null>(null);
+  const closeCardMenu = useCallback(() => setCardMenu(null), []);
+  useEffect(() => {
+    setHiddenIds(new Set());
+    setSelectedIds(new Set());
+    setCardMenu(null);
+  }, [reveal]);
 
   const sourceName = useAppSelector((state) => {
     if (!reveal) {
@@ -259,6 +283,9 @@ export default function IncomingRevealDialog() {
   });
 
   const isSpectator = useAppSelector((state) => (reveal ? games.Selectors.isSpectator(state, reveal.gameId) : false));
+  // Clone creates the token on our own battlefield (desktop actClone).
+  const cardCommands = usePlayerCardCommands(localPlayerId ?? -1, true);
+  const readOnly = reveal != null && !reveal.grantWriteAccess;
 
   // When the lender granted us write access, cards in the reveal are
   // draggable onto a battlefield, matching Cockatrice desktop's
@@ -389,9 +416,15 @@ export default function IncomingRevealDialog() {
   const [metaByName, setMetaByName] = useState<Map<string, ZoneViewCardMetadata>>(
     () => new Map(),
   );
+  // Each revealed card's relations, and which related names the catalog
+  // knows: the "View related cards" gate (desktop addRelatedCardView).
+  const [relatedByName, setRelatedByName] = useState<Map<string, RelatedCardRef[]>>(() => new Map());
+  const [knownRelated, setKnownRelated] = useState<ReadonlySet<string>>(() => new Set());
   useEffect(() => {
     if (!reveal) {
       setMetaByName(new Map());
+      setRelatedByName(new Map());
+      setKnownRelated(new Set());
       return;
     }
     let cancelled = false;
@@ -419,6 +452,21 @@ export default function IncomingRevealDialog() {
         });
       }
       setMetaByName(next);
+      const related = new Map<string, RelatedCardRef[]>();
+      for (const [name, r] of results) {
+        if (r.related?.length) {
+          related.set(name, r.related);
+        }
+      }
+      setRelatedByName(related);
+      const relatedNames = Array.from(new Set(Array.from(related.values(), (refs) => refs.map((ref) => ref.name)).flat()));
+      if (relatedNames.length === 0) {
+        return;
+      }
+      const relatedResults = await lookupCardsCached(relatedNames);
+      if (!cancelled) {
+        setKnownRelated(new Set(relatedNames.filter((name) => relatedResults.get(name)?.found)));
+      }
     })();
     return () => {
       cancelled = true;
@@ -608,14 +656,98 @@ export default function IncomingRevealDialog() {
         scryfallId: c.providerId,
       },
       meta: metaByName.get(c.name) ?? placeholderMeta(c.name),
-    }));
+    })).filter((c) => !hiddenIds.has(c.handCard.id));
     enriched.sort((a, b) => compareCards(a.meta, b.meta, effectiveSortBy));
     return groupCards(enriched, effectiveGroupBy);
-  }, [reveal, revealCards, metaByName, effectiveSortBy, effectiveGroupBy]);
+  }, [reveal, revealCards, metaByName, hiddenIds, effectiveSortBy, effectiveGroupBy]);
+
+  const hideCards = (ids: readonly string[]) => {
+    setHiddenIds((prev) => new Set([...prev, ...ids]));
+    setSelectedIds((prev) => new Set([...prev].filter((id) => !ids.includes(id))));
+  };
+  // Alt+H (desktop aHide) hides the selected cards of a read-only reveal.
+  useShortcut(
+    'game.hideRevealedCard',
+    () => {
+      if (selectedIds.size > 0) {
+        hideCards([...selectedIds]);
+      }
+    },
+    { scope: ShortcutScope.GAME, enabled: readOnly },
+  );
 
   if (!reveal) {
     return null;
   }
+
+  // Click selects a card (Ctrl / Cmd toggles it); right-click opens the
+  // revealed-card menu. A lent reveal keeps its drag behaviour and no menu.
+  const cardInteraction = (c: EnrichedCard): React.HTMLAttributes<HTMLDivElement> => {
+    if (!readOnly) {
+      return {};
+    }
+    const id = c.handCard.id;
+    return {
+      onClick: (e) => {
+        setSelectedIds((prev) => {
+          if (!(e.ctrlKey || e.metaKey)) {
+            return new Set([id]);
+          }
+          const next = new Set(prev);
+          if (!next.delete(id)) {
+            next.add(id);
+          }
+          return next;
+        });
+      },
+      onContextMenu: (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setCardMenu({ x: e.clientX, y: e.clientY, id, name: c.handCard.name });
+      },
+      style: selectedIds.has(id)
+        ? { boxShadow: '0 0 0 2px rgb(59 130 246), 0 0 12px 2px rgb(59 130 246 / 0.6)' }
+        : undefined,
+    };
+  };
+  const visibleIds = groups.flatMap((g) => g.cards.map((c) => c.handCard.id));
+  const menuItems = cardMenu && buildRevealedCardMenu({
+    shortcutHints,
+    onHide: () => {
+      hideCards(selectedIds.has(cardMenu.id) ? [...selectedIds] : [cardMenu.id]);
+      setCardMenu(null);
+    },
+    onClone: () => {
+      setCardMenu(null);
+      const ids = selectedIds.has(cardMenu.id) ? selectedIds : new Set([cardMenu.id]);
+      for (const g of groups) {
+        for (const c of g.cards) {
+          if (ids.has(c.handCard.id)) {
+            cardCommands?.clone({
+              name: c.handCard.name,
+              providerId: c.handCard.scryfallId,
+              color: '',
+              pt: '',
+              annotation: '',
+              y: 0,
+            });
+          }
+        }
+      }
+    },
+    onSelectAll: () => {
+      setSelectedIds(new Set(visibleIds));
+      setCardMenu(null);
+    },
+    relatedViewItems: buildRelatedViewItems(
+      relatedByName.get(cardMenu.name) ?? [],
+      (name) => knownRelated.has(name),
+      (ref) => {
+        showCardInfo({ name: ref.name, scryfallId: ref.scryfallId });
+        setCardMenu(null);
+      },
+    ),
+  });
 
   const title = sourceName
     ? `${sourceName} reveals their ${zoneLabel(reveal.zoneName)}`
@@ -796,8 +928,10 @@ export default function IncomingRevealDialog() {
                         return (
                           <div
                             key={c.handCard.id}
+                            {...cardInteraction(c)}
                             className="absolute left-0 hover:z-10 group"
                             style={{
+                              ...cardInteraction(c).style,
                               left: 0,
                               top: `calc(${CARD_HEIGHT} * ${PILE_STEP_FRACTION} * ${i})`,
                               width: CARD_WIDTH,
@@ -879,6 +1013,7 @@ export default function IncomingRevealDialog() {
                           },
                           'shrink-0',
                           dragToBattlefield,
+                          cardInteraction(c),
                         ),
                       )}
                     </div>
@@ -902,6 +1037,14 @@ export default function IncomingRevealDialog() {
           </button>
         </div>
       </div>
+      {menuItems && (
+        <CardMenuPopup
+          items={menuItems}
+          anchor={{ x: cardMenu.x, y: cardMenu.y }}
+          disabled={false}
+          onClose={closeCardMenu}
+        />
+      )}
     </div>,
     document.body,
   );
