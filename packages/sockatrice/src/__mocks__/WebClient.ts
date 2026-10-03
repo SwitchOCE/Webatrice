@@ -64,6 +64,7 @@ const session = {
   playerPropertiesChanged: vi.fn(),
   serverShutdown: vi.fn(),
   userMessage: vi.fn(),
+  privateMessageFailed: vi.fn(),
   addToList: vi.fn(),
   removeFromList: vi.fn(),
   deleteServerDeck: vi.fn(),

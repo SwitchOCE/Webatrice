@@ -499,8 +499,32 @@ describe('message', () => {
   it('sends Command_Message', () => {
     message('bob', 'hi');
     expect(WebClient.instance.protobuf.sendSessionCommand).toHaveBeenCalledWith(
-      Command_Message_ext, expect.objectContaining({ userName: 'bob', message: 'hi' })
+      Command_Message_ext, expect.objectContaining({ userName: 'bob', message: 'hi' }), expect.any(Object)
     );
+  });
+
+  it.each([
+    Response_ResponseCode.RespInIgnoreList,
+    Response_ResponseCode.RespNameNotFound,
+    Response_ResponseCode.RespChatFlood,
+  ])('reports rejection %i with the unsent text', (code) => {
+    message('bob', 'hi');
+    invokeResponseCode(code);
+    expect(WebClient.instance.response.session.privateMessageFailed).toHaveBeenCalledWith('bob', 'hi', code);
+  });
+
+  it('reports a message the server never answered with the transport reason', () => {
+    message('bob', 'hi');
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.NotSent);
+    expect(WebClient.instance.response.session.privateMessageFailed).toHaveBeenCalledWith(
+      'bob', 'hi', Response_ResponseCode.RespNotConnected, CommandFailure.NotSent,
+    );
+  });
+
+  it('keeps other server rejections silent', () => {
+    message('bob', 'hi');
+    invokeOnError(Response_ResponseCode.RespContextError);
+    expect(WebClient.instance.response.session.privateMessageFailed).not.toHaveBeenCalled();
   });
 
 });

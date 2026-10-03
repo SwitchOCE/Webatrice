@@ -377,6 +377,40 @@ describe('Selectors', () => {
     expect(a).toBe(b);
   });
 
+  it('getPrivateConversation → slots notices between messages by position', () => {
+    const m = (message: string) =>
+      ({ $typeName: 'Event_UserMessage' as const, senderName: 'Bob', receiverName: 'Alice', message }) as never;
+    const [a, b] = [m('a'), m('b')];
+    const state = makeServerState({
+      messages: { Bob: [a, b] },
+      privateChatNotices: {
+        Bob: [
+          { id: 1, kind: 'userJoined', position: 0 },
+          { id: 2, kind: 'chatFlood', position: 1 },
+          { id: 3, kind: 'userLeft', position: 2 },
+        ],
+      },
+    });
+    const entries = Selectors.getPrivateConversation(rootState(state), 'Bob');
+    expect(entries.map((e) => (e.type === 'message' ? e.message : e.notice.kind))).toEqual(
+      ['userJoined', a, 'chatFlood', b, 'userLeft'],
+    );
+    expect(Selectors.getPrivateConversation(rootState(state), 'Bob')).toBe(entries);
+  });
+
+  it('getPrivateConversation → lists notices of a conversation without messages', () => {
+    const state = makeServerState({ privateChatNotices: { Bob: [{ id: 1, kind: 'recipientOffline', position: 0 }] } });
+    expect(Selectors.getPrivateConversation(rootState(state), 'Bob')).toEqual([
+      { type: 'notice', notice: { id: 1, kind: 'recipientOffline', position: 0 } },
+    ]);
+  });
+
+  it('getIsUserOnline → reflects the online user list', () => {
+    const state = makeServerState({ users: { Bob: makeUser({ name: 'Bob' }) } });
+    expect(Selectors.getIsUserOnline(rootState(state), 'Bob')).toBe(true);
+    expect(Selectors.getIsUserOnline(rootState(state), 'Carol')).toBe(false);
+  });
+
   it('getSortedBuddyList → returns EMPTY_USERS for empty map', () => {
     const state = makeServerState({ buddyList: {} });
     expect(Selectors.getSortedBuddyList(rootState(state))).toHaveLength(0);

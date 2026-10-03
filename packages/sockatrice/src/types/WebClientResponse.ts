@@ -122,6 +122,7 @@ export interface ISessionResponse {
   playerPropertiesChanged(gameId: number, playerId: number, payload: Event_PlayerPropertiesChanged): void;
   serverShutdown(data: Event_ServerShutdown): void;
   userMessage(messageData: Event_UserMessage): void;
+  privateMessageFailed?(userName: string, message: string, responseCode: number, failure?: CommandFailure): void;
   addToList(list: string, userName: string): void;
   removeFromList(list: string, userName: string): void;
   deleteServerDeck(deckId: number): void;
