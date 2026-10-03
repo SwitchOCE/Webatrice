@@ -349,6 +349,9 @@
     "copied": "Copied",
     "copyFailed": "The browser blocked the clipboard. Select the text and copy it instead."
   },
+  "DialogShell": {
+    "close": "Close"
+  },
   "ReportUserDialog": {
     "title": "Report User",
     "info": "Reports are reviewed by moderators. False reports may result in account penalties.",
