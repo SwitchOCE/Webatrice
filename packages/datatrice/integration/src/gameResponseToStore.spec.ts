@@ -184,6 +184,25 @@ describe('integration: game lifecycle', () => {
     expect(messages.some(m => m.message === 'Alice has conceded the game.')).toBe(true);
   });
 
+  it('playerPropertiesChanged from a SetPlaymat sets the player\'s playmat without a log line', () => {
+    const { store, response } = seedGame();
+    const before = games.Selectors.getMessages(store.getState(), GAME_ID).length;
+    // Server_Player::cmdSetPlaymat broadcasts the playmat with the unchanged lock and deck hash.
+    response.game.playerPropertiesChanged(GAME_ID, 2, create(ServerInfo_PlayerPropertiesSchema, {
+      sideboardLocked: games.Selectors.getPlayer(store.getState(), GAME_ID, 2)!.properties.sideboardLocked,
+      deckHash: games.Selectors.getPlayer(store.getState(), GAME_ID, 2)!.properties.deckHash,
+      playmatParams: { cardName: 'Island', cardProviderId: 'uuid-1', zoom: 9 },
+    }));
+
+    const state = store.getState();
+    expect(games.Selectors.getPlayerPlaymat(state, GAME_ID, 2)).toEqual({
+      cardName: 'Island',
+      cardProviderId: 'uuid-1',
+      params: { marginPctL: 0.07, marginPctR: 0.07, verticalOffset: 0.33, zoom: 4 },
+    });
+    expect(games.Selectors.getMessages(state, GAME_ID)).toHaveLength(before);
+  });
+
   it('gameHostChanged updates hostId', () => {
     const { store, response } = seedGame();
     response.game.gameHostChanged(GAME_ID, 2);
