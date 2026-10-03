@@ -36,6 +36,7 @@ describe('Settings', () => {
       'Settings.section.general',
       'Settings.section.appearance',
       'Settings.section.userInterface',
+      'Settings.section.storage',
       'Settings.section.chat',
       'Settings.section.sound',
       'Settings.section.shortcuts',

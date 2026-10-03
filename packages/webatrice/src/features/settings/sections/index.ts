@@ -4,6 +4,7 @@ import { chatSection } from './chat';
 import { generalSection } from './general';
 import { shortcutsSection } from './shortcuts';
 import { soundSection } from './sound';
+import { storageSection } from './storage';
 import { themeSection } from './theme';
 import { userInterfaceSection } from './userInterface';
 
@@ -17,6 +18,7 @@ const registrations: readonly SettingsSection[] = [
   themeSection,
   appearanceSection,
   userInterfaceSection,
+  storageSection,
   chatSection,
   soundSection,
   shortcutsSection,
