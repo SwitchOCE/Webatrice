@@ -291,4 +291,66 @@ describe('PromptDialog', () => {
 
     expect(trigger).toHaveFocus();
   });
+
+  it('shows a description line and a placeholder', () => {
+    render(
+      <PromptDialog
+        isOpen
+        title="Set annotation"
+        label="Annotation"
+        description="Llanowar Elves"
+        placeholder="Leave blank to clear"
+        onSubmit={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+
+    expect(screen.getByText('Llanowar Elves')).toBeInTheDocument();
+    expect(screen.getByLabelText('Annotation')).toHaveAttribute('placeholder', 'Leave blank to clear');
+  });
+
+  it('shows the live preview until a validation error replaces it', () => {
+    render(
+      <PromptDialog
+        isOpen
+        title="Set life"
+        label="Life"
+        initialValue="40"
+        helperText="hint"
+        preview={(v) => (v.includes('+') ? `= ${v.split('+').map(Number).reduce((a, b) => a + b)}` : null)}
+        validate={(v) => (v === 'x' ? 'bad' : null)}
+        onSubmit={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+
+    const input = screen.getByLabelText('Life');
+    expect(screen.getByText('hint')).toBeInTheDocument();
+    fireEvent.change(input, { target: { value: '40+5' } });
+    expect(screen.getByText('= 45')).toBeInTheDocument();
+    fireEvent.change(input, { target: { value: 'x' } });
+    fireEvent.submit(input.closest('form')!);
+    expect(screen.getByText('bad')).toBeInTheDocument();
+  });
+
+  it('selects the seeded value on focus when asked, and sets the input mode', () => {
+    render(
+      <PromptDialog
+        isOpen
+        title="How many?"
+        label="Count"
+        initialValue="12"
+        selectOnFocus
+        inputMode="numeric"
+        onSubmit={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+
+    const input = screen.getByLabelText('Count') as HTMLInputElement;
+    fireEvent.focus(input);
+    expect(input).toHaveAttribute('inputmode', 'numeric');
+    expect(input.selectionStart).toBe(0);
+    expect(input.selectionEnd).toBe(2);
+  });
 });
