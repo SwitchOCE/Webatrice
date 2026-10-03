@@ -11,6 +11,7 @@ import { Search, X } from 'lucide-react';
 import Card from '../../components/ui/SeatCard/SeatCard';
 import { CARD_HEIGHT, CARD_WIDTH } from '../../components/ui/SeatCard/cardSize';
 import { useCardPreviewActions } from '../../components/ui/CardPreviewContext';
+import { usePreference } from '@app/hooks';
 import { lookupCardsCached } from '@app/services';
 import {
   compareCards,
@@ -217,6 +218,7 @@ export default function ZoneViewPanel({
 }: Props) {
   const { setHoveredCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
   const [query, setQuery] = useState('');
+  const focusSearchBar = usePreference('focusCardViewSearchBar');
   // Grouping/sorting defaults match Cockatrice's SettingsCache
   // (cache_settings.cpp:383-384): `zoneview/groupby` defaults to index 1
   // (By Type) and `zoneview/sortby` defaults to index 1 (By Name).
@@ -774,7 +776,8 @@ export default function ZoneViewPanel({
             />
             <input
               type="text"
-              autoFocus
+              // Desktop's "Auto focus search bar when card view window is opened".
+              autoFocus={focusSearchBar}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               // The game's Esc (close the most recent view) skips text

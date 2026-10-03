@@ -50,6 +50,7 @@ export class Setting {
   /** Keep an arrow until the end of the phase group it was drawn in (combat, the beginning phase). */
   doNotDeleteArrowsInSubPhases: boolean;
   closeEmptyCardView: boolean;
+  focusCardViewSearchBar: boolean;
   tapAnimation: boolean;
 
   // User interface — notifications ("taskbar" alerts on desktop)
@@ -126,6 +127,7 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   playToStack: true,
   doNotDeleteArrowsInSubPhases: true,
   closeEmptyCardView: true,
+  focusCardViewSearchBar: true,
   tapAnimation: true,
 
   notificationsEnabled: true,
