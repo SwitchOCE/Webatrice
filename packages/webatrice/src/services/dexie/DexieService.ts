@@ -47,6 +47,17 @@ class DexieService {
     return this.db.table(Stores.SCRYFALL_CACHE);
   }
 
+  /** Row count of one table. */
+  count(store: Stores): Promise<number> {
+    return this.db.table(store).count();
+  }
+
+  /** Empties the given tables in one transaction, so a failure leaves every one of them intact. */
+  async clear(stores: readonly Stores[]): Promise<void> {
+    const tables = stores.map((store) => this.db.table(store));
+    await this.db.transaction('rw', tables, () => Promise.all(tables.map((table) => table.clear())));
+  }
+
   testConnection() {
     return this.db.open();
   }
