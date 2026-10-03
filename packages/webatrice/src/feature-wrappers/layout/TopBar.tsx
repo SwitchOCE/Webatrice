@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useLocation, useNavigate, generatePath, matchPath } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   User, LogOut, Home as HomeIcon, Swords, Library, LibraryBig,
   UserCircle2, Settings as SettingsIcon, FileText, X, Circle, Grid3x3,
-  Keyboard, PanelLeftOpen, Download, ShieldCheck, Flag,
+  Keyboard, PanelLeftOpen, ShieldCheck, Flag,
   Film,
   type LucideIcon,
 } from 'lucide-react';
 import type { TFunction } from 'i18next';
-import { useTranslation } from 'react-i18next';
 
 import { server, rooms, games, ServerCapability } from '@cockatrice/datatrice';
 import type { ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
@@ -17,11 +17,12 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import { useLeaveGame, useOpenedReplays, usePhaseTrackPinnedSetting, useSnapGridSetting } from '@app/hooks';
 import { Images } from '@app/images';
 import { closeReplay } from '@app/services';
+import { DebugLogDialog } from '@app/dialogs';
 import { RouteEnum } from '@app/types';
 import { CardImportDialog } from '@app/feature-widgets/card-import';
 
 import { useShellLifecycle } from './ShellLifecycleContext';
-import { visibleUserMenuEntries, type CapabilityCheck } from './userMenuEntries';
+import { UserMenuDialog, visibleUserMenuEntries, type CapabilityCheck } from './userMenuEntries';
 
 const USER_MENU_ITEM_CLASS =
   'w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary '
@@ -100,7 +101,7 @@ export default function TopBar() {
   const [snapGridVisible, setSnapGridVisible] = useSnapGridSetting();
   const [phaseTrackPinned, setPhaseTrackPinned] = usePhaseTrackPinnedSetting();
   const { onIdentityChanged } = useShellLifecycle();
-  const [cardImportOpen, setCardImportOpen] = useState(false);
+  const [openDialog, setOpenDialog] = useState<UserMenuDialog | null>(null);
 
   // Sticky tabs = the deck-related routes the user has visited and not
   // explicitly closed. Keeps My Decks pinned alongside the currently-
@@ -418,12 +419,16 @@ export default function TopBar() {
             phaseTrackPinned={phaseTrackPinned}
             onTogglePhaseTrackPinned={() => setPhaseTrackPinned(!phaseTrackPinned)}
             onNavigate={(route) => navigate(generatePath(route))}
-            onImportCards={() => setCardImportOpen(true)}
+            onOpenDialog={setOpenDialog}
             onSignOut={() => webClient.request.authentication.disconnect()}
           />
         </div>
       </div>
-      <CardImportDialog isOpen={cardImportOpen} handleClose={() => setCardImportOpen(false)} />
+      <CardImportDialog
+        isOpen={openDialog === UserMenuDialog.CardImport}
+        handleClose={() => setOpenDialog(null)}
+      />
+      <DebugLogDialog isOpen={openDialog === UserMenuDialog.DebugLog} onClose={() => setOpenDialog(null)} />
     </header>
   );
 }
@@ -498,7 +503,7 @@ interface UserMenuProps {
   phaseTrackPinned: boolean;
   onTogglePhaseTrackPinned: () => void;
   onNavigate: (route: RouteEnum) => void;
-  onImportCards: () => void;
+  onOpenDialog: (dialog: UserMenuDialog) => void;
   onSignOut: () => void;
 }
 
@@ -510,7 +515,7 @@ function UserMenu({
   phaseTrackPinned,
   onTogglePhaseTrackPinned,
   onNavigate,
-  onImportCards,
+  onOpenDialog,
   onSignOut,
 }: UserMenuProps) {
   const { t } = useTranslation();
@@ -593,29 +598,23 @@ function UserMenu({
               </span>
             )}
           </button>
-          {visibleUserMenuEntries(userLevel, supports).map(({ label, icon: Icon, route }) => (
+          {visibleUserMenuEntries(userLevel, supports).map((entry) => (
             <button
-              key={route}
+              key={entry.route ?? entry.dialog}
               onClick={() => {
                 setOpen(false);
-                onNavigate(route);
+                if (entry.route) {
+                  onNavigate(entry.route);
+                } else {
+                  onOpenDialog(entry.dialog);
+                }
               }}
               className={USER_MENU_ITEM_CLASS}
             >
-              <Icon size={14} />
-              <span className="flex-1 text-left">{t(label)}</span>
+              <entry.icon size={14} />
+              <span className="flex-1 text-left">{t(entry.label)}</span>
             </button>
           ))}
-          <button
-            onClick={() => {
-              setOpen(false);
-              onImportCards();
-            }}
-            className={USER_MENU_ITEM_CLASS}
-          >
-            <Download size={14} />
-            <span className="flex-1 text-left">{t('UserMenu.importCards')}</span>
-          </button>
           <div className="my-1 border-t border-border-subtle" />
           <button
             onClick={() => {
