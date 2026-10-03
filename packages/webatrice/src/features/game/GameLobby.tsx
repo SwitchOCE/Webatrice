@@ -25,8 +25,9 @@ import type { GameCommandFailedPayload } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
 import { useCommandFailureMessage, useLeaveGame, useReduxEffect } from '@app/hooks';
 import type { ServerInfo_DeckStorage_Folder, ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
-import { bracketToneClass, parseCod } from '@app/services';
+import { parseCod } from '@app/services';
 import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat } from '@app/types';
+import { bracketToneClass } from '@app/utils';
 
 import { useCurrentGame } from './hooks/useCurrentGame';
 import ChatLog from './components/ChatLog/ChatLog';
