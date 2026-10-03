@@ -6,7 +6,7 @@ import './AppShell.css';
 
 import { GameLinkJoinHost, RouteErrorBoundary, ToastProvider } from '@app/components';
 import { ReportUserProvider } from '@app/dialogs';
-import { useApplyLanguagePreference, useSyncLocaleToStore } from '@app/hooks';
+import { useApplyLanguagePreference, useDocumentLanguage, useSyncLocaleToStore } from '@app/hooks';
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 import { ModerationProvider } from '@app/feature-widgets/moderation';
 import { UserGamesProvider } from '@app/feature-widgets/user-games';
@@ -22,6 +22,7 @@ import { appShellLifecycle } from './appShellLifecycle';
 // live in index.css so we control them without MUI's opinions.
 function AppShell() {
   useSyncLocaleToStore();
+  useDocumentLanguage();
   useApplyLanguagePreference();
 
   useEffect(() => {

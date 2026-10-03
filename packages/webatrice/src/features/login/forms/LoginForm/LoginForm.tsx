@@ -191,7 +191,7 @@ const LoginFormBody = ({
           'w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold transition-colors',
           loginDisabled
             ? 'bg-bg-elevated text-text-muted cursor-not-allowed'
-            : 'bg-accent hover:bg-accent-hover text-white shadow-glow',
+            : 'bg-accent hover:bg-accent-hover text-on-accent shadow-glow',
         ].join(' ')}
       >
         {t('LoginForm.label.login')}

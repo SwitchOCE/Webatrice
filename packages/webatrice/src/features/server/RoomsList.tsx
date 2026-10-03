@@ -133,7 +133,7 @@ export default function RoomsList({ rooms, joinedRooms }: RoomsListProps) {
                         'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors',
                         joined
                           ? 'bg-bg-elevated text-text-secondary hover:text-text-primary border border-border-subtle'
-                          : 'bg-accent text-white hover:bg-accent-hover shadow-glow',
+                          : 'bg-accent text-on-accent hover:bg-accent-hover shadow-glow',
                       ].join(' ')}
                     >
                       {joined ? (

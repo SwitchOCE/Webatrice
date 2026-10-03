@@ -28,11 +28,11 @@ export function formatReportDate(secondsSinceEpoch: bigint): string {
 export function reportStatusClass(status: string): string {
   switch (status) {
     case ReportStatus.OPEN:
-      return 'text-red-400';
+      return 'text-danger';
     case ReportStatus.ASSIGNED:
-      return 'text-amber-400';
+      return 'text-warning';
     case ReportStatus.RESOLVED:
-      return 'text-emerald-400';
+      return 'text-success';
     case ReportStatus.DISMISSED:
       return 'text-text-muted';
     default:

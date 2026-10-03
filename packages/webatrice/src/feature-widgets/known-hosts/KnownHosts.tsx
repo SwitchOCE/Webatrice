@@ -91,7 +91,7 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
         <div
           className={[
             'w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm bg-bg-elevated border transition-colors',
-            showError ? 'border-danger/60' : 'border-border-subtle hover:border-border-strong',
+            showError ? 'border-danger' : 'border-border-control hover:border-text-muted',
             'focus-within:outline-none focus-within:ring-1 focus-within:border-accent focus-within:ring-accent',
             disabled ? 'opacity-60' : '',
           ].join(' ')}
