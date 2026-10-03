@@ -9,10 +9,20 @@ export interface DeckListSectionsProps {
   mode: DeckListViewMode;
   onOpen: (deck: FlatDeck) => void;
   onDelete: (deck: FlatDeck) => void;
+  onMove?: (deck: FlatDeck) => void;
+  onDownload?: (deck: FlatDeck) => void;
 }
 
 /** The deck rows, one titled section per format. */
-export function DeckListSections({ sections, summaries, mode, onOpen, onDelete }: DeckListSectionsProps) {
+export function DeckListSections({
+  sections,
+  summaries,
+  mode,
+  onOpen,
+  onDelete,
+  onMove,
+  onDownload,
+}: DeckListSectionsProps) {
   return (
     <div className="space-y-6">
       {sections.map(({ section, decks }) => (
@@ -30,6 +40,8 @@ export function DeckListSections({ sections, summaries, mode, onOpen, onDelete }
                   mode={mode}
                   onOpen={() => onOpen(deck)}
                   onDelete={() => onDelete(deck)}
+                  onMove={onMove && (() => onMove(deck))}
+                  onDownload={onDownload && (() => onDownload(deck))}
                 />
               </li>
             ))}

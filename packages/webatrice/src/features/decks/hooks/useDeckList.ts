@@ -10,8 +10,9 @@ import { emptyCod, parseCod } from '@app/services';
 import { useAppSelector } from '@app/store';
 
 import { clearDeckEditorCache, deleteCachedDeck } from '../deckEditorCache';
+import { allDeckFolderPaths, decksUnderFolder, listDeckFolder, type DeckFolderView } from '../deckFolders';
 import { groupDecksByFormat, summariesEqual, summarizeDeck, type DeckListSection, type DeckSummary } from '../deckSummary';
-import { flattenDeckTree, type FlatDeck } from '../deckTree';
+import type { FlatDeck } from '../deckTree';
 
 /**
  * Session caches for the MyDecks list, so navigating away and back
@@ -28,6 +29,24 @@ export function clearDecksListCache(): void {
   summaryRequestedCache.clear();
 }
 
+/** Forget everything cached about a deck that left storage. */
+function forgetDeck(deckId: number): void {
+  // Evict the editor's copy so a stale entry can't surface if the server
+  // later reuses this id for a brand-new deck.
+  deleteCachedDeck(deckId);
+  summaryCache.delete(deckId);
+  summaryRequestedCache.delete(deckId);
+}
+
+/**
+ * An upload waiting for Servatrice's answer. Answers carry the folder and
+ * the deck's name, which pick the waiting entry; a `move` deletes the
+ * original once its copy exists.
+ */
+type PendingUpload =
+  | { kind: 'create'; path: string; name: string }
+  | { kind: 'move'; path: string; name: string; fromId: number };
+
 export interface UseDeckList {
   isConnected: boolean;
   /** True until the deck tree has arrived. */
@@ -35,34 +54,51 @@ export interface UseDeckList {
   /** Why the deck list could not be loaded; null until a request fails and
    *  again once the user retries. */
   listError: string | null;
-  /** Every deck file in the storage tree, newest first. */
+  /** The folder shown: its subfolders and its own decks. */
+  folder: DeckFolderView;
+  /** The shown folder's decks, newest first. */
   decks: FlatDeck[];
   /** `decks` bucketed by format, in display order. */
   sections: DeckListSection[];
   /** Summaries parsed so far; a deck without one is still downloading. */
   summaries: ReadonlyMap<number, DeckSummary>;
+  /** Every folder path, root first — where a deck can be moved. */
+  folderPaths: string[];
+  /** Every deck at or below a folder. */
+  decksUnder: (path: string) => FlatDeck[];
+  /** Decks in the whole storage tree. */
+  deckTotal: number;
   /** Drop every cached summary and editor copy, then re-request the tree. */
   refresh: () => void;
-  /** Upload an empty deck at the storage root; `onDeckCreated` fires with its id.
+  /** Upload an empty deck into the shown folder; `onDeckCreated` fires with its id.
    *  False (nothing sent) while disconnected. */
   createDeck: (name: string, format: string) => boolean;
-  /** Upload `.cod` XML as a new deck at the storage root; opens like a created deck.
+  /** Upload `.cod` XML as a new deck into the shown folder; opens like a created deck.
    *  False (nothing sent) while disconnected. */
   importDeck: (xml: string) => boolean;
   deleteDeck: (deck: FlatDeck) => void;
+  /** Create a subfolder of the shown folder (`name` already checked). */
+  createFolder: (name: string) => void;
+  /** Delete a folder with everything in it. */
+  deleteFolder: (path: string) => void;
+  /** Move a deck to another folder: copy it there, then delete the original. */
+  moveDeck: (deck: FlatDeck, targetPath: string) => void;
 }
 
 /**
  * Data owner for the MyDecks route: the Servatrice deck tree, a summary
- * per deck, and the storage commands (list, upload, delete).
+ * per shown deck, and the storage commands desktop's `TabDeckStorage`
+ * offers on the server side (upload into a folder, new folder, delete deck
+ * or folder), plus moving a deck between folders.
  *
- * Servatrice's tree carries only `{ id, name, creationTime }`, so once the
- * tree arrives every deck is downloaded in parallel and its summary
- * (price, bracket, format, art) is parsed out of the response. Small XMLs
- * over the open socket land in milliseconds, so rows fill in without a
- * visible stutter.
+ * Servatrice's tree carries only `{ id, name, creationTime }`, so every
+ * deck in the shown folder is downloaded and its summary (price, bracket,
+ * format, art, tags) parsed out of the response.
  */
-export function useDeckList({ onDeckCreated }: { onDeckCreated: (deckId: number) => void }): UseDeckList {
+export function useDeckList({ onDeckCreated, folderPath = '' }: {
+  onDeckCreated: (deckId: number) => void;
+  folderPath?: string;
+}): UseDeckList {
   const webClient = useWebClient();
   const backendDecks = useAppSelector(server.Selectors.getBackendDecks);
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
@@ -104,32 +140,65 @@ export function useDeckList({ onDeckCreated }: { onDeckCreated: (deckId: number)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch on connect or when the list is dropped
   }, [isConnected, backendDecks]);
 
-  const decks = useMemo<FlatDeck[]>(() => flattenDeckTree(backendDecks?.root), [backendDecks]);
+  const root = backendDecks?.root;
+  const folder = useMemo(() => listDeckFolder(root, folderPath), [root, folderPath]);
+  const folderPaths = useMemo(() => allDeckFolderPaths(root), [root]);
+  const deckTotal = useMemo(() => decksUnderFolder(root, '').length, [root]);
 
-  // Only a deck *this list* created or imported opens the editor — a
-  // background upload (an editor autosave) must not yank the tab away.
-  const pendingCreateRef = useRef(false);
+  // --- Uploads (create, import, move) ---
+  // Only a deck *this list* created or imported opens the editor.
+  const pendingUploadsRef = useRef<PendingUpload[]>([]);
+  // Decks being moved, by id, waiting for their XML: id → target folder.
+  const pendingMovesRef = useRef<Map<number, string>>(new Map());
+
   useReduxEffect<{ path: string; treeItem: ServerInfo_DeckStorage_TreeItem }>(
-    ({ payload: { treeItem } }) => {
-      if (!pendingCreateRef.current) {
+    ({ payload: { path, treeItem } }) => {
+      const pending = pendingUploadsRef.current;
+      const index = pending.findIndex((p) => p.path === path && p.name === treeItem.name);
+      const settled = pending.splice(index >= 0 ? index : 0, 1)[0];
+      if (!settled) {
         return;
       }
-      pendingCreateRef.current = false;
-      if (treeItem.id) {
+      if (settled.kind === 'move') {
+        // The copy exists: carry the summary over, then drop the original.
+        const summary = summaryCache.get(settled.fromId);
+        if (summary && treeItem.id) {
+          summaryCache.set(treeItem.id, summary);
+          summaryRequestedCache.add(treeItem.id);
+          summaryRequestedRef.current.add(treeItem.id);
+          setSummaries((prev) => new Map(prev).set(treeItem.id, summary));
+        }
+        webClient.request.session.deckDel(settled.fromId);
+        forgetDeck(settled.fromId);
+      } else if (treeItem.id) {
         onDeckCreated(treeItem.id);
       }
     },
     server.Types.DECK_UPLOAD,
-    [onDeckCreated],
+    [onDeckCreated, webClient],
   );
+
+  const upload = (entry: PendingUpload, xml: string) => {
+    pendingUploadsRef.current.push(entry);
+    webClient.request.session.deckUpload(entry.path, 0, xml);
+  };
+
+  /** The name Servatrice will store (`cmdDeckUpload` falls back to "Unnamed deck"). */
+  const storedName = (xml: string) => {
+    try {
+      return parseCod(xml).name;
+    } catch {
+      return '';
+    }
+  };
 
   const createDeck = (name: string, format: string): boolean => {
     if (!isConnected) {
       return false;
     }
-    pendingCreateRef.current = true;
-    // deckId 0 asks Servatrice for a new id; path "" is the root.
-    webClient.request.session.deckUpload('', 0, emptyCod(name || 'New Deck', format));
+    const deckName = name || 'New Deck';
+    // deckId 0 asks Servatrice for a new id.
+    upload({ kind: 'create', path: folder.path, name: deckName }, emptyCod(deckName, format));
     return true;
   };
 
@@ -137,25 +206,47 @@ export function useDeckList({ onDeckCreated }: { onDeckCreated: (deckId: number)
     if (!isConnected) {
       return false;
     }
-    pendingCreateRef.current = true;
-    webClient.request.session.deckUpload('', 0, xml);
+    upload({ kind: 'create', path: folder.path, name: storedName(xml) }, xml);
     return true;
   };
 
   const deleteDeck = (deck: FlatDeck) => {
     webClient.request.session.deckDel(deck.id);
-    // Evict the editor's copy so a stale entry can't surface if the
-    // server later reuses this id for a brand-new deck.
-    deleteCachedDeck(deck.id);
-    summaryCache.delete(deck.id);
-    summaryRequestedCache.delete(deck.id);
+    forgetDeck(deck.id);
   };
 
-  useEffect(() => {
-    if (!isConnected || decks.length === 0) {
+  // --- Folders ---
+  const createFolder = (name: string) => {
+    if (!isConnected) {
       return;
     }
-    for (const deck of decks) {
+    webClient.request.session.deckNewDir(folder.path, name);
+  };
+
+  const deleteFolder = (path: string) => {
+    if (!isConnected || !path) {
+      return;
+    }
+    for (const deck of decksUnderFolder(root, path)) {
+      forgetDeck(deck.id);
+    }
+    webClient.request.session.deckDelDir(path);
+  };
+
+  const moveDeck = (deck: FlatDeck, targetPath: string) => {
+    if (!isConnected || targetPath === deck.path) {
+      return;
+    }
+    pendingMovesRef.current.set(deck.id, targetPath);
+    webClient.request.session.deckDownload(deck.id);
+  };
+
+  // --- Summaries (and the XML a move needs) ---
+  useEffect(() => {
+    if (!isConnected || folder.decks.length === 0) {
+      return;
+    }
+    for (const deck of folder.decks) {
       if (summaryRequestedRef.current.has(deck.id)) {
         continue;
       }
@@ -163,10 +254,15 @@ export function useDeckList({ onDeckCreated }: { onDeckCreated: (deckId: number)
       summaryRequestedCache.add(deck.id);
       webClient.request.session.deckDownload(deck.id);
     }
-  }, [isConnected, decks, webClient]);
+  }, [isConnected, folder.decks, webClient]);
 
   useReduxEffect<{ deckId: number; deck: string }>(
     ({ payload }) => {
+      const moveTarget = pendingMovesRef.current.get(payload.deckId);
+      if (moveTarget !== undefined) {
+        pendingMovesRef.current.delete(payload.deckId);
+        upload({ kind: 'move', path: moveTarget, name: storedName(payload.deck), fromId: payload.deckId }, payload.deck);
+      }
       try {
         const next = summarizeDeck(parseCod(payload.deck));
         summaryCache.set(payload.deckId, next);
@@ -187,18 +283,25 @@ export function useDeckList({ onDeckCreated }: { onDeckCreated: (deckId: number)
     [],
   );
 
-  const sections = useMemo(() => groupDecksByFormat(decks, summaries), [decks, summaries]);
+  const sections = useMemo(() => groupDecksByFormat(folder.decks, summaries), [folder.decks, summaries]);
 
   return {
     isConnected,
     loading: !backendDecks,
     listError,
-    decks,
+    folder,
+    decks: folder.decks,
     sections,
     summaries,
+    folderPaths,
+    decksUnder: (path: string) => decksUnderFolder(root, path),
+    deckTotal,
     refresh,
     createDeck,
     importDeck,
     deleteDeck,
+    createFolder,
+    deleteFolder,
+    moveDeck,
   };
 }

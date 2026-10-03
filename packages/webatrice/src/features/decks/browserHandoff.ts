@@ -1,10 +1,23 @@
 import type { FormPost } from './deckServices';
 
 /**
- * Hand-offs from the deck editor to other pages: a URL or a form POST in a
- * new tab, and printing a document. Each must run inside the click handler
+ * Hand-offs from the deck feature to the browser: a URL or a form POST in a
+ * new tab, a file download, and printing a document. Each must run inside the click handler
  * that asked for it, or the browser's popup blocker may stop the tab.
  */
+
+/** Save `content` as a file through the browser's download. */
+export function saveTextFile(fileName: string, content: string, mime: string): void {
+  const blob = new Blob([content], { type: `${mime};charset=utf-8` });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
 
 /** `QDesktopServices::openUrl` for a web page: a new tab, with no opener. */
 export function openInNewTab(url: string): void {

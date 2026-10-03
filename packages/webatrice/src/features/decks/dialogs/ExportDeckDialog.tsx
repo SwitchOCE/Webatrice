@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { X, Copy, Check, Download, FileText, Swords, Package } from 'lucide-react';
 
+import { saveTextFile } from '../browserHandoff';
 import { exportDeck, exportFileName, type DeckExportFormat } from '../deckExport';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 import type { HydratedDeck } from '../types';
@@ -83,15 +84,7 @@ export function ExportDeckDialog({
   };
 
   const download = () => {
-    const blob = new Blob([content], { type: `${currentFormat.mime};charset=utf-8` });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = exportFileName(deck.name, currentFormat.extension);
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    saveTextFile(exportFileName(deck.name, currentFormat.extension), content, currentFormat.mime);
   };
 
   if (!open) {
