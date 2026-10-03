@@ -1061,6 +1061,95 @@
       "notSent": "Message not sent: {reason}"
     }
   },
+  "Replays": {
+    "action": {
+      "watch": "Watch replay",
+      "openFile": "Open file…",
+      "import": "Import…",
+      "export": "Save as file",
+      "newFolder": "New folder",
+      "rename": "Rename",
+      "delete": "Delete",
+      "download": "Download replay",
+      "saveToLibrary": "Save to local replays",
+      "toggleKeep": "Toggle expiration lock",
+      "getCode": "Get replay share code",
+      "submitCode": "Look up replay by share code"
+    },
+    "notice": {
+      "error": "Error",
+      "failed": "Failed"
+    },
+    "local": {
+      "title": "Local replays",
+      "path": "Folder",
+      "root": "Replays",
+      "empty": "No replays here yet. Import .cor files or save replays from the server.",
+      "column": {
+        "name": "Name",
+        "size": "Size",
+        "modified": "Date modified"
+      },
+      "renameFolderTitle": "Rename local folder",
+      "renameFileTitle": "Rename local file",
+      "newName": "New name:",
+      "newFolderName": "Name of new folder:",
+      "nameRequired": "Enter a name.",
+      "nameTaken": "There is already an entry named \"{name}\" in this folder.",
+      "renameFailed": "Rename failed",
+      "newFolderFailed": "Could not create the folder.",
+      "deleteTitle": "Delete local file",
+      "deleteMessage": "Are you sure you want to delete the selected files?",
+      "deleteFailed": "Could not delete the selected files.",
+      "loadFailed": "Could not read the local replay library.",
+      "saveFailed": "Could not save the replay to the local library.",
+      "missingData": "The replay data for this entry is missing.",
+      "invalidFile": "\"{name}\" is not a Cockatrice replay (.cor) file.",
+      "invalidFiles": "These files are not Cockatrice replays and were not imported: {names}"
+    },
+    "server": {
+      "title": "Server replay storage",
+      "disconnected": "Connect to a server to see the replays stored for your account.",
+      "unregistered": "Only registered users can store replays on the server.",
+      "loading": "Loading replays…",
+      "empty": "No replays are stored for your account.",
+      "expand": "Show replays",
+      "collapse": "Hide replays",
+      "locked": "Kept: will not expire",
+      "replayTitle": "Replay #{id}",
+      "column": {
+        "id": "ID",
+        "name": "Name",
+        "players": "Players",
+        "keep": "Keep",
+        "started": "Time started",
+        "duration": "Duration (sec)"
+      },
+      "deleteTitle": "Delete remote replay",
+      "deleteMessage": "Are you sure you want to delete the selected replays?",
+      "deleteFailed": "Could not delete the replay.",
+      "keepFailed": "Could not change the expiration lock.",
+      "downloadFailed": "Could not download the replay.",
+      "unreadable": "The server sent a replay that could not be read."
+    },
+    "share": {
+      "codeTitle": "Replay Share Code",
+      "codeMessage": "Others can use this code to add the replay to their list of remote replays:",
+      "copy": "Copy to clipboard",
+      "copied": "Copied",
+      "ok": "OK",
+      "codeLabel": "Replay share code",
+      "codeRequired": "Enter a share code.",
+      "getFailedTitle": "Failed to get code",
+      "getFailed": "Could not get replay code",
+      "submitFailedTitle": "Failed to submit code",
+      "notPermitted": "Either this server does not support replay sharing, or does not permit replay sharing for you.",
+      "foundTitle": "Replay code found",
+      "found": "Replay was added, or you already had access to it.",
+      "notFound": "Replay code not found",
+      "unexpected": "Unexpected error"
+    }
+  },
   "RoomChat": {
     "notice": {
       "chatFlood": "You are flooding the chat. Please wait a couple of seconds.",

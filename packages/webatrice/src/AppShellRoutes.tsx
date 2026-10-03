@@ -6,10 +6,11 @@ import { Administration } from '@app/features/administration';
 import { CardArtRules } from '@app/features/card-art-rules';
 import { Decks, DeckEditor } from '@app/features/decks';
 import { Developer } from '@app/features/developer';
-import { Game } from '@app/features/game';
+import { Game, GameReplay } from '@app/features/game';
 import { Logs } from '@app/features/logs';
 import { Moderation } from '@app/features/moderation';
 import { Player } from '@app/features/player';
+import { Replays } from '@app/features/replays';
 import { Login } from '@app/features/login';
 import { Room } from '@app/features/rooms';
 import { Server } from '@app/features/server';
@@ -32,6 +33,8 @@ const AppShellRoutes = () => (
       <Route path={RouteEnum.LOGS} element={<Logs />} />
       <Route path={RouteEnum.MODERATION} element={<Moderation />} />
       <Route path={RouteEnum.PLAYER} element={<Player />} />
+      <Route path={RouteEnum.REPLAYS} element={<Replays />} />
+      <Route path={RouteEnum.REPLAY} element={<GameReplay />} />
       <Route path={RouteEnum.ROOM} element={<Room />} />
       <Route path={RouteEnum.SERVER} element={<Server />} />
       <Route path={RouteEnum.SETTINGS} element={<Settings />} />
