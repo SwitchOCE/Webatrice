@@ -8,6 +8,8 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import { games } from '@cockatrice/datatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
+import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
+
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
 import {
   battlefieldEl,
@@ -42,7 +44,7 @@ const THEIR_GRAVE = makeCard({ id: 60, name: 'Thoughtseize' });
 
 function renderSeats() {
   const webClient = createMockWebClient();
-  const { store } = renderWithProviders(<Game />, {
+  const { store } = renderWithProviders(<ShortcutProvider><Game /></ShortcutProvider>, {
     preloadedState: buildSeatGameState({
       localPlayerId: 1,
       seats: [
@@ -51,6 +53,7 @@ function renderSeats() {
       ],
     }),
     webClient,
+    route: '/game/1',
   });
   return { game: webClient.request.game, store };
 }
@@ -147,6 +150,20 @@ describe('seat zone views', () => {
     expect(revealedIn(store, ZoneName.DECK)).toBeUndefined();
   });
 
+  it('Escape in the search box closes the library view with exactly one shuffle', () => {
+    const { game, store } = renderSeats();
+    openContextMenu(pileEl('Library', 0));
+    chooseMenuPath('View library');
+    dumpArrives(store, ZoneName.DECK, ['Island']);
+
+    act(() => {
+      fireEvent.keyDown(within(zoneView('P1\'s library')).getByRole('textbox'), { key: 'Escape' });
+    });
+
+    expect(screen.queryByRole('heading', { name: titled('P1\'s library') })).not.toBeInTheDocument();
+    expect(game.shuffle).toHaveBeenCalledTimes(1);
+  });
+
   it('Escape closes the library view with exactly one shuffle', () => {
     const { game, store } = renderSeats();
     openContextMenu(pileEl('Library', 0));
@@ -154,7 +171,7 @@ describe('seat zone views', () => {
     dumpArrives(store, ZoneName.DECK, ['Island']);
 
     act(() => {
-      fireEvent.keyDown(document.body, { key: 'Escape' });
+      fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' });
     });
 
     expect(screen.queryByRole('heading', { name: /^P1's library/ })).not.toBeInTheDocument();
@@ -212,15 +229,16 @@ describe('seat zone views', () => {
     expect(zoneView('Graveyard — P2').querySelectorAll('[data-card][data-card-id]')).toHaveLength(1);
   });
 
-  // The seat holds one pile view, so a second replaces the first.
-  it('replaces the graveyard view when the exile view opens', () => {
+  // Desktop keeps a view per zone (GameScene::toggleZoneView); the seat used to
+  // hold one pile view, so a second replaced the first.
+  it('keeps the graveyard and exile views open side by side', () => {
     renderSeats();
     openContextMenu(pileEl('Graveyard', 0));
     chooseMenuPath('View graveyard');
     openContextMenu(pileEl('Exile', 0));
     chooseMenuPath('View exile');
 
-    expect(screen.queryByRole('heading', { name: titled('Graveyard — P1') })).not.toBeInTheDocument();
+    expect(zoneView('Graveyard — P1')).toBeInTheDocument();
     expect(zoneView('Exile — P1')).toBeInTheDocument();
   });
 

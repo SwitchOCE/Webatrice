@@ -59,7 +59,8 @@ export interface ZoneRevealPanelProps {
   /** IDs of cards currently mid-drag from the dialog. Rendered at
    *  opacity 0 so the drag ghost is the only visible copy. */
   draggingCardIds?: Set<string>;
-  /** Called when the dialog closes (X button, Escape, or footer Close). */
+  /** Called when the dialog closes (X button or footer Close; the game's
+   *  Esc closes the most recent view). */
   onClose: () => void;
 }
 
@@ -290,18 +291,6 @@ export default function ZoneRevealPanel({
       window.removeEventListener('pointerup', onUp);
     };
   }, [dragging]);
-
-  // Escape closes the dialog, like the X button.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
 
   // Persist position 500ms after last move (skipped on first open).
   useEffect(() => {

@@ -100,7 +100,7 @@ describe('ZoneViewDialog', () => {
     expect(handleClose).toHaveBeenLastCalledWith(false);
   });
 
-  it('closes on Escape, from its search box too', () => {
+  it('closes from its search box on Escape, which the game shortcut skips', () => {
     const { handleClose } = renderView(
       { playerId: 1, zoneName: ZoneName.GRAVE },
       { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 },

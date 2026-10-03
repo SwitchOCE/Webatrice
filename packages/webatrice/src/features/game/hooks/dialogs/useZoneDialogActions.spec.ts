@@ -97,14 +97,14 @@ describe('useZoneDialogActions', () => {
     expect(webClient.request.game.dumpZone).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps one pile view per seat: the exile view replaces the graveyard view', () => {
+  it('keeps a view per zone: the exile view opens beside the graveyard view', () => {
     const { result, set } = setup({ zoneViews: [{ playerId: 1, zoneName: ZoneName.GRAVE }] });
     result.current.openZoneView({ playerId: 1, zoneName: ZoneName.EXILE });
 
     const update = set.setZoneViews.mock.calls[0][0] as (prev: ZoneViewTarget[]) => ZoneViewTarget[];
-    expect(update([{ playerId: 1, zoneName: ZoneName.GRAVE }, { playerId: 2, zoneName: ZoneName.GRAVE }])).toEqual([
+    expect(update([{ playerId: 1, zoneName: ZoneName.GRAVE }])).toEqual([
+      { playerId: 1, zoneName: ZoneName.GRAVE },
       { playerId: 1, zoneName: ZoneName.EXILE },
-      { playerId: 2, zoneName: ZoneName.GRAVE },
     ]);
   });
 
