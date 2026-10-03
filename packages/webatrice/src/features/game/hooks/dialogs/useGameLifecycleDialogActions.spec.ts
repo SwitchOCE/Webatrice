@@ -4,9 +4,10 @@ import { games } from '@cockatrice/datatrice';
 
 import { makeReduxWebClientHookWrapper } from '../../../../__test-utils__/makeHookWrapper';
 import { makeDialogTestEnv, makeSetterSpies } from '../../__test-utils__/dialogTestEnv';
+import type { CreateTokenRequest } from './gameDialogs.types';
 import { useGameLifecycleDialogActions } from './useGameLifecycleDialogActions';
 
-function setup(canOpenMenus = true) {
+function setup(canOpenMenus = true, createTokenRequest: CreateTokenRequest | null = null) {
   const { env, webClient } = makeDialogTestEnv();
   const set = makeSetterSpies();
   const closeAllContextMenus = vi.fn();
@@ -17,7 +18,7 @@ function setup(canOpenMenus = true) {
   });
   const dispatch = vi.spyOn(store, 'dispatch');
   const { result } = renderHook(
-    () => useGameLifecycleDialogActions({ env, canOpenMenus, set, closeAllContextMenus }),
+    () => useGameLifecycleDialogActions({ env, canOpenMenus, set, closeAllContextMenus, createTokenRequest }),
     { wrapper: Wrapper },
   );
   return { result, set, webClient, dispatch };
@@ -51,6 +52,18 @@ describe('useGameLifecycleDialogActions', () => {
     expect(webClient.request.game.createToken).toHaveBeenCalledWith(1, expect.objectContaining({
       zone: 'table', cardName: 'Goblin', targetCardId: -1, cardProviderId: '',
     }));
+  });
+
+  it('hands the token to the submitter of whoever opened the dialog, not the default command', () => {
+    const onSubmit = vi.fn();
+    const { result, webClient, set } = setup(true, { onSubmit });
+    const token = { name: 'Elf', color: 'g', pt: '1/1', annotation: '', destroyOnZoneChange: true, faceDown: false };
+
+    result.current.handleCreateTokenSubmit(token);
+
+    expect(onSubmit).toHaveBeenCalledWith(token);
+    expect(webClient.request.game.createToken).not.toHaveBeenCalled();
+    expect(set.setCreateTokenRequest).toHaveBeenCalledWith(null);
   });
 
   it('leaves the game and dispatches gameLeft locally, as useLeaveGame does', () => {

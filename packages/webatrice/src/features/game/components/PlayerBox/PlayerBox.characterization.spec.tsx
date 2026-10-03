@@ -358,7 +358,8 @@ describe('PlayerBox characterization — commands from menus and dialogs', () =>
     openContextMenu(battlefieldEl(1));
     chooseMenuPath('Create token...');
     const dialog = screen.getByRole('dialog', { name: 'Create token' });
-    fireEvent.change(within(dialog).getByLabelText(/^Name/), { target: { value: 'Soldier' } });
+    // The game's CreateTokenDialog since Phase 6 (was the seat's own modal).
+    fireEvent.change(within(dialog).getByLabelText('Token name'), { target: { value: 'Soldier' } });
     await act(async () => {
       fireEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
     });

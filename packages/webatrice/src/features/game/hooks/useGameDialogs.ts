@@ -84,7 +84,7 @@ export function useGameDialogs({
   );
   const canOpenMenus = !isSpectator && localAccess.canAct !== false;
 
-  const { state, set, toggles, closeAllContextMenus } = useGameDialogState();
+  const { state, set, toggles, closeAllContextMenus, createTokenRequest } = useGameDialogState();
 
   const card = useCardDialogActions({
     env,
@@ -112,7 +112,7 @@ export function useGameDialogs({
     closeAllContextMenus,
     openZoneView: zone.handleZoneClick,
   });
-  const lifecycle = useGameLifecycleDialogActions({ env, canOpenMenus, set, closeAllContextMenus });
+  const lifecycle = useGameLifecycleDialogActions({ env, canOpenMenus, set, closeAllContextMenus, createTokenRequest });
 
   // The action surface is decoupled from game state (handlers read the latest
   // game/local-player from the store at call time), so it only changes when a

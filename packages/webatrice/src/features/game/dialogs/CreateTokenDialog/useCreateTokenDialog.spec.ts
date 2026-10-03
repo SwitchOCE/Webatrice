@@ -29,6 +29,22 @@ describe('useCreateTokenDialog', () => {
     expect(result.current.scope).toBe('all');
   });
 
+  it('opens on the given token and keeps its printing while the name is unchanged', () => {
+    const onSubmit = vi.fn();
+    const initial = {
+      name: 'Soldier', color: 'w', pt: '1/1', annotation: 'x', destroyOnZoneChange: false, faceDown: false, providerId: 'abc',
+    };
+    const { result } = renderHook(() => useCreateTokenDialog({ isOpen: true, onSubmit, initial }));
+
+    expect(result.current).toMatchObject({ name: 'Soldier', pt: '1/1', annotation: 'x', destroyOnZoneChange: false });
+    act(() => result.current.handleSubmit());
+    expect(onSubmit).toHaveBeenLastCalledWith(initial);
+
+    act(() => result.current.handleNameChange('Knight'));
+    act(() => result.current.handleSubmit());
+    expect(onSubmit.mock.lastCall?.[0]).not.toHaveProperty('providerId');
+  });
+
   it('resets the form fields when the dialog is reopened', () => {
     const { result, rerender } = renderHook(
       ({ isOpen }) => useCreateTokenDialog({ isOpen, onSubmit: vi.fn() }),
