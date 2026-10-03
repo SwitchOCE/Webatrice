@@ -31,7 +31,7 @@ import type { GameExtensionRegistry } from '../events/game';
 import type { RoomExtensionRegistry } from '../events/room';
 import type { SessionExtensionRegistry } from '../events/session';
 import type { GameEventMeta } from '../types/WebSocketConfig';
-import { type CommandOptions, handleResponse } from './command-options';
+import { CommandFailure, type CommandOptions, handleFailure, handleResponse } from './command-options';
 
 export interface SocketTransport {
   send(data: Uint8Array): void;
@@ -53,18 +53,46 @@ export interface GameCommandEntry<V = unknown> {
   judgeTargetId?: number;
 }
 
+// How long a command may wait for its response. Desktop ticks every pending
+// command on each keepalive ping and answers it RespNotConnected once it has
+// outlived `timeout` ticks (RemoteClient::ping); with the default settings
+// (keepalive 3 s, timeout 5) that is 15-18 s. Desktop's own UI deadlines for a
+// single round trip use the upper bound, (timeout + 1) * keepalive.
+export const DEFAULT_COMMAND_TIMEOUT_MS = 18_000;
+
+// One in-flight command: its response callback, its failure callback, and the
+// deadline timer. The record is removed from `pendingCommands` before either
+// callback runs, so a command settles exactly once.
+interface PendingCommand {
+  onResponse: (response: Response) => void;
+  onFailure?: (failure: CommandFailure) => void;
+  timer: ReturnType<typeof setTimeout>;
+}
+
 export class ProtobufService {
   private cmdId = 0;
-  private pendingCommands = new Map<number, (response: Response) => void>();
+  private pendingCommands = new Map<number, PendingCommand>();
 
   constructor(
     private transport: SocketTransport,
     private events: EventRegistries,
+    private commandTimeoutMs = DEFAULT_COMMAND_TIMEOUT_MS,
   ) {}
 
+  // Fails every in-flight command as disconnected, then restarts the cmdId
+  // sequence for the next session. Mirrors RemoteClient::doDisconnectFromServer,
+  // which answers each pending command RespNotConnected rather than dropping it.
+  // The map is emptied before any callback runs, so a callback that re-enters
+  // (sends a command, or triggers another reset) sees a clean slate.
   public resetCommands() {
+    const pending = [...this.pendingCommands.values()];
     this.cmdId = 0;
     this.pendingCommands.clear();
+
+    for (const command of pending) {
+      clearTimeout(command.timer);
+      command.onFailure?.(CommandFailure.Disconnected);
+    }
   }
 
   public sendGameCommand<V, R = unknown>(
@@ -201,28 +229,49 @@ export class ProtobufService {
     this.dispatchCommand(ext.typeName, cmd, options);
   }
 
+  // A command sent without options is fire-and-forget: neither its response nor
+  // its failure is reported. Every other command settles through its options.
   private dispatchCommand<R>(typeName: string, cmd: CommandContainer, options?: CommandOptions<R>): void {
-    const sent = this.sendCommand(cmd, raw => {
-      if (options) {
-        handleResponse(typeName, raw, options);
-      }
-    });
+    const sent = this.sendCommand(
+      cmd,
+      raw => options && handleResponse(typeName, raw, options),
+      failure => options && handleFailure(typeName, failure, options, Number(cmd.cmdId)),
+      options?.timeoutMs,
+    );
 
-    if (!sent) {
-      options?.onError?.(-1, {} as Response);
+    if (!sent && options) {
+      handleFailure(typeName, CommandFailure.NotSent, options);
     }
   }
 
-  public sendCommand(cmd: CommandContainer, callback: (raw: Response) => void): boolean {
+  // Registers the command and sends it. Exactly one of `callback` (a server
+  // response) or `onFailure` (deadline passed, or the connection reset) fires
+  // later. Returns false, registering nothing, when the transport is not open.
+  public sendCommand(
+    cmd: CommandContainer,
+    callback: (raw: Response) => void,
+    onFailure?: (failure: CommandFailure) => void,
+    timeoutMs = this.commandTimeoutMs,
+  ): boolean {
     if (!this.transport.isOpen()) {
       return false;
     }
 
-    this.cmdId++;
-    cmd.cmdId = BigInt(this.cmdId);
-    this.pendingCommands.set(this.cmdId, callback);
+    const cmdId = ++this.cmdId;
+    cmd.cmdId = BigInt(cmdId);
+    const timer = setTimeout(() => this.expireCommand(cmdId), timeoutMs);
+    this.pendingCommands.set(cmdId, { onResponse: callback, onFailure, timer });
     this.transport.send(toBinary(CommandContainerSchema, cmd));
     return true;
+  }
+
+  private expireCommand(cmdId: number): void {
+    const command = this.pendingCommands.get(cmdId);
+    if (!command) {
+      return;
+    }
+    this.pendingCommands.delete(cmdId);
+    command.onFailure?.(CommandFailure.Timeout);
   }
 
   public handleMessageEvent({ data }: MessageEvent): void {
@@ -259,11 +308,16 @@ export class ProtobufService {
       return;
     }
     const cmdId = Number(response.cmdId);
+    const command = this.pendingCommands.get(cmdId);
 
-    if (this.pendingCommands.has(cmdId)) {
-      this.pendingCommands.get(cmdId)!(response);
-      this.pendingCommands.delete(cmdId);
+    // No record: the command already timed out or was failed by a reset (or
+    // the server answered something we never sent). It has settled; drop it.
+    if (!command) {
+      return;
     }
+    this.pendingCommands.delete(cmdId);
+    clearTimeout(command.timer);
+    command.onResponse(response);
   }
 
   private processRoomEvent(event: RoomEvent | undefined) {

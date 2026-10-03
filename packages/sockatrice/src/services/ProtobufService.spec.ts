@@ -11,6 +11,7 @@ import { create, fromBinary, hasExtension, getExtension, setExtension, toBinary 
 import type { GenExtension } from '@bufbuild/protobuf/codegenv2';
 
 import { ProtobufService, type EventRegistries } from './ProtobufService';
+import { CommandFailure } from './command-options';
 import type { GameExtensionRegistry } from '../events/game';
 import type { RoomExtensionRegistry } from '../events/room';
 import type { SessionExtensionRegistry } from '../events/session';
@@ -39,7 +40,7 @@ import {
 
 type ProtobufInternal = ProtobufService & {
   cmdId: number;
-  pendingCommands: Map<number, (response: Response) => void>;
+  pendingCommands: Map<number, { onResponse: (response: Response) => void }>;
   processGameEvent(container: unknown, extra?: unknown): void;
   processRoomEvent(event: unknown): void;
   processSessionEvent(event: unknown): void;
@@ -95,7 +96,7 @@ describe('ProtobufService', () => {
       const cb = vi.fn();
       service.sendCommand(create(CommandContainerSchema), cb);
       expect((service as ProtobufInternal).cmdId).toBe(1);
-      expect((service as ProtobufInternal).pendingCommands.get(1)).toBe(cb);
+      expect((service as ProtobufInternal).pendingCommands.get(1)!.onResponse).toBe(cb);
     });
 
     it('sends encoded data when socket is OPEN', () => {
@@ -135,7 +136,7 @@ describe('ProtobufService', () => {
       mockSocket.isOpen.mockReturnValue(false);
       const onError = vi.fn();
       service.sendSessionCommand(sessionExt, {}, { onError });
-      expect(onError).toHaveBeenCalledWith(-1, expect.any(Object));
+      expect(onError).toHaveBeenCalledWith(-1, expect.any(Object), CommandFailure.NotSent);
     });
 
     it('calls onError when sendRoomCommand is dropped', () => {
@@ -143,7 +144,7 @@ describe('ProtobufService', () => {
       mockSocket.isOpen.mockReturnValue(false);
       const onError = vi.fn();
       service.sendRoomCommand(42, roomExt, {}, { onError });
-      expect(onError).toHaveBeenCalledWith(-1, expect.any(Object));
+      expect(onError).toHaveBeenCalledWith(-1, expect.any(Object), CommandFailure.NotSent);
     });
 
     it('calls onError when sendGameCommand is dropped', () => {
@@ -151,7 +152,7 @@ describe('ProtobufService', () => {
       mockSocket.isOpen.mockReturnValue(false);
       const onError = vi.fn();
       service.sendGameCommand(7, gameExt, {}, { onError });
-      expect(onError).toHaveBeenCalledWith(-1, expect.any(Object));
+      expect(onError).toHaveBeenCalledWith(-1, expect.any(Object), CommandFailure.NotSent);
     });
 
     it('calls onError when sendModeratorCommand is dropped', () => {
@@ -159,7 +160,7 @@ describe('ProtobufService', () => {
       mockSocket.isOpen.mockReturnValue(false);
       const onError = vi.fn();
       service.sendModeratorCommand(moderatorExt, {}, { onError });
-      expect(onError).toHaveBeenCalledWith(-1, expect.any(Object));
+      expect(onError).toHaveBeenCalledWith(-1, expect.any(Object), CommandFailure.NotSent);
     });
 
     it('calls onError when sendAdminCommand is dropped', () => {
@@ -167,7 +168,7 @@ describe('ProtobufService', () => {
       mockSocket.isOpen.mockReturnValue(false);
       const onError = vi.fn();
       service.sendAdminCommand(adminExt, {}, { onError });
-      expect(onError).toHaveBeenCalledWith(-1, expect.any(Object));
+      expect(onError).toHaveBeenCalledWith(-1, expect.any(Object), CommandFailure.NotSent);
     });
 
     it('does not throw when command is dropped with no options', () => {
@@ -182,7 +183,7 @@ describe('ProtobufService', () => {
       const service = makeService();
       service.sendSessionCommand(sessionExt, {});
       expect((service as ProtobufInternal).cmdId).toBe(1);
-      expect((service as ProtobufInternal).pendingCommands.get(1)).toBeTypeOf('function');
+      expect((service as ProtobufInternal).pendingCommands.get(1)!.onResponse).toBeTypeOf('function');
     });
 
     it('invokes onResponse with raw response when the pending command is triggered', () => {
@@ -191,7 +192,7 @@ describe('ProtobufService', () => {
       service.sendSessionCommand(sessionExt, {}, { onResponse: cb });
 
       const storedCb = (service as ProtobufInternal).pendingCommands.get(1)!;
-      storedCb(create(ResponseSchema));
+      storedCb.onResponse(create(ResponseSchema));
 
       expect(cb).toHaveBeenCalledWith(create(ResponseSchema));
     });
@@ -201,7 +202,7 @@ describe('ProtobufService', () => {
       service.sendSessionCommand(sessionExt, {});
 
       const storedCb = (service as ProtobufInternal).pendingCommands.get(1)!;
-      expect(() => storedCb(create(ResponseSchema))).not.toThrow();
+      expect(() => storedCb.onResponse(create(ResponseSchema))).not.toThrow();
     });
   });
 
@@ -218,7 +219,7 @@ describe('ProtobufService', () => {
       service.sendRoomCommand(42, roomExt, {}, { onResponse: cb });
 
       const storedCb = (service as ProtobufInternal).pendingCommands.get(1)!;
-      storedCb(create(ResponseSchema));
+      storedCb.onResponse(create(ResponseSchema));
 
       expect(cb).toHaveBeenCalledWith(create(ResponseSchema));
     });
@@ -228,7 +229,7 @@ describe('ProtobufService', () => {
       service.sendRoomCommand(42, roomExt, {});
 
       const storedCb = (service as ProtobufInternal).pendingCommands.get(1)!;
-      expect(() => storedCb(create(ResponseSchema))).not.toThrow();
+      expect(() => storedCb.onResponse(create(ResponseSchema))).not.toThrow();
     });
   });
 
@@ -245,7 +246,7 @@ describe('ProtobufService', () => {
       service.sendGameCommand(7, gameExt, {}, { onResponse: cb });
 
       const storedCb = (service as ProtobufInternal).pendingCommands.get(1)!;
-      storedCb(create(ResponseSchema));
+      storedCb.onResponse(create(ResponseSchema));
 
       expect(cb).toHaveBeenCalledWith(create(ResponseSchema));
     });
@@ -255,7 +256,7 @@ describe('ProtobufService', () => {
       service.sendGameCommand(7, gameExt, {});
 
       const storedCb = (service as ProtobufInternal).pendingCommands.get(1)!;
-      expect(() => storedCb(create(ResponseSchema))).not.toThrow();
+      expect(() => storedCb.onResponse(create(ResponseSchema))).not.toThrow();
     });
 
     it('wraps the inner command in Command_Judge when judgeTargetId is set', () => {
@@ -362,7 +363,7 @@ describe('ProtobufService', () => {
       ], { onResponse: cb });
       expect((service as ProtobufInternal).pendingCommands.size).toBe(1);
       const storedCb = (service as ProtobufInternal).pendingCommands.get(1)!;
-      storedCb(create(ResponseSchema));
+      storedCb.onResponse(create(ResponseSchema));
       expect(cb).toHaveBeenCalledTimes(1);
     });
   });
@@ -380,7 +381,7 @@ describe('ProtobufService', () => {
       service.sendModeratorCommand(moderatorExt, {}, { onResponse: cb });
 
       const storedCb = (service as ProtobufInternal).pendingCommands.get(1)!;
-      storedCb(create(ResponseSchema));
+      storedCb.onResponse(create(ResponseSchema));
 
       expect(cb).toHaveBeenCalledWith(create(ResponseSchema));
     });
@@ -390,7 +391,7 @@ describe('ProtobufService', () => {
       service.sendModeratorCommand(moderatorExt, {});
 
       const storedCb = (service as ProtobufInternal).pendingCommands.get(1)!;
-      expect(() => storedCb(create(ResponseSchema))).not.toThrow();
+      expect(() => storedCb.onResponse(create(ResponseSchema))).not.toThrow();
     });
   });
 
@@ -407,7 +408,7 @@ describe('ProtobufService', () => {
       service.sendAdminCommand(adminExt, {}, { onResponse: cb });
 
       const storedCb = (service as ProtobufInternal).pendingCommands.get(1)!;
-      storedCb(create(ResponseSchema));
+      storedCb.onResponse(create(ResponseSchema));
 
       expect(cb).toHaveBeenCalledWith(create(ResponseSchema));
     });
@@ -417,7 +418,7 @@ describe('ProtobufService', () => {
       service.sendAdminCommand(adminExt, {});
 
       const storedCb = (service as ProtobufInternal).pendingCommands.get(1)!;
-      expect(() => storedCb(create(ResponseSchema))).not.toThrow();
+      expect(() => storedCb.onResponse(create(ResponseSchema))).not.toThrow();
     });
   });
 
@@ -447,7 +448,7 @@ describe('ProtobufService', () => {
       const service = makeService();
       const cb = vi.fn();
       (service as ProtobufInternal).cmdId = 1;
-      (service as ProtobufInternal).pendingCommands.set(1, cb);
+      (service as ProtobufInternal).pendingCommands.set(1, { onResponse: cb });
 
       vi.mocked(fromBinary).mockReturnValue(
         create(ServerMessageSchema, {
@@ -584,7 +585,7 @@ describe('ProtobufService', () => {
   describe('processServerResponse', () => {
     it('returns early when response is undefined', () => {
       const service = makeService();
-      (service as ProtobufInternal).pendingCommands.set(1, vi.fn());
+      (service as ProtobufInternal).pendingCommands.set(1, { onResponse: vi.fn() });
       (service as ProtobufInternal).processServerResponse(undefined);
       expect((service as ProtobufInternal).pendingCommands.size).toBe(1);
     });
