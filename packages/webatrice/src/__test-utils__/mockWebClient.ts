@@ -40,6 +40,10 @@ export function createMockWebClient() {
         replayModifyMatch: vi.fn(),
         replayGetCode: vi.fn(),
         replaySubmitCode: vi.fn(),
+        report: vi.fn(),
+        reportMyList: vi.fn(),
+        reportDetails: vi.fn(),
+        reportAddComment: vi.fn(),
       },
       rooms: {
         joinRoom: vi.fn(),
@@ -124,6 +128,11 @@ export function createMockWebClient() {
         listCardArtRules: vi.fn(),
         addCardArtRule: vi.fn(),
         removeCardArtRule: vi.fn(),
+        reportList: vi.fn(),
+        reportAssign: vi.fn(),
+        reportResolve: vi.fn(),
+        reportStats: vi.fn(),
+        replayDownloadByGameId: vi.fn(),
       },
     },
   } as unknown as WebClient;
