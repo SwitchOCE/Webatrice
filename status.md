@@ -2,3 +2,4 @@
 - 22:14Z dialog focus majors+minors pushed (e690b3c) → toasts (report persistent, cap)
 - 22:24Z toasts + Menu (gaps 1-7) pushed (ef177d5) → contrast, nits, integration + e2e keyboard
 - 22:26Z contrast, nits, integration + e2e spec pushed → full gate
+- 22:33Z gate: typecheck 5/5, lint 3/3, unit 880/1281/2303(+2 skip), integration 171/140/210(+2 skip); e2e running → PR file
