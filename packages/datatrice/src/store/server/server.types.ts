@@ -89,4 +89,12 @@ export const Types = {
   GAMES_OF_USER: a.gamesOfUser.type,
   GAMES_OF_USER_REQUESTED: a.gamesOfUserRequested.type,
   GAMES_OF_USER_FAILED: a.gamesOfUserFailed.type,
+  // Staff tools
+  USER_INFO_REPORT: a.userInfoReport.type,
+  USER_ALTS: a.userAlts.type,
+  USER_SESSIONS: a.userSessions.type,
+  MODERATOR_LAST_LOGINS: a.moderatorLastLogins.type,
+  USER_AVATAR_REMOVED: a.userAvatarRemoved.type,
+  CARD_ART_RULES: a.cardArtRules.type,
+  SERVER_STATS: a.serverStats.type,
 } as const;
