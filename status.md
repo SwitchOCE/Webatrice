@@ -1,3 +1,4 @@
 - 18:39Z started f23d; read brief, template, rv10 → set up branch work from origin/parity/23d-deck-share
 - 18:42Z M1-fix fragment token committed+pushed → fail-closed server check
 - 18:46Z majors 1-2 + minors (cancel, noServer, folder direct decks) pushed; multi-select: no selection model in 18 → correcting claim → remaining minors
+- 18:51Z all fixes in; history rewritten (ee23217 squashed, 8435f08 folded into feat, f8b52be source+changeset moved to feat), force-pushed 8bbc2f4 → per-commit typecheck, then full gate + e2e
