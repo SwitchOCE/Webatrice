@@ -58,6 +58,7 @@
       "collapse": "Hide replays",
       "locked": "Kept: will not expire",
       "replayTitle": "Replay #{id}",
+      "matchReplayTitle": "{name} (#{id})",
       "column": {
         "id": "ID",
         "name": "Name",

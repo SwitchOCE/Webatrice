@@ -12,11 +12,12 @@ export interface LocalReplaysProps {
   model: LocalReplaysModel;
 }
 
-function formatSize(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-  return bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+/** File size in the UI language's own unit names (B, kB, MB…). */
+function formatSize(bytes: number, locale: string): string {
+  const [value, unit] = bytes < 1024
+    ? [bytes, 'byte']
+    : bytes < 1024 * 1024 ? [bytes / 1024, 'kilobyte'] : [bytes / (1024 * 1024), 'megabyte'];
+  return new Intl.NumberFormat(locale, { style: 'unit', unit, unitDisplay: 'short', maximumFractionDigits: 1 }).format(value);
 }
 
 /**
@@ -25,7 +26,7 @@ function formatSize(bytes: number): string {
  * handles, for cross-browser parity).
  */
 function LocalReplays({ model }: LocalReplaysProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const watchInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const selected = model.selected;
@@ -133,7 +134,7 @@ function LocalReplays({ model }: LocalReplaysProps) {
                       {entry.name}
                     </span>
                   </td>
-                  <td className="replays-table__num">{entry.kind === 'replay' ? formatSize(entry.size) : ''}</td>
+                  <td className="replays-table__num">{entry.kind === 'replay' ? formatSize(entry.size, i18n.language) : ''}</td>
                   <td>{new Date(entry.modifiedAt).toLocaleString()}</td>
                 </tr>
               ))}
