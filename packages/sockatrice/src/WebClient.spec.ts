@@ -44,6 +44,7 @@ import {
   Event_ServerIdentification_ServerOptions,
   Event_ServerIdentificationSchema,
   ServerMessageSchema,
+  GameEventContainerSchema,
   ServerInfo_GameSchema,
   ServerMessage_MessageType,
   SessionEventSchema,
@@ -92,7 +93,7 @@ function makeMockResponse(): IWebClientResponse {
       testConnectionFailed: vi.fn(),
     },
     room: { clearStore: vi.fn() },
-    game: { clearStore: vi.fn(), replayGameLoaded: vi.fn(), replayGameUnloaded: vi.fn() },
+    game: { clearStore: vi.fn(), replayGameLoaded: vi.fn(), replayGameUnloaded: vi.fn(), replayGameTime: vi.fn() },
     admin: {},
     moderator: {},
   } as unknown as IWebClientResponse;
@@ -461,6 +462,16 @@ describe('WebClient', () => {
     it('unloadReplayGame hands the closed replay game to the game response', () => {
       client.unloadReplayGame(-1001);
       expect(mockResponse.game.replayGameUnloaded).toHaveBeenCalledWith(-1001);
+    });
+
+    it('replayGameEventContainer reports the container\'s game time before playing its events', () => {
+      const container = create(GameEventContainerSchema, { secondsElapsed: 95 });
+      client.protobuf.replayGameEventContainer = vi.fn();
+      client.replayGameEventContainer(container, -1001);
+      expect(mockResponse.game.replayGameTime).toHaveBeenCalledWith(-1001, 95);
+      expect(client.protobuf.replayGameEventContainer).toHaveBeenCalledWith(container, -1001);
+      expect(vi.mocked(mockResponse.game.replayGameTime!).mock.invocationCallOrder[0])
+        .toBeLessThan(vi.mocked(client.protobuf.replayGameEventContainer).mock.invocationCallOrder[0]);
     });
   });
 

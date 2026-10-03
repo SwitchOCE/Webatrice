@@ -247,6 +247,12 @@ export interface IGameResponse {
   /** The replay played into the local game `gameId` was closed. Raised by `WebClient.unloadReplayGame`. */
   replayGameUnloaded?(gameId: number): void;
   /**
+   * The game time, in seconds since the game started, of the recorded container
+   * `WebClient.replayGameEventContainer` is about to play into the local game `gameId`.
+   * Raised before the container's events, never by the server.
+   */
+  replayGameTime?(gameId: number, secondsElapsed: number): void;
+  /**
    * Response_DeckDownload to Command_DeckSelect: the server's copy of the deck.
    * Optional so existing IGameResponse implementations keep compiling.
    */
