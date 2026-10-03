@@ -47,6 +47,7 @@ import {
   cardCounterPrompt,
   expressionPrompt,
   libraryCountPrompt,
+  moveXFromTopPrompt,
   powerToughnessPrompt,
 } from '../../hooks/dialogs/seatPrompts';
 import type {
@@ -98,12 +99,6 @@ import {
   type RelatedCardRef,
 } from '@app/services';
 
-const DIALOG_SECONDARY_BUTTON_CLASS =
-  'px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary '
-  + 'hover:bg-bg-elevated transition-colors';
-const DIALOG_INPUT_CLASS =
-  'w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-sm '
-  + 'text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent';
 const DIALOG_PRIMARY_BUTTON_CLASS =
   'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover '
   + 'shadow-glow transition-colors';
@@ -1197,109 +1192,6 @@ function CreateTokenModal({
               }
             >
               Create
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-/** Mirrors Cockatrice desktop's `actRequestMoveCardXCardsFromTopDialog`
- *  (player_actions.cpp:1220-1225): prompts for how many cards from the
- *  top of the library to place the source card behind. Submit sends
- *  Command_MoveCard with x=N so the card lands at position N in the
- *  deck (0 = top, deckSize = bottom). Escape cancels; Enter submits. */
-function MoveXCardsFromTopModal({
-  cardName,
-  deckSize,
-  initial,
-  onCancel,
-  onConfirm,
-}: {
-  cardName: string;
-  deckSize: number;
-  initial: number;
-  onCancel: () => void;
-  onConfirm: (value: number) => void;
-}) {
-  // Track as string so partial edits ("", "-") don't fight the input.
-  // Clamped on submit.
-  const [draft, setDraft] = useState(String(initial));
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onCancel();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onCancel]);
-  const parsed = parseInt(draft, 10);
-  const valid = Number.isFinite(parsed) && parsed >= 0;
-  return (
-    <div
-      className="fixed inset-0 z-[400] flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Move X cards from the top of library"
-    >
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onCancel}
-        aria-hidden
-      />
-      <div className="relative w-full max-w-sm rounded-lg bg-bg-surface border border-border-subtle shadow-glow overflow-hidden">
-        <div className="px-4 py-3 border-b border-border-subtle">
-          <h2 className="font-modern text-base font-semibold text-text-primary">
-            Move X cards from the top of library
-          </h2>
-          <p className="text-xs text-text-muted mt-0.5 truncate">
-            {cardName}
-          </p>
-        </div>
-        <form
-          className="px-4 py-3 flex flex-col gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!valid) {
-              return;
-            }
-            // Clamp to library size — Cockatrice does the same at
-            // actMoveCardXCardsFromTop (`if number > maxCards → maxCards`).
-            const clamped = Math.min(parsed, Math.max(0, deckSize));
-            onConfirm(clamped);
-          }}
-        >
-          <label className="text-xs text-text-secondary">
-            Place at position (0 = top, {Math.max(0, deckSize)} = bottom)
-          </label>
-          <input
-            autoFocus
-            type="number"
-            min={0}
-            max={Math.max(0, deckSize)}
-            step={1}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onFocus={(e) => e.currentTarget.select()}
-            className={DIALOG_INPUT_CLASS}
-          />
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className={DIALOG_SECONDARY_BUTTON_CLASS}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!valid}
-              className={DIALOG_SUBMIT_BUTTON_CLASS}
-            >
-              Move
             </button>
           </div>
         </form>
@@ -3213,12 +3105,16 @@ function PlayerBox(
         }
       },
     }));
-  // "Move X cards from top of library..." modal. Snapshot the deck size
-  // at open time so the input's max/clamp stay stable even if a draw
-  // shrinks the deck mid-dialog.
-  const [moveXModal, setMoveXModal] = useState<
-    { cardId: number; cardName: string; deckSize: number } | null
-  >(null);
+  // "X cards from the top of library..." prompt: Command_MoveCard with x = N
+  // puts the card at position N of the library. The library size is
+  // snapshotted when it opens, so a draw meanwhile doesn't move the clamp.
+  const openMoveXFromTopPrompt = ({ cardId, cardName, deckSize }: { cardId: number; cardName: string; deckSize: number }) =>
+    openPrompt(moveXFromTopPrompt({
+      cardName,
+      deckSize,
+      initial: Math.min(3, Math.max(0, deckSize)),
+      onSubmit: (position) => onMoveCards?.(ZoneName.TABLE, [cardId], { zone: ZoneName.DECK, index: position, reversed: false }),
+    }));
   // Library count prompts: Draw cards..., View top / bottom cards..., Reveal
   // top cards to..., and the Top / Bottom of library "N cards" items. Each
   // snapshots the library size when it opens and clamps the answer to it, so
@@ -7270,26 +7166,6 @@ function PlayerBox(
           document.body,
         )}
 
-      {/* Move X cards from top modal — from the "X cards from the top
-          of library..." submenu item. Submit sends Command_MoveCard
-          with x=N to place the card at position N in the deck. */}
-      {moveXModal &&
-        createPortal(
-          <MoveXCardsFromTopModal
-            cardName={moveXModal.cardName}
-            deckSize={moveXModal.deckSize}
-            initial={Math.min(3, Math.max(0, moveXModal.deckSize))}
-            onCancel={() => setMoveXModal(null)}
-            onConfirm={(value) => {
-              if (onMoveCards) {
-                onMoveCards(ZoneName.TABLE, [moveXModal.cardId], { zone: ZoneName.DECK, index: value, reversed: false });
-              }
-              setMoveXModal(null);
-            }}
-          />,
-          document.body,
-        )}
-
       {/* Card context menu — right-click a battlefield card to open.
           All actions apply to a single card via its real numeric id;
           the menu no-ops for optimistic mock cards without one. */}
@@ -7684,7 +7560,7 @@ function PlayerBox(
                 // Redux, fall back to the local library length. Matches
                 // Cockatrice's `player->getDeckZone()->getCards().size()`.
                 const deckSize = zoneCounts?.deck ?? 0;
-                setMoveXModal({
+                openMoveXFromTopPrompt({
                   cardId: cardIdNum,
                   cardName: card.name,
                   deckSize,
