@@ -35,7 +35,7 @@ import { useDeckShareCreate, useDeckSharingSupported } from './hooks/useDeckShar
 import type { DeckCard } from './types';
 
 /**
- * Deck editor route (`/deck/:deckId`). Layout:
+ * Deck editor route (`/deck/:deckId`, or `/deck/draft/:token` for an unsaved draft). Layout:
  *   • 360px left sidebar — deck metadata (name, undo/redo and history,
  *     format and its legality, banner card, tags), print and online
  *     services, totals and the hovered card's preview;
@@ -49,11 +49,13 @@ import type { DeckCard } from './types';
  * open.
  */
 const DeckEditor = () => {
-  const { deckId: deckIdParam } = useParams<{ deckId: string }>();
+  // `/deck/:deckId` edits a stored deck; `/deck/draft/:token` an unsaved
+  // draft handed over by another feature (see useDeckEditor).
+  const { deckId: deckIdParam, token: draftToken } = useParams<{ deckId: string; token: string }>();
   const parsedDeckId = deckIdParam ? parseInt(deckIdParam, 10) : NaN;
   const deckId = Number.isFinite(parsedDeckId) ? parsedDeckId : null;
 
-  const editor = useDeckEditor(deckId);
+  const editor = useDeckEditor(deckId, draftToken ?? null);
 
   // Sticky preview: the last hovered card stays in the sidebar after the
   // cursor moves on, so a card can be studied without racing to click it.
@@ -93,7 +95,11 @@ const DeckEditor = () => {
 
   // Hold the skeleton until every card's preview image is in the HTTP
   // cache, so hovering a row feels instant.
-  const preload = useDeckImagePreload(deckId, editor.deck, editor.loading);
+  const preload = useDeckImagePreload(
+    deckId ?? (draftToken != null ? `draft:${draftToken}` : null),
+    editor.deck,
+    editor.loading,
+  );
 
   const startShare = () => {
     if (!isConnected) {

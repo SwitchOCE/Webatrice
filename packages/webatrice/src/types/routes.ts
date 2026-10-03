@@ -10,6 +10,9 @@ export enum RouteEnum {
   // A share link's decks, read-only: `?share=<token>&hostname=<host>&port=<port>`.
   SHARED_DECK = '/decks/shared',
   PUBLIC_DECKS = '/decks/public/:userName',
+  // An unsaved deck handed to the editor by token (services/decks deckHandoff),
+  // e.g. the game's "Open deck in deck editor".
+  DECK_DRAFT = '/deck/draft/:token',
   ACCOUNT = '/account',
   ADMINISTRATION = '/administration',
   MODERATION = '/moderation',
