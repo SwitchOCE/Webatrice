@@ -72,7 +72,7 @@ Full gate on the final tip `a3073b8` (2026-10-03, cloud run f0918):
 
 | Gate | Result |
 |---|---|
-| `npx turbo run typecheck --concurrency=1` | 5/5 tasks pass |
+| `npx turbo run typecheck --concurrency=1` | 5/5 tasks pass, and at each of the six review-fix commits |
 | `npm run lint` | 3/3 tasks pass, 0 problems |
 | `npm test -- -- --maxWorkers=2` | webatrice 1871 tests (261 files) pass; sockatrice and datatrice are untouched by the review fixes (775 / 1196 at `ba8a091`) |
 | `npm run test:integration -- -- --maxWorkers=2` | sockatrice 166 (19 files), datatrice 136 (9 files); webatrice 185 pass and 2 skipped (39 files) |

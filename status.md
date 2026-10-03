@@ -3,3 +3,6 @@
 - 18:01Z 09 done (gate green), tip a3073b8; 18 rebased onto it, pushed 7f617d7 → 18 fixes (move/upload matching first)
 - 18:13Z 18: move/upload, download-fail, color identity, bracket key, playmat committed+pushed → changeset, full gate, PR files
 - 18:21Z 18 gate green (unit 782/1204/2060, integ 166/136/196+2skip); PR files drafted → per-commit typecheck + webatrice e2e running
+- 18:40Z DONE. per-commit typecheck 30/30 OK; webatrice e2e 36/39 (decks green x3; staff-tools x3 = no docker CLI in PW container); sockatrice e2e 5/5
+- TIPS: claude/parity-09-refactor-decks ba8a091 → a3073b8; claude/parity-18-decks a7b9684 → fc157b6 (rebased onto a3073b8)
+- API changes in 18 (for w23d): deckUpdate(deckId, deckList, isPublic?, colorIdentity?) (additive); FlatDeck +isPublic?/colorIdentity?; UseDeckList +storageError/dismissStorageError, createDeck/importDeck now return boolean; DeckDialogFrame requires titleId (+ optional role); BracketSignalBadge label→id (+chainable); BRACKET_LABEL removed (09); feature barrel exports clearBracketSourceCaches, writeBracketLookupsAllowed

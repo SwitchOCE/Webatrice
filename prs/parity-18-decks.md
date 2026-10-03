@@ -96,11 +96,12 @@ ones are gone):
 
 | Gate | Result |
 |---|---|
-| `npx turbo run typecheck --concurrency=1` | 5/5 tasks pass; every commit of `ba8a091..fc157b6`'s rewritten range typechecks (see Review response) |
+| `npx turbo run typecheck --concurrency=1` | 5/5 tasks pass; every one of the 30 commits in `ba8a091..fc157b6` (09's review fixes and all of 18) typechecks |
 | `npm run lint` | 3/3 tasks pass, 0 problems |
 | `npm test -- -- --maxWorkers=2` | sockatrice 782 (40 files), datatrice 1204 (29 files), webatrice 2060 (285 files): all pass |
 | `npm run test:integration -- -- --maxWorkers=2` | sockatrice 166 (19), datatrice 136 (9), webatrice 196 pass + 2 skipped (39 files; pre-existing game `describe.skip`) |
-| webatrice e2e | E2E_RESULT |
+| `npm run test:e2e -w @cockatrice/sockatrice` | 5/5 pass (4 files) |
+| webatrice e2e (Playwright 1.60 container, docker Servatrice 3.0.0) | 36/39 pass, including the decks spec (folders, move to root, undo/redo, autosave) in chromium, firefox and webkit. The 3 failures are `staff-tools` "an admin publishes a new server message" in all three browsers: the spec shells out to `docker compose exec mysql` (`spawnSync docker ENOENT`), and the Playwright container has no docker CLI. Environmental and unrelated to decks; it needs the host-run e2e. |
 
 New and changed coverage:
 
