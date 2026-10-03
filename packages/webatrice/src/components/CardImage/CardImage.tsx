@@ -17,6 +17,8 @@ interface CardImageProps {
   className?: string;
   style?: CSSProperties;
   draggable?: boolean;
+  /** Called when the image fails to load and the placeholder takes its place. */
+  onError?: () => void;
 }
 
 /**
@@ -30,7 +32,7 @@ interface CardImageProps {
  * `undefined` / empty string skips the img entirely, useful when the
  * caller already knows there's no image URL to try.
  */
-export default function CardImage({ src, name, className, style, draggable }: CardImageProps) {
+export default function CardImage({ src, name, className, style, draggable, onError }: CardImageProps) {
   const [errored, setErrored] = useState(false);
 
   // Reset error state when the source changes so a fresh URL gets a
@@ -78,7 +80,10 @@ export default function CardImage({ src, name, className, style, draggable }: Ca
       draggable={draggable ?? false}
       className={className}
       style={style}
-      onError={() => setErrored(true)}
+      onError={() => {
+        setErrored(true);
+        onError?.();
+      }}
     />
   );
 }

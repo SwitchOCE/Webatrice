@@ -3,14 +3,48 @@ import { Palette } from 'lucide-react';
 import { SettingsSectionId, type SettingsSection } from '../registry';
 
 /**
- * Appearance page (desktop appearance_settings_page.cpp): the board's hand and table layout.
- * Themes, playmats and the rest register further groups on this section id.
+ * Appearance page (desktop appearance_settings_page.cpp): how cards are drawn, and the board's
+ * hand and table layout. Themes and playmats register further groups on this section id.
  */
 export const appearanceSection: SettingsSection = {
   id: SettingsSectionId.Appearance,
   titleKey: 'Settings.section.appearance',
   icon: Palette,
   groups: [
+    {
+      id: 'appearance.cardRendering',
+      titleKey: 'SettingsAppearance.group.cardRendering',
+      entries: [
+        {
+          id: 'displayCardNames',
+          labelKey: 'SettingsAppearance.displayCardNames.label',
+          descriptionKey: 'SettingsAppearance.displayCardNames.description',
+          control: { kind: 'toggle', key: 'displayCardNames' },
+        },
+        {
+          id: 'autoRotateSidewaysLayoutCards',
+          labelKey: 'SettingsAppearance.autoRotateSidewaysLayoutCards.label',
+          descriptionKey: 'SettingsAppearance.autoRotateSidewaysLayoutCards.description',
+          control: { kind: 'toggle', key: 'autoRotateSidewaysLayoutCards' },
+        },
+        {
+          id: 'scaleCards',
+          labelKey: 'SettingsAppearance.scaleCards.label',
+          control: { kind: 'toggle', key: 'scaleCards' },
+        },
+        {
+          id: 'roundCardCorners',
+          labelKey: 'SettingsAppearance.roundCardCorners.label',
+          control: { kind: 'toggle', key: 'roundCardCorners' },
+        },
+        {
+          id: 'maxFontSizeForCards',
+          labelKey: 'SettingsAppearance.maxFontSizeForCards.label',
+          // Desktop's spin box: 9 to 100 pixels at card scale.
+          control: { kind: 'number', key: 'maxFontSizeForCards', min: 9, max: 100 },
+        },
+      ],
+    },
     {
       id: 'appearance.handLayout',
       titleKey: 'SettingsAppearance.group.handLayout',

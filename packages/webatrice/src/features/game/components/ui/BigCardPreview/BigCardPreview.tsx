@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
-import { CardImage, CardRelatedLinks } from '@app/components';
+import { CardRelatedLinks } from '@app/components';
 
 import { useBigPreviewCard, useCardPreviewActions } from '../CardPreviewContext';
 
 import { CARD_CORNER_RADIUS } from '../SeatCard/cardSize';
 import { ManaSymbols, SymbolText } from '../ManaSymbols/ManaSymbols';
+import PreviewCardImage from '../PreviewCardImage/PreviewCardImage';
 
 /**
  * "Big card preview" — Cockatrice's middle-click card zoom: image plus full
@@ -158,13 +159,11 @@ export function BigCardPreview() {
                   which looks sharp at this size. */}
               <div className="shrink-0 p-4 bg-bg-base/40 rounded-t-lg">
                 {imageUrl && (
-                  <CardImage
+                  <PreviewCardImage
                     src={imageUrl}
                     name={displayName}
-                    draggable={false}
                     className="block w-full shadow-lg"
                     style={{
-                      aspectRatio: '5 / 7',
                       borderRadius: CARD_CORNER_RADIUS,
                       imageRendering: '-webkit-optimize-contrast',
                     }}
