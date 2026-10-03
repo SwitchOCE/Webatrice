@@ -71,7 +71,8 @@ describe('Server (integration)', () => {
       responseCode: Response_ResponseCode.RespNameNotFound,
     })));
 
-    expect(store.getState().rooms.joinRoomError).toEqual({ roomId: 4, responseCode: Response_ResponseCode.RespNameNotFound, failure: undefined });
+    expect(store.getState().rooms.joinRoomError)
+      .toEqual({ roomId: 4, responseCode: Response_ResponseCode.RespNameNotFound, failure: undefined });
     expect(await screen.findByRole('dialog')).toHaveTextContent('RoomsList.joinError.notFound');
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));
     expect(store.getState().rooms.joinRoomError).toBeNull();
