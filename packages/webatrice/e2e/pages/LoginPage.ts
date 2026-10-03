@@ -6,7 +6,7 @@ import { expect, type Locator, type Page } from '@playwright/test';
 // custom dropdown built from a trigger `<button>` (accessible-named via
 // aria-labelledby against the visible "Host" caption) plus refresh and
 // chevron buttons in a non-label wrapper (KnownHosts.tsx). Saved hosts
-// are a `role="listbox"` of `<button role="option">`s.
+// are a single-tab-stop `role="listbox"` of clickable `<li role="option">`s.
 //
 // Login button + Register button both still resolve by role/name. The
 // login button remains disabled until the test-connection probe reports

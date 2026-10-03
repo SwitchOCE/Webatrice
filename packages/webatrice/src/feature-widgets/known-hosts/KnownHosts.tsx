@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { KeyboardEvent as ReactKeyboardEvent, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ChevronDown,
@@ -47,6 +47,7 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
   } = useKnownHostsComponent({ onChange });
 
   const [open, setOpen] = useState(false);
+  const [activeId, setActiveId] = useState<number | undefined>(undefined);
   const publicServers = usePublicServers(open);
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -58,6 +59,12 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
   const close = () => {
     setOpen(false);
     triggerRef.current?.focus();
+  };
+
+  // Each opening starts the keyboard on the selected host.
+  const toggle = () => {
+    setActiveId(undefined);
+    setOpen((o) => !o);
   };
 
   // Close the dropdown when the user clicks outside.
@@ -83,6 +90,63 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
       document.removeEventListener('keydown', onKey);
     };
   }, [open]);
+
+  // The saved-hosts listbox keeps focus itself and points at the keyboard's
+  // current option with aria-activedescendant (APG single-select listbox).
+  const typeahead = useRef({ text: '', at: 0 });
+  const activeHost = hosts.find((h) => h.id === activeId) ?? selectedHost ?? hosts[0];
+  const optionId = (id: number) => `${popupId}-host-${id}`;
+
+  const pick = (host: HostDTO) => {
+    if (host.id != null) {
+      void onPick(host.id);
+      close();
+    }
+  };
+
+  const onListKeyDown = (e: ReactKeyboardEvent<HTMLUListElement>) => {
+    if (!hosts.length) {
+      return;
+    }
+    const index = Math.max(0, hosts.findIndex((h) => h.id === activeHost?.id));
+    let next: number | undefined;
+    switch (e.key) {
+      case 'ArrowDown':
+        next = Math.min(index + 1, hosts.length - 1);
+        break;
+      case 'ArrowUp':
+        next = Math.max(index - 1, 0);
+        break;
+      case 'Home':
+        next = 0;
+        break;
+      case 'End':
+        next = hosts.length - 1;
+        break;
+      case 'Enter':
+      case ' ':
+        e.preventDefault();
+        if (activeHost) {
+          pick(activeHost);
+        }
+        return;
+      default:
+        if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          // Type-ahead: keys typed within half a second build a name prefix.
+          const now = Date.now();
+          const text = (now - typeahead.current.at < 500 ? typeahead.current.text : '') + e.key.toLowerCase();
+          typeahead.current = { text, at: now };
+          const match = hosts.findIndex((h) => h.name.toLowerCase().startsWith(text));
+          if (match >= 0) {
+            next = match;
+          }
+        }
+    }
+    if (next !== undefined) {
+      e.preventDefault();
+      setActiveId(hosts[next].id);
+    }
+  };
 
   const showError = Boolean(touched && error);
 
@@ -110,7 +174,7 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
             ref={triggerRef}
             type="button"
             disabled={disabled}
-            onClick={() => setOpen((o) => !o)}
+            onClick={toggle}
             aria-labelledby={hostLabelId}
             aria-expanded={open}
             aria-controls={open ? popupId : undefined}
@@ -151,7 +215,7 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
           <button
             type="button"
             disabled={disabled}
-            onClick={() => setOpen((o) => !o)}
+            onClick={toggle}
             aria-label={t('KnownHosts.toggle')}
             aria-expanded={open}
             aria-controls={open ? popupId : undefined}
@@ -192,78 +256,75 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
             <Plus size={14} /> {t('KnownHosts.add')}
           </button>
           <div className="my-1 border-t border-border-subtle" />
-          <ul role="listbox" aria-label={t('KnownHosts.saved')}>
+          <ul
+            role="listbox"
+            aria-label={t('KnownHosts.saved')}
+            aria-activedescendant={activeHost?.id != null ? optionId(activeHost.id) : undefined}
+            tabIndex={0}
+            onKeyDown={onListKeyDown}
+            className="focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+          >
             {hosts.map((host) => {
               const hostPort = getHostPort(host);
               const isSelected = selectedHost?.id === host.id;
+              const isActive = activeHost?.id === host.id;
               return (
                 <li
                   key={host.id}
-                  role="presentation"
+                  id={host.id != null ? optionId(host.id) : undefined}
+                  role="option"
+                  aria-selected={isSelected}
+                  onClick={() => pick(host)}
                   className={[
-                    'group flex items-center gap-2 pr-3 text-sm transition-colors',
+                    'flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer transition-colors',
                     isSelected
                       ? 'bg-accent/20 text-text-primary'
                       : 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated',
+                    isActive ? 'ring-1 ring-inset ring-accent' : '',
                   ].join(' ')}
                 >
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={isSelected}
-                    onClick={() => {
-                      if (host.id != null) {
-                        void onPick(host.id);
-                        close();
-                      }
-                    }}
-                    className={[
-                      'flex-1 min-w-0 flex items-center gap-2 pl-3 py-1.5 text-left cursor-pointer',
-                      'focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
-                    ].join(' ')}
-                  >
-                    <span className="w-4 shrink-0 flex justify-center">
-                      {isSelected && <Check size={12} className="text-accent" />}
+                  <span className="w-4 shrink-0 flex justify-center">
+                    {isSelected && <Check size={12} className="text-accent" />}
+                  </span>
+                  <span className="shrink-0">
+                    {testConnectionStatus === TestConnection.FAILED && isSelected ? (
+                      <WifiOff size={14} className="text-danger" />
+                    ) : testConnectionStatus === TestConnection.SUCCESS && isSelected ? (
+                      <Wifi size={14} className="text-success" />
+                    ) : testConnectionStatus === TestConnection.TESTING && isSelected ? (
+                      <Loader2 size={14} className="text-warning animate-spin" />
+                    ) : (
+                      <Wifi size={14} className="text-text-muted" />
+                    )}
+                  </span>
+                  <span className="flex-1 min-w-0 truncate">
+                    <span className="font-medium">{host.name}</span>
+                    <span className="text-text-muted ml-1.5 text-xs tabular-nums">
+                      {hostPort.host}:{hostPort.port}
                     </span>
-                    <span className="shrink-0">
-                      {testConnectionStatus === TestConnection.FAILED && isSelected ? (
-                        <WifiOff size={14} className="text-danger" />
-                      ) : testConnectionStatus === TestConnection.SUCCESS && isSelected ? (
-                        <Wifi size={14} className="text-success" />
-                      ) : testConnectionStatus === TestConnection.TESTING && isSelected ? (
-                        <Loader2 size={14} className="text-warning animate-spin" />
-                      ) : (
-                        <Wifi size={14} className="text-text-muted" />
-                      )}
-                    </span>
-                    <span className="flex-1 min-w-0 truncate">
-                      <span className="font-medium">{host.name}</span>
-                      <span className="text-text-muted ml-1.5 text-xs tabular-nums">
-                        {hostPort.host}:{hostPort.port}
-                      </span>
-                    </span>
-                  </button>
-                  {host.editable && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpen(false);
-                        openEditKnownHostDialog(host);
-                      }}
-                      className={[
-                        'p-1 rounded text-text-muted hover:text-text-primary hover:bg-border-subtle',
-                        'opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity',
-                      ].join(' ')}
-                      title={t('KnownHosts.edit', { name: host.name })}
-                      aria-label={t('KnownHosts.edit', { name: host.name })}
-                    >
-                      <Pencil size={12} />
-                    </button>
-                  )}
+                  </span>
                 </li>
               );
             })}
           </ul>
+          {/* Edit lives outside the listbox (only options may sit inside one)
+              and acts on the selected host. */}
+          {selectedHost?.editable && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                openEditKnownHostDialog(selectedHost);
+              }}
+              className={[
+                'w-full flex items-center gap-2 px-3 py-1.5 text-sm transition-colors',
+                'text-text-secondary hover:text-text-primary hover:bg-bg-elevated',
+              ].join(' ')}
+            >
+              <span className="w-4 shrink-0 flex justify-center"><Pencil size={12} /></span>
+              {t('KnownHosts.edit', { name: selectedHost.name })}
+            </button>
+          )}
           <div className="my-1 border-t border-border-subtle" />
           <div className="flex items-center justify-between px-3 py-1 text-xs font-medium text-text-muted">
             <span>{t('KnownHosts.public.title')}</span>
