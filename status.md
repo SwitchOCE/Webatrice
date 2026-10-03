@@ -1,2 +1,3 @@
 - 14:16 started w14; merge base f24ddd9 verified → reading PR notes, rebasing
 - 14:27 rebased 14 onto 06 (8949547); reportUserInfo → 13's server.staff; ServerCapability single export; e2e_mod dropped; Report user in UserActionsMenu; typecheck+lint green → full unit/integration gate, then master image build + e2e
+- ACK M1: staying on 06; replay download already isolated in features/reports/saveReplayFile.ts (single call site in useReportQueue)
