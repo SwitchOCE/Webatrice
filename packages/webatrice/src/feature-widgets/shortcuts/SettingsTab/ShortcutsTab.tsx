@@ -15,6 +15,7 @@ const GROUP_ORDER: ShortcutGroupId[] = [
   'gamePhases',
   'deckEditor',
   'room',
+  'replays',
 ];
 
 const ShortcutsTab = () => {

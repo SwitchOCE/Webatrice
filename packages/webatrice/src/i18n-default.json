@@ -450,7 +450,8 @@
       "game": "Game",
       "gamePhases": "Game Phases",
       "deckEditor": "Deck Editor",
-      "room": "Room"
+      "room": "Room",
+      "replays": "Replays"
     },
     "action": {
       "chat.focus": "Focus chat",
@@ -523,7 +524,13 @@
       "deck.load": "Load deck",
       "deck.addCard": "Add card",
       "deck.removeCard": "Remove card",
-      "room.sendMessage": "Send message"
+      "room.sendMessage": "Send message",
+      "replays.playPause": "Play/Pause",
+      "replays.skipForward": "Skip forward",
+      "replays.skipBackward": "Skip backward",
+      "replays.skipForwardBig": "Skip forward by a lot",
+      "replays.skipBackwardBig": "Skip backward by a lot",
+      "replays.toggleFastForward": "Toggle fast forward"
     }
   },
   "UserGamesDialog": {
@@ -694,6 +701,11 @@
       "remove": "Remove rule",
       "refresh": "Refresh"
     },
+    "error": {
+      "list": "Failed to load card art rules.",
+      "add": "Failed to add the card art rule.",
+      "remove": "Failed to remove the card art rule."
+    },
     "validation": {
       "tooLong": "At most {max} characters"
     }
@@ -768,6 +780,32 @@
     "title": "The game board hit an unexpected error",
     "message": "You are still in the game. Reload the board to pick up where you left off.",
     "retry": "Reload board"
+  },
+  "GameReplay": {
+    "missing": "This replay is no longer open. Replays are kept only until the page is reloaded.",
+    "backToReplays": "Back to replays",
+    "sidebar": {
+      "tag": "Replay",
+      "close": "Close",
+      "closeTitle": "Close the replay"
+    },
+    "timeline": {
+      "label": "Replay timeline"
+    },
+    "controls": {
+      "play": "Play",
+      "pause": "Pause",
+      "skipForward": "Skip forward 1 second",
+      "skipBackward": "Skip backward 1 second",
+      "skipForwardBig": "Skip forward 10 seconds",
+      "skipBackwardBig": "Skip backward 10 seconds",
+      "fastForward": "Fast forward ({speed}x)",
+      "settings": "Replay settings"
+    },
+    "settings": {
+      "fastForwardSpeed": "Fast forward speed",
+      "skipEmptySections": "Skip empty sections"
+    }
   },
   "AccountActivationDialog": {
     "title": "Account Activation",
