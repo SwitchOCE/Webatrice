@@ -55,9 +55,11 @@ function ReplayViewProbe() {
 const button = (name: string) => screen.getByRole('button', { name }) as HTMLButtonElement;
 
 describe('ReportQueue gating', () => {
-  it('sends non-moderators back to the lobby', () => {
-    renderQueue({ moderator: false });
+  it('sends non-moderators back to the lobby without sending a moderator command', () => {
+    const { moderator } = renderQueue({ moderator: false });
     expect(screen.getByText('lobby')).toBeTruthy();
+    expect(moderator.reportList).not.toHaveBeenCalled();
+    expect(moderator.reportStats).not.toHaveBeenCalled();
   });
 
   it('is hidden on a 3.0 server and queries nothing', () => {
