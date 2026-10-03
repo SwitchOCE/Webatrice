@@ -162,6 +162,88 @@ describe('useDeckEditor', () => {
     expect(latest.deck?.cards.map((c) => c.name)).toEqual(['Sol Ring', 'Mox']);
   });
 
+  it('undoes and redoes edits in order, and a new edit clears redo', () => {
+    setCachedDeck(5, { deck: hydrated(), savedSignature: deckSaveSignature(hydrated()) });
+    setup();
+
+    act(() => latest.setFormat('legacy'));
+    act(() => latest.incQuantity(0, 2));
+    act(() => latest.setCategory(0, 'sideboard'));
+    expect(latest.history.undo.map((m) => m.reason.kind)).toEqual(['format', 'adjustCard', 'moveCard']);
+
+    act(() => latest.undo());
+    expect(latest.deck?.cards[0].category).toBe('main');
+    act(() => latest.undo(2));
+    expect(latest.deck?.format).toBe('modern');
+    expect(latest.deck?.cards[0].quantity).toBe(1);
+    expect(latest.canUndo).toBe(false);
+
+    act(() => latest.redo());
+    expect(latest.deck?.format).toBe('legacy');
+    expect(latest.canRedo).toBe(true);
+
+    act(() => latest.setName('Burn v2'));
+    expect(latest.canRedo).toBe(false);
+  });
+
+  it('records card edits under the card name, and does not record derived caches', () => {
+    setCachedDeck(5, { deck: hydrated(), savedSignature: deckSaveSignature(hydrated()) });
+    setup();
+
+    act(() => latest.setPriceCache(3.5, 0));
+    expect(latest.deck?.meta.priceUsd).toBe(3.5);
+    expect(latest.canUndo).toBe(false);
+
+    act(() => latest.setPrinting(0, { set: 'lea', collectorNumber: '1' }));
+    act(() => latest.setCommander(0, true));
+    act(() => latest.deleteCard(0));
+    expect(latest.history.undo.map((m) => m.reason)).toEqual([
+      { kind: 'changePrinting', name: 'Sol Ring', set: 'lea' },
+      { kind: 'setCommander', name: 'Sol Ring' },
+      { kind: 'removeCard', name: 'Sol Ring' },
+    ]);
+  });
+
+  it('merges a typing burst in the name field into one undo step', () => {
+    setCachedDeck(5, { deck: hydrated(), savedSignature: deckSaveSignature(hydrated()) });
+    setup();
+    act(() => latest.setName('B'));
+    act(() => latest.setName('Bu'));
+    expect(latest.history.undo).toHaveLength(1);
+    expect(latest.history.undo[0].reason).toEqual({ kind: 'rename', from: 'Burn', to: 'Bu' });
+  });
+
+  it('autosaves the restored deck after an undo, and sends nothing when it matches the last save', () => {
+    vi.useFakeTimers();
+    try {
+      setCachedDeck(5, { deck: hydrated(), savedSignature: deckSaveSignature(hydrated()) });
+      const { webClient } = setup();
+      act(() => latest.setFormat('legacy'));
+      act(() => latest.undo());
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+      expect(latest.deck?.format).toBe('modern');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('starts a fresh history when the deck is downloaded', async () => {
+    const { store } = setup();
+    act(() => {
+      store.dispatch(server.Actions.deckDownloaded({ deckId: 5, deck: COD }));
+    });
+    await waitFor(() => expect(latest.loading).toBe(false));
+    act(() => latest.setFormat('legacy'));
+    expect(latest.canUndo).toBe(true);
+    act(() => {
+      store.dispatch(server.Actions.deckDownloaded({ deckId: 5, deck: COD }));
+    });
+    await waitFor(() => expect(latest.canUndo).toBe(false));
+  });
+
   it('does nothing without a deck id', () => {
     const { webClient } = setup(null);
     expect(webClient.request.session.deckDownload).not.toHaveBeenCalled();

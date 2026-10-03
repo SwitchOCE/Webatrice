@@ -101,6 +101,8 @@ export type ActionId =
   | 'deck.load'
   | 'deck.addCard'
   | 'deck.removeCard'
+  | 'deck.undo'
+  | 'deck.redo'
   | 'room.sendMessage'
   | 'replays.playPause'
   | 'replays.skipForward'
