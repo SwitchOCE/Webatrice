@@ -607,6 +607,6 @@ describe('requestPasswordSalt', () => {
     requestPasswordSalt({ host: 'h', port: '1', userName: 'alice' }, vi.fn(), onFailure);
     invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
     expect(SessionIndexMocks.updateStatus).not.toHaveBeenCalled();
-    expect(onFailure).toHaveBeenCalled();
+    expect(onFailure).toHaveBeenCalledWith(CommandFailure.Disconnected);
   });
 });

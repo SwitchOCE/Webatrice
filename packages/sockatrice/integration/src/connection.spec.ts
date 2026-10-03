@@ -7,7 +7,7 @@
 // WebClient's own `status` property.
 
 import { create } from '@bufbuild/protobuf';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi, type Mock } from 'vitest';
 
 import * as Data from '../../src/generated';
 import { AuthenticationCommands } from '../../src';
@@ -20,6 +20,7 @@ import {
   openMockWebSocket,
   setPendingOptions,
   connectAndHandshake,
+  connectAndHandshakeWithSalt,
   connectAndLogin,
   PROTOCOL_VERSION,
 } from '../../src/testing/setup';
@@ -154,6 +155,24 @@ describe('connection lifecycle', () => {
 
     expect(getMockResponse().session.loginFailed).toHaveBeenCalledTimes(1);
     expect(getWebClient().status).toBe(WebsocketTypes.StatusEnum.RECONNECTING);
+  });
+
+  // Desktop's passwordSaltResponse ignores RespNotConnected. The salt request
+  // settles the login form, but must not disconnect() and cancel the reconnect.
+  it('keeps reconnecting when a password-salt request is cut off by the drop', () => {
+    connectAndHandshakeWithSalt();
+    expect(() => findLastSessionCommand(Data.Command_RequestPasswordSalt_ext)).not.toThrow();
+    const sockets = (globalThis.WebSocket as unknown as Mock).mock.calls.length;
+
+    const mock = getMockWebSocket();
+    mock.readyState = 3;
+    mock.onclose?.({ code: 1006, reason: '', wasClean: false } as CloseEvent);
+
+    expect(getMockResponse().session.loginFailed).toHaveBeenCalledTimes(1);
+    expect(getWebClient().status).toBe(WebsocketTypes.StatusEnum.RECONNECTING);
+
+    vi.advanceTimersByTime(1000);
+    expect((globalThis.WebSocket as unknown as Mock).mock.calls.length).toBe(sockets + 1);
   });
 
   it('login() caches the pending options, flips to CONNECTING, and opens the socket', () => {

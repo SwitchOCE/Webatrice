@@ -56,6 +56,7 @@ import { consumePendingOptions } from '../../utils/connectionState';
 import { passwordSaltSupported } from '../../utils';
 import { WebSocketConnectReason } from '../../types/ConnectOptions';
 import { StatusEnum } from '../../types/StatusEnum';
+import { CommandFailure } from '../../types/CommandFailure';
 import { Mock } from 'vitest';
 import { gameJoined } from './gameJoined';
 
@@ -523,6 +524,14 @@ describe('serverIdentification', () => {
       expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalled();
       expect(SessionCmds.disconnect).toHaveBeenCalled();
     });
+
+    it('a salt request lost to a dropped socket settles the form without cancelling the reconnect', () => {
+      setup();
+      const [, , onFailure] = (SessionCmds.requestPasswordSalt as Mock).mock.calls[0];
+      onFailure(CommandFailure.Disconnected);
+      expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalled();
+      expect(SessionCmds.disconnect).not.toHaveBeenCalled();
+    });
   });
 
   describe('ACTIVATE_ACCOUNT with password salt', () => {
@@ -571,6 +580,14 @@ describe('serverIdentification', () => {
       expect(WebClient.instance.response.session.accountActivationFailed).toHaveBeenCalled();
       expect(SessionCmds.disconnect).toHaveBeenCalled();
     });
+
+    it('a salt request lost to a dropped socket settles the form without cancelling the reconnect', () => {
+      setup();
+      const [, , onFailure] = (SessionCmds.requestPasswordSalt as Mock).mock.calls[0];
+      onFailure(CommandFailure.Disconnected);
+      expect(WebClient.instance.response.session.accountActivationFailed).toHaveBeenCalled();
+      expect(SessionCmds.disconnect).not.toHaveBeenCalled();
+    });
   });
 
   describe('PASSWORD_RESET with password salt', () => {
@@ -615,6 +632,14 @@ describe('serverIdentification', () => {
       onFailure();
       expect(WebClient.instance.response.session.resetPasswordFailed).toHaveBeenCalled();
       expect(SessionCmds.disconnect).toHaveBeenCalled();
+    });
+
+    it('a salt request lost to a dropped socket settles the form without cancelling the reconnect', () => {
+      setup();
+      const [, , onFailure] = (SessionCmds.requestPasswordSalt as Mock).mock.calls[0];
+      onFailure(CommandFailure.Disconnected);
+      expect(WebClient.instance.response.session.resetPasswordFailed).toHaveBeenCalled();
+      expect(SessionCmds.disconnect).not.toHaveBeenCalled();
     });
   });
 
