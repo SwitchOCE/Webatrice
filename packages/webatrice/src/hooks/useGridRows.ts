@@ -3,7 +3,12 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 're
 export interface GridRowsOptions {
   /** Keys of the rows currently rendered, in display order. */
   keys: readonly string[];
-  /** The selected row; it holds the single tab stop (the first row when nothing is selected). */
+  /**
+   * The selected row; it holds the single tab stop (the first row when nothing
+   * is selected). In a virtualized list that reports its rendered range through
+   * `onRowsRendered`, the first visible row holds it instead while that row is
+   * scrolled out of the window, so Tab can always enter the grid.
+   */
   selectedKey: string | null;
   /** Arrow keys, Home/End and Space select a row, like moving the current item in a Qt view. */
   onSelect: (key: string) => void;
@@ -13,6 +18,12 @@ export interface GridRowsOptions {
   onExpand?: (key: string) => void;
   /** Tree grids: ← collapses an expanded row, or moves to the parent of a child row. */
   onCollapse?: (key: string) => void;
+}
+
+/** The window a virtualized list renders, as react-window's `onRowsRendered` reports it. */
+export interface RenderedRows {
+  startIndex: number;
+  stopIndex: number;
 }
 
 export interface GridRowProps {
@@ -34,7 +45,18 @@ export function useGridRows({ keys, selectedKey, onSelect, onActivate, onExpand,
   // request stays pending until that row's element arrives.
   const pendingFocus = useRef<string | null>(null);
   const [focusRequest, setFocusRequest] = useState(0);
-  const tabStop = selectedKey != null && keys.includes(selectedKey) ? selectedKey : keys[0] ?? null;
+  // Only virtualized callers report a rendered range; without one every row is mounted.
+  const [rendered, setRendered] = useState<{ visibleStart: number; start: number; stop: number } | null>(null);
+  const onRowsRendered = useCallback((visibleRows: RenderedRows, allRows: RenderedRows) => {
+    setRendered((prev) =>
+      prev?.visibleStart === visibleRows.startIndex && prev.start === allRows.startIndex && prev.stop === allRows.stopIndex
+        ? prev
+        : { visibleStart: visibleRows.startIndex, start: allRows.startIndex, stop: allRows.stopIndex });
+  }, []);
+  const preferred = selectedKey != null && keys.includes(selectedKey) ? selectedKey : keys[0] ?? null;
+  const preferredIndex = preferred != null ? keys.indexOf(preferred) : -1;
+  const preferredUnrendered = rendered != null && (preferredIndex < rendered.start || preferredIndex > rendered.stop);
+  const tabStop = preferredUnrendered ? keys[rendered.visibleStart] ?? preferred : preferred;
 
   // Focus follows a keyboard move once the moved-to row is rendered.
   useEffect(() => {
@@ -110,5 +132,5 @@ export function useGridRows({ keys, selectedKey, onSelect, onActivate, onExpand,
     },
   });
 
-  return { getRowProps, focusRow: moveTo };
+  return { getRowProps, focusRow: moveTo, onRowsRendered };
 }
