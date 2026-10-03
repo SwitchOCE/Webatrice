@@ -94,4 +94,16 @@ describe('PlaymatSettingsPanel', () => {
     expect(getPlaymatSettings().fallbackList[0].params).toEqual({ ...PARAMS, zoom: 2.5 });
     expect(screen.getByRole('button', { name: 'PlaymatSettings.collection.done' })).toBeInTheDocument();
   });
+
+  it('announces the margins as percentages', () => {
+    act(() => setPlaymatSettings({ fallbackList: [mat('A')] }));
+    renderWithProviders(<PlaymatSettingsPanel />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.edit' }));
+
+    expect(screen.getByRole('slider', { name: 'PlaymatSettings.crop.leftMargin' }))
+      .toHaveAttribute('aria-valuetext', '7');
+    expect(screen.getByRole('slider', { name: 'PlaymatSettings.crop.zoom' }))
+      .toHaveAttribute('aria-valuetext', '1.00');
+  });
 });

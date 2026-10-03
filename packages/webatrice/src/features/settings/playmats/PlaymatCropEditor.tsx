@@ -8,15 +8,18 @@ import { playmatImageBox, type Size } from '@app/utils';
 
 const PREVIEW: Size = { width: 320, height: 120 };
 
+const asPercent = (value: number) => `${Math.round(value * 100)}`;
+const asDecimal = (value: number) => value.toFixed(2);
+
 interface PlaymatCropEditorProps {
   playmat: games.Playmat;
   onChange: (params: games.PlaymatParams) => void;
 }
 
 /**
- * Crop controls for one collection entry, the numeric editors of desktop's
- * PlaymatSettingsDialog: margins as percentages, vertical offset and zoom,
- * over a preview cropped with the in-game math.
+ * Crop controls for one collection entry: sliders for the values desktop's
+ * PlaymatSettingsDialog edits in spin boxes (margins as percentages, vertical
+ * offset and zoom), over a preview cropped with the in-game math.
  */
 export default function PlaymatCropEditor({ playmat, onChange }: PlaymatCropEditorProps) {
   const { t } = useTranslation();
@@ -25,11 +28,18 @@ export default function PlaymatCropEditor({ playmat, onChange }: PlaymatCropEdit
   const box = card ? playmatImageBox(card, params, PREVIEW) : null;
   const src = getScryfallUrl({ providerId: playmat.cardProviderId, name: playmat.cardName }, ScryfallImageSize.Large);
 
-  const sliders: { key: keyof games.PlaymatParams; label: string; min: number; max: number; step: number; percent?: boolean }[] = [
-    { key: 'marginPctL', label: t('PlaymatSettings.crop.leftMargin'), min: 0, max: 0.95, step: 0.01, percent: true },
-    { key: 'marginPctR', label: t('PlaymatSettings.crop.rightMargin'), min: 0, max: 0.95, step: 0.01, percent: true },
-    { key: 'verticalOffset', label: t('PlaymatSettings.crop.verticalOffset'), min: 0, max: 1, step: 0.01 },
-    { key: 'zoom', label: t('PlaymatSettings.crop.zoom'), min: 0.1, max: 4, step: 0.05 },
+  const sliders: {
+    key: keyof games.PlaymatParams;
+    label: string;
+    min: number;
+    max: number;
+    step: number;
+    format: (value: number) => string;
+  }[] = [
+    { key: 'marginPctL', label: t('PlaymatSettings.crop.leftMargin'), min: 0, max: 0.95, step: 0.01, format: asPercent },
+    { key: 'marginPctR', label: t('PlaymatSettings.crop.rightMargin'), min: 0, max: 0.95, step: 0.01, format: asPercent },
+    { key: 'verticalOffset', label: t('PlaymatSettings.crop.verticalOffset'), min: 0, max: 1, step: 0.01, format: asDecimal },
+    { key: 'zoom', label: t('PlaymatSettings.crop.zoom'), min: 0.1, max: 4, step: 0.05, format: asDecimal },
   ];
 
   return (
@@ -50,7 +60,7 @@ export default function PlaymatCropEditor({ playmat, onChange }: PlaymatCropEdit
           />
         )}
       </div>
-      {sliders.map(({ key, label, min, max, step, percent }) => (
+      {sliders.map(({ key, label, min, max, step, format }) => (
         <label key={key} className="playmat-settings__slider">
           <span>{label}</span>
           <Slider
@@ -60,7 +70,8 @@ export default function PlaymatCropEditor({ playmat, onChange }: PlaymatCropEdit
             step={step}
             value={params[key]}
             valueLabelDisplay="auto"
-            valueLabelFormat={(value) => (percent ? `${Math.round(value * 100)}` : value.toFixed(2))}
+            valueLabelFormat={format}
+            getAriaValueText={format}
             onChange={(_, value) => onChange({ ...params, [key]: value as number })}
             slotProps={{ input: { 'aria-label': label } }}
           />
