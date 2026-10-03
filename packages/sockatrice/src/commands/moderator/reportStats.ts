@@ -3,15 +3,14 @@ import { WebClient } from '../../WebClient';
 
 import { Command_ReportStats_ext, Command_ReportStatsSchema, Response_ReportStats_ext } from '../../generated';
 
-export function reportStats(onFailure?: (responseCode: number) => void): void {
+export function reportStats(): void {
   WebClient.instance.protobuf.sendModeratorCommand(Command_ReportStats_ext, create(Command_ReportStatsSchema), {
     responseExt: Response_ReportStats_ext,
     onSuccess: (response) => {
       WebClient.instance.response.moderator.reportStats?.(response);
     },
-    onError: (responseCode) => {
-      WebClient.instance.response.moderator.commandFailed?.('reportStats', responseCode, '');
-      onFailure?.(responseCode);
+    onError: (responseCode, _raw, failure) => {
+      WebClient.instance.response.moderator.commandFailed?.('reportStats', responseCode, '', failure);
     },
   });
 }

@@ -158,10 +158,11 @@ export interface ISessionResponse {
 
   /**
    * A query above failed; `target` names what it acted on (a share token, deck,
-   * share or report id as a string, a user name, or '' for a list). Optional for
-   * backward compatibility.
+   * share or report id as a string, a user name, or '' for a list). `failure` is
+   * set when the server never answered (see CommandFailure) and undefined for a
+   * server rejection. Optional for backward compatibility.
    */
-  commandFailed?(command: SessionCommandName, responseCode: number, target: string): void;
+  commandFailed?(command: SessionCommandName, responseCode: number, target: string, failure?: CommandFailure): void;
 
   // Command failure outcomes. `failure` is set for a transport failure (no
   // server answer) and undefined for a server-sent rejection. Optional for

@@ -288,10 +288,6 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.replayDownloaded({ replayId, replayData: response.replayData }));
   }
 
-  commandFailed(command: WebsocketTypes.SessionCommandName, responseCode: number, target: string): void {
-    this.store.dispatch(ServerActions.sessionCommandFailed({ command, responseCode, target }));
-  }
-
   deckListFailed(responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
     this.store.dispatch(ServerActions.deckListFailed({ responseCode, failure }));
   }
@@ -314,5 +310,14 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
 
   reportDetails(report: ServerInfo_Report): void {
     this.store.dispatch(ServerActions.reportDetails({ report }));
+  }
+
+  commandFailed(
+    command: WebsocketTypes.SessionCommandName,
+    responseCode: number,
+    target: string,
+    failure?: WebsocketTypes.CommandFailure,
+  ): void {
+    this.store.dispatch(ServerActions.sessionCommandFailed({ command, responseCode, target, failure }));
   }
 }

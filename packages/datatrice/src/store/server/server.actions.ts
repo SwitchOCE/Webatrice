@@ -31,7 +31,7 @@ const SignalActions = {
   moderatorCommandFailed: createAction<CommandFailedPayload & { command: WebsocketTypes.ModeratorCommandName; target: string }>(
     'server/moderatorCommandFailed'
   ),
-  sessionCommandFailed: createAction<{ command: WebsocketTypes.SessionCommandName; responseCode: number; target: string }>(
+  sessionCommandFailed: createAction<CommandFailedPayload & { command: WebsocketTypes.SessionCommandName; target: string }>(
     'server/sessionCommandFailed'
   ),
   adminCommandFailed: createAction<CommandFailedPayload & { command: WebsocketTypes.AdminCommandName; target: string }>(
