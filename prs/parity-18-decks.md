@@ -157,8 +157,9 @@ Four commits at the tip of this branch, after review of the series.
   - in `isCardQuantityLegalForFormat`, `if (maxAllowed == -1) return false;` followed by
     `if (maxAllowed < 0) { // unlimited  return true; }`.
 
-  The second branch can never run, because the only negative value is -1 and the check before it catches that. The
-  only later change was #6425, which moved `maxAllowedForLegality` into a static helper. The intent, a legal
+  The second branch can never run, because the only negative value is -1 and the check before it catches that. Later commits touched
+  the function (#6425 static helpers, #6460 cleanup, #6535 exception precedence, #6536 `getLegalityProp`), but none
+  changed the -1 checks. The intent, a legal
   unlimited card, is written down three times. The red comes from reusing -1 as "label not listed". So
   `unlimited` stays legal here. The reasoning is now in a comment by the check, and a spec separates the two cases.
   The oracle's own imports use only `{4, legal}` / `{1, legal}` and `{0, banned}`, so only hand-written or
