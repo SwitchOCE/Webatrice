@@ -831,7 +831,35 @@
       "title": "Watch and manage replays",
       "tab": "Replays"
     },
-    "replayTab": "Replay"
+    "replayTab": "Replay",
+    "tab": {
+      "lobby": "Lobby",
+      "room": "Room {id}",
+      "game": "Game {id}",
+      "deck": "Deck #{id}",
+      "myDecks": "My Decks",
+      "player": "Player"
+    },
+    "connection": {
+      "disconnected": "Disconnected",
+      "stale": "Server not responding ({seconds}s)",
+      "connected": "Connected"
+    },
+    "decks": {
+      "button": "Decks",
+      "title": "View your decks"
+    },
+    "closeTab": "Close tab",
+    "user": {
+      "signedIn": "Signed in",
+      "signOut": "Sign out"
+    },
+    "game": {
+      "snapGrid": "Snap grid",
+      "phaseTrackCollapse": "Collapse the phase track into an auto-hiding HUD",
+      "phaseTrackPin": "Keep the phase track always visible",
+      "phaseTrackToggle": "Toggle auto-hide phase tracker"
+    }
   },
   "UserMenu": {
     "account": "Account",

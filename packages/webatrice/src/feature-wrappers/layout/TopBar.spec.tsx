@@ -101,15 +101,15 @@ describe('TopBar user menu', () => {
 
     openMenuAndPick('UserMenu.account');
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.ACCOUNT);
-    expect(screen.getByRole('tab', { name: /Account/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /UserMenu\.account/ })).toHaveAttribute('aria-selected', 'true');
 
     openMenuAndPick('UserMenu.settings');
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SETTINGS);
-    expect(screen.queryByRole('tab', { name: /Account/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /UserMenu\.account/ })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('tab', { name: /Lobby|Server/ }));
+    fireEvent.click(screen.getByRole('tab', { name: /TopBar\.tab\.lobby/ }));
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
-    expect(screen.queryByRole('tab', { name: /Settings/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /UserMenu\.settings/ })).not.toBeInTheDocument();
   });
 
   it('offers Logs to moderators only', () => {
@@ -139,7 +139,7 @@ describe('TopBar user menu', () => {
 
     openMenuAndPick('UserMenu.debugLog');
     expect(screen.getByRole('dialog', { name: /DebugLogDialog\.title/ })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Sign out/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /TopBar\.user\.signOut/ })).not.toBeInTheDocument();
   });
 });
 
@@ -168,7 +168,7 @@ describe('TopBar replays entry', () => {
     const replayKey = openReplay(buildReplay([sayContainer(0)]), 'final.cor', createMockWebClient());
     renderTopBar(`/replay/${replayKey}`);
 
-    fireEvent.click(screen.getByRole('tab', { name: /Lobby/ }));
+    fireEvent.click(screen.getByRole('tab', { name: /TopBar\.tab\.lobby/ }));
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
     const replayTab = screen.getByRole('tab', { name: /final\.cor/ });
     expect(replayTab).toHaveAttribute('aria-selected', 'false');
@@ -183,7 +183,7 @@ describe('TopBar replays entry', () => {
     const { gameId } = getOpenedReplay(replayKey)!;
     renderTopBar(RouteEnum.SERVER);
 
-    fireEvent.click(within(screen.getByRole('tab', { name: /final\.cor/ })).getByTitle('Close tab'));
+    fireEvent.click(within(screen.getByRole('tab', { name: /final\.cor/ })).getByTitle('TopBar.closeTab'));
 
     expect(screen.queryByRole('tab', { name: /final\.cor/ })).not.toBeInTheDocument();
     expect(getOpenedReplay(replayKey)).toBeUndefined();
@@ -213,7 +213,7 @@ describe('TopBar report entries (#7091)', () => {
     expect(screen.queryByRole('button', { name: 'UserMenu.reportQueue' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'UserMenu.myReports' }));
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.MY_REPORTS);
-    expect(screen.getByRole('tab', { name: /My Reports/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /UserMenu\.myReports/ })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('adds the Report Queue for moderators', () => {
