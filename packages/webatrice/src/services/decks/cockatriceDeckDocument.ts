@@ -65,8 +65,10 @@ export function parseCod(xml: string): ParsedDeck {
   // Preserve the entire <tags> element as an XML string. Cockatrice
   // desktop writes it and may put arbitrary children inside; we don't
   // read the contents but round-trip them verbatim.
-  const tagsEl = directChildren(root, 'tags')[0];
-  const tagsXml = tagsEl ? new XMLSerializer().serializeToString(tagsEl) : undefined;
+  const tagsXml = rawChildXml(root, 'tags');
+  // Desktop writes <playmatCard> after <bannerCard> (DeckList::Metadata::write);
+  // the web editor doesn't edit it, so it round-trips verbatim too.
+  const playmatXml = rawChildXml(root, 'playmatCard');
 
   const bracketAssessment = readBracketAssessment(root);
 
@@ -111,6 +113,7 @@ export function parseCod(xml: string): ParsedDeck {
     bannerCard,
     bannerCardProviderId,
     lastLoadedTimestamp,
+    playmatXml,
     tagsXml,
     bracketAssessment,
   };
@@ -133,6 +136,7 @@ export function serializeCod(deck: {
   bannerCard?: string;
   bannerCardProviderId?: string;
   lastLoadedTimestamp?: string;
+  playmatXml?: string;
   tagsXml?: string;
   bracketAssessment?: BracketAssessment;
 }): string {
@@ -162,7 +166,7 @@ export function serializeCod(deck: {
   // Element order matches Cockatrice desktop verbatim so diffs stay
   // minimal on round-trip:
   //   lastLoadedTimestamp → deckname → format → bannerCard →
-  //   comments → tags → zones
+  //   playmatCard → comments → tags → zones
   if (deck.lastLoadedTimestamp && deck.lastLoadedTimestamp.trim()) {
     appendTextElement(doc, root, 'lastLoadedTimestamp', deck.lastLoadedTimestamp.trim());
   }
@@ -176,18 +180,9 @@ export function serializeCod(deck: {
       root.lastElementChild!.setAttribute('providerId', deck.bannerCardProviderId);
     }
   }
+  appendRawElement(doc, root, 'playmatCard', deck.playmatXml);
   appendTextElement(doc, root, 'comments', serializeMeta(bumped));
-  // <tags> is preserved opaquely — we parse the stored XML string back
-  // into an Element in its own document, then adopt it into ours. Any
-  // children Cockatrice desktop wrote (empty container or otherwise)
-  // pass through unchanged.
-  if (deck.tagsXml && deck.tagsXml.trim()) {
-    const fragmentDoc = new DOMParser().parseFromString(deck.tagsXml, 'application/xml');
-    const tagsEl = fragmentDoc.documentElement;
-    if (tagsEl && tagsEl.tagName === 'tags' && !fragmentDoc.querySelector('parsererror')) {
-      root.appendChild(doc.importNode(tagsEl, true));
-    }
-  }
+  appendRawElement(doc, root, 'tags', deck.tagsXml);
 
   // Webatrice extension: cached bracket assessment with flagged cards.
   // Cockatrice desktop safely ignores unknown elements, so this
@@ -356,6 +351,29 @@ function appendTextElement(doc: XMLDocument, parent: Element, tagName: string, t
   const el = doc.createElement(tagName);
   el.appendChild(doc.createTextNode(text));
   parent.appendChild(el);
+}
+
+/** The first `tagName` child as raw XML, for elements kept verbatim. */
+function rawChildXml(parent: Element, tagName: string): string | undefined {
+  const el = directChildren(parent, tagName)[0];
+  return el ? new XMLSerializer().serializeToString(el) : undefined;
+}
+
+/**
+ * Re-adopt an element kept as raw XML: parse it in its own document and
+ * import it into ours, so whatever children and attributes desktop wrote
+ * pass through unchanged. Anything that isn't a well-formed `tagName`
+ * element is dropped.
+ */
+function appendRawElement(doc: XMLDocument, parent: Element, tagName: string, xml: string | undefined): void {
+  if (!xml?.trim()) {
+    return;
+  }
+  const fragmentDoc = new DOMParser().parseFromString(xml, 'application/xml');
+  const el = fragmentDoc.documentElement;
+  if (el && el.tagName === tagName && !fragmentDoc.querySelector('parsererror')) {
+    parent.appendChild(doc.importNode(el, true));
+  }
 }
 
 // ---------- <bracketAssessment> reader + writer ----------
