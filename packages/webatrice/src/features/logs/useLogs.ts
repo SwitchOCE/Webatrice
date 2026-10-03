@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { server, type ServerStateLogs } from '@cockatrice/datatrice';
 import type { ServerInfo_ChatMessage, ViewLogHistoryParams } from '@cockatrice/sockatrice/generated';
-import { useReduxEffect } from '@app/hooks';
+import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
+import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { useAppDispatch, useAppSelector } from '@app/store';
 
 import { logDateRangeHours, type LogSearchFormValues } from './LogSearchForm/logSearchFormSchema';
@@ -46,6 +47,7 @@ export function toViewLogHistoryParams(values: LogSearchFormValues): ViewLogHist
 
 export function useLogs(): Logs {
   const { t } = useTranslation();
+  const describeFailure = useCommandFailureMessage();
   const dispatch = useAppDispatch();
   const logs = useAppSelector((state) => server.Selectors.getLogs(state));
   const webClient = useWebClient();
@@ -71,13 +73,19 @@ export function useLogs(): Logs {
     }
   }, server.Types.VIEW_LOGS, [t]);
 
-  useReduxEffect<{ command: string }>(({ payload }) => {
+  // A transport failure (timeout, lost connection) explains itself; a server
+  // rejection gets desktop's message.
+  useReduxEffect<{ command: string; failure?: WebsocketTypes.CommandFailure }>(({ payload }) => {
     if (payload.command !== 'viewLogHistory' || !searching.current) {
       return;
     }
     searching.current = false;
-    setNotice({ title: t('Logs.notice.title'), message: t('Logs.notice.failed'), severity: 'error' });
-  }, server.Types.MODERATOR_COMMAND_FAILED, [t]);
+    setNotice({
+      title: t('Logs.notice.title'),
+      message: describeFailure(payload.failure, t('Logs.notice.failed')),
+      severity: 'error',
+    });
+  }, server.Types.MODERATOR_COMMAND_FAILED, [describeFailure, t]);
 
   const onSubmit = useCallback((values: LogSearchFormValues) => {
     searching.current = true;

@@ -9,8 +9,8 @@ export function getBanHistory(userName: string): void {
     onSuccess: (response) => {
       WebClient.instance.response.moderator.banHistory(userName, response.banList);
     },
-    onError: (responseCode) => {
-      WebClient.instance.response.moderator.commandFailed?.('banHistory', responseCode, userName);
+    onError: (responseCode, _raw, failure) => {
+      WebClient.instance.response.moderator.commandFailed?.('banHistory', responseCode, userName, failure);
     },
   });
 }
