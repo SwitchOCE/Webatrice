@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useWatchReplay } from '@app/hooks';
 import {
   REPLAY_LIBRARY_ROOT,
   ReplayFileDTO,
@@ -10,7 +11,6 @@ import {
 
 import { readReplayFile, saveReplayFile } from './replayFiles';
 import type { ReplayNotice } from './useServerReplays';
-import { useWatchReplay } from './useWatchReplay';
 
 export interface LibraryCrumb {
   id: number;

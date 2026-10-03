@@ -12,3 +12,4 @@ export * from './useSyncLocaleToStore';
 export * from './useVersion';
 export * from './useCommandFailureMessage';
 export * from './useJoinGame';
+export * from './useWatchReplay';
