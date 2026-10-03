@@ -184,11 +184,6 @@ export interface PlayerZoneCommands {
   mulligan(handSize: number): void;
   /** Whole library, or an inclusive `[start, end]` range (negative = from the bottom). */
   shuffleLibrary(range?: { start: number; end: number }): void;
-  /** Dump the top (or bottom) `count` library cards into `library.revealedCards`. */
-  viewLibrary(count: number, fromBottom: boolean): void;
-  closeLibraryView(): void;
-  viewSideboard(): void;
-  closeSideboardView(): void;
   reveal(zone: ZoneNameValue, to: RevealRecipient, cards?: RevealSelection): void;
   /** Reveal the library with write access (desktop "Lend library"). */
   lendLibrary(to: number): void;
@@ -237,8 +232,6 @@ export interface PlayerCardCommands {
 export interface PlayerCounterCommands {
   increment(counterId: number, delta: number): void;
   set(counterId: number, value: number): void;
-  /** Absolute value, clamped at 0; zero removes the counter. */
-  setCardCounter(cardId: number, counterId: number, value: number): void;
   /** Many card counters in one command container. */
   setCardCounters(entries: readonly { cardId: number; counterId: number; value: number }[]): void;
   flipCoin(): void;

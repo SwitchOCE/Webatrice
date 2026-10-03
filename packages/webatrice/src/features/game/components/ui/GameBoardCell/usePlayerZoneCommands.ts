@@ -1,8 +1,6 @@
 import { useMemo } from 'react';
-import { games } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { ZoneName } from '@cockatrice/sockatrice';
-import { useAppDispatch } from '@app/store';
 
 import { useGameId } from '../GameIdContext';
 import type {
@@ -18,7 +16,7 @@ import { useMoveCard } from './useMoveCard';
 const RANDOM_CARD_FROM_ZONE = -2;
 
 /**
- * Zone commands for one seat: moves, library management, dumps and reveals.
+ * Zone commands for one seat: moves, library management and reveals.
  * Undefined until the game id is known.
  *
  * `move` sends through useMoveCard, the one optimistic command path shared
@@ -27,7 +25,6 @@ const RANDOM_CARD_FROM_ZONE = -2;
 export function usePlayerZoneCommands(playerId: number): PlayerZoneCommands | undefined {
   const gameId = useGameId();
   const webClient = useWebClient();
-  const dispatch = useAppDispatch();
   const moveCard = useMoveCard(gameId);
 
   return useMemo(() => {
@@ -53,10 +50,6 @@ export function usePlayerZoneCommands(playerId: number): PlayerZoneCommands | un
         params.playerId = to;
       }
       game.revealCards(gameId, params);
-    };
-
-    const clearView = (zoneName: string) => {
-      dispatch(games.Actions.zoneViewCleared({ gameId, playerId, zoneName }));
     };
 
     // Command_MoveCard between two of this player's zones. `x = -1` appends
@@ -88,16 +81,6 @@ export function usePlayerZoneCommands(playerId: number): PlayerZoneCommands | un
       // (player_actions.cpp:267-268, 298-299).
       shuffleLibrary: (range = { start: 0, end: -1 }) =>
         game.shuffle(gameId, { zoneName: ZoneName.DECK, start: range.start, end: range.end }),
-      // Response_DumpZone lands in `revealedCards`; desktop actViewTopCards /
-      // actViewBottomCards (player_actions.cpp:182-197).
-      viewLibrary: (count, fromBottom) =>
-        game.dumpZone(gameId, { playerId, zoneName: ZoneName.DECK, numberCards: count, isReversed: fromBottom }),
-      // Re-opening re-dumps fresh, like desktop's zoneViewCleared on close.
-      closeLibraryView: () => clearView(ZoneName.DECK),
-      // The sideboard is a HiddenZone too; -1 dumps all of it.
-      viewSideboard: () =>
-        game.dumpZone(gameId, { playerId, zoneName: ZoneName.SIDEBOARD, numberCards: -1, isReversed: false }),
-      closeSideboardView: () => clearView(ZoneName.SIDEBOARD),
       reveal,
       // grant_write_access adds the target to the zone's write set
       // (server_abstract_player.cpp:1566) until the next shuffle; desktop
@@ -110,5 +93,5 @@ export function usePlayerZoneCommands(playerId: number): PlayerZoneCommands | un
       setAlwaysLookAtTopCard: (value) =>
         game.changeZoneProperties(gameId, { zoneName: ZoneName.DECK, alwaysLookAtTopCard: value }),
     };
-  }, [gameId, webClient, dispatch, moveCard, playerId]);
+  }, [gameId, webClient, moveCard, playerId]);
 }
