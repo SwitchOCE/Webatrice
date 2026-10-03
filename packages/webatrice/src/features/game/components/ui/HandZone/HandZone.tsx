@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { motion } from 'motion/react';
+import { useForkRef } from '@mui/material/utils';
 import { Hand } from 'lucide-react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { usePreference } from '@app/hooks';
@@ -10,9 +11,14 @@ import ContextMenu from '../../context-menus/ContextMenu/ContextMenu';
 import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
 import Card from '../SeatCard/SeatCard';
+import type { PlayerCardViewModel } from '../PlayerBoard/playerBoard.types';
+import { layoutVerticalHand } from './verticalHandLayout';
 
 /**
- * Hand — every player gets one; row flips based on handOnTop.
+ * Hand — every player gets one. Desktop's Appearance › Hand layout picks a
+ * row (the default; below) or a column (`VerticalHand`, further down).
+ *
+ * Row: flips based on handOnTop.
  * Idle: overflow-hidden clips cards to half their height so
  * the hand row only occupies half a card of vertical space.
  * Hovered: overflow-visible + z-30 lets cards render at full
@@ -42,6 +48,8 @@ import Card from '../SeatCard/SeatCard';
  */
 export default function HandZone() {
   const {
+    CARD_H_PX,
+    CARD_W_PX,
     cardMetaByName,
     flipHandCardBacks,
     handCount,
@@ -50,17 +58,22 @@ export default function HandZone() {
     handOnTop,
     handSize,
     handZoneRef,
+    horizontalHand,
     isDragging,
     isSelf,
     menuOwnerId,
     openSeatCardMenu,
     playerId,
+    seatGrid,
     selection,
     setCardMetaByName,
     startSeatCardDrag,
     zoneCommands,
   } = usePlayerSeatContext();
   const playToStack = usePreference('playToStack');
+  // Desktop's "Enable left justification": the row starts at the left (past
+  // the count badge) instead of centring.
+  const leftJustified = usePreference('leftJustifiedHand');
   // Whether the hand row is being hovered — controls the auto-expand
   // that reveals full-size cards over the play area without reflowing
   // the shell (same pattern the PhaseTrack uses on the left edge).
@@ -70,6 +83,222 @@ export default function HandZone() {
   // until the return-to-idle animation actually finishes — otherwise
   // the wrapper clips its own cards mid-slide when hover ends.
   const [handAnimating, setHandAnimating] = useState(false);
+
+  // Double-click auto-play chain: lands go straight to the battlefield;
+  // everything else takes a stack detour so spells are visible before
+  // resolving (permanents skip it when playToStack is off). The stack card
+  // itself has its own double-click handler that resolves the second step
+  // (instant/sorcery → graveyard, permanent → battlefield). Card type comes
+  // from the prefetched cache; on cache miss we block on a fresh lookup so
+  // the first click routes correctly even if prefetch hasn't completed. Wire
+  // x = -1 lets the server pick a column.
+  const playFromHand = async (c: PlayerCardViewModel) => {
+    const cardId = Number(c.id);
+    if (!Number.isFinite(cardId)) {
+      return;
+    }
+    let typeLine = cardMetaByName.get(c.name)?.typeLine ?? '';
+    if (!typeLine) {
+      const r = await lookupCard(c.name);
+      typeLine = r.typeLine ?? '';
+      const pt = r.power != null && r.toughness != null ? `${r.power}/${r.toughness}` : undefined;
+      if (typeLine || pt) {
+        setCardMetaByName((prev) => {
+          const existing = prev.get(c.name);
+          if (existing?.typeLine === typeLine && existing?.pt === pt) {
+            return prev;
+          }
+          const next = new Map(prev);
+          next.set(c.name, { typeLine, pt });
+          return next;
+        });
+      }
+    }
+    // Desktop PlayerActions::playCard: lands go to the battlefield and
+    // instants/sorceries to the stack; other permanents take the stack only
+    // with "Play all nonlands onto the stack" on (the default).
+    const play = playCardMove(cardId, { ...cardMetaByName.get(c.name), typeLine }, { playToStack });
+    zoneCommands.moveCards(ZoneName.HAND, [play.card], play.to);
+  };
+
+  // One of the owner's hand cards, in either layout.
+  const renderOwnCard = (c: PlayerCardViewModel) => {
+    const dragging = isDragging(c.id, 'hand');
+    const selected = selection?.zone === 'hand' && selection.ids.has(c.id);
+    return (
+      <div
+        key={c.id}
+        data-card
+        data-zone="hand"
+        data-card-id={c.id}
+        data-selected={selected || undefined}
+        // Arrow hit-testing, as on the battlefield and stack:
+        // a right-button drag starts here and a pick lands here.
+        data-card-owner={playerId}
+        data-card-zone={ZoneName.HAND}
+        onPointerDown={(e) => startSeatCardDrag(e, c, 'hand', handDisplayList)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          openSeatCardMenu({ kind: 'hand', playerId: menuOwnerId, cardId: c.id, x: e.clientX, y: e.clientY });
+        }}
+        onDoubleClick={() => playFromHand(c)}
+        style={{
+          touchAction: 'none',
+          cursor: 'grab',
+          opacity: dragging ? 0 : 1,
+          boxShadow: selected
+            ? '0 0 0 2px rgb(59 130 246), 0 0 12px 2px rgb(59 130 246 / 0.6)'
+            : undefined,
+          borderRadius: CARD_CORNER_RADIUS,
+        }}
+      >
+        <Card
+          name={c.name}
+          // Prefer any scryfallId we've already resolved via the Scryfall
+          // metadata cache — the wire's `c.scryfallId` is empty when the deck
+          // was uploaded without per-card `uuid` attributes, which forces
+          // Card.tsx to hit /cards/named?exact= for the image. That endpoint
+          // is rate-limited; several hand cards fetching in parallel at game
+          // start means some silently 429 and never retry. The batched
+          // cardMetaByName lookup gives us a real id → CDN path with no rate
+          // limit.
+          scryfallId={c.scryfallId || cardMetaByName.get(c.name)?.scryfallId}
+          pt={cardMetaByName.get(c.name)?.pt}
+        />
+      </div>
+    );
+  };
+
+  /* Hand icon + count badge overlay. Top-left of the hand
+   * zone for every player. Right-click on the OWN button
+   * opens the hand context menu (ports Cockatrice's HandMenu
+   * — see handMenuItems above). Opponent buttons are inert
+   * (Cockatrice doesn't offer a menu on opponent hands
+   * either — you can't act on cards you can't see). The
+   * wrapper ContextMenu only mounts for isSelf, so
+   * right-clicking an opponent's button produces no popup
+   * (the browser default is also suppressed on the button's
+   * own onContextMenu). z-40 sits above the expanded hand's
+   * z-30 so the button stays clickable when cards float up
+   * on hover. */
+  const countBadge = isSelf ? (
+    <ContextMenu items={handMenuItems}>
+      <button
+        type="button"
+        className={
+          'absolute top-1 left-1 z-40 flex items-center justify-center '
+          + 'h-14 w-14 rounded bg-bg-surface/80 hover:bg-bg-elevated '
+          + 'border border-border-subtle text-text-primary '
+          + 'shadow transition-colors cursor-default'
+        }
+        title={`Hand — ${handSize} card${handSize === 1 ? '' : 's'}`}
+        onContextMenu={(e) => {
+          // ContextMenu's own onContextMenu on its wrapper div
+          // handles the popup; suppress the button's default
+          // context menu so nothing else fires.
+          e.preventDefault();
+        }}
+        onClick={(e) => {
+          // Left-click also opens the menu. The ContextMenu
+          // wrapper only listens for `contextmenu` events on
+          // its own div, so we synthesize one at this button's
+          // location and dispatch it upward — the wrapper's
+          // handler catches it and sets `position` to the
+          // supplied clientX/clientY, opening the popup at
+          // the same spot a right-click would.
+          e.preventDefault();
+          const evt = new MouseEvent('contextmenu', {
+            bubbles: true,
+            cancelable: true,
+            clientX: e.clientX,
+            clientY: e.clientY,
+          });
+          e.currentTarget.dispatchEvent(evt);
+        }}
+      >
+        <Hand size={32} className="text-text-secondary" aria-hidden />
+        <span
+          className={
+            'absolute inset-0 flex items-center justify-center '
+            + 'text-[1.3rem] font-bold text-text-primary '
+            + 'pointer-events-none tabular-nums'
+          }
+          style={{ textShadow: '0 0 3px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1)' }}
+        >
+          {handSize}
+        </span>
+      </button>
+    </ContextMenu>
+  ) : (
+    <button
+      type="button"
+      disabled
+      className={
+        'absolute top-1 left-1 z-40 flex items-center justify-center '
+        + 'h-14 w-14 rounded bg-bg-surface/80 border border-border-subtle '
+        + 'text-text-primary shadow cursor-default'
+      }
+      title={`Hand — ${handSize} card${handSize === 1 ? '' : 's'}`}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      <Hand size={32} className="text-text-secondary" aria-hidden />
+      <span
+        className={
+          'absolute inset-0 flex items-center justify-center '
+          + 'text-[1.3rem] font-bold text-text-primary '
+          + 'pointer-events-none tabular-nums'
+        }
+        style={{ textShadow: '0 0 3px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1)' }}
+      >
+        {handSize}
+      </span>
+    </button>
+  );
+
+  const renderCardBack = (i: number) => (
+    <img
+      key={i}
+      src={CARD_BACK_URL}
+      alt=""
+      draggable={false}
+      className="shadow-md pointer-events-none select-none"
+      style={{
+        width: CARD_WIDTH,
+        height: CARD_HEIGHT,
+        borderRadius: CARD_CORNER_RADIUS,
+        // Only rotate 180° when this player's hand renders at the TOP of
+        // their seat (handOnTop). A bottom-row opponent in a 4-player layout
+        // has flipHandCardBacks=true (the per-count flag) but
+        // handOnTop=false — their hand is at the bottom of the screen where a
+        // natural orientation reads correctly. Without the handOnTop gate,
+        // those cards render upside-down.
+        transform: (handOnTop && flipHandCardBacks) ? 'rotate(180deg)' : undefined,
+      }}
+    />
+  );
+
+  const rowClassName = [
+    'flex items-center gap-1 px-1 bg-bg-surface/40',
+    leftJustified ? 'my-auto mr-auto' : 'm-auto',
+  ].join(' ');
+  const rowStyle: CSSProperties | undefined = leftJustified ? { marginLeft: `calc(${CARD_WIDTH} * 1.4)` } : undefined;
+
+  if (!horizontalHand) {
+    return (
+      <VerticalHand
+        placement={seatGrid.hand}
+        badge={countBadge}
+        count={isSelf ? handDisplayList.length : handCount}
+        cardKey={(i) => (isSelf ? handDisplayList[i].id : String(i))}
+        renderCard={(i) => (isSelf ? renderOwnCard(handDisplayList[i]) : renderCardBack(i))}
+        cardWidth={CARD_W_PX}
+        cardHeight={CARD_H_PX}
+        zoneRef={handZoneRef}
+        testId={`hand-zone-${playerId}`}
+      />
+    );
+  }
 
   return (
     <div
@@ -90,8 +319,7 @@ export default function HandZone() {
         (handExpanded || handAnimating) ? 'overflow-visible' : 'overflow-hidden',
       ].join(' ')}
       style={{
-        gridColumn: '2 / 4',
-        gridRow: handOnTop ? 1 : 2,
+        ...seatGrid.hand,
         // Always elevated above the play area so overflowing cards
         // paint on top when the hand expands. Kept static (not tied
         // to hover) so nothing flickers at the boundary.
@@ -99,91 +327,7 @@ export default function HandZone() {
         zIndex: 30,
       }}
     >
-      {/* Hand icon + count badge overlay. Top-left of the hand
-        zone for every player. Right-click on the OWN button
-        opens the hand context menu (ports Cockatrice's HandMenu
-        — see handMenuItems above). Opponent buttons are inert
-        (Cockatrice doesn't offer a menu on opponent hands
-        either — you can't act on cards you can't see). The
-        wrapper ContextMenu only mounts for isSelf, so
-        right-clicking an opponent's button produces no popup
-        (the browser default is also suppressed on the button's
-        own onContextMenu). z-40 sits above the expanded hand's
-        z-30 so the button stays clickable when cards float up
-        on hover. */}
-      {isSelf ? (
-        <ContextMenu items={handMenuItems}>
-          <button
-            type="button"
-            className={
-              'absolute top-1 left-1 z-40 flex items-center justify-center '
-            + 'h-14 w-14 rounded bg-bg-surface/80 hover:bg-bg-elevated '
-            + 'border border-border-subtle text-text-primary '
-            + 'shadow transition-colors cursor-default'
-            }
-            title={`Hand — ${handSize} card${handSize === 1 ? '' : 's'}`}
-            onContextMenu={(e) => {
-            // ContextMenu's own onContextMenu on its wrapper div
-            // handles the popup; suppress the button's default
-            // context menu so nothing else fires.
-              e.preventDefault();
-            }}
-            onClick={(e) => {
-            // Left-click also opens the menu. The ContextMenu
-            // wrapper only listens for `contextmenu` events on
-            // its own div, so we synthesize one at this button's
-            // location and dispatch it upward — the wrapper's
-            // handler catches it and sets `position` to the
-            // supplied clientX/clientY, opening the popup at
-            // the same spot a right-click would.
-              e.preventDefault();
-              const evt = new MouseEvent('contextmenu', {
-                bubbles: true,
-                cancelable: true,
-                clientX: e.clientX,
-                clientY: e.clientY,
-              });
-              e.currentTarget.dispatchEvent(evt);
-            }}
-          >
-            <Hand size={32} className="text-text-secondary" aria-hidden />
-            <span
-              className={
-                'absolute inset-0 flex items-center justify-center '
-              + 'text-[1.3rem] font-bold text-text-primary '
-              + 'pointer-events-none tabular-nums'
-              }
-              style={{ textShadow: '0 0 3px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1)' }}
-            >
-              {handSize}
-            </span>
-          </button>
-        </ContextMenu>
-      ) : (
-        <button
-          type="button"
-          disabled
-          className={
-            'absolute top-1 left-1 z-40 flex items-center justify-center '
-          + 'h-14 w-14 rounded bg-bg-surface/80 border border-border-subtle '
-          + 'text-text-primary shadow cursor-default'
-          }
-          title={`Hand — ${handSize} card${handSize === 1 ? '' : 's'}`}
-          onContextMenu={(e) => e.preventDefault()}
-        >
-          <Hand size={32} className="text-text-secondary" aria-hidden />
-          <span
-            className={
-              'absolute inset-0 flex items-center justify-center '
-            + 'text-[1.3rem] font-bold text-text-primary '
-            + 'pointer-events-none tabular-nums'
-            }
-            style={{ textShadow: '0 0 3px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1)' }}
-          >
-            {handSize}
-          </span>
-        </button>
-      )}
+      {countBadge}
       {/* Inner row — full card height so cards render at their true
         size; the outer wrapper clips the half we don't want to see
         in idle mode. On hover, a translateY on this container
@@ -235,153 +379,106 @@ export default function HandZone() {
         they're holding). `m-auto` on the inner row centers the
         cards when they fit and collapses to 0 when they don't —
         unlike `justify-center`, this leaves the leading edge
-        reachable when the hand overflows and needs to scroll. */}
+        reachable when the hand overflows and needs to scroll. Left
+        justified, the row starts 1.4 card widths in, as desktop's does,
+        which also clears the count badge. */}
         {isSelf
           ? handDisplayList.length > 0 && (
             <div
               onMouseEnter={() => setHandExpanded(true)}
               onMouseLeave={() => setHandExpanded(false)}
-              className='flex items-center gap-1 m-auto px-1 bg-bg-surface/40'
+              className={rowClassName}
+              style={rowStyle}
             >
-              {handDisplayList.map((c) => {
-                const dragging = isDragging(c.id, 'hand');
-                const selected =
-                selection?.zone === 'hand' && selection.ids.has(c.id);
-                return (
-                  <div
-                    key={c.id}
-                    data-card
-                    data-zone="hand"
-                    data-card-id={c.id}
-                    data-selected={selected || undefined}
-                    // Arrow hit-testing, as on the battlefield and stack:
-                    // a right-button drag starts here and a pick lands here.
-                    data-card-owner={playerId}
-                    data-card-zone={ZoneName.HAND}
-                    onPointerDown={(e) =>
-                      startSeatCardDrag(e, c, 'hand', handDisplayList)
-                    }
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      openSeatCardMenu({ kind: 'hand', playerId: menuOwnerId, cardId: c.id, x: e.clientX, y: e.clientY });
-                    }}
-                    onDoubleClick={async () => {
-                    // Double-click auto-play chain: lands go straight to
-                    // the battlefield; everything else takes a stack
-                    // detour so spells are visible before resolving
-                    // (permanents skip it when playToStack is off). The
-                    // stack card itself has its own double-click handler
-                    // that resolves the second step (instant/sorcery →
-                    // graveyard, permanent → battlefield). Card type
-                    // comes from the prefetched cache; on cache miss we
-                    // block on a fresh lookup so the first click routes
-                    // correctly even if prefetch hasn't completed. Wire
-                    // x = -1 lets the server pick a column.
-                      const cardId = Number(c.id);
-                      if (
-                        !Number.isFinite(cardId)
-                      ) {
-                        return;
-                      }
-                      let typeLine =
-                      cardMetaByName.get(c.name)?.typeLine ??
-                      '';
-                      if (!typeLine) {
-                        const r = await lookupCard(c.name);
-                        typeLine = r.typeLine ?? '';
-                        const pt =
-                        r.power != null && r.toughness != null
-                          ? `${r.power}/${r.toughness}`
-                          : undefined;
-                        if (typeLine || pt) {
-                          setCardMetaByName((prev) => {
-                            const existing = prev.get(c.name);
-                            if (
-                              existing?.typeLine === typeLine &&
-                            existing?.pt === pt
-                            ) {
-                              return prev;
-                            }
-                            const next = new Map(prev);
-                            next.set(c.name, { typeLine, pt });
-                            return next;
-                          });
-                        }
-                      }
-                      // Desktop PlayerActions::playCard: lands go to the
-                      // battlefield and instants/sorceries to the stack;
-                      // other permanents take the stack only with "Play
-                      // all nonlands onto the stack" on (the default).
-                      const play = playCardMove(cardId, { ...cardMetaByName.get(c.name), typeLine }, { playToStack });
-                      zoneCommands.moveCards(ZoneName.HAND, [play.card], play.to);
-                    }}
-                    style={{
-                      touchAction: 'none',
-                      cursor: 'grab',
-                      opacity: dragging ? 0 : 1,
-                      boxShadow: selected
-                        ? '0 0 0 2px rgb(59 130 246), 0 0 12px 2px rgb(59 130 246 / 0.6)'
-                        : undefined,
-                      borderRadius: CARD_CORNER_RADIUS,
-                    }}
-                  >
-                    <Card
-                      name={c.name}
-                      // Prefer any scryfallId we've already resolved
-                      // via the Scryfall metadata cache — the wire's
-                      // `c.scryfallId` is empty when the deck was
-                      // uploaded without per-card `uuid` attributes,
-                      // which forces Card.tsx to hit
-                      // /cards/named?exact= for the image. That
-                      // endpoint is rate-limited; several hand
-                      // cards fetching in parallel at game start
-                      // means some silently 429 and never retry.
-                      // The batched cardMetaByName lookup gives us
-                      // a real id → CDN path with no rate limit.
-                      scryfallId={
-                        c.scryfallId
-                      || cardMetaByName.get(c.name)?.scryfallId
-                      }
-                      pt={cardMetaByName.get(c.name)?.pt}
-                    />
-                  </div>
-                );
-              })}
+              {handDisplayList.map((c) => renderOwnCard(c))}
             </div>
           )
           : handCount > 0 && (
             <div
               onMouseEnter={() => setHandExpanded(true)}
               onMouseLeave={() => setHandExpanded(false)}
-              className='flex items-center gap-1 m-auto px-1 bg-bg-surface/40'
+              className={rowClassName}
+              style={rowStyle}
             >
-              {Array.from({ length: handCount }, (_, i) => (
-                <img
-                  key={i}
-                  src={CARD_BACK_URL}
-                  alt=""
-                  draggable={false}
-                  className="shadow-md pointer-events-none select-none"
-                  style={{
-                    width: CARD_WIDTH,
-                    height: CARD_HEIGHT,
-                    borderRadius: CARD_CORNER_RADIUS,
-                    // Only rotate 180° when this player's hand renders
-                    // at the TOP of their seat (handOnTop). A
-                    // bottom-row opponent in a 4-player layout has
-                    // flipHandCardBacks=true (the per-count flag) but
-                    // handOnTop=false — their hand is at the bottom of
-                    // the screen where a natural orientation reads
-                    // correctly. Without the handOnTop gate, those
-                    // cards render upside-down.
-                    transform: (handOnTop && flipHandCardBacks) ? 'rotate(180deg)' : undefined,
-                  }}
-                />
-              ))}
+              {Array.from({ length: handCount }, (_, i) => renderCardBack(i))}
             </div>
           )}
       </motion.div>
+    </div>
+  );
+}
+
+interface VerticalHandProps {
+  placement: CSSProperties;
+  badge: ReactNode;
+  count: number;
+  cardKey: (index: number) => string;
+  renderCard: (index: number) => ReactNode;
+  cardWidth: number;
+  cardHeight: number;
+  zoneRef: React.Ref<HTMLDivElement>;
+  testId: string;
+}
+
+/**
+ * Desktop's vertical hand: a column beside the info column, its cards
+ * overlapping top to bottom and zig-zagging left and right
+ * (layoutVerticalHand). Every card stays in view, so there is no hover
+ * expansion; the hovered card comes to the front, as on desktop.
+ */
+function VerticalHand({
+  placement,
+  badge,
+  count,
+  cardKey,
+  renderCard,
+  cardWidth,
+  cardHeight,
+  zoneRef,
+  testId,
+}: VerticalHandProps) {
+  const overlapPercent = usePreference('verticalCardOverlapPercent');
+  const sizeRef = useRef<HTMLDivElement>(null);
+  const ref = useForkRef(zoneRef, sizeRef);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  const [hovered, setHovered] = useState<string | null>(null);
+  useEffect(() => {
+    const el = sizeRef.current;
+    if (!el) {
+      return;
+    }
+    const ro = new ResizeObserver(([entry]) => {
+      setSize({ w: entry.contentRect.width, h: entry.contentRect.height });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const { positions } = layoutVerticalHand(count, size.w, size.h, cardWidth, cardHeight, overlapPercent);
+
+  return (
+    <div
+      className="relative min-h-0 border-r border-border-subtle bg-bg-surface/40"
+      style={{ ...placement, zIndex: 30 }}
+    >
+      {badge}
+      {/* The cards start under the count badge. */}
+      <div ref={ref} data-testid={testId} className="absolute inset-x-0 bottom-0 top-16">
+        {positions.map((pos, i) => {
+          const key = cardKey(i);
+          return (
+            <div
+              key={key}
+              className="absolute"
+              style={{ left: pos.x, top: pos.y, zIndex: hovered === key ? count : i }}
+              onMouseEnter={() => setHovered(key)}
+              onMouseLeave={() => setHovered((current) => (current === key ? null : current))}
+            >
+              {renderCard(i)}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

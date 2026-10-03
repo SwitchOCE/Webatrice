@@ -4,6 +4,7 @@ import { useForkRef } from '@mui/material/utils';
 import { SEAT_DROP_PRIORITY, type SeatZone } from '../../../hooks/seatDropPlan';
 import type { SeatSelection, SeatSelectionApi } from '../../../hooks/useSeatSelection';
 import { layoutStackPile } from '../../battlefield/Battlefield/battlefieldLayout';
+import { verticalHandDropIndex } from '../HandZone/verticalHandLayout';
 import { useCanActFor } from '../CardVisualStateContext';
 import { useActiveSeatDrag, useSeatDragSource, useSeatDropZone, type SeatDragStart } from '../SeatDragContext';
 import type { BattlefieldCardViewModel, PlayerCardViewModel } from './playerBoard.types';
@@ -30,6 +31,8 @@ export interface UseSeatDndArgs {
   stackDisplayList: readonly PlayerCardViewModel[];
   /** The hand strip in display order, which a hand reorder replays. */
   handDisplayList: readonly PlayerCardViewModel[];
+  /** A hand row, or desktop's vertical hand column: which axis a hand drop reads. */
+  horizontalHand: boolean;
   /** The seat root: the hand drop resolves against the hand cards inside it. */
   boxRef: RefObject<HTMLDivElement | null>;
   handRef: RefObject<HTMLDivElement | null>;
@@ -59,6 +62,7 @@ export function useSeatDnd({
   printedPT,
   stackDisplayList,
   handDisplayList,
+  horizontalHand,
   boxRef,
   handRef,
   stackRef,
@@ -240,21 +244,21 @@ export function useSeatDnd({
   const handDropRef = useSeatDropZone(`seat-${seatId}-hand`, {
     seatPlayerId: seatId,
     priority: SEAT_DROP_PRIORITY.hand,
-    // Insertion index = hand cards whose centre is left of the pointer,
-    // not counting the cards being dragged: the post-removal position.
+    // Insertion index among the hand cards not being dragged (the post-removal
+    // position): in a row, the cards whose centre is left of the pointer; in a
+    // column, the nearest gap between card tops (desktop's calcDropIndexFromY).
     resolve: ({ pointer }, source) => {
       const dragged = new Set(source.zone === 'hand' ? source.cards.map((c) => c.id) : []);
-      let index = 0;
+      const rects: DOMRect[] = [];
       boxRef.current?.querySelectorAll<HTMLElement>('[data-card][data-zone="hand"]').forEach((el) => {
         const id = el.dataset.cardId;
-        if (!id || dragged.has(id)) {
-          return;
-        }
-        const r = el.getBoundingClientRect();
-        if (pointer.x > r.left + r.width / 2) {
-          index++;
+        if (id && !dragged.has(id)) {
+          rects.push(el.getBoundingClientRect());
         }
       });
+      const index = horizontalHand
+        ? rects.filter((r) => pointer.x > r.left + r.width / 2).length
+        : verticalHandDropIndex(rects.map((r) => r.top), pointer.y, CARD_H_PX);
       return { zone: 'hand', index, order: handDisplayList.map((c) => c.id) };
     },
   });

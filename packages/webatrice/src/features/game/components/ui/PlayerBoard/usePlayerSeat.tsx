@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 import { useShortcutHints } from '@app/feature-widgets/shortcuts';
+import { usePreference } from '@app/hooks';
 
 import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
 import { useMoveTopUntil } from '../../../hooks/useMoveTopUntil';
@@ -33,6 +34,7 @@ import { useSeatDnd } from './useSeatDnd';
 import { useSeatMarquee } from './useSeatMarquee';
 import { useSeatPrompts } from './useSeatPrompts';
 import { useSeatShortcutOperations } from './useSeatShortcutOperations';
+import { seatGrid as buildSeatGrid } from './seatGrid';
 
 const NO_CARD_IDS: readonly number[] = [];
 
@@ -111,6 +113,10 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
   const CARD_W_PX = CARD_W_PX_BASE * scale;
   const CARD_H_PX = CARD_H_PX_BASE * scale;
   const STACK_HOFFSET_PX = STACK_PILE_HORIZONTAL_OFFSET_PX * scale;
+
+  // Appearance › Hand layout: a hand row (desktop's default) or a hand column.
+  const horizontalHand = usePreference('horizontalHand');
+  const seatGrid = useMemo(() => buildSeatGrid({ horizontalHand, handOnTop }), [horizontalHand, handOnTop]);
 
   const {
     cardMetaByName,
@@ -410,6 +416,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     printedPT: (cardName) => cardMetaByName.get(cardName)?.pt,
     stackDisplayList,
     handDisplayList,
+    horizontalHand,
     boxRef,
     handRef,
     stackRef,
@@ -463,6 +470,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     handOnTop,
     handSize,
     handZoneRef,
+    horizontalHand,
     isActive,
     isDragging,
     isSelf,
@@ -494,6 +502,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     revealTargets,
     seat,
     seatDrag,
+    seatGrid,
     seatId,
     seatPending,
     selection,

@@ -2,7 +2,8 @@
   "SettingsAppearance": {
     "group": {
       "theme": "Theme settings",
-      "tableGrid": "Table grid layout"
+      "tableGrid": "Table grid layout",
+      "handLayout": "Hand layout"
     },
     "themeMode": {
       "label": "Active theme palette",
@@ -17,6 +18,14 @@
     },
     "minPlayersForMultiColumnLayout": {
       "label": "Minimum player count for multi-column layout"
+    },
+    "horizontalHand": {
+      "label": "Display hand horizontally (wastes space)",
+      "description": "Off, your hand is a column beside your life and zones, and every card in it stays in view."
+    },
+    "leftJustifiedHand": {
+      "label": "Enable left justification",
+      "description": "Starts a horizontal hand at the left instead of centring it."
     }
   }
 }
