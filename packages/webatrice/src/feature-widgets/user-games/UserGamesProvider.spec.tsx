@@ -66,6 +66,11 @@ describe('UserGamesProvider', () => {
 
   it('disables Show games for an offline user, as desktop does', () => {
     renderMenu({ online: false });
-    expect(screen.getByRole('menuitem', { name: /UserGamesDialog\.menu\.showGames/ })).toBeDisabled();
+    const entry = screen.getByRole('menuitem', { name: /UserGamesDialog\.menu\.showGames/ });
+    expect(entry).toHaveAttribute('aria-disabled', 'true');
+    expect(entry).toHaveAccessibleDescription('UserGamesDialog.menu.offline');
+
+    fireEvent.click(entry);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

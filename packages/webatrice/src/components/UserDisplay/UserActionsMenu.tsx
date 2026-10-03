@@ -75,14 +75,14 @@ export default function UserActionsMenu({
         <MessageSquare size={14} /> {t('UserActionsMenu.privateChat')}
       </NavLink>
       {showPublicDecks && isSelf && (
-        <span
-          role="menuitem"
-          tabIndex={-1}
-          aria-disabled="true"
-          className={`${MENU_ITEM_CLASS} opacity-40 cursor-not-allowed`}
+        <MenuItem
+          onSelect={onClose}
+          disabled
+          disabledReason={t('UserActionsMenu.viewPublicDecksSelf')}
+          icon={<Library size={14} />}
         >
-          <Library size={14} /> {t('UserActionsMenu.viewPublicDecks')}
-        </span>
+          {t('UserActionsMenu.viewPublicDecks')}
+        </MenuItem>
       )}
       {showPublicDecks && !isSelf && (
         <NavLink
@@ -124,6 +124,7 @@ export default function UserActionsMenu({
             onClose();
           }}
           disabled={!canReportUser(name)}
+          disabledReason={t('ReportUserDialog.menuItemSelf')}
           icon={<Flag size={14} />}
         >
           {t('ReportUserDialog.menuItem')}
