@@ -1,1 +1,2 @@
 - 22:13Z started; base worktree ready → listing large files
+- 22:14Z 14 files >500 lines listed (sockatrice: none) → fan-out review agents
