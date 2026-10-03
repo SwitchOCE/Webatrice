@@ -1,3 +1,4 @@
 - 16:01Z started; branch created from 0412500 → commit 1 (transform id 0)
 - 16:03Z commits 1-2 pushed (d00fed9) → commit 3 reveal-to-all wire test
 - 16:06Z commit 3 pushed (f4d4f6a; wire bug confirmed, fixed) → commit 4 reverse-turn actor
+- 16:09Z commit 4 pushed (8124d55, lint+typecheck green) → commit 5 game menu
