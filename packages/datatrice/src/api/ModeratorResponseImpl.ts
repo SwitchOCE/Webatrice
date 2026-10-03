@@ -47,7 +47,12 @@ export class ModeratorResponseImpl implements WebsocketTypes.IModeratorResponse 
     this.store.dispatch(ServerActions.updateAdminNotes({ userName, notes }));
   }
 
-  commandFailed(command: WebsocketTypes.ModeratorCommandName, responseCode: number, target: string): void {
-    this.store.dispatch(ServerActions.moderatorCommandFailed({ command, responseCode, target }));
+  commandFailed(
+    command: WebsocketTypes.ModeratorCommandName,
+    responseCode: number,
+    target: string,
+    failure?: WebsocketTypes.CommandFailure,
+  ): void {
+    this.store.dispatch(ServerActions.moderatorCommandFailed({ command, responseCode, target, failure }));
   }
 }

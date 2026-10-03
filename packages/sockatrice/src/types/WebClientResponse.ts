@@ -229,8 +229,12 @@ export type ModeratorCommandName =
 export interface IAdminResponse {
   /** Each flag is `undefined` when the command left that role unchanged (proto2 presence). */
   adjustMod(userName: string, shouldBeMod?: boolean, shouldBeJudge?: boolean, shouldBeDeveloper?: boolean): void;
-  /** A command failed; `target` names what it acted on (the user name). Optional for backward compatibility. */
-  commandFailed?(command: AdminCommandName, responseCode: number, target: string): void;
+  /**
+   * A command failed; `target` names what it acted on (the user name). `failure`
+   * is set when the server never answered (see CommandFailure) and undefined for
+   * a server rejection. Optional for backward compatibility.
+   */
+  commandFailed?(command: AdminCommandName, responseCode: number, target: string, failure?: CommandFailure): void;
   reloadConfig(): void;
   shutdownServer(): void;
   updateServerMessage(): void;
@@ -269,9 +273,11 @@ export interface IModeratorResponse {
 
   /**
    * A command failed; `target` names what it acted on (a user name, or the
-   * replay id as a string). Optional for backward compatibility.
+   * replay id as a string). `failure` is set when the server never answered
+   * (see CommandFailure) and undefined for a server rejection. Optional for
+   * backward compatibility.
    */
-  commandFailed?(command: ModeratorCommandName, responseCode: number, target: string): void;
+  commandFailed?(command: ModeratorCommandName, responseCode: number, target: string, failure?: CommandFailure): void;
 }
 
 /** Developer staff role (#7211, #7212). Developer log lookups route to IModeratorResponse.viewLogs. */

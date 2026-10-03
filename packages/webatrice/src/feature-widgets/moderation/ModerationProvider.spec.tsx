@@ -2,6 +2,7 @@ import { act, fireEvent, screen, within } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 
 import { server } from '@cockatrice/datatrice';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import {
   Response_WarnListSchema,
   ServerInfo_BanSchema,
@@ -156,6 +157,17 @@ describe('ModerationProvider', () => {
         store.dispatch(server.Actions.moderatorCommandFailed({ command: 'banHistory', responseCode: 3, target: 'alice' }));
       });
       expect(screen.getByText('Moderation.banHistory.failed')).toBeInTheDocument();
+    });
+
+    it('explains a ban history request cut off by a disconnect', () => {
+      const { store } = setup('banHistory');
+      act(() => {
+        store.dispatch(server.Actions.moderatorCommandFailed({
+          command: 'banHistory', responseCode: -1, target: 'alice', failure: WebsocketTypes.CommandFailure.Disconnected,
+        }));
+      });
+      expect(screen.getByText('Moderation.banHistory.title')).toBeInTheDocument();
+      expect(screen.getByText('CommandFailure.disconnected')).toBeInTheDocument();
     });
 
     it('shows the warn history table with desktop\'s four columns', () => {

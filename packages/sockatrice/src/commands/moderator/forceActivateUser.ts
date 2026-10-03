@@ -16,8 +16,8 @@ export function forceActivateUser(usernameToActivate: string, moderatorName: str
     onResponseCode: {
       [Response_ResponseCode.RespActivationAccepted]: activated,
     },
-    onError: (responseCode) => {
-      WebClient.instance.response.moderator.commandFailed?.('forceActivateUser', responseCode, usernameToActivate);
+    onError: (responseCode, _raw, failure) => {
+      WebClient.instance.response.moderator.commandFailed?.('forceActivateUser', responseCode, usernameToActivate, failure);
     },
   });
 }

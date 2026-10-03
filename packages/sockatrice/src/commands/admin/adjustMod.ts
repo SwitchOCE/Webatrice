@@ -12,8 +12,8 @@ export function adjustMod(userName: string, shouldBeMod?: boolean, shouldBeJudge
       onSuccess: () => {
         WebClient.instance.response.admin.adjustMod(userName, shouldBeMod, shouldBeJudge, shouldBeDeveloper);
       },
-      onError: (responseCode) => {
-        WebClient.instance.response.admin.commandFailed?.('adjustMod', responseCode, userName);
+      onError: (responseCode, _raw, failure) => {
+        WebClient.instance.response.admin.commandFailed?.('adjustMod', responseCode, userName, failure);
       },
     }
   );

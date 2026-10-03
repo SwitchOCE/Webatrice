@@ -1,6 +1,7 @@
 ﻿vi.mock('../../WebClient');
 
 import { makeCallbackHelpers } from '../../testing/callback-helpers';
+import { CommandFailure } from '../../types/CommandFailure';
 import { WebClient } from '../../WebClient';
 import {
   Command_BanFromServer_ext,
@@ -352,7 +353,15 @@ describe('failure reporting', () => {
   ])('reports a failed %s with its response code and target', (command, send, target) => {
     send();
     invokeOnError(Response_ResponseCode.RespContextError);
-    expect(commandFailed).toHaveBeenCalledWith(command, Response_ResponseCode.RespContextError, target);
+    expect(commandFailed).toHaveBeenCalledWith(command, Response_ResponseCode.RespContextError, target, undefined);
+  });
+
+  it('passes the transport reason when the server never answered', () => {
+    viewLogHistory(create(Command_ViewLogHistorySchema, { userName: 'alice', dateRange: 24 }));
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Timeout);
+    expect(commandFailed).toHaveBeenCalledWith(
+      'viewLogHistory', Response_ResponseCode.RespNotConnected, 'alice', CommandFailure.Timeout,
+    );
   });
 });
 

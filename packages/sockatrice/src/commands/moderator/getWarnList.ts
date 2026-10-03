@@ -12,8 +12,8 @@ export function getWarnList(modName: string, userName: string, userClientid: str
       onSuccess: (response) => {
         WebClient.instance.response.moderator.warnListOptions([response]);
       },
-      onError: (responseCode) => {
-        WebClient.instance.response.moderator.commandFailed?.('warnList', responseCode, userName);
+      onError: (responseCode, _raw, failure) => {
+        WebClient.instance.response.moderator.commandFailed?.('warnList', responseCode, userName, failure);
       },
     }
   );
