@@ -125,9 +125,11 @@ export interface ParsedDeck {
    *  since that's the historic default) rather than as Other. */
   format: string;
   /** Optional `<bannerCard>` — Cockatrice desktop's "featured card"
-   *  for the deck (typically the commander). Preserved on round-trip
-   *  even though we don't render it yet. */
+   *  for the deck (typically the commander). Picked in the deck
+   *  editor and shown as the deck's art in My Decks. */
   bannerCard?: string;
+  /** `providerId` attribute of `<bannerCard>`: the banner's printing. */
+  bannerCardProviderId?: string;
   /** Optional `<lastLoadedTimestamp>` — Cockatrice desktop stamps
    *  this whenever it opens a file. Preserved verbatim so a
    *  webatrice-authored save doesn't clobber the desktop client's

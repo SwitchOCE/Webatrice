@@ -13,6 +13,7 @@ import {
   Command_DeckUploadSchema,
   Response_DeckUploadSchema,
   Response_DeckUpload_ext,
+  ServerInfo_DeckStorage_TreeItemSchema,
 } from '@cockatrice/sockatrice/generated';
 
 import { connectAndLogin } from '../helpers/setup';
@@ -226,7 +227,7 @@ describe('DeckEditor (integration)', () => {
     });
   });
 
-  it('autosaves edits as an update of the same deck id without a storage path, then refreshes the tree', async () => {
+  it('autosaves edits as an update of the same deck id without a storage path', async () => {
     await openDeck(MODERN_DECK);
 
     fireEvent.change(screen.getByDisplayValue('Burn'), { target: { value: 'Burn v2' } });
@@ -243,14 +244,28 @@ describe('DeckEditor (integration)', () => {
       deliverMessage(buildResponseMessage(buildResponse({
         cmdId: upload.cmdId,
         ext: Response_DeckUpload_ext,
-        value: create(Response_DeckUploadSchema, {}),
+        value: create(Response_DeckUploadSchema, {
+          newFile: create(ServerInfo_DeckStorage_TreeItemSchema, { id: DECK_ID, name: 'Burn v2' }),
+        }),
       })));
     });
     expect(await screen.findByText('Saved')).toBeInTheDocument();
-    await waitFor(
-      () => expect(findAllSessionCommands(Command_DeckList_ext).length).toBe(listRequestsBefore + 1),
-      { timeout: 2000 },
-    );
+    // The ack's tree item updates the deck tree in place; no list refetch.
+    expect(findAllSessionCommands(Command_DeckList_ext).length).toBe(listRequestsBefore);
+  });
+
+  it('does not upload when nothing changed', async () => {
+    await openDeck(MODERN_DECK);
+    // Opening caches the computed price into the deck: one real change.
+    await autosaved((d) => d.meta.priceUsd !== undefined);
+    const before = uploads().length;
+
+    fireEvent.change(screen.getByDisplayValue('Burn'), { target: { value: 'Burn v2' } });
+    fireEvent.change(screen.getByDisplayValue('Burn v2'), { target: { value: 'Burn' } });
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    });
+    expect(uploads()).toHaveLength(before);
   });
 
   it('writes a default format back for legacy decks that have none', async () => {

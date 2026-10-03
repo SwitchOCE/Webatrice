@@ -57,7 +57,10 @@ export function parseCod(xml: string): ParsedDeck {
   const commentsText = firstChildText(root, 'comments');
   const meta = parseMeta(commentsText);
   const format = (firstChildText(root, 'format') ?? '').trim();
-  const bannerCard = firstChildText(root, 'bannerCard')?.trim() || undefined;
+  const bannerEl = directChildren(root, 'bannerCard')[0];
+  const bannerCard = bannerEl?.textContent?.trim() || undefined;
+  // Desktop's `CardRef`: the printing is the `providerId` attribute.
+  const bannerCardProviderId = (bannerCard && bannerEl?.getAttribute('providerId')?.trim()) || undefined;
   const lastLoadedTimestamp = firstChildText(root, 'lastLoadedTimestamp')?.trim() || undefined;
   // Preserve the entire <tags> element as an XML string. Cockatrice
   // desktop writes it and may put arbitrary children inside; we don't
@@ -106,6 +109,7 @@ export function parseCod(xml: string): ParsedDeck {
     cards,
     format,
     bannerCard,
+    bannerCardProviderId,
     lastLoadedTimestamp,
     tagsXml,
     bracketAssessment,
@@ -127,6 +131,7 @@ export function serializeCod(deck: {
   cards: readonly ParsedCard[];
   format?: string;
   bannerCard?: string;
+  bannerCardProviderId?: string;
   lastLoadedTimestamp?: string;
   tagsXml?: string;
   bracketAssessment?: BracketAssessment;
@@ -167,6 +172,9 @@ export function serializeCod(deck: {
   }
   if (deck.bannerCard && deck.bannerCard.trim()) {
     appendTextElement(doc, root, 'bannerCard', deck.bannerCard.trim());
+    if (deck.bannerCardProviderId) {
+      root.lastElementChild!.setAttribute('providerId', deck.bannerCardProviderId);
+    }
   }
   appendTextElement(doc, root, 'comments', serializeMeta(bumped));
   // <tags> is preserved opaquely — we parse the stored XML string back

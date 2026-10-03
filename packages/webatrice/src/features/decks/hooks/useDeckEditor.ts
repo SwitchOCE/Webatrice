@@ -26,6 +26,7 @@ import {
   setDeckPriceCache,
 } from '../deckEdits';
 import { countDeckCards } from '../deckGrouping';
+import { deckSaveSignature } from '../deckPersistence';
 import { assembleDeckCard, hydrateDeck } from '../hydrate';
 import type { DeckCard, HydratedDeck } from '../types';
 import { useDeckAutosave, type SaveState } from './useDeckAutosave';
@@ -85,6 +86,8 @@ export interface UseDeckEditor {
   addCard: (name: string) => Promise<void>;
   /** Save a pending change right now (bypass the debounce). */
   flushSave: () => void;
+  /** Send the deck again after a failed save. */
+  retrySave: () => void;
 }
 
 export function useDeckEditor(deckId: number | null): UseDeckEditor {
@@ -105,8 +108,8 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   const deckRef = useRef<HydratedDeck | null>(null);
   const readDeck = useCallback(() => deckRef.current, []);
 
-  const autosave = useDeckAutosave(deckId, readDeck, initialCached?.savedXml ?? null);
-  const { scheduleSave, markSaved, resetSaved, savedXml } = autosave;
+  const autosave = useDeckAutosave(deckId, readDeck, initialCached?.savedSignature ?? null);
+  const { scheduleSave, markSaved, resetSaved, savedSignature } = autosave;
 
   // The route keeps this hook mounted across `/deck/:deckId` changes,
   // so re-seed per deckId: otherwise switching to a cached deck keeps
@@ -138,8 +141,12 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     // A deck switched to from another keeps its own saved signature.
     const cached = getCachedDeck(deckId);
     if (cached) {
-      if (savedXml() !== cached.savedXml) {
-        markSaved(cached.savedXml);
+      if (savedSignature() !== cached.savedSignature) {
+        if (cached.savedSignature == null) {
+          resetSaved();
+        } else {
+          markSaved(cached.savedSignature);
+        }
       }
       setLoading(false);
       setNotFound(false);
@@ -154,7 +161,7 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     setDeck(null);
     resetSaved();
     webClient.request.session.deckDownload(deckId);
-  }, [isConnected, deckId, webClient, resetSaved, markSaved, savedXml]);
+  }, [isConnected, deckId, webClient, resetSaved, markSaved, savedSignature]);
 
   useReduxEffect<{ deckId: number; deck: string }>(
     ({ payload }) => {
@@ -165,21 +172,29 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
         try {
           const parsed = parseCod(payload.deck);
           const hydrated = await hydrateDeck(parsed);
-          setDeck(hydrated);
-          markSaved(payload.deck);
-          // Analytics: format distribution across opened decks, using the
-          // normalized format the editor shows (absent → commander).
-          trackEvent('deck_opened', { format: hydrated.format });
-          setCachedDeck(payload.deckId, { deck: hydrated, savedXml: payload.deck });
-          setLoading(false);
           // Write migrations back even if the user never edits:
           //   • decks with no <format> were defaulted to commander;
           //   • legacy `<zone name="commander">` cards were coerced into
           //     main with `isCommander`, but Servatrice's setupZones only
           //     reads main + side, so the stored file must be rewritten or
           //     the commander drops out of the library.
+          // A null signature makes the next save upload unconditionally.
           const hasLegacyCommanderZone = payload.deck.includes('<zone name="commander"');
-          if (!parsed.format.trim() || hasLegacyCommanderZone) {
+          const needsMigration = !parsed.format.trim() || hasLegacyCommanderZone;
+          const signature = needsMigration ? null : deckSaveSignature(hydrated);
+          deckRef.current = hydrated;
+          setDeck(hydrated);
+          if (signature == null) {
+            resetSaved();
+          } else {
+            markSaved(signature);
+          }
+          // Analytics: format distribution across opened decks, using the
+          // normalized format the editor shows (absent → commander).
+          trackEvent('deck_opened', { format: hydrated.format });
+          setCachedDeck(payload.deckId, { deck: hydrated, savedSignature: signature });
+          setLoading(false);
+          if (needsMigration) {
             scheduleSave();
           }
         } catch (err) {
@@ -216,9 +231,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     const existing = getCachedDeck(deckId);
     setCachedDeck(deckId, {
       deck,
-      savedXml: existing?.savedXml ?? savedXml() ?? '',
+      savedSignature: existing ? existing.savedSignature : savedSignature(),
     });
-  }, [deckId, deck, savedXml]);
+  }, [deckId, deck, savedSignature]);
 
   // --- Mutations ---
   const applyEdit = useCallback(
@@ -305,5 +320,6 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     setCommander,
     addCard,
     flushSave: autosave.flushSave,
+    retrySave: scheduleSave,
   };
 }

@@ -121,7 +121,7 @@ describe('useDeckList', () => {
 
   it('deletes a deck and forgets its editor copy', () => {
     const { webClient } = setup();
-    setCachedDeck(4, { deck: { name: 'x', meta: { v: 1, updatedAt: 'x' }, cards: [], format: '' }, savedXml: '' });
+    setCachedDeck(4, { deck: { name: 'x', meta: { v: 1, updatedAt: 'x' }, cards: [], format: '' }, savedSignature: null });
     act(() => latest.deleteDeck({ id: 4, name: 'x', path: '', creationTime: 0 }));
     expect(webClient.request.session.deckDel).toHaveBeenCalledWith(4);
     expect(getCachedDeck(4)).toBeUndefined();
@@ -133,7 +133,7 @@ describe('useDeckList', () => {
       store.dispatch(server.Actions.backendDecks({ deckList: deckTree() }));
       store.dispatch(server.Actions.deckDownloaded({ deckId: 1, deck: COD('modern') }));
     });
-    setCachedDeck(1, { deck: { name: 'x', meta: { v: 1, updatedAt: 'x' }, cards: [], format: '' }, savedXml: '' });
+    setCachedDeck(1, { deck: { name: 'x', meta: { v: 1, updatedAt: 'x' }, cards: [], format: '' }, savedSignature: null });
 
     act(() => latest.refresh());
 
