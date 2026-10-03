@@ -70,11 +70,12 @@ test.describe('on a 3.1 server', () => {
     await ownerPage.getByRole('button', { name: `Share ${deckName}` }).click();
     await ownerPage.getByRole('textbox', { name: 'Share name:' }).fill('For a friend');
     await ownerPage.getByRole('button', { name: 'Create share link' }).click();
-    const linkField = ownerPage.getByRole('dialog', { name: 'Share deck' }).getByRole('textbox');
+    const shareDialog = ownerPage.getByRole('dialog', { name: 'Share deck' });
+    const linkField = shareDialog.getByRole('textbox');
     await expect(linkField).toHaveValue(/[?&]share=/, { timeout: 15_000 });
     const link = await linkField.inputValue();
     expect(new URL(link).searchParams.get('hostname')).toBe(E2E_HOST.host);
-    await ownerPage.getByRole('button', { name: 'Close' }).click();
+    await shareDialog.getByRole('button', { name: 'Close', exact: true }).click();
 
     // The viewer arrives through the link, logged out: it waits for login.
     await viewerPage.goto(link);
