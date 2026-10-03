@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { I18nextProvider, initReactI18next } from 'react-i18next';
 import i18n from 'i18next';
 import { createStore, server } from '@cockatrice/datatrice';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { WebClientContext } from '@cockatrice/datatrice/react';
 
 import { rootReducerMap, type RootState } from '../../store';
@@ -112,6 +113,19 @@ describe('useLogs', () => {
       store.dispatch(server.Actions.moderatorCommandFailed({ command: 'viewLogHistory', responseCode: 3, target: 'alice' }));
     });
     expect(result.current.notice).toMatchObject({ message: 'Logs.notice.failed', severity: 'error' });
+  });
+
+  it('explains a search the server never answered with the transport reason', () => {
+    const { result, store } = setup();
+    act(() => {
+      result.current.onSubmit(search({ userName: 'alice' }));
+    });
+    act(() => {
+      store.dispatch(server.Actions.moderatorCommandFailed({
+        command: 'viewLogHistory', responseCode: -1, target: 'alice', failure: WebsocketTypes.CommandFailure.Timeout,
+      }));
+    });
+    expect(result.current.notice).toMatchObject({ message: 'CommandFailure.timeout', severity: 'error' });
   });
 
   it('ignores log responses it did not ask for', () => {

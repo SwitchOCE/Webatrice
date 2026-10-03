@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
-import { useReduxEffect } from '@app/hooks';
+import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
+import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 
 import type { ModerationNotice } from './useModerationFlow';
@@ -16,7 +17,7 @@ export interface ModeratorFunctions {
   forceActivateUser: (userName: string) => void;
 }
 
-interface FailedPayload { command: string; responseCode: number; target: string }
+interface FailedPayload { command: string; responseCode: number; target: string; failure?: WebsocketTypes.CommandFailure }
 
 /**
  * TabAdmin's "Server moderator functions" (tab_admin.cpp): grant yourself access
@@ -27,6 +28,7 @@ interface FailedPayload { command: string; responseCode: number; target: string 
  */
 export function useModeratorFunctions(): ModeratorFunctions {
   const { t } = useTranslation();
+  const describeFailure = useCommandFailureMessage();
   const webClient = useWebClient();
   const ownName = useAppSelector((state) => server.Selectors.getUser(state)?.name ?? '');
   const [notice, setNotice] = useState<ModerationNotice | null>(null);
@@ -66,17 +68,17 @@ export function useModeratorFunctions(): ModeratorFunctions {
 
   useReduxEffect<FailedPayload>(({ payload }) => {
     if (payload.command === 'grantReplayAccess' && pendingReplays.current.delete(payload.target)) {
-      failure(t(payload.responseCode === Response_ResponseCode.RespContextError
+      failure(describeFailure(payload.failure, t(payload.responseCode === Response_ResponseCode.RespContextError
         ? 'Moderation.functions.replayInvalid'
-        : 'Moderation.functions.replayError'));
+        : 'Moderation.functions.replayError')));
     } else if (payload.command === 'forceActivateUser' && pendingActivations.current.delete(payload.target)) {
       const messages: Partial<Record<number, string>> = {
         [Response_ResponseCode.RespNameNotFound]: 'Moderation.functions.activateUnknown',
         [Response_ResponseCode.RespActivationFailed]: 'Moderation.functions.activateAlreadyActive',
       };
-      failure(t(messages[payload.responseCode] ?? 'Moderation.functions.activateError'));
+      failure(describeFailure(payload.failure, t(messages[payload.responseCode] ?? 'Moderation.functions.activateError')));
     }
-  }, server.Types.MODERATOR_COMMAND_FAILED, [t]);
+  }, server.Types.MODERATOR_COMMAND_FAILED, [describeFailure, t]);
 
   return { notice, dismissNotice, grantReplayAccess, forceActivateUser };
 }

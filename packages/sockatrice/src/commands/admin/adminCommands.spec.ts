@@ -1,6 +1,7 @@
 ﻿vi.mock('../../WebClient');
 
 import { makeCallbackHelpers } from '../../testing/callback-helpers';
+import { CommandFailure } from '../../types/CommandFailure';
 import { WebClient } from '../../WebClient';
 import { adjustMod } from './adjustMod';
 import { reloadConfig } from './reloadConfig';
@@ -64,7 +65,15 @@ describe('adjustMod', () => {
     adjustMod('alice', undefined, true);
     invokeOnError(Response_ResponseCode.RespInternalError);
     expect(WebClient.instance.response.admin.commandFailed).toHaveBeenCalledWith(
-      'adjustMod', Response_ResponseCode.RespInternalError, 'alice',
+      'adjustMod', Response_ResponseCode.RespInternalError, 'alice', undefined,
+    );
+  });
+
+  it('passes the transport reason when the server never answered', () => {
+    adjustMod('alice', undefined, true);
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    expect(WebClient.instance.response.admin.commandFailed).toHaveBeenCalledWith(
+      'adjustMod', Response_ResponseCode.RespNotConnected, 'alice', CommandFailure.Disconnected,
     );
   });
 });

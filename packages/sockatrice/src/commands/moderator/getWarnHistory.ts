@@ -12,8 +12,8 @@ export function getWarnHistory(userName: string): void {
       onSuccess: (response) => {
         WebClient.instance.response.moderator.warnHistory(userName, response.warnList);
       },
-      onError: (responseCode) => {
-        WebClient.instance.response.moderator.commandFailed?.('warnHistory', responseCode, userName);
+      onError: (responseCode, _raw, failure) => {
+        WebClient.instance.response.moderator.commandFailed?.('warnHistory', responseCode, userName, failure);
       },
     }
   );
