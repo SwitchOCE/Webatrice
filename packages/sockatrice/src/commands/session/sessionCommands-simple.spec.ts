@@ -131,6 +131,21 @@ describe('accountEdit', () => {
     expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespWrongPassword, undefined);
     expect(WebClient.instance.response.session.accountEditChanged).not.toHaveBeenCalled();
   });
+
+  it('still accepts the deprecated positional form', () => {
+    accountEdit('pw', 'Alice', undefined, 'us');
+    const cmd = (WebClient.instance.protobuf.sendSessionCommand as Mock).mock.calls[0][1];
+    expect(cmd).toMatchObject({ passwordCheck: 'pw', realName: 'Alice', country: 'us' });
+    expect(isFieldSet(cmd, Command_AccountEditSchema.field.email)).toBe(false);
+    invokeOnSuccess();
+    expect(WebClient.instance.response.session.accountEditChanged).toHaveBeenCalledWith('Alice', undefined, 'us');
+  });
+
+  it('treats an empty passwordCheck in the deprecated form as absent', () => {
+    accountEdit('', 'Alice');
+    const cmd = (WebClient.instance.protobuf.sendSessionCommand as Mock).mock.calls[0][1];
+    expect(isFieldSet(cmd, Command_AccountEditSchema.field.passwordCheck)).toBe(false);
+  });
 });
 
 describe('accountImage', () => {
@@ -203,6 +218,17 @@ describe('accountPassword', () => {
     invokeOnError(Response_ResponseCode.RespPasswordTooShort);
     expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespPasswordTooShort, undefined);
     expect(WebClient.instance.response.session.accountPasswordChange).not.toHaveBeenCalled();
+  });
+
+  it('still accepts the deprecated form with a caller-computed hash and sends it synchronously', () => {
+    const result = accountPassword('old', '', 'callerHash');
+    expect(result).toBeUndefined();
+    const cmd = (WebClient.instance.protobuf.sendSessionCommand as Mock).mock.calls[0][1];
+    expect(cmd).toMatchObject({ oldPassword: 'old', hashedNewPassword: 'callerHash' });
+    expect(isFieldSet(cmd, Command_AccountPasswordSchema.field.newPassword)).toBe(false);
+    expect(hashPassword).not.toHaveBeenCalled();
+    invokeOnSuccess();
+    expect(WebClient.instance.response.session.accountPasswordChange).toHaveBeenCalled();
   });
 });
 
