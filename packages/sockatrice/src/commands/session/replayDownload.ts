@@ -8,8 +8,9 @@ import { Command_ReplayDownload_ext, Command_ReplayDownloadSchema, Response_Repl
  * Downloads one stored replay. The bytes are a serialized `GameReplay` — the
  * exact content desktop writes to a `.cor` file. `onDownloaded` hands them to
  * the caller that asked (watch vs. save-to-file, like desktop's
- * openRemoteReplayFinished / downloadFinished) without routing a one-shot
- * payload through the store; the store notification still fires.
+ * openRemoteReplayFinished / downloadFinished). When it is supplied the bytes
+ * go only to the caller: `ISessionResponse.replayDownloaded` fires only for a
+ * download without one, so a one-shot payload is not kept in the store.
  */
 export function replayDownload(
   replayId: number,
@@ -22,8 +23,11 @@ export function replayDownload(
     {
       responseExt: Response_ReplayDownload_ext,
       onSuccess: (response) => {
-        WebClient.instance.response.session.replayDownloaded(replayId, response);
-        onDownloaded?.(response.replayData);
+        if (onDownloaded) {
+          onDownloaded(response.replayData);
+        } else {
+          WebClient.instance.response.session.replayDownloaded(replayId, response);
+        }
       },
       onError: (responseCode, _raw, failure) => onFailure?.(responseCode, failure),
     }
