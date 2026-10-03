@@ -1,4 +1,4 @@
-import type { DeckCategory } from './types';
+import type { DeckCategory } from '@app/types';
 
 /**
  * Parse a pasted Magic deck list into (quantity, name, category)

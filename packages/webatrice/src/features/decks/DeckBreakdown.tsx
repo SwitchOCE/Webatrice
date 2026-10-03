@@ -10,13 +10,8 @@ import {
   type BracketReport,
 } from './bracket';
 import { BRACKET_LABEL } from './bracketData';
-import {
-  isCommanderFormat,
-  primaryType,
-  type BracketAssessment,
-  type CardTypeGroup,
-  type DeckCard,
-} from './types';
+import { isCommanderFormat, type BracketAssessment } from '@app/types';
+import { primaryType, type CardTypeGroup, type DeckCard } from './types';
 
 /**
  * Aggregate deck statistics: totals, mana curve, color distribution,

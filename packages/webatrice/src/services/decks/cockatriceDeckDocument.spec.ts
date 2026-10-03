@@ -1,6 +1,7 @@
-import { emptyCod, parseCod, serializeCod } from './cod';
-import { defaultMeta, serializeMeta } from './meta';
-import type { DeckCard, DeckMeta } from './types';
+import type { DeckMeta, ParsedCard } from '@app/types';
+
+import { emptyCod, parseCod, serializeCod } from './cockatriceDeckDocument';
+import { defaultMeta, serializeMeta } from './cockatriceDeckMetadata';
 
 describe('parseCod', () => {
   it('parses deck name, main + side zones, and a mix of card forms', () => {
@@ -92,7 +93,8 @@ describe('parseCod', () => {
 
 describe('serializeCod → parseCod round-trip', () => {
   it('round-trips a hydrated deck (name, cards, categories, printings, meta)', () => {
-    const cards: DeckCard[] = [
+    // Hydrated editor cards carry lookup fields the codec ignores.
+    const cards: Array<ParsedCard & { lookupSource: 'dexie' }> = [
       {
         name: 'Sol Ring',
         quantity: 4,

@@ -1,4 +1,4 @@
-import type { DeckMeta } from './types';
+import type { DeckMeta } from '@app/types';
 
 /**
  * Codec for the JSON metadata blob that lives inside a `.cod`'s

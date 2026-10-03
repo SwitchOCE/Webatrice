@@ -12,7 +12,7 @@ vi.mock('@app/services', async (importOriginal) => {
   return { ...actual, lookupCards: vi.fn(async () => new Map()), trackEvent: vi.fn() };
 });
 
-import { emptyCod } from './cod';
+import { emptyCod } from '@app/services';
 import { clearDeckEditorCache, useDeckEditor } from './useDeckEditor';
 
 const reducer = combineReducers(rootReducerMap);
