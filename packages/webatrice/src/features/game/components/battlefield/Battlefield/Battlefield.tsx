@@ -1,3 +1,4 @@
+import { useForkRef } from '@mui/material/utils';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { useSnapGridVisible } from '@app/hooks';
 
@@ -5,14 +6,18 @@ import ContextMenu from '../../context-menus/ContextMenu/ContextMenu';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import { CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../../ui/SeatCard/cardSize';
 import Card from '../../ui/SeatCard/SeatCard';
-import { SeatDropPreview } from '../../ui/SeatDragContext';
+import { SEAT_DROP_PRIORITY } from '../../../hooks/seatDropPlan';
+import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
+import { SeatDropPreview, useSeatDropZone } from '../../ui/SeatDragContext';
 import {
   BATTLEFIELD_ROWS,
   computeCellWidths,
   rowTopY,
   slotOriginPx,
+  snapPxToSlot,
   type BattlefieldLayoutOpts,
 } from './battlefieldLayout';
+import { useBattlefieldLayout } from './useBattlefieldLayout';
 
 /**
  * Non-interactive overlay: dashed outline at every snap slot + the divider
@@ -123,25 +128,16 @@ function BattlefieldSlotOverlay({
  */
 export default function Battlefield() {
   const {
-    BATTLEFIELD_ROW_PADDING_PX,
     attachExtraSourceIds,
     attachPending,
     battlefieldDisplayList,
-    battlefieldLayout,
     battlefieldMenuItems,
-    battlefieldPositions,
-    battlefieldRef,
-    battlefieldScrollRef,
     cardCommands,
     cardMetaByName,
-    cellWidths,
-    colsByRow,
     handOnTop,
     isDragging,
     isSelf,
     menuOwnerId,
-    naturalContentH,
-    naturalContentW,
     openSeatCardMenu,
     opponentBattlefieldMenuItems,
     playerId,
@@ -150,6 +146,46 @@ export default function Battlefield() {
     selection,
     startSeatCardDrag,
   } = usePlayerSeatContext();
+  const {
+    battlefieldLayout,
+    BATTLEFIELD_ROW_PADDING_PX,
+    scrollContainerRef,
+    battlefieldRef,
+    cellWidths,
+    colsByRow,
+    naturalContentW,
+    naturalContentH,
+    gridRows,
+    gridCols,
+    battlefieldPositions,
+  } = useBattlefieldLayout({ cards: battlefieldDisplayList, playerId, mirrored: handOnTop });
+
+  // The board is a seat drop zone of its own: it resolves a drop against its
+  // own columns and scale, so a gift onto another seat snaps to that board.
+  const battlefieldDropRef = useSeatDropZone(`seat-${seatId}-battlefield`, {
+    seatPlayerId: seatId,
+    acceptsOtherSeats: true,
+    priority: SEAT_DROP_PRIORITY.battlefield,
+    // Snap the dragged card's top-left against this board's own columns, in
+    // its visual orientation, then flip the row back to wire orientation on
+    // a mirrored board.
+    resolve: ({ cardOrigin }) => {
+      const content = battlefieldRef.current;
+      if (!content) {
+        return null;
+      }
+      const rect = content.getBoundingClientRect();
+      const snap = snapPxToSlot(cardOrigin.x - rect.left, cardOrigin.y - rect.top, cellWidths, battlefieldLayout);
+      return {
+        zone: 'battlefield',
+        playerId: seatId,
+        slot: { row: handOnTop ? BATTLEFIELD_ROWS - 1 - snap.row : snap.row, col: snap.col },
+        grid: { rows: gridRows, cols: gridCols },
+      };
+    },
+  });
+  const battlefieldScrollRef = useForkRef(scrollContainerRef, battlefieldDropRef);
+  useHorizontalWheelScroll(scrollContainerRef);
 
   return (
     <ContextMenu

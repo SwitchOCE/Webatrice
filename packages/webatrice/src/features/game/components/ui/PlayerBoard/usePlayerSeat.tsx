@@ -2,28 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForkRef } from '@mui/material/utils';
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 import {
-  BATTLEFIELD_GAP_PX as BATTLEFIELD_GAP_PX_BASE,
-  STACK_OFFSET_PX as STACK_OFFSET_PX_BASE,
-  STACK_OFFSET_Y_PX as STACK_OFFSET_Y_PX_BASE,
-  BATTLEFIELD_ROW_PADDING_PX as BATTLEFIELD_ROW_PADDING_PX_BASE,
-  BATTLEFIELD_MARGIN_LEFT_PX as BATTLEFIELD_MARGIN_LEFT_PX_BASE,
-  BATTLEFIELD_MARGIN_RIGHT_PX as BATTLEFIELD_MARGIN_RIGHT_PX_BASE,
-  BATTLEFIELD_MARGIN_TOP_PX as BATTLEFIELD_MARGIN_TOP_PX_BASE,
-  BATTLEFIELD_MIN_COLS,
-  BATTLEFIELD_ROWS,
-  computeCellWidths,
-  rowTopY,
-  slotOriginPx,
-  computeContentWidth,
-  computeContentHeight,
-  snapPxToSlot,
   layoutStackPile,
   SEAT_CARD_HEIGHT_PX as CARD_H_PX_BASE,
   SEAT_CARD_WIDTH_PX as CARD_W_PX_BASE,
   STACK_PILE_HORIZONTAL_OFFSET_PX,
-  type BattlefieldLayoutOpts,
 } from '../../battlefield/Battlefield/battlefieldLayout';
-import { MAX_SUBPOS } from '../../battlefield/Battlefield/gridMath';
 import { applyPTDelta, applyPTSet, parsePT } from '../../context-menus/CardContextMenu/cardAttributeEdits';
 import {
   annotationPrompt,
@@ -57,6 +40,7 @@ import { useGameDialogsContext } from '../GameDialogsContext';
 import { useShortcutHints } from '@app/feature-widgets/shortcuts';
 import { MANA_COLORS } from '../../right-sidebar/PlayerInfoPanel/manaColors';
 import { toRecipient } from './revealRecipient';
+import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
 import { useDrawFlights } from './useDrawFlights';
 import { usePendingArrows } from './usePendingArrows';
 import { useSeatCardMetadata } from './useSeatCardMetadata';
@@ -164,44 +148,12 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     openCreateToken,
   } = useGameDialogsContext();
 
-  // Scaled versions of the base card-related pixel constants. Every layout
-  // computation in this component that measures against card size (grid
-  // fit, hit-testing, stack layouts, gaps between cards) uses these so a
-  // slider adjustment in the header immediately reshapes the play area.
-  // Non-card UI (mana pips, life total, sidebar preview, etc.) is
-  // unaffected because it doesn't reference these constants.
+  // The card scale (the header slider) sizes the stack pile and its drop
+  // hit-test; the battlefield's own layout reads it in useBattlefieldLayout.
   const { scale } = useCardScale();
   const CARD_W_PX = CARD_W_PX_BASE * scale;
   const CARD_H_PX = CARD_H_PX_BASE * scale;
-  const BATTLEFIELD_GAP_PX = BATTLEFIELD_GAP_PX_BASE * scale;
-  const STACK_OFFSET_PX = STACK_OFFSET_PX_BASE * scale;
-  const STACK_OFFSET_Y_PX = STACK_OFFSET_Y_PX_BASE * scale;
   const STACK_HOFFSET_PX = STACK_PILE_HORIZONTAL_OFFSET_PX * scale;
-  const BATTLEFIELD_ROW_PADDING_PX = BATTLEFIELD_ROW_PADDING_PX_BASE * scale;
-  const BATTLEFIELD_MARGIN_LEFT_PX = BATTLEFIELD_MARGIN_LEFT_PX_BASE * scale;
-  const BATTLEFIELD_MARGIN_RIGHT_PX = BATTLEFIELD_MARGIN_RIGHT_PX_BASE * scale;
-  const BATTLEFIELD_MARGIN_TOP_PX = BATTLEFIELD_MARGIN_TOP_PX_BASE * scale;
-  // Shared layout options for every battlefield helper call in this
-  // PlayerBox. All px values already include the card scale so the
-  // helpers stay unit-agnostic — they just do sums and lookups.
-  const battlefieldLayout: BattlefieldLayoutOpts = {
-    cardWidthPx: CARD_W_PX,
-    cardHeightPx: CARD_H_PX,
-    gapXPx: BATTLEFIELD_GAP_PX,
-    gapYPx: BATTLEFIELD_ROW_PADDING_PX,
-    marginLeftPx: BATTLEFIELD_MARGIN_LEFT_PX,
-    marginRightPx: BATTLEFIELD_MARGIN_RIGHT_PX,
-    marginTopPx: BATTLEFIELD_MARGIN_TOP_PX,
-    stackOffsetXPx: STACK_OFFSET_PX,
-    stackOffsetYPx: STACK_OFFSET_Y_PX,
-    minCols: BATTLEFIELD_MIN_COLS,
-    rows: BATTLEFIELD_ROWS,
-  };
-  // Reserved room at the visual bottom of the battlefield so a fully
-  // stacked bottom-row slot (up to MAX_SUBPOS cards, each
-  // offset by STACK_OFFSET_Y_PX from the last) doesn't clip past the
-  // container edge.
-  const stackExtPx = (MAX_SUBPOS - 1) * STACK_OFFSET_Y_PX;
 
   const {
     cardMetaByName,
@@ -299,72 +251,10 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
   // finalizing the selection.
   const boxRef = useRef<HTMLDivElement>(null);
 
-  // The battlefield has TWO refs now that it can scroll horizontally:
-  //   - `scrollContainerRef`: the visible/scrollable viewport. Measured
-  //     here so we know how many columns naturally fit on-screen.
-  //   - `battlefieldRef`: the sized content div holding cards + slot
-  //     outlines. Its explicit width grows past the viewport as the grid
-  //     extends past the fit, triggering horizontal scroll.
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const battlefieldRef = useRef<HTMLDivElement>(null);
-  const [fitSize, setFitSize] = useState({ w: 0, h: 0 });
-  useEffect(() => {
-    const el = scrollContainerRef.current;
-    if (!el) {
-      return;
-    }
-    const ro = new ResizeObserver(([entry]) => {
-      setFitSize({
-        w: entry.contentRect.width,
-        h: entry.contentRect.height,
-      });
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
 
-  // Translate vertical wheel input into horizontal scroll for the
-  // battlefield + hand scroll containers. Must attach via
-  // addEventListener with `{ passive: false }` — React's synthetic
-  // onWheel is passive-by-default (browsers made this a spec-level
-  // scrolling perf optimization in 2016+), so calling preventDefault
-  // inside a React onWheel throws the "Unable to preventDefault
-  // inside passive event listener" warning on every scroll and the
-  // scroll still bubbles to the outer page.
-  useEffect(() => {
-    const targets: (HTMLElement | null)[] = [
-      scrollContainerRef.current,
-      handRef.current,
-    ];
-    const handleWheel = (e: WheelEvent) => {
-      const el = e.currentTarget as HTMLElement | null;
-      if (!el) {
-        return;
-      }
-      if (el.scrollWidth <= el.clientWidth) {
-        return;
-      }
-      if (e.deltaY === 0) {
-        return;
-      }
-      el.scrollLeft += e.deltaY;
-      e.preventDefault();
-    };
-    for (const el of targets) {
-      if (el) {
-        el.addEventListener('wheel', handleWheel, { passive: false });
-      }
-    }
-    return () => {
-      for (const el of targets) {
-        if (el) {
-          el.removeEventListener('wheel', handleWheel);
-        }
-      }
-    };
-  }, []);
-  // Battlefield source-of-truth for layout — Redux is the only source.
-  // See the top-of-file note about local-mock removal.
+  // The hand row scrolls sideways under the mouse wheel (the battlefield
+  // does the same for its own board).
+  useHorizontalWheelScroll(handRef);
   const battlefieldDisplayList = zones.battlefield.cards;
 
   // Reactive shortcut-hint map — updates whenever the user rebinds a
@@ -967,132 +857,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
 
   usePublishSeatShortcuts(isSelf ? seatShortcuts : null);
 
-  // Parent → children map for attached cards on THIS player's board.
-  // Hoisted early because `computeCellWidths` needs each parent's
-  // attach count to widen the parent's cell (cells hosting a heavily-
-  // fanned parent grow to the left so the leftward-extending children
-  // don't overlap the neighboring column). Reused later by the render
-  // pass for absolute positioning.
-  const attachedChildrenByParent = (() => {
-    const m = new Map<number, BattlefieldCard[]>();
-    for (const c of battlefieldDisplayList) {
-      if (
-        c.attachTargetCardId != null &&
-        c.attachTargetPlayerId === playerId
-      ) {
-        const list = m.get(c.attachTargetCardId) ?? [];
-        list.push(c);
-        m.set(c.attachTargetCardId, list);
-      }
-    }
-    return m;
-  })();
-  // Attached-to-own-parent cards live at wire (x=-1, y=-1) — they don't
-  // occupy their own slot on the battlefield. Filter them out of the
-  // layout input so col 0 / row 0 isn't inflated by every attached card
-  // ending up there. The full battlefieldDisplayList is still what the
-  // render loop iterates; layout just needs the "free-standing" set.
-  //
-  // Each free-standing parent carries its `attachedChildCount` so
-  // `computeCellWidths` can widen the parent's cell to hold the fan,
-  // pushing subsequent columns right — otherwise the leftward-fanning
-  // children would overlap the previous column's card.
-  const battlefieldForLayout = battlefieldDisplayList
-    .filter(
-      (c) =>
-        c.attachTargetCardId == null || c.attachTargetPlayerId !== playerId,
-    )
-    .map((c) => ({
-      // Layout math (computeCellWidths / columnLeftX / slotOriginPx /
-      // computeContentWidth / snapPxToSlot) is entirely in DISPLAY
-      // coord — that's the space the rendered cards, slot outlines,
-      // and drop hit-tests all live in. For a mirrored opponent
-      // battlefield, wire row 0 (creatures) shows at display row
-      // ROWS-1. Passing the wire row in here would key cellWidths by
-      // the wrong row and the stack-widening would push cards over
-      // in the WRONG visual row (looked like only the bottom row
-      // widening when the user stacked cards in the top). Flip up
-      // front so every downstream lookup speaks the same language.
-      row: handOnTop ? BATTLEFIELD_ROWS - 1 - c.slot.row : c.slot.row,
-      col: c.slot.col,
-      subSlot: c.subSlot,
-      attachedChildCount:
-        attachedChildrenByParent.get(Number(c.id))?.length ?? 0,
-    }));
-  // Per-cell horizontal footprint — a cell with 3 stacked cards is
-  // 2×STACK_OFFSET_PX wider than a solo cell, and columns to the right
-  // of it shift over by that difference. Ported from Cockatrice's
-  // `TableZone::computeCardStackWidths`.
-  const cellWidths = computeCellWidths(battlefieldForLayout, battlefieldLayout);
-  // Effective min-cols: cap BATTLEFIELD_MIN_COLS at whatever fits in
-  // the visible container width. Cockatrice enforces its 5-col MIN_WIDTH
-  // via a scene-side floor and lets fitInView scale everything down to
-  // fit; we hold card size fixed (height-driven scale) and instead
-  // shrink the min-cols reservation so the empty grid doesn't overflow
-  // horizontally. `+1` in the fit formula accounts for margins and the
-  // final card not needing a trailing gap.
-  const effectiveMinCols = (() => {
-    if (fitSize.w <= 0) {
-      return BATTLEFIELD_MIN_COLS;
-    }
-    const usable =
-      fitSize.w - BATTLEFIELD_MARGIN_LEFT_PX - BATTLEFIELD_MARGIN_RIGHT_PX;
-    const perCol = CARD_W_PX + BATTLEFIELD_GAP_PX;
-    const fitCols = Math.max(1, Math.floor((usable + BATTLEFIELD_GAP_PX) / perCol));
-    return Math.min(BATTLEFIELD_MIN_COLS, fitCols);
-  })();
-  // Per-row column count including one buffer past the rightmost card
-  // (or the min-cols floor) — matches Cockatrice's "always leave a drop
-  // target on the right" behavior. Used by the slot overlay to know how
-  // many dashed outlines to render per row.
-  const colsByRow = (() => {
-    const out = new Array<number>(BATTLEFIELD_ROWS).fill(0);
-    const maxCol = new Array<number>(BATTLEFIELD_ROWS).fill(-1);
-    for (const c of battlefieldForLayout) {
-      if (c.row >= 0 && c.row < BATTLEFIELD_ROWS) {
-        maxCol[c.row] = Math.max(maxCol[c.row], c.col);
-      }
-    }
-    for (let r = 0; r < BATTLEFIELD_ROWS; r++) {
-      out[r] = Math.max(effectiveMinCols, maxCol[r] + 2);
-    }
-    return out;
-  })();
-  // Content pixel size — sum of per-row column widths + margins. When
-  // stacks push columns right, or when a buffer column opens past the
-  // fit width, the content grows past fitSize.w and the scroll container
-  // starts scrolling horizontally.
-  const naturalContentW = computeContentWidth(
-    cellWidths,
-    battlefieldForLayout,
-    { ...battlefieldLayout, minCols: effectiveMinCols },
-  );
-  const naturalContentH = computeContentHeight(battlefieldLayout) + stackExtPx;
-  // Legacy slot-bound shims — group drops / nearest-available-slot search
-  // originally iterated a rectangular `grid.cols × grid.rows` space; with
-  // per-row column counts we use the widest row as the effective width.
-  // Wire rows are fixed at BATTLEFIELD_ROWS.
-  const gridRows = BATTLEFIELD_ROWS;
-  const gridCols = Math.max(BATTLEFIELD_MIN_COLS, ...colsByRow);
-
-  // Auto-scroll the battlefield to the rightmost edge whenever a
-  // genuinely NEW column opens — a card placed on the buffer column
-  // past the rightmost stack pushes `maxColsInAnyRow` up by one. Only
-  // this case gets the scroll; stacking cards onto an EXISTING slot
-  // grows that cell's width and shifts later columns right, but should
-  // NOT auto-scroll (the user is looking at the stack they're building,
-  // scrolling away hides it).
-  const maxColsInAnyRow = colsByRow.reduce((m, n) => Math.max(m, n), 0);
-  const prevMaxColsRef = useRef(maxColsInAnyRow);
-  useEffect(() => {
-    if (maxColsInAnyRow > prevMaxColsRef.current) {
-      const el = scrollContainerRef.current;
-      if (el) {
-        el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
-      }
-    }
-    prevMaxColsRef.current = maxColsInAnyRow;
-  }, [maxColsInAnyRow]);
 
   const startPileDrag = (
     e: React.PointerEvent<HTMLElement>,
@@ -1659,98 +1423,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
   const handDisplayList = zones.hand.cards;
   const handCount = zones.hand.cardCount ?? handDisplayList.length;
 
-  // `battlefieldDisplayList` is hoisted to the layout section earlier
-  // (needed by cellWidths / contentW / contentH) so both the card
-  // render loop and the slot overlay resolve against the same source.
-
-  // Parent → children map for attached cards on THIS player's battlefield.
-  // `attachedChildrenByParent` is hoisted to the layout section
-  // earlier — needed by `computeCellWidths` for attach-aware cell
-  // widening. Reused here to fan children beside their parent.
-
-  // Absolute (x, y) render position for every battlefield card, keyed by
-  // BattlefieldCard.id. Parents get shifted right + down to make room for
-  // their children; children fan diagonally left/up-under from the
-  // parent. Skipped attached cards resolve normally (as if unattached)
-  // if their parent isn't present on this battlefield — cross-player
-  // attach or a race between events.
-  const battlefieldPositions = (() => {
-    const positions = new Map<string, { x: number; y: number }>();
-    // Pass 1: non-attached cards. Parent-with-children get position
-    // shifted right by (numChildren * stackOffsetX) and down by 15px so
-    // the fanned children extend LEFT into empty space instead of
-    // overlapping the parent. Ports `TableZone::reorganizeCards`.
-    for (const c of battlefieldDisplayList) {
-      if (
-        c.attachTargetCardId != null &&
-        c.attachTargetPlayerId === playerId
-      ) {
-        continue;
-      }
-      const displayRow = handOnTop
-        ? BATTLEFIELD_ROWS - 1 - c.slot.row
-        : c.slot.row;
-      const origin = slotOriginPx(
-        { row: displayRow, col: c.slot.col, subSlot: c.subSlot },
-        cellWidths,
-        battlefieldLayout,
-      );
-      const numChildren = attachedChildrenByParent.get(Number(c.id))?.length ?? 0;
-      positions.set(c.id, {
-        x: origin.x + numChildren * STACK_OFFSET_PX,
-        y: origin.y + (numChildren > 0 ? 15 * scale : 0),
-      });
-    }
-    // Pass 2: attached children. Position relative to the parent's
-    // freshly-computed x/y. First child sits just left of the parent
-    // (parent.x - offset), each subsequent child steps another offset
-    // further left. Y sits 5px below the parent's base — matches
-    // Cockatrice's `childY = y + 5`.
-    for (const c of battlefieldDisplayList) {
-      if (
-        c.attachTargetCardId == null ||
-        c.attachTargetPlayerId !== playerId
-      ) {
-        continue;
-      }
-      const parentPos = positions.get(String(c.attachTargetCardId));
-      if (!parentPos) {
-        // Parent not on this battlefield (cross-player attach or race);
-        // fall back to slot origin so the child at least renders.
-        const displayRow = handOnTop
-          ? BATTLEFIELD_ROWS - 1 - c.slot.row
-          : c.slot.row;
-        const origin = slotOriginPx(
-          { row: displayRow, col: c.slot.col, subSlot: c.subSlot },
-          cellWidths,
-          battlefieldLayout,
-        );
-        positions.set(c.id, { x: origin.x, y: origin.y });
-        continue;
-      }
-      const siblings = attachedChildrenByParent.get(c.attachTargetCardId) ?? [];
-      const idx = siblings.indexOf(c);
-      // Reconstruct the PARENT'S row baseline (not the child's own).
-      // Cockatrice's `childY = y + 5` uses the parent's mapped Y — an
-      // attached card renders in the same row as its target regardless
-      // of what slot the wire currently says the child is in. Without
-      // this the child would stick to its original row when the parent
-      // is elsewhere (see the "col matches but row doesn't" bug).
-      const parent = battlefieldDisplayList.find(
-        (bc) => Number(bc.id) === c.attachTargetCardId,
-      );
-      const parentRow = parent?.slot.row ?? c.slot.row;
-      const displayRow = handOnTop
-        ? BATTLEFIELD_ROWS - 1 - parentRow
-        : parentRow;
-      const rowY = rowTopY(displayRow, battlefieldLayout);
-      positions.set(c.id, {
-        x: parentPos.x - (idx + 1) * STACK_OFFSET_PX,
-        y: rowY + 5 * scale,
-      });
-    }
-    return positions;
-  })();
   // Same "trust Redux in real games" rule as grave/exile above — see
   // that comment for the mock-id mismatch bug this avoids.
   const stackDisplayList = zones.stack.cards;
@@ -2913,28 +2585,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     }
   };
 
-  const battlefieldDropRef = useSeatDropZone(`seat-${seatId}-battlefield`, {
-    seatPlayerId: seatId,
-    acceptsOtherSeats: true,
-    priority: SEAT_DROP_PRIORITY.battlefield,
-    // Snap the dragged card's top-left against this board's own columns, in
-    // its visual orientation, then flip the row back to wire orientation on
-    // a mirrored board.
-    resolve: ({ cardOrigin }) => {
-      const content = battlefieldRef.current;
-      if (!content) {
-        return null;
-      }
-      const rect = content.getBoundingClientRect();
-      const snap = snapPxToSlot(cardOrigin.x - rect.left, cardOrigin.y - rect.top, cellWidths, battlefieldLayout);
-      return {
-        zone: 'battlefield',
-        playerId: seatId,
-        slot: { row: handOnTop ? BATTLEFIELD_ROWS - 1 - snap.row : snap.row, col: snap.col },
-        grid: { rows: gridRows, cols: gridCols },
-      };
-    },
-  });
   const stackDropRef = useSeatDropZone(`seat-${seatId}-stack`, {
     seatPlayerId: seatId,
     priority: SEAT_DROP_PRIORITY.stack,
@@ -2988,7 +2638,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     priority: SEAT_DROP_PRIORITY.exile,
     resolve: () => ({ zone: 'exile' }),
   });
-  const battlefieldScrollRef = useForkRef(scrollContainerRef, battlefieldDropRef);
   const stackZoneRef = useForkRef(stackRef, stackDropRef);
   const handZoneRef = useForkRef(handRef, handDropRef);
   const libraryZoneRef = useForkRef(libraryRef, libraryDropRef);
@@ -2996,7 +2645,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
   const exileZoneRef = useForkRef(exileRef, exileDropRef);
 
   return {
-    BATTLEFIELD_ROW_PADDING_PX,
     CARD_H_PX,
     CARD_W_PX,
     DRAW_ANIMATION_MS,
@@ -3007,18 +2655,12 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     attachExtraSourceIds,
     attachPending,
     battlefieldDisplayList,
-    battlefieldLayout,
     battlefieldMenuItems,
-    battlefieldPositions,
-    battlefieldRef,
-    battlefieldScrollRef,
     boxRef,
     cardCommands,
     cardContextMenu,
     cardMetaByName,
-    cellWidths,
     closeSeatCardMenu,
-    colsByRow,
     counterCommands,
     deckCount,
     deckTopCard,
@@ -3059,8 +2701,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     marquee,
     menuOwnerId,
     name,
-    naturalContentH,
-    naturalContentW,
     onOpenDeckInEditor,
     onPointerDownBox,
     openAnnotationPrompt,
