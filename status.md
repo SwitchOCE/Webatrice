@@ -8,3 +8,4 @@
 - 10 58b4116..4119363 → new tip ec60e2b, typecheck ok, unit green
 - 11 4119363..0491a03 → new tip 3b15510, typecheck ok, unit green (joinRoom: 11's surface wins, 04's userInitiated plumbing dropped)
 - 13 a6642c3..e2fb4b7 → new tip 41edded, typecheck ok; gate at 13: lint ok, unit sock 838/data 1213/web 1530+2skip, integration sock 170/data 136/web 165+2skip (commandFailed deduped to 03's; useGridRows introduced at 11 and used by 11+13)
+- ACK M1: redoing 11 so joinRoomFailed carries 04's userInitiated through to 11's lobby surface (04's specs restored), then redo 13 on it. ACK M2: will use origin/claude/parity-14-reports 60b3669 for row 11
