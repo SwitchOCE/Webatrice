@@ -51,10 +51,10 @@ export function useMyReports(): MyReports {
   }, [refreshList]);
 
   // Skip the notice already in the store when the page opens.
-  const seenNotice = useRef(lastNotice?.seq ?? 0);
+  const seenNotice = useRef(lastNotice);
   useEffect(() => {
-    if (lastNotice && lastNotice.seq !== seenNotice.current) {
-      seenNotice.current = lastNotice.seq;
+    if (lastNotice && lastNotice !== seenNotice.current) {
+      seenNotice.current = lastNotice;
       refresh();
     }
   }, [lastNotice, refresh]);

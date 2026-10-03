@@ -113,14 +113,15 @@ describe('report reducers', () => {
     expect(state.reports.replay).toEqual({ gameId: 12, replayId: 3, replayData: new Uint8Array([1, 2]) });
   });
 
-  it('reportNotified counts notices so identical text still reads as new', () => {
+  it('reportNotified stores each notice as a new object so identical text still reads as new', () => {
     const notification = create(Event_NotifyUserSchema, {
       type: Event_NotifyUser_NotificationType.REPORT_COMMENT,
       customTitle: 'New Comment on Report #1',
     });
-    let state = serverReducer(makeServerState(), Actions.reportNotified({ notification }));
-    state = serverReducer(state, Actions.reportNotified({ notification }));
-    expect(state.reports.lastNotice).toEqual({ seq: 2, notification });
+    const first = serverReducer(makeServerState(), Actions.reportNotified({ notification }));
+    const second = serverReducer(first, Actions.reportNotified({ notification }));
+    expect(second.reports.lastNotice).toEqual({ notification });
+    expect(second.reports.lastNotice).not.toBe(first.reports.lastNotice);
   });
 
   it('disconnected and clearStore reset the reports', () => {
