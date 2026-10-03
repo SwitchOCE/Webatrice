@@ -10,7 +10,7 @@ import { DeckFolderBar } from './components/list/DeckFolderBar';
 import { DeckFolderRow } from './components/list/DeckFolderRow';
 import { DeckListHeader } from './components/list/DeckListHeader';
 import { DeckListSections } from './components/list/DeckListSections';
-import { DeckListEmpty, DeckListError, DeckListLoading } from './components/list/DeckListStates';
+import { DeckListEmpty, DeckListError, DeckListLoading, DeckStorageError } from './components/list/DeckListStates';
 import type { DeckFolderEntry } from './deckFolders';
 import type { FlatDeck } from './deckTree';
 import { CreateDeckDialog } from './dialogs/CreateDeckDialog';
@@ -118,6 +118,7 @@ function Decks() {
           <div className="max-w-4xl mx-auto">
             {list.loading && !list.listError && <DeckListLoading />}
             {list.loading && list.listError && <DeckListError message={list.listError} onRetry={list.refresh} />}
+            {list.storageError && <DeckStorageError message={list.storageError} onDismiss={list.dismissStorageError} />}
             {!list.loading && (
               <DeckFolderBar
                 path={folder.path}
