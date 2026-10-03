@@ -23,6 +23,7 @@ import GameBoardCell from './components/ui/GameBoardCell/GameBoardCell';
 import { BigCardPreview } from './components/ui/BigCardPreview/BigCardPreview';
 import { CardScaleProvider } from './components/ui/CardScaleContext';
 import IncomingRevealDialog from './dialogs/IncomingRevealDialog/IncomingRevealDialog';
+import TallyOverlay from './components/TallyOverlay/TallyOverlay';
 import CreateTokenDialog from './dialogs/CreateTokenDialog/CreateTokenDialog';
 import MoveTopUntilDialog from './dialogs/MoveTopUntilDialog/MoveTopUntilDialog';
 import DeckSelectDialog from './dialogs/DeckSelectDialog/DeckSelectDialog';
@@ -303,6 +304,7 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                                       ))}
                                     </div>
                                   )}
+                                  <TallyOverlay />
                                   {/* Bottom-bar HandZone removed: each seat now
                               renders its own hand inline. Kept the space so
                               downstream layout hooks that watched the empty

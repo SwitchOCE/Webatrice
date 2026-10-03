@@ -71,16 +71,19 @@ describe('useBattlefieldMenuItems', () => {
       'Counters', 'Increment all card counters', '---', 'Untap all permanents', '---',
       'Roll die...', 'Flip coin', '---',
       'Create token...', 'Create another token', 'Create predefined token', '---', 'Game info...',
+      'Tally',
     ]);
     expect(labels(find(battlefieldMenuItems, 'Hand').submenu!)).toEqual(['hand items']);
     expect(labels(find(battlefieldMenuItems, 'Graveyard').submenu!)).toEqual(['own graveyard items']);
   });
 
-  it('gives another viewer the graveyard and exile views only', () => {
-    expect(setup().opponentBattlefieldMenuItems).toEqual([
+  it('gives another viewer the graveyard and exile views and Tally only', () => {
+    const { opponentBattlefieldMenuItems } = setup();
+    expect(opponentBattlefieldMenuItems.slice(0, 2)).toEqual([
       { label: 'Graveyard', submenu: marker('graveyard views') },
       { label: 'Exile', submenu: marker('exile views') },
     ]);
+    expect(labels(opponentBattlefieldMenuItems)).toEqual(['Graveyard', 'Exile', 'Tally']);
   });
 
   it('builds a set / +-10 submenu per player counter, life included', () => {
