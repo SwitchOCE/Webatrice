@@ -21,6 +21,7 @@ import {
   type SortMode,
   type ZoneViewCardMetadata,
 } from './zoneViewSort';
+import { readShuffleOnClose, writeShuffleOnClose } from './zoneViewPreferences';
 
 const TOOLBAR_SELECT_CLASS =
   'px-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm text-text-primary '
@@ -32,7 +33,6 @@ type HandCard = { id: string; name: string; scryfallId: string };
  *  desktop persists these via SettingsCache (view_zone_widget.cpp:161-163);
  *  we mirror the behavior in browser localStorage. */
 const POSITION_STORAGE_KEY = 'webatrice.searchLibraryPosition';
-const SHUFFLE_ON_CLOSE_STORAGE_KEY = 'webatrice.searchLibraryShuffleOnClose';
 const SIZE_STORAGE_KEY = 'webatrice.searchLibrarySize';
 const SORT_BY_STORAGE_KEY = 'webatrice.searchLibrarySortBy';
 const GROUP_BY_STORAGE_KEY = 'webatrice.searchLibraryGroupBy';
@@ -140,7 +140,6 @@ function clampToViewport(
 }
 
 type Props = {
-  isOpen: boolean;
   /** Called when the dialog closes. Receives whether the "shuffle
    *  when closing" toggle was on so the parent can dispatch the
    *  shuffle command conditionally — same behaviour as Cockatrice's
@@ -148,14 +147,8 @@ type Props = {
    *  render the toggle and always receive `false` here. */
   onClose: (shuffleOnClose: boolean) => void;
   library: readonly HandCard[];
-  /** Metadata already known for some names (the seat's deck list); the
-   *  rest is looked up in the card catalog. */
-  deckCards: readonly ZoneViewCardMetadata[];
-  playerName: string;
-  /** Header title override. Defaults to `${playerName}'s library` for
-   *  the library-view flow; the graveyard / exile pile viewers pass
-   *  the pile name so the header reads correctly. */
-  title?: string;
+  /** Header title: "P1's library", "Graveyard — P1". */
+  title: string;
   /** Whether to render the "shuffle when closing" checkbox. On by
    *  default (library flow). Non-library zones (graveyard, exile)
    *  set this to false — Cockatrice's ZoneViewWidget only shows the
@@ -187,24 +180,32 @@ type Props = {
    *  area's library pile, drops on the modal itself must resolve to
    *  the library too. */
   dropRef?: React.Ref<HTMLDivElement>;
+  /** Ids of the cards selected in the view, and the marquee's update to them. */
+  selectedIds: ReadonlySet<string>;
+  onSelectedIdsChange: (ids: Set<string>) => void;
 };
+
+/** Metadata for a name the catalog hasn't answered for (yet): sorts and
+ *  groups as unknown ("Other", mana value 0). */
+function placeholderMeta(name: string): ZoneViewCardMetadata {
+  return { name, type_line: null, cmc: null, colors: [], set: null, power: null, toughness: null };
+}
 
 /** Amount of vertical space each card takes in a pile — enough to show the
  *  title pill on top. Last card in a pile still renders fully. */
 const PILE_STEP_FRACTION = 0.25;
 
 export default function ZoneViewPanel({
-  isOpen,
   onClose,
   library,
-  deckCards,
-  playerName,
   title,
   showShuffleOnClose = true,
   onCardPointerDown,
   onCardContextMenu,
   draggingCardIds,
   dropRef,
+  selectedIds,
+  onSelectedIdsChange,
 }: Props) {
   const { setHoveredCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
   const [query, setQuery] = useState('');
@@ -305,32 +306,9 @@ export default function ZoneViewPanel({
   // "Shuffle when closing" toggle. Cockatrice's ZoneViewWidget
   // defaults this to on; unchecking lets the player peek at library
   // order without wrecking the game state. Persist across sessions.
-  const [shuffleOnClose, setShuffleOnClose] = useState<boolean>(() => {
-    if (typeof window === 'undefined') {
-      return true;
-    }
-    try {
-      const raw = window.localStorage.getItem(SHUFFLE_ON_CLOSE_STORAGE_KEY);
-      if (raw === null) {
-        return true;
-      }
-      return raw === '1';
-    } catch {
-      return true;
-    }
-  });
+  const [shuffleOnClose, setShuffleOnClose] = useState(readShuffleOnClose);
   useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    try {
-      window.localStorage.setItem(
-        SHUFFLE_ON_CLOSE_STORAGE_KEY,
-        shuffleOnClose ? '1' : '0',
-      );
-    } catch {
-      // ignore quota / disabled storage errors
-    }
+    writeShuffleOnClose(shuffleOnClose);
   }, [shuffleOnClose]);
 
   // Drag-to-move state. `pos` is the current top-left of the dialog in
@@ -351,9 +329,6 @@ export default function ZoneViewPanel({
   // the browser's native `resize: both` handle can freely modify the
   // inline width/height without racing React state.
   useLayoutEffect(() => {
-    if (!isOpen) {
-      return;
-    }
     const el = dialogRef.current;
     if (!el) {
       return;
@@ -363,13 +338,8 @@ export default function ZoneViewPanel({
       const clamped = clampSizeToViewport(storedSize);
       el.style.width = `${clamped.w}px`;
       el.style.height = `${clamped.h}px`;
-    } else {
-      // Ensure we don't leave stale inline size from a previous open —
-      // fall back to the Tailwind default width/height.
-      el.style.width = '';
-      el.style.height = '';
     }
-  }, [isOpen]);
+  }, []);
 
   // Position the dialog whenever it opens. Prefer a saved position from
   // a previous session (so the dialog reappears where the user last put
@@ -377,10 +347,6 @@ export default function ZoneViewPanel({
   // the explicitly-positioned dialog lands on the same frame as the
   // flex-centered fallback — no visible jump.
   useLayoutEffect(() => {
-    if (!isOpen) {
-      setPos(null);
-      return;
-    }
     const el = dialogRef.current;
     if (!el) {
       return;
@@ -397,16 +363,13 @@ export default function ZoneViewPanel({
         y: Math.max(0, (window.innerHeight - rect.height) / 2),
       });
     }
-  }, [isOpen]);
+  }, []);
 
   // Watch dialog size changes and persist them after 500ms of no change.
   // The first ResizeObserver fire is skipped — it reports the initial
   // size (from storage or CSS default), which the user hasn't actively
   // set. Any subsequent fire means the user grabbed the resize handle.
   useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
     const el = dialogRef.current;
     if (!el) {
       return;
@@ -434,7 +397,7 @@ export default function ZoneViewPanel({
         window.clearTimeout(timer);
       }
     };
-  }, [isOpen]);
+  }, []);
 
   // Global pointer listeners while the user is dragging the header.
   // Registered only during a drag; released on pointerup.
@@ -469,14 +432,14 @@ export default function ZoneViewPanel({
   // useLayoutEffect that positions the dialog on open doesn't also
   // trigger a redundant save.
   useEffect(() => {
-    if (!isOpen || !pos || !hasBeenDraggedRef.current) {
+    if (!pos || !hasBeenDraggedRef.current) {
       return;
     }
     const timer = window.setTimeout(() => {
       writeStoredPosition(pos);
     }, 500);
     return () => window.clearTimeout(timer);
-  }, [isOpen, pos]);
+  }, [pos]);
 
   const onHeaderPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) {
@@ -498,11 +461,9 @@ export default function ZoneViewPanel({
     hasBeenDraggedRef.current = true;
   };
 
-  // Marquee selection scoped to the search dialog. Treated as its own
-  // zone — the marquee never spans into the play area behind it, and the
-  // selection here is independent of any PlayerBox selection.
+  // Marquee selection scoped to the view: the marquee never spans into
+  // the play area behind it. The selection itself is the caller's.
   const contentRef = useRef<HTMLDivElement>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [marquee, setMarquee] = useState<
     { x1: number; y1: number; x2: number; y2: number } | null
   >(null);
@@ -551,7 +512,7 @@ export default function ZoneViewPanel({
         return;
       }
     }
-    setSelectedIds(new Set());
+    onSelectedIdsChange(new Set());
     setMarquee({
       x1: e.clientX,
       y1: e.clientY,
@@ -618,7 +579,7 @@ export default function ZoneViewPanel({
         top: Math.min(marquee.y1, e.clientY),
         bottom: Math.max(marquee.y1, e.clientY),
       };
-      setSelectedIds(computeMarqueeSelection(rect));
+      onSelectedIdsChange(computeMarqueeSelection(rect));
       setMarquee((m) =>
         m ? { ...m, x2: e.clientX, y2: e.clientY } : null,
       );
@@ -630,63 +591,13 @@ export default function ZoneViewPanel({
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
-  }, [marquee]);
+  }, [marquee, onSelectedIdsChange]);
 
-  // Reset selection when the dialog closes so a fresh open starts clean.
-  useEffect(() => {
-    if (!isOpen) {
-      setSelectedIds(new Set());
-      setMarquee(null);
-      hasBeenDraggedRef.current = false;
-    }
-  }, [isOpen]);
-
-  // Escape closes the dialog. Backdrop clicks don't — the play area
-  // behind stays interactive (this component's overlay is
-  // pointer-events-none), so the only ways to dismiss are Escape or the
-  // header's close button.
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose(showShuffleOnClose && shuffleOnClose);
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose, showShuffleOnClose, shuffleOnClose]);
-
-  // Build a name → metadata map so we can look up metadata for each
-  // revealed card. Name-keyed (not scryfall-id-keyed) because both
-  // Cockatrice server-side dumps AND .cod parsed decks routinely
-  // leave provider_id / card_scryfall_id empty — everything with a
-  // blank id would collide under the "" key and get dropped. Multiple
-  // printings of the same name resolve to a single meta entry
-  // (whichever ran last in the loop); that's fine here since we only
-  // read display metadata (type_line, cmc, colors, P/T) which is
-  // stable across printings.
-  const metaByName = useMemo(() => {
-    const m = new Map<string, ZoneViewCardMetadata>();
-    for (const c of deckCards) {
-      if (c.name) {
-        m.set(c.name, c);
-      }
-    }
-    return m;
-  }, [deckCards]);
-
-  // Async metadata backfill for cards whose `deckCards` entry lacks
-  // `type_line` (or that aren't in the deck at all — e.g. tokens, or
-  // an opponent's card that ended up in our zone). Without this, those
-  // cards fall through to placeholder meta and bucket to "Other" under
-  // Group by Type — exactly the "cards with types being placed in
-  // Other" bug. Mirrors IncomingRevealDialog's pattern: fetch via
-  // `lookupCardsCached`, then override the group/sort mode until every
-  // unique name has a resolved `type_line`.
-  const [lookupMetaByName, setLookupMetaByName] = useState<Map<string, ZoneViewCardMetadata>>(
+  // Card metadata (type line, mana value, colours, P/T) from the card
+  // catalog, keyed by name: dumps routinely leave provider_id empty, and
+  // the display fields are stable across printings. Mirrors
+  // IncomingRevealDialog: names already looked up skip the round trip.
+  const [metaByName, setMetaByName] = useState<Map<string, ZoneViewCardMetadata>>(
     () => new Map(),
   );
   const uniqueNames = useMemo(
@@ -694,17 +605,7 @@ export default function ZoneViewPanel({
     [library],
   );
   useEffect(() => {
-    if (!isOpen || uniqueNames.size === 0) {
-      return;
-    }
-    // Only look up names whose deck-side meta is missing OR has a
-    // null type_line. Names we already have a good bucket for skip
-    // the async round-trip.
-    const needsLookup = Array.from(uniqueNames).filter((name) => {
-      const meta = metaByName.get(name);
-      const lookup = lookupMetaByName.get(name);
-      return (!meta || !meta.type_line) && !lookup;
-    });
+    const needsLookup = Array.from(uniqueNames).filter((name) => !metaByName.has(name));
     if (needsLookup.length === 0) {
       return;
     }
@@ -714,7 +615,7 @@ export default function ZoneViewPanel({
       if (cancelled) {
         return;
       }
-      setLookupMetaByName((prev) => {
+      setMetaByName((prev) => {
         const next = new Map(prev);
         for (const [name, r] of results) {
           next.set(name, {
@@ -733,64 +634,19 @@ export default function ZoneViewPanel({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, uniqueNames, metaByName, lookupMetaByName]);
+  }, [uniqueNames, metaByName]);
 
-  // Resolved meta per name: deck meta wins, falling back to the async
-  // lookup for anything the deck doesn't cover. If deck meta HAS an
-  // entry but its type_line is null (partial data), fill in from the
-  // lookup so grouping / sorting stops burying it in "Other".
-  const resolveMeta = (name: string): ZoneViewCardMetadata => {
-    const deck = metaByName.get(name);
-    const lookup = lookupMetaByName.get(name);
-    if (deck && deck.type_line) {
-      return deck;
-    }
-    if (deck && lookup) {
-      return {
-        ...deck,
-        type_line: deck.type_line ?? lookup.type_line,
-        cmc: deck.cmc ?? lookup.cmc,
-        colors: deck.colors.length > 0 ? deck.colors : lookup.colors,
-        power: deck.power ?? lookup.power,
-        toughness: deck.toughness ?? lookup.toughness,
-      };
-    }
-    if (deck) {
-      return deck;
-    }
-    if (lookup) {
-      return lookup;
-    }
-    return {
-      name,
-      type_line: null,
-      cmc: null,
-      colors: [],
-      set: null,
-      power: null,
-      toughness: null,
-    };
-  };
-
-  // Metadata-loaded gate — same idea as IncomingRevealDialog. Every
-  // unique name in the visible list must have a resolved type_line
-  // before we let Group by Type / Sort by Type / etc. run. Otherwise
-  // a card with real meta racing against one still loading would
-  // temporarily be the only thing outside the "Other" bucket.
-  const metadataLoaded = Array.from(uniqueNames).every((name) => {
-    const deck = metaByName.get(name);
-    if (deck?.type_line) {
-      return true;
-    }
-    return lookupMetaByName.get(name) !== undefined;
-  });
+  // Every unique name must have its metadata before Group by Type / Sort
+  // by Type / etc. run. Otherwise a card with real metadata racing one
+  // still loading would briefly be the only thing outside "Other".
+  const metadataLoaded = Array.from(uniqueNames).every((name) => metaByName.has(name));
   const effectiveGroupBy: GroupMode = metadataLoaded ? groupBy : 'none';
   const effectiveSortBy: SortMode = metadataLoaded ? sortBy : 'none';
 
   const groups = useMemo(() => {
     const enriched: EnrichedCard[] = [];
     for (const hc of library) {
-      const meta = resolveMeta(hc.name);
+      const meta = metaByName.get(hc.name) ?? placeholderMeta(hc.name);
       if (!matchesQuery(meta, query)) {
         continue;
       }
@@ -798,14 +654,9 @@ export default function ZoneViewPanel({
     }
     enriched.sort((a, b) => compareCards(a.meta, b.meta, effectiveSortBy));
     return groupCards(enriched, effectiveGroupBy);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `resolveMeta` only reads `metaByName`/`lookupMetaByName`, both listed
-  }, [library, metaByName, lookupMetaByName, query, effectiveSortBy, effectiveGroupBy]);
+  }, [library, metaByName, query, effectiveSortBy, effectiveGroupBy]);
 
   const totalShown = groups.reduce((n, g) => n + g.cards.length, 0);
-
-  if (!isOpen) {
-    return null;
-  }
 
   return createPortal(
     <div
@@ -856,7 +707,7 @@ export default function ZoneViewPanel({
           ].join(' ')}
         >
           <h2 className="text-lg font-semibold text-text-primary">
-            {title ?? `${playerName}'s library`}
+            {title}
             <span className="ml-2 text-sm text-text-muted">
               {totalShown} / {library.length}
             </span>
@@ -917,6 +768,14 @@ export default function ZoneViewPanel({
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              // The game's Esc (close the most recent view) skips text
+              // inputs, so the search box closes its own view.
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  onClose(showShuffleOnClose && shuffleOnClose);
+                }
+              }}
               placeholder="Search — try t:creature, c:blue, cmc:3"
               className={[
                 'w-full pl-8 pr-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm',

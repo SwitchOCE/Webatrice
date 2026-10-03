@@ -16,27 +16,23 @@ import { CARD_HEIGHT, CARD_WIDTH } from '../../components/ui/SeatCard/cardSize';
 type HandCard = { id: string; name: string; scryfallId: string };
 
 /**
- * Generic modal for viewing a zone's card list (library, graveyard,
- * exile, sideboard, etc.). Ports Cockatrice's ZoneViewWidget behavior
- * for the bounded-reveal path:
+ * ZoneViewDialog's ordered body: the top / bottom N cards of a library.
+ * Ports Cockatrice's ZoneViewWidget behavior for the bounded-reveal path:
  *   • Cards render in the zone's server order — NO sort or group
  *     controls (Cockatrice deliberately keeps this a flat, ordered
  *     window so tutors / scries / rearranges preserve intent).
  *   • Cards can be dragged out to any play-area zone (parent wires
  *     `onCardPointerDown` into its normal beginDrag flow), and drops
  *     landing back on the dialog resolve to the source zone via
- *     `dropRef`. Both patterns match LibrarySearchDialog.
+ *     `dropRef`. Both patterns match ZoneViewPanel.
  *   • The dialog itself is draggable via the header, resizable via
  *     the browser's native `resize` handle, and non-modal (no blurred
  *     backdrop) so the play area behind stays visible and interactive.
  *   • Position + size persist to localStorage across sessions.
  *
- * Reused by "View top / bottom cards of library...", and (eventually)
- * "View graveyard" / "View exile" variants — zone-specific bits
- * (title, wire source zone, drag wiring) live in the caller.
+ * Zone-specific bits (title, labels, drag wiring) live in the caller.
  */
 export interface ZoneRevealPanelProps {
-  isOpen: boolean;
   /** Human-readable title for the modal header. Caller composes
    *  something like "Top 5 cards — SonicBliss" or "Graveyard — SonicBliss". */
   title: string;
@@ -57,13 +53,14 @@ export interface ZoneRevealPanelProps {
   ) => void;
   /** Ref filled with the dialog's outer container while open. Parent's
    *  drop-detection can hit-test this rect to decide whether a drop
-   *  resolves to the dialog's source zone. Same pattern LibrarySearchDialog
+   *  resolves to the dialog's source zone. Same pattern ZoneViewPanel
    *  uses via its `dropRef`. */
   dropRef?: Ref<HTMLDivElement>;
   /** IDs of cards currently mid-drag from the dialog. Rendered at
    *  opacity 0 so the drag ghost is the only visible copy. */
   draggingCardIds?: Set<string>;
-  /** Called when the dialog closes (X button, Escape, or footer Close). */
+  /** Called when the dialog closes (X button or footer Close; the game's
+   *  Esc closes the most recent view). */
   onClose: () => void;
 }
 
@@ -179,7 +176,6 @@ function clampSizeToViewport(size: { w: number; h: number }): {
 }
 
 export default function ZoneRevealPanel({
-  isOpen,
   title,
   subtitle,
   cards,
@@ -203,9 +199,6 @@ export default function ZoneRevealPanel({
   // so the native `resize: both` handle can freely change the inline
   // width/height without racing React state.
   useLayoutEffect(() => {
-    if (!isOpen) {
-      return;
-    }
     const el = dialogRef.current;
     if (!el) {
       return;
@@ -219,16 +212,12 @@ export default function ZoneRevealPanel({
       el.style.width = `${DEFAULT_DIALOG_W}px`;
       el.style.height = `${DEFAULT_DIALOG_H}px`;
     }
-  }, [isOpen]);
+  }, []);
 
   // Position on open — restore saved location or center. useLayoutEffect
   // so the paint of the positioned dialog lands on the same frame as the
   // flex-centered fallback — no visible jump.
   useLayoutEffect(() => {
-    if (!isOpen) {
-      setPos(null);
-      return;
-    }
     const el = dialogRef.current;
     if (!el) {
       return;
@@ -243,16 +232,13 @@ export default function ZoneRevealPanel({
         y: Math.max(0, (window.innerHeight - rect.height) / 2),
       });
     }
-  }, [isOpen]);
+  }, []);
 
   // Persist size after 500ms of no change. First ResizeObserver fire
   // is skipped — it reports the initial size (from storage or CSS
   // default), which the user hasn't actively set. Any subsequent fire
   // means the user grabbed the resize handle.
   useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
     const el = dialogRef.current;
     if (!el) {
       return;
@@ -280,7 +266,7 @@ export default function ZoneRevealPanel({
         window.clearTimeout(timer);
       }
     };
-  }, [isOpen]);
+  }, []);
 
   // Global pointer listeners while dragging the header.
   useEffect(() => {
@@ -308,14 +294,14 @@ export default function ZoneRevealPanel({
 
   // Persist position 500ms after last move (skipped on first open).
   useEffect(() => {
-    if (!isOpen || !pos || !hasBeenDraggedRef.current) {
+    if (!pos || !hasBeenDraggedRef.current) {
       return;
     }
     const timer = window.setTimeout(() => {
       writeStoredPosition(pos);
     }, 500);
     return () => window.clearTimeout(timer);
-  }, [isOpen, pos]);
+  }, [pos]);
 
   const onHeaderPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) {
@@ -337,28 +323,10 @@ export default function ZoneRevealPanel({
     hasBeenDraggedRef.current = true;
   };
 
-  useEffect(() => {
-    if (!isOpen) {
-      return undefined;
-    }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) {
-    return null;
-  }
-
   return createPortal(
     // The outer wrapper is pointer-events: none so clicks pass through
     // to the game behind — the dialog itself is the only interactive
-    // region. Matches LibrarySearchDialog's non-modal behavior.
+    // region. Matches ZoneViewPanel's non-modal behavior.
     <div
       className="fixed inset-0 z-[1000] flex items-center justify-center p-6 pointer-events-none"
       onPointerDown={(e) => e.stopPropagation()}

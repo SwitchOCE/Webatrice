@@ -50,12 +50,6 @@ export type GameDialogToggleActions = Pick<
   | 'closeCreateToken'
   | 'openSideboard'
   | 'closeSideboard'
-  | 'openViewSideboard'
-  | 'closeViewSideboard'
-  | 'openViewLibrary'
-  | 'closeViewLibrary'
-  | 'openViewGraveyard'
-  | 'closeViewGraveyard'
   | 'openGameInfo'
   | 'closeGameInfo'
   | 'openConcede'
@@ -91,9 +85,6 @@ export function useGameDialogState(): GameDialogStateHandle {
   const createTokenOpen = createTokenRequest != null;
   const createTokenInitial = createTokenRequest?.initial ?? null;
   const [sideboardOpen, setSideboardOpen] = useState(false);
-  const [viewSideboardOpen, setViewSideboardOpen] = useState(false);
-  const [viewLibraryOpen, setViewLibraryOpen] = useState(false);
-  const [viewGraveyardOpen, setViewGraveyardOpen] = useState(false);
   const [revealState, setRevealState] = useState<RevealState | null>(null);
   const [playerMenu, setPlayerMenu] = useState<AnchorPosition | null>(null);
   const [handMenu, setHandMenu] = useState<AnchorPosition | null>(null);
@@ -148,12 +139,6 @@ export function useGameDialogState(): GameDialogStateHandle {
     closeCreateToken: () => setCreateTokenRequest(null),
     openSideboard: () => setSideboardOpen(true),
     closeSideboard: () => setSideboardOpen(false),
-    openViewSideboard: () => setViewSideboardOpen(true),
-    closeViewSideboard: () => setViewSideboardOpen(false),
-    openViewLibrary: () => setViewLibraryOpen(true),
-    closeViewLibrary: () => setViewLibraryOpen(false),
-    openViewGraveyard: () => setViewGraveyardOpen(true),
-    closeViewGraveyard: () => setViewGraveyardOpen(false),
     openGameInfo: () => setGameInfoOpen(true),
     closeGameInfo: () => setGameInfoOpen(false),
     openConcede: () => setConcedeConfirm('concede'),
@@ -179,9 +164,6 @@ export function useGameDialogState(): GameDialogStateHandle {
       createTokenOpen,
       createTokenInitial,
       sideboardOpen,
-      viewSideboardOpen,
-      viewLibraryOpen,
-      viewGraveyardOpen,
       gameInfoOpen,
       concedeConfirm,
       leaveConfirm,
@@ -201,9 +183,6 @@ export function useGameDialogState(): GameDialogStateHandle {
       createTokenOpen,
       createTokenInitial,
       sideboardOpen,
-      viewSideboardOpen,
-      viewLibraryOpen,
-      viewGraveyardOpen,
       gameInfoOpen,
       concedeConfirm,
       leaveConfirm,

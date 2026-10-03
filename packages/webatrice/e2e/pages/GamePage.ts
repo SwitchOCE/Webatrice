@@ -32,8 +32,8 @@ import { dragTo } from '../fixtures/dnd';
 //         (per-zone/player). Items are plain `<button>` elements (no
 //         `role="menuitem"`).
 //   • Pile-view popup: opening the Library / Graveyard / Exile view
-//     from PlayerBox's context menu mounts `LibrarySearchDialog`, not
-//     the OG ZoneViewDialog. LibrarySearchDialog renders an `<h2>` with
+//     from PlayerBox's context menu mounts a ZoneViewDialog, which
+//     lists the zone through ZoneViewPanel. That renders an `<h2>` with
 //     the pile title ("Graveyard — <name>", "Exile — <name>", or
 //     "<name>'s library") and cards keyed by `[data-card][data-card-id]`.
 //
@@ -259,7 +259,7 @@ export class GamePage {
     return match ? Number(match[1]) : 0;
   }
 
-  // Pile-view popup — LibrarySearchDialog. Not a `role="dialog"` node,
+  // Pile-view popup — ZoneViewPanel. Not a `role="dialog"` node,
   // so we anchor on its `<h2>` (unique text: "<player>'s library" for
   // deck, "Graveyard — <name>" / "Exile — <name>" for grave/exile) and
   // walk up to the nearest `.resize.overflow-hidden` ancestor (the
@@ -277,7 +277,7 @@ export class GamePage {
   }
 
   // Draggable header of a pile-view popup (drag it to reposition).
-  // LibrarySearchDialog's header is the first-child div under the
+  // ZoneViewPanel's header is the first-child div under the
   // dialog panel; it hosts the pile title `<h2>` and owns the
   // pointerdown drag handler.
   zoneViewHeader(dialog: Locator): Locator {
