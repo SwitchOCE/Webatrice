@@ -102,10 +102,10 @@ export default defineConfig({
   publicDir: 'public',
   build: {
     outDir: 'build',
-    // Chrome/Edge 111, Firefox 114, Safari 16.4: the supported browsers declared
-    // in package.json `browserslist` (keep the two in step). The e2e suite runs
-    // Chromium, Firefox and WebKit; utils/browserSupport.ts preflights the APIs.
-    target: 'baseline-widely-available',
+    // The supported browsers, pinned rather than Vite's floating
+    // 'baseline-widely-available' alias. Keep in step with package.json
+    // `browserslist` (autoprefixer) and the syntax probe in public/preflight.js.
+    target: ['chrome111', 'edge111', 'firefox114', 'safari16.4'],
     rollupOptions: {
       output: {
         // Split heavy, stable third-party libraries out of the entry chunk so
