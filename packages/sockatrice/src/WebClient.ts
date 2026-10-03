@@ -116,6 +116,11 @@ export class WebClient {
   }
 
   public connect(target: ConnectTarget): void {
+    // connect() over an open socket retires it without an onclose, so no
+    // DISCONNECTED/RECONNECTING status resets the old session's commands. Fail
+    // them here, as desktop's doConnectToServer calls doDisconnectFromServer
+    // first; otherwise their deadlines fire into the new session.
+    this.protobuf.resetCommands();
     this.response.session.connectionAttempted();
     this.socket.connect(target);
   }
