@@ -1,5 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { combineReducers } from '@reduxjs/toolkit';
+import type { ReactNode } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 
 import { server } from '@cockatrice/datatrice';
 
@@ -27,8 +29,12 @@ function setup(initialDeckId: number) {
     preloadedState: connectedState as Partial<RootState> as never,
     webClient,
   });
+  // The editor navigates once a draft is stored, so it needs a router.
+  const RoutedWrapper = ({ children }: { children: ReactNode }) => (
+    <MemoryRouter><Wrapper>{children}</Wrapper></MemoryRouter>
+  );
   const hook = renderHook(({ deckId }) => useDeckEditor(deckId), {
-    wrapper: Wrapper,
+    wrapper: RoutedWrapper,
     initialProps: { deckId: initialDeckId },
   });
   const download = async (deckId: number, name: string, format: string, cardName?: string) => {
@@ -42,7 +48,7 @@ function setup(initialDeckId: number) {
   };
   const uploads = () =>
     vi.mocked(webClient.request.session.deckUpdate).mock.calls.map(([deckId, deckList]) => ({ deckId, deckList }));
-  return { ...hook, Wrapper, download, uploads };
+  return { ...hook, Wrapper: RoutedWrapper, download, uploads };
 }
 
 beforeEach(() => {

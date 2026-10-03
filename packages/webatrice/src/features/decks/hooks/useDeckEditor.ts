@@ -1,15 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { generatePath, useNavigate } from 'react-router-dom';
 
 import { server } from '@cockatrice/datatrice';
 import type { CommandFailedPayload } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
-import { lookupCard, parseCod, trackEvent } from '@app/services';
+import { lookupCard, parseCod, takeStagedDeck, trackEvent } from '@app/services';
 import { useAppSelector } from '@app/store';
-import type { BracketAssessment } from '@app/types';
+import { RouteEnum, type BracketAssessment } from '@app/types';
 
-import { getCachedDeck, setCachedDeck } from '../deckEditorCache';
+import {
+  deleteDraft,
+  getCachedDeck,
+  getCachedDraft,
+  getDraftDocument,
+  setCachedDeck,
+  setCachedDraft,
+  setDraftDocument,
+} from '../deckEditorCache';
 import {
   adjustCardQuantity,
   appendCard,
@@ -116,15 +125,24 @@ export interface UseDeckEditor {
   redo: (steps?: number) => void;
 }
 
-export function useDeckEditor(deckId: number | null): UseDeckEditor {
+/**
+ * The editor for a stored deck (`deckId`), or for an unsaved draft handed
+ * over by `draftToken` (e.g. the game's "Open deck in deck editor", desktop
+ * actOpenDeckInDeckEditor). A draft is stored by its first save, as a new
+ * deck, and the editor then moves to that deck.
+ */
+export function useDeckEditor(deckId: number | null, draftToken: string | null = null): UseDeckEditor {
   const webClient = useWebClient();
+  const navigate = useNavigate();
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
 
   // Seed from the session cache when this deck was opened before —
   // avoids the "Loading…" flash and the download on a tab return.
+  const isDraft = deckId == null && draftToken != null;
   const initialCached = deckId != null ? getCachedDeck(deckId) : undefined;
-  const [deck, setDeck] = useState<HydratedDeck | null>(initialCached?.deck ?? null);
-  const [loading, setLoading] = useState(!initialCached);
+  const initialDraft = isDraft ? getCachedDraft(draftToken) : undefined;
+  const [deck, setDeck] = useState<HydratedDeck | null>(initialCached?.deck ?? initialDraft ?? null);
+  const [loading, setLoading] = useState(!initialCached && !initialDraft);
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { t } = useTranslation();
@@ -135,7 +153,22 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   const deckRef = useRef<HydratedDeck | null>(null);
   const readDeck = useCallback(() => deckRef.current, []);
 
-  const autosave = useDeckAutosave(deckId, readDeck, initialCached?.savedSignature ?? null);
+  // A draft's first save came back as a new stored deck: carry the editor
+  // state over to it and move there.
+  const onDraftStored = useCallback((storedId: number, signature: string) => {
+    if (!isDraft || !deckRef.current) {
+      return;
+    }
+    setCachedDeck(storedId, { deck: deckRef.current, savedSignature: signature });
+    deleteDraft(draftToken);
+    navigate(generatePath(RouteEnum.DECK, { deckId: String(storedId) }), { replace: true });
+  }, [isDraft, draftToken, navigate]);
+  const autosave = useDeckAutosave(
+    deckId,
+    readDeck,
+    initialCached?.savedSignature ?? null,
+    isDraft ? { onStored: onDraftStored } : undefined,
+  );
   const { scheduleSave, markSaved, resetSaved, savedSignature } = autosave;
   const history = useDeckHistory();
   const { record, clear: clearHistory, undo: undoHistory, redo: redoHistory } = history;
@@ -163,6 +196,48 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   useEffect(() => {
     deckRef.current = deck;
   }, [deck]);
+
+  // --- Load a draft ---
+  useEffect(() => {
+    if (!isDraft) {
+      return;
+    }
+    if (getCachedDraft(draftToken)) {
+      setLoading(false);
+      setNotFound(false);
+      return;
+    }
+    const cod = getDraftDocument(draftToken) ?? takeStagedDeck(draftToken);
+    if (cod == null) {
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+    setDraftDocument(draftToken, cod);
+    let cancelled = false;
+    (async () => {
+      try {
+        const hydrated = await hydrateDeck(parseCod(cod));
+        if (cancelled) {
+          return;
+        }
+        deckRef.current = hydrated;
+        setCachedDraft(draftToken, hydrated);
+        setDeck(hydrated);
+        clearHistory();
+        setLoading(false);
+      } catch (err) {
+        console.error('Failed to parse deck XML', err);
+        if (!cancelled) {
+          setNotFound(true);
+          setLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isDraft, draftToken, clearHistory]);
 
   // --- Load ---
   useEffect(() => {
@@ -258,6 +333,10 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   // Mirror edits (including unsaved ones) into the session cache so a
   // tab return shows the in-editor state, not the last download.
   useEffect(() => {
+    if (isDraft && deck) {
+      setCachedDraft(draftToken, deck);
+      return;
+    }
     if (deckId == null || !deck) {
       return;
     }
@@ -266,7 +345,7 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
       deck,
       savedSignature: existing ? existing.savedSignature : savedSignature(),
     });
-  }, [deckId, deck, savedSignature]);
+  }, [deckId, isDraft, draftToken, deck, savedSignature]);
 
   // --- Mutations ---
   // Applies `edit` to the latest deck. A user edit passes the `reason` it

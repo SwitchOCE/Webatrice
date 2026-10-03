@@ -1,5 +1,6 @@
 import { StrictMode, type ReactNode } from 'react';
 import { act, renderHook } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { combineReducers } from '@reduxjs/toolkit';
 import { server } from '@cockatrice/datatrice';
 
@@ -28,7 +29,9 @@ describe('useDeckEditor — save settlement across unmount', () => {
     const { Wrapper, store } = makeReduxWebClientHookWrapper<RootState>({
       reducer: combineReducers(rootReducerMap), preloadedState: connectedState as RootState, webClient,
     });
-    const wrapper = ({ children }: { children: ReactNode }) => <StrictMode><Wrapper>{children}</Wrapper></StrictMode>;
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <StrictMode><MemoryRouter><Wrapper>{children}</Wrapper></MemoryRouter></StrictMode>
+    );
     const response = (error: { responseCode: number } | null) => {
       const calls = vi.mocked(webClient.request.session.deckUpdate).mock.calls;
       act(() => {

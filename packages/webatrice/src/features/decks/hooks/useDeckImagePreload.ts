@@ -9,7 +9,7 @@ import type { HydratedDeck } from '../types';
  * instead of triggering a fresh Scryfall CDN fetch (which was the
  * "hovering feels laggy" symptom on cold decks).
  *
- * The preload runs exactly once per `deckId` — a value guard on
+ * The preload runs exactly once per deck (`deckId`, or a draft key) — a value guard on
  * `readyDeckId` prevents subsequent card additions / printing swaps
  * from re-blocking the UI. A card added after the initial preload
  * fetches its image the normal way when its `<img>` first mounts;
@@ -27,11 +27,11 @@ export interface PreloadProgress {
 }
 
 export function useDeckImagePreload(
-  deckId: number | null,
+  deckId: number | string | null,
   deck: HydratedDeck | null,
   loading: boolean,
 ): PreloadProgress {
-  const [readyDeckId, setReadyDeckId] = useState<number | null>(null);
+  const [readyDeckId, setReadyDeckId] = useState<number | string | null>(null);
   const [progress, setProgress] = useState<{ loaded: number; total: number }>({
     loaded: 0,
     total: 0,
