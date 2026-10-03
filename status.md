@@ -5,3 +5,4 @@
 - 22:49Z D7 + D12 pushed → D13 small duplicates
 - 22:57Z D13 pushed → serializeCod sideboard_plan test
 - 23:00Z all items pushed (52f549b) → running full gate + webatrice e2e
+- 23:20Z gate green (unit/integ/lint/typecheck, e2e 69 pass/12 skip after docker-CLI rerun of staff-tools); PR notes written → done
