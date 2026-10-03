@@ -14,6 +14,8 @@ export const Types = {
   SORT_GAMES: a.sortGames.type,
   REMOVE_MESSAGES: a.removeMessages.type,
   GAME_CREATED: a.gameCreated.type,
+  JOIN_ROOM_FAILED: a.joinRoomFailed.type,
+  CREATE_GAME_FAILED: a.createGameFailed.type,
   JOINED_GAME: a.joinedGame.type,
   SELECT_GAME: a.selectGame.type,
   SET_GAME_FILTERS: a.setGameFilters.type,

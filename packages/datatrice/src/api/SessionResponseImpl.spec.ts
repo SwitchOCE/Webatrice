@@ -517,4 +517,28 @@ describe('SessionResponseImpl forwards', () => {
       ServerActions.sessionCommandFailed({ command: 'deckShareList', responseCode: Response_ResponseCode.RespNameNotFound, target: 'tok' }),
     );
   });
+
+  it('deckListFailed dispatches deckListFailed with the code and transport reason', () => {
+    const { impl, dispatch } = setup();
+    impl.deckListFailed(-1, WebsocketTypes.CommandFailure.Timeout);
+    expect(dispatch).toHaveBeenCalledWith(
+      ServerActions.deckListFailed({ responseCode: -1, failure: WebsocketTypes.CommandFailure.Timeout }),
+    );
+  });
+
+  it('deckDownloadFailed dispatches deckDownloadFailed keyed by deckId', () => {
+    const { impl, dispatch } = setup();
+    impl.deckDownloadFailed(42, 15);
+    expect(dispatch).toHaveBeenCalledWith(
+      ServerActions.deckDownloadFailed({ deckId: 42, responseCode: 15, failure: undefined }),
+    );
+  });
+
+  it('deckUploadFailed dispatches deckUploadFailed with the path', () => {
+    const { impl, dispatch } = setup();
+    impl.deckUploadFailed('', -1, WebsocketTypes.CommandFailure.Disconnected);
+    expect(dispatch).toHaveBeenCalledWith(
+      ServerActions.deckUploadFailed({ path: '', responseCode: -1, failure: WebsocketTypes.CommandFailure.Disconnected }),
+    );
+  });
 });
