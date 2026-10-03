@@ -1,19 +1,48 @@
 import { createContext, useCallback, useContext, useEffect, useRef, type FocusEvent, type KeyboardEvent } from 'react';
 
-/** Elements Tab can land on. Disabled controls and `tabindex="-1"` are left out, as the browser does. */
+/** Candidates for Tab. `tabbableElements` then drops the ones the browser skips for other reasons. */
 const TABBABLE = [
-  'a[href]',
-  'button:not([disabled])',
-  'input:not([disabled]):not([type="hidden"])',
-  'select:not([disabled])',
-  'textarea:not([disabled])',
+  'a[href]:not([tabindex="-1"])',
+  'button:not([disabled]):not([tabindex="-1"])',
+  'input:not([disabled]):not([type="hidden"]):not([tabindex="-1"])',
+  'select:not([disabled]):not([tabindex="-1"])',
+  'textarea:not([disabled]):not([tabindex="-1"])',
   '[tabindex]:not([tabindex="-1"])',
-  '[contenteditable="true"]',
+  '[contenteditable="true"]:not([tabindex="-1"])',
 ].join(',');
 
+/** Rendered: neither it nor an ancestor up to `container` is `display: none`, and it isn't `visibility: hidden`. */
+function isRendered(element: HTMLElement, container: HTMLElement): boolean {
+  if (getComputedStyle(element).visibility === 'hidden') {
+    return false;
+  }
+  for (let node: HTMLElement | null = element; node && node !== container; node = node.parentElement) {
+    if (getComputedStyle(node).display === 'none') {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * The elements Tab lands on inside `container`, in DOM order, by the rules the browser (and the
+ * `tabbable` library) applies: no disabled or `tabindex="-1"` controls, nothing hidden, inert or
+ * not rendered, and one stop per radio group (its checked radio, else its first).
+ */
 export function tabbableElements(container: HTMLElement): HTMLElement[] {
-  return Array.from(container.querySelectorAll<HTMLElement>(TABBABLE))
-    .filter((element) => !element.closest('[hidden],[inert]'));
+  const candidates = Array.from(container.querySelectorAll<HTMLElement>(TABBABLE))
+    .filter((element) => !element.closest('[hidden],[inert]') && isRendered(element, container));
+  const radioStops = new Map<string, HTMLInputElement>();
+  for (const element of candidates) {
+    if (element instanceof HTMLInputElement && element.type === 'radio' && element.name) {
+      const stop = radioStops.get(element.name);
+      if (!stop || (element.checked && !stop.checked)) {
+        radioStops.set(element.name, element);
+      }
+    }
+  }
+  return candidates.filter((element) => !(element instanceof HTMLInputElement && element.type === 'radio'
+    && element.name && radioStops.get(element.name) !== element));
 }
 
 /** Where focus goes on close when the opener has left the page: given the opener, as it was at open. */
@@ -71,7 +100,8 @@ export interface DialogFocusProps {
  * else its first control, else the dialog itself), Tab and Shift+Tab cycle through its controls
  * only, Escape closes it, and closing it puts focus back on the control that opened it — also when
  * the dialog replaced another one, which hands its opener on. If that control has unmounted in the
- * meantime (a list row scrolled away), focus goes to `returnFocusTo` instead.
+ * meantime (a list row scrolled away), focus goes to `returnFocusTo` instead. While the dialog is
+ * open, focus that falls to `<body>` (the focused control unmounted) comes back to the dialog.
  *
  * Keys arrive through React, so a dialog opened from inside another one handles them first: an
  * inner dialog stops Escape and ignores Tab from outside its own element, and the outer one in
@@ -105,7 +135,29 @@ export function useDialogFocus({ isOpen, onEscape, returnFocusTo }: DialogFocusO
       target.focus();
     }
 
+    // Focus lost to <body> while open (the focused control unmounted: a button swapped for a
+    // spinner, a list re-rendered) comes back to the dialog, so Escape and the Tab trap keep
+    // working. Only the top-most dialog takes it. Browsers differ on whether removing the focused
+    // element fires `focusout`, so DOM changes are watched as well.
+    const rehome = () => {
+      const current = document.activeElement;
+      const dialogs = document.querySelectorAll('[aria-modal="true"]');
+      if ((current == null || current === document.body) && dialogs[dialogs.length - 1] === element) {
+        element.focus({ preventScroll: true });
+      }
+    };
+    const onFocusOut = (event: globalThis.FocusEvent) => {
+      if (event.relatedTarget == null) {
+        queueMicrotask(rehome);
+      }
+    };
+    const observer = new MutationObserver(rehome);
+    element.addEventListener('focusout', onFocusOut);
+    observer.observe(element, { childList: true, subtree: true });
+
     return () => {
+      element.removeEventListener('focusout', onFocusOut);
+      observer.disconnect();
       focusedBefore.current = null;
       // Hand focus back only when it is still ours to give: inside the closing dialog, or lost to
       // <body> because the focused control unmounted with it. Another dialog that has already
