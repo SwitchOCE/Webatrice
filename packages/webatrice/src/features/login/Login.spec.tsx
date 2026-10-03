@@ -13,6 +13,7 @@ import { makeSettings, makeSettingsHook } from '../../hooks/__mocks__/useSetting
 import { makeHost, makeKnownHostsHook } from '../../feature-widgets/known-hosts/__mocks__/useKnownHosts';
 import { autoLoginGate } from './useAutoLogin';
 import { LoadingState } from '@app/hooks';
+import { PREFERENCE_DEFAULTS, type PreferenceKey } from '@app/types';
 import Login from './Login';
 
 const hoisted = vi.hoisted(() => ({
@@ -20,11 +21,13 @@ const hoisted = vi.hoisted(() => ({
   getSettings: vi.fn(),
   getKnownHosts: vi.fn(),
   useSettings: vi.fn(),
+  usePreference: vi.fn(),
   useKnownHosts: vi.fn(),
 }));
 
 vi.mock('../../hooks/useSettings', () => ({
   useSettings: hoisted.useSettings,
+  usePreference: hoisted.usePreference,
   getSettings: hoisted.getSettings,
 }));
 vi.mock('@app/feature-widgets/known-hosts', () => ({
@@ -58,6 +61,7 @@ beforeEach(() => {
   hoisted.getKnownHosts.mockReset();
   hoisted.useSettings.mockReset();
   hoisted.useKnownHosts.mockReset();
+  hoisted.usePreference.mockImplementation((key: PreferenceKey) => PREFERENCE_DEFAULTS[key]);
 
   const defaultHost = makeHost({
     id: 1,
@@ -98,6 +102,18 @@ const armAutoConnect = () => {
   hoisted.getSettings.mockResolvedValue(makeSettings({ autoConnect: true }));
   hoisted.getKnownHosts.mockResolvedValue({ hosts: [host], selectedHost: host });
 };
+
+describe('Login — debug log', () => {
+  test('opens "View debug log" before signing in, as desktop\'s Help menu does', () => {
+    const { getByRole, queryByRole } = renderWithProviders(<Login />, { preloadedState: disconnectedState });
+    expect(queryByRole('dialog', { name: /DebugLogDialog\.title/ })).not.toBeInTheDocument();
+
+    fireEvent.click(getByRole('button', { name: /Login\.footer\.debugLog/ }));
+
+    expect(getByRole('dialog', { name: /DebugLogDialog\.title/ })).toBeInTheDocument();
+    expect(getByRole('textbox', { name: /DebugLogDialog\.logLabel/ })).toBeInTheDocument();
+  });
+});
 
 describe('Login — auto-connect cold start', () => {
   test('fires login when settings + host say go', async () => {

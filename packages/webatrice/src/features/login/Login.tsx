@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate } from 'react-router-dom';
 import Button from '@mui/material/Button';
@@ -5,6 +6,7 @@ import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 
 import { LanguageDropdown } from '@app/components';
+import { DebugLogDialog } from '@app/dialogs';
 import { useVersion } from '@app/hooks';
 import { Images } from '@app/images';
 import { Layout } from '@app/feature-wrappers/layout';
@@ -49,6 +51,9 @@ const Login = () => {
     closeActivateAccountDialog,
   } = useLogin();
   const version = useVersion();
+  // Desktop's Help › View debug log works while disconnected, which is when connection
+  // and login failures need it; the signed-in menus are not reachable from here.
+  const [debugLogOpen, setDebugLogOpen] = useState(false);
 
   return (
     <Layout showNav={false} noHeightLimit={true}>
@@ -104,6 +109,7 @@ const Login = () => {
 
                 <div className="login-footer__language">
                   <LanguageDropdown />
+                  <Button color="primary" onClick={() => setDebugLogOpen(true)}>{t('Login.footer.debugLog')}</Button>
                 </div>
               </div>
             </div>
@@ -143,6 +149,8 @@ const Login = () => {
             </div>
           </Paper>
         </div>
+
+        <DebugLogDialog isOpen={debugLogOpen} onClose={() => setDebugLogOpen(false)} />
 
         <RegistrationDialog
           isOpen={dialogState.registrationDialog}
