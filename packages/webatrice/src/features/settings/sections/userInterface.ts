@@ -15,6 +15,17 @@ export const userInterfaceSection: SettingsSection = {
       titleKey: 'SettingsUserInterface.group.general',
       entries: [
         {
+          id: 'doubleClickToPlay',
+          labelKey: 'SettingsUserInterface.doubleClickToPlay.label',
+          control: { kind: 'toggle', key: 'doubleClickToPlay' },
+        },
+        {
+          id: 'clickPlaysAllSelected',
+          labelKey: 'SettingsUserInterface.clickPlaysAllSelected.label',
+          descriptionKey: 'SettingsUserInterface.clickPlaysAllSelected.description',
+          control: { kind: 'toggle', key: 'clickPlaysAllSelected' },
+        },
+        {
           id: 'playToStack',
           labelKey: 'SettingsUserInterface.playToStack.label',
           descriptionKey: 'SettingsUserInterface.playToStack.description',
