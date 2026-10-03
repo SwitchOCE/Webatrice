@@ -10,7 +10,7 @@ import { createPortal } from 'react-dom';
 import { useForkRef } from '@mui/material/utils';
 import { motion } from 'motion/react';
 import { Hand, Heart, Skull, Sparkles } from 'lucide-react';
-import type { RoomMemberWithProfile, DeckCard } from './mockTypes';
+import type { RoomMemberWithProfile } from './mockTypes';
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 import { ManaSymbols } from '../ui/ManaSymbols/ManaSymbols';
 import {
@@ -53,6 +53,7 @@ import type {
   BattlefieldCardViewModel,
   PlayerCardViewModel,
   PlayerZoneCommands,
+  SeatDeckCard,
   SeatMoveCard,
   SeatMoveDestination,
 } from '../ui/PlayerBoard/playerBoard.types';
@@ -169,8 +170,9 @@ type Props = {
    *  for 3-player where opponents are on the sides. No effect on the
    *  local (isSelf) hand. */
   flipHandCardBacks?: boolean;
-  /** All cards from this player's selected deck. Feeds the library. */
-  cards: DeckCard[];
+  /** The deck list this player loaded (own seat only; see PlayerBoardModel.deck).
+   *  Warms the card-image cache and the card metadata lookups. */
+  deckCards: readonly SeatDeckCard[];
   /** Optional controlled life counter. When provided, PlayerBox uses
    *  `value` as the displayed life total and calls `onDelta` for the
    *  hover +/- buttons and `onSet` for the numeric-edit input, instead
@@ -940,7 +942,7 @@ function PlayerBox(
     isActive,
     handOnTop,
     flipHandCardBacks = false,
-    cards,
+    deckCards,
     lifeControl,
     zoneCounts,
     graveCards,
@@ -1060,17 +1062,17 @@ function PlayerBox(
   // the local player — opponents' hand cards never reveal their face, so
   // burning bandwidth on their images would be wasted.
   useEffect(() => {
-    if (!isSelf || cards.length === 0) {
+    if (!isSelf || deckCards.length === 0) {
       return;
     }
-    for (const c of cards) {
-      if (c.category === 'sideboard') {
+    for (const c of deckCards) {
+      if (c.sideboard || !c.scryfallId) {
         continue;
       }
       const img = new Image();
-      img.src = `https://api.scryfall.com/cards/${c.card_scryfall_id}?format=image&version=large`;
+      img.src = `https://api.scryfall.com/cards/${c.scryfallId}?format=image&version=large`;
     }
-  }, [isSelf, cards]);
+  }, [isSelf, deckCards]);
 
   // Prefetch every deck card's metadata (`type_line` for hand
   // double-click auto-routing + `power`/`toughness` for the P/T pill
@@ -1158,7 +1160,7 @@ function PlayerBox(
     return meta.faces.find((f) => f.name === cardName)?.imageUri;
   };
   useEffect(() => {
-    if (!isSelf || cards.length === 0) {
+    if (!isSelf || deckCards.length === 0) {
       return;
     }
     let cancelled = false;
@@ -1168,7 +1170,7 @@ function PlayerBox(
     // Sideboard cards were previously filtered out under the
     // assumption they wouldn't be inspected in-game.
     const uniqueNames = Array.from(
-      new Set(cards.map((c) => c.name)),
+      new Set(deckCards.map((c) => c.name)),
     ).filter((name) => !cardMetaByName.has(name));
     if (uniqueNames.length === 0) {
       return;
@@ -1217,7 +1219,7 @@ function PlayerBox(
     // "already-cached names" recomputation to re-enter the effect,
     // just want a re-run when the deck changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
-  }, [isSelf, cards]);
+  }, [isSelf, deckCards]);
 
   // Fetch Scryfall metadata for cards currently on the battlefield
   // — runs for BOTH self and opponent PlayerBoxes. The initial deck-
@@ -5413,7 +5415,6 @@ function PlayerBox(
                         }
                         let typeLine =
                           cardMetaByName.get(c.name)?.typeLine ??
-                          cards.find((dc) => dc.name === c.name)?.type_line ??
                           '';
                         if (!typeLine) {
                           const r = await lookupCard(c.name);
@@ -6007,7 +6008,6 @@ function PlayerBox(
                         }
                         let typeLine =
                           cardMetaByName.get(c.name)?.typeLine ??
-                          cards.find((dc) => dc.name === c.name)?.type_line ??
                           '';
                         if (!typeLine) {
                           const r = await lookupCard(c.name);
