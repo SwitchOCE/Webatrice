@@ -81,6 +81,7 @@ describe('registered sections', () => {
 
   it('list the pages in desktop order', () => {
     expect(settingsSections.map((s) => s.id)).toEqual([
+      SettingsSectionId.General,
       SettingsSectionId.Appearance,
       SettingsSectionId.UserInterface,
       SettingsSectionId.Chat,
