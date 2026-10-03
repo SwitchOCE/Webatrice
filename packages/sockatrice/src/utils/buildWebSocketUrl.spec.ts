@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { buildWebSocketUrl } from './buildWebSocketUrl';
+import { buildWebSocketUrl, isLocalTargetHost } from './buildWebSocketUrl';
 
 describe('buildWebSocketUrl', () => {
   it('uses wss:// and includes the port for direct (pathless) remote endpoints', () => {
@@ -45,5 +45,19 @@ describe('buildWebSocketUrl', () => {
     expect(buildWebSocketUrl('localhost/servatrice', 4748)).toBe(
       'ws://localhost/servatrice',
     );
+  });
+});
+
+describe('isLocalTargetHost', () => {
+  it('is true for localhost, loopback and *.localhost, ignoring case and any path', () => {
+    expect(isLocalTargetHost('localhost')).toBe(true);
+    expect(isLocalTargetHost('127.0.0.1')).toBe(true);
+    expect(isLocalTargetHost('[::1]')).toBe(true);
+    expect(isLocalTargetHost('Dev.LOCALHOST/servatrice')).toBe(true);
+  });
+
+  it('is false for remote hosts', () => {
+    expect(isLocalTargetHost('server.cockatrice.us/servatrice')).toBe(false);
+    expect(isLocalTargetHost('localhost.example')).toBe(false);
   });
 });
