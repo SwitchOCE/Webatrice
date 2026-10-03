@@ -51,6 +51,22 @@ describe('ReportNotifier', () => {
     expect(screen.getByText('queue page')).toBeTruthy();
   });
 
+  it('still pops up the first notice after a reconnect resets the reports slice', () => {
+    const { store } = renderNotifier();
+    act(() => {
+      store.dispatch(notice(Type.REPORT_RESOLVED, 'Report Resolved', 'first session'));
+    });
+    act(() => {
+      store.dispatch(server.Actions.disconnected());
+    });
+    act(() => {
+      store.dispatch(notice(Type.REPORT_RESOLVED, 'Report Resolved', 'second session'));
+    });
+    const toasts = screen.getAllByTestId('report-notice').map((toast) => toast.textContent);
+    expect(toasts).toHaveLength(2);
+    expect(toasts.join()).toContain('second session');
+  });
+
   it('skips a notice with a blank title or content, like desktop', () => {
     const { store } = renderNotifier();
     act(() => {

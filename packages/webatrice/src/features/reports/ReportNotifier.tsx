@@ -21,14 +21,15 @@ export default function ReportNotifier() {
   const lastNotice = useAppSelector(server.Selectors.getLastReportNotice);
   const isModerator = useAppSelector(server.Selectors.getIsUserModerator);
 
-  // Only notices that arrive after mount pop up.
-  const seen = useRef(lastNotice?.seq ?? 0);
+  // Only notices that arrive after mount pop up. Compared by identity: the
+  // notifier outlives a reconnect, which resets the reports slice.
+  const seen = useRef(lastNotice);
 
   useEffect(() => {
-    if (!lastNotice || lastNotice.seq === seen.current) {
+    if (!lastNotice || lastNotice === seen.current) {
       return;
     }
-    seen.current = lastNotice.seq;
+    seen.current = lastNotice;
     const { notification } = lastNotice;
     const title = notification.customTitle.replace(/\s+/g, ' ').trim();
     const content = notification.customContent.trim();

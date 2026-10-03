@@ -103,10 +103,11 @@ export const reportReducers = {
     state.reports.replay = action.payload;
   }) as CaseReducer<ServerState, PayloadAction<{ gameId: number; replayId: number; replayData: Uint8Array }>>,
 
-  // REPORT_RESOLVED / REPORT_COMMENT, also kept in `notifications`. The counter
-  // lets a view tell a new notice from the same text arriving twice.
+  // REPORT_RESOLVED / REPORT_COMMENT, also kept in `notifications`. Each notice
+  // is a new object, so a view tells a new one from the one it last handled by
+  // identity: that survives the slice reset on disconnect, where a counter kept
+  // here would restart and repeat a value a long-lived view already saw.
   reportNotified: ((state, action) => {
-    const seq = (state.reports.lastNotice?.seq ?? 0) + 1;
-    state.reports.lastNotice = { seq, notification: action.payload.notification };
+    state.reports.lastNotice = { notification: action.payload.notification };
   }) as CaseReducer<ServerState, PayloadAction<{ notification: Event_NotifyUser }>>,
 };

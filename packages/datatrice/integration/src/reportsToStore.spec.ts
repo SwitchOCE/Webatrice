@@ -32,7 +32,7 @@ describe('integration: report handlers', () => {
       customTitle: 'Report Resolved',
       customContent: 'Your report about mallory has been resolved.',
     }));
-    expect(server.Selectors.getLastReportNotice(store.getState())?.seq).toBe(1);
+    expect(server.Selectors.getLastReportNotice(store.getState())?.notification.customTitle).toBe('Report Resolved');
 
     response.session.reportMyList?.([create(ServerInfo_ReportSchema, { ...report(1, 'resolved'), resolutionNote: 'warned' })]);
     expect(server.Selectors.getMyReports(store.getState())[0]).toMatchObject({ status: 'resolved', resolutionNote: 'warned' });
