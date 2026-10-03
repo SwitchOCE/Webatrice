@@ -143,6 +143,10 @@ export interface GameMessage {
    *  Cockatrice desktop's `QDateTime::currentDateTime()` stamp. */
   timeReceived: number;
   kind?: 'chat' | 'event';
+  /** Chat lines only: the sender's name when the line arrived, so the line
+   *  keeps its author after that player leaves (desktop ChatView stores the
+   *  sender with each message). Undefined when the seat was unknown. */
+  senderName?: string;
 }
 
 export type LogMessageSegmentKind = 'plain' | 'player' | 'card' | 'number';
