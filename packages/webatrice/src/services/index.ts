@@ -3,3 +3,4 @@ export * from './analytics';
 export * from './dexie';
 export * from './PublicServersService';
 export * from './replay';
+export * from './sound';
