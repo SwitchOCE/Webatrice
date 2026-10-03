@@ -10,6 +10,7 @@
     "reportQueue": "Report Queue",
     "cardArtRules": "Card Art Rules",
     "developer": "Developer",
-    "importCards": "Import cards"
+    "importCards": "Import cards",
+    "debugLog": "View debug log"
   }
 }

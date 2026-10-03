@@ -302,6 +302,15 @@
       "retry": "Reload page"
     }
   },
+  "DebugLogDialog": {
+    "title": "Debug Log",
+    "logLabel": "Client log",
+    "clearOnClose": "Clear log when closing",
+    "clear": "Clear log",
+    "copy": "Copy to clipboard",
+    "copied": "Copied",
+    "copyFailed": "The browser blocked the clipboard. Select the text and copy it instead."
+  },
   "ReportUserDialog": {
     "title": "Report User",
     "info": "Reports are reviewed by moderators. False reports may result in account penalties.",
@@ -646,7 +655,8 @@
     "reportQueue": "Report Queue",
     "cardArtRules": "Card Art Rules",
     "developer": "Developer",
-    "importCards": "Import cards"
+    "importCards": "Import cards",
+    "debugLog": "View debug log"
   },
   "Account": {
     "action": {
@@ -1466,7 +1476,13 @@
   },
   "SettingsGeneral": {
     "group": {
-      "language": "Language"
+      "language": "Language",
+      "diagnostics": "Diagnostics"
+    },
+    "debugLog": {
+      "label": "Debug log",
+      "description": "Recent client messages, to copy into a bug report. Kept in memory only; passwords are left out.",
+      "button": "View debug log"
     },
     "language": {
       "label": "Language",

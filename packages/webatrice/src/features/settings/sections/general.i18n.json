@@ -1,7 +1,13 @@
 {
   "SettingsGeneral": {
     "group": {
-      "language": "Language"
+      "language": "Language",
+      "diagnostics": "Diagnostics"
+    },
+    "debugLog": {
+      "label": "Debug log",
+      "description": "Recent client messages, to copy into a bug report. Kept in memory only; passwords are left out.",
+      "button": "View debug log"
     },
     "language": {
       "label": "Language",
