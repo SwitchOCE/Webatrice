@@ -8,7 +8,9 @@ export function listRooms({ roomList }: Event_ListRooms): void {
   if (WebClient.instance.clientOptions.autojoinrooms) {
     roomList.forEach(({ autoJoin, roomId }) => {
       if (autoJoin) {
-        joinRoom(roomId);
+        // Auto-joins are not user-initiated: desktop joins with setCurrent = false,
+        // so a failed auto-join raises no error dialog.
+        joinRoom(roomId, false);
       }
     });
   }

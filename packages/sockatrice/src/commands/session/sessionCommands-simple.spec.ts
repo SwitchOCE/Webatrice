@@ -34,6 +34,7 @@ import { disconnect } from './disconnect';
 import { getGamesOfUser } from './getGamesOfUser';
 import { getUserInfo } from './getUserInfo';
 import { joinRoom } from './joinRoom';
+import { _resetPendingRoomJoins } from './pendingRoomJoins';
 import { listRooms } from './listRooms';
 import { listUsers } from './listUsers';
 import { message } from './message';
@@ -62,6 +63,7 @@ import {
   Command_GetGamesOfUser_ext,
   Command_GetUserInfo_ext,
   Command_JoinRoom_ext,
+  Command_LeaveRoom_ext,
   Command_ListRooms_ext,
   Command_ListUsers_ext,
   Command_Message_ext,
@@ -86,12 +88,13 @@ import {
   Response_ReplayList_ext,
 } from '../../generated';
 
-const { invokeOnSuccess, invokeCallback, invokeOnError } = makeCallbackHelpers(
+const { invokeOnSuccess, invokeCallback, invokeResponseCode, invokeOnError } = makeCallbackHelpers(
   WebClient.instance.protobuf.sendSessionCommand as Mock,
   2
 );
 
 beforeEach(() => {
+  _resetPendingRoomJoins();
   (hashPassword as Mock).mockResolvedValue('hashed_pw');
   (generateSalt as Mock).mockReturnValue('randSalt');
   (passwordSaltSupported as Mock).mockReturnValue(0);
@@ -391,12 +394,67 @@ describe('joinRoom', () => {
     expect(WebClient.instance.response.room.joinRoom).toHaveBeenCalledWith(resp.roomInfo);
   });
 
-  it('reports a failure to room.joinRoomFailed with the roomId', () => {
+  it.each([
+    Response_ResponseCode.RespNameNotFound,
+    Response_ResponseCode.RespUserLevelTooLow,
+    Response_ResponseCode.RespInternalError,
+  ])('reports a failed user-initiated join with response code %i', (code) => {
     joinRoom(5);
+    invokeOnError(code);
+    expect(WebClient.instance.response.room.joinRoomFailed).toHaveBeenCalledWith(5, code, undefined);
+  });
+
+  it('keeps a failed auto-join silent', () => {
+    joinRoom(5, false);
     invokeOnError(Response_ResponseCode.RespNameNotFound);
-    expect(WebClient.instance.response.room.joinRoomFailed).toHaveBeenCalledWith(
-      5, Response_ResponseCode.RespNameNotFound, undefined,
+    expect(WebClient.instance.response.room.joinRoomFailed).not.toHaveBeenCalled();
+  });
+
+  it('heals RespContextError once by leaving and rejoining the room', () => {
+    const send = WebClient.instance.protobuf.sendSessionCommand as Mock;
+    joinRoom(5);
+    invokeResponseCode(Response_ResponseCode.RespContextError);
+
+    expect(WebClient.instance.protobuf.sendRoomCommand).toHaveBeenCalledWith(
+      5, Command_LeaveRoom_ext, expect.any(Object), expect.any(Object),
     );
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(send.mock.calls[1][0]).toBe(Command_JoinRoom_ext);
+    expect(WebClient.instance.response.room.joinRoomFailed).not.toHaveBeenCalled();
+
+    const resp = { roomInfo: { roomId: 5 } };
+    invokeOnSuccess(resp, { responseCode: 0 });
+    expect(WebClient.instance.response.room.joinRoom).toHaveBeenCalledWith(resp.roomInfo);
+  });
+
+  it('surfaces RespContextError when the healing rejoin is rejected the same way', () => {
+    joinRoom(5);
+    invokeResponseCode(Response_ResponseCode.RespContextError);
+    invokeResponseCode(Response_ResponseCode.RespContextError);
+
+    expect(WebClient.instance.protobuf.sendRoomCommand).toHaveBeenCalledTimes(1);
+    expect(WebClient.instance.response.room.joinRoomFailed).toHaveBeenCalledWith(5, Response_ResponseCode.RespContextError);
+  });
+
+  it('passes the transport reason when the server never answered', () => {
+    joinRoom(5);
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Timeout);
+    expect(WebClient.instance.response.room.joinRoomFailed).toHaveBeenCalledWith(
+      5, Response_ResponseCode.RespNotConnected, CommandFailure.Timeout,
+    );
+  });
+
+  it('folds a join for a room whose join is in flight into the pending one', () => {
+    joinRoom(5, false);
+    joinRoom(5);
+    expect(WebClient.instance.protobuf.sendSessionCommand).toHaveBeenCalledTimes(1);
+
+    // The user asked for the room while it was auto-joining, so its failure is shown.
+    invokeOnError(Response_ResponseCode.RespNameNotFound);
+    expect(WebClient.instance.response.room.joinRoomFailed).toHaveBeenCalledWith(5, Response_ResponseCode.RespNameNotFound, undefined);
+
+    joinRoom(5);
+    expect(WebClient.instance.protobuf.sendSessionCommand).toHaveBeenCalledTimes(2);
   });
 });
 

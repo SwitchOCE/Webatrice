@@ -16,20 +16,6 @@ describe('CommandFailureNotices', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it.each([
-    [Response_ResponseCode.RespNameNotFound, 'CommandFailureNotices.joinRoom.notFound'],
-    [Response_ResponseCode.RespContextError, 'CommandFailureNotices.joinRoom.contextError'],
-    [Response_ResponseCode.RespUserLevelTooLow, 'CommandFailureNotices.joinRoom.userLevelTooLow'],
-    [Response_ResponseCode.RespInternalError, 'CommandFailureNotices.joinRoom.unknown'],
-  ])('explains a join-room rejection (code %s) with desktop\'s message', (responseCode, message) => {
-    const { store } = setup();
-    act(() => {
-      store.dispatch(rooms.Actions.joinRoomFailed({ roomId: 1, responseCode }));
-    });
-    expect(screen.getByText('CommandFailureNotices.joinRoom.title')).toBeInTheDocument();
-    expect(screen.getByText(message)).toBeInTheDocument();
-  });
-
   it('explains a create-game timeout with the transport reason', () => {
     const { store } = setup();
     act(() => {

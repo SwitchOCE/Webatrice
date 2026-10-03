@@ -23,6 +23,7 @@ export const Types = {
   SET_JOIN_GAME_PENDING: a.setJoinGamePending.type,
   SET_JOIN_GAME_ERROR: a.setJoinGameError.type,
   CLEAR_JOIN_GAME_ERROR: a.clearJoinGameError.type,
+  CLEAR_JOIN_ROOM_ERROR: a.clearJoinRoomError.type,
 } as const;
 
 export { MAX_ROOM_MESSAGES } from './rooms.reducer';
