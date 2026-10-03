@@ -5,6 +5,9 @@ import type { Page } from '@playwright/test';
 
 import { expect, test } from '../fixtures/test';
 import { E2E_MODERATOR, reachRoomsAs, registerAndJoinFirstRoom } from '../fixtures/flows';
+import { randomSuffix } from '../fixtures/users';
+import { GamePage } from '../pages';
+import { ReplaysPage } from '../pages/ReplaysPage';
 
 // User reports and the moderation queue (Cockatrice #7091). The flow needs a
 // Servatrice that implements them (Cockatrice master, 3.1), e.g.
@@ -19,6 +22,8 @@ function servatriceImage(): string {
   const pin = readFileSync(resolve(__dirname, '..', '..', '..', '..', '.env.e2e'), 'utf-8');
   return /^SERVATRICE_IMAGE=(.*)$/m.exec(pin)?.[1] ?? '';
 }
+
+const DECK_PATH = resolve(__dirname, '..', 'fixtures', 'decks', 'forest-60.cod');
 
 const SERVER_HAS_REPORTS = !/Release-3\.0\./.test(servatriceImage());
 
@@ -97,4 +102,63 @@ test('a report goes from user A to a moderator and its resolution back to A', as
   await expect(mine.getByTestId('report-resolution')).toContainText('Warned the user');
   await expect(mine.getByTestId('report-thread')).toContainText('Looking into it');
   await expect(mine.getByLabel('Add a comment:')).toBeDisabled();
+});
+
+test('a moderator watches the reported game\'s replay from the queue', async ({ newContext }) => {
+  test.skip(!SERVER_HAS_REPORTS, 'needs a Servatrice with user reports (Cockatrice 3.1)');
+  test.setTimeout(240_000);
+  const pageA = await (await newContext()).newPage();
+  const pageB = await (await newContext()).newPage();
+  const pageMod = await (await newContext()).newPage();
+  const [a, b] = await Promise.all([registerAndJoinFirstRoom(pageA), registerAndJoinFirstRoom(pageB)]);
+
+  // A and B play a short game; the server stores its replay.
+  const gameName = `report-${randomSuffix()}`;
+  await a.rooms.createGame(gameName, { maxPlayers: 2 });
+  const gameA = new GamePage(pageA);
+  await b.rooms.joinGame(gameName);
+  const gameB = new GamePage(pageB);
+  await Promise.all([gameA.loadDeck(DECK_PATH), gameB.loadDeck(DECK_PATH)]);
+  await Promise.all([gameA.setReady(), gameB.setReady()]);
+  await Promise.all([gameA.waitForBoard(), gameB.waitForBoard()]);
+  await gameA.drawCard();
+  await gameA.endTurn();
+  await gameA.leaveGame();
+  await gameB.deckSelect.waitForOpen();
+  await gameB.deckSelect.leaveGame();
+  await expect(gameB.container).toBeHidden({ timeout: 30_000 });
+
+  // B's replays tab names the game's id; A stays in the room.
+  const replays = new ReplaysPage(pageB);
+  await replays.open();
+  const match = replays.matchRow(gameName);
+  await expect(match).toBeVisible({ timeout: 30_000 });
+  const gameId = /^replay-match-(\d+)$/.exec((await match.getAttribute('data-testid')) ?? '')?.[1];
+  expect(gameId).toBeTruthy();
+
+  // A reports B for that game.
+  await openPlayerPage(pageA, b.user.username);
+  await pageA.getByRole('button', { name: 'Report user' }).click();
+  const reportDialog = pageA.getByRole('dialog', { name: 'Report User' });
+  await reportDialog.getByLabel('Game ID:').fill(gameId!);
+  await reportDialog.getByLabel('Description').fill(`e2e replay report ${a.user.username}`);
+  await reportDialog.getByRole('button', { name: 'Submit Report' }).click();
+  await pageA.getByRole('button', { name: 'Yes' }).click();
+  await expect(pageA.getByText('Your report has been submitted and will be reviewed by a moderator. Thank you.'))
+    .toBeVisible({ timeout: 15_000 });
+
+  // The moderator opens the report's replay (desktop TabReport::viewReplay).
+  await reachRoomsAs(pageMod, E2E_MODERATOR);
+  await openUserMenuItem(pageMod, E2E_MODERATOR.username, 'Report Queue');
+  const queue = pageMod.getByTestId('report-queue');
+  await queue.getByLabel('Search by username, category...').fill(a.user.username);
+  const row = queue.locator('tr', { hasText: b.user.username });
+  await expect(row).toHaveCount(1, { timeout: 15_000 });
+  await row.click();
+  await queue.getByRole('button', { name: 'View Replay' }).click();
+
+  const replay = new ReplaysPage(pageMod);
+  await expect(replay.controls).toBeVisible({ timeout: 30_000 });
+  await expect(replay.log).toContainText(`You are watching a replay of game #${gameId}`);
+  await expect(pageMod.getByRole('tab', { name: new RegExp(`Report game #${gameId}`) })).toBeVisible();
 });
