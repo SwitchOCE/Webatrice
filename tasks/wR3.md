@@ -14,3 +14,5 @@ These four PRs were built on `restack-23-playmats` in parallel and now move abov
 Expected conflicts: 26/27/28 all touch TopBar and chat. 25a's mention completer vs 26's `role=log` chat. 28's string extraction vs anything 05/09/18/23d/16/17a/17b added in platform folders: extract those strings too, so PR 28's lint rule passes on every folder not in the off-list. 27 vs 26: if 27 left `TODO(PR26)` stubs, swap them onto 26's primitives now. 25a may have left `TODO(PR26)` for its completer listbox: swap that too.
 
 Gate at the 28 tip: the full gate plus webatrice e2e on all browsers.
+
+**Squash carried from rv11/f27:** in row 3 (27), fold the commit that updates `integration/src/features/rooms-components.spec.tsx` (old 94a1ecb, "integration spec imported deleted comps") into the commit that deletes GameSelector/OpenGames/SayMessage (old baf3b91), so the integration suite imports at every commit. Do it while replaying the row: cherry-pick in order, then use `git commit --amend` or `git reset --soft` plus re-commit. No interactive rebase, since the session classifier blocks `rebase -i`. Check with typecheck plus the integration import at each commit of the row.
