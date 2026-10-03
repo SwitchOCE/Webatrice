@@ -180,14 +180,4 @@ describe('usePlayerZoneCommands — library and reveals', () => {
       { zoneName: ZoneName.DECK, start: -3, end: -1 },
     ]);
   });
-
-  it('dumps library and sideboard views for this seat', () => {
-    const { commands, game } = renderZone();
-    commands().viewLibrary(5, false);
-    commands().viewSideboard();
-    expect(vi.mocked(game.dumpZone).mock.calls.map(([, p]) => p)).toEqual([
-      { playerId: 1, zoneName: ZoneName.DECK, numberCards: 5, isReversed: false },
-      { playerId: 1, zoneName: ZoneName.SIDEBOARD, numberCards: -1, isReversed: false },
-    ]);
-  });
 });

@@ -40,19 +40,6 @@ describe('usePlayerCounterCommands', () => {
     expect(player().counters[LIFE_COUNTER_ID].count).toBe(15);
   });
 
-  it('updates, inserts and removes card counters, restoring the list on rejection', () => {
-    const { commands, counters, game } = renderCounters();
-    act(() => commands().setCardCounter(11, 0, 5));
-    expect(counters()).toEqual([[0, 5], [3, 1]]);
-    act(() => commands().setCardCounter(11, 4, 1));
-    expect(counters()).toEqual([[0, 5], [3, 1], [4, 1]]);
-    act(() => commands().setCardCounter(11, 3, 0));
-    expect(counters()).toEqual([[0, 5], [4, 1]]);
-
-    act(() => vi.mocked(game.setCardCounter).mock.calls[2][3]!.onError!(1, {} as never));
-    expect(counters()).toEqual([[0, 5], [3, 1], [4, 1]]);
-  });
-
   it('sends a batch as one command container and skips an empty one', () => {
     const { commands, game } = renderCounters();
     commands().setCardCounters([]);

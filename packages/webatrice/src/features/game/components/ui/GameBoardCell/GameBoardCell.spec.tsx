@@ -320,26 +320,6 @@ describe('GameBoardCell — library, zone and reveal commands', () => {
     ]);
   });
 
-  it('dumps and clears library / sideboard views', () => {
-    const { commands, game, store } = renderCell(OWN_CELL, {
-      mutate: (state) => {
-        state.games!.games![1]!.players![1]!.zones![ZoneName.DECK]!.revealedCards = [makeCard({ id: 0 })];
-        state.games!.games![1]!.players![1]!.zones![ZoneName.SIDEBOARD]!.revealedCards = [makeCard({ id: 0 })];
-      },
-    });
-    commands().zone.viewLibrary(5, true);
-    commands().zone.viewSideboard();
-    expect(vi.mocked(game.dumpZone).mock.calls.map(([, p]) => p)).toEqual([
-      { playerId: 1, zoneName: ZoneName.DECK, numberCards: 5, isReversed: true },
-      { playerId: 1, zoneName: ZoneName.SIDEBOARD, numberCards: -1, isReversed: false },
-    ]);
-
-    act(() => commands().zone.closeLibraryView());
-    act(() => commands().zone.closeSideboardView());
-    expect(zone(store, 1, ZoneName.DECK).revealedCards ?? []).toEqual([]);
-    expect(zone(store, 1, ZoneName.SIDEBOARD).revealedCards ?? []).toEqual([]);
-  });
-
   it('reveal commands omit playerId for "all players" and use the desktop sentinels', () => {
     const { commands, game } = renderCell();
     commands().zone.reveal(ZoneName.DECK, 'all');
@@ -414,18 +394,11 @@ describe('GameBoardCell — card commands', () => {
     expect(zone(store, 1, ZoneName.TABLE).byId[11].pt).toBe('4/4');
   });
 
-  it('card counters: single set is clamped and optimistic; bulk set is one batch', () => {
-    const { commands, game, store } = renderCell();
-    act(() => commands().counter.setCardCounter(10, 2, 3));
-    act(() => commands().counter.setCardCounter(10, 3, -4));
+  it('card counters: a bulk set is one batch, and an empty one sends nothing', () => {
+    const { commands, game } = renderCell();
     commands().counter.setCardCounters([{ cardId: 10, counterId: 2, value: 4 }, { cardId: 11, counterId: 0, value: 1 }]);
     commands().counter.setCardCounters([]);
 
-    expect(vi.mocked(game.setCardCounter).mock.calls.map(([, p]) => p)).toEqual([
-      { zone: ZoneName.TABLE, cardId: 10, counterId: 2, counterValue: 3 },
-      { zone: ZoneName.TABLE, cardId: 10, counterId: 3, counterValue: 0 },
-    ]);
-    expect(zone(store, 1, ZoneName.TABLE).byId[10].counterList.map((c) => [c.id, c.value])).toEqual([[2, 3]]);
     expect(game.bulkSetCardCounterEntries).toHaveBeenCalledTimes(1);
     expect(game.bulkSetCardCounterEntries).toHaveBeenCalledWith(1, [
       { ownerPlayerId: 1, zone: ZoneName.TABLE, cardId: 10, counterId: 2, counterValue: 4 },

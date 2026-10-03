@@ -5,7 +5,7 @@ import { create } from '@bufbuild/protobuf';
 import { games } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { ZoneName } from '@cockatrice/sockatrice';
-import { Event_SetCounterSchema, type ServerInfo_CardCounter } from '@cockatrice/sockatrice/generated';
+import { Event_SetCounterSchema } from '@cockatrice/sockatrice/generated';
 import { useAppDispatch, type RootState } from '@app/store';
 
 import { useGameId } from '../GameIdContext';
@@ -15,9 +15,9 @@ import type { PlayerCounterCommands } from '../PlayerBoard/playerBoard.types';
  * Player counters (life, mana), per-card counters on this seat's battlefield,
  * and the coin flip. Undefined until the game id is known.
  *
- * Player and single card counters are optimistic: the value is applied in
- * Datatrice first (counterSet and cardFieldsUpdated are field assignments, so
- * the echo re-applies the same value) and restored if the server rejects.
+ * Player counters are optimistic: the value is applied in Datatrice first
+ * (counterSet is a field assignment, so the echo re-applies the same value)
+ * and restored if the server rejects.
  */
 export function usePlayerCounterCommands(playerId: number): PlayerCounterCommands | undefined {
   const gameId = useGameId();
@@ -60,42 +60,6 @@ export function usePlayerCounterCommands(playerId: number): PlayerCounterCommand
             applyCounter(counterId, previousValue);
           },
         });
-      },
-      // Desktop's add/remove card counter both read the value, adjust it, and
-      // send the absolute result. Zero drops the entry, like the listener.
-      setCardCounter: (cardId, counterId, value) => {
-        const clamped = Math.max(0, value);
-        const previousList =
-          games.Selectors.getZone(store.getState(), gameId, playerId, ZoneName.TABLE)?.byId[cardId]?.counterList ?? [];
-        let nextList: ServerInfo_CardCounter[];
-        if (clamped <= 0) {
-          nextList = previousList.filter((c) => c.id !== counterId);
-        } else if (previousList.some((c) => c.id === counterId)) {
-          nextList = previousList.map((c) => (c.id === counterId ? { ...c, value: clamped } : c));
-        } else {
-          // The reducer only reads { id, value }; the listener builds new entries the same way.
-          nextList = [...previousList, { $typeName: 'ServerInfo_CardCounter', id: counterId, value: clamped }];
-        }
-        const patchCounters = (counterList: ServerInfo_CardCounter[]) =>
-          dispatch(games.Actions.cardFieldsUpdated({
-            gameId,
-            playerId,
-            zoneName: ZoneName.TABLE,
-            cardId,
-            fields: { counterList },
-          }));
-        patchCounters(nextList);
-        game.setCardCounter(
-          gameId,
-          { zone: ZoneName.TABLE, cardId, counterId, counterValue: clamped },
-          undefined,
-          {
-            onError: (code) => {
-              console.warn(`setCardCounter rejected (${code}); rolling back cardId ${cardId} counter ${counterId}`);
-              patchCounters(previousList);
-            },
-          },
-        );
       },
       // One command container for the whole batch, like desktop's
       // actIncrementAllCardCounters (player_actions.cpp:1618-1620).
