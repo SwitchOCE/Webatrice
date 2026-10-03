@@ -1,3 +1,4 @@
 - 16:01Z started; base 0412500, read brief/task/PR/plan → survey PlayerBox + setup gate
 - 16:18Z pushed 3 prep commits (drop handle, move siblings, deck from Datatrice) → PlayerBox takes model+commands, then usePlayerSeat + regions
 - 16:49Z PlayerBox gone: model+commands, usePlayerSeat, regions (PlayerInfoPanel/ZoneStack/StackColumn/Battlefield/HandZone), SeatCardMenus, PlayerBoard rendered by GameBoardCell (tip 9e8f64c) → Phase 8 cleanup (SideboardDialog etc), split usePlayerSeat into region hooks, region specs, gate
+- 17:14Z Phase 8 SideboardDialog/PlayerContextMenu deleted, library-view+judge-override integration revived; usePlayerSeat split started (card metadata, draw flights, pending arrows, battlefield layout) tip 0925dca → menus/prompts/shortcuts/marquee/dnd hooks, then gate
