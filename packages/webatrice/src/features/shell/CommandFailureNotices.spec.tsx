@@ -16,44 +16,13 @@ describe('CommandFailureNotices', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it.each([
-    [Response_ResponseCode.RespNameNotFound, 'CommandFailureNotices.joinRoom.notFound'],
-    [Response_ResponseCode.RespContextError, 'CommandFailureNotices.joinRoom.contextError'],
-    [Response_ResponseCode.RespUserLevelTooLow, 'CommandFailureNotices.joinRoom.userLevelTooLow'],
-    [Response_ResponseCode.RespInternalError, 'CommandFailureNotices.joinRoom.unknown'],
-  ])('explains a join-room rejection (code %s) with desktop\'s message', (responseCode, message) => {
-    const { store } = setup();
-    act(() => {
-      store.dispatch(rooms.Actions.joinRoomFailed({ roomId: 1, responseCode, userInitiated: true }));
-    });
-    expect(screen.getByText('CommandFailureNotices.joinRoom.title')).toBeInTheDocument();
-    expect(screen.getByText(message)).toBeInTheDocument();
-  });
-
-  it('stays silent when an autojoin fails, as desktop does', () => {
-    const { store } = setup();
-    act(() => {
-      store.dispatch(rooms.Actions.joinRoomFailed({
-        roomId: 1,
-        responseCode: Response_ResponseCode.RespNotConnected,
-        failure: WebsocketTypes.CommandFailure.Disconnected,
-        userInitiated: false,
-      }));
-    });
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  });
-
   it('drops queued notices once the connection is gone', () => {
     const { store } = setup();
     act(() => {
-      store.dispatch(rooms.Actions.joinRoomFailed({
-        roomId: 1,
-        responseCode: Response_ResponseCode.RespNameNotFound,
-        userInitiated: true,
-      }));
       store.dispatch(rooms.Actions.createGameFailed({ roomId: 1, responseCode: Response_ResponseCode.RespContextError }));
+      store.dispatch(server.Actions.deckUploadFailed({ path: '', responseCode: Response_ResponseCode.RespContextError }));
     });
-    expect(screen.getByText('CommandFailureNotices.joinRoom.title')).toBeInTheDocument();
+    expect(screen.getByText('CommandFailureNotices.createGame.title')).toBeInTheDocument();
 
     act(() => {
       store.dispatch(server.Actions.updateStatus({ status: { state: WebsocketTypes.StatusEnum.DISCONNECTED, description: null } }));

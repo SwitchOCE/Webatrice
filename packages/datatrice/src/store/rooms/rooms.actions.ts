@@ -1,12 +1,12 @@
 import { createAction } from '@reduxjs/toolkit';
 
 import { roomsSlice } from './rooms.reducer';
-import type { JoinRoomFailedPayload, RoomCommandFailedPayload } from './rooms.interfaces';
+import type { RoomCommandFailedPayload } from './rooms.interfaces';
 
 const SignalActions = {
   gameCreated: createAction<{ roomId: number }>('rooms/gameCreated'),
-  // Command failure outcomes; `failure` as on the server `*Failed` actions.
-  joinRoomFailed: createAction<JoinRoomFailedPayload>('rooms/joinRoomFailed'),
+  // Command failure outcomes; `failure` as on the server `*Failed` actions. A
+  // join-room failure is a slice reducer instead (rooms.joinRoomError).
   createGameFailed: createAction<RoomCommandFailedPayload>('rooms/createGameFailed'),
 };
 
