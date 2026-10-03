@@ -1,3 +1,4 @@
 - 15:06Z started rv1 → reading PR files
 - 15:07Z cloned cockatrice add65caa, launched parallel reviews of 01/02/03 → verify findings, write reviews/rv1.md
 - 15:17Z PR01+PR02 reviews verified/drafted → waiting on PR03
+- 15:19Z reviews/rv1.md written (01/02/03 all 'ready after fixes'; majors 2/2/6) → done
