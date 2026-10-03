@@ -114,3 +114,14 @@
   outline-offset: 2px;
   border-radius: 2px;
 }
+
+/* Replay playback: the timeline runs full width under the board and sidebar. */
+.game--with-footer {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.game__footer {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-width: 0;
+}

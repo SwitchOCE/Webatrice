@@ -194,6 +194,14 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'deck.removeCard': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Minus', 'NumpadSubtract'] },
 
   'room.sendMessage': { scope: ShortcutScope.ROOM, group: 'room', sequences: ['Enter'] },
+
+  // Replay playback, desktop's `Replays/*` bindings (shortcuts_settings.h).
+  'replays.playPause': { scope: ShortcutScope.REPLAYS, group: 'replays', sequences: ['Space'] },
+  'replays.skipForward': { scope: ShortcutScope.REPLAYS, group: 'replays', sequences: ['ArrowRight'] },
+  'replays.skipBackward': { scope: ShortcutScope.REPLAYS, group: 'replays', sequences: ['ArrowLeft'] },
+  'replays.skipForwardBig': { scope: ShortcutScope.REPLAYS, group: 'replays', sequences: ['Ctrl+ArrowRight'] },
+  'replays.skipBackwardBig': { scope: ShortcutScope.REPLAYS, group: 'replays', sequences: ['Ctrl+ArrowLeft'] },
+  'replays.toggleFastForward': { scope: ShortcutScope.REPLAYS, group: 'replays', sequences: ['Ctrl+KeyP'] },
 };
 
 // Actions that fire even when focus is in a text input. Most shortcuts skip text-input
