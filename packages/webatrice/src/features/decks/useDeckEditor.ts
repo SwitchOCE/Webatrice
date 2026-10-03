@@ -16,6 +16,7 @@ import { lookupCard, parseCod, serializeCod, touchMeta, trackEvent } from '@app/
 import type { BracketAssessment } from '@app/types';
 import { useWebClient } from '@cockatrice/datatrice/react';
 
+import { getCachedDeck, setCachedDeck } from './deckEditorCache';
 import {
   adjustCardQuantity,
   appendCard,
@@ -118,28 +119,6 @@ export interface UseDeckEditor {
 //  MyDecks is no longer relevant since our custom `uploadDeckUpdate`
 //  does not dispatch that action.)
 
-/**
- * Module-level cache of hydrated decks by deckId. Survives unmounts
- * so switching tabs (MyDecks ↔ open deck) doesn't re-download and
- * re-hydrate every time — otherwise every tab return flashes the
- * "Loading…" placeholder while the cod XML round-trips to servatrice
- * and hydrateDeck's async Dexie / Scryfall lookups run again.
- *
- * Entries mirror the in-editor deck state (updated whenever the local
- * state changes), plus the last-known-saved XML signature so the
- * autosave dirty check keeps working after a rehydrate. Invalidated
- * by MyDecks' Refresh button via `clearDeckEditorCache()`, and by
- * `deleteCachedDeck(id)` when a deck is removed.
- */
-interface CachedDeck { deck: HydratedDeck; savedXml: string }
-const deckCache: Map<number, CachedDeck> = new Map();
-export function clearDeckEditorCache(): void {
-  deckCache.clear();
-}
-export function deleteCachedDeck(deckId: number): void {
-  deckCache.delete(deckId);
-}
-
 export function useDeckEditor(deckId: number | null): UseDeckEditor {
   const webClient = useWebClient();
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
@@ -147,7 +126,7 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   // Hydrate initial state from the module cache if we've already
   // loaded this deck this session — avoids the "Loading…" flash and
   // the deckDownload round-trip when returning to an open deck tab.
-  const initialCached = deckId != null ? deckCache.get(deckId) : undefined;
+  const initialCached = deckId != null ? getCachedDeck(deckId) : undefined;
   const [deck, setDeck] = useState<HydratedDeck | null>(initialCached?.deck ?? null);
   const [loading, setLoading] = useState(!initialCached);
   const [notFound, setNotFound] = useState(false);
@@ -170,7 +149,7 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   // effect) means no effect ever runs with the new id and the old deck.
   const [seededDeckId, setSeededDeckId] = useState(deckId);
   if (seededDeckId !== deckId) {
-    const cached = deckId != null ? deckCache.get(deckId) : undefined;
+    const cached = deckId != null ? getCachedDeck(deckId) : undefined;
     setSeededDeckId(deckId);
     setDeck(cached?.deck ?? null);
     setLoading(!cached);
@@ -192,7 +171,7 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     }
     // Cached: state already seeded from the cache above; skip the
     // network round-trip entirely so tab switches feel instant.
-    const cached = deckCache.get(deckId);
+    const cached = getCachedDeck(deckId);
     if (cached) {
       savedSignatureRef.current = cached.savedXml;
       setLoading(false);
@@ -229,7 +208,7 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
           // Seed the cache so subsequent mounts of this deck skip the
           // download + parse + hydrate round-trip. `deck`-change
           // effect below keeps the entry up to date after edits.
-          deckCache.set(payload.deckId, { deck: hydrated, savedXml: payload.deck });
+          setCachedDeck(payload.deckId, { deck: hydrated, savedXml: payload.deck });
           setLoading(false);
           setSaveState('idle');
           // Legacy decks with no <format> element get defaulted to
@@ -300,9 +279,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     // Refresh the cached saved-signature so a remount after autosave
     // still sees the deck as "clean" (matches the last-known-saved
     // XML) and doesn't queue a spurious re-save.
-    const cached = deckCache.get(deckId);
+    const cached = getCachedDeck(deckId);
     if (cached) {
-      deckCache.set(deckId, { deck: cached.deck, savedXml: xml });
+      setCachedDeck(deckId, { deck: cached.deck, savedXml: xml });
     }
     setSaveState('saving');
     // uploadDeckUpdate handles both the server "saved" ack (flips our
@@ -314,9 +293,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
       if (savedSignatureRef.current === xml) {
         savedSignatureRef.current = previousSignature;
       }
-      const entry = deckCache.get(deckId);
+      const entry = getCachedDeck(deckId);
       if (entry?.savedXml === xml) {
-        deckCache.set(deckId, { deck: entry.deck, savedXml: previousSignature ?? '' });
+        setCachedDeck(deckId, { deck: entry.deck, savedXml: previousSignature ?? '' });
       }
       setSaveState('failed');
     });
@@ -352,8 +331,8 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     if (deckId == null || !deck) {
       return;
     }
-    const existing = deckCache.get(deckId);
-    deckCache.set(deckId, {
+    const existing = getCachedDeck(deckId);
+    setCachedDeck(deckId, {
       deck,
       savedXml: existing?.savedXml ?? savedSignatureRef.current ?? '',
     });
