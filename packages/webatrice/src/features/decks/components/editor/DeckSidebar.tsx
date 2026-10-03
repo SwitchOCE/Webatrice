@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import type { ReactNode } from 'react';
 import { Check, CircleAlert, Loader2, Upload } from 'lucide-react';
 
 import type { SaveState } from '../../hooks/useDeckAutosave';
@@ -25,6 +26,10 @@ export interface DeckSidebarProps {
    *  the TCGplayer deck-total pill, and switch the display to a
    *  non-MTG friendly layout. */
   isMtg: boolean;
+  /** Under the save state: undo/redo and the history list. */
+  headerActions?: ReactNode;
+  /** Under the format picker: legality, banner card and tags. */
+  details?: ReactNode;
 }
 
 export function DeckSidebar({
@@ -40,6 +45,8 @@ export function DeckSidebar({
   prices,
   pricesLoading,
   isMtg,
+  headerActions,
+  details,
 }: DeckSidebarProps) {
   return (
     <aside className="min-h-0 flex flex-col border-r border-border-subtle bg-bg-surface">
@@ -62,6 +69,7 @@ export function DeckSidebar({
         <div className="text-xs mt-1">
           <SaveIndicator state={saveState} onRetry={onRetrySave} />
         </div>
+        {headerActions && <div className="mt-2">{headerActions}</div>}
 
         <div className="mt-3">
           <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
@@ -69,6 +77,7 @@ export function DeckSidebar({
           </span>
           <FormatPicker value={deck.format} onChange={onFormatChange} variant="sidebar" />
         </div>
+        {details && <div className="mt-3 space-y-3">{details}</div>}
 
         <div className="mt-3 space-y-2">
           <button

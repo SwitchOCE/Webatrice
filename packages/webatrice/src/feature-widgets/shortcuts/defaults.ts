@@ -199,6 +199,10 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'deck.load': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Ctrl+KeyO'] },
   'deck.addCard': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Equal', 'NumpadAdd'] },
   'deck.removeCard': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Minus', 'NumpadSubtract'] },
+  // Desktop's DeckListHistoryManagerWidget binds QKeySequence::Undo / ::Redo
+  // (Ctrl+Z; Ctrl+Y or Ctrl+Shift+Z). Text inputs keep their own undo.
+  'deck.undo': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Ctrl+KeyZ'] },
+  'deck.redo': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Ctrl+KeyY', 'Ctrl+Shift+KeyZ'] },
 
   'room.sendMessage': { scope: ShortcutScope.ROOM, group: 'room', sequences: ['Enter'] },
 

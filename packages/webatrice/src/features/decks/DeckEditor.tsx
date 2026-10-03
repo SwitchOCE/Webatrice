@@ -2,10 +2,12 @@ import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { AuthGuard } from '@app/components';
+import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 import { Layout } from '@app/feature-wrappers/layout';
 import { isCommanderFormat, isMtgFormat } from '@app/types';
 
 import { DeckEditorSkeleton, DeckNotFound } from './components/editor/DeckEditorShells';
+import { DeckHistoryControls } from './components/editor/DeckHistoryControls';
 import { DeckMainPane } from './components/editor/DeckMainPane';
 import { DeckSidebar } from './components/editor/DeckSidebar';
 import { groupDeckCards } from './deckGrouping';
@@ -46,6 +48,10 @@ const DeckEditor = () => {
   const [exportOpen, setExportOpen] = useState(false);
 
   const pricing = useDeckPricing(editor.deck, editor.setPriceCache);
+
+  const editing = !editor.loading && editor.deck != null;
+  useShortcut('deck.undo', () => editor.undo(), { scope: ShortcutScope.DECK_EDITOR, enabled: editing });
+  useShortcut('deck.redo', () => editor.redo(), { scope: ShortcutScope.DECK_EDITOR, enabled: editing });
 
   // `isMtg` gates the whole MTG feature set (Scryfall search, printings,
   // pricing, previews, type grouping); `isCommander` adds the
@@ -89,6 +95,15 @@ const DeckEditor = () => {
           prices={pricing.prices}
           pricesLoading={pricing.loading}
           isMtg={isMtg}
+          headerActions={(
+            <DeckHistoryControls
+              history={editor.history}
+              canUndo={editor.canUndo}
+              canRedo={editor.canRedo}
+              onUndo={editor.undo}
+              onRedo={editor.redo}
+            />
+          )}
         />
         <DeckMainPane
           deck={editor.deck}
@@ -115,12 +130,7 @@ const DeckEditor = () => {
           if (!printingRequest) {
             return;
           }
-          editor.updateCard(printingRequest.index, {
-            set: printing.set,
-            collectorNumber: printing.collectorNumber,
-            scryfallId: printing.scryfallId,
-            imageUri: printing.imageUri,
-          });
+          editor.setPrinting(printingRequest.index, printing);
           setPrintingRequest(null);
         }}
       />
