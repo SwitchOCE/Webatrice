@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Send, Hash } from 'lucide-react';
 
 import { Message as MessageBubble } from '@app/components';
 import { ReportChatScope } from '@app/dialogs';
-import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
+import { useChatHighlight, useCommandFailureMessage, useReduxEffect, useRoomChatFilter } from '@app/hooks';
+import { isPrivilegedUser, isRoomMessageVisible } from '@app/utils';
 import { rooms, type Message } from '@cockatrice/datatrice';
+import type { ServerInfo_User } from '@cockatrice/sockatrice/generated';
 
 import { historyTimestamp, roomChatContext } from './roomChatContext';
 
@@ -13,6 +15,8 @@ interface RoomChatProps {
   roomId: number;
   roomName: string;
   messages: Message[] | undefined;
+  /** The room's user list, for the sender's registration and moderator status. */
+  users: Readonly<Record<string, ServerInfo_User>>;
   onSay: (args: { message: string }) => void;
 }
 
@@ -36,13 +40,21 @@ export default function RoomChat(props: RoomChatProps) {
  * delegating each row to the `Message` component. Only chrome + input
  * are new; parsing logic is unchanged.
  */
-function RoomChatView({ roomId, roomName, messages, onSay }: RoomChatProps) {
+function RoomChatView({ roomId, roomName, messages: allMessages, users, onSay }: RoomChatProps) {
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
   const noticeText = (m: Message) =>
     t(`RoomChat.notice.${m.notice}`, { reason: describeFailure(m.failure, '') });
   const scrollRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState('');
+  // Settings → Chat: room history and unregistered-sender filtering, and the reader's mention /
+  // alert-word highlighting. Ignored senders never reach the store (Datatrice drops them).
+  const filter = useRoomChatFilter();
+  const highlights = useChatHighlight();
+  const messages = useMemo(
+    () => allMessages?.filter((m) => isRoomMessageVisible(m, users, filter)),
+    [allMessages, users, filter],
+  );
 
   // A message was rejected as flooding or never answered: the chat shows a notice
   // line, and the unsent text comes back into an empty input so it isn't lost.
@@ -93,7 +105,13 @@ function RoomChatView({ roomId, roomName, messages, onSay }: RoomChatProps) {
           >
             {m.notice
               ? <div className="italic text-text-muted">{noticeText(m)}</div>
-              : <MessageBubble message={m} timestamp={historyTimestamp(m)} />}
+              : (
+                <MessageBubble
+                  message={m}
+                  timestamp={historyTimestamp(m)}
+                  highlight={isPrivilegedUser(users[m.name]) ? highlights.moderator : highlights.user}
+                />
+              )}
           </div>
         ))}
       </div>

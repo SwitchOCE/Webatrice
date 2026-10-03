@@ -1,6 +1,6 @@
 import { screen } from '@testing-library/react';
 import { renderWithProviders } from '../../__test-utils__';
-import Message from './Message';
+import Message, { type MessageHighlight } from './Message';
 
 describe('Message', () => {
   it('renders a plain message', () => {
@@ -30,5 +30,53 @@ describe('Message', () => {
   it('renders no timestamp for live messages', () => {
     const { container } = renderWithProviders(<Message message={{ message: 'alice: hello' }} />);
     expect(container.querySelector('time')).not.toBeInTheDocument();
+  });
+
+  describe('with highlighting', () => {
+    const highlight: MessageHighlight = {
+      selfName: 'Alice',
+      mentions: true,
+      mentionStyle: { backgroundColor: 'rgb(166, 18, 13)', color: 'white' },
+      highlightWords: ['cube'],
+      highlightStyle: { backgroundColor: 'rgb(0, 0, 255)', color: 'black' },
+      senderIsModerator: false,
+    };
+
+    it('marks the reader’s own mention instead of linking it, and still links others', () => {
+      renderWithProviders(<Message message={{ message: 'Bob: hi @alice and @carol' }} highlight={highlight} />);
+
+      const own = screen.getByText('@alice');
+      expect(own.tagName).toBe('MARK');
+      expect(own).toHaveStyle({ backgroundColor: 'rgb(166, 18, 13)', color: 'rgb(255, 255, 255)' });
+      expect(screen.getByRole('link', { name: '@carol' })).toBeInTheDocument();
+    });
+
+    it('marks alert words', () => {
+      renderWithProviders(<Message message={{ message: 'Bob: Cube tonight?' }} highlight={highlight} />);
+
+      const word = screen.getByText('Cube');
+      expect(word.tagName).toBe('MARK');
+      expect(word).toHaveClass('message__highlight');
+    });
+
+    it('draws mentions as plain text when chat mentions are off', () => {
+      renderWithProviders(
+        <Message message={{ message: 'Bob: hi @alice and @carol' }} highlight={{ ...highlight, mentions: false }} />,
+      );
+
+      expect(screen.queryByRole('link', { name: '@carol' })).not.toBeInTheDocument();
+      expect(document.querySelector('mark')).toBeNull();
+    });
+
+    it('marks @/all only from a moderator', () => {
+      const { unmount } = renderWithProviders(
+        <Message message={{ message: 'Mod: @/all restart' }} highlight={{ ...highlight, senderIsModerator: true }} />,
+      );
+      expect(screen.getByText('@/all').tagName).toBe('MARK');
+      unmount();
+
+      renderWithProviders(<Message message={{ message: 'Bob: @/all restart' }} highlight={highlight} />);
+      expect(document.querySelector('mark')).toBeNull();
+    });
   });
 });
