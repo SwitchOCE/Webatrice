@@ -6,3 +6,4 @@
 - 22:38Z 17a per-commit typecheck 12/12 PASS; full unit at 17a tip running. 17b: 2/25 commits ported (related cards, reveal-to → SeatCardMenus/HandCardMenu, buildRevealToSubmenu in PlayerBoard/revealRecipient.ts), pushed → continue 17b
 - 23:17Z 17b: all 25 commits ported + macro seam swap commit (tip 65687b0), pushed → per-commit typecheck + full gate at 17b tip, 17a unit rerun (first run OOM-killed by parallel vitest)
 - 23:44Z 17a tip unit 895/1316/3554 green; 17b per-commit typecheck 26/26; 17b unit 896/1316/3647, lint 3/3 → integration + webatrice e2e at 17b tip
+- 23:47Z integration at 17b tip: sockatrice 175/175, datatrice 145/145, webatrice 270/271 — the 1 failure (invite-link 'Back returns to the room') also fails on base restack-16 and at 17a tip → e2e next
