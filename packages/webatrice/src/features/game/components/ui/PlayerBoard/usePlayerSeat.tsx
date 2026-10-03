@@ -43,6 +43,8 @@ export type PlayerSeatProps = {
    *  editor as an unsaved draft (desktop actOpenDeckInDeckEditor). Undefined,
    *  disabling the menu item, until the seat's deck is known. */
   onOpenDeckInEditor?: () => void;
+  /** Sends a message macro to the game chat (the local seat's Say menu). */
+  onSay?: (message: string) => void;
 };
 
 /**
@@ -51,7 +53,7 @@ export type PlayerSeatProps = {
  * seat model and command ports. PlayerBoard provides the result to its
  * regions through PlayerSeatContext.
  */
-export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSeatProps) {
+export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: PlayerSeatProps) {
   const { seat, zones, counters } = model;
   const {
     zone: zoneCommands,
@@ -297,6 +299,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
   } = useBattlefieldMenuItems({
     seatId,
     customZones: zones.customZones ?? [],
+    onSay,
     handMenuItems,
     libraryMenuItems,
     graveMenuItemsSelf,

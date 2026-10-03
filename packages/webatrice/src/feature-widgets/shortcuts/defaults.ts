@@ -73,6 +73,21 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // read-only reveal window. Purely local; registered by the open
   // IncomingRevealDialog only.
   'game.hideRevealedCard': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+KeyH'] },
+  // Desktop's Say menu binds its first ten message macros to fixed
+  // Ctrl+1 … Ctrl+9, Ctrl+0 (say_menu.cpp:21-29). Browsers keep
+  // Ctrl+digit for switching tabs, so the web client defaults to
+  // Alt+digit (as it remaps other browser-reserved desktop keys), and
+  // like every web shortcut they can be rebound.
+  'game.sayMacro1': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit1'] },
+  'game.sayMacro2': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit2'] },
+  'game.sayMacro3': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit3'] },
+  'game.sayMacro4': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit4'] },
+  'game.sayMacro5': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit5'] },
+  'game.sayMacro6': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit6'] },
+  'game.sayMacro7': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit7'] },
+  'game.sayMacro8': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit8'] },
+  'game.sayMacro9': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit9'] },
+  'game.sayMacro10': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit0'] },
   // Cockatrice's `aMoveToGraveyard` (Ctrl+Del) — moves the selection
   // to the local player's graveyard. Single batched Command_MoveCard
   // with cards_to_move populated, matching the menu's "Send to

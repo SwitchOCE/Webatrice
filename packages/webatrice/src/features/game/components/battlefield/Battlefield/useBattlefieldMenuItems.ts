@@ -3,6 +3,7 @@ import type { useShortcutHints } from '@app/feature-widgets/shortcuts';
 import type { SeatSelection } from '../../../hooks/useSeatSelection';
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import { MANA_COLORS } from '../../right-sidebar/PlayerInfoPanel/manaColors';
+import { useMessageMacros } from '../../../hooks/useMessageMacros';
 import { useTallyType } from '../../../hooks/useTallyType';
 import { useGameDialogActions } from '../../ui/GameDialogActionsContext';
 import { useGameDialogsContext } from '../../ui/GameDialogsContext';
@@ -15,6 +16,7 @@ import type {
 } from '../../ui/PlayerBoard/playerBoard.types';
 import type { LifeControl, useSeatPrompts } from '../../ui/PlayerBoard/useSeatPrompts';
 import { buildCustomZonesMenu } from './customZonesMenu';
+import { buildSayMenu } from './sayMenu';
 import { buildTallyMenu } from './tallyMenu';
 
 type ShortcutHints = ReturnType<typeof useShortcutHints>;
@@ -24,6 +26,8 @@ export interface UseBattlefieldMenuItemsArgs {
   seatId: number;
   /** Zones beyond the seven builtins (desktop custom zones), listed for viewing after Sideboard. */
   customZones: readonly { name: string }[];
+  /** Sends a message macro to the game chat; set for the local seat only. */
+  onSay: ((message: string) => void) | undefined;
   handMenuItems: ContextMenuItem[];
   libraryMenuItems: ContextMenuItem[];
   graveMenuItemsSelf: ContextMenuItem[];
@@ -55,6 +59,7 @@ export interface UseBattlefieldMenuItemsArgs {
 export function useBattlefieldMenuItems({
   seatId,
   customZones,
+  onSay,
   handMenuItems,
   libraryMenuItems,
   graveMenuItemsSelf,
@@ -79,6 +84,8 @@ export function useBattlefieldMenuItems({
   // the game overlays on the selection.
   const [tallyType, setTallyType] = useTallyType();
   const tallyMenu = buildTallyMenu(tallyType, setTallyType);
+  // The own menu ends with Say (player_menu.cpp:54), the message macros.
+  const messageMacros = useMessageMacros();
 
   // Counters submenu — Cockatrice's AbstractCounter builds a menu per
   // counter with "Set counter..." + ±1..±10 rows (abstract_counter.cpp:36-57).
@@ -329,6 +336,7 @@ export function useBattlefieldMenuItems({
       onClick: () => onRequestGameInfo?.(),
     },
     tallyMenu,
+    ...(onSay ? [buildSayMenu(messageMacros, shortcutHints, onSay)] : []),
   ];
 
   // Opponent battlefield right-click menu. Ports Cockatrice's
