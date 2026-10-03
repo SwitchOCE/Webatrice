@@ -12,6 +12,7 @@ import {
 import { CardDTO } from '@app/services';
 import { useAppDispatch, type RootState } from '@app/store';
 
+import { parseTableRow, tokenGridYFromCardDatabaseRow } from '../../battlefield/Battlefield/cardPlacement';
 import { useGameId } from '../GameIdContext';
 import type { PlayerCardCommands } from '../PlayerBoard/playerBoard.types';
 
@@ -119,19 +120,10 @@ export function usePlayerCardCommands(playerId: number, isLocal: boolean): Playe
       // (face-down tokens and unknown names use the top row). Transform mode
       // also sends target_zone (player_actions.cpp:1198-1206).
       createToken: async (request) => {
-        let visualY = 0;
-        if (!request.faceDown) {
-          const meta = await CardDTO.get(request.name).catch(() => undefined);
-          const tablerowRaw = meta?.tablerow?.value;
-          const tablerow = tablerowRaw != null && /^\d+$/.test(tablerowRaw) ? Number(tablerowRaw) : null;
-          const clampedTableRow =
-            tablerow === 0 || tablerow === 1 || tablerow === 2
-              ? tablerow
-              : tablerow != null && tablerow > 2
-                ? 1
-                : null;
-          visualY = clampedTableRow == null ? 0 : 2 - clampedTableRow;
-        }
+        const tablerow = request.faceDown
+          ? null
+          : parseTableRow((await CardDTO.get(request.name).catch(() => undefined))?.tablerow?.value);
+        const visualY = tokenGridYFromCardDatabaseRow(tablerow, request.faceDown);
         const isTransform = request.targetCardId != null && request.targetMode === 'transform_into';
         game.createToken(gameId, {
           zone: ZoneName.TABLE,

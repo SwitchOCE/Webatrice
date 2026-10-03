@@ -4,6 +4,11 @@ import { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
 import { ZoneEntry } from '@cockatrice/datatrice';
 import { CardDTO } from '../../../services/dexie/DexieDTOs/CardDTO';
 import {
+  parseTableRow,
+  placementFromCardDatabaseRow,
+  STACK_TABLE_ROW,
+} from '../components/battlefield/Battlefield/cardPlacement';
+import {
   applyInvertY,
   gridXFromColumn,
   nextAvailableColumn,
@@ -11,13 +16,12 @@ import {
 
 // Cockatrice cards.xml tablerow convention (see carddatabase_v4/cards.xsd):
 //  0 = land, 1 = creature, 2 = other permanent, 3 = instant/sorcery.
+// Placement follows the card-database policy in cardPlacement.ts.
 const TABLEROW_LAND = 0;
-const TABLEROW_INSTANT_SORCERY = 3;
 
 async function readTablerow(cardName: string): Promise<number | null> {
   const meta = await CardDTO.get(cardName).catch(() => undefined);
-  const raw = meta?.tablerow?.value;
-  return raw != null && /^\d+$/.test(raw) ? Number(raw) : null;
+  return parseTableRow(meta?.tablerow?.value);
 }
 
 // tableRow=3 → stack; 0/1/2 → battlefield with per-row default.
@@ -46,9 +50,9 @@ export async function playCardViaTableRow({
   judgeTargetId?: number;
 }): Promise<string> {
   // `<tablerow>` is a top-level element on `<card>`, not inside `<prop>`.
-  const tablerow = await readTablerow(card.name);
+  const placement = placementFromCardDatabaseRow(await readTablerow(card.name));
 
-  if (tablerow === 3) {
+  if (placement.zone === 'stack') {
     // A card is played onto its owner's own stack; for own cards
     // sourcePlayerId === localPlayerId, so this is unchanged for non-judge plays.
     webClient.request.game.moveCard(gameId, {
@@ -64,10 +68,8 @@ export async function playCardViaTableRow({
     return ZoneName.STACK;
   }
 
-  // tablerow 0/1/2 → visualY 2/1/0 (top-of-player-view); unknown → top row.
-  const visualY =
-    tablerow === 0 || tablerow === 1 || tablerow === 2 ? 2 - tablerow : 0;
-  const wireY = applyInvertY(visualY, isInverted);
+  // Visual row from the owner's view; inverted once for a mirrored board.
+  const wireY = applyInvertY(placement.visualY, isInverted);
 
   // Fresh stack column at the right edge of the target row.
   const rowCards = tableZone
@@ -117,7 +119,7 @@ export async function autoPlayCard(args: {
 
   if (sourceZone === ZoneName.HAND) {
     const tablerow = await readTablerow(card.name);
-    if (tablerow === TABLEROW_LAND || (!playToStack && tablerow !== TABLEROW_INSTANT_SORCERY)) {
+    if (tablerow === TABLEROW_LAND || (!playToStack && tablerow !== STACK_TABLE_ROW)) {
       return playCardViaTableRow(args);
     }
     webClient.request.game.moveCard(gameId, {
@@ -135,7 +137,7 @@ export async function autoPlayCard(args: {
 
   if (sourceZone === ZoneName.STACK) {
     const tablerow = await readTablerow(card.name);
-    if (tablerow === TABLEROW_INSTANT_SORCERY) {
+    if (tablerow === STACK_TABLE_ROW) {
       webClient.request.game.moveCard(gameId, {
         startPlayerId: sourcePlayerId,
         startZone: sourceZone,
