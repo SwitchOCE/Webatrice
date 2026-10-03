@@ -4,7 +4,7 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import { lookupCard } from '@app/services';
 
 import { layoutStackPile } from '../../battlefield/Battlefield/battlefieldLayout';
-import { legacyTableRowFromTypeLine, tableRowToGridY } from '../../battlefield/Battlefield/cardPlacement';
+import { playCardMove } from '../../context-menus/CardContextMenu/handCardMenu.actions';
 import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
 import { CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
 import Card from '../SeatCard/SeatCard';
@@ -150,16 +150,8 @@ export default function StackColumn() {
                           });
                         }
                       }
-                      const tableRow = legacyTableRowFromTypeLine(typeLine);
-                      if (tableRow === 3) {
-                        zoneCommands.moveCards(ZoneName.STACK, [cardId], { zone: ZoneName.GRAVE, index: 'end' });
-                      } else {
-                        zoneCommands.moveCards(ZoneName.STACK, [cardId], {
-                          zone: ZoneName.TABLE,
-                          index: 'end',
-                          row: tableRowToGridY(tableRow),
-                        });
-                      }
+                      const play = playCardMove(cardId, { ...cardMetaByName.get(c.name), typeLine }, { fromStack: true });
+                      zoneCommands.moveCards(ZoneName.STACK, [play.card], play.to);
                     }
                     : undefined
                 }

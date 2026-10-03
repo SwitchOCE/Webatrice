@@ -5,7 +5,7 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import { usePreference } from '@app/hooks';
 import { lookupCard } from '@app/services';
 
-import { legacyTableRowFromTypeLine, tableRowToGridY } from '../../battlefield/Battlefield/cardPlacement';
+import { playCardMove } from '../../context-menus/CardContextMenu/handCardMenu.actions';
 import ContextMenu from '../../context-menus/ContextMenu/ContextMenu';
 import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
@@ -305,22 +305,12 @@ export default function HandZone() {
                           });
                         }
                       }
-                      const tableRow = legacyTableRowFromTypeLine(typeLine);
                       // Desktop PlayerActions::playCard: lands go to the
                       // battlefield and instants/sorceries to the stack;
                       // other permanents take the stack only with "Play
                       // all nonlands onto the stack" on (the default).
-                      if (tableRow === 0 || (tableRow !== 3 && !playToStack)) {
-                        zoneCommands.moveCards(ZoneName.HAND, [cardId], {
-                          zone: ZoneName.TABLE,
-                          index: 'end',
-                          row: tableRowToGridY(tableRow),
-                        });
-                      } else {
-                      // Detour through the stack so the spell is visible
-                      // before it resolves.
-                        zoneCommands.moveCards(ZoneName.HAND, [cardId], { zone: ZoneName.STACK, index: 'end' });
-                      }
+                      const play = playCardMove(cardId, { ...cardMetaByName.get(c.name), typeLine }, { playToStack });
+                      zoneCommands.moveCards(ZoneName.HAND, [play.card], play.to);
                     }}
                     style={{
                       touchAction: 'none',

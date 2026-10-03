@@ -144,6 +144,16 @@ describe('resolveHandOrZoneCardMenu', () => {
     ]);
   });
 
+  it('plays a creature with its printed P/T', () => {
+    const deps = makeDeps({ cardMeta: () => ({ typeLine: 'Creature — Bear', pt: '2/2' }) });
+    click(itemsOf(deps), 'Play');
+    expect(deps.moveCards).toHaveBeenCalledWith(
+      ZoneName.HAND,
+      [{ id: 11, pt: '2/2' }],
+      { zone: ZoneName.TABLE, index: 'end', row: 0 },
+    );
+  });
+
   it('plays face down to row 2', () => {
     const deps = makeDeps({ menu: handMenu('12') });
     click(itemsOf(deps), 'Play Face Down');
@@ -219,6 +229,21 @@ describe('playCardMove', () => {
       .toEqual({ zone: ZoneName.STACK, index: 'end' });
     expect(playCardMove(1, { typeLine: 'Land' }, { playToStack: true }).to)
       .toEqual({ zone: ZoneName.TABLE, index: 'end', row: 2 });
+  });
+
+  it('lands a face-up card with its printed P/T, tapped when cipt', () => {
+    expect(playCardMove(1, { typeLine: 'Creature — Bear', pt: '2/2' }).card).toEqual({ id: 1, pt: '2/2' });
+    expect(playCardMove(1, { typeLine: 'Land', cipt: true }).card).toEqual({ id: 1, tapped: true });
+    expect(playCardMove(1, { typeLine: 'Artifact' }).card).toBe(1);
+    expect(playCardMove(1, { typeLine: 'Creature — Bear', pt: '2/2', cipt: true }, { faceDown: true }).card)
+      .toEqual({ id: 1, faceDown: true });
+  });
+
+  it('resolves a stack card: instants and sorceries to the graveyard, the rest to the battlefield', () => {
+    expect(playCardMove(1, { typeLine: 'Instant' }, { fromStack: true }))
+      .toEqual({ card: 1, to: { zone: ZoneName.GRAVE, index: 'end' } });
+    expect(playCardMove(1, { typeLine: 'Creature — Bear', pt: '2/2' }, { fromStack: true, playToStack: true }))
+      .toEqual({ card: { id: 1, pt: '2/2' }, to: { zone: ZoneName.TABLE, index: 'end', row: 0 } });
   });
 
   it('puts a face-down card in row 2 whatever its type', () => {
