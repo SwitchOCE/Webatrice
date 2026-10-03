@@ -8,6 +8,7 @@ import {
   makePlayerEntry,
   makePlayerProperties,
 } from '@cockatrice/datatrice/testing';
+import { setAdminLocked } from '@app/hooks';
 import PlayerList from './PlayerList';
 
 function buildState(
@@ -160,14 +161,14 @@ describe('PlayerList', () => {
     const MODERATOR = REGULAR | Flag.IsModerator;
     const ADMIN = MODERATOR | Flag.IsAdmin;
 
-    function renderAs(localLevel: number) {
+    function renderAs(localLevel: number, hostId?: number) {
       const alice = makePlayerEntry({
         properties: makePlayerProperties({ playerId: 1, userInfo: makeUser({ name: 'Alice', userLevel: localLevel }) }),
       });
       const bob = makePlayerEntry({
         properties: makePlayerProperties({ playerId: 2, userInfo: makeUser({ name: 'Bob', userLevel: REGULAR }) }),
       });
-      const state = buildState([alice, bob], 1);
+      const state = buildState([alice, bob], 1, hostId);
       renderWithProviders(
         <ModerationProvider>
           <PlayerList />
@@ -180,6 +181,10 @@ describe('PlayerList', () => {
         },
       );
     }
+
+    afterEach(() => {
+      setAdminLocked(false);
+    });
 
     const openMenu = (playerId: number) => fireEvent.contextMenu(screen.getByTestId(`player-list-item-${playerId}`));
 
@@ -196,6 +201,20 @@ describe('PlayerList', () => {
       expect(screen.getByRole('button', { name: 'Moderation.menu.banHistory' })).toBeEnabled();
       expect(screen.getByRole('button', { name: 'Moderation.menu.adminNotes' })).toBeEnabled();
       expect(screen.queryByRole('button', { name: 'Moderation.menu.promoteMod' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Kick from game' })).toBeInTheDocument();
+    });
+
+    it('hides Kick from game from a non-host moderator while the admin lock is on', () => {
+      setAdminLocked(true);
+      renderAs(MODERATOR, 2);
+      openMenu(2);
+      expect(screen.queryByRole('button', { name: 'Kick from game' })).not.toBeInTheDocument();
+    });
+
+    it('still offers Kick from game to a locked moderator who hosts the game', () => {
+      setAdminLocked(true);
+      renderAs(MODERATOR, 1);
+      openMenu(2);
       expect(screen.getByRole('button', { name: 'Kick from game' })).toBeInTheDocument();
     });
 

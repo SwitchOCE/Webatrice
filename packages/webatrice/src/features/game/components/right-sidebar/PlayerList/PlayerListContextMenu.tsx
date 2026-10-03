@@ -34,6 +34,7 @@ export interface PlayerListMenuTarget {
 export interface PlayerListMenuLocal {
   isHost: boolean;
   isRegistered: boolean;
+  /** A moderator with the admin lock off (desktop `!TabSupervisor::getAdminLocked()`). */
   isModerator: boolean;
 }
 
@@ -114,10 +115,8 @@ function buildItems(
     });
   }
 
-  // Kick from game — Cockatrice offers this to the game host OR when
-  // the server isn't admin-locked (user_context_menu.cpp:386). We
-  // don't model admin-locked; gate on host or moderator (moderator
-  // kick matches admin-unlocked behaviour in practice).
+  // Kick from game — Cockatrice offers this to the game host OR to a
+  // moderator whose admin lock is off (user_context_menu.cpp:416).
   if (!target.isSelf && (local.isHost || local.isModerator)) {
     items.push({ divider: true });
     items.push({
