@@ -10,7 +10,8 @@
   - Delete folder (`deckDelDir`). The confirmation states how many decks and subfolders go with it;
   - New deck and Import upload into the shown folder;
   - a deck or a whole folder downloads as `.cod` files;
-  - Move deck to another folder (see notes).
+  - Move deck to another folder: a copy that keeps the deck's visibility and color identity, then a delete of the
+    original only once the copy is confirmed (see notes).
 - **Undo/redo and history (GAME-005).** Ports `DeckStateManager` + `DeckListHistoryManager(Widget)`:
   - each card and metadata edit saves a named memento;
   - undo/redo work from buttons, from shortcuts registered with the shortcuts widget (`deck.undo` Ctrl+Z,
@@ -25,7 +26,9 @@
 - **Banner card and tags (GAME-006).** A banner picker (every distinct card and printing, plus "-") and a tag editor
   (desktop's default tags; empty and duplicate tags refused), both undoable.
   - `<tags>` stays raw XML, and only `<tag>` children are rewritten.
-  - `<bannerCard providerId>` now round-trips.
+  - `<bannerCard providerId>` now round-trips, and desktop's `<playmatCard>` (with its margin/offset/zoom
+    attributes) is kept verbatim in its desktop position.
+  - Editing is editor-only; desktop's visual deck storage can also edit them, so GAME-006 is **Partial**.
 - **Sample hand (GAME-007).** A collapsible panel: hand size (default 7, minimum 1, remembered), redraw, sorted by
   mana value. It draws from the main deck only and never touches the deck.
 - **Online services and print (GAME-009).** Print, decklist.org/.xyz export, and deckstats/TappedOut analyze. Load
@@ -36,16 +39,23 @@
   - Autosave goes through a new Sockatrice `deckUpdate` command with Datatrice reducers, not a raw
     `Command_DeckUpload`.
   - A failed save shows desktop's "The deck could not be saved." with Retry.
+  - Each save sends the deck's color identity, computed like desktop's `getDeckColorIdentity`, because 3.1
+    servers overwrite the stored value on every update.
 
 ## Parity rows closed
 
-GAME-002, GAME-004, GAME-005, GAME-006, GAME-007, GAME-009 (`Webatrice/docs/cockatrice-parity-matrix.md`).
+GAME-002, GAME-004, GAME-005, GAME-007, GAME-009 (`Webatrice/docs/cockatrice-parity-matrix.md`).
+GAME-006 is advanced but stays **Partial**: banner, tags and playmat round-trip and banner/tags are editable in the
+editor, but not from the storage view.
 
 ## Desktop reference
 
 - `cockatrice/src/interface/widgets/tabs/tab_deck_storage.cpp`: `actNewFolder`, `actDeleteRemoteDeck`,
   `deleteRemoteDeck`, `getTargetPath`, `actUpload`, `actDownload`, `uploadFinished`.
-- `servatrice/src/serversocketinterface.cpp`: `cmdDeckUpload` (path vs deck_id branch), `cmdDeckNewDir`.
+- `servatrice/src/serversocketinterface.cpp`: `cmdDeckUpload` (path vs deck_id branch; the update branch writes
+  `color_identity` every time; "Unnamed deck" for an empty name), `cmdDeckNewDir`, `cmdDeckShareCreate` /
+  `makeShareItemFromDeck` (share items hold a snapshot of the deck).
+- `cockatrice/src/interface/widgets/cards/additional_info/deck_color_identity.cpp` (`getDeckColorIdentity`).
 - `cockatrice/src/interface/widgets/tabs/abstract_tab_deck_editor.cpp`: `actSaveDeck`, `saveDeckRemoteFinished`,
   `actPrintDeck`, `actLoadDeckFromWebsite`, `exportToDecklistWebsite`, `actAnalyzeDeck*`.
 - `cockatrice/src/interface/widgets/deck_editor/deck_state_manager.cpp`, `deck_list_history_manager_widget.cpp`;
@@ -54,7 +64,8 @@ GAME-002, GAME-004, GAME-005, GAME-006, GAME-007, GAME-009 (`Webatrice/docs/cock
   `libcockatrice_card/.../format/format_legality_rules.cpp`, `cockatrice_xml_4.cpp` (format parsing),
   `cockatrice/src/interface/widgets/deck_editor/deck_list_style_proxy.cpp`.
 - `deck_editor_deck_dock_widget.cpp` (banner combo, tags), `deck_preview_tag_dialog.cpp`,
-  `visual_deck_storage_settings.cpp` (default tags), `libcockatrice_deck_list/.../deck_list.cpp` (metadata XML).
+  `visual_deck_storage_settings.cpp` (default tags), `libcockatrice_deck_list/.../deck_list.cpp` (metadata XML,
+  `<playmatCard>` at :124-133).
 - `visual_deck_editor_sample_hand_widget.cpp`, `cards_display_settings.cpp` (`sampleHandSize` = 7).
 - `menus/deck_editor_menu.cpp`, `deck_loader.cpp` (`exportDeckToDecklist`, `printDeckList`),
   `deck_stats_interface.cpp`, `tapped_out_interface.cpp`, `parsers/deck_link_to_api_transformer.cpp`,
@@ -80,15 +91,16 @@ needs the user's go-ahead. The URLs and form fields are pinned by unit specs aga
 
 ## Testing
 
-Run from the worktree root (memory-capped per the brief).
+Full gate on the final tip `fc157b6` (2026-10-03, cloud run f0918; this is the only current gate table, the older
+ones are gone):
 
 | Gate | Result |
 |---|---|
-| `npm run typecheck` | 5/5 tasks pass |
+| `npx turbo run typecheck --concurrency=1` | 5/5 tasks pass; every commit of `ba8a091..fc157b6`'s rewritten range typechecks (see Review response) |
 | `npm run lint` | 3/3 tasks pass, 0 problems |
-| `npm test -- -- --maxWorkers=2` | sockatrice 609, datatrice 1091, webatrice 1714 (246 files): all pass |
-| `npm run test:integration -- -- --maxWorkers=2` | sockatrice 146, datatrice 124, webatrice 167 pass + 2 skipped (pre-existing skips) |
-| `npm run test:e2e -w @cockatrice/webatrice` (under the e2e lock) | 21/21 pass (chromium, firefox, webkit), including the new decks spec |
+| `npm test -- -- --maxWorkers=2` | sockatrice 782 (40 files), datatrice 1204 (29 files), webatrice 2060 (285 files): all pass |
+| `npm run test:integration -- -- --maxWorkers=2` | sockatrice 166 (19), datatrice 136 (9), webatrice 196 pass + 2 skipped (39 files; pre-existing game `describe.skip`) |
+| webatrice e2e | E2E_RESULT |
 
 New and changed coverage:
 
@@ -128,15 +140,45 @@ Rebased onto the rebased 09 (`claude/parity-09-refactor-decks` `ba8a091`). Decis
 - **e2e**: `e2e/specs/decks.spec.ts` imports `test`/`expect` from `e2e/fixtures/test.ts` (hermetic network). The
   standalone "regenerate the i18n rollup" commit became empty and was dropped, because each step regenerates the rollup.
 
-Gate on the rebased tip `a7b9684`: typecheck 5/5; lint 3/3; unit sockatrice 781, datatrice 1204, webatrice 2038
-(285 files); integration sockatrice 166, datatrice 136, webatrice 196 passed + 2 skipped (pre-existing game
-`describe.skip`); sockatrice e2e 5/5; webatrice e2e 39/39 (chromium, firefox, webkit).
+
+## Review response (rv9)
+
+Rebased onto the fixed 09 (`claude/parity-09-refactor-decks` `a3073b8`). Rebase conflicts: `deckPersistence.ts`
+(18's `deckUpdate` version kept), `useDeckList` (09's connection-guard return value merged into 18's folder-aware
+uploads), the Spellbook spec (18's commander cases plus 09's "missing `included` is malformed"), and the consent
+commit (ported onto 09's translated, focus-keeping `BracketSection`; `writeBracketLookupsAllowed` is now exported
+from the feature barrel). Two fixups were folded into the commits they repair so every commit typechecks: the folder
+and move dialogs pass `titleId` to the 09 frame (`DeleteFolderDialog` via its new `role="alertdialog"` prop) in
+`e5aae31`, and the consent integration spec asserts the translated title in `7f617d7`.
+
+| Finding | Response |
+|---|---|
+| **blocker**: move can delete a deck that was never copied | Fixed (`01357d4`). Answers are matched on folder + stored name, never `pending[0]`; `DECK_UPLOAD_FAILED` is handled (drops the oldest entry for that folder, shows the error); the original is deleted only on a matched answer. Specs: failed copy then a foreign answer, nameless import matched as "Unnamed deck", unmatched answers. The PR note claiming Sockatrice had no failure callback was wrong and is corrected. |
+| major: failed `deckDownload` leaves `pendingMovesRef` set | Fixed (`01357d4`). `DECK_DOWNLOAD_FAILED` for a pending move drops it and reports; spec shows a later download no longer runs it. |
+| major: autosave blanks `color_identity` on 3.1 | Fixed (`4d722b4`). `deckUpdate` gains optional `isPublic`/`colorIdentity`; the autosave sends `deckColorIdentity(cards)` (desktop's `getDeckColorIdentity`: union of main+side card colors, WUBRG). Presence spec pins the identity on the wire and visibility unset. |
+| major: move loses visibility and breaks share links | Visibility fixed (`01357d4`): `FlatDeck` carries `isPublic`/`colorIdentity` and the move upload sends both. Servatrice has no move command, so the id still changes. **Share links do not break**: shares hold a materialized copy of the deck (`makeShareItemFromDeck`, `deck_share_item.content`), so the review's premise doesn't hold at `add65caa`; the dialog now says the id changes and share links keep working. |
+| major: stale bracket after a zone move | Fixed (`c8c74d7`). The fingerprint marks sideboard and commander entries; plain main-deck entries keep the old form so existing caches for such decks stay valid. Specs at the fingerprint and hook level. |
+| major: GAME-006 claimed closed but `<playmatCard>` dropped | `<playmatCard>` now round-trips verbatim next to `<bannerCard>` (`5263860`), with codec and save specs. GAME-006 is re-scoped to **Partial** (no storage-view editing). |
+| minors and nits not listed in the task (autosave flush after unmount, `deckUpdated` merge, `updateServerDeck` naming, rhf+zod forms, `partial` legality status, `PlainCardList` legality, stale-cache write without consent, e2e anchor, sample-hand input, signature derivation, `matchType` default, dead data, set-code case, `revokeObjectURL`, squashing fix-up commits, splitting dead46c/a7b9684) | Not changed in this run; the task scoped the fixes to the blocker and the five majors. Not renaming `updateServerDeck*` also keeps 18's API stable for w23d. The fix-up squash was not done: `4361b36` edits a changeset that only exists from `db54a62`, so folding it into `ccd4ab2` would not apply cleanly. |
 
 ## Notes for reviewers
 
-- **Move is new on the web side.** Desktop has no remote move. It is built from desktop's own commands: download,
-  `deckUpload` into the target path, then `deckDel` of the original once the copy is acknowledged. The deck gets a
-  new id. If the upload fails, the original stays; Sockatrice's `deckUpload` has no failure callback to report it.
+- **Move is new on the web side.** Desktop has no remote move, and Servatrice has no move or rename command
+  (`session_commands.proto` at `add65caa`: upload, download, del, new/del dir, visibility, share). So move is built
+  from desktop's own commands: download, `deckUpload` into the target path, then `deckDel` of the original.
+  - The original is deleted only after an upload answer with the target folder **and** the stored name (the raw
+    `<deckname>`, or "Unnamed deck" as `cmdDeckUpload` stores an empty one). An answer that matches nothing pending
+    settles nothing. `DECK_UPLOAD_FAILED` drops the oldest upload waiting on that folder (a session's commands are
+    answered in order, and the deck list is the only `deckUpload` caller in the app) and shows the error; the
+    original stays. A failed download for a move drops the move and shows the error.
+  - The copy gets a **new deck id**. It keeps the deck's `is_public` and stored `color_identity` (passed on the
+    upload). **Share links keep working**: `cmdDeckShareCreate` materializes each deck's content into
+    `deck_share_item` at share time (`makeShareItemFromDeck`; schema comment "Content is materialized at share
+    time"), so a share never references the live `deck_id`. What does change with the id: an editor tab still open
+    on the old id, and anyone holding the old id for `deckDownloadPublic`. The move dialog says the id changes and
+    that share links keep working.
+  - If the hook unmounts between upload and answer, the answer is not seen: the copy exists and the original is
+    kept (a duplicate, never a loss).
 - **Folder downloads are flat files.** Desktop writes `deck_<id>.cod` into a local folder tree. A browser saves
   flat files, so names are `<subfolders>-<deck>.cod`, and several downloads may trigger the browser's
   "multiple downloads" prompt.
@@ -159,15 +201,18 @@ Gate on the rebased tip `a7b9684`: typecheck 5/5; lint 3/3; unit sockatrice 781,
 - **Banner and tags are editable only in the editor.** My Decks shows them but can't edit them; desktop's visual
   deck storage can. Doing that would need a download and re-upload from the list.
 - **API change.** `ISessionResponse` gains two optional members, `updateServerDeck` and `updateServerDeckFailed`
-  (Sockatrice minor, additive). `deckUpdate` reports the save even when a server omits `new_file`.
+  (Sockatrice minor, additive). `deckUpdate(deckId, deckList, isPublic?, colorIdentity?)`: the two trailing
+  parameters are optional, mirroring `deckUpload`. `deckUpdate` reports the save even when a server omits
+  `new_file`. In webatrice, `FlatDeck` gains optional `isPublic`/`colorIdentity`, `UseDeckList` gains
+  `storageError`/`dismissStorageError`, `createDeck`/`importDeck` return whether they sent, and `DeckDialogFrame`
+  requires `titleId` (from the 09 review).
 - **Housekeeping.** The format picker gained `aria-label="Format"` because the sidebar now has several selects.
   `flattenDeckTree` was removed (no callers).
 
 ## Follow-ups
 
-Five commits at the tip of this branch, after review of the series. The first,
-`chore(webatrice): regenerate the i18n rollup`, only re-orders `src/i18n-default.json` to what `npm run translate`
-produces now. The pre-commit hook would otherwise have folded that into the next commit.
+Four follow-up commits from the review of the series (a fifth, an i18n rollup regeneration, became empty on the
+rebase and was dropped):
 
 - **`fix(sockatrice)`: optional deck update callbacks.** `updateServerDeck` and `updateServerDeckFailed` are now
   optional members of `ISessionResponse`, as the series does elsewhere (#10's `updateInfo` argument,
@@ -213,15 +258,5 @@ produces now. The pre-commit hook would otherwise have folded that into the next
   - Not covered: the editor's card lookup (Scryfall by name for card data and prices) predates this branch and
     isn't a bracket call. It is left as is.
 
-Follow-up testing (from the repo root, after `npm ci` and building sockatrice and datatrice):
-
-| Gate | Result |
-|---|---|
-| `npx turbo run typecheck --concurrency=1` | 5/5 tasks pass |
-| `npm run lint` | 3/3 tasks pass, 0 problems |
-| `npm test -- -- --maxWorkers=2` | sockatrice 610, datatrice 1091, webatrice 1728 (247 files): all pass |
-| `npm run test:integration -- -- --maxWorkers=2` | sockatrice 146, datatrice 124, webatrice 168 pass + 2 skipped (pre-existing) |
-| `npm run test:e2e -w @cockatrice/sockatrice` | 3/3 pass |
-| webatrice e2e (Playwright 1.60 container, docker Servatrice 3.0.0) | 16/21 pass, including the decks spec in all three browsers. 5 fail: `app-boots` (chromium, webkit) on `net::ERR_CERT_AUTHORITY_INVALID` (the sandbox's TLS-intercepting proxy, not trusted inside the container), and `bulk-card-actions` (all three) at `cardsOnBoard()` count 0. The same 5 fail the same way on the untouched `parity/18-decks` tip in this sandbox, so neither is from these commits. Worth re-running on a normal network. |
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)

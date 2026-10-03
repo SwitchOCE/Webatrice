@@ -2,3 +2,4 @@
 - 17:44Z 09: adapter malformed paths + bracket i18n/focus pushed → 09 remaining minors
 - 18:01Z 09 done (gate green), tip a3073b8; 18 rebased onto it, pushed 7f617d7 → 18 fixes (move/upload matching first)
 - 18:13Z 18: move/upload, download-fail, color identity, bracket key, playmat committed+pushed → changeset, full gate, PR files
+- 18:21Z 18 gate green (unit 782/1204/2060, integ 166/136/196+2skip); PR files drafted → per-commit typecheck + webatrice e2e running

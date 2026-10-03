@@ -24,12 +24,21 @@
   `ok | partial | unavailable`:
   - the UI shows a partial or unavailable estimate with a Retry button;
   - only a complete analysis is persisted to the deck;
-  - a stale saved assessment is cleared.
+  - a stale saved assessment is cleared;
+  - third-party calls time out after 15s (they had no timeout before);
+  - an incomplete estimate shows its level as a floor ("N+", "At least bracket N");
+  - the section always names its data sources (a provenance line);
+  - a malformed or empty payload (no `included`, a Game Changers list with no names, a nameless collection entry,
+    a timeout while the body streams) is reported as such, never as valid empty data.
+- **Review fixes** (rv9, below): the bracket section is fully translated, Retry keeps keyboard focus, the shared
+  dialog frame is a labelled modal dialog (DeleteDeckDialog uses it too), and the export dialog's "Copied"
+  feedback survives editor re-renders.
 - No other visual or behaviour change.
 
 Commits (oldest first): characterization specs → pure policies → MyDecks split → editor split → card
 detail and breakdown split → DATA-001 fix → hook/adapter specs → editor component specs → list, search,
-breakdown and dialog component specs → changeset. Each commit is green.
+breakdown and dialog component specs → changeset, then six review-fix commits (see "Review response"). Each
+commit is green.
 
 ## Module map (before → after)
 
@@ -59,19 +68,19 @@ bracket estimate is web-only.
 
 ## Testing
 
-Run from the worktree root on 2026-10-03.
+Full gate on the final tip `a3073b8` (2026-10-03, cloud run f0918):
 
 | Gate | Result |
 |---|---|
-| `npm run typecheck` | 5/5 tasks pass |
+| `npx turbo run typecheck --concurrency=1` | 5/5 tasks pass |
 | `npm run lint` | 3/3 tasks pass, 0 problems |
-| `npm test -- -- --maxWorkers=2` | sockatrice 604, datatrice 1083, webatrice 1548 tests (223 files): all pass |
-| `npm run test:integration -- -- --maxWorkers=2` | sockatrice 146, datatrice 124 pass; webatrice 157 pass and 2 skipped (36 files) |
+| `npm test -- -- --maxWorkers=2` | webatrice 1871 tests (261 files) pass; sockatrice and datatrice are untouched by the review fixes (775 / 1196 at `ba8a091`) |
+| `npm run test:integration -- -- --maxWorkers=2` | sockatrice 166 (19 files), datatrice 136 (9 files); webatrice 185 pass and 2 skipped (39 files) |
 
 - The 2 skipped integration tests are the pre-existing `game/judge-override` and `game/library-view` skips; this
   branch doesn't touch them.
 - Deck feature coverage:
-  - Unit: `src/features/decks` now has 57 spec files and 280 tests (1 spec file at the base).
+  - Unit: `src/features/decks` now has 57 spec files and 299 tests (1 spec file at the base).
   - Integration: `decks.spec.tsx` has 11 tests and `deck-editor.spec.tsx` has 15.
     - The new `deckHelpers.tsx` provides fake Scryfall/Spellbook endpoints, deck fixtures and responders.
     - `command-capture.ts` gains `findAllSessionCommands`.
@@ -82,7 +91,8 @@ Run from the worktree root on 2026-10-03.
 
 ### E2E
 
-`npm run test:e2e -w @cockatrice/webatrice` (under the shared e2e lock): 18 passed (6.5m).
+`npm run test:e2e -w @cockatrice/webatrice` (under the shared e2e lock, before the review fixes): 18 passed (6.5m).
+The review fixes change no server flow, so e2e was not rerun.
 
 ## Rebase (w0918r)
 
@@ -103,6 +113,27 @@ deck command-failure handling (01) is carried into the split modules rather than
 Gate on the rebased tip `ba8a091`: typecheck 5/5; lint 3/3; unit sockatrice 775, datatrice 1196, webatrice 1861
 (261 files); integration sockatrice 166, datatrice 136, webatrice 185 passed + 2 skipped (pre-existing
 `describe.skip` in game specs).
+
+## Review response (rv9)
+
+| Finding | Response |
+|---|---|
+| minor: Spellbook `results` without `included`, and a Game Changers list with no names, come back `ok` and empty | Fixed (`18753cd`). Missing/non-array `included` → `unavailable`/malformed; 0 Game Changer names → malformed, not cached. Specs for both. |
+| minor: nameless collection entry throws, reported as `network`, half the chunk cached | Fixed (`18753cd`). The chunk is validated before anything is cached and comes back malformed; non-`SourceError` exceptions map to malformed. |
+| minor: abort while reading the body reported as malformed | Fixed (`18753cd`). An AbortError from `res.json()` maps to `timeout`. |
+| minor: bracket section half-translated | Fixed (`deae45e`). Title, progress, failure, methodology blurb (`<Trans>` with the link), bracket labels and the five badge labels are `DeckBracket.*` keys; badges carry an id instead of an English label. |
+| minor: Retry drops focus to `<body>` | Fixed (`deae45e`). The section stays mounted across states and takes focus before retrying. Spec. |
+| minor: `DeckDialogFrame` lacks dialog semantics | Fixed (`3d4c1b4`). `role="dialog"`, `aria-modal`, `aria-labelledby={titleId}` (required prop); DeleteDeckDialog uses the frame (its name is now its heading, "Delete deck?"). No focus trap yet: left for a shared dialog primitive. |
+| minor: raw `Command_DeckUpload` looks sanctioned | Fixed (`89fbd76`). The doc comment calls it a layering exception and points at the `deckUpdate` follow-up (#18 replaces it). |
+| minor: changeset/PR claim one visible change; test count | Fixed (`a3073b8` and this file). |
+| minor: DATA-001 bundled in a refactor PR | Kept as its own commit with its own changeset paragraph. Not split into a separate PR: the brief asks for one changeset per package per PR, and 18 is stacked on this branch. |
+| nit: `ExportDeckDialog` effect deps | Fixed (`6af6592`), deps `[open]`, with a spec. |
+| nit: duplicated `isConnected` guard | Fixed (`89fbd76`). The hook returns whether it sent; the façade closes the dialog on `true`. |
+| nit: DeckBreakdown comment | Fixed (`89fbd76`). |
+| nit: integration spec imports by path | Fixed (`89fbd76`). `clearBracketSourceCaches` is exported from the feature barrel. |
+| nit: two ManaSymbols owners | Not changed; follow-up (move to a shared `@app/components` owner). |
+
+The review-fix commits on top of `ba8a091`: `18753cd`, `deae45e`, `3d4c1b4`, `6af6592`, `89fbd76`, `a3073b8`.
 
 ## Notes for reviewers
 
