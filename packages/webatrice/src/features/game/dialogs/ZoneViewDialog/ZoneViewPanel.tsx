@@ -224,6 +224,9 @@ export default function ZoneViewPanel({
   const { setHoveredCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
   const [query, setQuery] = useState('');
   const focusSearchBar = usePreference('focusCardViewSearchBar');
+  // Desktop hides the search box while "Keep game chat focused" is on: typing goes to the chat.
+  const showSearchBar = !usePreference('keepGameChatFocus');
+  const activeQuery = showSearchBar ? query : '';
   // Grouping/sorting defaults match Cockatrice's SettingsCache
   // (cache_settings.cpp:383-384): `zoneview/groupby` defaults to index 1
   // (By Type) and `zoneview/sortby` defaults to index 1 (By Name).
@@ -662,14 +665,14 @@ export default function ZoneViewPanel({
     const enriched: EnrichedCard[] = [];
     for (const hc of library) {
       const meta = metaByName.get(hc.name) ?? placeholderMeta(hc.name);
-      if (!matchesQuery(meta, query)) {
+      if (!matchesQuery(meta, activeQuery)) {
         continue;
       }
       enriched.push({ handCard: hc, meta });
     }
     enriched.sort((a, b) => compareCards(a.meta, b.meta, effectiveSortBy));
     return groupCards(enriched, effectiveGroupBy);
-  }, [library, metaByName, query, effectiveSortBy, effectiveGroupBy]);
+  }, [library, metaByName, activeQuery, effectiveSortBy, effectiveGroupBy]);
 
   const totalShown = groups.reduce((n, g) => n + g.cards.length, 0);
   const shownIds = groups.flatMap((g) => g.cards.map((c) => c.handCard.id));
@@ -779,32 +782,36 @@ export default function ZoneViewPanel({
 
         {/* Controls */}
         <div className="flex items-center gap-2 px-4 py-3 border-b border-border-subtle shrink-0">
-          <div className="relative flex-1 min-w-0">
-            <Search
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
-            />
-            <input
-              type="text"
-              // Desktop's "Auto focus search bar when card view window is opened".
-              autoFocus={focusSearchBar}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              // The game's Esc (close the most recent view) skips text
-              // inputs, so the search box closes its own view.
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  e.preventDefault();
-                  onClose(showShuffleOnClose && shuffleOnClose);
-                }
-              }}
-              placeholder="Search — try t:creature, c:blue, cmc:3"
-              className={[
-                'w-full pl-8 pr-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm',
-                'text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent',
-              ].join(' ')}
-            />
-          </div>
+          {showSearchBar ? (
+            <div className="relative flex-1 min-w-0">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
+              />
+              <input
+                type="text"
+                // Desktop's "Auto focus search bar when card view window is opened".
+                autoFocus={focusSearchBar}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                // The game's Esc (close the most recent view) skips text
+                // inputs, so the search box closes its own view.
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    e.preventDefault();
+                    onClose(showShuffleOnClose && shuffleOnClose);
+                  }
+                }}
+                placeholder="Search — try t:creature, c:blue, cmc:3"
+                className={[
+                  'w-full pl-8 pr-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm',
+                  'text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent',
+                ].join(' ')}
+              />
+            </div>
+          ) : (
+            <div className="flex-1" />
+          )}
           <select
             value={groupBy}
             onChange={(e) => setGroupBy(e.target.value as GroupMode)}

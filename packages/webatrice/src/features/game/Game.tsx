@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { DndContext } from '@dnd-kit/core';
 
 import { AuthGuard } from '@app/components';
-import { usePhaseTrackPinned } from '@app/hooks';
+import { usePhaseTrackPinned, usePreference } from '@app/hooks';
 import { Layout } from '@app/feature-wrappers/layout';
 import { ConfirmDialog, PromptDialog } from '@app/dialogs';
 import GameLobby from './GameLobby';
@@ -34,6 +34,7 @@ import RollDieDialog from './dialogs/RollDieDialog/RollDieDialog';
 import ZoneViewDialog from './dialogs/ZoneViewDialog/ZoneViewDialog';
 import { useGame } from './hooks/useGame';
 import { CardRegistryContext } from './utils/CardRegistry/CardRegistryContext';
+import { keepFocusOnBoardPress } from './utils/keepChatFocus';
 import { GameInteractionProvider } from './components/ui/GameInteractionContext';
 import { CardVisualStateProvider } from './components/ui/CardVisualStateContext';
 import { PendingTargetProvider } from './components/ui/PendingTargetContext';
@@ -150,6 +151,8 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
   // to 112 px so the always-expanded PhaseTrack takes real width
   // instead of floating over the play area.
   const phaseTrackPinned = usePhaseTrackPinned();
+  // Desktop's "Keep game chat focused when clicking in game".
+  const keepGameChatFocus = usePreference('keepGameChatFocus');
   const phaseTrackColumnWidth = phaseTrackPinned ? 112 : 8;
 
   const interactionHandlers = useMemo(
@@ -284,7 +287,12 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                                     className="game__board"
                                     data-game-board
                                     ref={boardRef}
-                                    onMouseDown={arrows.handleBoardMouseDown}
+                                    onMouseDown={(e) => {
+                                      if (keepGameChatFocus) {
+                                        keepFocusOnBoardPress(e);
+                                      }
+                                      arrows.handleBoardMouseDown(e);
+                                    }}
                                     {...(readOnly ? READ_ONLY_BOARD_GUARD : undefined)}
                                   >
                                     {!game && (

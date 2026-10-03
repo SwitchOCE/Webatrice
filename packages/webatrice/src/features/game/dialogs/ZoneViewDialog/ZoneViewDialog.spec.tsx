@@ -114,6 +114,14 @@ describe('ZoneViewDialog', () => {
     expect(within(panel(/^Graveyard/)).getByRole('textbox')).not.toHaveFocus();
   });
 
+  it('has no search box while "Keep game chat focused" is on, as desktop hides it', async () => {
+    const settings = await getSettings();
+    settingsStore.setValue(Object.assign(settings, { keepGameChatFocus: true }));
+    renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
+    expect(within(panel(/^Graveyard/)).queryByRole('textbox')).not.toBeInTheDocument();
+    expect(viewCards(panel(/^Graveyard/))).toHaveLength(1);
+  });
+
   it('closes from its search box on Escape, which the game shortcut skips', () => {
     const { handleClose } = renderView(
       { playerId: 1, zoneName: ZoneName.GRAVE },
