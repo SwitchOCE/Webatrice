@@ -102,4 +102,8 @@ export const Types = {
   CARD_ART_RULE_ADDED: a.cardArtRuleAdded.type,
   CARD_ART_RULE_REMOVED: a.cardArtRuleRemoved.type,
   SERVER_STATS: a.serverStats.type,
+  // Reports
+  REPORT_ASSIGNED: a.reportAssigned.type,
+  REPORT_RESOLVED: a.reportResolved.type,
+  REPORT_REPLAY_DOWNLOADED: a.reportReplayDownloaded.type,
 } as const;

@@ -96,7 +96,7 @@ export const reportReducers = {
     state.reports.stats = action.payload.stats;
   }) as CaseReducer<ServerState, PayloadAction<{ stats: Response_ReportStats }>>,
 
-  // Only the latest download is kept: the queue saves or opens it right away.
+  // Only the latest download is kept: the queue opens it right away.
   // The bytes travel bare, not inside the response message: the dev freeze
   // guard can't freeze a message holding a byte array (like replayDownloaded).
   reportReplayDownloaded: ((state, action) => {

@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { ServerInfo_Report } from '@cockatrice/sockatrice/generated';
+import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
+import { useReduxEffect, type ReduxEffectAction } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 
 export interface ReportThread {
@@ -47,12 +49,16 @@ export function useReportThread(selectedId: number | null, onCommentAdded: () =>
       return;
     }
     setFailedId(null);
-    webClient.request.session.reportDetails(selectedId, () => {
-      if (mounted.current) {
-        setFailedId(selectedId);
-      }
-    });
+    webClient.request.session.reportDetails(selectedId);
   }, [selectedId, webClient]);
+
+  // Command_ReportDetails fails through the session scope's commandFailed;
+  // the target is the report id.
+  useReduxEffect((action: ReduxEffectAction<{ command: WebsocketTypes.SessionCommandName; target: string }>) => {
+    if (action.payload.command === 'reportDetails') {
+      setFailedId(Number(action.payload.target));
+    }
+  }, server.Types.SESSION_COMMAND_FAILED, []);
 
   useEffect(() => {
     setCommentFailed(false);

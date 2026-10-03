@@ -5,6 +5,7 @@ vi.mock('../../WebClient');
 import { create, isFieldSet } from '@bufbuild/protobuf';
 import { Mock } from 'vitest';
 import { makeCallbackHelpers } from '../../testing/callback-helpers';
+import { CommandFailure } from '../../types/CommandFailure';
 import { WebClient } from '../../WebClient';
 import {
   Command_ReplayDownloadByGameId_ext,
@@ -165,53 +166,29 @@ describe('replayDownloadByGameId', () => {
   });
 });
 
-describe('report queue failure and completion callbacks', () => {
+describe('report queue failures', () => {
 
-  it('reportList passes a failure code to onFailure without touching the response contract', () => {
-    const onFailure = vi.fn();
-    reportList(true, undefined, undefined, onFailure);
-    invokeOnError(Response_ResponseCode.RespInternalError);
-    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespInternalError);
-    expect(WebClient.instance.response.moderator.reportList).not.toHaveBeenCalled();
-  });
-
-  it('reportAssign calls onAssigned after the response contract on success', () => {
-    const onAssigned = vi.fn();
-    reportAssign(4, onAssigned);
-    invokeOnSuccess();
-    expect(WebClient.instance.response.moderator.reportAssigned).toHaveBeenCalledWith(4);
-    expect(onAssigned).toHaveBeenCalled();
-  });
-
-  it('reportAssign passes RespInvalidData (already taken) to onFailure', () => {
-    const onAssigned = vi.fn();
-    const onFailure = vi.fn();
-    reportAssign(4, onAssigned, onFailure);
+  it.each([
+    ['reportList', () => reportList(true), ''],
+    ['reportStats', () => reportStats(), ''],
+    ['reportAssign', () => reportAssign(4), '4'],
+    ['reportResolve', () => reportResolve(4, 'note'), '4'],
+    ['replayDownloadByGameId', () => replayDownloadByGameId(77), '77'],
+  ] as const)('%s reports a failure through commandFailed', (command, send, target) => {
+    send();
     invokeOnError(Response_ResponseCode.RespInvalidData);
-    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespInvalidData);
-    expect(onAssigned).not.toHaveBeenCalled();
+    expect(WebClient.instance.response.moderator.commandFailed).toHaveBeenCalledWith(
+      command, Response_ResponseCode.RespInvalidData, target, undefined,
+    );
+  });
+
+  it('passes a transport failure through', () => {
+    reportAssign(4);
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    expect(WebClient.instance.response.moderator.commandFailed).toHaveBeenCalledWith(
+      'reportAssign', Response_ResponseCode.RespNotConnected, '4', CommandFailure.Disconnected,
+    );
     expect(WebClient.instance.response.moderator.reportAssigned).not.toHaveBeenCalled();
   });
 
-  it('reportResolve reports success and failure to the caller', () => {
-    const onResolved = vi.fn();
-    const onFailure = vi.fn();
-    reportResolve(4, 'note', false, onResolved, onFailure);
-    invokeOnSuccess();
-    expect(onResolved).toHaveBeenCalled();
-    invokeOnError(Response_ResponseCode.RespInvalidData);
-    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespInvalidData);
-  });
-
-  it('reportStats and replayDownloadByGameId pass failures to onFailure', () => {
-    const onFailure = vi.fn();
-    reportStats(onFailure);
-    invokeOnError(Response_ResponseCode.RespInternalError);
-    replayDownloadByGameId(77, onFailure);
-    invokeOnError(Response_ResponseCode.RespNameNotFound);
-    expect(onFailure.mock.calls.map(([code]) => code)).toEqual([
-      Response_ResponseCode.RespInternalError,
-      Response_ResponseCode.RespNameNotFound,
-    ]);
-  });
 });

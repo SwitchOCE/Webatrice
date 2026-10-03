@@ -8,6 +8,8 @@ import { useAppSelector } from '@app/store';
 import { useReportListLoad, type ReportListLoadState } from './useReportListLoad';
 import { useReportThread, type ReportThread } from './useReportThread';
 
+const MY_LIST_FAILURE = { type: server.Types.SESSION_COMMAND_FAILED, command: 'reportMyList' };
+
 export interface MyReports {
   reports: ServerInfo_Report[];
   loadState: ReportListLoadState;
@@ -32,11 +34,8 @@ export function useMyReports(): MyReports {
   const selected = useAppSelector((state) =>
     (selectedId != null ? server.Selectors.getReport(state, selectedId) : undefined));
 
-  const send = useCallback(
-    (onFailure: () => void) => webClient.request.session.reportMyList(onFailure),
-    [webClient],
-  );
-  const { loadState, refresh: refreshList } = useReportListLoad(reports, send);
+  const send = useCallback(() => webClient.request.session.reportMyList(), [webClient]);
+  const { loadState, refresh: refreshList } = useReportListLoad(reports, send, MY_LIST_FAILURE);
 
   const thread = useReportThread(selectedId, () => refresh());
   const { reloadDetails } = thread;

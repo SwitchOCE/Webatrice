@@ -27,6 +27,7 @@ import {
   ServerInfo_ReportSchema,
 } from '@cockatrice/sockatrice/generated';
 import { ModeratorCommands, SessionCommands } from '@cockatrice/sockatrice';
+import { server } from '@cockatrice/datatrice';
 
 import { connectAndLogin, store } from '../helpers/setup';
 import {
@@ -36,6 +37,11 @@ import {
   deliverMessage,
 } from '../helpers/protobuf-builders';
 import { findLastModeratorCommand, findLastSessionCommand } from '../helpers/command-capture';
+
+// The last dispatched action, which the views' useReduxEffect signals read.
+function lastAction() {
+  return (store.getState() as unknown as { action: { type: string; payload: unknown } }).action;
+}
 
 function answer(cmdId: number, responseCode: Response_ResponseCode) {
   deliverMessage(buildResponseMessage(buildResponse({ cmdId, responseCode })));
@@ -104,6 +110,15 @@ describe('report commands', () => {
     expect(store.getState().server.reports.details[7].comments[0].commentText).toBe('Looking');
   });
 
+  it('a refused report detail raises the session failure signal for that report', () => {
+    connectAndLogin();
+    SessionCommands.reportDetails(8);
+    answer(findLastSessionCommand(Command_ReportDetails_ext).cmdId, Response_ResponseCode.RespAccessDenied);
+    expect(lastAction()).toMatchObject(server.Actions.sessionCommandFailed({
+      command: 'reportDetails', responseCode: Response_ResponseCode.RespAccessDenied, target: '8', failure: undefined,
+    }));
+  });
+
   it('reportAddComment sends the comment and reports RespInvalidData on a closed report', () => {
     connectAndLogin();
     const onFailure = vi.fn();
@@ -148,10 +163,9 @@ describe('moderation queue commands', () => {
     loadQueue();
     expect(store.getState().server.reports.queue).toEqual([3]);
 
-    const onAssigned = vi.fn();
-    ModeratorCommands.reportAssign(3, onAssigned);
+    ModeratorCommands.reportAssign(3);
     answer(findLastModeratorCommand(Command_ReportAssign_ext).cmdId, Response_ResponseCode.RespOk);
-    expect(onAssigned).toHaveBeenCalled();
+    expect(lastAction()).toMatchObject(server.Actions.reportAssigned({ reportId: 3 }));
     expect(store.getState().server.reports.byId[3]).toMatchObject({ status: 'assigned', assignedModName: 'modA' });
 
     ModeratorCommands.reportResolve(3, 'warned', false);
@@ -161,13 +175,15 @@ describe('moderation queue commands', () => {
     expect(store.getState().server.reports.byId[3].status).toBe('resolved');
   });
 
-  it('a lost assignment race leaves the row alone and tells the caller', () => {
+  it('a lost assignment race leaves the row alone and raises the moderator failure signal', () => {
     connectAndLogin('modA');
     loadQueue();
-    const onFailure = vi.fn();
-    ModeratorCommands.reportAssign(3, undefined, onFailure);
+    ModeratorCommands.reportAssign(3);
     answer(findLastModeratorCommand(Command_ReportAssign_ext).cmdId, Response_ResponseCode.RespInvalidData);
-    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespInvalidData, expect.anything());
+    expect(lastAction()).toMatchObject(server.Actions.moderatorCommandFailed({
+      command: 'reportAssign', responseCode: Response_ResponseCode.RespInvalidData, target: '3', failure: undefined,
+    }));
     expect(store.getState().server.reports.byId[3].status).toBe('open');
   });
+
 });
