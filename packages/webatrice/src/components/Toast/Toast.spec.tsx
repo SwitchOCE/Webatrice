@@ -280,6 +280,28 @@ describe('ToastProvider + usePushToast', () => {
   });
 });
 
+describe('Toast folding and focus', () => {
+  it('keeps the focused persistent toast on screen when a newer one would fold it away', () => {
+    const bodies = ['one', 'two', 'three'];
+    const toasts = (extra: string[]) => (
+      <ToastProvider>
+        {[...bodies, ...extra].map((body) => <PushOnMount key={body} body={body} persistent />)}
+        <button type="button">elsewhere</button>
+      </ToastProvider>
+    );
+    const { rerender } = renderWithProviders(toasts([]));
+    const dismissOne = within(queryAlerts()[0]).getByRole('button', { name: 'Toast.dismiss' });
+    act(() => dismissOne.focus());
+
+    rerender(toasts(['four']));
+
+    expect(queryAlerts().map((toast) => toast.textContent)).toEqual(['one', 'two', 'three', 'four']);
+    expect(dismissOne).toHaveFocus();
+    act(() => screen.getByRole('button', { name: 'elsewhere' }).focus());
+    expect(queryAlerts().map((toast) => toast.textContent)).toEqual(['two', 'three', 'four']);
+  });
+});
+
 describe('Toast auto-hide pause', () => {
   afterEach(() => {
     vi.useRealTimers();
