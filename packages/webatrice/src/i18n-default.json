@@ -292,6 +292,14 @@
       "ru": "Russian",
       "tok": "Toki Pona",
       "yue": "Cantonese"
+    },
+    "action": {
+      "cancel": "Cancel",
+      "create": "Create",
+      "send": "Send",
+      "apply": "Apply",
+      "reset": "Reset",
+      "join": "Join"
     }
   },
   "ErrorFallback": {
@@ -1987,13 +1995,113 @@
       "filedCount": "{user}: {count} reports filed"
     }
   },
+  "GamesList": {
+    "heading": "Games in {room}",
+    "showing": "Showing {visible} / {total}",
+    "empty": "No games open right now — click <create>Create</create> to start one.",
+    "column": {
+      "age": "Age",
+      "description": "Description",
+      "creator": "Creator",
+      "type": "Type",
+      "restrictions": "Restrictions",
+      "players": "Players",
+      "spectators": "Spectators"
+    },
+    "action": {
+      "filter": "Filter games",
+      "clearFilter": "Clear filter",
+      "spectate": "Spectate",
+      "judge": "Judge",
+      "judgeSpectate": "Judge · Spectate"
+    },
+    "password": {
+      "title": "Password required"
+    },
+    "error": {
+      "title": "Error"
+    }
+  },
   "RoomChat": {
     "notice": {
       "chatFlood": "You are flooding the chat. Please wait a couple of seconds.",
       "notSent": "Message not sent: {reason}"
     },
     "log": "{room} chat",
-    "input": "Message {room}"
+    "input": "Message {room}",
+    "subtitle": "· room chat",
+    "empty": "No messages yet — say hi."
+  },
+  "RoomUsers": {
+    "buddies": {
+      "title": "Buddies",
+      "count": "{count} online",
+      "empty": "No buddies online right now."
+    },
+    "online": {
+      "title": "Players Online",
+      "count": "{count} connected",
+      "empty": "No one else online."
+    }
+  },
+  "CreateGameDialog": {
+    "title": "Create Game",
+    "label": {
+      "description": "Description",
+      "password": "Password",
+      "maxPlayers": "Max players",
+      "startingLifeTotal": "Starting life total",
+      "onlyBuddies": "Only buddies",
+      "onlyRegistered": "Only registered users",
+      "spectatorsAllowed": "Allow spectators",
+      "spectatorsNeedPassword": "Spectators need password",
+      "spectatorsCanTalk": "Spectators can chat",
+      "spectatorsSeeEverything": "Spectators see everything",
+      "joinAsSpectator": "Create as spectator",
+      "shareDecklistsOnLoad": "Share decklists on load",
+      "joinAsJudge": "Create as judge"
+    },
+    "section": {
+      "gameType": "Game type",
+      "permissions": "Permissions",
+      "spectators": "Spectators",
+      "other": "Other"
+    }
+  },
+  "FilterGamesDialog": {
+    "title": "Filter games",
+    "label": {
+      "gameName": "Game description contains",
+      "creatorNames": "Creator names (comma-separated)",
+      "minPlayers": "Min players",
+      "maxPlayers": "Max players",
+      "maxAge": "Max age"
+    },
+    "maxAge": {
+      "noLimit": "No limit",
+      "minutes": "{count, plural, one {# minute} other {# minutes}}",
+      "hours": "{count, plural, one {# hour} other {# hours}}"
+    },
+    "section": {
+      "gameTypes": "Game types",
+      "hide": "Hide",
+      "spectators": "Spectator filters"
+    },
+    "hide": {
+      "fullGames": "Hide full games",
+      "gamesThatStarted": "Hide games that started",
+      "passwordProtected": "Hide password-protected games",
+      "buddiesOnly": "Hide buddies-only games",
+      "ignoredUsers": "Hide games created by ignored users",
+      "notBuddyCreated": "Hide games not created by buddies",
+      "openDecklist": "Hide open-decklist games"
+    },
+    "spectators": {
+      "canWatch": "Show only games where spectators can watch",
+      "needPassword": "Show games where spectators need a password",
+      "canChat": "Show only games where spectators can chat",
+      "canSeeHands": "Show only games where spectators see hands"
+    }
   },
   "RoomsList": {
     "joinError": {
@@ -2362,5 +2470,19 @@
     "notSent": "You are not connected to the server.",
     "timeout": "The server did not respond. Please try again.",
     "disconnected": "The connection to the server has been lost."
+  },
+  "GameInfo": {
+    "restriction": {
+      "password": "password",
+      "buddiesOnly": "buddies only",
+      "registeredOnly": "reg. users only",
+      "openDecklists": "open decklists"
+    },
+    "spectators": {
+      "notAllowed": "not allowed",
+      "canChat": "can chat",
+      "seeHands": "see hands",
+      "countWithFlags": "{count} ({flags})"
+    }
   }
 }

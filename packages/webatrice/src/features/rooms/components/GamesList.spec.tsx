@@ -94,7 +94,7 @@ describe('GamesList', () => {
   it('is a grid with one tab stop, on the first row until a game is selected', () => {
     setup();
 
-    const grid = screen.getByRole('grid', { name: 'Games in Main Room' });
+    const grid = screen.getByRole('grid', { name: 'GamesList.heading' });
     const rows = within(grid).getAllByRole('row').slice(1);
     expect(rows.map((r) => r.tabIndex)).toEqual([0, -1, -1]);
     expect(rows.map((r) => r.getAttribute('aria-rowindex'))).toEqual(['2', '3', '4']);
@@ -111,7 +111,7 @@ describe('GamesList', () => {
 
     expect(second).toHaveAttribute('aria-selected', 'true');
     expect(second).toHaveFocus();
-    expect(screen.getByRole('button', { name: /^Join$/ })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Common.action.join' })).toBeEnabled();
   });
 
   it('joins the focused game on Enter, without a prior click', () => {
@@ -133,21 +133,21 @@ describe('GamesList', () => {
   it('sorts from a header button and reports the sort direction', () => {
     setup();
 
-    const description = screen.getByRole('button', { name: 'Description' });
+    const description = screen.getByRole('button', { name: 'GamesList.column.description' });
     fireEvent.click(description);
 
-    const header = screen.getByRole('columnheader', { name: /Description/ });
+    const header = screen.getByRole('columnheader', { name: 'GamesList.column.description' });
     expect(header).toHaveAttribute('aria-sort');
     // Restrictions has no sort field, so it gets no button.
-    expect(screen.queryByRole('button', { name: 'Restrictions' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'GamesList.column.restrictions' })).not.toBeInTheDocument();
   });
 
   // Ported from the deleted GameSelector / GameSelectorToolbar specs: the
   // toolbar gating and dialogs they covered now live in GamesList. Password,
   // full-game spectate, already-open routing and join errors are useJoinGame's.
   describe('toolbar', () => {
-    const join = () => screen.getByRole('button', { name: /^Join$/ });
-    const spectate = () => screen.getByRole('button', { name: /^Spectate$/ });
+    const join = () => screen.getByRole('button', { name: 'Common.action.join' });
+    const spectate = () => screen.getByRole('button', { name: 'GamesList.action.spectate' });
 
     it('keeps Join disabled until a game is selected', () => {
       setup();
@@ -186,22 +186,22 @@ describe('GamesList', () => {
 
     it('shows the judge buttons only to a user with the IsJudge flag', () => {
       setup({ userLevel: ServerInfo_User_UserLevelFlag.IsUser });
-      expect(screen.queryByRole('button', { name: /Judge/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /GamesList\.action\.judge/ })).not.toBeInTheDocument();
     });
 
     it('shows both judge buttons to a judge', () => {
       setup({ userLevel: ServerInfo_User_UserLevelFlag.IsUser | ServerInfo_User_UserLevelFlag.IsJudge });
 
-      expect(screen.getByRole('button', { name: /^Judge$/ })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Judge · Spectate/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'GamesList.action.judge' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'GamesList.action.judgeSpectate' })).toBeInTheDocument();
     });
 
     it('applies the filter dialog to the room', () => {
       const { store } = setup();
 
-      fireEvent.click(screen.getByRole('button', { name: /Filter games/ }));
-      fireEvent.click(screen.getByLabelText(/Hide full games/i));
-      fireEvent.click(screen.getByRole('button', { name: /Apply/ }));
+      fireEvent.click(screen.getByRole('button', { name: 'GamesList.action.filter' }));
+      fireEvent.click(screen.getByLabelText('FilterGamesDialog.hide.fullGames'));
+      fireEvent.click(screen.getByRole('button', { name: 'Common.action.apply' }));
 
       expect(store.getState().rooms.gameFilters[1]?.hideFullGames).toBe(true);
     });
@@ -209,9 +209,9 @@ describe('GamesList', () => {
     it('cancels the filter dialog without touching the filters', () => {
       const { store } = setup();
 
-      fireEvent.click(screen.getByRole('button', { name: /Filter games/ }));
-      fireEvent.click(screen.getByLabelText(/Hide full games/i));
-      fireEvent.click(screen.getByRole('button', { name: /Cancel/ }));
+      fireEvent.click(screen.getByRole('button', { name: 'GamesList.action.filter' }));
+      fireEvent.click(screen.getByLabelText('FilterGamesDialog.hide.fullGames'));
+      fireEvent.click(screen.getByRole('button', { name: 'Common.action.cancel' }));
 
       expect(store.getState().rooms.gameFilters[1]).toBeUndefined();
     });
@@ -221,7 +221,7 @@ describe('GamesList', () => {
         rooms: { gameFilters: { 1: { ...roomsSlice.DEFAULT_GAME_FILTERS, hideFullGames: true } } },
       });
 
-      fireEvent.click(screen.getByRole('button', { name: /Clear filter/ }));
+      fireEvent.click(screen.getByRole('button', { name: 'GamesList.action.clearFilter' }));
 
       expect(store.getState().rooms.gameFilters[1]).toEqual(roomsSlice.DEFAULT_GAME_FILTERS);
     });
@@ -229,8 +229,8 @@ describe('GamesList', () => {
     it('submits createGame from the create dialog', () => {
       const { webClient } = setup();
 
-      fireEvent.click(screen.getByRole('button', { name: /^Create$/ }));
-      const create = screen.getAllByRole('button', { name: /^Create$/ });
+      fireEvent.click(screen.getByRole('button', { name: 'Common.action.create' }));
+      const create = screen.getAllByRole('button', { name: 'Common.action.create' });
       fireEvent.click(create[create.length - 1]);
 
       expect(webClient.request.rooms.createGame).toHaveBeenCalledTimes(1);

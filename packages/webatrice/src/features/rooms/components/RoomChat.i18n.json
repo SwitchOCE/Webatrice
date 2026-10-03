@@ -5,6 +5,8 @@
       "notSent": "Message not sent: {reason}"
     },
     "log": "{room} chat",
-    "input": "Message {room}"
+    "input": "Message {room}",
+    "subtitle": "· room chat",
+    "empty": "No messages yet — say hi."
   }
 }

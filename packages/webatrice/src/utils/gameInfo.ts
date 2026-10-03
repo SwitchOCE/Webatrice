@@ -1,38 +1,40 @@
+import type { TFunction } from 'i18next';
+
 import type { ServerInfo_Game } from '@cockatrice/sockatrice/generated';
 
 // Cell text for a game's Restrictions and Spectators columns, shared by every
-// game list (a room's games, a user's games).
+// game list (a room's games, a user's games). Desktop GamesModel::data.
 
-export function formatRestrictions(info: ServerInfo_Game): string {
+export function formatRestrictions(t: TFunction, info: ServerInfo_Game): string {
   const parts: string[] = [];
   if (info.withPassword) {
-    parts.push('password');
+    parts.push(t('GameInfo.restriction.password'));
   }
   if (info.onlyBuddies) {
-    parts.push('buddies only');
+    parts.push(t('GameInfo.restriction.buddiesOnly'));
   }
   if (info.onlyRegistered) {
-    parts.push('reg. users only');
+    parts.push(t('GameInfo.restriction.registeredOnly'));
   }
   if (info.shareDecklistsOnLoad) {
-    parts.push('open decklists');
+    parts.push(t('GameInfo.restriction.openDecklists'));
   }
   return parts.join(', ');
 }
 
-export function formatSpectators(info: ServerInfo_Game): string {
+export function formatSpectators(t: TFunction, info: ServerInfo_Game): string {
   if (!info.spectatorsAllowed) {
-    return 'not allowed';
+    return t('GameInfo.spectators.notAllowed');
   }
   const flags: string[] = [];
   if (info.spectatorsCanChat) {
-    flags.push('can chat');
+    flags.push(t('GameInfo.spectators.canChat'));
   }
   if (info.spectatorsOmniscient) {
-    flags.push('see hands');
+    flags.push(t('GameInfo.spectators.seeHands'));
   }
   if (flags.length === 0) {
     return String(info.spectatorsCount);
   }
-  return `${info.spectatorsCount} (${flags.join(' & ')})`;
+  return t('GameInfo.spectators.countWithFlags', { count: info.spectatorsCount, flags: flags.join(' & ') });
 }

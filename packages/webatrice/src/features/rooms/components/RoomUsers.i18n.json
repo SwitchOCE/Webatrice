@@ -1,0 +1,14 @@
+{
+  "RoomUsers": {
+    "buddies": {
+      "title": "Buddies",
+      "count": "{count} online",
+      "empty": "No buddies online right now."
+    },
+    "online": {
+      "title": "Players Online",
+      "count": "{count} connected",
+      "empty": "No one else online."
+    }
+  }
+}
