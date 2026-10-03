@@ -10,7 +10,7 @@ import {
 } from '@cockatrice/sockatrice/generated';
 import { parseCod } from '@app/services';
 
-import { connectedState, createMockWebClient, renderWithProviders } from '../../../__test-utils__';
+import { connectedState, createMockWebClient, disconnectedState, renderWithProviders } from '../../../__test-utils__';
 import { getCachedDeck, setCachedDeck } from '../deckEditorCache';
 import { clearDecksListCache, useDeckList, type UseDeckList } from './useDeckList';
 
@@ -36,11 +36,11 @@ function deckTree() {
   });
 }
 
-function setup() {
+function setup(preloadedState = connectedState) {
   const webClient = createMockWebClient();
   const onDeckCreated = vi.fn();
   const { store } = renderWithProviders(<Probe onDeckCreated={onDeckCreated} />, {
-    preloadedState: connectedState,
+    preloadedState,
     webClient,
   });
   return { webClient, store, onDeckCreated };
@@ -82,9 +82,18 @@ describe('useDeckList', () => {
     expect(latest.summaries.size).toBe(0);
   });
 
+  it('refuses to create or import while disconnected, so the caller keeps its dialog open', () => {
+    const { webClient } = setup(disconnectedState);
+    expect(latest.createDeck('Brew', 'modern')).toBe(false);
+    expect(latest.importDeck('<cockatrice_deck/>')).toBe(false);
+    expect(webClient.request.session.deckUpload).not.toHaveBeenCalled();
+  });
+
   it('creates a deck at the root and reports the id the server assigns', () => {
     const { webClient, store, onDeckCreated } = setup();
-    act(() => latest.createDeck('', 'modern'));
+    act(() => {
+      expect(latest.createDeck('', 'modern')).toBe(true);
+    });
 
     const [path, deckId, xml] = vi.mocked(webClient.request.session.deckUpload).mock.calls[0];
     expect([path, deckId]).toEqual(['', 0]);
