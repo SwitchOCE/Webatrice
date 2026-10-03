@@ -9,7 +9,7 @@ import {
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { SortUtil } from '../../common';
 import { ServerCapability, serverSupports } from './server.capabilities';
-import { ServerState } from './server.interfaces';
+import { PrivateChatNotice, PrivateConversationEntry, ServerState } from './server.interfaces';
 import { HEALTHY_CONNECTION_HEALTH } from './server.reducer.connection';
 
 type State = { server: ServerState };
@@ -17,6 +17,10 @@ type State = { server: ServerState };
 const EMPTY_USERS: ServerInfo_User[] = [];
 const EMPTY_REPLAYS: ServerInfo_ReplayMatch[] = [];
 const EMPTY_MESSAGES: Event_UserMessage[] = [];
+const EMPTY_NOTICES: PrivateChatNotice[] = [];
+
+const getPrivateChatNotices = ({ server }: State, userName: string): PrivateChatNotice[] =>
+  server.privateChatNotices[userName] ?? EMPTY_NOTICES;
 
 export const Selectors = {
   getInitialized: ({ server }: State) => server.initialized,
@@ -143,6 +147,32 @@ export const Selectors = {
   // referential equality in memoized selectors.
   getPrivateMessagesForUser: ({ server }: State, userName: string): Event_UserMessage[] =>
     server.messages[userName] ?? EMPTY_MESSAGES,
+
+  // The conversation with a user in display order: messages with the client's
+  // notices (delivery failures, presence changes) slotted in where they occurred.
+  getPrivateConversation: createSelector(
+    [
+      ({ server }: State, userName: string) => server.messages[userName] ?? EMPTY_MESSAGES,
+      getPrivateChatNotices,
+    ],
+    (messages, notices): PrivateConversationEntry[] => {
+      const entries: PrivateConversationEntry[] = [];
+      let next = 0;
+      messages.forEach((message, index) => {
+        while (next < notices.length && notices[next].position <= index) {
+          entries.push({ type: 'notice', notice: notices[next++] });
+        }
+        entries.push({ type: 'message', message });
+      });
+      while (next < notices.length) {
+        entries.push({ type: 'notice', notice: notices[next++] });
+      }
+      return entries;
+    },
+  ),
+
+  // Known presence: whether the user is in the server's online user list.
+  getIsUserOnline: ({ server }: State, userName: string): boolean => Boolean(server.users[userName]),
 
   getUsers: ({ server }: State) => server.users,
   getBuddyList: ({ server }: State) => server.buddyList,

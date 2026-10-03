@@ -79,6 +79,26 @@ describe('usePlayer', () => {
     expect(result.current.isIgnored).toBe(false);
   });
 
+  it('exposes the conversation with its notices and the player presence', () => {
+    const { result } = setup(
+      stateWithPlayer('alice', {
+        users: { alice: makeUser({ name: 'alice' }) },
+        privateChatNotices: { alice: [{ id: 1, kind: 'userJoined', position: 0 }] },
+      }),
+      'alice',
+    );
+    expect(result.current.isOnline).toBe(true);
+    expect(result.current.conversation).toEqual([
+      { type: 'notice', notice: { id: 1, kind: 'userJoined', position: 0 } },
+    ]);
+  });
+
+  it('reports a player missing from the online list as offline', () => {
+    const { result } = setup(stateWithPlayer('alice'), 'alice');
+    expect(result.current.isOnline).toBe(false);
+    expect(result.current.conversation).toEqual([]);
+  });
+
   it('onAddBuddy / onRemoveBuddy hit the web client with the player name', () => {
     const { result, webClient } = setup(stateWithPlayer('alice'), 'alice');
     result.current.onAddBuddy();

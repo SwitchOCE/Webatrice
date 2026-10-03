@@ -210,6 +210,10 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.userMessage({ messageData }));
   }
 
+  privateMessageFailed(userName: string, message: string, responseCode: number): void {
+    this.store.dispatch(ServerActions.privateMessageFailed({ userName, message, code: responseCode }));
+  }
+
   addToList(list: string, userName: string): void {
     this.store.dispatch(ServerActions.addToList({ list, userName }));
   }

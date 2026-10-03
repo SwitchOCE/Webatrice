@@ -5,6 +5,7 @@
   Event_UserMessageSchema,
   Response_GetGamesOfUser,
   Response_GetGamesOfUserSchema,
+  Response_ResponseCode,
   ServerInfo_DeckStorage_FolderSchema,
   ServerInfo_DeckStorage_TreeItemSchema,
   ServerInfo_GameSchema,
@@ -486,6 +487,69 @@ describe('Messaging', () => {
     expect(result.messages['Alice']).toHaveLength(MAX_USER_MESSAGES);
     expect(result.messages['Alice'][MAX_USER_MESSAGES - 1]).toEqual(newMsg);
     expect(result.messages['Alice'][0].message).not.toBe('msg-0');
+  });
+});
+
+
+describe('Private chat notices', () => {
+  const msg = (message: string) =>
+    create(Event_UserMessageSchema, { senderName: 'Alice', receiverName: 'Bob', message });
+
+  it.each([
+    [Response_ResponseCode.RespInIgnoreList, 'ignoredByRecipient'],
+    [Response_ResponseCode.RespNameNotFound, 'recipientOffline'],
+    [Response_ResponseCode.RespChatFlood, 'chatFlood'],
+  ])('PRIVATE_MESSAGE_FAILED with code %i → appends a %s notice after the stored messages', (code, kind) => {
+    const state = makeServerState({ messages: { Alice: [msg('a'), msg('b')] } });
+    const result = serverReducer(state, Actions.privateMessageFailed({ userName: 'Alice', message: 'unsent', code }));
+    expect(result.privateChatNotices['Alice']).toEqual([{ id: expect.any(Number), kind, position: 2 }]);
+  });
+
+  it('PRIVATE_MESSAGE_FAILED for an unmapped code → no notice', () => {
+    const state = makeServerState();
+    const result = serverReducer(state, Actions.privateMessageFailed({
+      userName: 'Alice', message: 'unsent', code: Response_ResponseCode.RespContextError,
+    }));
+    expect(result.privateChatNotices).toEqual({});
+  });
+
+  it('USER_LEFT / USER_JOINED → record presence in an open conversation only', () => {
+    const state = makeServerState({
+      users: { Alice: makeUser({ name: 'Alice' }), Carol: makeUser({ name: 'Carol' }) },
+      messages: { Alice: [msg('a')] },
+    });
+    const left = serverReducer(state, Actions.userLeft({ name: 'Alice' }));
+    const back = serverReducer(left, Actions.userJoined({ user: makeUser({ name: 'Alice' }) }));
+    const other = serverReducer(back, Actions.userLeft({ name: 'Carol' }));
+
+    expect(other.privateChatNotices['Alice'].map((n) => [n.kind, n.position])).toEqual([['userLeft', 1], ['userJoined', 1]]);
+    expect(other.privateChatNotices['Carol']).toBeUndefined();
+  });
+
+  it('UPDATE_USERS → records no presence notices', () => {
+    const state = makeServerState({ messages: { Alice: [msg('a')] } });
+    const result = serverReducer(state, Actions.updateUsers({ users: [makeUser({ name: 'Alice' })] }));
+    expect(result.privateChatNotices).toEqual({});
+  });
+
+  it('USER_MESSAGE at the cap → shifts notice positions and drops notices before the trimmed head', () => {
+    const messages = Array.from({ length: MAX_USER_MESSAGES }, (_, i) => msg(`msg-${i}`));
+    const state = makeServerState({
+      user: makeUser({ name: 'Bob' }),
+      messages: { Alice: messages },
+      privateChatNotices: {
+        Alice: [
+          { id: 1, kind: 'userLeft', position: 0 },
+          { id: 2, kind: 'userJoined', position: 1 },
+          { id: 3, kind: 'chatFlood', position: MAX_USER_MESSAGES },
+        ],
+      },
+    });
+    const result = serverReducer(state, Actions.userMessage({ messageData: msg('overflow') }));
+    expect(result.privateChatNotices['Alice']).toEqual([
+      { id: 2, kind: 'userJoined', position: 0 },
+      { id: 3, kind: 'chatFlood', position: MAX_USER_MESSAGES - 1 },
+    ]);
   });
 });
 

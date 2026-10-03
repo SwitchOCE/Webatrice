@@ -1,8 +1,24 @@
 import { create } from '@bufbuild/protobuf';
 import { WebClient } from '../../WebClient';
 
-import { Command_Message_ext, Command_MessageSchema } from '../../generated';
+import { Command_Message_ext, Command_MessageSchema, Response_ResponseCode } from '../../generated';
+
+// Rejections reported back with the unsent text: the two desktop TabMessage::messageSent
+// handles (recipient ignores you, recipient offline) plus the flood rejection that
+// Servatrice's cmdMessage also returns.
+const REPORTED_FAILURES = [
+  Response_ResponseCode.RespInIgnoreList,
+  Response_ResponseCode.RespNameNotFound,
+  Response_ResponseCode.RespChatFlood,
+];
 
 export function message(userName: string, message: string): void {
-  WebClient.instance.protobuf.sendSessionCommand(Command_Message_ext, create(Command_MessageSchema, { userName, message }));
+  const onResponseCode: { [code: number]: () => void } = {};
+  for (const code of REPORTED_FAILURES) {
+    onResponseCode[code] = () => WebClient.instance.response.session.privateMessageFailed(userName, message, code);
+  }
+
+  WebClient.instance.protobuf.sendSessionCommand(Command_Message_ext, create(Command_MessageSchema, { userName, message }), {
+    onResponseCode,
+  });
 }

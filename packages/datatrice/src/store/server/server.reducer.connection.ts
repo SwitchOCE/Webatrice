@@ -45,6 +45,7 @@ export const initialState: ServerState = {
   },
   locale: undefined,
   messages: {},
+  privateChatNotices: {},
   userInfo: {},
   notifications: [],
   serverShutdown: null,

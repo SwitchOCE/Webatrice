@@ -9,3 +9,5 @@ Rooms, chat and user-menu parity with desktop Cockatrice.
 **Room join errors.** A failed join is explained in the lobby with desktop's message (the room doesn't exist, you lack the permission, or an unknown error with its code), or with the timed-out / connection-lost reason when the server never answered, and leaves you there to retry. This replaces the generic join-room notice.
 
 **Room chat.** Ignored users' messages no longer appear. Sending too fast shows desktop's "You are flooding the chat" line and puts the unsent text back in an empty input. Chat history received on joining a room shows each line's server time, like desktop.
+
+**Private chat.** The conversation shows the partner's online state and notes when they leave or rejoin the server. A message the server rejects (they ignore you, they went offline, you are flooding) is explained in the conversation and the text comes back into the composer. While the partner is offline, or on your ignore list, the composer says why and keeps your draft instead of sending.
