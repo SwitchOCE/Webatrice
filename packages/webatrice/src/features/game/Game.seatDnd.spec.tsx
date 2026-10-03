@@ -36,6 +36,7 @@ vi.mock('../../services/cards/cardCatalog', () => {
 });
 
 const BOLT = makeCard({ id: 10, name: 'Bolt', x: 3, y: 1 });
+const OGRE = makeCard({ id: 11, name: 'Ogre', x: 0, y: 0 });
 const SHOCK = makeCard({ id: 30, name: 'Shock' });
 const OPT = makeCard({ id: 31, name: 'Opt' });
 const COUNTER = makeCard({ id: 50, name: 'Counterspell' });
@@ -52,7 +53,7 @@ function renderLaidOut() {
     preloadedState: buildSeatGameState({
       localPlayerId: 1,
       seats: [
-        { playerId: 1, table: [BOLT], hand: [SHOCK, OPT], grave: [DURESS], stack: [COUNTER], deckCount: 40 },
+        { playerId: 1, table: [BOLT, OGRE], hand: [SHOCK, OPT], grave: [DURESS], stack: [COUNTER], deckCount: 40 },
         { playerId: 2, handCount: 5, deckCount: 33 },
       ],
     }),
@@ -125,6 +126,8 @@ describe('seat drags on the game DnD coordinator', () => {
       { startZone: ZoneName.HAND, targetZone: ZoneName.HAND, x: 1 }],
     ['hand → stack', SHOCK.id, 'hand', { x: 10, y: 510 }, { x: 1150, y: 390 },
       { startZone: ZoneName.HAND, targetZone: ZoneName.STACK, x: 1 }],
+    ['battlefield → graveyard', BOLT.id, 'battlefield', { x: 50, y: 50 }, { x: 1000, y: 250 },
+      { startZone: ZoneName.TABLE, targetZone: ZoneName.GRAVE }],
     ['stack → graveyard', COUNTER.id, 'stack', { x: 1110, y: 10 }, { x: 1000, y: 250 },
       { startZone: ZoneName.STACK, targetZone: ZoneName.GRAVE }],
   ] as const)('%s: one command, one sensor listener, ghost and cursor cleaned up', (_label, cardId, zone, from, to, move) => {
@@ -184,6 +187,31 @@ describe('seat drags on the game DnD coordinator', () => {
       cardsToMove: { card: [{ cardId: DURESS.id }] },
       targetZone: ZoneName.TABLE,
     });
+  });
+
+  it('re-slots a battlefield selection on its own board with one command per card', () => {
+    const game = renderLaidOut();
+    const click = (el: Element, ctrlKey = false) => {
+      act(() => {
+        fireEvent.pointerDown(el, { button: 0, clientX: 50, clientY: 50 });
+      });
+      act(() => {
+        fireEvent.pointerUp(window, { button: 0, clientX: 50, clientY: 50, ctrlKey });
+      });
+    };
+    click(cardEl(BOLT.id, 'battlefield'));
+    click(cardEl(OGRE.id, 'battlefield'), true);
+    expect(game.moveCard).not.toHaveBeenCalled();
+
+    dragThrough(cardEl(BOLT.id, 'battlefield'), { x: 50, y: 50 }, { x: 400, y: 300 }, () => {
+      expect(ghosts()).toHaveLength(2);
+    });
+
+    const moves = vi.mocked(game.moveCard).mock.calls.map(([, params]) => params);
+    expect(moves.map((m) => [m.startZone, m.targetZone, m.cardsToMove?.card?.map((c) => c.cardId)])).toEqual([
+      [ZoneName.TABLE, ZoneName.TABLE, [BOLT.id]],
+      [ZoneName.TABLE, ZoneName.TABLE, [OGRE.id]],
+    ]);
   });
 
   it('hides the dragged hand card while the ghost carries it', () => {
