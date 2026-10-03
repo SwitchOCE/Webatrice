@@ -253,6 +253,12 @@ describe('GameResponseImpl', () => {
     expect(dispatch).toHaveBeenCalledWith(GameActions.zoneDumped({ gameId: 7, playerId: 3, data }));
   });
 
+  it('deckSelected dispatches the deckSelected action', () => {
+    const { impl, dispatch } = setup();
+    impl.deckSelected(7, '<cockatrice_deck/>');
+    expect(dispatch).toHaveBeenCalledWith(GameActions.deckSelected({ gameId: 7, deckList: '<cockatrice_deck/>' }));
+  });
+
   it('zonePropertiesChanged dispatches the zonePropertiesChanged action', () => {
     const { impl, dispatch } = setup();
     const data = create(Event_ChangeZonePropertiesSchema, { zoneName: 'deck' });
