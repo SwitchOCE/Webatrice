@@ -4,12 +4,13 @@ import {
   deckColorIdentity,
   deckShareQuery,
   formatShareExpiry,
+  isBlankDeck,
   isSameShareServer,
   parseDeckShareLink,
   parseDeckShareQuery,
   takePendingDeckShareLink,
 } from './deckSharing';
-import type { DeckCard } from './types';
+import type { DeckCard, HydratedDeck } from './types';
 
 const link = { token: 'abc123', hostname: 'server.cockatrice.us', port: '4748' };
 
@@ -79,6 +80,20 @@ describe('formatShareExpiry', () => {
     const seconds = Date.UTC(2026, 9, 3, 12, 0) / 1000;
     expect(formatShareExpiry(BigInt(seconds), 'en-US')).toBe(formatShareExpiry(seconds, 'en-US'));
     expect(formatShareExpiry(seconds, 'en-US')).toMatch(/10\/3\/26|10\/4\/26/);
+  });
+});
+
+describe('isBlankDeck', () => {
+  const blank = { name: '', meta: { v: 1, updatedAt: '' }, cards: [], format: '' } as unknown as HydratedDeck;
+
+  it('is blank only with no cards and no metadata, like desktop', () => {
+    expect(isBlankDeck(blank)).toBe(true);
+    expect(isBlankDeck({ ...blank, name: 'Burn' })).toBe(false);
+    expect(isBlankDeck({ ...blank, meta: { ...blank.meta, description: 'notes' } })).toBe(false);
+    expect(isBlankDeck({ ...blank, format: 'modern' })).toBe(false);
+    expect(isBlankDeck({ ...blank, bannerCard: 'Lightning Bolt' })).toBe(false);
+    expect(isBlankDeck({ ...blank, tagsXml: '<tags><tag>Aggro</tag></tags>' })).toBe(false);
+    expect(isBlankDeck({ ...blank, cards: [{ name: 'x', quantity: 1, category: 'main', lookupSource: 'dexie' }] })).toBe(false);
   });
 });
 
