@@ -1,5 +1,7 @@
 import type { CSSProperties } from 'react';
 
+import { MENTION_REGEX } from '@app/types';
+
 /**
  * Chat mention and alert-word matching, after desktop's ChatView (chat_view.cpp checkMention /
  * checkWord). Shared by the chat renderer, which highlights matches, and the chat alert watcher,
@@ -48,7 +50,6 @@ export interface TextSegment {
 }
 
 const TRAILING_PUNCTUATION = /[^\p{L}\p{N}]+$/u;
-const MENTION = /(?:^|\s)@(\w+)/g;
 
 /** The alert-word preference is a space-separated list; matching ignores case. */
 export function parseHighlightWords(raw: string): string[] {
@@ -63,6 +64,34 @@ function splitTrailing(word: string): [core: string, rest: string] {
 
 export function isOwnMention(name: string, selfName: string | null): boolean {
   return selfName != null && name.toLowerCase() === selfName.toLowerCase();
+}
+
+export interface Mention {
+  /** The username the mention names. */
+  name: string;
+  /** Punctuation after the name, which belongs to the sentence. */
+  rest: string;
+  /** Whether it names the reader. */
+  own: boolean;
+}
+
+/**
+ * Reads a `@token` (without the `@`), after desktop's checkMention (chat_view.cpp), which cuts
+ * characters off the end of the token until it names a user: here, until it names the reader.
+ * `@foo.bar` mentions `foo.bar`, never `foo`; `@foo.` mentions `foo`. Any other name loses its
+ * trailing punctuation.
+ */
+export function parseMention(token: string, selfName: string | null): Mention {
+  for (let name = token; name; name = name.slice(0, -1)) {
+    if (isOwnMention(name, selfName)) {
+      return { name, rest: token.slice(name.length), own: true };
+    }
+    if (!TRAILING_PUNCTUATION.test(name)) {
+      break;
+    }
+  }
+  const [name, rest] = splitTrailing(token);
+  return { name, rest, own: false };
 }
 
 /**
@@ -113,8 +142,8 @@ export function segmentText(
  */
 export function findChatAlert(text: string, ctx: ChatAlertContext): ChatAlertKind | null {
   if (ctx.mentions) {
-    for (const [, name] of text.matchAll(MENTION)) {
-      if (isOwnMention(name, ctx.selfName)) {
+    for (const [, , mention] of text.matchAll(MENTION_REGEX)) {
+      if (parseMention(mention.slice(1), ctx.selfName).own) {
         return 'mention';
       }
     }
