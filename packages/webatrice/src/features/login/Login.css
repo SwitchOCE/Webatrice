@@ -124,7 +124,8 @@
   text-align: center;
   font-size: 24px;
   overflow: hidden;
-  color: rgb(var(--text-primary));
+  /* White, not a text token: the panel is the accent gradient under both palettes. */
+  color: #fff;
   background-color: rgb(var(--accent-secondary));
   background-image: linear-gradient(
     135deg,
@@ -200,25 +201,24 @@
   margin: 40px 0 20px;
   font-size: 28px;
   font-weight: bold;
-  color: rgb(var(--text-primary));
+  color: #fff;
 }
 
 .login-content__description-subtitle2 {
   font-size: 14px;
-  color: rgb(var(--text-primary) / 0.85);
+  color: rgb(255 255 255 / 0.85);
 }
 
-/* Ambient decorative squares/bars on the description panel. Recolored
-   from raw white to text-primary at higher opacity so they show up on
-   the accent gradient without looking harsh. */
+/* Ambient decorative squares/bars on the description panel: white at low
+   opacity so they show up on the accent gradient without looking harsh. */
 .login-content__description-square {
   position: absolute;
-  border: 1px solid rgb(var(--text-primary));
+  border: 1px solid #fff;
   opacity: 0.15;
 }
 .login-content__description-bar {
   position: absolute;
-  background-color: rgb(var(--text-primary));
+  background-color: #fff;
   opacity: 0.15;
   border-radius: 8px;
 }
