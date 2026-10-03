@@ -20,7 +20,13 @@ const MyReportsContent = () => {
         <h1 className="font-modern text-xl font-semibold text-text-primary">{t('Reports.mine.title')}</h1>
         <div className="flex min-h-0 flex-1 gap-4">
           <div className="flex min-h-0 flex-[3] flex-col gap-2">
-            <ReportTable reports={reports} columns={MY_REPORT_COLUMNS} selectedId={selectedId} onSelect={select} />
+            <ReportTable
+              reports={reports}
+              columns={MY_REPORT_COLUMNS}
+              selectedId={selectedId}
+              onSelect={select}
+              label={t('Reports.mine.title')}
+            />
             <div className="flex items-center justify-between">
               <span className="text-sm text-text-muted" role="status" data-testid="report-list-status">
                 {listStatusText(t, loadState, reports.length)}

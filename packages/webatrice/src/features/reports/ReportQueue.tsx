@@ -75,7 +75,13 @@ const ReportQueueContent = () => {
         </p>
 
         <div className="flex min-h-[16rem] flex-col">
-          <ReportTable reports={q.reports} columns={QUEUE_COLUMNS} selectedId={q.selectedId} onSelect={q.select} />
+          <ReportTable
+            reports={q.reports}
+            columns={QUEUE_COLUMNS}
+            selectedId={q.selectedId}
+            onSelect={q.select}
+            label={t('Reports.queue.title')}
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
