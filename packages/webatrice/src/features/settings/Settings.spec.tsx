@@ -32,6 +32,7 @@ describe('Settings', () => {
 
     const tabs = within(screen.getByRole('tablist', { name: /Settings\.title/ })).getAllByRole('tab');
     expect(tabs.map((tab) => tab.textContent)).toEqual([
+      'Settings.section.general',
       'Settings.section.appearance',
       'Settings.section.userInterface',
       'Settings.section.chat',
@@ -39,7 +40,7 @@ describe('Settings', () => {
       'Settings.section.shortcuts',
     ]);
     expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tabpanel')).toHaveTextContent('SettingsAppearance.group.tableGrid');
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('SettingsGeneral.group.language');
   });
 
   it('switches section on click and with the arrow keys', async () => {
@@ -53,7 +54,7 @@ describe('Settings', () => {
     expect(screen.getByRole('tab', { name: /Settings\.section\.shortcuts/ })).toHaveFocus();
 
     fireEvent.keyDown(screen.getByRole('tab', { name: /Settings\.section\.shortcuts/ }), { key: 'Home' });
-    expect(screen.getByRole('tab', { name: /Settings\.section\.appearance/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /Settings\.section\.general/ })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('saves a preference as soon as its control changes', async () => {

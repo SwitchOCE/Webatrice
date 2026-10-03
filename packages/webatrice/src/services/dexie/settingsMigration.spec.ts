@@ -1,4 +1,5 @@
 import { PREFERENCE_DEFAULTS, SETTINGS_VERSION } from '@app/types';
+import { LANGUAGE_STORAGE_KEY } from '@app/utils';
 import { fillPreferenceDefaults, migrateSetting } from './settingsMigration';
 
 describe('migrateSetting', () => {
@@ -57,5 +58,26 @@ describe('fillPreferenceDefaults', () => {
     const row: Record<string, unknown> = {};
     fillPreferenceDefaults(row);
     expect(Object.keys(row).sort()).toEqual(Object.keys(PREFERENCE_DEFAULTS).sort());
+  });
+});
+
+describe('v2: language', () => {
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it('adopts the language i18next cached before the preference existed', () => {
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, 'pt-BR');
+    expect(migrateSetting({ user: '*app', version: 1 }).language).toBe('pt_BR');
+  });
+
+  it('follows the browser language when nothing usable was cached', () => {
+    expect(migrateSetting({ user: '*app', version: 1 }).language).toBe('');
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, 'ja');
+    expect(migrateSetting({ user: '*app', version: 1 }).language).toBe('');
+  });
+
+  it('leaves a current row alone', () => {
+    expect(migrateSetting({ user: '*app', version: 2, language: 'fr' }).language).toBe('fr');
   });
 });

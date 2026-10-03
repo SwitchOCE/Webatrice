@@ -15,6 +15,9 @@ export class Setting {
   // General — startup
   autoConnect: boolean;
 
+  // General — language. A `Language` code, or '' to follow the browser's language.
+  language: string;
+
   // Appearance — table grid layout
   invertVerticalCoordinate: boolean;
 
@@ -70,6 +73,8 @@ export const DEFAULT_CHAT_COLOR = 'A6120D';
 export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   autoConnect: false,
 
+  language: '',
+
   invertVerticalCoordinate: false,
 
   playToStack: true,
@@ -102,4 +107,4 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
 });
 
 /** Current settings-row schema version. See `services/dexie/settingsMigration.ts`. */
-export const SETTINGS_VERSION = 1;
+export const SETTINGS_VERSION = 2;
