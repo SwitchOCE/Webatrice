@@ -15,8 +15,8 @@ import { getCachedDeck, setCachedDeck } from '../deckEditorCache';
 import { clearDecksListCache, useDeckList, type UseDeckList } from './useDeckList';
 
 let latest: UseDeckList;
-function Probe({ onDeckCreated }: { onDeckCreated: (id: number) => void }) {
-  latest = useDeckList({ onDeckCreated });
+function Probe({ onDeckCreated, folderPath }: { onDeckCreated: (id: number) => void; folderPath?: string }) {
+  latest = useDeckList({ onDeckCreated, folderPath });
   return null;
 }
 
@@ -36,10 +36,23 @@ function deckTree() {
   });
 }
 
-function setup() {
+/** Root: deck 1, folder "Modern" (deck 3, folder "Old" with deck 4). */
+function folderTree() {
+  const file = (id: number, name: string, creationTime: number) =>
+    create(ServerInfo_DeckStorage_TreeItemSchema, { id, name, file: create(ServerInfo_DeckStorage_FileSchema, { creationTime }) });
+  const folder = (name: string, items: ReturnType<typeof file>[]) =>
+    create(ServerInfo_DeckStorage_TreeItemSchema, { name, folder: create(ServerInfo_DeckStorage_FolderSchema, { items }) });
+  return create(Response_DeckListSchema, {
+    root: create(ServerInfo_DeckStorage_FolderSchema, {
+      items: [file(1, 'Root deck', 10), folder('Modern', [file(3, 'Burn', 30), folder('Old', [file(4, 'Affinity', 40)])])],
+    }),
+  });
+}
+
+function setup(folderPath?: string) {
   const webClient = createMockWebClient();
   const onDeckCreated = vi.fn();
-  const { store } = renderWithProviders(<Probe onDeckCreated={onDeckCreated} />, {
+  const { store } = renderWithProviders(<Probe onDeckCreated={onDeckCreated} folderPath={folderPath} />, {
     preloadedState: connectedState,
     webClient,
   });
@@ -116,6 +129,94 @@ describe('useDeckList', () => {
     act(() => latest.deleteDeck({ id: 4, name: 'x', path: '', creationTime: 0 }));
     expect(webClient.request.session.deckDel).toHaveBeenCalledWith(4);
     expect(getCachedDeck(4)).toBeUndefined();
+  });
+
+  describe('folders', () => {
+    it('shows one folder level and downloads only its decks', () => {
+      const { webClient, store } = setup('Modern');
+      act(() => {
+        store.dispatch(server.Actions.backendDecks({ deckList: folderTree() }));
+      });
+      expect(latest.folder.path).toBe('Modern');
+      expect(latest.folder.folders.map((f) => [f.name, f.deckCount])).toEqual([['Old', 1]]);
+      expect(latest.decks.map((d) => d.name)).toEqual(['Burn']);
+      expect(vi.mocked(webClient.request.session.deckDownload).mock.calls).toEqual([[3]]);
+      expect(latest.folderPaths).toEqual(['', 'Modern', 'Modern/Old']);
+      expect(latest.decksUnder('Modern').map((d) => d.id)).toEqual([3, 4]);
+    });
+
+    it('creates and imports decks into the shown folder', () => {
+      const { webClient, store, onDeckCreated } = setup('Modern');
+      act(() => {
+        store.dispatch(server.Actions.backendDecks({ deckList: folderTree() }));
+      });
+      act(() => latest.createDeck('Zoo', 'modern'));
+      expect(vi.mocked(webClient.request.session.deckUpload).mock.calls[0].slice(0, 2)).toEqual(['Modern', 0]);
+
+      act(() => {
+        store.dispatch(server.Actions.deckUpload({
+          path: 'Modern',
+          treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 9, name: 'Zoo' }),
+        }));
+      });
+      expect(onDeckCreated).toHaveBeenCalledWith(9);
+    });
+
+    it('creates and deletes folders with deckNewDir / deckDelDir, forgetting the deleted decks', () => {
+      const { webClient, store } = setup('Modern');
+      act(() => {
+        store.dispatch(server.Actions.backendDecks({ deckList: folderTree() }));
+      });
+      act(() => latest.createFolder('Sideboard plans'));
+      expect(webClient.request.session.deckNewDir).toHaveBeenCalledWith('Modern', 'Sideboard plans');
+
+      setCachedDeck(4, { deck: { name: 'x', meta: { v: 1, updatedAt: 'x' }, cards: [], format: '' }, savedSignature: null });
+      act(() => latest.deleteFolder('Modern/Old'));
+      expect(webClient.request.session.deckDelDir).toHaveBeenCalledWith('Modern/Old');
+      expect(getCachedDeck(4)).toBeUndefined();
+
+      act(() => latest.deleteFolder(''));
+      expect(webClient.request.session.deckDelDir).toHaveBeenCalledTimes(1);
+    });
+
+    it('moves a deck by uploading a copy into the target, then deleting the original', () => {
+      const { webClient, store, onDeckCreated } = setup('Modern');
+      act(() => {
+        store.dispatch(server.Actions.backendDecks({ deckList: folderTree() }));
+        store.dispatch(server.Actions.deckDownloaded({ deckId: 3, deck: COD('modern') }));
+      });
+      vi.mocked(webClient.request.session.deckDownload).mockClear();
+
+      act(() => latest.moveDeck(latest.decks[0], 'Modern/Old'));
+      expect(webClient.request.session.deckDownload).toHaveBeenCalledWith(3);
+      expect(webClient.request.session.deckUpload).not.toHaveBeenCalled();
+
+      act(() => {
+        store.dispatch(server.Actions.deckDownloaded({ deckId: 3, deck: COD('modern') }));
+      });
+      expect(webClient.request.session.deckUpload).toHaveBeenCalledWith('Modern/Old', 0, COD('modern'));
+      expect(webClient.request.session.deckDel).not.toHaveBeenCalled();
+
+      act(() => {
+        store.dispatch(server.Actions.deckUpload({
+          path: 'Modern/Old',
+          treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 12, name: 'D' }),
+        }));
+      });
+      expect(webClient.request.session.deckDel).toHaveBeenCalledWith(3);
+      expect(latest.summaries.get(12)).toEqual(expect.objectContaining({ format: 'modern' }));
+      expect(onDeckCreated).not.toHaveBeenCalled();
+    });
+
+    it('does not move a deck into its own folder', () => {
+      const { webClient, store } = setup('Modern');
+      act(() => {
+        store.dispatch(server.Actions.backendDecks({ deckList: folderTree() }));
+      });
+      vi.mocked(webClient.request.session.deckDownload).mockClear();
+      act(() => latest.moveDeck(latest.decks[0], 'Modern'));
+      expect(webClient.request.session.deckDownload).not.toHaveBeenCalled();
+    });
   });
 
   it('refresh drops summaries and editor copies and re-requests everything', () => {

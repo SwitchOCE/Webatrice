@@ -7,8 +7,10 @@ import { parseCod } from '@app/services';
 import { RouteEnum } from '@app/types';
 import {
   Command_DeckDel_ext,
+  Command_DeckDelDir_ext,
   Command_DeckDownload_ext,
   Command_DeckList_ext,
+  Command_DeckNewDir_ext,
   Command_DeckUpload_ext,
   Command_DeckUploadSchema,
   Response_DeckUploadSchema,
@@ -61,15 +63,30 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function loadTree() {
+async function loadTree(items = [
+  deckFile(1, 'Older Deck', NOW_SECONDS - 7200),
+  deckFile(2, 'Newer Deck', NOW_SECONDS - 60),
+]) {
   renderDecks();
   // The page (and the TopBar's tab titles) request the tree on mount.
   await waitFor(() => expect(findAllSessionCommands(Command_DeckList_ext).length).toBeGreaterThan(0));
   act(() => {
-    respondToDeckList([
-      deckFile(1, 'Older Deck', NOW_SECONDS - 7200),
-      deckFolder('Tournament', [deckFile(2, 'Newer Deck', NOW_SECONDS - 60)]),
-    ]);
+    respondToDeckList(items);
+  });
+}
+
+/** Root: "Older Deck" and folder "Tournament" ("Newer Deck", folder "Old" with "Oldest Deck"). */
+const NESTED_TREE = [
+  deckFile(1, 'Older Deck', NOW_SECONDS - 7200),
+  deckFolder('Tournament', [
+    deckFile(2, 'Newer Deck', NOW_SECONDS - 60),
+    deckFolder('Old', [deckFile(3, 'Oldest Deck', NOW_SECONDS - 86400 * 3)]),
+  ]),
+];
+
+function acknowledge(cmdId: number) {
+  act(() => {
+    deliverMessage(buildResponseMessage(buildResponse({ cmdId })));
   });
 }
 
@@ -80,15 +97,125 @@ describe('Decks (integration)', () => {
     expect(screen.getByText('Loading decks…')).toBeInTheDocument();
   });
 
-  it('requests the deck tree and lists every file in it, newest first, with its folder path', async () => {
+  it('requests the deck tree and lists the decks at the root, newest first', async () => {
     await loadTree();
 
     expect(await screen.findByText('2 decks on this server')).toBeInTheDocument();
     const names = screen.getAllByText(/^(Older|Newer) Deck$/).map((el) => el.textContent);
     expect(names).toEqual(['Newer Deck', 'Older Deck']);
-    expect(screen.getByText('Tournament')).toBeInTheDocument();
     expect(screen.getByText('Created 1m ago')).toBeInTheDocument();
     expect(screen.getByText('Created 2h ago')).toBeInTheDocument();
+  });
+
+  describe('folders (desktop TabDeckStorage remote tree)', () => {
+    it('keeps the hierarchy: folder rows open a folder, the breadcrumb goes back up', async () => {
+      await loadTree(NESTED_TREE);
+
+      expect(await screen.findByText('3 decks on this server')).toBeInTheDocument();
+      expect(screen.getByText('Older Deck')).toBeInTheDocument();
+      expect(screen.queryByText('Newer Deck')).toBeNull();
+      expect(sentDeckDownloadIds()).toEqual([1]);
+
+      fireEvent.click(screen.getByText('Tournament'));
+      expect(await screen.findByText('Newer Deck')).toBeInTheDocument();
+      expect(screen.queryByText('Older Deck')).toBeNull();
+      expect(screen.getByText('Old')).toBeInTheDocument();
+      await waitFor(() => expect(sentDeckDownloadIds().sort()).toEqual([1, 2]));
+
+      fireEvent.click(screen.getByRole('button', { name: /DeckFolders.root/ }));
+      expect(await screen.findByText('Older Deck')).toBeInTheDocument();
+    });
+
+    it('creates a folder inside the shown folder with Command_DeckNewDir', async () => {
+      await loadTree(NESTED_TREE);
+      fireEvent.click(await screen.findByText('Tournament'));
+
+      fireEvent.click(screen.getByRole('button', { name: /DeckFolders.newFolder/ }));
+      fireEvent.change(screen.getByRole('textbox', { name: 'CreateFolder.label' }), { target: { value: 'Side/Plans' } });
+      fireEvent.click(screen.getByRole('button', { name: /CreateFolder.create/ }));
+
+      await waitFor(() => expect(findAllSessionCommands(Command_DeckNewDir_ext)).toHaveLength(1));
+      const { cmdId, value } = findLastSessionCommand(Command_DeckNewDir_ext);
+      expect([value.path, value.dirName]).toEqual(['Tournament', 'Side-Plans']);
+      acknowledge(cmdId);
+      expect(await screen.findByText('Side-Plans')).toBeInTheDocument();
+    });
+
+    it('deletes a folder after naming what goes with it, through Command_DeckDelDir', async () => {
+      await loadTree(NESTED_TREE);
+
+      fireEvent.click(await screen.findByRole('button', { name: 'DeckFolders.deleteFolderNamed' }));
+      const dialog = screen.getByRole('alertdialog', { name: 'DeleteFolder.title' });
+      expect(within(dialog).getByText('DeleteFolder.scope')).toBeInTheDocument();
+      fireEvent.click(within(dialog).getByRole('button', { name: 'DeleteFolder.delete' }));
+
+      const { cmdId, value } = findLastSessionCommand(Command_DeckDelDir_ext);
+      expect(value.path).toBe('Tournament');
+      acknowledge(cmdId);
+      await waitFor(() => expect(screen.queryByText('Tournament')).toBeNull());
+      expect(screen.getByText('1 deck on this server')).toBeInTheDocument();
+    });
+
+    it('creates a deck inside the shown folder', async () => {
+      await loadTree(NESTED_TREE);
+      fireEvent.click(await screen.findByText('Tournament'));
+
+      fireEvent.click(screen.getAllByRole('button', { name: /New deck/ })[0]);
+      fireEvent.change(screen.getByPlaceholderText('Untitled Deck'), { target: { value: 'Side Brew' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+
+      const { cmdId, value } = findLastSessionCommand(Command_DeckUpload_ext);
+      expect(value.path).toBe('Tournament');
+      act(() => {
+        deliverMessage(buildResponseMessage(buildResponse({
+          cmdId,
+          ext: Response_DeckUpload_ext,
+          value: create(Response_DeckUploadSchema, {
+            newFile: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 9, name: 'Side Brew' }),
+          }),
+        })));
+      });
+      expect(await screen.findByTestId('location')).toHaveTextContent('/deck/9');
+    });
+
+    it('moves a deck: uploads the copy into the target folder, then deletes the original', async () => {
+      await loadTree(NESTED_TREE);
+      const xml = codXml({ name: 'Older Deck', format: 'modern' });
+      await waitFor(() => expect(sentDeckDownloadIds()).toEqual([1]));
+      act(() => {
+        respondToDeckDownload(1, xml);
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'DeckFolders.moveDeckNamed' }));
+      fireEvent.change(screen.getByRole('combobox', { name: 'MoveDeck.target' }), { target: { value: 'Tournament/Old' } });
+      fireEvent.click(screen.getByRole('button', { name: /MoveDeck.move/ }));
+
+      await waitFor(() => expect(sentDeckDownloadIds()).toEqual([1, 1]));
+      expect(findAllSessionCommands(Command_DeckUpload_ext)).toHaveLength(0);
+      act(() => {
+        respondToDeckDownload(1, xml);
+      });
+
+      const upload = findLastSessionCommand(Command_DeckUpload_ext);
+      expect([upload.value.path, upload.value.deckId, upload.value.deckList]).toEqual(['Tournament/Old', 0, xml]);
+      expect(findAllSessionCommands(Command_DeckDel_ext)).toHaveLength(0);
+      act(() => {
+        deliverMessage(buildResponseMessage(buildResponse({
+          cmdId: upload.cmdId,
+          ext: Response_DeckUpload_ext,
+          value: create(Response_DeckUploadSchema, {
+            newFile: deckFile(12, 'Older Deck'),
+          }),
+        })));
+      });
+
+      const del = findLastSessionCommand(Command_DeckDel_ext);
+      expect(del.value.deckId).toBe(1);
+      acknowledge(del.cmdId);
+      await waitFor(() => expect(screen.queryByText('Older Deck')).toBeNull());
+      expect(screen.queryByTestId('location')).toBeNull();
+      expect(screen.getByText('3 decks on this server')).toBeInTheDocument();
+    });
   });
 
   it('downloads every deck once and groups rows by the format each file declares', async () => {

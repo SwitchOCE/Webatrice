@@ -19,7 +19,8 @@ describe('DeckRow', () => {
     expect(screen.getByText('Superfriends')).toBeInTheDocument();
     expect(screen.getByText('Commander')).toBeInTheDocument();
     expect(screen.getByText('Created unknown')).toBeInTheDocument();
-    expect(screen.getByText('Cube/Old')).toBeInTheDocument();
+    // The folder is the list's breadcrumb, not repeated per row.
+    expect(screen.queryByText('Cube/Old')).toBeNull();
     expect(screen.getByText('B4')).toHaveAttribute('title', 'Commander Bracket 4');
     expect(screen.getByText('$12.50+')).toHaveAttribute('title', expect.stringContaining('1 card had no price'));
   });
@@ -50,5 +51,34 @@ describe('DeckRow', () => {
 
     fireEvent.click(screen.getByText('Superfriends'));
     expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['card', 'compact'] as const)('%s layout moves and downloads without opening', (mode) => {
+    const onOpen = vi.fn();
+    const onMove = vi.fn();
+    const onDownload = vi.fn();
+    render(
+      <DeckRow
+        deck={deck}
+        summary={undefined}
+        mode={mode}
+        onOpen={onOpen}
+        onDelete={() => {}}
+        onMove={onMove}
+        onDownload={onDownload}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'DeckFolders.moveDeckNamed' }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeckFolders.downloadDeckNamed' }));
+    expect(onMove).toHaveBeenCalledTimes(1);
+    expect(onDownload).toHaveBeenCalledTimes(1);
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it('hides move and download when not offered', () => {
+    render(<DeckRow deck={deck} summary={undefined} mode="card" onOpen={() => {}} onDelete={() => {}} />);
+    expect(screen.queryByRole('button', { name: 'DeckFolders.moveDeckNamed' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'DeckFolders.downloadDeckNamed' })).toBeNull();
   });
 });

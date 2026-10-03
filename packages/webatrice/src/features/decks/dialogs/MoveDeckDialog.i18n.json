@@ -1,0 +1,9 @@
+{
+  "MoveDeck": {
+    "title": "Move {name}",
+    "target": "To folder",
+    "howItWorks": "The deck is copied into the folder, then the original is deleted.",
+    "move": "Move",
+    "cancel": "Cancel"
+  }
+}

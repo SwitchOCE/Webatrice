@@ -699,6 +699,14 @@
     "listError": "Failed to load your decks from the server.",
     "retry": "Retry"
   },
+  "DeckLink": {
+    "label": "Load deck from online service",
+    "placeholder": "Paste a link to a deck on Archidekt, Deckstats, Moxfield or TappedOut",
+    "unsupported": "Not a supported deck link. (Archidekt, Deckstats, Moxfield, and TappedOut are supported.)",
+    "copyText": "Browsers can't read decks from {provider} directly. Open its text export, copy the list and paste it below.",
+    "copyFromPage": "Browsers can't read decks from {provider} directly. Open the deck, use its Export option to copy the list, and paste it below.",
+    "open": "Open on {provider}"
+  },
   "DeckBracket": {
     "partialTitle": "At least bracket {level} · {label}",
     "provenance": "Card data from Scryfall; combos from Commander Spellbook, which receives the deck’s card names and quantities.",
@@ -717,14 +725,6 @@
       "http": "HTTP {status}",
       "malformed": "unexpected response"
     }
-  },
-  "DeckLink": {
-    "label": "Load deck from online service",
-    "placeholder": "Paste a link to a deck on Archidekt, Deckstats, Moxfield or TappedOut",
-    "unsupported": "Not a supported deck link. (Archidekt, Deckstats, Moxfield, and TappedOut are supported.)",
-    "copyText": "Browsers can't read decks from {provider} directly. Open its text export, copy the list and paste it below.",
-    "copyFromPage": "Browsers can't read decks from {provider} directly. Open the deck, use its Export option to copy the list, and paste it below.",
-    "open": "Open on {provider}"
   },
   "DeckBanner": {
     "label": "Banner Card"
@@ -786,6 +786,61 @@
     "saveFailed": "The deck could not be saved.",
     "retrySave": "Retry",
     "saveFailedHint": "Your last change was not saved. It will be sent again with your next change, or now with Retry."
+  },
+  "DeckTags": {
+    "label": "Tags",
+    "add": "Add Tag",
+    "placeholder": "Add a new tag (e.g., Aggro)",
+    "remove": "Remove tag {tag}",
+    "empty": "Tag name cannot be empty!",
+    "duplicate": "This tag already exists."
+  },
+  "SampleHand": {
+    "title": "Sample hand",
+    "redraw": "Draw a new sample hand",
+    "size": "Sample hand size",
+    "empty": "Add cards to the main deck to draw a sample hand."
+  },
+  "DeckFolders": {
+    "location": "Folder",
+    "root": "Server deck storage",
+    "newFolder": "New folder",
+    "deckCount": "{count, plural, one {# deck} other {# decks}}",
+    "downloadFolder": "Download all decks as .cod files",
+    "downloadFolderNamed": "Download the decks in {name}",
+    "deleteFolder": "Delete folder",
+    "deleteFolderNamed": "Delete {name}",
+    "moveDeck": "Move to folder",
+    "moveDeckNamed": "Move {name} to another folder",
+    "downloadDeck": "Download .cod file",
+    "downloadDeckNamed": "Download {name}",
+    "empty": "This folder is empty."
+  },
+  "CreateFolder": {
+    "title": "New folder",
+    "label": "Name of new folder:",
+    "create": "Create",
+    "cancel": "Cancel",
+    "problem": {
+      "empty": "Enter a folder name.",
+      "tooLong": "This name makes the folder path too long for the server.",
+      "exists": "A folder with this name already exists here."
+    }
+  },
+  "DeleteFolder": {
+    "title": "Delete folder?",
+    "body": "The folder {name} will be permanently removed from the server.",
+    "scope": "This also deletes {decks, plural, one {# deck} other {# decks}} and {folders, plural, one {# subfolder} other {# subfolders}} inside it.",
+    "irreversible": "This can't be undone.",
+    "delete": "Delete",
+    "cancel": "Cancel"
+  },
+  "MoveDeck": {
+    "title": "Move {name}",
+    "target": "To folder",
+    "howItWorks": "The deck is copied into the folder, then the original is deleted.",
+    "move": "Move",
+    "cancel": "Cancel"
   },
   "Developer": {
     "table": {
@@ -872,20 +927,6 @@
       "passwordChangeRequired": "An administrator has reset your password. Contact your server administrator for your temporary password, log in with it, then change it under Account.",
       "serverFull": "The server has reached its maximum number of users. Please check back later."
     }
-  },
-  "DeckTags": {
-    "label": "Tags",
-    "add": "Add Tag",
-    "placeholder": "Add a new tag (e.g., Aggro)",
-    "remove": "Remove tag {tag}",
-    "empty": "Tag name cannot be empty!",
-    "duplicate": "This tag already exists."
-  },
-  "SampleHand": {
-    "title": "Sample hand",
-    "redraw": "Draw a new sample hand",
-    "size": "Sample hand size",
-    "empty": "Add cards to the main deck to draw a sample hand."
   },
   "AccountActivationDialog": {
     "title": "Account Activation",

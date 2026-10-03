@@ -1,4 +1,5 @@
-import { FileText, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Download, FileText, FolderInput, Trash2 } from 'lucide-react';
 
 import { deckArtUrl, formatDisplayLabel, type DeckSummary } from '../../deckSummary';
 import { formatDeckAge, type FlatDeck } from '../../deckTree';
@@ -13,13 +14,17 @@ export interface DeckRowProps {
   mode: DeckListViewMode;
   onOpen: () => void;
   onDelete: () => void;
+  /** Move to another folder; absent when there is nowhere else to go. */
+  onMove?: () => void;
+  /** Save the deck as a `.cod` file. */
+  onDownload?: () => void;
 }
 
 export function DeckRow(props: DeckRowProps) {
   return props.mode === 'compact' ? <DeckRowCompact {...props} /> : <DeckRowCard {...props} />;
 }
 
-/** Format · created · folder · price line shared by both row layouts. */
+/** Format · created · price line shared by both row layouts (the folder is the list's breadcrumb). */
 function DeckRowMeta({ deck, summary, className }: {
   deck: FlatDeck;
   summary: DeckSummary | undefined;
@@ -35,12 +40,6 @@ function DeckRowMeta({ deck, summary, className }: {
         </>
       )}
       <span>Created {formatDeckAge(deck.creationTime)}</span>
-      {deck.path && (
-        <>
-          <span>·</span>
-          <span>in <span className="text-text-secondary">{deck.path}</span></span>
-        </>
-      )}
       <span>·</span>
       <DeckPriceBadge price={summary && { usd: summary.usd, missing: summary.missing }} />
       {summary?.tags?.map((tag) => (
@@ -58,7 +57,46 @@ function DeckRowMeta({ deck, summary, className }: {
  * opens the deck; delete floats top-right so it stays reachable over the
  * art.
  */
-function DeckRowCard({ deck, summary, onOpen, onDelete }: DeckRowProps) {
+/** Move / download buttons, shown on hover like delete. */
+function DeckRowStorageActions({ deck, onMove, onDownload, className }: Pick<DeckRowProps, 'deck' | 'onMove' | 'onDownload'> & {
+  className: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <>
+      {onDownload && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDownload();
+          }}
+          className={`${className} hover:text-text-primary hover:bg-bg-elevated`}
+          title={t('DeckFolders.downloadDeck')}
+          aria-label={t('DeckFolders.downloadDeckNamed', { name: deck.name })}
+        >
+          <Download size={14} />
+        </button>
+      )}
+      {onMove && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onMove();
+          }}
+          className={`${className} hover:text-text-primary hover:bg-bg-elevated`}
+          title={t('DeckFolders.moveDeck')}
+          aria-label={t('DeckFolders.moveDeckNamed', { name: deck.name })}
+        >
+          <FolderInput size={14} />
+        </button>
+      )}
+    </>
+  );
+}
+
+function DeckRowCard({ deck, summary, onOpen, onDelete, onMove, onDownload }: DeckRowProps) {
   const artUrl = deckArtUrl(summary);
   const bracket = summary?.bracketLevel;
 
@@ -125,7 +163,16 @@ function DeckRowCard({ deck, summary, onOpen, onDelete }: DeckRowProps) {
         </div>
       </button>
 
-      <div className="absolute top-3 right-3 z-10">
+      <div className="absolute top-3 right-3 z-10 flex items-center gap-1">
+        <DeckRowStorageActions
+          deck={deck}
+          onMove={onMove}
+          onDownload={onDownload}
+          className={[
+            'p-2 rounded-md bg-bg-surface/80 backdrop-blur-sm border border-border-subtle text-text-muted',
+            'opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all',
+          ].join(' ')}
+        />
         <button
           type="button"
           onClick={(e) => {
@@ -151,7 +198,7 @@ function DeckRowCard({ deck, summary, onOpen, onDelete }: DeckRowProps) {
  * "Compact" layout: one line with a small art thumbnail on the left,
  * name + bracket + meta, delete on the right.
  */
-function DeckRowCompact({ deck, summary, onOpen, onDelete }: DeckRowProps) {
+function DeckRowCompact({ deck, summary, onOpen, onDelete, onMove, onDownload }: DeckRowProps) {
   const artUrl = deckArtUrl(summary);
   const bracket = summary?.bracketLevel;
 
@@ -203,6 +250,12 @@ function DeckRowCompact({ deck, summary, onOpen, onDelete }: DeckRowProps) {
         </div>
       </button>
 
+      <DeckRowStorageActions
+        deck={deck}
+        onMove={onMove}
+        onDownload={onDownload}
+        className="p-2 rounded-md text-text-muted opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all shrink-0"
+      />
       <button
         type="button"
         onClick={onDelete}
