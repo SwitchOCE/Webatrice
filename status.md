@@ -4,3 +4,4 @@
 - 22:27Z hand layout (vertical hand + left justification) pushed → click-to-play group
 - 22:36Z click-to-play (double/single click, plays all selected) pushed → arrows in subphases
 - ACK M1: will tokenise seat glows/marquee/over-art text/P-T modified/mana tints (new semantic tokens in both palettes + palettes.spec contrast) inside the card-presentation group
+- 22:45Z arrows in subphases (delete_in_phase) pushed → zone view search + autofocus
