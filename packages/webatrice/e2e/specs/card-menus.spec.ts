@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { expect, test } from '../fixtures/test';
 
 import { GamePage } from '../pages';
-import { registerAndJoinFirstRoom } from '../fixtures/flows';
+import { joinFirstRoom, registerAndJoinFirstRoom, registerAndReachRooms } from '../fixtures/flows';
 import { randomSuffix } from '../fixtures/users';
 
 // Card-menu actions against real Servatrice:
@@ -81,14 +81,19 @@ test('"View related cards" shows the related card in the card-info pane', async 
 test('Alt+1 sends the first message macro to the game chat', async ({ newContext }) => {
   test.setTimeout(180_000);
   const ctx = await newContext();
-  // Until the settings framework's editor lands, the macros are read from
-  // localStorage (features/game/hooks/useMessageMacros).
-  await ctx.addInitScript(() => {
-    window.localStorage.setItem('webatrice.messageMacros', JSON.stringify(['e2e macro says hi']));
-  });
   const page = await ctx.newPage();
-  const session = await registerAndJoinFirstRoom(page);
+  const session = await registerAndReachRooms(page);
 
+  // The macro is set up where a player would: Settings > Chat.
+  await page.getByRole('button', { name: session.user.username }).click();
+  await page.getByRole('button', { name: /^settings$/i }).click();
+  await page.getByRole('tab', { name: /^chat$/i }).click();
+  await page.getByRole('textbox', { name: /^new message$/i }).fill('e2e macro says hi');
+  await page.getByRole('button', { name: /^add new message$/i }).click();
+  await expect(page.getByText('e2e macro says hi')).toBeVisible();
+
+  await session.rooms.waitForRoomList();
+  await joinFirstRoom(page, session.rooms);
   await session.rooms.createGame(`say-${randomSuffix()}`, { maxPlayers: 1 });
   const game = new GamePage(page);
   await game.loadDeck(FOREST_DECK);
