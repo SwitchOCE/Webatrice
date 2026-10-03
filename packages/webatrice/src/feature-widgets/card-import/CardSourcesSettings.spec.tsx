@@ -37,6 +37,22 @@ describe('CardSourcesSettings', () => {
     expect(screen.getByRole('button', { name: 'CardSourcesSettings.button.remove' })).toBeDisabled();
   });
 
+  it('selects templates from the keyboard, starting at the selected one', () => {
+    const hook = makeHook({ selectedIndex: 1 });
+    hoisted.usePictureUrlTemplates.mockReturnValue(hook);
+    renderWithProviders(<CardSourcesSettings />);
+
+    const [first, second] = screen.getAllByRole('option');
+    expect(second).toHaveAttribute('tabindex', '0');
+    expect(first).toHaveAttribute('tabindex', '-1');
+    fireEvent.keyDown(second, { key: 'ArrowUp' });
+    expect(first).toHaveFocus();
+    expect(hook.select).toHaveBeenCalledWith(0);
+    fireEvent.keyDown(first, { key: ' ' });
+    expect(hook.select).toHaveBeenLastCalledWith(0);
+    expect(urlField()).toHaveValue('https://a/!name!.jpg');
+  });
+
   it('adds a valid URL template', async () => {
     const hook = makeHook();
     hoisted.usePictureUrlTemplates.mockReturnValue(hook);
