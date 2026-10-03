@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
-import { BigCardPreview } from '../PlayerBox/bigCardPreview';
+import { BigCardPreview } from './BigCardPreview/BigCardPreview';
 import {
   CardPreviewProvider,
   createCardPreviewStore,
