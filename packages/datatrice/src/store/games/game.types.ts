@@ -12,6 +12,7 @@ export const Types = {
   PLAYER_JOINED: a.playerJoined.type,
   PLAYER_LEFT: a.playerLeft.type,
   PLAYER_PROPERTIES_CHANGED: a.playerPropertiesChanged.type,
+  DECK_SELECTED: a.deckSelected.type,
   KICKED: a.kicked.type,
   CARD_MOVED: a.cardMoved.type,
   CARD_FLIPPED: a.cardFlipped.type,

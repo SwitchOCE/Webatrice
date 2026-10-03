@@ -110,6 +110,28 @@ describe('2A: Initialisation & lifecycle', () => {
     expect(result.games[1]).toBeUndefined();
   });
 
+  it('DECK_SELECTED → stores the server deck list on the local player only', () => {
+    const state = makeState({
+      games: {
+        1: makeGameEntry({
+          localPlayerId: 1,
+          players: {
+            1: makePlayerEntry({ properties: makePlayerProperties({ playerId: 1 }) }),
+            2: makePlayerEntry({ properties: makePlayerProperties({ playerId: 2 }) }),
+          },
+        }),
+      },
+    });
+    const result = gamesReducer(state, Actions.deckSelected({ gameId: 1, deckList: '<cockatrice_deck/>' }));
+    expect(result.games[1].players[1].deckList).toBe('<cockatrice_deck/>');
+    expect(result.games[1].players[2].deckList).toBe('');
+  });
+
+  it('DECK_SELECTED → no-op for an unknown game', () => {
+    const state = makeState();
+    expect(gamesReducer(state, Actions.deckSelected({ gameId: 99, deckList: 'x' }))).toBe(state);
+  });
+
   it('GAME_HOST_CHANGED → updates hostId on existing game', () => {
     const state = makeState();
     const result = gamesReducer(state, Actions.gameHostChanged({ gameId: 1, hostId: 99 }));
