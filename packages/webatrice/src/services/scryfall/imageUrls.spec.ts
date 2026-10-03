@@ -5,6 +5,7 @@ import {
   getScryfallUrlByIdOrExactName,
   getScryfallUrlByName,
   getScryfallUrl,
+  getScryfallSymbolUrl,
 } from './imageUrls';
 
 describe('Scryfall image URLs', () => {
@@ -93,6 +94,15 @@ describe('Scryfall image URLs', () => {
     it('returns null when the card has no identifier at all', () => {
       expect(getScryfallUrl({})).toBeNull();
       expect(getScryfallUrl({ providerId: '', name: '' })).toBeNull();
+    });
+  });
+
+  describe('getScryfallSymbolUrl', () => {
+    it('maps bare symbols and braced tokens to the Scryfall CDN, dropping hybrid slashes', () => {
+      expect(getScryfallSymbolUrl('W')).toBe('https://svgs.scryfall.io/card-symbols/W.svg');
+      expect(getScryfallSymbolUrl('{2}')).toBe('https://svgs.scryfall.io/card-symbols/2.svg');
+      expect(getScryfallSymbolUrl('{W/U}')).toBe('https://svgs.scryfall.io/card-symbols/WU.svg');
+      expect(getScryfallSymbolUrl('{2/W}')).toBe('https://svgs.scryfall.io/card-symbols/2W.svg');
     });
   });
 
