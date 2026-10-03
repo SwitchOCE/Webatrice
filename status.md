@@ -2,3 +2,4 @@
 - 20:28Z pushed key fixes + i18n:check gate (f431b11) → extract platform literals (rooms, TopBar, components)
 - 20:36Z pushed rooms + TopBar extraction → components/server/player/login/widgets, then eslint rule
 - 20:48Z all extraction + eslint rule pushed (b8cabd1) → full gate
+- 21:11Z gate done (unit/integration/lint/typecheck green; e2e 51/57, 6 pre-existing/env) → PR notes committed, done
