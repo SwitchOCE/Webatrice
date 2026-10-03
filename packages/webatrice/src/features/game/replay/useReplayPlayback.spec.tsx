@@ -45,14 +45,21 @@ beforeEach(() => {
 });
 
 describe('useReplayPlayback', () => {
-  it('loads a replay game for the opened replay and unloads it on unmount', () => {
-    const { store, unmount, result } = setup(opened());
+  it('loads the replay game through the web client and unloads it on unmount', () => {
+    const replay = opened();
+    const { webClient, unmount, result } = setup(replay);
 
-    expect(store.getState().games.games[GAME_ID]).toMatchObject({ replay: true, localPlayerId: -1 });
+    expect(webClient.loadReplayGame).toHaveBeenCalledWith(GAME_ID, replay.replay.gameInfo);
     expect(result.current.state).toMatchObject({ currentTime: 0, maxTime: 3000, totalEvents: 3 });
 
     unmount();
-    expect(store.getState().games.games[GAME_ID]).toBeUndefined();
+    expect(webClient.unloadReplayGame).toHaveBeenCalledWith(GAME_ID);
+  });
+
+  it('never dispatches into the games slice itself', () => {
+    const { store } = setup(opened());
+    // Only Datatrice's GameResponseImpl creates the game, behind the web client.
+    expect(store.getState().games.games).toEqual({});
   });
 
   it('feeds recorded containers to the replay game through the web client while playing', () => {
@@ -73,16 +80,13 @@ describe('useReplayPlayback', () => {
   });
 
   it('seeking backwards reloads the game before replaying up to the target', () => {
-    const { result, webClient, store } = setup(opened());
+    const { result, webClient } = setup(opened());
     act(() => result.current.seek(3000));
-    act(() => {
-      store.dispatch(games.Actions.gameSay({ gameId: GAME_ID, playerId: 0, message: 'stale', timeReceived: 0 }));
-    });
+    expect(webClient.loadReplayGame).toHaveBeenCalledTimes(1);
 
     act(() => result.current.seek(500));
 
-    // The reload wiped the extra chat line; only the replay-started notice remains.
-    expect(store.getState().games.games[GAME_ID].messages).toHaveLength(1);
+    expect(webClient.loadReplayGame).toHaveBeenCalledTimes(2);
     expect(vi.mocked(webClient.replayGameEventContainer).mock.calls.at(-1)?.[0].secondsElapsed).toBe(0);
   });
 
@@ -96,10 +100,10 @@ describe('useReplayPlayback', () => {
   });
 
   it('is idle without an opened replay', () => {
-    const { result, store } = setup(undefined);
+    const { result, webClient } = setup(undefined);
 
     expect(result.current.state).toMatchObject({ maxTime: 0, playing: false });
     expect(result.current.timeline).toEqual([]);
-    expect(Object.keys(store.getState().games.games)).toEqual([]);
+    expect(webClient.loadReplayGame).not.toHaveBeenCalled();
   });
 });

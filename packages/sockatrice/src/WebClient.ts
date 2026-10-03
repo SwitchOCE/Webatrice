@@ -5,6 +5,7 @@ import {
   ServerMessageSchema,
   ServerMessage_MessageType,
   type GameEventContainer,
+  type ServerInfo_Game,
 } from './generated';
 
 import {
@@ -267,6 +268,20 @@ export class WebClient {
    */
   public replayGameEventContainer(container: GameEventContainer, gameId: number): void {
     this.protobuf.replayGameEventContainer(container, gameId);
+  }
+
+  /**
+   * Starts (or, for a rewind, resets) the local game `gameId` a replay is played
+   * into, from the replay's `game_info`. Like replayed events, it reaches the
+   * store through the game response handlers rather than from the UI.
+   */
+  public loadReplayGame(gameId: number, gameInfo: ServerInfo_Game): void {
+    this.response.game.replayGameLoaded?.(gameId, gameInfo);
+  }
+
+  /** Removes the local game a closed replay was played into. */
+  public unloadReplayGame(gameId: number): void {
+    this.response.game.replayGameUnloaded?.(gameId);
   }
 
   public get isReconnecting(): boolean {
