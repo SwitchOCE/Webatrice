@@ -913,7 +913,7 @@ function ListErrorState({ message, onRetry }: { message: string; onRetry: () => 
     <div className="h-full min-h-[240px] flex items-center justify-center">
       <div role="alert" className="flex flex-col items-center gap-3 text-sm text-text-muted text-center max-w-sm">
         <span className="inline-flex items-center gap-2">
-          <CircleAlert size={16} className="text-red-400" />
+          <CircleAlert size={16} className="text-danger" />
           {message}
         </span>
         <button
