@@ -2,9 +2,10 @@ import { useId, type ReactNode } from 'react';
 import { Archive, ArrowLeft, Crown, Layers, Loader2, Minus, PackageOpen, Plus, Trash2, X } from 'lucide-react';
 
 import { CardRelatedLinks, relatedCardKey } from '@app/components';
+import { selectCardFace } from '@app/services';
 import type { DeckCategory } from '@app/types';
 
-import { canAddBrowsedCard, describeCardDetail, resolveDetailRow, selectCardFace } from '../cardDetail';
+import { canAddBrowsedCard, describeCardDetail, resolveDetailRow } from '../cardDetail';
 import { ManaSymbols, SymbolText } from '../components/ManaSymbols';
 import { useCardDetail } from '../hooks/useCardDetail';
 import { useEscapeKey } from '../hooks/useEscapeKey';

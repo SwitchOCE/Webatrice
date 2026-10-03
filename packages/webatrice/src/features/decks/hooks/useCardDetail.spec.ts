@@ -1,11 +1,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 
-import { fetchScryfallDetail, type ScryfallDetail } from '../cardDetail';
+import { fetchScryfallDetail, type ScryfallDetail } from '@app/services';
+
 import type { DeckCard } from '../types';
 import { useCardDetail } from './useCardDetail';
 
-vi.mock('../cardDetail', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../cardDetail')>()),
+vi.mock('@app/services', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@app/services')>()),
   fetchScryfallDetail: vi.fn(),
 }));
 
