@@ -1,9 +1,14 @@
 import { ZoneName } from '@cockatrice/sockatrice';
-import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
+import { ShortcutScope, useShortcut, useShortcutGroup } from '@app/feature-widgets/shortcuts';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { games } from '@cockatrice/datatrice';
 import { useAppDispatch } from '@app/store';
 import { CardAttribute } from '@cockatrice/sockatrice/generated';
+import {
+  SEAT_SHORTCUT_ACTIONS,
+  type SeatShortcutActionId,
+  type SeatShortcutRegistry,
+} from '../components/ui/SeatShortcutsContext';
 import { useCurrentGame } from './useCurrentGame';
 import { useGameAffordances } from './useGameAffordances';
 
@@ -11,6 +16,8 @@ const PHASE_COUNT = 11;
 
 interface UseGameShortcutsArgs {
   gameId: number | undefined;
+  /** Operations for the seat-scoped shortcuts, published by the local seat. */
+  seatShortcuts: SeatShortcutRegistry;
   onRequestConcede: () => void;
   onRequestDrawMultiple: () => void;
   onRequestUndoDraw: () => void;
@@ -28,6 +35,7 @@ interface UseGameShortcutsArgs {
 
 export function useGameShortcuts({
   gameId,
+  seatShortcuts,
   onRequestConcede,
   onRequestDrawMultiple,
   onRequestUndoDraw,
@@ -359,5 +367,18 @@ export function useGameShortcuts({
       webClient.request.game.rollDie(gameId, { sides: 2, count: 1 });
     },
     { scope: ShortcutScope.GAME, enabled: inGame && isParticipant },
+  );
+
+  // Seat-scoped shortcuts act on the local seat's selection, prompts and zones,
+  // so they run whatever the local seat published. The key is consumed only
+  // when a seat handled it: a spectator has no seat, and Ctrl+R stays a reload.
+  useShortcutGroup(
+    SEAT_SHORTCUT_ACTIONS,
+    (actionId, event) => {
+      if (seatShortcuts.run(actionId as SeatShortcutActionId)) {
+        event.preventDefault();
+      }
+    },
+    { scope: ShortcutScope.GAME, preventDefault: false, enabled: hasLiveGame },
   );
 }

@@ -63,12 +63,13 @@ import { useSelectionOwner } from './selectionOwner';
 import Card from './Card';
 import { deckCardImageUrl } from './deckCardImageUrl';
 import { useCardPreviewActions } from '../ui/CardPreviewContext';
+import { usePublishSeatShortcuts, type SeatShortcutOperations } from '../ui/SeatShortcutsContext';
 import { useViewportClampedPopup } from './useViewportClampedPopup';
 import ZoneRevealDialog from './ZoneRevealDialog';
 import { PlayerPlaymat } from '../PlayerPlaymat';
 import { useGameDialogActions } from '../ui/GameDialogActionsContext';
 import { useGameDialogsContext } from '../ui/GameDialogsContext';
-import { ShortcutScope, useShortcut, useShortcutHints } from '@app/feature-widgets/shortcuts';
+import { useShortcutHints } from '@app/feature-widgets/shortcuts';
 import { isFilterEmpty, matchCard, parseCardFilter, type CardFilter, type FilterableCard } from '../../utils/cardFilter';
 import { buildArrowGeometry } from '../arrows/GameArrowOverlay/arrowPath';
 import { planHandReorder } from './handReorder';
@@ -2769,43 +2770,6 @@ function PlayerBox(
     onDrawCards?.(n);
   };
 
-  // Ctrl (Windows/Linux) / Cmd (Mac) shortcuts for the viewer's own actions:
-  //   +M → open the mulligan prompt (matches Cockatrice desktop's
-  //        actMulligan — prompts for hand size instead of assuming 7)
-  //   +L → open the set-life modal (overrides the browser's "focus URL bar")
-  //   +R → clear this player's own arrows
-  // Ctrl+D and Ctrl+S are handled by og's useGameShortcuts (they dispatch
-  // Command_DrawCards / Command_Shuffle globally); no PlayerBox binding.
-  // Only bound for the local player — you can't take actions on someone
-  // else's zones.
-  useEffect(() => {
-    if (!isSelf) {
-      return;
-    }
-    const onKey = (e: KeyboardEvent) => {
-      const mod = e.ctrlKey || e.metaKey;
-      if (!mod || e.shiftKey || e.altKey) {
-        return;
-      }
-      const key = e.key.toLowerCase();
-      if (key === 'm') {
-        e.preventDefault();
-        handleRequestChooseMulligan();
-      } else if (key === 'l') {
-        e.preventDefault();
-        setSetLifeModalOpen(true);
-      } else if (key === 'r') {
-        // Cockatrice's "Remove Local Arrows" — clears every arrow THIS
-        // player created via one Command_DeleteArrow per arrow. Never
-        // touches other players' arrows. Preventing default swallows the
-        // browser's Ctrl+R page reload while a game is active.
-        e.preventDefault();
-        onClearOwnArrows?.();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
 
   // Zone display data (hand/battlefield/grave/exile/stack) all comes from
   // Redux via props — see the *DisplayList expressions below. Refs are
@@ -3073,413 +3037,343 @@ function PlayerBox(
   // are user-customizable).
   const shortcutHints = useShortcutHints();
 
+  // Seat-scoped shortcut operations. useGameShortcuts owns the key bindings
+  // and runs these for the local seat only (see SeatShortcutsContext).
+  const seatShortcuts: SeatShortcutOperations = {};
+
+  // Desktop aMulligan (Ctrl+M) prompts for the hand size instead of assuming
+  // seven; aSet (Ctrl+L) opens the set-life prompt; aRemoveLocalArrows
+  // (Ctrl+R) deletes every arrow this player drew, one Command_DeleteArrow
+  // each, and never touches other players' arrows.
+  seatShortcuts['game.mulligan'] = () => handleRequestChooseMulligan();
+  seatShortcuts['game.setLife'] = () => setSetLifeModalOpen(true);
+  seatShortcuts['game.removeLocalArrows'] = () => onClearOwnArrows?.();
+
   // Cockatrice-parity Toggle Skip Untapping (Alt+U). Acts on the
   // local marquee `selection` (same state the right-click menu reads
-  // via `targetIds`). Owner-only — registered only on the isSelf box
-  // so a two-player game doesn't register two handlers competing over
-  // one keystroke. Uses the first selected card as the "clicked card"
+  // via `targetIds`). Uses the first selected card as the "clicked card"
   // to drive the target value, matching the menu's behavior for a
   // mixed selection (all cards land in the same doesntUntap state).
-  useShortcut(
-    'game.doesntUntap',
-    () => {
-      if (!isSelf || !onSetCardDoesntUntap || !selection || selection.zone !== 'battlefield') {
-        return;
+  seatShortcuts['game.doesntUntap'] = () => {
+    if (!isSelf || !onSetCardDoesntUntap || !selection || selection.zone !== 'battlefield') {
+      return;
+    }
+    const selectedCards = battlefieldDisplayList.filter((bc) =>
+      selection.ids.has(bc.id),
+    );
+    if (selectedCards.length === 0) {
+      return;
+    }
+    const target = !selectedCards[0].doesntUntap;
+    for (const bc of selectedCards) {
+      const id = Number(bc.id);
+      if (!Number.isFinite(id)) {
+        continue;
       }
-      const selectedCards = battlefieldDisplayList.filter((bc) =>
-        selection.ids.has(bc.id),
-      );
-      if (selectedCards.length === 0) {
-        return;
-      }
-      const target = !selectedCards[0].doesntUntap;
-      for (const bc of selectedCards) {
-        const id = Number(bc.id);
-        if (!Number.isFinite(id)) {
-          continue;
-        }
-        onSetCardDoesntUntap(id, target);
-      }
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+      onSetCardDoesntUntap(id, target);
+    }
+  };
 
   // Put top cards on stack until… (Ctrl+Shift+Y). Opens the dialog.
-  useShortcut(
-    'game.moveTopUntil',
-    () => {
-      if (!isSelf || deckCount <= 0) {
-        return;
-      }
-      setMoveTopUntilModalOpen(true);
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+  seatShortcuts['game.moveTopUntil'] = () => {
+    if (!isSelf || deckCount <= 0) {
+      return;
+    }
+    setMoveTopUntilModalOpen(true);
+  };
 
   // Deck-flip toggles (Ctrl+Alt+N / Ctrl+Alt+Shift+N). Cockatrice
   // defaults collide with Chromium's new-window / new-incognito, so
   // we rebind. Toggles the corresponding zone property.
-  useShortcut(
-    'game.alwaysRevealTopCard',
-    () => {
-      if (!isSelf || !onSetAlwaysRevealTopCard) {
-        return;
-      }
-      onSetAlwaysRevealTopCard(!alwaysRevealTopCard);
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
-  useShortcut(
-    'game.alwaysLookAtTopCard',
-    () => {
-      if (!isSelf || !onSetAlwaysLookAtTopCard) {
-        return;
-      }
-      onSetAlwaysLookAtTopCard(!alwaysLookAtTopCard);
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+  seatShortcuts['game.alwaysRevealTopCard'] = () => {
+    if (!isSelf || !onSetAlwaysRevealTopCard) {
+      return;
+    }
+    onSetAlwaysRevealTopCard(!alwaysRevealTopCard);
+  };
+  seatShortcuts['game.alwaysLookAtTopCard'] = () => {
+    if (!isSelf || !onSetAlwaysLookAtTopCard) {
+      return;
+    }
+    onSetAlwaysLookAtTopCard(!alwaysLookAtTopCard);
+  };
 
   // View top/bottom cards of library (Ctrl+Alt+W / Ctrl+Alt+Shift+W).
   // Rebound from Ctrl+W / Ctrl+Shift+W (browser close-tab / close-window).
-  useShortcut(
-    'game.viewTopCards',
-    () => {
-      if (!isSelf || deckCount <= 0) {
-        return;
-      }
-      setViewNCardsModal({ isReversed: false, deckSize: deckCount });
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
-  useShortcut(
-    'game.viewBottomCards',
-    () => {
-      if (!isSelf || deckCount <= 0) {
-        return;
-      }
-      setViewNCardsModal({ isReversed: true, deckSize: deckCount });
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+  seatShortcuts['game.viewTopCards'] = () => {
+    if (!isSelf || deckCount <= 0) {
+      return;
+    }
+    setViewNCardsModal({ isReversed: false, deckSize: deckCount });
+  };
+  seatShortcuts['game.viewBottomCards'] = () => {
+    if (!isSelf || deckCount <= 0) {
+      return;
+    }
+    setViewNCardsModal({ isReversed: true, deckSize: deckCount });
+  };
 
   // Create token (Ctrl+K, rebound from Cockatrice's Ctrl+T).
-  useShortcut(
-    'game.createToken',
-    () => {
-      if (!isSelf || !onCreateToken) {
-        return;
-      }
-      setCreateTokenModalOpen(true);
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+  seatShortcuts['game.createToken'] = () => {
+    if (!isSelf || !onCreateToken) {
+      return;
+    }
+    setCreateTokenModalOpen(true);
+  };
 
   // Create another token (Ctrl+G) — re-fires the last submitted token.
-  useShortcut(
-    'game.createAnotherToken',
-    () => {
-      if (!isSelf || !onCreateToken || !lastToken) {
-        return;
-      }
-      onCreateToken(lastToken);
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+  seatShortcuts['game.createAnotherToken'] = () => {
+    if (!isSelf || !onCreateToken || !lastToken) {
+      return;
+    }
+    onCreateToken(lastToken);
+  };
 
   // Draw Arrow (Alt+A). Same shape as Attach: first selected card
   // becomes the source, next battlefield click resolves.
-  useShortcut(
-    'game.drawArrow',
-    () => {
-      if (!isSelf || !selection || selection.zone !== 'battlefield') {
-        return;
-      }
-      const source = battlefieldDisplayList.find((bc) => selection.ids.has(bc.id));
-      if (!source) {
-        return;
-      }
-      const sourceCardId = Number(source.id);
-      if (!Number.isFinite(sourceCardId)) {
-        return;
-      }
-      setDrawArrowPending({
-        sourceCardId,
-        sourceCardName: source.name,
-        sourceZone: ZoneName.TABLE,
-      });
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+  seatShortcuts['game.drawArrow'] = () => {
+    if (!isSelf || !selection || selection.zone !== 'battlefield') {
+      return;
+    }
+    const source = battlefieldDisplayList.find((bc) => selection.ids.has(bc.id));
+    if (!source) {
+      return;
+    }
+    const sourceCardId = Number(source.id);
+    if (!Number.isFinite(sourceCardId)) {
+      return;
+    }
+    setDrawArrowPending({
+      sourceCardId,
+      sourceCardName: source.name,
+      sourceZone: ZoneName.TABLE,
+    });
+  };
 
   // Reset Power/Toughness (Ctrl+Alt+0). Same per-card logic as the
   // menu path at line ~10036: face-down → empty PT, face-up →
   // Scryfall printed base. Skips cards already at their reset value.
-  useShortcut(
-    'game.resetPT',
-    () => {
-      if (!isSelf || !onSetPT || !selection || selection.zone !== 'battlefield') {
-        return;
+  seatShortcuts['game.resetPT'] = () => {
+    if (!isSelf || !onSetPT || !selection || selection.zone !== 'battlefield') {
+      return;
+    }
+    const targets = battlefieldDisplayList.filter((bc) => selection.ids.has(bc.id));
+    if (targets.length === 0) {
+      return;
+    }
+    const entries: { cardId: number; pt: string }[] = [];
+    for (const bc of targets) {
+      const bcId = Number(bc.id);
+      if (!Number.isFinite(bcId)) {
+        continue;
       }
-      const targets = battlefieldDisplayList.filter((bc) => selection.ids.has(bc.id));
-      if (targets.length === 0) {
-        return;
+      const base = bc.faceDown ? '' : cardMetaByName.get(bc.name)?.pt ?? '';
+      if (base !== (bc.pt ?? '')) {
+        entries.push({ cardId: bcId, pt: base });
       }
-      const entries: { cardId: number; pt: string }[] = [];
-      for (const bc of targets) {
-        const bcId = Number(bc.id);
-        if (!Number.isFinite(bcId)) {
-          continue;
-        }
-        const base = bc.faceDown ? '' : cardMetaByName.get(bc.name)?.pt ?? '';
-        if (base !== (bc.pt ?? '')) {
-          entries.push({ cardId: bcId, pt: base });
-        }
-      }
-      if (entries.length > 0) {
-        onSetPT(entries);
-      }
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+    }
+    if (entries.length > 0) {
+      onSetPT(entries);
+    }
+  };
 
   // Reduce Life by Power (Ctrl+Shift+L). Sums the server-set power
   // of every selected battlefield card and subtracts from local
   // player's life. Mirrors the menu path at line ~10093.
-  useShortcut(
-    'game.reduceLifeByPower',
-    () => {
-      if (!isSelf || !lifeControl || !selection || selection.zone !== 'battlefield') {
-        return;
+  seatShortcuts['game.reduceLifeByPower'] = () => {
+    if (!isSelf || !lifeControl || !selection || selection.zone !== 'battlefield') {
+      return;
+    }
+    const targets = battlefieldDisplayList.filter((bc) => selection.ids.has(bc.id));
+    if (targets.length === 0) {
+      return;
+    }
+    let total = 0;
+    for (const bc of targets) {
+      if (!bc.pt) {
+        continue;
       }
-      const targets = battlefieldDisplayList.filter((bc) => selection.ids.has(bc.id));
-      if (targets.length === 0) {
-        return;
+      const tokens = parsePT(bc.pt);
+      if (tokens.length === 0) {
+        continue;
       }
-      let total = 0;
-      for (const bc of targets) {
-        if (!bc.pt) {
-          continue;
-        }
-        const tokens = parsePT(bc.pt);
-        if (tokens.length === 0) {
-          continue;
-        }
-        const first = tokens[0];
-        const power = typeof first === 'number' ? first : parseInt(first, 10);
-        if (Number.isFinite(power)) {
-          total += Math.max(power, 0);
-        }
+      const first = tokens[0];
+      const power = typeof first === 'number' ? first : parseInt(first, 10);
+      if (Number.isFinite(power)) {
+        total += Math.max(power, 0);
       }
-      if (total > 0) {
-        lifeControl.onDelta(-total);
-      }
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+    }
+    if (total > 0) {
+      lifeControl.onDelta(-total);
+    }
+  };
 
   // Storm ("Other") player counter shortcuts (Ctrl+] / Ctrl+[ / Ctrl+\).
   // Player-scoped, unlike the per-card counter shortcuts above.
   // Storm's server-assigned counterId lives on manaCounters.O — no-op
   // until Redux has hydrated the mana pool.
-  useShortcut(
-    'game.addStormCounter',
-    () => {
-      if (!isSelf || !onModifyCounter || !manaCounters?.O) {
-        return;
-      }
-      onModifyCounter(manaCounters.O.id, 1);
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
-  useShortcut(
-    'game.removeStormCounter',
-    () => {
-      if (!isSelf || !onModifyCounter || !manaCounters?.O) {
-        return;
-      }
-      onModifyCounter(manaCounters.O.id, -1);
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
-  useShortcut(
-    'game.setStormCounter',
-    () => {
-      if (!isSelf || !manaCounters?.O) {
-        return;
-      }
-      setSetManaCounterModal({
-        counterId: manaCounters.O.id,
-        symbol: 'O',
-        label: 'Other',
-        currentValue: manaCounters.O.count,
-      });
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+  seatShortcuts['game.addStormCounter'] = () => {
+    if (!isSelf || !onModifyCounter || !manaCounters?.O) {
+      return;
+    }
+    onModifyCounter(manaCounters.O.id, 1);
+  };
+  seatShortcuts['game.removeStormCounter'] = () => {
+    if (!isSelf || !onModifyCounter || !manaCounters?.O) {
+      return;
+    }
+    onModifyCounter(manaCounters.O.id, -1);
+  };
+  seatShortcuts['game.setStormCounter'] = () => {
+    if (!isSelf || !manaCounters?.O) {
+      return;
+    }
+    setSetManaCounterModal({
+      counterId: manaCounters.O.id,
+      symbol: 'O',
+      label: 'Other',
+      currentValue: manaCounters.O.count,
+    });
+  };
 
   // Attach Card (Ctrl+Alt+A). Starts the pending attach-arrow flow.
   // Cockatrice attaches every selected card to the target on
   // completion — the first selected card drives the visual anchor
   // (arrow origin + green ring), the rest ride along via
   // `attachExtraSourceIds`. Escape or clicking any source cancels.
-  useShortcut(
-    'game.attachCard',
-    () => {
-      if (!isSelf || !selection || selection.zone !== 'battlefield') {
-        return;
-      }
-      const sources = battlefieldDisplayList
-        .filter((bc) => selection.ids.has(bc.id))
-        .map((bc) => ({ id: Number(bc.id), name: bc.name }))
-        .filter((s) => Number.isFinite(s.id));
-      if (sources.length === 0) {
-        return;
-      }
-      const [primary, ...extras] = sources;
-      setAttachPending({ sourceCardId: primary.id, sourceCardName: primary.name });
-      setAttachExtraSourceIds(extras.map((s) => s.id));
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+  seatShortcuts['game.attachCard'] = () => {
+    if (!isSelf || !selection || selection.zone !== 'battlefield') {
+      return;
+    }
+    const sources = battlefieldDisplayList
+      .filter((bc) => selection.ids.has(bc.id))
+      .map((bc) => ({ id: Number(bc.id), name: bc.name }))
+      .filter((s) => Number.isFinite(s.id));
+    if (sources.length === 0) {
+      return;
+    }
+    const [primary, ...extras] = sources;
+    setAttachPending({ sourceCardId: primary.id, sourceCardName: primary.name });
+    setAttachExtraSourceIds(extras.map((s) => s.id));
+  };
 
   // Peek Card (Alt+L). Reveals face-down battlefield cards in the
   // selection to the local player only. Mirrors the "Peek card" menu
   // item — filters to face-down cards so face-up ones in a mixed
   // selection aren't wire-noise. No-op with an empty selection or
   // when no selected card is face-down.
-  useShortcut(
-    'game.peekCard',
-    () => {
-      if (!isSelf || !onPeekCards || !selection || selection.zone !== 'battlefield') {
-        return;
-      }
-      const ids = battlefieldDisplayList
-        .filter((bc) => selection.ids.has(bc.id) && bc.faceDown)
-        .map((bc) => Number(bc.id))
-        .filter((n) => Number.isFinite(n));
-      if (ids.length === 0) {
-        return;
-      }
-      onPeekCards(ids);
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+  seatShortcuts['game.peekCard'] = () => {
+    if (!isSelf || !onPeekCards || !selection || selection.zone !== 'battlefield') {
+      return;
+    }
+    const ids = battlefieldDisplayList
+      .filter((bc) => selection.ids.has(bc.id) && bc.faceDown)
+      .map((bc) => Number(bc.id))
+      .filter((n) => Number.isFinite(n));
+    if (ids.length === 0) {
+      return;
+    }
+    onPeekCards(ids);
+  };
 
   // Turn Card Over (Alt+F). Same shape as doesntUntap above: read the
   // local marquee selection, use the first card's current faceDown to
   // drive the target, then fire onFlipCard per card. Matches the
   // right-click "Flip card" menu item at line ~9011.
-  useShortcut(
-    'game.flipCard',
-    () => {
-      if (!isSelf || !onFlipCard || !selection || selection.zone !== 'battlefield') {
-        return;
+  seatShortcuts['game.flipCard'] = () => {
+    if (!isSelf || !onFlipCard || !selection || selection.zone !== 'battlefield') {
+      return;
+    }
+    const selectedCards = battlefieldDisplayList.filter((bc) =>
+      selection.ids.has(bc.id),
+    );
+    if (selectedCards.length === 0) {
+      return;
+    }
+    const target = !selectedCards[0].faceDown;
+    for (const bc of selectedCards) {
+      const id = Number(bc.id);
+      if (!Number.isFinite(id)) {
+        continue;
       }
-      const selectedCards = battlefieldDisplayList.filter((bc) =>
-        selection.ids.has(bc.id),
-      );
-      if (selectedCards.length === 0) {
-        return;
-      }
-      const target = !selectedCards[0].faceDown;
-      for (const bc of selectedCards) {
-        const id = Number(bc.id);
-        if (!Number.isFinite(id)) {
-          continue;
-        }
-        onFlipCard(id, target);
-      }
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+      onFlipCard(id, target);
+    }
+  };
 
   // Unattach (Ctrl+Alt+U). Fires per-card unattach on the selection;
   // matches the "Unattach" menu item at line ~9295. Server no-ops on
   // non-attached cards so we don't pre-filter.
-  useShortcut(
-    'game.unattachCard',
-    () => {
-      if (!isSelf || !onUnattachCard || !selection || selection.zone !== 'battlefield') {
-        return;
+  seatShortcuts['game.unattachCard'] = () => {
+    if (!isSelf || !onUnattachCard || !selection || selection.zone !== 'battlefield') {
+      return;
+    }
+    const selectedCards = battlefieldDisplayList.filter((bc) =>
+      selection.ids.has(bc.id),
+    );
+    if (selectedCards.length === 0) {
+      return;
+    }
+    for (const bc of selectedCards) {
+      const id = Number(bc.id);
+      if (!Number.isFinite(id)) {
+        continue;
       }
-      const selectedCards = battlefieldDisplayList.filter((bc) =>
-        selection.ids.has(bc.id),
-      );
-      if (selectedCards.length === 0) {
-        return;
-      }
-      for (const bc of selectedCards) {
-        const id = Number(bc.id);
-        if (!Number.isFinite(id)) {
-          continue;
-        }
-        onUnattachCard(id);
-      }
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+      onUnattachCard(id);
+    }
+  };
 
   // Move selection → Graveyard (Ctrl+Del). Single batched
   // Command_MoveCard with cards_to_move for every selected card,
   // matching the "Send to Graveyard" menu path via dispatchMove.
-  useShortcut(
-    'game.moveSelectedToGrave',
-    () => {
-      if (!isSelf || !onMoveCard || playerId == null || !selection || selection.zone !== 'battlefield') {
-        return;
-      }
-      const targetIds = battlefieldDisplayList
-        .filter((bc) => selection.ids.has(bc.id))
-        .map((bc) => Number(bc.id))
-        .filter((n) => Number.isFinite(n));
-      if (targetIds.length === 0) {
-        return;
-      }
-      onMoveCard({
-        startPlayerId: playerId,
-        startZone: ZoneName.TABLE,
-        cardsToMove: {
-          card: targetIds.map((cardId) => ({ cardId })),
-        },
-        targetPlayerId: playerId,
-        targetZone: ZoneName.GRAVE,
-        x: 0,
-        y: 0,
-        isReversed: false,
-      });
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+  seatShortcuts['game.moveSelectedToGrave'] = () => {
+    if (!isSelf || !onMoveCard || playerId == null || !selection || selection.zone !== 'battlefield') {
+      return;
+    }
+    const targetIds = battlefieldDisplayList
+      .filter((bc) => selection.ids.has(bc.id))
+      .map((bc) => Number(bc.id))
+      .filter((n) => Number.isFinite(n));
+    if (targetIds.length === 0) {
+      return;
+    }
+    onMoveCard({
+      startPlayerId: playerId,
+      startZone: ZoneName.TABLE,
+      cardsToMove: {
+        card: targetIds.map((cardId) => ({ cardId })),
+      },
+      targetPlayerId: playerId,
+      targetZone: ZoneName.GRAVE,
+      x: 0,
+      y: 0,
+      isReversed: false,
+    });
+  };
 
   // Set Power/Toughness (Ctrl+P). Opens the PT modal against the
   // selection. First-selected card drives cardName / current-PT for
   // the modal label + prefill, matching the menu path at line ~9287
   // (which uses the right-clicked card for the same purpose).
-  useShortcut(
-    'game.setCardPT',
-    () => {
-      if (!isSelf || !selection || selection.zone !== 'battlefield') {
-        return;
-      }
-      const selectedCards = battlefieldDisplayList.filter((bc) =>
-        selection.ids.has(bc.id),
-      );
-      if (selectedCards.length === 0) {
-        return;
-      }
-      const targetIds = selectedCards
-        .map((bc) => Number(bc.id))
-        .filter((n) => Number.isFinite(n));
-      if (targetIds.length === 0) {
-        return;
-      }
-      const first = selectedCards[0];
-      const current = first.pt || (cardMetaByName.get(first.name)?.pt ?? '');
-      setPTModal({ targetIds, cardName: first.name, current });
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+  seatShortcuts['game.setCardPT'] = () => {
+    if (!isSelf || !selection || selection.zone !== 'battlefield') {
+      return;
+    }
+    const selectedCards = battlefieldDisplayList.filter((bc) =>
+      selection.ids.has(bc.id),
+    );
+    if (selectedCards.length === 0) {
+      return;
+    }
+    const targetIds = selectedCards
+      .map((bc) => Number(bc.id))
+      .filter((n) => Number.isFinite(n));
+    if (targetIds.length === 0) {
+      return;
+    }
+    const first = selectedCards[0];
+    const current = first.pt || (cardMetaByName.get(first.name)?.pt ?? '');
+    setPTModal({ targetIds, cardName: first.name, current });
+  };
 
   // Shared helper for the P/T delta shortcuts (Ctrl/Alt/Ctrl+Alt with
   // `+`/`-`). Same per-card logic as the menu's dispatchPTDelta at
@@ -3511,32 +3405,28 @@ function PlayerBox(
     }
   };
 
-  useShortcut('game.incP', () => dispatchPTDeltaForSelection(1, 0), { scope: ShortcutScope.GAME, enabled: isSelf });
-  useShortcut('game.decP', () => dispatchPTDeltaForSelection(-1, 0), { scope: ShortcutScope.GAME, enabled: isSelf });
-  useShortcut('game.incT', () => dispatchPTDeltaForSelection(0, 1), { scope: ShortcutScope.GAME, enabled: isSelf });
-  useShortcut('game.decT', () => dispatchPTDeltaForSelection(0, -1), { scope: ShortcutScope.GAME, enabled: isSelf });
-  useShortcut('game.incPT', () => dispatchPTDeltaForSelection(1, 1), { scope: ShortcutScope.GAME, enabled: isSelf });
-  useShortcut('game.decPT', () => dispatchPTDeltaForSelection(-1, -1), { scope: ShortcutScope.GAME, enabled: isSelf });
+  seatShortcuts['game.incP'] = () => dispatchPTDeltaForSelection(1, 0);
+  seatShortcuts['game.decP'] = () => dispatchPTDeltaForSelection(-1, 0);
+  seatShortcuts['game.incT'] = () => dispatchPTDeltaForSelection(0, 1);
+  seatShortcuts['game.decT'] = () => dispatchPTDeltaForSelection(0, -1);
+  seatShortcuts['game.incPT'] = () => dispatchPTDeltaForSelection(1, 1);
+  seatShortcuts['game.decPT'] = () => dispatchPTDeltaForSelection(-1, -1);
 
   // Select All (Ctrl+A) — mirrors the "Select All" battlefield-menu
   // item at line ~8910: sets the local marquee selection to every
   // battlefield card. First-pass simplification of Cockatrice's
   // mouse-under-zone semantics (own battlefield only).
-  useShortcut(
-    'game.selectAllBattlefield',
-    () => {
-      if (!isSelf) {
-        return;
-      }
-      const ids = new Set(battlefieldDisplayList.map((bc) => bc.id));
-      if (ids.size === 0) {
-        return;
-      }
-      setSelection({ zone: 'battlefield', ids });
-      claimSelectionOwnership();
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+  seatShortcuts['game.selectAllBattlefield'] = () => {
+    if (!isSelf) {
+      return;
+    }
+    const ids = new Set(battlefieldDisplayList.map((bc) => bc.id));
+    if (ids.size === 0) {
+      return;
+    }
+    setSelection({ zone: 'battlefield', ids });
+    claimSelectionOwnership();
+  };
 
   // Select Row / Column (Ctrl+Shift+X / Ctrl+Shift+C). First card in
   // the current selection is the anchor; expand to every battlefield
@@ -3563,8 +3453,8 @@ function PlayerBox(
     claimSelectionOwnership();
   };
 
-  useShortcut('game.selectRowBattlefield', () => selectBattlefieldBySlotField('row'), { scope: ShortcutScope.GAME, enabled: isSelf });
-  useShortcut('game.selectColumnBattlefield', () => selectBattlefieldBySlotField('col'), { scope: ShortcutScope.GAME, enabled: isSelf });
+  seatShortcuts['game.selectRowBattlefield'] = () => selectBattlefieldBySlotField('row');
+  seatShortcuts['game.selectColumnBattlefield'] = () => selectBattlefieldBySlotField('col');
 
   // Card-counter shortcuts. Cockatrice ships Add / Remove / Set for
   // three default counter types (A red = 0, B yellow = 1, C green = 2).
@@ -3648,15 +3538,15 @@ function PlayerBox(
     });
   };
 
-  useShortcut('game.addCounterA', () => addCardCounterOnSelection(0), { scope: ShortcutScope.GAME, enabled: isSelf });
-  useShortcut('game.removeCounterA', () => removeCardCounterOnSelection(0), { scope: ShortcutScope.GAME, enabled: isSelf });
-  useShortcut('game.setCounterA', () => openSetCardCounterModalForSelection(0), { scope: ShortcutScope.GAME, enabled: isSelf });
-  useShortcut('game.addCounterB', () => addCardCounterOnSelection(1), { scope: ShortcutScope.GAME, enabled: isSelf });
-  useShortcut('game.removeCounterB', () => removeCardCounterOnSelection(1), { scope: ShortcutScope.GAME, enabled: isSelf });
-  useShortcut('game.setCounterB', () => openSetCardCounterModalForSelection(1), { scope: ShortcutScope.GAME, enabled: isSelf });
-  useShortcut('game.addCounterC', () => addCardCounterOnSelection(2), { scope: ShortcutScope.GAME, enabled: isSelf });
-  useShortcut('game.removeCounterC', () => removeCardCounterOnSelection(2), { scope: ShortcutScope.GAME, enabled: isSelf });
-  useShortcut('game.setCounterC', () => openSetCardCounterModalForSelection(2), { scope: ShortcutScope.GAME, enabled: isSelf });
+  seatShortcuts['game.addCounterA'] = () => addCardCounterOnSelection(0);
+  seatShortcuts['game.removeCounterA'] = () => removeCardCounterOnSelection(0);
+  seatShortcuts['game.setCounterA'] = () => openSetCardCounterModalForSelection(0);
+  seatShortcuts['game.addCounterB'] = () => addCardCounterOnSelection(1);
+  seatShortcuts['game.removeCounterB'] = () => removeCardCounterOnSelection(1);
+  seatShortcuts['game.setCounterB'] = () => openSetCardCounterModalForSelection(1);
+  seatShortcuts['game.addCounterC'] = () => addCardCounterOnSelection(2);
+  seatShortcuts['game.removeCounterC'] = () => removeCardCounterOnSelection(2);
+  seatShortcuts['game.setCounterC'] = () => openSetCardCounterModalForSelection(2);
 
   // Increment all card counters (Ctrl+Shift+A). Ports the utility-menu
   // handler at line ~6377: selection ∩ battlefield if any, else full
@@ -3664,127 +3554,114 @@ function PlayerBox(
   // by +1 (skips counters already at MAX_COUNTER_VALUE). Silently
   // no-ops cards without counters — matches Cockatrice desktop, which
   // only touches counters that already exist.
-  useShortcut(
-    'game.incrementAllCardCounters',
-    () => {
-      if (!isSelf || !onBulkSetCardCounters) {
-        return;
+  seatShortcuts['game.incrementAllCardCounters'] = () => {
+    if (!isSelf || !onBulkSetCardCounters) {
+      return;
+    }
+    const targets =
+      selection?.zone === 'battlefield' && selection.ids.size > 0
+        ? battlefieldDisplayList.filter((c) => selection.ids.has(c.id))
+        : battlefieldDisplayList;
+    const entries: { cardId: number; counterId: number; value: number }[] = [];
+    for (const card of targets) {
+      const cardIdNum = Number(card.id);
+      if (!Number.isFinite(cardIdNum)) {
+        continue;
       }
-      const targets =
-        selection?.zone === 'battlefield' && selection.ids.size > 0
-          ? battlefieldDisplayList.filter((c) => selection.ids.has(c.id))
-          : battlefieldDisplayList;
-      const entries: { cardId: number; counterId: number; value: number }[] = [];
-      for (const card of targets) {
-        const cardIdNum = Number(card.id);
-        if (!Number.isFinite(cardIdNum)) {
+      for (const counter of card.counters ?? []) {
+        if (counter.value >= MAX_COUNTER_VALUE) {
           continue;
         }
-        for (const counter of card.counters ?? []) {
-          if (counter.value >= MAX_COUNTER_VALUE) {
-            continue;
-          }
-          entries.push({ cardId: cardIdNum, counterId: counter.id, value: counter.value + 1 });
-        }
+        entries.push({ cardId: cardIdNum, counterId: counter.id, value: counter.value + 1 });
       }
-      if (entries.length > 0) {
-        onBulkSetCardCounters(entries);
-      }
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+    }
+    if (entries.length > 0) {
+      onBulkSetCardCounters(entries);
+    }
+  };
 
   // Set Annotation (Alt+N). Same shape as Set Power/Toughness above:
   // open the annotation modal against the selection with the first
   // card's name + current annotation for the label / prefill.
-  useShortcut(
-    'game.setAnnotation',
-    () => {
-      if (!isSelf || !selection || selection.zone !== 'battlefield') {
-        return;
-      }
-      const selectedCards = battlefieldDisplayList.filter((bc) =>
-        selection.ids.has(bc.id),
-      );
-      if (selectedCards.length === 0) {
-        return;
-      }
-      const targetIds = selectedCards
-        .map((bc) => Number(bc.id))
-        .filter((n) => Number.isFinite(n));
-      if (targetIds.length === 0) {
-        return;
-      }
-      const first = selectedCards[0];
-      setAnnotationModal({ targetIds, cardName: first.name, current: first.annotation ?? '' });
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+  seatShortcuts['game.setAnnotation'] = () => {
+    if (!isSelf || !selection || selection.zone !== 'battlefield') {
+      return;
+    }
+    const selectedCards = battlefieldDisplayList.filter((bc) =>
+      selection.ids.has(bc.id),
+    );
+    if (selectedCards.length === 0) {
+      return;
+    }
+    const targetIds = selectedCards
+      .map((bc) => Number(bc.id))
+      .filter((n) => Number.isFinite(n));
+    if (targetIds.length === 0) {
+      return;
+    }
+    const first = selectedCards[0];
+    setAnnotationModal({ targetIds, cardName: first.name, current: first.annotation ?? '' });
+  };
 
   // Move selection → Bottom of Library (Ctrl+B). Same shape as
   // moveSelectedToGrave; targetZone=DECK with isReversed=true is the
   // "bottom" idiom (matches PlayerBox onMoveToBottom at line ~9157).
-  useShortcut(
-    'game.moveSelectedToLibraryBottom',
-    () => {
-      if (!isSelf || !onMoveCard || playerId == null || !selection || selection.zone !== 'battlefield') {
-        return;
-      }
-      const targetIds = battlefieldDisplayList
-        .filter((bc) => selection.ids.has(bc.id))
-        .map((bc) => Number(bc.id))
-        .filter((n) => Number.isFinite(n));
-      if (targetIds.length === 0) {
-        return;
-      }
-      onMoveCard({
-        startPlayerId: playerId,
-        startZone: ZoneName.TABLE,
-        cardsToMove: {
-          card: targetIds.map((cardId) => ({ cardId })),
-        },
-        targetPlayerId: playerId,
-        targetZone: ZoneName.DECK,
-        x: 0,
-        y: 0,
-        isReversed: true,
-      });
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+  seatShortcuts['game.moveSelectedToLibraryBottom'] = () => {
+    if (!isSelf || !onMoveCard || playerId == null || !selection || selection.zone !== 'battlefield') {
+      return;
+    }
+    const targetIds = battlefieldDisplayList
+      .filter((bc) => selection.ids.has(bc.id))
+      .map((bc) => Number(bc.id))
+      .filter((n) => Number.isFinite(n));
+    if (targetIds.length === 0) {
+      return;
+    }
+    onMoveCard({
+      startPlayerId: playerId,
+      startZone: ZoneName.TABLE,
+      cardsToMove: {
+        card: targetIds.map((cardId) => ({ cardId })),
+      },
+      targetPlayerId: playerId,
+      targetZone: ZoneName.DECK,
+      x: 0,
+      y: 0,
+      isReversed: true,
+    });
+  };
 
   // Clone Card (Ctrl+J). Fires one Command_CreateToken per selected
   // card via onCloneCard, preserving each card's own name / provider /
   // color / pt / annotation / row. Matches the "Clone" menu item at
   // line ~9085 exactly (including the optimistic-mock skip).
-  useShortcut(
-    'game.cloneCard',
-    () => {
-      if (!isSelf || !onCloneCard || !selection || selection.zone !== 'battlefield') {
-        return;
+  seatShortcuts['game.cloneCard'] = () => {
+    if (!isSelf || !onCloneCard || !selection || selection.zone !== 'battlefield') {
+      return;
+    }
+    const selectedCards = battlefieldDisplayList.filter((bc) =>
+      selection.ids.has(bc.id),
+    );
+    if (selectedCards.length === 0) {
+      return;
+    }
+    for (const bc of selectedCards) {
+      if (!Number.isFinite(Number(bc.id))) {
+        continue;
       }
-      const selectedCards = battlefieldDisplayList.filter((bc) =>
-        selection.ids.has(bc.id),
-      );
-      if (selectedCards.length === 0) {
-        return;
-      }
-      for (const bc of selectedCards) {
-        if (!Number.isFinite(Number(bc.id))) {
-          continue;
-        }
-        onCloneCard({
-          name: bc.name,
-          providerId: bc.scryfallId,
-          color: bc.color ?? '',
-          pt: bc.pt ?? '',
-          annotation: bc.annotation ?? '',
-          y: bc.slot.row,
-        });
-      }
-    },
-    { scope: ShortcutScope.GAME, enabled: isSelf },
-  );
+      onCloneCard({
+        name: bc.name,
+        providerId: bc.scryfallId,
+        color: bc.color ?? '',
+        pt: bc.pt ?? '',
+        annotation: bc.annotation ?? '',
+        y: bc.slot.row,
+      });
+    }
+  };
+
+  usePublishSeatShortcuts(isSelf ? seatShortcuts : null);
+
   // Parent → children map for attached cards on THIS player's board.
   // Hoisted early because `computeCellWidths` needs each parent's
   // attach count to widen the parent's cell (cells hosting a heavily-

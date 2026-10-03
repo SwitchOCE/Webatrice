@@ -39,6 +39,7 @@ import { CardVisualStateProvider } from './components/ui/CardVisualStateContext'
 import { GameDialogActionsProvider } from './components/ui/GameDialogActionsContext';
 import { GameIdProvider } from './components/ui/GameIdContext';
 import { CardPreviewProvider } from './components/ui/CardPreviewContext';
+import { SeatShortcutsProvider } from './components/ui/SeatShortcutsContext';
 import { GameDialogsProvider } from './components/ui/GameDialogsContext';
 import { useGameReadOnly } from './components/ui/GameReadOnlyContext';
 
@@ -120,6 +121,7 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
     cardRegistry,
     sensors,
     previewStore,
+    seatShortcuts,
     setHoveredCard,
     selectedCardKeys,
     onCardFocus,
@@ -224,180 +226,183 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
       <CardRegistryContext.Provider value={cardRegistry}>
         <GameIdProvider value={gameId}>
           <CardPreviewProvider store={previewStore}>
-            <ForeignDragProvider>
-              <CardScaleProvider containerRef={boardRef} rows={layout.rows}>
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={dnd.collisionDetection}
-                  onDragStart={dnd.handleDragStart}
-                  onDragEnd={dnd.handleDragEnd}
-                >
-                  <GameInteractionProvider value={interactionHandlers}>
-                    <CardVisualStateProvider
-                      arrowSourceKey={arrows.arrowSourceKey}
-                      arrowTargetKey={arrows.arrowTargetKey}
-                      selectedCardKeys={selectedCardKeys}
-                      canActFor={canActFor}
-                    >
-                      <GameDialogActionsProvider value={dialogActions}>
-                        <GameDialogsProvider value={dialogs}>
-                          <div
-                            className={footer ? 'game game--with-footer' : 'game'}
-                            data-testid="game-container"
-                            data-readonly={readOnly || undefined}
-                            ref={gameRef}
-                            onMouseDown={readOnly ? undefined : handleGameMouseDown}
-                            style={{
-                              '--sidebar-width': `${sidebarWidth}px`,
-                              '--phase-track-width': `${phaseTrackColumnWidth}px`,
-                            } as React.CSSProperties}
-                          >
-                            <PhaseTrack />
-
-                            {/* Grid-column-1 placeholder — only rendered
-                         when PhaseTrack is in its default floating
-                         (position: absolute) mode. In pinned mode
-                         the PhaseTrack itself is `position:
-                         relative` and consumes column 1, so a
-                         placeholder here would displace every
-                         other cell one column to the right. */}
-                            {!phaseTrackPinned && <div aria-hidden />}
-
+            <SeatShortcutsProvider registry={seatShortcuts}>
+              <ForeignDragProvider>
+                <CardScaleProvider containerRef={boardRef} rows={layout.rows}>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={dnd.collisionDetection}
+                    onDragStart={dnd.handleDragStart}
+                    onDragEnd={dnd.handleDragEnd}
+                  >
+                    <GameInteractionProvider value={interactionHandlers}>
+                      <CardVisualStateProvider
+                        arrowSourceKey={arrows.arrowSourceKey}
+                        arrowTargetKey={arrows.arrowTargetKey}
+                        selectedCardKeys={selectedCardKeys}
+                        canActFor={canActFor}
+                      >
+                        <GameDialogActionsProvider value={dialogActions}>
+                          <GameDialogsProvider value={dialogs}>
                             <div
-                              className="game__board"
-                              ref={boardRef}
-                              onMouseDown={arrows.handleBoardMouseDown}
-                              {...(readOnly ? READ_ONLY_BOARD_GUARD : undefined)}
+                              className={footer ? 'game game--with-footer' : 'game'}
+                              data-testid="game-container"
+                              data-readonly={readOnly || undefined}
+                              ref={gameRef}
+                              onMouseDown={readOnly ? undefined : handleGameMouseDown}
+                              style={{
+                                '--sidebar-width': `${sidebarWidth}px`,
+                                '--phase-track-width': `${phaseTrackColumnWidth}px`,
+                              } as React.CSSProperties}
                             >
-                              {!game && (
-                                <div className="game__empty" data-testid="game-empty">
-              No active game. Join a game from a room to see the board.
-                                </div>
+                              <PhaseTrack />
+
+                              {/* Grid-column-1 placeholder — only rendered
+                           when PhaseTrack is in its default floating
+                           (position: absolute) mode. In pinned mode
+                           the PhaseTrack itself is `position:
+                           relative` and consumes column 1, so a
+                           placeholder here would displace every
+                           other cell one column to the right. */}
+                              {!phaseTrackPinned && <div aria-hidden />}
+
+                              <div
+                                className="game__board"
+                                ref={boardRef}
+                                onMouseDown={arrows.handleBoardMouseDown}
+                                {...(readOnly ? READ_ONLY_BOARD_GUARD : undefined)}
+                              >
+                                {!game && (
+                                  <div className="game__empty" data-testid="game-empty">
+                No active game. Join a game from a room to see the board.
+                                  </div>
+                                )}
+
+                                {game && layout.cells.length > 0 && (
+                                  <div
+                                    className="game__board-grid"
+                                    style={{
+                                      gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
+                                      gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
+                                    }}
+                                  >
+                                    {layout.cells.map((cell) => (
+                                      <GameBoardCell
+                                        key={cell.playerId}
+                                        cell={cell}
+                                        totalPlayers={layout.cells.length}
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                                {/* Bottom-bar HandZone removed: each PlayerBox now
+                            renders its own hand inline. Kept the space so
+                            downstream layout hooks that watched the empty
+                            bottom bar don't recompute their heights. */}
+                              </div>
+
+                              <SidebarResizer width={sidebarWidth} onResize={setSidebarWidth} />
+
+                              <BattlefieldSidebar />
+
+                              <GameArrowOverlay containerRef={gameRef} dragPreview={arrows.dragPreview} />
+
+                              <BoxSelectOverlay preview={boxSelectPreview} />
+
+                              {!readOnly && <DeckSelectDialog />}
+
+                              {dialogs.zoneViews.map((v, idx) => (
+                                <ZoneViewDialog
+                                  key={`${v.playerId}-${v.zoneName}`}
+                                  isOpen
+                                  playerId={v.playerId}
+                                  zoneName={v.zoneName}
+                                  handleClose={(shuffleOnClose) => dialogs.handleCloseZoneView(v.playerId, v.zoneName, shuffleOnClose)}
+                                  initialPosition={{ x: 80 + idx * 36, y: 80 + idx * 36 }}
+                                />
+                              ))}
+
+                              <CardContextMenu />
+
+                              <ZoneContextMenu />
+
+                              <PlayerContextMenu />
+
+                              <HandContextMenu />
+
+                              {dialogs.prompt && (
+                                <PromptDialog
+                                  isOpen
+                                  title={dialogs.prompt.title}
+                                  label={dialogs.prompt.label}
+                                  initialValue={dialogs.prompt.initialValue}
+                                  helperText={dialogs.prompt.helperText}
+                                  validate={dialogs.prompt.validate}
+                                  onSubmit={dialogs.prompt.onSubmit}
+                                  onCancel={dialogs.closePrompt}
+                                />
                               )}
 
-                              {game && layout.cells.length > 0 && (
-                                <div
-                                  className="game__board-grid"
-                                  style={{
-                                    gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
-                                    gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
-                                  }}
-                                >
-                                  {layout.cells.map((cell) => (
-                                    <GameBoardCell
-                                      key={cell.playerId}
-                                      cell={cell}
-                                      totalPlayers={layout.cells.length}
-                                    />
-                                  ))}
-                                </div>
-                              )}
-                              {/* Bottom-bar HandZone removed: each PlayerBox now
-                          renders its own hand inline. Kept the space so
-                          downstream layout hooks that watched the empty
-                          bottom bar don't recompute their heights. */}
+                              <RollDieDialog />
+
+                              <CreateTokenDialog />
+
+                              <SideboardDialog />
+
+                              <RevealCardsDialog />
+
+                              {/* Receiver-side popup: opens whenever an
+                          Event_RevealCards arrives with a populated
+                          card list (someone revealed a zone to us,
+                          or "to all players" including us). Reads /
+                          dismisses via the incomingReveal slice. */}
+                              {!readOnly && <IncomingRevealDialog />}
+
+                              <ConfirmDialog
+                                isOpen={dialogs.concedeConfirm === 'concede'}
+                                title="Concede this game?"
+                                message={CONCEDE_CONFIRM_MESSAGE}
+                                confirmLabel="Concede"
+                                destructive
+                                onConfirm={dialogs.confirmConcede}
+                                onCancel={dialogs.closeConcedeConfirm}
+                              />
+
+                              <ConfirmDialog
+                                isOpen={dialogs.concedeConfirm === 'unconcede'}
+                                title="Rejoin the game?"
+                                message="This undoes your concede and puts you back into the active player rotation."
+                                confirmLabel="Unconcede"
+                                onConfirm={dialogs.confirmUnconcede}
+                                onCancel={dialogs.closeConcedeConfirm}
+                              />
+
+                              <ConfirmDialog
+                                isOpen={dialogs.leaveConfirm}
+                                title="Leave this game?"
+                                message={LEAVE_CONFIRM_MESSAGE}
+                                confirmLabel="Leave"
+                                destructive
+                                onConfirm={dialogs.confirmLeave}
+                                onCancel={dialogs.closeLeaveConfirm}
+                              />
+
+                              <GameInfoDialog />
+
+
+                              {footer && <div className="game__footer">{footer}</div>}
                             </div>
+                          </GameDialogsProvider>
+                        </GameDialogActionsProvider>
+                      </CardVisualStateProvider>
+                    </GameInteractionProvider>
 
-                            <SidebarResizer width={sidebarWidth} onResize={setSidebarWidth} />
-
-                            <BattlefieldSidebar />
-
-                            <GameArrowOverlay containerRef={gameRef} dragPreview={arrows.dragPreview} />
-
-                            <BoxSelectOverlay preview={boxSelectPreview} />
-
-                            {!readOnly && <DeckSelectDialog />}
-
-                            {dialogs.zoneViews.map((v, idx) => (
-                              <ZoneViewDialog
-                                key={`${v.playerId}-${v.zoneName}`}
-                                isOpen
-                                playerId={v.playerId}
-                                zoneName={v.zoneName}
-                                handleClose={(shuffleOnClose) => dialogs.handleCloseZoneView(v.playerId, v.zoneName, shuffleOnClose)}
-                                initialPosition={{ x: 80 + idx * 36, y: 80 + idx * 36 }}
-                              />
-                            ))}
-
-                            <CardContextMenu />
-
-                            <ZoneContextMenu />
-
-                            <PlayerContextMenu />
-
-                            <HandContextMenu />
-
-                            {dialogs.prompt && (
-                              <PromptDialog
-                                isOpen
-                                title={dialogs.prompt.title}
-                                label={dialogs.prompt.label}
-                                initialValue={dialogs.prompt.initialValue}
-                                helperText={dialogs.prompt.helperText}
-                                validate={dialogs.prompt.validate}
-                                onSubmit={dialogs.prompt.onSubmit}
-                                onCancel={dialogs.closePrompt}
-                              />
-                            )}
-
-                            <RollDieDialog />
-
-                            <CreateTokenDialog />
-
-                            <SideboardDialog />
-
-                            <RevealCardsDialog />
-
-                            {/* Receiver-side popup: opens whenever an
-                        Event_RevealCards arrives with a populated
-                        card list (someone revealed a zone to us,
-                        or "to all players" including us). Reads /
-                        dismisses via the incomingReveal slice. */}
-                            {!readOnly && <IncomingRevealDialog />}
-
-                            <ConfirmDialog
-                              isOpen={dialogs.concedeConfirm === 'concede'}
-                              title="Concede this game?"
-                              message={CONCEDE_CONFIRM_MESSAGE}
-                              confirmLabel="Concede"
-                              destructive
-                              onConfirm={dialogs.confirmConcede}
-                              onCancel={dialogs.closeConcedeConfirm}
-                            />
-
-                            <ConfirmDialog
-                              isOpen={dialogs.concedeConfirm === 'unconcede'}
-                              title="Rejoin the game?"
-                              message="This undoes your concede and puts you back into the active player rotation."
-                              confirmLabel="Unconcede"
-                              onConfirm={dialogs.confirmUnconcede}
-                              onCancel={dialogs.closeConcedeConfirm}
-                            />
-
-                            <ConfirmDialog
-                              isOpen={dialogs.leaveConfirm}
-                              title="Leave this game?"
-                              message={LEAVE_CONFIRM_MESSAGE}
-                              confirmLabel="Leave"
-                              destructive
-                              onConfirm={dialogs.confirmLeave}
-                              onCancel={dialogs.closeLeaveConfirm}
-                            />
-
-                            <GameInfoDialog />
-
-                            {footer && <div className="game__footer">{footer}</div>}
-                          </div>
-                        </GameDialogsProvider>
-                      </GameDialogActionsProvider>
-                    </CardVisualStateProvider>
-                  </GameInteractionProvider>
-
-                  <CardDragOverlayHost />
-                </DndContext>
-              </CardScaleProvider>
-            </ForeignDragProvider>
-            <BigCardPreview />
+                    <CardDragOverlayHost />
+                  </DndContext>
+                </CardScaleProvider>
+              </ForeignDragProvider>
+              <BigCardPreview />
+            </SeatShortcutsProvider>
           </CardPreviewProvider>
         </GameIdProvider>
       </CardRegistryContext.Provider>
