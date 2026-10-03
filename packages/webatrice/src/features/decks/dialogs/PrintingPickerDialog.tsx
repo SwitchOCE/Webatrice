@@ -1,10 +1,12 @@
 import { useId } from 'react';
 import { CheckCircle2, CircleAlert, Loader2, X } from 'lucide-react';
 
+import { usePreference } from '@app/hooks';
 import type { PrintingSummary } from '@app/services';
 
 import { useCardPrintings } from '../hooks/useCardPrintings';
 import { useEscapeKey } from '../hooks/useEscapeKey';
+import { bumpPrintingsInDeck } from '../printingOrder';
 import { upgradeScryfallImageSize } from '../scryfallImage';
 import type { DeckCard } from '../types';
 import { DeckDialogFrame } from './DeckDialogFrame';
@@ -25,16 +27,23 @@ export interface PrintingRequest {
  */
 export function PrintingPickerDialog({
   request,
+  deckCards = [],
   onClose,
   onPick,
 }: {
   request: PrintingRequest | null;
+  /** The deck's cards, whose printings desktop's "Bump sets" option lists first. */
+  deckCards?: readonly DeckCard[];
   onClose: () => void;
   onPick: (printing: PrintingSummary) => void;
 }) {
   // Keyed on the card name, so a fresh `request` object for the same
   // card doesn't refetch.
-  const { printings, loading, error, prices } = useCardPrintings(request?.card.name);
+  const { printings: allPrintings, loading, error, prices } = useCardPrintings(request?.card.name);
+  const bumpSetsInDeck = usePreference('bumpSetsWithCardsInDeckToTop');
+  const printings = bumpSetsInDeck && request
+    ? bumpPrintingsInDeck(allPrintings, request.card.name, deckCards)
+    : allPrintings;
   useEscapeKey(request != null, onClose);
   const titleId = useId();
 

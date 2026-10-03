@@ -2285,7 +2285,8 @@
       "cardRendering": "Card rendering",
       "cardLayout": "Card layout",
       "cardCounters": "Card counters",
-      "menus": "Menu settings"
+      "menus": "Menu settings",
+      "cardPrintings": "Card printings"
     },
     "themeMode": {
       "label": "Active theme palette",
@@ -2348,6 +2349,9 @@
     },
     "showShortcutsInMenus": {
       "label": "Show keyboard shortcuts in right-click menus"
+    },
+    "bumpSetsWithCardsInDeckToTop": {
+      "label": "Bump sets that the deck contains cards from to the top in the printing selector"
     }
   },
   "SettingsCardSources": {

@@ -23,6 +23,17 @@ export const appearanceSection: SettingsSection = {
       ],
     },
     {
+      id: 'appearance.cardPrintings',
+      titleKey: 'SettingsAppearance.group.cardPrintings',
+      entries: [
+        {
+          id: 'bumpSetsWithCardsInDeckToTop',
+          labelKey: 'SettingsAppearance.bumpSetsWithCardsInDeckToTop.label',
+          control: { kind: 'toggle', key: 'bumpSetsWithCardsInDeckToTop' },
+        },
+      ],
+    },
+    {
       id: 'appearance.cardRendering',
       titleKey: 'SettingsAppearance.group.cardRendering',
       entries: [
