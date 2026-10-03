@@ -5,6 +5,7 @@ import { CardDTO } from '../../../../services/dexie/DexieDTOs/CardDTO';
 import type { GameDialogsActions, HandSortKey } from './gameDialogs.types';
 import type { GameDialogEnv } from './gameDialogEnv';
 import type { GameDialogSetters } from './useGameDialogState';
+import { revealRecipient } from '../../dialogs/RevealCardsDialog/revealRecipient';
 
 export type HandDialogActions = Pick<
   GameDialogsActions,
@@ -98,7 +99,7 @@ export function useHandDialogActions({
       onSubmit: ({ targetPlayerId }) => {
         webClient.request.game.revealCards(gameId, {
           zoneName: ZoneName.HAND,
-          playerId: targetPlayerId,
+          ...revealRecipient(targetPlayerId),
           topCards: -1,
         });
         setRevealState(null);
@@ -256,7 +257,7 @@ export function useHandDialogActions({
         webClient.request.game.revealCards(gameId, {
           zoneName: ZoneName.HAND,
           cardId: [RANDOM_CARD_FROM_ZONE],
-          playerId: targetPlayerId,
+          ...revealRecipient(targetPlayerId),
           topCards: -1,
         });
         setRevealState(null);

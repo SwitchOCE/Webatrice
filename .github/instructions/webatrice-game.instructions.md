@@ -51,7 +51,7 @@ Port of `table_zone.cpp:153-185`.
 ## Dialog parity
 
 - **CreateTokenDialog** color dropdown: `White → Blue → Black → Red → Green → Multicolor → Colorless`, default White. Matches desktop `DlgCreateToken`.
-- **RevealCardsDialog**: `targetPlayerId === -1` means "all players"; `topCards === -1` means "all cards in the zone". Desktop convention for full-hand / full-grave reveals.
+- **RevealCardsDialog**: `targetPlayerId === -1` means "all players"; `topCards === -1` means "all cards in the zone". Desktop convention for full-hand / full-grave reveals. On the wire, "all players" **omits** `player_id` (`revealRecipient`): it is proto2 with default -1, protobuf-es serialises an explicit -1, and Servatrice answers a present `player_id` naming no player with `RespNameNotFound`.
 - **Move-to-library-at-position prompt is 1-indexed.** Desktop's `DlgMoveCard` collects a 1-indexed position from the user and subtracts 1 before sending `Command_MoveCard.x`. The server speaks 0-indexed; off-by-one regressions silently land cards one slot away.
 - **`Command_RevealCards.cardId = [-2]` is the desktop `RANDOM_CARD_FROM_ZONE` sentinel.** Servatrice resolves it server-side to a uniformly-random card in the named zone. Used for "Reveal Random Hand Card" and "Reveal Random Graveyard Card".
 - **Card move-to-zone menu is the desktop 7-entry list.** `CARD_MOVE_TARGETS` in `useCardContextMenu` mirrors `move_menu.cpp:32-42`: Hand, Battlefield (`x=0,y=0`), Graveyard, Exile, Library top (`x=0`), Library bottom (`x=-1`), plus the "Move to library at position…" prompt. Wire payloads must stay identical — labels may diverge ("Battlefield" vs desktop's "Table").

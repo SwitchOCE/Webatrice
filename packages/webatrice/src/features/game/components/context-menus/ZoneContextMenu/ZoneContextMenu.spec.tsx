@@ -95,7 +95,7 @@ describe('ZoneContextMenu', () => {
       });
     });
 
-    it('dispatches revealCards(topCards=1, playerId=-1) on "Reveal top card to all"', () => {
+    it('dispatches revealCards(topCards=1) without a player on "Reveal top card to all"', () => {
       const webClient = createMockWebClient();
       renderMenu({ webClient });
 
@@ -103,7 +103,6 @@ describe('ZoneContextMenu', () => {
 
       expect(webClient.request.game.revealCards).toHaveBeenCalledWith(1, {
         zoneName: ZoneName.DECK,
-        playerId: -1,
         topCards: 1,
       });
     });
