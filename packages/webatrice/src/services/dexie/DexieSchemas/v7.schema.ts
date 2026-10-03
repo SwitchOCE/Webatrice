@@ -1,24 +1,30 @@
 import Dexie, { type Transaction } from 'dexie';
 
 import { defaultSetOrder, isKnownIgnored, setCode } from '../../cardDatabase/setPriority';
-import type { Card, CardSource, Format, Info, Set, SetPreference, Token } from '../types';
+import { LEGACY_SOURCE_ID, type CardSource, type Info, type Set, type SetPreference } from '../types';
 import { Stores } from './v2.schema';
 
-export const LEGACY_SOURCE_ID = 'legacy';
+export { LEGACY_SOURCE_ID };
 
 /**
  * v7 upgrade. Existing installs already hold imported cards but no record of
- * where they came from: wrap them in a `legacy` source so the first rebuild
- * keeps them, and seed set preferences the way desktop's first run does
- * (`guessSortKeys` + `enableAll`) so art priority works immediately.
+ * where they came from: add a `legacy` source that stands for them, and seed
+ * set preferences the way desktop's first run does (`guessSortKeys` +
+ * `enableAll`) so art priority works immediately.
+ *
+ * The legacy source is only a marker (counts and info). Copying the cards into
+ * it here would hold the whole database in memory and write it as one value
+ * inside the versionchange transaction, where a failed write leaves the
+ * database unopenable. The first rebuild reads its records from the card
+ * tables instead (`CardDatabaseService`).
  */
 export async function migrateToV7(tx: Transaction): Promise<void> {
-  const [cards, sets, tokens, formats, infos] = await Promise.all([
-    tx.table<Card>(Stores.CARDS).toArray(),
+  const [cards, sets, tokens, formats, info] = await Promise.all([
+    tx.table(Stores.CARDS).count(),
     tx.table<Set>(Stores.SETS).toArray(),
-    tx.table<Token>(Stores.TOKENS).toArray(),
-    tx.table<Format>(Stores.FORMATS).toArray(),
-    tx.table<Info>(Stores.INFO).toArray(),
+    tx.table(Stores.TOKENS).count(),
+    tx.table(Stores.FORMATS).count(),
+    tx.table<Info>(Stores.INFO).toCollection().first(),
   ]);
 
   if (sets.length) {
@@ -31,8 +37,7 @@ export async function migrateToV7(tx: Transaction): Promise<void> {
     await tx.table<SetPreference>(Stores.SET_PREFERENCES).bulkPut(preferences);
   }
 
-  if (cards.length || sets.length || tokens.length || formats.length) {
-    const info = infos[0];
+  if (cards || sets.length || tokens || formats) {
     const source: CardSource = {
       id: LEGACY_SOURCE_ID,
       kind: 'legacy',
@@ -40,8 +45,7 @@ export async function migrateToV7(tx: Transaction): Promise<void> {
       origin: 'migration',
       order: 0,
       importedAt: info?.importedAt ?? new Date().toISOString(),
-      counts: { cards: cards.length, sets: sets.length, tokens: tokens.length, formats: formats.length },
-      records: { cards, sets, tokens, formats, info },
+      counts: { cards, sets: sets.length, tokens, formats },
       sourceVersion: info?.sourceVersion,
       author: info?.author,
       createdAt: info?.createdAt,
@@ -56,6 +60,7 @@ export const schemaV7 = (db: Dexie) => {
   db.version(7)
     .stores({
       [Stores.CARD_SOURCES]: 'id',
+      [Stores.CARD_SOURCE_PAYLOADS]: 'id',
       [Stores.SET_PREFERENCES]: 'code',
       [Stores.CARD_DATA_SETTINGS]: 'id',
     })

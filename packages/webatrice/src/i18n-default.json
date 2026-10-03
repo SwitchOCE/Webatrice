@@ -1709,6 +1709,7 @@
       "formats": "Formats",
       "info": "Card database info",
       "cardSources": "Loaded card files",
+      "cardSourcePayloads": "Loaded card file contents",
       "setPreferences": "Set preferences",
       "cardDataSettings": "Picture download settings",
       "scryfallCache": "Scryfall card cache",

@@ -10,6 +10,7 @@ import {
   type CardSource,
   type CardSourceKind,
   type CardSourceOrigin,
+  type CardSourcePayload,
   type CardSourceRecords,
   type Info,
   type Set,
@@ -58,6 +59,15 @@ export interface NewSourceInput {
   kind?: CardSourceKind;
 }
 
+/** A parsed source not stored yet: its listing row and its contents. */
+export interface PendingSource {
+  source: CardSource;
+  payload: CardSourcePayload;
+}
+
+/** The files a pre-v7 import could hold; once all three are re-imported it has nothing left to add. */
+const LEGACY_FILE_KINDS: readonly CardSourceKind[] = ['main', 'tokens', 'spoiler'];
+
 export type UnknownSetsAnswer = 'enable' | 'enable-always' | 'keep-disabled';
 
 function countsOf(records: CardSourceRecords) {
@@ -80,12 +90,6 @@ function parseRecords(xml: string): CardSourceRecords {
   };
 }
 
-/** Strips the stored XML so listings don't hold whole databases in memory. */
-function withoutPayload(source: CardSource): CardSource {
-  const { xml: _xml, records: _records, ...meta } = source;
-  return meta;
-}
-
 /**
  * Owns the card database the way desktop's `CardDatabaseLoader` does: a list
  * of sources (files or URLs) folded in load order into the `cards` / `sets` /
@@ -97,8 +101,8 @@ class CardDatabaseService {
   // import time; the main cards.xml is large and rarely changes.
   private parsedCache = new Map<string, { importedAt: string; records: CardSourceRecords }>();
 
-  /** Parse (and so validate) XML into a source row ready for `applySources`. */
-  createSource(input: NewSourceInput, existing: readonly CardSource[]): CardSource {
+  /** Parse (and so validate) XML into a source ready for `applySources`. */
+  createSource(input: NewSourceInput, existing: readonly CardSource[]): PendingSource {
     const kind = input.kind ?? sourceKindForFile(input.fileName);
     const order = kind === 'custom' ? nextCustomOrder(existing) : 0;
     const records = parseRecords(input.xml);
@@ -106,31 +110,32 @@ class CardDatabaseService {
     const id = sourceIdFor(kind, input.fileName, order);
     this.parsedCache.set(id, { importedAt, records });
     return {
-      id,
-      kind,
-      fileName: input.fileName,
-      origin: input.origin,
-      url: input.url,
-      order,
-      importedAt,
-      counts: countsOf(records),
-      xml: input.xml,
-      sourceVersion: records.info?.sourceVersion,
-      author: records.info?.author,
-      createdAt: records.info?.createdAt,
+      source: {
+        id,
+        kind,
+        fileName: input.fileName,
+        origin: input.origin,
+        url: input.url,
+        order,
+        importedAt,
+        counts: countsOf(records),
+        sourceVersion: records.info?.sourceVersion,
+        author: records.info?.author,
+        createdAt: records.info?.createdAt,
+      },
+      payload: { id, xml: input.xml },
     };
   }
 
-  /** Every source, in load order, without its payload. */
+  /** Every source, in load order. Their contents live in another table, so this stays small. */
   async listSources(): Promise<CardSource[]> {
-    const sources = await CardSourceDTO.getAll();
-    return sortSourcesByLoadOrder(sources.map(withoutPayload));
+    return sortSourcesByLoadOrder(await CardSourceDTO.getAll());
   }
 
   /** Whether a source already holds exactly this file (desktop compares hashes). */
   async hasSourceXml(id: string, xml: string): Promise<boolean> {
-    const source = await CardSourceDTO.get(id);
-    return source?.xml === xml;
+    const payload = await CardSourceDTO.getPayload(id);
+    return payload?.xml === xml;
   }
 
   async summary(): Promise<CardDatabaseSummary> {
@@ -146,9 +151,9 @@ class CardDatabaseService {
   /** Parse and add files/downloads, replacing same-named sources, then rebuild. */
   async addSources(inputs: readonly NewSourceInput[]): Promise<RebuildResult> {
     const existing = await CardSourceDTO.getAll();
-    const added: CardSource[] = [];
+    const added: PendingSource[] = [];
     for (const input of inputs) {
-      added.push(this.createSource(input, [...existing, ...added]));
+      added.push(this.createSource(input, [...existing, ...added.map((pending) => pending.source)]));
     }
     return this.applySources(added, []);
   }
@@ -164,54 +169,106 @@ class CardDatabaseService {
     return this.applySources([], []);
   }
 
-  private recordsOf(source: CardSource): CardSourceRecords {
-    if (source.records) {
-      return source.records;
-    }
+  /**
+   * A stored source's records. A `legacy` source without a payload stands for
+   * what the card tables held at the v7 upgrade, which they still hold until
+   * this first rebuild: read them back (minus the editor tokens written there
+   * since) and return them as the payload to store.
+   */
+  private async recordsOf(source: CardSource, pending?: CardSourcePayload): Promise<{
+    records: CardSourceRecords;
+    materialized?: CardSourcePayload;
+  }> {
     const cached = this.parsedCache.get(source.id);
     if (cached && cached.importedAt === source.importedAt) {
-      return cached.records;
+      return { records: cached.records };
     }
-    const records = parseRecords(source.xml ?? '');
+    const payload = pending ?? await CardSourceDTO.getPayload(source.id);
+    if (!payload && source.kind === 'legacy') {
+      // Not cached: until the payload is stored, every rebuild must store it.
+      const records = await this.readLegacyTables();
+      return { records, materialized: { id: source.id, records } };
+    }
+    const records = payload?.records ?? parseRecords(payload?.xml ?? '');
     this.parsedCache.set(source.id, { importedAt: source.importedAt, records });
-    return records;
+    return { records };
   }
 
-  private async applySources(added: readonly CardSource[], removedIds: readonly string[]): Promise<RebuildResult> {
-    const [stored, preferences, settings] = await Promise.all([
-      CardSourceDTO.getAll(),
-      SetPreferenceDTO.getAll(),
-      CardDataSettingsDTO.get(),
+  private async readLegacyTables(): Promise<CardSourceRecords> {
+    const [cards, sets, tokens, formats, info, userTokens] = await Promise.all([
+      dexieService.cards.toArray() as Promise<CardSourceRecords['cards']>,
+      dexieService.sets.toArray() as Promise<Set[]>,
+      dexieService.tokens.toArray() as Promise<Token[]>,
+      dexieService.formats.toArray() as Promise<CardSourceRecords['formats']>,
+      dexieService.info.toCollection().first() as Promise<Info | undefined>,
+      CardSourceDTO.getPayload(CardSourceId.USER_TOKENS),
     ]);
+    const editorTokens = new globalThis.Set((userTokens?.records?.tokens ?? []).map((token) => token.name.value));
+    return {
+      cards,
+      sets,
+      tokens: tokens.filter((token) => !editorTokens.has(token.name.value)),
+      formats,
+      info,
+    };
+  }
 
-    const replaced = new globalThis.Set<string>([...removedIds, ...added.map((s) => s.id)]);
-    // A fresh cards.xml supersedes what a pre-v7 install imported.
-    if (added.some((s) => s.kind === 'main')) {
-      replaced.add(sourceIdFor('legacy', '', 0));
-    }
-    const sources = sortSourcesByLoadOrder([...stored.filter((s) => !replaced.has(s.id)), ...added]);
+  /**
+   * Re-derive the card tables from the stored sources with `added` replacing
+   * same-id sources and `removedIds` dropped. Reads, merge and writes share one
+   * transaction, so two quick changes cannot overwrite each other's sources.
+   */
+  private async applySources(added: readonly PendingSource[], removedIds: readonly string[]): Promise<RebuildResult> {
+    const result = await dexieService.cardDataTransaction(async () => {
+      const [stored, preferences, settings] = await Promise.all([
+        CardSourceDTO.getAll(),
+        SetPreferenceDTO.getAll(),
+        CardDataSettingsDTO.get(),
+      ]);
 
-    // Parse before the transaction: IndexedDB commits a transaction that
-    // waits on anything but its own requests.
-    const merged = mergeCardSources(sources.map((s) => this.recordsOf(s)));
-    const reconciliation = reconcileSetPreferences(
-      merged.sets,
-      new Map(preferences.map((p) => [p.code, p])),
-      settings.alwaysEnableNewSets,
-    );
-    const mainSource = sources.find((s) => s.kind === 'main' || s.kind === 'legacy');
-    const info: Info | undefined = merged.info && mainSource
-      ? {
-        ...merged.info,
-        source: mainSource.origin === 'url' ? 'remote' : 'oracle-local-fs',
-        sourceUrl: mainSource.url ?? merged.info.sourceUrl,
-        importedAt: mainSource.importedAt,
+      const replaced = new globalThis.Set<string>([...removedIds, ...added.map((pending) => pending.source.id)]);
+      let sources = sortSourcesByLoadOrder([
+        ...stored.filter((s) => !replaced.has(s.id)),
+        ...added.map((pending) => pending.source),
+      ]);
+      // A pre-v7 import was made of cards.xml, tokens.xml and spoiler.xml; once
+      // each has been imported again it holds nothing the new sources lack.
+      if (LEGACY_FILE_KINDS.every((kind) => sources.some((s) => s.kind === kind))) {
+        replaced.add(CardSourceId.LEGACY);
+        this.parsedCache.delete(CardSourceId.LEGACY);
+        sources = sources.filter((s) => s.id !== CardSourceId.LEGACY);
       }
-      : undefined;
 
-    await dexieService.cardDataTransaction(async () => {
+      const pendingPayloads = new Map(added.map((pending) => [pending.source.id, pending.payload]));
+      const layers: CardSourceRecords[] = [];
+      const materialized: CardSourcePayload[] = [];
+      for (const source of sources) {
+        const loaded = await this.recordsOf(source, pendingPayloads.get(source.id));
+        layers.push(loaded.records);
+        if (loaded.materialized) {
+          materialized.push(loaded.materialized);
+        }
+      }
+
+      const merged = mergeCardSources(layers);
+      const reconciliation = reconcileSetPreferences(
+        merged.sets,
+        new Map(preferences.map((p) => [p.code, p])),
+        settings.alwaysEnableNewSets,
+      );
+      const mainSource = sources.find((s) => s.kind === 'main' || s.kind === 'legacy');
+      const info: Info | undefined = merged.info && mainSource
+        ? {
+          ...merged.info,
+          source: mainSource.origin === 'url' ? 'remote' : 'oracle-local-fs',
+          sourceUrl: mainSource.url ?? merged.info.sourceUrl,
+          importedAt: mainSource.importedAt,
+        }
+        : undefined;
+
       await Promise.all([
         dexieService.cardSources.bulkDelete([...replaced]),
+        dexieService.cardSourcePayloads.bulkDelete([...replaced]),
         dexieService.cards.clear(),
         dexieService.sets.clear(),
         dexieService.tokens.clear(),
@@ -219,7 +276,8 @@ class CardDatabaseService {
         dexieService.info.clear(),
       ]);
       await Promise.all([
-        dexieService.cardSources.bulkPut([...added]),
+        dexieService.cardSources.bulkPut(added.map((pending) => pending.source)),
+        dexieService.cardSourcePayloads.bulkPut([...added.map((pending) => pending.payload), ...materialized]),
         dexieService.cards.bulkPut(merged.cards),
         dexieService.sets.bulkPut(merged.sets),
         dexieService.tokens.bulkPut(merged.tokens),
@@ -227,14 +285,16 @@ class CardDatabaseService {
         info ? dexieService.info.put(info) : Promise.resolve(),
         dexieService.setPreferences.bulkPut(reconciliation.changed),
       ]);
+
+      return {
+        summary: countsOf(merged),
+        unknownSets: reconciliation.unknownSets,
+        allNewSetsEnabled: reconciliation.allNewSetsEnabled,
+      };
     });
 
     await refreshCardDataPreferences();
-    return {
-      summary: countsOf(merged),
-      unknownSets: reconciliation.unknownSets,
-      allNewSetsEnabled: reconciliation.allNewSetsEnabled,
-    };
+    return result;
   }
 
   /** Answer desktop's "New sets found" prompt. */
@@ -292,8 +352,8 @@ class CardDatabaseService {
   // ---- Custom tokens (dlg_edit_tokens) ----
 
   async getCustomTokens(): Promise<Token[]> {
-    const source = await CardSourceDTO.get(CardSourceId.USER_TOKENS);
-    return source?.records?.tokens ?? [];
+    const payload = await CardSourceDTO.getPayload(CardSourceId.USER_TOKENS);
+    return payload?.records?.tokens ?? [];
   }
 
   /** True when a card or token with this name is already loaded. */
@@ -321,7 +381,6 @@ class CardDatabaseService {
       order: 0,
       importedAt: new Date().toISOString(),
       counts: countsOf(records),
-      records,
     };
     await dexieService.cardDataTransaction(async () => {
       await dexieService.tokens.bulkDelete([...removedNames]);
@@ -330,7 +389,9 @@ class CardDatabaseService {
         await dexieService.sets.put(CUSTOM_TOKEN_SET);
       }
       await dexieService.cardSources.put(source);
+      await dexieService.cardSourcePayloads.put({ id: source.id, records } satisfies CardSourcePayload);
     });
+    this.parsedCache.delete(source.id);
   }
 }
 

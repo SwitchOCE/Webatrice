@@ -49,6 +49,7 @@ beforeEach(async () => {
     dexieService.formats.clear(),
     dexieService.info.clear(),
     dexieService.cardSources.clear(),
+    dexieService.cardSourcePayloads.clear(),
     dexieService.setPreferences.clear(),
     dexieService.cardDataSettings.clear(),
   ]);
@@ -172,13 +173,14 @@ async function expectMigratedCardData(db: Dexie) {
   ]);
   const legacy = await db.table('cardSources').get('legacy');
   expect(legacy).toMatchObject({ kind: 'legacy', origin: 'migration', counts: { cards: 1, sets: 2, tokens: 0, formats: 0 } });
-  expect(legacy.records.cards[0].name.value).toBe('Counterspell');
-  // Earlier tables are untouched by the upgrade.
+  // Only a marker: the upgrade copies no cards. Earlier tables are untouched.
+  expect(legacy.records).toBeUndefined();
+  expect(await db.table('cardSourcePayloads').count()).toBe(0);
   expect(await db.table('cards').count()).toBe(1);
 }
 
 describe('Dexie v7 migration (real IndexedDB)', () => {
-  it('upgrades a v6 install, keeping its cards through the next rebuild and its settings row', async () => {
+  it('upgrades a v6 install, keeping its settings row', async () => {
     const name = `migration-v6-${Date.now()}`;
     const v6 = await openAt(name, 6);
     await seedCardData(v6);
@@ -205,13 +207,118 @@ describe('Dexie v7 migration (real IndexedDB)', () => {
     await Dexie.delete(name);
   });
 
-  it('opens an empty database straight at v7 with no legacy source', async () => {
-    const name = `migration-fresh-${Date.now()}`;
+  it('adds no legacy source to an install that never imported cards', async () => {
+    const name = `migration-empty-${Date.now()}`;
+    const v6 = await openAt(name, 6);
+    await v6.table('settings').put({ user: '*app', autoConnect: true });
+    v6.close();
+
     const v7 = await openAt(name, 7);
     expect(v7.verno).toBe(7);
     expect(await v7.table('cardSources').count()).toBe(0);
     expect(await v7.table('setPreferences').count()).toBe(0);
     v7.close();
     await Dexie.delete(name);
+  });
+});
+
+// DexieService's database name.
+const APP_DB = 'Webatrice';
+
+const legacyTokensXml = `<?xml version="1.0" encoding="UTF-8"?>
+<cockatrice_carddatabase version="4">
+  <sets><set><name>TOK</name><longname>Tokens</longname><settype>Tokens</settype></set></sets>
+  <cards><card><name>Goblin</name><text>updated</text><token>1</token><set>TOK</set></card></cards>
+</cockatrice_carddatabase>`;
+
+/**
+ * Rebuilds the app's own database as a v6 install left it: before v7, cards.xml, tokens.xml and
+ * spoiler.xml were all imported into the same tables. The next query reopens it and runs the
+ * real v7 upgrade.
+ */
+async function installPreV7CardData() {
+  await Dexie.delete(APP_DB);
+  const v6 = await openAt(APP_DB, 6);
+  await v6.table('sets').bulkPut([
+    { name: { value: 'LEA' }, longname: { value: 'Alpha' }, releasedate: { value: '1993-08-05' } },
+    { name: { value: 'NEW' }, longname: { value: 'Upcoming' }, releasedate: { value: '2027-01-01' } },
+    { name: { value: 'TOK' }, longname: { value: 'Tokens' }, settype: { value: 'Tokens' } },
+  ]);
+  await v6.table('cards').bulkPut([
+    { name: { value: 'Lightning Bolt' }, text: { value: 'old' }, set: { value: 'LEA', uuid: 'a' } },
+    { name: { value: 'Spoiled Card' }, set: { value: 'NEW', uuid: 's' } },
+  ]);
+  await v6.table('tokens').put({ name: { value: 'Goblin' }, text: { value: 'old' }, set: { value: 'TOK' } });
+  await v6.table('info').put({ id: 'singleton', source: 'oracle-local-fs', importedAt: '2026-01-01T00:00:00.000Z', sourceVersion: '5.0' });
+  v6.close();
+}
+
+describe('rebuilding after the v7 migration (real IndexedDB)', () => {
+  beforeEach(installPreV7CardData);
+
+  it('keeps every migrated card, token and spoiler through a reload', async () => {
+    expect((await cardDatabaseService.listSources()).map((s) => s.id)).toEqual(['legacy']);
+
+    const result = await cardDatabaseService.reload();
+
+    expect(result.summary).toEqual({ cards: 2, sets: 3, tokens: 1, formats: 0 });
+    expect(await dexieService.cardSourcePayloads.get('legacy')).toBeDefined();
+    // A second rebuild reads the stored payload, not the tables the first one wrote.
+    await dexieService.cards.clear();
+    expect((await cardDatabaseService.reload()).summary).toEqual({ cards: 2, sets: 3, tokens: 1, formats: 0 });
+    expect(await cardNamed('Spoiled Card')).toBeDefined();
+  });
+
+  it('importing only cards.xml takes over its cards and keeps the migrated tokens and spoilers', async () => {
+    await cardDatabaseService.addSources([{ fileName: 'cards.xml', xml: cardsXml, origin: 'file' }]);
+
+    expect((await cardNamed('Lightning Bolt')).text.value).toBe('main');
+    expect(await cardNamed('Spoiled Card')).toBeDefined();
+    expect(await dexieService.tokens.get('Goblin')).toBeDefined();
+    expect((await cardDatabaseService.listSources()).map((s) => s.id)).toEqual(['main', 'legacy']);
+
+    await cardDatabaseService.reload();
+    expect(await cardNamed('Spoiled Card')).toBeDefined();
+    expect(await dexieService.tokens.get('Goblin')).toBeDefined();
+  });
+
+  it('Update tokens replaces a migrated token', async () => {
+    await cardDatabaseService.addSources([{ fileName: 'tokens.xml', xml: legacyTokensXml, origin: 'url' }]);
+
+    expect((await dexieService.tokens.get('Goblin')).text.value).toBe('updated');
+    expect((await cardNamed('Lightning Bolt')).text.value).toBe('old');
+  });
+
+  it('drops the migrated data once cards.xml, tokens.xml and spoiler.xml are all imported again', async () => {
+    await cardDatabaseService.addSources([
+      { fileName: 'cards.xml', xml: cardsXml, origin: 'file' },
+      { fileName: 'tokens.xml', xml: legacyTokensXml, origin: 'file' },
+      { fileName: 'spoiler.xml', xml: spoilerXml, origin: 'file' },
+    ]);
+
+    expect((await cardDatabaseService.listSources()).map((s) => s.id)).toEqual(['main', 'tokens', 'spoiler']);
+    expect(await dexieService.cardSourcePayloads.get('legacy')).toBeUndefined();
+    expect(await cardNamed('Spoiled Card')).toBeUndefined();
+  });
+
+  it('removing the migrated data keeps what was imported since', async () => {
+    await cardDatabaseService.addSources([{ fileName: 'cards.xml', xml: cardsXml, origin: 'file' }]);
+    await cardDatabaseService.removeSource('legacy');
+
+    expect((await cardDatabaseService.listSources()).map((s) => s.id)).toEqual(['main']);
+    expect(await cardNamed('Spoiled Card')).toBeUndefined();
+    expect((await cardNamed('Lightning Bolt')).text.value).toBe('main');
+  });
+
+  it('does not fold editor tokens into the migrated data', async () => {
+    const spirit = { name: { value: 'Spirit' }, set: { value: 'TK' }, token: { value: '1' } };
+    await cardDatabaseService.saveCustomTokens([spirit]);
+    await cardDatabaseService.reload();
+    expect((await dexieService.cardSourcePayloads.get('legacy')).records.tokens.map((t: { name: { value: string } }) => t.name.value))
+      .toEqual(['Goblin']);
+
+    await cardDatabaseService.saveCustomTokens([], ['Spirit']);
+    await cardDatabaseService.reload();
+    expect(await dexieService.tokens.get('Spirit')).toBeUndefined();
   });
 });
