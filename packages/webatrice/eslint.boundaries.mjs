@@ -5,7 +5,10 @@ const elements = [
   { type: 'dialogs', pattern: ['src/dialogs/**'] },
   { type: 'feature-widgets', pattern: ['src/feature-widgets/**'] },
   { type: 'feature-wrappers', pattern: ['src/feature-wrappers/**'] },
-  { type: 'features', pattern: ['src/features/**'] },
+  // One element per feature folder. Capturing the folder name lets the rules
+  // tell `features/game` from `features/decks`; without it every feature is the
+  // same element and feature-to-feature imports go unchecked.
+  { type: 'features', pattern: ['src/features/*'], capture: ['feature'] },
   { type: 'hooks', pattern: ['src/hooks/**'] },
   { type: 'images', pattern: ['src/images/**'] },
   { type: 'services', pattern: ['src/services/**'] },
@@ -51,10 +54,11 @@ const rules = [
   },
 
   // Features are vertical slices: they pull from root-level shared assets but nothing
-  // pulls from them except the root AppShell. Features may import other features only
-  // implicitly via the containers that compose them. Features may also compose
-  // feature-widgets (one-way: features → feature-widgets, never the reverse). Features
-  // also pull from `feature-wrappers` for the page chrome (Layout, etc.).
+  // pulls from them except the root AppShell. Each feature folder is its own element,
+  // so imports inside a feature are internal and imports between features are errors —
+  // shared capabilities move to a root owner instead. Features may also compose
+  // feature-widgets (one-way: features → feature-widgets, never the reverse) and pull
+  // from `feature-wrappers` for the page chrome (Layout, etc.).
   {
     from: { type: 'features' },
     allow: types('components', 'dialogs', 'feature-widgets', 'hooks', 'images', 'services', 'feature-wrappers', 'store', 'types', 'utils')

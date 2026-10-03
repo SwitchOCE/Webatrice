@@ -44,7 +44,7 @@ Enforced by [eslint.boundaries.mjs](../../packages/webatrice/eslint.boundaries.m
 
 - `feature-widgets/` — multi-file capabilities composed by ≥2 features (known-hosts, shortcuts, card-import). Pull from root layers; never from features or other widgets.
 - `feature-wrappers/` — page-chrome wrappers (currently `layout/`, holding Layout + TopBar). Composes feature-widgets; consumed by features. Chrome that must trigger feature work (e.g. dropping deck caches on an identity change) reports it through `ShellLifecycleContext`; `AppShell` supplies the feature-side implementation.
-- `features/` — vertical slices, one per route. Pull from root layers + `feature-wrappers` + `feature-widgets`. Only `AppShell` pulls from features.
+- `features/` — vertical slices, one per route. Pull from root layers + `feature-wrappers` + `feature-widgets`. Only `AppShell` pulls from features, and a feature never imports another feature (each `src/features/<name>` folder is its own boundary element); a capability two features need moves to a root owner (e.g. `services/cards`, `services/decks`).
 - Shortcuts persistence lives in the feature layer (not a store listener) because boundaries forbid `store/* → hooks/*`. Anything that needs to bridge persistence into Redux belongs in a feature hook.
 
 ### UI → server layering invariant
