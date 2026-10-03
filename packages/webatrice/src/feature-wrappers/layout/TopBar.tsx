@@ -21,6 +21,7 @@ import { DebugLogDialog } from '@app/dialogs';
 import { RouteEnum } from '@app/types';
 import { CardImportDialog } from '@app/feature-widgets/card-import';
 
+import LatencyStatus from './LatencyStatus';
 import { useShellLifecycle } from './ShellLifecycleContext';
 import { UserMenuDialog, visibleUserMenuEntries, type CapabilityCheck } from './userMenuEntries';
 
@@ -390,6 +391,7 @@ export default function TopBar() {
 
         {/* Right cluster */}
         <div className="flex items-center gap-2 shrink-0 pl-3 pr-4">
+          <LatencyStatus />
           <button
             onClick={() => navigate(generatePath(RouteEnum.DECKS))}
             className={[
