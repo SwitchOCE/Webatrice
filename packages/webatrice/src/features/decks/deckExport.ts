@@ -84,6 +84,7 @@ export function exportDeck(deck: HydratedDeck, format: DeckExportFormat): string
         cards: deck.cards,
         format: deck.format,
         bannerCard: deck.bannerCard,
+        bannerCardProviderId: deck.bannerCardProviderId,
         lastLoadedTimestamp: deck.lastLoadedTimestamp,
         tagsXml: deck.tagsXml,
       });

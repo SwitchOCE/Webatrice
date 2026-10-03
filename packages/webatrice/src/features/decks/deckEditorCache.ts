@@ -10,13 +10,15 @@ import type { HydratedDeck } from './types';
  * Scryfall lookups run again.
  *
  * Entries mirror the in-editor deck (including unsaved edits) plus the
- * last-known-saved XML, so the autosave dirty check keeps working after a
- * remount. Dropped by MyDecks' Refresh (`clearDeckEditorCache`), by a
- * delete (`deleteCachedDeck`), and at a session boundary (`onSessionEnd`).
+ * signature of the last save the server acknowledged (`deckSaveSignature`),
+ * so the autosave dirty check keeps working after a remount. Dropped by
+ * MyDecks' Refresh (`clearDeckEditorCache`), by a delete
+ * (`deleteCachedDeck`), and at a session boundary (`onSessionEnd`).
  */
 export interface CachedDeck {
   deck: HydratedDeck;
-  savedXml: string;
+  /** `null` when the stored file still needs rewriting (format/zone migration). */
+  savedSignature: string | null;
 }
 
 const deckCache: Map<number, CachedDeck> = new Map();

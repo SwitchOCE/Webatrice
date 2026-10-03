@@ -1,5 +1,5 @@
-import { Check, CircleAlert, Loader2, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Check, CircleAlert, Loader2, Upload } from 'lucide-react';
 
 import type { SaveState } from '../../hooks/useDeckAutosave';
 import type { PriceLookup } from '../../pricing';
@@ -11,6 +11,8 @@ import { DeckCardPreview } from './DeckCardPreview';
 export interface DeckSidebarProps {
   deck: HydratedDeck;
   saveState: SaveState;
+  /** Re-send the deck after a failed save. */
+  onRetrySave: () => void;
   totalMainboardCount: number;
   totalSideboardCount: number;
   onNameChange: (name: string) => void;
@@ -28,6 +30,7 @@ export interface DeckSidebarProps {
 export function DeckSidebar({
   deck,
   saveState,
+  onRetrySave,
   totalMainboardCount,
   totalSideboardCount,
   onNameChange,
@@ -57,7 +60,7 @@ export function DeckSidebar({
           {totalSideboardCount > 0 && <> · {totalSideboardCount} sideboard</>}
         </div>
         <div className="text-xs mt-1">
-          <SaveIndicator state={saveState} />
+          <SaveIndicator state={saveState} onRetry={onRetrySave} />
         </div>
 
         <div className="mt-3">
@@ -101,16 +104,8 @@ export function DeckSidebar({
   );
 }
 
-function SaveFailedIndicator() {
+function SaveIndicator({ state, onRetry }: { state: SaveState; onRetry: () => void }) {
   const { t } = useTranslation();
-  return (
-    <span role="status" className="inline-flex items-center gap-1 text-danger" title={t('DeckEditor.saveFailedHint')}>
-      <CircleAlert size={10} /> {t('DeckEditor.saveFailed')}
-    </span>
-  );
-}
-
-function SaveIndicator({ state }: { state: SaveState }) {
   switch (state) {
     case 'saving':
       return (
@@ -120,12 +115,19 @@ function SaveIndicator({ state }: { state: SaveState }) {
       );
     case 'dirty':
       return <span className="text-warning">Unsaved changes</span>;
-    case 'failed':
-      return <SaveFailedIndicator />;
     case 'saved':
       return (
         <span className="inline-flex items-center gap-1 text-success">
           <Check size={10} /> Saved
+        </span>
+      );
+    case 'failed':
+      return (
+        <span className="inline-flex items-center gap-1.5 text-danger" role="alert" title={t('DeckSidebar.saveFailedHint')}>
+          <CircleAlert size={10} /> {t('DeckSidebar.saveFailed')}
+          <button type="button" onClick={onRetry} className="underline hover:text-danger/80">
+            {t('DeckSidebar.retrySave')}
+          </button>
         </span>
       );
     default:

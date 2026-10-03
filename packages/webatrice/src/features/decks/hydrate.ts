@@ -45,6 +45,7 @@ export async function hydrateDeck(parsed: ParsedDeck): Promise<HydratedDeck> {
     // format, so the file still catches up on first open.
     format: parsed.format?.trim() || 'commander',
     bannerCard: parsed.bannerCard,
+    bannerCardProviderId: parsed.bannerCardProviderId,
     lastLoadedTimestamp: parsed.lastLoadedTimestamp,
     tagsXml: parsed.tagsXml,
     bracketAssessment: parsed.bracketAssessment,

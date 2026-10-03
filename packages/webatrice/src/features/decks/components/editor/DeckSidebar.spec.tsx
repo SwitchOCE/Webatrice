@@ -15,6 +15,7 @@ function renderSidebar(overrides: Partial<DeckSidebarProps> = {}) {
   const props: DeckSidebarProps = {
     deck,
     saveState: 'idle',
+    onRetrySave: vi.fn(),
     totalMainboardCount: 4,
     totalSideboardCount: 0,
     onNameChange: vi.fn(),
@@ -50,10 +51,16 @@ describe('DeckSidebar', () => {
   it.each([
     ['saving', 'Saving…'],
     ['saved', 'Saved'],
-    ['failed', 'DeckEditor.saveFailed'],
   ] as const)('shows %s', (saveState, label) => {
     renderSidebar({ saveState });
     expect(screen.getByText(label)).toBeInTheDocument();
+  });
+
+  it('reports a failed save and retries it', () => {
+    const props = renderSidebar({ saveState: 'failed' });
+    expect(screen.getByRole('alert')).toHaveTextContent('DeckSidebar.saveFailed');
+    fireEvent.click(screen.getByRole('button', { name: 'DeckSidebar.retrySave' }));
+    expect(props.onRetrySave).toHaveBeenCalled();
   });
 
   it('shows the buy pill and preview only for MTG decks', () => {
