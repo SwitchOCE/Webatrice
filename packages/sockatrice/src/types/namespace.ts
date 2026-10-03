@@ -7,6 +7,7 @@ export type {
   IDeveloperResponse,
   IWebClientResponse,
   SessionCommandName,
+  AdminCommandName,
   ModeratorCommandName,
   DeveloperCommandName,
 } from './WebClientResponse';

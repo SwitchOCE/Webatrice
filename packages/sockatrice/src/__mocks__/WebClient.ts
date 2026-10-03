@@ -145,6 +145,7 @@ const admin = {
   reloadConfig: vi.fn(),
   shutdownServer: vi.fn(),
   updateServerMessage: vi.fn(),
+  commandFailed: vi.fn(),
 };
 
 const moderator = {
@@ -172,6 +173,7 @@ const moderator = {
   reportStats: vi.fn(),
   commandFailed: vi.fn(),
   replayDownloadedByGameId: vi.fn(),
+  commandFailed: vi.fn(),
 };
 
 const developer = {

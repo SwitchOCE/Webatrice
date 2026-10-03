@@ -148,7 +148,7 @@ describe('moderator commands', () => {
     expect(getMockResponse().moderator.warnListOptions).toHaveBeenCalled();
   });
 
-  it('forceActivateUser sends command and dispatches on RespOk', () => {
+  it('forceActivateUser sends command and dispatches on RespActivationAccepted', () => {
     connectAndLogin();
 
     ModeratorCommands.forceActivateUser('inactive', 'mod');
@@ -157,9 +157,11 @@ describe('moderator commands', () => {
     expect(value.usernameToActivate).toBe('inactive');
     expect(value.moderatorName).toBe('mod');
 
+    // Servatrice's cmdForceActivateUser delegates to cmdActivateAccount, whose
+    // success code is RespActivationAccepted.
     deliverMessage(buildResponseMessage(buildResponse({
       cmdId,
-      responseCode: Data.Response_ResponseCode.RespOk,
+      responseCode: Data.Response_ResponseCode.RespActivationAccepted,
     })));
 
     expect(getMockResponse().moderator.forceActivateUser).toHaveBeenCalledWith('inactive', 'mod');
@@ -215,5 +217,52 @@ describe('moderator commands', () => {
     })));
 
     expect(getMockResponse().moderator.grantReplayAccess).toHaveBeenCalledWith(42, 'mod');
+  });
+
+  it('forceActivateUser reports RespActivationFailed (already active) as a failure', () => {
+    connectAndLogin();
+
+    ModeratorCommands.forceActivateUser('active', 'mod');
+    const { cmdId } = findLastModeratorCommand(Data.Command_ForceActivateUser_ext);
+    deliverMessage(buildResponseMessage(buildResponse({
+      cmdId,
+      responseCode: Data.Response_ResponseCode.RespActivationFailed,
+    })));
+
+    expect(getMockResponse().moderator.forceActivateUser).not.toHaveBeenCalled();
+    expect(getMockResponse().moderator.commandFailed).toHaveBeenCalledWith(
+      'forceActivateUser', Data.Response_ResponseCode.RespActivationFailed, 'active',
+    );
+  });
+
+  it('grantReplayAccess reports RespContextError (unknown replay id) as a failure', () => {
+    connectAndLogin();
+
+    ModeratorCommands.grantReplayAccess(404, 'mod');
+    const { cmdId } = findLastModeratorCommand(Data.Command_GrantReplayAccess_ext);
+    deliverMessage(buildResponseMessage(buildResponse({
+      cmdId,
+      responseCode: Data.Response_ResponseCode.RespContextError,
+    })));
+
+    expect(getMockResponse().moderator.commandFailed).toHaveBeenCalledWith(
+      'grantReplayAccess', Data.Response_ResponseCode.RespContextError, '404',
+    );
+  });
+
+  it('getBanHistory reports a non-OK response as a failure', () => {
+    connectAndLogin();
+
+    ModeratorCommands.getBanHistory('baduser');
+    const { cmdId } = findLastModeratorCommand(Data.Command_GetBanHistory_ext);
+    deliverMessage(buildResponseMessage(buildResponse({
+      cmdId,
+      responseCode: Data.Response_ResponseCode.RespInternalError,
+    })));
+
+    expect(getMockResponse().moderator.banHistory).not.toHaveBeenCalled();
+    expect(getMockResponse().moderator.commandFailed).toHaveBeenCalledWith(
+      'banHistory', Data.Response_ResponseCode.RespInternalError, 'baduser',
+    );
   });
 });

@@ -9,5 +9,8 @@ export function getAdminNotes(userName: string): void {
     onSuccess: (response) => {
       WebClient.instance.response.moderator.getAdminNotes(userName, response.notes);
     },
+    onError: (responseCode) => {
+      WebClient.instance.response.moderator.commandFailed?.('getAdminNotes', responseCode, userName);
+    },
   });
 }
