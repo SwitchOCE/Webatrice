@@ -86,14 +86,28 @@ describe('useZoneDialogActions', () => {
     expect(open.webClient.request.game.shuffle).not.toHaveBeenCalled();
   });
 
-  it('replaces an open library view of another count and dumps afresh', () => {
-    const { result, set, webClient } = setup({ zoneViews: [{ playerId: 1, zoneName: ZoneName.DECK }] });
+  it('replaces an open library view of another count through its close path, then dumps afresh', () => {
+    writeShuffleOnClose(true);
+    const { result, set, webClient, dispatch } = setup({ zoneViews: [{ playerId: 1, zoneName: ZoneName.DECK }] });
     result.current.openZoneView({ playerId: 1, zoneName: ZoneName.DECK, numberCards: 5 });
 
     const update = set.setZoneViews.mock.calls[0][0] as (prev: ZoneViewTarget[]) => ZoneViewTarget[];
     expect(update([{ playerId: 1, zoneName: ZoneName.DECK }])).toEqual([
       { playerId: 1, zoneName: ZoneName.DECK, numberCards: 5 },
     ]);
+    const { shuffle, dumpZone } = webClient.request.game;
+    expect(shuffle).toHaveBeenCalledWith(1, { zoneName: ZoneName.DECK, start: 0, end: -1 });
+    expect(dispatch).toHaveBeenCalledWith(games.Actions.zoneViewCleared({ gameId: 1, playerId: 1, zoneName: ZoneName.DECK }));
+    expect(dumpZone).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(shuffle).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(dumpZone).mock.invocationCallOrder[0]);
+    window.localStorage.clear();
+  });
+
+  it('replacing a top-N view never shuffles', () => {
+    const { result, webClient } = setup({ zoneViews: [{ playerId: 1, zoneName: ZoneName.DECK, numberCards: 3 }] });
+    result.current.openZoneView({ playerId: 1, zoneName: ZoneName.DECK });
+
+    expect(webClient.request.game.shuffle).not.toHaveBeenCalled();
     expect(webClient.request.game.dumpZone).toHaveBeenCalledTimes(1);
   });
 
