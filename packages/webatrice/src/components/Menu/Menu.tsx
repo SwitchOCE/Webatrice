@@ -366,7 +366,9 @@ interface MenuEntryProps {
   /** Why a disabled entry is off. Read out with it (`aria-describedby`) and shown on hover. */
   disabledReason?: string;
   icon?: ReactNode;
-  /** Shortcut hint drawn on the right, as the user reads it (e.g. "Ctrl+Shift+A"). */
+  /** Shortcut hint drawn on the right, as the user reads it (e.g. "Ctrl+Shift+A"). For an action
+   *  the user can rebind, spread `useMenuShortcut()(actionId)` (feature-widgets/shortcuts) instead
+   *  of writing this and `keyShortcuts` by hand. */
   shortcut?: string;
   /** The same shortcut for assistive technology, in `aria-keyshortcuts` syntax (e.g.
    *  "Control+Shift+A"; alternatives separated by spaces). */
