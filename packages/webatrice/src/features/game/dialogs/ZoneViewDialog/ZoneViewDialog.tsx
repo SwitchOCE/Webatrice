@@ -54,12 +54,12 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
 
   // Desktop starts a drag only on the local player's cards
   // (CardItem::mouseMoveEvent); another player's view is read-only.
-  const canMove = useCanActFor()(playerId);
+  const canActFor = useCanActFor();
   const viewId = `zone-view-${playerId}-${zoneName}`;
   const startDrag = useSeatDragSource(viewId, {
     seatPlayerId: playerId,
     zone: seatZone ?? 'library',
-    canDrag: canMove,
+    canMoveFor: canActFor,
     disabled: !isLocal || seatZone == null,
   });
   const onCardPointerDown = isLocal && seatZone != null
