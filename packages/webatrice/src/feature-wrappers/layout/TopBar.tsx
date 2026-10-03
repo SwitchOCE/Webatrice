@@ -7,6 +7,7 @@ import {
   Film,
   type LucideIcon,
 } from 'lucide-react';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 
 import { server, rooms, games, ServerCapability } from '@cockatrice/datatrice';
@@ -79,6 +80,7 @@ const TYPE_ICON: Record<TabType, LucideIcon> = {
  * always present and non-closeable, matching fancy's shape.
  */
 export default function TopBar() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const webClient = useWebClient();
@@ -113,7 +115,7 @@ export default function TopBar() {
   // singleton + useSyncExternalStore pair survives remounts.
   const [stickyTabs, setStickyTabs] = useStickyTabs();
   useEffect(() => {
-    const transient = detectTransientTab(location.pathname);
+    const transient = detectTransientTab(location.pathname, t);
     if (!transient) {
       return;
     }
@@ -139,7 +141,7 @@ export default function TopBar() {
       // Decks list / Shortcuts / Player: additive, no-op if already present.
       return prev.some((t) => t.key === transient.key) ? prev : [...prev, transient];
     });
-  }, [location.pathname, setStickyTabs]);
+  }, [location.pathname, setStickyTabs, t]);
 
   // Mirror the current pathname to localStorage so an F5 refresh drops
   // the user back on the same route (MemoryRouter has no URL to lean
@@ -302,7 +304,7 @@ export default function TopBar() {
 
     // Transient tab for other non-primary routes (Settings, Account,
     // Logs, Player). Appears only while active — non-sticky.
-    const transient = detectTransientTab(location.pathname);
+    const transient = detectTransientTab(location.pathname, t);
     if (
       transient &&
       transient.type !== 'decks' &&
@@ -313,7 +315,7 @@ export default function TopBar() {
     }
 
     return list;
-  }, [joinedRooms, activeGames, openedReplays, location.pathname, webClient, leaveGameRequest, stickyTabs, deckIdToName]);
+  }, [joinedRooms, activeGames, openedReplays, location.pathname, webClient, leaveGameRequest, stickyTabs, deckIdToName, t]);
 
   const activeKey = useMemo(() => {
     const match = tabs.find((t) => routeMatches(location.pathname, t.route));
@@ -401,9 +403,9 @@ export default function TopBar() {
               'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium',
               'text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors',
             ].join(' ')}
-            title="Watch and manage replays"
+            title={t('TopBar.replays.title')}
           >
-            <Film size={16} /> Replays
+            <Film size={16} /> {t('TopBar.replays.button')}
           </button>
           <div className="w-px h-6 bg-border-subtle mx-1" />
           <UserMenu
@@ -649,7 +651,7 @@ const STAFF_TABS: { key: string; title: string; route: RouteEnum }[] = [
  *  non-primary pages (Decks, Settings, Account, Logs, Player). Returns
  *  null for routes that are already covered by the primary strip
  *  (Server, Room, Game). */
-function detectTransientTab(pathname: string): Tab | null {
+function detectTransientTab(pathname: string, t: TFunction): Tab | null {
   if (matchPath({ path: RouteEnum.DECKS, end: true }, pathname)) {
     return { key: 'decks', type: 'decks', title: 'My Decks', route: pathname, closeable: true };
   }
@@ -686,14 +688,14 @@ function detectTransientTab(pathname: string): Tab | null {
     return { key: `player:${name}`, type: 'player', title: name, route: pathname, closeable: true };
   }
   if (matchPath({ path: RouteEnum.REPLAYS, end: true }, pathname)) {
-    return { key: 'replays', type: 'replays', title: 'Replays', route: pathname, closeable: true };
+    return { key: 'replays', type: 'replays', title: t('TopBar.replays.tab'), route: pathname, closeable: true };
   }
   // An open replay already has its own tab; this only covers a replay key that
   // no longer resolves (e.g. after a reload), whose view explains it is gone.
   const replayMatch = matchPath({ path: RouteEnum.REPLAY, end: true }, pathname);
   if (replayMatch) {
     const replayKey = replayMatch.params.replayKey ?? '';
-    return { key: `replay:${replayKey}`, type: 'replay', title: 'Replay', route: pathname, closeable: true };
+    return { key: `replay:${replayKey}`, type: 'replay', title: t('TopBar.replayTab'), route: pathname, closeable: true };
   }
   return null;
 }

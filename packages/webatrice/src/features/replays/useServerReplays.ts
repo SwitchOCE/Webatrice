@@ -154,7 +154,9 @@ export function useServerReplays(): ServerReplays {
       return;
     }
     const match = matches.find((m) => m.gameId === target.gameId);
-    const title = match?.gameName ? `${match.gameName} (#${target.replayId})` : t('Replays.server.replayTitle', { id: target.replayId });
+    const title = match?.gameName
+      ? t('Replays.server.matchReplayTitle', { name: match.gameName, id: target.replayId })
+      : t('Replays.server.replayTitle', { id: target.replayId });
     webClient.request.session.replayDownload(
       target.replayId,
       (data) => {
