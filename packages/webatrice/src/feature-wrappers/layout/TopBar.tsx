@@ -3,7 +3,7 @@ import { useLocation, useNavigate, generatePath, matchPath } from 'react-router-
 import {
   User, LogOut, Home as HomeIcon, Swords, Library, LibraryBig,
   UserCircle2, Settings as SettingsIcon, FileText, X, Circle, Grid3x3,
-  Keyboard, PanelLeftOpen, Download, ShieldCheck, Flag, ShieldAlert,
+  Keyboard, PanelLeftOpen, Download, ShieldCheck, Flag,
   Film,
   type LucideIcon,
 } from 'lucide-react';
@@ -39,11 +39,10 @@ type TabType =
   | 'account'
   | 'logs'
   | 'player'
-  | 'staff' // Administration / Moderation / Card Art Rules / Developer
+  | 'staff' // Administration / Moderation / Card Art Rules / Developer / Report Queue
   | 'replays' // /replays — server + local replay lists
   | 'replay' // /replay/:replayKey — replay playback
   | 'my-reports'
-  | 'report-queue'
   | 'unknown';
 
 interface Tab {
@@ -71,7 +70,6 @@ const TYPE_ICON: Record<TabType, LucideIcon> = {
   replays: Film,
   replay: Film,
   'my-reports': Flag,
-  'report-queue': ShieldAlert,
   unknown: FileText,
 };
 
@@ -649,6 +647,7 @@ const STAFF_TABS: { key: string; title: string; route: RouteEnum }[] = [
   { key: 'moderation', title: 'Moderation', route: RouteEnum.MODERATION },
   { key: 'card-art-rules', title: 'Card Art Rules', route: RouteEnum.CARD_ART_RULES },
   { key: 'developer', title: 'Developer', route: RouteEnum.DEVELOPER },
+  { key: 'report-queue', title: 'Report Queue', route: RouteEnum.REPORT_QUEUE },
 ];
 
 /** Build a transient tab for the current route if it's one of the
@@ -688,9 +687,6 @@ function detectTransientTab(pathname: string, t: TFunction): Tab | null {
   }
   if (matchPath({ path: RouteEnum.MY_REPORTS, end: true }, pathname)) {
     return { key: 'my-reports', type: 'my-reports', title: 'My Reports', route: pathname, closeable: true };
-  }
-  if (matchPath({ path: RouteEnum.REPORT_QUEUE, end: true }, pathname)) {
-    return { key: 'report-queue', type: 'report-queue', title: 'Report Queue', route: pathname, closeable: true };
   }
   const playerMatch = matchPath({ path: RouteEnum.PLAYER, end: true }, pathname);
   if (playerMatch) {
