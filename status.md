@@ -6,4 +6,5 @@
 - 12 note: fixed 12's ModerationProvider.spec 3.1 fixture to beta.12 (03's DEVELOPER_ROLE gate) in 'offer developer role changes only on 3.1 servers'
 - 04 54287c0..d1cf623 → new tip f750c4f, typecheck ok, unit tests green (sock 791, data 1165, web 1307+2 skipped)
 - 10 58b4116..4119363 → new tip ec60e2b, typecheck ok, unit green
-- 11 4119363..0491a03 → new tip 8ebe287, typecheck ok, unit green (joinRoom: 11's surface wins, 04's userInitiated plumbing dropped)
+- 11 4119363..0491a03 → new tip 3b15510, typecheck ok, unit green (joinRoom: 11's surface wins, 04's userInitiated plumbing dropped)
+- 13 a6642c3..e2fb4b7 → new tip 41edded, typecheck ok; gate at 13: lint ok, unit sock 838/data 1213/web 1530+2skip, integration sock 170/data 136/web 165+2skip (commandFailed deduped to 03's; useGridRows introduced at 11 and used by 11+13)
