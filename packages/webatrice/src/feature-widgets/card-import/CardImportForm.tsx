@@ -9,12 +9,15 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { VirtualList } from '@app/components';
 import { Card, Format, Set, Token } from '@app/services';
+import NewSetsPrompt, { type NewSetsChoice } from './NewSetsPrompt';
 import { useCardImportForm } from './useCardImportForm';
 
 import './CardImportForm.css';
 
 interface CardImportFormProps {
   onSubmit: () => void;
+  /** "View sets" in the new-sets prompt; the host opens Manage Sets. */
+  onViewSets?: () => void;
 }
 
 interface BackButtonProps {
@@ -178,7 +181,7 @@ const DropZone = ({ onFiles, disabled }: DropZoneProps) => {
   );
 };
 
-const CardImportForm = ({ onSubmit: onClose }: CardImportFormProps) => {
+const CardImportForm = ({ onSubmit: onClose, onViewSets }: CardImportFormProps) => {
   const { t } = useTranslation();
   const {
     loading,
@@ -187,6 +190,8 @@ const CardImportForm = ({ onSubmit: onClose }: CardImportFormProps) => {
     importedCards,
     importedSets,
     ingest,
+    rebuild,
+    answerUnknownSets,
     error,
     handleBack,
     handleLocalFiles,
@@ -228,9 +233,17 @@ const CardImportForm = ({ onSubmit: onClose }: CardImportFormProps) => {
     </div>
   );
 
+  const answerNewSets = async (choice: NewSetsChoice) => {
+    await answerUnknownSets(choice === 'view' ? 'keep-disabled' : choice);
+    if (choice === 'view') {
+      onViewSets?.();
+    }
+  };
+
   const renderFinished = (): ReactNode => (
     <div className='cardImportForm'>
       <div className='cardImportForm-content done'>{t('CardImportForm.message.finished')}</div>
+      <NewSetsPrompt codes={rebuild?.unknownSets ?? []} onAnswer={answerNewSets} />
       <div className='cardImportForm-actions'>
         <Button color='primary' onClick={onClose}>{t('CardImportForm.button.done')}</Button>
       </div>
