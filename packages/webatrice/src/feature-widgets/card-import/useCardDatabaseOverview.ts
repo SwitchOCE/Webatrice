@@ -117,6 +117,7 @@ export function useCardDatabaseOverview(): CardDatabaseOverview {
       return cardDatabaseService.addSources(ingest.files.map((file) => ({
         fileName: file.name,
         xml: file.xml,
+        records: file.records,
         origin: 'file' as const,
         kind: file.name.toLowerCase() === 'spoiler.xml' ? 'spoiler' as const : 'custom' as const,
       })));
