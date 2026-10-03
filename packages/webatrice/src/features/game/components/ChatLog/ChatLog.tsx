@@ -4,6 +4,7 @@ import { MessageSquare } from 'lucide-react';
 import { classifyLogTone, games, type LogSegment, type LogTone } from '@cockatrice/datatrice';
 
 import { PlayerLink, renderGameLinks, useMentionCompleter } from '@app/components';
+import { usePreference } from '@app/hooks';
 import { ReportChatScope } from '@app/dialogs';
 import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 import { useAppSelector } from '@app/store';
@@ -103,6 +104,7 @@ function ChatLogView() {
     [players],
   );
   const mention = useMentionCompleter({ names, value: draft, onValueChange: setDraft, inputRef });
+  const stampGameTime = usePreference('useGameTime');
   // A replay is a recording: desktop's replay tab has no say box at all.
   const readOnly = useGameReadOnly();
   // Composite disabled state — no active game OR spectator-can't-chat OR replay.
@@ -168,13 +170,15 @@ function ChatLogView() {
             : 'bg-black/15';
           const senderName = m.senderName ?? players?.[m.playerId]?.properties.userInfo?.name;
           const name = senderName || `p${m.playerId}`;
-          // Per-message wall-clock stamp, Cockatrice-style `[HH:MM:SS]`.
-          // Matches desktop's `QDateTime::currentDateTime()` — the log
-          // is annotated with the user's local clock, not the game
-          // elapsed timer (that lives in the header at the top-right).
-          const stamp = m.timeReceived
-            ? `[${formatWallClock(m.timeReceived)}]`
-            : null;
+          // Per-message stamp, Cockatrice-style `[HH:MM:SS]`: the user's
+          // local clock (desktop's `QDateTime::currentDateTime()`), or with
+          // "Use game time instead of local time in game logs" the game time
+          // the line was logged at (MessageLogWidget::getCurrentTime).
+          const stamp = stampGameTime && m.gameSeconds !== undefined
+            ? `[${formatElapsed(m.gameSeconds)}]`
+            : m.timeReceived
+              ? `[${formatWallClock(m.timeReceived)}]`
+              : null;
           if (isEvent) {
             const tone = classifyLogTone(m.message);
             return (

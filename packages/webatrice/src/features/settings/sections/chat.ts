@@ -89,6 +89,12 @@ export const chatSection: SettingsSection = {
           descriptionKey: 'SettingsChat.ignoreAllPrivateMessages.description',
           control: { kind: 'toggle', key: 'ignoreAllPrivateMessages' },
         },
+        {
+          id: 'useGameTime',
+          labelKey: 'SettingsChat.useGameTime.label',
+          descriptionKey: 'SettingsChat.useGameTime.description',
+          control: { kind: 'toggle', key: 'useGameTime' },
+        },
       ],
     },
     {
