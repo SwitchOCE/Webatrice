@@ -353,6 +353,36 @@ describe('Menu type-ahead', () => {
   });
 });
 
+describe('Menu type-ahead reset', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('starts a new search after the arrows move focus', () => {
+    render(<Rich />);
+    fireEvent.keyDown(screen.getByRole('menu', { name: 'Card' }), { key: 'm' });
+    expect(screen.getByRole('menuitem', { name: 'Mulligan' })).toHaveFocus();
+
+    fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' });
+    fireEvent.keyDown(document.activeElement!, { key: 'e' });
+
+    expect(screen.getByRole('menuitemradio', { name: 'exile' })).toHaveFocus();
+  });
+
+  it('starts a new search after the pointer moves focus', () => {
+    render(<Rich />);
+    fireEvent.keyDown(screen.getByRole('menu', { name: 'Card' }), { key: 'm' });
+
+    fireEvent.mouseOver(screen.getByRole('menuitem', { name: 'Tap' }));
+    fireEvent.keyDown(document.activeElement!, { key: 'e' });
+
+    expect(screen.getByRole('menuitemradio', { name: 'exile' })).toHaveFocus();
+  });
+});
+
 describe('MenuSubmenu pointer behaviour', () => {
   beforeEach(() => {
     vi.useFakeTimers();

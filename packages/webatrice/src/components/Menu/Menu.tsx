@@ -242,6 +242,7 @@ export function Menu({ anchor, label, onClose, triggerRef, autoFocus = true, id,
     const focusAt = (i: number) => {
       const next = items[(i + items.length) % items.length];
       next?.focus();
+      typed.current = { text: '', at: 0 };
       // Moving off the entry of a submenu opened by hovering closes it, as QMenu does when its
       // current action changes.
       if (openSubmenu != null && next?.dataset.submenu !== openSubmenu) {
@@ -318,6 +319,7 @@ export function Menu({ anchor, label, onClose, triggerRef, autoFocus = true, id,
     }
     if (document.activeElement !== item) {
       item.focus({ preventScroll: true });
+      typed.current = { text: '', at: 0 };
     }
     window.clearTimeout(closeTimer.current);
     if (openSubmenu != null && item.dataset.submenu !== openSubmenu) {
