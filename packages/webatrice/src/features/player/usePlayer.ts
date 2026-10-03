@@ -3,7 +3,9 @@ import { useParams } from 'react-router-dom';
 
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { server, type PrivateConversationEntry } from '@cockatrice/datatrice';
+import { usePrivateMessageFilter } from '@app/hooks';
 import { useAppSelector } from '@app/store';
+import { visiblePrivateMessages } from '@app/utils';
 import { ServerInfo_User } from '@cockatrice/sockatrice/generated';
 
 const NO_CONVERSATION: PrivateConversationEntry[] = [];
@@ -15,10 +17,11 @@ export interface PlayerViewModel {
   isSelf: boolean;
   isABuddy: boolean;
   isIgnored: boolean;
-  // Full private-chat history with this user (both sides), with the client's
-  // notices (delivery failures, the user leaving/joining) in place. Empty until
-  // the first message goes either way. The reducer keys both sent + received
-  // under the OTHER user's name, so a single lookup returns the conversation.
+  // Private-chat history with this user (both sides), with the client's
+  // notices (delivery failures, the user leaving/joining) in place, less the
+  // messages the Chat preferences filter out. Empty until the first message
+  // goes either way. The reducer keys both sent + received under the OTHER
+  // user's name, so a single lookup returns the conversation.
   conversation: PrivateConversationEntry[];
   // Whether the user is in the server's online user list.
   isOnline: boolean;
@@ -41,10 +44,12 @@ export function usePlayer(): PlayerViewModel {
   const currentUser = useAppSelector(server.Selectors.getUser);
   const buddyList = useAppSelector(server.Selectors.getBuddyList);
   const ignoreList = useAppSelector(server.Selectors.getIgnoreList);
-  const conversation = useAppSelector((state) =>
+  const fullConversation = useAppSelector((state) =>
     name ? server.Selectors.getPrivateConversation(state, name) : NO_CONVERSATION,
   );
   const isOnline = useAppSelector((state) => Boolean(name && server.Selectors.getIsUserOnline(state, name)));
+  const onlinePeer = useAppSelector((state) => (name ? server.Selectors.getUsers(state)[name] : undefined));
+  const privateMessageFilter = usePrivateMessageFilter();
 
   useEffect(() => {
     if (name) {
@@ -57,6 +62,20 @@ export function usePlayer(): PlayerViewModel {
     isABuddy: Boolean(name && buddyList[name]),
     isIgnored: Boolean(name && ignoreList[name]),
   }), [currentUser, name, buddyList, ignoreList]);
+
+  // Settings → Chat private-message filters apply to messages; the client's
+  // notices stay where Datatrice put them.
+  const conversation = useMemo(() => {
+    const messages = fullConversation.flatMap((entry) => (entry.type === 'message' ? [entry.message] : []));
+    const visible = new Set(visiblePrivateMessages(
+      messages,
+      { selfName: currentUser?.name ?? null, peer: onlinePeer, peerIsBuddy: isABuddy },
+      privateMessageFilter,
+    ));
+    return visible.size === messages.length
+      ? fullConversation
+      : fullConversation.filter((entry) => entry.type === 'notice' || visible.has(entry.message));
+  }, [fullConversation, currentUser, onlinePeer, isABuddy, privateMessageFilter]);
 
   const onAddBuddy = () => name && webClient.request.session.addToBuddyList(name);
   const onRemoveBuddy = () => name && webClient.request.session.removeFromBuddyList(name);

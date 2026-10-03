@@ -44,6 +44,7 @@ const Room = () => {
             roomId={roomId}
             roomName={room.info.name}
             messages={roomMessages}
+            users={room.users}
             onSay={handleRoomSay}
           />
         </div>

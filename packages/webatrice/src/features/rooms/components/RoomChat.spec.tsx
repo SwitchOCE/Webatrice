@@ -2,9 +2,15 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 import { rooms, type Message } from '@cockatrice/datatrice';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { Event_RoomSay_RoomMessageType, Event_RoomSaySchema } from '@cockatrice/sockatrice/generated';
+import {
+  Event_RoomSay_RoomMessageType,
+  Event_RoomSaySchema,
+  ServerInfo_User_UserLevelFlag as Level,
+} from '@cockatrice/sockatrice/generated';
 
-import { renderWithProviders, connectedState } from '../../../__test-utils__';
+import { renderWithProviders, connectedState, makeUser } from '../../../__test-utils__';
+import { getSettings, settingsStore } from '../../../hooks/useSettings';
+import type { Preferences } from '../../../types';
 import RoomChat from './RoomChat';
 
 const makeMessage = (overrides: Partial<Message> = {}): Message => ({
@@ -16,7 +22,7 @@ const makeMessage = (overrides: Partial<Message> = {}): Message => ({
 
 function renderChat(messages: Message[] = [], onSay = vi.fn()) {
   return renderWithProviders(
-    <RoomChat roomId={1} roomName="Main" messages={messages} onSay={onSay} />,
+    <RoomChat roomId={1} roomName="Main" messages={messages} users={{}} onSay={onSay} />,
     { preloadedState: connectedState },
   );
 }
@@ -71,5 +77,81 @@ describe('RoomChat', () => {
       store.dispatch(rooms.Actions.roomSayFailed({ roomId: 1, message: 'too fast', responseCode: 18, timeReceived: 2 }));
     });
     expect(screen.getByRole('textbox')).toHaveValue('newer');
+  });
+
+  describe('chat preferences', () => {
+    const say = (name: string, text: string, messageType = Event_RoomSay_RoomMessageType.UserMessage): Message => ({
+      ...create(Event_RoomSaySchema, { name, message: `${name}: ${text}`, messageType }),
+      timeReceived: 0,
+    });
+
+    const users = {
+      member: makeUser({ name: 'member', userLevel: Level.IsUser | Level.IsRegistered }),
+      guest: makeUser({ name: 'guest', userLevel: Level.IsUser }),
+      mod: makeUser({ name: 'mod', userLevel: Level.IsUser | Level.IsRegistered | Level.IsModerator }),
+    };
+
+    const messages: Message[] = [
+      makeMessage({ message: 'old: earlier', messageType: Event_RoomSay_RoomMessageType.ChatHistory }),
+      say('member', 'hello @TestUser'),
+      say('guest', 'guest says hi'),
+      say('mod', '@/all restart soon'),
+      makeMessage({ message: '', notice: 'chatFlood' }),
+    ];
+
+    const setPreferences = async (patch: Partial<Preferences>) => {
+      const settings = await getSettings();
+      Object.assign(settings, patch);
+      settingsStore.setValue(settings);
+    };
+
+    const renderWithUsers = () =>
+      renderWithProviders(<RoomChat roomId={1} roomName="Main" messages={messages} users={users} onSay={vi.fn()} />, {
+        preloadedState: connectedState,
+      });
+
+    beforeEach(async () => {
+      settingsStore.reset();
+      await getSettings();
+    });
+
+    it('shows history and every sender by default, highlighting the reader’s mention and a moderator’s @/all', () => {
+      renderWithUsers();
+
+      expect(screen.getByText(/earlier/)).toBeInTheDocument();
+      expect(screen.getByText(/guest says hi/)).toBeInTheDocument();
+      expect(screen.getByText('@TestUser').tagName).toBe('MARK');
+      expect(screen.getByText('@/all').tagName).toBe('MARK');
+    });
+
+    it('hides join history when room history is off, keeping notices', async () => {
+      await setPreferences({ roomHistory: false });
+      renderWithUsers();
+
+      expect(screen.queryByText(/earlier/)).not.toBeInTheDocument();
+      expect(screen.getByText(/guest says hi/)).toBeInTheDocument();
+      expect(screen.getByText('RoomChat.notice.chatFlood')).toBeInTheDocument();
+    });
+
+    it('hides unregistered senders when asked, keeping notices', async () => {
+      await setPreferences({ ignoreUnregisteredUsers: true });
+      renderWithUsers();
+
+      expect(screen.queryByText(/guest says hi/)).not.toBeInTheDocument();
+      expect(screen.getByText(/hello/)).toBeInTheDocument();
+      expect(screen.getByText('RoomChat.notice.chatFlood')).toBeInTheDocument();
+    });
+
+    it('follows a preference change while open', async () => {
+      renderWithUsers();
+      expect(screen.getByText('@TestUser').tagName).toBe('MARK');
+
+      await act(async () => {
+        await setPreferences({ chatMention: false });
+      });
+
+      expect(screen.queryByText('@TestUser')).not.toBeInTheDocument();
+      expect(screen.getByText(/hello @TestUser/)).toBeInTheDocument();
+    });
   });
 });

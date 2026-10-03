@@ -1124,6 +1124,9 @@
       "notSent": "Message not sent: {reason}"
     }
   },
+  "PrivateMessageNotifier": {
+    "title": "New message from {sender}"
+  },
   "Replays": {
     "action": {
       "watch": "Watch replay",
@@ -1348,6 +1351,26 @@
       "unknown": "Failed to join the server room due to an unknown error: {code}."
     }
   },
+  "Settings": {
+    "title": "Settings",
+    "navLabel": "Settings",
+    "searchLabel": "Search settings",
+    "searchPlaceholder": "Search settings...",
+    "searchResults": "Search results",
+    "noResults": "No settings match \"{query}\".",
+    "openSection": "Open {section}",
+    "restoreDefaults": "Restore defaults",
+    "section": {
+      "general": "General",
+      "appearance": "Appearance",
+      "userInterface": "User Interface",
+      "cardSources": "Card Sources",
+      "storage": "Storage",
+      "chat": "Chat",
+      "sound": "Sound",
+      "shortcuts": "Shortcuts"
+    }
+  },
   "SettingsAppearance": {
     "group": {
       "tableGrid": "Table grid layout"
@@ -1478,26 +1501,6 @@
     },
     "tapAnimation": {
       "label": "Tap/untap animation"
-    }
-  },
-  "Settings": {
-    "title": "Settings",
-    "navLabel": "Settings",
-    "searchLabel": "Search settings",
-    "searchPlaceholder": "Search settings...",
-    "searchResults": "Search results",
-    "noResults": "No settings match \"{query}\".",
-    "openSection": "Open {section}",
-    "restoreDefaults": "Restore defaults",
-    "section": {
-      "general": "General",
-      "appearance": "Appearance",
-      "userInterface": "User Interface",
-      "cardSources": "Card Sources",
-      "storage": "Storage",
-      "chat": "Chat",
-      "sound": "Sound",
-      "shortcuts": "Shortcuts"
     }
   },
   "CommandFailureNotices": {
