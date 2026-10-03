@@ -36,6 +36,19 @@ export function eventTimestamp(): number {
 }
 
 /**
+ * The game time at wall-clock `now`: the server's last count plus the whole seconds since it
+ * arrived. Live game events carry no game time (Servatrice stamps `seconds_elapsed` only on the
+ * containers it records), so desktop runs its own clock from the last Event_GameStateChanged and
+ * reads it as it logs each line (MessageLogWidget::getCurrentTime); this does the same.
+ */
+export function gameSecondsNow(game: Enriched.GameEntry, now: number): number {
+  if (game.secondsElapsedAt === undefined) {
+    return game.secondsElapsed;
+  }
+  return game.secondsElapsed + Math.max(0, Math.floor((now - game.secondsElapsedAt) / 1000));
+}
+
+/**
  * Push a formatted game event onto the log. Accepts a plain string for
  * legacy paths (chat, ad-hoc system messages) or a `LogEntry` from the
  * `formatX(...)` helpers — the latter carries per-token segments so
@@ -57,11 +70,13 @@ export function pushEventMessage(
   if (game.messages.length >= MAX_GAME_MESSAGES) {
     game.messages = game.messages.slice(game.messages.length - MAX_GAME_MESSAGES + 1);
   }
+  const now = eventTimestamp();
   game.messages.push({
     playerId,
     message: text,
     segments,
-    timeReceived: eventTimestamp(),
+    timeReceived: now,
+    gameSeconds: gameSecondsNow(game, now),
     kind: 'event',
   });
 }

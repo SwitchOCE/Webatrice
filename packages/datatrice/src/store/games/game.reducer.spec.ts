@@ -2445,8 +2445,32 @@ describe('2J: Turn, phase, and chat', () => {
 
     expect(result.games[1].messages).toHaveLength(1);
     expect(result.games[1].messages[0]).toEqual({
-      playerId: 2, message: 'gg', timeReceived: 123456789, kind: 'chat',
+      playerId: 2, message: 'gg', timeReceived: 123456789, gameSeconds: 0, kind: 'chat',
     });
+  });
+
+  it('GAME_SAY → stamps the game time: the server\'s last count plus the whole seconds since', () => {
+    const state = makeState();
+    state.games[1].secondsElapsed = 600;
+    state.games[1].secondsElapsedAt = 1_000_000;
+    const result = gamesReducer(state, Actions.gameSay({ gameId: 1, playerId: 2, message: 'gg', timeReceived: 1_065_900 }));
+    expect(result.games[1].messages[0].gameSeconds).toBe(665);
+  });
+
+  it('GAME_INFO_UPDATED → restarts the game clock from the server\'s count', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(5_000);
+    const result = gamesReducer(makeState(), Actions.gameInfoUpdated({ gameId: 1, secondsElapsed: 42 }));
+    expect(result.games[1]).toMatchObject({ secondsElapsed: 42, secondsElapsedAt: 5_000 });
+    vi.restoreAllMocks();
+  });
+
+  it('GAME_TIME_SYNCED → sets a replay\'s game time to the recorded container\'s', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(9_000);
+    let result = gamesReducer(makeState(), Actions.gameTimeSynced({ gameId: 1, secondsElapsed: 125 }));
+    expect(result.games[1]).toMatchObject({ secondsElapsed: 125, secondsElapsedAt: 9_000 });
+    result = gamesReducer(result, Actions.gameSay({ gameId: 1, playerId: 2, message: 'gg', timeReceived: 9_000 }));
+    expect(result.games[1].messages[0].gameSeconds).toBe(125);
+    vi.restoreAllMocks();
   });
 
   it('GAME_SAY → keeps the sender name after the player leaves', () => {
