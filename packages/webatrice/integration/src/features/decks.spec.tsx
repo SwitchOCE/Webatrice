@@ -139,7 +139,7 @@ describe('Decks (integration)', () => {
     await loadTree();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Delete Older Deck' }));
-    const dialog = screen.getByRole('dialog', { name: 'Delete deck' });
+    const dialog = screen.getByRole('dialog', { name: 'Delete deck?' });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(findAllSessionCommands(Command_DeckDel_ext)).toHaveLength(0);

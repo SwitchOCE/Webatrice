@@ -73,12 +73,18 @@ describe('ExportDeckDialog', () => {
 describe('DeckDialogFrame', () => {
   it('portals its panel into the body and closes on a backdrop click', () => {
     const onClose = vi.fn();
-    const { container } = render(<DeckDialogFrame onClose={onClose}><p>panel</p></DeckDialogFrame>);
+    const { container } = render(<DeckDialogFrame onClose={onClose} titleId="t"><p>panel</p></DeckDialogFrame>);
     expect(container).toBeEmptyDOMElement();
     const panel = screen.getByText('panel');
     fireEvent.click(panel);
     expect(onClose).not.toHaveBeenCalled();
     fireEvent.click(panel.previousElementSibling!);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('is a modal dialog labelled by the panel heading', () => {
+    render(<DeckDialogFrame onClose={() => {}} titleId="frame-title"><h2 id="frame-title">Title</h2></DeckDialogFrame>);
+    const dialog = screen.getByRole('dialog', { name: 'Title' });
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
   });
 });
