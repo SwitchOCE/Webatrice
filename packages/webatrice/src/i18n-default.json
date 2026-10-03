@@ -2544,6 +2544,12 @@
     "focusCardViewSearchBar": {
       "label": "Auto focus search bar when card view window is opened"
     },
+    "showDragSelectionCount": {
+      "label": "Show selection count during drag selection"
+    },
+    "showTotalSelectionCount": {
+      "label": "Show total selection count"
+    },
     "notificationsEnabled": {
       "label": "Mark the browser tab when something happens in your game",
       "description": "While Webatrice is in a background tab, its title is marked until you come back."

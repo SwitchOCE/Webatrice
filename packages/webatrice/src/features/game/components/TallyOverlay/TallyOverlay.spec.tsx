@@ -3,7 +3,9 @@
 import { act, renderHook, screen, within } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
+import { PREFERENCE_DEFAULTS } from '@app/types';
 import { createMockWebClient, renderWithProviders } from '../../../../__test-utils__';
+import { usePreferences } from '../../../../hooks/useSettings';
 import {
   battlefieldEl,
   buildSeatGameState,
@@ -94,5 +96,16 @@ describe('TallyOverlay', () => {
     // Not announced on every selection change; the tally region is.
     expect(screen.getByRole('status', { name: 'TallyOverlay.selectedCount' })).toHaveAttribute('aria-live', 'off');
     expect(tally()).not.toBeInTheDocument();
+  });
+
+  it('hides the selection count with "Show total selection count" off', () => {
+    vi.mocked(usePreferences).mockReturnValue({ ...PREFERENCE_DEFAULTS, showTotalSelectionCount: false });
+    renderGame();
+
+    openContextMenu(cardEl(OGRE.id, 'battlefield'));
+    chooseMenuPath('Select All');
+
+    expect(screen.queryByRole('status', { name: 'TallyOverlay.selectedCount' })).not.toBeInTheDocument();
+    vi.mocked(usePreferences).mockReturnValue(PREFERENCE_DEFAULTS);
   });
 });

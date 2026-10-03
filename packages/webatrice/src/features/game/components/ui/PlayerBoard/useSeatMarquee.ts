@@ -38,6 +38,8 @@ export function useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelecti
     x2: number;
     y2: number;
     startZone: MarqueeStartZone | null;
+    /** How many cards the band selects right now. */
+    count: number;
   } | null>(null);
 
   // Marquee pointer effect. Follows the pointer while dragging out a
@@ -51,6 +53,7 @@ export function useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelecti
       // highlight the moment the rect covers them, and un-highlight the
       // moment it doesn't. `pointerup` just closes the marquee — no need
       // to recompute at the end because we already are.
+      let count = 0;
       if (marquee.startZone) {
         const rect = {
           left: Math.min(marquee.x1, e.clientX),
@@ -63,9 +66,10 @@ export function useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelecti
           marquee.startZone,
         );
         setSelection(own);
+        count = own?.ids.size ?? 0;
       }
       setMarquee((m) =>
-        m ? { ...m, x2: e.clientX, y2: e.clientY } : null,
+        m ? { ...m, x2: e.clientX, y2: e.clientY, count } : null,
       );
     };
     const onUp = () => {
@@ -292,6 +296,7 @@ export function useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelecti
       x2: e.clientX,
       y2: e.clientY,
       startZone: zoneAtPoint(e.clientX, e.clientY),
+      count: 0,
     });
   };
 
