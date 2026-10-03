@@ -1,3 +1,4 @@
 - 22:46Z read brief/task/rv13 → fetch PR26 branch, review f26 commits
 - 22:48Z npm ci OK in /tmp/pr26; unit+integration running; reviewing Menu/useDialogFocus → e2e keyboard
 - 22:51Z unit green (sockatrice 880, datatrice 1281, webatrice 2303+2 pre-existing skips); integration running → probes, failing-first checks, keyboard e2e
+- 22:57Z review written (2 major, 4 minor, 4 nit); gate: unit/integration green, keyboard e2e 12/12 → done
