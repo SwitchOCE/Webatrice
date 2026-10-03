@@ -106,4 +106,28 @@ describe('PlaymatSettingsPanel', () => {
     expect(screen.getByRole('slider', { name: 'PlaymatSettings.crop.zoom' }))
       .toHaveAttribute('aria-valuetext', '1.00');
   });
+
+  it('saves a dragged crop once, on release', () => {
+    act(() => setPlaymatSettings({ fallbackList: [mat('A')] }));
+    renderWithProviders(<PlaymatSettingsPanel />);
+    fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.edit' }));
+    const slider = screen.getByRole('slider', { name: 'PlaymatSettings.crop.zoom' });
+    const track = slider.closest('.MuiSlider-root') as HTMLElement;
+    vi.spyOn(track, 'getBoundingClientRect').mockReturnValue(
+      { left: 0, width: 100, bottom: 10, top: 0, height: 10, right: 100, x: 0, y: 0, toJSON: () => ({}) },
+    );
+    // jsdom has no pointer capture; the slider tracks the drag through document listeners.
+    Object.assign(track, { hasPointerCapture: () => false, releasePointerCapture: vi.fn() });
+    const saved = getPlaymatSettings();
+
+    fireEvent.pointerDown(track, { button: 0, buttons: 1, pointerId: 1, clientX: 50, clientY: 5 });
+    fireEvent.pointerMove(document, { buttons: 1, pointerId: 1, clientX: 75, clientY: 5 });
+    expect(getPlaymatSettings()).toBe(saved);
+    // The preview follows the drag while the saved collection stays as it was.
+    expect(Number(slider.getAttribute('aria-valuenow'))).toBeCloseTo(3, 0);
+
+    fireEvent.pointerUp(document, { pointerId: 1, clientX: 75, clientY: 5 });
+    expect(getPlaymatSettings()).not.toBe(saved);
+    expect(getPlaymatSettings().fallbackList[0].params.zoom).toBeCloseTo(3, 0);
+  });
 });
