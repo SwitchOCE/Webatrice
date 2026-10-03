@@ -27,11 +27,13 @@ import type { DeckCard } from './types';
 
 /**
  * Deck editor route (`/deck/:deckId`). Layout:
- *   • 360px left sidebar — deck metadata, totals and the hovered card's
- *     preview;
+ *   • 360px left sidebar — deck metadata (name, undo/redo and history,
+ *     format and its legality, banner card, tags), print and online
+ *     services, totals and the hovered card's preview;
  *   • main pane — quick add / advanced search, and the deck as
  *     multi-column type sections (Commander → Creature → … → Land →
- *     Other → Sideboard) followed by the deck breakdown.
+ *     Other → Sideboard), illegal rows in red, followed by the sample
+ *     hand and the deck breakdown.
  *
  * Deck state and persistence live in `useDeckEditor`; this route owns
  * the transient UI state: the sticky preview card and which dialog is
