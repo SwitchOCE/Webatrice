@@ -1,0 +1,1 @@
+- 18:39Z started f23d; read brief, template, rv10 → set up branch work from origin/parity/23d-deck-share
