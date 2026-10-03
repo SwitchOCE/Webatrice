@@ -58,6 +58,21 @@ afterEach(() => {
 });
 
 describe('useDeckAutosave', () => {
+  it('sends the deck\'s color identity with every update and leaves visibility alone', () => {
+    current = {
+      ...EDITED,
+      cards: [
+        { name: 'Counterspell', quantity: 1, category: 'main', lookupSource: 'scryfall', colors: ['U'] },
+        { name: 'Duress', quantity: 1, category: 'sideboard', lookupSource: 'scryfall', colors: ['B'] },
+      ],
+    };
+    const { webClient } = setup();
+    save();
+    const [, , isPublic, colorIdentity] = vi.mocked(webClient.request.session.deckUpdate).mock.calls[0];
+    expect(isPublic).toBeUndefined();
+    expect(colorIdentity).toBe('UB');
+  });
+
   it('debounces edits into one deckUpdate and reports saving, then saved on the ack', () => {
     const { webClient, store } = setup();
 

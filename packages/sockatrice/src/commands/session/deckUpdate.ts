@@ -8,14 +8,19 @@ import { Command_DeckUpload_ext, Command_DeckUploadSchema, Response_DeckUpload_e
  * (`AbstractTabDeckEditor::actSaveDeck` for a remote deck).
  *
  * Servatrice's `cmdDeckUpload` branches on field presence: a set `path` creates
- * a new deck in that folder and ignores `deck_id`. So the message carries only
- * `deck_id` and `deck_list` — never `path`, not even an empty one — and the
- * server updates the deck in place. Use `deckUpload` to create a deck.
+ * a new deck in that folder and ignores `deck_id`. So the message never carries
+ * `path`, not even an empty one, and the server updates the deck in place. Use
+ * `deckUpload` to create a deck.
+ *
+ * 3.1 servers overwrite the stored color identity on every update, so callers
+ * send it each time, as desktop does (`getDeckColorIdentity`); omitting it
+ * blanks the column. `isPublic` changes visibility only when given. 3.0
+ * servers ignore both.
  */
-export function deckUpdate(deckId: number, deckList: string): void {
+export function deckUpdate(deckId: number, deckList: string, isPublic?: boolean, colorIdentity?: string): void {
   WebClient.instance.protobuf.sendSessionCommand(
     Command_DeckUpload_ext,
-    create(Command_DeckUploadSchema, { deckId, deckList }),
+    create(Command_DeckUploadSchema, { deckId, deckList, isPublic, colorIdentity }),
     {
       responseExt: Response_DeckUpload_ext,
       // `new_file` carries the server's re-derived name; servers that omit
