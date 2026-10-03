@@ -40,7 +40,7 @@ describe('deck operations: error paths', () => {
     );
   });
 
-  it('deckUpload on InternalError does not dispatch uploadServerDeck', () => {
+  it('deckUpload on InternalError reports deckUploadFailed instead of uploadServerDeck', () => {
     connectAndLogin();
 
     SessionCommands.deckUpload('/decks', 0, '4 Llanowar Elves');
@@ -52,8 +52,8 @@ describe('deck operations: error paths', () => {
     })));
 
     expect(getMockResponse().session.uploadServerDeck).not.toHaveBeenCalled();
-    expect(consoleError.current).toHaveBeenCalledWith(
-      `Command_DeckUpload.ext failed with response code: ${Data.Response_ResponseCode.RespInternalError}`,
+    expect(getMockResponse().session.deckUploadFailed).toHaveBeenCalledWith(
+      '/decks', Data.Response_ResponseCode.RespInternalError, undefined,
     );
   });
 

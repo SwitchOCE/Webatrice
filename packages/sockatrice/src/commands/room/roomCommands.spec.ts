@@ -17,6 +17,7 @@ import { joinGame } from './joinGame';
 import { leaveRoom } from './leaveRoom';
 import { roomSay } from './roomSay';
 import { create } from '@bufbuild/protobuf';
+import { CommandFailure } from '../../types/CommandFailure';
 import { Mock } from 'vitest';
 
 const { invokeOnSuccess, invokeResponseCode, invokeOnError } = makeCallbackHelpers(
@@ -38,6 +39,22 @@ describe('createGame', () => {
     createGame(5, create(Command_CreateGameSchema, {}));
     invokeOnSuccess();
     expect(WebClient.instance.response.room.gameCreated).toHaveBeenCalledWith(5);
+  });
+
+  it('onError reports the failure with roomId, code and transport reason', () => {
+    createGame(5, create(Command_CreateGameSchema, {}));
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Timeout);
+    expect(WebClient.instance.response.room.createGameFailed).toHaveBeenCalledWith(
+      5, Response_ResponseCode.RespNotConnected, CommandFailure.Timeout,
+    );
+  });
+
+  it('onError reports a server rejection without a transport reason', () => {
+    createGame(5, create(Command_CreateGameSchema, {}));
+    invokeOnError(Response_ResponseCode.RespContextError);
+    expect(WebClient.instance.response.room.createGameFailed).toHaveBeenCalledWith(
+      5, Response_ResponseCode.RespContextError, undefined,
+    );
   });
 });
 
@@ -102,6 +119,18 @@ describe('joinGame', () => {
     invokeOnError(99);
     expect(WebClient.instance.response.room.setJoinGameError).not.toHaveBeenCalled();
     expect(WebClient.instance.response.room.setJoinGamePending).toHaveBeenLastCalledWith(false);
+  });
+
+  it.each([
+    [CommandFailure.Timeout, 'The server did not respond. Please try again.'],
+    [CommandFailure.Disconnected, 'The connection to the server has been lost.'],
+    [CommandFailure.NotSent, 'You are not connected to the server.'],
+  ])('a %s failure settles the join dialog with a visible error', (failure, message) => {
+    joinGame(7, create(Command_JoinGameSchema, { gameId: 42 }));
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, failure);
+    expect(WebClient.instance.response.room.setJoinGameError).toHaveBeenCalledWith(
+      Response_ResponseCode.RespNotConnected, message,
+    );
   });
 });
 

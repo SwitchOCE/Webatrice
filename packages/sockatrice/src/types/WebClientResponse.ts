@@ -57,6 +57,7 @@ import type {
 } from '../generated';
 
 import type { StatusEnum } from './StatusEnum';
+import type { CommandFailure } from './CommandFailure';
 import type { LoginSuccessContext, PendingActivationContext } from './SignalContexts';
 import type {
   KeyOf,
@@ -156,6 +157,13 @@ export interface ISessionResponse {
    * backward compatibility.
    */
   commandFailed?(command: SessionCommandName, responseCode: number, target: string): void;
+
+  // Command failure outcomes. `failure` is set for a transport failure (no
+  // server answer) and undefined for a server-sent rejection. Optional for
+  // backward compatibility with existing consumers.
+  deckListFailed?(responseCode: number, failure?: CommandFailure): void;
+  deckDownloadFailed?(deckId: number, responseCode: number, failure?: CommandFailure): void;
+  deckUploadFailed?(path: string, responseCode: number, failure?: CommandFailure): void;
 }
 
 export interface IRoomResponse<T extends RoomEventMap = WebSocketRoomResponseOverrides> {
@@ -172,6 +180,9 @@ export interface IRoomResponse<T extends RoomEventMap = WebSocketRoomResponseOve
   joinedGame(roomId: number, gameId: number): void;
   setJoinGamePending(pending: boolean): void;
   setJoinGameError(code: number, message: string): void;
+  // Command failure outcomes; see ISessionResponse.
+  joinRoomFailed?(roomId: number, responseCode: number, failure?: CommandFailure): void;
+  createGameFailed?(roomId: number, responseCode: number, failure?: CommandFailure): void;
 }
 
 export interface IGameResponse {

@@ -3,6 +3,7 @@ import { WebClient } from '../../WebClient';
 
 import { Command_JoinGame_ext, Command_JoinGameSchema, Response_ResponseCode } from '../../generated';
 import type { JoinGameParams } from '../../generated';
+import { CommandFailure } from '../../types/CommandFailure';
 
 // Desktop message strings from cockatrice/src/interface/widgets/server/game_selector.cpp:234-260
 // (GameSelector::checkResponse). Codes not listed here (e.g. RespContextError) intentionally
@@ -16,6 +17,16 @@ const ERROR_MESSAGES: Record<number, string> = {
   [Response_ResponseCode.RespOnlyBuddies]: 'This game is only open to its creator\'s buddies.',
   [Response_ResponseCode.RespUserLevelTooLow]: 'This game is only open to registered users.',
   [Response_ResponseCode.RespInIgnoreList]: 'You are being ignored by the creator of this game.',
+};
+
+// No server answer at all: the join dialog still has to settle with a reason.
+// Desktop shows its RespNotConnected text ("The connection to the server has
+// been lost.") for every such case; a timeout is told apart because the
+// connection may in fact still be up.
+const FAILURE_MESSAGES: Record<CommandFailure, string> = {
+  [CommandFailure.NotSent]: 'You are not connected to the server.',
+  [CommandFailure.Timeout]: 'The server did not respond. Please try again.',
+  [CommandFailure.Disconnected]: 'The connection to the server has been lost.',
 };
 
 export function joinGame(roomId: number, joinGameParams: JoinGameParams): void {
@@ -41,7 +52,13 @@ export function joinGame(roomId: number, joinGameParams: JoinGameParams): void {
         response.joinedGame(roomId, joinGameParams.gameId);
       },
       onResponseCode,
-      onError: () => response.setJoinGamePending(false),
+      onError: (_responseCode, _raw, failure) => {
+        if (failure) {
+          response.setJoinGameError(Response_ResponseCode.RespNotConnected, FAILURE_MESSAGES[failure]);
+        } else {
+          response.setJoinGamePending(false);
+        }
+      },
     },
   );
 }
