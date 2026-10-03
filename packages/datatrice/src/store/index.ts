@@ -24,6 +24,8 @@ export type {
   ServerConnectionHealth,
   TestConnectionStatus,
 } from './server/server.interfaces';
+export type { CommandFailedPayload } from './server/server.interfaces';
+export type { RoomCommandFailedPayload } from './rooms/rooms.interfaces';
 
 // Flat re-exports for utilities consumers reach for without going
 // through a slice namespace. `classifyLogTone` + `LogTone` are used

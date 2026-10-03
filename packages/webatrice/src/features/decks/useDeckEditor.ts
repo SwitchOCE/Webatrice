@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { create } from '@bufbuild/protobuf';
 
+import { useTranslation } from 'react-i18next';
 import { server } from '@cockatrice/datatrice';
+import type { CommandFailedPayload } from '@cockatrice/datatrice';
 import type { WebClient } from '@cockatrice/sockatrice';
 import {
   Command_DeckUpload_ext,
@@ -9,7 +11,7 @@ import {
   Response_DeckUpload_ext,
 } from '@cockatrice/sockatrice/generated';
 import { useAppSelector } from '@app/store';
-import { useReduxEffect } from '@app/hooks';
+import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { trackEvent } from '@app/services';
 import { useWebClient } from '@cockatrice/datatrice/react';
 
@@ -47,12 +49,15 @@ import type { BracketAssessment, DeckCard, DeckMeta, HydratedDeck } from './type
 
 const AUTOSAVE_DEBOUNCE_MS = 500;
 
-export type SaveState = 'idle' | 'dirty' | 'saving' | 'saved';
+export type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'failed';
 
 export interface UseDeckEditor {
   deck: HydratedDeck | null;
   loading: boolean;
   notFound: boolean;
+  /** Why the deck could not be downloaded (timeout, lost connection, server
+   *  rejection); null while loading or once loaded. Set alongside notFound. */
+  loadError: string | null;
   saveState: SaveState;
   /** Total (main + commander), excluding sideboard, for the header. */
   totalMainboardCount: number;
@@ -132,7 +137,10 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   const [deck, setDeck] = useState<HydratedDeck | null>(initialCached?.deck ?? null);
   const [loading, setLoading] = useState(!initialCached);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
+  const { t } = useTranslation();
+  const describeFailure = useCommandFailureMessage();
 
   // Refs used by the autosave loop. `deckRef` mirrors state so the
   // debounced timer sees the latest snapshot without needing to be in
@@ -159,6 +167,7 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     }
     setLoading(true);
     setNotFound(false);
+    setLoadError(null);
     setDeck(null);
     savedSignatureRef.current = null;
     webClient.request.session.deckDownload(deckId);
@@ -215,6 +224,20 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     [deckId],
   );
 
+  // A failed download would otherwise leave the editor skeleton up forever.
+  useReduxEffect<CommandFailedPayload & { deckId: number }>(
+    ({ payload }) => {
+      if (payload.deckId !== deckId) {
+        return;
+      }
+      setLoadError(describeFailure(payload.failure, t('DeckEditor.downloadFailed')));
+      setNotFound(true);
+      setLoading(false);
+    },
+    server.Types.DECK_DOWNLOAD_FAILED,
+    [deckId, describeFailure, t],
+  );
+
   // --- Save (debounced) ---
   const persistNow = useCallback(() => {
     const current = deckRef.current;
@@ -235,6 +258,7 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     if (xml === savedSignatureRef.current) {
       return;
     } // nothing changed
+    const previousSignature = savedSignatureRef.current;
     savedSignatureRef.current = xml;
     // Refresh the cached saved-signature so a remount after autosave
     // still sees the deck as "clean" (matches the last-known-saved
@@ -247,7 +271,18 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     // uploadDeckUpdate handles both the server "saved" ack (flips our
     // saveState) and a follow-up deckList refetch that keeps MyDecks
     // + the sticky tab title in sync without needing a manual refresh.
-    uploadDeckUpdate(webClient, deckId, xml, () => setSaveState('saved'));
+    uploadDeckUpdate(webClient, deckId, xml, () => setSaveState('saved'), () => {
+      // Not saved: forget the optimistic signature (here and in the cache) so
+      // the next edit or unmount flush sends this content again.
+      if (savedSignatureRef.current === xml) {
+        savedSignatureRef.current = previousSignature;
+      }
+      const entry = deckCache.get(deckId);
+      if (entry?.savedXml === xml) {
+        deckCache.set(deckId, { deck: entry.deck, savedXml: previousSignature ?? '' });
+      }
+      setSaveState('failed');
+    });
   }, [deckId, webClient]);
 
   const scheduleSave = useCallback(() => {
@@ -514,6 +549,7 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     deck,
     loading,
     notFound,
+    loadError,
     saveState,
     totalMainboardCount,
     totalSideboardCount,
@@ -578,6 +614,7 @@ function uploadDeckUpdate(
   deckId: number,
   deckList: string,
   onDone?: () => void,
+  onFailed?: () => void,
 ): void {
   webClient.protobuf.sendSessionCommand(
     Command_DeckUpload_ext,
@@ -591,6 +628,8 @@ function uploadDeckUpdate(
         onDone?.();
         scheduleDeckListRefetch(webClient);
       },
+      // Server rejection, timeout or lost connection: the deck was not saved.
+      onError: () => onFailed?.(),
     },
   );
 }
