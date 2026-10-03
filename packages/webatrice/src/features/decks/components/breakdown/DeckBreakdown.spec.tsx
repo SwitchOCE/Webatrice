@@ -1,0 +1,40 @@
+import { render, screen } from '@testing-library/react';
+
+import type { DeckCard } from '../../types';
+import { DeckBreakdown } from './DeckBreakdown';
+
+vi.mock('./BracketSection', () => ({ BracketSection: () => <div>bracket section</div> }));
+
+const cards: DeckCard[] = [
+  { name: 'Forest', quantity: 10, category: 'main', lookupSource: 'scryfall', typeLine: 'Basic Land — Forest' },
+  { name: 'Elves', quantity: 4, category: 'main', lookupSource: 'scryfall', typeLine: 'Creature', cmc: 1, colors: ['G'] },
+  { name: 'Ugin', quantity: 1, category: 'main', lookupSource: 'scryfall', typeLine: 'Planeswalker', cmc: 8, colors: [] },
+];
+
+describe('DeckBreakdown', () => {
+  it('renders nothing for an empty deck', () => {
+    const { container } = render(<DeckBreakdown cards={[]} format="commander" />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('shows totals, curve, colours and types', () => {
+    render(<DeckBreakdown cards={cards} format="modern" />);
+
+    expect(screen.getByText('15').nextSibling).toHaveTextContent('Total');
+    expect(screen.getByText('Nonland').previousSibling).toHaveTextContent('5');
+    expect(screen.getByText('2.40')).toBeInTheDocument();
+    expect(screen.getByTitle('4 cards at CMC 1')).toBeInTheDocument();
+    expect(screen.getByTitle('1 card at CMC 7+')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Color distribution pie' })).toBeInTheDocument();
+    expect(screen.getByText('80%')).toBeInTheDocument();
+    expect(screen.getByText('Planeswalker')).toBeInTheDocument();
+  });
+
+  it('adds the bracket estimate for commander-family formats only', () => {
+    const { rerender } = render(<DeckBreakdown cards={cards} format="modern" />);
+    expect(screen.queryByText('bracket section')).toBeNull();
+    rerender(<DeckBreakdown cards={cards} format="paupercommander" />);
+    expect(screen.getByText('Bracket estimate')).toBeInTheDocument();
+    expect(screen.getByText('bracket section')).toBeInTheDocument();
+  });
+});
