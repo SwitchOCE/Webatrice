@@ -1,4 +1,8 @@
-import { CardDTO, FormatDTO, InfoDTO, SetDTO, TokenDTO } from '@app/services';
+const hoisted = vi.hoisted(() => ({ addSources: vi.fn() }));
+
+vi.mock('./CardDatabaseService', () => ({
+  cardDatabaseService: { addSources: hoisted.addSources },
+}));
 
 import { localOracleImportService } from './LocalOracleImportService';
 
@@ -192,32 +196,39 @@ describe('LocalOracleImportService', () => {
       expect(result.cards).toHaveLength(1);
       expect(result.cards[0].name.value).toBe('Counterspell');
     });
+
+    it('keeps each accepted file\'s text so it can be stored as a source', async () => {
+      const result = await localOracleImportService.ingest([fakeFile('cards.xml', oracleCardsXml)]);
+      expect(result.files).toEqual([{ name: 'cards.xml', xml: oracleCardsXml }]);
+    });
+
+    it('accepts any .xml as a custom set file when allowCustomSets is on', async () => {
+      const result = await localOracleImportService.ingest(
+        [fakeFile('my-cube.xml', oracleCardsXml), fakeFile('notes.txt', 'x')],
+        { allowCustomSets: true },
+      );
+      expect(result.acceptedFiles).toEqual(['my-cube.xml']);
+      expect(result.skippedFiles).toEqual(['notes.txt']);
+    });
   });
 
   describe('persist', () => {
-    it('forwards a large card payload to CardDTO.bulkAdd in a single call without chunking', async () => {
-      const bulkAddSpy = vi.spyOn(CardDTO, 'bulkAdd').mockResolvedValue('cards-key');
-      vi.spyOn(SetDTO, 'bulkAdd').mockResolvedValue('sets-key');
-      vi.spyOn(TokenDTO, 'bulkAdd').mockResolvedValue('tokens-key');
-      vi.spyOn(FormatDTO, 'bulkAdd').mockResolvedValue('formats-key');
-      const infoSave = vi.spyOn(InfoDTO.prototype, 'save').mockResolvedValue('info-key');
-
-      const cards = Array.from({ length: 5000 }, (_, i) => ({
-        name: { value: `Card ${i}` },
-      })) as unknown as Parameters<typeof localOracleImportService.persist>[0]['cards'];
+    it('stores every accepted file as a card-database source', async () => {
+      const rebuild = { summary: { cards: 1, sets: 1, tokens: 0, formats: 1 }, unknownSets: [], allNewSetsEnabled: true };
+      hoisted.addSources.mockResolvedValue(rebuild);
 
       const result = await localOracleImportService.persist({
-        cards,
-        sets: [],
-        tokens: [],
-        formats: [],
+        files: [
+          { name: 'cards.xml', xml: oracleCardsXml },
+          { name: 'tokens.xml', xml: oracleTokensXml },
+        ],
       });
 
-      expect(bulkAddSpy).toHaveBeenCalledTimes(1);
-      expect(bulkAddSpy.mock.calls[0][0]).toHaveLength(5000);
-      expect(result.cards).toBe(5000);
-      expect(result.info).toBe(false);
-      expect(infoSave).not.toHaveBeenCalled();
+      expect(hoisted.addSources).toHaveBeenCalledWith([
+        { fileName: 'cards.xml', xml: oracleCardsXml, origin: 'file' },
+        { fileName: 'tokens.xml', xml: oracleTokensXml, origin: 'file' },
+      ]);
+      expect(result).toBe(rebuild);
     });
   });
 });
