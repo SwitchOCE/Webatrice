@@ -72,13 +72,94 @@ afterEach(() => {
 });
 
 describe('useDeckAutosave', () => {
+  it.each(['stored', 'uploading', 'failed'] as const)('resets draft identity after A is %s so B cannot save to A', (phase) => {
+    const webClient = createMockWebClient();
+    const onStoredA = vi.fn();
+    const onStoredB = vi.fn();
+    const view = renderWithProviders(<Probe initial={null} deckId={null} draft={{ key: 'A', onStored: onStoredA }} />, {
+      preloadedState: connectedState, webClient,
+    });
+    clients.set(view.store, webClient);
+    save();
+    const requestIdA = vi.mocked(webClient.request.session.deckUpload).mock.calls[0][5];
+    if (phase === 'stored') {
+      act(() => view.store.dispatch(server.Actions.deckUpload({
+        path: '', requestId: requestIdA, treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 5 }),
+      })));
+      current = { ...EDITED, name: 'A pending edit' };
+      act(() => latest.scheduleSave());
+    } else if (phase === 'failed') {
+      act(() => view.store.dispatch(server.Actions.deckUploadFailed({ path: '', requestId: requestIdA, responseCode: 1 })));
+    }
+
+    // Like useDeckEditor, keep A readable for the identity-change cleanup.
+    view.rerender(<Probe initial={null} deckId={null} draft={{ key: 'B', onStored: onStoredB }} />);
+    expect(latest.saveState).toBe('idle');
+    expect(latest.savedSignature()).toBeNull();
+    current = { ...deck, name: 'Draft B' };
+    save();
+    expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(2);
+    expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(phase === 'stored' ? 1 : 0);
+    if (phase === 'stored') {
+      expect(vi.mocked(webClient.request.session.deckUpdate).mock.calls[0][1]).toContain('<deckname>A pending edit</deckname>');
+      ack(view.store, 5);
+    }
+    act(() => {
+      view.store.dispatch(server.Actions.deckUpload({
+        path: '', requestId: requestIdA, treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 5 }),
+      }));
+      view.store.dispatch(server.Actions.deckUploadFailed({ path: '', requestId: requestIdA, responseCode: 1 }));
+    });
+    expect(latest.saveState).toBe('saving');
+    expect(onStoredB).not.toHaveBeenCalled();
+    act(() => view.store.dispatch(server.Actions.deckUpload({
+      path: '', requestId: vi.mocked(webClient.request.session.deckUpload).mock.calls[1][5],
+      treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 6 }),
+    })));
+    expect(onStoredB).toHaveBeenCalledExactlyOnceWith(6, deckSaveSignature(current));
+    expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(phase === 'stored' ? 1 : 0);
+  });
+
+  it.each(['success', 'failure'] as const)('retains the follow-up draft update %s after the editor closes', (outcome) => {
+    const webClient = createMockWebClient();
+    const onStored = (id: number, signature: string) => {
+      setCachedDeck(id, { deck: current!, savedSignature: signature });
+    };
+    const view = renderWithProviders(<Probe initial={null} deckId={null} draft={{ key: 'draft', onStored }} />, {
+      preloadedState: connectedState, webClient,
+    });
+    clients.set(view.store, webClient);
+    save();
+    current = { ...EDITED, name: 'Edited during upload' };
+    save();
+    act(() => view.store.dispatch(server.Actions.deckUpload({
+      path: '', requestId: vi.mocked(webClient.request.session.deckUpload).mock.calls[0][5],
+      treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 42 }),
+    })));
+    expect(latest.saveState).toBe('saving');
+    expect(latest.savedSignature()).toBe(deckSaveSignature(EDITED));
+    expect(vi.mocked(webClient.request.session.deckUpdate).mock.calls[0][1])
+      .toContain('<deckname>Edited during upload</deckname>');
+    // Even before the route supplies deckId, later saves target the registry.
+    save();
+    expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+    expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);
+    view.unmount();
+    ack(view.store, 42, outcome === 'failure' ? { responseCode: Response_ResponseCode.RespInternalError } : null);
+    const signature = outcome === 'failure' ? deckSaveSignature(EDITED) : deckSaveSignature(current);
+    expect(getCachedDeck(42)?.savedSignature).toBe(signature);
+    renderWithProviders(<Probe initial={signature} deckId={42} />, { store: view.store, webClient });
+    expect(latest.saveState).toBe(outcome === 'failure' ? 'failed' : 'saved');
+    expect(latest.savedSignature()).toBe(signature);
+  });
+
   it.each([
     ['success', 'another-upload'], ['success', undefined],
     ['failure', 'another-upload'], ['failure', undefined],
   ] as const)('ignores foreign upload %s with request ID %s while a draft is saving', (outcome, foreignRequestId) => {
     const webClient = createMockWebClient();
     const onStored = vi.fn();
-    const view = renderWithProviders(<Probe initial={null} deckId={null} draft={{ onStored }} />, {
+    const view = renderWithProviders(<Probe initial={null} deckId={null} draft={{ key: 'draft', onStored }} />, {
       preloadedState: connectedState, webClient,
     });
     save();
@@ -102,7 +183,7 @@ describe('useDeckAutosave', () => {
   it('hands an uploaded draft to the registry and uses updates for later saves', () => {
     const webClient = createMockWebClient();
     const onStored = vi.fn();
-    const view = renderWithProviders(<Probe initial={null} deckId={null} draft={{ onStored }} />, {
+    const view = renderWithProviders(<Probe initial={null} deckId={null} draft={{ key: 'draft', onStored }} />, {
       preloadedState: connectedState, webClient,
     });
     clients.set(view.store, webClient);
@@ -132,7 +213,7 @@ describe('useDeckAutosave', () => {
     const view = setup();
     save();
     const onStored = vi.fn();
-    view.rerender(<Probe initial={null} deckId={null} draft={{ onStored }} />);
+    view.rerender(<Probe initial={null} deckId={null} draft={{ key: 'draft', onStored }} />);
     current = { ...deck, name: 'Draft' };
     save();
     ack(view.store, 7, outcome === 'failure' ? { responseCode: Response_ResponseCode.RespInternalError } : null);
@@ -152,7 +233,7 @@ describe('useDeckAutosave', () => {
   it('keeps a failed upload as a draft and retries without updating a stored deck', () => {
     const webClient = createMockWebClient();
     const onStored = vi.fn();
-    const view = renderWithProviders(<Probe initial={null} deckId={null} draft={{ onStored }} />, {
+    const view = renderWithProviders(<Probe initial={null} deckId={null} draft={{ key: 'draft', onStored }} />, {
       preloadedState: connectedState, webClient,
     });
     save();
