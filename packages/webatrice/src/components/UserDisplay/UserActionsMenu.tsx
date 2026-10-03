@@ -1,14 +1,17 @@
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { NavLink, generatePath } from 'react-router-dom';
-import { MessageSquare, UserRoundPlus, UserRoundMinus, VolumeX, Volume2 } from 'lucide-react';
+import { Flag, MessageSquare, UserRoundPlus, UserRoundMinus, VolumeX, Volume2 } from 'lucide-react';
 
+import { useReportUser } from '@app/dialogs';
 import { RouteEnum } from '@app/types';
 import { useUserMenuSlot } from './UserMenuSlot';
 
 const MENU_ITEM_CLASS =
   'w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left text-text-secondary '
-  + 'hover:text-text-primary hover:bg-bg-elevated transition-colors';
+  + 'hover:text-text-primary hover:bg-bg-elevated transition-colors '
+  + 'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent';
 
 interface UserActionsMenuProps {
   x: number;
@@ -30,7 +33,7 @@ interface UserActionsMenuProps {
  * `UserDisplay` (buddies / players-online lists) and any chat surface
  * that wants to expose the same actions on message-author names (see
  * `Message.PlayerLink`). Cockatrice-parity items: Private chat (opens
- * the Player page's chat panel), buddy toggle, ignore toggle.
+ * the Player page's chat panel), buddy toggle, ignore toggle, and Report user.
  *
  * Closes on outside click, Escape, or after any option is chosen.
  * Portalled into `document.body` so it isn't clipped by ancestors with
@@ -51,6 +54,8 @@ export default function UserActionsMenu({
 }: UserActionsMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
   const Slot = useUserMenuSlot();
+  const { t } = useTranslation();
+  const { reportingAvailable, canReportUser, openReportUser } = useReportUser();
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
@@ -143,6 +148,23 @@ export default function UserActionsMenu({
           role="menuitem"
         >
           <Volume2 size={14} /> Remove from Ignore List
+        </button>
+      )}
+      {/* Desktop UserContextMenu lists "Report user" when the server takes
+       *  reports and you are registered, enabled for anyone but yourself. A
+       *  name inside a chat's ReportChatScope attaches that chat's log. */}
+      {reportingAvailable && (
+        <button
+          type="button"
+          onClick={() => {
+            openReportUser({ userName: name });
+            onClose();
+          }}
+          disabled={!canReportUser(name)}
+          className={MENU_ITEM_CLASS}
+          role="menuitem"
+        >
+          <Flag size={14} /> {t('ReportUserDialog.menuItem')}
         </button>
       )}
       {Slot && <Slot userName={name} userLevel={userLevel} onClose={onClose} />}
