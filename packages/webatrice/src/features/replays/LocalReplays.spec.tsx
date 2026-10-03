@@ -9,6 +9,7 @@ import { RouteEnum } from '@app/types';
 import { disconnectedState, makeStoreState, renderWithProviders } from '../../__test-utils__';
 import { buildReplay, sayContainer } from '../../services/replay/__mocks__/fixtures';
 import Replays from './Replays';
+import { MAX_REPLAY_FILE_BYTES } from './replayFiles';
 
 vi.mock('../../hooks/useSettings');
 
@@ -190,6 +191,47 @@ describe('Local replays', () => {
     await waitFor(() => expect(addReplay).toHaveBeenCalledTimes(1));
     expect(addReplay).toHaveBeenCalledWith(REPLAY_LIBRARY_ROOT, 'replay_31.cor', expect.any(Uint8Array));
     expect(await screen.findByRole('dialog')).toHaveTextContent('Replays.local.invalidFiles');
+  });
+
+  it('checks each imported file and reports every problem by kind, importing the rest', async () => {
+    const addReplay = vi.spyOn(ReplayFileDTO, 'addReplay').mockImplementation(async (_parent, name) => {
+      if (name === 'broken.cor') {
+        throw new Error('QuotaExceededError');
+      }
+      return 10;
+    });
+    const huge = new File([replayBytes() as BlobPart], 'huge.cor');
+    Object.defineProperty(huge, 'size', { value: MAX_REPLAY_FILE_BYTES + 1 });
+    renderReplays();
+    await localPane().findByTestId('local-replay-zeta.cor');
+
+    fireEvent.change(screen.getByTestId('replay-import-files'), {
+      target: {
+        files: [
+          new File([replayBytes() as BlobPart], 'good.cor'),
+          new File([replayBytes() as BlobPart], 'replay.txt'),
+          huge,
+          new File([replayBytes() as BlobPart], 'broken.cor'),
+        ],
+      },
+    });
+
+    const dialog = await screen.findByRole('dialog');
+    expect(addReplay.mock.calls.map(([, name]) => name)).toEqual(['good.cor', 'broken.cor']);
+    expect(dialog).toHaveTextContent('Replays.local.invalidFiles');
+    expect(dialog).toHaveTextContent('Replays.local.tooLarge');
+    expect(dialog).toHaveTextContent('Replays.local.importFailed');
+  });
+
+  it('refuses to watch a picked file without the .cor extension', async () => {
+    renderReplays();
+
+    fireEvent.change(screen.getByTestId('replay-watch-file'), {
+      target: { files: [new File([replayBytes() as BlobPart], 'replay.txt')] },
+    });
+
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Replays.local.invalidFile');
+    expect(screen.queryByTestId('replay-view')).not.toBeInTheDocument();
   });
 
   it('watches a picked file without adding it to the library', async () => {
