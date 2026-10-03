@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { ArrowRightLeft, ChevronDown, ChevronRight, Loader2, Puzzle, Sparkles, Users } from 'lucide-react';
 
 /**
@@ -97,6 +97,7 @@ export function CardRelatedLinks({
   // that happen to contain "token" in their name/text.
   const parentIsToken = /\btoken\b/i.test(parentTypeLine ?? '');
   const [reverseExpanded, setReverseExpanded] = useState(false);
+  const reverseListId = useId();
   const anyPending = !!pendingKey;
   // Bucket `allParts` by component so we can render each group under
   // its own header. Filters:
@@ -244,6 +245,8 @@ export function CardRelatedLinks({
             <button
               type="button"
               onClick={() => setReverseExpanded((v) => !v)}
+              aria-expanded={reverseExpanded}
+              aria-controls={reverseExpanded ? reverseListId : undefined}
               className={[
                 'flex items-center gap-1 text-[10px] font-semibold uppercase',
                 'tracking-wider text-text-muted hover:text-text-primary transition-colors self-start',
@@ -254,7 +257,7 @@ export function CardRelatedLinks({
               {`Cards that use this token (${comboPieces.length})`}
             </button>
             {reverseExpanded && (
-              <div className="flex flex-wrap gap-1">
+              <div id={reverseListId} className="flex flex-wrap gap-1">
                 {comboPieces.map((c, i) => {
                   const key = relatedCardKey({ name: c.name!, scryfallId: c.id });
                   return (

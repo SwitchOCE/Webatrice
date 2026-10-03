@@ -1,4 +1,4 @@
-import { DragEvent, KeyboardEvent, ReactNode, useRef, useState } from 'react';
+import { DragEvent, ReactNode, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Button from '@mui/material/Button';
@@ -132,13 +132,6 @@ const DropZone = ({ onFiles, disabled }: DropZoneProps) => {
     inputRef.current?.click();
   };
 
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onBrowseClick();
-    }
-  };
-
   const onPickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (files.length) {
@@ -153,10 +146,9 @@ const DropZone = ({ onFiles, disabled }: DropZoneProps) => {
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      // Clicking anywhere in the zone browses too; the Browse button is the
+      // keyboard and screen-reader path, so the zone itself is not a button.
       onClick={onBrowseClick}
-      onKeyDown={onKeyDown}
-      role='button'
-      tabIndex={0}
     >
       <div>{t('CardImportForm.message.dropzone')}</div>
       <Button variant='outlined' size='small' onClick={(e) => {
