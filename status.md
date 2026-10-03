@@ -1,1 +1,2 @@
 - 20:22Z started; branch created from restack-23-playmats (13351fd) → explore + npm ci
+- 20:34Z prefs+registry (number/text/visibleWhen), startup destination, missing-features notice, replay buffer wired (uncommitted) → mention completer, tests
