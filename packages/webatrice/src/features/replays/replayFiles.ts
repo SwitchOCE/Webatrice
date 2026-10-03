@@ -13,6 +13,17 @@ export function saveReplayFile(data: Uint8Array, fileName: string): void {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Largest file accepted as a replay. Recorded games are well under a megabyte;
+ * the cap only keeps a mis-picked huge file from being read into memory.
+ */
+export const MAX_REPLAY_FILE_BYTES = 32 * 1024 * 1024;
+
+/** Desktop's REPLAY_FILE_NAME_FILTERS: only `*.cor` files are replays. */
+export function hasReplayExtension(file: File): boolean {
+  return file.name.toLowerCase().endsWith(REPLAY_FILE_EXTENSION);
+}
+
 /** Reads a user-picked file into bytes. */
 export async function readReplayFile(file: File): Promise<Uint8Array> {
   return new Uint8Array(await file.arrayBuffer());

@@ -1105,7 +1105,9 @@
       "saveFailed": "Could not save the replay to the local library.",
       "missingData": "The replay data for this entry is missing.",
       "invalidFile": "\"{name}\" is not a Cockatrice replay (.cor) file.",
-      "invalidFiles": "These files are not Cockatrice replays and were not imported: {names}"
+      "invalidFiles": "These files are not Cockatrice replays and were not imported: {names}",
+      "tooLarge": "These files are too large to be replays and were not imported: {names}",
+      "importFailed": "Could not save these replays to the local library: {names}"
     },
     "server": {
       "title": "Server replay storage",
