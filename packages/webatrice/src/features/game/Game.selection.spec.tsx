@@ -140,4 +140,17 @@ describe('Game selection across seats', () => {
     expect(selected()).toEqual([`battlefield:${BOLT.id}`]);
     expect(webClient.request.game.setCardAttr).not.toHaveBeenCalled();
   });
+
+  it('leaves the focus on the chat when the board is pressed, with "Keep game chat focused" on', () => {
+    const first = renderGame();
+    // fireEvent returns false once a handler prevented the press's default (moving the focus).
+    expect(fireEvent.mouseDown(cardEl(BOLT.id, 'battlefield'))).toBe(true);
+    first.unmount();
+
+    vi.mocked(usePreference).mockImplementation(((key: PreferenceKey) =>
+      key === 'keepGameChatFocus' ? true : PREFERENCE_DEFAULTS[key]) as typeof usePreference);
+    renderGame();
+    expect(fireEvent.mouseDown(cardEl(BOLT.id, 'battlefield'))).toBe(false);
+    expect(fireEvent.mouseDown(screen.getByLabelText('game chat input'))).toBe(true);
+  });
 });

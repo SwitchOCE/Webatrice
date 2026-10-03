@@ -55,6 +55,8 @@ export class Setting {
   showDragSelectionCount: boolean;
   /** How many cards are selected, drawn in the board's corner once more than one is. */
   showTotalSelectionCount: boolean;
+  /** Clicking the board leaves the focus where it is (on the chat); hides the card views' search. */
+  keepGameChatFocus: boolean;
   tapAnimation: boolean;
 
   // User interface — notifications ("taskbar" alerts on desktop)
@@ -134,6 +136,7 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   focusCardViewSearchBar: true,
   showDragSelectionCount: true,
   showTotalSelectionCount: true,
+  keepGameChatFocus: false,
   tapAnimation: true,
 
   notificationsEnabled: true,
