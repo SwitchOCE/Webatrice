@@ -11,7 +11,7 @@ import { E2E_HOST_LABEL, registerAndReachRooms } from '../fixtures/flows';
 
 async function openAccount(page: Page, userName: string): Promise<void> {
   await page.getByRole('button', { name: userName }).click();
-  await page.getByRole('button', { name: /^account$/i }).click();
+  await page.getByRole('menuitem', { name: /^account$/i }).click();
   // MemoryRouter: the address bar never changes, so assert on the Account tab instead.
   await expect(page.getByRole('tab', { name: /^account/i })).toHaveAttribute('aria-selected', 'true');
 }
@@ -49,7 +49,7 @@ test('edit profile and change password, then log in with the new password', asyn
 
   // The new password is the one that works now.
   await page.getByRole('button', { name: user.username }).click();
-  await page.getByRole('button', { name: /sign out/i }).click();
+  await page.getByRole('menuitem', { name: /sign out/i }).click();
   await expect(login.hostPicker).toBeVisible();
   await login.selectHost(E2E_HOST_LABEL);
   await login.login(user.username, newPassword);
