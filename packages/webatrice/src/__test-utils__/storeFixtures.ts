@@ -56,6 +56,7 @@ export const disconnectedState: Partial<RootState> = {
     gameFilters: {},
     joinGamePending: false,
     joinGameError: null,
+    joinRoomError: null,
   },
   games: { games: {}, pings: {} },
   action: { type: null, payload: null, meta: null, error: false, count: 0 },

@@ -767,6 +767,15 @@
       "notFound": "User not found or still loading…"
     }
   },
+  "RoomsList": {
+    "joinError": {
+      "title": "Error",
+      "notFound": "Failed to join the server room: it doesn't exist on the server.",
+      "contextError": "The server thinks you are in the server room but your client is unable to display it. Try restarting your client.",
+      "userLevelTooLow": "You do not have the required permission to join this server room.",
+      "unknown": "Failed to join the server room due to an unknown error: {code}."
+    }
+  },
   "Settings": {
     "title": "Settings",
     "navLabel": "Settings",
@@ -775,13 +784,6 @@
     }
   },
   "CommandFailureNotices": {
-    "joinRoom": {
-      "title": "Could not join room",
-      "notFound": "Failed to join the server room: it doesn't exist on the server.",
-      "contextError": "The server thinks you are in the server room but your client is unable to display it. Try restarting your client.",
-      "userLevelTooLow": "You do not have the required permission to join this server room.",
-      "unknown": "Failed to join the server room due to an unknown error: {code}."
-    },
     "createGame": {
       "title": "Could not create game",
       "serverError": "Server error."

@@ -1,4 +1,5 @@
-﻿import { create } from '@bufbuild/protobuf';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
+import { create } from '@bufbuild/protobuf';
 import { configureStore, PayloadAction } from '@reduxjs/toolkit';
 import { App } from '../../types';
 import { ServerInfo_Game, ServerInfo_GameTypeSchema, ServerInfo_RoomSchema } from '@cockatrice/sockatrice/generated';
@@ -519,6 +520,19 @@ describe('JoinGame error state', () => {
     const state = makeRoomsState({ joinGameError: { code: 10, message: 'The game is already full.' } });
     const result = roomsReducer(state, Actions.clearJoinGameError());
     expect(result.joinGameError).toBeNull();
+  });
+
+  it('JOIN_ROOM_FAILED records the room, response code and transport reason', () => {
+    const result = roomsReducer(makeRoomsState(), Actions.joinRoomFailed({
+      roomId: 3, responseCode: 6, failure: WebsocketTypes.CommandFailure.Timeout,
+    }));
+    expect(result.joinRoomError).toEqual({ roomId: 3, responseCode: 6, failure: WebsocketTypes.CommandFailure.Timeout });
+  });
+
+  it('CLEAR_JOIN_ROOM_ERROR nulls the error', () => {
+    const state = makeRoomsState({ joinRoomError: { roomId: 3, responseCode: 6 } });
+    const result = roomsReducer(state, Actions.clearJoinRoomError());
+    expect(result.joinRoomError).toBeNull();
   });
 
   it('CLEAR_STORE resets joinGame error state', () => {

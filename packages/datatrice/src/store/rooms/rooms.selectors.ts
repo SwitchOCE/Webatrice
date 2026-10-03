@@ -130,6 +130,7 @@ export const Selectors = {
 
   getJoinGamePending: ({ rooms }: State) => rooms.joinGamePending,
   getJoinGameError: ({ rooms }: State) => rooms.joinGameError,
+  getJoinRoomError: ({ rooms }: State) => rooms.joinRoomError,
 
   getFilteredRoomGames: getFilteredRoomGamesBase,
 

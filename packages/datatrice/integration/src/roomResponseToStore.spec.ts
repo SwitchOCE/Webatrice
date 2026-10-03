@@ -196,6 +196,16 @@ describe('integration: room games', () => {
     // setJoinGameError also clears the pending flag.
     expect(rooms.Selectors.getJoinGamePending(state)).toBe(false);
   });
+
+  it('joinRoomFailed exposes the rejected room and response code until cleared', () => {
+    const store = createStore();
+    const response = attachResponseHandlers(store);
+    response.room.joinRoomFailed(3, 15);
+    expect(rooms.Selectors.getJoinRoomError(store.getState())).toEqual({ roomId: 3, responseCode: 15, failure: undefined });
+
+    store.dispatch(rooms.Actions.clearJoinRoomError());
+    expect(rooms.Selectors.getJoinRoomError(store.getState())).toBeNull();
+  });
 });
 
 // --- chat + users --------------------------------------------------------

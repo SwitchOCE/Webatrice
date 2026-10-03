@@ -16,6 +16,7 @@ export * as games from './games';
 // See .github/instructions/datatrice-store.instructions.md#slice-authoring.
 export type { GamesState } from './games/game.interfaces';
 export type { RoomsState, GameFilters, JoinGameError } from './rooms/rooms.interfaces';
+export type { JoinRoomError } from './rooms/rooms.interfaces';
 export type {
   ServerState,
   ServerStateStatus,
