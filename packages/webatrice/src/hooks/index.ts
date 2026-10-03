@@ -14,3 +14,4 @@ export * from './useVersion';
 export * from './useCommandFailureMessage';
 export * from './useJoinGame';
 export * from './useWatchReplay';
+export * from './useGridRows';

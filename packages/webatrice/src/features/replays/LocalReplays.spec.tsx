@@ -77,6 +77,38 @@ describe('Local replays', () => {
     expect(ReplayFileDTO.readData).toHaveBeenCalledWith(3);
   });
 
+  it('is operable from the keyboard: arrows and Home/End select, Enter opens', async () => {
+    renderReplays();
+    const folder = await localPane().findByTestId('local-replay-Tournament');
+    expect(localPane().getByRole('grid')).toBeInTheDocument();
+    expect(folder).toHaveAttribute('tabindex', '0');
+    expect(localPane().getByTestId('local-replay-alpha.cor')).toHaveAttribute('tabindex', '-1');
+
+    folder.focus();
+    fireEvent.keyDown(folder, { key: 'End' });
+    const last = localPane().getByTestId('local-replay-zeta.cor');
+    expect(last).toHaveFocus();
+    expect(last).toHaveAttribute('aria-selected', 'true');
+
+    fireEvent.keyDown(last, { key: 'ArrowUp' });
+    const alpha = localPane().getByTestId('local-replay-alpha.cor');
+    expect(alpha).toHaveFocus();
+    expect(localPane().getByRole('button', { name: 'Replays.action.watch' })).toBeEnabled();
+
+    fireEvent.keyDown(alpha, { key: 'Enter' });
+    expect(await screen.findByTestId('replay-view')).toBeInTheDocument();
+    expect(ReplayFileDTO.readData).toHaveBeenCalledWith(3);
+  });
+
+  it('enters a folder with Enter', async () => {
+    renderReplays();
+    const folder = await localPane().findByTestId('local-replay-Tournament');
+
+    fireEvent.keyDown(folder, { key: 'Enter' });
+
+    expect(await localPane().findByTestId('local-replay-round1.cor')).toBeInTheDocument();
+  });
+
   it('reports a stored entry that is not a replay', async () => {
     vi.mocked(ReplayFileDTO.readData).mockResolvedValue(new Uint8Array([0xff, 0xff]));
     renderReplays();
