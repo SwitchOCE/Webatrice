@@ -4,7 +4,12 @@ import { WebClient } from '../../WebClient';
 import { Command_ReportList_ext, Command_ReportListSchema, Response_ReportList_ext } from '../../generated';
 
 /** Undefined `offset` / `limit` keep the proto defaults (0 / 100). */
-export function reportList(unresolvedOnly?: boolean, offset?: number, limit?: number): void {
+export function reportList(
+  unresolvedOnly?: boolean,
+  offset?: number,
+  limit?: number,
+  onFailure?: (responseCode: number) => void,
+): void {
   WebClient.instance.protobuf.sendModeratorCommand(
     Command_ReportList_ext,
     create(Command_ReportListSchema, { unresolvedOnly, offset, limit }),
@@ -13,6 +18,7 @@ export function reportList(unresolvedOnly?: boolean, offset?: number, limit?: nu
       onSuccess: (response) => {
         WebClient.instance.response.moderator.reportList?.(response.reports, response.totalCount);
       },
+      onError: onFailure,
     },
   );
 }

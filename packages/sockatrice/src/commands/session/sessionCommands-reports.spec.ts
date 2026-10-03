@@ -155,3 +155,21 @@ describe('setCardArtParams', () => {
     expect(onSuccess).toHaveBeenCalled();
   });
 });
+
+describe('own-report load failures', () => {
+  it('reportMyList passes a failure code to onFailure', () => {
+    const onFailure = vi.fn();
+    reportMyList(onFailure);
+    invokeOnError(Response_ResponseCode.RespFunctionNotAllowed);
+    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespFunctionNotAllowed, expect.anything());
+    expect(WebClient.instance.response.session.reportMyList).not.toHaveBeenCalled();
+  });
+
+  it('reportDetails passes RespAccessDenied to onFailure', () => {
+    const onFailure = vi.fn();
+    reportDetails(3, onFailure);
+    invokeOnError(Response_ResponseCode.RespAccessDenied);
+    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespAccessDenied, expect.anything());
+    expect(WebClient.instance.response.session.reportDetails).not.toHaveBeenCalled();
+  });
+});

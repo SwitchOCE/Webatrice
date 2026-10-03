@@ -7,7 +7,9 @@ import {
   Response_ReplayDownloadByGameId_ext,
 } from '../../generated';
 
-export function replayDownloadByGameId(gameId: number): void {
+// RespNameNotFound means the game left no replay; desktop TabReport shows
+// "No replay available for this game." for any failure.
+export function replayDownloadByGameId(gameId: number, onFailure?: (responseCode: number) => void): void {
   WebClient.instance.protobuf.sendModeratorCommand(
     Command_ReplayDownloadByGameId_ext,
     create(Command_ReplayDownloadByGameIdSchema, { gameId }),
@@ -16,6 +18,7 @@ export function replayDownloadByGameId(gameId: number): void {
       onSuccess: (response) => {
         WebClient.instance.response.moderator.replayDownloadedByGameId?.(gameId, response);
       },
+      onError: onFailure,
     },
   );
 }
