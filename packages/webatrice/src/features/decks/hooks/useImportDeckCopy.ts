@@ -10,8 +10,9 @@ import { parseCod } from '@app/services';
  * "Import to my decks" for a deck someone else shared or published: upload a
  * copy into the root of the caller's deck storage, then hand its new id on.
  * Desktop opens such a deck in an unsaved editor tab instead; Webatrice's
- * editor only edits stored decks, so the copy is stored first. An upload
- * failure is reported by the shell's `CommandFailureNotices`.
+ * editor only edits stored decks, so the copy is stored first, with the
+ * color identity the share or listing already gave. An upload failure is
+ * reported by the shell's `CommandFailureNotices`.
  */
 export function useImportDeckCopy(onImported: (deckId: number) => void) {
   const webClient = useWebClient();
@@ -26,7 +27,7 @@ export function useImportDeckCopy(onImported: (deckId: number) => void) {
     onImported(treeItem.id);
   }, server.Types.DECK_UPLOAD, [onImported]);
 
-  return (xml: string) => {
+  return (xml: string, colorIdentity?: string) => {
     let name: string;
     try {
       name = parseCod(xml).name;
@@ -34,6 +35,6 @@ export function useImportDeckCopy(onImported: (deckId: number) => void) {
       return;
     }
     pendingNamesRef.current.push(name);
-    webClient.request.session.deckUpload('', 0, xml);
+    webClient.request.session.deckUpload('', 0, xml, undefined, colorIdentity || undefined);
   };
 }
