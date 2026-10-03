@@ -140,7 +140,28 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   const deckRef = useRef<HydratedDeck | null>(null);
   const saveTimerRef = useRef<number | null>(null);
   const savedSignatureRef = useRef<string | null>(initialCached?.savedXml ?? null);
-  deckRef.current = deck;
+
+  // The route keeps this hook mounted across `/deck/:deckId` changes,
+  // so re-seed per deckId: otherwise switching to a cached deck keeps
+  // the previous deck in state and the next autosave uploads it under
+  // the new id. Adjusting state during render (rather than in an
+  // effect) means no effect ever runs with the new id and the old deck.
+  const [seededDeckId, setSeededDeckId] = useState(deckId);
+  if (seededDeckId !== deckId) {
+    const cached = deckId != null ? deckCache.get(deckId) : undefined;
+    setSeededDeckId(deckId);
+    setDeck(cached?.deck ?? null);
+    setLoading(!cached);
+    setNotFound(false);
+    setSaveState('idle');
+  }
+
+  // Synced in an effect, not during render: on a deckId change the
+  // previous id's unmount flush runs before this, so it still
+  // serializes the deck its pending edit was made on.
+  useEffect(() => {
+    deckRef.current = deck;
+  }, [deck]);
 
   // --- Load ---
   useEffect(() => {
@@ -149,7 +170,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     }
     // Cached: state already seeded from the cache above; skip the
     // network round-trip entirely so tab switches feel instant.
-    if (deckCache.has(deckId)) {
+    const cached = deckCache.get(deckId);
+    if (cached) {
+      savedSignatureRef.current = cached.savedXml;
       setLoading(false);
       setNotFound(false);
       return;
