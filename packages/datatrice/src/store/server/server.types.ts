@@ -85,6 +85,7 @@ export const Types = {
   DECK_LIST_FAILED: a.deckListFailed.type,
   DECK_DOWNLOAD_FAILED: a.deckDownloadFailed.type,
   DECK_UPLOAD_FAILED: a.deckUploadFailed.type,
+  REPLAY_LIST_FAILED: a.replayListFailed.type,
   REPLAY_DOWNLOADED: a.replayDownloaded.type,
   // User games
   GAMES_OF_USER: a.gamesOfUser.type,

@@ -558,6 +558,14 @@ describe('SessionResponseImpl forwards', () => {
     );
   });
 
+  it('replayListFailed dispatches replayListFailed with the code and transport reason', () => {
+    const { impl, dispatch } = setup();
+    impl.replayListFailed(-1, WebsocketTypes.CommandFailure.Disconnected);
+    expect(dispatch).toHaveBeenCalledWith(
+      ServerActions.replayListFailed({ responseCode: -1, failure: WebsocketTypes.CommandFailure.Disconnected }),
+    );
+  });
+
   it('deckDownloadFailed dispatches deckDownloadFailed keyed by deckId', () => {
     const { impl, dispatch } = setup();
     impl.deckDownloadFailed(42, 15);
