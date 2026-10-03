@@ -224,14 +224,24 @@ export type SessionCommandName =
   | 'reportMyList'
   | 'reportDetails';
 
+/** Admin commands whose non-OK response the desktop client reports to the admin. */
+export type AdminCommandName = 'adjustMod';
+
 /**
  * Moderator commands whose non-OK response the desktop client reports to the
- * moderator (tab_report.cpp "Failed to load reports.", "No replay available";
+ * moderator (a message box in user_context_menu.cpp, tab_admin.cpp, tab_logs.cpp;
+ * tab_report.cpp "Failed to load reports.", "No replay available";
  * tab_moderation.cpp "Error loading user info."). `viewLogHistory` covers the
  * developer-family log lookup, whose result also lands in viewLogs.
  */
 export type ModeratorCommandName =
+  | 'banHistory'
+  | 'warnHistory'
+  | 'warnList'
+  | 'getAdminNotes'
   | 'viewLogHistory'
+  | 'grantReplayAccess'
+  | 'forceActivateUser'
   | 'listCardArtRules'
   | 'addCardArtRule'
   | 'removeCardArtRule'
@@ -252,6 +262,8 @@ export type DeveloperCommandName = 'getServerStats';
 export interface IAdminResponse {
   /** Each flag is `undefined` when the command left that role unchanged (proto2 presence). */
   adjustMod(userName: string, shouldBeMod?: boolean, shouldBeJudge?: boolean, shouldBeDeveloper?: boolean): void;
+  /** A command failed; `target` names what it acted on (the user name). Optional for backward compatibility. */
+  commandFailed?(command: AdminCommandName, responseCode: number, target: string): void;
   reloadConfig(): void;
   shutdownServer(): void;
   updateServerMessage(): void;
@@ -290,7 +302,7 @@ export interface IModeratorResponse {
 
   /**
    * A command failed; `target` names what it acted on (a user name, card name,
-   * or the report or game id as a string; '' for a list). Optional for
+   * or the report, replay or game id as a string; '' for a list). Optional for
    * backward compatibility.
    */
   commandFailed?(command: ModeratorCommandName, responseCode: number, target: string): void;

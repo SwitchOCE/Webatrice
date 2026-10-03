@@ -59,6 +59,14 @@ describe('adjustMod', () => {
     expect(WebClient.instance.response.admin.adjustMod).not.toHaveBeenCalled();
     expect(WebClient.instance.protobuf.sendAdminCommand).not.toHaveBeenCalled();
   });
+
+  it('reports a failure to response.admin.commandFailed with the response code', () => {
+    adjustMod('alice', undefined, true);
+    invokeOnError(Response_ResponseCode.RespInternalError);
+    expect(WebClient.instance.response.admin.commandFailed).toHaveBeenCalledWith(
+      'adjustMod', Response_ResponseCode.RespInternalError, 'alice',
+    );
+  });
 });
 
 describe('reloadConfig', () => {
