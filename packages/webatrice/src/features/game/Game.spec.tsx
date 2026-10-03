@@ -238,14 +238,12 @@ describe('Game container', () => {
         preloadedState: buildGame({ localId: 1, opponentIds: [2] }),
       });
 
-      expect(screen.queryByRole('button', { name: /close zone view/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: /^Graveyard — |'s library/ })).not.toBeInTheDocument();
     });
 
-    // The game-level ZoneViewDialog opens from GameInteractionContext's
-    // onZoneClick, whose only caller (PlayerInfoPanel inside PlayerBoard) is not
-    // mounted by the PlayerBox seat. The seat opens its own pile view instead;
-    // ZoneViewDialog keeps its component spec (ZoneViewDialog.spec.tsx).
-    it('opens the seat pile view, not the game-level dialog, from "View graveyard"', () => {
+    // The seat's pile menus open the game-level ZoneViewDialog (PB-13); the
+    // views themselves are pinned in Game.zoneViews.spec.tsx.
+    it('opens one game-level zone view from "View graveyard"', () => {
       renderWithProviders(<Game />, {
         preloadedState: buildGame({
           localId: 1,
@@ -257,8 +255,7 @@ describe('Game container', () => {
       openContextMenu(pileEl('Graveyard', 0));
       chooseMenuPath('View graveyard');
 
-      expect(screen.getByText(/^Graveyard — P1/)).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /close zone view/i })).not.toBeInTheDocument();
+      expect(screen.getAllByRole('heading', { name: /^Graveyard — P1/ })).toHaveLength(1);
     });
   });
 

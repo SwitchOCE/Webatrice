@@ -3,13 +3,13 @@
 // dialog sends the command. These are the routes that cross the PlayerBox /
 // Game boundary, so they are the ones the menu/dialog convergence phase can break.
 //
-// Two dialogs Game.tsx still hosts have no live trigger since PlayerBox replaced
-// the old seat UI: the game-level CreateTokenDialog and the SideboardDialog
-// (sideboard plan / lock) were only opened from PlayerContextMenu, whose
-// openPlayerMenu has no caller. The seat's own "Create token..." modal and the
-// sideboard *view* are pinned in PlayerBox.characterization.spec.tsx; the
-// unreachable dialogs keep their component specs (CreateTokenDialog.spec,
-// SideboardDialog.spec) and are listed for the convergence phase to resolve.
+// One dialog Game.tsx still hosts has no live trigger: the SideboardDialog
+// (sideboard plan / lock) was only opened from PlayerContextMenu, whose
+// openPlayerMenu has no caller. It keeps its component spec
+// (SideboardDialog.spec); sideboarding moves to the pre-game lobby and the
+// seat refactor's Phase 8 deletes it. The seat's "Create token..." now opens
+// the game-level CreateTokenDialog (Game.seatPrompts.spec), and its zone views
+// are game-level ZoneViewDialogs (Game.zoneViews.spec).
 
 import { act, fireEvent, screen, within } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
