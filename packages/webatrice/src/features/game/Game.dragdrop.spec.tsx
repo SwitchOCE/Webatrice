@@ -1,8 +1,9 @@
 // Cross-seat drag-and-drop through <Game />.
 //
-// The seat surface is PlayerBox's pointer drag (window-level pointermove/pointerup,
-// zones hit-tested by bounding rect). jsdom has no layout, so each test gives the
-// zones it uses a fixed box via `layoutBoxes`; everything else sits off-screen.
+// Seat drags run on the game's DnD coordinator (useGameDnd with the window-level
+// GamePointerSensor; seat zones hit-tested at the pointer). jsdom has no layout, so
+// each test gives the zones it uses a fixed box via `layoutBoxes`; everything else
+// sits off-screen.
 // Single-seat destinations (piles, hand, stack, sideboard, the drag threshold) are
 // pinned in PlayerBox.characterization.spec.tsx; this file covers the drags that
 // cross seats: gifts onto another battlefield, lent-library drags carrying the
@@ -46,10 +47,11 @@ const OPP_BF = { left: 0, top: 0, width: 800, height: 400 };
 const OWN_GRAVE = { left: 900, top: 500, width: 80, height: 110 };
 const OPP_GRAVE = { left: 900, top: 0, width: 80, height: 110 };
 
-function renderGame(incomingReveal?: object, { spectator = false } = {}) {
+function renderGame(incomingReveal?: object, { spectator = false, judge = false } = {}) {
   const preloadedState = buildSeatGameState({
     localPlayerId: 1,
     spectator,
+    judge,
     seats: [
       { playerId: 1, table: [BOLT], grave: [makeCard({ id: 40, name: 'Opt' })] },
       { playerId: 2, table: [BEAR], handCount: 5, grave: [makeCard({ id: 41, name: 'Duress' })] },
@@ -108,27 +110,39 @@ describe('Game drag-drop across seats', () => {
     expect(game.moveCard).not.toHaveBeenCalled();
   });
 
-  // Known gap, pinned on purpose: PlayerBox's comments say opponent drags are
-  // gated on isSelf, but applyMove has no such gate, so an opponent's card
-  // dragged onto their own pile sends a move as that player (the server rejects
-  // it and the optimistic dispatch rolls back). Desktop offers no such drag.
-  // Pinned so the DnD convergence phase changes it deliberately, not by accident.
-  it('sends a move for an opponent card dragged onto the opponent pile', () => {
+  // Desktop starts a card drag only for the local player's cards, or any card for
+  // a judge (CardItem::mouseMoveEvent → getLocalOrJudge). PlayerBox used to let an
+  // opponent's card be dragged onto that opponent's own pile and sent the move as
+  // them, which Servatrice rejected (pinned in Stage 1 as a known gap). Fixed in
+  // the DnD convergence: the press is only a click.
+  it('does not drag an opponent card: the press only selects it', () => {
     const game = renderGame();
 
     pointerDrag(cardEl(BEAR.id, 'battlefield'), { x: 10, y: 10 }, { x: 920, y: 20 });
 
-    expect(vi.mocked(game.moveCard).mock.calls.map(([, params]) => params)).toEqual([
-      {
-        startPlayerId: 2,
-        startZone: ZoneName.TABLE,
-        cardsToMove: { card: [{ cardId: BEAR.id }] },
-        targetPlayerId: 2,
-        targetZone: ZoneName.GRAVE,
-        x: 0,
-        y: 0,
-        isReversed: false,
-      },
+    expect(game.moveCard).not.toHaveBeenCalled();
+    expect(document.querySelector('[data-card][data-selected]')?.getAttribute('data-card-id')).toBe(String(BEAR.id));
+  });
+
+  it('lets a judge drag an opponent card, sent as that player through Command_Judge', () => {
+    const game = renderGame(undefined, { judge: true });
+
+    pointerDrag(cardEl(BEAR.id, 'battlefield'), { x: 10, y: 10 }, { x: 920, y: 20 });
+
+    expect(vi.mocked(game.moveCard).mock.calls.map(([, params, judgeTargetId]) => [params, judgeTargetId])).toEqual([
+      [
+        {
+          startPlayerId: 2,
+          startZone: ZoneName.TABLE,
+          cardsToMove: { card: [{ cardId: BEAR.id }] },
+          targetPlayerId: 2,
+          targetZone: ZoneName.GRAVE,
+          x: 0,
+          y: 0,
+          isReversed: false,
+        },
+        2,
+      ],
     ]);
   });
 
