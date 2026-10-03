@@ -51,6 +51,15 @@ describe('Message', () => {
       expect(screen.getByRole('link', { name: '@carol' })).toBeInTheDocument();
     });
 
+    it('marks and links names with dots and dashes, leaving sentence punctuation outside', () => {
+      renderWithProviders(
+        <Message message={{ message: 'Bob: hi @alice.b-c and @carol.smith.' }} highlight={{ ...highlight, selfName: 'Alice.B-C' }} />,
+      );
+
+      expect(screen.getByText('@alice.b-c').tagName).toBe('MARK');
+      expect(screen.getByRole('link', { name: '@carol.smith' })).toBeInTheDocument();
+    });
+
     it('marks alert words', () => {
       renderWithProviders(<Message message={{ message: 'Bob: Cube tonight?' }} highlight={highlight} />);
 
