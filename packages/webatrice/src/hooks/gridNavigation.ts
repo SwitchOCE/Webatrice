@@ -1,5 +1,11 @@
+/**
+ * Keyboard navigation over a list or grid of rows, shared by `useGridRows`
+ * (roving focus) and the virtualized grids that keep focus on the grid and
+ * point at the current row with aria-activedescendant.
+ */
+
 /** Rows PageUp/PageDown move by. */
-const PAGE = 10;
+export const GRID_PAGE_ROWS = 10;
 
 /**
  * The row a navigation key moves to from `index` (the WAI-ARIA listbox/grid
@@ -17,8 +23,8 @@ export function navigationTarget(key: string, index: number | null, count: numbe
     case 'ArrowUp': return from < 0 ? 0 : Math.max(from - 1, 0);
     case 'Home': return 0;
     case 'End': return last;
-    case 'PageDown': return Math.min(Math.max(from, 0) + PAGE, last);
-    case 'PageUp': return Math.max(from - PAGE, 0);
+    case 'PageDown': return Math.min(Math.max(from, 0) + GRID_PAGE_ROWS, last);
+    case 'PageUp': return Math.max(from - GRID_PAGE_ROWS, 0);
     default: return null;
   }
 }
