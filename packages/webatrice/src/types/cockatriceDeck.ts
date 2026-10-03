@@ -13,6 +13,15 @@
 export type DeckCategory = 'main' | 'sideboard';
 
 /**
+ * Deck-list zone names, `DECK_ZONE_MAIN` / `DECK_ZONE_SIDE` in
+ * `libcockatrice_deck_list`. `Command_SetSideboardPlan` moves speak these,
+ * not the in-game zone names (`deck`, `sb`): Servatrice's
+ * `Server_Player::setupZones` skips any plan entry naming another zone.
+ */
+export const DECK_ZONE_MAIN = 'main';
+export const DECK_ZONE_SIDE = 'side';
+
+/**
  * A parsed but un-hydrated card — just what's in the `.cod` XML. The
  * printing hints (set/num/uuid) are what the user picked previously
  * and were serialized as non-standard XML attributes.
