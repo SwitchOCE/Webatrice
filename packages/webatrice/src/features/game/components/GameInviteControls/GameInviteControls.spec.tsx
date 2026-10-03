@@ -5,7 +5,7 @@ import {
   makePlayerEntry,
   makePlayerProperties,
 } from '@cockatrice/datatrice/testing';
-import { server } from '@cockatrice/datatrice';
+import { games, server } from '@cockatrice/datatrice';
 import type { WebClient } from '@cockatrice/sockatrice';
 import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
@@ -113,6 +113,14 @@ describe('GameInviteControls (GAME-033)', () => {
     const webClient = { ...createMockWebClient(), connectTarget: null } as unknown as WebClient;
     renderWithProviders(<GameInviteControls gameId={5} />, { preloadedState: state(), webClient, gameId: 5 });
     expect(screen.getByRole('button', { name: 'GameInvite.copyLink' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'GameInvite.inviteToGame' })).toBeDisabled();
+  });
+
+  it('is disabled once the game is closed (desktop disables Invite to Game for a closed game)', () => {
+    const { store } = renderControls();
+    act(() => {
+      store.dispatch(games.Actions.gameClosed({ gameId: 5 }));
+    });
     expect(screen.getByRole('button', { name: 'GameInvite.inviteToGame' })).toBeDisabled();
   });
 
