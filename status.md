@@ -1,3 +1,4 @@
 - 15:42Z started, read brief/task/review → checkout parity/23-playmats
 - 15:49Z both majors + visibility minor committed/pushed → remaining minors
 - 15:54Z minors done (card-DB lookup deferred) → history nit (squash ea4a992 into c5d0cc7, move e2e hunk to b2c1695)
+- 15:55Z history rewritten (move squashed into feat(settings), e2e hunk into latency commit; tree identical) → typecheck each commit
