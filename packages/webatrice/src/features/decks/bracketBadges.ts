@@ -2,12 +2,17 @@ import type { BracketSignals } from './bracket';
 
 export type SignalTone = 'muted' | 'warn' | 'hot';
 
+export type BracketSignalId = 'gameChangers' | 'denial' | 'turns' | 'earlyCombos' | 'lateCombos';
+
 /** One of the bracket section's signal badges: its count and contributing cards. */
 export interface SignalBadgeSpec {
-  label: string;
+  /** Stable id; the UI translates it (`DeckBracket.signal.<id>`). */
+  id: BracketSignalId;
   count: number;
   tone: SignalTone;
   items: string[];
+  /** Extra-turn cards that can chain; listed after `items` under their own heading. */
+  chainable?: string[];
 }
 
 /**
@@ -30,34 +35,32 @@ export function bracketSignalBadges(signals: BracketSignals): SignalBadgeSpec[] 
 
   return [
     {
-      label: 'Game Changers',
+      id: 'gameChangers',
       count: signals.gameChangers.matches.length,
       tone: gcHot ? 'hot' : gcWarn ? 'warn' : 'muted',
       items: signals.gameChangers.matches,
     },
     {
-      label: 'MLD',
+      id: 'denial',
       count: signals.denial.matches.length + signals.denial.restricted.length,
       tone: denialHot ? 'hot' : 'muted',
       items: [...signals.denial.matches, ...signals.denial.restricted],
     },
     {
-      label: 'Extra turns',
+      id: 'turns',
       count: signals.turns.matches.length,
       tone: turnsHot ? 'hot' : turnsWarn ? 'warn' : 'muted',
-      items: [
-        ...signals.turns.matches,
-        ...(signals.turns.restricted.length > 0 ? ['— chain-able:', ...signals.turns.restricted] : []),
-      ],
+      items: signals.turns.matches,
+      chainable: signals.turns.restricted,
     },
     {
-      label: 'Early combos',
+      id: 'earlyCombos',
       count: signals.earlyCombos.length,
       tone: earlyHot ? 'hot' : 'muted',
       items: signals.earlyCombos.map((c) => c.cardNames.join(' + ')),
     },
     {
-      label: 'Late combos',
+      id: 'lateCombos',
       count: signals.lateCombos.length,
       tone: lateHot ? 'warn' : 'muted',
       items: signals.lateCombos.map((c) => c.cardNames.join(' + ')),

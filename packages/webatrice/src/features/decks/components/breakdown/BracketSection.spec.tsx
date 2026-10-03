@@ -17,7 +17,7 @@ describe('BracketSection', () => {
   it('shows progress while assessing', () => {
     vi.mocked(useBracketAssessment).mockReturnValue({ status: 'loading', retry: vi.fn() });
     render(<BracketSection cards={[]} />);
-    expect(screen.getByText('Assessing bracket…')).toBeInTheDocument();
+    expect(screen.getByText('DeckBracket.assessing')).toBeInTheDocument();
   });
 
   it('shows a complete assessment with its provenance and signal badges', () => {
@@ -27,9 +27,9 @@ describe('BracketSection', () => {
       retry: vi.fn(),
     });
     render(<BracketSection cards={[]} />);
-    expect(screen.getByText('Bracket 2 · Core')).toBeInTheDocument();
+    expect(screen.getByText('DeckBracket.title')).toBeInTheDocument();
     expect(screen.getByText('DeckBracket.provenance')).toBeInTheDocument();
-    expect(screen.getByText('Extra turns')).toBeInTheDocument();
+    expect(screen.getByText('DeckBracket.signal.turns')).toBeInTheDocument();
     expect(screen.queryByText('DeckBracket.partialNotice')).toBeNull();
   });
 
@@ -59,6 +59,25 @@ describe('BracketSection', () => {
   it('explains a failed assessment', () => {
     vi.mocked(useBracketAssessment).mockReturnValue({ status: 'error', message: 'boom', retry: vi.fn() });
     render(<BracketSection cards={[]} />);
-    expect(screen.getByText('Couldn\'t assess bracket: boom')).toBeInTheDocument();
+    expect(screen.getByText('DeckBracket.failed')).toBeInTheDocument();
+  });
+
+  it('keeps keyboard focus in the section when Retry replaces the notice with progress', () => {
+    const degraded = {
+      status: 'degraded' as const,
+      report: { level: 2 as const, signals },
+      unavailable: [{ source: 'combos' as const, failure: { kind: 'timeout' as const } }],
+      retry: vi.fn(),
+    };
+    vi.mocked(useBracketAssessment).mockReturnValue(degraded);
+    const { container, rerender } = render(<BracketSection cards={[]} />);
+    const retryButton = screen.getByRole('button', { name: /DeckBracket\.retry/ });
+    retryButton.focus();
+
+    fireEvent.click(retryButton);
+    vi.mocked(useBracketAssessment).mockReturnValue({ status: 'loading', retry: vi.fn() });
+    rerender(<BracketSection cards={[]} />);
+
+    expect(document.activeElement).toBe(container.firstChild);
   });
 });
