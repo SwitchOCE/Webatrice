@@ -1206,7 +1206,6 @@
     "loadFailed": "Failed to load reports.",
     "count": "{count} report(s)",
     "refresh": "Refresh",
-    "unsupported": "This server does not support user reports.",
     "column": {
       "id": "#",
       "time": "Time",
@@ -1299,8 +1298,7 @@
       "ageValue": "{days} days (since {date})",
       "none": "(none)",
       "noRecent": "No previous reports against this user.",
-      "loadFailed": "Error loading user info.",
-      "openProfile": "Open profile"
+      "loadFailed": "Error loading user info."
     },
     "stats": {
       "title": "Report Statistics",
