@@ -21,7 +21,9 @@ const SECONDS_PER_DAY = 86_400;
  * webclient's surface for the remaining moderator actions.
  */
 export default function ReportUserContextPanel({ userName, failed }: ReportUserContextPanelProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Server codes the catalogue does not know (a newer server's status or category) show as sent.
+  const label = (key: string, code: string) => (i18n.exists(key) ? t(key) : code);
   // Shared with the Moderation page, which investigates the same user through the same command.
   const info = useAppSelector((state) => server.Selectors.getUserInvestigation(state, userName)?.info);
 
@@ -73,8 +75,8 @@ export default function ReportUserContextPanel({ userName, failed }: ReportUserC
                     date: formatReportDate(r.reportTime),
                     id: String(r.reportId),
                     reporter: r.reporterName,
-                    status: r.status,
-                    category: r.category,
+                    status: label(`Reports.status.${r.status}`, r.status),
+                    category: label(`ReportUserDialog.categoryLabel.${r.category}`, r.category),
                   })}
                 </li>
               ))}

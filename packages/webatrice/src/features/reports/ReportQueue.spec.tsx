@@ -1,5 +1,8 @@
+import type { ReactNode } from 'react';
 import { act, fireEvent, screen } from '@testing-library/react';
 import { Routes, Route, useParams } from 'react-router-dom';
+import type { i18n as I18n } from 'i18next';
+import { useTranslation } from 'react-i18next';
 import { create, toBinary } from '@bufbuild/protobuf';
 import { games, rooms, server } from '@cockatrice/datatrice';
 import {
@@ -9,6 +12,7 @@ import {
   Response_ReportUserInfoSchema,
   Response_ResponseCode,
   ServerInfo_GameSchema,
+  ServerInfo_ReportSchema,
   ServerInfo_RoomSchema,
 } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
@@ -26,15 +30,18 @@ const ASSIGNED = makeReport({
   reportId: 2, reporterName: 'bob', reportedUserName: 'eve', status: 'assigned', gameId: 30, roomId: 4, replayId: 9,
 });
 
-function renderQueue(options: { moderator?: boolean; version?: string } = {}) {
+function renderQueue(options: { moderator?: boolean; version?: string; probe?: ReactNode } = {}) {
   const webClient = createMockWebClient();
   const utils = renderWithProviders(
-    <Routes>
-      <Route path={RouteEnum.REPORT_QUEUE} element={<ReportQueue />} />
-      <Route path={RouteEnum.SERVER} element={<div>lobby</div>} />
-      <Route path={RouteEnum.GAME} element={<div>game page</div>} />
-      <Route path={RouteEnum.REPLAY} element={<ReplayViewProbe />} />
-    </Routes>,
+    <>
+      {options.probe}
+      <Routes>
+        <Route path={RouteEnum.REPORT_QUEUE} element={<ReportQueue />} />
+        <Route path={RouteEnum.SERVER} element={<div>lobby</div>} />
+        <Route path={RouteEnum.GAME} element={<div>game page</div>} />
+        <Route path={RouteEnum.REPLAY} element={<ReplayViewProbe />} />
+      </Routes>
+    </>,
     {
       preloadedState: reportsRootState({ moderator: options.moderator ?? true, version: options.version }),
       webClient,
@@ -187,6 +194,40 @@ describe('ReportQueue', () => {
     const panel = screen.getByTestId('report-user-context');
     expect(panel.textContent).toContain('watch');
     expect(panel.textContent).toContain('Reports.userContext.noRecent');
+  });
+
+  it('translates the status and category of earlier reports, showing unknown codes as sent', () => {
+    let i18n!: I18n;
+    function I18nProbe() {
+      i18n = useTranslation().i18n;
+      return null;
+    }
+    const { load, store } = renderQueue({ probe: <I18nProbe /> });
+    i18n.addResourceBundle('en-US', 'translation', {
+      Reports: { status: { open: 'Open' }, userContext: { recentLine: '{{status}}: {{category}}' } },
+      ReportUserDialog: { categoryLabel: { spam: 'Spam' } },
+    });
+    try {
+      load();
+      fireEvent.click(screen.getByTestId('report-row-1'));
+      act(() => {
+        store.dispatch(server.Actions.userInfoReport({
+          info: create(Response_ReportUserInfoSchema, {
+            userName: 'mallory',
+            recentReports: [
+              create(ServerInfo_ReportSchema, { reportId: 5, status: 'open', category: 'spam' }),
+              create(ServerInfo_ReportSchema, { reportId: 6, status: 'escalated', category: 'griefing' }),
+            ],
+          }),
+        }));
+      });
+      const lines = screen.getByTestId('report-user-context').querySelectorAll('li');
+      expect(lines[0].textContent).toBe('Open: Spam');
+      expect(lines[1].textContent).toBe('escalated: griefing');
+    } finally {
+      i18n.removeResourceBundle('en-US', 'translation');
+      i18n.addResourceBundle('en-US', 'translation', {});
+    }
   });
 
   it('says the reported user context failed when the shared lookup fails', () => {
