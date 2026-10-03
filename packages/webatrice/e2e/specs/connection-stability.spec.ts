@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../fixtures/test';
 
 import { ConnectionStatus } from '../pages';
 import { registerAndReachRooms } from '../fixtures/flows';
