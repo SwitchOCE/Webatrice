@@ -4,6 +4,7 @@ import {
   applyColorScheme,
   bootColorScheme,
   bootThemeMode,
+  followBootColorScheme,
   readBootThemeMode,
   resolveColorScheme,
   subscribeToSystemColorScheme,
@@ -85,5 +86,23 @@ describe('colorScheme', () => {
     bootColorScheme();
 
     expect(document.documentElement.dataset.theme).toBe('dark');
+  });
+
+  test('a window that never loads settings follows the mirror and the system', () => {
+    media = withMockColorSchemeMedia(true);
+    writeBootThemeMode(ThemeMode.Light);
+    bootColorScheme();
+    const stop = followBootColorScheme();
+
+    writeBootThemeMode(ThemeMode.System);
+    window.dispatchEvent(new StorageEvent('storage', { key: THEME_MODE_STORAGE_KEY }));
+    expect(document.documentElement.dataset.theme).toBe('dark');
+
+    media.setPrefersDark(false);
+    expect(document.documentElement.dataset.theme).toBe('light');
+
+    stop();
+    media.setPrefersDark(true);
+    expect(document.documentElement.dataset.theme).toBe('light');
   });
 });
