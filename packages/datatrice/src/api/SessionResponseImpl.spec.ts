@@ -482,6 +482,19 @@ describe('SessionResponseImpl forwards', () => {
     expect(dispatch).toHaveBeenCalledWith(ServerActions.deckUpload({ path: '/folder', treeItem }));
   });
 
+  it('updateServerDeck maps method name to deckUpdated action', () => {
+    const { impl, dispatch } = setup();
+    const treeItem = create(ServerInfo_DeckStorage_TreeItemSchema, { id: 4, name: 'deck1' });
+    impl.updateServerDeck(4, treeItem);
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.deckUpdated({ deckId: 4, treeItem }));
+  });
+
+  it('updateServerDeckFailed maps method name to deckUpdateFailed action', () => {
+    const { impl, dispatch } = setup();
+    impl.updateServerDeckFailed(4, 19);
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.deckUpdateFailed({ deckId: 4, responseCode: 19, failure: undefined }));
+  });
+
   it('createServerDeckDir maps method name to deckNewDir action', () => {
     const { impl, dispatch } = setup();
     impl.createServerDeckDir('/parent', 'newdir');

@@ -242,6 +242,14 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.deckUpload({ path, treeItem }));
   }
 
+  updateServerDeck(deckId: number, treeItem: ServerInfo_DeckStorage_TreeItem | undefined): void {
+    this.store.dispatch(ServerActions.deckUpdated({ deckId, treeItem }));
+  }
+
+  updateServerDeckFailed(deckId: number, responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
+    this.store.dispatch(ServerActions.deckUpdateFailed({ deckId, responseCode, failure }));
+  }
+
   createServerDeckDir(path: string, dirName: string): void {
     this.store.dispatch(ServerActions.deckNewDir({ path, dirName }));
   }

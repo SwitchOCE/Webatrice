@@ -928,6 +928,47 @@ describe('Deck Storage', () => {
     expect(result.backendDecks!.root!.items[0].folder!.items[0]).toEqual(item);
   });
 
+  it('DECK_UPDATED with null backendDecks → returns state unchanged', () => {
+    const state = makeServerState({ backendDecks: null });
+    const result = serverReducer(state, Actions.deckUpdated({ deckId: 1, treeItem: makeDeckTreeItem({ id: 1 }) }));
+    expect(result).toEqual(state);
+  });
+
+  it('DECK_UPDATED → replaces the file with the same id in place, inside its folder', () => {
+    const sibling = makeDeckTreeItem({ id: 3, name: 'Other' });
+    const old = makeDeckTreeItem({ id: 9, name: 'Old name' });
+    const subfolder = create(ServerInfo_DeckStorage_TreeItemSchema, {
+      id: 0, name: 'sub', folder: create(ServerInfo_DeckStorage_FolderSchema, { items: [old, sibling] })
+    });
+    const state = makeServerState({
+      backendDecks: makeDeckList({ root: create(ServerInfo_DeckStorage_FolderSchema, { items: [subfolder] }) })
+    });
+    const renamed = makeDeckTreeItem({ id: 9, name: 'New name' });
+    const result = serverReducer(state, Actions.deckUpdated({ deckId: 9, treeItem: renamed }));
+    const items = result.backendDecks!.root!.items[0].folder!.items;
+    expect(items).toHaveLength(2);
+    expect(items[0]).toEqual(renamed);
+    expect(items[1]).toEqual(sibling);
+  });
+
+  it('DECK_UPDATED without a tree item → leaves the tree unchanged', () => {
+    const item = makeDeckTreeItem({ id: 3 });
+    const state = makeServerState({
+      backendDecks: makeDeckList({ root: create(ServerInfo_DeckStorage_FolderSchema, { items: [item] }) }),
+    });
+    const result = serverReducer(state, Actions.deckUpdated({ deckId: 3 }));
+    expect(result.backendDecks!.root!.items).toEqual([item]);
+  });
+
+  it('DECK_UPDATED for an unknown id → leaves the tree unchanged', () => {
+    const item = makeDeckTreeItem({ id: 3 });
+    const state = makeServerState({
+      backendDecks: makeDeckList({ root: create(ServerInfo_DeckStorage_FolderSchema, { items: [item] }) }),
+    });
+    const result = serverReducer(state, Actions.deckUpdated({ deckId: 99, treeItem: makeDeckTreeItem({ id: 99 }) }));
+    expect(result.backendDecks!.root!.items).toEqual([item]);
+  });
+
   it('DECK_DELETE with null backendDecks → returns state unchanged', () => {
     const state = makeServerState({ backendDecks: null });
     const result = serverReducer(state, Actions.deckDelete({ deckId: 1 }));

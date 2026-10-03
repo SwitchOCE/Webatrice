@@ -17,6 +17,7 @@ export * from './deckShareDownload';
 export * from './deckShareList';
 export * from './deckShareListMine';
 export * from './deckShareRemove';
+export * from './deckUpdate';
 export * from './deckUpload';
 export * from './disconnect';
 export * from './forgotPasswordChallenge';

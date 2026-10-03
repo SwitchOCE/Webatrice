@@ -371,6 +371,21 @@ describe('Actions', () => {
     });
   });
 
+  it('deckUpdated', () => {
+    const treeItem = makeDeckTreeItem({ id: 7 });
+    expect(Actions.deckUpdated({ deckId: 7, treeItem })).toEqual({
+      type: Types.DECK_UPDATED,
+      payload: { deckId: 7, treeItem },
+    });
+  });
+
+  it('deckUpdateFailed', () => {
+    expect(Actions.deckUpdateFailed({ deckId: 7, responseCode: 19 })).toEqual({
+      type: Types.DECK_UPDATE_FAILED,
+      payload: { deckId: 7, responseCode: 19 },
+    });
+  });
+
   it('deckDelete', () => {
     expect(Actions.deckDelete({ deckId: 42 })).toEqual({ type: Types.DECK_DELETE, payload: { deckId: 42 } });
   });
