@@ -3,8 +3,8 @@ import { memo, useMemo } from 'react';
 import { cx } from '@app/utils';
 
 import { BoardCell } from '../../../hooks/useGameBoardLayout';
-import PlayerBox from '../../PlayerBox/PlayerBox';
 import { BoardCellProvider } from '../BoardCellContext';
+import PlayerBoard from '../PlayerBoard/PlayerBoard';
 import { useOpenDeckInEditor } from './useOpenDeckInEditor';
 import { usePlayerCardCommands } from './usePlayerCardCommands';
 import { usePlayerCounterCommands } from './usePlayerCounterCommands';
@@ -55,7 +55,7 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
       style={{ gridColumn: cell.col + 1, gridRow: cell.row + 1 }}
     >
       <BoardCellProvider value={cellInfo}>
-        {commands && <PlayerBox model={model} commands={commands} onOpenDeckInEditor={onOpenDeckInEditor} />}
+        {commands && <PlayerBoard model={model} commands={commands} onOpenDeckInEditor={onOpenDeckInEditor} />}
       </BoardCellProvider>
     </div>
   );

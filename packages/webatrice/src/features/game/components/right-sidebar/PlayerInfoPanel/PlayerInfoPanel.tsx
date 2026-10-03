@@ -5,12 +5,8 @@ import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import ZoneStack from '../../ui/ZoneStack/ZoneStack';
 import { MANA_COLORS } from './manaColors';
 
-/** Cockatrice's `DlgMoveTopCardsUntil`. Reveals library cards from
- *  the top one at a time, moving each to the stack, until N cards
- *  matching the name are found (or the library runs out). Optional
- *  auto-play plays each matched card. Simplified from Cockatrice:
- *  match is a case-insensitive substring of the card name (Cockatrice
- *  supports a filter DSL — MVP just does name match). */
+/** One mana-pool counter: the symbol with its count. The owner clicks to add
+ *  one and right-clicks to remove one (desktop's counter +1 / -1). */
 function ManaPip({
   symbol,
   label,
@@ -88,26 +84,6 @@ function ManaPip({
     </div>
   );
 }
-
-/**
- * A single player's play-area box. Layout:
- *
- *   +-------+---------+--------------------+
- *   | Info  | CmdZone |                    |
- *   |       |         |    Battlefield     |
- *   |       | Stack   |                    |
- *   |       |         |                    |
- *   +       +---------+--------------------+
- *   |       |            Hand              |   (only for self)
- *   +-------+------------------------------+
- *
- * The info column spans both rows so the hand doesn't cut into it. Non-self
- * boxes skip the hand row entirely — opponents' hands are secret; only the
- * card count is shown in the info column.
- *
- * All zones are placeholders in this iteration — real card data lands with the
- * game-state wiring.
- */
 
 /**
  * Info column — spans both rows. Top: full-width header + life total.

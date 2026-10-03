@@ -19,7 +19,7 @@ import GameBoardCell from './GameBoardCell';
 
 const probe = vi.hoisted(() => ({ props: undefined as Record<string, any> | undefined }));
 
-vi.mock('../../PlayerBox/PlayerBox', () => ({
+vi.mock('../PlayerBoard/PlayerBoard', () => ({
   default: (props: Record<string, unknown>) => {
     probe.props = props;
     return null;
