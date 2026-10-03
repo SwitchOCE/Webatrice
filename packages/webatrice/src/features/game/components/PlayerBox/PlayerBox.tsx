@@ -62,7 +62,7 @@ import { useRegisterForeignDrag } from './foreignDragContext';
 import { useSelectionOwner } from './selectionOwner';
 import Card from './Card';
 import { deckCardImageUrl } from './deckCardImageUrl';
-import { useHoveredCard } from './hoveredCard';
+import { useCardPreviewActions } from '../ui/CardPreviewContext';
 import { useViewportClampedPopup } from './useViewportClampedPopup';
 import ZoneRevealDialog from './ZoneRevealDialog';
 import { PlayerPlaymat } from '../PlayerPlaymat';
@@ -979,7 +979,7 @@ const LargeZoneBox = forwardRef<
         ref,
       ) {
         const draggable = !!onPointerDown;
-        const { setHoveredCard } = useHoveredCard();
+        const { setHoveredCard } = useCardPreviewActions();
         return (
           <div className="flex justify-center">
             <div

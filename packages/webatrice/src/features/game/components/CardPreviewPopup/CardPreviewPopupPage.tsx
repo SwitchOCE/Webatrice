@@ -3,7 +3,7 @@ import { ChevronLeft } from 'lucide-react';
 
 import { CardImage, CardRelatedLinks } from '@app/components';
 import type { PreviewMode } from '../BattlefieldSidebar/BattlefieldSidebar';
-import type { HoveredCard } from '../PlayerBox/hoveredCard';
+import type { PreviewCard } from '../ui/CardPreviewContext';
 import { ManaSymbols, SymbolText } from '../PlayerBox/ManaSymbols';
 import {
   postCardPreviewMessage,
@@ -38,7 +38,7 @@ const HEARTBEAT_TIMEOUT_MS = 5_000;
  *     re-opens the main window, the next broadcast pulls us back.
  */
 export default function CardPreviewPopupPage() {
-  const [card, setCard] = useState<HoveredCard | null>(null);
+  const [card, setCard] = useState<PreviewCard | null>(null);
   const [mode, setMode] = useState<PreviewMode>('image');
   const [detail, setDetail] = useState<CardPreviewDetail | null>(null);
   const [fetchState, setFetchState] = useState<CardPreviewFetchState>('idle');

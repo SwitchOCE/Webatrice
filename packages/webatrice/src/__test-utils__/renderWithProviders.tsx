@@ -37,11 +37,10 @@ import { GameInteractionProvider, type GameInteractionHandlers } from '../featur
 import { CardVisualStateProvider, type CanActFor } from '../features/game/components/ui/CardVisualStateContext';
 import { GameDialogActionsProvider, type GameDialogActions } from '../features/game/components/ui/GameDialogActionsContext';
 import { GameIdProvider } from '../features/game/components/ui/GameIdContext';
-import { CardPreviewProvider } from '../features/game/components/ui/CardPreviewContext';
+import { CardPreviewProvider, createCardPreviewStore, type CardPreviewStore } from '../features/game/components/ui/CardPreviewContext';
 import { GameDialogsProvider } from '../features/game/components/ui/GameDialogsContext';
 import { BoardCellProvider, type BoardCellInfo } from '../features/game/components/ui/BoardCellContext';
 import { NOOP_GAME_DIALOGS_ACTIONS, type GameDialogs } from '../features/game/hooks/useGameDialogs';
-import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
 import { createMockWebClient } from './mockWebClient';
 
 const NOOP_GAME_INTERACTION: GameInteractionHandlers = {
@@ -157,8 +156,9 @@ interface ExtendedRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   // matching the dominant store fixture); pass explicitly — including
   // `undefined` — to override (e.g. the no-active-game case).
   gameId?: number;
-  // The card shown in the preview pane, provided via CardPreviewContext.
-  previewCard?: ServerInfo_Card | null;
+  // The game's card-preview store (hover, focus, zoom), provided via
+  // CardPreviewContext. Defaults to a fresh store per render.
+  previewStore?: CardPreviewStore;
   // Partial overrides for the dialogs slice (defaults to a closed/no-op slice).
   // Set the relevant menu state + handlers a dialog spec asserts against.
   gameDialogs?: Partial<GameDialogs>;
@@ -184,7 +184,7 @@ export function renderWithProviders(
     gameDialogActions,
     gameDialogs,
     boardCell,
-    previewCard = null,
+    previewStore = createCardPreviewStore(),
     shellLifecycle = NOOP_SHELL_LIFECYCLE,
     ...renderOptions
   } = options;
@@ -242,7 +242,7 @@ export function renderWithProviders(
                           canActFor={visualState.canActFor}
                         >
                           <GameDialogActionsProvider value={dialogActions}>
-                            <CardPreviewProvider value={previewCard}>
+                            <CardPreviewProvider store={previewStore}>
                               <GameDialogsProvider value={dialogs}>
                                 <BoardCellProvider value={boardCellInfo}>
                                   {shellLifecycle ? (
