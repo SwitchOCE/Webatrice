@@ -1,1 +1,2 @@
 - 15:24Z started f24, read brief/review → inspect branch
+- 15:38Z pushed c36eceb (sockatrice plain-pw fallback), 87a5073 (pin target), 9d33362 (classic preflight); typecheck/lint/unit green → integration + build + e2e
