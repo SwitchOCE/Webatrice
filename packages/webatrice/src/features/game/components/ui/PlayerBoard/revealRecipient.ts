@@ -1,4 +1,6 @@
+import { ALL_PLAYERS } from '../../../dialogs/RevealCardsDialog/revealRecipient';
 import type { RevealRecipient } from './playerBoard.types';
 
-/** The seat menus' "-1 = every player" reveal target, as a reveal recipient. */
-export const toRecipient = (targetPlayerId: number): RevealRecipient => (targetPlayerId === -1 ? 'all' : targetPlayerId);
+/** The seat menus' reveal target, with the dialogs' "All players" sentinel, as a reveal recipient. */
+export const toRecipient = (targetPlayerId: number): RevealRecipient =>
+  (targetPlayerId === ALL_PLAYERS ? 'all' : targetPlayerId);

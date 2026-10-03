@@ -16,6 +16,7 @@ export interface PhaseBar {
   handleUntapAll: () => void;
   handleDrawOne: () => void;
   handlePassAndUntap: () => void;
+  handleReverseTurn: () => void;
 }
 
 export function usePhaseBar(gameId: number | undefined): PhaseBar {
@@ -65,6 +66,14 @@ export function usePhaseBar(gameId: number | undefined): PhaseBar {
     });
   };
 
+  // Desktop asks for no confirmation (tab_game.cpp aReverseTurn).
+  const handleReverseTurn = () => {
+    if (!canPassTurn || gameId == null) {
+      return;
+    }
+    webClient.request.game.reverseTurn(gameId);
+  };
+
   // Untap-step double-click → Untap All. See .github/instructions/webatrice-game.instructions.md#phase-model.
   const handleUntapAll = () => {
     if (!canAdvancePhase || gameId == null) {
@@ -101,5 +110,6 @@ export function usePhaseBar(gameId: number | undefined): PhaseBar {
     handleUntapAll,
     handleDrawOne,
     handlePassAndUntap,
+    handleReverseTurn,
   };
 }

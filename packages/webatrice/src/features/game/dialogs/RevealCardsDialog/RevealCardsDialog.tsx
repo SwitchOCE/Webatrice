@@ -19,6 +19,7 @@ import { useAppSelector } from '@app/store';
 import { useGameId } from '../../components/ui/GameIdContext';
 import { useGameDialogsContext } from '../../components/ui/GameDialogsContext';
 import { playerName } from '../../utils/playerName';
+import { ALL_PLAYERS } from './revealRecipient';
 import { useRevealCardsDialog } from './useRevealCardsDialog';
 
 import './RevealCardsDialog.css';
@@ -42,7 +43,6 @@ export interface RevealCardsSubmit {
   topCards: number;
 }
 
-const ALL_PLAYERS = -1;
 const EMPTY_SEATED: ReturnType<typeof games.Selectors.getSeatedPlayers> = [];
 
 // Self-sources its reveal request (title/zone/count/onSubmit) from the
