@@ -1,4 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+
+import { getSettings, settingsStore } from '../../../../../hooks/useSettings';
 
 import Card from './SeatCard';
 
@@ -14,5 +16,37 @@ describe('SeatCard', () => {
     render(<Card name="Grizzly Bears" pt="3/3" basePT="2/2" />);
     expect(screen.getByText('3/3')).toHaveClass('text-pt-modified');
     expect(screen.getByText('3/3')).not.toHaveClass('text-over-art-text');
+  });
+
+  describe('"Display card names on cards having a picture"', () => {
+    afterEach(() => {
+      settingsStore.reset();
+    });
+
+    const namesOff = async () => {
+      const settings = await getSettings();
+      await act(async () => {
+        settingsStore.setValue(Object.assign(settings, { displayCardNames: false }));
+      });
+    };
+
+    it('names a card with a picture only while the option is on', async () => {
+      render(<Card name="Grizzly Bears" />);
+      expect(screen.getByText('Grizzly Bears')).toBeInTheDocument();
+      await namesOff();
+      expect(screen.queryByText('Grizzly Bears')).not.toBeInTheDocument();
+    });
+
+    it('always names a face-down card, and a card whose picture failed to load', async () => {
+      await namesOff();
+      const { container } = render(<Card name="Morph" id="12" faceDown />);
+      expect(screen.getByText('# 12')).toBeInTheDocument();
+
+      container.remove();
+      const { container: missing } = render(<Card name="Homemade Token" />);
+      expect(screen.queryByText('Homemade Token')).not.toBeInTheDocument();
+      fireEvent.error(missing.querySelector('img')!);
+      expect(screen.getByText('Homemade Token')).toBeInTheDocument();
+    });
   });
 });

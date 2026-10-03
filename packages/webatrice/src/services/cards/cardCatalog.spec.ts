@@ -161,6 +161,23 @@ describe('lookupCard', () => {
     ]);
   });
 
+  it('knows a sideways-layout card from cards.xml\'s landscapeOrientation', async () => {
+    cards.get.mockResolvedValue({ ...XML_SWAN_SONG, landscapeOrientation: { value: '1' } });
+    expect((await lookupCard('Swan Song')).landscape).toBe(true);
+  });
+
+  it('knows a sideways-layout card from Scryfall by Oracle\'s rule: battles, split cards, planes', async () => {
+    for (const [overrides, landscape] of [
+      [{ type_line: 'Battle — Siege' }, true],
+      [{ layout: 'split' }, true],
+      [{ layout: 'planar' }, true],
+      [{}, undefined],
+    ] as const) {
+      fetchMock.mockImplementation(() => respond({ ...SCRYFALL_SWAN_SONG, ...overrides }));
+      expect((await lookupCard(`Card ${JSON.stringify(overrides)}`)).landscape).toBe(landscape);
+    }
+  });
+
   it('has no legality data for a cards.xml record without format props', async () => {
     cards.get.mockResolvedValue(XML_SWAN_SONG);
     const result = await lookupCard('Swan Song');

@@ -28,6 +28,14 @@ export class Setting {
   // Appearance — theme palette
   themeMode: ThemeMode;
 
+  // Appearance — card rendering (desktop cards_display `displayCardNames`,
+  // `autoRotateSidewaysLayoutCards`, `scaleCards`, `roundCardCorners`; appearance `maxFontSize`)
+  displayCardNames: boolean;
+  autoRotateSidewaysLayoutCards: boolean;
+  scaleCards: boolean;
+  roundCardCorners: boolean;
+  maxFontSizeForCards: number;
+
   // Appearance — card layout (desktop cards_display `verticalCardOverlapPercent`)
   /** How much of each card the next one covers on the stack and in a vertical hand, at least. */
   verticalCardOverlapPercent: number;
@@ -134,6 +142,12 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
 
   // Desktop writes an unset scheme as "System" (theme_config.cpp).
   themeMode: ThemeMode.System,
+
+  displayCardNames: true,
+  autoRotateSidewaysLayoutCards: true,
+  scaleCards: true,
+  roundCardCorners: true,
+  maxFontSizeForCards: 12,
 
   verticalCardOverlapPercent: 33,
 
