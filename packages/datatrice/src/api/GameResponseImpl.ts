@@ -11,6 +11,7 @@ import {
   Event_DrawCards,
   Event_DumpZone,
   Event_FlipCard,
+  Event_GameLogNotice_NoticeType,
   Event_GameStateChanged,
   Event_MoveCard,
   Event_RevealCards,
@@ -151,5 +152,9 @@ export class GameResponseImpl implements WebsocketTypes.IGameResponse {
 
   zonePropertiesChanged(gameId: number, playerId: number, data: Event_ChangeZoneProperties): void {
     this.store.dispatch(GameActions.zonePropertiesChanged({ gameId, playerId, data }));
+  }
+
+  gameLogNotice(gameId: number, playerId: number, noticeType: Event_GameLogNotice_NoticeType): void {
+    this.store.dispatch(GameActions.gameLogNotice({ gameId, playerId, noticeType }));
   }
 }

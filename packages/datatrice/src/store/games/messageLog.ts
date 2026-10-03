@@ -507,6 +507,11 @@ export function formatCardUndoneDraw(
   return L`${p(actor)} undoes their last draw.`;
 }
 
+/** Desktop MessageLogWidget::logUndoDrawFailed (rendered as a server message). */
+export function formatUndoDrawFailed(game: Enriched.GameEntry, playerId: number): LogEntry {
+  return L`${p(nameOf(game, playerId))} failed to undo their last draw.`;
+}
+
 export function formatZoneShuffled(game: Enriched.GameEntry, playerId: number): LogEntry {
   return L`${p(nameOf(game, playerId))} shuffles their library.`;
 }
@@ -835,6 +840,7 @@ export function classifyLogTone(input: string | LogEntry): LogTone {
     || / is (?:not )?ready to start the game/.test(text)
     || / has (?:un)?locked their sideboard\.$/.test(text)
     || / has loaded a deck /.test(text)
+    || / failed to undo their last draw\.$/.test(text)
   ) {
     return 'system';
   }

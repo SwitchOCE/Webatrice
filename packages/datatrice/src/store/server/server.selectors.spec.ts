@@ -8,7 +8,8 @@ import {
   makeUser,
   makeWarnHistoryItem,
 } from '../../testing/fixtures/server';
-import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
+import { Response_ResponseCode, ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
+import { ServerCapability } from './server.capabilities';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { HEALTHY_CONNECTION_HEALTH } from './server.reducer.connection';
 
@@ -66,6 +67,38 @@ describe('Selectors', () => {
   it('getConnectUnreachable → falls back to false for a partial state missing the field', () => {
     const state = { ...makeServerState(), connectUnreachable: undefined } as unknown as ServerState;
     expect(Selectors.getConnectUnreachable(rootState(state))).toBe(false);
+  });
+
+  it('getLoginFailureCode → returns the rejecting response code', () => {
+    const state = makeServerState({ loginFailureCode: Response_ResponseCode.RespPasswordChangeRequired });
+    expect(Selectors.getLoginFailureCode(rootState(state))).toBe(Response_ResponseCode.RespPasswordChangeRequired);
+  });
+
+  it('getLoginFailureCode → falls back to null for a partial state missing the field', () => {
+    const state = { ...makeServerState(), loginFailureCode: undefined } as unknown as ServerState;
+    expect(Selectors.getLoginFailureCode(rootState(state))).toBeNull();
+  });
+
+  it('supports → true for a 3.1 capability on a 3.1 server', () => {
+    const state = makeServerState({ info: { message: null, name: 'Rooster', version: '3.1.0-beta.15 (2026-09-27)' } });
+    expect(Selectors.supports(rootState(state), ServerCapability.REPORTS)).toBe(true);
+  });
+
+  it('supports → false for a 3.1 capability on a 3.0 server', () => {
+    const state = makeServerState({ info: { message: null, name: 'Rooster', version: '3.0.0 (2026-05-08)' } });
+    expect(Selectors.supports(rootState(state), ServerCapability.REPORTS)).toBe(false);
+  });
+
+  it('supports → false before the server has identified itself', () => {
+    expect(Selectors.supports(rootState(makeServerState()), ServerCapability.PLAYMATS)).toBe(false);
+  });
+
+  it('getIsUserDeveloper → reads the IsDeveloper bit of the local user', () => {
+    const developer = makeServerState({ user: makeUser({ userLevel: ServerInfo_User_UserLevelFlag.IsDeveloper }) });
+    const plain = makeServerState({ user: makeUser({ userLevel: ServerInfo_User_UserLevelFlag.IsRegistered }) });
+    expect(Selectors.getIsUserDeveloper(rootState(developer))).toBe(true);
+    expect(Selectors.getIsUserDeveloper(rootState(plain))).toBe(false);
+    expect(Selectors.getIsUserDeveloper(rootState(makeServerState({ user: null })))).toBe(false);
   });
 
   it('getTestConnectionStatus → returns testConnectionStatus', () => {

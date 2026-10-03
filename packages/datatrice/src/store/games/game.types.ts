@@ -39,6 +39,7 @@ export const Types = {
   ZONE_DUMPED: a.zoneDumped.type,
   ZONE_PROPERTIES_CHANGED: a.zonePropertiesChanged.type,
   GAME_SAY: a.gameSay.type,
+  GAME_LOG_NOTICE: a.gameLogNotice.type,
 } as const;
 
 export { MAX_GAME_MESSAGES } from './game.reducer';
