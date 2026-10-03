@@ -10,6 +10,7 @@ import {
   makeZoneEntry,
 } from '@cockatrice/datatrice/testing';
 import Game from './Game';
+import { battlefieldEl, chooseMenuPath, openContextMenu, pileEl } from './__test-utils__/seatFixtures';
 
 // Layout pulls in LeftNav which is not under test here; stub to a no-op.
 vi.mock('../../components/Layout/Layout', () => ({
@@ -19,6 +20,21 @@ vi.mock('../../components/Layout/Layout', () => ({
 // Block TurnControls' / Battlefield's Dexie-backed useSettings from firing
 // an async settle after mount (would produce an unwrapped React state update).
 vi.mock('../../hooks/useSettings');
+
+// Seat pile views look card metadata up in Dexie/Scryfall; keep that off the network.
+vi.mock('../decks/cardLookup', () => {
+  const unknown = (name: string) => ({ found: false, source: 'unknown', name, printings: [] });
+  return {
+    lookupCard: vi.fn(async (name: string) => unknown(name)),
+    lookupCards: vi.fn(async (inputs: Array<string | { name: string }>) =>
+      new Map(inputs.map((i) => {
+        const name = typeof i === 'string' ? i : i.name;
+        return [name, unknown(name)];
+      }))),
+    lookupCardsCached: vi.fn(async (names: string[]) => new Map(names.map((n) => [n, unknown(n)]))),
+    fetchAllPrintings: vi.fn(async () => []),
+  };
+});
 
 interface BuildGameOpts {
   localId: number;
@@ -100,14 +116,24 @@ describe('Game container', () => {
     expect(screen.getByTestId('right-panel')).toBeInTheDocument();
   });
 
-  // Removed: `player-board-N`, `hand-zone`, `card-slot`, and the
-  // `.player-board--mirrored` class no longer exist on the rendered tree —
-  // GameBoardCell now delegates the entire per-seat surface (info panel,
-  // stack column, battlefield, inline hand, mirroring) to the monolithic
-  // PlayerBox component from the fancy-webatrice redo, which owns its own
-  // Tailwind DOM and exposes no equivalent semantic testids. The
-  // per-seat/hand-mode/hover behaviors these tests pinned are covered
-  // more directly by useGameBoardLayout.spec.ts and PlayerBox's own suite.
+  // The seat surface is PlayerBox (one per player, rendered by GameBoardCell).
+  // These pin the per-seat layout through Game; seat interactions are pinned in
+  // components/PlayerBox/PlayerBox.characterization.spec.tsx and the seat
+  // adapter in components/ui/GameBoardCell/GameBoardCell.spec.tsx.
+  it('renders one battlefield per seat and mirrors every board above the local one', () => {
+    renderWithProviders(<Game />, {
+      preloadedState: buildGame({
+        localId: 1,
+        opponentIds: [2],
+        tableCards: [makeCard({ id: 42, name: 'Bolt', x: 0, y: 0 })],
+      }),
+    });
+
+    expect(battlefieldEl(1)).toHaveAttribute('data-battlefield-mirrored', 'false');
+    expect(battlefieldEl(2)).toHaveAttribute('data-battlefield-mirrored', 'true');
+    expect(battlefieldEl(1).querySelector('[data-card-id="42"]')).toHaveAttribute('data-card-owner', '1');
+    expect(battlefieldEl(2).querySelector('[data-card]')).toBeNull();
+  });
 
   it('keeps the phase bar and right panel visible when no game is joined', () => {
     renderWithProviders(<Game />, {
@@ -215,22 +241,29 @@ describe('Game container', () => {
       expect(screen.queryByRole('button', { name: /close zone view/i })).not.toBeInTheDocument();
     });
 
-    // Removed: the zone-stack click affordance now lives inside PlayerBox
-    // and is no longer reachable via `[data-testid="zone-stack-<name>"]`.
-    // ZoneViewDialog open/close/opp-grave are covered by
-    // ZoneViewDialog.spec.tsx and useGameDialogs.spec.tsx directly.
+    // The game-level ZoneViewDialog opens from GameInteractionContext's
+    // onZoneClick, whose only caller (PlayerInfoPanel inside PlayerBoard) is not
+    // mounted by the PlayerBox seat. The seat opens its own pile view instead;
+    // ZoneViewDialog keeps its component spec (ZoneViewDialog.spec.tsx).
+    it('opens the seat pile view, not the game-level dialog, from "View graveyard"', () => {
+      renderWithProviders(<Game />, {
+        preloadedState: buildGame({
+          localId: 1,
+          opponentIds: [2],
+          graveCards: [makeCard({ id: 7, name: 'Opt' })],
+        }),
+      });
+
+      openContextMenu(pileEl('Graveyard', 0));
+      chooseMenuPath('View graveyard');
+
+      expect(screen.getByText(/^Graveyard — P1/)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /close zone view/i })).not.toBeInTheDocument();
+    });
   });
 
-  // Card-interaction tests removed: they all required `[data-testid="card-slot"]`
-  // + `[data-testid="zone-stack-<name>"]` + `[data-testid="player-board-N"]`
-  // hooks that PlayerBox (the current seat renderer) does not expose. The
-  // command-dispatch paths themselves (bulkTap, drawCards, bulkSetPT,
-  // context-menu open/close) are covered directly by the useGameDialogs and
-  // context-menu component specs — those don't depend on the PlayerBox DOM.
-
-  // M4–M6 orchestration tests live in Game.orchestration.spec.tsx — that
-  // file pins the end-to-end dispatch flows (dialog/menu → command) that go
-  // through Game.tsx state wiring. Splitting them out lets vitest's threads
-  // pool run them in parallel with the unit-style tests in this file.
+  // Card interactions on the seat (menus, selection, bulk commands, drag and
+  // drop) are pinned in PlayerBox.characterization.spec.tsx; cross-seat drags in
+  // Game.dragdrop.spec.tsx; seat → game-dialog routes in Game.orchestration.spec.tsx.
 
 });
