@@ -67,6 +67,7 @@ export const Types = {
   MODERATOR_COMMAND_FAILED: a.moderatorCommandFailed.type,
   SESSION_COMMAND_FAILED: a.sessionCommandFailed.type,
   ADMIN_COMMAND_FAILED: a.adminCommandFailed.type,
+  DEVELOPER_COMMAND_FAILED: a.developerCommandFailed.type,
   GET_ADMIN_NOTES: a.getAdminNotes.type,
   UPDATE_ADMIN_NOTES: a.updateAdminNotes.type,
   // Replay

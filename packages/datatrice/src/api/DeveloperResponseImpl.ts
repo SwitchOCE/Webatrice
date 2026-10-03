@@ -12,4 +12,13 @@ export class DeveloperResponseImpl implements WebsocketTypes.IDeveloperResponse 
   serverStats(stats: Response_GetServerStats): void {
     this.store.dispatch(ServerActions.serverStats({ stats }));
   }
+
+  commandFailed(
+    command: WebsocketTypes.DeveloperCommandName,
+    responseCode: number,
+    target: string,
+    failure?: WebsocketTypes.CommandFailure,
+  ): void {
+    this.store.dispatch(ServerActions.developerCommandFailed({ command, responseCode, target, failure }));
+  }
 }
