@@ -7,6 +7,7 @@ import { useValueFlash } from '../../ui/ValueFlash/useValueFlash';
 import ValueFlashOverlay from '../../ui/ValueFlash/ValueFlashOverlay';
 import ZoneStack from '../../ui/ZoneStack/ZoneStack';
 import { MANA_COLORS } from './manaColors';
+import { OVER_ART_ICON_SHADOW, OVER_ART_SHADOW_LIFE, OVER_ART_SHADOW_NAME, OVER_ART_SHADOW_PIP } from '../../ui/seatColors/seatColors';
 
 /** One mana-pool counter: the symbol with its count. The owner clicks to add
  *  one and right-clicks to remove one (desktop's counter +1 / -1). */
@@ -79,8 +80,11 @@ function ManaPip({
         />
       )}
       <span
-        className="absolute inset-0 flex items-center justify-center text-white font-bold text-[0.75em] tabular-nums pointer-events-none"
-        style={{ textShadow: '0 1px 3px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,1)' }}
+        className={
+          'absolute inset-0 flex items-center justify-center text-over-art-text font-bold text-[0.75em] '
+          + 'tabular-nums pointer-events-none'
+        }
+        style={{ textShadow: OVER_ART_SHADOW_PIP }}
       >
         {count}
       </span>
@@ -186,7 +190,7 @@ export default function PlayerInfoPanel() {
               pills at a consistent darker tone. Avatars stay
               unfiltered so the user's picture reads clearly. */}
             <div
-              className="absolute inset-0 bg-black/50 pointer-events-none"
+              className="absolute inset-0 bg-over-art-backdrop/50 pointer-events-none"
               aria-hidden
             />
           </>
@@ -197,8 +201,8 @@ export default function PlayerInfoPanel() {
           needing a wash over the image. */}
         <div className="relative z-10 px-[0.5em] pt-[0.35em] pointer-events-none">
           <span
-            className="block text-[0.875em] font-semibold text-white truncate"
-            style={{ textShadow: '0 2px 6px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,1), 0 0 1px rgba(0,0,0,1)' }}
+            className="block text-[0.875em] font-semibold text-over-art-text truncate"
+            style={{ textShadow: OVER_ART_SHADOW_NAME }}
           >
             {name}
           </span>
@@ -210,11 +214,11 @@ export default function PlayerInfoPanel() {
           <Heart
             size="2.5em"
             className="text-red-400"
-            style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.95)) drop-shadow(0 0 2px rgba(0,0,0,1))' }}
+            style={{ filter: OVER_ART_ICON_SHADOW }}
           />
           <span
-            className="text-[3em] font-modern font-bold tabular-nums text-white leading-none"
-            style={{ textShadow: '0 3px 10px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,1), 0 0 2px rgba(0,0,0,1)' }}
+            className="text-[3em] font-modern font-bold tabular-nums text-over-art-text leading-none"
+            style={{ textShadow: OVER_ART_SHADOW_LIFE }}
           >
             {life}
           </span>

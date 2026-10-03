@@ -17,6 +17,7 @@ import {
   CARD_WIDTH,
 } from '../SeatCard/cardSize';
 import Card from '../SeatCard/SeatCard';
+import { OVER_ART_SHADOW } from '../seatColors/seatColors';
 
 /** Synthetic drag payload for pulling the top of the library. The library
  *  is a HiddenZone — the client never knows which face is at deck[0]
@@ -121,8 +122,8 @@ const LargeZoneBox = forwardRef<
               <div className="absolute inset-0 flex items-center justify-center gap-[0.35em] pointer-events-none">
                 {!topCard && <Icon size="2.5em" className="text-text-muted shrink-0" />}
                 <span
-                  className="text-white font-modern font-bold tabular-nums text-[3em]"
-                  style={{ textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1)' }}
+                  className="text-over-art-text font-modern font-bold tabular-nums text-[3em]"
+                  style={{ textShadow: OVER_ART_SHADOW }}
                 >
                   {count}
                 </span>
@@ -209,14 +210,14 @@ const CardBackZone = forwardRef<
             renders that face fully un-dimmed, matching the visual
             expectation of a face-up card. */}
               {!topCard && (
-                <div className="absolute inset-0 bg-black/20 pointer-events-none" aria-hidden />
+                <div className="absolute inset-0 bg-over-art-backdrop/20 pointer-events-none" aria-hidden />
               )}
               <div
                 className={[
-                  'absolute inset-0 flex items-center justify-center text-white',
+                  'absolute inset-0 flex items-center justify-center text-over-art-text',
                   'font-modern font-bold tabular-nums text-[3em] pointer-events-none',
                 ].join(' ')}
-                style={{ textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1)' }}
+                style={{ textShadow: OVER_ART_SHADOW }}
               >
                 {count}
               </div>

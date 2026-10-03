@@ -100,6 +100,21 @@ describe.each(Object.keys(PALETTES) as ColorScheme[])('the %s palette', (scheme)
     expect(contrast(palette['text-muted'], palette[surface])).toBeGreaterThanOrEqual(4.5);
   });
 
+  test.each(['bg-base', 'bg-surface'] as PaletteToken[])(
+    'keeps the board\'s selection, attach and doesn\'t-untap rings at 3:1 on %s',
+    (surface) => {
+      for (const token of ['seat-select', 'seat-attach', 'seat-doesnt-untap'] as PaletteToken[]) {
+        expect(contrast(palette[token], palette[surface]), token).toBeGreaterThanOrEqual(3);
+      }
+    },
+  );
+
+  test('keeps text over card art, a modified P/T included, at AA contrast on its backdrop', () => {
+    for (const token of ['over-art-text', 'pt-modified'] as PaletteToken[]) {
+      expect(contrast(palette[token], palette['over-art-backdrop']), token).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   test.each(SURFACES)('keeps disabled text at least 3:1 on %s', (surface) => {
     expect(contrast(palette['text-disabled'], palette[surface])).toBeGreaterThanOrEqual(3);
   });
