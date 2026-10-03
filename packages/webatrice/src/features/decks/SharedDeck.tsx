@@ -48,7 +48,7 @@ function SharedDeck() {
   );
   const importCopy = useImportDeckCopy(openImported);
 
-  const blocked = problem ?? otherServer ?? (supported ? null : t('SharedDeck.notFound'));
+  const blocked = problem ?? (supported ? otherServer : t('DeckSharing.notSupported'));
   const { listing, open } = shared;
 
   return (
