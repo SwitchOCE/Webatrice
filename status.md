@@ -1,3 +1,4 @@
 - 20:21Z started w27, branch created from restack-23-playmats → reading code, npm ci
 - 20:24Z P7 KnownHosts listbox committed+pushed → GamesList (P1/P2/P17)
 - 20:28Z P1/P2/P17/P19 GamesList grid, VirtualRows aria, dead code pushed → TopBar nav (P3)
+- 20:29Z P3 TopBar nav pushed (e2e selectors moved to topBarTab helper) → P13 CardCallout, P15
