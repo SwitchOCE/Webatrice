@@ -1,1 +1,2 @@
 - 15:24Z started f1204, read brief/task/rv2 → fix 12
+- 15:32Z 12: dev-role gate + GetUserInfo failure committed/pushed → full gate on 12
