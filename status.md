@@ -5,3 +5,4 @@
 - 20:50Z contrast tokens + P14 + P18, pushed → full gate + e2e keyboard spec
 - 21:04Z gate typecheck/lint/unit/integration green; keyboard e2e 3/3 browsers; pushed 36cd584 → full webatrice e2e matrix
 - 21:25Z e2e: keyboard spec 3/3; fixed browser-support locator; replays failure reproduced on BASE (pre-existing); staff-tools:38 needs docker CLI unavailable in the playwright container → full matrix rerunning
+- 21:52Z DONE: tip 9e966a8; gate green (typecheck 5/5, lint 0, unit 880/1281/2278, integration 171/140/209); e2e 54 passed + keyboard spec 3/3; 2 failures not ours (replays reproduced on base, staff-tools needs docker in container)
