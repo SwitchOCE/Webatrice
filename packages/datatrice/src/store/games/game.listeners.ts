@@ -1001,16 +1001,20 @@ export function registerGameListeners(mw: ListenerMiddlewareInstance<unknown>): 
   mw.startListening({
     actionCreator: Actions.turnReversed,
     effect: (action, api) => {
-      const { gameId, reversed } = action.payload;
+      const { gameId, reversed, playerId } = action.payload;
       const preState = api.getOriginalState() as { games: GamesState };
       const preGame = preState.games.games[gameId];
       if (!preGame) {
         return;
       }
-      const message = formatTurnReversed(preGame, preGame.activePlayerId, reversed);
+      // The actor is whoever sent Command_ReverseTurn, not the active player
+      // (message_log_widget.cpp logReverseTurn). -1 is the proto2 "no actor"
+      // sentinel; fall back to the active player for it and for older callers.
+      const actor = playerId != null && playerId >= 0 ? playerId : preGame.activePlayerId;
+      const message = formatTurnReversed(preGame, actor, reversed);
       if (message) {
         api.dispatch(Actions.gameMessageAppended({
-          gameId, playerId: preGame.activePlayerId, message,
+          gameId, playerId: actor, message,
         }));
       }
     },

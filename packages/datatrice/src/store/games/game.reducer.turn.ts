@@ -35,5 +35,5 @@ export const turnReducers = {
       return;
     }
     game.reversed = action.payload.reversed;
-  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; reversed: boolean }>>,
+  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; reversed: boolean; playerId?: number }>>,
 };
