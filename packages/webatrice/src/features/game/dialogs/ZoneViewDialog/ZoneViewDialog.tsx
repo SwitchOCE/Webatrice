@@ -1,11 +1,12 @@
 import { ZoneName } from '@cockatrice/sockatrice';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
 
+import { usePreference } from '@app/hooks';
 import { cx } from '@app/utils';
 
 import CardSlot from '../../components/ui/CardSlot/CardSlot';
@@ -64,6 +65,18 @@ function ZoneViewDialog({
     () => handleClose(isDeck ? shuffleOnClose : false),
     [handleClose, isDeck, shuffleOnClose],
   );
+
+  // "Close card view window when last card is removed" (desktop ViewZoneLogic): close once the
+  // view goes from showing cards to showing none, not when it opens on an empty zone.
+  const closeEmptyCardView = usePreference('closeEmptyCardView');
+  const shownCount = useRef(cards.length);
+  useEffect(() => {
+    const previous = shownCount.current;
+    shownCount.current = cards.length;
+    if (isOpen && closeEmptyCardView && previous > 0 && cards.length === 0) {
+      onClose();
+    }
+  }, [cards.length, isOpen, closeEmptyCardView, onClose]);
 
   useEffect(() => {
     if (!isOpen) {

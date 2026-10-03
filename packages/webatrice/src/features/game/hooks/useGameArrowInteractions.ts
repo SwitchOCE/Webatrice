@@ -1,7 +1,7 @@
 import { ZoneName } from '@cockatrice/sockatrice';
 import { RefObject, useCallback, useEffect, useMemo, useState } from 'react';
 
-import { useSettings } from '@app/hooks';
+import { usePreference, useSettings } from '@app/hooks';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
 import { GameEntry } from '@cockatrice/datatrice';
@@ -119,6 +119,7 @@ export function useGameArrowInteractions({
   const webClient = useWebClient();
   const judgeTarget = useJudgeTarget(gameId);
   const { value: settings } = useSettings();
+  const playToStack = usePreference('playToStack');
   const invertVerticalCoordinate = settings?.invertVerticalCoordinate ?? false;
 
   const [pending, setPending] = useState<Pending | null>(null);
@@ -565,10 +566,14 @@ export function useGameArrowInteractions({
           isInverted: invertVerticalCoordinate,
           tableZone: game.players[sourcePlayerId]?.zones[ZoneName.TABLE],
           judgeTargetId: judgeTarget(sourcePlayerId),
+          playToStack,
         });
       }
     },
-    [gameId, game, invertVerticalCoordinate, pending, webClient, selectedCards, collapseUnlessSelected, judgeTarget],
+    [
+      gameId, game, invertVerticalCoordinate, playToStack, pending, webClient, selectedCards,
+      collapseUnlessSelected, judgeTarget,
+    ],
   );
 
   // Returns true iff a pending arrow was resolved against this player. Callers
