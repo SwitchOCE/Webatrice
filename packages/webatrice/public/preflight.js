@@ -1,0 +1,368 @@
+// Startup capability preflight. A classic script, loaded by index.html before
+// the app's module entry, so it runs in browsers that cannot parse the bundle
+// at all. It must stay ES5 (ESLint parses it as ES5): anything newer would fail
+// to parse in exactly the browsers it exists to catch.
+//
+// The supported browsers are declared in package.json `browserslist` and pinned
+// as the Vite build target (Chrome/Edge 111, Firefox 114, Safari 16.4). A
+// missing check below means an older or embedded browser, a feature disabled by
+// policy or privacy mode, or a page served outside a secure context.
+//
+// Required features gate the boot: the result is published on
+// window.Cockatrice.browserSupport, and src/index.tsx loads the app only when
+// nothing required is missing. Otherwise this script renders the unsupported
+// screen itself, so no app code is downloaded. Optional features each have a
+// fallback where they are used; the app boots and FeatureDetection names them.
+//
+// IndexedDB is also checked asynchronously after boot (dexieService.testConnection):
+// the global can exist while opening a database fails, as in some private modes.
+//
+// Trade-off: the screen cannot use the app's i18next instance or bundled CSS.
+// It carries the English strings of Unsupported.i18n.json and
+// BrowserFeature.i18n.json, swaps in the user's language from
+// public/locales when that loads, and copies the theme tokens it needs from
+// src/styles/tokens.css. browserSupport.spec.ts keeps both copies in step.
+(function preflight(root) {
+  'use strict';
+
+  var document = root.document;
+
+  function isFunction(value) {
+    return typeof value === 'function';
+  }
+
+  // Syntax the build emits untranspiled for its baseline target (ES2022). A
+  // browser that cannot parse it would fail on the bundle with a blank page.
+  var SYNTAX_PROBE = [
+    'class A { #p = 1n; static s; static { A.s = 0; } m() { return this.#p ?? 0n; } }',
+    'var o = { ...{} }; o?.a; o.b ??= 1; o.c ||= 1; o.d &&= 1;',
+    'async function* g() { for await (const x of []) { yield x; } }',
+    'try { } catch { }',
+  ].join('\n');
+
+  function parsesModernSyntax() {
+    try {
+      // Parsed only, never called.
+      new root.Function(SYNTAX_PROBE);
+      return true;
+    } catch (error) {
+      // A CSP without 'unsafe-eval' forbids the probe itself (EvalError): unknown, not missing.
+      return !(error instanceof root.SyntaxError);
+    }
+  }
+
+  var CHECKS = [
+    // The app bundle: modern syntax, delivered as ES modules (`nomodule` support
+    // is exactly ES module support), with BigInt for protobuf int64 fields.
+    { feature: 'syntax', required: true, isAvailable: parsesModernSyntax },
+    {
+      feature: 'esModules',
+      required: true,
+      isAvailable: function hasModules() {
+        return 'noModule' in document.createElement('script');
+      },
+    },
+    {
+      feature: 'bigInt',
+      required: true,
+      isAvailable: function hasBigInt() {
+        return isFunction(root.BigInt);
+      },
+    },
+    // The server connection (Sockatrice WebSocketService).
+    {
+      feature: 'webSocket',
+      required: true,
+      isAvailable: function hasWebSocket() {
+        return isFunction(root.WebSocket);
+      },
+    },
+    // Salts and GUIDs. Unlike crypto.subtle, it exists outside a secure context too.
+    {
+      feature: 'cryptoRandom',
+      required: true,
+      isAvailable: function hasRandom() {
+        return !!root.crypto && isFunction(root.crypto.getRandomValues);
+      },
+    },
+    {
+      feature: 'textEncoder',
+      required: true,
+      isAvailable: function hasEncoder() {
+        return isFunction(root.TextEncoder);
+      },
+    },
+    // The action slice snapshots dispatched payloads.
+    {
+      feature: 'structuredClone',
+      required: true,
+      isAvailable: function hasClone() {
+        return isFunction(root.structuredClone);
+      },
+    },
+    // Translations, the public server list and card data.
+    {
+      feature: 'fetch',
+      required: true,
+      isAvailable: function hasFetch() {
+        return isFunction(root.fetch) && isFunction(root.AbortController);
+      },
+    },
+    // Settings, known hosts, cards and decks.
+    {
+      feature: 'indexedDB',
+      required: true,
+      isAvailable: function hasIndexedDB() {
+        return root.indexedDB != null;
+      },
+    },
+    // Card scaling, the game board, arrows and the reveal/search dialogs.
+    {
+      feature: 'resizeObserver',
+      required: true,
+      isAvailable: function hasResizeObserver() {
+        return isFunction(root.ResizeObserver);
+      },
+    },
+
+    // Password hashing (SHA-512). Missing outside a secure context (plain http://,
+    // e.g. a LAN deployment); Sockatrice then sends the plain password, as it does
+    // for a server without password hashing.
+    {
+      feature: 'webCrypto',
+      required: false,
+      isAvailable: function hasSubtle() {
+        return !!root.crypto && !!root.crypto.subtle && isFunction(root.crypto.subtle.digest);
+      },
+    },
+    // Keep-alive falls back to a main-thread timer, which browsers throttle in background tabs.
+    {
+      feature: 'worker',
+      required: false,
+      isAvailable: function hasWorker() {
+        return isFunction(root.Worker);
+      },
+    },
+    // The pop-out card preview window.
+    {
+      feature: 'broadcastChannel',
+      required: false,
+      isAvailable: function hasBroadcastChannel() {
+        return isFunction(root.BroadcastChannel);
+      },
+    },
+    // Copy buttons (deck export, deck hash). Also needs a secure context.
+    {
+      feature: 'clipboard',
+      required: false,
+      isAvailable: function hasClipboard() {
+        return !!root.navigator && !!root.navigator.clipboard && isFunction(root.navigator.clipboard.writeText);
+      },
+    },
+  ];
+
+  function isAvailable(check) {
+    try {
+      return !!check.isAvailable();
+    } catch (error) {
+      // A host getter can throw (e.g. a SecurityError in a sandboxed frame).
+      return false;
+    }
+  }
+
+  function detect() {
+    var support = { missingRequired: [], missingOptional: [] };
+    for (var i = 0; i < CHECKS.length; i++) {
+      if (!isAvailable(CHECKS[i])) {
+        (CHECKS[i].required ? support.missingRequired : support.missingOptional).push(CHECKS[i].feature);
+      }
+    }
+    return support;
+  }
+
+  // English source strings: copies of Unsupported.i18n.json and BrowserFeature.i18n.json.
+  var STRINGS = {
+    Unsupported: {
+      title: 'Unsupported Browser',
+      subtitle1: 'Please update your browser and/or check your permissions.',
+      subtitle2: 'Note: Private browsing causes some browsers to disable certain permissions or features.',
+      missing: 'This browser does not provide:',
+    },
+    BrowserFeature: {
+      syntax: 'Modern JavaScript, used by the whole client',
+      esModules: 'JavaScript modules, used to load the client',
+      bigInt: 'BigInt numbers, used by the server protocol',
+      webSocket: 'WebSockets, used to connect to the server',
+      cryptoRandom: 'Secure random numbers, used to log in',
+      textEncoder: 'Text encoding, used by the server protocol',
+      structuredClone: 'Structured cloning, used to track server requests',
+      fetch: 'Fetch, used to load translations, servers and card data',
+      indexedDB: 'IndexedDB storage, used for cards, decks and settings',
+      resizeObserver: 'Resize observers, used to lay out the game board',
+      webCrypto: 'Password hashing, which needs a page served over https://; '
+        + 'passwords are sent to the server unhashed instead',
+      worker: 'Web Workers, used to keep the connection alive in a background tab',
+      broadcastChannel: 'Broadcast channels, used by the pop-out card preview',
+      clipboard: 'The clipboard, used by copy buttons (needs a page served over https://)',
+    },
+  };
+
+  // The tokens the screen uses, copied from src/styles/tokens.css (bundled, so
+  // not loaded yet), under the same names so the rules read like the app's CSS.
+  var TOKENS = {
+    '--bg-base': '20 16 31',
+    '--bg-surface': '31 24 48',
+    '--border-subtle': '58 46 90',
+    '--text-primary': '245 240 246',
+    '--text-secondary': '199 191 212',
+  };
+
+  var STYLE = [
+    '.Unsupported { box-sizing: border-box; min-height: 100vh; display: flex; align-items: center;',
+    '  justify-content: center; padding: 20px; font-family: system-ui, sans-serif; line-height: 1.5;',
+    '  background: rgb(var(--bg-base)); color: rgb(var(--text-primary)); }',
+    '.Unsupported-paper { width: 600px; max-width: 100%; padding: 40px; text-align: center; border-radius: 8px;',
+    '  background: rgb(var(--bg-surface)); border: 1px solid rgb(var(--border-subtle)); }',
+    '.Unsupported-paper h1 { margin: 0 0 8px; font-size: 2rem; font-weight: 500; }',
+    '.Unsupported-paper__header { margin-bottom: 40px; }',
+    '.Unsupported-paper__missing { margin-bottom: 40px; text-align: left; }',
+    '.Unsupported-paper__missing ul { margin: 8px 0 0; padding-left: 24px; list-style: disc;',
+    '  color: rgb(var(--text-secondary)); }',
+    '.Unsupported-paper__note { color: rgb(var(--text-secondary)); }',
+  ].join('\n');
+
+  function element(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) {
+      node.className = className;
+    }
+    if (text != null) {
+      node.textContent = text;
+    }
+    return node;
+  }
+
+  // Builds the screen from `strings`; returns the root node.
+  function buildScreen(missing, strings) {
+    var main = element('main', 'Unsupported');
+    for (var token in TOKENS) {
+      if (Object.prototype.hasOwnProperty.call(TOKENS, token)) {
+        main.style.setProperty(token, TOKENS[token]);
+      }
+    }
+
+    var paper = element('div', 'Unsupported-paper');
+    var header = element('div', 'Unsupported-paper__header');
+    header.appendChild(element('h1', null, strings.Unsupported.title));
+    header.appendChild(element('p', null, strings.Unsupported.subtitle1));
+    paper.appendChild(header);
+
+    var list = element('div', 'Unsupported-paper__missing');
+    list.appendChild(element('p', null, strings.Unsupported.missing));
+    var items = element('ul');
+    for (var i = 0; i < missing.length; i++) {
+      items.appendChild(element('li', null, strings.BrowserFeature[missing[i]]));
+    }
+    list.appendChild(items);
+    paper.appendChild(list);
+
+    paper.appendChild(element('p', 'Unsupported-paper__note', strings.Unsupported.subtitle2));
+    main.appendChild(paper);
+    return main;
+  }
+
+  function render(missing, strings) {
+    var container = document.getElementById('root') || document.body;
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
+    container.appendChild(buildScreen(missing, strings));
+  }
+
+  // Overlays a translation onto the English strings, key by key.
+  function translate(translation) {
+    var strings = { Unsupported: {}, BrowserFeature: {} };
+    for (var namespace in strings) {
+      if (Object.prototype.hasOwnProperty.call(strings, namespace)) {
+        var english = STRINGS[namespace];
+        var translated = (translation && translation[namespace]) || {};
+        for (var key in english) {
+          if (Object.prototype.hasOwnProperty.call(english, key)) {
+            strings[namespace][key] = typeof translated[key] === 'string' ? translated[key] : english[key];
+          }
+        }
+      }
+    }
+    return strings;
+  }
+
+  // public/locales folder names use underscores (pt_BR); the app's i18next
+  // detector stores its choice under `i18nextLng`.
+  function preferredLocales() {
+    var language = null;
+    try {
+      language = root.localStorage.getItem('i18nextLng');
+    } catch (error) {
+      language = null;
+    }
+    language = (language || (root.navigator && root.navigator.language) || '').replace('-', '_');
+    var locales = [];
+    if (language) {
+      locales.push(language);
+      if (language.indexOf('_') > 0) {
+        locales.push(language.split('_')[0]);
+      }
+    }
+    return locales;
+  }
+
+  function localesBaseUrl() {
+    var script = document.currentScript;
+    return script && script.src ? script.src.replace(/[^/]*$/, '') + 'locales/' : '/locales/';
+  }
+
+  // Best effort: the English screen is already up, a translation replaces it
+  // when one loads. XMLHttpRequest because fetch may be what is missing.
+  function loadTranslation(locales, baseUrl, onLoad) {
+    if (locales.length === 0 || !isFunction(root.XMLHttpRequest)) {
+      return;
+    }
+    var request = new root.XMLHttpRequest();
+    request.onload = function onTranslation() {
+      var translation = null;
+      try {
+        translation = request.status === 200 ? JSON.parse(request.responseText) : null;
+      } catch (error) {
+        translation = null;
+      }
+      if (translation) {
+        onLoad(translation, locales[0]);
+      } else {
+        loadTranslation(locales.slice(1), baseUrl, onLoad);
+      }
+    };
+    request.onerror = function onTranslationError() {
+      loadTranslation(locales.slice(1), baseUrl, onLoad);
+    };
+    request.open('GET', baseUrl + locales[0] + '/translation.json');
+    request.send();
+  }
+
+  var support = detect();
+  root.Cockatrice = root.Cockatrice || {};
+  root.Cockatrice.browserSupport = support;
+
+  if (support.missingRequired.length > 0) {
+    var style = element('style', null, STYLE);
+    (document.head || document.documentElement).appendChild(style);
+    render(support.missingRequired, STRINGS);
+
+    var locales = preferredLocales();
+    if (locales.length > 0 && locales[0].indexOf('en') !== 0) {
+      loadTranslation(locales, localesBaseUrl(), function showTranslated(translation, locale) {
+        document.documentElement.lang = locale.replace('_', '-');
+        render(support.missingRequired, translate(translation));
+      });
+    }
+  }
+})(window);

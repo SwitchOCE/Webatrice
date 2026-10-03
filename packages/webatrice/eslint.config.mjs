@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
+import * as espree from 'espree';
 import reactHooks from 'eslint-plugin-react-hooks';
 import { boundariesConfig } from './eslint.boundaries.mjs';
 
@@ -132,6 +133,24 @@ export default tseslint.config(
       'space-in-parens': ['error', 'never'],
       'space-infix-ops': ['error'],
       'space-unary-ops': ['error', { words: true, nonwords: false }],
+    },
+  },
+
+  // The capability preflight runs as a classic script before the bundle, in
+  // browsers too old to parse it, so it must stay ES5: espree at ecmaVersion 5
+  // rejects any newer syntax as a parse error.
+  {
+    files: ['public/preflight.js'],
+    languageOptions: {
+      parser: espree,
+      ecmaVersion: 5,
+      sourceType: 'script',
+      parserOptions: { ecmaFeatures: { jsx: false } },
+      globals: { ...globals.browser },
+    },
+    rules: {
+      'no-var': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { caughtErrors: 'none' }],
     },
   },
 );

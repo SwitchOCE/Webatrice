@@ -6,7 +6,7 @@ import { renderWithProviders, disconnectedState } from '../../__test-utils__';
 
 const hoisted = vi.hoisted(() => ({
   testConnection: vi.fn(),
-  detectBrowserSupport: vi.fn(),
+  getBrowserSupport: vi.fn(),
   pushToast: vi.fn(),
 }));
 
@@ -15,7 +15,7 @@ vi.mock('@app/services', () => ({
 }));
 
 vi.mock('@app/utils', () => ({
-  detectBrowserSupport: hoisted.detectBrowserSupport,
+  getBrowserSupport: hoisted.getBrowserSupport,
 }));
 
 vi.mock('@app/components', () => ({
@@ -34,7 +34,7 @@ describe('FeatureDetection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.testConnection.mockResolvedValue(undefined);
-    hoisted.detectBrowserSupport.mockReturnValue({ missingRequired: [], missingOptional: [] });
+    hoisted.getBrowserSupport.mockReturnValue({ missingRequired: [], missingOptional: [] });
   });
 
   it('renders nothing and stays put when IndexedDB is available', async () => {
@@ -72,7 +72,7 @@ describe('FeatureDetection', () => {
   });
 
   it('names the missing optional features in one warning notice', async () => {
-    hoisted.detectBrowserSupport.mockReturnValue({
+    hoisted.getBrowserSupport.mockReturnValue({
       missingRequired: [],
       missingOptional: ['worker', 'clipboard'],
     });
