@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useImperativeHandle,
   useMemo,
@@ -59,10 +58,10 @@ import {
 import ContextMenu, { type ContextMenuItem } from './ContextMenu';
 import LibrarySearchDialog from './LibrarySearchDialog';
 import { useRegisterForeignDrag } from './foreignDragContext';
-import { useSelectionOwner } from './selectionOwner';
 import Card from './Card';
 import { useCardPreviewActions } from '../ui/CardPreviewContext';
 import { usePublishSeatShortcuts, type SeatShortcutOperations } from '../ui/SeatShortcutsContext';
+import { useSeatSelection, type SeatSelection } from '../../hooks/useSeatSelection';
 import { useViewportClampedPopup } from './useViewportClampedPopup';
 import ZoneRevealDialog from './ZoneRevealDialog';
 import { useGameDialogActions } from '../ui/GameDialogActionsContext';
@@ -175,10 +174,9 @@ type DragState = {
 const DRAG_MOVEMENT_THRESHOLD_PX = 4;
 
 /** A marquee selection is always within a single zone. */
-type Selection = {
-  zone: 'hand' | 'battlefield' | 'stack';
-  ids: Set<string>;
-};
+type Selection = SeatSelection;
+
+const NO_CARDS: readonly HandCard[] = [];
 
 /** Map a local drag zone name to the Cockatrice wire zone name. */
 function wireZoneName(
@@ -788,10 +786,6 @@ type Props = {
    *  and not for zone→hand drags or reveal-to-hand paths. */
   drawSeq?: number;
   lastDrawCount?: number;
-  /** Called when the viewer's marquee ends, distributing the highlight
-   *  set to each PlayerBox by owner id. Pass an empty map to clear all
-   *  foreign highlights. Only invoked from the viewer's PlayerBox. */
-  broadcastBattlefieldSelection?: (byOwner: Map<string, Set<string>>) => void;
 };
 
 /** Where a marquee started — one of the three selectable zones. A single
@@ -812,11 +806,6 @@ export type PlayerBoxHandle = {
     cards: HandCard[],
     intendedSlots: BattlefieldSlot[],
   ) => void;
-  /** Set the highlighted card ids on THIS player's battlefield. Called
-   *  by the viewer's marquee to show what they've selected on foreign
-   *  boards. Only affects rendering — these cards remain non-draggable
-   *  for anyone but their owner. Pass an empty set to clear. */
-  receiveBattlefieldSelection: (ids: Set<string>) => void;
   /** Begin a marquee from the given viewport coordinates. Non-self
    *  PlayerBoxes call this via the Battlefield router so the viewer's
    *  marquee can start over any player's board — including opponents'
@@ -2334,7 +2323,6 @@ function PlayerBox(
     onCreateToken,
     drawSeq,
     lastDrawCount,
-    broadcastBattlefieldSelection,
   }: Props,
   ref: React.Ref<PlayerBoxHandle>,
 ) {
@@ -2793,30 +2781,18 @@ function PlayerBox(
   const [drag, setDrag] = useState<DragState | null>(null);
 
   // Marquee selection. Selection is single-zone — the marquee groups whatever
-  // it touches by zone and picks the zone contributing the most cards.
-  const [selection, setSelection] = useState<Selection | null>(null);
-  // Cross-PlayerBox ownership. Only one PlayerBox can hold a non-null
-  // selection at a time — when someone else claims (own selection on
-  // their box, or empty-space click that releases), we clear ours.
-  // Ownership is claimed SYNCHRONOUSLY at each `setSelection(non-null)`
-  // site (see `claimSelectionOwnership` below) so this effect doesn't
-  // race against a not-yet-committed claim. The old auto-claim effect
-  // would fire alongside this clear-on-other effect and, on the first
-  // render after a click, see stale ownership → this effect would
-  // clear the just-set selection before the auto-claim landed. Now
-  // ownership is up-to-date the moment `setSelection` returns.
-  const [selectionOwner, setSelectionOwner] = useSelectionOwner();
-  const claimSelectionOwnership = useCallback(() => {
-    setSelectionOwner(playerId);
-  }, [playerId, setSelectionOwner]);
-  // Someone else took ownership (or ownership was explicitly released
-  // via an empty-space click) — drop our selection to enforce the
-  // single-owner invariant.
-  useEffect(() => {
-    if (selection !== null && selectionOwner !== playerId) {
-      setSelection(null);
-    }
-  }, [selectionOwner, playerId, selection]);
+  // it touches by zone and picks the zone contributing the most cards. It is
+  // this seat's share of the game-level selection, so selecting anywhere else
+  // (own or opponent seat) clears it.
+  const selectableCards = useMemo(
+    () => ({
+      hand: handCards ?? NO_CARDS,
+      battlefield: battlefieldCards ?? NO_CARDS,
+      stack: stackCards ?? NO_CARDS,
+    }),
+    [handCards, battlefieldCards, stackCards],
+  );
+  const { selection, setSelection, clearAllSelection } = useSeatSelection(playerId, selectableCards);
   // "View library" dialog (full-deck reveal). Opened via the library
   // context menu; fires Command_DumpZone(numberCards=-1) on open so
   // the dialog reads the server-authoritative revealed cards.
@@ -2939,11 +2915,6 @@ function PlayerBox(
   // until the return-to-idle animation actually finishes — otherwise
   // the wrapper clips its own cards mid-slide when hover ends.
   const [handAnimating, setHandAnimating] = useState(false);
-  // Cards on THIS player's battlefield that the viewer highlighted via a
-  // cross-player marquee. Purely visual — these cards still aren't
-  // draggable by anyone but their owner.
-  const [receivedBattlefieldSelection, setReceivedBattlefieldSelection] =
-    useState<Set<string>>(new Set());
   const [marquee, setMarquee] = useState<{
     x1: number;
     y1: number;
@@ -3419,7 +3390,6 @@ function PlayerBox(
       return;
     }
     setSelection({ zone: 'battlefield', ids });
-    claimSelectionOwnership();
   };
 
   // Select Row / Column (Ctrl+Shift+X / Ctrl+Shift+C). First card in
@@ -3444,7 +3414,6 @@ function PlayerBox(
       return;
     }
     setSelection({ zone: 'battlefield', ids });
-    claimSelectionOwnership();
   };
 
   seatShortcuts['game.selectRowBattlefield'] = () => selectBattlefieldBySlotField('row');
@@ -3935,7 +3904,6 @@ function PlayerBox(
           applyMove(drag.sourceZone, target, drag.cards, drag.sourcePlayerId);
         }
         setSelection(null);
-        broadcastBattlefieldSelection?.(new Map());
       } else if (drag.cards.length === 1) {
         // Click, not drag. Two possible interpretations:
         //   1. Pending-attach mode: the previous "Attach to card..."
@@ -3999,16 +3967,13 @@ function PlayerBox(
               setSelection(null);
             } else {
               setSelection({ zone, ids: nextIds });
-              claimSelectionOwnership();
             }
           } else {
             setSelection({
               zone,
               ids: new Set([clickedCardId]),
             });
-            claimSelectionOwnership();
           }
-          broadcastBattlefieldSelection?.(new Map());
         }
       }
       setDrag(null);
@@ -4040,15 +4005,11 @@ function PlayerBox(
           top: Math.min(marquee.y1, e.clientY),
           bottom: Math.max(marquee.y1, e.clientY),
         };
-        const { own, foreign } = computeMarqueeSelection(
+        const { own } = computeMarqueeSelection(
           rect,
           marquee.startZone,
         );
         setSelection(own);
-        if (own !== null) {
-          claimSelectionOwnership();
-        }
-        broadcastBattlefieldSelection?.(foreign);
       }
       setMarquee((m) =>
         m ? { ...m, x2: e.clientX, y2: e.clientY } : null,
@@ -4270,13 +4231,8 @@ function PlayerBox(
     }
     // Both self and opponent boxes start their own local marquee —
     // each battlefield owns its own selection (Cockatrice parity).
-    // Release cross-box ownership first so any other PlayerBox holding
-    // a selection drops it (see the effect above); own state is cleared
-    // right after. The marquee end handler reclaims ownership when it
-    // commits a non-empty selection.
-    setSelectionOwner(null);
-    setSelection(null);
-    broadcastBattlefieldSelection?.(new Map());
+    // Starting one clears the selection on every seat.
+    clearAllSelection();
     setMarquee({
       x1: e.clientX,
       y1: e.clientY,
@@ -4842,14 +4798,10 @@ function PlayerBox(
   // Battlefield.tsx stays stable.
   useImperativeHandle(ref, () => ({
     receiveBattlefieldCards: () => {},
-    receiveBattlefieldSelection: (ids: Set<string>) => {
-      setReceivedBattlefieldSelection(ids);
-    },
     startMarquee: (x: number, y: number) => {
       // Same as the local pointerdown path, but coords come from an
       // opponent's PlayerBox forwarding the interaction to us.
       setSelection(null);
-      broadcastBattlefieldSelection?.(new Map());
       setMarquee({
         x1: x,
         y1: y,
@@ -7850,6 +7802,7 @@ function PlayerBox(
                   data-card
                   data-zone="stack"
                   data-card-id={c.id}
+                  data-selected={selected || undefined}
                   // Same arrow-interaction attrs as battlefield cards
                   // so useGameArrowInteractions can hit-test stack
                   // cards as arrow sources AND arrow targets
@@ -8116,8 +8069,7 @@ function PlayerBox(
                 };
                 const dragging = isDragging(c.id, 'battlefield');
                 const selected =
-                (selection?.zone === 'battlefield' && selection.ids.has(c.id)) ||
-                receivedBattlefieldSelection.has(c.id);
+                selection?.zone === 'battlefield' && selection.ids.has(c.id);
                 // Attach source ring — green while pending so the user
                 // can see which cards they're about to attach. Primary
                 // source drives the pending arrow anchor; extras (from a
@@ -8133,6 +8085,7 @@ function PlayerBox(
                     data-card
                     data-zone="battlefield"
                     data-card-id={c.id}
+                    data-selected={selected || undefined}
                     // Arrow interaction: the useGameArrowInteractions hook
                     // hit-tests via `data-card-owner` + `data-card-zone`
                     // during right-click-drag, and the GameArrowOverlay
@@ -8183,13 +8136,7 @@ function PlayerBox(
                         ? () => {
                           // If the double-clicked card belongs to the
                           // current marquee selection on THIS battlefield,
-                          // tap/untap every selected card together. Local
-                          // selection is only ever set for the viewer's
-                          // own zones, so this branch never fires for
-                          // opponent-battlefield selections — those live
-                          // in receivedBattlefieldSelection on the
-                          // opponent's PlayerBox and can't be tapped by
-                          // the viewer anyway.
+                          // tap/untap every selected card together.
                           const groupTap =
                             selection?.zone === 'battlefield' &&
                             selection.ids.has(c.id);
@@ -8496,6 +8443,7 @@ function PlayerBox(
                       data-card
                       data-zone="hand"
                       data-card-id={c.id}
+                      data-selected={selected || undefined}
                       onPointerDown={(e) =>
                         startCardDrag(e, c, 'hand', handDisplayList)
                       }
@@ -9420,7 +9368,6 @@ function PlayerBox(
                   );
                   if (ids.size > 0) {
                     setSelection({ zone: 'battlefield', ids });
-                    claimSelectionOwnership();
                   }
                   close();
                 },
@@ -9440,7 +9387,6 @@ function PlayerBox(
                   );
                   if (ids.size > 0) {
                     setSelection({ zone: 'battlefield', ids });
-                    claimSelectionOwnership();
                   }
                   close();
                 },
@@ -9878,8 +9824,6 @@ function PlayerBox(
               const ids = new Set(battlefieldDisplayList.map((bc) => bc.id));
               if (ids.size > 0) {
                 setSelection({ zone: 'battlefield', ids });
-                claimSelectionOwnership();
-                broadcastBattlefieldSelection?.(new Map());
               }
               close();
             },
@@ -9900,8 +9844,6 @@ function PlayerBox(
               );
               if (ids.size > 0) {
                 setSelection({ zone: 'battlefield', ids });
-                claimSelectionOwnership();
-                broadcastBattlefieldSelection?.(new Map());
               }
               close();
             },
@@ -10153,7 +10095,6 @@ function PlayerBox(
                   const ids = new Set(stackDisplayList.map((sc) => sc.id));
                   if (ids.size > 0) {
                     setSelection({ zone: 'stack', ids });
-                    claimSelectionOwnership();
                   }
                   close();
                 },
@@ -10356,7 +10297,6 @@ function PlayerBox(
                 const ids = new Set(stackDisplayList.map((sc) => sc.id));
                 if (ids.size > 0) {
                   setSelection({ zone: 'stack', ids });
-                  claimSelectionOwnership();
                 }
                 close();
               },
