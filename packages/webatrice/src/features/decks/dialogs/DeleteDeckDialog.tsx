@@ -1,4 +1,7 @@
+import { useId } from 'react';
+
 import { useEscapeKey } from '../hooks/useEscapeKey';
+import { DeckDialogFrame } from './DeckDialogFrame';
 
 export interface DeleteDeckDialogProps {
   deckName: string;
@@ -9,18 +12,13 @@ export interface DeleteDeckDialogProps {
 /** Confirmation before a deck is permanently removed from the server. */
 export function DeleteDeckDialog({ deckName, onCancel, onConfirm }: DeleteDeckDialogProps) {
   useEscapeKey(true, onCancel, window);
+  const titleId = useId();
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Delete deck"
-    >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px]" onClick={onCancel} />
+    <DeckDialogFrame onClose={onCancel} titleId={titleId}>
       <div className="relative z-10 w-full max-w-sm rounded-xl bg-bg-surface border border-border-subtle shadow-glow overflow-hidden">
         <div className="px-5 py-4 border-b border-border-subtle">
-          <h2 className="font-modern text-lg font-semibold text-text-primary">Delete deck?</h2>
+          <h2 id={titleId} className="font-modern text-lg font-semibold text-text-primary">Delete deck?</h2>
         </div>
         <div className="px-5 py-4 text-sm text-text-secondary">
           <span className="text-text-primary font-medium">{deckName}</span> will be permanently removed from the server.
@@ -46,6 +44,6 @@ export function DeleteDeckDialog({ deckName, onCancel, onConfirm }: DeleteDeckDi
           </button>
         </div>
       </div>
-    </div>
+    </DeckDialogFrame>
   );
 }

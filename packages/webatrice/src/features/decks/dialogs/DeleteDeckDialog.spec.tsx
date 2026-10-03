@@ -8,7 +8,7 @@ describe('DeleteDeckDialog', () => {
     const onConfirm = vi.fn();
     render(<DeleteDeckDialog deckName="Burn" onCancel={onCancel} onConfirm={onConfirm} />);
 
-    expect(screen.getByRole('dialog', { name: 'Delete deck' })).toHaveTextContent('Burn will be permanently removed');
+    expect(screen.getByRole('dialog', { name: 'Delete deck?' })).toHaveTextContent('Burn will be permanently removed');
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
 

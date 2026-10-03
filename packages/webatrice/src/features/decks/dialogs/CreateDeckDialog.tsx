@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 
 import { FormatPicker } from '../components/FormatPicker';
@@ -25,6 +25,7 @@ export function CreateDeckDialog({ open, onClose, onCreate }: CreateDeckDialogPr
   }, [open]);
 
   useEscapeKey(open, onClose);
+  const titleId = useId();
 
   if (!open) {
     return null;
@@ -43,7 +44,7 @@ export function CreateDeckDialog({ open, onClose, onCreate }: CreateDeckDialogPr
   };
 
   return (
-    <DeckDialogFrame onClose={onClose}>
+    <DeckDialogFrame onClose={onClose} titleId={titleId}>
       <div
         className={[
           'relative w-full max-w-md rounded-xl bg-bg-surface border',
@@ -51,7 +52,7 @@ export function CreateDeckDialog({ open, onClose, onCreate }: CreateDeckDialogPr
         ].join(' ')}
       >
         <div className="px-5 py-4 border-b border-border-subtle flex items-center justify-between">
-          <h2 className="font-modern text-lg font-semibold text-text-primary">Create a deck</h2>
+          <h2 id={titleId} className="font-modern text-lg font-semibold text-text-primary">Create a deck</h2>
           <button
             type="button"
             onClick={onClose}
