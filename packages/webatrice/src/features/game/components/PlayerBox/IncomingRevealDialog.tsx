@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from '@app/store';
 
 import Card from './Card';
 import { CARD_HEIGHT, CARD_WIDTH } from './cardSize';
-import { useForeignDrag } from './foreignDragContext';
+import { useSeatDragSource } from '../ui/SeatDragContext';
 import { useCardPreviewActions } from '../ui/CardPreviewContext';
 import type { DeckCard } from './mockTypes';
 import {
@@ -182,12 +182,9 @@ function placeholderMeta(name: string): DeckCard {
 }
 
 /** Render one revealed card. When `dragToBattlefield` is provided
- *  (lender granted us write access), pointer-down starts a drag onto
- *  the local player's battlefield via the ForeignDragContext. The
- *  drag runs through the local PlayerBox's normal drag machinery —
- *  ghost, drop detection, wire dispatch — with sourcePlayerId set to
- *  the lender so Command_MoveCard's startPlayerId routes through
- *  their zone. Read-only otherwise. */
+ *  (lender granted us write access), pointer-down starts a seat drag
+ *  from the lent zone, which may land on a battlefield; the move starts
+ *  in the lender's zone. Read-only otherwise. */
 function renderRevealCard(
   c: EnrichedCard,
   style: React.CSSProperties,
@@ -224,7 +221,6 @@ function renderRevealCard(
 export default function IncomingRevealDialog() {
   const reveal = useAppSelector(games.Selectors.getIncomingReveal);
   const dispatch = useAppDispatch();
-  const beginForeignDrag = useForeignDrag();
   const { setHoveredCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
 
   const sourceName = useAppSelector((state) => {
@@ -268,52 +264,38 @@ export default function IncomingRevealDialog() {
     return games.Selectors.getLocalPlayerId(state, reveal.gameId);
   });
 
+  const isSpectator = useAppSelector((state) => (reveal ? games.Selectors.isSpectator(state, reveal.gameId) : false));
+
   // When the lender granted us write access, cards in the reveal are
-  // draggable onto our own battlefield — matching Cockatrice desktop's
-  // ZoneViewWidget behaviour for lent zones. The drag runs on the
-  // local PlayerBox's existing drag infrastructure (ghost, drop
-  // detection, applyMove wire dispatch) via the ForeignDragContext:
-  //   • pointerdown here calls beginForeignDrag with sourcePlayerId
-  //     set to the lender's id
-  //   • PlayerBox's applyMove writes that into Command_MoveCard's
-  //     `startPlayerId`, so Servatrice routes the move through the
-  //     lender's zone and validates the write-permission set at
-  //     server_abstract_player.cpp:779
-  //   • PlayerBox's detectDropTarget-restriction (foreign drags only
-  //     land on battlefield) mirrors Cockatrice's ZoneViewWidget
-  //     drag scope — hand / grave / exile drops silently no-op
-  // Guarded by: reveal.grantWriteAccess (only lends offer this) and
-  // sourceOwnerId !== localPlayerId (self-directed reveal edge case
-  // — user shouldn't drag their own library-view cards).
+  // draggable onto a battlefield, matching Cockatrice desktop's
+  // ZoneViewWidget for lent zones. The drag runs on the game's DnD
+  // coordinator as a drag from the local seat with the lender as the
+  // zone's owner:
+  //   - Command_MoveCard starts in the lender's zone (`startPlayerId`),
+  //     and Servatrice's cmdMoveCard checks the write-permission set
+  //     (server_abstract_player.cpp:779);
+  //   - like desktop's ZoneViewWidget drag, only a battlefield takes the
+  //     drop; anywhere else is a no-op.
+  // Only offered to a seated player other than the lender: a lend never
+  // targets a spectator, and a self-directed reveal is the player's own
+  // library view.
   const canDragLent =
     reveal != null &&
     reveal.grantWriteAccess &&
     localPlayerId != null &&
+    !isSpectator &&
     reveal.sourceOwnerId !== localPlayerId;
-  const dragToBattlefield = useMemo(() => {
-    if (!canDragLent || !reveal) {
-      return undefined;
-    }
-    return (e: React.PointerEvent<HTMLElement>, c: EnrichedCard) => {
-      // The revealed card's id IS its deck position (Cockatrice
-      // invariant after `zoneViewRevealed` reindex — see
-      // reindexRevealed / view_zone_logic.cpp:92-124). PlayerBox's
-      // applyMove reads it back via `Number(handCard.id)` for the
-      // wire's cardId when sourceZone === "library".
-      beginForeignDrag(
-        e,
-        [
-          {
-            id: c.handCard.id,
-            name: c.handCard.name,
-            scryfallId: c.handCard.scryfallId,
-          },
-        ],
-        'library',
-        reveal.sourceOwnerId,
-      );
-    };
-  }, [canDragLent, reveal, beginForeignDrag]);
+  const startLentDrag = useSeatDragSource('incoming-reveal', {
+    seatPlayerId: localPlayerId ?? -1,
+    zone: 'library',
+    lenderPlayerId: reveal?.sourceOwnerId,
+    disabled: !canDragLent,
+  });
+  // The revealed card's id is its deck position (the zoneViewRevealed
+  // reindex; view_zone_logic.cpp:92-124), which the move sends as card_id.
+  const dragToBattlefield = canDragLent
+    ? (e: React.PointerEvent<HTMLElement>, c: EnrichedCard) => startLentDrag(e, [c.handCard])
+    : undefined;
 
   const dialogRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);

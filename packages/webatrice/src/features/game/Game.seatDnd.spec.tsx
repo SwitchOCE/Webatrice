@@ -234,6 +234,17 @@ describe('seat drags on the game DnD coordinator', () => {
     ]);
   });
 
+  it('previews the landing slot on the board under the drag, and clears it on drop', () => {
+    renderLaidOut();
+    const preview = () => battlefieldEl(1).querySelectorAll('[data-drop-preview]');
+
+    dragThrough(cardEl(SHOCK.id, 'hand'), { x: 10, y: 510 }, { x: 15, y: 20 }, () => {
+      expect(preview()).toHaveLength(1);
+    });
+
+    expect(preview()).toHaveLength(0);
+  });
+
   it('hides the dragged hand card while the ghost carries it', () => {
     renderLaidOut();
 
