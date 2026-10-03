@@ -22,60 +22,55 @@ test('two clients create+join, load decks, draw, play, end turn', async ({ newCo
   const hostCtx = await newContext();
   const joinerCtx = await newContext();
 
-  try {
-    const hostPage = await hostCtx.newPage();
-    const joinerPage = await joinerCtx.newPage();
+  const hostPage = await hostCtx.newPage();
+  const joinerPage = await joinerCtx.newPage();
 
-    const [host, joiner] = await Promise.all([
-      registerAndJoinFirstRoom(hostPage),
-      registerAndJoinFirstRoom(joinerPage),
-    ]);
+  const [host, joiner] = await Promise.all([
+    registerAndJoinFirstRoom(hostPage),
+    registerAndJoinFirstRoom(joinerPage),
+  ]);
 
-    const gameDescription = `e2e-${randomSuffix()}`;
+  const gameDescription = `e2e-${randomSuffix()}`;
 
-    await host.rooms.createGame(gameDescription, { maxPlayers: 2, spectatorsAllowed: true });
-    const hostGame = new GamePage(hostPage);
-    await joiner.rooms.joinGame(gameDescription);
-    const joinerGame = new GamePage(joinerPage);
-    await Promise.all([
-      hostGame.deckSelect.waitForOpen(),
-      joinerGame.deckSelect.waitForOpen(),
-    ]);
+  await host.rooms.createGame(gameDescription, { maxPlayers: 2, spectatorsAllowed: true });
+  const hostGame = new GamePage(hostPage);
+  await joiner.rooms.joinGame(gameDescription);
+  const joinerGame = new GamePage(joinerPage);
+  await Promise.all([
+    hostGame.deckSelect.waitForOpen(),
+    joinerGame.deckSelect.waitForOpen(),
+  ]);
 
-    await Promise.all([
-      (async () => {
-        await hostGame.deckSelect.loadDeckFile(DECK_PATH);
-        await hostGame.deckSelect.submitDeck();
-      })(),
-      (async () => {
-        await joinerGame.deckSelect.loadDeckFile(DECK_PATH);
-        await joinerGame.deckSelect.submitDeck();
-      })(),
-    ]);
+  await Promise.all([
+    (async () => {
+      await hostGame.deckSelect.loadDeckFile(DECK_PATH);
+      await hostGame.deckSelect.submitDeck();
+    })(),
+    (async () => {
+      await joinerGame.deckSelect.loadDeckFile(DECK_PATH);
+      await joinerGame.deckSelect.submitDeck();
+    })(),
+  ]);
 
-    await Promise.all([
-      hostGame.deckSelect.setReady(),
-      joinerGame.deckSelect.setReady(),
-    ]);
+  await Promise.all([
+    hostGame.deckSelect.setReady(),
+    joinerGame.deckSelect.setReady(),
+  ]);
 
-    await Promise.all([
-      hostGame.waitForBoard(),
-      joinerGame.waitForBoard(),
-    ]);
+  await Promise.all([
+    hostGame.waitForBoard(),
+    joinerGame.waitForBoard(),
+  ]);
 
-    await hostGame.drawCard();
-    await hostGame.endTurn();
+  await hostGame.drawCard();
+  await hostGame.endTurn();
 
-    await hostGame.leaveGame();
+  await hostGame.leaveGame();
 
-    // Host leaving drops the game to one player; Servatrice reverts it to
-    // lobby state and the joiner's DeckSelectDialog re-opens (expected —
-    // mirrors desktop). The joiner leaves via that dialog's Leave Game button.
-    await joinerGame.deckSelect.waitForOpen();
-    await joinerGame.deckSelect.leaveGame();
-    await expect(joinerGame.container).toBeHidden({ timeout: 30_000 });
-  } finally {
-    await hostCtx.close();
-    await joinerCtx.close();
-  }
+  // Host leaving drops the game to one player; Servatrice reverts it to
+  // lobby state and the joiner's DeckSelectDialog re-opens (expected —
+  // mirrors desktop). The joiner leaves via that dialog's Leave Game button.
+  await joinerGame.deckSelect.waitForOpen();
+  await joinerGame.deckSelect.leaveGame();
+  await expect(joinerGame.container).toBeHidden({ timeout: 30_000 });
 });
