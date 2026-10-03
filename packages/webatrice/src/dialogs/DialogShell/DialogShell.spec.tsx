@@ -76,7 +76,7 @@ describe('DialogShell', () => {
     await user.tab();
     expect(screen.getByRole('textbox', { name: 'Address' })).toHaveFocus();
     await user.tab();
-    expect(screen.getByRole('button', { name: 'DialogShell.close' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Common.action.close' })).toHaveFocus();
     await user.tab({ shift: true });
     expect(screen.getByRole('textbox', { name: 'Address' })).toHaveFocus();
     expect(screen.getByRole('button', { name: 'Open' })).not.toHaveFocus();
@@ -100,7 +100,7 @@ describe('DialogShell', () => {
     await user.keyboard('{Escape}');
 
     expect(screen.getByRole('dialog', { name: 'Busy' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'DialogShell.close' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Common.action.close' })).not.toBeInTheDocument();
   });
 
   it('lets a dialog opened from inside another close on its own', async () => {

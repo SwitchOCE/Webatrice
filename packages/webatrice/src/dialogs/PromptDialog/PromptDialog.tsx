@@ -6,6 +6,7 @@ import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
+import { useTranslation } from 'react-i18next';
 
 import { usePromptDialog } from './usePromptDialog';
 
@@ -65,6 +66,7 @@ function PromptDialog({
   onSubmit,
   onCancel,
 }: PromptDialogProps) {
+  const { t } = useTranslation();
   const { value, error, handleChange, handleSubmit } = usePromptDialog({
     isOpen,
     initialValue,
@@ -107,7 +109,7 @@ function PromptDialog({
         </DialogContent>
         <DialogActions>
           <Button type="button" onClick={onCancel}>
-            Cancel
+            {t('Common.action.cancel')}
           </Button>
           <Button type="submit" variant="contained" color="primary">
             {submitLabel}

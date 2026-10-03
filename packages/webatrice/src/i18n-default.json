@@ -295,12 +295,35 @@
     },
     "action": {
       "cancel": "Cancel",
+      "close": "Close",
       "create": "Create",
       "send": "Send",
       "apply": "Apply",
       "reset": "Reset",
-      "join": "Join"
+      "join": "Join",
+      "dismiss": "Dismiss"
     }
+  },
+  "CardDetails": {
+    "label": {
+      "name": "Name:",
+      "pt": "P/T:",
+      "cost": "Cost:",
+      "cmc": "CMC:",
+      "identity": "Identity:",
+      "colors": "Color(s):",
+      "mainType": "Main Type:",
+      "type": "Type:",
+      "side": "Side:",
+      "layout": "Layout:"
+    }
+  },
+  "CardRelatedLinks": {
+    "otherFace": "Other face",
+    "tokens": "{count, plural, one {Token} other {Tokens}}",
+    "meld": "Meld",
+    "usedBy": "Cards that use this token ({count})",
+    "related": "Related"
   },
   "ErrorFallback": {
     "returnToLobby": "Return to lobby",
@@ -344,9 +367,13 @@
   },
   "Toast": {
     "region": "Notifications",
-    "dismiss": "Dismiss",
     "more": "+{count} more",
     "showFewer": "Show fewer"
+  },
+  "UserBadges": {
+    "admin": "Admin",
+    "moderator": "Moderator",
+    "judge": "Judge"
   },
   "UserActionsMenu": {
     "label": "Actions for {name}",
@@ -369,9 +396,6 @@
     "copy": "Copy to clipboard",
     "copied": "Copied",
     "copyFailed": "The browser blocked the clipboard. Select the text and copy it instead."
-  },
-  "DialogShell": {
-    "close": "Close"
   },
   "ReportUserDialog": {
     "title": "Report User",
