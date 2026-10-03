@@ -767,6 +767,11 @@
       "notFound": "User not found or still loading…"
     }
   },
+  "RoomChat": {
+    "notice": {
+      "chatFlood": "You are flooding the chat. Please wait a couple of seconds."
+    }
+  },
   "RoomsList": {
     "joinError": {
       "title": "Error",

@@ -268,6 +268,16 @@ describe('ADD_MESSAGE', () => {
   });
 });
 
+describe('ROOM_SAY_FLOODED', () => {
+  it('appends a sender-less chatFlood notice without the unsent text', () => {
+    const state = makeRoomsState({ messages: { 1: [makeMessage({ message: 'earlier', id: 1 })] } });
+    const result = roomsReducer(state, Actions.roomSayFlooded({ roomId: 1, message: 'too fast', timeReceived: 99 }));
+    const notice = result.messages[1][1];
+    expect(notice).toMatchObject({ name: '', message: '', notice: 'chatFlood', timeReceived: 99 });
+    expect(notice.id).toBeTypeOf('number');
+  });
+});
+
 
 describe('UPDATE_GAMES', () => {
   it('removes closed games from the keyed games map', () => {

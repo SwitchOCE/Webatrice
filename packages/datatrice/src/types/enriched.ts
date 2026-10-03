@@ -29,12 +29,19 @@ export interface Game {
   gameType: string;
 }
 
+// A line the client itself appends to a chat, as desktop does with
+// ChatView::appendMessage (e.g. TabRoom::sayFinished's flood warning). The UI
+// renders the text for the kind; the line carries no sender and no wire text.
+export type ChatNotice = 'chatFlood';
+
 export type Message = Event_RoomSay & {
   timeReceived: number;
   // Stable, monotonic client id assigned at store ingestion; absent on the
   // wire-derived message before it's stored. See rooms.reducer.inline.ts for the
   // rationale (chat rows key on it, not the array index).
   id?: number;
+  // Set only on client-generated lines; see ChatNotice.
+  notice?: ChatNotice;
 };
 
 // @critical `info` = wire snapshot at join time; top-level twins hold live values updated by game events.

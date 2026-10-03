@@ -30,7 +30,11 @@ export class RoomResponseImpl implements WebsocketTypes.IRoomResponse<WebsocketT
   }
 
   addMessage(roomId: number, message: Message): void {
-    this.store.dispatch(RoomsActions.addMessage({ roomId, message }));
+    this.store.dispatch(RoomsActions.roomSayReceived({ roomId, message }));
+  }
+
+  roomSayFlooded(roomId: number, message: string): void {
+    this.store.dispatch(RoomsActions.roomSayFlooded({ roomId, message, timeReceived: Date.now() }));
   }
 
   userJoined(roomId: number, user: ServerInfo_User): void {

@@ -157,7 +157,8 @@ describe('roomSay', () => {
     expect(WebClient.instance.protobuf.sendRoomCommand).toHaveBeenCalledWith(
       2,
       Command_RoomSay_ext,
-      expect.objectContaining({ message: 'hello' })
+      expect.objectContaining({ message: 'hello' }),
+      expect.any(Object),
     );
   });
 
@@ -169,5 +170,11 @@ describe('roomSay', () => {
   it('does not call sendRoomCommand when message is empty string', () => {
     roomSay(2, '');
     expect(WebClient.instance.protobuf.sendRoomCommand).not.toHaveBeenCalled();
+  });
+
+  it('reports a flood rejection with the unsent message', () => {
+    roomSay(2, '  hello  ');
+    invokeResponseCode(Response_ResponseCode.RespChatFlood);
+    expect(WebClient.instance.response.room.roomSayFlooded).toHaveBeenCalledWith(2, 'hello');
   });
 });

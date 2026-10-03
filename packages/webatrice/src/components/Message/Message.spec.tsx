@@ -16,4 +16,19 @@ describe('Message', () => {
 
     expect(container.querySelector('.message')).toBeInTheDocument();
   });
+
+  it('renders a history timestamp between the sender and the text', () => {
+    const { container } = renderWithProviders(
+      <Message message={{ message: 'alice: hello' }} timestamp="3 Oct 2026 09:05:07" />,
+    );
+
+    const time = container.querySelector('time.message__timestamp');
+    expect(time).toHaveTextContent('[3 Oct 2026 09:05:07]');
+    expect(container.querySelector('strong')?.compareDocumentPosition(time!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  it('renders no timestamp for live messages', () => {
+    const { container } = renderWithProviders(<Message message={{ message: 'alice: hello' }} />);
+    expect(container.querySelector('time')).not.toBeInTheDocument();
+  });
 });

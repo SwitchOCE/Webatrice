@@ -6,10 +6,27 @@ import { Enriched } from '../../types';
 import { ServerInfo_GameSchema, ServerInfo_RoomSchema } from '@cockatrice/sockatrice/generated';
 import { cloneWith, mergeSetFields, normalizeGameObject, normalizeGametypeMap } from '../../common';
 
+import type { ServerState } from '../server/server.interfaces';
 import { Actions } from './rooms.actions';
 import { RoomsState } from './rooms.interfaces';
 
 export function registerRoomsListeners(mw: ListenerMiddlewareInstance<unknown>): void {
+  // Desktop TabRoom::processRoomSayEvent drops a message from an ignored sender as
+  // it arrives (chat history included). Filtering on arrival, not in a selector,
+  // matches desktop both ways: ignoring someone leaves their earlier lines in
+  // place, and un-ignoring them does not bring back what was dropped.
+  mw.startListening({
+    actionCreator: Actions.roomSayReceived,
+    effect: (action, api) => {
+      const { roomId, message } = action.payload;
+      const { server } = api.getState() as { server?: ServerState };
+      if (message.name && server?.ignoreList[message.name]) {
+        return;
+      }
+      api.dispatch(Actions.addMessage({ roomId, message }));
+    },
+  });
+
   mw.startListening({
     actionCreator: Actions.updateRooms,
     effect: (action, api) => {

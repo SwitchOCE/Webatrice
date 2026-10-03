@@ -8,6 +8,8 @@ export const Types = {
   JOIN_ROOM: a.joinRoom.type,
   LEAVE_ROOM: a.leaveRoom.type,
   ADD_MESSAGE: a.addMessage.type,
+  ROOM_SAY_RECEIVED: a.roomSayReceived.type,
+  ROOM_SAY_FLOODED: a.roomSayFlooded.type,
   UPDATE_GAMES: a.updateGames.type,
   USER_JOINED: a.userJoined.type,
   USER_LEFT: a.userLeft.type,

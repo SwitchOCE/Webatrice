@@ -1,0 +1,7 @@
+{
+  "RoomChat": {
+    "notice": {
+      "chatFlood": "You are flooding the chat. Please wait a couple of seconds."
+    }
+  }
+}
