@@ -997,209 +997,6 @@ function MoveTopUntilModal({
   );
 }
 
-/** Tailwind port of Cockatrice's `DlgCreateToken` (dlg_create_token.cpp),
- *  invoked from actRequestCreateTokenDialog. Collects the free-form
- *  token identity fields; the parent snapshots the result into
- *  lastToken so "Create another token" can re-fire without reprompting
- *  (matches actCreateToken → actCreateAnotherToken flow,
- *  player_actions.cpp:878-916). Predefined-token chooser is intentionally
- *  omitted — that's a separate menu item still gated off. */
-const CREATE_TOKEN_COLOR_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
-  { value: 'w', label: 'White' },
-  { value: 'u', label: 'Blue' },
-  { value: 'b', label: 'Black' },
-  { value: 'r', label: 'Red' },
-  { value: 'g', label: 'Green' },
-  { value: 'm', label: 'Multicolor' },
-  { value: '', label: 'Colorless' },
-];
-
-// Server-side MAX_NAME_LENGTH is 0xff; free-text fields mirror that so
-// the payload never trips the server's oversize rejection.
-const CREATE_TOKEN_MAX_LEN = 255;
-
-const CREATE_TOKEN_INPUT_CLASS =
-  'w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-sm '
-  + 'text-text-primary focus:outline-none focus:border-accent focus:ring-1 '
-  + 'focus:ring-accent disabled:opacity-50';
-
-function CreateTokenModal({
-  initial,
-  onCancel,
-  onConfirm,
-}: {
-  initial: {
-    name: string;
-    color: string;
-    pt: string;
-    annotation: string;
-    destroyOnZoneChange: boolean;
-    faceDown: boolean;
-    providerId?: string;
-  } | null;
-  onCancel: () => void;
-  onConfirm: (args: {
-    name: string;
-    color: string;
-    pt: string;
-    annotation: string;
-    destroyOnZoneChange: boolean;
-    faceDown: boolean;
-    providerId?: string;
-  }) => void;
-}) {
-  const [name, setName] = useState(initial?.name ?? '');
-  const [color, setColor] = useState(initial?.color ?? 'w');
-  const [pt, setPT] = useState(initial?.pt ?? '');
-  const [annotation, setAnnotation] = useState(initial?.annotation ?? '');
-  const [destroyOnZoneChange, setDestroyOnZoneChange] = useState(
-    initial?.destroyOnZoneChange ?? true,
-  );
-  const [faceDown, setFaceDown] = useState(initial?.faceDown ?? false);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onCancel();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onCancel]);
-  const trimmed = name.trim();
-  const valid = trimmed.length > 0;
-  return (
-    <div
-      className="fixed inset-0 z-[400] flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Create token"
-    >
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onCancel}
-        aria-hidden
-      />
-      <div className="relative w-full max-w-md rounded-lg bg-bg-surface border border-border-subtle shadow-glow overflow-hidden">
-        <div className="px-4 py-3 border-b border-border-subtle">
-          <h2 className="font-modern text-base font-semibold text-text-primary">
-            Create token
-          </h2>
-        </div>
-        <form
-          className="px-4 py-3 flex flex-col gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!valid) {
-              return;
-            }
-            const payload = {
-              name: trimmed,
-              color,
-              pt: pt.trim(),
-              annotation: annotation.trim(),
-              destroyOnZoneChange,
-              faceDown,
-              ...(initial?.providerId && initial.name === trimmed
-                ? { providerId: initial.providerId }
-                : {}),
-            };
-            onConfirm(payload);
-          }}
-        >
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-text-secondary">Name</span>
-            <input
-              autoFocus
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value.slice(0, CREATE_TOKEN_MAX_LEN))}
-              disabled={faceDown}
-              className={CREATE_TOKEN_INPUT_CLASS}
-            />
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="flex flex-col gap-1 min-w-0">
-              <span className="text-xs font-medium text-text-secondary">Color</span>
-              <select
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                disabled={faceDown}
-                className={CREATE_TOKEN_INPUT_CLASS + ' appearance-none'}
-              >
-                {CREATE_TOKEN_COLOR_OPTIONS.map((opt) => (
-                  <option key={opt.label} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 min-w-0">
-              <span className="text-xs font-medium text-text-secondary">Power / toughness</span>
-              <input
-                type="text"
-                placeholder="e.g. 3/3"
-                value={pt}
-                onChange={(e) => setPT(e.target.value.slice(0, CREATE_TOKEN_MAX_LEN))}
-                disabled={faceDown}
-                className={CREATE_TOKEN_INPUT_CLASS}
-              />
-            </label>
-          </div>
-          <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium text-text-secondary">Annotation</span>
-            <input
-              type="text"
-              value={annotation}
-              onChange={(e) => setAnnotation(e.target.value.slice(0, CREATE_TOKEN_MAX_LEN))}
-              className={CREATE_TOKEN_INPUT_CLASS}
-            />
-          </label>
-          <label className="flex items-center gap-2 text-sm text-text-primary select-none">
-            <input
-              type="checkbox"
-              checked={destroyOnZoneChange}
-              onChange={(e) => setDestroyOnZoneChange(e.target.checked)}
-              className="accent-accent"
-            />
-            Destroy when it leaves the table
-          </label>
-          <label className="flex items-center gap-2 text-sm text-text-primary select-none">
-            <input
-              type="checkbox"
-              checked={faceDown}
-              onChange={(e) => setFaceDown(e.target.checked)}
-              className="accent-accent"
-            />
-            Create face-down
-          </label>
-          <div className="flex items-center justify-end gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onCancel}
-              className={
-                'px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary '
-                + 'hover:text-text-primary hover:bg-bg-elevated transition-colors'
-              }
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!valid}
-              className={
-                'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white '
-                + 'hover:bg-accent-hover shadow-glow transition-colors '
-                + 'disabled:opacity-50 disabled:cursor-not-allowed'
-              }
-            >
-              Create
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
 function ManaPip({
   symbol,
   label,
@@ -1381,6 +1178,7 @@ function PlayerBox(
     openSeatCardMenu,
     closeSeatCardMenu,
     openPrompt,
+    openCreateToken,
   } = useGameDialogsContext();
   // Fire Command_DumpZone(zone=SIDEBOARD) each time the modal opens.
   // Same pattern as View library: sideboard is a HiddenZone so we
@@ -2001,7 +1799,7 @@ function PlayerBox(
     if (!isSelf || !onCreateToken) {
       return;
     }
-    setCreateTokenModalOpen(true);
+    openCreateTokenDialog();
   };
 
   // Create another token (Ctrl+G) — re-fires the last submitted token.
@@ -3219,15 +3017,9 @@ function PlayerBox(
       onBulkSetCardCounters?.(targetIds.map((id) => ({ cardId: id, counterId, value: Math.max(0, value) })));
     },
   }));
-  // "Create token..." modal (Tailwind — replaces the old MUI
-  // CreateTokenDialog wired via useGameDialogs; see feedback memory
-  // "Replace MUI, don't override it"). Local to this PlayerBox so the
-  // wire fires against the local player's battlefield only, matching
-  // where the right-click menu lives.
-  const [createTokenModalOpen, setCreateTokenModalOpen] = useState(false);
   // Last successfully-submitted token — powers "Create another token"
   // (Cockatrice's actCreateAnotherToken, player_actions.cpp:894-916).
-  // Persisted across the modal's open/close cycle so a subsequent
+  // Persisted across the dialog's open/close cycle so a subsequent
   // right-click → "Create another token" re-fires with the same args.
   const [lastToken, setLastToken] = useState<{
     name: string;
@@ -3238,6 +3030,17 @@ function PlayerBox(
     faceDown: boolean;
     providerId?: string;
   } | null>(null);
+  // "Create token..." opens the game's CreateTokenDialog seeded with the
+  // last token (an "edit last token" flow). The token goes through this
+  // seat's card port (onCreateToken: the local battlefield, tablerow y) and
+  // becomes the new last token.
+  const openCreateTokenDialog = () => openCreateToken({
+    initial: lastToken,
+    onSubmit: (token) => {
+      setLastToken(token);
+      onCreateToken?.(token);
+    },
+  });
   // Pending-attach source: set when the user selects "Attach to card..."
   // from a battlefield card's context menu. Next click on a battlefield
   // card resolves the attach; Escape or clicking the source cancels.
@@ -4690,7 +4493,7 @@ function PlayerBox(
       // Matches Cockatrice's actCreateToken (player_actions.cpp:878-892):
       // stores lastTokenInfo, then chains into actCreateAnotherToken.
       label: 'Create token...',
-      onClick: () => setCreateTokenModalOpen(true),
+      onClick: () => openCreateTokenDialog(),
       disabled: !onCreateToken,
       shortcut: shortcutHints['game.createToken'],
     },
@@ -7144,27 +6947,6 @@ function PlayerBox(
           }}
         />
       )}
-
-      {/* "Create token..." modal — from the battlefield context menu's
-          Create-token item. Submit fires Command_CreateToken via
-          onCreateToken (GameBoardCell computes y from a Dexie tablerow
-          lookup) and snapshots the args into lastToken so a subsequent
-          "Create another token" can re-fire without reprompting. Pre-
-          seeds fields from lastToken so the modal is a good "edit last
-          token" flow too. */}
-      {createTokenModalOpen &&
-        createPortal(
-          <CreateTokenModal
-            initial={lastToken}
-            onCancel={() => setCreateTokenModalOpen(false)}
-            onConfirm={(payload) => {
-              setLastToken(payload);
-              setCreateTokenModalOpen(false);
-              onCreateToken?.(payload);
-            }}
-          />,
-          document.body,
-        )}
 
       {/* Card context menu — right-click a battlefield card to open.
           All actions apply to a single card via its real numeric id;

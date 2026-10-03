@@ -46,6 +46,8 @@ export const MAX_ANNOTATION_LEN = 255;
 export interface UseCreateTokenDialogArgs {
   isOpen: boolean;
   onSubmit: (args: CreateTokenSubmit) => void;
+  /** Values to open with (a seat's last token); blank when absent. */
+  initial?: CreateTokenSubmit | null;
   predefinedTokenNames?: string[];
 }
 
@@ -75,6 +77,7 @@ function providerIdFromToken(token: TokenDTO): string | undefined {
 export function useCreateTokenDialog({
   isOpen,
   onSubmit,
+  initial,
   predefinedTokenNames,
 }: UseCreateTokenDialogArgs): CreateTokenDialogState {
   const [name, setName] = useState('');
@@ -89,23 +92,25 @@ export function useCreateTokenDialog({
   const [search, setSearch] = useState('');
   const [availableTokens, setAvailableTokens] = useState<TokenDTO[]>([]);
   const [selectedTokenName, setSelectedTokenName] = useState<string | null>(null);
-  const [providerId, setProviderId] = useState<string | undefined>(undefined);
+  // The printing chosen for a token, and the name it belongs to: renaming the
+  // token drops it, so a hand-typed name never carries another token's art.
+  const [provider, setProvider] = useState<{ id: string; name: string } | undefined>(undefined);
 
   useEffect(() => {
     if (isOpen) {
-      setName('');
-      setColor(CREATE_TOKEN_DEFAULT_COLOR);
-      setPT('');
-      setAnnotation('');
-      setDestroyOnZoneChange(true);
-      setFaceDown(false);
+      setName(initial?.name ?? '');
+      setColor(initial?.color ?? CREATE_TOKEN_DEFAULT_COLOR);
+      setPT(initial?.pt ?? '');
+      setAnnotation(initial?.annotation ?? '');
+      setDestroyOnZoneChange(initial?.destroyOnZoneChange ?? true);
+      setFaceDown(initial?.faceDown ?? false);
       setError(null);
       setSearch('');
       setSelectedTokenName(null);
-      setProviderId(undefined);
+      setProvider(initial?.providerId ? { id: initial.providerId, name: initial.name } : undefined);
       setScope(predefinedTokenNames?.length ? 'deck' : 'all');
     }
-  }, [isOpen, predefinedTokenNames]);
+  }, [isOpen, initial, predefinedTokenNames]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -157,7 +162,8 @@ export function useCreateTokenDialog({
     setColor(colorFromToken(token));
     const ptRaw = token.prop?.value?.pt?.value ?? '';
     setPT(ptRaw.slice(0, MAX_PT_LEN));
-    setProviderId(providerIdFromToken(token));
+    const id = providerIdFromToken(token);
+    setProvider(id ? { id, name: tokenName.slice(0, MAX_NAME_LEN).trim() } : undefined);
     if (error) {
       setError(null);
     }
@@ -177,8 +183,8 @@ export function useCreateTokenDialog({
       destroyOnZoneChange,
       faceDown,
     };
-    if (providerId) {
-      payload.providerId = providerId;
+    if (provider && provider.name === payload.name) {
+      payload.providerId = provider.id;
     }
     onSubmit(payload);
   };

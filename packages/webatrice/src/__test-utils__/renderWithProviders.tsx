@@ -78,6 +78,7 @@ const NOOP_GAME_DIALOGS: GameDialogs = {
   lastDieSides: 0,
   lastDieCount: 0,
   createTokenOpen: false,
+  createTokenInitial: null,
   sideboardOpen: false,
   viewSideboardOpen: false,
   viewLibraryOpen: false,

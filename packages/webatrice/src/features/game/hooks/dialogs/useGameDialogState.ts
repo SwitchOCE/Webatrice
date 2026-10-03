@@ -5,6 +5,7 @@ import type {
   AnchorPosition,
   CardMenuState,
   ConcedeConfirm,
+  CreateTokenRequest,
   GameDialogsActions,
   GameDialogsState,
   PromptState,
@@ -26,7 +27,7 @@ export interface GameDialogSetters {
   setRollDieOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setLastDieSides: React.Dispatch<React.SetStateAction<number>>;
   setLastDieCount: React.Dispatch<React.SetStateAction<number>>;
-  setCreateTokenOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setCreateTokenRequest: React.Dispatch<React.SetStateAction<CreateTokenRequest | null>>;
   setSideboardOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setRevealState: React.Dispatch<React.SetStateAction<RevealState | null>>;
   setConcedeConfirm: React.Dispatch<React.SetStateAction<ConcedeConfirm>>;
@@ -69,6 +70,8 @@ export interface GameDialogStateHandle {
   state: GameDialogsState;
   set: GameDialogSetters;
   toggles: GameDialogToggleActions;
+  /** The open create-token request (its seed and submitter), or null. */
+  createTokenRequest: CreateTokenRequest | null;
   /** Closes every context menu, the seats' card menus included. Each menu
    *  opener calls it first, so at most one in-game context menu is open at a time. */
   closeAllContextMenus: () => void;
@@ -84,7 +87,9 @@ export function useGameDialogState(): GameDialogStateHandle {
   const [rollDieOpen, setRollDieOpen] = useState(false);
   const [lastDieSides, setLastDieSides] = useState(DEFAULT_DIE_SIDES);
   const [lastDieCount, setLastDieCount] = useState(DEFAULT_DIE_COUNT);
-  const [createTokenOpen, setCreateTokenOpen] = useState(false);
+  const [createTokenRequest, setCreateTokenRequest] = useState<CreateTokenRequest | null>(null);
+  const createTokenOpen = createTokenRequest != null;
+  const createTokenInitial = createTokenRequest?.initial ?? null;
   const [sideboardOpen, setSideboardOpen] = useState(false);
   const [viewSideboardOpen, setViewSideboardOpen] = useState(false);
   const [viewLibraryOpen, setViewLibraryOpen] = useState(false);
@@ -116,7 +121,7 @@ export function useGameDialogState(): GameDialogStateHandle {
     setRollDieOpen,
     setLastDieSides,
     setLastDieCount,
-    setCreateTokenOpen,
+    setCreateTokenRequest,
     setSideboardOpen,
     setRevealState,
     setConcedeConfirm,
@@ -139,8 +144,8 @@ export function useGameDialogState(): GameDialogStateHandle {
     closePrompt: () => setPrompt(null),
     openRollDie: () => setRollDieOpen(true),
     closeRollDie: () => setRollDieOpen(false),
-    openCreateToken: () => setCreateTokenOpen(true),
-    closeCreateToken: () => setCreateTokenOpen(false),
+    openCreateToken: (request) => setCreateTokenRequest({ ...request }),
+    closeCreateToken: () => setCreateTokenRequest(null),
     openSideboard: () => setSideboardOpen(true),
     closeSideboard: () => setSideboardOpen(false),
     openViewSideboard: () => setViewSideboardOpen(true),
@@ -172,6 +177,7 @@ export function useGameDialogState(): GameDialogStateHandle {
       lastDieSides,
       lastDieCount,
       createTokenOpen,
+      createTokenInitial,
       sideboardOpen,
       viewSideboardOpen,
       viewLibraryOpen,
@@ -193,6 +199,7 @@ export function useGameDialogState(): GameDialogStateHandle {
       lastDieSides,
       lastDieCount,
       createTokenOpen,
+      createTokenInitial,
       sideboardOpen,
       viewSideboardOpen,
       viewLibraryOpen,
@@ -204,5 +211,5 @@ export function useGameDialogState(): GameDialogStateHandle {
     ],
   );
 
-  return { state, set, toggles, closeAllContextMenus };
+  return { state, set, toggles, closeAllContextMenus, createTokenRequest };
 }
