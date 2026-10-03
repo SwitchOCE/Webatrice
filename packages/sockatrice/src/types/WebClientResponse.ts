@@ -245,6 +245,8 @@ export interface IGameResponse {
   replayGameLoaded?(gameId: number, gameInfo: ServerInfo_Game): void;
   /** The replay played into the local game `gameId` was closed. Raised by `WebClient.unloadReplayGame`. */
   replayGameUnloaded?(gameId: number): void;
+  // Optional so existing IGameResponse implementations keep compiling.
+  deckSelected?(gameId: number, deckList: string): void;
 }
 
 /**

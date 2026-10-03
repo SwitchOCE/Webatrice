@@ -56,6 +56,11 @@ export class WebSocketService {
     );
   }
 
+  /** The host/port of the most recent `connect()` — the server this session talks to. */
+  public get target(): ConnectTarget | null {
+    return this.lastTarget;
+  }
+
   public connect(target: ConnectTarget): void {
     this.clearReconnectTimer();
     this.closeActiveSocket(true);

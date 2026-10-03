@@ -99,6 +99,13 @@ describe('WebSocketService', () => {
       expect(MockWS).toHaveBeenCalledWith('wss://example.com:8080');
     });
 
+    it('exposes the last connect target', () => {
+      const service = new WebSocketService(mockConfig);
+      expect(service.target).toBeNull();
+      service.connect({ host: 'example.com', port: '4748' });
+      expect(service.target).toEqual({ host: 'example.com', port: '4748' });
+    });
+
     it('uses ws:// only when the target host itself is local', () => {
       const service = new WebSocketService(mockConfig);
       service.connect({ host: 'localhost', port: '1234' });
