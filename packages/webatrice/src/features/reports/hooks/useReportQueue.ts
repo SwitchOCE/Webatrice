@@ -179,10 +179,10 @@ export function useReportQueue(): ReportQueue {
     return () => window.clearInterval(timer);
   }, [refresh]);
 
-  const seenNotice = useRef(lastNotice?.seq ?? 0);
+  const seenNotice = useRef(lastNotice);
   useEffect(() => {
-    if (lastNotice && lastNotice.seq !== seenNotice.current) {
-      seenNotice.current = lastNotice.seq;
+    if (lastNotice && lastNotice !== seenNotice.current) {
+      seenNotice.current = lastNotice;
       refresh();
     }
   }, [lastNotice, refresh]);
