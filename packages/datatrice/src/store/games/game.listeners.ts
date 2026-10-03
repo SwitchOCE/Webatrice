@@ -1008,13 +1008,16 @@ export function registerGameListeners(mw: ListenerMiddlewareInstance<unknown>): 
         return;
       }
       // The actor is whoever sent Command_ReverseTurn, not the active player
-      // (message_log_widget.cpp logReverseTurn). -1 is the proto2 "no actor"
-      // sentinel; fall back to the active player for it and for older callers.
-      const actor = playerId != null && playerId >= 0 ? playerId : preGame.activePlayerId;
-      const message = formatTurnReversed(preGame, actor, reversed);
+      // (message_log_widget.cpp logReverseTurn). Like desktop's
+      // GameEventHandler::eventReverseTurn, log nothing when the actor is
+      // absent, the -1 "no actor" sentinel, or not a seated player.
+      if (playerId == null || !preGame.players[playerId]) {
+        return;
+      }
+      const message = formatTurnReversed(preGame, playerId, reversed);
       if (message) {
         api.dispatch(Actions.gameMessageAppended({
-          gameId, playerId: actor, message,
+          gameId, playerId, message,
         }));
       }
     },
