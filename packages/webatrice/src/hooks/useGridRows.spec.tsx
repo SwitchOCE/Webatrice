@@ -41,6 +41,15 @@ describe('useGridRows', () => {
     expect(screen.getByTestId('a')).toHaveAttribute('aria-selected', 'true');
   });
 
+  it('selects on Home and End even when the focused row is already the target', () => {
+    const onSelect = vi.fn();
+    render(<Grid onSelect={onSelect} />);
+
+    expect(fireEvent.keyDown(screen.getByTestId('a'), { key: 'Home' })).toBe(false);
+    fireEvent.keyDown(screen.getByTestId('c'), { key: 'End' });
+    expect(onSelect.mock.calls.map(([key]) => key)).toEqual(['a', 'c']);
+  });
+
   it('pages ten rows with PageDown and PageUp, stopping at the ends', () => {
     const onSelect = vi.fn();
     const keys = Array.from({ length: 15 }, (_, i) => `row-${i}`);
