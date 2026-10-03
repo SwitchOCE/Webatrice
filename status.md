@@ -1,1 +1,2 @@
 - 13:57 started; read brief+task → research
+- 13:59 read refactor PR+plan; 3 research agents running (phase/turn/rotate/shortcuts; deck/zones/tally; reveal/hide/related/say/bugs) → write specs/w17.md
