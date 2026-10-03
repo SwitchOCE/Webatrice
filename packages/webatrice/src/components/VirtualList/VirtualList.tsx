@@ -6,6 +6,8 @@ import './VirtualList.css';
 interface VirtualRowsData<T> {
   items: T[];
   renderRow: (item: T, index: number) => ReactNode;
+  /** False when the caller gives the list its own role (e.g. a grid's rowgroup), whose rows carry their own role. */
+  listItems: boolean;
 }
 
 interface VirtualRowsProps<T> {
@@ -18,8 +20,11 @@ interface VirtualRowsProps<T> {
   listRef?: Ref<ListImperativeAPI>;
 }
 
-function RowsRow<T>({ index, style, items, renderRow }: RowComponentProps<VirtualRowsData<T>>) {
-  return <div style={style}>{renderRow(items[index], index)}</div>;
+function RowsRow<T>({ ariaAttributes, index, style, items, renderRow, listItems }: RowComponentProps<VirtualRowsData<T>>) {
+  // react-window's default role="list" needs listitem children; its per-row
+  // role/aria-posinset/aria-setsize also tell assistive tech where a row sits
+  // in the full (unrendered) list.
+  return <div style={style} {...(listItems ? ariaAttributes : {})}>{renderRow(items[index], index)}</div>;
 }
 
 /**
@@ -39,7 +44,7 @@ export function VirtualRows<T>({ items, rowHeight, className = '', renderRow, ro
         rowCount={items.length}
         rowHeight={rowHeight}
         rowComponent={RowsRow}
-        rowProps={{ items, renderRow }}
+        rowProps={{ items, renderRow, listItems: !role }}
       />
     </div>
   );
