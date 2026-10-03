@@ -160,6 +160,8 @@ describe('usePlayerZoneCommands — library and reveals', () => {
     commands().reveal(ZoneName.GRAVE, 2, 'random');
     commands().reveal(ZoneName.DECK, 'all', { top: 3 });
     commands().reveal(ZoneName.DECK, 2, 'zone');
+    commands().reveal(ZoneName.HAND, 'all', { cardIds: [4, 9] });
+    commands().reveal(ZoneName.SIDEBOARD, 2, { cardIds: [7] });
     commands().lendLibrary(2);
 
     expect(vi.mocked(game.revealCards).mock.calls.map(([, p]) => p)).toEqual([
@@ -167,6 +169,8 @@ describe('usePlayerZoneCommands — library and reveals', () => {
       { zoneName: ZoneName.GRAVE, cardId: [-2], playerId: 2 },
       { zoneName: ZoneName.DECK, topCards: 3, cardId: [0] },
       { zoneName: ZoneName.DECK, playerId: 2 },
+      { zoneName: ZoneName.HAND, cardId: [4, 9] },
+      { zoneName: ZoneName.SIDEBOARD, cardId: [7], playerId: 2 },
       { zoneName: ZoneName.DECK, playerId: 2, grantWriteAccess: true },
     ]);
   });

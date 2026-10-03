@@ -329,6 +329,8 @@ describe('GameBoardCell — library, zone and reveal commands', () => {
     commands().zone.reveal(ZoneName.GRAVE, 2, 'random');
     commands().zone.reveal(ZoneName.DECK, 'all', { top: 3 });
     commands().zone.reveal(ZoneName.DECK, 2, { top: 1 });
+    commands().zone.reveal(ZoneName.HAND, 'all', { cardIds: [4, 9] });
+    commands().zone.reveal(ZoneName.DECK, 2, { cardIds: [11] });
 
     expect(vi.mocked(game.revealCards).mock.calls.map(([, p]) => p)).toEqual([
       { zoneName: ZoneName.DECK },
@@ -338,6 +340,8 @@ describe('GameBoardCell — library, zone and reveal commands', () => {
       { zoneName: ZoneName.GRAVE, cardId: [-2], playerId: 2 },
       { zoneName: ZoneName.DECK, topCards: 3, cardId: [0] },
       { zoneName: ZoneName.DECK, topCards: 1, cardId: [0], playerId: 2 },
+      { zoneName: ZoneName.HAND, cardId: [4, 9] },
+      { zoneName: ZoneName.DECK, cardId: [11], playerId: 2 },
     ]);
   });
 

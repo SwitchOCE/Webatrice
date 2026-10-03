@@ -65,6 +65,10 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // batch wire so we loop; optimistic-mock cards (non-numeric id) are
   // skipped, matching the menu path.
   'game.cloneCard': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyJ'] },
+  // Cockatrice's `aRevealToAll` (unbound by default) — reveals the
+  // selected hand cards to every player in one Command_RevealCards,
+  // the card menu's "Reveal to... > All players".
+  'game.revealSelectedToAll': { scope: ShortcutScope.GAME, group: 'game', sequences: [] },
   // Cockatrice's `aMoveToGraveyard` (Ctrl+Del) — moves the selection
   // to the local player's graveyard. Single batched Command_MoveCard
   // with cards_to_move populated, matching the menu's "Send to
