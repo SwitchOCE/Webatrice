@@ -544,7 +544,16 @@ function BracketSection({
             Bracket {report.level} · {BRACKET_LABEL[report.level]}
           </div>
           <div className="text-xs text-text-muted mt-1">
-            Minimum bracket per <a href="https://edhpowerlevel.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-text-primary">edhpowerlevel</a>'s algorithm: Game Changers, MLD, extra turns, and early game-defining combos.
+            Minimum bracket per{' '}
+            <a
+              href="https://edhpowerlevel.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-text-primary"
+            >
+              edhpowerlevel
+            </a>
+            's algorithm: Game Changers, MLD, extra turns, and early game-defining combos.
           </div>
         </div>
       </div>

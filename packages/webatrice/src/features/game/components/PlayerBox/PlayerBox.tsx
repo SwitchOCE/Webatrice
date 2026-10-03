@@ -67,6 +67,18 @@ import {
   type RelatedCardRef,
 } from '../../../decks/cardLookup';
 
+const DIALOG_SECONDARY_BUTTON_CLASS =
+  'px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary '
+  + 'hover:bg-bg-elevated transition-colors';
+const DIALOG_INPUT_CLASS =
+  'w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-sm '
+  + 'text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent';
+const DIALOG_PRIMARY_BUTTON_CLASS =
+  'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover '
+  + 'shadow-glow transition-colors';
+const DIALOG_SUBMIT_BUTTON_CLASS =
+  `${DIALOG_PRIMARY_BUTTON_CLASS} disabled:opacity-50 disabled:cursor-not-allowed`;
+
 /**
  * A single instance of a card in the game. Deck rows have a `quantity` field
  * so one row can represent 4 copies; expanding a deck row into `quantity`
@@ -761,7 +773,10 @@ function CardContextMenuPopup({
           disabled={disabled && !hasSubmenu && !item.onClick}
           onMouseEnter={(e) => onItemHover(i, e)}
           onClick={item.onClick}
-          className="w-full flex items-center gap-3 px-3 py-1.5 text-sm text-left text-text-primary hover:bg-bg-elevated disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className={[
+            'w-full flex items-center gap-3 px-3 py-1.5 text-sm text-left text-text-primary',
+            'hover:bg-bg-elevated disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
+          ].join(' ')}
         >
           {item.swatch !== undefined ? (
             <span
@@ -1680,7 +1695,10 @@ const CardBackZone = forwardRef<
                 <div className="absolute inset-0 bg-black/20 pointer-events-none" aria-hidden />
               )}
               <div
-                className="absolute inset-0 flex items-center justify-center text-white font-modern font-bold tabular-nums text-[3em] pointer-events-none"
+                className={[
+                  'absolute inset-0 flex items-center justify-center text-white',
+                  'font-modern font-bold tabular-nums text-[3em] pointer-events-none',
+                ].join(' ')}
                 style={{ textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,1)' }}
               >
                 {count}
@@ -1822,7 +1840,10 @@ function SetLifeModal({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onFocus={(e) => e.currentTarget.select()}
-            className="w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-lg tabular-nums text-text-primary text-center focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+            className={[
+              'w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-lg tabular-nums',
+              'text-text-primary text-center focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent',
+            ].join(' ')}
           />
           {/* Live preview — only shown when the input is an expression
               (skipped for a plain number since the preview would just
@@ -1840,14 +1861,14 @@ function SetLifeModal({
             <button
               type="button"
               onClick={onCancel}
-              className="px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+              className={DIALOG_SECONDARY_BUTTON_CLASS}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={preview == null}
-              className="px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={DIALOG_SUBMIT_BUTTON_CLASS}
             >
               Save
             </button>
@@ -1993,19 +2014,19 @@ function SetPTModal({
             onChange={(e) => setDraft(e.target.value)}
             onFocus={(e) => e.currentTarget.select()}
             placeholder="e.g. 3/4, +1/+1, or blank to clear"
-            className="w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+            className={DIALOG_INPUT_CLASS}
           />
           <div className="flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={onCancel}
-              className="px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+              className={DIALOG_SECONDARY_BUTTON_CLASS}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors"
+              className={DIALOG_PRIMARY_BUTTON_CLASS}
             >
               Save
             </button>
@@ -2109,20 +2130,20 @@ function ViewNCardsModal({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onFocus={(e) => e.currentTarget.select()}
-            className="w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+            className={DIALOG_INPUT_CLASS}
           />
           <div className="flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={onCancel}
-              className="px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+              className={DIALOG_SECONDARY_BUTTON_CLASS}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!valid || deckSize <= 0}
-              className="px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={DIALOG_SUBMIT_BUTTON_CLASS}
             >
               {submitLabel ?? 'View'}
             </button>
@@ -2248,7 +2269,7 @@ function MoveTopUntilModal({
             <button
               type="submit"
               disabled={!canSubmit}
-              className="px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={DIALOG_SUBMIT_BUTTON_CLASS}
             >
               Start
             </button>
@@ -2337,20 +2358,20 @@ function DrawCardsModal({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onFocus={(e) => e.currentTarget.select()}
-            className="w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+            className={DIALOG_INPUT_CLASS}
           />
           <div className="flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={onCancel}
-              className="px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+              className={DIALOG_SECONDARY_BUTTON_CLASS}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!valid || deckSize <= 0}
-              className="px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={DIALOG_SUBMIT_BUTTON_CLASS}
             >
               Draw
             </button>
@@ -2442,20 +2463,20 @@ function SetCardCounterModal({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onFocus={(e) => e.currentTarget.select()}
-            className="w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+            className={DIALOG_INPUT_CLASS}
           />
           <div className="flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={onCancel}
-              className="px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+              className={DIALOG_SECONDARY_BUTTON_CLASS}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!valid}
-              className="px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={DIALOG_SUBMIT_BUTTON_CLASS}
             >
               Set
             </button>
@@ -2748,20 +2769,20 @@ function MoveXCardsFromTopModal({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onFocus={(e) => e.currentTarget.select()}
-            className="w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+            className={DIALOG_INPUT_CLASS}
           />
           <div className="flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={onCancel}
-              className="px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+              className={DIALOG_SECONDARY_BUTTON_CLASS}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!valid}
-              className="px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={DIALOG_SUBMIT_BUTTON_CLASS}
             >
               Move
             </button>
@@ -2835,19 +2856,19 @@ function SetAnnotationModal({
             onChange={(e) => setDraft(e.target.value)}
             onFocus={(e) => e.currentTarget.select()}
             placeholder="Leave blank to clear"
-            className="w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+            className={DIALOG_INPUT_CLASS}
           />
           <div className="flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={onCancel}
-              className="px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+              className={DIALOG_SECONDARY_BUTTON_CLASS}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors"
+              className={DIALOG_PRIMARY_BUTTON_CLASS}
             >
               Save
             </button>
@@ -9438,7 +9459,9 @@ function PlayerBox(
                 width: CARD_WIDTH,
                 height: CARD_HEIGHT,
                 borderRadius: CARD_CORNER_RADIUS,
-                transition: `left ${DRAW_ANIMATION_MS}ms ease-out, top ${DRAW_ANIMATION_MS}ms ease-out, transform ${DRAW_ANIMATION_MS}ms ease-out`,
+                transition:
+                  `left ${DRAW_ANIMATION_MS}ms ease-out, top ${DRAW_ANIMATION_MS}ms ease-out, `
+                  + `transform ${DRAW_ANIMATION_MS}ms ease-out`,
                 pointerEvents: 'none',
                 zIndex: 200,
                 willChange: 'left, top, transform',

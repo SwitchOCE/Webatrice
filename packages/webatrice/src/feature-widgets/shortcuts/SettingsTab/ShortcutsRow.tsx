@@ -68,7 +68,10 @@ const ShortcutsRow = ({ actionId, conflicts, onEdit }: ShortcutsRowProps) => {
           disabled={!isOverridden}
           aria-label={t('ShortcutsTab.resetAction')}
           title={t('ShortcutsTab.resetAction')}
-          className="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+          className={[
+            'p-1.5 rounded text-text-muted hover:text-text-primary',
+            'hover:bg-bg-elevated transition-colors disabled:opacity-30 disabled:cursor-not-allowed',
+          ].join(' ')}
         >
           <RotateCcw size={14} />
         </button>

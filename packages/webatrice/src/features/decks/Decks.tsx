@@ -29,8 +29,21 @@ import { emptyCod, parseCod, serializeCod } from './cod';
 import { parseDecklist, type ParsedEntry } from './decklistParser';
 import { assembleDeckCard } from './hydrate';
 import { defaultMeta } from './meta';
+import { SELECT_CHEVRON_BACKGROUND } from './selectChevron';
 import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat, type DeckCard, type ParsedDeck } from './types';
 import { clearDeckEditorCache, deleteCachedDeck } from './useDeckEditor';
+
+const NEW_DECK_BUTTON_CLASS =
+  'inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold bg-accent '
+  + 'text-white hover:bg-accent-hover shadow-glow disabled:opacity-40 '
+  + 'disabled:cursor-not-allowed transition-colors';
+const IMPORT_SECONDARY_BUTTON_CLASS =
+  'px-3 py-2 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary '
+  + 'hover:bg-bg-elevated transition-colors';
+const IMPORT_PRIMARY_BUTTON_CLASS =
+  'px-4 py-2 rounded-md bg-accent hover:bg-accent-hover disabled:opacity-60 '
+  + 'disabled:cursor-not-allowed text-white font-semibold text-sm shadow-glow '
+  + 'transition-colors flex items-center gap-2';
 
 /**
  * My Decks page. Flat list of decks from Servatrice — folders are
@@ -144,7 +157,7 @@ function Decks() {
     if (isConnected && !backendDecks) {
       fetchList();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `fetchList` is render-local; fetch only on connect or when the list is dropped
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch on connect or when the list is dropped
   }, [isConnected, backendDecks]);
 
   // Flatten the folder tree into a plain sorted list. Sorted by
@@ -407,7 +420,10 @@ function Decks() {
               type="button"
               onClick={fetchList}
               disabled={!isConnected}
-              className="p-2 rounded-md text-text-secondary hover:text-text-primary hover:bg-bg-elevated disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className={[
+                'p-2 rounded-md text-text-secondary hover:text-text-primary',
+                'hover:bg-bg-elevated disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
+              ].join(' ')}
               title="Refresh"
               aria-label="Refresh deck list"
             >
@@ -417,7 +433,11 @@ function Decks() {
               type="button"
               onClick={() => setImportOpen(true)}
               disabled={!isConnected}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium text-text-primary bg-bg-elevated border border-border-strong hover:bg-border-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className={[
+                'inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium',
+                'text-text-primary bg-bg-elevated border border-border-strong',
+                'hover:bg-border-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
+              ].join(' ')}
             >
               <Upload size={14} /> Import
             </button>
@@ -425,7 +445,7 @@ function Decks() {
               type="button"
               onClick={() => setCreateOpen(true)}
               disabled={!isConnected}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className={NEW_DECK_BUTTON_CLASS}
             >
               <Plus size={14} /> New deck
             </button>
@@ -666,7 +686,12 @@ function DeckRowCard({ deck, summary, onOpen, onDelete }: DeckRowProps) {
   const formatLabel = summary?.format ? formatDisplayLabel(summary.format) : null;
 
   return (
-    <div className="group relative rounded-lg bg-bg-surface border border-border-subtle hover:border-border-strong overflow-hidden transition-all">
+    <div
+      className={[
+        'group relative rounded-lg bg-bg-surface border',
+        'border-border-subtle hover:border-border-strong overflow-hidden transition-all',
+      ].join(' ')}
+    >
       {/* Right-half background art. When there's no art, fall through
           to the placeholder underlay below. Two absolutely-positioned
           layers: the art itself, then a gradient that fades it into
@@ -743,7 +768,11 @@ function DeckRowCard({ deck, summary, onOpen, onDelete }: DeckRowProps) {
             e.stopPropagation();
             onDelete();
           }}
-          className="p-2 rounded-md bg-bg-surface/80 backdrop-blur-sm border border-border-subtle text-text-muted hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all"
+          className={[
+            'p-2 rounded-md bg-bg-surface/80 backdrop-blur-sm border',
+            'border-border-subtle text-text-muted hover:text-red-400',
+            'hover:bg-red-500/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all',
+          ].join(' ')}
           title="Delete deck"
           aria-label={`Delete ${deck.name}`}
         >
@@ -766,7 +795,12 @@ function DeckRowCompact({ deck, summary, onOpen, onDelete }: DeckRowProps) {
   const formatLabel = summary?.format ? formatDisplayLabel(summary.format) : null;
 
   return (
-    <div className="group flex items-center gap-3 rounded-md bg-bg-surface border border-border-subtle hover:border-border-strong transition-colors">
+    <div
+      className={[
+        'group flex items-center gap-3 rounded-md bg-bg-surface border',
+        'border-border-subtle hover:border-border-strong transition-colors',
+      ].join(' ')}
+    >
       <button
         type="button"
         onClick={onOpen}
@@ -775,7 +809,12 @@ function DeckRowCompact({ deck, summary, onOpen, onDelete }: DeckRowProps) {
         {/* Square art thumbnail — same fallback chain as the card
              view, just cropped tighter. Reuses the placeholder icon
              on decks without a banner or commander. */}
-        <div className="h-10 w-10 shrink-0 rounded overflow-hidden bg-bg-elevated border border-border-subtle flex items-center justify-center">
+        <div
+          className={[
+            'h-10 w-10 shrink-0 rounded overflow-hidden bg-bg-elevated',
+            'border border-border-subtle flex items-center justify-center',
+          ].join(' ')}
+        >
           {artUrl ? (
             <div
               className="h-full w-full"
@@ -821,7 +860,10 @@ function DeckRowCompact({ deck, summary, onOpen, onDelete }: DeckRowProps) {
       <button
         type="button"
         onClick={onDelete}
-        className="mr-2 p-2 rounded-md text-text-muted hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all shrink-0"
+        className={[
+          'mr-2 p-2 rounded-md text-text-muted hover:text-red-400 hover:bg-red-500/10',
+          'opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all shrink-0',
+        ].join(' ')}
         title="Delete deck"
         aria-label={`Delete ${deck.name}`}
       >
@@ -868,7 +910,7 @@ function EmptyState({ onCreate, disabled }: { onCreate: () => void; disabled: bo
           type="button"
           onClick={onCreate}
           disabled={disabled}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className={NEW_DECK_BUTTON_CLASS}
         >
           <Plus size={14} /> New deck
         </button>
@@ -1131,7 +1173,12 @@ function ImportDeckModal({
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
-      <div className="relative w-full max-w-2xl rounded-xl bg-bg-surface border border-border-subtle shadow-glow p-6 max-h-[calc(100vh-2rem)] overflow-hidden flex flex-col">
+      <div
+        className={[
+          'relative w-full max-w-2xl rounded-xl bg-bg-surface border',
+          'border-border-subtle shadow-glow p-6 max-h-[calc(100vh-2rem)] overflow-hidden flex flex-col',
+        ].join(' ')}
+      >
         <button
           type="button"
           onClick={onClose}
@@ -1172,7 +1219,11 @@ function ImportDeckModal({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   maxLength={80}
-                  className="mt-1 w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                  className={[
+                    'mt-1 w-full bg-bg-base border border-border-subtle rounded-md',
+                    'px-3 py-2 text-sm text-text-primary focus:outline-none',
+                    'focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
+                  ].join(' ')}
                 />
               </label>
               <div>
@@ -1216,7 +1267,11 @@ function ImportDeckModal({
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   placeholder={IMPORT_PLACEHOLDER}
-                  className="flex-1 min-h-[240px] bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-sm font-mono text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-none"
+                  className={[
+                    'flex-1 min-h-[240px] bg-bg-base border border-border-subtle rounded-md px-3 py-2',
+                    'text-sm font-mono text-text-primary placeholder:text-text-muted focus:outline-none',
+                    'focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-none',
+                  ].join(' ')}
                 />
               )}
             </div>
@@ -1291,7 +1346,7 @@ function ImportDeckModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-2 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+            className={IMPORT_SECONDARY_BUTTON_CLASS}
           >
             Cancel
           </button>
@@ -1300,7 +1355,10 @@ function ImportDeckModal({
               <button
                 type="button"
                 onClick={handleImportFile}
-                className="px-4 py-2 rounded-md bg-accent hover:bg-accent-hover text-white font-semibold text-sm shadow-glow transition-colors flex items-center gap-2"
+                className={[
+                  'px-4 py-2 rounded-md bg-accent hover:bg-accent-hover text-white',
+                  'font-semibold text-sm shadow-glow transition-colors flex items-center gap-2',
+                ].join(' ')}
                 title=".cod files are pre-structured — no card review needed"
               >
                 <Upload size={14} /> Import file
@@ -1310,7 +1368,7 @@ function ImportDeckModal({
                 type="button"
                 onClick={() => void handleResolve()}
                 disabled={!text.trim()}
-                className="px-4 py-2 rounded-md bg-accent hover:bg-accent-hover disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm shadow-glow transition-colors flex items-center gap-2"
+                className={IMPORT_PRIMARY_BUTTON_CLASS}
               >
                 Next: check cards
               </button>
@@ -1321,7 +1379,7 @@ function ImportDeckModal({
               <button
                 type="button"
                 onClick={() => setPhase('input')}
-                className="px-3 py-2 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+                className={IMPORT_SECONDARY_BUTTON_CLASS}
               >
                 Back
               </button>
@@ -1329,7 +1387,7 @@ function ImportDeckModal({
                 type="button"
                 onClick={handleConfirmImport}
                 disabled={resolved.length === 0}
-                className="px-4 py-2 rounded-md bg-accent hover:bg-accent-hover disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm shadow-glow transition-colors flex items-center gap-2"
+                className={IMPORT_PRIMARY_BUTTON_CLASS}
               >
                 <Upload size={14} /> Import {resolved.length} card{resolved.length === 1 ? '' : 's'}
               </button>
@@ -1398,10 +1456,13 @@ function FormatPicker({
             onChange(next);
           }
         }}
-        className="w-full appearance-none bg-bg-base border border-border-subtle rounded-md pl-3 pr-8 py-2 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+        className={[
+          'w-full appearance-none bg-bg-base border border-border-subtle',
+          'rounded-md pl-3 pr-8 py-2 text-sm text-text-primary',
+          'focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
+        ].join(' ')}
         style={{
-          backgroundImage:
-            'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%237A6E8F\' stroke-width=\'3\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'6 9 12 15 18 9\'/></svg>")',
+          backgroundImage: SELECT_CHEVRON_BACKGROUND,
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'right 10px center',
         }}
@@ -1426,7 +1487,11 @@ function FormatPicker({
           }}
           placeholder="e.g. Netrunner, Playtest, Cube"
           maxLength={60}
-          className="w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+          className={[
+            'w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2',
+            'text-sm text-text-primary placeholder:text-text-muted',
+            'focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
+          ].join(' ')}
           autoFocus
         />
       )}
@@ -1488,7 +1553,12 @@ function CreateDeckModal({
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
-      <div className="relative w-full max-w-md rounded-xl bg-bg-surface border border-border-subtle shadow-glow overflow-hidden flex flex-col">
+      <div
+        className={[
+          'relative w-full max-w-md rounded-xl bg-bg-surface border',
+          'border-border-subtle shadow-glow overflow-hidden flex flex-col',
+        ].join(' ')}
+      >
         <div className="px-5 py-4 border-b border-border-subtle flex items-center justify-between">
           <h2 className="font-modern text-lg font-semibold text-text-primary">Create a deck</h2>
           <button
@@ -1517,7 +1587,11 @@ function CreateDeckModal({
               maxLength={80}
               placeholder="Untitled Deck"
               autoFocus
-              className="mt-1 w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+              className={[
+                'mt-1 w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2',
+                'text-sm text-text-primary placeholder:text-text-muted',
+                'focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
+              ].join(' ')}
             />
           </label>
           <div>
@@ -1531,7 +1605,10 @@ function CreateDeckModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+            className={[
+              'px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary',
+              'hover:text-text-primary hover:bg-bg-elevated transition-colors',
+            ].join(' ')}
           >
             Cancel
           </button>
@@ -1539,7 +1616,10 @@ function CreateDeckModal({
             type="button"
             onClick={handleSubmit}
             disabled={submitDisabled}
-            className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className={[
+              'inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-semibold bg-accent text-white',
+              'hover:bg-accent-hover shadow-glow disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
+            ].join(' ')}
           >
             <Plus size={13} /> Create
           </button>
@@ -1580,7 +1660,12 @@ function FileSummary({
   }
 
   return (
-    <div className="flex-1 min-h-[240px] flex flex-col items-center justify-center bg-bg-base border border-border-subtle rounded-md p-6 text-center">
+    <div
+      className={[
+        'flex-1 min-h-[240px] flex flex-col items-center justify-center',
+        'bg-bg-base border border-border-subtle rounded-md p-6 text-center',
+      ].join(' ')}
+    >
       <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-bg-elevated border border-border-strong mb-3">
         <FileText size={22} className="text-accent" />
       </div>
@@ -1636,13 +1721,17 @@ function DeleteConfirmDialog({ deckName, onCancel, onConfirm }: DeleteConfirmDia
           <h2 className="font-modern text-lg font-semibold text-text-primary">Delete deck?</h2>
         </div>
         <div className="px-5 py-4 text-sm text-text-secondary">
-          <span className="text-text-primary font-medium">{deckName}</span> will be permanently removed from the server. This can't be undone.
+          <span className="text-text-primary font-medium">{deckName}</span> will be permanently removed from the server.
+          This can't be undone.
         </div>
         <div className="px-5 py-3 border-t border-border-subtle flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+            className={[
+              'px-4 py-1.5 rounded-md text-sm font-medium text-text-secondary',
+              'hover:text-text-primary hover:bg-bg-elevated transition-colors',
+            ].join(' ')}
           >
             Cancel
           </button>

@@ -52,7 +52,13 @@ export default function RoomChat({ roomName, messages, onSay }: RoomChatProps) {
           </div>
         )}
         {messages?.map((m, idx) => (
-          <div key={`${m.timeReceived}-${idx}`} className="text-sm text-text-secondary [&_a.link]:text-accent [&_a.link]:hover:text-accent-hover [&_strong]:text-text-primary [&_strong]:mr-1">
+          <div
+            key={`${m.timeReceived}-${idx}`}
+            className={[
+              'text-sm text-text-secondary [&_a.link]:text-accent [&_a.link]:hover:text-accent-hover',
+              '[&_strong]:text-text-primary [&_strong]:mr-1',
+            ].join(' ')}
+          >
             <MessageBubble message={m} />
           </div>
         ))}
@@ -67,12 +73,20 @@ export default function RoomChat({ roomName, messages, onSay }: RoomChatProps) {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder={`Message ${roomName}`}
-          className="flex-1 min-w-0 px-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+          className={[
+            'flex-1 min-w-0 px-3 py-2 rounded-md bg-bg-base border',
+            'border-border-subtle text-sm text-text-primary',
+            'placeholder:text-text-muted focus:outline-none',
+            'focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
+          ].join(' ')}
         />
         <button
           type="submit"
           disabled={!draft.trim()}
-          className="p-2 rounded-md bg-accent text-white hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className={[
+            'p-2 rounded-md bg-accent text-white hover:bg-accent-hover',
+            'disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
+          ].join(' ')}
           title="Send"
           aria-label="Send"
         >

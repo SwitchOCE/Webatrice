@@ -14,6 +14,11 @@ import { CARD_CORNER_RADIUS } from '../PlayerBox/cardSize';
 import { ManaSymbols, SymbolText } from '../PlayerBox/ManaSymbols';
 import { useCardPreviewPopup } from '../CardPreviewPopup/useCardPreviewPopup';
 
+const SIDEBAR_ACTION_BUTTON_CLASS =
+  'flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-xs '
+  + 'font-medium text-text-primary bg-bg-elevated hover:bg-border-subtle border '
+  + 'border-border-subtle transition-colors';
+
 /**
  * Right-rail companion for the battlefield. Four stacked sections,
  * top-down:
@@ -321,7 +326,10 @@ export default function BattlefieldSidebar() {
       {isSpectator && (
         <div
           data-testid="spectating-tag"
-          className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-yellow-300 bg-yellow-500/10 border-b border-yellow-500/30 text-center"
+          className={[
+            'px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest',
+            'text-yellow-300 bg-yellow-500/10 border-b border-yellow-500/30 text-center',
+          ].join(' ')}
         >
           Spectating
         </div>
@@ -402,7 +410,11 @@ export default function BattlefieldSidebar() {
           <button
             type="button"
             onClick={togglePopup}
-            className="w-full aspect-[5/7] rounded-md border border-dashed border-accent/40 bg-accent/5 flex flex-col items-center justify-center gap-2 text-xs text-text-muted p-4 text-center hover:bg-accent/10 transition-colors"
+            className={[
+              'w-full aspect-[5/7] rounded-md border border-dashed border-accent/40',
+              'bg-accent/5 flex flex-col items-center justify-center gap-2 text-xs',
+              'text-text-muted p-4 text-center hover:bg-accent/10 transition-colors',
+            ].join(' ')}
             style={{ borderRadius: CARD_CORNER_RADIUS }}
           >
             <ExternalLink size={22} className="text-accent" />
@@ -433,7 +445,10 @@ export default function BattlefieldSidebar() {
                 />
               ) : (
                 <div
-                  className="aspect-[5/7] rounded-md border border-dashed border-border-subtle bg-bg-base/30 flex items-center justify-center text-xs text-text-muted italic p-3 text-center"
+                  className={[
+                    'aspect-[5/7] rounded-md border border-dashed border-border-subtle bg-bg-base/30',
+                    'flex items-center justify-center text-xs text-text-muted italic p-3 text-center',
+                  ].join(' ')}
                   style={{ borderRadius: CARD_CORNER_RADIUS }}
                 >
                   Hover a card to preview it here
@@ -455,7 +470,10 @@ export default function BattlefieldSidebar() {
                     <button
                       type="button"
                       onClick={handleBack}
-                      className="self-start inline-flex items-center gap-1 text-[11px] font-medium text-text-secondary hover:text-text-primary transition-colors"
+                      className={[
+                        'self-start inline-flex items-center gap-1 text-[11px]',
+                        'font-medium text-text-secondary hover:text-text-primary transition-colors',
+                      ].join(' ')}
                       title={`Back to ${previousInStack.name}`}
                     >
                       <ChevronLeft size={12} />
@@ -546,7 +564,10 @@ export default function BattlefieldSidebar() {
                 // suppress this to avoid stacking two empty prompts.
                 previewMode === 'text' && (
                   <div
-                    className="rounded-md border border-dashed border-border-subtle bg-bg-base/30 flex items-center justify-center text-xs text-text-muted italic p-3 text-center"
+                    className={[
+                      'rounded-md border border-dashed border-border-subtle bg-bg-base/30 flex',
+                      'items-center justify-center text-xs text-text-muted italic p-3 text-center',
+                    ].join(' ')}
                     style={{ borderRadius: CARD_CORNER_RADIUS }}
                   >
                     Hover a card to preview it here
@@ -570,7 +591,11 @@ export default function BattlefieldSidebar() {
             onClick={handleLeave}
             disabled={gameId == null}
             title="Leave the game"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-text-primary bg-bg-elevated hover:bg-border-subtle border border-border-subtle disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            className={[
+              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium',
+              'text-text-primary bg-bg-elevated hover:bg-border-subtle border',
+              'border-border-subtle disabled:opacity-60 disabled:cursor-not-allowed transition-colors',
+            ].join(' ')}
           >
             <LogOut size={12} /> Leave
           </button>
@@ -599,7 +624,7 @@ export default function BattlefieldSidebar() {
               // one consistent affordance strip. flex-1 makes it (and
               // any future sibling in this row) share the available
               // width evenly.
-              className="flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-text-primary bg-bg-elevated hover:bg-border-subtle border border-border-subtle transition-colors"
+              className={SIDEBAR_ACTION_BUTTON_CLASS}
             >
               <Flag size={12} /> Concede
             </button>
@@ -609,7 +634,7 @@ export default function BattlefieldSidebar() {
               type="button"
               onClick={onRequestUnconcede}
               title="Rejoin the game"
-              className="flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-text-primary bg-bg-elevated hover:bg-border-subtle border border-border-subtle transition-colors"
+              className={SIDEBAR_ACTION_BUTTON_CLASS}
             >
               <Flag size={12} /> Rejoin
             </button>
@@ -618,7 +643,7 @@ export default function BattlefieldSidebar() {
             type="button"
             onClick={onRequestViewSideboard}
             title="Open sideboard"
-            className="flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-text-primary bg-bg-elevated hover:bg-border-subtle border border-border-subtle transition-colors"
+            className={SIDEBAR_ACTION_BUTTON_CLASS}
           >
             <Layers size={12} /> Sideboard
           </button>

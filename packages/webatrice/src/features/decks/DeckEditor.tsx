@@ -69,6 +69,18 @@ import {
   type HydratedDeck,
 } from './types';
 import { useDeckEditor, type SaveState } from './useDeckEditor';
+import { SELECT_CHEVRON_BACKGROUND } from './selectChevron';
+
+const TEXT_INPUT_CLASS =
+  'w-full bg-bg-base border border-border-subtle rounded-md px-2 py-1 text-xs '
+  + 'text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent '
+  + 'transition-colors';
+const ACCENT_BUTTON_CLASS =
+  'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-white '
+  + 'bg-accent hover:bg-accent-hover shadow-glow transition-colors';
+const NUMBER_INPUT_CLASS =
+  'w-16 bg-bg-base border border-border-subtle rounded-md px-2 py-1 text-xs '
+  + 'text-text-primary focus:outline-none focus:border-accent transition-colors';
 
 /**
  * Deck editor. Layout mirrors fancy webatrice's DeckEditor:
@@ -359,7 +371,11 @@ function DeckSidebar({
           value={deck.name}
           onChange={(e) => onNameChange(e.target.value)}
           placeholder="Untitled Deck"
-          className="w-full bg-transparent border-none outline-none font-modern text-xl font-semibold text-text-primary placeholder:text-text-muted focus:bg-bg-elevated focus:px-2 focus:py-1 focus:-mx-2 focus:-my-1 focus:rounded-md transition-all"
+          className={[
+            'w-full bg-transparent border-none outline-none font-modern text-xl',
+            'font-semibold text-text-primary placeholder:text-text-muted',
+            'focus:bg-bg-elevated focus:px-2 focus:py-1 focus:-mx-2 focus:-my-1 focus:rounded-md transition-all',
+          ].join(' ')}
         />
         <div className="text-xs text-text-muted mt-1 tabular-nums">
           {totalMainboardCount} card{totalMainboardCount === 1 ? '' : 's'}
@@ -381,7 +397,11 @@ function DeckSidebar({
             type="button"
             onClick={onExport}
             title="Export deck (plain text, Arena, Cockatrice)"
-            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-border-strong bg-bg-elevated hover:bg-border-subtle text-text-primary text-sm font-medium transition-colors"
+            className={[
+              'w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5',
+              'rounded-md border border-border-strong bg-bg-elevated',
+              'hover:bg-border-subtle text-text-primary text-sm font-medium transition-colors',
+            ].join(' ')}
           >
             <Upload size={13} /> Export deck
           </button>
@@ -441,10 +461,12 @@ function SidebarFormatPicker({
             onChange(next);
           }
         }}
-        className="w-full appearance-none bg-bg-base border border-border-subtle rounded-md pl-2 pr-7 py-1 text-xs text-text-primary focus:outline-none focus:border-accent transition-colors"
+        className={[
+          'w-full appearance-none bg-bg-base border border-border-subtle rounded-md pl-2 pr-7',
+          'py-1 text-xs text-text-primary focus:outline-none focus:border-accent transition-colors',
+        ].join(' ')}
         style={{
-          backgroundImage:
-            'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%237A6E8F\' stroke-width=\'3\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'6 9 12 15 18 9\'/></svg>")',
+          backgroundImage: SELECT_CHEVRON_BACKGROUND,
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'right 6px center',
         }}
@@ -467,7 +489,7 @@ function SidebarFormatPicker({
           }}
           placeholder="e.g. Netrunner, Playtest"
           maxLength={60}
-          className="w-full bg-bg-base border border-border-subtle rounded-md px-2 py-1 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
+          className={TEXT_INPUT_CLASS}
         />
       )}
     </div>
@@ -596,7 +618,12 @@ function DeckBuyButton({
             Price missing for {missing} card{missing === 1 ? '' : 's'} — {showMissing ? 'hide' : 'show'}
           </button>
           {showMissing && (
-            <ul className="max-h-40 overflow-y-auto text-[10px] text-text-secondary bg-bg-base border border-border-subtle rounded-md p-2 space-y-0.5">
+            <ul
+              className={[
+                'max-h-40 overflow-y-auto text-[10px] text-text-secondary',
+                'bg-bg-base border border-border-subtle rounded-md p-2 space-y-0.5',
+              ].join(' ')}
+            >
               {missingCards.map(({ name, qty }) => (
                 <li key={name} className="flex items-center gap-2">
                   <span className="tabular-nums text-text-muted w-5 text-right shrink-0">{qty}×</span>
@@ -630,7 +657,11 @@ function CardPreview({
   return (
     <div className="w-full max-w-[300px] mx-auto">
       <div
-        className={`aspect-[5/7] w-full rounded-xl overflow-hidden bg-bg-elevated border ${borderClass} shadow-glow flex items-center justify-center`}
+        className={[
+          'aspect-[5/7] w-full rounded-xl overflow-hidden bg-bg-elevated border',
+          borderClass,
+          'shadow-glow flex items-center justify-center',
+        ].join(' ')}
       >
         {imageUri ? (
           <img
@@ -815,7 +846,7 @@ function MainPane({
                 type="button"
                 onClick={openAdvancedSearch}
                 title="Advanced search"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-accent hover:bg-accent-hover shadow-glow transition-colors"
+                className={ACCENT_BUTTON_CLASS}
               >
                 <SlidersHorizontal size={12} /> Advanced search
               </button>
@@ -830,7 +861,7 @@ function MainPane({
               type="button"
               onClick={() => setRightView('deckList')}
               title="Back to deck list"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-white bg-accent hover:bg-accent-hover shadow-glow transition-colors"
+              className={ACCENT_BUTTON_CLASS}
             >
               <ArrowLeft size={12} /> Back to deck
             </button>
@@ -935,7 +966,12 @@ function PlainAddCard({ onAdd }: { onAdd: (name: string) => void }) {
           }
         }}
         placeholder="Add a card by name"
-        className="w-full pl-7 pr-3 py-1.5 rounded-md bg-bg-base border border-border-subtle text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:border-accent focus:ring-accent transition-colors"
+        className={[
+          'w-full pl-7 pr-3 py-1.5 rounded-md bg-bg-base border',
+          'border-border-subtle text-xs text-text-primary',
+          'placeholder:text-text-muted focus:outline-none',
+          'focus:ring-1 focus:border-accent focus:ring-accent transition-colors',
+        ].join(' ')}
       />
     </div>
   );
@@ -1163,7 +1199,12 @@ function QuickAddSearch({ query, onQueryChange, onAdd }: QuickAddSearchProps) {
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
           placeholder="Quick add — type a card name"
-          className="w-full pl-8 pr-8 py-1.5 rounded-md bg-bg-base border border-border-subtle text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:border-accent focus:ring-accent transition-colors"
+          className={[
+            'w-full pl-8 pr-8 py-1.5 rounded-md bg-bg-base border',
+            'border-border-subtle text-xs text-text-primary',
+            'placeholder:text-text-muted focus:outline-none',
+            'focus:ring-1 focus:border-accent focus:ring-accent transition-colors',
+          ].join(' ')}
         />
         {query && (
           <button
@@ -1181,7 +1222,12 @@ function QuickAddSearch({ query, onQueryChange, onAdd }: QuickAddSearchProps) {
       </label>
 
       {open && query.trim().length >= 2 && (
-        <div className="absolute right-0 left-0 top-full mt-1 z-20 rounded-md bg-bg-surface border border-border-subtle shadow-glow overflow-hidden">
+        <div
+          className={[
+            'absolute right-0 left-0 top-full mt-1 z-20 rounded-md',
+            'bg-bg-surface border border-border-subtle shadow-glow overflow-hidden',
+          ].join(' ')}
+        >
           {loading && (
             <div className="flex items-center gap-2 px-3 py-2 text-xs text-text-muted">
               <Loader2 size={11} className="animate-spin" /> Searching…
@@ -1717,7 +1763,12 @@ function PrintingPickerModal({
         onClick={onClose}
         aria-hidden
       />
-      <div className="relative w-full max-w-5xl rounded-xl bg-bg-surface border border-border-subtle shadow-glow p-6 max-h-[calc(100vh-2rem)] overflow-hidden flex flex-col">
+      <div
+        className={[
+          'relative w-full max-w-5xl rounded-xl bg-bg-surface border',
+          'border-border-subtle shadow-glow p-6 max-h-[calc(100vh-2rem)] overflow-hidden flex flex-col',
+        ].join(' ')}
+      >
         <button
           type="button"
           onClick={onClose}
@@ -1797,7 +1848,12 @@ function PrintingPickerModal({
                         </div>
                       )}
                     </div>
-                    <div className="px-2 py-1.5 text-xs flex items-center justify-between gap-1 border-t border-border-subtle bg-bg-surface">
+                    <div
+                      className={[
+                        'px-2 py-1.5 text-xs flex items-center',
+                        'justify-between gap-1 border-t border-border-subtle bg-bg-surface',
+                      ].join(' ')}
+                    >
                       <span className="font-medium text-text-primary uppercase tracking-wider truncate">
                         {p.set ?? '—'}
                       </span>
@@ -1822,7 +1878,12 @@ function PrintingPickerModal({
                       )}
                     </div>
                     {isCurrent && (
-                      <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded bg-accent text-white text-[10px] font-semibold shadow-glow">
+                      <div
+                        className={[
+                          'absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5',
+                          'rounded bg-accent text-white text-[10px] font-semibold shadow-glow',
+                        ].join(' ')}
+                      >
                         <CheckCircle2 size={10} /> Current
                       </div>
                     )}
@@ -2067,7 +2128,11 @@ function AdvancedSearchView({
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder="Search cards — Scryfall syntax works here too"
             autoFocus
-            className="w-full bg-bg-base border border-border-subtle rounded-md pl-10 pr-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+            className={[
+              'w-full bg-bg-base border border-border-subtle rounded-md pl-10 pr-3 py-2',
+              'text-sm text-text-primary placeholder:text-text-muted focus:outline-none',
+              'focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
+            ].join(' ')}
           />
         </div>
 
@@ -2135,7 +2200,11 @@ function AdvancedSearchView({
                     lookupSource: 'scryfall',
                   });
                 }}
-                className="aspect-[5/7] w-full rounded-lg overflow-hidden bg-bg-surface border border-border-subtle hover:border-accent hover:shadow-glow transition-all group relative cursor-pointer focus:outline-none focus:border-accent"
+                className={[
+                  'aspect-[5/7] w-full rounded-lg overflow-hidden bg-bg-surface border',
+                  'border-border-subtle hover:border-accent hover:shadow-glow',
+                  'transition-all group relative cursor-pointer focus:outline-none focus:border-accent',
+                ].join(' ')}
                 title={`Add ${card.name} to deck`}
               >
                 {img ? (
@@ -2153,8 +2222,18 @@ function AdvancedSearchView({
                   </div>
                 )}
                 {/* Overlay Add affordance on hover. */}
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                  <span className="px-3 py-1.5 rounded-md bg-accent text-white text-xs font-semibold shadow-glow flex items-center gap-1 border border-transparent">
+                <div
+                  className={[
+                    'absolute inset-0 bg-black/0 group-hover:bg-black/60',
+                    'transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100',
+                  ].join(' ')}
+                >
+                  <span
+                    className={[
+                      'px-3 py-1.5 rounded-md bg-accent text-white text-xs',
+                      'font-semibold shadow-glow flex items-center gap-1 border border-transparent',
+                    ].join(' ')}
+                  >
                     <Plus size={12} /> Add to deck
                   </span>
                 </div>
@@ -2224,11 +2303,13 @@ function SearchFilters({
         <select
           value={value.colorMode}
           onChange={(e) => set('colorMode', e.target.value as FilterColorMode)}
-          className="appearance-none bg-bg-base border border-border-subtle rounded-md pl-2 pr-6 py-1 text-xs text-text-primary focus:outline-none focus:border-accent transition-colors"
+          className={[
+            'appearance-none bg-bg-base border border-border-subtle rounded-md pl-2 pr-6 py-1',
+            'text-xs text-text-primary focus:outline-none focus:border-accent transition-colors',
+          ].join(' ')}
           title="Color match mode"
           style={{
-            backgroundImage:
-              'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%237A6E8F\' stroke-width=\'3\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'6 9 12 15 18 9\'/></svg>")',
+            backgroundImage: SELECT_CHEVRON_BACKGROUND,
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'right 6px center',
           }}
@@ -2301,7 +2382,7 @@ function SearchFilters({
                 value={value.cmcMin}
                 onChange={(e) => set('cmcMin', e.target.value)}
                 placeholder="min"
-                className="w-16 bg-bg-base border border-border-subtle rounded-md px-2 py-1 text-xs text-text-primary focus:outline-none focus:border-accent transition-colors"
+                className={NUMBER_INPUT_CLASS}
               />
               <span className="text-xs text-text-muted">to</span>
               <input
@@ -2311,7 +2392,7 @@ function SearchFilters({
                 value={value.cmcMax}
                 onChange={(e) => set('cmcMax', e.target.value)}
                 placeholder="max"
-                className="w-16 bg-bg-base border border-border-subtle rounded-md px-2 py-1 text-xs text-text-primary focus:outline-none focus:border-accent transition-colors"
+                className={NUMBER_INPUT_CLASS}
               />
             </div>
           </div>
@@ -2353,7 +2434,7 @@ function SearchFilters({
               value={value.subtype}
               onChange={(e) => set('subtype', e.target.value)}
               placeholder='e.g. Elemental, or "Human Warrior" for both'
-              className="w-full bg-bg-base border border-border-subtle rounded-md px-2 py-1 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
+              className={TEXT_INPUT_CLASS}
             />
           </div>
 
@@ -2366,7 +2447,7 @@ function SearchFilters({
               value={value.oracle}
               onChange={(e) => set('oracle', e.target.value)}
               placeholder='e.g. "draw a card"'
-              className="w-full bg-bg-base border border-border-subtle rounded-md px-2 py-1 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
+              className={TEXT_INPUT_CLASS}
             />
           </div>
         </div>
@@ -2539,7 +2620,10 @@ function NotFoundShell() {
         <button
           type="button"
           onClick={() => navigate(RouteEnum.DECKS)}
-          className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors"
+          className={[
+            'mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm',
+            'font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors',
+          ].join(' ')}
         >
           <ArrowLeft size={14} /> Back to My Decks
         </button>

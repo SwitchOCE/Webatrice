@@ -241,7 +241,11 @@ export default function ChatLog() {
           title={inputTitle}
           aria-label="game chat input"
           aria-disabled={inputDisabled}
-          className="w-full bg-bg-base border border-border-subtle rounded-md px-3 py-1.5 text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className={[
+            'w-full bg-bg-base border border-border-subtle rounded-md px-3 py-1.5 text-xs',
+            'text-text-primary placeholder:text-text-muted focus:outline-none',
+            'focus:border-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
+          ].join(' ')}
         />
       </form>
     </div>

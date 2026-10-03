@@ -19,6 +19,10 @@ import { Images } from '@app/images';
 import { RouteEnum } from '@app/types';
 import { clearDeckEditorCache, clearDecksListCache } from '../../features/decks';
 
+const USER_MENU_ITEM_CLASS =
+  'w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary '
+  + 'hover:text-text-primary hover:bg-bg-elevated transition-colors';
+
 type TabType =
   | 'server'
   | 'room'
@@ -359,7 +363,10 @@ export default function TopBar() {
         <div className="flex items-center gap-2 shrink-0 pl-3 pr-4">
           <button
             onClick={() => navigate(generatePath(RouteEnum.DECKS))}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+            className={[
+              'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium',
+              'text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors',
+            ].join(' ')}
             title="View your decks"
           >
             <Library size={16} /> Decks
@@ -409,7 +416,8 @@ function TabList({ tabs, activeKey, onActivate, onClose }: TabListProps) {
               }
             }}
             className={[
-              'group relative flex items-center gap-2 h-9 pl-3 pr-2 rounded-t-md cursor-pointer select-none min-w-[140px] max-w-[220px] shrink-0 transition-colors',
+              'group relative flex items-center gap-2 h-9 pl-3 pr-2 rounded-t-md',
+              'cursor-pointer select-none min-w-[140px] max-w-[220px] shrink-0 transition-colors',
               active
                 ? 'bg-bg-base text-text-primary border border-b-0 border-border-subtle'
                 : 'bg-bg-elevated/40 text-text-secondary hover:bg-bg-elevated hover:text-text-primary',
@@ -423,7 +431,10 @@ function TabList({ tabs, activeKey, onActivate, onClose }: TabListProps) {
                   e.stopPropagation();
                   onClose(tab);
                 }}
-                className="p-0.5 rounded hover:bg-border-subtle text-text-muted hover:text-text-primary opacity-60 group-hover:opacity-100 transition-opacity"
+                className={[
+                  'p-0.5 rounded hover:bg-border-subtle text-text-muted',
+                  'hover:text-text-primary opacity-60 group-hover:opacity-100 transition-opacity',
+                ].join(' ')}
                 title="Close tab"
               >
                 <X size={12} />
@@ -496,7 +507,7 @@ function UserMenu({
           </div>
           <button
             onClick={onToggleSnapGrid}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+            className={USER_MENU_ITEM_CLASS}
             aria-pressed={snapGridVisible}
           >
             <Grid3x3 size={14} />
@@ -509,7 +520,7 @@ function UserMenu({
           </button>
           <button
             onClick={onTogglePhaseTrackPinned}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+            className={USER_MENU_ITEM_CLASS}
             // The stored preference is `phaseTrackPinned`; this UI
             // exposes the inverse ("auto-hide on/off") so `aria-pressed`
             // and the checkmark flip together. When auto-hide is ON
@@ -532,7 +543,7 @@ function UserMenu({
               setOpen(false);
               onOpenShortcuts();
             }}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+            className={USER_MENU_ITEM_CLASS}
           >
             <Keyboard size={14} />
             <span className="flex-1 text-left">Shortcuts</span>
@@ -543,7 +554,7 @@ function UserMenu({
               setOpen(false);
               onSignOut();
             }}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+            className={USER_MENU_ITEM_CLASS}
           >
             <LogOut size={14} /> Sign out
           </button>

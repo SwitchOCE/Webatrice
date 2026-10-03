@@ -167,7 +167,10 @@ export function BigCardPreviewProvider({ children }: { children: ReactNode }) {
             className="fixed inset-0 z-[1400] flex items-center justify-center p-6 pointer-events-none"
           >
             <div
-              className="relative bg-bg-surface border border-border-subtle rounded-lg shadow-2xl flex flex-col max-w-[340px] w-full max-h-[90vh]"
+              className={[
+                'relative bg-bg-surface border border-border-subtle',
+                'rounded-lg shadow-2xl flex flex-col max-w-[340px] w-full max-h-[90vh]',
+              ].join(' ')}
             >
               {/* Image row — full modal width, natural 5:7 aspect.
                   Cockatrice stacks image over text so the card art

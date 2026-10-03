@@ -65,7 +65,8 @@ const DialogShell = ({
       />
       <div
         className={[
-          'relative z-10 w-full max-h-[90vh] flex flex-col rounded-xl bg-bg-surface border border-border-subtle shadow-glow overflow-hidden',
+          'relative z-10 w-full max-h-[90vh] flex flex-col overflow-hidden',
+          'rounded-xl bg-bg-surface border border-border-subtle shadow-glow',
           maxWidth,
           className ?? '',
         ].join(' ')}

@@ -309,7 +309,12 @@ export default function CardPreviewPopupPage() {
             // text is the sole pane. In `both` mode the image pane
             // above already carries that prompt.
             mode === 'text' && (
-              <div className="w-full max-w-md rounded-md border border-dashed border-border-subtle bg-bg-surface flex items-center justify-center text-sm text-text-muted italic p-4 text-center">
+              <div
+                className={[
+                  'w-full max-w-md rounded-md border border-dashed border-border-subtle',
+                  'bg-bg-surface flex items-center justify-center text-sm text-text-muted italic p-4 text-center',
+                ].join(' ')}
+              >
                 {connected
                   ? 'Hover a card in the main window to preview it here'
                   : 'Waiting for the main window to reconnect…'}

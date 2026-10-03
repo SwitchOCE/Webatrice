@@ -149,7 +149,12 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
       </div>
 
       {open && (
-        <div className="absolute z-30 mt-1 w-full max-h-72 overflow-y-auto rounded-md bg-bg-surface border border-border-subtle shadow-glow py-1">
+        <div
+          className={[
+            'absolute z-30 mt-1 w-full max-h-72 overflow-y-auto',
+            'rounded-md bg-bg-surface border border-border-subtle shadow-glow py-1',
+          ].join(' ')}
+        >
           <button
             type="button"
             onClick={() => {
@@ -208,7 +213,10 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
                       setOpen(false);
                       openEditKnownHostDialog(host);
                     }}
-                    className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-border-subtle opacity-0 group-hover:opacity-100 transition-opacity"
+                    className={[
+                      'p-1 rounded text-text-muted hover:text-text-primary',
+                      'hover:bg-border-subtle opacity-0 group-hover:opacity-100 transition-opacity',
+                    ].join(' ')}
                     title="Edit host"
                     aria-label="Edit host"
                   >

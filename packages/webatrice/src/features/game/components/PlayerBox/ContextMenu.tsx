@@ -195,7 +195,10 @@ function MenuList({
               onMouseEnter={() => {
                 setOpenSubmenu(hasSubmenu ? i : -1);
               }}
-              className="w-full flex items-center gap-4 px-3 py-1.5 text-sm text-left text-text-primary hover:bg-bg-elevated disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className={[
+                'w-full flex items-center gap-4 px-3 py-1.5 text-sm text-left text-text-primary',
+                'hover:bg-bg-elevated disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
+              ].join(' ')}
             >
               {menuHasCheckable && (
                 <span

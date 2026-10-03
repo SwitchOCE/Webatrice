@@ -244,7 +244,10 @@ export function CardRelatedLinks({
             <button
               type="button"
               onClick={() => setReverseExpanded((v) => !v)}
-              className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted hover:text-text-primary transition-colors self-start"
+              className={[
+                'flex items-center gap-1 text-[10px] font-semibold uppercase',
+                'tracking-wider text-text-muted hover:text-text-primary transition-colors self-start',
+              ].join(' ')}
             >
               {reverseExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
               <Users size={11} />
@@ -335,7 +338,11 @@ function LinkChip({
       // can redirect. No cursor override — hover cursor stays normal
       // on non-loading chips.
       disabled={loading}
-      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-border-subtle bg-bg-elevated text-text-primary text-xs transition-colors hover:bg-border-subtle hover:text-accent cursor-pointer disabled:opacity-80"
+      className={[
+        'inline-flex items-center gap-1 px-1.5 py-0.5 rounded border',
+        'border-border-subtle bg-bg-elevated text-text-primary text-xs',
+        'transition-colors hover:bg-border-subtle hover:text-accent cursor-pointer disabled:opacity-80',
+      ].join(' ')}
     >
       {loading && <Loader2 size={10} className="animate-spin" />}
       {label}

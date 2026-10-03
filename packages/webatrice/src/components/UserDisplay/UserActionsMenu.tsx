@@ -5,6 +5,10 @@ import { MessageSquare, UserRoundPlus, UserRoundMinus, VolumeX, Volume2 } from '
 
 import { RouteEnum } from '@app/types';
 
+const MENU_ITEM_CLASS =
+  'w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left text-text-secondary '
+  + 'hover:text-text-primary hover:bg-bg-elevated transition-colors';
+
 interface UserActionsMenuProps {
   x: number;
   y: number;
@@ -84,7 +88,10 @@ export default function UserActionsMenu({
       <NavLink
         to={generatePath(RouteEnum.PLAYER, { name })}
         onClick={onClose}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+        className={[
+          'flex items-center gap-2 px-3 py-1.5 text-sm text-text-secondary',
+          'hover:text-text-primary hover:bg-bg-elevated transition-colors',
+        ].join(' ')}
         role="menuitem"
       >
         {/* Cockatrice-parity label. Opens the Player page which hosts
@@ -96,7 +103,7 @@ export default function UserActionsMenu({
         <button
           type="button"
           onClick={onAddBuddy}
-          className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+          className={MENU_ITEM_CLASS}
           role="menuitem"
         >
           <UserRoundPlus size={14} /> Add to Buddy List
@@ -105,7 +112,7 @@ export default function UserActionsMenu({
         <button
           type="button"
           onClick={onRemoveBuddy}
-          className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+          className={MENU_ITEM_CLASS}
           role="menuitem"
         >
           <UserRoundMinus size={14} /> Remove from Buddy List
@@ -115,7 +122,7 @@ export default function UserActionsMenu({
         <button
           type="button"
           onClick={onAddIgnore}
-          className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+          className={MENU_ITEM_CLASS}
           role="menuitem"
         >
           <VolumeX size={14} /> Add to Ignore List
@@ -124,7 +131,7 @@ export default function UserActionsMenu({
         <button
           type="button"
           onClick={onRemoveIgnore}
-          className="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+          className={MENU_ITEM_CLASS}
           role="menuitem"
         >
           <Volume2 size={14} /> Remove from Ignore List

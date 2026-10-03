@@ -245,7 +245,12 @@ export default function ExportDeckModal({
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} aria-hidden />
-      <div className="relative w-full max-w-2xl rounded-xl bg-bg-surface border border-border-subtle shadow-glow p-6 max-h-[calc(100vh-2rem)] flex flex-col">
+      <div
+        className={[
+          'relative w-full max-w-2xl rounded-xl bg-bg-surface border',
+          'border-border-subtle shadow-glow p-6 max-h-[calc(100vh-2rem)] flex flex-col',
+        ].join(' ')}
+      >
         <button
           type="button"
           onClick={onClose}
@@ -292,7 +297,10 @@ export default function ExportDeckModal({
             readOnly
             value={content}
             onFocus={(e) => e.currentTarget.select()}
-            className="w-full h-64 bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-xs font-mono text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+            className={[
+              'w-full h-64 bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-xs font-mono',
+              'text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent',
+            ].join(' ')}
           />
         </div>
 
@@ -300,7 +308,10 @@ export default function ExportDeckModal({
           <button
             type="button"
             onClick={() => void copy()}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-accent hover:bg-accent-hover text-white text-sm font-semibold shadow-glow transition-colors"
+            className={[
+              'flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-accent',
+              'hover:bg-accent-hover text-white text-sm font-semibold shadow-glow transition-colors',
+            ].join(' ')}
           >
             {copied ? <Check size={14} /> : <Copy size={14} />}
             {copied ? 'Copied' : 'Copy'}
@@ -308,7 +319,11 @@ export default function ExportDeckModal({
           <button
             type="button"
             onClick={download}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-bg-elevated hover:bg-border-subtle text-text-primary text-sm font-medium border border-border-strong transition-colors"
+            className={[
+              'flex-1 flex items-center justify-center gap-1.5 px-3 py-2',
+              'rounded-md bg-bg-elevated hover:bg-border-subtle',
+              'text-text-primary text-sm font-medium border border-border-strong transition-colors',
+            ].join(' ')}
           >
             <Download size={14} /> Download .{currentFormat.extension}
           </button>

@@ -20,7 +20,9 @@ import { makeCardKey, makePlayerKey, useCardRegistry } from '../../../utils/Card
 // CSS.escape guards against zone strings with punctuation.
 function findCardEl(playerId: number, zone: string, cardId: number): HTMLElement | null {
   const exact = document.querySelector<HTMLElement>(
-    `[data-card-id="${CSS.escape(String(cardId))}"][data-card-owner="${CSS.escape(String(playerId))}"][data-card-zone="${CSS.escape(zone)}"]`,
+    `[data-card-id="${CSS.escape(String(cardId))}"]`
+    + `[data-card-owner="${CSS.escape(String(playerId))}"]`
+    + `[data-card-zone="${CSS.escape(zone)}"]`,
   );
   if (exact) {
     return exact;

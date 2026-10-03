@@ -22,6 +22,10 @@ import {
   type SortMode,
 } from './cardListSort';
 
+const TOOLBAR_SELECT_CLASS =
+  'px-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm text-text-primary '
+  + 'focus:outline-none focus:border-accent';
+
 type HandCard = { id: string; name: string; scryfallId: string };
 
 /** localStorage keys for the dialog's persisted UI state. Cockatrice
@@ -832,7 +836,11 @@ export default function LibrarySearchDialog({
             dropRef.current = el;
           }
         }}
-        className="bg-bg-surface border border-border-subtle rounded-lg shadow-glow w-[min(1100px,95vw)] h-[min(85vh,900px)] max-w-screen max-h-screen flex flex-col pointer-events-auto resize overflow-hidden"
+        className={[
+          'bg-bg-surface border border-border-subtle rounded-lg',
+          'shadow-glow w-[min(1100px,95vw)] h-[min(85vh,900px)]',
+          'max-w-screen max-h-screen flex flex-col pointer-events-auto resize overflow-hidden',
+        ].join(' ')}
         // Override the shared card-size CSS variables so every card
         // inside the dialog renders bigger than in the play area.
         // Cards use these vars via cardSize.ts, so nothing else changes.
@@ -924,13 +932,16 @@ export default function LibrarySearchDialog({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search — try t:creature, c:blue, cmc:3"
-              className="w-full pl-8 pr-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
+              className={[
+                'w-full pl-8 pr-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm',
+                'text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent',
+              ].join(' ')}
             />
           </div>
           <select
             value={groupBy}
             onChange={(e) => setGroupBy(e.target.value as GroupMode)}
-            className="px-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm text-text-primary focus:outline-none focus:border-accent"
+            className={TOOLBAR_SELECT_CLASS}
             title="Group by"
           >
             <option value="none">Ungrouped</option>
@@ -941,7 +952,7 @@ export default function LibrarySearchDialog({
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortMode)}
-            className="px-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm text-text-primary focus:outline-none focus:border-accent"
+            className={TOOLBAR_SELECT_CLASS}
             title="Sort by"
           >
             <option value="none">Unsorted</option>
@@ -1082,7 +1093,10 @@ export default function LibrarySearchDialog({
                             }}
                           >
                             <div
-                              className="absolute left-0 top-0 pointer-events-none transition-transform duration-150 ease-out group-hover:scale-[1.06]"
+                              className={[
+                                'absolute left-0 top-0 pointer-events-none',
+                                'transition-transform duration-150 ease-out group-hover:scale-[1.06]',
+                              ].join(' ')}
                               style={{
                                 width: CARD_WIDTH,
                                 height: CARD_HEIGHT,

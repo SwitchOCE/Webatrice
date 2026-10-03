@@ -6,6 +6,10 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import { Room } from '@cockatrice/datatrice';
 import { RouteEnum } from '@app/types';
 
+const HEADER_CELL_CLASS =
+  'text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted '
+  + 'border-b border-border-subtle';
+
 interface RoomsListProps {
   rooms: Record<number, Room>;
   joinedRooms: Room[];
@@ -49,19 +53,19 @@ export default function RoomsList({ rooms, joinedRooms }: RoomsListProps) {
         <table className="w-full text-sm border-separate" style={{ borderSpacing: 0 }}>
           <thead className="sticky top-0 z-10 bg-bg-elevated">
             <tr>
-              <th className="text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted border-b border-border-subtle">
+              <th className={HEADER_CELL_CLASS}>
                 Name
               </th>
-              <th className="text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted border-b border-border-subtle">
+              <th className={HEADER_CELL_CLASS}>
                 Description
               </th>
-              <th className="text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted border-b border-border-subtle w-32">
+              <th className={`${HEADER_CELL_CLASS} w-32`}>
                 Permissions
               </th>
-              <th className="text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted border-b border-border-subtle w-20 tabular-nums">
+              <th className={`${HEADER_CELL_CLASS} w-20 tabular-nums`}>
                 Players
               </th>
-              <th className="text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted border-b border-border-subtle w-20 tabular-nums">
+              <th className={`${HEADER_CELL_CLASS} w-20 tabular-nums`}>
                 Games
               </th>
               <th className="border-b border-border-subtle w-28" aria-hidden />

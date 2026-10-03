@@ -15,6 +15,11 @@ import CreateGameDialog from '../dialogs/CreateGameDialog/CreateGameDialog';
 import FilterGamesDialog from '../dialogs/FilterGamesDialog/FilterGamesDialog';
 import { useOpenGames } from './useOpenGames';
 
+const TOOLBAR_BUTTON_CLASS =
+  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium '
+  + 'bg-bg-elevated text-text-secondary hover:text-text-primary border border-border-subtle '
+  + 'disabled:opacity-40 disabled:cursor-not-allowed transition-colors';
+
 interface GamesListProps {
   room: Room;
 }
@@ -251,7 +256,8 @@ export default function GamesList({ room }: GamesListProps) {
                   key={label}
                   aria-sort={active ? (sortOrder === 'asc' ? 'ascending' : 'descending') : undefined}
                   className={[
-                    'text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted border-b border-border-subtle select-none',
+                    'text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted',
+                    'border-b border-border-subtle select-none',
                     field ? 'cursor-pointer hover:text-text-primary' : '',
                   ].join(' ')}
                   onClick={() => field && handleSort(field)}
@@ -300,7 +306,7 @@ export default function GamesList({ room }: GamesListProps) {
           type="button"
           onClick={() => dispatch(rooms.Actions.clearGameFilters({ roomId }))}
           disabled={!isFilterActive}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-bg-elevated text-text-secondary hover:text-text-primary border border-border-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className={TOOLBAR_BUTTON_CLASS}
         >
           <FilterX size={14} /> Clear filter
         </button>
@@ -310,7 +316,10 @@ export default function GamesList({ room }: GamesListProps) {
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors"
+          className={[
+            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm',
+            'font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors',
+          ].join(' ')}
         >
           <Plus size={14} /> Create
         </button>
@@ -318,7 +327,7 @@ export default function GamesList({ room }: GamesListProps) {
           type="button"
           onClick={() => beginJoin(false, false)}
           disabled={!canJoin}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-bg-elevated text-text-secondary hover:text-text-primary border border-border-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className={TOOLBAR_BUTTON_CLASS}
         >
           <LogIn size={14} /> Join
         </button>
@@ -326,7 +335,7 @@ export default function GamesList({ room }: GamesListProps) {
           type="button"
           onClick={() => beginJoin(true, false)}
           disabled={!canSpectate}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-bg-elevated text-text-secondary hover:text-text-primary border border-border-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className={TOOLBAR_BUTTON_CLASS}
         >
           <Eye size={14} /> Spectate
         </button>
@@ -336,7 +345,7 @@ export default function GamesList({ room }: GamesListProps) {
               type="button"
               onClick={() => beginJoin(false, true)}
               disabled={!canJoin}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-bg-elevated text-text-secondary hover:text-text-primary border border-border-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className={TOOLBAR_BUTTON_CLASS}
             >
               <Gavel size={14} /> Judge
             </button>
@@ -344,7 +353,7 @@ export default function GamesList({ room }: GamesListProps) {
               type="button"
               onClick={() => beginJoin(true, true)}
               disabled={!canSpectate}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium bg-bg-elevated text-text-secondary hover:text-text-primary border border-border-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className={TOOLBAR_BUTTON_CLASS}
             >
               <Gavel size={14} /> Judge · Spectate
             </button>

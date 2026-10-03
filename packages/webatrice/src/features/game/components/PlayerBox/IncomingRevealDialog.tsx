@@ -20,6 +20,10 @@ import {
 } from './cardListSort';
 import { lookupCardsCached } from '../../../decks/cardLookup';
 
+const TOOLBAR_SELECT_CLASS =
+  'px-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm text-text-primary '
+  + 'focus:outline-none focus:border-accent';
+
 /**
  * Receiver-side modal for Event_RevealCards. Pops up whenever someone
  * reveals a zone to us (e.g. "Reveal library to All players"). Reads
@@ -656,7 +660,10 @@ export default function IncomingRevealDialog() {
     >
       <div
         ref={dialogRef}
-        className="bg-bg-surface border border-border-subtle rounded-lg shadow-glow flex flex-col pointer-events-auto resize overflow-hidden"
+        className={[
+          'bg-bg-surface border border-border-subtle rounded-lg',
+          'shadow-glow flex flex-col pointer-events-auto resize overflow-hidden',
+        ].join(' ')}
         style={{
           minWidth: `${MIN_DIALOG_W}px`,
           minHeight: `${MIN_DIALOG_H}px`,
@@ -733,7 +740,7 @@ export default function IncomingRevealDialog() {
           <select
             value={groupBy}
             onChange={(e) => setGroupBy(e.target.value as GroupMode)}
-            className="px-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm text-text-primary focus:outline-none focus:border-accent"
+            className={TOOLBAR_SELECT_CLASS}
             title="Group by"
           >
             <option value="none">Ungrouped</option>
@@ -744,7 +751,7 @@ export default function IncomingRevealDialog() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortMode)}
-            className="px-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm text-text-primary focus:outline-none focus:border-accent"
+            className={TOOLBAR_SELECT_CLASS}
             title="Sort by"
           >
             <option value="none">Unsorted</option>
@@ -874,7 +881,10 @@ export default function IncomingRevealDialog() {
                             }}
                           >
                             <div
-                              className="absolute left-0 top-0 pointer-events-none transition-transform duration-150 ease-out group-hover:scale-[1.06]"
+                              className={[
+                                'absolute left-0 top-0 pointer-events-none',
+                                'transition-transform duration-150 ease-out group-hover:scale-[1.06]',
+                              ].join(' ')}
                               style={{
                                 width: CARD_WIDTH,
                                 height: CARD_HEIGHT,
@@ -915,7 +925,10 @@ export default function IncomingRevealDialog() {
           <button
             type="button"
             onClick={close}
-            className="px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors"
+            className={[
+              'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent',
+              'text-white hover:bg-accent-hover shadow-glow transition-colors',
+            ].join(' ')}
           >
             Close
           </button>

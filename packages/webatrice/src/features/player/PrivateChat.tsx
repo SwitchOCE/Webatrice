@@ -90,12 +90,20 @@ export default function PrivateChat({ peerName, selfName, messages, onSend }: Pr
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder={`Message ${peerName}`}
-          className="flex-1 min-w-0 px-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+          className={[
+            'flex-1 min-w-0 px-3 py-2 rounded-md bg-bg-base border',
+            'border-border-subtle text-sm text-text-primary',
+            'placeholder:text-text-muted focus:outline-none',
+            'focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
+          ].join(' ')}
         />
         <button
           type="submit"
           disabled={!draft.trim()}
-          className="p-2 rounded-md bg-accent text-white hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className={[
+            'p-2 rounded-md bg-accent text-white hover:bg-accent-hover',
+            'disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
+          ].join(' ')}
           title="Send"
           aria-label="Send"
         >

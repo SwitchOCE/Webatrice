@@ -1,6 +1,10 @@
 import type { ChangeEvent, FocusEvent } from 'react';
 import { Check } from 'lucide-react';
 
+const FOCUS_RING_CLASS =
+  'peer-focus-visible:ring-2 peer-focus-visible:ring-accent '
+  + 'peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-bg-surface';
+
 export interface CheckboxFieldProps {
   value: boolean | undefined;
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -51,9 +55,7 @@ const CheckboxField = ({
             'h-4 w-4 rounded border flex items-center justify-center transition-colors',
             checked ? 'bg-accent border-accent' : 'bg-bg-elevated border-border-strong',
             !disabled && !checked ? 'peer-hover:border-accent' : '',
-            !disabled
-              ? 'peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-bg-surface'
-              : '',
+            !disabled ? FOCUS_RING_CLASS : '',
           ]
             .filter(Boolean)
             .join(' ')}

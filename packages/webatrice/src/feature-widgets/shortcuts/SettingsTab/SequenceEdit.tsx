@@ -98,14 +98,20 @@ const SequenceEdit = ({ actionId, onClose }: SequenceEditProps) => {
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+            className={[
+              'px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary',
+              'hover:text-text-primary hover:bg-bg-elevated transition-colors',
+            ].join(' ')}
           >
             {t('ShortcutsTab.cancel')}
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors"
+            className={[
+              'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent',
+              'text-white hover:bg-accent-hover shadow-glow transition-colors',
+            ].join(' ')}
           >
             {t('ShortcutsTab.save')}
           </button>

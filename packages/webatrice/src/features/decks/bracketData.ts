@@ -20,8 +20,18 @@ export const EDHPL_EXTRA_TURN_REGEX =
   /(take an extra turn|target player takes an extra turn|target player takes \w* extra turns)/i;
 
 /** Oracle-text pattern that flags a card as mass land denial. */
-export const EDHPL_MLD_REGEX =
-  /(^(noncreature|creature|red|white|blue|black|green) spells|^spells your opponents cast) cost \{\d\} more to cast|each player sacrifices \w* (lands|land for each)|destroy all (lands|islands|mountains|forests|swamps|plains)|destroy all (\w*, )*and lands|untap (only|more than) \w* (land|permanent|nonbasic)|(islands|mountains|forests|swamps|plains|\w* lands) don't untap|nonbasic lands are (mountains|islands)/i;
+export const EDHPL_MLD_REGEX = new RegExp(
+  [
+    /(^(noncreature|creature|red|white|blue|black|green) spells|^spells your opponents cast) cost \{\d\} more to cast/,
+    /each player sacrifices \w* (lands|land for each)/,
+    /destroy all (lands|islands|mountains|forests|swamps|plains)/,
+    /destroy all (\w*, )*and lands/,
+    /untap (only|more than) \w* (land|permanent|nonbasic)/,
+    /(islands|mountains|forests|swamps|plains|\w* lands) don't untap/,
+    /nonbasic lands are (mountains|islands)/,
+  ].map((part) => part.source).join('|'),
+  'i',
+);
 
 // ---------- Curated card lists ----------
 

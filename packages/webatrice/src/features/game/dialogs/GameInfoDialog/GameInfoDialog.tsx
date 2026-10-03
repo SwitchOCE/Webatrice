@@ -169,7 +169,10 @@ function GameInfoDialog() {
                       {tags.map((t) => (
                         <span
                           key={t}
-                          className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-bg-elevated border border-border-subtle text-text-secondary"
+                          className={[
+                            'px-1.5 py-0.5 rounded text-[10px] font-bold uppercase',
+                            'tracking-wide bg-bg-elevated border border-border-subtle text-text-secondary',
+                          ].join(' ')}
                         >
                           {t}
                         </span>
@@ -189,7 +192,10 @@ function GameInfoDialog() {
             type="button"
             onClick={onClose}
             autoFocus
-            className="px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors"
+            className={[
+              'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent',
+              'text-white hover:bg-accent-hover shadow-glow transition-colors',
+            ].join(' ')}
           >
             Close
           </button>

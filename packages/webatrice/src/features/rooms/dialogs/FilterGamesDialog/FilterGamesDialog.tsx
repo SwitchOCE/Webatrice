@@ -5,6 +5,10 @@ import { X, Check, ChevronDown } from 'lucide-react';
 import { rooms, type GameFilters } from '@cockatrice/datatrice';
 import { GametypeMap } from '@cockatrice/datatrice';
 
+const SECONDARY_BUTTON_CLASS =
+  'px-4 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary '
+  + 'hover:bg-bg-elevated transition-colors';
+
 export interface FilterGamesDialogProps {
   isOpen: boolean;
   // MUST be a stable reference: an unstable reference resets the draft form on every parent render.
@@ -114,7 +118,12 @@ export default function FilterGamesDialog({
       />
 
       {/* Card */}
-      <div className="relative z-10 w-full max-w-lg max-h-[90vh] flex flex-col rounded-xl bg-bg-surface border border-border-subtle shadow-glow overflow-hidden">
+      <div
+        className={[
+          'relative z-10 w-full max-w-lg max-h-[90vh] flex flex-col rounded-xl',
+          'bg-bg-surface border border-border-subtle shadow-glow overflow-hidden',
+        ].join(' ')}
+      >
         <header className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-border-subtle">
           <h2 className="font-modern text-lg font-semibold text-text-primary">Filter games</h2>
           <button
@@ -247,20 +256,23 @@ export default function FilterGamesDialog({
             <button
               type="button"
               onClick={handleReset}
-              className="px-4 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+              className={SECONDARY_BUTTON_CLASS}
             >
               Reset
             </button>
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors"
+              className={SECONDARY_BUTTON_CLASS}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors"
+              className={[
+                'px-4 py-1.5 rounded-md text-sm font-semibold bg-accent',
+                'text-white hover:bg-accent-hover shadow-glow transition-colors',
+              ].join(' ')}
             >
               Apply
             </button>
@@ -303,7 +315,11 @@ function TextInput({ label, value, onChange, autoFocus }: TextInputProps) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         autoFocus={autoFocus}
-        className="w-full px-3 py-2 rounded-md bg-bg-elevated border border-border-subtle text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+        className={[
+          'w-full px-3 py-2 rounded-md bg-bg-elevated border',
+          'border-border-subtle text-sm text-text-primary',
+          'focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
+        ].join(' ')}
       />
     </label>
   );
@@ -327,7 +343,10 @@ function NumberInput({ label, value, onChange, min, max }: NumberInputProps) {
         min={min}
         max={max}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full px-3 py-2 rounded-md bg-bg-elevated border border-border-subtle text-sm text-text-primary tabular-nums focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+        className={[
+          'w-full px-3 py-2 rounded-md bg-bg-elevated border border-border-subtle text-sm text-text-primary',
+          'tabular-nums focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
+        ].join(' ')}
       />
     </label>
   );
@@ -357,7 +376,11 @@ function SelectInput<V extends string | number>({
             const casted = typeof value === 'number' ? (Number(raw) as V) : (raw as V);
             onChange(casted);
           }}
-          className="w-full appearance-none px-3 py-2 pr-8 rounded-md bg-bg-elevated border border-border-subtle text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+          className={[
+            'w-full appearance-none px-3 py-2 pr-8 rounded-md bg-bg-elevated',
+            'border border-border-subtle text-sm text-text-primary',
+            'focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
+          ].join(' ')}
         >
           {options.map((opt) => (
             <option
@@ -411,7 +434,8 @@ function Checkbox({ label, checked, onChange, disabled }: CheckboxProps) {
               ? 'bg-accent border-accent'
               : 'bg-bg-elevated border-border-strong',
             !disabled && !checked && 'peer-hover:border-accent',
-            !disabled && 'peer-focus-visible:ring-2 peer-focus-visible:ring-accent peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-bg-surface',
+            !disabled && 'peer-focus-visible:ring-2 peer-focus-visible:ring-accent',
+            !disabled && 'peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-bg-surface',
           ]
             .filter(Boolean)
             .join(' ')}

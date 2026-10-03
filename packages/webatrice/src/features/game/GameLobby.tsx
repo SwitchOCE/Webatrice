@@ -482,7 +482,12 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                   </div>
 
                   <div className="rounded-lg bg-bg-surface border border-border-subtle overflow-hidden">
-                    <div className="px-4 py-2 border-b border-border-subtle flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-text-secondary">
+                    <div
+                      className={[
+                        'px-4 py-2 border-b border-border-subtle flex items-center gap-2',
+                        'text-xs font-semibold uppercase tracking-widest text-text-secondary',
+                      ].join(' ')}
+                    >
                       <Library size={13} /> From My Decks
                       {stillLoadingFormats && myDecks.length > 0 && (
                         <Loader2 size={11} className="animate-spin text-text-muted ml-auto" />
@@ -501,7 +506,12 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                         {groupedDecks.map(({ category, decks }) => {
                           return (
                             <div key={category}>
-                              <div className="sticky top-0 z-10 px-4 py-1.5 bg-bg-elevated border-b border-border-subtle text-[10px] font-semibold uppercase tracking-widest text-text-muted flex items-center gap-2">
+                              <div
+                                className={[
+                                  'sticky top-0 z-10 px-4 py-1.5 bg-bg-elevated border-b border-border-subtle',
+                                  'text-[10px] font-semibold uppercase tracking-widest text-text-muted flex items-center gap-2',
+                                ].join(' ')}
+                              >
                                 <span>{CATEGORY_LABELS[category] ?? category}</span>
                                 <span className="text-text-muted tabular-nums">{decks.length}</span>
                               </div>
@@ -513,7 +523,10 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                                       <button
                                         type="button"
                                         onClick={() => handleSelectDeck(deck.id)}
-                                        className="w-full flex items-center gap-2 px-4 py-2 hover:bg-bg-elevated text-sm text-text-primary transition-colors text-left"
+                                        className={[
+                                          'w-full flex items-center gap-2 px-4 py-2',
+                                          'hover:bg-bg-elevated text-sm text-text-primary transition-colors text-left',
+                                        ].join(' ')}
                                       >
                                         <span className="flex-1 min-w-0 truncate">{deck.name}</span>
                                         {bracket != null && <BracketBadge level={bracket} />}
@@ -547,12 +560,21 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-border-strong bg-bg-elevated hover:bg-border-subtle text-text-primary text-sm font-medium transition-colors"
+                      className={[
+                        'w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5',
+                        'rounded-md border border-border-strong bg-bg-elevated',
+                        'hover:bg-border-subtle text-text-primary text-sm font-medium transition-colors',
+                      ].join(' ')}
                     >
                       <Upload size={13} /> Choose .cod file
                     </button>
                     {uploadError && (
-                      <div className="mt-2 flex items-start gap-2 text-xs text-red-300 bg-red-500/10 border border-red-500/30 rounded-md px-2 py-1">
+                      <div
+                        className={[
+                          'mt-2 flex items-start gap-2 text-xs text-red-300',
+                          'bg-red-500/10 border border-red-500/30 rounded-md px-2 py-1',
+                        ].join(' ')}
+                      >
                         <AlertTriangle size={12} className="shrink-0 mt-0.5" />
                         <span>{uploadError}</span>
                       </div>
@@ -583,7 +605,10 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                   <button
                     type="button"
                     onClick={() => leaveGame(gameId)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-text-secondary hover:text-red-300 hover:bg-red-500/10 border border-border-subtle transition-colors"
+                    className={[
+                      'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-text-secondary',
+                      'hover:text-red-300 hover:bg-red-500/10 border border-border-subtle transition-colors',
+                    ].join(' ')}
                   >
                     <LogOut size={14} /> Leave game
                   </button>
@@ -598,7 +623,11 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                   <button
                     type="button"
                     onClick={() => leaveGame(gameId)}
-                    className="ml-4 flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium text-text-secondary hover:text-red-300 hover:bg-red-500/10 border border-border-subtle transition-colors"
+                    className={[
+                      'ml-4 flex items-center gap-1 px-3 py-1 rounded-md text-xs',
+                      'font-medium text-text-secondary hover:text-red-300',
+                      'hover:bg-red-500/10 border border-border-subtle transition-colors',
+                    ].join(' ')}
                   >
                     <LogOut size={12} /> Leave
                   </button>
@@ -622,10 +651,15 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                       type="button"
                       onClick={handleForceStart}
                       disabled={unreadyPlayers.length === 0}
-                      className="flex items-center gap-2 px-4 py-2 rounded-md bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-200 border border-yellow-500/50 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className={[
+                        'flex items-center gap-2 px-4 py-2 rounded-md bg-yellow-500/20',
+                        'hover:bg-yellow-500/30 text-yellow-200 border border-yellow-500/50',
+                        'text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+                      ].join(' ')}
                       title={
                         unreadyPlayers.length === 0
-                          ? 'Everyone seated is ready — Cockatrice will start the game automatically. Force start is only useful when there are unready players to kick.'
+                          ? 'Everyone seated is ready — Cockatrice will start the game automatically. '
+                            + 'Force start is only useful when there are unready players to kick.'
                           : 'Kicks all unready players so Cockatrice auto-starts with whoever is left.'
                       }
                     >
@@ -744,7 +778,10 @@ function PlayerRow({
         <button
           type="button"
           onClick={onKick}
-          className="text-xs px-2 py-1 rounded text-text-muted hover:text-red-300 hover:bg-red-500/10 border border-transparent hover:border-red-500/40 transition-colors"
+          className={[
+            'text-xs px-2 py-1 rounded text-text-muted hover:text-red-300',
+            'hover:bg-red-500/10 border border-transparent hover:border-red-500/40 transition-colors',
+          ].join(' ')}
           title="Kick from game"
         >
           Kick

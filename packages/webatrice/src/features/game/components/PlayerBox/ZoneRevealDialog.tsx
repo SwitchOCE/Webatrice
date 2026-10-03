@@ -369,7 +369,10 @@ export default function ZoneRevealDialog({
             dropRef.current = el;
           }
         }}
-        className="bg-bg-surface border border-border-subtle rounded-lg shadow-glow flex flex-col pointer-events-auto resize overflow-hidden"
+        className={[
+          'bg-bg-surface border border-border-subtle rounded-lg',
+          'shadow-glow flex flex-col pointer-events-auto resize overflow-hidden',
+        ].join(' ')}
         style={{
           minWidth: `${MIN_DIALOG_W}px`,
           minHeight: `${MIN_DIALOG_H}px`,
@@ -459,7 +462,10 @@ export default function ZoneRevealDialog({
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors"
+            className={[
+              'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent',
+              'text-white hover:bg-accent-hover shadow-glow transition-colors',
+            ].join(' ')}
           >
             Close
           </button>

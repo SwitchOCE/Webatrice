@@ -80,7 +80,11 @@ function ServerMotd({ message }: ServerMotdProps) {
         </h3>
       </div>
       <div
-        className="flex-1 min-h-0 overflow-y-auto px-4 py-3 text-sm text-text-secondary [&_a]:text-accent [&_a]:underline [&_a:hover]:text-accent-hover [&_p]:my-1 [&_b]:text-text-primary [&_strong]:text-text-primary"
+        className={[
+          'flex-1 min-h-0 overflow-y-auto px-4 py-3 text-sm',
+          'text-text-secondary [&_a]:text-accent [&_a]:underline',
+          '[&_a:hover]:text-accent-hover [&_p]:my-1 [&_b]:text-text-primary [&_strong]:text-text-primary',
+        ].join(' ')}
         dangerouslySetInnerHTML={{ __html: message }}
       />
     </section>

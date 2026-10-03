@@ -18,6 +18,10 @@ import { CardRelatedLinks, relatedCardKey, type RelatedCardKind } from '@app/com
 import { priceForCard, type PriceLookup } from './pricing';
 import type { DeckCard, DeckCategory } from './types';
 
+const QUANTITY_BUTTON_CLASS =
+  'p-1 rounded hover:bg-bg-base text-text-muted hover:text-text-primary disabled:opacity-40 '
+  + 'disabled:cursor-not-allowed disabled:hover:bg-transparent';
+
 /**
  * Click-to-open card details popup for MTG decks. Ports fancy
  * webatrice's `CardDetailModal` — bigger + more persistent than the
@@ -380,7 +384,12 @@ export default function CardDetailModal({
         onClick={onClose}
         aria-hidden
       />
-      <div className="relative w-full max-w-3xl rounded-xl bg-bg-surface border border-border-subtle shadow-glow p-6 max-h-[calc(100vh-2rem)] overflow-y-auto">
+      <div
+        className={[
+          'relative w-full max-w-3xl rounded-xl bg-bg-surface border',
+          'border-border-subtle shadow-glow p-6 max-h-[calc(100vh-2rem)] overflow-y-auto',
+        ].join(' ')}
+      >
         <button
           type="button"
           onClick={onClose}
@@ -404,7 +413,12 @@ export default function CardDetailModal({
                 <Loader2 size={20} className="animate-spin text-text-muted" />
               </div>
             ) : (
-              <div className="w-full aspect-[5/7] rounded-lg bg-bg-elevated border border-border-subtle flex items-center justify-center text-xs text-text-muted">
+              <div
+                className={[
+                  'w-full aspect-[5/7] rounded-lg bg-bg-elevated border',
+                  'border-border-subtle flex items-center justify-center text-xs text-text-muted',
+                ].join(' ')}
+              >
                 No image
               </div>
             )}
@@ -449,7 +463,11 @@ export default function CardDetailModal({
               <button
                 type="button"
                 onClick={() => setBrowseOverride(null)}
-                className="inline-flex items-center gap-1.5 self-start px-2 py-1 rounded-md text-xs font-medium text-text-primary bg-bg-elevated hover:bg-border-subtle border border-border-subtle transition-colors"
+                className={[
+                  'inline-flex items-center gap-1.5 self-start px-2 py-1',
+                  'rounded-md text-xs font-medium text-text-primary',
+                  'bg-bg-elevated hover:bg-border-subtle border border-border-subtle transition-colors',
+                ].join(' ')}
                 title={`Back to ${snapshot.name}`}
               >
                 <ArrowLeft size={12} /> Back to {snapshot.name}
@@ -538,7 +556,7 @@ export default function CardDetailModal({
                       type="button"
                       onClick={() => liveIndex >= 0 && onDec(liveIndex)}
                       disabled={removed}
-                      className="p-1 rounded hover:bg-bg-base text-text-muted hover:text-text-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                      className={QUANTITY_BUTTON_CLASS}
                       aria-label="Decrease quantity"
                     >
                       <Minus size={14} />
@@ -550,7 +568,7 @@ export default function CardDetailModal({
                       type="button"
                       onClick={() => liveIndex >= 0 && onInc(liveIndex)}
                       disabled={removed}
-                      className="p-1 rounded hover:bg-bg-base text-text-muted hover:text-text-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                      className={QUANTITY_BUTTON_CLASS}
                       aria-label="Increase quantity"
                     >
                       <Plus size={14} />
@@ -670,7 +688,11 @@ export default function CardDetailModal({
                     href={priceInfo.tcgplayer}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full inline-flex items-center justify-between gap-2 px-3 py-1.5 rounded-md border transition-colors bg-accent-secondary/50 hover:bg-accent-secondary border-accent/40 hover:border-accent text-white shadow-glow"
+                    className={[
+                      'w-full inline-flex items-center justify-between gap-2 px-3 py-1.5',
+                      'rounded-md border transition-colors bg-accent-secondary/50',
+                      'hover:bg-accent-secondary border-accent/40 hover:border-accent text-white shadow-glow',
+                    ].join(' ')}
                   >
                     <span className="text-sm font-medium">Buy @ TCGplayer</span>
                     <span className="tabular-nums text-sm font-semibold">
@@ -678,7 +700,12 @@ export default function CardDetailModal({
                     </span>
                   </a>
                 ) : (
-                  <div className="w-full inline-flex items-center justify-between gap-2 px-3 py-1.5 rounded-md border bg-accent-secondary/30 border-accent/30 text-text-primary">
+                  <div
+                    className={[
+                      'w-full inline-flex items-center justify-between gap-2 px-3 py-1.5',
+                      'rounded-md border bg-accent-secondary/30 border-accent/30 text-text-primary',
+                    ].join(' ')}
+                  >
                     <span className="text-sm font-medium">TCGplayer USD</span>
                     <span className="tabular-nums text-sm font-semibold">
                       ${priceInfo.usd.toFixed(2)}
