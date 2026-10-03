@@ -1,5 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
+import { expect, test } from '../fixtures/test';
 import { GamePage } from '../pages';
 import { registerAndJoinFirstRoom } from '../fixtures/flows';
 import { randomSuffix } from '../fixtures/users';
@@ -16,10 +17,10 @@ function userRow(page: Page, name: string) {
   return page.locator('.user-display').filter({ hasText: name });
 }
 
-test('shows another user\'s games and joins one from the list', async ({ browser }) => {
+test('shows another user\'s games and joins one from the list', async ({ newContext }) => {
   test.setTimeout(120_000);
-  const hostCtx = await browser.newContext();
-  const viewerCtx = await browser.newContext();
+  const hostCtx = await newContext();
+  const viewerCtx = await newContext();
 
   try {
     const hostPage = await hostCtx.newPage();
@@ -57,10 +58,10 @@ test('shows another user\'s games and joins one from the list', async ({ browser
   }
 });
 
-test('a private chat keeps the draft when the partner goes offline', async ({ browser }) => {
+test('a private chat keeps the draft when the partner goes offline', async ({ newContext }) => {
   test.setTimeout(120_000);
-  const senderCtx = await browser.newContext();
-  const partnerCtx = await browser.newContext();
+  const senderCtx = await newContext();
+  const partnerCtx = await newContext();
 
   try {
     const senderPage = await senderCtx.newPage();

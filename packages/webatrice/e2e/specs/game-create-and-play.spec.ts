@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../fixtures/test';
 
 import { GamePage } from '../pages';
 import { registerAndJoinFirstRoom } from '../fixtures/flows';
@@ -17,10 +17,10 @@ import { randomSuffix } from '../fixtures/users';
 
 const DECK_PATH = resolve(__dirname, '..', 'fixtures', 'decks', 'forest-60.cod');
 
-test('two clients create+join, load decks, draw, play, end turn', async ({ browser }) => {
+test('two clients create+join, load decks, draw, play, end turn', async ({ newContext }) => {
   test.setTimeout(180_000);
-  const hostCtx = await browser.newContext();
-  const joinerCtx = await browser.newContext();
+  const hostCtx = await newContext();
+  const joinerCtx = await newContext();
 
   try {
     const hostPage = await hostCtx.newPage();

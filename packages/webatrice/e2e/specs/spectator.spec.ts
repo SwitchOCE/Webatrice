@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../fixtures/test';
 
 import { GamePage } from '../pages';
 import { registerAndJoinFirstRoom } from '../fixtures/flows';
@@ -15,11 +15,11 @@ import { randomSuffix } from '../fixtures/users';
 
 const DECK_PATH = resolve(__dirname, '..', 'fixtures', 'decks', 'forest-60.cod');
 
-test('third client spectates a game in progress', async ({ browser }) => {
+test('third client spectates a game in progress', async ({ newContext }) => {
   test.setTimeout(180_000);
-  const hostCtx = await browser.newContext();
-  const joinerCtx = await browser.newContext();
-  const spectatorCtx = await browser.newContext();
+  const hostCtx = await newContext();
+  const joinerCtx = await newContext();
+  const spectatorCtx = await newContext();
 
   try {
     const hostPage = await hostCtx.newPage();

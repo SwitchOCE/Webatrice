@@ -1,4 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
+
+import { expect, test } from '../fixtures/test';
 
 import { E2E_MODERATOR, joinFirstRoomAs, registerAndJoinFirstRoom } from '../fixtures/flows';
 
@@ -15,10 +17,10 @@ async function openUserMenuEntry(page: Page, userName: string, entry: string): P
   await page.getByRole('menuitem', { name: entry }).click();
 }
 
-test('moderator warns a room user and reads their warn and ban history', async ({ browser }) => {
+test('moderator warns a room user and reads their warn and ban history', async ({ newContext }) => {
   test.setTimeout(120_000);
-  const targetCtx = await browser.newContext();
-  const moderatorCtx = await browser.newContext();
+  const targetCtx = await newContext();
+  const moderatorCtx = await newContext();
 
   try {
     const targetPage = await targetCtx.newPage();
