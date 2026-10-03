@@ -2496,6 +2496,13 @@
       "deckEditor": "Deck editor/storage settings",
       "replay": "Replay settings"
     },
+    "doubleClickToPlay": {
+      "label": "Double-click cards to play them (instead of single-click)"
+    },
+    "clickPlaysAllSelected": {
+      "label": "Clicking plays all selected cards (instead of just the clicked card)",
+      "description": "Applies when the card you click is part of the selection. On the battlefield, a click always taps or untaps the whole selection."
+    },
     "playToStack": {
       "label": "Play all nonlands onto the stack (not the battlefield) by default",
       "description": "When off, double-clicking a permanent in your hand puts it straight onto the battlefield. Instants and sorceries still go to the stack."

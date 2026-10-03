@@ -4,9 +4,7 @@ import { useForkRef } from '@mui/material/utils';
 import { Hand } from 'lucide-react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { usePreference } from '@app/hooks';
-import { lookupCard } from '@app/services';
 
-import { playCardMove } from '../../context-menus/CardContextMenu/handCardMenu.actions';
 import ContextMenu from '../../context-menus/ContextMenu/ContextMenu';
 import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
@@ -62,15 +60,13 @@ export default function HandZone() {
     isDragging,
     isSelf,
     menuOwnerId,
+    onCardDoubleClick,
     openSeatCardMenu,
     playerId,
     seatGrid,
     selection,
-    setCardMetaByName,
     startSeatCardDrag,
-    zoneCommands,
   } = usePlayerSeatContext();
-  const playToStack = usePreference('playToStack');
   // Desktop's "Enable left justification": the row starts at the left (past
   // the count badge) instead of centring.
   const leftJustified = usePreference('leftJustifiedHand');
@@ -83,43 +79,6 @@ export default function HandZone() {
   // until the return-to-idle animation actually finishes — otherwise
   // the wrapper clips its own cards mid-slide when hover ends.
   const [handAnimating, setHandAnimating] = useState(false);
-
-  // Double-click auto-play chain: lands go straight to the battlefield;
-  // everything else takes a stack detour so spells are visible before
-  // resolving (permanents skip it when playToStack is off). The stack card
-  // itself has its own double-click handler that resolves the second step
-  // (instant/sorcery → graveyard, permanent → battlefield). Card type comes
-  // from the prefetched cache; on cache miss we block on a fresh lookup so
-  // the first click routes correctly even if prefetch hasn't completed. Wire
-  // x = -1 lets the server pick a column.
-  const playFromHand = async (c: PlayerCardViewModel) => {
-    const cardId = Number(c.id);
-    if (!Number.isFinite(cardId)) {
-      return;
-    }
-    let typeLine = cardMetaByName.get(c.name)?.typeLine ?? '';
-    if (!typeLine) {
-      const r = await lookupCard(c.name);
-      typeLine = r.typeLine ?? '';
-      const pt = r.power != null && r.toughness != null ? `${r.power}/${r.toughness}` : undefined;
-      if (typeLine || pt) {
-        setCardMetaByName((prev) => {
-          const existing = prev.get(c.name);
-          if (existing?.typeLine === typeLine && existing?.pt === pt) {
-            return prev;
-          }
-          const next = new Map(prev);
-          next.set(c.name, { typeLine, pt });
-          return next;
-        });
-      }
-    }
-    // Desktop PlayerActions::playCard: lands go to the battlefield and
-    // instants/sorceries to the stack; other permanents take the stack only
-    // with "Play all nonlands onto the stack" on (the default).
-    const play = playCardMove(cardId, { ...cardMetaByName.get(c.name), typeLine }, { playToStack });
-    zoneCommands.moveCards(ZoneName.HAND, [play.card], play.to);
-  };
 
   // One of the owner's hand cards, in either layout.
   const renderOwnCard = (c: PlayerCardViewModel) => {
@@ -142,7 +101,7 @@ export default function HandZone() {
           e.stopPropagation();
           openSeatCardMenu({ kind: 'hand', playerId: menuOwnerId, cardId: c.id, x: e.clientX, y: e.clientY });
         }}
-        onDoubleClick={() => playFromHand(c)}
+        onDoubleClick={(e) => onCardDoubleClick('hand', c, e)}
         style={{
           touchAction: 'none',
           cursor: 'grab',

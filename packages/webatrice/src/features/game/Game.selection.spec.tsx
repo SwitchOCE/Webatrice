@@ -6,6 +6,8 @@ import { act, fireEvent } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
+import { usePreference } from '../../hooks/useSettings';
+import { PREFERENCE_DEFAULTS, type PreferenceKey } from '../../types';
 import { buildSeatGameState, cardEl, pointerDrag, type SeatGameSpec } from './__test-utils__/seatFixtures';
 import Game from './Game';
 
@@ -38,8 +40,8 @@ const SPEC: SeatGameSpec = {
   ],
 };
 
-function renderGame() {
-  return renderWithProviders(<Game />, { preloadedState: buildSeatGameState(SPEC), webClient: createMockWebClient() });
+function renderGame(webClient = createMockWebClient()) {
+  return renderWithProviders(<Game />, { preloadedState: buildSeatGameState(SPEC), webClient });
 }
 
 function click(el: Element, init: { ctrlKey?: boolean } = {}) {
@@ -59,6 +61,7 @@ const selected = () =>
 describe('Game selection across seats', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.mocked(usePreference).mockImplementation(((key: PreferenceKey) => PREFERENCE_DEFAULTS[key]) as typeof usePreference);
   });
 
   it('holds one selection for the whole game: selecting on another seat clears this one', () => {
@@ -104,5 +107,28 @@ describe('Game selection across seats', () => {
     expect(selected()).toEqual([]);
     click(cardEl(OGRE.id, 'battlefield'));
     expect(selected()).toEqual([`battlefield:${OGRE.id}`]);
+  });
+
+  it('plays on a single click, after selecting, once "Double-click cards to play them" is off', () => {
+    vi.mocked(usePreference).mockImplementation(((key: PreferenceKey) =>
+      key === 'doubleClickToPlay' ? false : PREFERENCE_DEFAULTS[key]) as typeof usePreference);
+    const webClient = createMockWebClient();
+    renderGame(webClient);
+
+    click(cardEl(BOLT.id, 'battlefield'));
+
+    expect(selected()).toEqual([`battlefield:${BOLT.id}`]);
+    expect(webClient.request.game.setCardAttr).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(webClient.request.game.setCardAttr).mock.calls[0][1]).toMatchObject({ cardId: BOLT.id, attrValue: '1' });
+  });
+
+  it('only selects on a single click while double-click plays', () => {
+    const webClient = createMockWebClient();
+    renderGame(webClient);
+
+    click(cardEl(BOLT.id, 'battlefield'));
+
+    expect(selected()).toEqual([`battlefield:${BOLT.id}`]);
+    expect(webClient.request.game.setCardAttr).not.toHaveBeenCalled();
   });
 });

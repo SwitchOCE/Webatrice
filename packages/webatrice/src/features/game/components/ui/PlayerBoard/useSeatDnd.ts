@@ -40,6 +40,9 @@ export interface UseSeatDndArgs {
   libraryRef: RefObject<HTMLDivElement | null>;
   graveyardRef: RefObject<HTMLDivElement | null>;
   exileRef: RefObject<HTMLDivElement | null>;
+  /** A press released on a card without dragging, once the selection has been updated
+   *  (desktop's single-click play reads the selection as it was before the click). */
+  onCardClick?: (zone: Selection['zone'], card: HandCard, e: PointerEvent) => void;
   /** Card size and stack offset at the current card scale, for the stack drop. */
   CARD_W_PX: number;
   CARD_H_PX: number;
@@ -69,6 +72,7 @@ export function useSeatDnd({
   libraryRef,
   graveyardRef,
   exileRef,
+  onCardClick,
   CARD_W_PX,
   CARD_H_PX,
   STACK_HOFFSET_PX,
@@ -100,8 +104,10 @@ export function useSeatDnd({
   // A press released before the drag threshold (a click). Two readings:
   //   1. Pending-attach mode: an "Attach to card..." pick from this seat is
   //      pending; this click on a battlefield card resolves it.
-  //   2. Normal click: replace the selection with the clicked card.
-  const releaseCardPress = (zone: DragSourceZone, clickedCardId: string, e: PointerEvent) => {
+  //   2. Normal click: replace the selection with the clicked card, then
+  //      hand the click on (single-click play).
+  const releaseCardPress = (zone: DragSourceZone, card: HandCard, e: PointerEvent) => {
+    const clickedCardId = card.id;
     const clickedCardIdNum = Number(clickedCardId);
     // A press on a source card cancels the pick, as desktop's
     // ArrowAttachItem does when it lands on its start item; a press on any
@@ -144,6 +150,7 @@ export function useSeatDnd({
           ids: new Set([clickedCardId]),
         });
       }
+      onCardClick?.(zone, card, e);
     }
   };
 
@@ -201,7 +208,8 @@ export function useSeatDnd({
   // A press on a card in the selection drags the whole selection, in display
   // order; anything else drags just the card (the selection is only touched
   // once the gesture ends). Both seats take part: clicking selects on any
-  // battlefield. A click on a single card goes to releaseCardPress.
+  // battlefield. A click on a single card goes to releaseCardPress; one on a
+  // card of a group only goes on to onCardClick.
   const startSeatCardDrag = (
     e: React.PointerEvent<HTMLElement>,
     card: HandCard,
@@ -218,9 +226,12 @@ export function useSeatDnd({
       // lives in its owner's TABLE, not this seat's.
       const ownerOf = (c: HandCard) => c.ownerPlayerId ?? seatId;
       const group = zoneCards.filter((c) => selection.ids.has(c.id) && ownerOf(c) === ownerOf(card));
-      start(e, withPrintedPT(group, zone), group.length === 1 ? (up) => releaseCardPress(zone, card.id, up) : undefined);
+      // A click on one card of a group keeps the group selected.
+      start(e, withPrintedPT(group, zone), group.length === 1
+        ? (up) => releaseCardPress(zone, card, up)
+        : (up) => onCardClick?.(zone, card, up));
     } else {
-      start(e, withPrintedPT([card], zone), (up) => releaseCardPress(zone, card.id, up));
+      start(e, withPrintedPT([card], zone), (up) => releaseCardPress(zone, card, up));
     }
   };
 
