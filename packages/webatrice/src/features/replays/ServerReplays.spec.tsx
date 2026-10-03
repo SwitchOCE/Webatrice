@@ -12,7 +12,7 @@ import {
 import type { WebClient } from '@cockatrice/sockatrice';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { server } from '@cockatrice/datatrice';
-import { ReplayFileDTO } from '@app/services';
+import { ReplayFileDTO, ReplayNameTakenError } from '@app/services';
 import { RouteEnum } from '@app/types';
 
 import {
@@ -335,16 +335,55 @@ describe('Server replay storage', () => {
     expect(clicks).toEqual(['replay_70.cor', 'replay_71.cor']);
   });
 
-  it('saves a server replay into the current local folder', async () => {
+  it('saves a selected replay straight into the current local folder', async () => {
     const addReplay = vi.spyOn(ReplayFileDTO, 'addReplay').mockResolvedValue(5);
+    const addFolder = vi.spyOn(ReplayFileDTO, 'addFolder');
     const { webClient } = renderReplays();
 
-    fireEvent.click(serverPane().getByTestId('replay-match-7'));
+    fireEvent.click(within(serverPane().getByTestId('replay-match-7')).getByRole('button', { name: 'Replays.server.expand' }));
+    fireEvent.click(serverPane().getByTestId('replay-70'));
     fireEvent.click(serverPane().getByRole('button', { name: 'Replays.action.saveToLibrary' }));
+    await waitFor(() => expect(webClient.request.session.replayDownload).toHaveBeenCalled());
     act(() => {
       lastCallArg<(data: Uint8Array) => void>(webClient.request.session.replayDownload, 1)(new Uint8Array([1, 2]));
     });
 
     await waitFor(() => expect(addReplay).toHaveBeenCalledWith(0, 'replay_70.cor', new Uint8Array([1, 2])));
+    expect(addFolder).not.toHaveBeenCalled();
+  });
+
+  it('saves a match into a new <gameId>_<gameName> folder, as desktop does', async () => {
+    const addFolder = vi.spyOn(ReplayFileDTO, 'addFolder').mockResolvedValue(12);
+    const addReplay = vi.spyOn(ReplayFileDTO, 'addReplay').mockResolvedValue(5);
+    const { webClient } = renderReplays(stateWith({ matches: [match(7, { replayIds: [70, 71] })] }));
+
+    fireEvent.click(serverPane().getByTestId('replay-match-7'));
+    fireEvent.click(serverPane().getByRole('button', { name: 'Replays.action.saveToLibrary' }));
+
+    await waitFor(() => expect(webClient.request.session.replayDownload).toHaveBeenCalledTimes(2));
+    expect(addFolder).toHaveBeenCalledWith(0, '7_Game 7');
+    for (const [, onDownloaded] of vi.mocked(webClient.request.session.replayDownload).mock.calls) {
+      act(() => onDownloaded!(new Uint8Array([1])));
+    }
+    await waitFor(() => expect(addReplay).toHaveBeenCalledTimes(2));
+    expect(addReplay.mock.calls.map(([parentId, name]) => [parentId, name])).toEqual([[12, 'replay_70.cor'], [12, 'replay_71.cor']]);
+  });
+
+  it('reuses the match folder when it already exists', async () => {
+    vi.spyOn(ReplayFileDTO, 'addFolder').mockRejectedValue(new ReplayNameTakenError('7_Game 7'));
+    vi.mocked(ReplayFileDTO.listFolder).mockResolvedValue([
+      Object.assign(new ReplayFileDTO(), { id: 33, name: '7_Game 7', kind: 'folder', parentId: 0 }),
+    ]);
+    const addReplay = vi.spyOn(ReplayFileDTO, 'addReplay').mockResolvedValue(5);
+    const { webClient } = renderReplays();
+
+    fireEvent.click(serverPane().getByTestId('replay-match-7'));
+    fireEvent.click(serverPane().getByRole('button', { name: 'Replays.action.saveToLibrary' }));
+    await waitFor(() => expect(webClient.request.session.replayDownload).toHaveBeenCalled());
+    act(() => {
+      lastCallArg<(data: Uint8Array) => void>(webClient.request.session.replayDownload, 1)(new Uint8Array([1]));
+    });
+
+    await waitFor(() => expect(addReplay).toHaveBeenCalledWith(33, 'replay_70.cor', new Uint8Array([1])));
   });
 });
