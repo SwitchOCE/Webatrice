@@ -8,3 +8,4 @@
 - 14:19Z SetPlaymat sync pushed (180baaa) → Playmats settings tab
 - 14:24Z all features + changesets pushed (400362b) → full gate
 - 14:32Z gate: typecheck 5/5, lint 3/3, unit sock 790 / data 1210 / web 1525+2skip, integ 167/137/160+2skip → e2e (sockatrice + webatrice containerised)
+- 14:52Z DONE: branch claude/parity-23-playmats @ 356ba5f; gate green; web e2e 31 pass / 8 fail (all pre-existing or env: docker-in-container); sock e2e 5/5; PR file prs/parity-23-playmats.md
