@@ -4,3 +4,4 @@
 - 15:55Z keyboard grids done (useGridRows in @app/hooks) → minors
 - 15:59Z minors done: engine wall-clock, FF speed, timeline keys, read-only affordances, replayDownload store → remaining minors (library folder, import checks, IDB errors, i18n, docs, fold)
 - 16:08Z all fixes+minors+docs pushed → folding red intermediate commits (rebase), then full gate
+- 16:21Z history rebuilt (specs+i18n folded into feat commits, tree identical), 28/28 commits typecheck, force-pushed → full gate
