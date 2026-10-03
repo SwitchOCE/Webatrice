@@ -35,7 +35,7 @@ describe('DeckSidebar', () => {
   it('edits the name and format, and opens the exporter', () => {
     const props = renderSidebar();
     fireEvent.change(screen.getByDisplayValue('Burn'), { target: { value: 'Burn 2' } });
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'legacy' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), { target: { value: 'legacy' } });
     fireEvent.click(screen.getByRole('button', { name: /Export deck/ }));
     expect(props.onNameChange).toHaveBeenCalledWith('Burn 2');
     expect(props.onFormatChange).toHaveBeenCalledWith('legacy');

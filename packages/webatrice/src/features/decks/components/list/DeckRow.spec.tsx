@@ -24,6 +24,12 @@ describe('DeckRow', () => {
     expect(screen.getByText('$12.50+')).toHaveAttribute('title', expect.stringContaining('1 card had no price'));
   });
 
+  it('shows the deck tags', () => {
+    render(<DeckRow deck={deck} summary={{ tags: ['Ramp', 'Tokens'] }} mode="compact" onOpen={() => {}} onDelete={() => {}} />);
+    expect(screen.getByText('Ramp')).toBeInTheDocument();
+    expect(screen.getByText('Tokens')).toBeInTheDocument();
+  });
+
   it('shows the loading price until the summary arrives, and a dash without a cached price', () => {
     const { rerender } = render(
       <DeckRow deck={deck} summary={undefined} mode="card" onOpen={() => {}} onDelete={() => {}} />,

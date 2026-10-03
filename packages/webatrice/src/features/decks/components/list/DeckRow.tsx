@@ -43,6 +43,11 @@ function DeckRowMeta({ deck, summary, className }: {
       )}
       <span>·</span>
       <DeckPriceBadge price={summary && { usd: summary.usd, missing: summary.missing }} />
+      {summary?.tags?.map((tag) => (
+        <span key={tag} className="rounded-full border border-border-subtle bg-bg-elevated px-1.5 text-text-secondary">
+          {tag}
+        </span>
+      ))}
     </div>
   );
 }

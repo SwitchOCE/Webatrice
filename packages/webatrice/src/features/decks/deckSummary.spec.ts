@@ -44,6 +44,17 @@ describe('summarizeDeck', () => {
     });
   });
 
+  it('reads the tags and the banner printing', () => {
+    const summary = summarizeDeck(parsed({
+      bannerCard: 'Sol Ring',
+      bannerCardProviderId: 'p1',
+      tagsXml: '<tags><tag>Ramp</tag><tag>Artifacts</tag></tags>',
+    }));
+    expect(summary.tags).toEqual(['Ramp', 'Artifacts']);
+    expect(summary.bannerCardProviderId).toBe('p1');
+    expect(summarizeDeck(parsed({})).tags).toBeUndefined();
+  });
+
   it('prefers the bracket assessment level over the legacy meta level', () => {
     const summary = summarizeDeck(parsed({
       meta: { v: 1, updatedAt: 'x', bracketLevel: 2 },
@@ -62,6 +73,9 @@ describe('summariesEqual', () => {
     const a: DeckSummary = { usd: 1, format: 'modern' };
     expect(summariesEqual(a, { ...a })).toBe(true);
     expect(summariesEqual(a, { ...a, commanderName: 'X' })).toBe(false);
+    expect(summariesEqual({ ...a, tags: ['A'] }, { ...a, tags: ['A'] })).toBe(true);
+    expect(summariesEqual({ ...a, tags: ['A'] }, { ...a, tags: ['B'] })).toBe(false);
+    expect(summariesEqual(a, { ...a, bannerCardProviderId: 'p' })).toBe(false);
   });
 });
 
@@ -73,6 +87,10 @@ describe('deckArtUrl', () => {
       .toBe('https://api.scryfall.com/cards/id-a?format=image&version=art_crop');
     expect(deckArtUrl({ commanderName: 'Atraxa, Grand Unifier' }))
       .toBe('https://api.scryfall.com/cards/named?exact=Atraxa%2C%20Grand%20Unifier&format=image&version=art_crop');
+    expect(deckArtUrl({ bannerCard: 'Sol Ring', bannerCardProviderId: '0afa0e33-4804-4b00-b625-c2d6b61090fc' }))
+      .toBe('https://api.scryfall.com/cards/0afa0e33-4804-4b00-b625-c2d6b61090fc?format=image&version=art_crop');
+    expect(deckArtUrl({ bannerCard: 'Sol Ring', bannerCardProviderId: 'not-a-uuid' }))
+      .toBe('https://api.scryfall.com/cards/named?exact=Sol%20Ring&format=image&version=art_crop');
     expect(deckArtUrl({ bannerCard: '  ' })).toBeNull();
     expect(deckArtUrl(undefined)).toBeNull();
   });

@@ -1035,6 +1035,9 @@
     },
     "chainable": "— chain-able:"
   },
+  "DeckBanner": {
+    "label": "Banner Card"
+  },
   "DeckHistory": {
     "undo": "Undo",
     "redo": "Redo",
@@ -1181,6 +1184,14 @@
       "passwordChangeRequiredAction": "Reset password",
       "serverFull": "The server has reached its maximum number of users. Please check back later."
     }
+  },
+  "DeckTags": {
+    "label": "Tags",
+    "add": "Add Tag",
+    "placeholder": "Add a new tag (e.g., Aggro)",
+    "remove": "Remove tag {tag}",
+    "empty": "Tag name cannot be empty!",
+    "duplicate": "This tag already exists."
   },
   "AccountActivationDialog": {
     "title": "Account Activation",
