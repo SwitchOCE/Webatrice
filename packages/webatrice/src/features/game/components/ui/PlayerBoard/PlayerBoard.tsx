@@ -4,6 +4,7 @@ import { ArrowColor, rgbaToCss } from '@app/types';
 
 import { buildArrowGeometry } from '../../arrows/GameArrowOverlay/arrowPath';
 import Battlefield from '../../battlefield/Battlefield/Battlefield';
+import { DragSelectionCount } from '../../SelectionCount/SelectionCount';
 import BattlefieldCardMenu from '../../context-menus/SeatCardMenus/BattlefieldCardMenu';
 import PileCardMenu from '../../context-menus/SeatCardMenus/PileCardMenu';
 import StackCardMenu from '../../context-menus/SeatCardMenus/StackCardMenu';
@@ -134,7 +135,9 @@ function PlayerBoard(props: PlayerSeatProps) {
               pointerEvents: 'none',
               zIndex: 275,
             }}
-          />,
+          >
+            <DragSelectionCount band={marquee} count={marquee.count} />
+          </div>,
           document.body,
         )}
 

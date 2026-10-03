@@ -51,6 +51,10 @@ export class Setting {
   doNotDeleteArrowsInSubPhases: boolean;
   closeEmptyCardView: boolean;
   focusCardViewSearchBar: boolean;
+  /** How many cards a drag (rubber-band) selection holds, drawn in the band. */
+  showDragSelectionCount: boolean;
+  /** How many cards are selected, drawn in the board's corner once more than one is. */
+  showTotalSelectionCount: boolean;
   tapAnimation: boolean;
 
   // User interface — notifications ("taskbar" alerts on desktop)
@@ -128,6 +132,8 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   doNotDeleteArrowsInSubPhases: true,
   closeEmptyCardView: true,
   focusCardViewSearchBar: true,
+  showDragSelectionCount: true,
+  showTotalSelectionCount: true,
   tapAnimation: true,
 
   notificationsEnabled: true,

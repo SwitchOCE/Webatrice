@@ -11,6 +11,7 @@ import GameErrorBoundary from './GameErrorBoundary';
 import { useCurrentGame } from './hooks/useCurrentGame';
 import { usePlaymatSync } from './hooks/usePlaymatSync';
 import GameArrowOverlay from './components/arrows/GameArrowOverlay/GameArrowOverlay';
+import { TotalSelectionCount } from './components/SelectionCount/SelectionCount';
 import BoxSelectOverlay from './components/ui/BoxSelectOverlay/BoxSelectOverlay';
 import CardContextMenu from './components/context-menus/CardContextMenu/CardContextMenu';
 import HandContextMenu from './components/context-menus/HandContextMenu/HandContextMenu';
@@ -315,6 +316,12 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                                 <GameArrowOverlay containerRef={gameRef} dragPreview={arrows.dragPreview} />
 
                                 <BoxSelectOverlay preview={boxSelectPreview} />
+
+                                {/* The board's bottom-right corner, clear of the sidebar. */}
+                                <TotalSelectionCount
+                                  count={selectedCardKeys.size}
+                                  style={{ right: 'calc(var(--sidebar-width) + 18px)', bottom: 10 }}
+                                />
 
                                 {!readOnly && <DeckSelectDialog />}
 

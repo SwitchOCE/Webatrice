@@ -2,7 +2,7 @@
 // writes useGameSelection's keys, so there is one selection across seats, it is
 // scoped to one zone, and it lives and dies with the game.
 
-import { act, fireEvent } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
@@ -84,6 +84,15 @@ describe('Game selection across seats', () => {
 
     click(cardEl(SHOCK.id, 'hand'), { ctrlKey: true });
     expect(selected()).toEqual([`hand:${SHOCK.id}`]);
+  });
+
+  it('shows the total selection count once more than one card is selected', () => {
+    renderGame();
+    click(cardEl(BOLT.id, 'battlefield'));
+    expect(screen.queryByTestId('total-selection-count')).not.toBeInTheDocument();
+
+    click(cardEl(OGRE.id, 'battlefield'), { ctrlKey: true });
+    expect(screen.getByTestId('total-selection-count')).toHaveTextContent('2');
   });
 
   it('clears with the game-level Escape like any other selection', () => {
