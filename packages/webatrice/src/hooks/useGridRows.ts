@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 
+import { navigationTarget } from './gridNavigation';
+
 export interface GridRowsOptions {
   /** Keys of the rows currently rendered, in display order. */
   keys: readonly string[];
@@ -10,7 +12,7 @@ export interface GridRowsOptions {
    * scrolled out of the window, so Tab can always enter the grid.
    */
   selectedKey: string | null;
-  /** Arrow keys, Home/End and Space select a row, like moving the current item in a Qt view. */
+  /** Arrow keys, Home/End, PageUp/PageDown and Space select a row, like moving the current item in a Qt view. */
   onSelect: (key: string) => void;
   /** Enter (and a double-click, wired by the caller) opens a row. */
   onActivate: (key: string) => void;
@@ -34,9 +36,10 @@ export interface GridRowProps {
 
 /**
  * Keyboard model for selectable table rows (`role="grid"` / `"treegrid"`): one
- * roving tab stop on the selected row, ↑/↓/Home/End move the selection and the
- * focus with it, Space selects, Enter opens, and ←/→ collapse and expand tree
- * rows. Desktop's QTreeView/QListView give the same keys for free.
+ * roving tab stop on the selected row, ↑/↓/Home/End/PageUp/PageDown move the
+ * selection and the focus with it, Space selects, Enter opens, and ←/→
+ * collapse and expand tree rows. Desktop's QTreeView/QListView give the same
+ * keys for free.
  */
 export function useGridRows({ keys, selectedKey, onSelect, onActivate, onExpand, onCollapse }: GridRowsOptions) {
   const elements = useRef(new Map<string, HTMLElement>());
@@ -94,19 +97,16 @@ export function useGridRows({ keys, selectedKey, onSelect, onActivate, onExpand,
         return;
       }
       const index = keys.indexOf(key);
+      const target = navigationTarget(event.key, index < 0 ? null : index, keys.length);
+      if (target !== null) {
+        // At either end the selection stays put.
+        if (target !== index) {
+          moveTo(keys[target]);
+        }
+        event.preventDefault();
+        return;
+      }
       switch (event.key) {
-        case 'ArrowDown':
-          moveTo(keys[index + 1]);
-          break;
-        case 'ArrowUp':
-          moveTo(keys[index - 1]);
-          break;
-        case 'Home':
-          moveTo(keys[0]);
-          break;
-        case 'End':
-          moveTo(keys[keys.length - 1]);
-          break;
         case ' ':
           onSelect(key);
           break;

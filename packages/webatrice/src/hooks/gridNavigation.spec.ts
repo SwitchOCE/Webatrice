@@ -1,4 +1,4 @@
-import { isSelectKey, navigationTarget } from './listKeyboard';
+import { isSelectKey, navigationTarget } from './gridNavigation';
 
 describe('navigationTarget', () => {
   it('moves one row with the arrows and stops at the ends', () => {
