@@ -21,3 +21,4 @@ export * from './useGridRows';
 export * from './useCanOverrideGameRestrictions';
 export * from './useWatchReplay';
 export * from './useCardDataPreferences';
+export * from './usePlaymatSettings';
