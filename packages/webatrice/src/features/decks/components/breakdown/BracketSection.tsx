@@ -2,8 +2,8 @@ import { useRef } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { CircleAlert, Globe, Loader2, RefreshCw } from 'lucide-react';
 
-import { BRACKET_TONE } from '@app/services';
 import type { BracketAssessment } from '@app/types';
+import { BRACKET_TONE } from '@app/utils';
 
 import type { UnavailableSource } from '../../bracket';
 import { bracketSignalBadges } from '../../bracketBadges';
