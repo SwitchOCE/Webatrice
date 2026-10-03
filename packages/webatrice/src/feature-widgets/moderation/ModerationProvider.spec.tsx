@@ -234,4 +234,39 @@ describe('ModerationProvider', () => {
       expect(screen.getByText('Moderation.adjustMod.demoteFailed')).toBeInTheDocument();
     });
   });
+
+  describe('menu gating', () => {
+    const MenuActions = () => {
+      const { groups } = useModerationMenu('alice', Flag.IsUser | Flag.IsRegistered);
+      return <ul>{groups.flat().map((entry) => <li key={entry.action}>{entry.action}</li>)}</ul>;
+    };
+
+    const renderMenu = (version: string) => renderWithProviders(
+      <ModerationProvider>
+        <MenuActions />
+      </ModerationProvider>,
+      {
+        preloadedState: {
+          ...connectedState,
+          server: {
+            ...(connectedState.server as any),
+            info: { ...(connectedState.server as any).info, version },
+            user: makeUser({ name: 'mod', userLevel: ADMIN }),
+          },
+        },
+        webClient: createMockWebClient(),
+      },
+    );
+
+    it('hides the developer entry from an admin on a 3.0 server', () => {
+      renderMenu('3.0.0 (2026-05-08)');
+      expect(screen.getByText('promoteJudge')).toBeInTheDocument();
+      expect(screen.queryByText('promoteDeveloper')).not.toBeInTheDocument();
+    });
+
+    it('offers the developer entry to an admin on a 3.1 server', () => {
+      renderMenu('3.1.0-beta.12 (2026-09-01)');
+      expect(screen.getByText('promoteDeveloper')).toBeInTheDocument();
+    });
+  });
 });
