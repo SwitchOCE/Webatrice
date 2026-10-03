@@ -479,6 +479,27 @@ describe('DeckEditor (integration)', () => {
     expect(await screen.findByText('DeckLegality.unavailable')).toBeInTheDocument();
   });
 
+  it('draws a sample hand from the main deck without saving anything', async () => {
+    await openDeck(MODERN_DECK);
+    await autosaved((d) => d.meta.priceUsd !== undefined);
+    const before = uploads().length;
+
+    fireEvent.click(screen.getByRole('button', { name: 'SampleHand.title' }));
+    const hand = screen.getByRole('list', { name: 'SampleHand.title' });
+    expect(within(hand).getAllByRole('listitem')).toHaveLength(7);
+    expect(within(hand).queryByRole('img', { name: 'Llanowar Elves' })).toBeNull();
+
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'SampleHand.size' }), { target: { value: '12' } });
+    expect(within(hand).getAllByRole('listitem')).toHaveLength(12);
+    fireEvent.click(screen.getByRole('button', { name: 'SampleHand.redraw' }));
+    expect(within(hand).getAllByRole('listitem')).toHaveLength(12);
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 700));
+    });
+    expect(uploads()).toHaveLength(before);
+  });
+
   it('shows the not-found shell for an unreadable deck and links back to My Decks', async () => {
     renderFeatureScreen(
       <Routes>

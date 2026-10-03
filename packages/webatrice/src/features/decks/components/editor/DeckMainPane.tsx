@@ -14,6 +14,7 @@ import { EmptyCardsHint } from './DeckEditorShells';
 import { ACCENT_BUTTON_CLASS } from './editorStyles';
 import { PlainAddCard, PlainCardList } from './PlainCardList';
 import { QuickAddSearch } from './QuickAddSearch';
+import { SampleHandPanel } from './SampleHandPanel';
 
 export interface DeckMainPaneProps {
   deck: HydratedDeck;
@@ -156,6 +157,7 @@ export function DeckMainPane({
                   />
                 ))}
               </div>
+              <SampleHandPanel cards={deck.cards} showImages />
               <DeckBreakdown
                 cards={deck.cards}
                 format={deck.format}
@@ -167,12 +169,13 @@ export function DeckMainPane({
             // Non-MTG: flat alphabetical list, single column. No
             // grouping (no type_line to group by), no preview hover
             // (nothing to preview), no printings / commander toggles.
-            <div className="max-w-md mx-auto">
+            <div className="max-w-md mx-auto space-y-6">
               <PlainCardList
                 cards={deck.cards}
                 onInc={onInc}
                 onDelete={onDelete}
               />
+              <SampleHandPanel cards={deck.cards} showImages={false} />
             </div>
           )}
         </div>
