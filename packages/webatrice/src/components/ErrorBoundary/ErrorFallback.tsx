@@ -22,7 +22,7 @@ export default function ErrorFallback({ title, message, retryLabel, onRetry }: E
 
   return (
     <div role="alert" className="h-full min-h-[240px] flex flex-col items-center justify-center gap-3 p-6 text-center">
-      <CircleAlert size={32} className="text-red-400" />
+      <CircleAlert size={32} className="text-danger" />
       <div className="text-text-primary font-medium">{title}</div>
       <div className="text-sm text-text-muted max-w-md">{message}</div>
       <div className="mt-3 flex gap-2">
