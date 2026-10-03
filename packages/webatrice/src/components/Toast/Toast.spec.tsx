@@ -255,6 +255,29 @@ describe('ToastProvider + usePushToast', () => {
     expect(screen.queryByText('go to chat')).not.toBeInTheDocument();
     vi.useRealTimers();
   });
+
+  it('shows the newest three persistent toasts and folds the rest into "+N more"', () => {
+    renderWithProviders(
+      <ToastProvider>
+        {['one', 'two', 'three', 'four', 'five'].map((body) => <PushOnMount key={body} body={body} persistent />)}
+        <PushOnMount body="brief" />
+      </ToastProvider>,
+    );
+
+    expect(queryAlerts().map((toast) => toast.textContent)).toEqual(['three', 'four', 'five', 'brief']);
+    const more = screen.getByRole('button', { name: 'Toast.more' });
+    expect(more).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(more);
+    expect(queryAlerts()).toHaveLength(6);
+    fireEvent.click(screen.getByRole('button', { name: 'Toast.showFewer' }));
+    expect(queryAlerts()).toHaveLength(4);
+
+    fireEvent.click(within(queryAlerts()[2]).getByRole('button', { name: 'Toast.dismiss' }));
+    fireEvent.click(within(queryAlerts()[2]).getByRole('button', { name: 'Toast.dismiss' }));
+    expect(queryAlerts().map((toast) => toast.textContent)).toEqual(['one', 'two', 'three', 'brief']);
+    expect(screen.queryByRole('button', { name: 'Toast.more' })).not.toBeInTheDocument();
+  });
 });
 
 describe('Toast auto-hide pause', () => {
