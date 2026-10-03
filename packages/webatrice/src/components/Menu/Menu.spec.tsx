@@ -231,7 +231,7 @@ describe('useContextMenu', () => {
 
     fireEvent.contextMenu(screen.getByRole('link', { name: 'Target' }), { clientX: 40, clientY: 50 });
 
-    expect(screen.getByRole('menu', { name: 'Target actions' })).toHaveStyle({ left: '42px', top: '54px' });
+    expect(screen.getByRole('menu', { name: 'Target actions' })).toHaveStyle({ left: '40px', top: '50px' });
   });
 });
 
@@ -436,7 +436,7 @@ describe('Menu placement', () => {
     expect(screen.getByRole('menu', { name: 'Target actions' })).toHaveStyle({ left: '100px', top: '398px', maxHeight: '362px' });
   });
 
-  it('measures its full height, so a menu opened at a point near the bottom is not squashed', () => {
+  it('measures its full height, so a menu opened at a point near the bottom opens above it', () => {
     layout({ left: 0, top: 0, right: 0, bottom: 0 });
 
     render(
@@ -445,7 +445,7 @@ describe('Menu placement', () => {
       </Menu>,
     );
 
-    expect(screen.getByRole('menu', { name: 'Card' })).toHaveStyle({ left: '100px', top: '460px' });
+    expect(screen.getByRole('menu', { name: 'Card' })).toHaveStyle({ left: '100px', top: '400px' });
   });
 });
 
@@ -467,10 +467,17 @@ describe('placeMenu', () => {
       .toMatchObject({ left: 624, top: 328 });
   });
 
-  it('clamps when neither side has room, and only slides a point anchor', () => {
+  it('clamps when neither side has room', () => {
     expect(placeMenu({ rect: { left: 0, top: 300, right: 1024, bottom: 324 }, placement: 'right' }, size, viewport))
       .toMatchObject({ left: 816, top: 296 });
-    expect(placeMenu({ x: 1000, y: 700 }, size, viewport)).toMatchObject({ left: 816, top: 460 });
+    expect(placeMenu({ x: 500, y: 300 }, { width: 200, height: 760 }, viewport)).toMatchObject({ left: 500, top: 8 });
+  });
+
+  it('flips a point anchor like a zero-size control, to the other side of the point', () => {
+    expect(placeMenu({ x: 100, y: 100 }, size, viewport)).toMatchObject({ left: 100, top: 100 });
+    expect(placeMenu({ x: 1000, y: 700 }, size, viewport)).toMatchObject({ left: 800, top: 400 });
+    expect(placeMenu({ x: 150, y: 100, align: 'end' }, size, viewport)).toMatchObject({ left: 150, top: 100 });
+    expect(placeMenu({ x: 1000, y: 100, align: 'end' }, size, viewport)).toMatchObject({ left: 800, top: 100 });
   });
 
   it('lines an end-aligned menu up with the right edge of its control', () => {
