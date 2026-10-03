@@ -3,10 +3,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { DEFAULT_PICTURE_URL_TEMPLATES } from '@app/services';
 
 import { cardDatabaseService } from './CardDatabaseService';
+import { toCardDataError, type CardDataError } from './cardDataError';
 
 export interface PictureUrlTemplates {
   loading: boolean;
-  error: string | null;
+  error: CardDataError | null;
   templates: string[];
   selectedIndex: number | null;
   select: (index: number | null) => void;
@@ -26,7 +27,7 @@ export function usePictureUrlTemplates(): PictureUrlTemplates {
   const [templates, setTemplates] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<CardDataError | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,7 +38,7 @@ export function usePictureUrlTemplates(): PictureUrlTemplates {
       }
     }).catch((e: Error) => {
       if (!cancelled) {
-        setError(e.message);
+        setError(toCardDataError('load', e));
         setLoading(false);
       }
     });
@@ -53,7 +54,7 @@ export function usePictureUrlTemplates(): PictureUrlTemplates {
       setTemplates(next);
       setSelectedIndex(nextSelected);
     } catch (e) {
-      setError((e as Error).message);
+      setError(toCardDataError('save', e));
     }
   }, []);
 

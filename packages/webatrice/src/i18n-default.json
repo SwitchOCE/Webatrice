@@ -475,6 +475,10 @@
     },
     "message": {
       "reset": "Download URLs have been reset."
+    },
+    "error": {
+      "load": "Could not read the download URLs: {error}",
+      "save": "Could not save the download URLs: {error}"
     }
   },
   "EditTokens": {
@@ -507,7 +511,11 @@
       "tooLong": "At most {max} characters",
       "conflict": "The chosen name conflicts with an existing card or token. Make sure to enable the 'Token' set in the \"Manage sets\" dialog to display them correctly."
     },
-    "selectHint": "Select a token to edit it."
+    "selectHint": "Select a token to edit it.",
+    "error": {
+      "load": "Could not read your tokens: {error}",
+      "save": "Could not save your tokens: {error}"
+    }
   },
   "ManageSets": {
     "search": "Search by set name, code, type, or release date",
@@ -549,7 +557,11 @@
       "cardArt": "Card Art: image priority is decided in the following order: first the printing a card was chosen with, then the enabled sets in this list (top to bottom), then disabled sets."
     },
     "empty": "No sets loaded. Import a card database first.",
-    "saved": "Set preferences saved."
+    "saved": "Set preferences saved.",
+    "error": {
+      "load": "Could not read the sets: {error}",
+      "save": "Could not save the set preferences: {error}"
+    }
   },
   "KnownHostDialog": {
     "title": "{mode, select, edit {Edit} other {Add}} Known Host",

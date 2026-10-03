@@ -165,6 +165,12 @@ describe('ManageSets', () => {
     expect(hook.select).not.toHaveBeenCalled();
   });
 
+  it('shows a failed save as a translated message with the error as detail', () => {
+    hoisted.useManageSets.mockReturnValue(makeHook({ error: { key: 'save', detail: 'QuotaExceededError' } }));
+    renderWithProviders(<ManageSets />);
+    expect(screen.getByRole('alert')).toHaveTextContent('ManageSets.error.save');
+  });
+
   it('explains when no sets are loaded', () => {
     hoisted.useManageSets.mockReturnValue(makeHook({ rows: [], visibleRows: [] }));
     renderWithProviders(<ManageSets />);
