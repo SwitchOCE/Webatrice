@@ -45,7 +45,7 @@ const SETTER_NAMES: ReadonlyArray<keyof GameDialogSetters> = [
   'setRollDieOpen',
   'setLastDieSides',
   'setLastDieCount',
-  'setCreateTokenOpen',
+  'setCreateTokenRequest',
   'setSideboardOpen',
   'setRevealState',
   'setConcedeConfirm',

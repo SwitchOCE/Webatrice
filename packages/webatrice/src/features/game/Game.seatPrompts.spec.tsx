@@ -3,7 +3,7 @@
 // commands a valid answer sends. Phase 6 (PB-12) moves these from PlayerBox's
 // own modals to the game's PromptDialog; these assertions hold for both.
 
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
@@ -330,7 +330,7 @@ describe('seat create-token dialog', () => {
     `);
   });
 
-  it('refuses a blank name and sends nothing on cancel', () => {
+  it('refuses a blank name and sends nothing on cancel', async () => {
     const game = renderSeats();
     openContextMenu(battlefieldEl(1));
     chooseMenuPath('Create token...');
@@ -340,7 +340,7 @@ describe('seat create-token dialog', () => {
     expect(tokenDialog()).toBeInTheDocument();
 
     fireEvent.click(within(tokenDialog()).getByRole('button', { name: 'Cancel' }));
-    expect(screen.queryByRole('dialog', { name: /^create token$/i })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: /^create token$/i })).not.toBeInTheDocument());
     expect(wire(game)).toEqual([]);
   });
 

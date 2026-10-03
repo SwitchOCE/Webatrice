@@ -60,11 +60,14 @@ const COLOR_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: '', label: 'Colorless' },
 ];
 
-// Self-sources its open state and the submit / cancel handlers from
-// GameDialogsContext, so Game renders it propless.
+// Self-sources its open state, seed values and the submit / cancel handlers
+// from GameDialogsContext, so Game renders it propless. The seat opens it with
+// its last token (see CreateTokenRequest).
+// Desktop DlgCreateToken: predefined-token chooser beside the free-form fields.
 function CreateTokenDialog() {
   const {
     createTokenOpen: isOpen,
+    createTokenInitial: initial,
     handleCreateTokenSubmit: onSubmit,
     closeCreateToken: onCancel,
   } = useGameDialogsContext();
@@ -88,7 +91,7 @@ function CreateTokenDialog() {
     setDestroyOnZoneChange,
     setFaceDown,
     handleSubmit,
-  } = useCreateTokenDialog({ isOpen, onSubmit });
+  } = useCreateTokenDialog({ isOpen, onSubmit, initial });
 
   return (
     <StyledDialog
