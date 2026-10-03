@@ -2,4 +2,6 @@
 - 01 origin/master..a3f242c → new tip a3f242c (unchanged)
 - 02 a3f242c..d3909f3 → new tip d3909f3 (unchanged)
 - 03 a5fbad4..f1df593 → new tip 1c0e2a4, typecheck ok
-- 12 f24ddd9..54287c0 → new tip 9f7bb2d, typecheck ok (conflicts: command-name unions, i18n regenerated)
+- 12 f24ddd9..54287c0 → new tip 7916e70, typecheck ok (conflicts: command-name unions, i18n regenerated)
+- 12 note: fixed 12's ModerationProvider.spec 3.1 fixture to beta.12 (03's DEVELOPER_ROLE gate) in 'offer developer role changes only on 3.1 servers'
+- 04 54287c0..d1cf623 → new tip f750c4f, typecheck ok, unit tests green (sock 791, data 1165, web 1307+2 skipped)
