@@ -4,6 +4,7 @@ import { cx } from '@app/utils';
 
 import { BoardCell } from '../../../hooks/useGameBoardLayout';
 import PlayerBoard from '../PlayerBoard/PlayerBoard';
+import { useGameSay } from './useGameSay';
 import { useOpenDeckInEditor } from './useOpenDeckInEditor';
 import { usePlayerCardCommands } from './usePlayerCardCommands';
 import { usePlayerCounterCommands } from './usePlayerCounterCommands';
@@ -35,6 +36,7 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   const counter = usePlayerCounterCommands(cell.playerId);
   const target = usePlayerTargetCommands(cell.playerId);
   const onOpenDeckInEditor = useOpenDeckInEditor(cell.playerId, cell.isLocal);
+  const onSay = useGameSay(cell.isLocal);
 
   // Every port is undefined while the game id is unknown; there is no seat to
   // command until then.
@@ -48,7 +50,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
       className={cx('game__board-cell', { 'game__board-cell--mirrored': cell.mirrored })}
       style={{ gridColumn: cell.col + 1, gridRow: cell.row + 1 }}
     >
-      {commands && <PlayerBoard model={model} commands={commands} onOpenDeckInEditor={onOpenDeckInEditor} />}
+      {commands && (
+        <PlayerBoard model={model} commands={commands} onOpenDeckInEditor={onOpenDeckInEditor} onSay={onSay} />
+      )}
     </div>
   );
 }

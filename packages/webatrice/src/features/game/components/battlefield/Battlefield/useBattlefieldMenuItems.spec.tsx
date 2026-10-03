@@ -41,6 +41,7 @@ function setup(args: Partial<UseBattlefieldMenuItemsArgs> = {}) {
   const props: UseBattlefieldMenuItemsArgs = {
     seatId: 1,
     customZones: [],
+    onSay: undefined,
     handMenuItems: marker('hand items'),
     libraryMenuItems: marker('library items'),
     graveMenuItemsSelf: marker('own graveyard items'),
@@ -82,6 +83,12 @@ describe('useBattlefieldMenuItems', () => {
     ]);
     expect(labels(find(battlefieldMenuItems, 'Hand').submenu!)).toEqual(['hand items']);
     expect(labels(find(battlefieldMenuItems, 'Graveyard').submenu!)).toEqual(['own graveyard items']);
+  });
+
+  it('ends the local seat\'s menu with Say after Tally', () => {
+    const { battlefieldMenuItems } = setup({ onSay: vi.fn() });
+    expect(labels(battlefieldMenuItems).slice(-2)).toEqual(['Tally', 'Say']);
+    expect(labels(setup().battlefieldMenuItems).slice(-1)).toEqual(['Tally']);
   });
 
   it('lists custom zones after Sideboard and views one by name', () => {
