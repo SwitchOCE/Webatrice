@@ -1,4 +1,4 @@
-import { useCallback, useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 
 import { games } from '@cockatrice/datatrice';
 
@@ -125,7 +125,5 @@ export function usePlaymatSettings(): PlaymatSettings {
 
 /** Reactive read plus the setter, for the settings panel. */
 export function usePlaymatSettingsState(): [PlaymatSettings, (patch: Partial<PlaymatSettings>) => void] {
-  const value = usePlaymatSettings();
-  const update = useCallback((patch: Partial<PlaymatSettings>) => setPlaymatSettings(patch), []);
-  return [value, update];
+  return [usePlaymatSettings(), setPlaymatSettings];
 }
