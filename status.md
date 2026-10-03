@@ -3,3 +3,4 @@
 - 16:49Z PlayerBox gone: model+commands, usePlayerSeat, regions (PlayerInfoPanel/ZoneStack/StackColumn/Battlefield/HandZone), SeatCardMenus, PlayerBoard rendered by GameBoardCell (tip 9e8f64c) → Phase 8 cleanup (SideboardDialog etc), split usePlayerSeat into region hooks, region specs, gate
 - 17:14Z Phase 8 SideboardDialog/PlayerContextMenu deleted, library-view+judge-override integration revived; usePlayerSeat split started (card metadata, draw flights, pending arrows, battlefield layout) tip 0925dca → menus/prompts/shortcuts/marquee/dnd hooks, then gate
 - 17:55Z usePlayerSeat split done (13 hooks w/ specs), BoardCellContext + gridMath attachment helpers removed, comment sweep; tip 517cda1 → region component specs, then full gate + e2e
+- 18:24Z DONE: full gate green, e2e 36/36 (staff-tools needed docker CLI in container), PR Stage 5 written; tip 7e91c45
