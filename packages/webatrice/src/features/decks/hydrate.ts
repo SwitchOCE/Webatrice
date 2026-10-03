@@ -1,6 +1,6 @@
 import { ScryfallImageSize } from '@cockatrice/datatrice';
 
-import { lookupCards, type LookupResult, type PrintingSummary } from './cardLookup';
+import { lookupCards, type LookupResult, type PrintingSummary } from '@app/services';
 import { parseCod } from './cod';
 import type { DeckCard, HydratedDeck, ParsedCard, ParsedDeck } from './types';
 

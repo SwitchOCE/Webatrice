@@ -2,8 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Dexie from 'dexie';
 
 import { cardDatabaseService } from '../../../../src/feature-widgets/card-import/CardDatabaseService';
-import { currentCardDataPreferences } from '@app/hooks';
-import { dexieService } from '@app/services';
+import { currentCardDataPreferences, dexieService } from '@app/services';
 import { schemaV1 } from '../../../../src/services/dexie/DexieSchemas/v1.schema';
 import { schemaV2 } from '../../../../src/services/dexie/DexieSchemas/v2.schema';
 import { schemaV6 } from '../../../../src/services/dexie/DexieSchemas/v6.schema';

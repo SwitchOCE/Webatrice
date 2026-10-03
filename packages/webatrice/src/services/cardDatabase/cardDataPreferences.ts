@@ -26,3 +26,28 @@ export async function loadCardDataPreferences(): Promise<CardDataPreferences> {
     pictureUrlTemplates: settings.pictureUrlTemplates,
   };
 }
+
+let snapshot: Promise<CardDataPreferences> | undefined;
+
+/**
+ * Process-wide snapshot of the preferences for one-off async readers such as
+ * the card catalog. Loaded once and replaced only by `refreshCardDataPreferences`,
+ * so readers can compare snapshots by identity to drop caches built under old ones.
+ */
+export function currentCardDataPreferences(): Promise<CardDataPreferences> {
+  if (!snapshot) {
+    snapshot = loadCardDataPreferences();
+    // A failed load is retried on the next read rather than cached.
+    snapshot.catch(() => {
+      snapshot = undefined;
+    });
+  }
+  return snapshot;
+}
+
+/** Reload the snapshot after the card-database dialogs save new choices. */
+export async function refreshCardDataPreferences(): Promise<CardDataPreferences> {
+  const next = await loadCardDataPreferences();
+  snapshot = Promise.resolve(next);
+  return next;
+}

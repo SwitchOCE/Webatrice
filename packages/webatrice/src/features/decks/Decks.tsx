@@ -26,7 +26,7 @@ import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { RouteEnum } from '@app/types';
 
-import { lookupCards, type LookupResult } from './cardLookup';
+import { lookupCards, type LookupResult } from '@app/services';
 import { emptyCod, parseCod, serializeCod } from './cod';
 import { parseDecklist, type ParsedEntry } from './decklistParser';
 import { assembleDeckCard } from './hydrate';
