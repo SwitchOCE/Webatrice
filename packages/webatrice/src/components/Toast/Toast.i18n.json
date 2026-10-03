@@ -1,6 +1,8 @@
 {
   "Toast": {
     "region": "Notifications",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "more": "+{count} more",
+    "showFewer": "Show fewer"
   }
 }
