@@ -8,5 +8,8 @@ export function reportAssign(reportId: number): void {
     onSuccess: () => {
       WebClient.instance.response.moderator.reportAssigned?.(reportId);
     },
+    onError: (responseCode) => {
+      WebClient.instance.response.moderator.commandFailed?.('reportAssign', responseCode, String(reportId));
+    },
   });
 }

@@ -503,4 +503,12 @@ describe('SessionResponseImpl forwards', () => {
     impl.replayDownloaded(1, response);
     expect(dispatch).toHaveBeenCalledWith(ServerActions.replayDownloaded({ replayId: 1, replayData }));
   });
+
+  it('commandFailed dispatches sessionCommandFailed with the command, code and target', () => {
+    const { impl, dispatch } = setup();
+    impl.commandFailed('deckShareList', Response_ResponseCode.RespNameNotFound, 'tok');
+    expect(dispatch).toHaveBeenCalledWith(
+      ServerActions.sessionCommandFailed({ command: 'deckShareList', responseCode: Response_ResponseCode.RespNameNotFound, target: 'tok' }),
+    );
+  });
 });

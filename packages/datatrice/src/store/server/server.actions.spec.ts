@@ -298,6 +298,20 @@ describe('Actions', () => {
     });
   });
 
+  it('moderatorCommandFailed', () => {
+    expect(Actions.moderatorCommandFailed({ command: 'reportList', responseCode: 13, target: '' })).toEqual({
+      type: Types.MODERATOR_COMMAND_FAILED,
+      payload: { command: 'reportList', responseCode: 13, target: '' },
+    });
+  });
+
+  it('sessionCommandFailed', () => {
+    expect(Actions.sessionCommandFailed({ command: 'reportDetails', responseCode: 13, target: '4' })).toEqual({
+      type: Types.SESSION_COMMAND_FAILED,
+      payload: { command: 'reportDetails', responseCode: 13, target: '4' },
+    });
+  });
+
   it('getAdminNotes', () => {
     expect(Actions.getAdminNotes({ userName: 'Ned', notes: 'some notes' })).toEqual({
       type: Types.GET_ADMIN_NOTES,

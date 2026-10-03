@@ -11,6 +11,9 @@ export function reportResolve(reportId: number, resolutionNote?: string, dismiss
       onSuccess: () => {
         WebClient.instance.response.moderator.reportResolved?.(reportId, dismissed);
       },
+      onError: (responseCode) => {
+        WebClient.instance.response.moderator.commandFailed?.('reportResolve', responseCode, String(reportId));
+      },
     },
   );
 }

@@ -13,5 +13,8 @@ export function viewLogHistory(filters: ViewLogHistoryParams): void {
     onSuccess: (response) => {
       WebClient.instance.response.moderator.viewLogs(response.logMessage);
     },
+    onError: (responseCode) => {
+      WebClient.instance.response.moderator.commandFailed?.('viewLogHistory', responseCode, filters.userName ?? '');
+    },
   });
 }

@@ -86,6 +86,7 @@ const session = {
   publicDeckDownloaded: vi.fn(),
   reportMyList: vi.fn(),
   reportDetails: vi.fn(),
+  commandFailed: vi.fn(),
 };
 
 const room = {
@@ -169,11 +170,13 @@ const moderator = {
   reportResolved: vi.fn(),
   reportUserInfo: vi.fn(),
   reportStats: vi.fn(),
+  commandFailed: vi.fn(),
   replayDownloadedByGameId: vi.fn(),
 };
 
 const developer = {
   serverStats: vi.fn(),
+  commandFailed: vi.fn(),
 };
 
 export const WebClient = {

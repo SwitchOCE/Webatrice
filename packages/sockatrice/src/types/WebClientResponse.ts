@@ -131,7 +131,8 @@ export interface ISessionResponse {
   // ── Cockatrice 3.1 protocol additions ─────────────────────────────────────
   // Optional so existing IWebClientResponse implementations keep compiling; a
   // consumer that omits one simply drops that response. 3.0 servers never
-  // answer these commands successfully, so nothing reaches them there.
+  // answer these commands successfully, so nothing reaches them there. A
+  // refused query reaches the scope's optional commandFailed instead.
 
   /** Deck share links (#7241). */
   deckShareCreated?(response: Response_DeckShareCreate): void;
@@ -146,6 +147,13 @@ export interface ISessionResponse {
   /** The caller's own reports (#7091). */
   reportMyList?(reports: ServerInfo_Report[]): void;
   reportDetails?(report: ServerInfo_Report): void;
+
+  /**
+   * A query above failed; `target` names what it acted on (a share token, deck,
+   * share or report id as a string, a user name, or '' for a list). Optional for
+   * backward compatibility.
+   */
+  commandFailed?(command: SessionCommandName, responseCode: number, target: string): void;
 }
 
 export interface IRoomResponse<T extends RoomEventMap = WebSocketRoomResponseOverrides> {
@@ -200,6 +208,47 @@ export interface IGameResponse {
   gameLogNotice?(gameId: number, playerId: number, noticeType: Event_GameLogNotice_NoticeType): void;
 }
 
+/**
+ * Session queries (Cockatrice 3.1) whose failure the view that asked must show,
+ * as desktop's deck-share and report dialogs do.
+ */
+export type SessionCommandName =
+  | 'deckShareCreate'
+  | 'deckShareList'
+  | 'deckShareDownload'
+  | 'deckShareListMine'
+  | 'deckShareRemove'
+  | 'deckListOtherUser'
+  | 'deckSetVisibility'
+  | 'deckDownloadPublic'
+  | 'reportMyList'
+  | 'reportDetails';
+
+/**
+ * Moderator commands whose non-OK response the desktop client reports to the
+ * moderator (tab_report.cpp "Failed to load reports.", "No replay available";
+ * tab_moderation.cpp "Error loading user info."). `viewLogHistory` covers the
+ * developer-family log lookup, whose result also lands in viewLogs.
+ */
+export type ModeratorCommandName =
+  | 'viewLogHistory'
+  | 'listCardArtRules'
+  | 'addCardArtRule'
+  | 'removeCardArtRule'
+  | 'getUserSessions'
+  | 'getUserAlts'
+  | 'getModeratorLastLogins'
+  | 'removeUserAvatar'
+  | 'reportList'
+  | 'reportAssign'
+  | 'reportResolve'
+  | 'reportUserInfo'
+  | 'reportStats'
+  | 'replayDownloadByGameId';
+
+/** Developer commands whose failure desktop's TabDeveloper reports. */
+export type DeveloperCommandName = 'getServerStats';
+
 export interface IAdminResponse {
   /** Each flag is `undefined` when the command left that role unchanged (proto2 presence). */
   adjustMod(userName: string, shouldBeMod?: boolean, shouldBeJudge?: boolean, shouldBeDeveloper?: boolean): void;
@@ -222,7 +271,7 @@ export interface IModeratorResponse {
 
   // ── Cockatrice 3.1 protocol additions (optional; see ISessionResponse) ────
 
-  /** Card-art rules (#7101). */
+  /** Card-art rules (#6981). */
   cardArtRules?(entries: Response_CardArtRuleEntry[]): void;
   cardArtRuleAdded?(cardName: string, cardProviderId: string, mode: string, reason: string): void;
   cardArtRuleRemoved?(cardName: string, cardProviderId: string): void;
@@ -238,11 +287,20 @@ export interface IModeratorResponse {
   reportUserInfo?(info: Response_ReportUserInfo): void;
   reportStats?(stats: Response_ReportStats): void;
   replayDownloadedByGameId?(gameId: number, response: Response_ReplayDownloadByGameId): void;
+
+  /**
+   * A command failed; `target` names what it acted on (a user name, card name,
+   * or the report or game id as a string; '' for a list). Optional for
+   * backward compatibility.
+   */
+  commandFailed?(command: ModeratorCommandName, responseCode: number, target: string): void;
 }
 
 /** Developer staff role (#7211, #7212). Developer log lookups route to IModeratorResponse.viewLogs. */
 export interface IDeveloperResponse {
   serverStats?(stats: Response_GetServerStats): void;
+  /** A developer command failed; same contract as IModeratorResponse.commandFailed. */
+  commandFailed?(command: DeveloperCommandName, responseCode: number, target: string): void;
 }
 
 export interface IWebClientResponse<

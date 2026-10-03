@@ -9,5 +9,8 @@ export function getServerStats(): void {
     onSuccess: (response) => {
       WebClient.instance.response.developer?.serverStats?.(response);
     },
+    onError: (responseCode) => {
+      WebClient.instance.response.developer?.commandFailed?.('getServerStats', responseCode, '');
+    },
   });
 }
