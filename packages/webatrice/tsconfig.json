@@ -31,6 +31,7 @@
       "@app/features/shortcuts": ["./src/features/shortcuts/index.ts"],
       "@app/feature-widgets/card-import": ["./src/feature-widgets/card-import/index.ts"],
       "@app/feature-widgets/known-hosts": ["./src/feature-widgets/known-hosts/index.ts"],
+      "@app/feature-widgets/moderation": ["./src/feature-widgets/moderation/index.ts"],
       "@app/feature-widgets/shortcuts": ["./src/feature-widgets/shortcuts/index.ts"],
       "@app/store": ["./src/store/index.ts"],
       "@app/types": ["./src/types/index.ts"],

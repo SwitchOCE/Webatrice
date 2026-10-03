@@ -12,6 +12,7 @@ vi.mock('@cockatrice/datatrice/react', async (importOriginal) => {
   return { ...actual, useWebClient: () => hoisted.mockWebClient };
 });
 
+import { ModerationProvider } from '@app/feature-widgets/moderation';
 import Player from './Player';
 
 beforeAll(() => {
@@ -20,9 +21,11 @@ beforeAll(() => {
 
 function renderPlayer(preloadedState: any, name = 'alice') {
   return renderWithProviders(
-    <Routes>
-      <Route path="/player/:name" element={<Player />} />
-    </Routes>,
+    <ModerationProvider>
+      <Routes>
+        <Route path="/player/:name" element={<Player />} />
+      </Routes>
+    </ModerationProvider>,
     { preloadedState, route: `/player/${name}` },
   );
 }
@@ -79,8 +82,29 @@ describe('Player', () => {
       },
     };
     renderPlayer(state, 'alice');
-    expect(screen.getByRole('button', { name: /Player\.action\.warn/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Player\.action\.ban/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Moderation.menu.warnUser' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Moderation.menu.banHistory' })).toBeEnabled();
+    expect(screen.queryByRole('button', { name: 'Moderation.menu.promoteMod' })).not.toBeInTheDocument();
+
+    // Warn starts desktop's round trip: user info first (for the client id).
+    fireEvent.click(screen.getByRole('button', { name: 'Moderation.menu.warnUser' }));
+    expect(hoisted.mockWebClient.request.session.getUserInfo).toHaveBeenCalledWith('alice');
+  });
+
+  it('hides moderator actions from regular users', () => {
+    const user = makeUser({ name: 'alice', userLevel: 0 });
+    renderPlayer(stateWithPlayer(user), 'alice');
+    expect(screen.queryByRole('button', { name: 'Moderation.menu.warnUser' })).not.toBeInTheDocument();
+  });
+
+  it('shows moderator actions disabled on your own profile', () => {
+    const self = makeUser({ name: 'testUser', userLevel: ServerInfo_User_UserLevelFlag.IsModerator });
+    const state = {
+      ...stateWithPlayer(self),
+      server: { ...(stateWithPlayer(self).server as any), user: self },
+    };
+    renderPlayer(state, 'testUser');
+    expect(screen.getByRole('button', { name: 'Moderation.menu.warnUser' })).toBeDisabled();
   });
 
   it('renders the remove-buddy label when the player is already a buddy', () => {

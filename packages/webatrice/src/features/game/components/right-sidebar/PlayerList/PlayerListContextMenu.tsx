@@ -2,7 +2,6 @@ import { memo, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import type { ServerInfo_User } from '@cockatrice/sockatrice/generated';
-import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 
 import type { ContextMenuItem } from '../../PlayerBox/ContextMenu';
 import { useViewportClampedPopup } from '../../PlayerBox/useViewportClampedPopup';
@@ -16,8 +15,8 @@ import { useViewportClampedPopup } from '../../PlayerBox/useViewportClampedPopup
  *   - Always shown: header label, User details, Private chat
  *   - Both users registered: Add/remove buddy + ignore toggles
  *   - Local user is host or moderator: Kick from game
- *   - Local user is moderator: Warn/Ban + history + admin notes
- *   - Local user is admin: Promote/demote moderator + judge
+ *   - Moderator / admin section: supplied by the moderation feature-widget
+ *     (`useModerationMenu`), shared with every other user context menu
  *
  * This is a "controlled" popup — the parent tracks {anchor, target} in
  * state and passes them in. That avoids wrapping each `<li>` in a
@@ -36,7 +35,6 @@ export interface PlayerListMenuLocal {
   isHost: boolean;
   isRegistered: boolean;
   isModerator: boolean;
-  isAdmin: boolean;
 }
 
 export interface PlayerListMenuActions {
@@ -48,13 +46,6 @@ export interface PlayerListMenuActions {
   onAddIgnore: (userName: string) => void;
   onRemoveIgnore: (userName: string) => void;
   onKickFromGame: (userName: string) => void;
-  onOpenWarn: (userName: string) => void;
-  onOpenWarnHistory: (userName: string) => void;
-  onOpenBan: (userName: string) => void;
-  onOpenBanHistory: (userName: string) => void;
-  onOpenAdminNotes: (userName: string) => void;
-  onAdjustMod: (userName: string, shouldBeMod: boolean) => void;
-  onAdjustJudge: (userName: string, shouldBeJudge: boolean) => void;
 }
 
 interface Props {
@@ -63,16 +54,10 @@ interface Props {
   local: PlayerListMenuLocal;
   buddyList: { [userName: string]: ServerInfo_User };
   ignoreList: { [userName: string]: ServerInfo_User };
-  targetUserFromServer: ServerInfo_User | undefined;
+  /** The moderator/admin section, already labelled and gated (empty for regular users). */
+  moderationItems: ContextMenuItem[];
   actions: PlayerListMenuActions;
   onDismiss: () => void;
-}
-
-function targetHasLevelFlag(user: ServerInfo_User | undefined, flag: ServerInfo_User_UserLevelFlag): boolean {
-  if (!user) {
-    return false;
-  }
-  return (user.userLevel & flag) === flag;
 }
 
 function buildItems(
@@ -80,7 +65,7 @@ function buildItems(
   local: PlayerListMenuLocal,
   buddyList: Props['buddyList'],
   ignoreList: Props['ignoreList'],
-  targetUserFromServer: ServerInfo_User | undefined,
+  moderationItems: ContextMenuItem[],
   actions: PlayerListMenuActions,
 ): ContextMenuItem[] {
   const items: ContextMenuItem[] = [];
@@ -141,48 +126,7 @@ function buildItems(
     });
   }
 
-  if (local.isModerator && !target.isSelf) {
-    items.push({ divider: true });
-    items.push({
-      label: 'Warn user',
-      onClick: () => actions.onOpenWarn(target.userName),
-    });
-    items.push({
-      label: 'View user\'s warn history',
-      onClick: () => actions.onOpenWarnHistory(target.userName),
-    });
-    items.push({ divider: true });
-    items.push({
-      label: 'Ban from server',
-      onClick: () => actions.onOpenBan(target.userName),
-    });
-    items.push({
-      label: 'View user\'s ban history',
-      onClick: () => actions.onOpenBanHistory(target.userName),
-    });
-    items.push({ divider: true });
-    items.push({
-      label: 'View admin notes',
-      onClick: () => actions.onOpenAdminNotes(target.userName),
-    });
-  }
-
-  // Admin-only role adjustments. Cockatrice gates these on the local
-  // user's IsAdmin flag (user_context_menu.cpp:401-411). Labels flip
-  // between Promote/Demote based on the target's current userLevel.
-  if (local.isAdmin && !target.isSelf) {
-    items.push({ divider: true });
-    const isMod = targetHasLevelFlag(targetUserFromServer, ServerInfo_User_UserLevelFlag.IsModerator);
-    items.push({
-      label: isMod ? 'Demote user from moderator' : 'Promote user to moderator',
-      onClick: () => actions.onAdjustMod(target.userName, !isMod),
-    });
-    const isJudge = targetHasLevelFlag(targetUserFromServer, ServerInfo_User_UserLevelFlag.IsJudge);
-    items.push({
-      label: isJudge ? 'Demote user from judge' : 'Promote user to judge',
-      onClick: () => actions.onAdjustJudge(target.userName, !isJudge),
-    });
-  }
+  items.push(...moderationItems);
 
   return items;
 }
@@ -198,7 +142,7 @@ function PlayerListContextMenu({
   local,
   buddyList,
   ignoreList,
-  targetUserFromServer,
+  moderationItems,
   actions,
   onDismiss,
 }: Props) {
@@ -240,7 +184,7 @@ function PlayerListContextMenu({
     local,
     buddyList,
     ignoreList,
-    targetUserFromServer,
+    moderationItems,
     actions,
   );
   return createPortal(

@@ -7,6 +7,7 @@ import './AppShell.css';
 import { ToastProvider } from '@app/components';
 import { useSyncLocaleToStore } from '@app/hooks';
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
+import { ModerationProvider } from '@app/feature-widgets/moderation';
 import { loadPersistedLastRoute, ShellLifecycleProvider } from '@app/feature-wrappers/layout';
 import { PrivateMessageNotifier } from '@app/features/player';
 import { FeatureDetection } from '@app/features/shell';
@@ -49,7 +50,9 @@ function AppShell() {
                *  useLocation work; inside ToastProvider so pushToast
                *  is available. */}
               <PrivateMessageNotifier />
-              <Routes />
+              <ModerationProvider>
+                <Routes />
+              </ModerationProvider>
             </ShortcutProvider>
           </ShellLifecycleProvider>
         </Router>

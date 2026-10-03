@@ -12,7 +12,6 @@ export interface PlayerViewModel {
   isSelf: boolean;
   isABuddy: boolean;
   isIgnored: boolean;
-  isModerator: boolean;
   // Full private-chat history with this user (both sides). Empty until
   // the first message goes either way. Cockatrice's shared reducer
   // keys both sent + received under the OTHER user's name, so a
@@ -24,8 +23,6 @@ export interface PlayerViewModel {
   onAddIgnore: () => void;
   onRemoveIgnore: () => void;
   onSendMessage: (message: string) => void;
-  onWarnUser: (reason: string) => void;
-  onBanFromServer: (minutes: number, reason: string, visibleReason?: string) => void;
 }
 
 export function usePlayer(): PlayerViewModel {
@@ -39,7 +36,6 @@ export function usePlayer(): PlayerViewModel {
   const currentUser = useAppSelector(server.Selectors.getUser);
   const buddyList = useAppSelector(server.Selectors.getBuddyList);
   const ignoreList = useAppSelector(server.Selectors.getIgnoreList);
-  const isModerator = useAppSelector(server.Selectors.getIsUserModerator);
   const privateMessages = useAppSelector((state) =>
     name ? server.Selectors.getPrivateMessagesForUser(state, name) : [],
   );
@@ -61,9 +57,6 @@ export function usePlayer(): PlayerViewModel {
   const onAddIgnore = () => name && webClient.request.session.addToIgnoreList(name);
   const onRemoveIgnore = () => name && webClient.request.session.removeFromIgnoreList(name);
   const onSendMessage = (message: string) => name && webClient.request.session.message(name, message);
-  const onWarnUser = (reason: string) => name && webClient.request.moderator.warnUser(name, reason);
-  const onBanFromServer = (minutes: number, reason: string, visibleReason?: string) =>
-    name && webClient.request.moderator.banFromServer(minutes, name, undefined, reason, visibleReason);
 
   return {
     name,
@@ -72,14 +65,11 @@ export function usePlayer(): PlayerViewModel {
     isSelf,
     isABuddy,
     isIgnored,
-    isModerator,
     privateMessages,
     onAddBuddy,
     onRemoveBuddy,
     onAddIgnore,
     onRemoveIgnore,
     onSendMessage,
-    onWarnUser,
-    onBanFromServer,
   };
 }

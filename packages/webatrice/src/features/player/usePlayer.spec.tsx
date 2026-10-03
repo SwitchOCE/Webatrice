@@ -95,20 +95,10 @@ describe('usePlayer', () => {
     expect(webClient.request.session.removeFromIgnoreList).toHaveBeenCalledWith('alice');
   });
 
-  it('onSendMessage / onWarnUser / onBanFromServer forward to the web client', () => {
+  it('onSendMessage forwards to the web client', () => {
     const { result, webClient } = setup(stateWithPlayer('alice'), 'alice');
     result.current.onSendMessage('hi');
     expect(webClient.request.session.message).toHaveBeenCalledWith('alice', 'hi');
-    result.current.onWarnUser('bad');
-    expect(webClient.request.moderator.warnUser).toHaveBeenCalledWith('alice', 'bad');
-    result.current.onBanFromServer(60, 'reason', 'visible');
-    expect(webClient.request.moderator.banFromServer).toHaveBeenCalledWith(
-      60,
-      'alice',
-      undefined,
-      'reason',
-      'visible',
-    );
   });
 
   it('handlers no-op when there is no player name', () => {
