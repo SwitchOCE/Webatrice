@@ -25,16 +25,16 @@ Constants in [gridMath.ts](../../packages/webatrice/src/features/game/components
 - `mapToGridX` adds `paddingX/2` to the pointer x before walking the stack columns — that's how desktop snaps a pointer near a stack boundary to the **nearer** stack rather than the leftmost.
 - `closestGridPoint` returns `null` when all `MAX_SUBPOS` slots in the target stack are occupied. Desktop drops the card from the drag list at `card_drag_item.cpp:115` (silent reject). Callers must skip dispatching `moveCard` on `null`, not log an error.
 - `stackCountsForRow` does **not** filter — the caller must exclude attached children from `cards` before passing them in. Attached children share their parent's stack column and don't claim a slot of their own.
-- `applyInvertY` is the only place y-inversion happens. Rendering already reverses `rowOrder` in `useBattlefield`; inverting again at render double-flips. Invert only when sending a move to a mirrored board (or when `invertVerticalCoordinate` is set and the board isn't mirrored).
+- `applyInvertY` is the only place y-inversion happens. Rendering already flips a mirrored board's rows in `useBattlefieldLayout`; inverting again at render double-flips. Invert only when sending a move to a mirrored board (or when `invertVerticalCoordinate` is set and the board isn't mirrored).
 
 ## Attachment stack
 
 Port of `table_zone.cpp:153-185`.
 
 - **Parent ends up rightmost (highest z)**; attached cards fan to the left, first-attached child closest to the parent. Matches desktop's "j=1 = closest to parent" ordering.
-- `ATTACH_OFFSET_FRACTION = 1/3` (desktop's `STACKED_CARD_OFFSET_X / WIDTH = 24/72`) is the **single source of truth** for both visual layout (`AttachmentStack`) and footprint sizing (`BattlefieldStackColumn`). Changing one without the other desyncs row widths from card positions.
-- **Vertical fan offsets** `ATTACH_PARENT_OFFSET_Y_PX = 14` / `ATTACH_CHILD_OFFSET_Y_PX = 6` are ports of `table_zone.cpp:166-185` (`if (numberAttachedCards) actualY += 15` and `childY = y + 5`). Two rules to preserve: (a) parent shifts down **only when N > 0** — without that guard, every standalone card would render shifted; (b) keep the ~3:1 parent:child ratio so children peek above the parent's top edge the way desktop does.
-- **Cross-player attach** (e.g. your aura on opponent's creature): the child still lives in the **original owner's** `TABLE` zone — Servatrice never moves it. Click/drag/arrow wiring must use the child's owner (`AttachedChild.ownerPlayerId`), while the fan renders under the parent's owner.
+- `useBattlefieldLayout` owns both halves of the fan, so they cannot drift: `computeCellWidths` widens the parent's cell by one `STACK_OFFSET_PX` (desktop's `STACKED_CARD_OFFSET_X`, 24 px at scale 1) per attached child (when the parent is alone in its cell; a stacked cell keeps its stack width, as in desktop's `computeCardStackWidths`), and the card positions shift the parent right by the same amount and fan each child one offset further left.
+- **Vertical fan offsets** port `table_zone.cpp:166-185` (`if (numberAttachedCards) actualY += 15` and `childY = y + 5`, scaled with the cards). Two rules to preserve: (a) the parent shifts down **only when N > 0** — without that guard, every standalone card would render shifted; (b) children sit on the **parent's** row, whatever slot the wire gives them.
+- **Cross-player attach** (e.g. your aura on opponent's creature): the child still lives in the **original owner's** `TABLE` zone — Servatrice never moves it. Click/drag/arrow wiring must use the child's owner (`BattlefieldCardViewModel.ownerPlayerId`), while the fan renders under the parent's owner.
 
 ## Phase model
 
