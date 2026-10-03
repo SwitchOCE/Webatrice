@@ -3816,39 +3816,6 @@ function PlayerBox(
   // drag on an opponent's UI wouldn't make sense.
   useRegisterForeignDrag(isSelf ? beginDrag : null);
 
-  // Helpers callsites use at pointerdown time to decide "group drag vs
-  // single". If the clicked card is in the current selection and matches
-  // the selection's zone, drag the whole group. Otherwise, clear the
-  // selection and drag just this one card.
-  const startCardDrag = (
-    e: React.PointerEvent<HTMLElement>,
-    card: HandCard,
-    zone: Selection['zone'],
-    zoneCards: readonly HandCard[],
-  ) => {
-    // Both self and opponent boxes participate — Cockatrice lets you
-    // click / marquee-select on any battlefield. The pointerup handler
-    // interprets a no-move release as a selection change; actual drag
-    // moves are gated on isSelf in applyMove so opponent-card drags
-    // don't attempt wire commands the server would reject.
-    if (
-      selection &&
-      selection.zone === zone &&
-      selection.ids.has(card.id)
-    ) {
-      // Card is part of the current selection — start a group drag. A
-      // no-move release preserves the group; only actual drag+drop or
-      // a click on a non-group card modifies the selection.
-      const group = zoneCards.filter((c) => selection.ids.has(c.id));
-      beginDrag(e, group, zone);
-    } else {
-      // Single-card drag. Selection isn't touched yet — the drag
-      // pointerup handler decides: if the pointer never moved past the
-      // threshold, treat as a click and select just this card. If it
-      // moved, treat as a drag and clear selection on drop.
-      beginDrag(e, [card], zone);
-    }
-  };
   const startPileDrag = (
     e: React.PointerEvent<HTMLElement>,
     card: HandCard,
@@ -6698,16 +6665,22 @@ function PlayerBox(
     zone: pileView?.zone ?? 'graveyard',
     disabled: !pileView,
   });
+  const battlefieldDragSource = useSeatDragSource(`seat-${seatId}-battlefield`, {
+    seatPlayerId: seatId,
+    zone: 'battlefield',
+  });
   const seatDragSources: Partial<Record<DragSourceZone, SeatDragStart>> = {
+    battlefield: battlefieldDragSource,
     hand: handDragSource,
     stack: stackDragSource,
     graveyard: graveyardDragSource,
     exile: exileDragSource,
   };
 
-  // Same group rule as startCardDrag: a press on a card in the selection
-  // drags the selection, in display order; anything else drags the card. A
-  // click on a single card goes to releaseCardPress.
+  // A press on a card in the selection drags the whole selection, in display
+  // order; anything else drags just the card (the selection is only touched
+  // once the gesture ends). Both seats take part: clicking selects on any
+  // battlefield. A click on a single card goes to releaseCardPress.
   const startSeatCardDrag = (
     e: React.PointerEvent<HTMLElement>,
     card: HandCard,
@@ -8389,7 +8362,7 @@ function PlayerBox(
                     // counters / faceDown / tapped rotation. Since
                     // BattlefieldCard extends HandCard structurally,
                     // this widens cleanly at the call site.
-                      startCardDrag(e, c, 'battlefield', battlefieldDisplayList)
+                      startSeatCardDrag(e, c, 'battlefield', battlefieldDisplayList)
                     }
                     onContextMenu={
                       c
