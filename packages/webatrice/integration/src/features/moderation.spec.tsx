@@ -4,6 +4,7 @@
 // message box desktop would show.
 
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { create, isFieldSet } from '@bufbuild/protobuf';
 import type { GenExtension } from '@bufbuild/protobuf/codegenv2';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -150,6 +151,42 @@ describe('moderation round trips (integration)', () => {
       target: { value: 'Cheating' },
     });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Moderation.common.ok' }));
+
+    await waitFor(() => {
+      expect(findLastModeratorCommand(Command_BanFromServer_ext).value).toMatchObject({
+        userName: 'bannee',
+        address: '10.1.2.3',
+        clientid: '',
+        minutes: 0,
+        visibleReason: 'Cheating',
+      });
+    });
+  });
+
+  it('ban by keyboard: Shift+F10 on the name → arrows to "Ban from server" → Enter → BanFromServer', async () => {
+    const user = userEvent.setup();
+    loginAs('mod', MODERATOR);
+    const target = makeTarget('bannee', { address: '10.1.2.3', clientid: '' });
+    renderUserRow(target);
+
+    screen.getByRole('link', { name: /bannee/ }).focus();
+    await user.keyboard('{Shift>}{F10}{/Shift}');
+    const ban = screen.getByRole('menuitem', { name: 'Moderation.menu.banUser' });
+    for (let step = 0; step < 20 && document.activeElement !== ban; step += 1) {
+      await user.keyboard('{ArrowDown}');
+    }
+    expect(ban).toHaveFocus();
+    await user.keyboard('{Enter}');
+
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    const info = findLastSessionCommand(Command_GetUserInfo_ext);
+    expect(info.value.userName).toBe('bannee');
+    respond(info.cmdId, Response_GetUserInfo_ext, create(Response_GetUserInfoSchema, { userInfo: target }));
+
+    const dialog = await screen.findByRole('dialog', { name: 'Moderation.ban.title' });
+    await user.click(within(dialog).getByRole('radio', { name: 'Moderation.ban.permanent' }));
+    await user.type(within(dialog).getByRole('textbox', { name: 'Moderation.ban.visibleReason' }), 'Cheating');
+    await user.click(within(dialog).getByRole('button', { name: 'Moderation.common.ok' }));
 
     await waitFor(() => {
       expect(findLastModeratorCommand(Command_BanFromServer_ext).value).toMatchObject({
