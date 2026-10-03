@@ -1,0 +1,7 @@
+{
+  "ServerUsers": {
+    "title": "Players Online",
+    "count": "{count} connected",
+    "empty": "No one connected."
+  }
+}

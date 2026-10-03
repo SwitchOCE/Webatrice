@@ -27,6 +27,9 @@ import './Login.css';
 // blue login card. Palette is now driven entirely by Login.css using
 // our fancy tokens.
 
+// Sample player names on the showcase cards: names, not UI text.
+const SHOWCASE_PLAYERS = ['1mrlee', 'CyberX', 'Gamer69'];
+
 const Login = () => {
   const { t } = useTranslation();
   useDocumentTitle(t('Login.header.title'));
@@ -128,19 +131,19 @@ const Login = () => {
                   <div className="login-content__description-cards__card leftCard">
                     <div className="login-content__description-cards__card-wrapper">
                       <img src={Images.Faces.face1} alt='' />
-                      <span>1mrlee</span>
+                      <span>{SHOWCASE_PLAYERS[0]}</span>
                     </div>
                   </div>
                   <div className="login-content__description-cards__card rightCard">
                     <div className="login-content__description-cards__card-wrapper">
                       <img src={Images.Faces.face2} alt='' />
-                      <span>CyberX</span>
+                      <span>{SHOWCASE_PLAYERS[1]}</span>
                     </div>
                   </div>
                   <div className="login-content__description-cards__card topCard">
                     <div className="login-content__description-cards__card-wrapper">
                       <img src={Images.Faces.face3} alt='' />
-                      <span>Gamer69</span>
+                      <span>{SHOWCASE_PLAYERS[2]}</span>
                     </div>
                   </div>
                 </div>
