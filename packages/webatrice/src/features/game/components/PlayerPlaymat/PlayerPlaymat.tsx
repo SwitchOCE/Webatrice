@@ -6,7 +6,7 @@ import { getScryfallUrl } from '@app/services';
 import { useAppSelector } from '@app/store';
 
 import { useGameId } from '../ui/GameIdContext';
-import { playmatImageBox, type Size } from './playmatCrop';
+import { playmatImageBox, type Size } from '@app/utils';
 
 interface PlayerPlaymatProps {
   playerId: number;

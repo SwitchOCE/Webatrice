@@ -1,13 +1,12 @@
 {
   "LatencyStatus": {
-    "ping": "Ping: {{ms}} ms",
+    "ping": "Ping: {ms} ms",
     "accessibleName": "Ping",
     "detailsName": "Connection latency details",
-    "summary_one": "Connection quality over the last {{count}} sample:",
-    "summary_other": "Connection quality over the last {{count}} samples:",
-    "last": "Last: {{ms}} ms",
-    "median": "Median: {{ms}} ms",
-    "p95": "95th percentile: {{ms}} ms",
-    "max": "Maximum: {{ms}} ms"
+    "summary": "Connection quality over the last {count, plural, one {# sample} other {# samples}}:",
+    "last": "Last: {ms} ms",
+    "median": "Median: {ms} ms",
+    "p95": "95th percentile: {ms} ms",
+    "max": "Maximum: {ms} ms"
   }
 }

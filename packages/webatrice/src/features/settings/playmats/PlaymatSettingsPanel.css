@@ -1,0 +1,66 @@
+.playmat-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  max-width: 720px;
+}
+
+.playmat-settings__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.playmat-settings__subtitle {
+  margin-top: 8px;
+  font-weight: 600;
+}
+
+.playmat-settings__note,
+.playmat-settings__empty {
+  opacity: 0.7;
+  font-size: 0.875rem;
+}
+
+.playmat-settings__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.playmat-settings__entry-row,
+.playmat-settings__add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.playmat-settings__entry-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playmat-settings__crop {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0 8px 16px;
+}
+
+.playmat-settings__preview {
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #0d1117;
+}
+
+.playmat-settings__slider {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  align-items: center;
+  gap: 12px;
+  max-width: 480px;
+}
