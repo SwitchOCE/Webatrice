@@ -19,6 +19,7 @@ export interface PlaymatSyncState {
   /** Round-robin cursor, advanced when a game of the match ends (TabGame::stopGame). */
   rotation: number;
   wasStarted: boolean;
+  wasReady: boolean;
   /** The settings last resolved with. */
   settings: PlaymatSettings | undefined;
 }
@@ -35,6 +36,7 @@ export function getPlaymatSyncState(gameId: number): PlaymatSyncState {
       lastResolved: null,
       rotation: 0,
       wasStarted: false,
+      wasReady: false,
       settings: undefined,
     };
     states.set(gameId, state);

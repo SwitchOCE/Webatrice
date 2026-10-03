@@ -19,9 +19,10 @@ import { getPlaymatSyncState, prunePlaymatSyncState } from './playmatSyncState';
  * the deck's playmat_params. A new deck hash, or a playmat this client did not
  * send (reselecting the same deck), is taken as the deck's playmat.
  *
- * The playmat is resolved against the user's collection and sent after a deck
- * select and when the settings change; the round-robin cursor advances when a
- * game ends (TabGame::stopGame). Nothing is sent when the result is already announced.
+ * As on desktop, the playmat is resolved against the user's collection and
+ * sent after a deck select, on every Ready, and when the settings change;
+ * the round-robin cursor advances when a game of the match ends
+ * (TabGame::stopGame). Nothing is sent when the result is already announced.
  * The per-game state lives in playmatSyncState, so it survives leaving the
  * game route.
  */
@@ -34,6 +35,7 @@ export function usePlaymatSync(gameId: number | undefined): void {
   const local = game && !game.spectator ? game.players[game.localPlayerId] : undefined;
   const playerId = local?.properties.playerId;
   const deckHash = local?.properties.deckHash ?? '';
+  const ready = local?.properties.readyStart ?? false;
   const announced = useAppSelector((state) =>
     gameId == null || playerId == null ? null : games.Selectors.getPlayerPlaymat(state, gameId, playerId));
   const started = game?.started ?? false;
@@ -51,6 +53,8 @@ export function usePlaymatSync(gameId: number | undefined): void {
       sync.rotation++;
     }
     sync.wasStarted = started;
+    const readied = ready && !sync.wasReady;
+    sync.wasReady = ready;
     if (!deckHash) {
       return;
     }
@@ -58,7 +62,7 @@ export function usePlaymatSync(gameId: number | undefined): void {
       || sync.lastSent === undefined
       || !samePlaymat(announced, sync.lastSent);
     const settingsChanged = sync.settings !== settings;
-    if (!deckSelected && !settingsChanged) {
+    if (!deckSelected && !settingsChanged && !readied) {
       return;
     }
     if (deckSelected) {
@@ -77,5 +81,5 @@ export function usePlaymatSync(gameId: number | undefined): void {
         ? { cardName: resolved.cardName, cardProviderId: resolved.cardProviderId, ...resolved.params }
         : { cardName: '' },
     });
-  }, [supported, gameId, playerId, deckHash, started, announced, settings, webClient]);
+  }, [supported, gameId, playerId, deckHash, ready, started, announced, settings, webClient]);
 }
