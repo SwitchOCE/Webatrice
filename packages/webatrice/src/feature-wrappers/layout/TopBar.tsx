@@ -672,6 +672,19 @@ function detectTransientTab(pathname: string, t: TFunction): Tab | null {
       closeable: true,
     };
   }
+  // An unsaved draft (the game's "Open deck in deck editor") takes the same
+  // single editor slot, as desktop opens it in an editor tab
+  // (tab_supervisor.cpp:989-999); its first save moves it to /deck/:id.
+  const draftMatch = matchPath({ path: RouteEnum.DECK_DRAFT, end: true }, pathname);
+  if (draftMatch) {
+    return {
+      key: `deck-draft:${draftMatch.params.token ?? '?'}`,
+      type: 'deck',
+      title: 'Unsaved deck',
+      route: pathname,
+      closeable: true,
+    };
+  }
   if (matchPath({ path: RouteEnum.SETTINGS, end: true }, pathname)) {
     return { key: 'settings', type: 'settings', title: 'Settings', route: pathname, closeable: true };
   }
