@@ -38,7 +38,9 @@ const MyReportsView = () => {
           <div className="flex min-h-0 flex-[3] flex-col gap-2">
             <ReportTable reports={reports} columns={MY_REPORT_COLUMNS} selectedId={selectedId} onSelect={select} />
             <div className="flex items-center justify-between">
-              <span className="text-sm text-text-muted" role="status">{listStatusText(t, loadState, reports.length)}</span>
+              <span className="text-sm text-text-muted" role="status" data-testid="report-list-status">
+                {listStatusText(t, loadState, reports.length)}
+              </span>
               <button type="button" className={REPORT_BUTTON_CLASS} onClick={refresh} disabled={loadState === 'loading'}>
                 <RefreshCw size={14} /> {t('Reports.refresh')}
               </button>

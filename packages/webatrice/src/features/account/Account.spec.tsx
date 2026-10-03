@@ -181,3 +181,20 @@ describe('Account', () => {
     expect(container.querySelector('.account-details__lang')).toBeInTheDocument();
   });
 });
+
+describe('Account My Reports (#7091)', () => {
+  const on = (version: string) => ({
+    ...connectedState,
+    server: { ...(connectedState.server as any), info: { message: null, name: 'Test Server', version } },
+  });
+
+  it('links to My Reports on a 3.1 server', () => {
+    renderWithProviders(<Account />, { preloadedState: on('3.1.0 ()') });
+    expect(screen.getByRole('button', { name: 'Reports.mine.title' })).toBeInTheDocument();
+  });
+
+  it('has no My Reports button on a 3.0 server', () => {
+    renderWithProviders(<Account />, { preloadedState: on('3.0.0 ()') });
+    expect(screen.queryByRole('button', { name: 'Reports.mine.title' })).toBeNull();
+  });
+});
