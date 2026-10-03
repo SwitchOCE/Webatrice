@@ -1,11 +1,18 @@
-import { AriaRole, ReactNode, Ref } from 'react';
+import { AriaRole, CSSProperties, ReactNode, Ref } from 'react';
 import { List, ListImperativeAPI, ListProps, RowComponentProps } from 'react-window';
 
 import './VirtualList.css';
 
+/**
+ * Builds one row. `style` positions it in the scroll window: lists with their
+ * own `role` must spread it on the row element, so that rows (e.g. a grid's
+ * `role="row"`) are direct children of the list; plain lists may ignore it.
+ */
+type RenderRow<T> = (item: T, index: number, style: CSSProperties) => ReactNode;
+
 interface VirtualRowsData<T> {
   items: T[];
-  renderRow: (item: T, index: number) => ReactNode;
+  renderRow: RenderRow<T>;
   /** False when the caller gives the list its own role (e.g. a grid's rowgroup), whose rows carry their own role. */
   listItems: boolean;
 }
@@ -14,7 +21,7 @@ interface VirtualRowsProps<T> {
   items: T[];
   rowHeight: number;
   className?: string;
-  renderRow: (item: T, index: number) => ReactNode;
+  renderRow: RenderRow<T>;
   role?: AriaRole;
   /** For callers that scroll a row into view (keyboard navigation). */
   listRef?: Ref<ListImperativeAPI>;
@@ -25,8 +32,11 @@ interface VirtualRowsProps<T> {
 function RowsRow<T>({ ariaAttributes, index, style, items, renderRow, listItems }: RowComponentProps<VirtualRowsData<T>>) {
   // react-window's default role="list" needs listitem children; its per-row
   // role/aria-posinset/aria-setsize also tell assistive tech where a row sits
-  // in the full (unrendered) list.
-  return <div style={style} {...(listItems ? ariaAttributes : {})}>{renderRow(items[index], index)}</div>;
+  // in the full (unrendered) list. A caller-roled list positions its own rows.
+  if (!listItems) {
+    return <>{renderRow(items[index], index, style)}</>;
+  }
+  return <div style={style} {...ariaAttributes}>{renderRow(items[index], index, style)}</div>;
 }
 
 /**
