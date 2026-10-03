@@ -161,7 +161,7 @@ export default defineConfig({
     // node-side resolver handles them directly — no `deps.inline`
     // workaround needed.
     setupFiles: ['./src/setupTests.ts'],
-    include: ['src/**/*.spec.{ts,tsx}'],
+    include: ['src/**/*.spec.{ts,tsx}', 'scripts/**/*.spec.mjs'],
     exclude: ['node_modules', 'build', 'integration', 'coverage'],
     isolate: true,
     pool: 'vmThreads',
