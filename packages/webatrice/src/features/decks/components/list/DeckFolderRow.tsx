@@ -9,7 +9,7 @@ export interface DeckFolderRowProps {
   onOpen: () => void;
   onDownload: () => void;
   onDelete: () => void;
-  /** Share every deck in the folder (Servatrice 3.1 only). */
+  /** Share the decks directly in the folder (Servatrice 3.1 only). */
   onShare?: () => void;
   /** Publish or unpublish the folder (Servatrice 3.1 only). */
   onTogglePublic?: () => void;
@@ -40,8 +40,8 @@ export function DeckFolderRow({ folder, onOpen, onDownload, onDelete, onShare, o
         <button
           type="button"
           onClick={onShare}
-          disabled={folder.deckCount === 0}
-          className={`${ACTION_CLASS} hover:text-text-primary hover:bg-bg-elevated disabled:hidden`}
+          disabled={folder.directDeckCount === 0}
+          className={`${ACTION_CLASS} hover:text-text-primary hover:bg-bg-elevated disabled:opacity-40 disabled:cursor-not-allowed`}
           title={t('DeckSharing.shareDecks')}
           aria-label={t('DeckSharing.shareFolderNamed', { name: folder.name })}
         >
