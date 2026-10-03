@@ -4,6 +4,7 @@ import { NavLink, generatePath } from 'react-router-dom';
 import { MessageSquare, UserRoundPlus, UserRoundMinus, VolumeX, Volume2 } from 'lucide-react';
 
 import { RouteEnum } from '@app/types';
+import { useUserMenuSlot } from './UserMenuSlot';
 
 const MENU_ITEM_CLASS =
   'w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left text-text-secondary '
@@ -13,6 +14,8 @@ interface UserActionsMenuProps {
   x: number;
   y: number;
   name: string;
+  /** Target's userLevel, forwarded to slot entries (e.g. moderator promote/demote). */
+  userLevel?: number;
   isABuddy: boolean;
   isIgnored: boolean;
   onClose: () => void;
@@ -37,6 +40,7 @@ export default function UserActionsMenu({
   x,
   y,
   name,
+  userLevel,
   isABuddy,
   isIgnored,
   onClose,
@@ -46,6 +50,7 @@ export default function UserActionsMenu({
   onRemoveIgnore,
 }: UserActionsMenuProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const Slot = useUserMenuSlot();
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
@@ -76,14 +81,17 @@ export default function UserActionsMenu({
   const MENU_W = 200;
   const MENU_H = 160;
   const left = Math.min(x, window.innerWidth - MENU_W - 8);
-  const top = Math.min(y, window.innerHeight - MENU_H - 8);
+  const top = Math.max(8, Math.min(y, window.innerHeight - MENU_H - 8));
+  // Slot entries (moderator actions) can make the menu taller than MENU_H;
+  // scroll inside the viewport rather than spill past its bottom edge.
+  const maxHeight = window.innerHeight - top - 8;
 
   return createPortal(
     <div
       ref={ref}
       role="menu"
-      style={{ left, top }}
-      className="fixed z-[9999] w-[200px] rounded-md bg-bg-surface border border-border-subtle shadow-glow py-1 select-none"
+      style={{ left, top, maxHeight }}
+      className="fixed z-[9999] w-[200px] overflow-y-auto rounded-md bg-bg-surface border border-border-subtle shadow-glow py-1 select-none"
     >
       <NavLink
         to={generatePath(RouteEnum.PLAYER, { name })}
@@ -137,6 +145,7 @@ export default function UserActionsMenu({
           <Volume2 size={14} /> Remove from Ignore List
         </button>
       )}
+      {Slot && <Slot userName={name} userLevel={userLevel} onClose={onClose} />}
     </div>,
     document.body,
   );

@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography';
 import { AuthGuard } from '@app/components';
 import { Images } from '@app/images';
 import { Layout } from '@app/feature-wrappers/layout';
+import { MODERATION_MENU_LABEL_KEYS, useModerationMenu } from '@app/feature-widgets/moderation';
 import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 import PrivateChat from './PrivateChat';
 import { usePlayer } from './usePlayer';
@@ -78,16 +79,16 @@ const Player = () => {
     isSelf,
     isABuddy,
     isIgnored,
-    isModerator,
     privateMessages,
     onAddBuddy,
     onRemoveBuddy,
     onAddIgnore,
     onRemoveIgnore,
     onSendMessage,
-    onWarnUser,
-    onBanFromServer,
   } = usePlayer();
+  // The same moderator/admin entries every user context menu offers
+  // (user_context_menu.cpp), disabled on your own profile.
+  const moderation = useModerationMenu(name ?? '', userInfo?.userLevel);
 
   const avatar = useMemo(() => avatarSrc(userInfo?.avatarBmp), [userInfo?.avatarBmp]);
   const countryCode = userInfo?.country?.toUpperCase() ?? '';
@@ -159,16 +160,16 @@ const Player = () => {
                   <Button variant="outlined" onClick={isIgnored ? onRemoveIgnore : onAddIgnore}>
                     {isIgnored ? t('Player.action.removeIgnore') : t('Player.action.addIgnore')}
                   </Button>
-                  {isModerator && (
-                    <>
-                      <Button variant="outlined" color="warning" onClick={() => onWarnUser('')}>
-                        {t('Player.action.warn')}
-                      </Button>
-                      <Button variant="outlined" color="error" onClick={() => onBanFromServer(0, '', '')}>
-                        {t('Player.action.ban')}
-                      </Button>
-                    </>
-                  )}
+                </div>
+              )}
+
+              {moderation.groups.length > 0 && (
+                <div className="player-view__actions" aria-label={t('Player.moderation')}>
+                  {moderation.groups.flat().map(({ action, disabled }) => (
+                    <Button key={action} variant="outlined" disabled={disabled} onClick={() => moderation.open(action)}>
+                      {t(MODERATION_MENU_LABEL_KEYS[action])}
+                    </Button>
+                  ))}
                 </div>
               )}
             </>

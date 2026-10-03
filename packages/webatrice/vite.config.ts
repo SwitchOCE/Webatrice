@@ -61,6 +61,7 @@ export default defineConfig({
       '@app/features/shortcuts': srcPath('features/shortcuts/index.ts'),
       '@app/feature-widgets/card-import': srcPath('feature-widgets/card-import/index.ts'),
       '@app/feature-widgets/known-hosts': srcPath('feature-widgets/known-hosts/index.ts'),
+      '@app/feature-widgets/moderation': srcPath('feature-widgets/moderation/index.ts'),
       '@app/feature-widgets/shortcuts': srcPath('feature-widgets/shortcuts/index.ts'),
       '@app/store': srcPath('store/index.ts'),
       '@app/types': srcPath('types/index.ts'),

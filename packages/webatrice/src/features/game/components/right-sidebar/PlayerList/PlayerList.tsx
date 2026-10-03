@@ -1,4 +1,5 @@
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { generatePath, useNavigate } from 'react-router-dom';
 import { Crown, Eye, User } from 'lucide-react';
 
@@ -6,22 +7,17 @@ import { games, server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { useAppSelector } from '@app/store';
 import { UserBadges } from '@app/components';
+import { MODERATION_MENU_LABEL_KEYS, useModerationMenu } from '@app/feature-widgets/moderation';
 import { RouteEnum } from '@app/types';
 import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 
 import { useGameId } from '../../ui/GameIdContext';
+import type { ContextMenuItem } from '../../PlayerBox/ContextMenu';
 import PlayerListContextMenu, {
   type PlayerListMenuActions,
   type PlayerListMenuTarget,
 } from './PlayerListContextMenu';
-import {
-  AdminNotesModal,
-  BanFromServerModal,
-  BanHistoryModal,
-  UserDetailsModal,
-  WarnHistoryModal,
-  WarnUserModal,
-} from './PlayerListDialogs';
+import { UserDetailsModal } from './PlayerListDialogs';
 
 /**
  * Right-rail player list — one row per seat.
@@ -32,12 +28,12 @@ import {
  * underneath. The row highlights when it's this player's turn.
  *
  * Right-click on a row opens `PlayerListContextMenu` (ports Cockatrice's
- * user_context_menu.cpp:348 role-gated menu). Modals for warn / ban /
- * admin notes / history are mounted here so a single instance handles
- * every row — the "target" moves as different rows are clicked, but
- * modal state (draft text, fetched payload) belongs to the list.
+ * user_context_menu.cpp:348 role-gated menu). Its moderator/admin
+ * section and their dialogs come from the moderation feature-widget,
+ * shared with every other user context menu in the app.
  */
 function PlayerList() {
+  const { t } = useTranslation();
   const gameId = useGameId();
   const webClient = useWebClient();
   const navigate = useNavigate();
@@ -60,12 +56,10 @@ function PlayerList() {
   // only exists while it's open).
   const isRegistered = useAppSelector((state) => server.Selectors.getIsUserRegistered(state));
   const isModerator = useAppSelector((state) => server.Selectors.getIsUserModerator(state));
-  const isAdmin = useAppSelector((state) => server.Selectors.getIsUserAdmin(state));
   const buddyList = useAppSelector((state) => server.Selectors.getBuddyList(state));
   const ignoreList = useAppSelector((state) => server.Selectors.getIgnoreList(state));
-  // Server-side user directory. Used two ways: (1) role gating on
-  // Promote/Demote labels (need target's current mod/judge flags),
-  // (2) the User details modal renders the full ServerInfo_User.
+  // Server-side user directory: the User details modal renders the
+  // full ServerInfo_User, and seats fall back to it for role flags.
   const userInfoMap = useAppSelector((state) => state.server.userInfo);
 
   // Menu popup state: {anchor, target} or null. A single popup
@@ -78,25 +72,7 @@ function PlayerList() {
     setMenuTarget(null);
   }, []);
 
-  // Modal state: one target per kind. Discriminated by which state
-  // is non-null. Cleared on submit / cancel; history/notes lookups
-  // are cached in redux so re-open is instant.
   const [userDetailsTarget, setUserDetailsTarget] = useState<string | null>(null);
-  const [warnTarget, setWarnTarget] = useState<string | null>(null);
-  const [banTarget, setBanTarget] = useState<string | null>(null);
-  const [adminNotesTarget, setAdminNotesTarget] = useState<string | null>(null);
-  const [warnHistoryTarget, setWarnHistoryTarget] = useState<string | null>(null);
-  const [banHistoryTarget, setBanHistoryTarget] = useState<string | null>(null);
-
-  const banHistoryRows = useAppSelector((state) =>
-    banHistoryTarget ? server.Selectors.getBanHistoryByUser(state, banHistoryTarget) : undefined,
-  );
-  const warnHistoryRows = useAppSelector((state) =>
-    warnHistoryTarget ? server.Selectors.getWarnHistoryByUser(state, warnHistoryTarget) : undefined,
-  );
-  const adminNotesText = useAppSelector((state) =>
-    adminNotesTarget ? server.Selectors.getAdminNotesByUser(state, adminNotesTarget) : undefined,
-  );
 
   const actions: PlayerListMenuActions = {
     onCopyHashToClipboard: (deckHash) => {
@@ -131,85 +107,28 @@ function PlayerList() {
       }
       webClient.request.game.kickFromGame(gameId, { playerId: match.properties.playerId });
     },
-    onOpenWarn: (userName) => setWarnTarget(userName),
-    onOpenWarnHistory: (userName) => {
-      setWarnHistoryTarget(userName);
-      webClient.request.moderator.getWarnHistory(userName);
-    },
-    onOpenBan: (userName) => setBanTarget(userName),
-    onOpenBanHistory: (userName) => {
-      setBanHistoryTarget(userName);
-      webClient.request.moderator.getBanHistory(userName);
-    },
-    onOpenAdminNotes: (userName) => {
-      setAdminNotesTarget(userName);
-      webClient.request.moderator.getAdminNotes(userName);
-    },
-    onAdjustMod: (userName, shouldBeMod) => {
-      webClient.request.admin.adjustMod(userName, shouldBeMod, undefined);
-    },
-    onAdjustJudge: (userName, shouldBeJudge) => {
-      webClient.request.admin.adjustMod(userName, undefined, shouldBeJudge);
-    },
   };
 
-  const submitWarn = useCallback(
-    (args: { reason: string; removeMessagesMinutes: number }) => {
-      if (!warnTarget) {
-        return;
-      }
-      webClient.request.moderator.warnUser(
-        warnTarget,
-        args.reason,
-        undefined,
-        args.removeMessagesMinutes,
-      );
-      setWarnTarget(null);
-    },
-    [warnTarget, webClient],
-  );
-  const submitBan = useCallback(
-    (args: {
-      minutes: number;
-      banByName: boolean;
-      banByIp: boolean;
-      banByClientId: boolean;
-      reason: string;
-      visibleReason: string;
-      removeMessagesMinutes: number;
-    }) => {
-      if (!banTarget) {
-        return;
-      }
-      // Cockatrice's ban dialog looks up address / clientid from the
-      // server-side user record before firing; we mirror that so ban-
-      // by-ip / ban-by-clientid have data to send.
-      const info = userInfoMap[banTarget];
-      webClient.request.moderator.banFromServer(
-        args.minutes,
-        args.banByName ? banTarget : undefined,
-        args.banByIp ? info?.address : undefined,
-        args.reason,
-        args.visibleReason,
-        args.banByClientId ? info?.clientid : undefined,
-        args.removeMessagesMinutes,
-      );
-      setBanTarget(null);
-    },
-    [banTarget, webClient, userInfoMap],
-  );
-  const submitAdminNotes = useCallback(
-    (notes: string) => {
-      if (!adminNotesTarget) {
-        return;
-      }
-      webClient.request.moderator.updateAdminNotes(adminNotesTarget, notes);
-      setAdminNotesTarget(null);
-    },
-    [adminNotesTarget, webClient],
-  );
-
   const entries = players ? Object.values(players) : [];
+
+  // Target level for the moderator section's Promote/Demote entries: the
+  // seat's embedded user info, else the server's user directory.
+  const menuTargetLevel = menuTarget
+    ? (entries.find((p) => p.properties.userInfo?.name === menuTarget.userName)?.properties.userInfo
+      ?? userInfoMap[menuTarget.userName])?.userLevel
+    : undefined;
+  const moderation = useModerationMenu(menuTarget?.userName ?? '', menuTargetLevel);
+  const moderationItems = useMemo<ContextMenuItem[]>(
+    () => moderation.groups.flatMap((group) => [
+      { divider: true } as const,
+      ...group.map(({ action, disabled }) => ({
+        label: t(MODERATION_MENU_LABEL_KEYS[action]),
+        disabled,
+        onClick: () => moderation.open(action),
+      })),
+    ]),
+    [moderation, t],
+  );
 
   const userDetailsUser = userDetailsTarget ? userInfoMap[userDetailsTarget] : undefined;
   // Fallback: if the userInfo map hasn't picked up the target yet,
@@ -326,11 +245,10 @@ function PlayerList() {
           isHost: hostId != null && hostId === localPlayerId,
           isRegistered,
           isModerator,
-          isAdmin,
         }}
         buddyList={buddyList}
         ignoreList={ignoreList}
-        targetUserFromServer={menuTarget ? userInfoMap[menuTarget.userName] : undefined}
+        moderationItems={moderationItems}
         actions={actions}
         onDismiss={dismissMenu}
       />
@@ -339,42 +257,6 @@ function PlayerList() {
         <UserDetailsModal
           user={userDetailsResolved}
           onClose={() => setUserDetailsTarget(null)}
-        />
-      )}
-      {warnTarget && (
-        <WarnUserModal
-          userName={warnTarget}
-          onCancel={() => setWarnTarget(null)}
-          onConfirm={submitWarn}
-        />
-      )}
-      {banTarget && (
-        <BanFromServerModal
-          userName={banTarget}
-          onCancel={() => setBanTarget(null)}
-          onConfirm={submitBan}
-        />
-      )}
-      {adminNotesTarget && (
-        <AdminNotesModal
-          userName={adminNotesTarget}
-          initialNotes={adminNotesText ?? ''}
-          onCancel={() => setAdminNotesTarget(null)}
-          onSave={submitAdminNotes}
-        />
-      )}
-      {warnHistoryTarget && (
-        <WarnHistoryModal
-          userName={warnHistoryTarget}
-          entries={warnHistoryRows}
-          onClose={() => setWarnHistoryTarget(null)}
-        />
-      )}
-      {banHistoryTarget && (
-        <BanHistoryModal
-          userName={banHistoryTarget}
-          entries={banHistoryRows}
-          onClose={() => setBanHistoryTarget(null)}
         />
       )}
     </>
