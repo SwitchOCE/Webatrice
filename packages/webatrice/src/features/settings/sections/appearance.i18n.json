@@ -1,7 +1,15 @@
 {
   "SettingsAppearance": {
     "group": {
+      "theme": "Theme settings",
       "tableGrid": "Table grid layout"
+    },
+    "themeMode": {
+      "label": "Active theme palette",
+      "description": "System follows your operating system's light or dark setting as it changes.",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
     },
     "invertVerticalCoordinate": {
       "label": "Invert vertical coordinate",

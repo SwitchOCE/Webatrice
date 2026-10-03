@@ -571,7 +571,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                     {uploadError && (
                       <div
                         className={[
-                          'mt-2 flex items-start gap-2 text-xs text-red-300',
+                          'mt-2 flex items-start gap-2 text-xs text-danger',
                           'bg-red-500/10 border border-red-500/30 rounded-md px-2 py-1',
                         ].join(' ')}
                       >
@@ -607,7 +607,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                     onClick={() => leaveGame(gameId)}
                     className={[
                       'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-text-secondary',
-                      'hover:text-red-300 hover:bg-red-500/10 border border-border-subtle transition-colors',
+                      'hover:text-danger hover:bg-red-500/10 border border-border-subtle transition-colors',
                     ].join(' ')}
                   >
                     <LogOut size={14} /> Leave game
@@ -625,7 +625,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                     onClick={() => leaveGame(gameId)}
                     className={[
                       'ml-4 flex items-center gap-1 px-3 py-1 rounded-md text-xs',
-                      'font-medium text-text-secondary hover:text-red-300',
+                      'font-medium text-text-secondary hover:text-danger',
                       'hover:bg-red-500/10 border border-border-subtle transition-colors',
                     ].join(' ')}
                   >
@@ -653,7 +653,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                       disabled={unreadyPlayers.length === 0}
                       className={[
                         'flex items-center gap-2 px-4 py-2 rounded-md bg-yellow-500/20',
-                        'hover:bg-yellow-500/30 text-yellow-200 border border-yellow-500/50',
+                        'hover:bg-yellow-500/30 text-warning border border-yellow-500/50',
                         'text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
                       ].join(' ')}
                       title={
@@ -739,11 +739,11 @@ function PlayerRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-base font-semibold text-text-primary truncate">{playerName}</span>
-          {isHost && <Crown size={14} className="text-yellow-400 shrink-0" aria-label="Host" />}
+          {isHost && <Crown size={14} className="text-warning shrink-0" aria-label="Host" />}
           {ready && (
             <CheckCircle2
               size={18}
-              className="text-emerald-400 shrink-0"
+              className="text-success shrink-0"
               aria-label="Ready"
             />
           )}
@@ -779,7 +779,7 @@ function PlayerRow({
           type="button"
           onClick={onKick}
           className={[
-            'text-xs px-2 py-1 rounded text-text-muted hover:text-red-300',
+            'text-xs px-2 py-1 rounded text-text-muted hover:text-danger',
             'hover:bg-red-500/10 border border-transparent hover:border-red-500/40 transition-colors',
           ].join(' ')}
           title="Kick from game"
@@ -805,11 +805,11 @@ function isValidCod(xml: string): boolean {
 // Bracket tone palette — mirrors DeckBreakdown's traffic-light coloring
 // so a B3 chip in the lobby matches the B3 verdict in the editor.
 const BRACKET_TONE: Record<number, string> = {
-  1: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/40',
-  2: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/40',
-  3: 'text-yellow-300 bg-yellow-500/10 border-yellow-500/40',
-  4: 'text-red-300 bg-red-500/10 border-red-500/40',
-  5: 'text-red-300 bg-red-500/10 border-red-500/40',
+  1: 'text-success bg-emerald-500/10 border-emerald-500/40',
+  2: 'text-success bg-emerald-500/10 border-emerald-500/40',
+  3: 'text-warning bg-yellow-500/10 border-yellow-500/40',
+  4: 'text-danger bg-red-500/10 border-red-500/40',
+  5: 'text-danger bg-red-500/10 border-red-500/40',
 };
 
 function BracketBadge({ level }: { level: number }) {

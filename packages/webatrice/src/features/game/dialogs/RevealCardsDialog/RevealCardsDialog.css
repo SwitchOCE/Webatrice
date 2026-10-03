@@ -8,5 +8,5 @@
 .reveal-cards-dialog__zone {
   display: block;
   margin-top: 4px;
-  color: #7f90b5;
+  color: rgb(var(--text-muted));
 }

@@ -22,6 +22,9 @@ export class Setting {
   // General — language. A `Language` code, or '' to follow the browser's language.
   language: string;
 
+  // Appearance — theme palette
+  themeMode: ThemeMode;
+
   // Appearance — table grid layout
   invertVerticalCoordinate: boolean;
 
@@ -61,6 +64,13 @@ export class Setting {
 
 export const APP_USER = '*app';
 
+/** Desktop's "Active theme palette": a fixed palette, or follow the operating system. */
+export enum ThemeMode {
+  System = 'system',
+  Light = 'light',
+  Dark = 'dark',
+}
+
 /** Every user-editable preference on the settings row. */
 export type Preferences = Omit<Setting, 'user' | 'version' | 'shortcuts'>;
 export type PreferenceKey = keyof Preferences;
@@ -78,6 +88,9 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   autoConnect: false,
 
   language: '',
+
+  // Desktop writes an unset scheme as "System" (theme_config.cpp).
+  themeMode: ThemeMode.System,
 
   invertVerticalCoordinate: false,
 

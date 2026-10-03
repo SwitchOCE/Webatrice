@@ -28,7 +28,7 @@ const ShortcutsRow = ({ actionId, conflicts, onEdit }: ShortcutsRowProps) => {
         </span>
         {hasConflict && (
           <span
-            className="text-amber-400 shrink-0"
+            className="text-warning shrink-0"
             title={t('ShortcutsTab.conflictWarning', {
               actions: conflicts.map((id) => t(`ShortcutsTab.action.${id}`)).join(', '),
             })}

@@ -228,7 +228,7 @@ function PlayerList() {
                   {isHost && (
                     <Crown
                       size={11}
-                      className="text-yellow-400 shrink-0"
+                      className="text-warning shrink-0"
                       aria-label="Host"
                     />
                   )}
