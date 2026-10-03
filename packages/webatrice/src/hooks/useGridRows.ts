@@ -99,8 +99,9 @@ export function useGridRows({ keys, selectedKey, onSelect, onActivate, onExpand,
       const index = keys.indexOf(key);
       const target = navigationTarget(event.key, index < 0 ? null : index, keys.length);
       if (target !== null) {
-        // At either end the selection stays put.
-        if (target !== index) {
+        // Home/End always select, like Qt's current-item moves; the arrows
+        // and pages stop at either end.
+        if (target !== index || event.key === 'Home' || event.key === 'End') {
           moveTo(keys[target]);
         }
         event.preventDefault();
