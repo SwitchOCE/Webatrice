@@ -4,3 +4,4 @@
 - 20:29Z P3 TopBar nav pushed (e2e selectors moved to topBarTab helper) → P13 CardCallout, P15
 - 20:34Z P13 CardCallout + P15 batch pushed → keyboard-only e2e, changeset, full gate
 - 20:43Z gate: typecheck/lint/unit green; integration fixed (rooms-components spec imported deleted comps) and green → e2e in playwright container
+- 21:00Z DONE: tip 0afe92d pushed; gate green; e2e 51 pass + kb rerun 6/6; replays (pre-existing on base) + staff-tools (no docker in container) failures recorded; PR file written
