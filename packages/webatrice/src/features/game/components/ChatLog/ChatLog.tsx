@@ -8,8 +8,7 @@ import { useAppSelector } from '@app/store';
 
 import { useGameId } from '../ui/GameIdContext';
 import { useGameReadOnly } from '../ui/GameReadOnlyContext';
-import { useHoveredCard } from '../PlayerBox/hoveredCard';
-import { useBigCardPreview } from '../PlayerBox/bigCardPreview';
+import { useCardPreviewActions } from '../ui/CardPreviewContext';
 
 import { gameChatContext } from './gameChatContext';
 import { formatElapsed, useGameLog } from './useGameLog';
@@ -83,8 +82,7 @@ function ChatLogView() {
   const gameId = useGameId();
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { setHoveredCard } = useHoveredCard();
-  const { openBigPreview, closeBigPreview } = useBigCardPreview();
+  const { setHoveredCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
   const {
     messages,
     players,
