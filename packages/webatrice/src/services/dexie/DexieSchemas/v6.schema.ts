@@ -6,7 +6,9 @@ import { Stores } from './v2.schema';
 // Version 6 versions the settings row: existing rows (auto-connect, inverted coordinates and
 // shortcut overrides) are kept and every preference introduced with the Settings page is
 // backfilled with its desktop default. Non-indexed fields, so the store spec is unchanged.
-// Version 5 belongs to the replays cache; Dexie allows the gap when that lands separately.
+// Version 5 belongs to the replays cache (replays and replayData tables). Merge order: the replays
+// change must land before this one. A user already at 6 never runs a later version(5) upgrade, so
+// replays landing second would leave them without its tables.
 export const schemaV6 = (db: Dexie) => {
   db.version(6)
     .stores({})
