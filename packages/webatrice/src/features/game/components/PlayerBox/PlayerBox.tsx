@@ -5308,7 +5308,7 @@ function PlayerBox(
 
   // Move a group of cards from their source zone to the resolved drop
   // target. Handles both single-card and group drags. Same-zone drops are
-  // no-ops except battlefield (re-slot) and stack (reorder).
+  // no-ops except battlefield (re-slot), hand, and library reveal reorders.
   //
   // `sourcePlayerId` defaults to the local player. Set only when the
   // drag started from another player's zone that they lent us (via
@@ -5381,9 +5381,8 @@ function PlayerBox(
     if (target.zone === 'stack' && sourceZone === 'stack') {
       return;
     }
-    if (target.zone === 'hand' && sourceZone === 'hand') {
-      return;
-    }
+    // Hand reorders use the normal wire path below: target.index already
+    // excludes the dragged cards and is the post-removal insertion position.
     // Same-zone drops for the remaining zones are no-ops — EXCEPT a
     // library→library drop that landed on the zone-reveal dialog: that's
     // a reorder within the visible reveal, which we forward as
