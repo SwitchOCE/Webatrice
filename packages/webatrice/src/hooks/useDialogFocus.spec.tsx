@@ -2,10 +2,17 @@ import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { useDialogFocus } from './useDialogFocus';
+import { useDialogFocus, type ReturnFocusTo } from './useDialogFocus';
 
-function Dialog({ isOpen, onEscape, children }: { isOpen: boolean; onEscape?: () => void; children?: React.ReactNode }) {
-  const { getDialogProps } = useDialogFocus({ isOpen, onEscape });
+interface DialogProps {
+  isOpen: boolean;
+  onEscape?: () => void;
+  returnFocusTo?: ReturnFocusTo;
+  children?: React.ReactNode;
+}
+
+function Dialog({ isOpen, onEscape, returnFocusTo, children }: DialogProps) {
+  const { getDialogProps } = useDialogFocus({ isOpen, onEscape, returnFocusTo });
   return isOpen ? <div role="dialog" aria-modal="true" aria-label="Dialog" {...getDialogProps()}>{children}</div> : null;
 }
 
@@ -116,5 +123,68 @@ describe('useDialogFocus', () => {
     await user.keyboard('{Escape}');
 
     expect(screen.getByRole('button', { name: 'Warn' })).toHaveFocus();
+  });
+
+  it('returns focus to the opener of a dialog whose content has an autoFocus field', async () => {
+    const user = userEvent.setup();
+    render(<Host><input aria-label="Name" autoFocus /></Host>);
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveFocus();
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByRole('button', { name: 'Open' })).toHaveFocus();
+  });
+
+  it('sends focus to returnFocusTo when the opener unmounted while the dialog was open', async () => {
+    const user = userEvent.setup();
+    function List() {
+      const [rows, setRows] = useState(['ann', 'bob']);
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <ul aria-label="Users">
+            {rows.map((row) => <li key={row}><button type="button" onClick={() => setOpen(true)}>{row}</button></li>)}
+          </ul>
+          <Dialog
+            isOpen={open}
+            onEscape={() => setOpen(false)}
+            returnFocusTo={(opener) => opener.closest('ul')}
+          >
+            <button type="button" onClick={() => setRows(['bob'])}>Remove ann</button>
+          </Dialog>
+        </>
+      );
+    }
+    render(<List />);
+    await user.click(screen.getByRole('button', { name: 'ann' }));
+    await user.click(screen.getByRole('button', { name: 'Remove ann' }));
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByRole('list', { name: 'Users' })).toHaveFocus();
+  });
+
+  it('falls back to the nearest landmark when the opener unmounted and no returnFocusTo is given', async () => {
+    const user = userEvent.setup();
+    function Page() {
+      const [shown, setShown] = useState(true);
+      const [open, setOpen] = useState(false);
+      return (
+        <main aria-label="Page">
+          {shown && <button type="button" onClick={() => setOpen(true)}>Open</button>}
+          <Dialog isOpen={open} onEscape={() => setOpen(false)}>
+            <button type="button" onClick={() => setShown(false)}>Hide opener</button>
+          </Dialog>
+        </main>
+      );
+    }
+    render(<Page />);
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    await user.click(screen.getByRole('button', { name: 'Hide opener' }));
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByRole('main', { name: 'Page' })).toHaveFocus();
   });
 });
