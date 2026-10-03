@@ -8,12 +8,14 @@
     "noResults": "No settings match \"{query}\".",
     "openSection": "Open {section}",
     "restoreDefaults": "Restore defaults",
+    "restoreDefaultsConfirm": {
+      "title": "Restore {section} defaults?",
+      "message": "Every setting on this page goes back to its default. This cannot be undone.",
+      "cancel": "Cancel"
+    },
     "section": {
-      "general": "General",
       "appearance": "Appearance",
       "userInterface": "User Interface",
-      "cardSources": "Card Sources",
-      "storage": "Storage",
       "chat": "Chat",
       "sound": "Sound",
       "shortcuts": "Shortcuts"
