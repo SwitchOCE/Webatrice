@@ -1,2 +1,3 @@
 - 18:39Z started f23d; read brief, template, rv10 → set up branch work from origin/parity/23d-deck-share
 - 18:42Z M1-fix fragment token committed+pushed → fail-closed server check
+- 18:46Z majors 1-2 + minors (cancel, noServer, folder direct decks) pushed; multi-select: no selection model in 18 → correcting claim → remaining minors
