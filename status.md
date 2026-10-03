@@ -12,3 +12,4 @@
 - 23:18Z annotate tokens pushed → LONG-012 card presentation + M1 seat tokens + zone backgrounds
 - 23:24Z M1 seat tokens pushed (rings/marquee/over-art/pt/mana; light ring colours darkened; palettes.spec contrast) → card rendering options
 - 23:36Z card rendering options pushed → card layout (overlap on stack, card view rows), counters, menus, printings, zone backgrounds
+- 23:43Z card layout (stack overlap via VerticalPile, card view rows) pushed → counter colours, menu shortcuts, printings bump, zone backgrounds
