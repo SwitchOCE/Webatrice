@@ -8,6 +8,11 @@ describe('CreateDeckDialog', () => {
     expect(screen.queryByText('Create a deck')).toBeNull();
   });
 
+  it('is a modal dialog named by its heading', () => {
+    render(<CreateDeckDialog open onClose={() => {}} onCreate={() => {}} />);
+    expect(screen.getByRole('dialog', { name: 'Create a deck' })).toHaveAttribute('aria-modal', 'true');
+  });
+
   it('submits the trimmed name and lower-cased format on Create or Enter', () => {
     const onCreate = vi.fn();
     render(<CreateDeckDialog open onClose={() => {}} onCreate={onCreate} />);

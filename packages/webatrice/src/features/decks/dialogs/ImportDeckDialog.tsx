@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { CheckCircle2, CircleAlert, FileText, Loader2, Upload, X } from 'lucide-react';
 
 import type { ParsedDeck } from '@app/types';
@@ -42,13 +43,14 @@ export interface ImportDeckDialogProps {
 export function ImportDeckDialog({ open, onClose, onImport }: ImportDeckDialogProps) {
   const flow = useDeckImportFlow(open, onImport);
   useEscapeKey(open, onClose);
+  const titleId = useId();
 
   if (!open) {
     return null;
   }
 
   return (
-    <DeckDialogFrame onClose={onClose}>
+    <DeckDialogFrame onClose={onClose} titleId={titleId}>
       <div
         className={[
           'relative w-full max-w-2xl rounded-xl bg-bg-surface border',
@@ -64,7 +66,7 @@ export function ImportDeckDialog({ open, onClose, onImport }: ImportDeckDialogPr
           <X size={18} />
         </button>
 
-        <h2 className="font-modern text-xl font-semibold text-text-primary">Import a deck</h2>
+        <h2 id={titleId} className="font-modern text-xl font-semibold text-text-primary">Import a deck</h2>
         <p className="text-sm text-text-muted mt-1">
           Paste a list from Moxfield, Arena, MTGO, Cockatrice — most formats work.
         </p>
