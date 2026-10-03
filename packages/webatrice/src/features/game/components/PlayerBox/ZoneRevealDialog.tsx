@@ -4,9 +4,10 @@ import {
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
-  type RefObject,
+  type Ref,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { setRef } from '@mui/material/utils';
 import { X } from 'lucide-react';
 
 import Card from './Card';
@@ -58,7 +59,7 @@ export interface ZoneRevealDialogProps {
    *  drop-detection can hit-test this rect to decide whether a drop
    *  resolves to the dialog's source zone. Same pattern LibrarySearchDialog
    *  uses via its `dropRef`. */
-  dropRef?: RefObject<HTMLDivElement | null>;
+  dropRef?: Ref<HTMLDivElement>;
   /** IDs of cards currently mid-drag from the dialog. Rendered at
    *  opacity 0 so the drag ghost is the only visible copy. */
   draggingCardIds?: Set<string>;
@@ -365,9 +366,7 @@ export default function ZoneRevealDialog({
       <div
         ref={(el) => {
           dialogRef.current = el;
-          if (dropRef) {
-            dropRef.current = el;
-          }
+          setRef(dropRef, el);
         }}
         className={[
           'bg-bg-surface border border-border-subtle rounded-lg',

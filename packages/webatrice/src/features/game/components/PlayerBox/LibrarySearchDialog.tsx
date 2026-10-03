@@ -6,6 +6,7 @@ import {
   useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { setRef } from '@mui/material/utils';
 import { Search, X } from 'lucide-react';
 import type { DeckCard } from './mockTypes';
 import Card from './Card';
@@ -183,7 +184,7 @@ type Props = {
    *  library drops — since the modal typically floats over the play
    *  area's library pile, drops on the modal itself must resolve to
    *  the library too. */
-  dropRef?: React.RefObject<HTMLDivElement | null>;
+  dropRef?: React.Ref<HTMLDivElement>;
 };
 
 /** Amount of vertical space each card takes in a pile — enough to show the
@@ -830,9 +831,7 @@ export default function LibrarySearchDialog({
       <div
         ref={(el) => {
           dialogRef.current = el;
-          if (dropRef) {
-            dropRef.current = el;
-          }
+          setRef(dropRef, el);
         }}
         className={[
           'bg-bg-surface border border-border-subtle rounded-lg',
