@@ -56,12 +56,20 @@ describe('ModerationProvider', () => {
 
       act(() => {
         store.dispatch(server.Actions.warnListOptions({
-          warnList: [create(Response_WarnListSchema, { warning: ['Spamming', 'Flaming'], userName: 'alice', userClientid: 'cid-alice' })],
+          warnList: [create(Response_WarnListSchema, {
+            warning: ['Spamming', 'Flaming', 'Cheating'],
+            // 3.1 servers send each reason's starting intervention level; a short list defaults to 1.
+            warningIl: [1, 3],
+            userName: 'alice',
+            userClientid: 'cid-alice',
+          })],
         }));
       });
       const dialog = screen.getByRole('dialog', { name: 'Moderation.warn.title' });
-      const options = within(dialog).getAllByRole('option').map((option) => option.textContent);
-      expect(options).toEqual(['', 'Spamming', 'Flaming']);
+      const options = within(dialog).getAllByRole('option');
+      // The test i18n returns keys, so a levelled reason shows the suffix key.
+      expect(options.map((option) => option.textContent)).toEqual(['', 'Spamming', 'Moderation.warn.withLevel', 'Cheating']);
+      expect(options.map((option) => option.getAttribute('value'))).toEqual(['', 'Spamming', 'Flaming', 'Cheating']);
     });
 
     it('sends Command_WarnUser with the chosen warning, client id and the redact-all amount', async () => {
@@ -205,16 +213,21 @@ describe('ModerationProvider', () => {
   describe('role changes', () => {
     it('sends only should_be_mod for a promotion and reports success', () => {
       const { store, webClient } = setup('promoteMod', ADMIN);
-      expect(webClient.request.admin.adjustMod).toHaveBeenCalledWith('alice', true, undefined);
+      expect(webClient.request.admin.adjustMod).toHaveBeenCalledWith('alice', true, undefined, undefined);
       act(() => {
         store.dispatch(server.Actions.adjustMod({ userName: 'alice', shouldBeMod: true }));
       });
       expect(screen.getByText('Moderation.adjustMod.promoted')).toBeInTheDocument();
     });
 
+    it('sends only should_be_developer for a developer promotion', () => {
+      const { webClient } = setup('promoteDeveloper', ADMIN);
+      expect(webClient.request.admin.adjustMod).toHaveBeenCalledWith('alice', undefined, undefined, true);
+    });
+
     it('sends only should_be_judge for a demotion and reports failure', () => {
       const { store, webClient } = setup('demoteJudge', ADMIN);
-      expect(webClient.request.admin.adjustMod).toHaveBeenCalledWith('alice', undefined, false);
+      expect(webClient.request.admin.adjustMod).toHaveBeenCalledWith('alice', undefined, false, undefined);
       act(() => {
         store.dispatch(server.Actions.adminCommandFailed({ command: 'adjustMod', responseCode: 3, target: 'alice' }));
       });

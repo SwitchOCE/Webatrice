@@ -9,7 +9,9 @@
       "promoteMod": "Promote user to moderator",
       "demoteMod": "Demote user from moderator",
       "promoteJudge": "Promote user to judge",
-      "demoteJudge": "Demote user from judge"
+      "demoteJudge": "Demote user from judge",
+      "promoteDeveloper": "Promote user to developer",
+      "demoteDeveloper": "Demote user from developer"
     },
     "common": {
       "ok": "OK",
@@ -26,6 +28,7 @@
       "userName": "User name",
       "reason": "Warning",
       "redact": "Redact all messages from this user in all rooms",
+      "withLevel": "{warning} (IL {level})",
       "errorBlankName": "User name to send a warning to can not be blank, please specify a user to warn.",
       "errorBlankReason": "Warning to use can not be blank, please select a valid warning to send."
     },

@@ -213,6 +213,7 @@ describe('moderation round trips (integration)', () => {
     expect(adjust.value.userName).toBe('promotee');
     expect(adjust.value.shouldBeJudge).toBe(true);
     expect(isFieldSet(adjust.value, Command_AdjustModSchema.field.shouldBeMod)).toBe(false);
+    expect(isFieldSet(adjust.value, Command_AdjustModSchema.field.shouldBeDeveloper)).toBe(false);
     respond(adjust.cmdId);
 
     expect(await screen.findByText('Moderation.adjustMod.promoted')).toBeInTheDocument();

@@ -9,7 +9,9 @@ export type ModerationAction =
   | 'promoteMod'
   | 'demoteMod'
   | 'promoteJudge'
-  | 'demoteJudge';
+  | 'demoteJudge'
+  | 'promoteDeveloper'
+  | 'demoteDeveloper';
 
 export interface ModerationMenuEntry {
   action: ModerationAction;
@@ -37,6 +39,8 @@ export const MODERATION_MENU_LABEL_KEYS: Record<ModerationAction, string> = {
   demoteMod: 'Moderation.menu.demoteMod',
   promoteJudge: 'Moderation.menu.promoteJudge',
   demoteJudge: 'Moderation.menu.demoteJudge',
+  promoteDeveloper: 'Moderation.menu.promoteDeveloper',
+  demoteDeveloper: 'Moderation.menu.demoteDeveloper',
 };
 
 const hasFlag = (level: number, flag: ServerInfo_User_UserLevelFlag): boolean => (level & flag) === flag;
@@ -45,12 +49,13 @@ const hasFlag = (level: number, flag: ServerInfo_User_UserLevelFlag): boolean =>
  * The moderator/admin section of a user context menu. Mirrors the
  * `!tabSupervisor->getAdminLocked()` block of desktop's
  * `UserContextMenu::showContextMenu` (user_context_menu.cpp), restricted to the
- * commands protocol 3.0 carries:
+ * commands this branch implements (report and investigate need their own UI):
  *
  *  - moderators (and admins, who always carry IsModerator) get warn / warn
  *    history, ban / ban history and admin notes;
- *  - admins also get one mod entry and one judge entry, each a Demote when the
- *    target already holds the role, else a Promote when the target is registered;
+ *  - admins also get one entry per role (moderator, judge, developer), each a
+ *    Demote when the target already holds the role, else a Promote when the
+ *    target is registered;
  *  - every entry stays visible but disabled when the target is the local user.
  *
  * Desktop additionally requires its Administration tab to be open and unlocked;
@@ -80,6 +85,11 @@ export function buildModerationMenu({ localUserLevel, targetUserLevel, isSelf }:
       roles.push(entry('demoteJudge'));
     } else if (isRegistered) {
       roles.push(entry('promoteJudge'));
+    }
+    if (hasFlag(targetUserLevel, ServerInfo_User_UserLevelFlag.IsDeveloper)) {
+      roles.push(entry('demoteDeveloper'));
+    } else if (isRegistered) {
+      roles.push(entry('promoteDeveloper'));
     }
     if (roles.length > 0) {
       groups.push(roles);

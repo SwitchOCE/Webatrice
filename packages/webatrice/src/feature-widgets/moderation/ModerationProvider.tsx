@@ -12,8 +12,7 @@ import { BUTTON_SECONDARY_CLASS } from './moderationStyles';
 import { ModerationContext, type ModerationApi } from './useModerationMenu';
 import { useModerationFlow, type ModerationFlowState } from './useModerationFlow';
 import WarnUserDialog from './WarnUserDialog';
-
-const EMPTY_WARNINGS: string[] = [];
+import { toWarningOptions } from './warningOptions';
 
 const LoadingDialog = ({ onCancel }: { onCancel: () => void }) => {
   const { t } = useTranslation();
@@ -47,7 +46,7 @@ export const ModerationDialogs = ({
     dialog = (
       <WarnUserDialog
         userName={flow.userName}
-        warnings={warnList?.warning ?? EMPTY_WARNINGS}
+        warnings={toWarningOptions(warnList)}
         onSubmit={submitWarn}
         onCancel={close}
       />
