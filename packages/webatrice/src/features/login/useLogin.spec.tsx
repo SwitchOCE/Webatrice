@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, screen } from '@testing-library/react';
 import { combineReducers } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
 
@@ -120,6 +120,16 @@ describe('useLogin', () => {
 
     expect(result.current.dialogState.passwordResetRequestDialog).toBe(false);
     expect(result.current.dialogState.resetPasswordDialog).toBe(true);
+  });
+
+  it('RESET_PASSWORD_SUCCESS toasts under the key the shipped locales translate', () => {
+    const { store } = setup(disconnectedState);
+
+    act(() => {
+      store.dispatch({ type: server.Types.RESET_PASSWORD_SUCCESS, payload: {} });
+    });
+
+    expect(screen.getByText('Login.toasts.passwordResetSuccessToast')).toBeInTheDocument();
   });
 
   it('skipTokenRequest stores the user and pivots the dialog to the reset step', () => {
