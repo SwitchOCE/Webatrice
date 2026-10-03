@@ -41,14 +41,14 @@
 - `servatrice/src/servatrice_database_interface.cpp`: the user-level bitmask and `getUserAlts`
 
 ## Testing
-Final tip `TIP13`, after `git submodule update --init` (servatrice `add65ca`) and `npm ci`. Vitest ran with `--maxWorkers=2`, turbo with `--concurrency=1`.
+Final tip `e2fb4b7`, after `git submodule update --init` (servatrice `add65ca`) and `npm ci`. Vitest ran with `--maxWorkers=2`, turbo with `--concurrency=1`.
 
 - `npx turbo run typecheck --concurrency=1`: all packages pass. Each commit of the rewritten feature range (`6d53388`, `b97950e`, `c51650d`) also typechecks.
 - `npm run lint`: clean.
 - Unit: sockatrice 775 tests / 39 files; datatrice 1196 / 29; webatrice 1491 (+2 skipped) / 200 files (+2 skipped). All pass.
 - Integration: sockatrice 166 / 19 files; datatrice 136 / 9; webatrice 160 (+2 skipped) / 36 files (+2 skipped). All pass. `moderation.spec.tsx` also passes (10/10) at the rewritten feature commit `6d53388`.
 - Each new behaviour test was run against the code before its fix and failed there (guards 5, admin lock 3, card-art provider/length 2, keyboard rows 2).
-- E2E: webatrice on chromium + firefox + webkit against the default 3.0 image ran on #06's tip, which contains this branch; see #06's PR file. The 3.1-only `staff-tools.spec.ts` was not re-run (the master Servatrice image was not built in this run); its flows are unchanged by the review fixes.
+- E2E: webatrice on chromium + firefox + webkit against the default 3.0 image ran on #06's tip `19a7954`, which contains this branch: 36/36 passed (see #06's PR file). The 3.1-only `staff-tools.spec.ts` was not re-run (the master Servatrice image was not built in this run); its flows are unchanged by the review fixes.
 
 ## Notes for reviewers
 - **How this was folded into the stack.**

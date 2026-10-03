@@ -4,3 +4,4 @@
 - 15:46Z 13 gate green (typecheck, lint, unit 775/1196/1491, int 166/136/160); 06 rebased, auto-join fixed at source, tolerance dropped, pushed c282a21; WS/Scryfall loud-failure in progress → webatrice e2e in playwright container
 - ACK M1: 13's commandFailed design left unchanged; noted under Review response in 13's PR file
 - 16:01Z 06: loud-failure for WS+Scryfall committed; strict Scryfall check surfaced app requests to /cards/?format=image (empty scryfall id prefetch) → fixed in game prefetch; pushed 19a7954; e2e rerun in progress
+- 16:18Z DONE. 13: 8fca043 → e2fb4b7 (claude/parity-13-administration). 06: d2e3d1e → 19a7954 (claude/parity-06-e2e-hardening, on e2fb4b7). Gate on 06 tip: typecheck 5/5, lint clean, unit 777/1197/1495(+2s), int 166/136/160(+2s), sockatrice e2e 5/5, webatrice e2e 36/36 (3 browsers, playwright container). PR files updated with Review response.
