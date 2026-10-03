@@ -761,3 +761,17 @@ The history from PB-13 on was rewritten (`git rebase -i` with a scripted sequenc
 - Integration tests: sockatrice 19 / 166, datatrice 9 / 136, webatrice **38 / 163**, 0 skipped.
 - Webatrice e2e (3.0.0 image; the browsers run in `mcr.microsoft.com/playwright:v1.60.0-noble`, with the host's docker CLI and socket mounted for `staff-tools`): **36 passed (10.4 min)** in chromium, firefox and webkit. The stack was torn down.
 - Sockatrice e2e: not run. No sockatrice or server flow changed.
+
+## Restack notes (wR2)
+
+Rebased onto the restacked chain (`claude/restack-23-playmats` a941276); new tip `b5759d0`. Ports of lower review fixes into the owners this PR creates:
+
+- **#02 hand reorder → `seatDropPlan`.** A hand drop target carries the strip's card order (`order`), and a hand→hand plan is `planHandReorder`'s one single-card command per dragged card, so a group keeps its order. `handReorder.ts` + spec moved from `PlayerBox/` to `hooks/`; `useSeatDnd` takes `handDisplayList`. The integration suite `hand-reorder.spec.tsx` (testid `hand-zone-<id>` now on `HandZone`) passes unchanged.
+- **#02 hand-viewer drop.** A hand card dropped on the hand view resolves to no target (snaps back); it lives in `ZoneViewDialog`'s `resolveDrop`.
+- **#19 preferences.** `playToStack` → `HandZone` double-click (with `legacyTableRowFromTypeLine` / `STACK_TABLE_ROW` in `playCard`), `tapAnimation` → `Battlefield`, `closeEmptyCardView` → the new `ZoneViewDialog` (closes through the remembered shuffle choice; tracked per view so a top-N view replacing a library view under the same Game key is not "emptied"). `ZoneViewDialog.closeEmpty.spec` adapted to the `view` prop.
+- **#23 playmat** renders in the `Battlefield` region.
+- **#13/#20 by-name deck image prefetch** (`deckCardImageUrl`, now in `ui/PlayerBoard/` on `SeatDeckCard`) wins over this PR's "skip rows with no printing"; `useSeatCardMetadata.spec` pins the by-name URL.
+- **#15 replay board.** `Game.tsx`'s `readOnly`/`footer`/`onLeave` props, the board input guard and the hidden lobby dialogs survive every provider re-nest; `useGame` keeps `NO_SENSORS` for a read-only board.
+- **Card catalog in services.** `services` may not import `hooks`, so the card-data preferences snapshot (`currentCardDataPreferences` / `refreshCardDataPreferences`) moved into `services/cardDatabase` (new spec); the hooks store wraps it.
+- **#21 theme.** The CSS 21 tokenised (`ZoneViewDialog.css`, `ZoneStack.css`, `SideboardDialog.css`) belongs to components this PR deletes; the new owners use token classes. Remaining literals (selection/attach glows, over-art text) are the ones 21 also left in PlayerBox.
+- The in-game `SideboardDialog` stays deleted (#16 hosts sideboarding in the lobby). This PR adds no new `localStorage` key (the shuffle-on-close key predates it).

@@ -137,3 +137,12 @@ Seven commits on top of `b2158d5`, parent still `dc77ebd`. Tip is `c8f8c37` on `
 | Unit | sockatrice 782 (39 files), datatrice 1200 (29), webatrice 1657 (213) |
 | Integration | sockatrice 168 (19), datatrice 137 (9), webatrice 169 passed + 2 skipped (40 files; the skips are upstream) |
 | Webatrice e2e, chromium+firefox+webkit (Servatrice 3.0.0, Playwright 1.60 container) | 36/39 on the full run (11.3 min). The 3 failures were `staff-tools` (one per browser): the container had no `docker compose` for that spec's MySQL seeding. Re-run with the docker CLI and compose plugin mounted: 6/6. `lobby-sideboard-force-start` passed on all three browsers. |
+
+## Restack notes (wR2)
+
+Rebased onto the restacked #23d (`a28e53e`); new tip `153f735`.
+
+- The in-game `SideboardDialog` stays deleted (#05 stage 5); the lobby drops the mock-deck imports #05 (PB-21) deleted.
+- `deckSelectFailed` stays: #04's per-command failure signal for a UI that waits on the answer (not a #03 query).
+- Additive merges with #15/#14/#21: `IGameResponse` (replay + deck select), `AppShell` (`AppAlerts` + `GameLinkJoinHost`), the components and utils barrels, the mock client.
+- #21 tokens on the new force-start button and the deck-select error.

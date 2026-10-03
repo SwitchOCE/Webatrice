@@ -98,3 +98,12 @@ History: the red intermediate commit is gone (`ee23217` squashed into the visibi
 - **nit: TopBar title** → follow-up. Every transient tab title in `detectTransientTab` is plain English today.
 - **nit: any scheme accepted** → fixed. Only `http(s):` and `cockatrice://opendeck` are accepted.
 - **nit: link field label** → "Share link".
+
+## Restack notes (wR2)
+
+Rebased onto the restacked #18 (`12717e4`); new tip `a28e53e`.
+
+- **Failure pattern (series decision).** `deckSharingFailed` / `DeckSharingCommandName` / `DECK_SHARING_FAILED` are gone: #03 already routes all eight builders through `session.commandFailed`, so this PR only adds the transport `failure` argument (changeset reworded) and Datatrice exports `SessionCommandFailedPayload` for `sessionCommandFailed`. #03's targets win; the share download failure names the token, so `useSharedDeck` resolves the item from the one it requested. Specs and the 3.1 integration spec use `commandFailed`.
+- `FlatDeck` keeps #18's `isPublic`/`colorIdentity` and adds this PR's `visibility`.
+- The share dialogs adopt #18's `DeckDialogFrame` contract (`titleId`; the frame owns `role`/`aria-labelledby`).
+- #21 tokens on the share/public-deck UI.

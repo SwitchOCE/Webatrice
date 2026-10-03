@@ -165,3 +165,11 @@ The Sockatrice `deckUpdate` follow-up was already in #18; its new response callb
 The completeness flag in the persisted assessment schema is still open.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+## Restack notes (wR2)
+
+Rebased onto the restacked #05 (`b5759d0`); new tip `dc3a9aa`.
+
+- **#20 deck switch on a mounted editor** (`b28895a`) → `hooks/useDeckEditor`: re-seed per `deckId` during render, `deckRef` synced in an effect so the old deck's unmount flush still serializes the deck it was edited on, and a cached deck re-marks its own saved signature. `resetSaved` also shows the deck as clean. The #20 spec lives on as `hooks/useDeckEditor.deckSwitch.spec.tsx`; the old failures spec is superseded by this PR's hooks specs.
+- `ExportDeckDialog` keeps the chain's `downloadBlob`; the cache helper `hasCachedDeck` became unused and was dropped.
+- **#21 tokens** carried into the split components (`bracketTone`, `SignalBadge`, `CardDetailDialog`, editor rows/sidebar) and this PR's own bracket-outage notice.

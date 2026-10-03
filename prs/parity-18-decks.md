@@ -261,3 +261,12 @@ rebase and was dropped):
 
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+## Restack notes (wR2)
+
+Rebased onto the restacked #09 (`dc3a9aa`); new tip `12717e4`.
+
+- The deck-switch re-seed (#20, ported in #09) moves to this PR's save signatures: a cached `null` signature (file needs rewriting) resets instead of marking saved; the deck-switch spec watches `request.session.deckUpdate`.
+- `saveTextFile` now delegates to the chain's `downloadBlob`, so the app has one download helper.
+- The `deck.undo`/`deck.redo` shortcut ids sit beside #15's replay ids.
+- #21 tokens applied to this PR's new deck UI (legality, tags, folders, list states).
