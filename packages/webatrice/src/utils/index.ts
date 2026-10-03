@@ -37,3 +37,5 @@ export type {
   LiveGameServer,
   ParsedGameJoinLink,
 } from './gameLink';
+export { BRACKET_TONE, bracketToneClass } from './bracketTone';
+export type { BracketTone } from './bracketTone';
