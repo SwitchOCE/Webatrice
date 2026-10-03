@@ -1,4 +1,4 @@
-import { CardSource } from '../types/CardSource';
+import { CardSource, type CardSourcePayload } from '../types/CardSource';
 import { dexieService } from '../DexieService';
 
 export class CardSourceDTO extends CardSource {
@@ -20,6 +20,10 @@ export class CardSourceDTO extends CardSource {
 
   static delete(id: string): Promise<void> {
     return dexieService.cardSources.delete(id);
+  }
+
+  static getPayload(id: string): Promise<CardSourcePayload | undefined> {
+    return dexieService.cardSourcePayloads.get(id);
   }
 }
 

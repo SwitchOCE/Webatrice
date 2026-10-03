@@ -65,6 +65,10 @@ class DexieService {
     return this.db.table(Stores.CARD_SOURCES);
   }
 
+  get cardSourcePayloads() {
+    return this.db.table(Stores.CARD_SOURCE_PAYLOADS);
+  }
+
   get setPreferences() {
     return this.db.table(Stores.SET_PREFERENCES);
   }
@@ -87,7 +91,9 @@ class DexieService {
         Stores.FORMATS,
         Stores.INFO,
         Stores.CARD_SOURCES,
+        Stores.CARD_SOURCE_PAYLOADS,
         Stores.SET_PREFERENCES,
+        Stores.CARD_DATA_SETTINGS,
       ],
       work,
     );

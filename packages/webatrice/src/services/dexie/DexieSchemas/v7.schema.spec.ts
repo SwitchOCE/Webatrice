@@ -7,6 +7,8 @@ function fakeTransaction(rows: Partial<Record<Stores, unknown[]>>) {
   const writes: Record<string, unknown[]> = {};
   const table = (name: Stores) => ({
     toArray: () => Promise.resolve(rows[name] ?? []),
+    count: () => Promise.resolve((rows[name] ?? []).length),
+    toCollection: () => ({ first: () => Promise.resolve(rows[name]?.[0]) }),
     bulkPut: (items: unknown[]) => {
       writes[name] = [...(writes[name] ?? []), ...items];
       return Promise.resolve();
@@ -44,7 +46,7 @@ describe('migrateToV7', () => {
     ]);
   });
 
-  it('wraps previously imported records in a legacy source so a rebuild keeps them', async () => {
+  it('marks previously imported records as a legacy source without copying them', async () => {
     const cards = [{ name: { value: 'Counterspell' } }];
     const tokens = [{ name: { value: 'Goblin' } }];
     const info = { id: 'singleton', source: 'oracle-local-fs', importedAt: '2026-01-01T00:00:00.000Z', author: 'Oracle' };
@@ -57,15 +59,19 @@ describe('migrateToV7', () => {
     await migrateToV7(tx);
 
     expect(writes[Stores.CARD_SOURCES]).toEqual([
-      expect.objectContaining({
+      {
         id: LEGACY_SOURCE_ID,
         kind: 'legacy',
+        fileName: 'cards.xml',
         origin: 'migration',
+        order: 0,
         importedAt: info.importedAt,
         author: 'Oracle',
+        sourceVersion: undefined,
+        createdAt: undefined,
         counts: { cards: 1, sets: 0, tokens: 1, formats: 0 },
-        records: { cards, sets: [], tokens, formats: [], info },
-      }),
+      },
     ]);
+    expect(writes[Stores.CARD_SOURCE_PAYLOADS]).toBeUndefined();
   });
 });

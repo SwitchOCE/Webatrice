@@ -53,6 +53,7 @@ const counts = (overrides: Partial<Record<Stores, number>> = {}) => ({
   [Stores.FORMATS]: 0,
   [Stores.INFO]: 0,
   [Stores.CARD_SOURCES]: 0,
+  [Stores.CARD_SOURCE_PAYLOADS]: 0,
   [Stores.SET_PREFERENCES]: 0,
   [Stores.CARD_DATA_SETTINGS]: 0,
   [Stores.SCRYFALL_CACHE]: 0,

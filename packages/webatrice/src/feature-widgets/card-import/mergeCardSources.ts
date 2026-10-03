@@ -1,12 +1,14 @@
-import type {
-  Card,
-  CardInSet,
-  CardSource,
-  CardSourceKind,
-  CardSourceRecords,
-  Format,
-  Set,
-  Token,
+import {
+  LEGACY_SOURCE_ID,
+  USER_TOKENS_SOURCE_ID,
+  type Card,
+  type CardInSet,
+  type CardSource,
+  type CardSourceKind,
+  type CardSourceRecords,
+  type Format,
+  type Set,
+  type Token,
 } from '@app/services';
 
 /** Fixed ids for the sources desktop keeps one of; custom files get `custom:<order>:<file>`. */
@@ -14,7 +16,8 @@ export const CardSourceId = {
   MAIN: 'main',
   TOKENS: 'tokens',
   SPOILER: 'spoiler',
-  USER_TOKENS: 'user-tokens',
+  USER_TOKENS: USER_TOKENS_SOURCE_ID,
+  LEGACY: LEGACY_SOURCE_ID,
 } as const;
 
 /** Desktop's reserved file names; anything else is a custom set file. */
@@ -33,16 +36,16 @@ export function sourceIdFor(kind: CardSourceKind, fileName: string, order: numbe
     case 'tokens': return CardSourceId.TOKENS;
     case 'spoiler': return CardSourceId.SPOILER;
     case 'user-tokens': return CardSourceId.USER_TOKENS;
-    case 'legacy': return 'legacy';
+    case 'legacy': return CardSourceId.LEGACY;
     case 'custom': return `custom:${String(order).padStart(2, '0')}:${fileName}`;
   }
 }
 
 const KIND_RANK: Record<CardSourceKind, number> = {
   main: 0,
-  legacy: 1,
-  tokens: 2,
-  spoiler: 3,
+  tokens: 1,
+  spoiler: 2,
+  legacy: 3,
   custom: 4,
   'user-tokens': 5,
 };
@@ -51,6 +54,8 @@ const KIND_RANK: Record<CardSourceKind, number> = {
  * Desktop's load order (`CardDatabaseLoader::doLoadCardDatabases`): cards.xml,
  * tokens.xml, spoiler.xml, then custom files alphabetically — desktop names
  * them `NN.<file>.xml`, so that is add order. Editor tokens (`TK.xml`) last.
+ * A pre-v7 import loads after the files it was made of, so re-importing any
+ * of them takes over the cards it defines and the rest are kept.
  */
 export function sortSourcesByLoadOrder<T extends Pick<CardSource, 'kind' | 'order' | 'fileName'>>(sources: readonly T[]): T[] {
   return [...sources].sort(
