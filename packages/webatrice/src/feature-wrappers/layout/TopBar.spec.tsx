@@ -110,25 +110,25 @@ describe('TopBar user menu', () => {
 
     openMenuAndPick('UserMenu.account');
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.ACCOUNT);
-    expect(screen.getByRole('link', { name: /Account/ })).toHaveAttribute('aria-current', 'page');
-    expect(document.title).toMatch(/Account · Webatrice$/);
+    expect(screen.getByRole('link', { name: /UserMenu\.account/ })).toHaveAttribute('aria-current', 'page');
+    expect(document.title).toMatch(/UserMenu\.account · Webatrice$/);
 
     openMenuAndPick('UserMenu.settings');
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SETTINGS);
-    expect(screen.queryByRole('link', { name: /Account/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /UserMenu\.account/ })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('link', { name: /Lobby|Server/ }));
+    fireEvent.click(screen.getByRole('link', { name: /TopBar\.tab\.lobby/ }));
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
-    expect(screen.queryByRole('link', { name: /Settings/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /UserMenu\.settings/ })).not.toBeInTheDocument();
   });
 
   it('gives an unsaved deck draft the deck editor tab', () => {
     renderTopBar('/deck/draft/abc');
 
-    expect(screen.getByRole('link', { name: /Unsaved deck/ })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: /TopBar\.tab\.unsavedDeck/ })).toHaveAttribute('aria-current', 'page');
 
-    fireEvent.click(screen.getByRole('link', { name: /Lobby|Server/ }));
-    fireEvent.click(screen.getByRole('link', { name: /Unsaved deck/ }));
+    fireEvent.click(screen.getByRole('link', { name: /TopBar\.tab\.lobby/ }));
+    fireEvent.click(screen.getByRole('link', { name: /TopBar\.tab\.unsavedDeck/ }));
     expect(screen.getByTestId('location')).toHaveTextContent('/deck/draft/abc');
   });
 
@@ -188,7 +188,7 @@ describe('TopBar replays entry', () => {
     const replayKey = openReplay(buildReplay([sayContainer(0)]), 'final.cor', createMockWebClient());
     renderTopBar(`/replay/${replayKey}`);
 
-    fireEvent.click(screen.getByRole('link', { name: /Lobby/ }));
+    fireEvent.click(screen.getByRole('link', { name: /TopBar\.tab\.lobby/ }));
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
     const replayTab = screen.getByRole('link', { name: /final\.cor/ });
     expect(replayTab).not.toHaveAttribute('aria-current');
@@ -231,7 +231,7 @@ describe('TopBar replays entry', () => {
     const close = within(replayLink.closest('li')!).getByRole('button', { name: 'TopBar.tabs.close' });
     expect(replayLink).not.toContainElement(close);
     // The pinned Lobby tab has no close button.
-    const lobbyTab = screen.getByRole('link', { name: /Lobby|Server/ }).closest('li')!;
+    const lobbyTab = screen.getByRole('link', { name: /TopBar\.tab\.lobby/ }).closest('li')!;
     expect(within(lobbyTab).queryByRole('button')).not.toBeInTheDocument();
   });
 });
@@ -258,7 +258,7 @@ describe('TopBar report entries (#7091)', () => {
     expect(screen.queryByRole('menuitem', { name: 'UserMenu.reportQueue' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('menuitem', { name: 'UserMenu.myReports' }));
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.MY_REPORTS);
-    expect(screen.getByRole('link', { name: /My Reports/ })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: /UserMenu\.myReports/ })).toHaveAttribute('aria-current', 'page');
   });
 
   it('adds the Report Queue for moderators', () => {
