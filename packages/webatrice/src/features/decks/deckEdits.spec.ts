@@ -10,6 +10,7 @@ import {
   renameDeck,
   setCardCategory,
   setCardCommander,
+  setCardPrinting,
   setDeckBracketAssessment,
   setDeckDescription,
   setDeckFormat,
@@ -38,6 +39,13 @@ describe('deck metadata edits', () => {
     expect(setDeckDescription(before, 'notes').meta.description).toBe('notes');
     expect(setDeckDescription(before, '').meta.description).toBeUndefined();
     expect(before).toEqual(deck());
+  });
+
+  it('returns the same deck when a metadata edit changes nothing (no empty undo step)', () => {
+    const before = deck();
+    expect(renameDeck(before, 'Deck')).toBe(before);
+    expect(setDeckFormat(before, 'commander')).toBe(before);
+    expect(setDeckDescription(before, '')).toBe(before);
   });
 
   it('caches a price and returns the same deck when it is unchanged', () => {
@@ -76,8 +84,22 @@ describe('card edits', () => {
   it('marks a commander with one copy and leaves the quantity when unmarking', () => {
     const marked = setCardCommander(base, 0, true);
     expect(marked.cards[0]).toEqual(expect.objectContaining({ isCommander: true, quantity: 1 }));
-    expect(setCardCommander(base, 0, false).cards[0]).toEqual(expect.objectContaining({ isCommander: false, quantity: 2 }));
+    const twoCopies = patchCard(marked, 0, { quantity: 2 });
+    expect(setCardCommander(twoCopies, 0, false).cards[0]).toEqual(expect.objectContaining({ isCommander: false, quantity: 2 }));
     expect(setCardCommander(base, 9, true)).toBe(base);
+    expect(setCardCommander(base, 0, false)).toBe(base);
+    expect(setCardCommander(marked, 0, true)).toBe(marked);
+  });
+
+  it('moves a row between zones only when the zone changes', () => {
+    expect(setCardCategory(base, 0, 'main')).toBe(base);
+  });
+
+  it('switches a row to another printing, or returns the deck when it is the same printing', () => {
+    const reprinted = setCardPrinting(base, 1, { set: 'lea', collectorNumber: '1', scryfallId: 'id', imageUri: 'img' });
+    expect(reprinted.cards[1]).toEqual(expect.objectContaining({ set: 'lea', collectorNumber: '1', scryfallId: 'id', imageUri: 'img' }));
+    expect(setCardPrinting(reprinted, 1, { set: 'lea', collectorNumber: '1', scryfallId: 'id' })).toBe(reprinted);
+    expect(setCardPrinting(base, 9, { set: 'lea' })).toBe(base);
   });
 
   it('appends a new row', () => {

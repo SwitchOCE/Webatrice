@@ -91,6 +91,8 @@
       "deck.load": "Load deck",
       "deck.addCard": "Add card",
       "deck.removeCard": "Remove card",
+      "deck.undo": "Undo deck edit",
+      "deck.redo": "Redo deck edit",
       "room.sendMessage": "Send message"
     }
   }
