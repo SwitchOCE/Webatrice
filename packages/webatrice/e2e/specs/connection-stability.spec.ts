@@ -15,7 +15,7 @@ import { registerAndReachRooms } from '../fixtures/flows';
 // Servatrice. None of that is reachable from Sockatrice's node-`ws` soak.
 //
 // Assertion surface: the TopBar connection indicator (a lucide Circle
-// with `aria-label="Connected"`), mounted iff Datatrice's
+// with a `role="status"` reading "Connected"), shown iff Datatrice's
 // `selectIsConnected` is true. There is no dedicated reconnect banner —
 // indicator absent == not LOGGED_IN.
 //
