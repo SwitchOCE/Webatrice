@@ -55,6 +55,10 @@ export class GameResponseImpl implements WebsocketTypes.IGameResponse {
     this.store.dispatch(GameActions.deckSelected({ gameId, deckList }));
   }
 
+  deckSelectFailed(gameId: number, responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
+    this.store.dispatch(GameActions.deckSelectFailed({ gameId, responseCode, failure }));
+  }
+
   gameClosed(gameId: number): void {
     this.store.dispatch(GameActions.gameClosed({ gameId }));
   }

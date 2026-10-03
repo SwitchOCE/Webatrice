@@ -1,4 +1,5 @@
 import { create } from '@bufbuild/protobuf';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { createStore } from '../store/createStore';
 import {
@@ -257,6 +258,14 @@ describe('GameResponseImpl', () => {
     const { impl, dispatch } = setup();
     impl.deckSelected(7, '<cockatrice_deck/>');
     expect(dispatch).toHaveBeenCalledWith(GameActions.deckSelected({ gameId: 7, deckList: '<cockatrice_deck/>' }));
+  });
+
+  it('deckSelectFailed dispatches the deckSelectFailed signal with the transport reason', () => {
+    const { impl, dispatch } = setup();
+    impl.deckSelectFailed(7, -1, WebsocketTypes.CommandFailure.Disconnected);
+    expect(dispatch).toHaveBeenCalledWith(
+      GameActions.deckSelectFailed({ gameId: 7, responseCode: -1, failure: WebsocketTypes.CommandFailure.Disconnected }),
+    );
   });
 
   it('zonePropertiesChanged dispatches the zonePropertiesChanged action', () => {

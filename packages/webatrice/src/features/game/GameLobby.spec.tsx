@@ -6,6 +6,8 @@ import {
   makePlayerProperties,
 } from '@cockatrice/datatrice/testing';
 import type { WebClient } from '@cockatrice/sockatrice';
+import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import {
   connectedWithRoomsState,
@@ -161,6 +163,36 @@ describe('GameLobby — deck states (GAME-014)', () => {
       store.dispatch(games.Actions.deckSelected({ gameId: 1, deckList: DECK }));
     });
     expect(screen.getByTestId('lobby-deck-view')).toBeInTheDocument();
+  });
+
+  it('a failed deck select keeps the picker and says why', () => {
+    const { store } = renderLobby({ deckList: '' });
+    act(() => {
+      store.dispatch(games.Actions.deckSelectFailed({ gameId: 1, responseCode: Response_ResponseCode.RespContextError }));
+    });
+    expect(screen.getByText('GameLobby.deckSelectFailed')).toBeInTheDocument();
+    expect(screen.queryByTestId('lobby-deck-view')).not.toBeInTheDocument();
+  });
+
+  it('reports a deck select the server never answered with the transport reason', () => {
+    const { store } = renderLobby({ deckList: '' });
+    act(() => {
+      store.dispatch(games.Actions.deckSelectFailed({
+        gameId: 1,
+        responseCode: Response_ResponseCode.RespNotConnected,
+        failure: WebsocketTypes.CommandFailure.Timeout,
+      }));
+    });
+    expect(screen.queryByText('GameLobby.deckSelectFailed')).not.toBeInTheDocument();
+    expect(screen.getByText('CommandFailure.timeout')).toBeInTheDocument();
+  });
+
+  it('ignores a failed deck select for another game', () => {
+    const { store } = renderLobby({ deckList: '' });
+    act(() => {
+      store.dispatch(games.Actions.deckSelectFailed({ gameId: 2, responseCode: Response_ResponseCode.RespContextError }));
+    });
+    expect(screen.queryByText('GameLobby.deckSelectFailed')).not.toBeInTheDocument();
   });
 });
 

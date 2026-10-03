@@ -1,5 +1,14 @@
 import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
+import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import type { Enriched } from '../../types';
+
+// A failed Command_DeckSelect: the raw Response.ResponseCode, and `failure`
+// when the server never answered.
+export interface GameCommandFailedPayload {
+  gameId: number;
+  responseCode: number;
+  failure?: WebsocketTypes.CommandFailure;
+}
 
 /** A pending "someone revealed their zone to us" notification. Set when
  *  Event_RevealCards arrives with a non-empty `cards[]` (i.e. WE are on the
