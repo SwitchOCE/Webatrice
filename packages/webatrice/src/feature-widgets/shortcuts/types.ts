@@ -40,6 +40,8 @@ export type ActionId =
   | 'game.prevPhase'
   | 'game.nextPhaseAction'
   | 'game.reverseTurn'
+  | 'game.rotateViewCW'
+  | 'game.rotateViewCCW'
   | 'game.rollDice'
   | 'game.leaveGame'
   | 'game.viewSideboard'

@@ -750,6 +750,8 @@
       "game.prevPhase": "Previous phase",
       "game.nextPhaseAction": "Next phase with action",
       "game.reverseTurn": "Reverse turn order",
+      "game.rotateViewCW": "Rotate view clockwise",
+      "game.rotateViewCCW": "Rotate view counterclockwise",
       "game.drawMultipleCards": "Draw multiple cards…",
       "game.undoDraw": "Undo draw",
       "game.rollDice": "Roll dice…",
@@ -1438,7 +1440,9 @@
       "nextPhase": "Next phase",
       "nextPhaseAction": "Next phase with action",
       "nextTurn": "Next turn",
-      "reverseTurn": "Reverse turn order"
+      "reverseTurn": "Reverse turn order",
+      "rotateViewCW": "Rotate view clockwise",
+      "rotateViewCCW": "Rotate view counterclockwise"
     }
   },
   "GameReplay": {

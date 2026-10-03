@@ -1,4 +1,4 @@
-import { RefObject, useCallback, useEffect, useMemo, useRef } from 'react';
+import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core';
 
@@ -21,7 +21,7 @@ import { useGameDialogs, type GameDialogs } from './useGameDialogs';
 import { useGameDnd, type GameDnd } from './useGameDnd';
 import { useJudgeTarget } from './useJudgeTarget';
 import { useGameLifecycleNavigation } from './useGameLifecycleNavigation';
-import { useGameBoardLayout, type GameBoardLayout } from './useGameBoardLayout';
+import { useGameBoardLayout, type GameBoardLayout, type RotationStep } from './useGameBoardLayout';
 import { useGameSelection, type GameSelection } from './useGameSelection';
 import { useGameShortcuts } from './useGameShortcuts';
 
@@ -46,6 +46,8 @@ export interface Game extends CurrentGame {
   boxSelectPreview: BoxSelectPreview | null;
   localAccess: GameAccess;
   layout: GameBoardLayout;
+  /** Turns the board view one seat around the table; local only (desktop playerRotation). */
+  rotateView: (step: RotationStep) => void;
   arrows: GameArrowInteractions;
   dialogs: GameDialogs;
   dnd: GameDnd;
@@ -109,7 +111,14 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
   selectedCardsRef.current = selectedCards;
   const getSelectedCards = useCallback(() => selectedCardsRef.current, []);
 
-  const layout = useGameBoardLayout(game);
+  // Desktop keeps the view rotation per game scene and never persists it.
+  const [rotation, setRotation] = useState({ gameId, steps: 0 });
+  const rotationSteps = rotation.gameId === gameId ? rotation.steps : 0;
+  const rotateView = useCallback(
+    (step: RotationStep) => setRotation((r) => ({ gameId, steps: (r.gameId === gameId ? r.steps : 0) + step })),
+    [gameId],
+  );
+  const layout = useGameBoardLayout(game, rotationSteps);
   const localAccess = useGameAccess(gameId, game?.localPlayerId);
   const judgeTarget = useJudgeTarget(gameId);
 
@@ -151,6 +160,7 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
   useGameShortcuts({
     gameId,
     seatShortcuts,
+    onRotateView: rotateView,
     onRequestConcede: dialogs.openConcede,
     onRequestDrawMultiple: dialogs.handleRequestDrawN,
     onRequestUndoDraw: dialogs.handleRequestUndoDraw,
@@ -195,6 +205,7 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
     boxSelectPreview: box.previewRect,
     localAccess,
     layout,
+    rotateView,
     arrows,
     dialogs,
     dnd,

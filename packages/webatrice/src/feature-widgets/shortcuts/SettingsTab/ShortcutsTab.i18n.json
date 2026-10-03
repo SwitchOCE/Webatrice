@@ -32,6 +32,8 @@
       "game.prevPhase": "Previous phase",
       "game.nextPhaseAction": "Next phase with action",
       "game.reverseTurn": "Reverse turn order",
+      "game.rotateViewCW": "Rotate view clockwise",
+      "game.rotateViewCCW": "Rotate view counterclockwise",
       "game.drawMultipleCards": "Draw multiple cards…",
       "game.undoDraw": "Undo draw",
       "game.rollDice": "Roll dice…",
