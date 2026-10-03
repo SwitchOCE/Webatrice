@@ -1,1 +1,2 @@
 - 23:01Z read brief/rv14 → checkout PR branch, npm ci
+- 23:07Z pushed 3 fixes (measure, point flip, Space type-ahead) → submenu close + type-ahead reset
