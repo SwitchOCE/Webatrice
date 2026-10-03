@@ -6,7 +6,7 @@
     },
     "log": "{room} chat",
     "input": "Message {room}",
-    "subtitle": "· room chat",
+    "subtitle": "room chat",
     "empty": "No messages yet — say hi."
   }
 }
