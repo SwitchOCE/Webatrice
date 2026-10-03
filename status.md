@@ -1,0 +1,1 @@
+- 21:15Z started rv12, read brief/template/spec → reviewing PR 28 diff
