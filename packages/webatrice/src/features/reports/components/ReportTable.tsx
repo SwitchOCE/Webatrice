@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 
 import type { ServerInfo_Report } from '@cockatrice/sockatrice/generated';
+import { useGridRows } from '@app/hooks';
 
 import { formatReportCategory, formatReportTime, reportStatusClass } from '../reportFormat';
 
@@ -43,7 +44,8 @@ interface ReportTableProps {
  * Report list shared by My Reports and the Report Queue, mirroring desktop's
  * QTableWidget: single-row selection, header-click sorting, status colours
  * (report_utils::fillReportTableRow). Lists are capped server-side (200 own
- * reports, one 100-row queue page), so rows render directly.
+ * reports, one 100-row queue page), so rows render directly. Rows are a
+ * keyboard grid like the QTableWidget: ↑/↓/Home/End move the selection.
  */
 export default function ReportTable({ reports, columns, selectedId, onSelect }: ReportTableProps) {
   const { t } = useTranslation();
@@ -62,6 +64,14 @@ export default function ReportTable({ reports, columns, selectedId, onSelect }: 
       return sort.ascending ? cmp : -cmp;
     });
   }, [reports, sort]);
+
+  const grid = useGridRows({
+    keys: rows.map((r) => String(r.reportId)),
+    selectedKey: selectedId != null ? String(selectedId) : null,
+    onSelect: (key) => onSelect(Number(key)),
+    // Desktop's table has no activation action; Enter selects like Space.
+    onActivate: (key) => onSelect(Number(key)),
+  });
 
   const toggleSort = (column: ReportColumn) => {
     setSort((prev) => (prev?.column === column ? { column, ascending: !prev.ascending } : { column, ascending: true }));
@@ -94,11 +104,16 @@ export default function ReportTable({ reports, columns, selectedId, onSelect }: 
 
   return (
     <div className="flex-1 min-h-0 overflow-auto rounded-md border border-border-subtle">
-      <table className="w-full text-sm text-left">
+      <table className="w-full text-sm text-left" role="grid">
         <thead className="sticky top-0 bg-bg-elevated text-xs uppercase text-text-muted">
           <tr>
             {columns.map((column) => (
-              <th key={column} scope="col" className="px-2 py-1.5 font-semibold whitespace-nowrap">
+              <th
+                key={column}
+                scope="col"
+                className="px-2 py-1.5 font-semibold whitespace-nowrap"
+                aria-sort={sort?.column === column ? (sort.ascending ? 'ascending' : 'descending') : undefined}
+              >
                 <button type="button" className="flex items-center gap-1" onClick={() => toggleSort(column)}>
                   {t(`Reports.column.${column}`)}
                   {sort?.column === column && (sort.ascending ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
@@ -113,6 +128,7 @@ export default function ReportTable({ reports, columns, selectedId, onSelect }: 
             return (
               <tr
                 key={r.reportId}
+                {...grid.getRowProps(String(r.reportId))}
                 aria-selected={selected}
                 data-testid={`report-row-${r.reportId}`}
                 onClick={() => onSelect(r.reportId)}
@@ -120,6 +136,7 @@ export default function ReportTable({ reports, columns, selectedId, onSelect }: 
                   'cursor-pointer',
                   selected ? 'bg-accent/25' : index % 2 ? 'bg-bg-base/40' : '',
                   'hover:bg-bg-elevated',
+                  'focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
                 ].join(' ')}
               >
                 {columns.map((column) => (
