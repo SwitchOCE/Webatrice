@@ -19,3 +19,4 @@ export * from './useCommandFailureMessage';
 export * from './useJoinGame';
 export * from './useGridRows';
 export * from './useWatchReplay';
+export * from './useCardDataPreferences';
