@@ -146,7 +146,10 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
                 type="button"
                 aria-expanded={showAllPersistent}
                 onClick={() => setShowAllPersistent((shown) => !shown)}
-                className="pointer-events-auto px-3 py-1 rounded-full text-xs text-text-secondary bg-bg-surface border border-border-control shadow-glow hover:text-text-primary transition-colors"
+                className={[
+                  'pointer-events-auto px-3 py-1 rounded-full text-xs text-text-secondary hover:text-text-primary',
+                  'bg-bg-surface border border-border-control shadow-glow transition-colors',
+                ].join(' ')}
               >
                 {showAllPersistent ? t('Toast.showFewer') : t('Toast.more', { count: folded })}
               </button>
