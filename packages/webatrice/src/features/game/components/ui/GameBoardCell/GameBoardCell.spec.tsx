@@ -10,9 +10,9 @@
 import { act } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { CardAttribute, Command_CreateToken_TargetMode } from '@cockatrice/sockatrice/generated';
-import { makeArrow, makeCard, makeDeckList, makeDeckTreeItem } from '@cockatrice/datatrice/testing';
+import { makeArrow, makeCard } from '@cockatrice/datatrice/testing';
 import { ArrowColor } from '@app/types';
-import { CardDTO } from '@app/services';
+import { CardDTO, takeStagedDeck } from '@app/services';
 import { createMockWebClient, renderWithProviders } from '../../../../../__test-utils__';
 import { buildSeatGameState, LIFE_COUNTER_ID, MANA_COUNTER_IDS, type SeatGameSpec } from '../../../__test-utils__/seatFixtures';
 import type { BoardCell } from '../../../hooks/useGameBoardLayout';
@@ -195,40 +195,23 @@ describe('GameBoardCell — state projection into the seat', () => {
 });
 
 describe('GameBoardCell — deck editor link (Cockatrice deck document)', () => {
-  const withBackendDecks = (state: ReturnType<typeof buildSeatGameState>) => {
-    state.server!.backendDecks = makeDeckList({
-      root: {
-        items: [
-          makeDeckTreeItem({ id: 3, name: 'Other', file: { creationTime: 0 } }),
-          makeDeckTreeItem({
-            id: 0,
-            name: 'folder',
-            folder: { items: [makeDeckTreeItem({ id: 7, name: ' burn ', file: { creationTime: 0 } })] },
-          }),
-        ],
-      },
-    });
-  };
-
-  it('requests the deck list for the local seat when it is missing', () => {
-    const { session } = renderCell();
-    expect(session.deckList).toHaveBeenCalledTimes(1);
-    expect(renderCell(OPP_CELL).session.deckList).not.toHaveBeenCalled();
-  });
-
-  it('links to the saved deck whose name matches the game deck document name', () => {
-    const { props, session } = renderCell(OWN_CELL, { mutate: withBackendDecks });
-    expect(session.deckList).not.toHaveBeenCalled();
+  it('opens the deck being played as an unsaved draft, with no stored-deck lookup', () => {
+    const { props, session } = renderCell(OWN_CELL);
     act(() => props().onOpenDeckInEditor());
-    expect(navigate).toHaveBeenCalledWith('/deck/7');
+
+    expect(session.deckList).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledTimes(1);
+    const [path] = navigate.mock.calls[0] as [string];
+    const token = path.match(/^\/deck\/draft\/(.+)$/)?.[1];
+    expect(token).toBeDefined();
+    expect(takeStagedDeck(decodeURIComponent(token!))).toBe(DECK_XML);
   });
 
-  it('offers no link for an opponent or an unparseable deck document', () => {
-    expect(renderCell(OPP_CELL, { mutate: withBackendDecks }).props().onOpenDeckInEditor).toBeUndefined();
+  it('offers no link for an opponent or a seat whose deck is not known yet', () => {
+    expect(renderCell(OPP_CELL).props().onOpenDeckInEditor).toBeUndefined();
     expect(
       renderCell(OWN_CELL, {
-        spec: { ...SPEC, seats: [{ ...SPEC.seats[0], deckList: '<not-a-deck' }, SPEC.seats[1]] },
-        mutate: withBackendDecks,
+        spec: { ...SPEC, seats: [{ ...SPEC.seats[0], deckList: '' }, SPEC.seats[1]] },
       }).props().onOpenDeckInEditor,
     ).toBeUndefined();
   });

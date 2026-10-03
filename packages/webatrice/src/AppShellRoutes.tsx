@@ -27,6 +27,7 @@ const AppShellRoutes = () => (
       <Route path={RouteEnum.CARD_ART_RULES} element={<CardArtRules />} />
       <Route path={RouteEnum.DECKS} element={<Decks />} />
       <Route path={RouteEnum.DECK} element={<DeckEditor />} />
+      <Route path={RouteEnum.DECK_DRAFT} element={<DeckEditor />} />
       <Route path={RouteEnum.DEVELOPER} element={<Developer />} />
       <Route path={RouteEnum.GAME} element={<Game />} />
       <Route path={RouteEnum.LOGS} element={<Logs />} />

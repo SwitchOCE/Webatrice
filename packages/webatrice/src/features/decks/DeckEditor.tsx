@@ -100,10 +100,12 @@ const NUMBER_INPUT_CLASS =
  */
 
 const DeckEditor = () => {
-  const { deckId: deckIdParam } = useParams<{ deckId: string }>();
+  // `/deck/:deckId` edits a stored deck; `/deck/draft/:token` an unsaved
+  // draft handed over by another feature (see useDeckEditor).
+  const { deckId: deckIdParam, token: draftToken } = useParams<{ deckId: string; token: string }>();
   const deckId = deckIdParam ? parseInt(deckIdParam, 10) : NaN;
 
-  const editor = useDeckEditor(Number.isFinite(deckId) ? deckId : null);
+  const editor = useDeckEditor(Number.isFinite(deckId) ? deckId : null, draftToken ?? null);
 
   // Sticky preview: last card the user hovered on the right stays
   // shown on the left even after the cursor moves off — you can walk
@@ -225,7 +227,7 @@ const DeckEditor = () => {
   // per card the first time. The skeleton stays visible until every
   // card's `normal`-size URL is in the browser HTTP cache.
   const preload = useDeckImagePreload(
-    Number.isFinite(deckId) ? deckId : null,
+    Number.isFinite(deckId) ? deckId : draftToken != null ? `draft:${draftToken}` : null,
     editor.deck,
     editor.loading,
   );
@@ -2463,7 +2465,7 @@ function SearchFilters({
  * instead of triggering a fresh Scryfall CDN fetch (which was the
  * "hovering feels laggy" symptom on cold decks).
  *
- * The preload runs exactly once per `deckId` — a value guard on
+ * The preload runs exactly once per deck (`deckId`, or a draft key) — a value guard on
  * `readyDeckId` prevents subsequent card additions / printing swaps
  * from re-blocking the UI. A card added after the initial preload
  * fetches its image the normal way when its `<img>` first mounts;
@@ -2480,11 +2482,11 @@ interface PreloadProgress {
   total: number;
 }
 function useDeckImagePreload(
-  deckId: number | null,
+  deckId: number | string | null,
   deck: HydratedDeck | null,
   loading: boolean,
 ): PreloadProgress {
-  const [readyDeckId, setReadyDeckId] = useState<number | null>(null);
+  const [readyDeckId, setReadyDeckId] = useState<number | string | null>(null);
   const [progress, setProgress] = useState<{ loaded: number; total: number }>({
     loaded: 0,
     total: 0,

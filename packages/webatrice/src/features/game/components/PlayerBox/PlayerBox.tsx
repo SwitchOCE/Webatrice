@@ -283,12 +283,10 @@ type Props = {
    *  tracking via clearZoneKnownCards). Undefined only during the
    *  pre-hydration transient. */
   onShuffleRange?: (start: number, end: number) => void;
-  /** Webatrice-specific "Open deck in deck editor" action. Diverges
-   *  from Cockatrice desktop (which reconstructs the deck in-app) —
-   *  we navigate to the same `/deck/:id` page a My Decks row-click
-   *  opens. Only wired when the game's deck matches a My Deck by
-   *  name — undefined disables the menu item (foreign decks,
-   *  .cod-upload path, or backendDecks not yet fetched). */
+  /** "Open deck in deck editor": opens the deck being played in the
+   *  deck editor as an unsaved draft (desktop
+   *  actOpenDeckInDeckEditor). Undefined, disabling the menu item,
+   *  until the seat's deck is known. */
   onOpenDeckInEditor?: () => void;
   /** Fires `Command_RevealCards(zone=<zoneName>, player_id=<target or
    *  unset>, card_id=[-2])`. `-2` is Servatrice's `RANDOM_CARD_FROM_ZONE`
@@ -4568,13 +4566,9 @@ function PlayerBox(
                 },
                 { divider: true },
                 {
-                  // Webatrice divergence from Cockatrice desktop:
-                  // instead of reconstructing the deck in-app, we
-                  // route to the same `/deck/:id` page a My Decks
-                  // row-click opens. Disabled when the game's deck
-                  // doesn't match any of the user's saved decks
-                  // (name-based lookup happens in GameBoardCell —
-                  // undefined callback ⇒ menu item disabled).
+                  // Opens the deck being played in the deck editor
+                  // as an unsaved draft; undefined callback ⇒
+                  // disabled until the deck is known.
                   label: 'Open deck in deck editor',
                   onClick: onOpenDeckInEditor,
                   disabled: !onOpenDeckInEditor,

@@ -3,7 +3,7 @@ import { server } from '@cockatrice/datatrice';
 import type { WebClient } from '@cockatrice/sockatrice';
 import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { emptyCod } from '@app/services';
+import { emptyCod, stageDeckDocument } from '@app/services';
 
 import { renderWithProviders, connectedState, createMockWebClient } from '../../__test-utils__';
 import { clearDeckEditorCache, useDeckEditor, type UseDeckEditor } from './useDeckEditor';
@@ -11,6 +11,20 @@ import { clearDeckEditorCache, useDeckEditor, type UseDeckEditor } from './useDe
 // Covers how the editor settles when the server never answers (or rejects)
 // its download and autosave commands; the happy path is exercised through
 // DeckEditor in the integration suite.
+
+vi.mock('../../services/cards/cardCatalog', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../services/cards/cardCatalog')>();
+  const unknown = (name: string) => ({ found: false, source: 'unknown', name, printings: [] });
+  return {
+    ...actual,
+    lookupCard: vi.fn(async (name: string) => unknown(name)),
+    lookupCards: vi.fn(async (inputs: Array<string | { name: string }>) =>
+      new Map(inputs.map((i) => {
+        const name = typeof i === 'string' ? i : i.name;
+        return [name, unknown(name)];
+      }))),
+  };
+});
 
 const editor: { current: UseDeckEditor | null } = { current: null };
 
@@ -109,5 +123,81 @@ describe('useDeckEditor autosave failure', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('useDeckEditor draft', () => {
+  const GAME_DECK = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<cockatrice_deck version="1">',
+    '<deckname>Burn</deckname>',
+    '<zone name="main">',
+    '<card number="4" name="Lightning Bolt" setShortName="M11" collectorNumber="149" uuid="bolt-uuid"/>',
+    '</zone>',
+    '<zone name="side">',
+    '<card number="2" name="Smash to Smithereens" setShortName="SOM" collectorNumber="104" uuid="smash-uuid"/>',
+    '</zone>',
+    '</cockatrice_deck>',
+  ].join('');
+
+  function DraftProbe({ token }: { token: string }) {
+    editor.current = useDeckEditor(null, token);
+    return null;
+  }
+
+  function setupDraft(token: string) {
+    const webClient = createMockWebClient();
+    const result = renderWithProviders(<DraftProbe token={token} />, { preloadedState: connectedState, webClient });
+    return { ...result, webClient };
+  }
+
+  it('hydrates the staged deck with every printing field, downloading nothing', async () => {
+    const { webClient } = setupDraft(stageDeckDocument(GAME_DECK));
+    await waitFor(() => expect(editor.current!.loading).toBe(false));
+
+    expect(editor.current!.deck!.name).toBe('Burn');
+    expect(editor.current!.deck!.cards.map((c) => [c.name, c.category, c.quantity, c.set, c.collectorNumber, c.scryfallId]))
+      .toEqual([
+        ['Lightning Bolt', 'main', 4, 'M11', '149', 'bolt-uuid'],
+        ['Smash to Smithereens', 'sideboard', 2, 'SOM', '104', 'smash-uuid'],
+      ]);
+    expect(webClient.request.session.deckDownload).not.toHaveBeenCalled();
+  });
+
+  it('stores the draft as a new deck on its first save, then moves to it', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { webClient, store } = setupDraft(stageDeckDocument(GAME_DECK));
+      await waitFor(() => expect(editor.current!.loading).toBe(false));
+      expect(webClient.request.session.deckUpload).not.toHaveBeenCalled();
+
+      act(() => editor.current!.setName('Burn v2'));
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+
+      expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+      const [path, deckId, xml] = vi.mocked(webClient.request.session.deckUpload).mock.calls[0];
+      expect([path, deckId]).toEqual(['', 0]);
+      expect(xml).toContain('<deckname>Burn v2</deckname>');
+      expect(xml).toContain('collectorNumber="149"');
+      expect(editor.current!.saveState).toBe('saving');
+
+      act(() => {
+        store.dispatch(server.Actions.deckUpload({
+          path: '',
+          treeItem: { id: 42, name: 'Burn v2' } as Parameters<typeof server.Actions.deckUpload>[0]['treeItem'],
+        }));
+      });
+      expect(editor.current!.saveState).toBe('saved');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('is not found for an unknown token', async () => {
+    setupDraft('missing');
+    await waitFor(() => expect(editor.current!.loading).toBe(false));
+    expect(editor.current!.notFound).toBe(true);
   });
 });

@@ -7,6 +7,9 @@ export enum RouteEnum {
   GAME = '/game/:gameId',
   DECKS = '/decks',
   DECK = '/deck/:deckId',
+  // An unsaved deck handed to the editor by token (services/decks deckHandoff),
+  // e.g. the game's "Open deck in deck editor".
+  DECK_DRAFT = '/deck/draft/:token',
   ACCOUNT = '/account',
   ADMINISTRATION = '/administration',
   MODERATION = '/moderation',

@@ -427,11 +427,9 @@ export function buildLibraryMenu({
     },
     { divider: true },
     {
-      // Webatrice divergence: instead of reconstructing the deck
-      // in-app, we route to the same `/deck/:id` page a My Decks
-      // row-click opens. Disabled when the game's deck doesn't
-      // match any of the user's saved decks (name-based lookup
-      // happens in GameBoardCell).
+      // Opens the deck being played in the deck editor as an unsaved
+      // draft (library_menu.cpp:203-205). Disabled until the deck is
+      // known (useOpenDeckInEditor).
       label: 'Open deck in deck editor',
       onClick: onOpenDeckInEditor,
       disabled: !onOpenDeckInEditor,

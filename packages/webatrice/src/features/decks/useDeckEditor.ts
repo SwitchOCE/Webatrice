@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { generatePath, useNavigate } from 'react-router-dom';
 import { create } from '@bufbuild/protobuf';
 
 import { useTranslation } from 'react-i18next';
@@ -12,8 +13,8 @@ import {
 } from '@cockatrice/sockatrice/generated';
 import { useAppSelector } from '@app/store';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
-import { lookupCard, parseCod, serializeCod, touchMeta, trackEvent } from '@app/services';
-import type { BracketAssessment, DeckMeta } from '@app/types';
+import { lookupCard, parseCod, serializeCod, takeStagedDeck, touchMeta, trackEvent } from '@app/services';
+import { RouteEnum, type BracketAssessment, type DeckMeta } from '@app/types';
 import { useWebClient } from '@cockatrice/datatrice/react';
 
 import { assembleDeckCard, hydrateDeck } from './hydrate';
@@ -124,16 +125,33 @@ export function deleteCachedDeck(deckId: number): void {
   deckCache.delete(deckId);
 }
 
-export function useDeckEditor(deckId: number | null): UseDeckEditor {
+/**
+ * Unsaved drafts by handoff token (services/decks deckHandoff): the staged
+ * deck document, kept once taken so a remount (a tab switch, StrictMode)
+ * hydrates it again, and the draft's latest in-editor state.
+ */
+const draftDocuments: Map<string, string> = new Map();
+const draftCache: Map<string, HydratedDeck> = new Map();
+
+/**
+ * The editor for a stored deck (`deckId`), or for an unsaved draft handed
+ * over by `draftToken` (e.g. the game's "Open deck in deck editor", desktop
+ * actOpenDeckInDeckEditor). A draft is stored by its first save, as a new
+ * deck (`deckUpload` with no id), and the editor then moves to that deck.
+ */
+export function useDeckEditor(deckId: number | null, draftToken: string | null = null): UseDeckEditor {
   const webClient = useWebClient();
+  const navigate = useNavigate();
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
 
   // Hydrate initial state from the module cache if we've already
   // loaded this deck this session — avoids the "Loading…" flash and
   // the deckDownload round-trip when returning to an open deck tab.
+  const isDraft = deckId == null && draftToken != null;
   const initialCached = deckId != null ? deckCache.get(deckId) : undefined;
-  const [deck, setDeck] = useState<HydratedDeck | null>(initialCached?.deck ?? null);
-  const [loading, setLoading] = useState(!initialCached);
+  const initialDraft = isDraft ? draftCache.get(draftToken) : undefined;
+  const [deck, setDeck] = useState<HydratedDeck | null>(initialCached?.deck ?? initialDraft ?? null);
+  const [loading, setLoading] = useState(!initialCached && !initialDraft);
   const [notFound, setNotFound] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
@@ -146,7 +164,79 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   const deckRef = useRef<HydratedDeck | null>(null);
   const saveTimerRef = useRef<number | null>(null);
   const savedSignatureRef = useRef<string | null>(initialCached?.savedXml ?? null);
+  // The XML of a draft's first save while its deckUpload is in flight.
+  const draftUploadRef = useRef<string | null>(null);
   deckRef.current = deck;
+
+  // --- Load a draft ---
+  useEffect(() => {
+    if (!isDraft) {
+      return;
+    }
+    if (draftCache.has(draftToken)) {
+      setLoading(false);
+      setNotFound(false);
+      return;
+    }
+    const cod = draftDocuments.get(draftToken) ?? takeStagedDeck(draftToken);
+    if (cod == null) {
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+    draftDocuments.set(draftToken, cod);
+    let cancelled = false;
+    (async () => {
+      try {
+        const hydrated = await hydrateDeck(parseCod(cod));
+        if (cancelled) {
+          return;
+        }
+        draftCache.set(draftToken, hydrated);
+        setDeck(hydrated);
+        setLoading(false);
+        setSaveState('idle');
+      } catch (err) {
+        console.error('Failed to parse deck XML', err);
+        if (!cancelled) {
+          setNotFound(true);
+          setLoading(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isDraft, draftToken]);
+
+  // A draft's first save came back as a new stored deck: carry the editor
+  // state over to it and move there.
+  useReduxEffect<{ path: string; treeItem: { id: number } }>(
+    ({ payload }) => {
+      const xml = draftUploadRef.current;
+      if (xml == null || !isDraft || !deckRef.current) {
+        return;
+      }
+      draftUploadRef.current = null;
+      deckCache.set(payload.treeItem.id, { deck: deckRef.current, savedXml: xml });
+      draftCache.delete(draftToken);
+      draftDocuments.delete(draftToken);
+      setSaveState('saved');
+      navigate(generatePath(RouteEnum.DECK, { deckId: String(payload.treeItem.id) }), { replace: true });
+    },
+    server.Types.DECK_UPLOAD,
+    [isDraft, draftToken, navigate],
+  );
+  useReduxEffect(
+    () => {
+      if (draftUploadRef.current != null) {
+        draftUploadRef.current = null;
+        setSaveState('failed');
+      }
+    },
+    server.Types.DECK_UPLOAD_FAILED,
+    [],
+  );
 
   // --- Load ---
   useEffect(() => {
@@ -239,7 +329,7 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   // --- Save (debounced) ---
   const persistNow = useCallback(() => {
     const current = deckRef.current;
-    if (!current || deckId == null) {
+    if (!current || (deckId == null && !isDraft)) {
       return;
     }
     const nextMeta = touchMeta(current.meta);
@@ -256,6 +346,16 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     if (xml === savedSignatureRef.current) {
       return;
     } // nothing changed
+    if (deckId == null) {
+      // A draft: the first save stores it as a new deck at the root
+      // (deckId 0 asks Servatrice for a new id), like My Decks' "New deck".
+      if (draftUploadRef.current == null) {
+        draftUploadRef.current = xml;
+        setSaveState('saving');
+        webClient.request.session.deckUpload('', 0, xml);
+      }
+      return;
+    }
     const previousSignature = savedSignatureRef.current;
     savedSignatureRef.current = xml;
     // Refresh the cached saved-signature so a remount after autosave
@@ -281,7 +381,7 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
       }
       setSaveState('failed');
     });
-  }, [deckId, webClient]);
+  }, [deckId, isDraft, webClient]);
 
   const scheduleSave = useCallback(() => {
     setSaveState('dirty');
@@ -310,6 +410,10 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   // (including unsaved edits), not the last-downloaded XML. Runs after
   // every setDeck — cheap, just a Map.set.
   useEffect(() => {
+    if (isDraft && deck) {
+      draftCache.set(draftToken, deck);
+      return;
+    }
     if (deckId == null || !deck) {
       return;
     }
@@ -318,7 +422,7 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
       deck,
       savedXml: existing?.savedXml ?? savedSignatureRef.current ?? '',
     });
-  }, [deckId, deck]);
+  }, [deckId, isDraft, draftToken, deck]);
 
   // --- Mutations ---
   const setName = useCallback(
