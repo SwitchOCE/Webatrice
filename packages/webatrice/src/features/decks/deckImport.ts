@@ -88,6 +88,7 @@ export function buildUploadedDeckCod(file: ParsedDeck, name: string, format: str
     bannerCardProviderId: file.bannerCardProviderId,
     lastLoadedTimestamp: file.lastLoadedTimestamp,
     playmatXml: file.playmatXml,
+    sideboardPlansXml: file.sideboardPlansXml,
     tagsXml: file.tagsXml,
   });
 }

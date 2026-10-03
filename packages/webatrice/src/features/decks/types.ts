@@ -108,6 +108,7 @@ export interface HydratedDeck {
   bannerCardProviderId?: string;
   lastLoadedTimestamp?: string;
   playmatXml?: string;
+  sideboardPlansXml?: string[];
   tagsXml?: string;
   bracketAssessment?: BracketAssessment;
 }

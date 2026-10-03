@@ -69,6 +69,11 @@ export function parseCod(xml: string): ParsedDeck {
   // Desktop writes <playmatCard> after <bannerCard> (DeckList::Metadata::write);
   // the web editor doesn't edit it, so it round-trips verbatim too.
   const playmatXml = rawChildXml(root, 'playmatCard');
+  // Sideboard plans aren't edited here either; keep each one verbatim.
+  const planEls = directChildren(root, 'sideboard_plan');
+  const sideboardPlansXml = planEls.length > 0
+    ? planEls.map((el) => new XMLSerializer().serializeToString(el))
+    : undefined;
 
   const bracketAssessment = readBracketAssessment(root);
 
@@ -114,6 +119,7 @@ export function parseCod(xml: string): ParsedDeck {
     bannerCardProviderId,
     lastLoadedTimestamp,
     playmatXml,
+    sideboardPlansXml,
     tagsXml,
     bracketAssessment,
   };
@@ -137,6 +143,7 @@ export function serializeCod(deck: {
   bannerCardProviderId?: string;
   lastLoadedTimestamp?: string;
   playmatXml?: string;
+  sideboardPlansXml?: readonly string[];
   tagsXml?: string;
   bracketAssessment?: BracketAssessment;
 }): string {
@@ -166,7 +173,7 @@ export function serializeCod(deck: {
   // Element order matches Cockatrice desktop verbatim so diffs stay
   // minimal on round-trip:
   //   lastLoadedTimestamp → deckname → format → bannerCard →
-  //   playmatCard → comments → tags → zones
+  //   playmatCard → comments → tags → zones → sideboard plans
   if (deck.lastLoadedTimestamp && deck.lastLoadedTimestamp.trim()) {
     appendTextElement(doc, root, 'lastLoadedTimestamp', deck.lastLoadedTimestamp.trim());
   }
@@ -224,6 +231,10 @@ export function serializeCod(deck: {
       zone.appendChild(cardEl);
     }
     root.appendChild(zone);
+  }
+
+  for (const planXml of deck.sideboardPlansXml ?? []) {
+    appendRawElement(doc, root, 'sideboard_plan', planXml);
   }
 
   const serialized = new XMLSerializer().serializeToString(doc);
