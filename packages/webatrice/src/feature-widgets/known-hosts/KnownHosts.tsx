@@ -10,13 +10,16 @@ import {
   AlertCircle,
   Loader2,
   RefreshCw,
+  Globe,
 } from 'lucide-react';
 
 import { HostDTO } from '@app/services';
+import { LoadingState } from '@app/hooks';
 import { getHostPort } from '@app/utils';
 
 import KnownHostDialog from './KnownHostDialog';
 import { TestConnection, useKnownHostsComponent } from './useKnownHostsComponent';
+import { publicServerOptions, refreshPublicServers, usePublicServers } from './usePublicServers';
 
 interface KnownHostsProps {
   value: HostDTO | undefined;
@@ -34,6 +37,7 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
     testConnectionStatus,
     dialogState,
     onPick,
+    onPickPublicServer,
     refreshConnection,
     openAddKnownHostDialog,
     openEditKnownHostDialog,
@@ -43,6 +47,7 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
   } = useKnownHostsComponent({ onChange });
 
   const [open, setOpen] = useState(false);
+  const publicServers = usePublicServers(open);
   const rootRef = useRef<HTMLDivElement>(null);
   const hostLabelId = useId();
 
@@ -226,6 +231,60 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
               </div>
             );
           })}
+          <div className="my-1 border-t border-border-subtle" />
+          <div className="flex items-center justify-between px-3 py-1 text-xs font-medium text-text-muted">
+            <span>{t('KnownHosts.public.title')}</span>
+            <button
+              type="button"
+              onClick={refreshPublicServers}
+              disabled={publicServers.status === LoadingState.LOADING}
+              className="p-1 rounded hover:text-text-primary hover:bg-border-subtle disabled:cursor-not-allowed"
+              title={t('KnownHosts.public.refresh')}
+              aria-label={t('KnownHosts.public.refresh')}
+            >
+              <RefreshCw size={12} className={publicServers.status === LoadingState.LOADING ? 'animate-spin' : ''} />
+            </button>
+          </div>
+          {publicServers.status === LoadingState.LOADING && (
+            <div className="px-3 py-1.5 text-xs text-text-muted">{t('KnownHosts.public.loading')}</div>
+          )}
+          {publicServers.status === LoadingState.ERROR && (
+            <div className="px-3 py-1.5 text-xs text-red-400">{t('KnownHosts.public.error')}</div>
+          )}
+          {publicServers.status === LoadingState.READY && publicServers.value?.stale && (
+            <div className="px-3 py-1.5 text-xs text-text-muted">{t('KnownHosts.public.stale')}</div>
+          )}
+          {publicServers.status === LoadingState.READY
+            && publicServerOptions(publicServers.value?.servers ?? [], hosts).map(({ server, unavailableReason }) => {
+              const reason = unavailableReason && t(`KnownHosts.public.unavailable.${unavailableReason}`);
+              return (
+                <button
+                  key={server.host}
+                  type="button"
+                  disabled={Boolean(reason)}
+                  title={reason || server.site}
+                  onClick={() => {
+                    setOpen(false);
+                    void onPickPublicServer(server);
+                  }}
+                  className={[
+                    'w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left transition-colors',
+                    reason
+                      ? 'text-text-muted cursor-not-allowed'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated',
+                  ].join(' ')}
+                >
+                  <span className="w-4 shrink-0" />
+                  <Globe size={14} className="shrink-0 text-text-muted" />
+                  <span className="flex-1 min-w-0 truncate">
+                    <span className="font-medium">{server.name}</span>
+                    <span className="text-text-muted ml-1.5 text-xs">
+                      {reason ?? [server.location, `${server.host}:${server.websocketPort}`].filter(Boolean).join(' · ')}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
         </div>
       )}
 

@@ -6,11 +6,13 @@ import { LoadingState, useReduxEffect } from '@app/hooks';
 
 import { useKnownHosts } from './useKnownHosts';
 import { useWebClient } from '@cockatrice/datatrice/react';
-import { HostDTO } from '@app/services';
+import { HostDTO, type PublicServer } from '@app/services';
 import { server } from '@cockatrice/datatrice';
 import { useAppDispatch, useAppSelector } from '@app/store';
 import { Host } from '@app/types';
 import { getHostPort } from '@app/utils';
+
+import { toSavedHost } from './usePublicServers';
 
 export enum TestConnection {
   TESTING = 'testing',
@@ -24,6 +26,8 @@ export interface KnownHostsComponent {
   testConnectionStatus: TestConnection | null;
   dialogState: { open: boolean; edit: HostDTO | null };
   onPick: (id: number) => Promise<void>;
+  /** Saves a WebSocket-capable public server as a host and selects it. */
+  onPickPublicServer: (server: PublicServer) => Promise<void>;
   refreshConnection: () => void;
   openAddKnownHostDialog: () => void;
   openEditKnownHostDialog: (host: HostDTO) => void;
@@ -124,6 +128,19 @@ export function useKnownHostsComponent({
     testConnection(host);
   };
 
+  const onPickPublicServer = async (server: PublicServer) => {
+    if (knownHosts.status !== LoadingState.READY) {
+      return;
+    }
+    const created = await knownHosts.add(toSavedHost(server));
+    if (created.id == null) {
+      return;
+    }
+    onChange(created);
+    await knownHosts.select(created.id);
+    testConnection(created);
+  };
+
   const openAddKnownHostDialog = () => {
     setDialogState((s) => ({ ...s, open: true, edit: null }));
   };
@@ -178,6 +195,7 @@ export function useKnownHostsComponent({
     testConnectionStatus,
     dialogState,
     onPick,
+    onPickPublicServer,
     refreshConnection,
     openAddKnownHostDialog,
     openEditKnownHostDialog,
