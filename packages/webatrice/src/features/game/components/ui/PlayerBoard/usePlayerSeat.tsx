@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForkRef } from '@mui/material/utils';
-import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
+import { ZoneName } from '@cockatrice/sockatrice';
 import {
   layoutStackPile,
   SEAT_CARD_HEIGHT_PX as CARD_H_PX_BASE,
@@ -15,7 +15,6 @@ import type {
   PlayerBoardCommands,
   PlayerBoardModel,
   PlayerCardViewModel,
-  SeatMoveDestination,
 } from './playerBoard.types';
 import { useCardScale } from '../CardScaleContext';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
@@ -32,7 +31,6 @@ import { useGameDialogActions } from '../GameDialogActionsContext';
 import { useGameDialogsContext } from '../GameDialogsContext';
 import { useShortcutHints } from '@app/feature-widgets/shortcuts';
 import { MANA_COLORS } from '../../right-sidebar/PlayerInfoPanel/manaColors';
-import { toRecipient } from './revealRecipient';
 import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
 import { MAX_COUNTER_VALUE } from './counterLimits';
 import { useDrawFlights } from './useDrawFlights';
@@ -41,6 +39,7 @@ import { useSeatCardMetadata } from './useSeatCardMetadata';
 import { useSeatPrompts } from './useSeatPrompts';
 import { usePileMenus } from '../ZoneStack/usePileMenus';
 import { useLibraryMenuItems } from '../ZoneStack/useLibraryMenuItems';
+import { useHandMenuItems } from '../HandZone/useHandMenuItems';
 
 /** Seat card shapes. Owned by the PlayerBoard seat contract; the aliases keep
  *  this façade's local names until its regions move to PlayerBoard. */
@@ -125,7 +124,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
   const {
     openZoneView,
     openMoveTopUntil,
-    handleRequestSortHandBy,
     handleRequestChooseMulligan,
     seatCardMenu,
     openSeatCardMenu,
@@ -1311,172 +1309,10 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     shortcutHints,
     zoneCommands,
   });
-  // Battlefield right-click menu — Cockatrice's PlayerMenu (attached
-  // to the TableZoneGraphicsItem, player_menu.cpp:60-62). Shape
-  // matches 1:1 with the desktop menu. Pile submenus (Hand, Library,
-  // Graveyard, Exile, Sideboard) already have their own right-click
-  // menus on their piles; here we surface a single hint item pointing
-  // there instead of duplicating hundreds of lines of already-wired
-  // items. Utility actions we don't yet wire (untap-all, flip-coin,
-  // create-token, counters, custom-zones) render disabled so the shape
-  // still reads as identical to Cockatrice. Gated to isSelf per
-  // player_menu.cpp — spectators / opponents don't get this menu.
-  // Prefer the server-broadcast count from `zoneCounts.hand`, which
-  // is populated for BOTH self and opponents (HAND is a PrivateZone
-  // but its cardCount is public). Falling back to `zones.hand.cards.length`
-  // as second choice would silently return 0 for opponents — their
-  // zones.hand.cards array is always empty because they don't ship the card
-  // identities to us — so nullish-coalescing to it would leave the
-  // badge stuck at 0.
-  const handSize = zones.hand.cardCount ?? zones.hand.cards.length;
-  // Reveal-hand submenu — same shape as reveal-library (All players
-  // + separator + one entry per opponent). Uses the same wire as
-  // reveal-library (Command_RevealCards with zoneName=hand). No
-  // playerId when targeting "All players" (-1) — proto2 field
-  // presence trap; server returns RespNameNotFound if we sent -1
-  // explicitly. Kept inline here since it's tiny.
-  const revealHandSubmenu: ContextMenuItem[] =
-    revealTargets && revealTargets.length > 0
-      ? [
-        {
-          label: 'All players',
-          onClick: () => zoneCommands.reveal(ZoneName.HAND, toRecipient(-1)),
-          disabled: handSize <= 0,
-        },
-        { divider: true },
-        ...revealTargets.map((t) => ({
-          label: t.name,
-          onClick: () => zoneCommands.reveal(ZoneName.HAND, toRecipient(t.playerId)),
-          disabled: handSize <= 0,
-        })),
-      ]
-      : [{ label: '(no players)' }];
-  const revealRandomHandSubmenu: ContextMenuItem[] =
-    revealTargets && revealTargets.length > 0
-      ? [
-        {
-          label: 'All players',
-          onClick: () => zoneCommands.reveal(ZoneName.HAND, toRecipient(-1), 'random'),
-          disabled: handSize <= 0,
-        },
-        { divider: true },
-        ...revealTargets.map((t) => ({
-          label: t.name,
-          onClick: () =>
-            zoneCommands.reveal(ZoneName.HAND, toRecipient(t.playerId), 'random'),
-          disabled: handSize <= 0,
-        })),
-      ]
-      : [{ label: '(no players)' }];
-  // Helper: build a "move all cards from HAND to <target>" click
-  // handler. Hand card ids are real numeric ids on the wire.
-  const moveAllHandTo = (
-    targetZone: ZoneNameValue,
-    index: SeatMoveDestination['index'],
-  ): (() => void) => () => {
-    if (zones.hand.cards.length === 0) {
-      return;
-    }
-    const cardIds = zones.hand.cards.map((c) => Number(c.id)).filter((id) => Number.isFinite(id));
-    if (cardIds.length === 0) {
-      return;
-    }
-    zoneCommands.moveCards(ZoneName.HAND, cardIds, { zone: targetZone, index });
-  };
-  const handMenuItems: ContextMenuItem[] = [
-    {
-      // View hand — the same zone view as View library /
-      // graveyard / exile (desktop aViewHand). Only offered
-      // for the local player; opponents' hands are hidden and the
-      // dialog would have nothing to show.
-      label: 'View hand',
-      onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.HAND }),
-      disabled: !isSelf || handSize <= 0,
-    },
-    {
-      // Sort hand by ... — dispatches per-card moveCard reorders
-      // in the calculated order. Matches Cockatrice's
-      // hand_menu.cpp; async lookup for maintype / manacost keys.
-      label: 'Sort hand by...',
-      submenu: [
-        {
-          label: 'Name',
-          onClick: () => handleRequestSortHandBy('name'),
-          disabled: !isSelf || handSize <= 1,
-        },
-        {
-          label: 'Type',
-          onClick: () => handleRequestSortHandBy('maintype'),
-          disabled: !isSelf || handSize <= 1,
-          shortcut: shortcutHints['game.sortHandByType'],
-        },
-        {
-          label: 'Mana Value',
-          onClick: () => handleRequestSortHandBy('manacost'),
-          disabled: !isSelf || handSize <= 1,
-        },
-      ],
-    },
-    {
-      label: 'Reveal hand to...',
-      submenu: revealHandSubmenu,
-    },
-    {
-      label: 'Reveal random card to...',
-      submenu: revealRandomHandSubmenu,
-    },
-    { divider: true },
-    {
-      // Opens a numeric prompt (dialog layer), then fires
-      // Command_Mulligan with the resolved hand size. Accepts
-      // -handSize..handSize+deckSize (≤0 is relative — desktop
-      // parity, see handleRequestChooseMulligan in useGameDialogs).
-      label: 'Take mulligan (Choose hand size)',
-      onClick: () => handleRequestChooseMulligan(),
-      disabled: !isSelf,
-    },
-    {
-      label: 'Take mulligan (Same hand size)',
-      onClick: () => zoneCommands.mulligan(handSize),
-      disabled: handSize <= 0,
-      shortcut: shortcutHints['game.mulliganSameSize'],
-    },
-    {
-      label: 'Take mulligan (Hand size - 1)',
-      onClick: () => zoneCommands.mulligan(Math.max(1, handSize - 1)),
-      disabled: handSize <= 1,
-      shortcut: shortcutHints['game.mulliganMinusOne'],
-    },
-    { divider: true },
-    {
-      label: 'Move hand to...',
-      disabled: handSize <= 0,
-      submenu: [
-        {
-          label: 'Top of library',
-          onClick: moveAllHandTo(ZoneName.DECK, 0),
-          disabled: handSize <= 0,
-        },
-        {
-          label: 'Bottom of library',
-          onClick: moveAllHandTo(ZoneName.DECK, 'end'),
-          disabled: handSize <= 0,
-        },
-        { divider: true },
-        {
-          label: 'Graveyard',
-          onClick: moveAllHandTo(ZoneName.GRAVE, 0),
-          disabled: handSize <= 0,
-        },
-        { divider: true },
-        {
-          label: 'Exile',
-          onClick: moveAllHandTo(ZoneName.EXILE, 0),
-          disabled: handSize <= 0,
-        },
-      ],
-    },
-  ];
+  const {
+    handSize,
+    handMenuItems,
+  } = useHandMenuItems({ seatId, isSelf, hand: zones.hand, revealTargets, shortcutHints, zoneCommands });
   // Counters submenu — Cockatrice's AbstractCounter builds a menu per
   // counter with "Set counter..." + ±1..±10 rows (abstract_counter.cpp:36-57).
   // We already have all the wires for these: `lifeControl.onDelta` /
