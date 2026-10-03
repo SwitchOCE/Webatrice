@@ -26,15 +26,15 @@ export function formatSpectators(t: TFunction, info: ServerInfo_Game): string {
   if (!info.spectatorsAllowed) {
     return t('GameInfo.spectators.notAllowed');
   }
-  const flags: string[] = [];
+  const count = info.spectatorsCount;
+  if (info.spectatorsCanChat && info.spectatorsOmniscient) {
+    return t('GameInfo.spectators.withChatAndHands', { count });
+  }
   if (info.spectatorsCanChat) {
-    flags.push(t('GameInfo.spectators.canChat'));
+    return t('GameInfo.spectators.withChat', { count });
   }
   if (info.spectatorsOmniscient) {
-    flags.push(t('GameInfo.spectators.seeHands'));
+    return t('GameInfo.spectators.withHands', { count });
   }
-  if (flags.length === 0) {
-    return String(info.spectatorsCount);
-  }
-  return t('GameInfo.spectators.countWithFlags', { count: info.spectatorsCount, flags: flags.join(' & ') });
+  return String(count);
 }
