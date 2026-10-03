@@ -2,6 +2,7 @@ import type { WebClient } from '@cockatrice/sockatrice';
 
 export function createMockWebClient() {
   return {
+    connectTarget: { host: 'localhost', port: '4748' },
     request: {
       authentication: {
         login: vi.fn(),

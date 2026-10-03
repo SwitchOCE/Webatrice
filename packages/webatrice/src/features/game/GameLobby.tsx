@@ -32,6 +32,7 @@ import ChatLog from './components/ChatLog/ChatLog';
 import { GameIdProvider } from './components/ui/GameIdContext';
 import { parsedDeckToMockCards, setPickedMockDeck } from './mockDeckStore';
 import type { DeckCard as MockDeckCard } from './components/PlayerBox/mockTypes';
+import GameInviteControls from './components/GameInviteControls/GameInviteControls';
 import LobbyDeckView from './components/lobby/LobbyDeckView';
 import { useLobbyDeckView } from './components/lobby/useLobbyDeckView';
 
@@ -420,6 +421,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                 {roomFormatLabel && (
                   <p className="text-sm text-text-muted mt-1">{roomFormatLabel}</p>
                 )}
+                <GameInviteControls gameId={gameId} className="justify-center mt-3" />
               </div>
 
               {/* Players */}
