@@ -6,7 +6,7 @@ import { expect, type Locator, type Page } from '@playwright/test';
 // server view rendered.
 //
 // The Tailwind rewrite replaced the MUI `LeftNav` + rooms table +
-// GameSelector with:
+// old GameSelector with:
 //   • TopBar   (a fixed top strip; pinned "Lobby" tab replaces the
 //               LeftNav logo NavLink for jumping back to /server)
 //   • RoomsList (Tailwind <table> under /server — column headers
