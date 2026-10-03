@@ -1,0 +1,17 @@
+{
+  "DeckFolders": {
+    "location": "Folder",
+    "root": "Server deck storage",
+    "newFolder": "New folder",
+    "deckCount": "{count, plural, one {# deck} other {# decks}}",
+    "downloadFolder": "Download all decks as .cod files",
+    "downloadFolderNamed": "Download the decks in {name}",
+    "deleteFolder": "Delete folder",
+    "deleteFolderNamed": "Delete {name}",
+    "moveDeck": "Move to folder",
+    "moveDeckNamed": "Move {name} to another folder",
+    "downloadDeck": "Download .cod file",
+    "downloadDeckNamed": "Download {name}",
+    "empty": "This folder is empty."
+  }
+}
