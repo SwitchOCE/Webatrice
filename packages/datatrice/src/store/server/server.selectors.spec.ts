@@ -7,6 +7,7 @@ import {
   makeServerState,
   makeUser,
   makeWarnHistoryItem,
+  makeWarnListItem,
 } from '../../testing/fixtures/server';
 import { Response_ResponseCode, ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 import { ServerCapability } from './server.capabilities';
@@ -396,6 +397,13 @@ describe('Selectors', () => {
   it('getAdminNotesByUser → returns the stored admin note for that user', () => {
     const state = makeServerState({ adminNotes: { Alice: 'watch this account' } });
     expect(Selectors.getAdminNotesByUser(rootState(state), 'Alice')).toBe('watch this account');
+  });
+
+  it('getWarnListForUser → returns the warn list the server echoed for that user', () => {
+    const forAlice = makeWarnListItem({ warning: ['Spamming'], userName: 'Alice', userClientid: 'cid' });
+    const state = makeServerState({ warnListOptions: [forAlice] });
+    expect(Selectors.getWarnListForUser(rootState(state), 'Alice')).toBe(forAlice);
+    expect(Selectors.getWarnListForUser(rootState(state), 'Bob')).toBeUndefined();
   });
 
   it('getSortUsersBy → returns sortUsersBy', () => {
