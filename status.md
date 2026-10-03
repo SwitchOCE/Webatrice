@@ -1,1 +1,2 @@
 - 15:06Z started rv4 → review PR 13
+- 15:07Z diffs listed, Cockatrice cloned, reviews of 13/06/24 running in parallel → collect findings
