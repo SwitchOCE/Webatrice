@@ -54,10 +54,14 @@ export class RoomsPage {
     await this.waitForGameList();
   }
 
+  // GamesList header shows "Showing X / Y" (see GamesList.tsx) — this
+  // caption is unique to the /room/:id view.
+  get gameListCaption(): Locator {
+    return this.page.getByText(/showing\s+\d+\s+\/\s+\d+/i);
+  }
+
   async waitForGameList(): Promise<void> {
-    // GamesList header shows "Showing X / Y" (see GamesList.tsx) — this
-    // caption is unique to the /room/:id view.
-    await expect(this.page.getByText(/showing\s+\d+\s+\/\s+\d+/i)).toBeVisible({
+    await expect(this.gameListCaption).toBeVisible({
       timeout: 15_000,
     });
   }
