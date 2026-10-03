@@ -9,7 +9,7 @@ describe('HighlightWordsField', () => {
     await getSettings();
   });
 
-  it('saves valid words as they are typed', async () => {
+  it('saves the words as they are typed', async () => {
     render(<HighlightWordsField id="w" labelId="w-label" disabled={false} />);
 
     await act(async () => {
@@ -19,16 +19,15 @@ describe('HighlightWordsField', () => {
     expect(getPreferencesSnapshot().chatHighlightWords).toBe('commander edh');
   });
 
-  it('explains and does not save words with punctuation', async () => {
+  it('saves words with punctuation too, as desktop has no validator', async () => {
     render(<HighlightWordsField id="w" labelId="w-label" disabled={false} />);
 
     await act(async () => {
       fireEvent.change(screen.getByRole('textbox'), { target: { value: 'gg!' } });
     });
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('SettingsChat.highlightWords.invalid');
-    expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'true');
-    expect(getPreferencesSnapshot().chatHighlightWords).toBe('');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(getPreferencesSnapshot().chatHighlightWords).toBe('gg!');
   });
 
   it('follows a change made elsewhere, such as Restore defaults', async () => {
