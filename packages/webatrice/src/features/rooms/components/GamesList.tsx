@@ -216,7 +216,7 @@ export default function GamesList({ room }: GamesListProps) {
           className={[
             'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
             isFilterActive
-              ? 'bg-accent text-white hover:bg-accent-hover'
+              ? 'bg-accent text-on-accent hover:bg-accent-hover'
               : 'bg-bg-elevated text-text-secondary hover:text-text-primary border border-border-subtle',
           ].join(' ')}
         >
@@ -238,7 +238,7 @@ export default function GamesList({ room }: GamesListProps) {
           onClick={() => setCreateOpen(true)}
           className={[
             'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm',
-            'font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors',
+            'font-semibold bg-accent text-on-accent hover:bg-accent-hover shadow-glow transition-colors',
           ].join(' ')}
         >
           <Plus size={14} /> Create

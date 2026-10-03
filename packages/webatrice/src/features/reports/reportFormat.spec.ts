@@ -21,9 +21,9 @@ describe('formatReportTime', () => {
 
 describe('reportStatusClass', () => {
   it('colours the four known statuses and leaves others alone', () => {
-    expect(reportStatusClass('open')).toBe('text-red-400');
-    expect(reportStatusClass('assigned')).toBe('text-amber-400');
-    expect(reportStatusClass('resolved')).toBe('text-emerald-400');
+    expect(reportStatusClass('open')).toBe('text-danger');
+    expect(reportStatusClass('assigned')).toBe('text-warning');
+    expect(reportStatusClass('resolved')).toBe('text-success');
     expect(reportStatusClass('dismissed')).toBe('text-text-muted');
     expect(reportStatusClass('other')).toBe('');
   });

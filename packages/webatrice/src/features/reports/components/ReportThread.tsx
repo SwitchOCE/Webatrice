@@ -117,7 +117,7 @@ export default function ReportThread({
             type="submit"
             disabled={!canComment || commentBusy || !commentDraft.trim()}
             className={[
-              'flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white',
+              'flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-on-accent',
               'hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed',
             ].join(' ')}
           >

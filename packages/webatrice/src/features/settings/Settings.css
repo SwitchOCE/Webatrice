@@ -190,7 +190,7 @@
 .settings-input {
   min-width: 12rem;
   padding: 6px 10px;
-  border: 1px solid rgb(var(--border-subtle));
+  border: 1px solid rgb(var(--border-control));
   border-radius: 6px;
   background: rgb(var(--bg-base));
   color: rgb(var(--text-primary));

@@ -28,7 +28,7 @@ interface ReportUserDialogProps {
 type SubmitState = 'editing' | 'confirming' | 'submitting' | 'submitted';
 
 const INPUT_CLASS =
-  'w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-sm '
+  'w-full bg-bg-base border border-border-control rounded-md px-3 py-2 text-sm '
   + 'text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent';
 
 const GROUP_CLASS = 'flex flex-col gap-2 rounded-md border border-border-subtle p-3';
@@ -159,8 +159,14 @@ export default function ReportUserDialog({ request, onClose }: ReportUserDialogP
                         placeholder={t('ReportUserDialog.gameIdPlaceholder')}
                         title={t('ReportUserDialog.gameIdTooltip')}
                         disabled={busy}
+                        aria-invalid={fieldState.error ? true : undefined}
+                        aria-describedby={fieldState.error ? 'report-user-game-id-error' : undefined}
                       />
-                      {fieldState.error && <span className="text-xs text-red-400">{fieldState.error.message}</span>}
+                      {fieldState.error && (
+                        <span id="report-user-game-id-error" role="alert" className="text-xs text-danger">
+                          {fieldState.error.message}
+                        </span>
+                      )}
                     </div>
                   )}
                 />
@@ -210,8 +216,14 @@ export default function ReportUserDialog({ request, onClose }: ReportUserDialogP
                     className={INPUT_CLASS}
                     placeholder={t('ReportUserDialog.descriptionPlaceholder')}
                     disabled={busy}
+                    aria-invalid={fieldState.error ? true : undefined}
+                    aria-describedby={fieldState.error ? 'report-user-description-error' : undefined}
                   />
-                  {fieldState.error && <span className="text-xs text-red-400">{fieldState.error.message}</span>}
+                  {fieldState.error && (
+                    <span id="report-user-description-error" role="alert" className="text-xs text-danger">
+                      {fieldState.error.message}
+                    </span>
+                  )}
                 </>
               )}
             />
@@ -232,7 +244,7 @@ export default function ReportUserDialog({ request, onClose }: ReportUserDialogP
             <p className="text-xs text-text-muted">{t('ReportUserDialog.chatNote')}</p>
           </section>
 
-          {failure && <p role="alert" className="text-sm text-red-400">{failure}</p>}
+          {failure && <p role="alert" className="text-sm text-danger">{failure}</p>}
 
           <div className="flex justify-end gap-2">
             <button
@@ -246,7 +258,7 @@ export default function ReportUserDialog({ request, onClose }: ReportUserDialogP
             <button
               type="submit"
               disabled={busy}
-              className="px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover disabled:opacity-50"
+              className="px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-on-accent hover:bg-accent-hover disabled:opacity-50"
             >
               {busy ? t('ReportUserDialog.submitting') : t('ReportUserDialog.submit')}
             </button>

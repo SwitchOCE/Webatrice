@@ -65,6 +65,23 @@ describe.each(Object.keys(PALETTES) as ColorScheme[])('the %s palette', (scheme)
   test.each(SURFACES)('keeps disabled text at least 3:1 on %s', (surface) => {
     expect(contrast(palette['text-disabled'], palette[surface])).toBeGreaterThanOrEqual(3);
   });
+
+  test.each(['accent-primary', 'accent-primary-hover'] as PaletteToken[])(
+    'keeps text on the %s fill (primary buttons) at AA contrast',
+    (fill) => {
+      expect(contrast(palette['text-on-accent'], palette[fill])).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+
+  test.each(SURFACES)('keeps form-control edges at the 3:1 non-text minimum on %s (WCAG 1.4.11)', (surface) => {
+    expect(contrast(palette['border-control'], palette[surface])).toBeGreaterThanOrEqual(3);
+  });
+
+  test('keeps the danger colour readable as error text on every surface', () => {
+    for (const surface of SURFACES) {
+      expect(contrast(palette['status-danger'], palette[surface]), surface).toBeGreaterThanOrEqual(4.5);
+    }
+  });
 });
 
 test('dark is the palette of a page without data-theme', () => {

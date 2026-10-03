@@ -22,7 +22,7 @@ describe('ReportTable', () => {
     const first = within(screen.getByTestId('report-row-2'));
     expect(first.getByText('Bug abuse')).toBeTruthy();
     expect(first.getByText('12')).toBeTruthy();
-    expect(first.getByText('open').className).toContain('text-red-400');
+    expect(first.getByText('open').className).toContain('text-danger');
   });
 
   it('shows replay and room in the queue columns', () => {

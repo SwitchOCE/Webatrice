@@ -25,6 +25,8 @@ export default {
         border: {
           subtle: 'rgb(var(--border-subtle) / <alpha-value>)',
           strong: 'rgb(var(--border-strong) / <alpha-value>)',
+          // Form-control edges, at 3:1 against every surface (border-border-control).
+          control: 'rgb(var(--border-control) / <alpha-value>)',
         },
         accent: {
           DEFAULT: 'rgb(var(--accent-primary) / <alpha-value>)',
@@ -36,6 +38,8 @@ export default {
           secondary: 'rgb(var(--text-secondary) / <alpha-value>)',
           muted: 'rgb(var(--text-muted) / <alpha-value>)',
         },
+        // Text and icons on an accent fill (text-on-accent).
+        'on-accent': 'rgb(var(--text-on-accent) / <alpha-value>)',
         // Status text that stays legible on both palettes (text-danger, text-success, ...).
         danger: 'rgb(var(--status-danger) / <alpha-value>)',
         success: 'rgb(var(--status-success) / <alpha-value>)',
