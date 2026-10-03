@@ -485,8 +485,14 @@ export function MenuRadioItem({ checked, onSelect, closeOnSelect = false, ...pro
   );
 }
 
+export interface MenuGroupProps {
+  /** Accessible name of the group. */
+  label: string;
+  children: ReactNode;
+}
+
 /** A labelled group of entries (`role="group"`), e.g. the radio items of one choice. */
-export function MenuGroup({ label, children }: { label: string; children: ReactNode }) {
+export function MenuGroup({ label, children }: MenuGroupProps) {
   return <div role="group" aria-label={label}>{children}</div>;
 }
 
@@ -495,6 +501,8 @@ export function MenuSeparator() {
 }
 
 export interface MenuSubmenuProps {
+  /** The entry's text. A prop rather than `children` (which the entries take) because it is also
+   *  the submenu's accessible name, and `children` holds the submenu's own entries. */
   label: string;
   icon?: ReactNode;
   disabled?: boolean;
