@@ -1,1 +1,2 @@
 - 21:15Z started rv12, read brief/template/spec → reviewing PR 28 diff
+- 21:25Z review written (i18n:check seeded both ways via CI step, lint coverage seeded, runtime locale check, e2e selectors) → done
