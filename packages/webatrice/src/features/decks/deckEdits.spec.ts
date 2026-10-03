@@ -11,11 +11,14 @@ import {
   setCardCategory,
   setCardCommander,
   setCardPrinting,
+  setDeckBanner,
   setDeckBracketAssessment,
   setDeckDescription,
   setDeckFormat,
   setDeckPriceCache,
+  setDeckTags,
 } from './deckEdits';
+import { readDeckTags } from './deckTags';
 import type { DeckCard, HydratedDeck } from './types';
 
 function card(name: string, overrides: Partial<DeckCard> = {}): DeckCard {
@@ -46,6 +49,22 @@ describe('deck metadata edits', () => {
     expect(renameDeck(before, 'Deck')).toBe(before);
     expect(setDeckFormat(before, 'commander')).toBe(before);
     expect(setDeckDescription(before, '')).toBe(before);
+  });
+
+  it('sets and clears the banner card with its printing', () => {
+    const bannered = setDeckBanner(deck(), { name: 'Shock', providerId: 'abc' });
+    expect(bannered).toEqual(expect.objectContaining({ bannerCard: 'Shock', bannerCardProviderId: 'abc' }));
+    expect(setDeckBanner(bannered, { name: 'Shock', providerId: 'abc' })).toBe(bannered);
+    const cleared = setDeckBanner(bannered, null);
+    expect(cleared.bannerCard).toBeUndefined();
+    expect(cleared.bannerCardProviderId).toBeUndefined();
+  });
+
+  it('replaces the tags, keeping unknown tag children, and skips an unchanged list', () => {
+    const tagged = setDeckTags({ ...deck(), tagsXml: '<tags><note/><tag>Old</tag></tags>' }, ['Aggro', 'Burn']);
+    expect(readDeckTags(tagged.tagsXml)).toEqual(['Aggro', 'Burn']);
+    expect(tagged.tagsXml).toContain('<note/>');
+    expect(setDeckTags(tagged, ['Aggro', 'Burn'])).toBe(tagged);
   });
 
   it('caches a price and returns the same deck when it is unchanged', () => {

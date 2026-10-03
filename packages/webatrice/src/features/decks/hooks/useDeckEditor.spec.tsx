@@ -204,6 +204,26 @@ describe('useDeckEditor', () => {
     ]);
   });
 
+  it('sets the banner and tags as undoable edits', () => {
+    setCachedDeck(5, { deck: hydrated(), savedSignature: deckSaveSignature(hydrated()) });
+    setup();
+
+    act(() => latest.setBanner({ name: 'Sol Ring', providerId: 'p1' }));
+    act(() => latest.setTags(['Ramp']));
+    expect(latest.deck).toEqual(expect.objectContaining({ bannerCard: 'Sol Ring', bannerCardProviderId: 'p1' }));
+    expect(latest.deck?.tagsXml).toBe('<tags><tag>Ramp</tag></tags>');
+    expect(latest.history.undo.map((m) => m.reason)).toEqual([
+      { kind: 'banner', name: 'Sol Ring' },
+      { kind: 'tags' },
+    ]);
+
+    act(() => latest.setBanner(null));
+    expect(latest.history.undo[2].reason).toEqual({ kind: 'bannerCleared' });
+    act(() => latest.undo(3));
+    expect(latest.deck?.bannerCard).toBeUndefined();
+    expect(latest.deck?.tagsXml).toBeUndefined();
+  });
+
   it('merges a typing burst in the name field into one undo step', () => {
     setCachedDeck(5, { deck: hydrated(), savedSignature: deckSaveSignature(hydrated()) });
     setup();

@@ -997,20 +997,7 @@
     },
     "validation": {
       "tooLong": "At most {max} characters"
-    },
-    "error": {
-      "list": "Failed to load card art rules.",
-      "add": "Failed to add the card art rule.",
-      "remove": "Failed to remove the card art rule."
     }
-  },
-  "DeckEditor": {
-    "downloadFailed": "Failed to download this deck from the server.",
-    "loadFailedTitle": "Deck could not be loaded"
-  },
-  "Decks": {
-    "listError": "Failed to load your decks from the server.",
-    "retry": "Retry"
   },
   "DeckBracket": {
     "assessing": "Assessing bracket…",
@@ -1050,6 +1037,9 @@
     },
     "chainable": "— chain-able:"
   },
+  "DeckBanner": {
+    "label": "Banner Card"
+  },
   "DeckHistory": {
     "undo": "Undo",
     "redo": "Redo",
@@ -1082,6 +1072,22 @@
     "saveFailed": "The deck could not be saved.",
     "retrySave": "Retry",
     "saveFailedHint": "Your last change was not saved. It will be sent again with your next change, or now with Retry."
+  },
+  "DeckTags": {
+    "label": "Tags",
+    "add": "Add Tag",
+    "placeholder": "Add a new tag (e.g., Aggro)",
+    "remove": "Remove tag {tag}",
+    "empty": "Tag name cannot be empty!",
+    "duplicate": "This tag already exists."
+  },
+  "DeckEditor": {
+    "downloadFailed": "Failed to download this deck from the server.",
+    "loadFailedTitle": "Deck could not be loaded"
+  },
+  "Decks": {
+    "listError": "Failed to load your decks from the server.",
+    "retry": "Retry"
   },
   "Developer": {
     "table": {

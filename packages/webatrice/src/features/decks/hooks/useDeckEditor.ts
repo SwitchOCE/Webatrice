@@ -20,10 +20,12 @@ import {
   setCardCategory,
   setCardCommander,
   setCardPrinting,
+  setDeckBanner,
   setDeckBracketAssessment,
   setDeckDescription,
   setDeckFormat,
   setDeckPriceCache,
+  setDeckTags,
   type CardPrinting,
 } from '../deckEdits';
 import { countDeckCards } from '../deckGrouping';
@@ -34,6 +36,7 @@ import {
   type DeckHistoryReason,
 } from '../deckHistory';
 import { deckSaveSignature } from '../deckPersistence';
+import type { BannerCandidate } from '../deckTags';
 import { assembleDeckCard, hydrateDeck } from '../hydrate';
 import type { DeckCard, HydratedDeck } from '../types';
 import { useDeckAutosave, type SaveState } from './useDeckAutosave';
@@ -76,6 +79,10 @@ export interface UseDeckEditor {
    *  Persists to the `<format>` element; the editor gates MTG-specific
    *  features off this value. */
   setFormat: (format: string) => void;
+  /** Pick the deck's banner card, or clear it with `null`. */
+  setBanner: (banner: BannerCandidate | null) => void;
+  /** Replace the deck's tags. */
+  setTags: (tags: readonly string[]) => void;
   /** Cache a computed price in meta.priceUsd / priceMissingCount so the
    *  totals survive a reload. */
   setPriceCache: (priceUsd: number | undefined, priceMissingCount: number | undefined) => void;
@@ -347,6 +354,17 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     ),
     [applyEdit],
   );
+  const setBanner = useCallback(
+    (banner: BannerCandidate | null) => applyEdit(
+      (d) => setDeckBanner(d, banner),
+      banner ? { kind: 'banner', name: banner.name } : { kind: 'bannerCleared' },
+    ),
+    [applyEdit],
+  );
+  const setTags = useCallback(
+    (tags: readonly string[]) => applyEdit((d) => setDeckTags(d, tags), { kind: 'tags' }),
+    [applyEdit],
+  );
   const setPriceCache = useCallback(
     (priceUsd: number | undefined, priceMissingCount: number | undefined) =>
       applyEdit((d) => setDeckPriceCache(d, priceUsd, priceMissingCount)),
@@ -433,6 +451,8 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     setName,
     setDescription,
     setFormat,
+    setBanner,
+    setTags,
     setPriceCache,
     setBracketAssessment,
     setPrinting,
