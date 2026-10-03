@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 
 import { DeckFolderRow } from './DeckFolderRow';
 
-const folder = { name: 'Modern', path: 'Modern', deckCount: 3, folderCount: 1, visibility: 'private' as const };
+const folder = { name: 'Modern', path: 'Modern', deckCount: 3, directDeckCount: 2, folderCount: 1, visibility: 'private' as const };
 
 describe('DeckFolderRow', () => {
   it('opens, downloads and deletes the folder', () => {
@@ -21,6 +21,21 @@ describe('DeckFolderRow', () => {
   it('has nothing to download in an empty folder', () => {
     render(<DeckFolderRow folder={{ ...folder, deckCount: 0 }} onOpen={vi.fn()} onDownload={vi.fn()} onDelete={vi.fn()} />);
     expect(screen.getByRole('button', { name: 'DeckFolders.downloadFolderNamed' })).toBeDisabled();
+  });
+
+  it('keeps Share visible but disabled when the folder has no decks of its own', () => {
+    render(
+      <DeckFolderRow
+        folder={{ ...folder, directDeckCount: 0 }}
+        onOpen={vi.fn()}
+        onDownload={vi.fn()}
+        onDelete={vi.fn()}
+        onShare={vi.fn()}
+      />,
+    );
+    const share = screen.getByRole('button', { name: 'DeckSharing.shareFolderNamed' });
+    expect(share).toBeDisabled();
+    expect(share.className).not.toContain('disabled:hidden');
   });
 
   it('shares and publishes the folder when given, showing its visibility', () => {
