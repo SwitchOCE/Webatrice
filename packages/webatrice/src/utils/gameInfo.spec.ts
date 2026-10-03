@@ -38,15 +38,17 @@ describe('formatSpectators', () => {
     expect(formatSpectators(t, create(ServerInfo_GameSchema, { spectatorsAllowed: true, spectatorsCount: 3 }))).toBe('3');
   });
 
-  it('adds the chat and see-hands flags to the count', () => {
+  it.each([
+    [true, false, 'GameInfo.spectators.withChat {"count":2}'],
+    [false, true, 'GameInfo.spectators.withHands {"count":2}'],
+    [true, true, 'GameInfo.spectators.withChatAndHands {"count":2}'],
+  ])('picks one whole message for canChat=%s, omniscient=%s', (spectatorsCanChat, spectatorsOmniscient, expected) => {
     const info = create(ServerInfo_GameSchema, {
       spectatorsAllowed: true,
       spectatorsCount: 2,
-      spectatorsCanChat: true,
-      spectatorsOmniscient: true,
+      spectatorsCanChat,
+      spectatorsOmniscient,
     });
-    expect(formatSpectators(t, info)).toBe(
-      'GameInfo.spectators.countWithFlags {"count":2,"flags":"GameInfo.spectators.canChat & GameInfo.spectators.seeHands"}',
-    );
+    expect(formatSpectators(t, info)).toBe(expected);
   });
 });

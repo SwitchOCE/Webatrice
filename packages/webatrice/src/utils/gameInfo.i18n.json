@@ -8,9 +8,9 @@
     },
     "spectators": {
       "notAllowed": "not allowed",
-      "canChat": "can chat",
-      "seeHands": "see hands",
-      "countWithFlags": "{count} ({flags})"
+      "withChat": "{count} (can chat)",
+      "withHands": "{count} (can see hands)",
+      "withChatAndHands": "{count} (can chat & see hands)"
     }
   }
 }
