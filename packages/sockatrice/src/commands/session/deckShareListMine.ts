@@ -8,5 +8,8 @@ export function deckShareListMine(): void {
     onSuccess: (response) => {
       WebClient.instance.response.session.deckSharesMine?.(response.shares);
     },
+    onError: (responseCode, _raw, failure) => {
+      WebClient.instance.response.session.deckSharingFailed?.('deckShareListMine', responseCode, '', failure);
+    },
   });
 }

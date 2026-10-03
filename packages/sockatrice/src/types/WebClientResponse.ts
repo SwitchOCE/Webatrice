@@ -160,6 +160,13 @@ export interface ISessionResponse {
   deckListFailed?(responseCode: number, failure?: CommandFailure): void;
   deckDownloadFailed?(deckId: number, responseCode: number, failure?: CommandFailure): void;
   deckUploadFailed?(path: string, responseCode: number, failure?: CommandFailure): void;
+  /**
+   * A deck share or public-deck command failed (#7241). `target` names what the
+   * command acted on: the share token, `token/itemId`, the share id, the user
+   * name, the deck id or the visibility target (`deckId` or folder path); empty
+   * for `deckShareCreate` and `deckShareListMine`.
+   */
+  deckSharingFailed?(command: DeckSharingCommandName, responseCode: number, target: string, failure?: CommandFailure): void;
 }
 
 export interface IRoomResponse<T extends RoomEventMap = WebSocketRoomResponseOverrides> {
@@ -243,6 +250,17 @@ export type ModeratorCommandName =
   | 'getModeratorLastLogins'
   | 'removeUserAvatar'
   | 'listCardArtRules';
+
+/** Deck share and public-deck commands (#7241) whose failure desktop reports to the user. */
+export type DeckSharingCommandName =
+  | 'deckShareCreate'
+  | 'deckShareList'
+  | 'deckShareDownload'
+  | 'deckShareListMine'
+  | 'deckShareRemove'
+  | 'deckListOtherUser'
+  | 'deckSetVisibility'
+  | 'deckDownloadPublic';
 
 /** Developer commands whose failure desktop's TabDeveloper reports. */
 export type DeveloperCommandName = 'getServerStats';

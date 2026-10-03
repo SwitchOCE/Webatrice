@@ -12,6 +12,10 @@ export function deckSetVisibility(params: DeckSetVisibilityParams): void {
       onSuccess: () => {
         WebClient.instance.response.session.deckVisibilityChanged?.(params);
       },
+      onError: (responseCode, _raw, failure) => {
+        const target = params.folderPath ?? String(params.deckId ?? '');
+        WebClient.instance.response.session.deckSharingFailed?.('deckSetVisibility', responseCode, target, failure);
+      },
     }
   );
 }

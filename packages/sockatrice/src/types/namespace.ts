@@ -9,6 +9,7 @@ export type {
   AdminCommandName,
   ModeratorCommandName,
   DeveloperCommandName,
+  DeckSharingCommandName,
 } from './WebClientResponse';
 
 export * from './ClientConfig';

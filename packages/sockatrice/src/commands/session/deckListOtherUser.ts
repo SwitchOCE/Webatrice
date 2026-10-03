@@ -12,6 +12,9 @@ export function deckListOtherUser(userName: string): void {
       onSuccess: (response) => {
         WebClient.instance.response.session.otherUserDecks?.(userName, response);
       },
+      onError: (responseCode, _raw, failure) => {
+        WebClient.instance.response.session.deckSharingFailed?.('deckListOtherUser', responseCode, userName, failure);
+      },
     }
   );
 }

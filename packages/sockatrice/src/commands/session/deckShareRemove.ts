@@ -7,5 +7,8 @@ export function deckShareRemove(shareId: number): void {
     onSuccess: () => {
       WebClient.instance.response.session.deckShareRemoved?.(shareId);
     },
+    onError: (responseCode, _raw, failure) => {
+      WebClient.instance.response.session.deckSharingFailed?.('deckShareRemove', responseCode, String(shareId), failure);
+    },
   });
 }

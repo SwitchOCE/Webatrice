@@ -18,6 +18,9 @@ export function deckShareCreate(params: DeckShareCreateParams): void {
       onSuccess: (response) => {
         WebClient.instance.response.session.deckShareCreated?.(response);
       },
+      onError: (responseCode, _raw, failure) => {
+        WebClient.instance.response.session.deckSharingFailed?.('deckShareCreate', responseCode, '', failure);
+      },
     }
   );
 }

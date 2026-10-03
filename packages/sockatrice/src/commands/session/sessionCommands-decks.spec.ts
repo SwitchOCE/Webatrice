@@ -6,6 +6,7 @@ import { create, isFieldSet } from '@bufbuild/protobuf';
 import { Mock } from 'vitest';
 import { makeCallbackHelpers } from '../../testing/callback-helpers';
 import { WebClient } from '../../WebClient';
+import { CommandFailure } from '../../types/CommandFailure';
 import {
   Command_DeckDownloadPublic_ext,
   Command_DeckListOtherUser_ext,
@@ -197,5 +198,44 @@ describe('deckUpload (3.1 fields)', () => {
     const sent = (WebClient.instance.protobuf.sendSessionCommand as Mock).mock.calls.at(-1)![1];
     expect(isFieldSet(sent, Command_DeckUploadSchema.field.isPublic)).toBe(false);
     expect(isFieldSet(sent, Command_DeckUploadSchema.field.colorIdentity)).toBe(false);
+  });
+});
+
+describe('deck sharing failures', () => {
+  it.each([
+    ['deckShareCreate', () => deckShareCreate({ name: 'Cube', folderPath: 'cubes' }), ''],
+    ['deckShareList', () => deckShareList('tok'), 'tok'],
+    ['deckShareDownload', () => deckShareDownload('tok', 9), 'tok/9'],
+    ['deckShareListMine', () => deckShareListMine(), ''],
+    ['deckShareRemove', () => deckShareRemove(5), '5'],
+    ['deckListOtherUser', () => deckListOtherUser('bob'), 'bob'],
+    ['deckSetVisibility', () => deckSetVisibility({ folderPath: 'cubes', isPublic: true }), 'cubes'],
+    ['deckDownloadPublic', () => deckDownloadPublic(4), '4'],
+  ])('reports a rejected %s through deckSharingFailed', (command, send, target) => {
+    send();
+    invokeOnError(Response_ResponseCode.RespFunctionNotAllowed);
+    expect(WebClient.instance.response.session.deckSharingFailed).toHaveBeenCalledWith(
+      command,
+      Response_ResponseCode.RespFunctionNotAllowed,
+      target,
+      undefined
+    );
+  });
+
+  it('names a single deck by id when its visibility change fails', () => {
+    deckSetVisibility({ deckId: 4, isPublic: false });
+    invokeOnError(Response_ResponseCode.RespNameNotFound);
+    expect(WebClient.instance.response.session.deckSharingFailed).toHaveBeenCalledWith(
+      'deckSetVisibility',
+      Response_ResponseCode.RespNameNotFound,
+      '4',
+      undefined
+    );
+  });
+
+  it('passes a transport failure through', () => {
+    deckShareList('tok');
+    invokeOnError(-1, {}, CommandFailure.Timeout);
+    expect(WebClient.instance.response.session.deckSharingFailed).toHaveBeenCalledWith('deckShareList', -1, 'tok', CommandFailure.Timeout);
   });
 });
