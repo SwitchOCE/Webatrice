@@ -19,3 +19,4 @@
 - 14/19/21 re-pushed: removed a duplicate useGridRows barrel export in 14's grid commit (tree diff vs previous push: that one line)
 - 20 4156694..ca5ef66 → new tip da1d14d, typecheck ok on every commit; gate: lint ok, unit sock 859/data 1267/web 2143+2skip, integration sock 170/data 139/web 209+2skip (Dexie v7 after v5/v6; token+URL lists on useGridRows; Storage lists card-pref + replay tables)
 - 24 d2e3d1e..61fd4f4 → new tip 4df1b8d, typecheck ok on every commit (incl. new e2e tsc); lint ok, unit sock 865/data 1267/web 2174+2skip, integration sock 170/data 139/web 209+2skip (boot.tsx carries 21's boot work; e2e tsconfig maps @app/types)
+- 23 8fca043..d444301 → new tip 13351fd, typecheck ok; lint ok, unit sock 880/data 1281/web 2232+2skip, integration sock 171/data 140/web 209+2skip (playmat panel registered as Appearance group in 19's registry) → per-commit typecheck, then e2e sockatrice + webatrice (3 browsers)
