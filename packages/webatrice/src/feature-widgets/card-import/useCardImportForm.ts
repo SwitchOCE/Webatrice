@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import type { RebuildResult } from './CardDatabaseService';
 import { localOracleImportService, IngestResult } from './LocalOracleImportService';
 import { Card, Set } from '@app/services';
 export interface CardImportForm {
@@ -9,6 +10,8 @@ export interface CardImportForm {
   importedCards: Card[];
   importedSets: Set[];
   ingest: IngestResult | null;
+  /** Outcome of the last save, including sets that still need a decision. */
+  rebuild: RebuildResult | null;
   error: string | null;
   handleBack: () => void;
   handleLocalFiles: (files: File[]) => Promise<void>;
@@ -23,6 +26,7 @@ export function useCardImportForm(): CardImportForm {
   const [importedCards, setImportedCards] = useState<Card[]>([]);
   const [importedSets, setImportedSets] = useState<Set[]>([]);
   const [ingest, setIngest] = useState<IngestResult | null>(null);
+  const [rebuild, setRebuild] = useState<RebuildResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -63,13 +67,7 @@ export function useCardImportForm(): CardImportForm {
     }
     setLoading(true);
     try {
-      await localOracleImportService.persist({
-        cards: ingest.cards,
-        sets: ingest.sets,
-        tokens: ingest.tokens,
-        formats: ingest.formats,
-        info: ingest.info,
-      });
+      setRebuild(await localOracleImportService.persist(ingest));
       handleNext();
     } catch (e) {
       console.error(e);
@@ -86,6 +84,7 @@ export function useCardImportForm(): CardImportForm {
     importedCards,
     importedSets,
     ingest,
+    rebuild,
     error,
     handleBack,
     handleLocalFiles,
