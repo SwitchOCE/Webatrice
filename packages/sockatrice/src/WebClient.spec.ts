@@ -43,6 +43,7 @@ import {
   Event_ServerIdentification_ServerOptions,
   Event_ServerIdentificationSchema,
   ServerMessageSchema,
+  ServerInfo_GameSchema,
   ServerMessage_MessageType,
   SessionEventSchema,
 } from './generated';
@@ -90,7 +91,7 @@ function makeMockResponse(): IWebClientResponse {
       testConnectionFailed: vi.fn(),
     },
     room: { clearStore: vi.fn() },
-    game: { clearStore: vi.fn() },
+    game: { clearStore: vi.fn(), replayGameLoaded: vi.fn(), replayGameUnloaded: vi.fn() },
     admin: {},
     moderator: {},
   } as unknown as IWebClientResponse;
@@ -430,6 +431,19 @@ describe('WebClient', () => {
     it('delegates to socket.disconnect', () => {
       client.disconnect();
       expect(client.socket.disconnect).toHaveBeenCalled();
+    });
+  });
+
+  describe('replay games', () => {
+    it('loadReplayGame hands the replay game to the game response', () => {
+      const gameInfo = create(ServerInfo_GameSchema, { gameId: 7, description: 'recorded' });
+      client.loadReplayGame(-1001, gameInfo);
+      expect(mockResponse.game.replayGameLoaded).toHaveBeenCalledWith(-1001, gameInfo);
+    });
+
+    it('unloadReplayGame hands the closed replay game to the game response', () => {
+      client.unloadReplayGame(-1001);
+      expect(mockResponse.game.replayGameUnloaded).toHaveBeenCalledWith(-1001);
     });
   });
 

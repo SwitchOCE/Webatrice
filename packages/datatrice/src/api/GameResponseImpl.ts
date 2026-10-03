@@ -21,6 +21,7 @@ import {
   Event_SetCounter,
   Event_Shuffle,
   ServerInfo_Card,
+  ServerInfo_Game,
   ServerInfo_PlayerProperties,
 } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
@@ -156,5 +157,13 @@ export class GameResponseImpl implements WebsocketTypes.IGameResponse {
 
   gameLogNotice(gameId: number, playerId: number, noticeType: Event_GameLogNotice_NoticeType): void {
     this.store.dispatch(GameActions.gameLogNotice({ gameId, playerId, noticeType }));
+  }
+
+  replayGameLoaded(gameId: number, gameInfo: ServerInfo_Game): void {
+    this.store.dispatch(GameActions.replayGameLoaded({ gameId, gameInfo }));
+  }
+
+  replayGameUnloaded(gameId: number): void {
+    this.store.dispatch(GameActions.replayGameUnloaded({ gameId }));
   }
 }
