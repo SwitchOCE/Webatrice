@@ -8,6 +8,7 @@ import {
   makePlayerProperties,
   makeZoneEntry,
 } from '@cockatrice/datatrice/testing';
+import { DECK_ZONE_MAIN, DECK_ZONE_SIDE } from '@app/types';
 import { renderWithProviders } from '../../../../__test-utils__';
 import type { GameDialogs } from '../../hooks/useGameDialogs';
 import SideboardDialog, { applyMoves } from './SideboardDialog';
@@ -91,8 +92,23 @@ describe('SideboardDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: /apply plan/i }));
 
     expect(handleSideboardSubmit).toHaveBeenCalledWith([
-      { cardName: 'Island', startZone: ZoneName.DECK, targetZone: ZoneName.SIDEBOARD },
-      { cardName: 'Counterspell', startZone: ZoneName.SIDEBOARD, targetZone: ZoneName.DECK },
+      { cardName: 'Island', startZone: DECK_ZONE_MAIN, targetZone: DECK_ZONE_SIDE },
+      { cardName: 'Counterspell', startZone: DECK_ZONE_SIDE, targetZone: DECK_ZONE_MAIN },
+    ]);
+  });
+
+  it('names the plan zones main / side, the deck-list zones Servatrice applies', () => {
+    // Server_Player::setupZones skips an entry whose zones are not
+    // DECK_ZONE_MAIN / DECK_ZONE_SIDE, so the in-game names deck / sb were
+    // silently ignored.
+    const handleSideboardSubmit = vi.fn();
+    render({ dialogs: { handleSideboardSubmit } });
+
+    fireEvent.click(screen.getByRole('button', { name: /move Island to sideboard/i }));
+    fireEvent.click(screen.getByRole('button', { name: /apply plan/i }));
+
+    expect(handleSideboardSubmit).toHaveBeenCalledWith([
+      { cardName: 'Island', startZone: 'main', targetZone: 'side' },
     ]);
   });
 
@@ -157,8 +173,8 @@ describe('applyMoves', () => {
     const sb = [{ id: 3, name: 'C' }];
 
     const result = applyMoves(deck, sb, [
-      { cardName: 'A', startZone: ZoneName.DECK, targetZone: ZoneName.SIDEBOARD },
-      { cardName: 'C', startZone: ZoneName.SIDEBOARD, targetZone: ZoneName.DECK },
+      { cardName: 'A', startZone: DECK_ZONE_MAIN, targetZone: DECK_ZONE_SIDE },
+      { cardName: 'C', startZone: DECK_ZONE_SIDE, targetZone: DECK_ZONE_MAIN },
     ]);
 
     expect(result.deck.map((c) => c.name).sort()).toEqual(['B', 'C']);
@@ -168,7 +184,7 @@ describe('applyMoves', () => {
   it('drops moves that reference cards not present in the source zone', () => {
     const deck = [{ id: 1, name: 'A' }];
     const result = applyMoves(deck, [], [
-      { cardName: 'Missing', startZone: ZoneName.DECK, targetZone: ZoneName.SIDEBOARD },
+      { cardName: 'Missing', startZone: DECK_ZONE_MAIN, targetZone: DECK_ZONE_SIDE },
     ]);
 
     expect(result.deck).toHaveLength(1);
