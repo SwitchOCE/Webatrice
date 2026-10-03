@@ -10,7 +10,7 @@ import {
 } from '@cockatrice/sockatrice/generated';
 import { cloneWith, mergeSetFields } from '../../common';
 import { GamesState } from './game.interfaces';
-import { pushEventMessage } from './game.reducer.helpers';
+import { eventTimestamp, pushEventMessage } from './game.reducer.helpers';
 import type { LogEntry } from './messageLog';
 
 const pingField = ServerInfo_PlayerPropertiesSchema.field.pingSeconds;
@@ -71,6 +71,7 @@ export const primitiveReducers = {
     }
     if (secondsElapsed !== undefined) {
       game.secondsElapsed = secondsElapsed;
+      game.secondsElapsedAt = eventTimestamp();
     }
   }) as CaseReducer<GamesState, PayloadAction<{
     gameId: number;
@@ -79,6 +80,19 @@ export const primitiveReducers = {
     activePhase?: number;
     secondsElapsed?: number;
   }>>,
+
+  /**
+   * A replay reached a recorded container played at `secondsElapsed` into the game: the game
+   * time its events are logged at, however fast the replay runs.
+   */
+  gameTimeSynced: ((state, action) => {
+    const game = state.games[action.payload.gameId];
+    if (!game) {
+      return;
+    }
+    game.secondsElapsed = action.payload.secondsElapsed;
+    game.secondsElapsedAt = eventTimestamp();
+  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; secondsElapsed: number }>>,
 
   cardMovedBetweenZones: ((state, action) => {
     const {
