@@ -25,6 +25,7 @@ import type {
 import { useDrawFlights } from './useDrawFlights';
 import { usePendingArrows } from './usePendingArrows';
 import { useSeatCardMetadata } from './useSeatCardMetadata';
+import { useSeatClickToPlay } from './useSeatClickToPlay';
 import { useSeatDnd } from './useSeatDnd';
 import { useSeatMarquee } from './useSeatMarquee';
 import { useSeatPrompts } from './useSeatPrompts';
@@ -326,6 +327,18 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     targetCommands,
   });
 
+  const { onCardClick, onCardDoubleClick } = useSeatClickToPlay({
+    isSelf,
+    selection,
+    handDisplayList,
+    stackDisplayList,
+    battlefieldDisplayList,
+    cardMetaByName,
+    setCardMetaByName,
+    zoneCommands,
+    cardCommands,
+  });
+
   const {
     startPileDrag,
     isDragging,
@@ -355,6 +368,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     libraryRef,
     graveyardRef,
     exileRef,
+    onCardClick,
     CARD_W_PX,
     CARD_H_PX,
     STACK_HOFFSET_PX,
@@ -412,6 +426,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     marquee,
     menuOwnerId,
     name,
+    onCardDoubleClick,
     onOpenDeckInEditor,
     onPointerDownBox,
     openAnnotationPrompt,

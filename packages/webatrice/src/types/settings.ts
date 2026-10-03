@@ -42,6 +42,10 @@ export class Setting {
   minPlayersForMultiColumnLayout: number;
 
   // User interface — general (desktop interface_settings / cards_display_settings)
+  /** Play a card with a double-click (desktop's default) rather than a single click. */
+  doubleClickToPlay: boolean;
+  /** A click to play plays every selected card of the zone when the clicked card is selected. */
+  clickPlaysAllSelected: boolean;
   playToStack: boolean;
   closeEmptyCardView: boolean;
   tapAnimation: boolean;
@@ -115,6 +119,8 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   invertVerticalCoordinate: false,
   minPlayersForMultiColumnLayout: 4,
 
+  doubleClickToPlay: true,
+  clickPlaysAllSelected: true,
   playToStack: true,
   closeEmptyCardView: true,
   tapAnimation: true,

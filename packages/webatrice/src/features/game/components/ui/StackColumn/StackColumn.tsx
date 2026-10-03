@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useForkRef } from '@mui/material/utils';
 import { ZoneName } from '@cockatrice/sockatrice';
-import { lookupCard } from '@app/services';
 
 import { layoutStackPile } from '../../battlefield/Battlefield/battlefieldLayout';
-import { legacyTableRowFromTypeLine, tableRowToGridY } from '../../battlefield/Battlefield/cardPlacement';
 import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
 import { CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
 import Card from '../SeatCard/SeatCard';
@@ -23,15 +21,14 @@ export default function StackColumn() {
     isDragging,
     isSelf,
     menuOwnerId,
+    onCardDoubleClick,
     openSeatCardMenu,
     playerId,
     seatGrid,
     selection,
-    setCardMetaByName,
     stackDisplayList,
     stackZoneRef,
     startSeatCardDrag,
-    zoneCommands,
   } = usePlayerSeatContext();
   // The pile lays itself out in the space the column gives it.
   const sizeRef = useRef<HTMLDivElement>(null);
@@ -107,62 +104,9 @@ export default function StackColumn() {
                     y: e.clientY,
                   });
                 }}
-                onDoubleClick={
-                  isSelf
-                    ? async () => {
-                    // Resolves the second step of the auto-play chain:
-                    // an instant/sorcery on the stack goes to the
-                    // graveyard; anything else (creature / other
-                    // permanent / unknown) lands on the battlefield at
-                    // the tablerow-appropriate row. Card type comes
-                    // from the prefetched cache; on cache miss we
-                    // block on a fresh lookup so the first click
-                    // routes correctly. Wire x = -1 lets the server
-                    // pick a column.
-                      const cardId = Number(c.id);
-                      if (
-                        !Number.isFinite(cardId)
-                      ) {
-                        return;
-                      }
-                      let typeLine =
-                      cardMetaByName.get(c.name)?.typeLine ??
-                      '';
-                      if (!typeLine) {
-                        const r = await lookupCard(c.name);
-                        typeLine = r.typeLine ?? '';
-                        const pt =
-                        r.power != null && r.toughness != null
-                          ? `${r.power}/${r.toughness}`
-                          : undefined;
-                        if (typeLine || pt) {
-                          setCardMetaByName((prev) => {
-                            const existing = prev.get(c.name);
-                            if (
-                              existing?.typeLine === typeLine &&
-                            existing?.pt === pt
-                            ) {
-                              return prev;
-                            }
-                            const next = new Map(prev);
-                            next.set(c.name, { typeLine, pt });
-                            return next;
-                          });
-                        }
-                      }
-                      const tableRow = legacyTableRowFromTypeLine(typeLine);
-                      if (tableRow === 3) {
-                        zoneCommands.moveCards(ZoneName.STACK, [cardId], { zone: ZoneName.GRAVE, index: 'end' });
-                      } else {
-                        zoneCommands.moveCards(ZoneName.STACK, [cardId], {
-                          zone: ZoneName.TABLE,
-                          index: 'end',
-                          row: tableRowToGridY(tableRow),
-                        });
-                      }
-                    }
-                    : undefined
-                }
+                // Click to play resolves the card: an instant or sorcery
+                // to the graveyard, anything else onto the battlefield.
+                onDoubleClick={(e) => onCardDoubleClick('stack', c, e)}
                 className="absolute hover:z-10"
                 style={{
                   left: pos.x,
