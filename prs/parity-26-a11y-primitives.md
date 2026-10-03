@@ -1,6 +1,6 @@
 # fix(a11y): shared dialog focus, a keyboard menu primitive, live regions and contrast tokens
 
-> **Stacks on claude/restack-23-playmats** (`13351fd`), the tip of the platform chain. Branch `claude/parity-26-a11y-primitives` (tip `TIPSHA`, after the rv13 fixes). This is PR **A** of the accessibility split in `/tmp/notes/specs/aud.md` §3; it stays in platform code and touches neither `features/game` nor `features/decks`, so it can be rebased to the end of the series.
+> **Stacks on claude/restack-23-playmats** (`13351fd`), the tip of the platform chain. Branch `claude/parity-26-a11y-primitives` (tip `9681c1f`, after the rv13 fixes). This is PR **A** of the accessibility split in `/tmp/notes/specs/aud.md` §3; it stays in platform code and touches neither `features/game` nor `features/decks`, so it can be rebased to the end of the series.
 
 ## Summary
 
@@ -69,20 +69,19 @@ Cockatrice `add65caa`.
 
 ## Testing
 
-All from the repo root on tip `9e966a8`, Servatrice 3.0.0 (the default image), Vitest at `--maxWorkers=2`.
+All from the repo root on tip `9681c1f` (after the rv13 fixes), Servatrice 3.0.0 (the default image), Vitest at `--maxWorkers=2`.
 
-- `git submodule update --init && npm ci` — clean. The only lockfile change is `@testing-library/user-event@^14.6.7` as a dev dependency of `@cockatrice/webatrice`, for the keyboard specs.
+- `git submodule update --init && npm ci` — clean. The only lockfile change on this branch is `@testing-library/user-event@^14.6.7` as a dev dependency of `@cockatrice/webatrice`, for the keyboard specs.
 - `npx turbo run typecheck --concurrency=1` — 5/5 tasks passed (includes `tsc -p e2e`).
 - `npm run lint` — 3/3 packages, 0 problems.
-- `npm test -- -- --maxWorkers=2` — sockatrice **880 passed**, datatrice **1281 passed**, webatrice **2278 passed, 2 skipped** (the 2 skips are the pre-existing `Game.dragdrop` and `GameSelector` suites). That is +38 webatrice tests: `useDialogFocus` 5, `DialogShell` +6, `Menu` 11, `UserDisplay` +1, `Toast` +5 (and the pill's queries moved to a testid now that it carries no role of its own), `InputField` +1, `palettes` +9 (3 parameterised × 2 palettes, plus 3), `useDocumentLanguage` 1, `useDocumentTitle` 1, `Player` +1.
-- `npm run test:integration -- -- --maxWorkers=2` — sockatrice **171**, datatrice **140**, webatrice **209 passed, 2 skipped**. One integration spec needed updating: PrivateChat's Send button now takes its name from i18n.
-- `npm run test:e2e -w @cockatrice/webatrice` — the three-browser matrix, run in the pre-pulled `mcr.microsoft.com/playwright:v1.60.0-noble` image because this host's browser build does not match the pinned Playwright version. **54 passed, 6 failed** (run twice, same result), and both failures are not this branch's:
-  - `replays.spec.ts` ("a finished game can be found, managed and watched") fails on all three browsers at the same locator (`Local replays` › `replay_*.cor`). **I checked out the base `claude/restack-23-playmats`, rebuilt, and reproduced it identically on all three.** Pre-existing.
-  - `staff-tools.spec.ts:38` ("an admin publishes a new server message") fails on all three with `spawnSync docker ENOENT` at its first `runSql`, before the app is touched: the spec shells out to `docker compose exec mysql`, and the Playwright container has no docker CLI. The host cannot run it either (its `/opt/pw-browsers` holds build 1194, Playwright 1.60 wants 1223). Environmental; the other staff-tools test, which needs no SQL, passes on all three.
-  - One e2e locator was mine and is fixed: `browser-support.spec.ts` looked for the degraded-features notice by `role=alert`, which the toast pill no longer carries; it now looks inside the Notifications region. 9/9 green after the fix.
-  - `ConnectionStatus`'s page object follows the connection indicator from an `img` name to the new `role=status`, and the user-menu clicks in `staff-tools`, `account-self-service` and `reports` follow `button` → `menuitem`.
-- **New e2e: `keyboard-moderation.spec.ts`**, a moderator action and a dialog round trip by keyboard only — **3/3 browsers**. Only the first focus is placed; everything after it is key presses. Shift+F10 on the user's name opens the menu (first entry focused), ↓ walks to "Warn user", Enter opens it, the dialog lands on its reason list, eight Shift+Tabs stay inside the dialog, Enter on OK sends the warning, the warn history then shows it, Escape closes it — and each close is asserted to put focus back on the name. This is the test that caught the swapped-dialog hand-over.
-- `npm run test:e2e -w @cockatrice/sockatrice` — **not run**: this branch changes no command shape, response handling or server flow, only Webatrice UI.
+- `npm test -- -- --maxWorkers=2` — sockatrice **880 passed**, datatrice **1281 passed**, webatrice **2303 passed, 2 skipped** (the 2 skips are the pre-existing `Game.dragdrop` and `GameSelector` suites).
+- `npm run test:integration -- -- --maxWorkers=2` — sockatrice **171**, datatrice **140**, webatrice **210 passed, 2 skipped** (+1: the keyboard ban case through the real `ModerationMenuItems`).
+- New and changed specs for rv13 were each run against the code before their fix and failed there: `useDialogFocus` (autoFocus opener, `returnFocusTo`, landmark fallback, re-home after unmount, `tabbableElements`), `DialogShell` (list fallback through the context; menu → `autoFocus` dialog), `ReportNotifier` (persists past 60 s), `Toast` (cap), `InputField` (joined description), `Menu` (disabled reasons, close on select, radio, shortcut split, type-ahead buffer, hover delays, submenu flip, `placeMenu`, `isContextMenuKey`).
+- `npm run test:e2e -w @cockatrice/webatrice`: the three-browser matrix ran in the pre-pulled `mcr.microsoft.com/playwright:v1.60.0-noble` image, because this host's browser build does not match the pinned Playwright. Result: **54 passed, 6 failed, 6 skipped** (66). Both failing tests also fail on the base branch, so neither comes from this PR:
+  - `replays.spec.ts` ("a finished game can be found, managed and watched") fails on all three browsers at the same locator (`Local replays` › `replay_*.cor`). It also failed on the base `claude/restack-23-playmats`, which was checked out, rebuilt and reproduced on all three in the earlier run.
+  - `staff-tools.spec.ts:38` fails on all three with `spawnSync docker ENOENT` at its first `runSql`, before the app is touched. The Playwright container has no docker CLI, so the failure comes from the environment.
+  - **`keyboard-moderation.spec.ts`: 3/3 browsers**, now key presses only after the first focus. **`browser-support.spec.ts`: 9/9.**
+- `npm run test:e2e -w @cockatrice/sockatrice` was **not run**. This branch changes no command shape, response handling or server flow, only Webatrice UI.
 
 ## Notes for reviewers
 
