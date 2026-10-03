@@ -29,6 +29,8 @@ const opponentSeat = {
     lastDrawCount: 0,
     revealTargets: [{ playerId: 1, name: 'Me' }],
   },
+  // Servatrice sends the deck list to its owner only.
+  deck: [],
   zones: {
     // An opponent hand is a count only.
     hand: { cards: [], cardCount: 7 },

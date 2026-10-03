@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { games } from '@cockatrice/datatrice';
 import { ZoneName } from '@cockatrice/sockatrice';
 import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
+import { parseCod } from '@app/services';
 import { useAppSelector } from '@app/store';
 
 import type { BoardCell } from '../../../hooks/useGameBoardLayout';
@@ -14,6 +15,7 @@ import type {
   PlayerBoardModel,
   PlayerCardViewModel,
   PlayerCounterViewModel,
+  SeatDeckCard,
 } from '../PlayerBoard/playerBoard.types';
 
 // Projects one seat's Datatrice state into the PlayerBoardModel. Reads only;
@@ -41,6 +43,7 @@ const MANA_SYMBOL_BY_WIRE_NAME: Record<string, ManaSymbol> = {
 // don't invalidate on every render while a player has no zone data yet.
 const EMPTY_CARDS: PlayerCardViewModel[] = [];
 const EMPTY_BATTLEFIELD_CARDS: BattlefieldCardViewModel[] = [];
+const EMPTY_DECK: SeatDeckCard[] = [];
 
 type ZoneCards = { order: number[]; byId: Record<number, ServerInfo_Card> };
 
@@ -182,6 +185,22 @@ function projectCounters(
   };
 }
 
+/** The cards of a `.cod` deck list; empty when there is none or it doesn't parse. */
+export function deckListToSeatDeck(deckList: string | undefined): readonly SeatDeckCard[] {
+  if (!deckList) {
+    return EMPTY_DECK;
+  }
+  try {
+    return parseCod(deckList).cards.map((c) => ({
+      name: c.name,
+      scryfallId: c.scryfallId ?? '',
+      sideboard: c.category === 'sideboard',
+    }));
+  } catch {
+    return EMPTY_DECK;
+  }
+}
+
 /**
  * The PlayerBoardModel for one board cell. Hidden-zone counts come from the
  * authoritative `cardCount`, never from the (partial) local order; the hand's
@@ -247,6 +266,8 @@ export function usePlayerSeatViewModel(cell: BoardCell, totalPlayers: number): P
     [playerId, hydrated, isLocal, mirrored, isActive, realName, avatarUrl, flipHandCardBacks, drawSeq, lastDrawCount, revealTargets],
   );
 
+  const deckList = player?.deckList;
+  const deck = useMemo(() => deckListToSeatDeck(deckList), [deckList]);
   const counters = useMemo(() => projectCounters(countersMap), [countersMap]);
   const permissions = useMemo(() => ({ isOwner: isLocal, canAct }), [isLocal, canAct]);
 
@@ -306,7 +327,7 @@ export function usePlayerSeatViewModel(cell: BoardCell, totalPlayers: number): P
   );
 
   return useMemo(
-    () => ({ seat, zones, counters, permissions }),
-    [seat, zones, counters, permissions],
+    () => ({ seat, deck, zones, counters, permissions }),
+    [seat, deck, zones, counters, permissions],
   );
 }

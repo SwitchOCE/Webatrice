@@ -114,8 +114,19 @@ export interface PlayerBoardPermissions {
   canAct: boolean;
 }
 
+/** One card of the deck list the player loaded (the game's `.cod` document). */
+export interface SeatDeckCard {
+  name: string;
+  /** Empty when the deck file carries no printing. */
+  scryfallId: string;
+  sideboard: boolean;
+}
+
 export interface PlayerBoardModel {
   seat: PlayerSeatViewModel;
+  /** The loaded deck list. Servatrice sends it only to the deck's owner, so it is
+   *  empty on every other seat (and before a deck is loaded). */
+  deck: readonly SeatDeckCard[];
   zones: {
     hand: HandZoneViewModel;
     library: LibraryZoneViewModel;
