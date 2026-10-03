@@ -1,1 +1,2 @@
 - 21:30Z started f27; read brief/rv11 → checkout PR branch, squash 94a1ecb into baf3b91
+- 21:33Z BLOCKED squash 94a1ecb→baf3b91: history rewrite (rebase -i) denied by session permission classifier; not retrying → applying other findings as commits on top, fast-forward push
