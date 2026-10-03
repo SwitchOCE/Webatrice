@@ -50,6 +50,16 @@ describe('useCardDialogActions', () => {
     });
   });
 
+  it('closes the other menus before opening a seat card menu', () => {
+    const { result, set, args } = setup(null);
+    const menu = { kind: 'battlefield' as const, playerId: 2, cardId: '9', x: 4, y: 5 };
+
+    result.current.openSeatCardMenu(menu);
+
+    expect(args.closeAllContextMenus).toHaveBeenCalled();
+    expect(set.setSeatCardMenu).toHaveBeenCalledWith(menu);
+  });
+
   it('ignores a right-click with no owner or zone', () => {
     const { result, set } = setup(null);
     result.current.handleCardContextMenu(undefined, ZoneName.TABLE, makeCard(), {} as React.MouseEvent);

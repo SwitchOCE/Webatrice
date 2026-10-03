@@ -1,4 +1,5 @@
-import { memo, useMemo } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Divider from '@mui/material/Divider';
@@ -18,6 +19,8 @@ import { useCardVisualState } from '../../ui/CardVisualStateContext';
 import { useLocalIdentity } from '../../../hooks/useLocalIdentity';
 import { useCurrentGame } from '../../../hooks/useCurrentGame';
 import { useCardContextMenu } from './useCardContextMenu';
+import type { CardMenuItem } from './cardContextMenu.model';
+import { useViewportClampedMenu } from '../useViewportClampedMenu';
 
 import './CardContextMenu.css';
 
@@ -180,3 +183,176 @@ function CardContextMenu() {
 }
 
 export default memo(CardContextMenu);
+
+export interface CardMenuPopupProps {
+  /** The menu model (`buildCardContextMenu` and the seat's per-zone item lists). */
+  items: CardMenuItem[];
+  /** Viewport point the menu opens at; it is clamped into the viewport. */
+  anchor: { x: number; y: number };
+  /** The card has no server id yet: rows without an action render disabled. */
+  disabled: boolean;
+  /** Outside click or Escape. Items close the menu themselves when they fire. */
+  onClose: () => void;
+}
+
+/**
+ * Renders a card menu model: the seat's battlefield, stack and pile-view card
+ * menus. Portals to `document.body`, flips submenus at the viewport edge, and
+ * closes on an outside mousedown or Escape (armed on the next tick, so the
+ * right-click that opened it doesn't close it).
+ *
+ * z-[1200] sits above the pile-view dialog (z-[1000]), whose cards open this
+ * menu, and below MUI dialogs (1300), which the menu's items open.
+ */
+export function CardMenuPopup({ items, anchor, disabled, onClose }: CardMenuPopupProps) {
+  const [openSubmenu, setOpenSubmenu] = useState<{
+    index: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  const { ref: mainRef, position: mainPos } = useViewportClampedMenu(anchor.x, anchor.y);
+
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('[data-card-context-menu]')) {
+        return;
+      }
+      onClose();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    const t = window.setTimeout(() => {
+      document.addEventListener('mousedown', onDown);
+      document.addEventListener('keydown', onKey);
+    }, 0);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [onClose]);
+
+  const renderItems = (
+    list: CardMenuItem[],
+    keyPrefix: string,
+    onItemHover: (i: number, e: React.MouseEvent<HTMLButtonElement>) => void,
+  ) =>
+    list.map((item, i) => {
+      if ('divider' in item) {
+        return (
+          <div
+            key={`${keyPrefix}-d-${i}`}
+            className="my-1 border-t border-border-subtle"
+          />
+        );
+      }
+      const hasSubmenu = !!item.submenu;
+      return (
+        <button
+          key={`${keyPrefix}-i-${i}`}
+          disabled={disabled && !hasSubmenu && !item.onClick}
+          onMouseEnter={(e) => onItemHover(i, e)}
+          onClick={item.onClick}
+          className={[
+            'w-full flex items-center gap-3 px-3 py-1.5 text-sm text-left text-text-primary',
+            'hover:bg-bg-elevated disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
+          ].join(' ')}
+        >
+          {item.swatch !== undefined ? (
+            <span
+              className="inline-block rounded-full shrink-0"
+              style={{
+                width: 10,
+                height: 10,
+                background: item.swatch,
+              }}
+              aria-hidden
+            />
+          ) : (
+            <span
+              className="inline-block shrink-0 text-center text-accent"
+              style={{ width: 10 }}
+              aria-hidden
+            >
+              {item.checked ? '✓' : ''}
+            </span>
+          )}
+          <span className="flex-1 truncate">{item.label}</span>
+          {item.shortcut && (
+            <span className="text-xs text-text-muted">{item.shortcut}</span>
+          )}
+          {hasSubmenu && (
+            <span className="text-text-muted text-xs" aria-hidden>
+              ▶
+            </span>
+          )}
+        </button>
+      );
+    });
+
+  return createPortal(
+    <>
+      <div
+        ref={mainRef}
+        data-card-context-menu
+        className="fixed z-[1200] min-w-[220px] rounded-md border border-border-subtle bg-bg-surface shadow-glow py-1"
+        style={{ left: mainPos.x, top: mainPos.y }}
+      >
+        {renderItems(items, 'top', (i, e) => {
+          const item = items[i];
+          if ('divider' in item) {
+            return;
+          }
+          if (item.submenu) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            setOpenSubmenu({ index: i, x: rect.right, y: rect.top });
+          } else {
+            setOpenSubmenu(null);
+          }
+        })}
+      </div>
+      {openSubmenu !== null &&
+        (() => {
+          const parent = items[openSubmenu.index];
+          if ('divider' in parent || !parent.submenu) {
+            return null;
+          }
+          return (
+            <CardMenuFlyout anchorX={openSubmenu.x} anchorY={openSubmenu.y}>
+              {renderItems(parent.submenu, `sub-${openSubmenu.index}`, () => {
+                /* nested submenus not used by any current menu */
+              })}
+            </CardMenuFlyout>
+          );
+        })()}
+    </>,
+    document.body,
+  );
+}
+
+/** A submenu: opens beside its parent row, or to its left at the viewport edge. */
+function CardMenuFlyout({
+  anchorX,
+  anchorY,
+  children,
+}: {
+  anchorX: number;
+  anchorY: number;
+  children: React.ReactNode;
+}) {
+  const { ref, position } = useViewportClampedMenu(anchorX, anchorY);
+  return (
+    <div
+      ref={ref}
+      data-card-context-menu
+      className="fixed z-[1201] min-w-[260px] rounded-md border border-border-subtle bg-bg-surface shadow-glow py-1"
+      style={{ left: position.x, top: position.y }}
+    >
+      {children}
+    </div>
+  );
+}
