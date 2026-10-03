@@ -2,7 +2,14 @@
 export const COUNTER_TYPE_COUNT = 6;
 export const COUNTER_TYPE_LABELS: ReadonlyArray<string> = ['A', 'B', 'C', 'D', 'E', 'F'];
 
+/** Desktop's default counter colours, QColor::fromHsv(id × 60, 150, 255), as hex without '#'. */
+export const DEFAULT_COUNTER_COLORS: ReadonlyArray<string> = ['FF6969', 'FFFF69', '69FF69', '69FFFF', '6969FF', 'FF69FF'];
+
+/**
+ * The colour of card counter `id`: the user's colour from Appearance › Card counters, which the
+ * app root sets as `--card-counter-<id>` (useApplyCardPresentation), else desktop's default.
+ */
 export function counterColorForId(id: number): string {
-  const hue = (id * 60) % 360;
-  return `hsl(${hue}, 59%, 70%)`;
+  const slot = ((id % COUNTER_TYPE_COUNT) + COUNTER_TYPE_COUNT) % COUNTER_TYPE_COUNT;
+  return `var(--card-counter-${slot}, #${DEFAULT_COUNTER_COLORS[slot]})`;
 }
