@@ -83,6 +83,23 @@ describe('useZoneViewDialog', () => {
     expect(view.isLocal).toBe(true);
   });
 
+  it('lists a custom zone\'s cards under its own name', () => {
+    const { Wrapper } = setup({ name: 'command', cards: [makeCard({ id: 7, name: 'Kenrith' })], cardCount: 1 });
+
+    const view = render({ playerId: 1, zoneName: 'command' }, Wrapper, 1);
+
+    expect(view.cards.map((c) => c.name)).toEqual(['Kenrith']);
+    expect(view.count).toBe(1);
+    expect(view.title).toBe('command — Trajer');
+  });
+
+  it('shows only the count of a hidden custom zone', () => {
+    const { Wrapper } = setup({ name: 'vault', cards: [], cardCount: 3 });
+    const view = render({ playerId: 1, zoneName: 'vault' }, Wrapper, 1);
+    expect(view.cards).toEqual([]);
+    expect(view.count).toBe(3);
+  });
+
   it('lists the revealed dump snapshot of a hidden zone, not its byId cards', () => {
     const { Wrapper } = setup({
       name: ZoneName.DECK,

@@ -2,7 +2,9 @@ import { renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
 
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
+import { NOOP_GAME_DIALOGS_ACTIONS, type GameDialogs } from '../../../hooks/dialogs/gameDialogs.types';
 import { GameDialogActionsProvider, type GameDialogActions } from '../../ui/GameDialogActionsContext';
+import { GameDialogsProvider } from '../../ui/GameDialogsContext';
 import type {
   BattlefieldCardViewModel,
   PlayerCardCommands,
@@ -37,6 +39,8 @@ function setup(args: Partial<UseBattlefieldMenuItemsArgs> = {}) {
   const cardCommands = { untapAll: vi.fn(), createToken: vi.fn() } as unknown as PlayerCardCommands;
   const counterCommands = { increment: vi.fn(), flipCoin: vi.fn(), setCardCounters: vi.fn() } as unknown as PlayerCounterCommands;
   const props: UseBattlefieldMenuItemsArgs = {
+    seatId: 1,
+    customZones: [],
     handMenuItems: marker('hand items'),
     libraryMenuItems: marker('library items'),
     graveMenuItemsSelf: marker('own graveyard items'),
@@ -56,11 +60,14 @@ function setup(args: Partial<UseBattlefieldMenuItemsArgs> = {}) {
     counterCommands,
     ...args,
   };
+  const dialogs = { ...NOOP_GAME_DIALOGS_ACTIONS, openZoneView: vi.fn() };
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <GameDialogActionsProvider value={actions as unknown as GameDialogActions}>{children}</GameDialogActionsProvider>
+    <GameDialogsProvider value={dialogs as unknown as GameDialogs}>
+      <GameDialogActionsProvider value={actions as unknown as GameDialogActions}>{children}</GameDialogActionsProvider>
+    </GameDialogsProvider>
   );
   const { result } = renderHook(() => useBattlefieldMenuItems(props), { wrapper });
-  return { ...result.current, props, actions, cardCommands, counterCommands };
+  return { ...result.current, props, actions, dialogs, cardCommands, counterCommands };
 }
 
 describe('useBattlefieldMenuItems', () => {
@@ -75,6 +82,13 @@ describe('useBattlefieldMenuItems', () => {
     ]);
     expect(labels(find(battlefieldMenuItems, 'Hand').submenu!)).toEqual(['hand items']);
     expect(labels(find(battlefieldMenuItems, 'Graveyard').submenu!)).toEqual(['own graveyard items']);
+  });
+
+  it('lists custom zones after Sideboard and views one by name', () => {
+    const { battlefieldMenuItems, dialogs } = setup({ customZones: [{ name: 'command' }] });
+    expect(labels(battlefieldMenuItems).slice(4, 7)).toEqual(['Sideboard', 'Custom Zones', '---']);
+    find(battlefieldMenuItems, 'Custom Zones', 'View custom zone \'command\'').onClick!();
+    expect(dialogs.openZoneView).toHaveBeenCalledWith({ playerId: 1, zoneName: 'command' });
   });
 
   it('gives another viewer the graveyard and exile views and Tally only', () => {
