@@ -929,14 +929,14 @@ type Props = {
    *  drop-to-ack window where a card is optimistically in the local
    *  pile before the server broadcasts it back. Last entry is the
    *  top. */
-  graveCards?: HandCard[];
-  exileCards?: HandCard[];
+  graveCards?: readonly HandCard[];
+  exileCards?: readonly HandCard[];
   /** Own sideboard cards from Redux — projected from
    *  `sideboardZone.revealedCards` (populated by Command_DumpZone).
    *  Sideboard is a HiddenZone so Servatrice sends only cardCount
    *  in the initial state (server_cardzone.cpp:343-361); we have
    *  to dump the zone to view its contents, same as View library. */
-  sideboardCards?: HandCard[];
+  sideboardCards?: readonly HandCard[];
   /** Fires `Command_DumpZone(zone=SIDEBOARD, numberCards=-1)` to
    *  request the sideboard contents. Called when the sideboard view
    *  modal opens. Response populates `sideboardZone.revealedCards`. */
@@ -951,20 +951,20 @@ type Props = {
    *  empty and their card-back count comes from `zoneCounts.hand`
    *  instead. Undefined during the pre-hydration transient — the
    *  local mock hand takes over as a fallback. */
-  handCards?: HandCard[];
+  handCards?: readonly HandCard[];
   /** Battlefield cards from Redux (PublicZone — visible to every
    *  player). Includes slot (x/y) and tapped state. Drives the
    *  battlefield render for every seat and provides real numeric
    *  ids for battlefield-source drag-drops. Undefined during the
    *  pre-hydration transient — the local mock battlefield takes
    *  over as a fallback. */
-  battlefieldCards?: BattlefieldCard[];
+  battlefieldCards?: readonly BattlefieldCard[];
   /** Stack cards from Redux (PublicZone — visible to every player).
    *  Order runs bottom → top of the stack (last-in resolves first,
    *  matching MTG's "last on the stack resolves first"). Drives the
    *  stack render and provides real numeric ids for stack-source
    *  drag-drops. */
-  stackCards?: HandCard[];
+  stackCards?: readonly HandCard[];
   /** Numeric Cockatrice player id for this seat. Used as the
    *  `start_player_id` / `target_player_id` on `Command_MoveCard`
    *  when `onMoveCard` is wired. `player.user_id` is a string
@@ -4543,7 +4543,7 @@ function PlayerBox(
     e: React.PointerEvent<HTMLElement>,
     card: HandCard,
     zone: Selection['zone'],
-    zoneCards: HandCard[],
+    zoneCards: readonly HandCard[],
   ) => {
     // Both self and opponent boxes participate — Cockatrice lets you
     // click / marquee-select on any battlefield. The pointerup handler
