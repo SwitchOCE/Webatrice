@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Popover from '@mui/material/Popover';
 
@@ -17,6 +17,7 @@ export default function LatencyStatus() {
   const { t } = useTranslation();
   const { stats, samplesMs } = useAppSelector(server.Selectors.getLatency);
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const detailsId = useId();
 
   if (stats.sampleCount === 0) {
     return null;
@@ -37,11 +38,12 @@ export default function LatencyStatus() {
         onClick={(event) => setAnchor(anchor ? null : event.currentTarget)}
         className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-text-secondary hover:bg-bg-elevated"
         title={details}
-        aria-label={t('LatencyStatus.accessibleName')}
+        aria-describedby={detailsId}
       >
         <LatencyGraph samplesMs={samplesMs} width={90} height={14} />
         <span>{t('LatencyStatus.ping', { ms: stats.lastMs })}</span>
       </button>
+      <span id={detailsId} className="sr-only">{details}</span>
       <Popover
         open={anchor !== null}
         anchorEl={anchor}
