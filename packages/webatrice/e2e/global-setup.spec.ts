@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { afterEach, expect, it, vi } from 'vitest';
 import { create, setExtension, toBinary } from '@bufbuild/protobuf';
 import { Event_ServerIdentification_ext, Event_ServerIdentificationSchema, ServerMessageSchema,
   ServerMessage_MessageType, SessionEventSchema } from '@cockatrice/sockatrice/generated';
