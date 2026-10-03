@@ -4,6 +4,7 @@ import {
   requestAttention,
   requestNotificationPermission,
   showSystemNotification,
+  watchNotificationPermission,
 } from './NotificationService';
 
 class FakeNotification {
@@ -45,6 +46,41 @@ describe('NotificationService', () => {
       FakeNotification.permission = 'denied';
       await expect(requestNotificationPermission()).resolves.toBe('denied');
       expect(FakeNotification.requestPermission).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('watchNotificationPermission', () => {
+    it('reports changes from the Permissions API and on focus, until unsubscribed', async () => {
+      const status = new EventTarget();
+      vi.stubGlobal('navigator', { ...navigator, permissions: { query: vi.fn(() => Promise.resolve(status)) } });
+      const onChange = vi.fn();
+
+      const stop = watchNotificationPermission(onChange);
+      await Promise.resolve();
+      FakeNotification.permission = 'denied';
+      status.dispatchEvent(new Event('change'));
+      expect(onChange).toHaveBeenLastCalledWith('denied');
+
+      FakeNotification.permission = 'default';
+      window.dispatchEvent(new Event('focus'));
+      expect(onChange).toHaveBeenLastCalledWith('default');
+
+      stop();
+      status.dispatchEvent(new Event('change'));
+      window.dispatchEvent(new Event('focus'));
+      expect(onChange).toHaveBeenCalledTimes(2);
+    });
+
+    it('still follows focus where the Permissions API cannot report notifications', async () => {
+      vi.stubGlobal('navigator', { ...navigator, permissions: { query: vi.fn(() => Promise.reject(new TypeError())) } });
+      const onChange = vi.fn();
+
+      const stop = watchNotificationPermission(onChange);
+      await Promise.resolve();
+      window.dispatchEvent(new Event('focus'));
+
+      expect(onChange).toHaveBeenCalledWith('granted');
+      stop();
     });
   });
 

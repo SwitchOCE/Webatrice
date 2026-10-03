@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bell } from 'lucide-react';
 
-import { getNotificationPermission, requestNotificationPermission } from '@app/services';
+import { getNotificationPermission, requestNotificationPermission, watchNotificationPermission } from '@app/services';
 
 import type { CustomControlProps } from '../registry';
 
@@ -14,13 +14,16 @@ export default function NotificationPermissionControl({ id, labelId, describedBy
   const { t } = useTranslation();
   const [permission, setPermission] = useState(getNotificationPermission);
 
+  // The user can change it in the browser's site settings at any time.
+  useEffect(() => watchNotificationPermission(setPermission), []);
+
   const request = async () => {
     setPermission(await requestNotificationPermission());
   };
 
   return (
     <span className="settings-permission" role="group" aria-labelledby={labelId} aria-describedby={describedBy}>
-      <span className="settings-permission__status" data-permission={permission}>
+      <span className="settings-permission__status" data-permission={permission} aria-live="polite">
         {t(`SettingsUserInterface.browserNotifications.status.${permission}`)}
       </span>
       {permission === 'default' && (
