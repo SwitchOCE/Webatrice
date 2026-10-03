@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { MessageSquare } from 'lucide-react';
-import { classifyLogTone, games, type GameMessage, type LogSegment, type LogTone } from '@cockatrice/datatrice';
+import { classifyLogTone, games, type LogSegment, type LogTone } from '@cockatrice/datatrice';
 
 import { ReportChatScope } from '@app/dialogs';
 import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
@@ -70,9 +70,7 @@ export default function ChatLog() {
   // A report opened from a name in this log attaches the game and its chat,
   // as desktop does for a report raised from a game's ChatView.
   const gameId = useGameId();
-  // Selector's EMPTY_ARRAY fallback is typed ServerInfo_Card[]; cast is safe at runtime.
-  const messages = useAppSelector((state) => (gameId != null ? games.Selectors.getMessages(state, gameId) : undefined)) as
-    GameMessage[] | undefined;
+  const messages = useAppSelector((state) => (gameId != null ? games.Selectors.getMessages(state, gameId) : undefined));
   const getChatContext = useCallback(() => gameChatContext(messages ?? []), [messages]);
   return (
     <ReportChatScope gameId={gameId ?? undefined} getChatContext={getChatContext}>
