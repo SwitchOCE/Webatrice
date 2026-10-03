@@ -24,6 +24,15 @@ export function hasReplayExtension(file: File): boolean {
   return file.name.toLowerCase().endsWith(REPLAY_FILE_EXTENSION);
 }
 
+/**
+ * Splits a library entry name for renaming: desktop's rename dialog edits only
+ * the base name and re-appends the suffix (TabReplays::actRenameLocal).
+ */
+export function splitReplayName(name: string): { base: string; extension: string } {
+  const extension = name.toLowerCase().endsWith(REPLAY_FILE_EXTENSION) ? name.slice(-REPLAY_FILE_EXTENSION.length) : '';
+  return { base: extension ? name.slice(0, -extension.length) : name, extension };
+}
+
 /** Reads a user-picked file into bytes. */
 export async function readReplayFile(file: File): Promise<Uint8Array> {
   return new Uint8Array(await file.arrayBuffer());
