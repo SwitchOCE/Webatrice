@@ -2,6 +2,7 @@ import { CheckCircle2, CircleAlert, FileText, Loader2, Upload, X } from 'lucide-
 
 import type { ParsedDeck } from '@app/types';
 
+import { DeckLinkHandoff } from '../components/DeckLinkHandoff';
 import { FormatPicker } from '../components/FormatPicker';
 import { summarizeUploadedDeck } from '../deckImport';
 import { useDeckImportFlow, type DeckImportFlow } from '../hooks/useDeckImportFlow';
@@ -176,6 +177,7 @@ function ImportInputStep({ flow }: { flow: DeckImportFlow }) {
           <FormatPicker value={flow.format} onChange={flow.setFormat} variant="dialog" />
         </div>
       </div>
+      {!flow.file && <DeckLinkHandoff />}
       <div className="flex-1 min-h-0 flex flex-col">
         <div className="flex items-center justify-between mb-1">
           <span className="text-xs font-medium text-text-secondary uppercase tracking-wider">
