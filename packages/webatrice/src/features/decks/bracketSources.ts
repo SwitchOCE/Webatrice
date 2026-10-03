@@ -4,8 +4,9 @@ import type { DeckCard } from './types';
  * Third-party data behind the bracket assessment, behind one adapter:
  *   • Scryfall — the Game Changers list (`is:gamechanger`) and oracle text
  *     for every deck card (`/cards/collection`);
- *   • Commander Spellbook — `POST /find-my-combos/` with the deck's card
- *     names and quantities (nothing else about the deck is sent).
+ *   • Commander Spellbook — `POST /find-my-combos/` with the names and
+ *     quantities of the main deck and its commanders (nothing else about
+ *     the deck is sent, and never the sideboard).
  *
  * Every call has a timeout and returns a `SourceResult`, so an outage,
  * an HTTP error or a malformed body is reported as such instead of
@@ -262,20 +263,31 @@ export interface SpellbookCombo {
 
 /**
  * Every Spellbook combo fully present in the deck. Sends only card names
- * and quantities, merged across main and sideboard (Spellbook ignores
- * zones for detection).
+ * and quantities, in the two lists Spellbook's `DeckSerializer` accepts:
+ * `commanders` for the designated commanders and `main` for the rest of
+ * the main deck. Spellbook has no sideboard list (its own text parser
+ * drops `Sideboard` sections), so sideboard cards are left out rather
+ * than counted as part of the deck.
  */
 export async function fetchSpellbookCombos(cards: DeckCard[]): Promise<SourceResult<SpellbookCombo[]>> {
-  const merged = new Map<string, number>();
+  const main = new Map<string, number>();
+  const commanders = new Map<string, number>();
   for (const c of cards) {
-    merged.set(c.name, (merged.get(c.name) ?? 0) + c.quantity);
+    if (c.category !== 'main') {
+      continue;
+    }
+    const list = c.isCommander ? commanders : main;
+    list.set(c.name, (list.get(c.name) ?? 0) + c.quantity);
   }
-  const main = Array.from(merged, ([card, quantity]) => ({ card, quantity }));
+  if (main.size === 0 && commanders.size === 0) {
+    return { status: 'ok', data: [] };
+  }
+  const toRequest = (list: Map<string, number>) => Array.from(list, ([card, quantity]) => ({ card, quantity }));
   try {
     const body = await fetchJson(SPELLBOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ main }),
+      body: JSON.stringify({ main: toRequest(main), commanders: toRequest(commanders) }),
     });
     if (!isRecord(body) || !isRecord(body.results)) {
       return { status: 'unavailable', failure: MALFORMED };
