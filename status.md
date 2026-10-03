@@ -3,3 +3,4 @@
 - 17:08Z sockatrice failure callback + datatrice state pushed; master image built → webatrice UI (share dialog, publish toggle, share links manager, shared-deck route, public decks route, ?share= link)
 - 17:25Z webatrice UI pushed (share dialog, publish toggle, share links, /decks/shared, /decks/public/:user, ?share= capture, user-menu entry) → component/hook specs, integration, e2e on master image
 - 17:38Z unit+integration specs pushed → full gate, then webatrice e2e (3.0 image) + share e2e (master image)
+- 18:07Z full gate done, e2e 3.0 + master run, PR notes written → final report
