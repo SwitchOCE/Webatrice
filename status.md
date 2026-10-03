@@ -3,3 +3,4 @@
 - ACK M1: squash skipped, deferred to wR3 restack; will note in Review response
 - - ACK M1: squash skipped, deferred to wR3 restack; will note in Review response
 - 21:38Z KnownHosts listbox committed+pushed (eac5fd2) → useGridRows tab-stop re-home
+- 21:39Z useGridRows re-home pushed → VirtualList style into renderRow
