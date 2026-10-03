@@ -592,11 +592,11 @@ function deckArtUrl(s: DeckSummary | undefined): string | null {
 // Bracket tone palette — same tokens as the DeckBreakdown + GameLobby
 // badges so a B3 chip reads the same everywhere.
 const BRACKET_TONE: Record<number, string> = {
-  1: 'text-emerald-300 bg-emerald-500/15 border-emerald-500/40',
-  2: 'text-emerald-300 bg-emerald-500/15 border-emerald-500/40',
-  3: 'text-yellow-300 bg-yellow-500/15 border-yellow-500/40',
-  4: 'text-red-300 bg-red-500/15 border-red-500/40',
-  5: 'text-red-300 bg-red-500/15 border-red-500/40',
+  1: 'text-success bg-emerald-500/15 border-emerald-500/40',
+  2: 'text-success bg-emerald-500/15 border-emerald-500/40',
+  3: 'text-warning bg-yellow-500/15 border-yellow-500/40',
+  4: 'text-danger bg-red-500/15 border-red-500/40',
+  5: 'text-danger bg-red-500/15 border-red-500/40',
 };
 
 function BracketBadge({ level }: { level: number }) {
@@ -646,7 +646,7 @@ function DeckPriceBadge({
       : 'TCGplayer USD total';
   return (
     <span
-      className="text-xs tabular-nums text-emerald-300 font-medium"
+      className="text-xs tabular-nums text-success font-medium"
       title={title}
     >
       ${price.usd.toFixed(2)}{suffix}
@@ -783,7 +783,7 @@ function DeckRowCard({ deck, summary, onOpen, onDelete }: DeckRowProps) {
           }}
           className={[
             'p-2 rounded-md bg-bg-surface/80 backdrop-blur-sm border',
-            'border-border-subtle text-text-muted hover:text-red-400',
+            'border-border-subtle text-text-muted hover:text-danger',
             'hover:bg-red-500/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all',
           ].join(' ')}
           title="Delete deck"
@@ -874,7 +874,7 @@ function DeckRowCompact({ deck, summary, onOpen, onDelete }: DeckRowProps) {
         type="button"
         onClick={onDelete}
         className={[
-          'mr-2 p-2 rounded-md text-text-muted hover:text-red-400 hover:bg-red-500/10',
+          'mr-2 p-2 rounded-md text-text-muted hover:text-danger hover:bg-red-500/10',
           'opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all shrink-0',
         ].join(' ')}
         title="Delete deck"
@@ -1231,7 +1231,7 @@ function ImportDeckModal({
         </p>
 
         {error && (
-          <div className="mt-4 flex items-start gap-2 text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">
+          <div className="mt-4 flex items-start gap-2 text-sm text-danger bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">
             <CircleAlert size={14} className="shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
@@ -1325,11 +1325,11 @@ function ImportDeckModal({
         {phase === 'review' && (
           <div className="mt-4 flex-1 min-h-0 flex flex-col">
             <div className="flex items-center gap-3 text-sm flex-wrap">
-              <span className="inline-flex items-center gap-1 text-emerald-300">
+              <span className="inline-flex items-center gap-1 text-success">
                 <CheckCircle2 size={14} /> {matchedCount} matched
               </span>
               {missingCount > 0 && (
-                <span className="inline-flex items-center gap-1 text-yellow-300">
+                <span className="inline-flex items-center gap-1 text-warning">
                   <CircleAlert size={14} /> {missingCount} unknown (imported with warning)
                 </span>
               )}
@@ -1354,7 +1354,7 @@ function ImportDeckModal({
                     <span
                       className={[
                         'flex-1 truncate',
-                        r.lookup.found ? 'text-text-primary' : 'text-yellow-200',
+                        r.lookup.found ? 'text-text-primary' : 'text-warning',
                       ].join(' ')}
                     >
                       {r.entry.name}
@@ -1363,7 +1363,7 @@ function ImportDeckModal({
                       {r.entry.category}
                     </span>
                     {!r.lookup.found && (
-                      <span className="text-xs text-yellow-400">unknown</span>
+                      <span className="text-xs text-warning">unknown</span>
                     )}
                   </li>
                 ))}
@@ -1717,7 +1717,7 @@ function FileSummary({
         {parts.length > 0 && <> · {parts.join(' · ')}</>}
       </div>
       {parsed.meta.priceUsd != null && (
-        <div className="text-xs text-emerald-300 mt-1 tabular-nums font-medium">
+        <div className="text-xs text-success mt-1 tabular-nums font-medium">
           ${parsed.meta.priceUsd.toFixed(2)} cached from source
         </div>
       )}

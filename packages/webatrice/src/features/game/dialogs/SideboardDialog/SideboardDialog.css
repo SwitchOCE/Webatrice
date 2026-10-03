@@ -12,10 +12,10 @@
 
 .sideboard-dialog__locked-note {
   padding: 6px 10px;
-  background: rgba(255, 235, 140, 0.15);
-  border: 1px solid rgba(255, 235, 140, 0.4);
+  background: rgb(var(--status-warning) / 0.12);
+  border: 1px solid rgb(var(--status-warning) / 0.4);
   border-radius: 3px;
-  color: #c8d4ef;
+  color: rgb(var(--text-secondary));
   font-size: 12px;
 }
 
@@ -37,7 +37,7 @@
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: #8597bb;
+  color: rgb(var(--text-muted));
 }
 
 .sideboard-dialog__list {
@@ -45,9 +45,9 @@
   margin: 0;
   padding: 0;
   max-height: 400px;
-  border: 1px solid #233a68;
+  border: 1px solid rgb(var(--border-subtle));
   border-radius: 3px;
-  background: #0a1225;
+  background: rgb(var(--bg-base));
 }
 
 .sideboard-dialog__row {
@@ -55,7 +55,7 @@
   align-items: center;
   gap: 8px;
   padding: 4px 8px;
-  border-bottom: 1px solid #17223d;
+  border-bottom: 1px solid rgb(var(--bg-elevated));
 }
 
 .sideboard-dialog__row:last-child {
@@ -64,13 +64,13 @@
 
 .sideboard-dialog__name {
   flex: 1;
-  color: #c8d4ef;
+  color: rgb(var(--text-secondary));
   font-size: 13px;
 }
 
 .sideboard-dialog__empty {
   padding: 12px 8px;
-  color: #5a6a8a;
+  color: rgb(var(--text-muted));
   font-style: italic;
   text-align: center;
 }

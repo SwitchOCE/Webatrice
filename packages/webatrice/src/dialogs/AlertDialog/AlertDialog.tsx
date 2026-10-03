@@ -18,7 +18,7 @@ const classes = {
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   [`&.${classes.root}`]: {
     '& .dialog-title__wrapper': {
-      borderColor: theme.palette.grey[300],
+      borderColor: theme.palette.divider,
     },
   },
 }));

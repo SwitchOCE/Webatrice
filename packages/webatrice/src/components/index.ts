@@ -1,3 +1,4 @@
+export { default as AppThemeProvider } from './AppThemeProvider/AppThemeProvider';
 export { default as Card } from './Card/Card';
 export { default as CardDetails } from './CardDetails/CardDetails';
 export { default as CardImage } from './CardImage/CardImage';

@@ -26,9 +26,9 @@ import { formatElapsed, useGameLog } from './useGameLog';
 // (card names / numbers) override with their own accent — matching
 // Cockatrice's inline highlighting.
 const TONE_CLASS: Record<LogTone, string> = {
-  turn: 'text-emerald-400 font-semibold',
-  phase: 'text-sky-400',
-  system: 'text-rose-400 italic',
+  turn: 'text-success font-semibold',
+  phase: 'text-sky-400 light:text-sky-700',
+  system: 'text-rose-400 light:text-rose-700 italic',
   action: 'text-text-primary/85',
 };
 
@@ -55,7 +55,7 @@ const SEGMENT_CLASS: Record<LogSegment['kind'], string> = {
   // Numbers: cyan, tabular. Cockatrice desktop highlights every
   // numeric literal (rolls, deltas, PT, counts) in bold blue —
   // makes counter deltas instantly scannable.
-  number: 'font-semibold text-cyan-300 tabular-nums',
+  number: 'font-semibold text-cyan-300 light:text-cyan-700 tabular-nums',
 };
 
 /**

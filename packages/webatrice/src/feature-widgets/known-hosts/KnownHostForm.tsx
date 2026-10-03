@@ -103,7 +103,7 @@ const KnownHostForm = ({ host, onRemove, onSubmit }: KnownHostFormProps) => {
               className={[
                 'px-3 py-1.5 rounded-md text-sm font-medium transition-colors',
                 confirmDelete
-                  ? 'bg-red-500/15 text-red-300 border border-red-500/40 hover:bg-red-500/25'
+                  ? 'bg-red-500/15 text-danger border border-red-500/40 hover:bg-red-500/25'
                   : 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated',
               ].join(' ')}
             >

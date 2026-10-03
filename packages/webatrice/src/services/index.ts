@@ -5,3 +5,4 @@ export * from './PublicServersService';
 export * from './replay';
 export * from './notifications';
 export * from './sound';
+export * from './theme';
