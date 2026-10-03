@@ -1,0 +1,1 @@
+- 22:25Z started, read brief+aud2 → characterization specs for cardCatalog/scryfall
