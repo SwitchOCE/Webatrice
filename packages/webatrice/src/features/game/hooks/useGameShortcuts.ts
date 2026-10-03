@@ -1,18 +1,17 @@
 import { ZoneName } from '@cockatrice/sockatrice';
 import { ShortcutScope, useShortcut, useShortcutGroup } from '@app/feature-widgets/shortcuts';
 import { useWebClient } from '@cockatrice/datatrice/react';
-import { games } from '@cockatrice/datatrice';
-import { useAppDispatch } from '@app/store';
 import { CardAttribute } from '@cockatrice/sockatrice/generated';
 import {
   SEAT_SHORTCUT_ACTIONS,
   type SeatShortcutActionId,
   type SeatShortcutRegistry,
 } from '../components/ui/SeatShortcutsContext';
+import { nextPhase, previousPhase } from '../components/PhaseTrack/phaseActions';
+import { useNextPhaseAction } from '../components/PhaseTrack/useNextPhaseAction';
+import { usePhaseBar } from '../components/PhaseTrack/usePhaseBar';
 import { useCurrentGame } from './useCurrentGame';
 import { useGameAffordances } from './useGameAffordances';
-
-const PHASE_COUNT = 11;
 
 interface UseGameShortcutsArgs {
   gameId: number | undefined;
@@ -51,7 +50,6 @@ export function useGameShortcuts({
   onCloseRecentZoneView,
 }: UseGameShortcutsArgs): void {
   const webClient = useWebClient();
-  const dispatch = useAppDispatch();
   const { game } = useCurrentGame(gameId);
   const {
     hasLiveGame,
@@ -62,6 +60,8 @@ export function useGameShortcuts({
     canConcede,
   } = useGameAffordances(gameId);
   const inGame = hasLiveGame && isStarted;
+  const { handlePhaseClick } = usePhaseBar(gameId);
+  const nextPhaseAction = useNextPhaseAction(gameId);
 
   useShortcut(
     'game.untapAll',
@@ -127,24 +127,13 @@ export function useGameShortcuts({
     { scope: ShortcutScope.GAME, enabled: inGame },
   );
 
+  // handlePhaseClick sets the phase optimistically and rolls back if the server rejects it.
   useShortcut(
     'game.nextPhase',
     () => {
-      if (!canAdvancePhase || gameId == null || game == null) {
-        return;
+      if (game != null) {
+        handlePhaseClick(nextPhase(game.activePhase));
       }
-      const current = game.activePhase;
-      const next = current >= 0 ? (current + 1) % PHASE_COUNT : 0;
-      // Optimistic: flip the phase locally so the phase tracker
-      // highlights the new phase immediately, then fire the wire
-      // with `onError` to revert if the server rejects.
-      dispatch(games.Actions.activePhaseSet({ gameId, phase: next }));
-      webClient.request.game.setActivePhase(gameId, { phase: next }, {
-        onError: (code) => {
-          console.warn(`setActivePhase(next) rejected (${code}); rolling back to phase ${current}`);
-          dispatch(games.Actions.activePhaseSet({ gameId, phase: current }));
-        },
-      });
     },
     { scope: ShortcutScope.GAME, enabled: inGame },
   );
@@ -152,18 +141,22 @@ export function useGameShortcuts({
   useShortcut(
     'game.prevPhase',
     () => {
-      if (!canAdvancePhase || gameId == null || game == null) {
+      if (game != null) {
+        handlePhaseClick(previousPhase(game.activePhase));
+      }
+    },
+    { scope: ShortcutScope.GAME, enabled: inGame },
+  );
+
+  useShortcut('game.nextPhaseAction', nextPhaseAction.run, { scope: ShortcutScope.GAME, enabled: inGame });
+
+  useShortcut(
+    'game.reverseTurn',
+    () => {
+      if (!canPassTurn || gameId == null) {
         return;
       }
-      const current = game.activePhase;
-      const prev = current > 0 ? current - 1 : PHASE_COUNT - 1;
-      dispatch(games.Actions.activePhaseSet({ gameId, phase: prev }));
-      webClient.request.game.setActivePhase(gameId, { phase: prev }, {
-        onError: (code) => {
-          console.warn(`setActivePhase(prev) rejected (${code}); rolling back to phase ${current}`);
-          dispatch(games.Actions.activePhaseSet({ gameId, phase: current }));
-        },
-      });
+      webClient.request.game.reverseTurn(gameId);
     },
     { scope: ShortcutScope.GAME, enabled: inGame },
   );
