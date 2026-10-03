@@ -1,9 +1,13 @@
 import {
   dexieService,
+  resolvePrintingImageUrls,
+  sortBySetPreference,
   type Card,
+  type CardDataPreferences,
   type CardInSet,
   type RelatedCard,
 } from '@app/services';
+import { currentCardDataPreferences } from '@app/hooks';
 import { ScryfallImageSize } from '@cockatrice/datatrice';
 
 /**
@@ -145,11 +149,12 @@ export type LookupInput = string | LookupHint;
  * / Scryfall's exact endpoint).
  */
 export async function lookupCard(name: string): Promise<LookupResult> {
-  const [xmlHit, scryfallCached] = await Promise.all([
+  const [xmlHit, scryfallCached, preferences] = await Promise.all([
     getFromDexie(name),
     getFromScryfallCache(name),
+    readCardDataPreferences(),
   ]);
-  const xmlLookup = xmlHit ? dexieToLookup(xmlHit) : undefined;
+  const xmlLookup = xmlHit ? dexieToLookup(xmlHit, preferences) : undefined;
 
   let scryfallLookup = scryfallCached;
   if (!scryfallLookup) {
@@ -190,9 +195,26 @@ export async function lookupCard(name: string): Promise<LookupResult> {
  */
 const sessionCache = new Map<string, LookupResult>();
 
+/** Preferences the session cache was filled under; a Manage Sets save invalidates it. */
+let sessionCachePreferences: CardDataPreferences | undefined;
+
+async function readCardDataPreferences(): Promise<CardDataPreferences | undefined> {
+  try {
+    const preferences = await currentCardDataPreferences();
+    if (preferences !== sessionCachePreferences) {
+      sessionCache.clear();
+      sessionCachePreferences = preferences;
+    }
+    return preferences;
+  } catch {
+    return undefined;
+  }
+}
+
 export async function lookupCardsCached(names: string[]): Promise<Map<string, LookupResult>> {
   const out = new Map<string, LookupResult>();
   const missing: string[] = [];
+  await readCardDataPreferences();
   for (const name of names) {
     const cached = sessionCache.get(name);
     if (cached) {
@@ -236,9 +258,10 @@ export async function lookupCards(
 
   const uniqueNames = Array.from(uniqueHints.keys());
 
-  const [xmlHits, scryfallCached] = await Promise.all([
+  const [xmlHits, scryfallCached, preferences] = await Promise.all([
     bulkGetFromDexie(uniqueNames),
     bulkGetFromScryfallCache(uniqueNames),
+    readCardDataPreferences(),
   ]);
 
   // Names we still need to fetch from Scryfall. Any name without a
@@ -317,7 +340,7 @@ export async function lookupCards(
 
   for (let i = 0; i < uniqueNames.length; i++) {
     const key = uniqueNames[i];
-    const xmlLookup = xmlHits[i] ? dexieToLookup(xmlHits[i]!) : undefined;
+    const xmlLookup = xmlHits[i] ? dexieToLookup(xmlHits[i]!, preferences) : undefined;
     const scryfallLookup = scryfallLookups.get(key);
     out.set(key, mergeLookup(key, xmlLookup, scryfallLookup));
   }
@@ -404,13 +427,18 @@ async function bulkGetFromDexie(names: string[]): Promise<Array<Card | undefined
   }
 }
 
-function dexieToLookup(card: Card): LookupResult {
+function dexieToLookup(card: Card, preferences?: CardDataPreferences): LookupResult {
   const prop = card.prop?.value ?? {};
-  const printings: PrintingSummary[] = normalizeSets(card.set).map((s) => ({
+  // Printings follow the user's set priority (Manage Sets), so the first
+  // one — the default art wherever a printing isn't pinned — is theirs.
+  const sets = preferences
+    ? sortBySetPreference(normalizeSets(card.set), (s) => s.value, preferences.setPreferences)
+    : normalizeSets(card.set);
+  const printings: PrintingSummary[] = sets.map((s) => ({
     set: s.value || undefined,
     collectorNumber: s.num,
     scryfallId: s.uuid,
-    imageUri: pickImageUri(s),
+    imageUri: pickImageUri(card, s, preferences),
   }));
 
   // Cockatrice merges related + reverse-related into one flat list
@@ -538,9 +566,22 @@ async function bulkPutScryfallCache(results: LookupResult[]): Promise<void> {
   }
 }
 
-function pickImageUri(printing: CardInSet): string | undefined {
-  // Prefer the imported card DB's picurl (respects self-hosted mirrors);
-  // fall back to Scryfall CDN by UUID.
+function pickImageUri(
+  card: Card,
+  printing: CardInSet,
+  preferences: CardDataPreferences | undefined,
+): string | undefined {
+  // The printing's own picurl (self-hosted mirrors), then the user's picture
+  // URL templates; without preferences, fall back to Scryfall by UUID.
+  if (preferences) {
+    const [first] = resolvePrintingImageUrls(card, printing, {
+      templates: preferences.pictureUrlTemplates,
+      setLongNames: preferences.setLongNames,
+    });
+    if (first) {
+      return first;
+    }
+  }
   if (printing.picurl) {
     return printing.picurl;
   }
