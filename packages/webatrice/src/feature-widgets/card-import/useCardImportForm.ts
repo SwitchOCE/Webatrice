@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 
-import type { RebuildResult } from './CardDatabaseService';
+import { cardDatabaseService, type RebuildResult, type UnknownSetsAnswer } from './CardDatabaseService';
 import { localOracleImportService, IngestResult } from './LocalOracleImportService';
 import { Card, Set } from '@app/services';
 export interface CardImportForm {
+  /** Answer the new-sets question raised by the last save. */
+  answerUnknownSets: (answer: UnknownSetsAnswer) => Promise<void>;
   loading: boolean;
   activeStep: number;
   steps: { key: string; label: string }[];
@@ -85,6 +87,14 @@ export function useCardImportForm(): CardImportForm {
     importedSets,
     ingest,
     rebuild,
+    answerUnknownSets: async (answer) => {
+      try {
+        await cardDatabaseService.resolveUnknownSets(answer);
+        setRebuild((current) => (current ? { ...current, unknownSets: [] } : current));
+      } catch (e) {
+        setError((e as Error).message);
+      }
+    },
     error,
     handleBack,
     handleLocalFiles,

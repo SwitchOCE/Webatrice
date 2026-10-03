@@ -1,5 +1,6 @@
 .cardImportForm {
   width: 550px;
+  max-width: 100%;
 }
 
 .cardImportForm-content.done {

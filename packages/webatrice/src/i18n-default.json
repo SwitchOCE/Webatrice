@@ -367,6 +367,75 @@
     },
     "menuItem": "Report user"
   },
+  "CardDatabaseOverview": {
+    "summary": "{cards} cards, {sets} sets, {tokens} tokens, {formats} formats loaded.",
+    "empty": "No card database loaded yet. Import Oracle's cards.xml to get started.",
+    "sources": "Loaded files (in load order)",
+    "column": {
+      "file": "File",
+      "kind": "Kind",
+      "origin": "Source",
+      "contents": "Contents",
+      "imported": "Imported"
+    },
+    "kind": {
+      "main": "Card database",
+      "legacy": "Card database (earlier import)",
+      "tokens": "Tokens",
+      "spoiler": "Spoilers",
+      "custom": "Custom set",
+      "user-tokens": "Custom tokens"
+    },
+    "origin": {
+      "file": "Local file",
+      "url": "Downloaded",
+      "editor": "Token editor",
+      "migration": "Earlier import"
+    },
+    "contents": "{cards} cards, {sets} sets, {tokens} tokens",
+    "version": "version {version}",
+    "lastCheck": "Last checked for card updates: {date}",
+    "button": {
+      "reload": "Reload card database",
+      "addCustom": "Add custom sets/cards",
+      "remove": "Remove",
+      "updateTokens": "Update tokens",
+      "updateSpoilers": "Update spoilers",
+      "checkCards": "Check for card updates"
+    },
+    "newSets": {
+      "title": "New sets found",
+      "text": "{count, plural, one {# new set found} other {# new sets found}} in the card database. Set code(s): {codes}. Do you want to enable it/them?",
+      "yes": "Yes",
+      "yesAlways": "Yes, always enable",
+      "no": "No",
+      "view": "View sets"
+    },
+    "message": {
+      "reloaded": "Card database reloaded: {cards} cards, {sets} sets, {tokens} tokens.",
+      "allSetsEnabled": "All sets have been enabled. Use Manage sets to change which sets are used and their art priority.",
+      "noXml": "Pick one or more Cockatrice XML files.",
+      "spoilersUpToDate": "Spoilers already up to date.",
+      "spoilerSeasonEnded": "Spoiler season has ended.",
+      "spoilerSeasonEndedRemoved": "Spoiler season has ended; spoiler.xml was removed. Import a fresh cards.xml from Oracle.",
+      "cardUpdateAvailable": "A newer card database ({latest}) is available; yours is {installed}. Run Oracle in desktop Cockatrice, then import the new cards.xml.",
+      "cardsUpToDate": "Your card database is up to date ({version}).",
+      "offline": "Could not reach {url}. Check your connection; nothing was changed.",
+      "httpError": "{url} answered HTTP {status}; nothing was changed.",
+      "failed": "The update failed and nothing was changed: {error}"
+    }
+  },
+  "CardImportDialog": {
+    "title": "Card database",
+    "close": "Close",
+    "tab": {
+      "import": "Import cards",
+      "database": "Loaded data",
+      "sets": "Manage sets",
+      "tokens": "Custom tokens",
+      "sources": "Card sources"
+    }
+  },
   "CardImportForm": {
     "steps": {
       "importFiles": "Import files",
@@ -387,6 +456,100 @@
       "acceptedFiles": "Accepted: {files}",
       "skippedFiles": "Skipped (unrecognized name): {files}"
     }
+  },
+  "CardSourcesSettings": {
+    "title": "URL Download Priority",
+    "description": "Card art is tried from these URLs top to bottom for each printing, after the card database's own picture URL and before the Scryfall fallback.",
+    "label": {
+      "url": "URL:",
+      "list": "Picture URL templates",
+      "placeholders": "Available placeholders"
+    },
+    "button": {
+      "add": "Add New URL",
+      "edit": "Edit URL",
+      "remove": "Remove URL",
+      "up": "Move up",
+      "down": "Move down",
+      "reset": "Reset Download URLs"
+    },
+    "validation": {
+      "url": "Enter an http(s) URL"
+    },
+    "message": {
+      "reset": "Download URLs have been reset."
+    }
+  },
+  "EditTokens": {
+    "list": "Custom tokens",
+    "empty": "No custom tokens yet.",
+    "data": "Token data",
+    "label": {
+      "newName": "Please enter the name of the token:",
+      "name": "Name",
+      "color": "Color",
+      "pt": "P/T",
+      "annotation": "Annotation"
+    },
+    "color": {
+      "w": "white",
+      "u": "blue",
+      "b": "black",
+      "r": "red",
+      "g": "green",
+      "m": "multicolor",
+      "c": "colorless"
+    },
+    "button": {
+      "add": "Add token",
+      "remove": "Remove token",
+      "apply": "Save token",
+      "export": "Export TK.xml"
+    },
+    "validation": {
+      "tooLong": "At most {max} characters",
+      "conflict": "The chosen name conflicts with an existing card or token. Make sure to enable the 'Token' set in the \"Manage sets\" dialog to display them correctly."
+    },
+    "selectHint": "Select a token to edit it."
+  },
+  "ManageSets": {
+    "search": "Search by set name, code, type, or release date",
+    "column": {
+      "enabled": "Enabled",
+      "code": "Set code",
+      "longName": "Long name",
+      "setType": "Set type",
+      "releaseDate": "Release date"
+    },
+    "move": {
+      "top": "Move selected set to the top",
+      "up": "Move selected set up",
+      "down": "Move selected set down",
+      "bottom": "Move selected set to the bottom"
+    },
+    "button": {
+      "defaultOrder": "Default order",
+      "enableAll": "Enable all sets",
+      "disableAll": "Disable all sets",
+      "enableSelected": "Enable selected set(s)",
+      "disableSelected": "Disable selected set(s)",
+      "useSorting": "Use the current sorting as the set priority instead",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "tooltip": {
+      "defaultOrder": "Restore original art priority order",
+      "useSorting": "Sorts the set priority using the same column"
+    },
+    "sortNote": "Sorting by column allows you to find a set while not changing set priority. To enable ordering again, click the column header until this message disappears.",
+    "hints": {
+      "title": "Hints",
+      "selection": "Ctrl-click or Shift-click to select several sets.",
+      "deckEditor": "Deck Editor: printings from enabled sets are offered first.",
+      "cardArt": "Card Art: image priority is decided in the following order: first the printing a card was chosen with, then the enabled sets in this list (top to bottom), then disabled sets."
+    },
+    "empty": "No sets loaded. Import a card database first.",
+    "saved": "Set preferences saved."
   },
   "KnownHostDialog": {
     "title": "{mode, select, edit {Edit} other {Add}} Known Host",
