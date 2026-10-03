@@ -81,6 +81,7 @@ export function createMockWebClient() {
         revealCards: vi.fn(),
         changeZoneProperties: vi.fn(),
         deckSelect: vi.fn(),
+        setPlaymat: vi.fn(),
         setSideboardPlan: vi.fn(),
         setSideboardLock: vi.fn(),
         mulligan: vi.fn(),
