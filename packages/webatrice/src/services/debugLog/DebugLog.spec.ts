@@ -26,20 +26,37 @@ describe('DebugLog ring buffer', () => {
     expect(log.getEntries()).toEqual([]);
   });
 
-  test('notifies subscribers and hands out a stable snapshot between changes', () => {
+  test('notifies subscribers and hands out a stable snapshot between changes', async () => {
     const log = new DebugLog();
     const listener = vi.fn();
     const unsubscribe = log.subscribe(listener);
 
     log.append('info', 'one');
+    await Promise.resolve();
     const snapshot = log.getEntries();
     expect(log.getEntries()).toBe(snapshot);
     expect(listener).toHaveBeenCalledTimes(1);
 
     unsubscribe();
     log.append('info', 'two');
+    await Promise.resolve();
     expect(listener).toHaveBeenCalledTimes(1);
     expect(log.getEntries()).not.toBe(snapshot);
+  });
+
+  test('notifies after the logging call returns, once per burst', async () => {
+    const log = new DebugLog();
+    const listener = vi.fn();
+    log.subscribe(listener);
+
+    log.append('warn', 'one');
+    log.append('warn', 'two');
+    log.clear();
+    expect(listener).not.toHaveBeenCalled();
+
+    await Promise.resolve();
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(log.getEntries()).toEqual([]);
   });
 });
 
@@ -83,6 +100,12 @@ describe('formatLogArguments', () => {
 });
 
 describe('installConsoleCapture', () => {
+  let uninstall: () => void = () => {};
+
+  afterEach(() => {
+    uninstall();
+  });
+
   const makeConsole = () => ({
     debug: vi.fn(), log: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(),
   }) as unknown as Console;
@@ -91,7 +114,7 @@ describe('installConsoleCapture', () => {
     const log = new DebugLog();
     const target = makeConsole();
     const originalWarn = target.warn;
-    const uninstall = installConsoleCapture(log, target);
+    uninstall = installConsoleCapture(log, target);
 
     const payload = { a: 1 };
     target.warn('[WebSocketService] send() skipped', payload);
@@ -112,7 +135,7 @@ describe('installConsoleCapture', () => {
   test('installs once', () => {
     const log = new DebugLog();
     const target = makeConsole();
-    const uninstall = installConsoleCapture(log, target);
+    uninstall = installConsoleCapture(log, target);
     const wrapped = target.log;
 
     expect(installConsoleCapture(log, target)).toBe(uninstall);
@@ -120,12 +143,11 @@ describe('installConsoleCapture', () => {
 
     target.log('once');
     expect(log.getEntries()).toHaveLength(1);
-    uninstall();
   });
 
   test('records uncaught errors and unhandled rejections', () => {
     const log = new DebugLog();
-    const uninstall = installConsoleCapture(log, makeConsole());
+    uninstall = installConsoleCapture(log, makeConsole());
 
     window.dispatchEvent(new ErrorEvent('error', { message: 'Script error.' }));
     const rejection = new Event('unhandledrejection') as PromiseRejectionEvent;
@@ -136,6 +158,5 @@ describe('installConsoleCapture', () => {
       'Uncaught Script error.',
       'Unhandled rejection: nope',
     ]);
-    uninstall();
   });
 });

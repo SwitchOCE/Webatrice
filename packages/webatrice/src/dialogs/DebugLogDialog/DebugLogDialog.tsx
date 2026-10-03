@@ -22,8 +22,15 @@ export interface DebugLogDialogProps {
  * Desktop's "View debug log" (dlg_view_log.cpp): the client log as read-only text, following
  * new lines live, with "Copy to clipboard" and the persisted "Clear log when closing" choice.
  * The web log can also be cleared on the spot, since there is no log file to fall back on.
+ *
+ * Hosts keep this mounted while closed, so it renders nothing and holds no log subscription
+ * until it is opened.
  */
 export default function DebugLogDialog({ isOpen, onClose }: DebugLogDialogProps) {
+  return isOpen ? <OpenDebugLogDialog onClose={onClose} /> : null;
+}
+
+function OpenDebugLogDialog({ onClose }: Pick<DebugLogDialogProps, 'onClose'>) {
   const { t } = useTranslation();
   const entries = useSyncExternalStore(debugLog.subscribe, debugLog.getEntries);
   const clearOnClose = usePreference('clearDebugLogOnClose');
@@ -39,11 +46,7 @@ export default function DebugLogDialog({ isOpen, onClose }: DebugLogDialogProps)
     if (area) {
       area.scrollTop = area.scrollHeight;
     }
-  }, [text, isOpen]);
-
-  useEffect(() => {
-    setCopied(null);
-  }, [isOpen]);
+  }, [text]);
 
   const close = () => {
     if (clearOnClose) {
@@ -62,7 +65,7 @@ export default function DebugLogDialog({ isOpen, onClose }: DebugLogDialogProps)
   };
 
   return (
-    <DialogShell isOpen={isOpen} handleClose={close} title={t('DebugLogDialog.title')} maxWidth="max-w-3xl">
+    <DialogShell isOpen handleClose={close} title={t('DebugLogDialog.title')} maxWidth="max-w-3xl">
       <div className="flex flex-col gap-3">
         <textarea
           ref={textRef}
