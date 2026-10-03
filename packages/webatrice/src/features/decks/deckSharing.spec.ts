@@ -50,6 +50,13 @@ describe('share links', () => {
     expect(isSameShareServer(link, 'other.host')).toBe(false);
     expect(isSameShareServer(link, undefined)).toBe(false);
   });
+
+  it('matches a desktop link against a host with a WebSocket path, scheme or port', () => {
+    expect(isSameShareServer(link, 'server.cockatrice.us/servatrice')).toBe(true);
+    expect(isSameShareServer(link, 'wss://server.cockatrice.us:4748/servatrice')).toBe(true);
+    expect(isSameShareServer({ ...link, hostname: 'server.cockatrice.us/servatrice' }, 'server.cockatrice.us')).toBe(true);
+    expect(isSameShareServer(link, 'cockatrice.us')).toBe(false);
+  });
 });
 
 describe('formatShareExpiry', () => {

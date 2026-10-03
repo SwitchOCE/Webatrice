@@ -1,9 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+
+import { server } from '@cockatrice/datatrice';
 
 import { AuthGuard } from '@app/components';
+import { AlertDialog } from '@app/dialogs';
 import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 import { Layout } from '@app/feature-wrappers/layout';
+import { useAppSelector } from '@app/store';
 import { isCommanderFormat, isMtgFormat } from '@app/types';
 
 import { DeckBannerPicker } from './components/editor/DeckBannerPicker';
@@ -15,14 +20,18 @@ import { DeckMainPane } from './components/editor/DeckMainPane';
 import { DeckSidebar } from './components/editor/DeckSidebar';
 import { DeckTagsEditor } from './components/editor/DeckTagsEditor';
 import { groupDeckCards } from './deckGrouping';
+import { serializeDeckForSave } from './deckPersistence';
+import { deckColorIdentity } from './deckSharing';
 import { readDeckTags } from './deckTags';
 import { CardDetailDialog } from './dialogs/CardDetailDialog';
 import { ExportDeckDialog } from './dialogs/ExportDeckDialog';
 import { PrintingPickerDialog, type PrintingRequest } from './dialogs/PrintingPickerDialog';
+import { ShareDeckDialog } from './dialogs/ShareDeckDialog';
 import { useDeckEditor } from './hooks/useDeckEditor';
 import { useDeckImagePreload } from './hooks/useDeckImagePreload';
 import { useDeckLegality } from './hooks/useDeckLegality';
 import { useDeckPricing } from './hooks/useDeckPricing';
+import { useDeckShareCreate, useDeckSharingSupported } from './hooks/useDeckSharing';
 import type { DeckCard } from './types';
 
 /**
@@ -54,6 +63,13 @@ const DeckEditor = () => {
   // row by (name, category) every render. MTG decks only.
   const [detailSnapshot, setDetailSnapshot] = useState<DeckCard | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
+  const { t } = useTranslation();
+  const isConnected = useAppSelector(server.Selectors.getIsConnected);
+  const sharingSupported = useDeckSharingSupported();
+  const share = useDeckShareCreate();
+  const [shareOpen, setShareOpen] = useState(false);
+  // Desktop `AbstractTabDeckEditor::actShareDeck` refuses before opening the dialog.
+  const [shareRefusal, setShareRefusal] = useState<string | null>(null);
 
   const pricing = useDeckPricing(editor.deck, editor.setPriceCache);
   const legality = useDeckLegality(editor.deck);
@@ -79,6 +95,29 @@ const DeckEditor = () => {
   // cache, so hovering a row feels instant.
   const preload = useDeckImagePreload(deckId, editor.deck, editor.loading);
 
+  const startShare = () => {
+    if (!isConnected) {
+      setShareRefusal(t('DeckSharing.notConnected'));
+    } else if (!editor.deck?.cards.length) {
+      setShareRefusal(t('DeckSharing.emptyDeck'));
+    } else {
+      share.reset();
+      setShareOpen(true);
+    }
+  };
+
+  // Desktop `DlgShareDeck` shares the deck as open in the editor, inline,
+  // with the color identity the server can't work out itself.
+  const createShare = (name: string) => {
+    if (!editor.deck || !isConnected) {
+      return;
+    }
+    share.create({
+      name,
+      items: [{ deckList: serializeDeckForSave(editor.deck), colorIdentity: deckColorIdentity(editor.deck.cards) }],
+    });
+  };
+
   if (editor.loading) {
     return <DeckEditorSkeleton loaded={0} total={0} />;
   }
@@ -102,6 +141,7 @@ const DeckEditor = () => {
           onNameChange={editor.setName}
           onFormatChange={editor.setFormat}
           onExport={() => setExportOpen(true)}
+          onShare={sharingSupported ? startShare : undefined}
           previewCard={previewCard}
           prices={pricing.prices}
           pricesLoading={pricing.loading}
@@ -193,6 +233,22 @@ const DeckEditor = () => {
         open={exportOpen}
         onClose={() => setExportOpen(false)}
         deck={editor.deck}
+      />
+
+      <ShareDeckDialog
+        open={shareOpen}
+        defaultName={t('DeckSharing.defaultDeckName')}
+        state={share.state}
+        onClose={() => setShareOpen(false)}
+        onCreate={createShare}
+      />
+
+      <AlertDialog
+        isOpen={shareRefusal != null}
+        severity="info"
+        title={t('DeckSharing.title')}
+        message={shareRefusal ?? ''}
+        onDismiss={() => setShareRefusal(null)}
       />
     </Layout>
   );

@@ -30,7 +30,7 @@ export type {
   ServerStateReports,
   TestConnectionStatus,
 } from './server/server.interfaces';
-export type { CommandFailedPayload } from './server/server.interfaces';
+export type { CommandFailedPayload, SessionCommandFailedPayload } from './server/server.interfaces';
 export type { JoinRoomFailedPayload, RoomCommandFailedPayload } from './rooms/rooms.interfaces';
 export type { ReportStatusCounts } from './server/server.reports';
 // Const-and-type pairs are emitted type-only inside tsup's namespace bundles, so

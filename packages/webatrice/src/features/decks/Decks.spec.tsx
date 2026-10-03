@@ -1,9 +1,16 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { create } from '@bufbuild/protobuf';
 import { server } from '@cockatrice/datatrice';
-import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
+import {
+  Response_DeckListSchema,
+  Response_ResponseCode,
+  ServerInfo_DeckStorage_FileSchema,
+  ServerInfo_DeckStorage_FolderSchema,
+  ServerInfo_DeckStorage_TreeItemSchema,
+} from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
-import { renderWithProviders, connectedState, disconnectedState } from '../../__test-utils__';
+import { renderWithProviders, connected31State, connectedState, disconnectedState } from '../../__test-utils__';
 import Decks from './Decks';
 
 // Piece 2 coverage: smoke-test the new MyDecks list. Full RTL
@@ -51,3 +58,85 @@ describe('Decks (MyDecks page)', () => {
     expect(screen.getByRole('heading', { name: 'My Decks' })).toBeInTheDocument();
   });
 });
+
+describe('Decks sharing (Servatrice 3.1)', () => {
+  const storage = create(Response_DeckListSchema, {
+    root: create(ServerInfo_DeckStorage_FolderSchema, {
+      items: [
+        create(ServerInfo_DeckStorage_TreeItemSchema, {
+          id: 3, name: 'Burn', file: create(ServerInfo_DeckStorage_FileSchema, { creationTime: 1, isPublic: true }),
+        }),
+        create(ServerInfo_DeckStorage_TreeItemSchema, {
+          name: 'Cube',
+          folder: create(ServerInfo_DeckStorage_FolderSchema, {
+            items: [
+              create(ServerInfo_DeckStorage_TreeItemSchema, { id: 4, name: 'Elves', file: create(ServerInfo_DeckStorage_FileSchema, {}) }),
+            ],
+          }),
+        }),
+      ],
+    }),
+  });
+
+  function renderLoaded(preloadedState = connected31State) {
+    const rendered = renderWithProviders(<Decks />, { preloadedState });
+    act(() => {
+      rendered.store.dispatch(server.Actions.backendDecks({ deckList: storage }));
+    });
+    return rendered;
+  }
+
+  it('shares a stored deck by id under desktop\'s default name', async () => {
+    const { webClient } = renderLoaded();
+    fireEvent.click(screen.getByRole('button', { name: 'DeckSharing.shareDeckNamed' }));
+    expect(screen.getByRole('textbox', { name: 'DeckSharing.nameLabel' })).toHaveValue('DeckSharing.defaultDecksName');
+    fireEvent.click(screen.getByRole('button', { name: /DeckSharing.create/ }));
+    await waitFor(() => expect(webClient.request.session.deckShareCreate).toHaveBeenCalledWith({
+      name: 'DeckSharing.defaultDecksName',
+      items: [{ deckId: 3 }],
+    }));
+  });
+
+  it('shares a folder\'s decks by path', async () => {
+    const { webClient } = renderLoaded();
+    fireEvent.click(screen.getByRole('button', { name: 'DeckSharing.shareFolderNamed' }));
+    fireEvent.click(screen.getByRole('button', { name: /DeckSharing.create/ }));
+    await waitFor(() => expect(webClient.request.session.deckShareCreate).toHaveBeenCalledWith({
+      name: 'DeckSharing.defaultDecksName',
+      folderPath: 'Cube',
+    }));
+  });
+
+  it('publishes and unpublishes, and reports a rejected change', () => {
+    const { webClient, store } = renderLoaded();
+    const [folderToggle, deckToggle] = screen.getAllByRole('button', { name: 'DeckSharing.publishNamed' });
+    fireEvent.click(deckToggle);
+    fireEvent.click(folderToggle);
+    expect(vi.mocked(webClient.request.session.deckSetVisibility).mock.calls).toEqual([
+      [{ deckId: 3, isPublic: false }],
+      [{ folderPath: 'Cube', isPublic: true }],
+    ]);
+    expect(screen.getByText('DeckSharing.public')).toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(server.Actions.sessionCommandFailed({ command: 'deckSetVisibility', target: 'Cube', responseCode: 11 }));
+    });
+    expect(screen.getByText('DeckSharing.visibilityFailed')).toBeInTheDocument();
+  });
+
+  it('lists the user\'s share links on request', () => {
+    const { webClient } = renderLoaded();
+    fireEvent.click(screen.getByRole('button', { name: /DeckShareLinks.open/ }));
+    expect(webClient.request.session.deckShareListMine).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('dialog', { name: 'DeckShareLinks.title' })).toBeInTheDocument();
+  });
+
+  it('offers none of it on a 3.0 server', () => {
+    renderLoaded(connectedState);
+    expect(screen.queryByRole('button', { name: 'DeckSharing.shareDeckNamed' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'DeckSharing.publishNamed' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /DeckShareLinks.open/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /OpenShareLink.open/ })).toBeNull();
+  });
+});
+
