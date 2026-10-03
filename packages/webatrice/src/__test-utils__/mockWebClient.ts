@@ -2,6 +2,7 @@ import type { WebClient } from '@cockatrice/sockatrice';
 
 export function createMockWebClient() {
   return {
+    connectTarget: { host: 'localhost', port: '4748' },
     replayGameEventContainer: vi.fn(),
     loadReplayGame: vi.fn(),
     unloadReplayGame: vi.fn(),

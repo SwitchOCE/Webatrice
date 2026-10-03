@@ -30,6 +30,7 @@ import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat } from '@app/types';
 import { useCurrentGame } from './hooks/useCurrentGame';
 import ChatLog from './components/ChatLog/ChatLog';
 import { GameIdProvider } from './components/ui/GameIdContext';
+import GameInviteControls from './components/GameInviteControls/GameInviteControls';
 import LobbyDeckView from './components/lobby/LobbyDeckView';
 import { useLobbyDeckView } from './components/lobby/useLobbyDeckView';
 
@@ -388,6 +389,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                 {roomFormatLabel && (
                   <p className="text-sm text-text-muted mt-1">{roomFormatLabel}</p>
                 )}
+                <GameInviteControls gameId={gameId} className="justify-center mt-3" />
               </div>
 
               {/* Players */}
