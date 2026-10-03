@@ -11,6 +11,7 @@ import {
   normalizeSequence,
 } from './shortcutSequence';
 import { ShortcutContext, ShortcutContextValue } from './shortcutContext';
+import { isModalOpen, isTabNavigationKey, keepsTabNavigation } from './focusGuards';
 import { useShortcutsHydration } from './useShortcutsHydration';
 import { useShortcutsPersistence } from './useShortcutsPersistence';
 
@@ -123,7 +124,15 @@ export function ShortcutProvider({ children }: ShortcutProviderProps) {
         return;
       }
 
-      const activeRoute = computeRouteScope(pathnameRef.current);
+      // Tab / Shift+Tab move focus inside dialogs and menus and between
+      // controls; only on the board do they keep desktop's phase bindings.
+      if (isTabNavigationKey(event) && keepsTabNavigation(event.target)) {
+        return;
+      }
+
+      // While a modal is open, route shortcuts stand down: only GLOBAL
+      // actions fire, and Escape is left to the modal.
+      const activeRoute = isModalOpen() ? null : computeRouteScope(pathnameRef.current);
 
       const candidates: ShortcutRegistration[] = [];
       for (const list of registry.current.values()) {
