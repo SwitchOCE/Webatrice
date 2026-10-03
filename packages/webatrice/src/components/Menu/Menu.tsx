@@ -23,7 +23,9 @@ export interface MenuRect {
   bottom: number;
 }
 
-/** Where a menu opens: a point in viewport pixels (a pointer press), or beside a control. */
+/** Where a menu opens: a point in viewport pixels (a pointer press), or beside a control. A point
+ *  is a zero-size control: the menu opens below and to the right of it, flipping to the other side
+ *  where that has no room, as QMenu::popup does. */
 export type MenuAnchor =
   | {
     x: number;
@@ -91,9 +93,9 @@ function menuItems(menu: HTMLElement): HTMLElement[] {
 }
 
 /**
- * Where a `width` × `height` menu goes for `anchor` in a `viewport`: a rect anchor first flips to
- * the side that has room, then every anchor is clamped inside the viewport (a point anchor only
- * slides). A menu taller than the room left scrolls (`maxHeight`).
+ * Where a `width` × `height` menu goes for `anchor` in a `viewport`: it first flips to the side of
+ * the anchor that has room, then is clamped inside the viewport. A menu taller than the room left
+ * scrolls (`maxHeight`).
  */
 export function placeMenu(
   anchor: MenuAnchor,
@@ -102,10 +104,10 @@ export function placeMenu(
 ): { left: number; top: number; maxHeight: number } {
   let left: number;
   let top: number;
+  const fitsRight = (x: number) => x + width <= viewport.width - EDGE;
+  const fitsBelow = (y: number) => y + height <= viewport.height - EDGE;
   if ('rect' in anchor) {
     const { rect, placement } = anchor;
-    const fitsRight = (x: number) => x + width <= viewport.width - EDGE;
-    const fitsBelow = (y: number) => y + height <= viewport.height - EDGE;
     if (placement === 'right') {
       // Line the first item up with the entry: the panel has 4px of padding.
       left = fitsRight(rect.right) || rect.left - width < EDGE ? rect.right : rect.left - width;
@@ -115,8 +117,13 @@ export function placeMenu(
       top = fitsBelow(rect.bottom + 2) || rect.top - 2 - height < EDGE ? rect.bottom + 2 : rect.top - 2 - height;
     }
   } else {
-    left = anchor.align === 'end' ? anchor.x - width : anchor.x;
-    top = anchor.y;
+    const { x, y } = anchor;
+    if (anchor.align === 'end') {
+      left = x - width >= EDGE || !fitsRight(x) ? x - width : x;
+    } else {
+      left = fitsRight(x) || x - width < EDGE ? x : x - width;
+    }
+    top = fitsBelow(y) || y - height < EDGE ? y : y - height;
   }
   left = Math.max(EDGE, Math.min(left, viewport.width - width - EDGE));
   top = Math.max(EDGE, Math.min(top, viewport.height - height - EDGE));
@@ -620,7 +627,7 @@ export function useContextMenu(): ContextMenuTrigger {
         if (event.clientX === 0 && event.clientY === 0) {
           openBelow(event.currentTarget);
         } else {
-          setAnchor({ x: event.clientX + 2, y: event.clientY + 4 });
+          setAnchor({ x: event.clientX, y: event.clientY });
         }
       },
       onKeyDown: (event) => {
