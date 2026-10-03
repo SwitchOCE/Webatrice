@@ -73,8 +73,7 @@ export default function ChatLog() {
   // Selector's EMPTY_ARRAY fallback is typed ServerInfo_Card[]; cast is safe at runtime.
   const messages = useAppSelector((state) => (gameId != null ? games.Selectors.getMessages(state, gameId) : undefined)) as
     GameMessage[] | undefined;
-  const players = useAppSelector((state) => (gameId != null ? games.Selectors.getPlayers(state, gameId) : undefined));
-  const getChatContext = useCallback(() => gameChatContext(messages ?? [], players), [messages, players]);
+  const getChatContext = useCallback(() => gameChatContext(messages ?? []), [messages]);
   return (
     <ReportChatScope gameId={gameId ?? undefined} getChatContext={getChatContext}>
       <ChatLogView />
@@ -163,7 +162,7 @@ function ChatLogView() {
             ? 'bg-transparent'
             : 'bg-black/15';
           const name =
-            players?.[m.playerId]?.properties.userInfo?.name ?? `p${m.playerId}`;
+            m.senderName ?? players?.[m.playerId]?.properties.userInfo?.name ?? `p${m.playerId}`;
           // Per-message wall-clock stamp, Cockatrice-style `[HH:MM:SS]`.
           // Matches desktop's `QDateTime::currentDateTime()` — the log
           // is annotated with the user's local clock, not the game

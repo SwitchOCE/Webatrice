@@ -2427,6 +2427,16 @@ describe('2J: Turn, phase, and chat', () => {
     });
   });
 
+  it('GAME_SAY → keeps the sender name after the player leaves', () => {
+    const state = makeState();
+    state.games[1].players[1].properties = makePlayerProperties({ playerId: 1, userInfo: { name: 'Alice' } });
+    let result = gamesReducer(state, Actions.gameSay({ gameId: 1, playerId: 1, message: 'gg', timeReceived: 1 }));
+    result = gamesReducer(result, Actions.playerLeft({ gameId: 1, playerId: 1, reason: 3, timeReceived: 2 }));
+
+    expect(result.games[1].players[1]).toBeUndefined();
+    expect(result.games[1].messages.find((m) => m.kind === 'chat')).toMatchObject({ playerId: 1, senderName: 'Alice' });
+  });
+
   it(`GAME_SAY → caps messages at MAX_GAME_MESSAGES (${MAX_GAME_MESSAGES}) and evicts oldest`, () => {
     const oldMessages = Array.from({ length: MAX_GAME_MESSAGES }, (_, i) => ({
       playerId: 2, message: `msg-${i}`, timeReceived: i, kind: 'chat' as const,
