@@ -11,6 +11,8 @@ import {
 } from '../components/ui/SeatShortcutsContext';
 import { useCurrentGame } from './useCurrentGame';
 import { useGameAffordances } from './useGameAffordances';
+import { useMessageMacros } from './useMessageMacros';
+import { SAY_MACRO_ACTIONS } from '../components/context-menus/PlayerContextMenu/playerMenu.model';
 
 const PHASE_COUNT = 11;
 
@@ -62,6 +64,7 @@ export function useGameShortcuts({
     canConcede,
   } = useGameAffordances(gameId);
   const inGame = hasLiveGame && isStarted;
+  const messageMacros = useMessageMacros();
 
   useShortcut(
     'game.untapAll',
@@ -368,6 +371,22 @@ export function useGameShortcuts({
   // Seat-scoped shortcuts act on the local seat's selection, prompts and zones,
   // so they run whatever the local seat published. The key is consumed only
   // when a seat handled it: a spectator has no seat, and Ctrl+R stays a reload.
+  // Say macros 1-10 (desktop SayMenu's fixed Ctrl+1 … Ctrl+0): send the
+  // macro verbatim as game chat. Only a seated player has a Say menu, and a
+  // slot without a macro leaves the key alone.
+  useShortcutGroup(
+    SAY_MACRO_ACTIONS,
+    (actionId, event) => {
+      const message = messageMacros[SAY_MACRO_ACTIONS.indexOf(actionId as (typeof SAY_MACRO_ACTIONS)[number])];
+      if (!isParticipant || gameId == null || !message) {
+        return;
+      }
+      event.preventDefault();
+      webClient.request.game.gameSay(gameId, { message });
+    },
+    { scope: ShortcutScope.GAME, preventDefault: false, enabled: hasLiveGame },
+  );
+
   useShortcutGroup(
     SEAT_SHORTCUT_ACTIONS,
     (actionId, event) => {

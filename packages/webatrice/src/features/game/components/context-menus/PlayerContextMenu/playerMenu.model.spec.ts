@@ -7,6 +7,7 @@ import {
   buildBattlefieldMenu,
   buildCountersMenu,
   buildCustomZonesMenu,
+  buildSayMenu,
   buildHandMenu,
   buildLibraryMenu,
   buildOpponentBattlefieldMenu,
@@ -318,6 +319,24 @@ describe('buildCustomZonesMenu', () => {
     expect(tree(items)).toEqual(['Custom Zones', '  View custom zone \'command\'', '  View custom zone \'vault\'']);
     find(items, 'Custom Zones', 'View custom zone \'vault\'').onClick?.();
     expect(onView).toHaveBeenCalledWith('vault');
+  });
+});
+
+describe('buildSayMenu', () => {
+  it('is disabled without macros', () => {
+    expect(tree([buildSayMenu([], hints, vi.fn())])).toEqual(['Say (disabled)']);
+  });
+
+  it('lists the macros in order with their shortcut, and sends one verbatim', () => {
+    const onSay = vi.fn();
+    const macros = Array.from({ length: 11 }, (_, i) => `gg ${i + 1}`);
+    const menu = buildSayMenu(macros, hints, onSay);
+    const rows = tree([menu]);
+    expect(rows.slice(0, 3)).toEqual(['Say', '  gg 1 [<game.sayMacro1>]', '  gg 2 [<game.sayMacro2>]']);
+    expect(rows.slice(-2)).toEqual(['  gg 10 [<game.sayMacro10>]', '  gg 11']);
+
+    find([menu], 'Say', 'gg 2').onClick?.();
+    expect(onSay).toHaveBeenCalledWith('gg 2');
   });
 });
 

@@ -51,9 +51,11 @@ import {
   buildLibraryMenu,
   buildOpponentBattlefieldMenu,
   buildCustomZonesMenu,
+  buildSayMenu,
   buildTallyMenu,
 } from '../context-menus/PlayerContextMenu/playerMenu.model';
 import { useTallyType } from '../../hooks/useTallyType';
+import { useMessageMacros } from '../../hooks/useMessageMacros';
 import {
   buildRelatedTokenItems,
   buildRelatedViewItems,
@@ -291,6 +293,8 @@ type Props = {
    *  actOpenDeckInDeckEditor). Undefined, disabling the menu item,
    *  until the seat's deck is known. */
   onOpenDeckInEditor?: () => void;
+  /** Sends a message macro to the game chat (the local seat's Say menu). */
+  onSay?: (message: string) => void;
   /** Fires `Command_RevealCards(zone=<zoneName>, player_id=<target or
    *  unset>, card_id=[-2])`. `-2` is Servatrice's `RANDOM_CARD_FROM_ZONE`
    *  sentinel (server_abstract_player.cpp:1498-1508) — server picks a
@@ -994,6 +998,7 @@ function PlayerBox(
     onShuffle,
     onShuffleRange,
     onOpenDeckInEditor,
+    onSay,
     onRevealRandomFromZone,
     onRevealZone,
     onRevealCards,
@@ -1581,6 +1586,7 @@ function PlayerBox(
   // are user-customizable).
   const shortcutHints = useShortcutHints();
   const [tallyType, setTallyType] = useTallyType();
+  const messageMacros = useMessageMacros();
 
   // Seat-scoped shortcut operations. useGameShortcuts owns the key bindings
   // and runs these for the local seat only (see SeatShortcutsContext).
@@ -3511,7 +3517,8 @@ function PlayerBox(
     shortcutHints, handMenuItems, libraryMenuItems, graveMenuItemsSelf, exileMenuItemsSelf,
     countersMenuItems, selection, battlefieldDisplayList, lastToken, openCreateTokenDialog,
     onCreateToken, onRequestViewSideboard, onRequestRollDie, onRequestGameInfo,
-    onBulkSetCardCounters, onUntapAll, onFlipCoin, trailingItems: [tallyMenu],
+    onBulkSetCardCounters, onUntapAll, onFlipCoin,
+    trailingItems: onSay ? [tallyMenu, buildSayMenu(messageMacros, shortcutHints, onSay)] : [tallyMenu],
     customZonesItems: buildCustomZonesMenu(customZones ?? [], (zoneName) => openZoneView({ playerId: seatId, zoneName })),
   });
   const opponentBattlefieldMenuItems = buildOpponentBattlefieldMenu({

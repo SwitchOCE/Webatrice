@@ -7,6 +7,7 @@ import { getPickedMockDeck } from '../../../mockDeckStore';
 import PlayerBox from '../../PlayerBox/PlayerBox';
 import type { DeckCard } from '../../PlayerBox/mockTypes';
 import { BoardCellProvider } from '../BoardCellContext';
+import { useGameSay } from './useGameSay';
 import { useOpenDeckInEditor } from './useOpenDeckInEditor';
 import { usePlayerBoxCommandProps, usePlayerBoxSeatProps } from './usePlayerBoxProps';
 import { usePlayerCardCommands } from './usePlayerCardCommands';
@@ -127,6 +128,7 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   const counter = usePlayerCounterCommands(cell.playerId);
   const target = usePlayerTargetCommands(cell.playerId);
   const onOpenDeckInEditor = useOpenDeckInEditor(cell.playerId, cell.isLocal);
+  const onSay = useGameSay(cell.isLocal);
 
   const seatProps = usePlayerBoxSeatProps(model);
   const commandProps = usePlayerBoxCommandProps({ zone, card, counter, target }, model.counters.life);
@@ -147,6 +149,7 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
           {...commandProps}
           cards={cards}
           onOpenDeckInEditor={onOpenDeckInEditor}
+          onSay={onSay}
         />
       </BoardCellProvider>
     </div>
