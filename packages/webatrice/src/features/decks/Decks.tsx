@@ -144,7 +144,7 @@ function Decks() {
     if (isConnected && !backendDecks) {
       fetchList();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `fetchList` is render-local; fetch only on connect or when the list is dropped
   }, [isConnected, backendDecks]);
 
   // Flatten the folder tree into a plain sorted list. Sorted by

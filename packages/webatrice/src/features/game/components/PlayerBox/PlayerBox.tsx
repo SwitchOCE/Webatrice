@@ -2,7 +2,6 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -26,7 +25,6 @@ import {
   BATTLEFIELD_MIN_COLS,
   BATTLEFIELD_ROWS,
   computeCellWidths,
-  columnLeftX,
   rowTopY,
   slotOriginPx,
   computeContentWidth,
@@ -219,10 +217,6 @@ type Selection = {
   zone: 'hand' | 'battlefield' | 'stack';
   ids: Set<string>;
 };
-
-function clamp01(n: number): number {
-  return Math.max(0, Math.min(1, n));
-}
 
 /** Map a local drag zone name to the Cockatrice wire zone name. */
 function wireZoneName(
@@ -2993,7 +2987,6 @@ function PlayerBox(
     onAttachCard,
     onUnattachCard,
     onCreateArrow,
-    onSetCardCounter,
     manaCounters,
     onModifyCounter,
     onSetPlayerCounter,
@@ -3255,7 +3248,7 @@ function PlayerBox(
     // cardMetaByName intentionally omitted: we don't want an
     // "already-cached names" recomputation to re-enter the effect,
     // just want a re-run when the deck changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
   }, [isSelf, cards]);
 
   // Fetch Scryfall metadata for cards currently on the battlefield
@@ -3320,7 +3313,7 @@ function PlayerBox(
     };
     // cardMetaByName intentionally omitted for the same reason as
     // the deck-driven effect above.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
   }, [battlefieldCards]);
 
   // Resolve related-card metadata for every parent card that has a
@@ -3377,7 +3370,7 @@ function PlayerBox(
     // tokenMetaByName intentionally omitted — its own updates would
     // otherwise re-enter the effect. Re-runs when cardMetaByName
     // gains new entries with related lists.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
   }, [cardMetaByName]);
 
   const deckCount = zoneCounts?.deck ?? 0;
@@ -4542,7 +4535,7 @@ function PlayerBox(
   })();
   // Content pixel size — sum of per-row column widths + margins. When
   // stacks push columns right, or when a buffer column opens past the
-  // fit width, contentW grows past fitSize.w and the scroll container
+  // fit width, the content grows past fitSize.w and the scroll container
   // starts scrolling horizontally.
   const naturalContentW = computeContentWidth(
     cellWidths,
@@ -4550,8 +4543,6 @@ function PlayerBox(
     { ...battlefieldLayout, minCols: effectiveMinCols },
   );
   const naturalContentH = computeContentHeight(battlefieldLayout) + stackExtPx;
-  const contentW = Math.max(fitSize.w, naturalContentW);
-  const contentH = Math.max(fitSize.h, naturalContentH);
   // Legacy slot-bound shims — group drops / nearest-available-slot search
   // originally iterated a rectangular `grid.cols × grid.rows` space; with
   // per-row column counts we use the widest row as the effective width.
@@ -4814,6 +4805,7 @@ function PlayerBox(
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- listeners re-bind on every `drag`/`marquee` update, picking up fresh handlers
   }, [drag, cellWidths]);
 
   // Marquee pointer effect. Follows the pointer while dragging out a
@@ -4857,6 +4849,7 @@ function PlayerBox(
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- listeners re-bind on every `drag`/`marquee` update, picking up fresh handlers
   }, [marquee]);
 
   // Which zone the given viewport point falls in, or null if none. For
@@ -5629,62 +5622,6 @@ function PlayerBox(
     return out;
   };
 
-  // Resolve where each card in a drop should actually land, respecting
-  // the 3-card-per-slot cap. If the intended slot is full, the card is
-  // bumped to the nearest slot (by squared Euclidean distance in row/col
-  // space) that still has room. Occupancy accumulates as we place, so a
-  // group whose first card fills a slot forces subsequent cards to look
-  // elsewhere.
-  const resolveSlots = (
-    existing: BattlefieldCard[],
-    intended: BattlefieldSlot[],
-  ): BattlefieldSlot[] => {
-    const occ = new Map<string, number>();
-    for (const c of existing) {
-      const k = `${c.slot.row},${c.slot.col}`;
-      occ.set(k, (occ.get(k) ?? 0) + 1);
-    }
-    const out: BattlefieldSlot[] = [];
-    for (const desired of intended) {
-      let slot = desired;
-      const dk = `${desired.row},${desired.col}`;
-      if ((occ.get(dk) ?? 0) >= MAX_STACK_PER_SLOT) {
-        slot = findNearestAvailableSlot(desired, occ);
-      }
-      out.push(slot);
-      const k = `${slot.row},${slot.col}`;
-      occ.set(k, (occ.get(k) ?? 0) + 1);
-    }
-    return out;
-  };
-
-  // Scan the whole grid, pick the slot with room that's closest to the
-  // desired slot in row/col distance. Falls back to the desired slot if
-  // the grid is completely full — a pathological case for a battlefield.
-  const findNearestAvailableSlot = (
-    desired: BattlefieldSlot,
-    occ: Map<string, number>,
-  ): BattlefieldSlot => {
-    let best = desired;
-    let bestDist = Infinity;
-    for (let row = 0; row < gridRows; row++) {
-      for (let col = 0; col < gridCols; col++) {
-        const k = `${row},${col}`;
-        if ((occ.get(k) ?? 0) >= MAX_STACK_PER_SLOT) {
-          continue;
-        }
-        const dRow = row - desired.row;
-        const dCol = col - desired.col;
-        const dist = dRow * dRow + dCol * dCol;
-        if (dist < bestDist) {
-          bestDist = dist;
-          best = { row, col };
-        }
-      }
-    }
-    return best;
-  };
-
   // Cross-player "receive" (gifts) and cross-board marquee forwarding.
   // receiveBattlefieldCards is now a no-op — Redux picks up the gifted
   // card from Servatrice's Event_MoveCard broadcast, so there's no
@@ -6270,7 +6207,7 @@ function PlayerBox(
   })();
   // Same "trust Redux in real games" rule as grave/exile above — see
   // that comment for the mock-id mismatch bug this avoids.
-  const stackDisplayList = stackCards ?? [];
+  const stackDisplayList = useMemo(() => stackCards ?? [], [stackCards]);
 
   // Move-top-until iterative loop. When the dialog confirms, we fire
   // the first Command_MoveCard (DECK top → STACK) and enter active
@@ -6369,7 +6306,7 @@ function PlayerBox(
     if (isMatch) {
       setMoveTopUntil({ ...moveTopUntil, remainingHits: remaining });
     }
-  }, [stackDisplayList, moveTopUntil, isSelf, deckCount, onMoveCard, playerId]);
+  }, [stackDisplayList, moveTopUntil, isSelf, deckCount, onMoveCard, playerId, cardMetaByName]);
 
   // Kicks off the loop: snapshot current stack ids so the *next*
   // stack addition is treated as the first reveal, then fire the

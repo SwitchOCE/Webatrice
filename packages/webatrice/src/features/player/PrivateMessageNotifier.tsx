@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import { generatePath, matchPath, useLocation, useNavigate } from 'react-router-dom';
 import { MessageSquare } from 'lucide-react';
 
-import { server } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
 import { usePushToast } from '@app/components';
 import { RouteEnum } from '@app/types';

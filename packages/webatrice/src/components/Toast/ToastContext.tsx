@@ -60,18 +60,28 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
       close: () => dispatch({ type: ACTIONS.CLOSE_TOAST, payload: { key } }),
     };
   }, []);
+  // Dispatch-only operations are stable so `useToast`'s lifecycle effects can
+  // list them as dependencies without re-running on every provider render.
+  const addToast = useCallback((key: string, toastChildren: ReactNode) => {
+    dispatch({ type: ACTIONS.ADD_TOAST, payload: { key, children: toastChildren } });
+  }, []);
+  const updateToast = useCallback((key: string, toastChildren: ReactNode) => {
+    dispatch({ type: ACTIONS.UPDATE_TOAST, payload: { key, children: toastChildren } });
+  }, []);
+  const closeToast = useCallback((key: string) => dispatch({ type: ACTIONS.CLOSE_TOAST, payload: { key } }), []);
+  const removeToast = useCallback((key: string) => dispatch({ type: ACTIONS.REMOVE_TOAST, payload: { key } }), []);
   const providerState: ToastContextValue = {
     toasts: state.toasts,
-    addToast: (key, toastChildren) => dispatch({ type: ACTIONS.ADD_TOAST, payload: { key, children: toastChildren } }),
-    updateToast: (key, toastChildren) => dispatch({ type: ACTIONS.UPDATE_TOAST, payload: { key, children: toastChildren } }),
+    addToast,
+    updateToast,
     openToast: (key, toastChildren) => {
       if (import.meta.env.DEV && toastChildren === undefined && !state.toasts[key]) {
         console.warn(`[toast] openToast("${key}") before registration — nothing to show`);
       }
       dispatch({ type: ACTIONS.OPEN_TOAST, payload: { key, children: toastChildren } });
     },
-    closeToast: (key) => dispatch({ type: ACTIONS.CLOSE_TOAST, payload: { key } }),
-    removeToast: (key) => dispatch({ type: ACTIONS.REMOVE_TOAST, payload: { key } }),
+    closeToast,
+    removeToast,
     pushToast,
   };
   // Toasts render into a single fixed portal at bottom-right of the
@@ -130,7 +140,8 @@ export function useToast({ key, children }: ToastHookOptions): ToastHandle {
     return () => {
       removeToast(key);
     };
-  }, [key]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- registration is keyed on `key`; `children` refreshes below
+  }, [key, addToast, removeToast]);
 
   // Keep the registered content current: a language change re-renders with a new
   // `t()` string, so refresh the stored children (the reducer skips no-op
@@ -138,7 +149,7 @@ export function useToast({ key, children }: ToastHookOptions): ToastHandle {
   // content at fire time via `openToast(children)` don't rely on this.
   useEffect(() => {
     updateToast(key, children);
-  }, [key, children]);
+  }, [key, children, updateToast]);
 
   return {
     openToast: (toastChildren) => openToast(key, toastChildren),

@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import globals from 'globals';
+import reactHooks from 'eslint-plugin-react-hooks';
 import { boundariesConfig } from './eslint.boundaries.mjs';
 
 export default tseslint.config(
@@ -12,6 +13,16 @@ export default tseslint.config(
 
   // TypeScript recommended (sets up parser + plugin)
   ...tseslint.configs.recommended,
+
+  // Hooks correctness. Only the two classic rules: the React Compiler rule set in
+  // `recommended` targets compiler adoption, which this codebase has not opted into.
+  {
+    plugins: { 'react-hooks': reactHooks },
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
+    },
+  },
 
   // Enforce module boundaries
   ...boundariesConfig,

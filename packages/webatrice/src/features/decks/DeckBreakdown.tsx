@@ -496,7 +496,7 @@ function BracketSection({
     };
     // Fingerprint captures the meaningful shape of `cards` — printing
     // swaps and category toggles don't invalidate the assessment.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on `fingerprint` (see above)
   }, [fingerprint]);
 
   if (loading) {

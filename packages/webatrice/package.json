@@ -82,6 +82,7 @@
     "eslint": "^9.39.4",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-boundaries": "^6.0.2",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "fake-indexeddb": "^6.2.5",
     "fs-extra": "^11.3.4",
     "globals": "^17.5.0",

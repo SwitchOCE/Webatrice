@@ -806,7 +806,7 @@ export default function LibrarySearchDialog({
     }
     enriched.sort((a, b) => compareCards(a.meta, b.meta, effectiveSortBy));
     return groupCards(enriched, effectiveGroupBy);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `resolveMeta` only reads `metaByName`/`lookupMetaByName`, both listed
   }, [library, metaByName, lookupMetaByName, query, effectiveSortBy, effectiveGroupBy]);
 
   const totalShown = groups.reduce((n, g) => n + g.cards.length, 0);

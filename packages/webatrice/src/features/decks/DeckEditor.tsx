@@ -173,7 +173,7 @@ const DeckEditor = () => {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `priceKey` fingerprints the priced fields of `editor.deck.cards`
   }, [priceKey]);
 
   // Persist the deck's price into meta whenever prices settle. Ties
@@ -1626,8 +1626,11 @@ function PrintingPickerModal({
   // grid paints set/collector first and the `$X.XX` labels stream in.
   const [prices, setPrices] = useState<PriceLookup>(() => emptyPriceLookup());
 
+  // Refetch only when the picked card changes, not when the parent hands us
+  // a fresh `request` object for the same card.
+  const cardName = request?.card.name;
   useEffect(() => {
-    if (!request) {
+    if (cardName === undefined) {
       return;
     }
     setPrintings([]);
@@ -1637,7 +1640,7 @@ function PrintingPickerModal({
     let cancelled = false;
     (async () => {
       try {
-        const scryfall = await fetchAllPrintings(request.card.name);
+        const scryfall = await fetchAllPrintings(cardName);
         if (cancelled) {
           return;
         }
@@ -1647,7 +1650,7 @@ function PrintingPickerModal({
         } else {
           // Scryfall miss (offline / unknown card): fall back to
           // whatever Dexie has so the modal isn't empty.
-          const dexie = await lookupCard(request.card.name);
+          const dexie = await lookupCard(cardName);
           if (cancelled) {
             return;
           }
@@ -1663,7 +1666,7 @@ function PrintingPickerModal({
         // MyDecks list) show their prices immediately.
         const cards = resolved
           .filter((p) => p.scryfallId)
-          .map((p) => ({ scryfallId: p.scryfallId!, name: request.card.name }));
+          .map((p) => ({ scryfallId: p.scryfallId!, name: cardName }));
         if (cards.length > 0) {
           fetchPricesForCards(cards)
             .then((lookup) => {
@@ -1687,7 +1690,7 @@ function PrintingPickerModal({
     return () => {
       cancelled = true;
     };
-  }, [request?.card.name]);
+  }, [cardName]);
 
   useEffect(() => {
     if (!request) {

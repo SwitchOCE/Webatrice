@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ChevronLeft, ExternalLink, FileText, Flag, Image as ImageIcon, Layers, LayoutList, LogOut, X } from 'lucide-react';
 
-import { useLeaveGame } from '@app/hooks';
 import { CardImage, CardRelatedLinks } from '@app/components';
 
 import PlayerList from '../right-sidebar/PlayerList/PlayerList';
@@ -255,7 +254,7 @@ export default function BattlefieldSidebar() {
         setDetailFetchState('not-found');
       });
     return () => controller.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch only when the card identity (`activeKey`) changes
   }, [previewMode, activeKey]);
 
   // Route through `onRequestLeave` (opens the "Leave this game?"

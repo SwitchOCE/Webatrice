@@ -108,7 +108,7 @@ export function BigCardPreviewProvider({ children }: { children: ReactNode }) {
         }
       });
     return () => controller.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch only when the card identity (`hoverKey`) changes
   }, [hoverKey]);
 
   const value: BigCardPreviewContextValue = {

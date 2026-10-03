@@ -32,6 +32,7 @@ function AutoOpen({ messageKey, body }: { messageKey: string; body: string }) {
   const { openToast } = useToast({ key: messageKey, children: body });
   useEffect(() => {
     openToast();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fixture opens exactly once on mount
   }, []);
   return null;
 }

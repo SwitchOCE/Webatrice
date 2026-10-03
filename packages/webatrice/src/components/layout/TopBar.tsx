@@ -183,7 +183,7 @@ export default function TopBar() {
     // updates after the wipe so subsequent path changes with the
     // same identity are no-ops. Depending on pathname would rerun
     // this effect on every route hop.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run on identity change only (see above)
   }, [identity, setStickyTabs]);
 
   // Enrich a deck-editor sticky tab with the actual deck name once

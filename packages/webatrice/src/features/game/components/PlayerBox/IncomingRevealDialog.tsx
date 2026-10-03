@@ -254,7 +254,7 @@ export default function IncomingRevealDialog() {
       )
       : undefined,
   );
-  const revealCards = liveCards ?? reveal?.cards ?? [];
+  const revealCards = useMemo(() => liveCards ?? reveal?.cards ?? [], [liveCards, reveal?.cards]);
 
   // Our own seat's playerId in this game. Needed to name the target
   // side of Command_MoveCard when we (the lend recipient) pull a card

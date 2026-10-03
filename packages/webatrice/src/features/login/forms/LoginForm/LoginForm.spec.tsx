@@ -1,3 +1,5 @@
+import { fireEvent } from '@testing-library/react';
+
 import { renderWithProviders, createMockWebClient, disconnectedState } from '../../../../__test-utils__';
 import { makeSettingsHook, makeSettings } from '../../../../hooks/__mocks__/useSettings';
 import { makeKnownHostsHook, makeHost } from '../../../../feature-widgets/known-hosts/__mocks__/useKnownHosts';
@@ -186,5 +188,31 @@ describe('LoginForm — hashed-password gating', () => {
       { preloadedState: disconnectedState }
     );
     expect(update).toHaveBeenCalledWith({ autoConnect: false });
+  });
+  test('persists settings.autoConnect when the user ticks Auto Connect', () => {
+    const update = vi.fn().mockResolvedValue(undefined);
+    hoisted.mockUseSettings.mockReturnValue(
+      makeSettingsHook({
+        status: LoadingState.READY,
+        value: makeSettings({ autoConnect: false }),
+        update,
+      })
+    );
+    const host = makeHost({ id: 1, supportsHashedPassword: true, lastSelected: true });
+    hoisted.mockUseKnownHosts.mockReturnValue(
+      makeKnownHostsHook({
+        status: LoadingState.READY,
+        value: { hosts: [host], selectedHost: host },
+      })
+    );
+    const { container } = renderWithProviders(
+      <LoginForm onSubmit={vi.fn()} disableSubmitButton={false} onResetPassword={vi.fn()} />,
+      { preloadedState: testedState }
+    );
+
+    fireEvent.click(container.querySelector('input[name="autoConnect"]')!);
+
+    expect(update).toHaveBeenCalledWith({ autoConnect: true });
+    expect(container.querySelector<HTMLInputElement>('input[name="remember"]')!.checked).toBe(true);
   });
 });

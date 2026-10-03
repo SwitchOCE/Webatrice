@@ -189,19 +189,6 @@ function projectCard(
   };
 }
 
-// Project a Cockatrice TABLE zone into the PlayerBox BattlefieldCard
-// shape. ServerInfo_Card.x maps to slot.col, .y to slot.row — that's
-// Cockatrice's coord convention (x horizontal, y vertical).
-function zoneToBattlefieldCards(
-  zone: ZoneForBattlefield | undefined,
-  ownerPlayerId: number,
-): BattlefieldCard[] {
-  if (!zone) {
-    return EMPTY_BATTLEFIELD_CARDS;
-  }
-  return zone.order.map((id) => projectCard(id, zone.byId[id], ownerPlayerId));
-}
-
 export interface GameBoardCellProps {
   cell: BoardCell;
   /** Total seated player count. Used to decide whether opponent
@@ -320,6 +307,10 @@ const MOCK_DECK: DeckCard[] = [
     }),
   ),
 ];
+
+// Desktop's random-card sentinel for Command_RevealCards.card_id
+// (player_actions.h:42).
+const RANDOM_CARD_FROM_ZONE = -2;
 
 function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   const gameId = useGameId();
@@ -1299,9 +1290,7 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // library: "All players" → OMIT playerId; otherwise set it.
   // Mirrors PlayerActions::actRevealRandomGraveyardCard
   // (player_actions.cpp:1750-1758) which sends
-  // `card_id.add(RANDOM_CARD_FROM_ZONE)` — RANDOM_CARD_FROM_ZONE = -2
-  // (player_actions.h:42).
-  const RANDOM_CARD_FROM_ZONE = -2;
+  // `card_id.add(RANDOM_CARD_FROM_ZONE)`.
   const onRevealRandomFromZone = useMemo(() => {
     if (gameId == null) {
       return undefined;

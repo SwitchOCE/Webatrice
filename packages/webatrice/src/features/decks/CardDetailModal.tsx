@@ -199,7 +199,7 @@ export default function CardDetailModal({
         setDetailLoading(false);
       });
     return () => controller.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch only when the card identity (`fetchKey`) changes
   }, [fetchKey]);
 
   useEffect(() => {

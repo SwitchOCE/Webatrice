@@ -227,8 +227,8 @@ export function useGameArrowOverlay({
         });
       }
     }
-    // `tick` in deps intentionally re-runs the memo on DOM-layout changes.
     return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `tick` re-measures the DOM after layout changes
   }, [players, registry, containerRect, tick]);
 
   const handleArrowClick = (arrowId: number) => {

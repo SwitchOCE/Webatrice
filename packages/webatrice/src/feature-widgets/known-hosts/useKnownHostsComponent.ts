@@ -86,6 +86,7 @@ export function useKnownHostsComponent({
     }
     onChange(selectedHost);
     testConnection(selectedHost);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire on host selection only, not on parent re-renders
   }, [selectedHost]);
 
   useReduxEffect<{ supportsHashedPassword: boolean }>(({ payload: { supportsHashedPassword } }) => {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { create } from '@bufbuild/protobuf';
 
 import { server } from '@cockatrice/datatrice';
-import { WebClient } from '@cockatrice/sockatrice';
+import type { WebClient } from '@cockatrice/sockatrice';
 import {
   Command_DeckUpload_ext,
   Command_DeckUploadSchema,
@@ -216,17 +216,6 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   );
 
   // --- Save (debounced) ---
-  const scheduleSave = useCallback(() => {
-    setSaveState('dirty');
-    if (saveTimerRef.current != null) {
-      window.clearTimeout(saveTimerRef.current);
-    }
-    saveTimerRef.current = window.setTimeout(() => {
-      saveTimerRef.current = null;
-      persistNow();
-    }, AUTOSAVE_DEBOUNCE_MS);
-  }, []);
-
   const persistNow = useCallback(() => {
     const current = deckRef.current;
     if (!current || deckId == null) {
@@ -258,8 +247,19 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     // uploadDeckUpdate handles both the server "saved" ack (flips our
     // saveState) and a follow-up deckList refetch that keeps MyDecks
     // + the sticky tab title in sync without needing a manual refresh.
-    uploadDeckUpdate(deckId, xml, () => setSaveState('saved'));
-  }, [deckId]);
+    uploadDeckUpdate(webClient, deckId, xml, () => setSaveState('saved'));
+  }, [deckId, webClient]);
+
+  const scheduleSave = useCallback(() => {
+    setSaveState('dirty');
+    if (saveTimerRef.current != null) {
+      window.clearTimeout(saveTimerRef.current);
+    }
+    saveTimerRef.current = window.setTimeout(() => {
+      saveTimerRef.current = null;
+      persistNow();
+    }, AUTOSAVE_DEBOUNCE_MS);
+  }, [persistNow]);
 
   // Flush pending save on unmount so tab-close / navigate-away
   // doesn't drop the last edit.
@@ -574,11 +574,12 @@ function countCards(cards: DeckCard[] | undefined): {
  * payload itself.
  */
 function uploadDeckUpdate(
+  webClient: WebClient,
   deckId: number,
   deckList: string,
   onDone?: () => void,
 ): void {
-  WebClient.instance.protobuf.sendSessionCommand(
+  webClient.protobuf.sendSessionCommand(
     Command_DeckUpload_ext,
     create(Command_DeckUploadSchema, { deckId, deckList }),
     {
@@ -588,7 +589,7 @@ function uploadDeckUpdate(
         // stays responsive; the tree refetch is debounced so a
         // rapid edit stream doesn't spam deckList() at the server.
         onDone?.();
-        scheduleDeckListRefetch();
+        scheduleDeckListRefetch(webClient);
       },
     },
   );
@@ -601,12 +602,12 @@ function uploadDeckUpdate(
 const DECK_LIST_REFETCH_DEBOUNCE_MS = 500;
 let deckListRefetchTimer: number | null = null;
 
-function scheduleDeckListRefetch(): void {
+function scheduleDeckListRefetch(webClient: WebClient): void {
   if (deckListRefetchTimer != null) {
     window.clearTimeout(deckListRefetchTimer);
   }
   deckListRefetchTimer = window.setTimeout(() => {
     deckListRefetchTimer = null;
-    WebClient.instance.request.session.deckList();
+    webClient.request.session.deckList();
   }, DECK_LIST_REFETCH_DEBOUNCE_MS);
 }

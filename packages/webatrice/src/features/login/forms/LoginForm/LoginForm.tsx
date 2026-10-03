@@ -66,14 +66,17 @@ const LoginFormBody = ({
     }
     lastHostRef.current = formHost;
     onSelectedHostChange(formHost);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the watched field only; handler identity changes every render
   }, [formHost]);
 
   useEffect(() => {
     onUserNameChange(formUserName);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the watched field only; handler identity changes every render
   }, [formUserName]);
 
   useEffect(() => {
     onRememberChange(formRemember);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- react to the watched field only; handler identity changes every render
   }, [formRemember]);
 
   const testConnectionStatus = useAppSelector(server.Selectors.getTestConnectionStatus);
@@ -166,7 +169,11 @@ const LoginFormBody = ({
             name="autoConnect"
             control={control}
             render={({ field }) => (
-              <CheckboxField {...field} label={t('LoginForm.label.autoConnect')} />
+              <CheckboxField
+                {...field}
+                label={t('LoginForm.label.autoConnect')}
+                onChange={(e) => onUserToggleAutoConnect(e.target.checked, field.onChange)}
+              />
             )}
           />
         </div>
