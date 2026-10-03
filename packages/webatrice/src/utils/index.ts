@@ -4,3 +4,4 @@ export { DefaultHosts, getHostPort } from './HostService';
 export { toBcp47 } from './locale';
 export { getRoomPermissionDisplay } from './roomPermission';
 export { formatChatHistoryTime } from './chatTime';
+export { formatRestrictions, formatSpectators } from './gameInfo';
