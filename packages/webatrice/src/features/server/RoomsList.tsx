@@ -5,6 +5,7 @@ import { LogIn, ArrowRight } from 'lucide-react';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { Room } from '@cockatrice/datatrice';
 import { RouteEnum } from '@app/types';
+import { getRoomPermissionDisplay } from '@app/utils';
 
 const HEADER_CELL_CLASS =
   'text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted '
@@ -80,7 +81,7 @@ export default function RoomsList({ rooms, joinedRooms }: RoomsListProps) {
               </tr>
             )}
             {roomList.map((room) => {
-              const { description, gameCount, name, permissionlevel, playerCount, roomId } = room.info;
+              const { description, gameCount, name, playerCount, roomId } = room.info;
               const joined = joinedRoomIds.has(roomId);
               return (
                 <tr
@@ -94,7 +95,7 @@ export default function RoomsList({ rooms, joinedRooms }: RoomsListProps) {
                     <div className="truncate" title={description}>{description}</div>
                   </td>
                   <td className="px-3 py-2 border-b border-border-subtle/50 text-text-muted lowercase whitespace-nowrap">
-                    {permissionlevel || 'none'}
+                    {getRoomPermissionDisplay(room.info)}
                   </td>
                   <td className="px-3 py-2 border-b border-border-subtle/50 text-text-primary tabular-nums whitespace-nowrap">
                     {playerCount}
