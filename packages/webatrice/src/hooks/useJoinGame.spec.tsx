@@ -4,7 +4,7 @@ import { combineReducers } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { create, type MessageInitShape } from '@bufbuild/protobuf';
-import { createStore, games } from '@cockatrice/datatrice';
+import { createStore, games, rooms } from '@cockatrice/datatrice';
 import { WebClientContext } from '@cockatrice/datatrice/react';
 import {
   Event_GameJoinedSchema,
@@ -94,6 +94,30 @@ describe('useJoinGame', () => {
     act(() => result.current.beginJoin(2, makeGame(), false, false));
     expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
     expect(location.pathname).toBe('/game/7');
+  });
+});
+
+describe('useJoinGame with several lists mounted', () => {
+  const setupTwoLists = () => setup(() => ({ roomList: useJoinGame(), userGames: useJoinGame() }));
+  const rejectJoin = (store: ReturnType<typeof setup>['store']) => act(() => {
+    store.dispatch(rooms.Actions.setJoinGameError({ code: 12, message: 'Wrong password.' }));
+  });
+
+  it('reports a rejected join only in the list that sent it', () => {
+    const { result, store } = setupTwoLists();
+    act(() => result.current.userGames.beginJoin(2, makeGame(), false, false));
+    rejectJoin(store);
+    expect(result.current.userGames.joinError).toEqual({ code: 12, message: 'Wrong password.' });
+    expect(result.current.roomList.joinError).toBeNull();
+  });
+
+  it('moves the error to whichever list sent the latest join', () => {
+    const { result, store } = setupTwoLists();
+    act(() => result.current.userGames.beginJoin(2, makeGame(), false, false));
+    act(() => result.current.roomList.beginJoin(2, makeGame(), false, false));
+    rejectJoin(store);
+    expect(result.current.roomList.joinError).not.toBeNull();
+    expect(result.current.userGames.joinError).toBeNull();
   });
 });
 
