@@ -14,3 +14,4 @@
 - 15 d2e3d1e..50214e1 → new tip e501c86, typecheck ok on every commit; lint ok, unit sock 850/data 1227/web 1639+2skip, integration sock 170/data 137/web 173+2skip (useGridRows reused from 11)
 - 18:52Z 14 rebased (f14 60b3669) onto new 15, failure pattern fully deduped (one commandFailed(command, code, target, failure?) on all four scopes); running unit + per-commit typecheck → push 14, then 19
 - 14 0d1d235..60b3669 (f14 final) → new tip 24f3197, typecheck ok on every commit; gate: lint ok, unit sock 859/data 1267/web 1737+2skip, integration sock 170/data 139/web 184+2skip. 14's duplicate session.commandFailed folded into 03's (session scope gains failure?); report grids already on useGridRows
+- 19 a6642c3..531c773 → new tip 9d823e4, typecheck ok on every commit; lint ok, unit sock 859/data 1267/web 1893+2skip, integration sock 170/data 139/web 187+2skip (Dexie v5 replays → v6 settings kept)
