@@ -242,12 +242,19 @@ describe('Server Info & Status', () => {
     expect(result.info.version).toBe('1.0');
   });
 
-  it('UPDATE_INFO → merges name and version into state.info (not message)', () => {
+  it('UPDATE_INFO → merges name, version and password-hash capability into state.info (not message)', () => {
     const state = makeServerState({ info: { message: 'hi', name: null, version: null } });
-    const result = serverReducer(state, Actions.updateInfo({ info: { name: 'Servatrice', version: '2.9.0' } }));
+    const result = serverReducer(state, Actions.updateInfo({ info: { name: 'Servatrice', version: '2.9.0', supportsPasswordHash: true } }));
     expect(result.info.name).toBe('Servatrice');
     expect(result.info.version).toBe('2.9.0');
+    expect(result.info.supportsPasswordHash).toBe(true);
     expect(result.info.message).toBe('hi');
+  });
+
+  it('UPDATE_INFO without the capability leaves it unknown', () => {
+    const state = makeServerState({ info: { message: null, name: null, version: null, supportsPasswordHash: true } });
+    const result = serverReducer(state, Actions.updateInfo({ info: { name: 'Servatrice', version: '2.9.0' } }));
+    expect(result.info.supportsPasswordHash).toBeUndefined();
   });
 
   it('UPDATE_STATUS → merges state and description into status', () => {
@@ -274,6 +281,15 @@ describe('User', () => {
     const result = serverReducer(state, Actions.accountEditChanged({ user: { realName: 'Alice Smith' } }));
     expect(result.user.realName).toBe('Alice Smith');
     expect(result.user.name).toBe('Alice');
+  });
+
+  it('ACCOUNT_EDIT_CHANGED → keeps fields the edit did not carry', () => {
+    const state = makeServerState({ user: makeUser({ name: 'Alice', email: 'a@b.com', country: 'us' }) });
+    const result = serverReducer(state, Actions.accountEditChanged({
+      user: { realName: 'Alice Smith', email: undefined, country: 'de' },
+    }));
+    expect(result.user.email).toBe('a@b.com');
+    expect(result.user.country).toBe('de');
   });
 
   it('ACCOUNT_IMAGE_CHANGED → merges action.payload.user into state.user', () => {

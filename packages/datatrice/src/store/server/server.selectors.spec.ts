@@ -41,6 +41,12 @@ describe('Selectors', () => {
     expect(Selectors.getName(rootState(state))).toBe('Servatrice');
   });
 
+  it('getSupportsPasswordHash → returns info.supportsPasswordHash, undefined until reported', () => {
+    expect(Selectors.getSupportsPasswordHash(rootState(makeServerState()))).toBeUndefined();
+    const state = makeServerState({ info: { message: null, name: null, version: null, supportsPasswordHash: true } });
+    expect(Selectors.getSupportsPasswordHash(rootState(state))).toBe(true);
+  });
+
   it('getVersion → returns info.version', () => {
     const state = makeServerState({ info: { message: null, name: null, version: '2.9.0' } });
     expect(Selectors.getVersion(rootState(state))).toBe('2.9.0');

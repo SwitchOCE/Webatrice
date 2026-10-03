@@ -55,6 +55,12 @@ export class WebClient {
   protobuf: ProtobufService;
   socket: WebSocketService;
   status: StatusEnum;
+  /**
+   * Whether the connected server advertised `SupportsPasswordHash` at identification. Mirrors desktop
+   * `RemoteClient::getServerSupportsPasswordHash()`: post-login account commands (password change)
+   * consult it to send a client-hashed credential instead of plaintext.
+   */
+  serverSupportsPasswordHash = false;
   private testSocket: WebSocket | null = null;
 
   request = {

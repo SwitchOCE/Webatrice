@@ -190,10 +190,20 @@ describe('SessionResponseImpl forwards', () => {
     expect(dispatch).toHaveBeenCalledWith(ServerActions.removeFromIgnoreList({ userName: 'bob' }));
   });
 
-  it('updateInfo packs name + version into an info object', () => {
+  it('updateInfo packs name + version + password-hash capability into an info object', () => {
+    const { impl, dispatch } = setup();
+    impl.updateInfo('Servatrice', '2.7.0', true);
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.updateInfo({
+      info: { name: 'Servatrice', version: '2.7.0', supportsPasswordHash: true },
+    }));
+  });
+
+  it('updateInfo without the capability reports it as unknown', () => {
     const { impl, dispatch } = setup();
     impl.updateInfo('Servatrice', '2.7.0');
-    expect(dispatch).toHaveBeenCalledWith(ServerActions.updateInfo({ info: { name: 'Servatrice', version: '2.7.0' } }));
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.updateInfo({
+      info: { name: 'Servatrice', version: '2.7.0', supportsPasswordHash: undefined },
+    }));
   });
 
   it('updateUser', () => {

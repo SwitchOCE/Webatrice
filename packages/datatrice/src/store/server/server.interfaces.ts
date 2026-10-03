@@ -88,6 +88,11 @@ export interface ServerStateInfo {
   message: string | null;
   name: string | null;
   version: string | null;
+  /**
+   * Server advertised `SupportsPasswordHash`; gates the password-check prompt on account edits.
+   * `undefined` = not yet known (no identification reported it), as with a host's `supportsHashedPassword`.
+   */
+  supportsPasswordHash?: boolean;
 }
 
 export interface ServerStateLogs {

@@ -80,7 +80,7 @@ describe('connection lifecycle', () => {
     deliverMessage(serverIdentification());
 
     expect(getWebClient().status).toBe(WebsocketTypes.StatusEnum.LOGGING_IN);
-    expect(getMockResponse().session.updateInfo).toHaveBeenCalledWith('TestServer', '2.8.0');
+    expect(getMockResponse().session.updateInfo).toHaveBeenCalledWith('TestServer', '2.8.0', false);
 
     const { value, cmdId } = findLastSessionCommand(Data.Command_Login_ext);
     expect(value.userName).toBe('alice');

@@ -353,7 +353,7 @@ describe('serverIdentification', () => {
 
   beforeEach(() => {
     (consumePendingOptions as Mock).mockReturnValue(null);
-    (passwordSaltSupported as Mock).mockReturnValue(0);
+    (passwordSaltSupported as Mock).mockReturnValue(false);
   });
 
   it('disconnects on protocol version mismatch', () => {
@@ -376,7 +376,7 @@ describe('serverIdentification', () => {
     serverIdentification(makeInfo());
     expect(SessionCmds.updateStatus).toHaveBeenCalledWith(StatusEnum.LOGGING_IN, 'Logging In...');
     expect(SessionCmds.login).toHaveBeenCalledWith(expect.objectContaining({ userName: 'alice' }), 'pw');
-    expect(WebClient.instance.response.session.updateInfo).toHaveBeenCalledWith('TestServer', '1.0');
+    expect(WebClient.instance.response.session.updateInfo).toHaveBeenCalledWith('TestServer', '1.0', false);
   });
 
   it('LOGIN → calls requestPasswordSalt when server supports it', () => {
@@ -479,10 +479,18 @@ describe('serverIdentification', () => {
     );
   });
 
+  it('records the password-hash capability on the client and reports it with the server info', () => {
+    (passwordSaltSupported as Mock).mockReturnValue(true);
+    (consumePendingOptions as Mock).mockReturnValue(makeLoginOptions());
+    serverIdentification(makeInfo());
+    expect(WebClient.instance.serverSupportsPasswordHash).toBe(true);
+    expect(WebClient.instance.response.session.updateInfo).toHaveBeenCalledWith('TestServer', '1.0', true);
+  });
+
   it('always calls updateInfo after successful routing', () => {
     (consumePendingOptions as Mock).mockReturnValue(makeLoginOptions());
     serverIdentification(makeInfo());
-    expect(WebClient.instance.response.session.updateInfo).toHaveBeenCalledWith('TestServer', '1.0');
+    expect(WebClient.instance.response.session.updateInfo).toHaveBeenCalledWith('TestServer', '1.0', false);
   });
 
   describe('LOGIN with password salt', () => {

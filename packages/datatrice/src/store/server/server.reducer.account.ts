@@ -19,7 +19,10 @@ export const accountReducers = {
 
   accountEditChanged: ((state, action) => {
     if (state.user) {
-      state.user = create(ServerInfo_UserSchema, { ...state.user, ...action.payload.user });
+      // Servatrice only updates the fields the edit carried; an omitted one (e.g. an unchanged email on
+      // a hash-capable server) must keep its stored value rather than be blanked by `undefined`.
+      const changed = Object.fromEntries(Object.entries(action.payload.user).filter(([, value]) => value !== undefined));
+      state.user = create(ServerInfo_UserSchema, { ...state.user, ...changed });
     }
   }) as CaseReducer<ServerState, PayloadAction<{ user: Partial<ServerInfo_User> }>>,
 
