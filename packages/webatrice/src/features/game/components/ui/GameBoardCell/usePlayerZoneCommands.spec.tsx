@@ -127,6 +127,17 @@ describe('usePlayerZoneCommands — moveCards', () => {
     ]);
   });
 
+  it('sends the P/T and tapped state a played card lands with', () => {
+    const { commands, game } = renderZone();
+    act(() => {
+      commands().moveCards(ZoneName.HAND, [{ id: 7, pt: '2/2', tapped: true }], { zone: ZoneName.TABLE, index: 'end', row: 1 });
+    });
+
+    expect(vi.mocked(game.moveCard).mock.calls[0][1].cardsToMove).toEqual({
+      card: [{ cardId: 7, pt: '2/2', tapped: true }],
+    });
+  });
+
   it('sends is_reversed only when the caller gives it', () => {
     const { commands, game } = renderZone();
     act(() => commands().moveCards(ZoneName.HAND, [30, 31], { zone: ZoneName.DECK, index: 'end' }));

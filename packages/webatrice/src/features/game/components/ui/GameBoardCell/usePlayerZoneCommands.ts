@@ -70,7 +70,12 @@ export function usePlayerZoneCommands(playerId: number): PlayerZoneCommands | un
         startPlayerId: playerId,
         startZone: from,
         cardsToMove: {
-          card: cards.map((c) => (typeof c === 'number' ? { cardId: c } : { cardId: c.id, faceDown: true })),
+          card: cards.map((c) => (typeof c === 'number' ? { cardId: c } : {
+            cardId: c.id,
+            ...(c.faceDown && { faceDown: true }),
+            ...(c.pt && { pt: c.pt }),
+            ...(c.tapped && { tapped: true }),
+          })),
         },
         targetPlayerId: playerId,
         targetZone: to.zone,

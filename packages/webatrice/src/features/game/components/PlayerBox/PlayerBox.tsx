@@ -37,11 +37,11 @@ import {
   type BattlefieldLayoutOpts,
   type BattlefieldSlot,
 } from '../battlefield/Battlefield/battlefieldLayout';
-import { legacyTableRowFromTypeLine, tableRowToGridY } from '../battlefield/Battlefield/cardPlacement';
 import { MAX_SUBPOS } from '../battlefield/Battlefield/gridMath';
 import { applyPTDelta, applyPTSet, parsePT } from '../context-menus/CardContextMenu/cardAttributeEdits';
 import { buildCardContextMenu, type CardMenuItem } from '../context-menus/CardContextMenu/cardContextMenu.model';
 import {
+  playCardMove,
   resolveHandOrZoneCardMenu,
   selectedHiddenZoneCards,
 } from '../context-menus/CardContextMenu/handCardMenu.actions';
@@ -1143,6 +1143,8 @@ function PlayerBox(
       {
         typeLine: string;
         pt?: string;
+        /** cards.xml `<cipt>`: played face up, the card comes in tapped. */
+        cipt?: boolean;
         manaCost?: string;
         cmc?: number;
         colors?: string[];
@@ -1252,6 +1254,7 @@ function PlayerBox(
             {
               typeLine: r.typeLine ?? '',
               pt,
+              cipt: r.cipt,
               manaCost: r.manaCost,
               cmc: r.cmc,
               colors: r.colors,
@@ -1318,6 +1321,7 @@ function PlayerBox(
             {
               typeLine: r.typeLine ?? '',
               pt,
+              cipt: r.cipt,
               manaCost: r.manaCost,
               cmc: r.cmc,
               colors: r.colors,
@@ -4833,12 +4837,8 @@ function PlayerBox(
                             });
                           }
                         }
-                        const tableRow = legacyTableRowFromTypeLine(typeLine);
-                        if (tableRow === 3) {
-                          onMoveCards(ZoneName.STACK, [cardId], { zone: ZoneName.GRAVE, index: 'end' });
-                        } else {
-                          onMoveCards(ZoneName.STACK, [cardId], { zone: ZoneName.TABLE, index: 'end', row: tableRowToGridY(tableRow) });
-                        }
+                        const play = playCardMove(cardId, { ...cardMetaByName.get(c.name), typeLine }, { fromStack: true });
+                        onMoveCards(ZoneName.STACK, [play.card], play.to);
                       }
                       : undefined
                   }
@@ -5432,15 +5432,8 @@ function PlayerBox(
                             });
                           }
                         }
-                        const tableRow = legacyTableRowFromTypeLine(typeLine);
-                        if (tableRow === 0) {
-                          // Land — straight to the battlefield bottom row.
-                          onMoveCards(ZoneName.HAND, [cardId], { zone: ZoneName.TABLE, index: 'end', row: tableRowToGridY(tableRow) });
-                        } else {
-                          // Non-land (creature / other permanent / instant /
-                          // sorcery / unknown) — detour through the stack.
-                          onMoveCards(ZoneName.HAND, [cardId], { zone: ZoneName.STACK, index: 'end' });
-                        }
+                        const play = playCardMove(cardId, { ...cardMetaByName.get(c.name), typeLine }, { playToStack: true });
+                        onMoveCards(ZoneName.HAND, [play.card], play.to);
                       }}
                       style={{
                         touchAction: 'none',

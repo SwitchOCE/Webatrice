@@ -75,6 +75,14 @@ describe('lookupCard', () => {
     });
   });
 
+  it('reads cards.xml cipt (comes into play tapped)', async () => {
+    cards.get.mockResolvedValue({ ...XML_SWAN_SONG, name: { value: 'Tapland' }, cipt: { value: '1' } });
+    await expect(lookupCard('Tapland')).resolves.toMatchObject({ cipt: true });
+
+    cards.get.mockResolvedValue(XML_SWAN_SONG);
+    expect(await lookupCard('Swan Song')).not.toHaveProperty('cipt');
+  });
+
   it('merges cards.xml base fields with Scryfall related cards and writes the cache', async () => {
     cards.get.mockResolvedValue(XML_SWAN_SONG);
     fetchMock.mockImplementation(() => respond(SCRYFALL_SWAN_SONG));

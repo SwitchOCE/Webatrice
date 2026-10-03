@@ -148,7 +148,13 @@ export interface PlayerBoardModel {
 export type RevealRecipient = number | 'all';
 
 /** One card to move: its server id, or its position in a hidden zone (0 = top of the library). */
-export type SeatMoveCard = number | { id: number; faceDown: true };
+export type SeatMoveCard = number | {
+  id: number;
+  faceDown?: true;
+  /** P/T the card lands with (desktop playCard sets the printed P/T). */
+  pt?: string;
+  tapped?: true;
+};
 
 /** Where a move from one of the seat's zones lands, on the seat's own player. */
 export interface SeatMoveDestination {

@@ -44,6 +44,8 @@ export interface LookupResult {
   colors?: string[]; // ["W", "U", ...]
   power?: string;
   toughness?: string;
+  /** cards.xml `<cipt>1</cipt>`: the card comes into play tapped. */
+  cipt?: boolean;
   /** All known printings. Cards from Dexie may have many; a Scryfall
    *  `/cards/named` lookup returns a single (default) printing. */
   printings: PrintingSummary[];
@@ -467,6 +469,7 @@ function dexieToLookup(card: Card): LookupResult {
     colors: splitColors(readStringProp(prop.colors) ?? readStringProp(prop.coloridentity)),
     power: readStringProp(prop.power),
     toughness: readStringProp(prop.toughness),
+    ...(card.cipt?.value === '1' && { cipt: true }),
     printings,
     related: relatedList.length > 0 ? relatedList : undefined,
   };
