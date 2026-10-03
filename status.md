@@ -5,3 +5,4 @@
 - 15:59Z minors done: engine wall-clock, FF speed, timeline keys, read-only affordances, replayDownload store → remaining minors (library folder, import checks, IDB errors, i18n, docs, fold)
 - 16:08Z all fixes+minors+docs pushed → folding red intermediate commits (rebase), then full gate
 - 16:21Z history rebuilt (specs+i18n folded into feat commits, tree identical), 28/28 commits typecheck, force-pushed → full gate
+- 16:28Z gate: typecheck 5/5, lint 3/3 (fixed 1 lint error, folded), unit+integration green → e2e running
