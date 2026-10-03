@@ -162,7 +162,7 @@ export default defineConfig({
     // workaround needed.
     setupFiles: ['./src/setupTests.ts'],
     // e2e/global-setup.spec.ts unit-tests the Playwright global setup; the other e2e specs are Playwright's.
-    include: ['src/**/*.spec.{ts,tsx}', 'e2e/global-setup.spec.ts'],
+    include: ['src/**/*.spec.{ts,tsx}', 'e2e/global-setup.spec.ts', 'scripts/**/*.spec.mjs'],
     exclude: ['node_modules', 'build', 'integration', 'coverage'],
     isolate: true,
     pool: 'vmThreads',

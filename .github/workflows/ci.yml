@@ -146,6 +146,15 @@ jobs:
       - name: Webatrice lint
         run: npm run -w @cockatrice/webatrice lint
 
+      # Missing and orphan keys, ICU syntax and locale folders. "Install packages"
+      # has just regenerated src/i18n-default.json, so a diff here means the
+      # committed rollup is stale.
+      - name: Webatrice i18n check
+        run: |
+          git diff --exit-code -- packages/webatrice/src/i18n-default.json \
+            || { echo '::error::src/i18n-default.json is stale; run `npm run -w @cockatrice/webatrice translate` and commit it'; exit 1; }
+          npm run -w @cockatrice/webatrice i18n:check
+
   test:
     name: Unit tests (Node ${{ matrix.node_version }})
     needs: [changes]
