@@ -132,9 +132,19 @@ export default function ReportUserDialog({ request, onClose }: ReportUserDialogP
             <div className="grid grid-cols-[max-content_1fr] items-center gap-x-3 gap-y-2">
               <span>{t('ReportUserDialog.reportedUser')}</span>
               <span className="font-semibold text-text-primary" data-testid="report-reported-user">{userName}</span>
-              <label htmlFor="report-user-game-id">{t('ReportUserDialog.gameId')}</label>
               {hasFixedGame ? (
-                <span id="report-user-game-id" className="font-semibold text-text-primary">{gameId}</span>
+                <span id="report-user-game-id-label">{t('ReportUserDialog.gameId')}</span>
+              ) : (
+                <label htmlFor="report-user-game-id">{t('ReportUserDialog.gameId')}</label>
+              )}
+              {hasFixedGame ? (
+                <span
+                  id="report-user-game-id"
+                  aria-labelledby="report-user-game-id-label"
+                  className="font-semibold text-text-primary"
+                >
+                  {gameId}
+                </span>
               ) : (
                 <Controller
                   name="gameId"
