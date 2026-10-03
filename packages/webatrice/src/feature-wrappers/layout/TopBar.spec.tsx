@@ -7,6 +7,7 @@ import { RouteEnum } from '@app/types';
 import { closeReplay, getOpenedReplay, getOpenedReplays, openReplay } from '@app/services';
 import { buildReplay, sayContainer } from '../../services/replay/__mocks__/fixtures';
 
+import { getSettings, settingsStore } from '../../hooks/useSettings';
 import { ShellLifecycleProvider, type ShellLifecycle } from './ShellLifecycleContext';
 import TopBar from './TopBar';
 
@@ -20,14 +21,14 @@ function LocationProbe() {
 
 function renderTopBar(route: string = RouteEnum.SERVER, preloadedState = connectedState) {
   const lifecycle: ShellLifecycle = { onIdentityChanged: vi.fn() };
-  renderWithProviders(
+  const { unmount } = renderWithProviders(
     <ShellLifecycleProvider value={lifecycle}>
       <TopBar />
       <LocationProbe />
     </ShellLifecycleProvider>,
     { preloadedState, route },
   );
-  return lifecycle;
+  return { ...lifecycle, unmount };
 }
 
 describe('TopBar shell lifecycle port', () => {
@@ -226,5 +227,38 @@ describe('TopBar report entries (#7091)', () => {
     renderAs('3.0.0 ()', Level.IsUser | Level.IsRegistered | Level.IsModerator);
     expect(screen.queryByRole('button', { name: 'UserMenu.myReports' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'UserMenu.reportQueue' })).not.toBeInTheDocument();
+  });
+});
+
+describe('TopBar deck tabs', () => {
+  const deckTab = () => screen.queryAllByRole('tab', { name: /^Deck #/ }).map((tab) => tab.textContent);
+
+  beforeEach(async () => {
+    window.localStorage.clear();
+    settingsStore.reset();
+    await getSettings();
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+    settingsStore.reset();
+  });
+
+  it('keeps one deck tab by default, as desktop does with the option off', () => {
+    renderTopBar('/deck/1').unmount();
+    renderTopBar('/deck/2');
+
+    expect(deckTab()).toEqual(['Deck #2']);
+  });
+
+  it('opens a tab per deck once "Open deck in new tab by default" is on', async () => {
+    const settings = await getSettings();
+    settings.openDeckInNewTab = true;
+    settingsStore.setValue(settings);
+
+    renderTopBar('/deck/1').unmount();
+    renderTopBar('/deck/2');
+
+    expect(deckTab().sort()).toEqual(['Deck #1', 'Deck #2']);
   });
 });

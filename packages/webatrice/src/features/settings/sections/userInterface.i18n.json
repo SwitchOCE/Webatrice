@@ -4,6 +4,7 @@
       "general": "General interface settings",
       "notifications": "Notifications settings",
       "animation": "Animation settings",
+      "deckEditor": "Deck editor/storage settings",
       "replay": "Replay settings"
     },
     "playToStack": {
@@ -36,6 +37,10 @@
     },
     "tapAnimation": {
       "label": "Tap/untap animation"
+    },
+    "openDeckInNewTab": {
+      "label": "Open deck in new tab by default",
+      "description": "With this off, opening a deck replaces the deck tab you had open."
     },
     "replayRewindBufferingMs": {
       "label": "Buffer time for backwards skip via shortcut",
