@@ -11,3 +11,5 @@ Room and chat commands now report their failures the way desktop handles them, w
 **Private messages.** `message` reports `RespInIgnoreList`, `RespNameNotFound` and `RespChatFlood` rejections (desktop `TabMessage::messageSent`), or a message the server never answered, through the new `ISessionResponse.privateMessageFailed?(userName, message, responseCode, failure?)` with the unsent text.
 
 **A user's games.** `getGamesOfUser` reports the request through the new `ISessionResponse.getGamesOfUserPending?(userName)` and `getGamesOfUserFailed?(userName, responseCode, failure?)`, alongside the existing success callback.
+
+**After a disconnect.** Commands still in flight when the session ends (DISCONNECTED) are failed after the response layer has reset for that session, so `roomSayFailed`, `privateMessageFailed`, `joinRoomFailed` and `getGamesOfUserFailed` are not called for them; a failure while RECONNECTING is still reported.

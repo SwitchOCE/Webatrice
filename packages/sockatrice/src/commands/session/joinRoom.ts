@@ -9,6 +9,7 @@ import {
   Response_JoinRoom_ext,
   Response_ResponseCode,
 } from '../../generated';
+import { outlivedSession } from '../outlivedSession';
 import { pendingRoomJoins as pendingJoins } from './pendingRoomJoins';
 
 /**
@@ -69,7 +70,7 @@ function sendJoinRoom(roomId: number, isHealingRejoin: boolean): void {
       },
     },
     onError: (responseCode, _raw, failure) => {
-      if (settle()) {
+      if (settle() && !outlivedSession(failure)) {
         WebClient.instance.response.room.joinRoomFailed?.(roomId, responseCode, failure);
       }
     },
