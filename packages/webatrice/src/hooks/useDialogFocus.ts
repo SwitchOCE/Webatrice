@@ -64,10 +64,12 @@ export const closestLandmark: ReturnFocusTo = (opener) =>
 export const closestList: ReturnFocusTo = (opener) =>
   opener.closest<HTMLElement>('[role="list"],[role="log"]') ?? closestLandmark(opener);
 
-/** Focus an element that may not be focusable on its own (a landmark or a list). */
+/** Focus an element that may not be focusable on its own (a landmark or a list). A `tabindex`
+ *  added for it comes off again once focus leaves, so later clicks inside don't focus the container. */
 function focusFallback(element: HTMLElement) {
   if (!element.hasAttribute('tabindex') && element.tabIndex < 0) {
     element.setAttribute('tabindex', '-1');
+    element.addEventListener('blur', () => element.removeAttribute('tabindex'), { once: true });
   }
   element.focus();
 }
