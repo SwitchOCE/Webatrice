@@ -824,12 +824,13 @@ describe('replayDownload', () => {
     expect(WebClient.instance.response.session.replayDownloaded).toHaveBeenCalledWith(99, resp);
   });
 
-  it('hands the replay bytes to onDownloaded', () => {
+  it('hands the replay bytes to onDownloaded only, keeping them out of the store', () => {
     const onDownloaded = vi.fn();
     replayDownload(99, onDownloaded);
     const replayData = new Uint8Array([1, 2, 3]);
     invokeOnSuccess({ replayData }, { responseCode: 0 });
     expect(onDownloaded).toHaveBeenCalledWith(replayData);
+    expect(WebClient.instance.response.session.replayDownloaded).not.toHaveBeenCalled();
   });
 
   it('forwards onFailure with the response code', () => {
