@@ -1,0 +1,133 @@
+import { Route, Routes, useLocation } from 'react-router-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fireEvent, screen, within } from '@testing-library/react';
+import { create } from '@bufbuild/protobuf';
+
+import { UserDisplay } from '@app/components';
+import { UserGamesProvider } from '@app/feature-widgets/user-games';
+import {
+  Command_GetGamesOfUser_ext,
+  Command_JoinGame_ext,
+  Command_JoinRoom_ext,
+  Event_GameJoinedSchema,
+  Event_GameJoined_ext,
+  Event_ListRoomsSchema,
+  Event_ListRooms_ext,
+  Event_UserJoinedSchema,
+  Event_UserJoined_ext,
+  Response_GetGamesOfUserSchema,
+  Response_GetGamesOfUser_ext,
+  Response_JoinRoomSchema,
+  Response_JoinRoom_ext,
+  Response_ResponseCode,
+  ServerInfo_GameSchema,
+  ServerInfo_GameTypeSchema,
+  ServerInfo_RoomSchema,
+  ServerInfo_UserSchema,
+} from '@cockatrice/sockatrice/generated';
+
+import { connectAndLogin } from '../helpers/setup';
+import { buildResponse, buildResponseMessage, buildSessionEventMessage, deliverMessage } from '../helpers/protobuf-builders';
+import { findLastRoomCommand, findLastSessionCommand } from '../helpers/command-capture';
+import { renderFeatureScreen, simulateLoggedIn } from './helpers';
+
+const bob = create(ServerInfo_UserSchema, { name: 'bob', country: 'us' });
+
+const room = create(ServerInfo_RoomSchema, {
+  roomId: 2,
+  name: 'Constructed',
+  autoJoin: true,
+  gametypeList: [create(ServerInfo_GameTypeSchema, { gameTypeId: 1, description: 'Standard' })],
+});
+
+const bobsGame = create(ServerInfo_GameSchema, {
+  gameId: 7,
+  roomId: 2,
+  description: 'Friday casual',
+  withPassword: true,
+  playerCount: 1,
+  maxPlayers: 2,
+  gameTypes: [1],
+  creatorInfo: { name: 'bob' },
+});
+
+function LocationProbe() {
+  return <div data-testid="location">{useLocation().pathname}</div>;
+}
+
+// Logged in, auto-joined to bob's room, and bob online.
+function setupLobby() {
+  connectAndLogin('alice');
+  simulateLoggedIn();
+  deliverMessage(buildSessionEventMessage(Event_ListRooms_ext, create(Event_ListRoomsSchema, { roomList: [room] })));
+  const join = findLastSessionCommand(Command_JoinRoom_ext);
+  deliverMessage(buildResponseMessage(buildResponse({
+    cmdId: join.cmdId,
+    ext: Response_JoinRoom_ext,
+    value: create(Response_JoinRoomSchema, { roomInfo: room }),
+  })));
+  deliverMessage(buildSessionEventMessage(Event_UserJoined_ext, create(Event_UserJoinedSchema, { userInfo: bob })));
+
+  renderFeatureScreen(
+    <Routes>
+      <Route path="*" element={<UserGamesProvider><UserDisplay user={bob} /><LocationProbe /></UserGamesProvider>} />
+    </Routes>,
+    '/server',
+  );
+}
+
+function openShowGames() {
+  fireEvent.contextMenu(screen.getByText('bob'));
+  fireEvent.click(screen.getByRole('menuitem', { name: /UserGamesDialog\.menu\.showGames/ }));
+  return findLastSessionCommand(Command_GetGamesOfUser_ext);
+}
+
+beforeEach(() => {
+  vi.useRealTimers();
+});
+
+describe('Show games of a user (integration)', () => {
+  it('lists the games of the user and joins one through the password prompt', async () => {
+    setupLobby();
+    const request = openShowGames();
+    expect(request.value.userName).toBe('bob');
+
+    deliverMessage(buildResponseMessage(buildResponse({
+      cmdId: request.cmdId,
+      ext: Response_GetGamesOfUser_ext,
+      value: create(Response_GetGamesOfUserSchema, { roomList: [room], gameList: [bobsGame] }),
+    })));
+
+    const dialog = screen.getByRole('dialog', { name: 'UserGamesDialog.title' });
+    const row = (await within(dialog).findByText('Friday casual')).closest('tr')!;
+    expect(row).toHaveTextContent('Constructed');
+    expect(row).toHaveTextContent('Standard');
+
+    fireEvent.doubleClick(row);
+    fireEvent.change(await screen.findByLabelText('UserGamesDialog.password.label'), { target: { value: 'hunter2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'UserGamesDialog.password.submit' }));
+
+    const joinGame = findLastRoomCommand(Command_JoinGame_ext);
+    expect(joinGame.roomId).toBe(2);
+    expect(joinGame.value).toMatchObject({ gameId: 7, password: 'hunter2', spectator: false });
+
+    deliverMessage(buildResponseMessage(buildResponse({ cmdId: joinGame.cmdId })));
+    deliverMessage(buildSessionEventMessage(Event_GameJoined_ext, create(Event_GameJoinedSchema, {
+      gameInfo: bobsGame, playerId: 1, hostId: 1,
+    })));
+
+    expect(await screen.findByText('/game/7')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'UserGamesDialog.title' })).not.toBeInTheDocument();
+  });
+
+  it('explains why the games of a user who ignores you cannot be shown', async () => {
+    setupLobby();
+    const request = openShowGames();
+    deliverMessage(buildResponseMessage(buildResponse({
+      cmdId: request.cmdId,
+      responseCode: Response_ResponseCode.RespInIgnoreList,
+    })));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('UserGamesDialog.error.ignored');
+  });
+});

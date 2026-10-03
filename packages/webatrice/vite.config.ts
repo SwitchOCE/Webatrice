@@ -63,6 +63,7 @@ export default defineConfig({
       '@app/feature-widgets/known-hosts': srcPath('feature-widgets/known-hosts/index.ts'),
       '@app/feature-widgets/moderation': srcPath('feature-widgets/moderation/index.ts'),
       '@app/feature-widgets/shortcuts': srcPath('feature-widgets/shortcuts/index.ts'),
+      '@app/feature-widgets/user-games': srcPath('feature-widgets/user-games/index.ts'),
       '@app/store': srcPath('store/index.ts'),
       '@app/types': srcPath('types/index.ts'),
       '@app/utils': srcPath('utils/index.ts'),
