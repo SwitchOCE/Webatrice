@@ -131,7 +131,8 @@ describe('usePlayer', () => {
   });
 
   describe('private messages', () => {
-    const conversation = [
+    // Fresh objects per test: the filters remember each message's verdict.
+    const conversation = () => [
       { senderName: 'alice', receiverName: 'TestUser', message: 'hi' },
       { senderName: 'TestUser', receiverName: 'alice', message: 'hello' },
       { senderName: 'alice', receiverName: 'TestUser', message: 'how are you' },
@@ -139,7 +140,7 @@ describe('usePlayer', () => {
     const withConversation = (overrides = {}) => stateWithPlayer('alice', {
       user: makeUser({ name: 'TestUser' }),
       users: { alice: makeUser({ name: 'alice', userLevel: 3 }) },
-      messages: { alice: conversation },
+      messages: { alice: conversation() },
       ...overrides,
     });
     const texts = (entries: { type: string; message?: { message: string }; notice?: { kind: string } }[]) =>

@@ -5,7 +5,7 @@ import { Send, Hash } from 'lucide-react';
 import { Message as MessageBubble } from '@app/components';
 import { ReportChatScope } from '@app/dialogs';
 import { useChatHighlight, useCommandFailureMessage, useReduxEffect, useRoomChatFilter } from '@app/hooks';
-import { isPrivilegedUser, isRoomMessageVisible } from '@app/utils';
+import { chatFilterVerdicts, isPrivilegedUser, isRoomMessageVisible } from '@app/utils';
 import { rooms, type Message } from '@cockatrice/datatrice';
 import type { ServerInfo_User } from '@cockatrice/sockatrice/generated';
 
@@ -48,11 +48,12 @@ function RoomChatView({ roomId, roomName, messages: allMessages, users, onSay }:
   const scrollRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState('');
   // Settings → Chat: room history and unregistered-sender filtering, and the reader's mention /
-  // alert-word highlighting. Ignored senders never reach the store (Datatrice drops them).
+  // alert-word highlighting. Ignored senders never reach the store (Datatrice drops them). Each
+  // line keeps the verdict AppAlerts gave it on arrival.
   const filter = useRoomChatFilter();
   const highlights = useChatHighlight();
   const messages = useMemo(
-    () => allMessages?.filter((m) => isRoomMessageVisible(m, users, filter)),
+    () => allMessages?.filter((m) => isRoomMessageVisible(m, users, filter, chatFilterVerdicts)),
     [allMessages, users, filter],
   );
 

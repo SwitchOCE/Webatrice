@@ -13,8 +13,7 @@ import { UserGamesProvider } from '@app/feature-widgets/user-games';
 import { loadPersistedLastRoute, ShellLifecycleProvider } from '@app/feature-wrappers/layout';
 import { PrivateMessageNotifier } from '@app/features/player';
 import { ReportNotifier } from '@app/features/reports';
-import { CommandFailureNotices, FeatureDetection, ServerNotices } from '@app/features/shell';
-import { AppAlerts } from '@app/features/shell';
+import { AppAlerts, CommandFailureNotices, FeatureDetection, ServerNotices } from '@app/features/shell';
 import { appShellLifecycle } from './appShellLifecycle';
 import { SessionScope } from './SessionScope';
 
