@@ -68,7 +68,7 @@ const InputField = ({
         disabled={disabled}
         autoComplete={rest.autoComplete ?? 'off'}
         aria-invalid={showError || undefined}
-        aria-describedby={showError ? errorId : rest['aria-describedby']}
+        aria-describedby={[showError && errorId, rest['aria-describedby']].filter(Boolean).join(' ') || undefined}
         className={[
           'w-full px-3 py-2 rounded-md text-sm text-text-primary bg-bg-elevated border transition-colors',
           'placeholder:text-text-muted',
