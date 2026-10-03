@@ -42,6 +42,7 @@
       "loadFailed": "Could not read the local replay library.",
       "saveFailed": "Could not save the replay to the local library.",
       "missingData": "The replay data for this entry is missing.",
+      "readFailed": "Could not read the replay from the local library.",
       "invalidFile": "\"{name}\" is not a Cockatrice replay (.cor) file.",
       "invalidFiles": "These files are not Cockatrice replays and were not imported: {names}",
       "tooLarge": "These files are too large to be replays and were not imported: {names}",
