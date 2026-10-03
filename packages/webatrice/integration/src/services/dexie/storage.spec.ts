@@ -26,6 +26,7 @@ async function seed(): Promise<void> {
   await dexieService.formats.put({ formatName: 'modern' });
   await dexieService.info.put({ id: 'singleton', source: 'oracle-local-fs', importedAt: '2026-01-01' });
   await dexieService.cardSources.put({ id: 'main', kind: 'main', fileName: 'cards.xml', origin: 'file', order: 0 });
+  await dexieService.cardSourcePayloads.put({ id: 'main', xml: cardsXml });
   await dexieService.setPreferences.put({ code: 'LEA', sortKey: 0, enabled: true, isKnown: true });
   await dexieService.cardDataSettings.put({ id: 'singleton', pictureUrlTemplates: [], alwaysEnableNewSets: false });
   await dexieService.scryfallCache.put({ name: 'Island' });
@@ -43,6 +44,7 @@ beforeEach(async () => {
     Stores.FORMATS,
     Stores.INFO,
     Stores.CARD_SOURCES,
+    Stores.CARD_SOURCE_PAYLOADS,
     Stores.SET_PREFERENCES,
     Stores.CARD_DATA_SETTINGS,
     Stores.SCRYFALL_CACHE,
@@ -61,6 +63,7 @@ describe('Storage clears (real Dexie)', () => {
       [Stores.FORMATS]: 1,
       [Stores.INFO]: 1,
       [Stores.CARD_SOURCES]: 1,
+      [Stores.CARD_SOURCE_PAYLOADS]: 1,
       [Stores.SET_PREFERENCES]: 1,
       [Stores.CARD_DATA_SETTINGS]: 1,
       [Stores.SCRYFALL_CACHE]: 1,
@@ -84,6 +87,7 @@ describe('Storage clears (real Dexie)', () => {
     expect([counts[Stores.CARDS], counts[Stores.SETS], counts[Stores.TOKENS], counts[Stores.FORMATS], counts[Stores.INFO]])
       .toEqual([0, 0, 0, 0, 0]);
     expect(counts[Stores.CARD_SOURCES]).toBe(0);
+    expect(counts[Stores.CARD_SOURCE_PAYLOADS]).toBe(0);
     expect(counts[Stores.SET_PREFERENCES]).toBe(1);
     expect(counts[Stores.CARD_DATA_SETTINGS]).toBe(1);
     expect(counts[Stores.SETTINGS]).toBe(1);
@@ -106,4 +110,5 @@ describe('Delete card data with loaded sources (real Dexie)', () => {
     expect(await cardDatabaseService.listSources()).toEqual([]);
     expect(await dexieService.setPreferences.toArray()).toEqual(preferences);
   });
+
 });

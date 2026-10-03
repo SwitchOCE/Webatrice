@@ -8,9 +8,9 @@ import { dexieService, Stores } from '../dexie';
  */
 
 /**
- * Imported card database: the loaded files (`cardSources`) and the tables rebuilt from them.
- * Clearing the sources too keeps a later "Reload card database" from bringing the cards back.
- * Re-importable.
+ * The card database: the loaded files (`cardSources` and their contents) and the tables rebuilt
+ * from them. Clearing the sources too keeps a later "Reload card database" from bringing the cards
+ * back. Re-importable.
  */
 export const CARD_DATA_STORES: readonly Stores[] = [
   Stores.CARDS,
@@ -19,6 +19,7 @@ export const CARD_DATA_STORES: readonly Stores[] = [
   Stores.FORMATS,
   Stores.INFO,
   Stores.CARD_SOURCES,
+  Stores.CARD_SOURCE_PAYLOADS,
 ];
 
 /**

@@ -17,7 +17,8 @@ export interface CardDatabaseOverviewProps {
   onViewSets?: () => void;
 }
 
-const REMOVABLE: ReadonlyArray<CardSource['kind']> = ['custom', 'spoiler'];
+// An earlier (pre-v7) import can be removed once the user has imported what they need again.
+const REMOVABLE: ReadonlyArray<CardSource['kind']> = ['custom', 'spoiler', 'legacy'];
 
 const formatDate = (iso?: string) => (iso ? new Date(iso).toLocaleString() : '');
 
