@@ -8,7 +8,15 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
-import { battlefieldEl, buildSeatGameState, cardEl, layoutBoxes, pileEl } from './__test-utils__/seatFixtures';
+import {
+  battlefieldEl,
+  buildSeatGameState,
+  cardEl,
+  chooseMenuPath,
+  layoutBoxes,
+  openContextMenu,
+  pileEl,
+} from './__test-utils__/seatFixtures';
 import Game from './Game';
 
 vi.mock('../../hooks/useSettings');
@@ -136,6 +144,46 @@ describe('seat drags on the game DnD coordinator', () => {
     expect(live('pointerup')).toBe(0);
     expect(ghosts()).toHaveLength(0);
     expect(document.body.style.cursor).toBe('');
+  });
+
+  it('graveyard pile → hand moves the top card to the insertion index', () => {
+    const game = renderLaidOut();
+    const live = trackWindowListeners();
+
+    dragThrough(pileEl('Graveyard', 0), { x: 1000, y: 220 }, { x: 200, y: 550 }, () => {
+      expect(live('pointermove')).toBe(1);
+      expect(ghosts()).toHaveLength(1);
+    });
+
+    expect(game.moveCard).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
+      startZone: ZoneName.GRAVE,
+      cardsToMove: { card: [{ cardId: DURESS.id }] },
+      targetZone: ZoneName.HAND,
+      x: 2,
+    });
+    expect(live('pointermove')).toBe(0);
+  });
+
+  it('the graveyard view drags its cards onto the battlefield; a drop back on it is a no-op', () => {
+    const game = renderLaidOut();
+    openContextMenu(pileEl('Graveyard', 0));
+    chooseMenuPath('View graveyard');
+    const dialogCard = document.querySelector<HTMLElement>(
+      `.pointer-events-auto.resize [data-card-id="${DURESS.id}"]`,
+    )!;
+    expect(dialogCard).not.toBeNull();
+
+    dragThrough(dialogCard, { x: 5, y: 5 }, { x: 300, y: 100 }, () => {
+      expect(ghosts()).toHaveLength(1);
+    });
+
+    expect(game.moveCard).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
+      startZone: ZoneName.GRAVE,
+      cardsToMove: { card: [{ cardId: DURESS.id }] },
+      targetZone: ZoneName.TABLE,
+    });
   });
 
   it('hides the dragged hand card while the ghost carries it', () => {

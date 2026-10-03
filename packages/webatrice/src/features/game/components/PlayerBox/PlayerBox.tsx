@@ -2808,6 +2808,10 @@ function PlayerBox(
     [handCards, battlefieldCards, stackCards],
   );
   const { selection, setSelection, clearAllSelection } = useSeatSelection(playerId, selectableCards);
+  // The seat drag in progress from this seat (see the seat DnD block below).
+  const seatId = playerId ?? Number(player.user_id);
+  const activeSeatDrag = useActiveSeatDrag();
+  const seatDrag = activeSeatDrag?.seatPlayerId === seatId ? activeSeatDrag : null;
   // "View library" dialog (full-deck reveal). Opened via the library
   // context menu; fires Command_DumpZone(numberCards=-1) on open so
   // the dialog reads the server-authoritative revealed cards.
@@ -3856,7 +3860,24 @@ function PlayerBox(
     card: HandCard,
     zone: Exclude<DragSourceZone, 'hand' | 'battlefield' | 'stack'>,
   ) => {
+    const start = seatDragSources[zone];
+    if (start) {
+      start(e, [card]);
+      return;
+    }
     beginDrag(e, [card], zone);
+  };
+
+  /** Ids of the cards a drag from `zone` is carrying, for dialogs that hide
+   *  them while the ghost has them. */
+  const draggingIdsFrom = (zone: DragSourceZone): Set<string> | undefined => {
+    if (drag?.sourceZone === zone) {
+      return new Set(drag.cards.map((c) => c.id));
+    }
+    if (seatDrag?.zone === zone) {
+      return new Set(seatDrag.cards.map((c) => c.id));
+    }
+    return undefined;
   };
 
   /** True if this specific card is currently part of an active drag.
@@ -5555,9 +5576,9 @@ function PlayerBox(
     });
   };
   const graveyardTopIdx =
-    graveDisplayList.length - 1 - (drag?.sourceZone === 'graveyard' ? 1 : 0);
+    graveDisplayList.length - 1 - (drag?.sourceZone === 'graveyard' || seatDrag?.zone === 'graveyard' ? 1 : 0);
   const exileTopIdx =
-    exileDisplayList.length - 1 - (drag?.sourceZone === 'exile' ? 1 : 0);
+    exileDisplayList.length - 1 - (drag?.sourceZone === 'exile' || seatDrag?.zone === 'exile' ? 1 : 0);
   const graveyardTop =
     graveyardTopIdx >= 0 ? graveDisplayList[graveyardTopIdx] : null;
   const exileTop = exileTopIdx >= 0 ? exileDisplayList[exileTopIdx] : null;
@@ -6703,15 +6724,22 @@ function PlayerBox(
   // The game's DnD coordinator drives these drags; this seat says what is
   // dragged and, for each zone it renders, where a drop on it lands (it owns
   // the zone's layout).
-  const seatId = playerId ?? Number(player.user_id);
-  const activeSeatDrag = useActiveSeatDrag();
-  const seatDrag = activeSeatDrag?.seatPlayerId === seatId ? activeSeatDrag : null;
 
   const handDragSource = useSeatDragSource(`seat-${seatId}-hand`, { seatPlayerId: seatId, zone: 'hand' });
   const stackDragSource = useSeatDragSource(`seat-${seatId}-stack`, { seatPlayerId: seatId, zone: 'stack' });
+  const graveyardDragSource = useSeatDragSource(`seat-${seatId}-graveyard`, { seatPlayerId: seatId, zone: 'graveyard' });
+  const exileDragSource = useSeatDragSource(`seat-${seatId}-exile`, { seatPlayerId: seatId, zone: 'exile' });
+  // The graveyard / exile / hand view dialog drags from the pile it shows.
+  const pileViewDragSource = useSeatDragSource(`seat-${seatId}-pile-view`, {
+    seatPlayerId: seatId,
+    zone: pileView?.zone ?? 'graveyard',
+    disabled: !pileView,
+  });
   const seatDragSources: Partial<Record<DragSourceZone, SeatDragStart>> = {
     hand: handDragSource,
     stack: stackDragSource,
+    graveyard: graveyardDragSource,
+    exile: exileDragSource,
   };
 
   // Same group rule as startCardDrag: a press on a card in the selection
@@ -9320,7 +9348,7 @@ function PlayerBox(
           playerName={name}
           onCardPointerDown={
             isSelf
-              ? (e, c) => beginDrag(e, [c], pileView.zone)
+              ? (e, c) => pileViewDragSource(e, [c])
               : undefined
           }
           // Per-card right-click menu. Anchors at the pointer so it
@@ -9352,11 +9380,7 @@ function PlayerBox(
           // instead of falling through to the battlefield behind.
           // Without this the modal was invisible to drop detection.
           dropRef={pileViewDialogZoneRef}
-          draggingCardIds={
-            drag?.sourceZone === pileView.zone
-              ? new Set(drag.cards.map((c) => c.id))
-              : undefined
-          }
+          draggingCardIds={draggingIdsFrom(pileView.zone)}
           onClose={() => setPileView(null)}
         />
       )}
