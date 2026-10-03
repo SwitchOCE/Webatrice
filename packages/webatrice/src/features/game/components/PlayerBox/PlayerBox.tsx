@@ -37,6 +37,7 @@ import {
   type BattlefieldLayoutOpts,
   type BattlefieldSlot,
 } from '../battlefield/Battlefield/battlefieldLayout';
+import { legacyTableRowFromTypeLine, tableRowToGridY } from '../battlefield/Battlefield/cardPlacement';
 import { MAX_SUBPOS } from '../battlefield/Battlefield/gridMath';
 import type { BattlefieldCardViewModel, PlayerCardViewModel } from '../ui/PlayerBoard/playerBoard.types';
 import { useCardScale } from './cardScale';
@@ -201,40 +202,6 @@ function wireZoneName(
     case 'sideboard':
       return ZoneName.SIDEBOARD;
   }
-}
-
-/** Classify a Scryfall type line into Cockatrice's `tableRow` values
- *  (as assigned by `oracle/src/oracleimporter.cpp`):
- *    • 0 → lands
- *    • 1 → non-creature permanents (artifacts / enchantments /
- *          planeswalkers / battles)
- *    • 2 → creatures
- *    • 3 → instants / sorceries (stack targets)
- *  Order matters: "artifact creature" must classify as creature, and
- *  "creature land" (Nissa, Vastwood Seer's back etc.) resolves to
- *  creature per Cockatrice's own convention. */
-function typeLineToTableRow(typeLine: string): 0 | 1 | 2 | 3 {
-  const t = typeLine.toLowerCase();
-  if (t.includes('instant') || t.includes('sorcery')) {
-    return 3;
-  }
-  if (t.includes('creature')) {
-    return 2;
-  }
-  if (t.includes('land')) {
-    return 0;
-  }
-  return 1;
-}
-
-/** Cockatrice's `TableZone::tableRowToGridY` — inverts the semantic
- *  row so wire y ∈ {0, 1, 2} lines up with owner-perspective visual
- *  rows (lands at top, creatures at bottom). tableRow=3 falls back
- *  to the non-creature-permanent row; if the target ends up on the
- *  stack that's picked separately via the target-zone selection. */
-function tableRowToGridY(tableRow: number): number {
-  const clamped = tableRow > 2 ? 1 : tableRow;
-  return 2 - clamped;
 }
 
 // ---------- Card context menu (right-click on a battlefield card) ----------
@@ -8609,7 +8576,7 @@ function PlayerBox(
                             });
                           }
                         }
-                        const tableRow = typeLineToTableRow(typeLine);
+                        const tableRow = legacyTableRowFromTypeLine(typeLine);
                         if (tableRow === 3) {
                           onMoveCard({
                             startPlayerId: playerId,
@@ -9239,7 +9206,7 @@ function PlayerBox(
                             });
                           }
                         }
-                        const tableRow = typeLineToTableRow(typeLine);
+                        const tableRow = legacyTableRowFromTypeLine(typeLine);
                         if (tableRow === 0) {
                           // Land — straight to the battlefield bottom row.
                           onMoveCard({
