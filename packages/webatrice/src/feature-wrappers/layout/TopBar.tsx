@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { useLocation, useNavigate, generatePath, matchPath } from 'react-router-dom';
+import { Link, useLocation, useNavigate, generatePath, matchPath } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   User, LogOut, Home as HomeIcon, Swords, Library, LibraryBig,
@@ -381,12 +381,7 @@ export default function TopBar() {
 
         {/* Tabs */}
         <div className="flex-1 min-w-0 h-full px-3">
-          <TabList
-            tabs={tabs}
-            activeKey={activeKey}
-            onActivate={(tab) => navigate(tab.route)}
-            onClose={handleClose}
-          />
+          <TabList tabs={tabs} activeKey={activeKey} onClose={handleClose} />
         </div>
 
         {/* Right cluster */}
@@ -438,62 +433,75 @@ export default function TopBar() {
 interface TabListProps {
   tabs: Tab[];
   activeKey: string;
-  onActivate: (tab: Tab) => void;
   onClose: (tab: Tab) => void;
 }
 
-function TabList({ tabs, activeKey, onActivate, onClose }: TabListProps) {
+/**
+ * The open rooms, games, replays and pages. Each tab is a route, so this is
+ * page navigation (links with aria-current), not an ARIA tablist: there are no
+ * tab panels and every tab is reachable with Tab. The current tab comes from
+ * `activeKey` rather than NavLink's own matching, which can't express the
+ * fall-back to the Lobby. Close is a sibling button, never nested in the link.
+ */
+function TabList({ tabs, activeKey, onClose }: TabListProps) {
+  const { t } = useTranslation();
   return (
-    <div
-      role="tablist"
-      className="flex items-end h-full gap-0.5 overflow-x-auto overflow-y-hidden min-w-0"
-    >
-      {tabs.map((tab) => {
-        const Icon = TYPE_ICON[tab.type];
-        const active = tab.key === activeKey;
-        return (
-          <div
-            key={tab.key}
-            role="tab"
-            aria-selected={active}
-            onClick={() => onActivate(tab)}
-            onAuxClick={(e) => {
-              if (e.button === 1 && tab.closeable) {
-                e.preventDefault();
-                onClose(tab);
-              }
-            }}
-            className={[
-              'group relative flex items-center gap-2 h-9 pl-3 pr-2 rounded-t-md',
-              'cursor-pointer select-none min-w-[140px] max-w-[220px] shrink-0 transition-colors',
-              active
-                ? 'bg-bg-base text-text-primary border border-b-0 border-border-subtle'
-                : 'bg-bg-elevated/40 text-text-secondary hover:bg-bg-elevated hover:text-text-primary',
-            ].join(' ')}
-          >
-            <Icon size={14} className={active ? 'text-accent' : 'text-text-muted'} />
-            <span className="flex-1 text-sm truncate">{tab.title}</span>
-            {tab.closeable ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
+    <nav aria-label={t('TopBar.tabs.label')} className="h-full">
+      <ul className="flex items-end h-full gap-0.5 overflow-x-auto overflow-y-hidden min-w-0">
+        {tabs.map((tab) => {
+          const Icon = TYPE_ICON[tab.type];
+          const active = tab.key === activeKey;
+          return (
+            <li
+              key={tab.key}
+              // Middle-click closes, like desktop's tab bar (and instead of
+              // opening the link in a new browser tab).
+              onAuxClick={(e) => {
+                if (e.button === 1 && tab.closeable) {
+                  e.preventDefault();
                   onClose(tab);
-                }}
+                }
+              }}
+              className={[
+                'group relative flex items-center gap-2 h-9 pr-2 rounded-t-md',
+                'select-none min-w-[140px] max-w-[220px] shrink-0 transition-colors',
+                active
+                  ? 'bg-bg-base text-text-primary border border-b-0 border-border-subtle'
+                  : 'bg-bg-elevated/40 text-text-secondary hover:bg-bg-elevated hover:text-text-primary',
+              ].join(' ')}
+            >
+              <Link
+                to={tab.route}
+                aria-current={active ? 'page' : undefined}
                 className={[
-                  'p-0.5 rounded hover:bg-border-subtle text-text-muted',
-                  'hover:text-text-primary opacity-60 group-hover:opacity-100 transition-opacity',
+                  'flex-1 min-w-0 self-stretch flex items-center gap-2 pl-3 rounded-t-md',
+                  'focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
                 ].join(' ')}
-                title="Close tab"
               >
-                <X size={12} />
-              </button>
-            ) : (
-              <span className="w-4" aria-hidden />
-            )}
-          </div>
-        );
-      })}
-    </div>
+                <Icon size={14} aria-hidden className={active ? 'text-accent' : 'text-text-muted'} />
+                <span className="flex-1 text-sm truncate">{tab.title}</span>
+              </Link>
+              {tab.closeable ? (
+                <button
+                  type="button"
+                  onClick={() => onClose(tab)}
+                  className={[
+                    'p-0.5 rounded hover:bg-border-subtle text-text-muted hover:text-text-primary',
+                    'opacity-60 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity',
+                  ].join(' ')}
+                  title={t('TopBar.tabs.close', { title: tab.title })}
+                  aria-label={t('TopBar.tabs.close', { title: tab.title })}
+                >
+                  <X size={12} aria-hidden />
+                </button>
+              ) : (
+                <span className="w-4" aria-hidden />
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }
 

@@ -6,7 +6,7 @@ import type { Page } from '@playwright/test';
 import { expect, test } from '../fixtures/test';
 import { E2E_MODERATOR, reachRoomsAs, registerAndJoinFirstRoom } from '../fixtures/flows';
 import { randomSuffix } from '../fixtures/users';
-import { GamePage } from '../pages';
+import { GamePage, topBarTab } from '../pages';
 import { ReplaysPage } from '../pages/ReplaysPage';
 
 // User reports and the moderation queue (Cockatrice #7091). The flow needs a
@@ -160,5 +160,5 @@ test('a moderator watches the reported game\'s replay from the queue', async ({ 
   const replay = new ReplaysPage(pageMod);
   await expect(replay.controls).toBeVisible({ timeout: 30_000 });
   await expect(replay.log).toContainText(`You are watching a replay of game #${gameId}`);
-  await expect(pageMod.getByRole('tab', { name: new RegExp(`Report game #${gameId}`) })).toBeVisible();
+  await expect(topBarTab(pageMod, new RegExp(`Report game #${gameId}`))).toBeVisible();
 });

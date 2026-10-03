@@ -1,5 +1,7 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
+import { topBarTab } from './TopBar';
+
 // Page object for the rooms list view (`/server`) and an opened Room
 // (`/room/:roomId`). The same instance is used either side of the room
 // transition; `openRoom` navigates and `waitForRoomList` confirms the
@@ -7,14 +9,15 @@ import { expect, type Locator, type Page } from '@playwright/test';
 //
 // The Tailwind rewrite replaced the MUI `LeftNav` + rooms table +
 // GameSelector with:
-//   • TopBar   (a fixed top strip; pinned "Lobby" tab replaces the
-//               LeftNav logo NavLink for jumping back to /server)
+//   • TopBar   (a fixed top strip; its tabs are links in a nav, and the
+//               pinned "Lobby" tab jumps back to /server)
 //   • RoomsList (Tailwind <table> under /server — column headers
 //                Name/Description/Permissions/Players/Games, each row
 //                has a single `Join`/`Open` button)
-//   • GamesList (Tailwind <table> under /room/:id — rows are <tr>s
-//                the user clicks to select, and a toolbar below
-//                exposes Create / Join / Spectate / Judge buttons)
+//   • GamesList (role=grid under /room/:id — rows are focusable
+//                role=rows the user clicks or arrows to select, Enter
+//                joins, and a toolbar below exposes Create / Join /
+//                Spectate / Judge buttons)
 //
 // The pre-redo `LeftNav-server__indicator` and `games__row` class hooks
 // are gone; every selector below is grounded in the new DOM.
@@ -36,7 +39,7 @@ export class RoomsPage {
   // Clicking the pinned Lobby tab first also brings back the /server
   // view from a room or game.
   async waitForRoomList(): Promise<void> {
-    const lobbyTab = this.page.getByRole('tab', { name: /^lobby$/i });
+    const lobbyTab = topBarTab(this.page, /^lobby$/i);
     await expect(lobbyTab).toBeVisible({ timeout: 30_000 });
     await lobbyTab.click();
     await expect(this.page.getByRole('columnheader', { name: /^name$/i })).toBeVisible({
@@ -99,8 +102,8 @@ export class RoomsPage {
   }
 
   gameRow(description: string): Locator {
-    // GamesList renders rows as plain <tr>s inside a <tbody>; select
-    // via role=row filtered by description text.
+    // GamesList rows are role=row inside a role=grid; select via role=row
+    // filtered by description text.
     return this.page.getByRole('row').filter({ hasText: new RegExp(description, 'i') });
   }
 
@@ -145,7 +148,7 @@ export class RoomsPage {
     // TopBar exposes a persistent "Lobby" tab that routes back to
     // /server without a full-page reload. Clicking it is the modern
     // equivalent of the pre-redo LeftNav logo NavLink.
-    await this.page.getByRole('tab', { name: /^lobby$/i }).click();
+    await topBarTab(this.page, /^lobby$/i).click();
     await this.waitForRoomList();
   }
 }

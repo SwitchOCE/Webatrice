@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { useLocation } from 'react-router-dom';
 
 import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
@@ -101,15 +101,15 @@ describe('TopBar user menu', () => {
 
     openMenuAndPick('UserMenu.account');
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.ACCOUNT);
-    expect(screen.getByRole('tab', { name: /Account/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('link', { name: /Account/ })).toHaveAttribute('aria-current', 'page');
 
     openMenuAndPick('UserMenu.settings');
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SETTINGS);
-    expect(screen.queryByRole('tab', { name: /Account/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Account/ })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('tab', { name: /Lobby|Server/ }));
+    fireEvent.click(screen.getByRole('link', { name: /Lobby|Server/ }));
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
-    expect(screen.queryByRole('tab', { name: /Settings/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Settings/ })).not.toBeInTheDocument();
   });
 
   it('offers Logs to moderators only', () => {
@@ -150,7 +150,7 @@ describe('TopBar replays entry', () => {
     fireEvent.click(screen.getByRole('button', { name: 'TopBar.replays.button' }));
 
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.REPLAYS);
-    expect(screen.getByRole('tab', { name: 'TopBar.replays.tab' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('link', { name: 'TopBar.replays.tab' })).toHaveAttribute('aria-current', 'page');
   });
 
   afterEach(() => {
@@ -161,17 +161,17 @@ describe('TopBar replays entry', () => {
     const replayKey = openReplay(buildReplay([sayContainer(0)]), 'final.cor', createMockWebClient());
     renderTopBar(`/replay/${replayKey}`);
 
-    expect(screen.getByRole('tab', { name: /final\.cor/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('link', { name: /final\.cor/ })).toHaveAttribute('aria-current', 'page');
   });
 
   it('keeps the replay tab after switching to another tab, and returns to it', () => {
     const replayKey = openReplay(buildReplay([sayContainer(0)]), 'final.cor', createMockWebClient());
     renderTopBar(`/replay/${replayKey}`);
 
-    fireEvent.click(screen.getByRole('tab', { name: /Lobby/ }));
+    fireEvent.click(screen.getByRole('link', { name: /Lobby/ }));
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
-    const replayTab = screen.getByRole('tab', { name: /final\.cor/ });
-    expect(replayTab).toHaveAttribute('aria-selected', 'false');
+    const replayTab = screen.getByRole('link', { name: /final\.cor/ });
+    expect(replayTab).not.toHaveAttribute('aria-current');
 
     fireEvent.click(replayTab);
     expect(screen.getByTestId('location')).toHaveTextContent(`/replay/${replayKey}`);
@@ -183,11 +183,33 @@ describe('TopBar replays entry', () => {
     const { gameId } = getOpenedReplay(replayKey)!;
     renderTopBar(RouteEnum.SERVER);
 
-    fireEvent.click(within(screen.getByRole('tab', { name: /final\.cor/ })).getByTitle('Close tab'));
+    fireEvent.click(screen.getByRole('button', { name: 'TopBar.tabs.close' }));
 
-    expect(screen.queryByRole('tab', { name: /final\.cor/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /final\.cor/ })).not.toBeInTheDocument();
     expect(getOpenedReplay(replayKey)).toBeUndefined();
     expect(webClient.unloadReplayGame).toHaveBeenCalledWith(gameId);
+  });
+
+  it('closes a tab on middle-click', () => {
+    const replayKey = openReplay(buildReplay([sayContainer(0)]), 'final.cor', createMockWebClient());
+    renderTopBar(RouteEnum.SERVER);
+
+    fireEvent(screen.getByRole('link', { name: /final\.cor/ }), new MouseEvent('auxclick', { bubbles: true, button: 1 }));
+
+    expect(screen.queryByRole('link', { name: /final\.cor/ })).not.toBeInTheDocument();
+    expect(getOpenedReplay(replayKey)).toBeUndefined();
+  });
+
+  it('lists tabs as links in a labelled nav, with Close beside the link rather than inside it', () => {
+    openReplay(buildReplay([sayContainer(0)]), 'final.cor', createMockWebClient());
+    renderTopBar(RouteEnum.SERVER);
+
+    const nav = screen.getByRole('navigation', { name: 'TopBar.tabs.label' });
+    const replayLink = screen.getByRole('link', { name: /final\.cor/ });
+    expect(nav).toContainElement(replayLink);
+    expect(replayLink).not.toContainElement(screen.getByRole('button', { name: 'TopBar.tabs.close' }));
+    // The pinned Lobby tab has no close button.
+    expect(screen.getAllByRole('button', { name: 'TopBar.tabs.close' })).toHaveLength(1);
   });
 });
 
@@ -213,7 +235,7 @@ describe('TopBar report entries (#7091)', () => {
     expect(screen.queryByRole('button', { name: 'UserMenu.reportQueue' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'UserMenu.myReports' }));
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.MY_REPORTS);
-    expect(screen.getByRole('tab', { name: /My Reports/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('link', { name: /My Reports/ })).toHaveAttribute('aria-current', 'page');
   });
 
   it('adds the Report Queue for moderators', () => {

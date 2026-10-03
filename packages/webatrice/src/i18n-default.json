@@ -833,7 +833,11 @@
       "title": "Watch and manage replays",
       "tab": "Replays"
     },
-    "replayTab": "Replay"
+    "replayTab": "Replay",
+    "tabs": {
+      "label": "Open tabs",
+      "close": "Close {title}"
+    }
   },
   "UserMenu": {
     "account": "Account",
