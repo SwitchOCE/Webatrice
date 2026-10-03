@@ -7,6 +7,7 @@ import {
   createCardPreviewStore,
   previewCardFromServerCard,
   useBigPreviewCard,
+  useCardInfoRequest,
   useCardPreview,
   useCardPreviewActions,
   type CardPreviewStore,
@@ -66,6 +67,25 @@ describe('createCardPreviewStore', () => {
     store.showCardInfo(BOLT);
     expect(store.getCardInfoRequest()).not.toBe(first);
     expect(listener).toHaveBeenCalledTimes(2);
+  });
+
+  it('hands each card-info request to the pane once, so a remount does not replay it', () => {
+    const store = createCardPreviewStore();
+    const onRequest = vi.fn();
+    function Pane() {
+      useCardInfoRequest(onRequest);
+      return null;
+    }
+    const mount = () => render(<CardPreviewProvider store={store}><Pane /></CardPreviewProvider>);
+
+    const first = mount();
+    act(() => store.showCardInfo(BOLT));
+    expect(onRequest).toHaveBeenCalledWith(BOLT);
+    expect(store.getCardInfoRequest()).toBeNull();
+    first.unmount();
+
+    mount();
+    expect(onRequest).toHaveBeenCalledTimes(1);
   });
 
   it('projects a structured-leaf server card to the presentation payload', () => {

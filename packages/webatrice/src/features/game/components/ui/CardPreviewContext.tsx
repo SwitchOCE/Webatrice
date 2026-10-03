@@ -1,4 +1,4 @@
-import { createContext, useContext, useSyncExternalStore, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useSyncExternalStore, type ReactNode } from 'react';
 
 import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
 
@@ -52,6 +52,8 @@ export interface CardPreviewStore extends CardPreviewActions {
   getPreviewCard: () => PreviewCard | null;
   getBigPreviewCard: () => PreviewCard | null;
   getCardInfoRequest: () => CardInfoRequest | null;
+  /** Mark a request handled, so a pane that mounts later doesn't replay it. */
+  consumeCardInfoRequest: (request: CardInfoRequest) => void;
 }
 
 export function createCardPreviewStore(): CardPreviewStore {
@@ -97,6 +99,12 @@ export function createCardPreviewStore(): CardPreviewStore {
     showCardInfo: (card) => {
       infoRequest = { card };
       emit();
+    },
+    consumeCardInfoRequest: (request) => {
+      if (infoRequest === request) {
+        infoRequest = null;
+        emit();
+      }
     },
   };
 }
@@ -151,8 +159,15 @@ export function useBigPreviewCard(): PreviewCard | null {
   return useSyncExternalStore(store?.subscribe ?? noSubscription, store?.getBigPreviewCard ?? noCard);
 }
 
-/** The latest card-info request (see showCardInfo), or null before the first. */
-export function useCardInfoRequest(): CardInfoRequest | null {
+/** Handle each card-info request (see showCardInfo) once: `onRequest` runs
+ *  for a new request, which is then consumed, so a remount doesn't replay it. */
+export function useCardInfoRequest(onRequest: (card: PreviewCard) => void): void {
   const store = useContext(CardPreviewContext);
-  return useSyncExternalStore(store?.subscribe ?? noSubscription, store?.getCardInfoRequest ?? noCard);
+  const request = useSyncExternalStore(store?.subscribe ?? noSubscription, store?.getCardInfoRequest ?? noCard);
+  useEffect(() => {
+    if (request && store) {
+      store.consumeCardInfoRequest(request);
+      onRequest(request.card);
+    }
+  }, [request, store, onRequest]);
 }
