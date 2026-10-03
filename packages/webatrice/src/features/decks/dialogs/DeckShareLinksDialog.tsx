@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Trash2 } from 'lucide-react';
 
@@ -26,6 +26,15 @@ export function DeckShareLinksDialog({ shares, error, onRevoke, onClose }: DeckS
   const titleId = useId();
   const [confirming, setConfirming] = useState<ServerInfo_DeckShareSummary | null>(null);
   useEscapeKey(true, confirming ? () => setConfirming(null) : onClose);
+  const confirmRef = useRef<HTMLButtonElement>(null);
+
+  // The confirmation sits below a scrolling list: bring it into view and
+  // focus its Revoke button, so it isn't asked off-screen.
+  useEffect(() => {
+    const button = confirmRef.current;
+    button?.scrollIntoView?.({ block: 'nearest' });
+    button?.focus();
+  }, [confirming]);
 
   return (
     <DeckDialogFrame onClose={onClose} titleId={titleId}>
@@ -81,6 +90,7 @@ export function DeckShareLinksDialog({ shares, error, onRevoke, onClose }: DeckS
                   {t('DeckSharing.cancel')}
                 </button>
                 <button
+                  ref={confirmRef}
                   type="button"
                   onClick={() => {
                     onRevoke(confirming.id);
