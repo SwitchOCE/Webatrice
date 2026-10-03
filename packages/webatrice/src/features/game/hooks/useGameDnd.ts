@@ -27,8 +27,8 @@ import {
   planSeatMove,
   seatDropAccepts,
   type SeatDragSource,
-  type SeatDropPoint,
 } from './seatDropPlan';
+import { seatDropPointOf } from '../components/ui/SeatDragContext';
 
 export interface GameDnd {
   handleDragStart: (event: DragStartEvent) => void;
@@ -264,18 +264,6 @@ function sendBulkMove(
   webClient.request.game.bulkMove(gameId, targets, dest, judgeTarget);
 }
 
-// The pointer and the dragged card's top-left at the drop: where the drag was
-// grabbed plus how far it travelled.
-function seatDropPoint(event: DragEndEvent): SeatDropPoint {
-  const activator = event.activatorEvent as PointerEvent | null;
-  const start = { x: activator?.clientX ?? 0, y: activator?.clientY ?? 0 };
-  const origin = event.active.rect.current.initial ?? { left: start.x, top: start.y };
-  return {
-    pointer: { x: start.x + event.delta.x, y: start.y + event.delta.y },
-    cardOrigin: { x: origin.left + event.delta.x, y: origin.top + event.delta.y },
-  };
-}
-
 // While a seat drag is active the whole document shows the grabbing cursor, so
 // the OS cursor doesn't pick up `not-allowed` from whatever is underneath.
 function useGrabbingCursor(active: boolean) {
@@ -334,7 +322,7 @@ export function useGameDnd({
     (event: DragEndEvent, source: SeatDragSource) => {
       setActiveSeatDrag(null);
       const zone = event.over?.data.current;
-      const target = isSeatDropZone(zone) ? zone.resolve(seatDropPoint(event), source) : null;
+      const target = isSeatDropZone(zone) ? zone.resolve(seatDropPointOf(event), source) : null;
       if (target && moveCard) {
         planSeatMove(source, target).forEach((params) => moveCard(params));
       }

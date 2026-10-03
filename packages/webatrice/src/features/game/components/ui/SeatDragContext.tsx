@@ -7,10 +7,19 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from 'react';
-import { useDndContext, useDndMonitor, useDraggable, useDroppable } from '@dnd-kit/core';
+import { useDndContext, useDndMonitor, useDraggable, useDroppable, type DragMoveEvent } from '@dnd-kit/core';
 
 import type { Coordinates } from '../../hooks/gamePointerSensor';
-import type { SeatDragCard, SeatDragSource, SeatDropZone, SeatZone } from '../../hooks/seatDropPlan';
+import {
+  isSeatDragSource,
+  isSeatDropZone,
+  type SeatDragCard,
+  type SeatDragSource,
+  type SeatDropPoint,
+  type SeatDropTarget,
+  type SeatDropZone,
+  type SeatZone,
+} from '../../hooks/seatDropPlan';
 
 /**
  * The seat side of the game's DnD (useGameDnd): drag sources, drop zones and
@@ -112,4 +121,50 @@ export function SeatDragGhost({ children }: { children: (origin: Coordinates) =>
     return null;
   }
   return <>{children({ x: initial.left + delta.x, y: initial.top + delta.y })}</>;
+}
+
+/** The pointer and the dragged card's top-left during or at the end of a
+ *  drag: where the drag was grabbed plus how far it has travelled. */
+export function seatDropPointOf(event: Pick<DragMoveEvent, 'activatorEvent' | 'active' | 'delta'>): SeatDropPoint {
+  const activator = event.activatorEvent as PointerEvent | null;
+  const start = { x: activator?.clientX ?? 0, y: activator?.clientY ?? 0 };
+  const origin = event.active.rect.current.initial ?? { left: start.x, top: start.y };
+  return {
+    pointer: { x: start.x + event.delta.x, y: start.y + event.delta.y },
+    cardOrigin: { x: origin.left + event.delta.x, y: origin.top + event.delta.y },
+  };
+}
+
+/**
+ * Where a seat drag would land on the drop zone `dropId` right now, for a
+ * drop preview: the same resolution the drop itself uses. `children` gets
+ * null while the drag is elsewhere or there is none. Only this component
+ * re-renders while the pointer moves.
+ */
+export function SeatDropPreview({
+  dropId,
+  children,
+}: {
+  dropId: string;
+  children: (target: SeatDropTarget | null) => ReactNode;
+}) {
+  const [target, setTarget] = useState<SeatDropTarget | null>(null);
+  // Moves update the slot; entering or leaving the zone (which can follow
+  // the move that caused it) updates it too.
+  const follow = (event: DragMoveEvent) => {
+    const zone = event.over?.data.current;
+    const source = event.active.data.current;
+    setTarget(
+      event.over?.id === dropId && isSeatDropZone(zone) && isSeatDragSource(source)
+        ? zone.resolve(seatDropPointOf(event), source)
+        : null,
+    );
+  };
+  useDndMonitor({
+    onDragMove: follow,
+    onDragOver: follow,
+    onDragEnd: () => setTarget(null),
+    onDragCancel: () => setTarget(null),
+  });
+  return <>{children(target)}</>;
 }

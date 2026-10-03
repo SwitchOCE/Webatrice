@@ -46,9 +46,10 @@ const OPP_BF = { left: 0, top: 0, width: 800, height: 400 };
 const OWN_GRAVE = { left: 900, top: 500, width: 80, height: 110 };
 const OPP_GRAVE = { left: 900, top: 0, width: 80, height: 110 };
 
-function renderGame(incomingReveal?: object) {
+function renderGame(incomingReveal?: object, { spectator = false } = {}) {
   const preloadedState = buildSeatGameState({
     localPlayerId: 1,
+    spectator,
     seats: [
       { playerId: 1, table: [BOLT], grave: [makeCard({ id: 40, name: 'Opt' })] },
       { playerId: 2, table: [BEAR], handCount: 5, grave: [makeCard({ id: 41, name: 'Duress' })] },
@@ -159,6 +160,16 @@ describe('Game drag-drop across seats', () => {
       const game = renderGame(LEND);
 
       pointerDrag(screen.getByTitle('Lent Card'), { x: 1000, y: 1000 }, { x: 920, y: 520 });
+
+      expect(game.moveCard).not.toHaveBeenCalled();
+    });
+
+    // Unresolved decision in the refactor plan, pinned: a lend never targets a
+    // spectator, and the dialog offers no drag to one.
+    it('is not draggable for a spectator', () => {
+      const game = renderGame(LEND, { spectator: true });
+
+      pointerDrag(screen.getByTitle('Lent Card'), { x: 1000, y: 1000 }, { x: 15, y: 520 });
 
       expect(game.moveCard).not.toHaveBeenCalled();
     });
