@@ -3,7 +3,8 @@
     "title": "Settings",
     "navLabel": "Settings",
     "tab": {
-      "shortcuts": "Shortcuts"
+      "shortcuts": "Shortcuts",
+      "playmats": "Playmats"
     }
   }
 }

@@ -19,6 +19,14 @@ describe('Settings', () => {
     expect(panel).not.toHaveAttribute('hidden');
   });
 
+  it('switches to the playmat settings tab', () => {
+    renderWithProviders(<Settings />, { preloadedState: connectedState });
+
+    fireEvent.click(screen.getByRole('tab', { name: /Settings\.tab\.playmats/ }));
+
+    expect(screen.getByRole('heading', { name: 'PlaymatSettings.title' })).toBeInTheDocument();
+  });
+
   it('exposes the Settings.title as the aria-label on the tab list', () => {
     renderWithProviders(<Settings />, { preloadedState: connectedState });
 

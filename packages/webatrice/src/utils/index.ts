@@ -5,3 +5,5 @@ export { toBcp47 } from './locale';
 export { getRoomPermissionDisplay } from './roomPermission';
 export { formatChatHistoryTime } from './chatTime';
 export { formatRestrictions, formatSpectators } from './gameInfo';
+export { computeArtSourceRect, coverFitRect, playmatImageBox } from './playmatCrop';
+export type { Rect, Size } from './playmatCrop';

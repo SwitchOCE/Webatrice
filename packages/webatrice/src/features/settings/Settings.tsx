@@ -9,6 +9,8 @@ import { AuthGuard } from '@app/components';
 import { ShortcutsTab } from '@app/feature-widgets/shortcuts';
 import { Layout } from '@app/feature-wrappers/layout';
 
+import PlaymatSettingsPanel from './playmats/PlaymatSettingsPanel';
+
 import './Settings.css';
 
 interface TabPanelProps {
@@ -50,10 +52,14 @@ const Settings = () => {
           aria-label={t('Settings.title')}
         >
           <Tab label={t('Settings.tab.shortcuts')} {...a11yProps(0)} />
+          <Tab label={t('Settings.tab.playmats')} {...a11yProps(1)} />
         </Tabs>
       </AppBar>
       <TabPanel value={tab} index={0}>
         <ShortcutsTab />
+      </TabPanel>
+      <TabPanel value={tab} index={1}>
+        <PlaymatSettingsPanel />
       </TabPanel>
     </Layout>
   );
