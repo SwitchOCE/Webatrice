@@ -1,11 +1,12 @@
 import { useRef } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
-import { CircleAlert, Loader2, RefreshCw } from 'lucide-react';
+import { CircleAlert, Globe, Loader2, RefreshCw } from 'lucide-react';
 
 import type { BracketAssessment } from '@app/types';
 
 import type { UnavailableSource } from '../../bracket';
 import { bracketSignalBadges } from '../../bracketBadges';
+import { useBracketLookupsConsent } from '../../bracketConsent';
 import type { SourceFailure } from '../../bracketSources';
 import { BRACKET_TONE } from '../../bracketTone';
 import { useBracketAssessment, type BracketAssessmentState } from '../../hooks/useBracketAssessment';
@@ -24,14 +25,17 @@ export interface BracketSectionProps {
 
 export function BracketSection({ cards, cachedAssessment, onAssessmentComputed }: BracketSectionProps) {
   const { t } = useTranslation();
-  const assessment = useBracketAssessment(cards, cachedAssessment, onAssessmentComputed);
+  const [lookupsAllowed, setLookupsAllowed] = useBracketLookupsConsent();
+  const assessment = useBracketAssessment(cards, cachedAssessment, onAssessmentComputed, lookupsAllowed);
   // The section stays mounted across states, so Retry can hand it focus
   // before the notice (and the focused button) unmounts.
   const sectionRef = useRef<HTMLDivElement>(null);
 
   return (
     <div ref={sectionRef} tabIndex={-1} aria-busy={assessment.status === 'loading'} className="outline-none">
-      {assessment.status === 'loading' ? (
+      {assessment.status === 'consentRequired' ? (
+        <BracketConsentPrompt onAllow={() => setLookupsAllowed(true)} />
+      ) : assessment.status === 'loading' ? (
         <div className="flex items-center gap-2 text-sm text-text-muted">
           <Loader2 size={14} className="animate-spin" /> {t('DeckBracket.assessing')}
         </div>
@@ -40,6 +44,7 @@ export function BracketSection({ cards, cachedAssessment, onAssessmentComputed }
       ) : (
         <BracketResult
           assessment={assessment}
+          onRevokeLookups={lookupsAllowed ? () => setLookupsAllowed(false) : undefined}
           onRetry={() => {
             sectionRef.current?.focus();
             assessment.retry();
@@ -50,9 +55,11 @@ export function BracketSection({ cards, cachedAssessment, onAssessmentComputed }
   );
 }
 
-function BracketResult({ assessment, onRetry }: {
+function BracketResult({ assessment, onRetry, onRevokeLookups }: {
   assessment: Extract<BracketAssessmentState, { report: unknown }>;
   onRetry: () => void;
+  /** Set while lookups are allowed: turns them off again. */
+  onRevokeLookups?: () => void;
 }) {
   const { t } = useTranslation();
   const { report } = assessment;
@@ -89,7 +96,21 @@ function BracketResult({ assessment, onRetry }: {
               ]}
             />
           </div>
-          <div className="text-xs text-text-muted mt-1">{t('DeckBracket.provenance')}</div>
+          <div className="text-xs text-text-muted mt-1">
+            {t('DeckBracket.provenance')}
+            {onRevokeLookups && (
+              <>
+                {' '}
+                <button
+                  type="button"
+                  onClick={onRevokeLookups}
+                  className="underline hover:text-text-primary"
+                >
+                  {t('DeckBracket.consent.revoke')}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -110,6 +131,29 @@ function BracketResult({ assessment, onRetry }: {
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+/**
+ * First use: nothing goes to Scryfall or Commander Spellbook until the
+ * user allows it. The choice is remembered for every deck.
+ */
+function BracketConsentPrompt({ onAllow }: { onAllow: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-2">
+      <p className="text-sm text-text-muted">{t('DeckBracket.consent.prompt')}</p>
+      <button
+        type="button"
+        onClick={onAllow}
+        className={[
+          'inline-flex items-center gap-1.5 px-3 py-1 rounded-md border border-border-strong bg-bg-elevated',
+          'text-sm text-text-primary hover:bg-border-subtle',
+        ].join(' ')}
+      >
+        <Globe size={13} /> {t('DeckBracket.consent.allow')}
+      </button>
     </div>
   );
 }
