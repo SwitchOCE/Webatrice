@@ -1,4 +1,4 @@
-import { createContext, FC, PropsWithChildren, ReactNode, useCallback, useContext, useEffect, useReducer, useRef } from 'react';
+import { createContext, FC, PropsWithChildren, ReactNode, useCallback, useContext, useEffect, useReducer, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import type { LucideIcon } from 'lucide-react';
@@ -33,6 +33,9 @@ interface ToastContextValue {
   // the pill closes (auto-hide, Dismiss or `close()`).
   pushToast: (children: ReactNode, options?: PushToastOptions) => { key: string; close: () => void };
 }
+
+/** Persistent toasts shown at once; older ones fold into a "+N more" entry until it is expanded. */
+export const VISIBLE_PERSISTENT_TOASTS = 3;
 
 const ToastContext = createContext<ToastContextValue>({
   toasts: {},
@@ -103,7 +106,19 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
   // always-present empty regions don't read as app-wide alerts.
   const { t } = useTranslation();
   const portalTarget = typeof document !== 'undefined' ? document.body : null;
-  const entries = Object.entries(state.toasts);
+  // Persistent toasts never leave on their own, so a burst (a run of private
+  // messages) would stack up the screen edge. Keep the newest few and fold the
+  // rest into "+N more"; expanding shows them all until the stack is short again.
+  const [showAllPersistent, setShowAllPersistent] = useState(false);
+  const persistentKeys = Object.keys(state.toasts).filter((key) => state.toasts[key].isOpen && state.toasts[key].persistent);
+  const folded = persistentKeys.length - VISIBLE_PERSISTENT_TOASTS;
+  useEffect(() => {
+    if (folded <= 0) {
+      setShowAllPersistent(false);
+    }
+  }, [folded]);
+  const hidden = new Set(folded > 0 && !showAllPersistent ? persistentKeys.slice(0, folded) : []);
+  const entries = Object.entries(state.toasts).filter(([key]) => !hidden.has(key));
   const renderToast = ([key, entry]: [string, ToastEntry]) => (
     <Toast
       key={key}
@@ -126,6 +141,19 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
             aria-label={t('Toast.region')}
             className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 items-end pointer-events-none"
           >
+            {folded > 0 && (
+              <button
+                type="button"
+                aria-expanded={showAllPersistent}
+                onClick={() => setShowAllPersistent((shown) => !shown)}
+                className={[
+                  'pointer-events-auto px-3 py-1 rounded-full text-xs text-text-secondary hover:text-text-primary',
+                  'bg-bg-surface border border-border-control shadow-glow transition-colors',
+                ].join(' ')}
+              >
+                {showAllPersistent ? t('Toast.showFewer') : t('Toast.more', { count: folded })}
+              </button>
+            )}
             <div aria-live="assertive" className="flex flex-col gap-2 items-end">
               {entries.filter(([, entry]) => entry.severity === 'error').map(renderToast)}
             </div>
