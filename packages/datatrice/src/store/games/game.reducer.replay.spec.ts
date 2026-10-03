@@ -43,13 +43,14 @@ describe('replay game lifecycle', () => {
     expect(game.messages.map((m) => m.message)).toEqual(['You are watching a replay of game #77.']);
   });
 
-  it('replayGameLoaded on an existing replay resets it for a rewind', () => {
+  it('replayGameLoaded on an existing replay resets it for a rewind without repeating the start notice', () => {
     let state = withReplay();
     state = gamesReducer(state, Actions.gameSay({ gameId: REPLAY_ID, playerId: 0, message: 'gg', timeReceived: 1 }));
     expect(state.games[REPLAY_ID].messages).toHaveLength(2);
 
     state = withReplay(state);
-    expect(state.games[REPLAY_ID].messages).toHaveLength(1);
+    // Desktop's resetForRewind clears the log; the notice was logged once, at open.
+    expect(state.games[REPLAY_ID].messages).toEqual([]);
     expect(state.pings[REPLAY_ID]).toEqual({});
   });
 
