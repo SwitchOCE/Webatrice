@@ -151,6 +151,24 @@ describe('lookupCard', () => {
     expect(result.text).toBe('Counter it.');
   });
 
+  it('keeps each face\'s own rules text', async () => {
+    fetchMock.mockImplementation(() => respond({
+      ...SCRYFALL_SWAN_SONG,
+      name: 'Delver of Secrets // Insectile Aberration',
+      layout: 'transform',
+      card_faces: [
+        { name: 'Delver of Secrets', oracle_text: 'At the beginning of your upkeep, look at the top card of your library.' },
+        { name: 'Insectile Aberration', oracle_text: 'Flying' },
+      ],
+    }));
+
+    const result = await lookupCard('Delver of Secrets');
+    expect(result.faces?.map((face) => face.text)).toEqual([
+      'At the beginning of your upkeep, look at the top card of your library.',
+      'Flying',
+    ]);
+  });
+
   it('has no legality data for a cards.xml record without format props', async () => {
     cards.get.mockResolvedValue(XML_SWAN_SONG);
     const result = await lookupCard('Swan Song');

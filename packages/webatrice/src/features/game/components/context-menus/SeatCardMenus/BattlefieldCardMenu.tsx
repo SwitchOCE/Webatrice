@@ -1,4 +1,5 @@
 import { ZoneName } from '@cockatrice/sockatrice';
+import { usePreference } from '@app/hooks';
 
 import type { BattlefieldCardOps } from '../../ui/PlayerBoard/useBattlefieldCardOps';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
@@ -25,6 +26,8 @@ export default function BattlefieldCardMenu() {
     shortcutHints,
     tokenMetaByName,
   } = usePlayerSeatContext();
+  // Desktop's "Annotate card text on tokens".
+  const annotateTokens = usePreference('annotateTokens');
 
   if (!cardContextMenu) {
     return null;
@@ -50,12 +53,13 @@ export default function BattlefieldCardMenu() {
   // created by the local player, so it lands on the local battlefield.
   const tokenItems: CardMenuItem[] = card
     ? [
-      ...buildRelatedTokenItems(cardMetaByName.get(card.name)?.related ?? [], tokenMetaByName, cardCommands.createToken),
+      ...buildRelatedTokenItems(cardMetaByName.get(card.name)?.related ?? [], tokenMetaByName, cardCommands.createToken, annotateTokens),
       ...buildTransformItems(
         cardMetaByName.get(card.name),
         Number.isFinite(cardIdNum) ? cardIdNum : undefined,
         card.name,
         cardCommands.createToken,
+        annotateTokens,
       ),
     ]
     : [];
