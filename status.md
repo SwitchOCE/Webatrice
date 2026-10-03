@@ -1,3 +1,4 @@
 - 23:31Z started fr4; read brief/rv15 → checkout work branch
 - 23:39Z Home/End fix + per-site image URL specs pushed → barrel narrowing
 - 23:46Z barrel narrowed + eslint rule; bracketTone → utils; pushed → nits
+- 23:47Z all rv15 findings committed+pushed (eca62b5) → full gate
