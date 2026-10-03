@@ -144,20 +144,27 @@ export function Menu({ anchor, label, onClose, triggerRef, autoFocus = true, id,
   const parent = useContext(MenuLevelContext);
   const ref = useRef<HTMLDivElement>(null);
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
-  const [position, setPosition] = useState(() => placeMenu(anchor, { width: 0, height: 0 }));
+  const placement = anchorKey(anchor);
+  // Placed for one anchor at a time: while `position` is null the panel renders at 0,0 without a
+  // height cap, so the layout effect below measures its natural size (a capped panel would always
+  // "fit" below the anchor). Both renders happen before the browser paints.
+  const [placed, setPlaced] = useState<{ for: string; position: ReturnType<typeof placeMenu> } | null>(null);
+  const position = placed?.for === placement ? placed.position : null;
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   const typed = useRef({ text: '', at: 0 });
   const closeTimer = useRef<number | undefined>(undefined);
 
-  // Place it once its size is known: beside a control it flips to the side with room, and every
-  // menu is then slid back on-screen; a tall one scrolls instead of spilling.
-  const placement = anchorKey(anchor);
+  // Place it once its natural size is known: it flips to the side of the anchor with room, and is
+  // then slid back on-screen; a menu taller than the screen scrolls instead of spilling.
   useLayoutEffect(() => {
+    if (position) {
+      return;
+    }
     const { width, height } = ref.current?.getBoundingClientRect() ?? { width: 0, height: 0 };
-    setPosition(placeMenu(anchor, { width, height }));
+    setPlaced({ for: placement, position: placeMenu(anchor, { width, height }) });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-placed when the anchor's numbers change
-  }, [placement]);
+  }, [placement, position]);
 
   // Focus in on open, back out on close. A layout effect, so focus is back on the opener before
   // a dialog opened by the chosen item (in the same commit) focuses its own field and records
@@ -313,7 +320,7 @@ export function Menu({ anchor, label, onClose, triggerRef, autoFocus = true, id,
         role="menu"
         aria-label={label}
         tabIndex={-1}
-        style={position}
+        style={position ?? { left: 0, top: 0 }}
         onKeyDown={onKeyDown}
         onMouseOver={onMouseOver}
         onContextMenu={(event) => event.preventDefault()}

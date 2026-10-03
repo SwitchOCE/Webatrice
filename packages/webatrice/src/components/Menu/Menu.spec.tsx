@@ -408,6 +408,47 @@ describe('MenuSubmenu pointer behaviour', () => {
   });
 });
 
+describe('Menu placement', () => {
+  // jsdom has no layout: the menu panel is 200 × 300 unless its own `maxHeight` caps it, as a
+  // browser's `overflow-y-auto` panel would be; every other element is the control at `control`.
+  function layout(control: { left: number; top: number; right: number; bottom: number }) {
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function boundingRect(this: HTMLElement) {
+      const cap = parseFloat(this.style.maxHeight);
+      const rect = this.getAttribute('role') === 'menu'
+        ? { left: 0, top: 0, right: 200, bottom: Math.min(300, Number.isNaN(cap) ? Infinity : cap) }
+        : control;
+      const box = { ...rect, width: rect.right - rect.left, height: rect.bottom - rect.top };
+      return { ...box, x: rect.left, y: rect.top, toJSON: () => box } as DOMRect;
+    });
+  }
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('measures its full height, so it flips above a control near the bottom of the screen', async () => {
+    layout({ left: 100, top: 700, right: 180, bottom: 720 });
+    const user = userEvent.setup();
+    render(<ContextTarget />);
+    screen.getByRole('link', { name: 'Target' }).focus();
+
+    await user.keyboard('{Shift>}{F10}{/Shift}');
+
+    expect(screen.getByRole('menu', { name: 'Target actions' })).toHaveStyle({ left: '100px', top: '398px', maxHeight: '362px' });
+  });
+
+  it('measures its full height, so a menu opened at a point near the bottom is not squashed', () => {
+    layout({ left: 0, top: 0, right: 0, bottom: 0 });
+
+    render(
+      <Menu anchor={{ x: 100, y: 700 }} label="Card" onClose={vi.fn()}>
+        <MenuItem onSelect={vi.fn()}>Tap</MenuItem>
+      </Menu>,
+    );
+
+    expect(screen.getByRole('menu', { name: 'Card' })).toHaveStyle({ left: '100px', top: '460px' });
+  });
+});
+
 describe('placeMenu', () => {
   const viewport = { width: 1024, height: 768 };
   const size = { width: 200, height: 300 };
