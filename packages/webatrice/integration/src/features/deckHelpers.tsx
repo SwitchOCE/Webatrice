@@ -154,7 +154,8 @@ export function stubThirdPartyFetch(override?: FetchOverride) {
     if (url.startsWith('https://api.scryfall.com/cards/search?')) {
       const q = new URL(url).searchParams.get('q') ?? '';
       if (q.includes('is:gamechanger')) {
-        return json({ data: [] });
+        // A real, non-empty list (an empty one is malformed) with nothing the fixtures play.
+        return json({ data: [{ name: 'Rhystic Study' }] });
       }
       const exact = /^!"(.*)"$/.exec(q);
       if (exact) {
