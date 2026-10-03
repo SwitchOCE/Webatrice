@@ -2,18 +2,8 @@ import { CardImage } from '@app/components';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from './cardSize';
 import { useHoveredCard } from './hoveredCard';
 import { useBigCardPreview } from './bigCardPreview';
+import { counterColorForId } from '../ui/CardSlot/counterColors';
 
-/** Counter slot colors — Cockatrice's six card-counter defaults from
- *  `SettingsCache::cardCounters()`. Keep in sync with COUNTER_COLORS in
- *  PlayerBox.tsx (menu swatches). */
-const COUNTER_COLORS: readonly string[] = [
-  '#ef4444', // A red
-  '#eab308', // B yellow
-  '#22c55e', // C green
-  '#22d3ee', // D cyan
-  '#3b82f6', // E blue
-  '#ec4899', // F pink
-];
 
 /**
  * A single MTG card as it appears inside a PlayerBox (hand, battlefield,
@@ -62,7 +52,7 @@ interface Props {
   /** Per-card counters (slot id → value). Rendered as colored circular
    *  badges arranged in up to 3 rows down the card sides, matching
    *  Cockatrice's `paintNumberEllipse` layout in card_item.cpp. Slot id
-   *  picks the color from COUNTER_COLORS. */
+   *  picks the color from counterColorForId. */
   counters?: readonly { id: number; value: number }[];
   /** Explicit image URL override. When set, replaces the composed
    *  scryfallId / name-based Scryfall URL. Used by the caller to
@@ -223,7 +213,7 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
             // Cockatrice's `count == 1` and `count == 3` special-cases.
             const centered =
               (counters.length === 1) || (counters.length === 3 && i === 2);
-            const color = COUNTER_COLORS[c.id % COUNTER_COLORS.length];
+            const color = counterColorForId(c.id);
             return (
               <div
                 key={i}
