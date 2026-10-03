@@ -1125,7 +1125,8 @@
       "deleteFailed": "Could not delete the replay.",
       "keepFailed": "Could not change the expiration lock.",
       "downloadFailed": "Could not download the replay.",
-      "unreadable": "The server sent a replay that could not be read."
+      "unreadable": "The server sent a replay that could not be read.",
+      "listFailed": "Could not load the replays stored on the server."
     },
     "share": {
       "codeTitle": "Replay Share Code",

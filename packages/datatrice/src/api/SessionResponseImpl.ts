@@ -285,4 +285,8 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
   deckUploadFailed(path: string, responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
     this.store.dispatch(ServerActions.deckUploadFailed({ path, responseCode, failure }));
   }
+
+  replayListFailed(responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
+    this.store.dispatch(ServerActions.replayListFailed({ responseCode, failure }));
+  }
 }
