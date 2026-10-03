@@ -285,6 +285,14 @@
       "pt_BR": "Portuguese - Brazil"
     }
   },
+  "ErrorFallback": {
+    "returnToLobby": "Return to lobby",
+    "route": {
+      "title": "Something went wrong",
+      "message": "This page hit an unexpected error. Your connection to the server is unaffected.",
+      "retry": "Reload page"
+    }
+  },
   "CardImportForm": {
     "steps": {
       "importFiles": "Import files",
@@ -526,6 +534,11 @@
   "Decks": {
     "listError": "Failed to load your decks from the server.",
     "retry": "Retry"
+  },
+  "GameErrorBoundary": {
+    "title": "The game board hit an unexpected error",
+    "message": "You are still in the game. Reload the board to pick up where you left off.",
+    "retry": "Reload board"
   },
   "AccountActivationDialog": {
     "title": "Account Activation",

@@ -7,6 +7,7 @@ import { usePhaseTrackPinned } from '@app/hooks';
 import { Layout } from '@app/feature-wrappers/layout';
 import { ConfirmDialog, PromptDialog } from '@app/dialogs';
 import GameLobby from './GameLobby';
+import GameErrorBoundary from './GameErrorBoundary';
 import { useCurrentGame } from './hooks/useCurrentGame';
 import GameArrowOverlay from './components/arrows/GameArrowOverlay/GameArrowOverlay';
 import BoxSelectOverlay from './components/ui/BoxSelectOverlay/BoxSelectOverlay';
@@ -66,10 +67,11 @@ function Game() {
   const routeGameId = Number.isFinite(parsed) ? parsed : undefined;
   const { game, isStarted } = useCurrentGame(routeGameId);
 
-  if (game && !isStarted && routeGameId != null) {
-    return <GameLobby gameId={routeGameId} />;
-  }
-  return <GameBoard />;
+  return (
+    <GameErrorBoundary gameId={routeGameId}>
+      {game && !isStarted && routeGameId != null ? <GameLobby gameId={routeGameId} /> : <GameBoard />}
+    </GameErrorBoundary>
+  );
 }
 
 function GameBoard() {
