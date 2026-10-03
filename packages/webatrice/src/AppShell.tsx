@@ -5,8 +5,7 @@ import Routes from './AppShellRoutes';
 import './AppShell.css';
 
 import { RouteErrorBoundary, ToastProvider } from '@app/components';
-import { useSyncLocaleToStore } from '@app/hooks';
-import { useApplyLanguagePreference } from '@app/hooks';
+import { useApplyLanguagePreference, useSyncLocaleToStore } from '@app/hooks';
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 import { ModerationProvider } from '@app/feature-widgets/moderation';
 import { UserGamesProvider } from '@app/feature-widgets/user-games';
