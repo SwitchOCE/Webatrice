@@ -25,25 +25,13 @@ import { CardDTO, parseCod } from '@app/services';
 import { BoardCell } from '../../../hooks/useGameBoardLayout';
 import { BoardCellProvider } from '../BoardCellContext';
 import { useGameId } from '../GameIdContext';
-import PlayerBox, {
-  type BattlefieldCard,
-  type HandCard,
-} from '../../PlayerBox/PlayerBox';
-import type {
-  DeckCard,
-  RoomMemberWithProfile,
-} from '../../PlayerBox/mockTypes';
+import PlayerBox from '../../PlayerBox/PlayerBox';
+import type { DeckCard } from '../../PlayerBox/mockTypes';
 import { getPickedMockDeck } from '../../../mockDeckStore';
-import { avatarSrc } from '../../../utils/avatarSrc';
+import { usePlayerBoxSeatProps } from './usePlayerBoxProps';
+import { usePlayerSeatViewModel } from './usePlayerSeatViewModel';
 
 import './GameBoardCell.css';
-
-// Life is just a counter named "life" (case-insensitive) in Cockatrice's
-// protocol — no special-cased life field on players. Mirrors the check
-// used by the old PlayerInfoPanel.
-function isLifeCounter(c: { name: string }): boolean {
-  return c.name.trim().toLowerCase() === 'life';
-}
 
 // Flatten Servatrice's backend deck tree into `{id, name}` rows. Same
 // walk GameLobby / My Decks use — the tree can nest folders indefinitely,
@@ -68,124 +56,6 @@ function flattenBackendDecks(
   };
   walk(folder?.items);
   return out;
-}
-
-// Stable empty reference for the pre-hydration transient — keeps
-// referential equality when a player has no zone data yet so
-// downstream memos don't invalidate on every render.
-const EMPTY_HAND_CARDS: HandCard[] = [];
-
-// Project a Cockatrice zone (byId + order) into the PlayerBox HandCard
-// shape used for pile-visualization art. `order` runs bottom → top,
-// which matches PlayerBox's convention that the last entry is the
-// top of the pile.
-function zoneToHandCards(
-  zone: { order: number[]; byId: Record<number, { name: string; providerId: string; annotation?: string }> } | undefined,
-): HandCard[] {
-  if (!zone) {
-    return EMPTY_HAND_CARDS;
-  }
-  return zone.order.map((id) => {
-    const card = zone.byId[id];
-    return {
-      id: String(id),
-      name: card?.name ?? '',
-      scryfallId: card?.providerId ?? '',
-      // Only the STACK renderer uses this today (matches Cockatrice's
-      // `keepAnnotations = (target == STACK)` carve-out); the field
-      // is a no-op for hand / graveyard / exile projections.
-      annotation: card?.annotation || undefined,
-    };
-  });
-}
-
-/** Project a `zone.revealedCards` snapshot (populated by Response_DumpZone)
- *  into the HandCard shape LibrarySearchDialog consumes. Used for the
- *  "View top / bottom cards..." library flow — Cockatrice's ZoneView
- *  reads from the same server-side dump. Falls back to the array index
- *  if the server didn't set an id (Cockatrice reveal-list quirk). */
-function revealedCardsToHandCards(
-  cards: readonly { id: number; name: string; providerId: string }[] | undefined,
-): HandCard[] {
-  if (!cards || cards.length === 0) {
-    return EMPTY_HAND_CARDS;
-  }
-  return cards.map((c, idx) => ({
-    id: String(c.id ?? idx),
-    name: c.name ?? '',
-    scryfallId: c.providerId ?? '',
-  }));
-}
-
-const EMPTY_BATTLEFIELD_CARDS: BattlefieldCard[] = [];
-
-// Project a Cockatrice TABLE zone into the PlayerBox BattlefieldCard
-// shape. ServerInfo_Card.x maps to slot.col, .y to slot.row — that's
-// Cockatrice's coord convention (x horizontal, y vertical).
-interface ZoneForBattlefield {
-  order: number[];
-  byId: Record<
-    number,
-    {
-      name: string;
-      providerId: string;
-      x: number;
-      y: number;
-      tapped: boolean;
-      faceDown: boolean;
-      pt: string;
-      doesntUntap: boolean;
-      color: string;
-      annotation: string;
-      attachPlayerId: number;
-      attachZone: string;
-      attachCardId: number;
-      counterList: readonly { id: number; value: number }[];
-    }
-  >;
-}
-
-function projectCard(
-  id: number,
-  card: ZoneForBattlefield['byId'][number] | undefined,
-  ownerPlayerId: number,
-): BattlefieldCard {
-  // Cockatrice packs multiple cards per visual column via
-  // `wire_x / 3` = stack column and `wire_x % 3` = sub-slot inside
-  // that column. Decode both so we can render a stack at the correct
-  // diagonal offset even when the server sends a mid-stack ordering.
-  const wireX = Math.max(0, card?.x ?? 0);
-  // Attach target: `attachCardId === -1` is the unattached sentinel
-  // (matches datatrice's `cardAttached` unattach path). Only surface
-  // valid ids so downstream render code can treat presence as truth.
-  const attachCardId = card?.attachCardId ?? -1;
-  const attachPlayerId = card?.attachPlayerId ?? -1;
-  return {
-    id: String(id),
-    // ownerPlayerId defaults to the projected zone's owner, so the
-    // caller only overrides it when cross-injecting a foreign
-    // attached child into another player's battlefield display list.
-    ownerPlayerId,
-    name: card?.name ?? '',
-    scryfallId: card?.providerId ?? '',
-    slot: {
-      row: Math.max(0, card?.y ?? 0),
-      col: Math.floor(wireX / 3),
-    },
-    subSlot: wireX % 3,
-    tapped: card?.tapped ?? false,
-    faceDown: card?.faceDown ?? false,
-    pt: card?.pt || undefined,
-    doesntUntap: card?.doesntUntap ?? false,
-    color: card?.color || undefined,
-    annotation: card?.annotation || undefined,
-    attachTargetCardId: attachCardId >= 0 ? attachCardId : undefined,
-    attachTargetPlayerId: attachCardId >= 0 ? attachPlayerId : undefined,
-    // Wire `counterList` is a repeated ServerInfo_CardCounter — passes
-    // through verbatim. Servatrice strips zero-valued counters so the
-    // list only contains active ones (matches Cockatrice's iteration).
-    counters: card?.counterList,
-  };
 }
 
 export interface GameBoardCellProps {
@@ -327,82 +197,14 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
     [cell.playerId, cell.mirrored, cell.isLocal],
   );
 
-  // --- Real Cockatrice reads (identity + life + active turn). Selectors
-  // return undefined when the player hasn't hydrated in Redux yet — the
-  // downstream memos handle that transient by leaving lifeControl /
-  // zoneCounts undefined and PlayerBox falls back to local mock state.
+  const model = usePlayerSeatViewModel(cell, totalPlayers);
+  const seatProps = usePlayerBoxSeatProps(model);
+  // Still read directly by the arrow and deck-editor commands below.
   const realPlayer = useAppSelector((state) =>
     gameId != null
       ? games.Selectors.getPlayer(state, gameId, cell.playerId)
       : undefined,
   );
-  const countersMap = useAppSelector((state) =>
-    gameId != null
-      ? games.Selectors.getCounters(state, gameId, cell.playerId)
-      : undefined,
-  );
-  const activePlayerId = useAppSelector((state) =>
-    gameId != null ? games.Selectors.getActivePlayerId(state, gameId) : undefined,
-  );
-  // Every seated player at the table (including self). Used to enumerate
-  // reveal/lend targets in the library context menu — filtered to
-  // "others only" in the memo below since Cockatrice's Reveal-library
-  // submenu excludes the current player (library_menu.cpp:271-273).
-  const allSeatedPlayers = useAppSelector((state) =>
-    gameId != null ? games.Selectors.getSeatedPlayers(state, gameId) : undefined,
-  );
-  const revealTargets = useMemo(
-    () =>
-      (allSeatedPlayers ?? [])
-        .filter((p) => p.properties.playerId !== cell.playerId)
-        .map((p) => ({
-          playerId: p.properties.playerId,
-          name:
-            p.properties.userInfo?.name ??
-            `Player ${p.properties.playerId}`,
-        })),
-    [allSeatedPlayers, cell.playerId],
-  );
-
-  const lifeCounter = useMemo(
-    () =>
-      countersMap
-        ? Object.values(countersMap).find(isLifeCounter)
-        : undefined,
-    [countersMap],
-  );
-
-  // Mana counters. Servatrice pre-creates counters 1-7 with wire names
-  // "w"/"u"/"b"/"r"/"g"/"x"/"storm" (see `server_player.cpp:96-102`),
-  // so they always exist as soon as the player is seated. We look them
-  // up by internal name and expose an id+count per pool color for
-  // PlayerBox to render + click-modify. The 7th ("storm") is labeled
-  // "Other" in the Cockatrice desktop UI — we use 'O' as its symbol
-  // to match, tinted orange like desktop's makeColor(255,150,30).
-  const manaCounters = useMemo(() => {
-    if (!countersMap) {
-      return undefined;
-    }
-    const byWireName: Record<string, 'W' | 'U' | 'B' | 'R' | 'G' | 'C' | 'O'> = {
-      w: 'W',
-      u: 'U',
-      b: 'B',
-      r: 'R',
-      g: 'G',
-      x: 'C',
-      storm: 'O',
-    };
-    const out: Partial<
-      Record<'W' | 'U' | 'B' | 'R' | 'G' | 'C' | 'O', { id: number; count: number }>
-    > = {};
-    for (const c of Object.values(countersMap)) {
-      const symbol = byWireName[c.name.trim().toLowerCase()];
-      if (symbol) {
-        out[symbol] = { id: c.id, count: c.count };
-      }
-    }
-    return out;
-  }, [countersMap]);
 
   // Fire `Command_IncCounter` with a signed delta. Left-click on a
   // mana pip → +1, right-click → -1. Only wire for the local player;
@@ -530,46 +332,18 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
     };
   }, [gameId, webClient, cell.playerId]);
 
-  const realName = realPlayer?.properties.userInfo?.name;
-  const isActive = realPlayer != null && cell.playerId === activePlayerId;
-
-  // Cockatrice's `avatar_bmp` is raw PNG bytes on ServerInfo_User;
-  // convert to a data URL so PlayerBox can render it as the life-total
-  // background. Missing / empty → null, PlayerBox falls back to the
-  // purple gradient placeholder.
-  const avatarUrl = useMemo(
-    () => avatarSrc(realPlayer?.properties.userInfo?.avatarBmp),
-    [realPlayer?.properties.userInfo?.avatarBmp],
-  );
-
-  // Room-member shape the ported PlayerBox expects. Uses the real
-  // display name when available; the "You" / "Player N" fallback
-  // covers the transient window before the player's userInfo has
-  // hydrated in Redux.
-  const playerForBox = useMemo<RoomMemberWithProfile>(
-    () => ({
-      user_id: String(cell.playerId),
-      profile: {
-        id: String(cell.playerId),
-        display_name:
-          realName ?? (cell.isLocal ? 'You' : `Player ${cell.playerId}`),
-        username: realName ?? (cell.isLocal ? 'you' : `player-${cell.playerId}`),
-        avatar_url: avatarUrl,
-      },
-    }),
-    [cell.playerId, cell.isLocal, realName, avatarUrl],
-  );
-
   // Controlled life — only for real players. `incCounter` sends a
   // delta; `setCounter` sends an absolute value. Optimistic with
   // rollback: life flips immediately on click so life-total taps
   // feel instant, and the wire's `onError` reverts if the server
   // rejects (rare — life is unrestricted for the local player).
+  const lifeCounterId = model.counters.life?.id;
+  const lifeValue = model.counters.life?.value;
   const lifeControl = useMemo(() => {
-    if (gameId == null || !lifeCounter) {
+    if (gameId == null || lifeCounterId == null || lifeValue == null) {
       return undefined;
     }
-    const counterId = lifeCounter.id;
+    const counterId = lifeCounterId;
     const applyLocally = (value: number) => {
       dispatch(games.Actions.counterSet({
         gameId,
@@ -580,10 +354,10 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
     return {
       // ServerInfo_Counter stores the current amount in `count`
       // (the reducer copies `Event_SetCounter.value` → `counter.count`).
-      value: lifeCounter.count,
+      value: lifeValue,
       onDelta: (delta: number) => {
         const previousValue = store.getState().games.games[gameId]
-          ?.players[cell.playerId]?.counters[counterId]?.count ?? lifeCounter.count;
+          ?.players[cell.playerId]?.counters[counterId]?.count ?? lifeValue;
         applyLocally(previousValue + delta);
         webClient.request.game.incCounter(gameId, { counterId, delta }, {
           onError: (code) => {
@@ -594,7 +368,7 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
       },
       onSet: (value: number) => {
         const previousValue = store.getState().games.games[gameId]
-          ?.players[cell.playerId]?.counters[counterId]?.count ?? lifeCounter.count;
+          ?.players[cell.playerId]?.counters[counterId]?.count ?? lifeValue;
         applyLocally(value);
         webClient.request.game.setCounter(gameId, { counterId, value }, {
           onError: (code) => {
@@ -604,181 +378,7 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
         });
       },
     };
-  }, [gameId, lifeCounter, webClient, dispatch, store, cell.playerId]);
-
-  // Slice 2a: read the server-authoritative card counts for the three
-  // pile-visualized zones. `cardCount` is the wire-authoritative total
-  // (hidden zones like the library expose it even when `order` is
-  // empty). Undefined for zones that haven't been created yet — the
-  // PlayerBox falls back to its local mock zone lengths in that case.
-  const zoneCounts = useMemo(
-    () =>
-      realPlayer
-        ? {
-          deck: realPlayer.zones[ZoneName.DECK]?.cardCount,
-          grave: realPlayer.zones[ZoneName.GRAVE]?.cardCount,
-          rfg: realPlayer.zones[ZoneName.EXILE]?.cardCount,
-          hand: realPlayer.zones[ZoneName.HAND]?.cardCount,
-        }
-        : undefined,
-    [realPlayer],
-  );
-
-  // Slice 2c: read the server-authoritative graveyard/exile card
-  // lists. These are PublicZones so every card carries its full
-  // `name` + `providerId` (Scryfall id when the server has one), and
-  // the reducer's `cardMovedBetweenZones` push order matches the
-  // in-zone order (last = top of pile). PlayerBox reads the last
-  // entry for its pile-visualization art, so cards played by
-  // opponents show their real face — not a stale local mock. Select
-  // the zone object (stable Redux reference) and derive the
-  // HandCard[] shape in a useMemo so a new array only gets built
-  // when the zone itself changes.
-  const graveZone = realPlayer?.zones[ZoneName.GRAVE];
-  const exileZone = realPlayer?.zones[ZoneName.EXILE];
-  const sideboardZone = realPlayer?.zones[ZoneName.SIDEBOARD];
-  const graveCards = useMemo<HandCard[]>(
-    () => zoneToHandCards(graveZone),
-    [graveZone],
-  );
-  const exileCards = useMemo<HandCard[]>(
-    () => zoneToHandCards(exileZone),
-    [exileZone],
-  );
-  // Sideboard is a HiddenZone — Servatrice only sends cardCount in
-  // the initial state (server_cardzone.cpp:343-361, `zonesSelfCanSee`
-  // is false for HiddenZone). Same pattern as View library: fire
-  // Command_DumpZone(zone=SIDEBOARD, numberCards=-1) on open and read
-  // the response from `sideboardZone.revealedCards`; clear the snapshot
-  // on close so re-opening always re-dumps fresh.
-  const sideboardCards = useMemo<HandCard[]>(
-    () => revealedCardsToHandCards(sideboardZone?.revealedCards),
-    [sideboardZone?.revealedCards],
-  );
-
-  // Slice 2b: read the local player's own hand cards from Redux.
-  // Hand is a PrivateZone so contents only land in the owner's
-  // client state — opponent cells get an empty array (their count
-  // comes through zoneCounts.hand). PlayerBox uses this for the
-  // face-up hand render on the self seat and as the drag payload
-  // for hand-source drops (real numeric ids flow to Command_MoveCard).
-  const handZone = realPlayer?.zones[ZoneName.HAND];
-  const handCards = useMemo<HandCard[]>(
-    () => zoneToHandCards(handZone),
-    [handZone],
-  );
-
-  // Revealed cards from the DECK zone — populated by Response_DumpZone
-  // when the local player asks to view top/bottom N cards of their
-  // library. Passed to PlayerBox so its "View top cards" dialog can
-  // render actual server data instead of the local mock deck.
-  const deckZone = realPlayer?.zones[ZoneName.DECK];
-  const revealedDeckCards = useMemo<HandCard[]>(
-    () => revealedCardsToHandCards(deckZone?.revealedCards),
-    [deckZone],
-  );
-  // "Always reveal top card" / "Always look at top card" state for
-  // this player's DECK, plus the currently-known top card (if any).
-  // Populated by the cardsRevealed reducer from Servatrice's auto-
-  // reveal (revealTopCardIfNeeded, server_abstract_player.cpp:553-580).
-  const alwaysRevealTopCard = deckZone?.alwaysRevealTopCard ?? false;
-  const alwaysLookAtTopCard = deckZone?.alwaysLookAtTopCard ?? false;
-  const deckTopCard = useMemo<{ name: string; scryfallId: string } | null>(
-    () => {
-      const c = deckZone?.topRevealedCard;
-      if (!c) {
-        return null;
-      }
-      return { name: c.name, scryfallId: c.providerId };
-    },
-    [deckZone],
-  );
-
-  // Slice 2d: read the battlefield (TABLE) zone from Redux. PublicZone
-  // so all players see every card's face, position, and tapped state.
-  //
-  // Cross-player attachments (Cockatrice's "aura on opponent's
-  // creature") need a merge step: a card attached to this player's
-  // creature but owned by another player still LIVES in the source
-  // owner's zone (Servatrice never moves it — see
-  // .github/instructions/datatrice-game.instructions.md#servatrice-game-event-quirks).
-  // For the visual to match desktop's Qt scene-graph re-parenting, we
-  // must (a) exclude own cards that are attached to another player
-  // (they render on the parent's board) and (b) inject foreign cards
-  // attached to this player's cards (rendered under the parent here).
-  // `ownerPlayerId` on `BattlefieldCard` preserves the true owner so
-  // wire commands can still route to the correct zone.
-  const tableZone = realPlayer?.zones[ZoneName.TABLE];
-  const allPlayers = useAppSelector((state) =>
-    gameId != null ? games.Selectors.getPlayers(state, gameId) : undefined,
-  );
-  const battlefieldCards = useMemo<BattlefieldCard[]>(() => {
-    // Own cards that either aren't attached at all OR are attached
-    // to something on THIS player's board. Cards attached to other
-    // players get filtered out — they render on the parent's board.
-    const own = tableZone
-      ? tableZone.order.reduce<BattlefieldCard[]>((acc, id) => {
-        const c = tableZone.byId[id];
-        const attachCardId = c?.attachCardId ?? -1;
-        const attachPlayerId = c?.attachPlayerId ?? -1;
-        const attachZone = c?.attachZone ?? '';
-        const attachedElsewhere =
-          attachCardId >= 0
-          && attachZone === ZoneName.TABLE
-          && attachPlayerId !== cell.playerId;
-        if (attachedElsewhere) {
-          return acc;
-        }
-        acc.push(projectCard(id, c, cell.playerId));
-        return acc;
-      }, [])
-      : EMPTY_BATTLEFIELD_CARDS;
-
-    // Foreign attached children: iterate every OTHER player's TABLE
-    // and pick up cards whose (attachPlayerId, attachZone) point at
-    // this player's board. Each gets `ownerPlayerId` set to its true
-    // source-zone owner so interactions can still route correctly.
-    const foreignChildren: BattlefieldCard[] = [];
-    if (allPlayers) {
-      for (const [ownerIdStr, otherPlayer] of Object.entries(allPlayers)) {
-        const otherOwnerId = Number(ownerIdStr);
-        if (otherOwnerId === cell.playerId) {
-          continue;
-        }
-        const otherTable = otherPlayer?.zones[ZoneName.TABLE];
-        if (!otherTable) {
-          continue;
-        }
-        for (const cid of otherTable.order) {
-          const c = otherTable.byId[cid];
-          if (!c) {
-            continue;
-          }
-          if (
-            c.attachCardId >= 0
-            && c.attachZone === ZoneName.TABLE
-            && c.attachPlayerId === cell.playerId
-          ) {
-            foreignChildren.push(projectCard(cid, c, otherOwnerId));
-          }
-        }
-      }
-    }
-
-    if (foreignChildren.length === 0) {
-      return own;
-    }
-    return own.concat(foreignChildren);
-  }, [tableZone, allPlayers, cell.playerId]);
-
-  // Slice 2e: read stack cards from Redux. PublicZone — visible to
-  // all players. Order runs bottom → top matching the reducer's
-  // push convention (last-in resolves first in MTG).
-  const stackZone = realPlayer?.zones[ZoneName.STACK];
-  const stackCards = useMemo<HandCard[]>(
-    () => zoneToHandCards(stackZone),
-    [stackZone],
-  );
+  }, [gameId, lifeCounterId, lifeValue, webClient, dispatch, store, cell.playerId]);
 
   // Prefer the deck the local player picked in the lobby (dev tool via
   // mockDeckStore). Falls back to the hard-coded MOCK_DECK when nothing
@@ -1906,23 +1506,11 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
     >
       <BoardCellProvider value={cellInfo}>
         <PlayerBox
-          player={playerForBox}
-          isSelf={cell.isLocal}
-          isActive={isActive}
-          handOnTop={cell.mirrored}
-          flipHandCardBacks={totalPlayers !== 3}
+          {...seatProps}
           cards={cards}
           lifeControl={lifeControl}
-          zoneCounts={zoneCounts}
-          graveCards={graveCards}
-          sideboardCards={sideboardCards}
           onDumpSideboard={onDumpSideboard}
           onClearRevealedSideboard={onClearRevealedSideboard}
-          exileCards={exileCards}
-          handCards={handCards}
-          battlefieldCards={battlefieldCards}
-          stackCards={stackCards}
-          playerId={cell.playerId}
           onMoveCard={onMoveCard}
           onDrawCards={onDrawCards}
           onMulligan={onMulligan}
@@ -1934,16 +1522,11 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
           onUndoDraw={onUndoDraw}
           onDumpTopCards={onDumpTopCards}
           onClearRevealedDeck={onClearRevealedDeck}
-          revealedDeckCards={revealedDeckCards}
-          revealTargets={revealTargets}
           onRevealLibrary={onRevealLibrary}
           onLendLibrary={onLendLibrary}
           onRevealTopCards={onRevealTopCards}
-          alwaysRevealTopCard={alwaysRevealTopCard}
-          alwaysLookAtTopCard={alwaysLookAtTopCard}
           onSetAlwaysRevealTopCard={onSetAlwaysRevealTopCard}
           onSetAlwaysLookAtTopCard={onSetAlwaysLookAtTopCard}
-          deckTopCard={deckTopCard}
           onSetCardTapped={onSetCardTapped}
           onFlipCard={onFlipCard}
           onPeekCards={onPeekCards}
@@ -1956,15 +1539,12 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
           onUnattachCard={onUnattachCard}
           onCreateArrow={onCreateArrow}
           onSetCardCounter={onSetCardCounter}
-          manaCounters={manaCounters}
           onModifyCounter={onModifyCounter}
           onSetPlayerCounter={onSetPlayerCounter}
           onBulkSetCardCounters={onBulkSetCardCounters}
           onUntapAll={onUntapAll}
           onFlipCoin={onFlipCoin}
           onCreateToken={onCreateToken}
-          drawSeq={realPlayer?.drawSeq ?? 0}
-          lastDrawCount={realPlayer?.lastDrawCount ?? 0}
         />
       </BoardCellProvider>
     </div>
