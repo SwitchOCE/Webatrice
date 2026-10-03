@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 
 import { renderWithProviders } from '../../__test-utils__';
 
@@ -19,6 +19,8 @@ const baseHook = {
   importedCards: [] as never[],
   importedSets: [] as never[],
   ingest: null as never,
+  rebuild: null as never,
+  answerUnknownSets: vi.fn(),
   error: null as string | null,
   handleBack: vi.fn(),
   handleLocalFiles: vi.fn(),
@@ -98,6 +100,23 @@ describe('CardImportForm', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'CardImportForm.button.done' }));
     expect(onSubmit).toHaveBeenCalled();
+  });
+
+  it('asks about new sets after saving and hands "View sets" to the host', async () => {
+    const answerUnknownSets = vi.fn().mockResolvedValue(undefined);
+    hoisted.useCardImportForm.mockReturnValue({
+      ...baseHook,
+      activeStep: 2,
+      rebuild: { summary: {}, unknownSets: ['NEO'], allNewSetsEnabled: false } as never,
+      answerUnknownSets,
+    });
+    const onViewSets = vi.fn();
+
+    renderWithProviders(<CardImportForm onSubmit={vi.fn()} onViewSets={onViewSets} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'CardDatabaseOverview.newSets.view' }));
+    await waitFor(() => expect(onViewSets).toHaveBeenCalled());
+    expect(answerUnknownSets).toHaveBeenCalledWith('keep-disabled');
   });
 
   it('shows the loading spinner when loading', () => {
