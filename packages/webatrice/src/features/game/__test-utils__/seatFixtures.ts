@@ -6,6 +6,7 @@
 // Servatrice-shaped counter set (life + the seven mana counters), plus the DOM
 // helpers the specs share for menus, pointer drags and jsdom layout.
 
+import { createElement } from 'react';
 import { act, fireEvent, screen } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
@@ -17,7 +18,7 @@ import {
   makePlayerProperties,
   makeZoneEntry,
 } from '@cockatrice/datatrice/testing';
-import { connectedState, makeStoreState, makeUser } from '../../../__test-utils__';
+import { connectedState, createMockWebClient, makeStoreState, makeUser, renderWithProviders } from '../../../__test-utils__';
 
 export const LIFE_COUNTER_ID = 1;
 
@@ -129,6 +130,27 @@ export function buildSeatGameState({
       },
     },
   });
+}
+
+// --- Hook helper -----------------------------------------------------------
+
+/** Render a seat hook inside the full provider stack (game 1, mock WebClient)
+ *  and expose its latest result, the store and the game request spies. */
+export function renderSeatHook<T>(
+  useHook: () => T,
+  spec: SeatGameSpec,
+  mutate?: (state: ReturnType<typeof buildSeatGameState>) => void,
+) {
+  const preloadedState = buildSeatGameState(spec);
+  mutate?.(preloadedState);
+  const webClient = createMockWebClient();
+  let latest: T | undefined;
+  function Probe() {
+    latest = useHook();
+    return null;
+  }
+  const utils = renderWithProviders(createElement(Probe), { preloadedState, webClient });
+  return { ...utils, result: () => latest as T, game: webClient.request.game };
 }
 
 // --- Menu helpers ----------------------------------------------------------

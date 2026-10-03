@@ -1,8 +1,15 @@
 import { useMemo, type ComponentProps } from 'react';
 
+import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
+
 import type PlayerBox from '../../PlayerBox/PlayerBox';
 import type { RoomMemberWithProfile } from '../../PlayerBox/mockTypes';
-import type { PlayerBoardModel } from '../PlayerBoard/playerBoard.types';
+import type {
+  PlayerBoardCommands,
+  PlayerBoardModel,
+  PlayerCounterViewModel,
+  RevealRecipient,
+} from '../PlayerBoard/playerBoard.types';
 
 // Compatibility adapter: spreads the seat model back into PlayerBox's flat
 // props so its JSX is unchanged while the model and command ports settle.
@@ -61,4 +68,85 @@ export function usePlayerBoxSeatProps(model: PlayerBoardModel) {
     drawSeq: seat.drawSeq,
     lastDrawCount: seat.lastDrawCount,
   } satisfies Partial<PlayerBoxProps>;
+}
+
+/** PlayerBox's "-1 = every player" convention for reveal targets. */
+const toRecipient = (targetPlayerId: number): RevealRecipient => (targetPlayerId === -1 ? 'all' : targetPlayerId);
+
+/** The command half of PlayerBox's props, adapted from the grouped ports. */
+export function usePlayerBoxCommandProps(
+  commands: Partial<PlayerBoardCommands>,
+  life: PlayerCounterViewModel['life'],
+) {
+  const { zone, card, counter, target } = commands;
+
+  const zoneProps = useMemo(() => zone && ({
+    onMoveCard: zone.move,
+    onDrawCards: zone.draw,
+    onUndoDraw: zone.undoDraw,
+    onMulligan: zone.mulligan,
+    onShuffle: () => zone.shuffleLibrary(),
+    onShuffleRange: (start: number, end: number) => zone.shuffleLibrary({ start, end }),
+    onDumpTopCards: zone.viewLibrary,
+    onClearRevealedDeck: zone.closeLibraryView,
+    onDumpSideboard: zone.viewSideboard,
+    onClearRevealedSideboard: zone.closeSideboardView,
+    onRevealLibrary: (targetPlayerId: number) => zone.reveal(ZoneName.DECK, toRecipient(targetPlayerId)),
+    onRevealZone: (zoneName: string, targetPlayerId: number) =>
+      zone.reveal(zoneName as ZoneNameValue, toRecipient(targetPlayerId)),
+    onRevealRandomFromZone: (zoneName: string, targetPlayerId: number) =>
+      zone.reveal(zoneName as ZoneNameValue, toRecipient(targetPlayerId), 'random'),
+    onRevealTopCards: (targetPlayerId: number, count: number) =>
+      zone.reveal(ZoneName.DECK, toRecipient(targetPlayerId), { top: count }),
+    onLendLibrary: zone.lendLibrary,
+    onSetAlwaysRevealTopCard: zone.setAlwaysRevealTopCard,
+    onSetAlwaysLookAtTopCard: zone.setAlwaysLookAtTopCard,
+  }), [zone]);
+
+  const cardProps = useMemo(() => card && ({
+    onSetCardTapped: card.setTapped,
+    onUntapAll: card.untapAll,
+    onFlipCard: card.flip,
+    onPeekCards: card.peek,
+    onSetCardDoesntUntap: card.setDoesntUntap,
+    onSetAnnotation: card.setAnnotation,
+    onSetPT: card.setPT,
+    onCloneCard: card.clone,
+    onCreateToken: card.createToken,
+  }), [card]);
+
+  const counterProps = useMemo(() => counter && ({
+    onModifyCounter: counter.increment,
+    onSetPlayerCounter: counter.set,
+    onSetCardCounter: counter.setCardCounter,
+    onBulkSetCardCounters: counter.setCardCounters,
+    onFlipCoin: counter.flipCoin,
+  }), [counter]);
+
+  const targetProps = useMemo(() => target && ({
+    onAttachCard: target.attach,
+    onUnattachCard: target.unattach,
+    onCreateArrow: (
+      sourceCardId: number,
+      sourceZone: string,
+      arrowTarget: Parameters<PlayerBoardCommands['target']['createArrow']>[2],
+    ) => target.createArrow(sourceCardId, sourceZone as ZoneNameValue, arrowTarget),
+    onClearOwnArrows: target.clearOwnArrows,
+  }), [target]);
+
+  // Life is the "life" counter: +/- sends a delta, the dialog an absolute value.
+  const lifeId = life?.id;
+  const lifeValue = life?.value;
+  const lifeControl = useMemo(() => {
+    if (!counter || lifeId == null || lifeValue == null) {
+      return undefined;
+    }
+    return {
+      value: lifeValue,
+      onDelta: (delta: number) => counter.increment(lifeId, delta),
+      onSet: (value: number) => counter.set(lifeId, value),
+    };
+  }, [counter, lifeId, lifeValue]);
+
+  return { ...zoneProps, ...cardProps, ...counterProps, ...targetProps, lifeControl } satisfies Partial<PlayerBoxProps>;
 }
