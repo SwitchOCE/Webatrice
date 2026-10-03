@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo } from 'react';
 
-import { server } from '@cockatrice/datatrice';
+import { server, ServerCapability } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
 
 import { buildModerationMenu, type ModerationAction, type ModerationMenuGroups } from './moderationMenu';
@@ -37,10 +37,13 @@ export function useModerationMenu(userName: string, userLevel?: number): Moderat
   const targetUserLevel = userLevel ?? knownLevel ?? 0;
   const localUserLevel = localUser?.userLevel ?? 0;
   const isSelf = localUser?.name === userName;
+  const supportsDeveloperRole = useAppSelector((state) =>
+    server.Selectors.supports(state, ServerCapability.DEVELOPER_ROLE),
+  );
 
   const groups = useMemo(
-    () => (api ? buildModerationMenu({ localUserLevel, targetUserLevel, isSelf }) : EMPTY_GROUPS),
-    [api, localUserLevel, targetUserLevel, isSelf],
+    () => (api ? buildModerationMenu({ localUserLevel, targetUserLevel, isSelf, supportsDeveloperRole }) : EMPTY_GROUPS),
+    [api, localUserLevel, targetUserLevel, isSelf, supportsDeveloperRole],
   );
   const open = useMemo(
     () => (action: ModerationAction) => api?.open(action, userName),
