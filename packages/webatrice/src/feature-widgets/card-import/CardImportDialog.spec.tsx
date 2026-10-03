@@ -28,6 +28,13 @@ describe('CardImportDialog', () => {
     expect(screen.getByTestId('card-import-form')).toBeInTheDocument();
   });
 
+  it('labels the shown panel with its tab', () => {
+    renderWithProviders(<CardImportDialog isOpen handleClose={vi.fn()} initialTab="tokens" />);
+    const tab = screen.getByRole('tab', { name: 'CardImportDialog.tab.tokens' });
+    const panel = screen.getByRole('tabpanel', { name: 'CardImportDialog.tab.tokens' });
+    expect(tab).toHaveAttribute('aria-controls', panel.id);
+  });
+
   it('opens on the requested tab', () => {
     renderWithProviders(<CardImportDialog isOpen handleClose={vi.fn()} initialTab="tokens" />);
     expect(screen.getByTestId('edit-tokens')).toBeInTheDocument();
