@@ -38,11 +38,25 @@ function forgetDeck(deckId: number): void {
   summaryRequestedCache.delete(deckId);
 }
 
+/** The name `cmdDeckUpload` stores for a deck whose `.cod` has none. */
+const SERVER_UNNAMED_DECK = 'Unnamed deck';
+
 /**
- * An upload waiting for Servatrice's answer. Answers carry the folder and
- * the deck's name, which pick the waiting entry; a `move` deletes the
- * original once its copy exists.
+ * An upload waiting for Servatrice's answer. A success names the folder and
+ * the stored deck name, and only an entry with both picks it; a failure names
+ * only the folder. A `move` deletes the original once its copy exists.
  */
+/**
+ * The name Servatrice will store for `xml`: the raw `<deckname>` text, as
+ * desktop's `DeckList` reads it (untrimmed, no "Untitled Deck" default like
+ * `parseCod`'s), or "Unnamed deck" when it is empty.
+ */
+function storedName(xml: string): string {
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  const nameEl = Array.from(doc.documentElement.children).find((el) => el.tagName === 'deckname');
+  return nameEl?.textContent || SERVER_UNNAMED_DECK;
+}
+
 type PendingUpload =
   | { kind: 'create'; path: string; name: string }
   | { kind: 'move'; path: string; name: string; fromId: number };
@@ -54,6 +68,9 @@ export interface UseDeckList {
   /** Why the deck list could not be loaded; null until a request fails and
    *  again once the user retries. */
   listError: string | null;
+  /** Why the last create, import or move failed; null until one does. */
+  storageError: string | null;
+  dismissStorageError: () => void;
   /** The folder shown: its subfolders and its own decks. */
   folder: DeckFolderView;
   /** The shown folder's decks, newest first. */
@@ -81,7 +98,8 @@ export interface UseDeckList {
   createFolder: (name: string) => void;
   /** Delete a folder with everything in it. */
   deleteFolder: (path: string) => void;
-  /** Move a deck to another folder: copy it there, then delete the original. */
+  /** Move a deck to another folder: copy it there (keeping its visibility and
+   *  color identity), then delete the original once the copy is confirmed. */
   moveDeck: (deck: FlatDeck, targetPath: string) => void;
 }
 
@@ -107,6 +125,7 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
   // Replaces the loading spinner (which would otherwise spin forever) until
   // the user retries.
   const [listError, setListError] = useState<string | null>(null);
+  const [storageError, setStorageError] = useState<string | null>(null);
 
   // Seeded from the session cache so returning to the tab shows known
   // summaries immediately; new summaries flow into both.
@@ -148,17 +167,20 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
   // --- Uploads (create, import, move) ---
   // Only a deck *this list* created or imported opens the editor.
   const pendingUploadsRef = useRef<PendingUpload[]>([]);
-  // Decks being moved, by id, waiting for their XML: id → target folder.
-  const pendingMovesRef = useRef<Map<number, string>>(new Map());
+  // Decks being moved, by id, waiting for their XML.
+  const pendingMovesRef = useRef<Map<number, { deck: FlatDeck; targetPath: string }>>(new Map());
 
   useReduxEffect<{ path: string; treeItem: ServerInfo_DeckStorage_TreeItem }>(
     ({ payload: { path, treeItem } }) => {
       const pending = pendingUploadsRef.current;
+      // Never guess: an answer that matches no waiting upload (another
+      // client's, or a name we could not predict) settles nothing. A move
+      // whose answer is never matched keeps its original.
       const index = pending.findIndex((p) => p.path === path && p.name === treeItem.name);
-      const settled = pending.splice(index >= 0 ? index : 0, 1)[0];
-      if (!settled) {
+      if (index < 0) {
         return;
       }
+      const [settled] = pending.splice(index, 1);
       if (settled.kind === 'move') {
         // The copy exists: carry the summary over, then drop the original.
         const summary = summaryCache.get(settled.fromId);
@@ -178,19 +200,28 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
     [onDeckCreated, webClient],
   );
 
-  const upload = (entry: PendingUpload, xml: string) => {
+  useReduxEffect<CommandFailedPayload & { path: string }>(
+    ({ payload: { path, failure } }) => {
+      // Servatrice answers a session's commands in order, so a failure for
+      // `path` belongs to the oldest upload still waiting on that folder.
+      const pending = pendingUploadsRef.current;
+      const index = pending.findIndex((p) => p.path === path);
+      if (index < 0) {
+        return;
+      }
+      const [failed] = pending.splice(index, 1);
+      const key = failed.kind === 'move' ? 'Decks.moveFailed' : 'Decks.uploadFailed';
+      setStorageError(describeFailure(failure, t(key, { name: failed.name })));
+    },
+    server.Types.DECK_UPLOAD_FAILED,
+    [describeFailure, t],
+  );
+
+  const upload = (entry: PendingUpload, xml: string, isPublic?: boolean, colorIdentity?: string) => {
     pendingUploadsRef.current.push(entry);
-    webClient.request.session.deckUpload(entry.path, 0, xml);
+    webClient.request.session.deckUpload(entry.path, 0, xml, isPublic, colorIdentity);
   };
 
-  /** The name Servatrice will store (`cmdDeckUpload` falls back to "Unnamed deck"). */
-  const storedName = (xml: string) => {
-    try {
-      return parseCod(xml).name;
-    } catch {
-      return '';
-    }
-  };
 
   const createDeck = (name: string, format: string): boolean => {
     if (!isConnected) {
@@ -237,7 +268,7 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
     if (!isConnected || targetPath === deck.path) {
       return;
     }
-    pendingMovesRef.current.set(deck.id, targetPath);
+    pendingMovesRef.current.set(deck.id, { deck, targetPath });
     webClient.request.session.deckDownload(deck.id);
   };
 
@@ -258,10 +289,17 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
 
   useReduxEffect<{ deckId: number; deck: string }>(
     ({ payload }) => {
-      const moveTarget = pendingMovesRef.current.get(payload.deckId);
-      if (moveTarget !== undefined) {
+      const move = pendingMovesRef.current.get(payload.deckId);
+      if (move) {
         pendingMovesRef.current.delete(payload.deckId);
-        upload({ kind: 'move', path: moveTarget, name: storedName(payload.deck), fromId: payload.deckId }, payload.deck);
+        // A new id is unavoidable (Servatrice has no move command), so the
+        // copy carries what the server stores beside the XML.
+        upload(
+          { kind: 'move', path: move.targetPath, name: storedName(payload.deck), fromId: payload.deckId },
+          payload.deck,
+          move.deck.isPublic,
+          move.deck.colorIdentity,
+        );
       }
       try {
         const next = summarizeDeck(parseCod(payload.deck));
@@ -283,12 +321,28 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
     [],
   );
 
+  useReduxEffect<CommandFailedPayload & { deckId: number }>(
+    ({ payload: { deckId, failure } }) => {
+      const move = pendingMovesRef.current.get(deckId);
+      if (!move) {
+        return;
+      }
+      // Otherwise the next summary download of this deck would run the move.
+      pendingMovesRef.current.delete(deckId);
+      setStorageError(describeFailure(failure, t('Decks.moveFailed', { name: move.deck.name })));
+    },
+    server.Types.DECK_DOWNLOAD_FAILED,
+    [describeFailure, t],
+  );
+
   const sections = useMemo(() => groupDecksByFormat(folder.decks, summaries), [folder.decks, summaries]);
 
   return {
     isConnected,
     loading: !backendDecks,
     listError,
+    storageError,
+    dismissStorageError: () => setStorageError(null),
     folder,
     decks: folder.decks,
     sections,

@@ -1,6 +1,9 @@
 {
   "Decks": {
     "listError": "Failed to load your decks from the server.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "moveFailed": "Couldn’t move {name}. The original deck is unchanged.",
+    "uploadFailed": "Couldn’t save {name} to the server.",
+    "dismiss": "Dismiss"
   }
 }

@@ -36,15 +36,22 @@ function deckTree() {
   });
 }
 
-/** Root: deck 1, folder "Modern" (deck 3, folder "Old" with deck 4). */
+/** Root: deck 1, folder "Modern" (public red deck 3, folder "Old" with deck 4). */
 function folderTree() {
-  const file = (id: number, name: string, creationTime: number) =>
-    create(ServerInfo_DeckStorage_TreeItemSchema, { id, name, file: create(ServerInfo_DeckStorage_FileSchema, { creationTime }) });
+  const file = (id: number, name: string, creationTime: number, extra: { isPublic?: boolean; colorIdentity?: string } = {}) =>
+    create(ServerInfo_DeckStorage_TreeItemSchema, {
+      id,
+      name,
+      file: create(ServerInfo_DeckStorage_FileSchema, { creationTime, ...extra }),
+    });
   const folder = (name: string, items: ReturnType<typeof file>[]) =>
     create(ServerInfo_DeckStorage_TreeItemSchema, { name, folder: create(ServerInfo_DeckStorage_FolderSchema, { items }) });
   return create(Response_DeckListSchema, {
     root: create(ServerInfo_DeckStorage_FolderSchema, {
-      items: [file(1, 'Root deck', 10), folder('Modern', [file(3, 'Burn', 30), folder('Old', [file(4, 'Affinity', 40)])])],
+      items: [
+        file(1, 'Root deck', 10),
+        folder('Modern', [file(3, 'Burn', 30, { isPublic: true, colorIdentity: 'R' }), folder('Old', [file(4, 'Affinity', 40)])]),
+      ],
     }),
   });
 }
@@ -203,7 +210,8 @@ describe('useDeckList', () => {
       act(() => {
         store.dispatch(server.Actions.deckDownloaded({ deckId: 3, deck: COD('modern') }));
       });
-      expect(webClient.request.session.deckUpload).toHaveBeenCalledWith('Modern/Old', 0, COD('modern'));
+      // Visibility and color identity are kept: the copy is a new deck row.
+      expect(webClient.request.session.deckUpload).toHaveBeenCalledWith('Modern/Old', 0, COD('modern'), true, 'R');
       expect(webClient.request.session.deckDel).not.toHaveBeenCalled();
 
       act(() => {
@@ -215,6 +223,82 @@ describe('useDeckList', () => {
       expect(webClient.request.session.deckDel).toHaveBeenCalledWith(3);
       expect(latest.summaries.get(12)).toEqual(expect.objectContaining({ format: 'modern' }));
       expect(onDeckCreated).not.toHaveBeenCalled();
+    });
+
+    function startMove(store: ReturnType<typeof setup>['store']) {
+      act(() => {
+        store.dispatch(server.Actions.backendDecks({ deckList: folderTree() }));
+      });
+      act(() => latest.moveDeck(latest.decks[0], 'Modern/Old'));
+      act(() => {
+        store.dispatch(server.Actions.deckDownloaded({ deckId: 3, deck: COD('modern') }));
+      });
+    }
+
+    it('keeps the original when the copy fails, and never pairs a later answer with the failed move', () => {
+      const { webClient, store, onDeckCreated } = setup('Modern');
+      startMove(store);
+
+      act(() => {
+        store.dispatch(server.Actions.deckUploadFailed({ path: 'Modern/Old', responseCode: 17 }));
+      });
+      expect(latest.storageError).toBe('Decks.moveFailed');
+
+      // An upload answer that matches nothing pending (another client's)
+      // must not settle the move.
+      act(() => {
+        store.dispatch(server.Actions.deckUpload({
+          path: 'Modern/Old',
+          treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 13, name: 'D' }),
+        }));
+      });
+      expect(webClient.request.session.deckDel).not.toHaveBeenCalled();
+      expect(onDeckCreated).not.toHaveBeenCalled();
+
+      act(() => latest.dismissStorageError());
+      expect(latest.storageError).toBeNull();
+    });
+
+    it('ignores an unmatched answer while a move waits, and matches a nameless import by the server\'s name', () => {
+      const { webClient, store, onDeckCreated } = setup('Modern');
+      startMove(store);
+      act(() => {
+        latest.importDeck('<cockatrice_deck version="1"><zone name="main"/></cockatrice_deck>');
+      });
+
+      act(() => {
+        store.dispatch(server.Actions.deckUpload({
+          path: 'Modern',
+          treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 20, name: 'Unnamed deck' }),
+        }));
+      });
+      expect(onDeckCreated).toHaveBeenCalledWith(20);
+      expect(webClient.request.session.deckDel).not.toHaveBeenCalled();
+
+      act(() => {
+        store.dispatch(server.Actions.deckUpload({
+          path: 'Elsewhere',
+          treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 21, name: 'D' }),
+        }));
+      });
+      expect(webClient.request.session.deckDel).not.toHaveBeenCalled();
+    });
+
+    it('drops a move whose download fails, so a later download does not run it', () => {
+      const { webClient, store } = setup('Modern');
+      act(() => {
+        store.dispatch(server.Actions.backendDecks({ deckList: folderTree() }));
+      });
+      act(() => latest.moveDeck(latest.decks[0], 'Modern/Old'));
+      act(() => {
+        store.dispatch(server.Actions.deckDownloadFailed({ deckId: 3, responseCode: 17 }));
+      });
+      expect(latest.storageError).toBe('Decks.moveFailed');
+
+      act(() => {
+        store.dispatch(server.Actions.deckDownloaded({ deckId: 3, deck: COD('modern') }));
+      });
+      expect(webClient.request.session.deckUpload).not.toHaveBeenCalled();
     });
 
     it('does not move a deck into its own folder', () => {
