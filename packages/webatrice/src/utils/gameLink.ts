@@ -1,3 +1,5 @@
+import { isLocalTargetHost } from '@cockatrice/sockatrice';
+
 /**
  * Desktop's game join link: `cockatrice://joingame?hostname=…&port=…&roomid=…&gameid=…[&game=…]`
  * (`cockatrice/src/interface/widgets/server/game_link.cpp` makeGameJoinLink, parsed by
@@ -94,23 +96,24 @@ export function parseGameJoinLink(url: string): ParsedGameJoinLink {
   return { ok: true, link: { hostname, port, roomId, gameId, description: params.get('game') ?? '' } };
 }
 
-const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]']);
-
 /**
  * The hostname/port a desktop client would dial for a Webatrice connect target. A target host
- * with a path (`server.example/servatrice`) is reached on the scheme's default port (wss → 443,
- * ws → 80 for local hosts, as Sockatrice's buildWebSocketUrl picks); desktop treats 443 and 80 as
- * WebSocket ports too (`RemoteClient::connectToHost`).
+ * with a path (`server.example/servatrice`) is dialled as written by Sockatrice's
+ * buildWebSocketUrl: on the port before the path when it names one (`server.example:8443/…`),
+ * else on the scheme's default port (wss → 443, ws → 80 for local hosts); desktop treats 443 and
+ * 80 as WebSocket ports too (`RemoteClient::connectToHost`).
  */
 export function gameLinkServer(target: { host: string; port: string | number }): { hostname: string; port: string } {
   const slash = target.host.indexOf('/');
   if (slash < 0) {
     return { hostname: target.host, port: String(target.port) };
   }
-  const hostname = target.host.slice(0, slash);
-  const lower = hostname.toLowerCase();
-  const local = LOCAL_HOSTNAMES.has(lower) || lower.endsWith('.localhost');
-  return { hostname, port: local ? '80' : '443' };
+  const authority = target.host.slice(0, slash);
+  const portMatch = /^(.+):(\d+)$/.exec(authority);
+  if (portMatch) {
+    return { hostname: portMatch[1], port: portMatch[2] };
+  }
+  return { hostname: authority, port: isLocalTargetHost(target.host) ? '80' : '443' };
 }
 
 /** True when the text holds at least one game link. */
