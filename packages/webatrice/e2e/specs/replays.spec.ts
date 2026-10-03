@@ -72,7 +72,11 @@ test('a finished game can be found, managed and watched from the replays tab', a
   await expect(shareDialog.getByTestId('replay-share-code')).toHaveText(/\S+/);
   await shareDialog.getByRole('button', { name: 'OK' }).click();
 
+  // A match is saved into its own <gameId>_<gameName> folder, as on desktop.
   await replays.serverAction('Save to local replays').click();
+  const matchFolder = replays.localPane.getByText(new RegExp(`^\\d+_${gameName}$`));
+  await expect(matchFolder).toBeVisible();
+  await matchFolder.dblclick();
   await expect(replays.localPane.getByText(/^replay_\d+\.cor$/)).toBeVisible();
 
   // ---- Playback (LONG-002) ----
