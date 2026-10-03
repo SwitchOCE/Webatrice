@@ -58,8 +58,11 @@ describe.each(Object.keys(PALETTES) as ColorScheme[])('the %s palette', (scheme)
     },
   );
 
-  test.each(SURFACES)('keeps muted and disabled text at least 3:1 on %s', (surface) => {
-    expect(contrast(palette['text-muted'], palette[surface])).toBeGreaterThanOrEqual(3);
+  test.each(SURFACES)('keeps muted text, which carries readable hints, at AA contrast on %s', (surface) => {
+    expect(contrast(palette['text-muted'], palette[surface])).toBeGreaterThanOrEqual(4.5);
+  });
+
+  test.each(SURFACES)('keeps disabled text at least 3:1 on %s', (surface) => {
     expect(contrast(palette['text-disabled'], palette[surface])).toBeGreaterThanOrEqual(3);
   });
 });
