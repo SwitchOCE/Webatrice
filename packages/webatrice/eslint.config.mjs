@@ -136,6 +136,12 @@ export default tseslint.config(
     },
   },
 
+  // Build and CI scripts run under Node.
+  {
+    files: ['scripts/**'],
+    languageOptions: { globals: { ...globals.node } },
+  },
+
   // The capability preflight runs as a classic script before the bundle, in
   // browsers too old to parse it, so it must stay ES5: espree at ecmaVersion 5
   // rejects any newer syntax as a parse error.
