@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, RefObject } from 'react';
 import { useWebClient } from '@cockatrice/datatrice/react';
-import { games } from '@cockatrice/datatrice';
+import { games, server } from '@cockatrice/datatrice';
+import { useAdminLocked } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 import { GameMessage, PlayerEntry } from '@cockatrice/datatrice';
 const EMPTY_MESSAGES: GameMessage[] = [];
@@ -61,7 +62,16 @@ export function useGameLog({ gameId, listRef }: UseGameLogArgs): GameLog {
     }
     return games.Selectors.getGame(state, gameId)?.info.spectatorsCanChat ?? true;
   });
-  const canChat = !(isSpectator && !spectatorsCanChat);
+  // Desktop TabGame (tab_game.cpp:1423) and Servatrice's cmdGameSay let a
+  // moderator or the game's judge talk as a spectator anyway; desktop counts
+  // the moderator only while the admin lock is off.
+  const isModerator = useAppSelector(server.Selectors.getIsUserModerator);
+  const adminLocked = useAdminLocked();
+  const isJudge = useAppSelector((state) =>
+    gameId != null ? games.Selectors.getJudge(state, gameId) : false,
+  );
+  const canOverride = (isModerator && !adminLocked) || isJudge;
+  const canChat = !(isSpectator && !spectatorsCanChat && !canOverride);
   const chatDisabledReason = canChat
     ? null
     : 'Spectators are not allowed to chat in this game.';

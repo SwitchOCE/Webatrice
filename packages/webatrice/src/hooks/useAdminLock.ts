@@ -5,10 +5,12 @@ import { useSyncExternalStore } from 'react';
  *
  * While locked, the Administration page disables its server and moderator
  * functions, and desktop also hides the moderator actions of the user context
- * menu (`TabSupervisor::getAdminLocked`, user_context_menu.cpp). Desktop opens
- * the admin tab unlocked, so the lock starts off. It lives outside React so the
- * Administration page and any context menu read one value; it is per page load
- * and never persisted, like desktop's.
+ * menu and the in-game moderator powers: Kick from game for a non-host, and
+ * talking as a spectator where the game forbids it (`TabSupervisor::getAdminLocked`,
+ * user_context_menu.cpp, tab_game.cpp). Desktop opens the admin tab unlocked, so
+ * the lock starts off. It lives outside React so the Administration page, the
+ * context menus and the game read one value; it is per page load and never
+ * persisted, like desktop's.
  */
 let locked = false;
 const listeners = new Set<() => void>();
