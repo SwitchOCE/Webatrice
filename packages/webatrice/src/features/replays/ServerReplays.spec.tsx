@@ -262,6 +262,44 @@ describe('Server replay storage', () => {
     expect(screen.getByRole('dialog')).toHaveTextContent('Replays.share.found');
   });
 
+  it('is operable from the keyboard: arrows select, → and ← fold, Enter watches', () => {
+    const { webClient } = renderReplays(stateWith({ matches: [match(7, { replayIds: [70, 71] }), match(9)] }));
+    const grid = serverPane().getByRole('treegrid');
+    const first = serverPane().getByTestId('replay-match-7');
+
+    // One tab stop: the first row until something is selected.
+    expect(first).toHaveAttribute('tabindex', '0');
+    expect(serverPane().getByTestId('replay-match-9')).toHaveAttribute('tabindex', '-1');
+    expect(within(grid).queryAllByRole('button').every((button) => button.tabIndex === -1)).toBe(true);
+
+    first.focus();
+    fireEvent.keyDown(first, { key: 'ArrowDown' });
+    expect(serverPane().getByTestId('replay-match-9')).toHaveAttribute('aria-selected', 'true');
+    expect(serverPane().getByTestId('replay-match-9')).toHaveFocus();
+
+    fireEvent.keyDown(serverPane().getByTestId('replay-match-9'), { key: 'ArrowUp' });
+    fireEvent.keyDown(first, { key: 'ArrowRight' });
+    expect(first).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.keyDown(first, { key: 'ArrowDown' });
+    const replay = serverPane().getByTestId('replay-70');
+    expect(replay).toHaveFocus();
+    expect(replay).toHaveAttribute('aria-selected', 'true');
+    expect(replay).toHaveAttribute('tabindex', '0');
+
+    fireEvent.keyDown(replay, { key: 'Enter' });
+    expect(webClient.request.session.replayDownload).toHaveBeenCalledWith(70, expect.any(Function), expect.any(Function));
+
+    fireEvent.keyDown(replay, { key: 'ArrowLeft' });
+    expect(first).toHaveFocus();
+    fireEvent.keyDown(first, { key: 'ArrowLeft' });
+    expect(first).toHaveAttribute('aria-expanded', 'false');
+    expect(serverPane().queryByTestId('replay-70')).not.toBeInTheDocument();
+
+    fireEvent.keyDown(first, { key: 'Enter' });
+    expect(first).toHaveAttribute('aria-expanded', 'true');
+  });
+
   it('downloads a replay and opens it in the replay view when watched', () => {
     const { webClient } = renderReplays();
 

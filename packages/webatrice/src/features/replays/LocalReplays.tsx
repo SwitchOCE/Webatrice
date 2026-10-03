@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { FileVideo, Folder } from 'lucide-react';
 import Button from '@mui/material/Button';
 
+import { useGridRows } from '@app/hooks';
 import { REPLAY_FILE_EXTENSION } from '@app/services';
 
 import type { LocalReplays as LocalReplaysModel } from './useLocalReplays';
@@ -28,6 +29,14 @@ function LocalReplays({ model }: LocalReplaysProps) {
   const watchInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const selected = model.selected;
+  const entryByKey = new Map(model.entries.map((entry) => [String(entry.id), entry]));
+  const rows = useGridRows({
+    keys: [...entryByKey.keys()],
+    selectedKey: selected ? String(selected.id) : null,
+    onSelect: (key) => model.select(entryByKey.get(key)!.id ?? null),
+    // Enter opens like a double-click: a folder is entered, a replay is played.
+    onActivate: (key) => model.activate(entryByKey.get(key)!),
+  });
 
   return (
     <section className="replays-pane" aria-labelledby="replays-local-title">
@@ -100,7 +109,7 @@ function LocalReplays({ model }: LocalReplaysProps) {
         {!model.loading && model.entries.length === 0 ? (
           <p className="replays-pane__empty">{t('Replays.local.empty')}</p>
         ) : (
-          <table className="replays-table" aria-label={t('Replays.local.title')}>
+          <table className="replays-table" role="grid" aria-label={t('Replays.local.title')}>
             <thead>
               <tr>
                 <th>{t('Replays.local.column.name')}</th>
@@ -112,6 +121,7 @@ function LocalReplays({ model }: LocalReplaysProps) {
               {model.entries.map((entry) => (
                 <tr
                   key={entry.id}
+                  {...rows.getRowProps(String(entry.id))}
                   aria-selected={entry.id === selected?.id}
                   data-testid={`local-replay-${entry.name}`}
                   onClick={() => model.select(entry.id ?? null)}

@@ -5,6 +5,8 @@ import Button from '@mui/material/Button';
 
 import type { ServerInfo_ReplayMatch } from '@cockatrice/sockatrice/generated';
 
+import { useGridRows } from '@app/hooks';
+
 import type { ServerReplays as ServerReplaysModel, ServerReplaySelection } from './useServerReplays';
 
 export interface ServerReplaysProps {
@@ -18,6 +20,10 @@ function isSelected(selection: ServerReplaySelection | null, candidate: ServerRe
     return false;
   }
   return selection.kind === 'match' || (candidate.kind === 'replay' && selection.replayId === candidate.replayId);
+}
+
+function rowKey(node: ServerReplaySelection): string {
+  return node.kind === 'match' ? `match:${node.gameId}` : `replay:${node.gameId}:${node.replayId}`;
 }
 
 function formatStarted(match: ServerInfo_ReplayMatch): string {
@@ -47,6 +53,47 @@ function ServerReplays({ model, localFolderId }: ServerReplaysProps) {
       return next;
     });
   };
+
+  // Rows in display order: each match, then its replays while expanded.
+  const nodes = new Map<string, ServerReplaySelection>();
+  for (const match of model.matches) {
+    const matchNode: ServerReplaySelection = { kind: 'match', gameId: match.gameId };
+    nodes.set(rowKey(matchNode), matchNode);
+    if (expanded.has(match.gameId)) {
+      for (const replay of match.replayList) {
+        const replayNode: ServerReplaySelection = { kind: 'replay', gameId: match.gameId, replayId: replay.replayId };
+        nodes.set(rowKey(replayNode), replayNode);
+      }
+    }
+  }
+  const rows = useGridRows({
+    keys: [...nodes.keys()],
+    selectedKey: model.selection ? rowKey(model.selection) : null,
+    onSelect: (key) => model.select(nodes.get(key)!),
+    // Enter opens like a double-click: a match folds open or shut, a replay plays.
+    onActivate: (key) => {
+      const node = nodes.get(key)!;
+      if (node.kind === 'match') {
+        toggleExpanded(node.gameId);
+      } else {
+        model.watch(node);
+      }
+    },
+    onExpand: (key) => {
+      const node = nodes.get(key)!;
+      if (node.kind === 'match' && !expanded.has(node.gameId)) {
+        toggleExpanded(node.gameId);
+      }
+    },
+    onCollapse: (key) => {
+      const node = nodes.get(key)!;
+      if (node.kind === 'replay') {
+        rows.focusRow(rowKey({ kind: 'match', gameId: node.gameId }));
+      } else if (expanded.has(node.gameId)) {
+        toggleExpanded(node.gameId);
+      }
+    },
+  });
 
   const renderBody = () => {
     if (model.availability === 'disconnected') {
@@ -80,6 +127,7 @@ function ServerReplays({ model, localFolderId }: ServerReplaysProps) {
             return (
               <Fragment key={match.gameId}>
                 <tr
+                  {...rows.getRowProps(rowKey(matchNode))}
                   aria-level={1}
                   aria-expanded={open}
                   aria-selected={isSelected(model.selection, matchNode)}
@@ -90,6 +138,7 @@ function ServerReplays({ model, localFolderId }: ServerReplaysProps) {
                   <td className="replays-table__num">
                     <button
                       type="button"
+                      tabIndex={-1}
                       className="replays-table__expander"
                       aria-label={open ? t('Replays.server.collapse') : t('Replays.server.expand')}
                       onClick={(event) => {
@@ -116,6 +165,7 @@ function ServerReplays({ model, localFolderId }: ServerReplaysProps) {
                   return (
                     <tr
                       key={replay.replayId}
+                      {...rows.getRowProps(rowKey(replayNode))}
                       aria-level={2}
                       aria-selected={isSelected(model.selection, replayNode)}
                       className="replays-table__child"
