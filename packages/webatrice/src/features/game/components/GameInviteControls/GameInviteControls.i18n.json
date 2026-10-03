@@ -1,0 +1,21 @@
+{
+  "GameInvite": {
+    "copyLink": "Copy game link",
+    "inviteToGame": "Invite to Game...",
+    "invite": "Invite",
+    "linkCopied": "Game link copied",
+    "linkCopyFailed": "Could not copy the game link",
+    "inviteSent": "Invitation sent to {name}",
+    "message": "Join my game (#{gameId}):",
+    "messageWithDescription": "Join my game \"{description}\" (#{gameId}):",
+    "dialog": {
+      "title": "Invite to Game",
+      "search": "Search users...",
+      "buddies": "Buddies",
+      "online": "Online",
+      "empty": "No one to invite",
+      "invite": "Invite",
+      "cancel": "Cancel"
+    }
+  }
+}

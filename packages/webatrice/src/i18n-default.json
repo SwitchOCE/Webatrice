@@ -1326,6 +1326,47 @@
     "message": "You are still in the game. Reload the board to pick up where you left off.",
     "retry": "Reload board"
   },
+  "GameLobby": {
+    "action": {
+      "unloadDeck": "Unload deck",
+      "readyStart": "Ready to start",
+      "sideboardLocked": "Sideboard locked",
+      "sideboardUnlocked": "Sideboard unlocked",
+      "forceStart": "Force start"
+    },
+    "deck": {
+      "maindeck": "Maindeck: {count}",
+      "sideboard": "Sideboard: {count}",
+      "moveToSideboard": "Move {name} to the sideboard",
+      "moveToMaindeck": "Move {name} to the maindeck",
+      "lockedHint": "Unlock the sideboard to change which cards you play this game."
+    },
+    "forceStart": {
+      "title": "Are you sure you want to force start?",
+      "message": "This will kick all non-ready players from the game.",
+      "confirm": "Yes",
+      "cancel": "No"
+    }
+  },
+  "GameInvite": {
+    "copyLink": "Copy game link",
+    "inviteToGame": "Invite to Game...",
+    "invite": "Invite",
+    "linkCopied": "Game link copied",
+    "linkCopyFailed": "Could not copy the game link",
+    "inviteSent": "Invitation sent to {name}",
+    "message": "Join my game (#{gameId}):",
+    "messageWithDescription": "Join my game \"{description}\" (#{gameId}):",
+    "dialog": {
+      "title": "Invite to Game",
+      "search": "Search users...",
+      "buddies": "Buddies",
+      "online": "Online",
+      "empty": "No one to invite",
+      "invite": "Invite",
+      "cancel": "Cancel"
+    }
+  },
   "GameReplay": {
     "missing": "This replay is no longer open. Replays are kept only until the page is reloaded.",
     "backToReplays": "Back to replays",

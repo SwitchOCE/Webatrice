@@ -6,6 +6,7 @@ import { CardImage, CardRelatedLinks } from '@app/components';
 
 import PlayerList from '../right-sidebar/PlayerList/PlayerList';
 import ChatLog from '../ChatLog/ChatLog';
+import GameInviteControls from '../GameInviteControls/GameInviteControls';
 import { useGameId } from '../ui/GameIdContext';
 import { useGameDialogActions } from '../ui/GameDialogActionsContext';
 import { useGameReadOnly } from '../ui/GameReadOnlyContext';
@@ -590,6 +591,7 @@ export default function BattlefieldSidebar() {
           <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
             Players
           </span>
+          {gameId != null && <GameInviteControls gameId={gameId} className="ml-auto mr-1.5" />}
           <button
             type="button"
             onClick={handleLeave}
