@@ -83,13 +83,24 @@ export default tseslint.config(
     rules: {
       'i18next/no-literal-string': ['error', {
         mode: 'jsx-only',
-        'jsx-attributes': { include: ['title', 'aria-label', 'placeholder', 'label', 'helperText', 'alt'] },
+        // The plugin full-matches these, so `.*[lL]abel` covers `label`, `aria-label` and props like `submitLabel`.
+        'jsx-attributes': {
+          include: [
+            'title',
+            'aria-(label|description|roledescription|valuetext|placeholder)',
+            'placeholder',
+            '.*[lL]abel',
+            'helperText',
+            'alt',
+            'message',
+          ],
+        },
         // File paths and other technical text shown in <code>.
         'jsx-components': { exclude: ['Trans', 'code'] },
         // `kind` / `type` carry discriminators, not text.
         'object-properties': { exclude: ['[A-Z_-]+', 'kind', 'type'] },
-        // No letters (separators, arrows, dashes), all caps, and brand names.
-        words: { exclude: ['[^a-zA-Z]+', '[A-Z_-]+', 'Webatrice', 'TCGplayer'] },
+        // No letters (separators, arrows, dashes), and brand names.
+        words: { exclude: ['[^a-zA-Z]+', 'COCKATRICE', 'Webatrice', 'TCGplayer'] },
         'should-validate-template': true,
       }],
     },
