@@ -1,5 +1,5 @@
 import { ZoneName, moveTargetPlayerId } from '@cockatrice/sockatrice';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { pointerWithin, rectIntersection } from '@dnd-kit/core';
 import type {
   Collision,
@@ -11,7 +11,7 @@ import type {
 
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { BulkMoveDestination, WebClient } from '@cockatrice/sockatrice';
-import { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
+import { ServerInfo_Card, type MoveCardParams } from '@cockatrice/sockatrice/generated';
 import { effectiveTargets, type SelectedCard } from '../utils/selection';
 import {
   MARGIN_LEFT_PX,
@@ -21,11 +21,22 @@ import {
   mapToGridX,
   stackCountsForRow,
 } from '../components/battlefield/Battlefield/gridMath';
+import {
+  isSeatDragSource,
+  isSeatDropZone,
+  planSeatMove,
+  seatDropAccepts,
+  type SeatDragSource,
+  type SeatDropPoint,
+} from './seatDropPlan';
 
 export interface GameDnd {
   handleDragStart: (event: DragStartEvent) => void;
   handleDragEnd: (event: DragEndEvent) => void;
+  handleDragCancel: () => void;
   collisionDetection: CollisionDetection;
+  /** The seat drag in progress, from activation until the drop. */
+  activeSeatDrag: SeatDragSource | null;
 }
 
 export interface UseGameDndArgs {
@@ -43,6 +54,10 @@ export interface UseGameDndArgs {
   // Call-time getter for the live multi-selection, so a drop moves the whole
   // selection (when the dragged card is part of it) and not just the dragged card.
   getSelectedCards: () => readonly SelectedCard[];
+  // A seat drop ends the selection that rode it, like PlayerBox always did.
+  clearSelection?: () => void;
+  // Sends one optimistic Command_MoveCard (useMoveCard); seat drops go through it.
+  moveCard?: (params: MoveCardParams) => void;
 }
 
 // Reorder slots (small per-card droppables) are nested inside a much larger
@@ -89,8 +104,33 @@ function scopeToPointerLayer(
   return { ...args, droppableContainers };
 }
 
+// Seat zones are hit-tested at the pointer, the way PlayerBox always resolved
+// drops: of the seat zones under the pointer that accept the drag, the one with
+// the highest priority wins (a seat dialog over the board beneath it). Seat and
+// structured droppables never compete for each other's drags.
+function seatCollision(args: Parameters<CollisionDetection>[0], source: SeatDragSource): Collision[] {
+  const accepting = args.droppableContainers.filter((container) => {
+    const zone = container.data.current;
+    return isSeatDropZone(zone) && seatDropAccepts(zone, source);
+  });
+  const priorityOf = (id: Collision['id']) => {
+    const zone = accepting.find((c) => c.id === id)?.data.current;
+    return isSeatDropZone(zone) ? zone.priority : 0;
+  };
+  return pointerWithin({ ...args, droppableContainers: accepting })
+    .sort((a, b) => priorityOf(b.id) - priorityOf(a.id));
+}
+
 const collisionDetection: CollisionDetection = (args) => {
-  const scoped = scopeToPointerLayer(args);
+  const source = args.active.data?.current;
+  if (isSeatDragSource(source)) {
+    return seatCollision(args, source);
+  }
+  const structured = {
+    ...args,
+    droppableContainers: args.droppableContainers.filter((c) => !isSeatDropZone(c.data?.current)),
+  };
+  const scoped = scopeToPointerLayer(structured);
   const intersections = rectIntersection(scoped);
   const slotHits = slotIntersection(scoped, intersections);
   return slotHits.length > 0 ? slotHits : intersections;
@@ -224,21 +264,62 @@ function sendBulkMove(
   webClient.request.game.bulkMove(gameId, targets, dest, judgeTarget);
 }
 
+// The pointer and the dragged card's top-left at the drop: where the drag was
+// grabbed plus how far it travelled.
+function seatDropPoint(event: DragEndEvent): SeatDropPoint {
+  const activator = event.activatorEvent as PointerEvent | null;
+  const start = { x: activator?.clientX ?? 0, y: activator?.clientY ?? 0 };
+  const origin = event.active.rect.current.initial ?? { left: start.x, top: start.y };
+  return {
+    pointer: { x: start.x + event.delta.x, y: start.y + event.delta.y },
+    cardOrigin: { x: origin.left + event.delta.x, y: origin.top + event.delta.y },
+  };
+}
+
+// While a seat drag is active the whole document shows the grabbing cursor, so
+// the OS cursor doesn't pick up `not-allowed` from whatever is underneath.
+function useGrabbingCursor(active: boolean) {
+  useEffect(() => {
+    if (!active) {
+      return;
+    }
+    const previous = document.body.style.cursor;
+    document.body.style.cursor = 'grabbing';
+    const style = document.createElement('style');
+    style.textContent = '*, *::before, *::after { cursor: grabbing !important; }';
+    document.head.appendChild(style);
+    return () => {
+      document.body.style.cursor = previous;
+      style.remove();
+    };
+  }, [active]);
+}
+
 export function useGameDnd({
   gameId,
   judgeTarget,
   cancelPendingArrow,
   collapseUnlessSelected,
   getSelectedCards,
+  clearSelection,
+  moveCard,
 }: UseGameDndArgs): GameDnd {
   const webClient = useWebClient();
+  const [activeSeatDrag, setActiveSeatDrag] = useState<SeatDragSource | null>(null);
+  useGrabbingCursor(activeSeatDrag !== null);
 
   // Cancel any pending arrow, then collapse the selection to the dragged card
   // unless it's already part of it (so a drag on a selected card keeps the set).
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
       cancelPendingArrow();
-      const source = event.active.data.current as DragSource | undefined;
+      const data = event.active.data.current;
+      if (isSeatDragSource(data)) {
+        // A snapshot: the seat reuses its drag data object for the next press.
+        setActiveSeatDrag({ ...data });
+        return;
+      }
+      const source = data as DragSource | undefined;
       if (source?.card) {
         collapseUnlessSelected(source.sourcePlayerId, source.sourceZone, source.card);
       }
@@ -246,8 +327,31 @@ export function useGameDnd({
     [cancelPendingArrow, collapseUnlessSelected],
   );
 
+  // A seat drop: the zone under the pointer says where in it the cards land,
+  // planSeatMove turns that into the command set, and each command goes
+  // through the optimistic move path.
+  const handleSeatDragEnd = useCallback(
+    (event: DragEndEvent, source: SeatDragSource) => {
+      setActiveSeatDrag(null);
+      const zone = event.over?.data.current;
+      const target = isSeatDropZone(zone) ? zone.resolve(seatDropPoint(event), source) : null;
+      if (target && moveCard) {
+        planSeatMove(source, target).forEach((params) => moveCard(params));
+      }
+      clearSelection?.();
+    },
+    [moveCard, clearSelection],
+  );
+
+  const handleDragCancel = useCallback(() => setActiveSeatDrag(null), []);
+
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
+      const seatSource = event.active.data.current;
+      if (isSeatDragSource(seatSource)) {
+        handleSeatDragEnd(event, { ...seatSource });
+        return;
+      }
       if (!gameId) {
         return;
       }
@@ -285,8 +389,8 @@ export function useGameDnd({
           return;
       }
     },
-    [gameId, webClient, judgeTarget, getSelectedCards],
+    [gameId, webClient, judgeTarget, getSelectedCards, handleSeatDragEnd],
   );
 
-  return { handleDragStart, handleDragEnd, collisionDetection };
+  return { handleDragStart, handleDragEnd, handleDragCancel, collisionDetection, activeSeatDrag };
 }
