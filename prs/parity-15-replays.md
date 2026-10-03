@@ -36,46 +36,50 @@ LONG-001, LONG-002, LONG-003, LONG-004
 
 ## Testing
 
-All runs used Vitest `--maxWorkers=2` per package (shared host).
+Rebased run, on tip `0d1d235`, all from the repo root in a dedicated cloud container.
 
-- `npm run typecheck`: 5/5 tasks pass (`--concurrency=1`).
-- `npm run lint`: 3/3 packages, 0 errors.
-- Unit:
-  - Sockatrice: 38 files, 690 tests pass.
-  - Datatrice: 28 files, 1140 tests pass.
-  - Webatrice: 172 files pass (2 skipped, both pre-existing); 1254 tests pass (2 skipped).
+- `npx turbo run typecheck --concurrency=1`: 5/5 tasks pass.
+- `npm run lint`: 3/3 packages, 0 errors (covers `integration/` and `e2e/` since #06).
+- Unit (`--maxWorkers=2`):
+  - Sockatrice: 39 files, 783 tests pass.
+  - Datatrice: 30 files, 1205 tests pass.
+  - Webatrice: 210 files pass (2 skipped, pre-existing); 1560 tests pass (2 skipped).
 - Integration:
-  - Sockatrice: 17 files, 152 tests pass.
-  - Datatrice: 8 files, 124 tests pass.
-  - Webatrice: 35 files pass (2 skipped, pre-existing); 140 tests pass (2 skipped), including the new Dexie library spec and the replay-pipeline spec on the real `.cor`.
-- E2E: `npx playwright test --project=chromium` against the default 3.0.0 image, under the e2e mutex: 7/7 pass, including the new `replays.spec.ts`. That spec plays a short two-player game, then:
-  - finds the match;
-  - downloads a `.cor`;
-  - toggles the lock;
-  - gets a share code;
-  - saves the replay to the local library;
-  - watches it: skip, seek back to a rebuilt start, fast-forward to "The game has been closed.", then close;
-  - deletes the match.
+  - Sockatrice: 19 files, 166 tests pass.
+  - Datatrice: 9 files, 136 tests pass.
+  - Webatrice: 38 files pass (2 skipped, pre-existing); 168 tests pass (2 skipped). This includes the Dexie library spec and the replay pipeline on the real `.cor`.
+- `npm run test:e2e -w @cockatrice/sockatrice`: 4 files, 5 tests pass.
+- `npm run test:e2e -w @cockatrice/webatrice`, against the default 3.0.0 image, chromium + firefox + webkit: **39/39 pass** in 12.2 min. That is 13 tests per browser, including `replays.spec.ts` on the hermetic fixture. The host browser deps were installed with `npx playwright install-deps`.
+- New specs in this rebase:
+  - Sockatrice: the transport reason reaches every replay `onFailure`, and `replayList` reports `replayListFailed`.
+  - Datatrice: `replayListFailed` dispatches the signal.
+  - Webatrice: a delete that times out shows the timed-out reason, and a replay list that is never answered stops loading and shows the connection-lost reason.
 
-  Firefox and WebKit were not run, to keep the shared Docker host free.
-- New specs:
-  - Engine timing, seek, buffered rewind and skip-empty.
-  - Timeline and histogram ports.
-  - Parser: synthetic bytes plus a real Servatrice `.cor` captured from the e2e run (`src/services/replay/__mocks__/two-player-game.cor`).
-  - Datatrice replay-game reducers, selectors and reveal gating.
-  - Sockatrice replay feeding and the new command callbacks.
-  - Playback hook, replay dock and route.
-  - Read-only board guard, with a live-board control that shows the same input would reach the server.
-  - Server and local panes.
-  - Top bar entry.
+The scenarios from the original branch are unchanged:
+- The engine: timing, seek, buffered rewind and skip-empty.
+- The timeline and histogram.
+- The parser: synthetic bytes and a real Servatrice `.cor` (`src/services/replay/__mocks__/two-player-game.cor`).
+- Datatrice: replay-game reducers, selectors and reveal gating.
+- The playback hook, the replay dock and the route.
+- The read-only board guard.
+- The server and local panes.
+- The top bar entry.
 
 ## Notes for reviewers
 
+- **Rebased onto #06 (line A tip: 01 → 02 → 03 → 12 → 04 → 10 → 11 → 13 → 06).** Merge base verified as the protocol tip `f24ddd9`. Conflicts and how they were resolved:
+  - `services/index.ts`, `AppShellRoutes.tsx`, the TopBar icon import / `TabType` / `TYPE_ICON` and `TopBar.spec.tsx`: both sides kept (#13's staff routes and tab next to the replays routes and tabs; #13's user-menu describe and the replays describe).
+  - `__test-utils__/mockWebClient.ts`: #12 had already added `replayList`; the other replay mocks are added next to it.
+  - `i18n-default.json`: regenerated from the co-located files, then written in the base's key order so the diff only adds the replay keys (no reorder churn).
+  - The Replays top-bar button stays next to Decks. It is not a staff page, so it is not a `userMenuEntries.ts` entry. #15 adds no user or moderation context-menu entries, so nothing goes through #12's `UserMenuSlot`.
+- **#04 command outcomes, folded in (new commit).** The replay callbacks (`replayDownload`, `replayDeleteMatch`, `replayModifyMatch`, `replayGetCode`, `replaySubmitCode`) now get #04's `CommandFailure` as a second `onFailure` argument, in the same shape as `resetUserPassword`. `replayList` reports through a new optional `ISessionResponse.replayListFailed` → Datatrice `server.Actions.replayListFailed` / `REPLAY_LIST_FAILED`, as `deckList` does. Before this, a replay list that was never answered left the server pane loading forever. The pane explains failures through `useCommandFailureMessage`: timed out, connection lost or not sent, otherwise desktop's text for the code.
+- **#06 hermetic e2e (new commit).** `replays.spec.ts` imports `test` from `e2e/fixtures/test.ts` and opens both clients with `newContext`; its `try`/`finally` is gone. Every request goes through the network-isolation fixture.
+- **#12/#13 grant replay access.** #13's `useModeratorFunctions` re-reads the replay list after a grant. #15's handler for `Event_ReplayAdded` without match info also re-reads it. A grant to yourself can therefore send two `replayList`s, which is harmless.
 - **Engine placement.** The engine lives in Webatrice (`src/services/replay`), not Datatrice. It is playback and UI-time policy: desktop keeps it under `interface/widgets/replay`. It needs timers and user preferences, and Datatrice owns no UI or timers. The engine stays pure: a `ReplaySink` resets and feeds the target game, and state is exposed for `useSyncExternalStore`. Datatrice only gains slice state: `replayGameLoaded` (create or reset), `replayGameUnloaded`, and a `replay` flag on `GameEntry`.
 - **Replay games are local, not server state.** The replay hook dispatches `replayGameLoaded`/`replayGameUnloaded` itself, and the game uses a negative id so it can never collide with a Servatrice game. A replay game survives `clearStore` and disconnects. It keeps its board when the recorded `Event_GameClosed` arrives (desktop only logs "The game has been closed."). It never raises the incoming-reveal dialog, and it is left out of `getActiveGameIds`/`getActiveGames`, so it gets no game tab and no leave command.
 - **Minimal game-internals footprint.** There are no `PlayerBox.tsx` or `GameBoardCell.tsx` edits. `Game.tsx` exports `GameBoard` with `gameId`/`footer`/`onLeave` props and reads the read-only flag. `BattlefieldSidebar` and `ChatLog` each get a few lines. `useCurrentGame` no longer counts a spectator as host, which also keeps a replay (no local player, unknown host) out of host-only gates.
 - **Sockatrice API.** The replay session commands gain optional callbacks, `onDownloaded`/`onFailure` on `replayDownload` and `onFailure` on delete/modify/get-code, so a caller can tell watching from saving and report rejections. `WebClient.replayGameEventContainer` is new. Sockatrice and Datatrice are `minor`.
-- **Dexie version.** The local library is Dexie **version 5** (`replays` + `replayData` tables, in `DexieSchemas/v2.schema.ts`). Sibling branches also add a v5 schema, so the integrator should renumber this one when rebasing; it has no upgrade function.
+- **Dexie version.** The local library is Dexie **version 5** (`replays` + `replayData` tables, in `DexieSchemas/v2.schema.ts`). Nothing below this branch adds a Dexie version, so v5 stays; #19 (v6) and #20 (v7) stack on top. It has no upgrade function.
 - **E2E Servatrice now stores replays.** `docker/servatrice/servatrice-e2e.ini` sets `store_replays=true`; with it off the replays tab has nothing to test against. This adds one replay row per finished e2e game and nothing else.
 - **Deliberately left out:**
   - Reveal windows during playback (desktop's `SKIP_REVEAL_WINDOW` handling). Recorded reveals are logged and seeded into zone views, but no dialog opens.
