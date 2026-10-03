@@ -1,1 +1,2 @@
 - 22:13Z started w17r → read notes
+- 22:19Z 17a rebased onto restack-16 (3 conflicts resolved), typecheck green, pushed → unit tests + per-commit typecheck
