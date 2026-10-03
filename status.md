@@ -3,3 +3,4 @@
 - 15:37Z 12 pushed c4b5163→54287c0 (dropped hook i18n reorder); 04 rebased onto it → e2e 12 in docker, 04 fixes
 - 15:48Z 12 e2e (docker): 16 passed, 5 failed = known Scryfall CA (app-boots, bulk-card-actions); 04 rebased+squashed+3 fixes committed → per-commit check running
 - 16:17Z 04 per-commit check 11/11 OK; tip d1cf623 gate green (unit 740/1150/1287, int 162/127/142) → e2e 04 in docker
+- 16:23Z 04 e2e: 16 passed, 5 failed = same known Scryfall CA set as on 12. DONE. Tips: 12 origin/parity/12-moderation-users 5462952 → claude/parity-12-moderation-users 54287c0; 04 origin/parity/04-command-outcomes 58b4116 → claude/parity-04-command-outcomes d1cf623
