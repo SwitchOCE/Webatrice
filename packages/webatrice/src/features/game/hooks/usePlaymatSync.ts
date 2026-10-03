@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 import { ServerCapability, games, server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
@@ -6,6 +6,7 @@ import { usePlaymatSettings } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 
 import { resolvePlaymat, samePlaymat } from '../utils/resolvePlaymat';
+import { getPlaymatSyncState, prunePlaymatSyncState } from './playmatSyncState';
 
 /**
  * Announces the local player's playmat (Cockatrice #7101), the web side of
@@ -15,60 +16,59 @@ import { resolvePlaymat, samePlaymat } from '../utils/resolvePlaymat';
  * sent. The web client may select a server-stored deck it never parsed, so the
  * deck's own playmat is read back instead: Servatrice answers a deck select
  * with Event_PlayerPropertiesChanged carrying the new deck_hash together with
- * the deck's playmat_params. Whenever the announced playmat changes to
- * something this hook did not send (a deck select, including reselecting the
- * same deck), it is taken as the deck's playmat, resolved against the user's
- * collection, and Command_SetPlaymat is sent when the result differs. A
- * settings change re-resolves for the loaded deck, and the round-robin cursor
- * advances when a game ends (desktop TabGame::stopGame).
+ * the deck's playmat_params. A new deck hash, or a playmat this client did not
+ * send (reselecting the same deck), is taken as the deck's playmat.
+ *
+ * The playmat is resolved against the user's collection and sent after a deck
+ * select and when the settings change; the round-robin cursor advances when a
+ * game ends (TabGame::stopGame). Nothing is sent when the result is already announced.
+ * The per-game state lives in playmatSyncState, so it survives leaving the
+ * game route.
  */
 export function usePlaymatSync(gameId: number | undefined): void {
   const webClient = useWebClient();
   const settings = usePlaymatSettings();
   const supported = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.PLAYMATS));
+  const liveGameIds = useAppSelector((state) => Object.keys(games.Selectors.getGames(state)).join(','));
   const game = useAppSelector((state) => (gameId == null ? undefined : games.Selectors.getGame(state, gameId)));
   const local = game && !game.spectator ? game.players[game.localPlayerId] : undefined;
+  const playerId = local?.properties.playerId;
   const deckHash = local?.properties.deckHash ?? '';
   const announced = useAppSelector((state) =>
-    gameId == null || !local ? null : games.Selectors.getPlayerPlaymat(state, gameId, local.properties.playerId));
+    gameId == null || playerId == null ? null : games.Selectors.getPlayerPlaymat(state, gameId, playerId));
   const started = game?.started ?? false;
 
-  const deckPlaymat = useRef<games.Playmat | null>(null);
-  const lastSent = useRef<games.Playmat | null | undefined>(undefined);
-  const lastResolved = useRef<games.Playmat | null>(null);
-  const rotation = useRef(0);
-  const wasStarted = useRef(started);
-  const lastSettings = useRef(settings);
-
-  // A different game starts from a clean slate: nothing has been sent there yet.
   useEffect(() => {
-    deckPlaymat.current = null;
-    lastSent.current = undefined;
-  }, [gameId]);
+    prunePlaymatSyncState(liveGameIds ? liveGameIds.split(',').map(Number) : []);
+  }, [liveGameIds]);
 
   useEffect(() => {
-    if (wasStarted.current && !started) {
-      rotation.current++;
-    }
-    wasStarted.current = started;
-  }, [started]);
-
-  useEffect(() => {
-    if (!supported || gameId == null || !deckHash) {
+    if (!supported || gameId == null || playerId == null) {
       return;
     }
-    const fromServer = lastSent.current === undefined || !samePlaymat(announced, lastSent.current);
-    const settingsChanged = lastSettings.current !== settings;
-    lastSettings.current = settings;
-    if (!fromServer && !settingsChanged) {
+    const sync = getPlaymatSyncState(gameId);
+    if (sync.wasStarted && !started) {
+      sync.rotation++;
+    }
+    sync.wasStarted = started;
+    if (!deckHash) {
       return;
     }
-    if (fromServer) {
-      deckPlaymat.current = announced;
+    const deckSelected = deckHash !== sync.deckHash
+      || sync.lastSent === undefined
+      || !samePlaymat(announced, sync.lastSent);
+    const settingsChanged = sync.settings !== settings;
+    if (!deckSelected && !settingsChanged) {
+      return;
     }
-    const resolved = resolvePlaymat(deckPlaymat.current, settings, rotation.current, lastResolved.current);
-    lastResolved.current = resolved;
-    lastSent.current = resolved;
+    if (deckSelected) {
+      sync.deckHash = deckHash;
+      sync.deckPlaymat = announced;
+    }
+    sync.settings = settings;
+    const resolved = resolvePlaymat(sync.deckPlaymat, settings, sync.rotation, sync.lastResolved);
+    sync.lastResolved = resolved;
+    sync.lastSent = resolved;
     if (samePlaymat(resolved, announced)) {
       return;
     }
@@ -77,5 +77,5 @@ export function usePlaymatSync(gameId: number | undefined): void {
         ? { cardName: resolved.cardName, cardProviderId: resolved.cardProviderId, ...resolved.params }
         : { cardName: '' },
     });
-  }, [supported, gameId, deckHash, announced, settings, webClient]);
+  }, [supported, gameId, playerId, deckHash, started, announced, settings, webClient]);
 }
