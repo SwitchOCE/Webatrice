@@ -4,6 +4,7 @@ import { ZoneName } from '@cockatrice/sockatrice';
 
 import { NOOP_GAME_DIALOGS_ACTIONS, type GameDialogs } from '../../../hooks/dialogs/gameDialogs.types';
 import type { SeatSelection } from '../../../hooks/useSeatSelection';
+import { makeCardKey } from '../../../utils/CardRegistry/CardRegistryContext';
 import { GameDialogsProvider } from '../GameDialogsContext';
 import { SEAT_SHORTCUT_ACTIONS, SeatShortcutsProvider, createSeatShortcutRegistry } from '../SeatShortcutsContext';
 import type {
@@ -54,9 +55,11 @@ function setup(args: Partial<UseSeatShortcutOperationsArgs> = {}) {
   const counterCommands = ports<PlayerCounterCommands>();
   const targetCommands = ports<PlayerTargetCommands>();
   const props: UseSeatShortcutOperationsArgs = {
+    seatId: 1,
     isSelf: true,
     selection: null,
     setSelection: vi.fn(),
+    selectedCardKeys: new Set(),
     battlefieldDisplayList: BOARD,
     cardMetaByName: new Map([['Card 12', { typeLine: 'Creature', pt: '1/1' }]]),
     deckCount: 30,
@@ -97,6 +100,24 @@ describe('useSeatShortcutOperations', () => {
     expect(SEAT_SHORTCUT_ACTIONS.filter((id) => !run(id))).toEqual([]);
     const other = setup({ isSelf: false });
     expect(SEAT_SHORTCUT_ACTIONS.some((id) => other.run(id))).toBe(false);
+  });
+
+  it('reveals the selected hand or library-view cards to every player', () => {
+    const hand = setup({ selection: { zone: 'hand', ids: new Set(['4', '9']) } });
+    hand.run('game.revealSelectedToAll');
+    expect(vi.mocked(hand.zoneCommands.reveal).mock.calls).toEqual([[ZoneName.HAND, 'all', { cardIds: [4, 9] }]]);
+
+    const view = setup({ selectedCardKeys: new Set([makeCardKey(1, ZoneName.DECK, 11), makeCardKey(1, ZoneName.DECK, 12)]) });
+    view.run('game.revealSelectedToAll');
+    expect(vi.mocked(view.zoneCommands.reveal).mock.calls).toEqual([[ZoneName.DECK, 'all', { cardIds: [11, 12] }]]);
+
+    // Another seat's view, or a mixed selection, reveals nothing.
+    const other = setup({ selectedCardKeys: new Set([makeCardKey(2, ZoneName.DECK, 11)]) });
+    other.run('game.revealSelectedToAll');
+    const mixed = setup({ selectedCardKeys: new Set([makeCardKey(1, ZoneName.DECK, 11), makeCardKey(1, ZoneName.GRAVE, 3)]) });
+    mixed.run('game.revealSelectedToAll');
+    expect(other.zoneCommands.reveal).not.toHaveBeenCalled();
+    expect(mixed.zoneCommands.reveal).not.toHaveBeenCalled();
   });
 
   it('runs the player-level actions', () => {
