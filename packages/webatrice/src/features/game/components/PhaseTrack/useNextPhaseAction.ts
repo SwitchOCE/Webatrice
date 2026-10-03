@@ -1,6 +1,7 @@
+import { useEffect } from 'react';
 import { useStore } from 'react-redux';
 import { games } from '@cockatrice/datatrice';
-import type { RootState } from '@app/store';
+import { useAppSelector, type RootState } from '@app/store';
 
 import { nextPhaseActionPlan } from './phaseActions';
 import { usePhaseBar } from './usePhaseBar';
@@ -12,22 +13,42 @@ export interface NextPhaseAction {
 }
 
 /**
+ * Games with a wrap sent from End that the server has not answered yet, per
+ * store. Command_NextTurn is not optimistic, so without this a second press
+ * before the answer would pass the turn again (skipping a seat at 3+ players).
+ * Module-level so the menu and the shortcut, which each hold their own hook,
+ * share it; cleared when the active player or phase next changes.
+ */
+const pendingWraps = new WeakMap<object, Set<number>>();
+
+/**
  * "Next phase with action" (desktop TabGame::actNextPhaseAction), shared by the
  * game menu and the `game.nextPhaseAction` shortcut. Sends through the phase
  * bar's handlers in desktop's order: the advance first, then the new phase's
  * double-click action.
  *
- * Stricter than desktop on purpose: desktop runs it for anyone and lets the
- * server reject Command_SetActivePhase while the draw or untap still goes
- * through. Here the whole action needs `canAdvancePhase`, plus `canPassTurn`
- * when it wraps, so it never lands half-applied.
+ * Gated as spec §1 says: on `canAdvancePhase` for a phase step, and on
+ * `canPassTurn` alone for the wrap from End (so an off-turn player may wrap,
+ * as on desktop). Desktop gates neither and lets the server reject
+ * Command_SetActivePhase while the draw still goes through; requiring
+ * `canAdvancePhase` for the step keeps it from landing half-applied.
  */
 export function useNextPhaseAction(gameId: number | undefined): NextPhaseAction {
   const store = useStore<RootState>();
-  const { activePhase, canPassTurn, canAdvancePhase, handlePhaseClick, handlePass, handleUntapAll, handleDrawOne } =
+  const { activePhase, canPassTurn, canAdvancePhase, handlePhaseClick, handlePassAndUntap, handleUntapAll, handleDrawOne } =
     usePhaseBar(gameId);
+  const activePlayerId = useAppSelector((state) =>
+    gameId != null ? games.Selectors.getActivePlayerId(state, gameId) : undefined,
+  );
+
+  useEffect(() => {
+    if (gameId != null) {
+      pendingWraps.get(store)?.delete(gameId);
+    }
+  }, [store, gameId, activePlayerId, activePhase]);
+
   const allowed = (current: number) =>
-    canAdvancePhase && (nextPhaseActionPlan(current).advance !== 'nextTurn' || canPassTurn);
+    nextPhaseActionPlan(current).advance === 'nextTurn' ? canPassTurn : canAdvancePhase;
 
   const run = () => {
     if (gameId == null) {
@@ -41,10 +62,20 @@ export function useNextPhaseAction(gameId: number | undefined): NextPhaseAction 
     }
     const plan = nextPhaseActionPlan(current);
     if (plan.advance === 'nextTurn') {
-      handlePass();
-    } else {
-      handlePhaseClick(plan.advance.phase);
+      let pending = pendingWraps.get(store);
+      if (!pending) {
+        pending = new Set();
+        pendingWraps.set(store, pending);
+      }
+      if (pending.has(gameId)) {
+        return;
+      }
+      pending.add(gameId);
+      // The untap is the Untap step's action, so it rides on the pass's gate.
+      handlePassAndUntap();
+      return;
     }
+    handlePhaseClick(plan.advance.phase);
     if (plan.then === 'untapAll') {
       handleUntapAll();
     } else if (plan.then === 'drawOne') {

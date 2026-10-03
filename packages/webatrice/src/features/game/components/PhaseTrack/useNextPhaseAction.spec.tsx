@@ -18,7 +18,7 @@ function setup({ activePhase = Phase.Upkeep as number, activePlayerId = 1, conce
     players: { 1: makePlayerEntry({ properties: makePlayerProperties({ playerId: 1, conceded }) }) },
   });
   const gamesState: GamesState = { games: { 1: game }, pings: {} };
-  const { Wrapper, webClient } = makeReduxWebClientHookWrapper({
+  const { Wrapper, webClient, store } = makeReduxWebClientHookWrapper({
     reducer: combineReducers({ games: games.gamesReducer }),
     preloadedState: { games: gamesState },
   });
@@ -32,7 +32,7 @@ function setup({ activePhase = Phase.Upkeep as number, activePlayerId = 1, conce
     }
     return sent.sort((a, b) => a[1] - b[1]).map(([name]) => name);
   };
-  return { result, webClient, order };
+  return { result, webClient, store, order };
 }
 
 describe('useNextPhaseAction', () => {
@@ -78,6 +78,42 @@ describe('useNextPhaseAction', () => {
 
     expect(vi.mocked(webClient.request.game.setActivePhase).mock.calls.map(([, p]) => p.phase))
       .toEqual([Phase.Upkeep, Phase.Draw]);
+  });
+
+  it('End off turn: still passes the turn and untaps, gated on canPassTurn alone (spec §1)', () => {
+    const { result, order } = setup({ activePhase: Phase.EndCleanup, activePlayerId: 2 });
+
+    expect(result.current.canRun).toBe(true);
+    act(() => result.current.run());
+
+    expect(order()).toEqual(['nextTurn', 'setCardAttr']);
+  });
+
+  it('End: a second press before the server answers sends nothing more', () => {
+    const { result, order } = setup({ activePhase: Phase.EndCleanup });
+
+    act(() => {
+      result.current.run();
+      result.current.run();
+    });
+
+    expect(order()).toEqual(['nextTurn', 'setCardAttr']);
+  });
+
+  it('End: wraps again once the server has moved the turn on and back', () => {
+    const { result, store, order } = setup({ activePhase: Phase.EndCleanup });
+
+    act(() => result.current.run());
+    act(() => {
+      store.dispatch(games.Actions.activePlayerSet({ gameId: 1, activePlayerId: 2 }));
+    });
+    act(() => {
+      store.dispatch(games.Actions.activePlayerSet({ gameId: 1, activePlayerId: 1 }));
+      store.dispatch(games.Actions.activePhaseSet({ gameId: 1, phase: Phase.EndCleanup }));
+    });
+    act(() => result.current.run());
+
+    expect(order()).toEqual(['nextTurn', 'setCardAttr', 'nextTurn', 'setCardAttr']);
   });
 
   it.each([
