@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
@@ -54,6 +54,8 @@ function failureKey(responseCode: number): string {
  */
 export default function ReportUserDialog({ request, onClose }: ReportUserDialogProps) {
   const { t } = useTranslation();
+  const gameIdErrorId = useId();
+  const descriptionErrorId = useId();
   const webClient = useWebClient();
   const { userName, gameId, chatContext } = request;
   const hasFixedGame = gameId !== undefined && gameId > 0;
@@ -160,10 +162,10 @@ export default function ReportUserDialog({ request, onClose }: ReportUserDialogP
                         title={t('ReportUserDialog.gameIdTooltip')}
                         disabled={busy}
                         aria-invalid={fieldState.error ? true : undefined}
-                        aria-describedby={fieldState.error ? 'report-user-game-id-error' : undefined}
+                        aria-describedby={fieldState.error ? gameIdErrorId : undefined}
                       />
                       {fieldState.error && (
-                        <span id="report-user-game-id-error" role="alert" className="text-xs text-danger">
+                        <span id={gameIdErrorId} role="alert" className="text-xs text-danger">
                           {fieldState.error.message}
                         </span>
                       )}
@@ -217,10 +219,10 @@ export default function ReportUserDialog({ request, onClose }: ReportUserDialogP
                     placeholder={t('ReportUserDialog.descriptionPlaceholder')}
                     disabled={busy}
                     aria-invalid={fieldState.error ? true : undefined}
-                    aria-describedby={fieldState.error ? 'report-user-description-error' : undefined}
+                    aria-describedby={fieldState.error ? descriptionErrorId : undefined}
                   />
                   {fieldState.error && (
-                    <span id="report-user-description-error" role="alert" className="text-xs text-danger">
+                    <span id={descriptionErrorId} role="alert" className="text-xs text-danger">
                       {fieldState.error.message}
                     </span>
                   )}
