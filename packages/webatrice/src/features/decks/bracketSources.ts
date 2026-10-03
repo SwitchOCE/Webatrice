@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { chunkForCollection, postCollection, scryfallSearchUrl } from '@app/services';
 
 import type { DeckCard } from './types';
 
@@ -32,10 +33,8 @@ export type SourceResult<T> =
 
 export const BRACKET_SOURCE_TIMEOUT_MS = 15_000;
 
-const GAME_CHANGERS_URL = 'https://api.scryfall.com/cards/search?q=is%3Agamechanger&order=name&unique=cards';
-const COLLECTION_URL = 'https://api.scryfall.com/cards/collection';
+const GAME_CHANGERS_URL = scryfallSearchUrl('is:gamechanger', 'order=name&unique=cards');
 const SPELLBOOK_URL = 'https://backend.commanderspellbook.com/find-my-combos/';
-const COLLECTION_CHUNK = 75;
 
 const MALFORMED: SourceFailure = { kind: 'malformed' };
 
@@ -45,14 +44,14 @@ class SourceError extends Error {
   }
 }
 
-/** `fetch` + JSON with a timeout; any failure throws a `SourceError`. */
-async function fetchJson(url: string, init?: RequestInit): Promise<unknown> {
+/** `send` + JSON with a timeout; any failure throws a `SourceError`. */
+async function fetchJson(send: (signal: AbortSignal) => Promise<Response>): Promise<unknown> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), BRACKET_SOURCE_TIMEOUT_MS);
   try {
     let res: Response;
     try {
-      res = await fetch(url, { ...init, signal: controller.signal });
+      res = await send(controller.signal);
     } catch (e) {
       throw new SourceError({ kind: (e as { name?: string })?.name === 'AbortError' ? 'timeout' : 'network' });
     }
@@ -94,7 +93,7 @@ export async function fetchGameChangers(): Promise<SourceResult<Set<string>>> {
   }
   gameChangersInFlight = (async (): Promise<SourceResult<Set<string>>> => {
     try {
-      const body = await fetchJson(GAME_CHANGERS_URL);
+      const body = await fetchJson((signal) => fetch(GAME_CHANGERS_URL, { signal }));
       if (!isRecord(body) || !Array.isArray(body.data)) {
         return { status: 'unavailable', failure: MALFORMED };
       }
@@ -141,7 +140,7 @@ const oracleInFlight = new Map<string, Promise<SourceFailure | null>>();
 
 /**
  * Oracle text for `names`, keyed by lower-cased name, via Scryfall's
- * collection endpoint (75 identifiers per request). `partial` when some
+ * collection endpoint (75 identifiers per request, one at a time). `partial` when some
  * requests failed — their names are absent from the map.
  */
 export async function fetchOracleText(names: string[]): Promise<SourceResult<Map<string, string>>> {
@@ -167,8 +166,7 @@ export async function fetchOracleText(names: string[]): Promise<SourceResult<Map
   }
 
   const failures: SourceFailure[] = [];
-  for (let i = 0; i < need.length; i += COLLECTION_CHUNK) {
-    const chunk = need.slice(i, i + COLLECTION_CHUNK);
+  for (const chunk of chunkForCollection(need)) {
     const request = fetchOracleChunk(chunk, originalByLower);
     for (const k of chunk) {
       oracleInFlight.set(k, request);
@@ -218,11 +216,8 @@ async function fetchOracleChunk(
   originalByLower: Map<string, string>,
 ): Promise<SourceFailure | null> {
   try {
-    const body = await fetchJson(COLLECTION_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifiers: chunk.map((k) => ({ name: originalByLower.get(k) ?? k })) }),
-    });
+    const identifiers = chunk.map((k) => ({ name: originalByLower.get(k) ?? k }));
+    const body = await fetchJson((signal) => postCollection(identifiers, signal));
     if (!isRecord(body) || !Array.isArray(body.data)) {
       return MALFORMED;
     }
@@ -330,11 +325,12 @@ export async function fetchSpellbookCombos(cards: DeckCard[]): Promise<SourceRes
   }
   const toRequest = (list: Map<string, number>) => Array.from(list, ([card, quantity]) => ({ card, quantity }));
   try {
-    const body = await fetchJson(SPELLBOOK_URL, {
+    const body = await fetchJson((signal) => fetch(SPELLBOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ main: toRequest(main), commanders: toRequest(commanders) }),
-    });
+      signal,
+    }));
     if (!isRecord(body) || !isRecord(body.results)) {
       return { status: 'unavailable', failure: MALFORMED };
     }

@@ -1,7 +1,9 @@
 import { forwardRef } from 'react';
 import { Heart, Skull, Sparkles } from 'lucide-react';
+import { ScryfallImageSize } from '@cockatrice/datatrice';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { CardImage } from '@app/components';
+import { getScryfallUrlByIdOrExactName } from '@app/services';
 
 import ContextMenu from '../../context-menus/ContextMenu/ContextMenu';
 import { useCardPreviewActions } from '../CardPreviewContext';
@@ -103,11 +105,7 @@ const LargeZoneBox = forwardRef<
                   // `/cards/<empty>` returns 404 → broken image. Fall back to
                   // `/cards/named?exact=<name>` so the graveyard/exile pile
                   // still shows real art when only the name is known.
-                  src={
-                    topCard.scryfallId
-                      ? `https://api.scryfall.com/cards/${topCard.scryfallId}?format=image&version=large`
-                      : `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(topCard.name)}&format=image&version=large`
-                  }
+                  src={getScryfallUrlByIdOrExactName(topCard, ScryfallImageSize.Large)}
                   name={topCard.name}
                   draggable={false}
                   className="pointer-events-none select-none absolute top-1/2 left-1/2"

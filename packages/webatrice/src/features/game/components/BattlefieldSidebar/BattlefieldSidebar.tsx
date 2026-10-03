@@ -2,8 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ExternalLink, FileText, Flag, Image as ImageIcon, Layers, LayoutList, LogOut, X } from 'lucide-react';
 
+import { ScryfallImageSize } from '@cockatrice/datatrice';
+
 import { CardRelatedLinks } from '@app/components';
-import { detailTargetKey, fetchScryfallDetail, type ScryfallDetail } from '@app/services';
+import { detailTargetKey, fetchScryfallDetail, getScryfallUrlByIdOrExactName, type ScryfallDetail } from '@app/services';
 
 import PlayerList from '../right-sidebar/PlayerList/PlayerList';
 import ChatLog from '../ChatLog/ChatLog';
@@ -245,9 +247,7 @@ export default function BattlefieldSidebar() {
   const hoveredImageUrl = activeCard
     ? (!override && hoveredCard?.imageUri)
       ? hoveredCard.imageUri
-      : activeCard.scryfallId
-        ? `https://api.scryfall.com/cards/${activeCard.scryfallId}?format=image&version=png`
-        : `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(activeCard.name)}&format=image&version=png`
+      : getScryfallUrlByIdOrExactName(activeCard, ScryfallImageSize.Png)
     : null;
 
   // Pick the matching face for multi-faced cards. When the active
