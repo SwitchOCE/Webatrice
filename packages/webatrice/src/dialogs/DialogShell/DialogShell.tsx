@@ -101,8 +101,8 @@ const DialogShell = ({
               type="button"
               onClick={handleClose}
               className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"
-              title={t('DialogShell.close')}
-              aria-label={t('DialogShell.close')}
+              title={t('Common.action.close')}
+              aria-label={t('Common.action.close')}
             >
               <X size={16} />
             </button>
