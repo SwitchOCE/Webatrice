@@ -1,3 +1,4 @@
 - 15:25Z started rv5, read brief+template → fetch PR branches, clone desktop
 - 15:26Z spawned reviewers for PR15+PR14 → collect, verify, write reviews/rv5.md
 - 15:33Z PR14 review written (6 major) → waiting on PR15 reviewer
+- 15:33Z PR15 review written (3 major); rv5 done
