@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import type { FlatDeck } from '../../deckTree';
 import { DeckRow } from './DeckRow';
 
-const deck: FlatDeck = { id: 3, name: 'Superfriends', path: 'Cube/Old', creationTime: 0 };
+const deck: FlatDeck = { id: 3, name: 'Superfriends', path: 'Cube/Old', creationTime: 0, visibility: 'private' };
 
 describe('DeckRow', () => {
   it.each(['card', 'compact'] as const)('%s layout shows name, meta and badges from the summary', (mode) => {

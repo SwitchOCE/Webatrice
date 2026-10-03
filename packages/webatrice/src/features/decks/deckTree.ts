@@ -2,6 +2,20 @@ import { isFieldSet } from '@bufbuild/protobuf';
 import { ServerInfo_DeckStorage_FileSchema, type ServerInfo_DeckStorage_Folder } from '@cockatrice/sockatrice/generated';
 
 /**
+ * Whether other users see a deck or folder (Cockatrice 3.1 public decks).
+ * `inherited`: private itself, but a folder above it is public — desktop's
+ * "Public (inherited)" column. Always `private` on a 3.0 server.
+ */
+export type DeckVisibility = 'public' | 'inherited' | 'private';
+
+export function deckVisibility(ownBit: boolean | undefined, underPublicFolder: boolean): DeckVisibility {
+  if (ownBit) {
+    return 'public';
+  }
+  return underPublicFolder ? 'inherited' : 'private';
+}
+
+/**
  * A deck file from the Servatrice deck-storage tree, with the path of the
  * folder it sits in (see `deckFolders` for the folders themselves).
  */
@@ -16,13 +30,21 @@ export interface FlatDeck {
   isPublic?: boolean;
   /** Stored color identity, e.g. "WUB" (3.1 servers; empty for older uploads). */
   colorIdentity?: string;
+  /** What other users see, counting a public folder above the deck. */
+  visibility: DeckVisibility;
 }
 
 /**
  * Recursively walk a Servatrice folder tree collecting only files (leaf
- * decks). `pathPrefix` is the display path from the root.
+ * decks). `pathPrefix` is the display path from the root; `underPublicFolder`
+ * says whether a folder above `folder` is public.
  */
-export function flattenFolder(folder: ServerInfo_DeckStorage_Folder, pathPrefix: string): FlatDeck[] {
+export function flattenFolder(
+  folder: ServerInfo_DeckStorage_Folder,
+  pathPrefix: string,
+  underPublicFolder = false,
+): FlatDeck[] {
+  const inherited = underPublicFolder || !!folder.isPublic;
   const out: FlatDeck[] = [];
   for (const item of folder.items) {
     if (item.file && item.id) {
@@ -34,10 +56,11 @@ export function flattenFolder(folder: ServerInfo_DeckStorage_Folder, pathPrefix:
         isPublic: item.file.isPublic,
         colorIdentity: isFieldSet(item.file, ServerInfo_DeckStorage_FileSchema.field.colorIdentity)
           ? item.file.colorIdentity : undefined,
+        visibility: deckVisibility(item.file.isPublic, inherited),
       });
     } else if (item.folder) {
       const nextPath = pathPrefix ? `${pathPrefix}/${item.name}` : item.name;
-      out.push(...flattenFolder(item.folder, nextPath));
+      out.push(...flattenFolder(item.folder, nextPath, inherited));
     }
   }
   return out;

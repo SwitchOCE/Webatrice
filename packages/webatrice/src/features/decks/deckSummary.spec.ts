@@ -104,7 +104,7 @@ describe('formatDisplayLabel', () => {
 });
 
 describe('format sections', () => {
-  const deck = (id: number): FlatDeck => ({ id, name: `D${id}`, path: '', creationTime: 0 });
+  const deck = (id: number): FlatDeck => ({ id, name: `D${id}`, path: '', creationTime: 0, visibility: 'private' });
 
   it('classifies loading, unknown, known and custom formats', () => {
     expect(deckListSectionOf(undefined)).toBe('loading');

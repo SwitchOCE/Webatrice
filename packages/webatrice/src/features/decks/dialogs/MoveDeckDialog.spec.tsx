@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 
 import { MoveDeckDialog } from './MoveDeckDialog';
 
-const deck = { id: 3, name: 'Burn', path: 'Modern', creationTime: 0 };
+const deck = { id: 3, name: 'Burn', path: 'Modern', creationTime: 0, visibility: 'private' as const };
 
 describe('MoveDeckDialog', () => {
   it('offers every folder except the current one and moves to the chosen one', () => {
