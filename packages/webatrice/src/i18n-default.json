@@ -1994,7 +1994,8 @@
       "handLayout": "Hand layout",
       "cardRendering": "Card rendering",
       "cardLayout": "Card layout",
-      "cardCounters": "Card counters"
+      "cardCounters": "Card counters",
+      "menus": "Menu settings"
     },
     "themeMode": {
       "label": "Active theme palette",
@@ -2054,6 +2055,9 @@
       "D": "Counter D",
       "E": "Counter E",
       "F": "Counter F"
+    },
+    "showShortcutsInMenus": {
+      "label": "Show keyboard shortcuts in right-click menus"
     }
   },
   "SettingsCardSources": {
