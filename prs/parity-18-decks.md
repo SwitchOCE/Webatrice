@@ -110,6 +110,28 @@ New and changed coverage:
 - **E2E.** New `e2e/specs/decks.spec.ts` against the docker Servatrice: create a folder, create a deck in it, save
   a rename and its undo, keyboard undo/redo of the format, move the deck to the root, delete the folder.
 
+## Rebase (w0918r)
+
+Rebased onto the rebased 09 (`claude/parity-09-refactor-decks` `ba8a091`). Decisions:
+
+- **`deckUpdate` failure shape** now matches line A's deck failures: `updateServerDeckFailed?(deckId, responseCode,
+  failure?)` and `deckUpdateFailed: CommandFailedPayload & { deckId }`. It is still an optional `ISessionResponse` member,
+  and the changeset says so. The session command index and `ISessionResponse` keep one entry per line next to 03's/04's
+  deck share/visibility commands.
+- **Autosave**: 18's signature-based autosave (`DECK_UPDATED`/`DECK_UPDATE_FAILED`, signature advances only on ack)
+  replaces line A's/09's `uploadDeckUpdate` + `onFailed` rollback. It covers the same behaviour (a failed save is
+  resent by the next save), so that code and its specs were dropped. 18's "could not be saved" + Retry indicator
+  replaces line A's `SaveFailedIndicator`. Its hint moved to `DeckSidebar.saveFailedHint` as the indicator's title, and
+  the orphaned `DeckEditor.saveFailed*` keys were removed.
+- **Folders**: `useDeckList` keeps line A's `listError` next to 18's folder view. `Decks` shows `DeckListError` while
+  loading fails, before the folder bar.
+- **e2e**: `e2e/specs/decks.spec.ts` imports `test`/`expect` from `e2e/fixtures/test.ts` (hermetic network). The
+  standalone "regenerate the i18n rollup" commit became empty and was dropped, because each step regenerates the rollup.
+
+Gate on the rebased tip `a7b9684`: typecheck 5/5; lint 3/3; unit sockatrice 781, datatrice 1204, webatrice 2038
+(285 files); integration sockatrice 166, datatrice 136, webatrice 196 passed + 2 skipped (pre-existing game
+`describe.skip`); sockatrice e2e 5/5; webatrice e2e 39/39 (chromium, firefox, webkit).
+
 ## Notes for reviewers
 
 - **Move is new on the web side.** Desktop has no remote move. It is built from desktop's own commands: download,

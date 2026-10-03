@@ -21,7 +21,7 @@ Every PR branch below has been review-fixed on its ORIGINAL parent. Make them on
 | 15 | 24-platform-gates | d2e3d1e.. | new 20 |
 | 16 | 23-playmats | 8fca043.. | new 24 |
 
-Use `git rebase --onto <new-prev> <old-base> <branch>` per row (verify each `<old-base>` is an ancestor of the branch and that the range holds only that PR's commits — compare with the PR file's commit list). The tips of 14 and 15 above are what they are right now; if `origin/claude/notes-f15` / `notes-f14` status says DONE with a newer tip on `origin/parity/15-replays` / `14-reports`, use those (re-check before starting rows 10/11).
+Use `git rebase --onto <new-prev> <old-base> <branch>` per row (verify each `<old-base>` is an ancestor of the branch and that the range holds only that PR's commits — compare with the PR file's commit list). 15 is final at `origin/parity/15-replays` (50214e1; its commits are `d2e3d1e..50214e1`). 14 is still being fixed by worker f14 on `origin/claude/parity-14-reports` (base 0d1d235 = OLD 15). Before row 11: `git fetch origin` and read `origin/claude/notes-f14:status.md`; when its last line says DONE, use `origin/claude/parity-14-reports` with old-base 0d1d235 (and rebase onto your new 15). If not DONE yet, check every 5 minutes for up to 60 minutes; meanwhile you may restack rows 12–16 temporarily onto your new 15 and redo them after 14 lands, or just wait. I'll also post to your inbox when f14 is done.
 
 Conflict rules (read the PR files of both sides first):
 - Keep both behaviours. A lower PR's review fix wins over an upper PR's older copy of the same code.
