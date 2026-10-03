@@ -29,21 +29,28 @@ export interface GridRowProps {
  */
 export function useGridRows({ keys, selectedKey, onSelect, onActivate, onExpand, onCollapse }: GridRowsOptions) {
   const elements = useRef(new Map<string, HTMLElement>());
-  const [focusKey, setFocusKey] = useState<string | null>(null);
+  // The row a keyboard move is waiting to focus. In a virtualized list the
+  // moved-to row may only mount after the caller scrolls it into view, so the
+  // request stays pending until that row's element arrives.
+  const pendingFocus = useRef<string | null>(null);
+  const [focusRequest, setFocusRequest] = useState(0);
   const tabStop = selectedKey != null && keys.includes(selectedKey) ? selectedKey : keys[0] ?? null;
 
   // Focus follows a keyboard move once the moved-to row is rendered.
   useEffect(() => {
-    if (focusKey != null) {
-      elements.current.get(focusKey)?.focus();
-      setFocusKey(null);
+    const key = pendingFocus.current;
+    const element = key != null ? elements.current.get(key) : undefined;
+    if (element) {
+      pendingFocus.current = null;
+      element.focus();
     }
-  }, [focusKey]);
+  }, [focusRequest]);
 
   const moveTo = useCallback((key: string | undefined) => {
     if (key != null) {
       onSelect(key);
-      setFocusKey(key);
+      pendingFocus.current = key;
+      setFocusRequest((n) => n + 1);
     }
   }, [onSelect]);
 
@@ -51,6 +58,10 @@ export function useGridRows({ keys, selectedKey, onSelect, onActivate, onExpand,
     ref: (element) => {
       if (element) {
         elements.current.set(key, element);
+        if (pendingFocus.current === key) {
+          pendingFocus.current = null;
+          element.focus();
+        }
       } else {
         elements.current.delete(key);
       }

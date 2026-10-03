@@ -53,6 +53,28 @@ describe('useGridRows', () => {
     expect(onActivate).toHaveBeenCalledTimes(1);
   });
 
+  it('focuses a moved-to row that mounts only after the move, as in a virtualized list', () => {
+    // Renders just the selected row, the way a scrolled react-window shows a new window.
+    function OneRowGrid() {
+      const [selected, setSelected] = useState<string | null>('a');
+      const rows = useGridRows({ keys: KEYS, selectedKey: selected, onSelect: setSelected, onActivate: vi.fn() });
+      const [shown, setShown] = useState('a');
+      return (
+        <div role="grid">
+          <div key={shown} role="row" data-testid={shown} {...rows.getRowProps(shown)} />
+          <button type="button" onClick={() => setShown(selected ?? 'a')}>scroll</button>
+        </div>
+      );
+    }
+    render(<OneRowGrid />);
+
+    fireEvent.keyDown(screen.getByTestId('a'), { key: 'End' });
+    expect(screen.queryByTestId('c')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'scroll' }));
+    expect(screen.getByTestId('c')).toHaveFocus();
+  });
+
   it('hands ← and → to tree callbacks only when given', () => {
     const onExpand = vi.fn();
     const onCollapse = vi.fn();
