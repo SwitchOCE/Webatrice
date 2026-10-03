@@ -10,6 +10,7 @@ import { DeckBannerPicker } from './components/editor/DeckBannerPicker';
 import { DeckEditorSkeleton, DeckNotFound } from './components/editor/DeckEditorShells';
 import { DeckHistoryControls } from './components/editor/DeckHistoryControls';
 import { DeckLegalitySummary } from './components/editor/DeckLegalitySummary';
+import { DeckOnlineServices } from './components/editor/DeckOnlineServices';
 import { DeckMainPane } from './components/editor/DeckMainPane';
 import { DeckSidebar } from './components/editor/DeckSidebar';
 import { DeckTagsEditor } from './components/editor/DeckTagsEditor';
@@ -119,6 +120,7 @@ const DeckEditor = () => {
                 onChange={editor.setBanner}
               />
               <DeckTagsEditor tags={tags} onChange={editor.setTags} />
+              <DeckOnlineServices deck={editor.deck} />
             </>
           )}
           headerActions={(
