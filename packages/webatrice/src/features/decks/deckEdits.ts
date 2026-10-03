@@ -1,5 +1,6 @@
 import type { BracketAssessment, DeckCategory } from '@app/types';
 
+import { readDeckTags, writeDeckTags, type BannerCandidate } from './deckTags';
 import type { DeckCard, HydratedDeck } from './types';
 
 /**
@@ -21,6 +22,25 @@ export function setDeckFormat(deck: HydratedDeck, format: string): HydratedDeck 
 export function setDeckDescription(deck: HydratedDeck, description: string): HydratedDeck {
   const next = description || undefined;
   return deck.meta.description === next ? deck : { ...deck, meta: { ...deck.meta, description: next } };
+}
+
+/** Set or clear (`null`) the banner card: desktop `DeckStateManager::setBannerCard`. */
+export function setDeckBanner(deck: HydratedDeck, banner: BannerCandidate | null): HydratedDeck {
+  const name = banner?.name || undefined;
+  const providerId = (name && banner?.providerId) || undefined;
+  if (deck.bannerCard === name && deck.bannerCardProviderId === providerId) {
+    return deck;
+  }
+  return { ...deck, bannerCard: name, bannerCardProviderId: providerId };
+}
+
+/** Replace the deck's tags, keeping unknown `<tags>` children: `DeckStateManager::setTags`. */
+export function setDeckTags(deck: HydratedDeck, tags: readonly string[]): HydratedDeck {
+  const current = readDeckTags(deck.tagsXml);
+  if (current.length === tags.length && current.every((tag, i) => tag === tags[i])) {
+    return deck;
+  }
+  return { ...deck, tagsXml: writeDeckTags(deck.tagsXml, tags) };
 }
 
 /** Cache the deck's computed price; a no-op when the values already match. */

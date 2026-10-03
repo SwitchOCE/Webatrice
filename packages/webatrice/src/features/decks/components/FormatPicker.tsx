@@ -72,6 +72,7 @@ export function FormatPicker({ value, onChange, variant }: FormatPickerProps) {
   return (
     <div className={styles.root}>
       <select
+        aria-label="Format"
         value={dropdownValue}
         onChange={(e) => {
           const next = e.target.value;

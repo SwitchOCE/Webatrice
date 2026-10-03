@@ -1,5 +1,6 @@
 import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat, type ParsedDeck } from '@app/types';
 
+import { readDeckTags } from './deckTags';
 import type { FlatDeck } from './deckTree';
 
 /**
@@ -17,9 +18,12 @@ export interface DeckSummary {
   /** `<format>` element — used for the format label chip. */
   format?: string;
   /** `<bannerCard>` element — Cockatrice's "featured card" for the
-   *  deck. Wins over the commander art. Just a card name (no
-   *  scryfallId), so art resolves via Scryfall's `/cards/named`. */
+   *  deck. Wins over the commander art. */
   bannerCard?: string;
+  /** `<bannerCard providerId>`: the banner's printing (a Scryfall id). */
+  bannerCardProviderId?: string;
+  /** `<tags>` → `<tag>` texts; absent when the deck has none. */
+  tags?: string[];
   /** First commander-marked card's name — art fallback when there's no
    *  scryfallId hint on the card. */
   commanderName?: string;
@@ -39,9 +43,19 @@ export function summarizeDeck(parsed: ParsedDeck): DeckSummary {
     bracketLevel: parsed.bracketAssessment?.level ?? parsed.meta.bracketLevel,
     format: parsed.format || undefined,
     bannerCard: parsed.bannerCard,
+    bannerCardProviderId: parsed.bannerCardProviderId,
+    tags: tagsOrUndefined(readDeckTags(parsed.tagsXml)),
     commanderName: commander?.name,
     commanderScryfallId: commander?.scryfallId,
   };
+}
+
+function tagsOrUndefined(tags: string[]): string[] | undefined {
+  return tags.length > 0 ? tags : undefined;
+}
+
+function sameTags(a: string[] = [], b: string[] = []): boolean {
+  return a.length === b.length && a.every((tag, i) => tag === b[i]);
 }
 
 export function summariesEqual(a: DeckSummary, b: DeckSummary): boolean {
@@ -51,6 +65,8 @@ export function summariesEqual(a: DeckSummary, b: DeckSummary): boolean {
     a.bracketLevel === b.bracketLevel &&
     a.format === b.format &&
     a.bannerCard === b.bannerCard &&
+    a.bannerCardProviderId === b.bannerCardProviderId &&
+    sameTags(a.tags, b.tags) &&
     a.commanderName === b.commanderName &&
     a.commanderScryfallId === b.commanderScryfallId
   );
@@ -58,17 +74,23 @@ export function summariesEqual(a: DeckSummary, b: DeckSummary): boolean {
 
 /**
  * Background art for a deck row:
- *   1. `<bannerCard>` → Scryfall `/cards/named?exact=…` (name-based).
+ *   1. `<bannerCard>` → its printing `/cards/:uuid` when the providerId is
+ *      a Scryfall id, else Scryfall `/cards/named?exact=…`.
  *   2. Commander card's `scryfallId` → `/cards/:uuid` (exact printing).
  *   3. Commander card's name → `/cards/named?exact=…`.
  *   4. Nothing → `null` (row renders the placeholder gradient).
  * `format=image&version=art_crop` returns a frameless landscape crop.
  */
+const SCRYFALL_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function deckArtUrl(s: DeckSummary | undefined): string | null {
   if (!s) {
     return null;
   }
   if (s.bannerCard && s.bannerCard.trim()) {
+    if (s.bannerCardProviderId && SCRYFALL_ID.test(s.bannerCardProviderId)) {
+      return `https://api.scryfall.com/cards/${s.bannerCardProviderId}?format=image&version=art_crop`;
+    }
     return `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(s.bannerCard.trim())}&format=image&version=art_crop`;
   }
   if (s.commanderScryfallId) {
