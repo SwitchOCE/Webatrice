@@ -220,6 +220,13 @@ describe('SessionResponseImpl forwards', () => {
     expect(dispatch).toHaveBeenCalledWith(ServerActions.connectionHealthChanged({ missedPongs: 2, silentForMs: 10000 }));
   });
 
+  it('updateLatencyStats', () => {
+    const { impl, dispatch } = setup();
+    const stats = { lastMs: 30, medianMs: 30, p95Ms: 30, maxMs: 30, sampleCount: 1 };
+    impl.updateLatencyStats(stats, [30]);
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.latencyStatsUpdated({ stats, samplesMs: [30] }));
+  });
+
   it('updateUsers', () => {
     const { impl, dispatch } = setup();
     const users = [create(ServerInfo_UserSchema, { name: 'alice' })];

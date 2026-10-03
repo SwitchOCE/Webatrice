@@ -26,7 +26,7 @@ import type { MessageInitShape } from '@bufbuild/protobuf';
 
 import { create } from '@bufbuild/protobuf';
 import { ServerState, ServerStateReports } from '../../store/server/server.interfaces';
-import { HEALTHY_CONNECTION_HEALTH } from '../../store/server/server.reducer.connection';
+import { EMPTY_LATENCY, HEALTHY_CONNECTION_HEALTH } from '../../store/server/server.reducer.connection';
 
 export function makeUser(
   overrides: MessageInitShape<typeof ServerInfo_UserSchema> = {}
@@ -172,6 +172,7 @@ export function makeServerState(overrides: Partial<ServerState> = {}): ServerSta
       description: null,
     },
     connectionHealth: HEALTHY_CONNECTION_HEALTH,
+    latency: EMPTY_LATENCY,
     connectUnreachable: false,
     loginFailureCode: null,
     info: {

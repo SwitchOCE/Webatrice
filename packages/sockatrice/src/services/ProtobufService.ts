@@ -31,7 +31,9 @@ import type { GameExtensionRegistry } from '../events/game';
 import type { RoomExtensionRegistry } from '../events/room';
 import type { SessionExtensionRegistry } from '../events/session';
 import type { GameEventMeta } from '../types/WebSocketConfig';
+import type { LatencyStats } from '../types/LatencyStats';
 import { CommandFailure, type CommandOptions, handleFailure, handleResponse } from './command-options';
+import { LatencyTracker } from './LatencyTracker';
 
 export interface SocketTransport {
   send(data: Uint8Array): void;
@@ -60,23 +62,34 @@ export interface GameCommandEntry<V = unknown> {
 // single round trip use the upper bound, (timeout + 1) * keepalive.
 export const DEFAULT_COMMAND_TIMEOUT_MS = 18_000;
 
-// One in-flight command: its response callback, its failure callback, and the
-// deadline timer. The record is removed from `pendingCommands` before either
-// callback runs, so a command settles exactly once.
+// Round-trip stats are pushed at most this often, so timing every response adds
+// no per-command dispatch traffic. The keepalive ping guarantees a fresh sample
+// about once per interval while connected. Desktop STATS_EMIT_INTERVAL_MS.
+export const LATENCY_STATS_INTERVAL_MS = 1000;
+
+export type LatencyStatsListener = (stats: LatencyStats, samplesMs: number[]) => void;
+
+// One in-flight command: its response callback, its failure callback, the
+// deadline timer and when it was sent. The record is removed from
+// `pendingCommands` before either callback runs, so a command settles exactly once.
 interface PendingCommand {
   onResponse: (response: Response) => void;
   onFailure?: (failure: CommandFailure) => void;
   timer: ReturnType<typeof setTimeout>;
+  sentAt: number;
 }
 
 export class ProtobufService {
   private cmdId = 0;
   private pendingCommands = new Map<number, PendingCommand>();
+  private latency = new LatencyTracker();
+  private lastLatencyEmitAt: number | null = null;
 
   constructor(
     private transport: SocketTransport,
     private events: EventRegistries,
     private commandTimeoutMs = DEFAULT_COMMAND_TIMEOUT_MS,
+    private onLatencyStats?: LatencyStatsListener,
   ) {}
 
   // Fails every in-flight command as disconnected, then restarts the cmdId
@@ -88,6 +101,7 @@ export class ProtobufService {
     const pending = [...this.pendingCommands.values()];
     this.cmdId = 0;
     this.pendingCommands.clear();
+    this.clearLatencyStats();
 
     for (const command of pending) {
       clearTimeout(command.timer);
@@ -260,7 +274,7 @@ export class ProtobufService {
     const cmdId = ++this.cmdId;
     cmd.cmdId = BigInt(cmdId);
     const timer = setTimeout(() => this.expireCommand(cmdId), timeoutMs);
-    this.pendingCommands.set(cmdId, { onResponse: callback, onFailure, timer });
+    this.pendingCommands.set(cmdId, { onResponse: callback, onFailure, timer, sentAt: performance.now() });
     this.transport.send(toBinary(CommandContainerSchema, cmd));
     return true;
   }
@@ -317,7 +331,28 @@ export class ProtobufService {
     }
     this.pendingCommands.delete(cmdId);
     clearTimeout(command.timer);
+    this.recordLatency(command);
     command.onResponse(response);
+  }
+
+  // Times every answered command from send to response (desktop
+  // AbstractClient::recordLatency, #7153). Commands that expire or are failed
+  // by a reset never answered, so they record nothing.
+  private recordLatency(command: PendingCommand): void {
+    const now = performance.now();
+    this.latency.addSample(Math.round(now - command.sentAt));
+    if (this.lastLatencyEmitAt === null || now - this.lastLatencyEmitAt >= LATENCY_STATS_INTERVAL_MS) {
+      this.lastLatencyEmitAt = now;
+      this.onLatencyStats?.(this.latency.stats(), this.latency.recentSamples());
+    }
+  }
+
+  // Drops the window and pushes zeroed stats so the display clears (desktop
+  // AbstractClient::clearLatencyStats on disconnect).
+  private clearLatencyStats(): void {
+    this.latency.clear();
+    this.lastLatencyEmitAt = null;
+    this.onLatencyStats?.(this.latency.stats(), []);
   }
 
   private processRoomEvent(event: RoomEvent | undefined) {
