@@ -3,6 +3,7 @@ import Dexie, { type Table } from 'dexie';
 import { schemaV1 } from './DexieSchemas/v1.schema';
 import { Stores, schemaV2 } from './DexieSchemas/v2.schema';
 import { schemaV6 } from './DexieSchemas/v6.schema';
+import { schemaV7 } from './DexieSchemas/v7.schema';
 
 class DexieService {
   private db: Dexie = new Dexie('Webatrice');
@@ -11,6 +12,7 @@ class DexieService {
     schemaV1(this.db);
     schemaV2(this.db);
     schemaV6(this.db);
+    schemaV7(this.db);
   }
 
   get settings() {
@@ -57,6 +59,38 @@ class DexieService {
 
   readWrite<T>(tables: Table[], scope: () => Promise<T>): Promise<T> {
     return this.db.transaction('rw', tables, scope);
+  }
+
+  get cardSources() {
+    return this.db.table(Stores.CARD_SOURCES);
+  }
+
+  get setPreferences() {
+    return this.db.table(Stores.SET_PREFERENCES);
+  }
+
+  get cardDataSettings() {
+    return this.db.table(Stores.CARD_DATA_SETTINGS);
+  }
+
+  /**
+   * Run `work` in one read-write transaction over the card-data tables, so a
+   * failed import or rebuild leaves the previous database untouched.
+   */
+  cardDataTransaction<T>(work: () => Promise<T>): Promise<T> {
+    return this.db.transaction(
+      'rw',
+      [
+        Stores.CARDS,
+        Stores.SETS,
+        Stores.TOKENS,
+        Stores.FORMATS,
+        Stores.INFO,
+        Stores.CARD_SOURCES,
+        Stores.SET_PREFERENCES,
+      ],
+      work,
+    );
   }
 
   /** Row count of one table. */

@@ -21,6 +21,17 @@ export enum Stores {
   // split so listing a folder never loads every replay.
   REPLAYS = 'replays',
   REPLAY_DATA = 'replayData',
+  // Version 7. One row per loaded file (cards.xml, tokens.xml, spoiler.xml,
+  // custom sets, editor tokens). `cards`/`sets`/`tokens`/`formats` become a
+  // derived view rebuilt from these, which is what makes "Reload card
+  // database" possible.
+  CARD_SOURCES = 'cardSources',
+  // Version 7. Per-set enabled / art-priority options, keyed by set code.
+  // Separate from `sets` so re-imports never reset them (desktop keeps them
+  // in settings).
+  SET_PREFERENCES = 'setPreferences',
+  // Version 7. Singleton: picture URL templates and new-set behaviour.
+  CARD_DATA_SETTINGS = 'cardDataSettings',
 }
 
 export const schemaV2 = (db: Dexie) => {
