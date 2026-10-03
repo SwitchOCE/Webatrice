@@ -67,7 +67,7 @@ const Login = () => {
           <Paper className="login-content">
             <div className="login-content__form">
               <div className="login-content__header">
-                <img src={Images.Logo} alt={t('Common.label.logo')} />
+                <img src={Images.Logo} alt="" />
                 <span>COCKATRICE</span>
               </div>
               <Typography variant="h1">{t('Login.header.title')}</Typography>

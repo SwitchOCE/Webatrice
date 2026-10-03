@@ -17,8 +17,7 @@
       "saveChanges": "Save Changes",
       "token": "Token",
       "username": "Username",
-      "none": "None",
-      "logo": "logo"
+      "none": "None"
     },
     "validation": {
       "emailsMustMatch": "Emails don't match",
