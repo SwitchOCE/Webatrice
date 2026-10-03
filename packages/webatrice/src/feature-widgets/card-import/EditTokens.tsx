@@ -16,6 +16,7 @@ import {
   type AddTokenValues,
   type TokenData,
 } from './customTokens';
+import { useRovingOptions } from './listKeyboard';
 import { useEditTokens } from './useEditTokens';
 
 import './CardDatabase.css';
@@ -106,6 +107,13 @@ const EditTokens = () => {
     resolver,
   });
 
+  const selectedIndex = editor.selected ? editor.tokens.indexOf(editor.selected) : -1;
+  const { optionProps } = useRovingOptions(
+    editor.tokens.length,
+    selectedIndex < 0 ? null : selectedIndex,
+    (index) => editor.select(editor.tokens[index].name.value),
+  );
+
   const add = handleSubmit(async ({ name }) => {
     if (await editor.addToken(name) === 'conflict') {
       setError('name', { type: 'server', message: t('EditTokens.validation.conflict') });
@@ -122,9 +130,10 @@ const EditTokens = () => {
           <div className="cardDatabase-empty">{t('EditTokens.empty')}</div>
         ) : (
           <ul role="listbox" aria-label={t('EditTokens.list')}>
-            {editor.tokens.map((token) => (
+            {editor.tokens.map((token, index) => (
               <li
                 key={token.name.value}
+                {...optionProps(index)}
                 role="option"
                 aria-selected={editor.selected === token}
                 className={editor.selected === token ? 'is-selected' : ''}

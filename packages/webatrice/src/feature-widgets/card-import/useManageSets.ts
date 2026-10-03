@@ -38,6 +38,8 @@ export interface ManageSets {
   sort: SetSort | null;
   setSearch: (search: string) => void;
   select: (code: string, modifiers?: SelectModifiers) => void;
+  /** Ctrl+A: every set the search shows. */
+  selectAll: () => void;
   toggleEnabled: (code: string) => void;
   enableAll: (enabled: boolean) => void;
   enableSelected: (enabled: boolean) => void;
@@ -113,6 +115,10 @@ export function useManageSets(): ManageSets {
     }
   }, [anchor, visibleRows]);
 
+  const selectAll = useCallback(() => {
+    setSelected(new globalThis.Set(visibleRows.map((r) => r.code)));
+  }, [visibleRows]);
+
   const toggleEnabled = useCallback((code: string) => {
     setRows((current) => current.map((r) => (r.code === code ? { ...r, enabled: !r.enabled } : r)));
   }, []);
@@ -160,6 +166,7 @@ export function useManageSets(): ManageSets {
     sort,
     setSearch,
     select,
+    selectAll,
     toggleEnabled,
     enableAll: (enabled) => setRows((current) => setEnabled(current, 'all', enabled)),
     enableSelected: (enabled) => setRows((current) => setEnabled(current, selected, enabled)),

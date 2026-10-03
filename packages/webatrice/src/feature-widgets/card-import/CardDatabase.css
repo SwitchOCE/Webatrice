@@ -140,6 +140,17 @@
   background: rgb(var(--accent-primary) / 0.18);
 }
 
+.cardDatabase-tokenList li:focus-visible,
+.cardDatabase-templateList li:focus-visible,
+.cardDatabase-setTable:focus-visible .cardDatabase-setRow.is-active {
+  outline: 2px solid rgb(var(--accent-primary));
+  outline-offset: -2px;
+}
+
+.cardDatabase-setTable:focus-visible {
+  outline: none;
+}
+
 .cardDatabase-tokenForm,
 .cardDatabase-addToken,
 .cardDatabase-templateForm {

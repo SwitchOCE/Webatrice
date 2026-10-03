@@ -10,6 +10,7 @@ import Button from '@mui/material/Button';
 import { InputField } from '@app/components';
 import { isValidPictureUrlTemplate, PICTURE_URL_PLACEHOLDERS } from '@app/services';
 
+import { useRovingOptions } from './listKeyboard';
 import { usePictureUrlTemplates } from './usePictureUrlTemplates';
 
 import './CardDatabase.css';
@@ -58,6 +59,8 @@ const CardSourcesSettings = ({ labelId, describedBy }: CardSourcesSettingsProps)
     setMessage(null);
   };
 
+  const { optionProps } = useRovingOptions(sources.templates.length, selected, select);
+
   const resetAll = async () => {
     await sources.resetToDefaults();
     reset({ url: '' });
@@ -71,6 +74,7 @@ const CardSourcesSettings = ({ labelId, describedBy }: CardSourcesSettingsProps)
         {sources.templates.map((template, index) => (
           <li
             key={`${index}:${template}`}
+            {...optionProps(index)}
             role="option"
             aria-selected={selected === index}
             className={selected === index ? 'is-selected' : ''}
