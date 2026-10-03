@@ -12,6 +12,7 @@ import { ModerationProvider } from '@app/feature-widgets/moderation';
 import { UserGamesProvider } from '@app/feature-widgets/user-games';
 import { loadPersistedLastRoute, ShellLifecycleProvider } from '@app/feature-wrappers/layout';
 import { PrivateMessageNotifier } from '@app/features/player';
+import { ReportNotifier } from '@app/features/reports';
 import { CommandFailureNotices, FeatureDetection, ServerNotices } from '@app/features/shell';
 import { appShellLifecycle } from './appShellLifecycle';
 
@@ -58,6 +59,8 @@ function AppShell() {
               <CommandFailureNotices />
               {/* Server shutdown countdown and Event_NotifyUser messages. */}
               <ServerNotices />
+              {/* REPORT_RESOLVED / REPORT_COMMENT popups (desktop processNotifyUserEvent). */}
+              <ReportNotifier />
               {/* Hosts the report-user dialog for useReportUser().openReportUser. */}
               <ReportUserProvider>
                 <ModerationProvider>

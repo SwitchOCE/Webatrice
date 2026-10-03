@@ -35,6 +35,8 @@ export interface PlayerListMenuLocal {
   isHost: boolean;
   isRegistered: boolean;
   isModerator: boolean;
+  /** Server takes reports and the local user is registered (desktop isOwnUserRegistered). */
+  canReport?: boolean;
 }
 
 export interface PlayerListMenuActions {
@@ -46,6 +48,7 @@ export interface PlayerListMenuActions {
   onAddIgnore: (userName: string) => void;
   onRemoveIgnore: (userName: string) => void;
   onKickFromGame: (userName: string) => void;
+  onReportUser?: (userName: string) => void;
 }
 
 interface Props {
@@ -111,6 +114,18 @@ function buildItems(
       onClick: () => (isIgnored
         ? actions.onRemoveIgnore(target.userName)
         : actions.onAddIgnore(target.userName)),
+    });
+  }
+
+  // Report user — desktop lists it for registered users (#7091,
+  // user_context_menu.cpp) and disables it on yourself; the game is attached.
+  if (local.canReport && actions.onReportUser) {
+    const onReportUser = actions.onReportUser;
+    items.push({ divider: true });
+    items.push({
+      label: 'Report user',
+      onClick: () => onReportUser(target.userName),
+      disabled: target.isSelf,
     });
   }
 

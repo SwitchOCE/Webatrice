@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 import Button from '@mui/material/Button';
 import ListItemButton from '@mui/material/ListItemButton';
 import Paper from '@mui/material/Paper';
 
+import { server, ServerCapability } from '@cockatrice/datatrice';
 import { UserDisplay, VirtualList, AuthGuard, LanguageDropdown } from '@app/components';
+import { useAppSelector } from '@app/store';
+import { RouteEnum } from '@app/types';
 import { Layout } from '@app/feature-wrappers/layout';
 
 import AddUserForm from './AddUserForm';
@@ -32,6 +36,8 @@ const Account = () => {
     handleDisconnect,
   } = useAccount();
   const { country, realName, name, userLevel, accountageSecs } = user || {};
+  const navigate = useNavigate();
+  const reportsSupported = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.REPORTS));
 
   return (
     <Layout className="account">
@@ -92,6 +98,12 @@ const Account = () => {
           <EditUserDialog isOpen={openDialog === 'edit'} handleClose={closeDialog} />
           <ChangePasswordDialog isOpen={openDialog === 'password'} handleClose={closeDialog} />
           <ChangeAvatarDialog isOpen={openDialog === 'avatar'} handleClose={closeDialog} />
+          {/* Desktop TabAccount "My Reports" button (Cockatrice #7091). */}
+          {reportsSupported && (
+            <Button size="small" color="primary" variant="outlined" onClick={() => navigate(RouteEnum.MY_REPORTS)}>
+              {t('Reports.mine.title')}
+            </Button>
+          )}
 
         </Paper>
         <Paper className="account-details">

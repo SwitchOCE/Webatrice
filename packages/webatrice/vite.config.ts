@@ -59,6 +59,7 @@ export default defineConfig({
       '@app/features/login': srcPath('features/login/index.ts'),
       '@app/features/player': srcPath('features/player/index.ts'),
       '@app/features/replays': srcPath('features/replays/index.ts'),
+      '@app/features/reports': srcPath('features/reports/index.ts'),
       '@app/features/rooms': srcPath('features/rooms/index.ts'),
       '@app/features/server': srcPath('features/server/index.ts'),
       '@app/features/settings': srcPath('features/settings/index.ts'),

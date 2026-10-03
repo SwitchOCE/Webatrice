@@ -16,6 +16,8 @@ export enum RouteEnum {
   REPLAY = '/replay/:replayKey',
   SETTINGS = '/settings',
   SHORTCUTS = '/shortcuts',
+  MY_REPORTS = '/my-reports',
+  REPORT_QUEUE = '/report-queue',
   INITIALIZE = '/initialize',
   UNSUPPORTED = '/unsupported',
   // Rendered in a browser popup window spawned by the game sidebar

@@ -3,7 +3,7 @@ import { useLocation, useNavigate, generatePath, matchPath } from 'react-router-
 import {
   User, LogOut, Home as HomeIcon, Swords, Library, LibraryBig,
   UserCircle2, Settings as SettingsIcon, FileText, X, Circle, Grid3x3,
-  Keyboard, PanelLeftOpen, Download, ShieldCheck,
+  Keyboard, PanelLeftOpen, Download, ShieldCheck, Flag, ShieldAlert,
   Film,
   type LucideIcon,
 } from 'lucide-react';
@@ -41,6 +41,8 @@ type TabType =
   | 'staff' // Administration / Moderation / Card Art Rules / Developer
   | 'replays' // /replays — server + local replay lists
   | 'replay' // /replay/:replayKey — replay playback
+  | 'my-reports'
+  | 'report-queue'
   | 'unknown';
 
 interface Tab {
@@ -67,6 +69,8 @@ const TYPE_ICON: Record<TabType, LucideIcon> = {
   staff: ShieldCheck,
   replays: Film,
   replay: Film,
+  'my-reports': Flag,
+  'report-queue': ShieldAlert,
   unknown: FileText,
 };
 
@@ -659,6 +663,12 @@ function detectTransientTab(pathname: string): Tab | null {
   const staffTab = STAFF_TABS.find(({ route }) => matchPath({ path: route, end: true }, pathname));
   if (staffTab) {
     return { key: staffTab.key, type: 'staff', title: staffTab.title, route: pathname, closeable: true };
+  }
+  if (matchPath({ path: RouteEnum.MY_REPORTS, end: true }, pathname)) {
+    return { key: 'my-reports', type: 'my-reports', title: 'My Reports', route: pathname, closeable: true };
+  }
+  if (matchPath({ path: RouteEnum.REPORT_QUEUE, end: true }, pathname)) {
+    return { key: 'report-queue', type: 'report-queue', title: 'Report Queue', route: pathname, closeable: true };
   }
   const playerMatch = matchPath({ path: RouteEnum.PLAYER, end: true }, pathname);
   if (playerMatch) {
