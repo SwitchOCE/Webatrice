@@ -105,7 +105,7 @@ export default function ReportThread({
           <input
             aria-label={t('Reports.thread.addComment')}
             className={[
-              'flex-1 bg-bg-base border border-border-subtle rounded-md px-3 py-1.5 text-sm text-text-primary',
+              'flex-1 bg-bg-base border border-border-control rounded-md px-3 py-1.5 text-sm text-text-primary',
               'focus:outline-none focus:border-accent disabled:opacity-50',
             ].join(' ')}
             placeholder={canComment ? openPlaceholder : t('Reports.thread.closedPlaceholder')}
