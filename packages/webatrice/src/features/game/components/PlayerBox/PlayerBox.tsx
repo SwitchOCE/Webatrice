@@ -42,8 +42,12 @@ import { applyPTDelta, applyPTSet, parsePT } from '../context-menus/CardContextM
 import { buildCardContextMenu, type CardMenuItem } from '../context-menus/CardContextMenu/cardContextMenu.model';
 import { CardMenuPopup } from '../context-menus/CardContextMenu/CardContextMenu';
 import { buildRelatedTokenItems, buildTransformItems } from '../context-menus/CardContextMenu/relatedCardActions';
-import { annotationPrompt, expressionPrompt, powerToughnessPrompt } from '../../hooks/dialogs/seatPrompts';
-import { counterColorForId } from '../ui/CardSlot/counterColors';
+import {
+  annotationPrompt,
+  cardCounterPrompt,
+  expressionPrompt,
+  powerToughnessPrompt,
+} from '../../hooks/dialogs/seatPrompts';
 import type {
   BattlefieldCardViewModel,
   PlayerCardViewModel,
@@ -117,6 +121,9 @@ type DragSourceZone = SeatZone;
 type Selection = SeatSelection;
 
 const NO_CARDS: readonly HandCard[] = [];
+
+/** Card counter letters by counter id (desktop's six counter slots). */
+const COUNTER_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
 
 /** The cards a card prompt applies to, and the clicked card that seeds it. */
 interface PromptTargets {
@@ -1205,111 +1212,6 @@ function DrawCardsModal({
               className={DIALOG_SUBMIT_BUTTON_CLASS}
             >
               Draw
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-/** Mirrors Cockatrice desktop's `actRequestSetCardCounterDialog`
- *  (player_actions.cpp:1555): prompts for a new counter value at a
- *  specific slot on a specific card. Submit sends
- *  Command_SetCardCounter. Escape cancels; Enter submits. */
-function SetCardCounterModal({
-  cardName,
-  counterLetter,
-  counterColor,
-  currentValue,
-  onCancel,
-  onConfirm,
-}: {
-  cardName: string;
-  counterLetter: string;
-  counterColor: string;
-  currentValue: number;
-  onCancel: () => void;
-  onConfirm: (value: number) => void;
-}) {
-  const [draft, setDraft] = useState(String(currentValue));
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onCancel();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onCancel]);
-  const parsed = parseInt(draft, 10);
-  const valid = Number.isFinite(parsed) && parsed >= 0;
-  return (
-    <div
-      className="fixed inset-0 z-[400] flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Set counter ${counterLetter}`}
-    >
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onCancel}
-        aria-hidden
-      />
-      <div className="relative w-full max-w-sm rounded-lg bg-bg-surface border border-border-subtle shadow-glow overflow-hidden">
-        <div className="px-4 py-3 border-b border-border-subtle flex items-center gap-2">
-          {/* Color swatch chip so the user can immediately see which
-              counter slot this dialog is editing (matches the menu
-              swatch color). */}
-          <span
-            aria-hidden
-            className="inline-block w-4 h-4 rounded-full flex-shrink-0"
-            style={{ backgroundColor: counterColor }}
-          />
-          <div className="min-w-0 flex-1">
-            <h2 className="font-modern text-base font-semibold text-text-primary">
-              Set counter {counterLetter}
-            </h2>
-            <p className="text-xs text-text-muted mt-0.5 truncate">
-              {cardName}
-            </p>
-          </div>
-        </div>
-        <form
-          className="px-4 py-3 flex flex-col gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!valid) {
-              return;
-            }
-            onConfirm(parsed);
-          }}
-        >
-          <input
-            autoFocus
-            type="number"
-            min={0}
-            step={1}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onFocus={(e) => e.currentTarget.select()}
-            className={DIALOG_INPUT_CLASS}
-          />
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className={DIALOG_SECONDARY_BUTTON_CLASS}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!valid}
-              className={DIALOG_SUBMIT_BUTTON_CLASS}
-            >
-              Set
             </button>
           </div>
         </form>
@@ -2807,7 +2709,7 @@ function PlayerBox(
     }
   };
 
-  const openSetCardCounterModalForSelection = (counterId: number) => {
+  const openCardCounterPromptForSelection = (counterId: number) => {
     if (!isSelf || !selection || selection.zone !== 'battlefield') {
       return;
     }
@@ -2821,25 +2723,18 @@ function PlayerBox(
     }
     const first = targets[0];
     const currentValue = first.counters?.find((cc) => cc.id === counterId)?.value ?? 0;
-    const letters = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
-    setSetCounterModal({
-      targetIds,
-      cardName: first.name,
-      counterId,
-      counterLetter: letters[counterId] ?? String(counterId),
-      currentValue,
-    });
+    openCardCounterPrompt({ targetIds, cardName: first.name, counterId, currentValue });
   };
 
   seatShortcuts['game.addCounterA'] = () => addCardCounterOnSelection(0);
   seatShortcuts['game.removeCounterA'] = () => removeCardCounterOnSelection(0);
-  seatShortcuts['game.setCounterA'] = () => openSetCardCounterModalForSelection(0);
+  seatShortcuts['game.setCounterA'] = () => openCardCounterPromptForSelection(0);
   seatShortcuts['game.addCounterB'] = () => addCardCounterOnSelection(1);
   seatShortcuts['game.removeCounterB'] = () => removeCardCounterOnSelection(1);
-  seatShortcuts['game.setCounterB'] = () => openSetCardCounterModalForSelection(1);
+  seatShortcuts['game.setCounterB'] = () => openCardCounterPromptForSelection(1);
   seatShortcuts['game.addCounterC'] = () => addCardCounterOnSelection(2);
   seatShortcuts['game.removeCounterC'] = () => removeCardCounterOnSelection(2);
-  seatShortcuts['game.setCounterC'] = () => openSetCardCounterModalForSelection(2);
+  seatShortcuts['game.setCounterC'] = () => openCardCounterPromptForSelection(2);
 
   // Increment all card counters (Ctrl+Shift+A). Ports the utility-menu
   // handler at line ~6377: selection ∩ battlefield if any, else full
@@ -3628,19 +3523,23 @@ function PlayerBox(
       onSubmit: (n: number) => void;
         } | null
         >(null);
-  // "Set counters (X)..." modal. Snapshots the current counter value at
-  // open time so the input pre-fills correctly. `targetIds` is
-  // snapshotted at open time — confirm applies the value to every
-  // card that was selected when the menu opened.
-  const [setCounterModal, setSetCounterModal] = useState<
-    {
-      targetIds: number[];
-      cardName: string;
-      counterId: number;
-      counterLetter: string;
-      currentValue: number;
-    } | null
-  >(null);
+  // "Set counters (X)..." prompt, seeded with the clicked (or first
+  // selected) card's value. The target ids are snapshotted when it opens;
+  // the answer goes to every one of them in one atomic CommandContainer, as
+  // desktop's actSetCardCounter batches per-card SetCardCounter.
+  const openCardCounterPrompt = ({ targetIds, cardName, counterId, currentValue }: {
+    targetIds: number[];
+    cardName: string;
+    counterId: number;
+    currentValue: number;
+  }) => openPrompt(cardCounterPrompt({
+    cardName,
+    counterLetter: COUNTER_LETTERS[counterId] ?? String(counterId),
+    current: currentValue,
+    onSubmit: (value) => {
+      onBulkSetCardCounters?.(targetIds.map((id) => ({ cardId: id, counterId, value: Math.max(0, value) })));
+    },
+  }));
   // "Create token..." modal (Tailwind — replaces the old MUI
   // CreateTokenDialog wired via useGameDialogs; see feedback memory
   // "Replace MUI, don't override it"). Local to this PlayerBox so the
@@ -7675,38 +7574,6 @@ function PlayerBox(
           document.body,
         )}
 
-      {/* Set-card-counter modal — from the "Set counters (X)..."
-          submenu items. Submit sends Command_SetCardCounter with an
-          absolute value. */}
-      {setCounterModal &&
-        createPortal(
-          <SetCardCounterModal
-            cardName={setCounterModal.cardName}
-            counterLetter={setCounterModal.counterLetter}
-            counterColor={counterColorForId(setCounterModal.counterId)}
-            currentValue={setCounterModal.currentValue}
-            onCancel={() => setSetCounterModal(null)}
-            onConfirm={(value) => {
-              // Apply the same absolute value to every snapshotted
-              // target — one atomic CommandContainer via the bulk
-              // helper. Matches Cockatrice's actSetCardCounter which
-              // batches per-card SetCardCounter into one command list.
-              if (onBulkSetCardCounters) {
-                const clamped = Math.max(0, value);
-                onBulkSetCardCounters(
-                  setCounterModal.targetIds.map((id) => ({
-                    cardId: id,
-                    counterId: setCounterModal.counterId,
-                    value: clamped,
-                  })),
-                );
-              }
-              setSetCounterModal(null);
-            }}
-          />,
-          document.body,
-        )}
-
       {/* Move X cards from top modal — from the "X cards from the top
           of library..." submenu item. Submit sends Command_MoveCard
           with x=N to place the card at position N in the deck. */}
@@ -8378,14 +8245,7 @@ function PlayerBox(
               if (targetIds.length > 0 && card) {
                 const cur =
                   card.counters?.find((cc) => cc.id === counterId)?.value ?? 0;
-                const letters = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
-                setSetCounterModal({
-                  targetIds,
-                  cardName: card.name,
-                  counterId,
-                  counterLetter: letters[counterId] ?? String(counterId),
-                  currentValue: cur,
-                });
+                openCardCounterPrompt({ targetIds, cardName: card.name, counterId, currentValue: cur });
               }
               close();
             },
