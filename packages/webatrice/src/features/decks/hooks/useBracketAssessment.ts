@@ -14,6 +14,8 @@ import {
 import type { DeckCard } from '../types';
 
 export type BracketAssessmentState =
+  /** No usable cached assessment, and the user hasn't allowed the third-party lookups. */
+  | { status: 'consentRequired' }
   | { status: 'loading' }
   /** Every source answered (or the deck's cached assessment still matches). */
   | { status: 'complete'; report: BracketReport }
@@ -29,11 +31,17 @@ export type BracketAssessmentState =
  * `undefined` instead, so a stale assessment for an older version of the
  * deck is not left behind as if it were current. Re-analyses when the
  * deck's (name, quantity) shape changes, or on `retry`.
+ *
+ * Analysing calls Scryfall and Commander Spellbook, so it only happens
+ * while `lookupsAllowed` is true (see `bracketConsent`); otherwise the
+ * state is `consentRequired`. A matching cached assessment needs no
+ * network and is shown either way.
  */
 export function useBracketAssessment(
   cards: DeckCard[],
   cachedAssessment: BracketAssessment | undefined,
   persist: ((assessment: BracketAssessment | undefined) => void) | undefined,
+  lookupsAllowed: boolean,
 ): BracketAssessmentState & { retry: () => void } {
   // Printing swaps and zone moves don't change the fingerprint, so they
   // don't trigger a re-analysis.
@@ -47,6 +55,17 @@ export function useBracketAssessment(
     if (cachedAssessment && cachedAssessment.fingerprint === fingerprint) {
       // Already on disk for this exact deck shape: nothing to persist.
       setState({ status: 'complete', report: fromBracketAssessment(cachedAssessment) });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (!lookupsAllowed) {
+      setState({ status: 'consentRequired' });
+      // The cached assessment describes an older version of the deck.
+      if (cachedAssessment) {
+        persist?.(undefined);
+      }
       return () => {
         cancelled = true;
       };
@@ -76,8 +95,8 @@ export function useBracketAssessment(
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the deck `fingerprint` and explicit retries
-  }, [fingerprint, attempt]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the deck `fingerprint`, consent and explicit retries
+  }, [fingerprint, attempt, lookupsAllowed]);
 
   return { ...state, retry: () => setAttempt((n) => n + 1) };
 }
