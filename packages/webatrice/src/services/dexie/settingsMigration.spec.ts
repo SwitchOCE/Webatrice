@@ -113,6 +113,28 @@ describe('v2: theme palette and language', () => {
   it('gives a fresh row the desktop default of following the system', () => {
     expect(PREFERENCE_DEFAULTS.themeMode).toBe(ThemeMode.System);
   });
+
+  describe('v3: animations', () => {
+    it('counts a tap animation already turned off as an animation choice', () => {
+      expect(migrateSetting({ user: '*app', version: 2, tapAnimation: false }).animationsChosen).toBe(true);
+    });
+
+    it('lets the system\'s reduced-motion setting decide for everyone else', () => {
+      expect(migrateSetting({ user: '*app', version: 2, tapAnimation: true }).animationsChosen).toBe(false);
+      expect(migrateSetting({ user: '*app' }).animationsChosen).toBe(false);
+    });
+
+    it('gives the new board preferences desktop\'s defaults', () => {
+      const row = migrateSetting({ user: '*app', version: 2 });
+      expect(row).toMatchObject({
+        horizontalHand: true,
+        doubleClickToPlay: true,
+        doNotDeleteArrowsInSubPhases: true,
+        minPlayersForMultiColumnLayout: 4,
+        battlefieldFlash: true,
+      });
+    });
+  });
 });
 
 
@@ -129,5 +151,20 @@ describe('playmat migration', () => {
   it('does not adopt the app collection into another user row', () => {
     localStorage.setItem('webatrice.playmatSettings', JSON.stringify({ visibility: 0 }));
     expect(migrateSetting({ user: 'another', version: 2 }).playmatSettings).toEqual(PREFERENCE_DEFAULTS.playmatSettings);
+  });
+});
+
+describe('v4: animation choices', () => {
+  it('treats a row with the tap animation off as having chosen its animations', () => {
+    expect(migrateSetting({ user: '*app', version: 3, tapAnimation: false }).animationsChosen).toBe(true);
+  });
+
+  it('leaves a row with the tap animation on to follow the system reduced-motion setting', () => {
+    expect(migrateSetting({ user: '*app', version: 3, tapAnimation: true }).animationsChosen).toBe(false);
+  });
+
+  it('does not rerun on a current row', () => {
+    const row = migrateSetting({ user: '*app', version: 4, tapAnimation: false, animationsChosen: false });
+    expect(row.animationsChosen).toBe(false);
   });
 });

@@ -24,9 +24,6 @@ const MIGRATIONS: Record<number, (row: SettingRow) => void> = {
     row.language = legacyLanguageChoice() ?? '';
   },
   // v3: desktop's playmat settings move from their own localStorage key into the app row.
-  // The board preferences (hand and table layout, card clicks, arrows, selection counts,
-  // animations, card rendering) arrived without a step: every one is new, so
-  // migrateSetting's closing fillPreferenceDefaults gives each its desktop default.
   3: (row) => {
     if (row.user !== '*app') {
       return;
@@ -36,6 +33,14 @@ const MIGRATIONS: Record<number, (row: SettingRow) => void> = {
     } catch {
       row.playmatSettings = structuredClone(PREFERENCE_DEFAULTS.playmatSettings);
     }
+  },
+  // v4: the board preferences (hand and table layout, card clicks, arrows, selection counts,
+  // animations, card rendering). Every one is new, so the closing fillPreferenceDefaults gives
+  // each its desktop default. The one exception: a row whose tap animation is already off
+  // belongs to someone who chose their animations, so the system's reduced-motion setting no
+  // longer decides for them.
+  4: (row) => {
+    row.animationsChosen = row.tapAnimation === false;
   },
 };
 

@@ -30,3 +30,4 @@ export * from './useWatchReplay';
 export * from './useActionFeed';
 export * from './useCardDataPreferences';
 export * from './usePlaymatSettings';
+export * from './useAnimationPreferences';

@@ -1,8 +1,14 @@
 import { MousePointerClick } from 'lucide-react';
 
-import { CommanderSpellbookIntegration } from '@app/types';
+import { ANIMATION_PREFERENCE_KEYS } from '@app/hooks';
+import { CommanderSpellbookIntegration, type PreferenceKey } from '@app/types';
+
+import { AnimationButtons, animationToggle } from '../controls/AnimationControls';
 import NotificationPermissionControl from '../controls/NotificationPermissionControl';
 import { SettingsSectionId, type SettingsSection } from '../registry';
+
+// Restoring the animations' defaults also hands them back to the system's reduced-motion setting.
+const ANIMATION_CHOICE_KEYS: readonly PreferenceKey[] = [...ANIMATION_PREFERENCE_KEYS, 'animationsChosen'];
 
 /** User Interface page (desktop user_interface_settings_page.cpp): behaviour the board honours. */
 export const userInterfaceSection: SettingsSection = {
@@ -100,9 +106,42 @@ export const userInterfaceSection: SettingsSection = {
       titleKey: 'SettingsUserInterface.group.animation',
       entries: [
         {
+          id: 'allAnimations',
+          labelKey: 'SettingsUserInterface.animations.all.label',
+          descriptionKey: 'SettingsUserInterface.animations.all.description',
+          control: { kind: 'custom', component: AnimationButtons, keys: ANIMATION_CHOICE_KEYS },
+        },
+        {
           id: 'tapAnimation',
           labelKey: 'SettingsUserInterface.tapAnimation.label',
-          control: { kind: 'toggle', key: 'tapAnimation' },
+          control: { kind: 'custom', component: animationToggle('tapAnimation'), keys: ['tapAnimation', 'animationsChosen'] },
+        },
+        {
+          id: 'arrowDrawAnimation',
+          labelKey: 'SettingsUserInterface.arrowDrawAnimation.label',
+          control: {
+            kind: 'custom',
+            component: animationToggle('arrowDrawAnimation'),
+            keys: ['arrowDrawAnimation', 'animationsChosen'],
+          },
+        },
+        {
+          id: 'lifeCounterAnimations',
+          labelKey: 'SettingsUserInterface.lifeCounterAnimations.label',
+          control: {
+            kind: 'custom',
+            component: animationToggle('lifeCounterAnimations'),
+            keys: ['lifeCounterAnimations', 'animationsChosen'],
+          },
+        },
+        {
+          id: 'battlefieldFlash',
+          labelKey: 'SettingsUserInterface.battlefieldFlash.label',
+          control: {
+            kind: 'custom',
+            component: animationToggle('battlefieldFlash'),
+            keys: ['battlefieldFlash', 'animationsChosen'],
+          },
         },
       ],
     },

@@ -1,6 +1,6 @@
 import { useForkRef } from '@mui/material/utils';
 import { ZoneName } from '@cockatrice/sockatrice';
-import { usePreference, useSnapGridVisible } from '@app/hooks';
+import { useAnimationPreference, useSnapGridVisible } from '@app/hooks';
 
 import ContextMenu from '../../context-menus/ContextMenu/ContextMenu';
 import { PlayerPlaymat } from '../../PlayerPlaymat';
@@ -10,6 +10,8 @@ import Card from '../../ui/SeatCard/SeatCard';
 import { SEAT_DROP_PRIORITY } from '../../../hooks/seatDropPlan';
 import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
 import { SeatDropPreview, useSeatDropZone } from '../../ui/SeatDragContext';
+import { useValueFlash } from '../../ui/ValueFlash/useValueFlash';
+import ValueFlashOverlay from '../../ui/ValueFlash/ValueFlashOverlay';
 import {
   BATTLEFIELD_ROWS,
   computeCellWidths,
@@ -137,6 +139,7 @@ export default function Battlefield() {
     handOnTop,
     isDragging,
     isSelf,
+    lifeControl,
     menuOwnerId,
     onCardDoubleClick,
     openSeatCardMenu,
@@ -148,7 +151,10 @@ export default function Battlefield() {
     selection,
     startSeatCardDrag,
   } = usePlayerSeatContext();
-  const tapAnimation = usePreference('tapAnimation');
+  const tapAnimation = useAnimationPreference('tapAnimation');
+  // Desktop's "Battlefield flash on damage": a crimson wash, under the cards,
+  // when this player's life drops.
+  const damageFlash = useValueFlash(lifeControl?.value, useAnimationPreference('battlefieldFlash'));
 
   const {
     battlefieldLayout,
@@ -198,6 +204,7 @@ export default function Battlefield() {
       wrapperStyle={seatGrid.battlefield}
     >
       {playerId != null && <PlayerPlaymat playerId={playerId} isSelf={isSelf} />}
+      <ValueFlashOverlay flash={damageFlash} kind="damage" />
       {/* Lands divider — spans the full width of the play area,
         ignoring the padding around the scrollable battlefield content
         so it reads as a continuous horizontal line across the box.

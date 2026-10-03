@@ -276,6 +276,12 @@
   white-space: nowrap;
 }
 
+.settings-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .settings-button:hover:not(:disabled) {
   border-color: rgb(var(--accent-primary));
 }

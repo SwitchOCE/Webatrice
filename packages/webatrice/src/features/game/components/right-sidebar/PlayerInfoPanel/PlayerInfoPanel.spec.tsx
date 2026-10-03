@@ -1,5 +1,9 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
+import { create } from '@bufbuild/protobuf';
+import { games } from '@cockatrice/datatrice';
+import { Event_SetCounterSchema } from '@cockatrice/sockatrice/generated';
 
+import { getSettings, settingsStore } from '../../../../../hooks/useSettings';
 import { LIFE_COUNTER_ID, MANA_COUNTER_IDS, renderSeatCell, type SeatGameSpec } from '../../../__test-utils__/seatFixtures';
 
 vi.mock('../../../../../services/cards/cardCatalog', async () =>
@@ -50,5 +54,47 @@ describe('PlayerInfoPanel', () => {
     fireEvent.click(screen.getByTitle('Green'));
     expect(game.incCounter).not.toHaveBeenCalled();
     expect(lifePill('Bob')).not.toHaveAttribute('role');
+  });
+
+  describe('life counter flash', () => {
+    type Store = ReturnType<typeof renderSeatCell>['store'];
+    const setLife = (store: Store, value: number) => act(() => {
+      store.dispatch(games.Actions.counterSet({
+        gameId: 1,
+        playerId: 1,
+        data: create(Event_SetCounterSchema, { counterId: LIFE_COUNTER_ID, value }),
+      }));
+    });
+
+    afterEach(() => {
+      settingsStore.reset();
+    });
+
+    it('flashes green on a gain and red on a loss, over the life total and the battlefield', () => {
+      const { store } = renderSeatCell(SPEC);
+      expect(screen.queryByTestId(/^value-flash-/)).not.toBeInTheDocument();
+
+      setLife(store, 20);
+      expect(lifePill('Alice')).toContainElement(screen.getByTestId('value-flash-gain'));
+      expect(screen.queryByTestId('value-flash-damage')).not.toBeInTheDocument();
+
+      setLife(store, 15);
+      expect(lifePill('Alice')).toContainElement(screen.getByTestId('value-flash-loss'));
+      // Desktop's "Battlefield flash on damage" washes the player's table.
+      const battlefield = document.querySelector('[data-battlefield-owner="1"]')!;
+      expect(screen.getByTestId('value-flash-damage').parentElement).toContainElement(battlefield as HTMLElement);
+    });
+
+    it('stays still with the life counter and battlefield flashes off', async () => {
+      const settings = await getSettings();
+      settingsStore.setValue(Object.assign(settings, {
+        animationsChosen: true,
+        lifeCounterAnimations: false,
+        battlefieldFlash: false,
+      }));
+      const { store } = renderSeatCell(SPEC);
+      setLife(store, 12);
+      expect(screen.queryByTestId(/^value-flash-/)).not.toBeInTheDocument();
+    });
   });
 });
