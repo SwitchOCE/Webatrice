@@ -1,4 +1,4 @@
-import type { ScryfallCard } from '../../scryfall';
+import type { ScryfallCard } from '../../scryfall/types';
 import type { LookupCardFace, LookupResult, RelatedCardRef } from './types';
 
 /** A Scryfall card record as a `LookupResult`. */
