@@ -42,7 +42,7 @@ import { RouteEnum } from '@app/types';
 import CardDetailModal from './CardDetailModal';
 import DeckBreakdown from './DeckBreakdown';
 import ExportDeckModal from './ExportDeckModal';
-import { fetchAllPrintings, lookupCard, type PrintingSummary } from './cardLookup';
+import { fetchAllPrintings, lookupCard, type PrintingSummary } from '@app/services';
 import {
   buildTcgMassEntryUrl,
   computeDeckPrice,

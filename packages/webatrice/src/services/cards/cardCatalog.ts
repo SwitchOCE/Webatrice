@@ -1,13 +1,15 @@
+import { ScryfallImageSize } from '@cockatrice/datatrice';
+
 import {
   dexieService,
   type Card,
   type CardInSet,
   type RelatedCard,
-} from '@app/services';
-import { ScryfallImageSize } from '@cockatrice/datatrice';
+} from '../dexie';
 
 /**
- * Card DB lookup helpers for the decks feature. Two tables back this:
+ * Browser card catalog shared by the deck and game features: card
+ * metadata, printings and related cards by name. Two tables back this:
  *
  *   1. Dexie `cards` — populated from the user's imported Cockatrice
  *      cards.xml. Cockatrice-XML-shaped ({value, ...attrs} leaves,

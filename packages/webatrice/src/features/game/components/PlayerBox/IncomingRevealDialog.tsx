@@ -18,7 +18,7 @@ import {
   type GroupMode,
   type SortMode,
 } from './cardListSort';
-import { lookupCardsCached } from '../../../decks/cardLookup';
+import { lookupCardsCached } from '@app/services';
 
 const TOOLBAR_SELECT_CLASS =
   'px-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm text-text-primary '

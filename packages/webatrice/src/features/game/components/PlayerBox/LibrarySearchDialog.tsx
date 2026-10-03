@@ -12,7 +12,7 @@ import Card from './Card';
 import { CARD_HEIGHT, CARD_WIDTH } from './cardSize';
 import { useHoveredCard } from './hoveredCard';
 import { useBigCardPreview } from './bigCardPreview';
-import { lookupCardsCached } from '../../../decks/cardLookup';
+import { lookupCardsCached } from '@app/services';
 import {
   compareCards,
   groupCards,

@@ -14,10 +14,4 @@ export type {
 
 export { parseCod, serializeCod, emptyCod } from './cod';
 export { defaultMeta, parseMeta, serializeMeta, touchMeta } from './meta';
-export {
-  lookupCard,
-  lookupCards,
-  type LookupResult,
-  type PrintingSummary,
-} from './cardLookup';
 export { hydrateDeck, loadDeckFromCod, assembleDeckCard } from './hydrate';
