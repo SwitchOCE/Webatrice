@@ -357,6 +357,29 @@ describe('getGamesOfUser', () => {
     invokeOnSuccess(resp, { responseCode: 0 });
     expect(WebClient.instance.response.session.getGamesOfUser).toHaveBeenCalledWith('alice', resp);
   });
+
+  it('marks the request pending before sending', () => {
+    getGamesOfUser('alice');
+    expect(WebClient.instance.response.session.getGamesOfUserPending).toHaveBeenCalledWith('alice');
+  });
+
+  it.each([
+    Response_ResponseCode.RespNameNotFound,
+    Response_ResponseCode.RespInIgnoreList,
+    Response_ResponseCode.RespInternalError,
+  ])('reports rejection %i with its response code', (code) => {
+    getGamesOfUser('alice');
+    invokeOnError(code);
+    expect(WebClient.instance.response.session.getGamesOfUserFailed).toHaveBeenCalledWith('alice', code, undefined);
+  });
+
+  it('reports a request the server never answered with the transport reason', () => {
+    getGamesOfUser('alice');
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Timeout);
+    expect(WebClient.instance.response.session.getGamesOfUserFailed).toHaveBeenCalledWith(
+      'alice', Response_ResponseCode.RespNotConnected, CommandFailure.Timeout,
+    );
+  });
 });
 
 describe('getUserInfo', () => {

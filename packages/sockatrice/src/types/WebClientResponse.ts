@@ -112,6 +112,8 @@ export interface ISessionResponse {
   accountImageChanged(avatarBmp: Uint8Array): void;
   getUserInfo(userInfo: ServerInfo_User): void;
   getGamesOfUser(userName: string, response: Response_GetGamesOfUser): void;
+  getGamesOfUserPending?(userName: string): void;
+  getGamesOfUserFailed?(userName: string, responseCode: number, failure?: CommandFailure): void;
   gameJoined(gameJoinedData: Event_GameJoined): void;
   notifyUser(notification: Event_NotifyUser): void;
   playerPropertiesChanged(gameId: number, playerId: number, payload: Event_PlayerPropertiesChanged): void;

@@ -205,6 +205,7 @@ export function makeServerState(overrides: Partial<ServerState> = {}): ServerSta
     downloadedDeck: null,
     downloadedReplay: null,
     gamesOfUser: {},
+    gamesOfUserStatus: {},
     registrationError: null,
     ...overrides,
   };

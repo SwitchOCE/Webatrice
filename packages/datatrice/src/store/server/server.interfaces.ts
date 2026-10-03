@@ -70,6 +70,8 @@ export interface ServerState {
   downloadedDeck: { deckId: number; deck: string } | null;
   downloadedReplay: { replayId: number; replayData: Uint8Array } | null;
   gamesOfUser: { [userName: string]: { [gameId: number]: Enriched.Game } };
+  // Lifecycle of the latest Command_GetGamesOfUser per user (desktop's "Show games").
+  gamesOfUserStatus: { [userName: string]: GamesOfUserStatus };
   registrationError: string | null;
 }
 
@@ -78,6 +80,13 @@ export interface CommandFailedPayload {
   responseCode: number;
   failure?: WebsocketTypes.CommandFailure;
 }
+
+// `failed` carries the raw Response.ResponseCode, which the UI maps to desktop's
+// UserContextMenu::gamesOfUserReceived message, and `failure` when the server never answered.
+export type GamesOfUserStatus =
+  | { state: 'loading' }
+  | { state: 'loaded' }
+  | ({ state: 'failed' } & CommandFailedPayload);
 
 export type PrivateChatNoticeKind =
   | 'ignoredByRecipient'

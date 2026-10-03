@@ -565,6 +565,43 @@ describe('Private chat notices', () => {
 
 
 describe('Games Of User', () => {
+  it('GAMES_OF_USER_REQUESTED → marks loading and drops the previous answer', () => {
+    const state = makeServerState({ gamesOfUser: { alice: { 1: makeGame({ gameId: 1 }) } } });
+    const result = serverReducer(state, Actions.gamesOfUserRequested({ userName: 'alice' }));
+    expect(result.gamesOfUser['alice']).toBeUndefined();
+    expect(result.gamesOfUserStatus['alice']).toEqual({ state: 'loading' });
+  });
+
+  it('GAMES_OF_USER → marks the request loaded', () => {
+    const state = makeServerState({ gamesOfUserStatus: { alice: { state: 'loading' } } });
+    const response = create(Response_GetGamesOfUserSchema, { roomList: [], gameList: [] });
+    const result = serverReducer(state, Actions.gamesOfUser({ userName: 'alice', response }));
+    expect(result.gamesOfUserStatus['alice']).toEqual({ state: 'loaded' });
+  });
+
+  it('GAMES_OF_USER_FAILED → records the response code', () => {
+    const state = makeServerState({ gamesOfUserStatus: { alice: { state: 'loading' } } });
+    const result = serverReducer(state, Actions.gamesOfUserFailed({ userName: 'alice', responseCode: 16 }));
+    expect(result.gamesOfUserStatus['alice']).toEqual({ state: 'failed', responseCode: 16, failure: undefined });
+  });
+
+  it('GAMES_OF_USER → resolves each game type through its own room', () => {
+    // Game type ids are per room: id 1 is "Standard" in room 1 but "Draft" in room 2.
+    const response = create(Response_GetGamesOfUserSchema, {
+      roomList: [
+        create(ServerInfo_RoomSchema, { roomId: 1, gametypeList: [{ gameTypeId: 1, description: 'Standard' }] }),
+        create(ServerInfo_RoomSchema, { roomId: 2, gametypeList: [{ gameTypeId: 1, description: 'Draft' }] }),
+      ],
+      gameList: [
+        create(ServerInfo_GameSchema, { gameId: 7, roomId: 1, gameTypes: [1] }),
+        create(ServerInfo_GameSchema, { gameId: 8, roomId: 2, gameTypes: [1] }),
+      ],
+    });
+    const result = serverReducer(makeServerState(), Actions.gamesOfUser({ userName: 'bob', response }));
+    expect(result.gamesOfUser['bob'][7].gameType).toBe('Standard');
+    expect(result.gamesOfUser['bob'][8].gameType).toBe('Draft');
+  });
+
   it('GAMES_OF_USER → stores an empty games map when roomList/gameList are empty', () => {
     const state = makeServerState();
     const response = create(Response_GetGamesOfUserSchema, { roomList: [], gameList: [] });
