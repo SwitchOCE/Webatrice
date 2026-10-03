@@ -132,4 +132,35 @@ describe('Game card preview', () => {
       expect(send).not.toHaveBeenCalled();
     }
   });
+
+  it('offers "View related cards" for an opponent\'s stack card', async () => {
+    vi.mocked(lookupCard).mockImplementation(async (name: string) => ({
+      found: true,
+      source: 'dexie',
+      name,
+      printings: [],
+      related: name === 'Lightning Bolt' ? [{ name: 'Spark Elemental', origin: 'related' }] : undefined,
+    }));
+    vi.mocked(lookupCards).mockImplementation(async (inputs) =>
+      new Map(inputs.map((i) => {
+        const name = typeof i === 'string' ? i : i.name;
+        return [name, { found: name === 'Spark Elemental', source: 'dexie', name, printings: [] }];
+      })));
+    const theirBolt = makeCard({ id: 51, name: 'Lightning Bolt' });
+    renderWithProviders(<Game />, {
+      preloadedState: buildSeatGameState({
+        localPlayerId: 1,
+        seats: [{ playerId: 1, deckCount: 40 }, { playerId: 2, stack: [theirBolt], deckCount: 40 }],
+      }),
+      webClient: createMockWebClient(),
+    });
+    await act(async () => {});
+
+    openContextMenu(cardEl(theirBolt.id, 'stack'));
+    chooseMenuPath('View related cards', 'Spark Elemental');
+
+    expect(previewImages().map((img) => img.getAttribute('src'))).toEqual([
+      expect.stringContaining(`exact=${encodeURIComponent('Spark Elemental')}`),
+    ]);
+  });
 });
