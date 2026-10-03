@@ -271,6 +271,9 @@ export class WebClient {
    * while disconnected: nothing is sent to the server.
    */
   public replayGameEventContainer(container: GameEventContainer, gameId: number): void {
+    // A recorded container carries the game time it was played at (Servatrice sets
+    // seconds_elapsed only on the copy it stores); live containers never do.
+    this.response.game.replayGameTime?.(gameId, container.secondsElapsed ?? 0);
     this.protobuf.replayGameEventContainer(container, gameId);
   }
 
