@@ -2,3 +2,4 @@
 - 16:03Z commits 1-2 pushed (d00fed9) → commit 3 reveal-to-all wire test
 - 16:06Z commit 3 pushed (f4d4f6a; wire bug confirmed, fixed) → commit 4 reverse-turn actor
 - 16:09Z commit 4 pushed (8124d55, lint+typecheck green) → commit 5 game menu
+- 16:20Z commit 5 pushed (aba4600; unit green, e2e written not yet run) → commit 6 rotate view
