@@ -20,9 +20,10 @@ import { AuthGuard } from '@app/components';
 import { ConfirmDialog } from '@app/dialogs';
 import { Layout } from '@app/feature-wrappers/layout';
 import { useWebClient } from '@cockatrice/datatrice/react';
-import { rooms, server } from '@cockatrice/datatrice';
+import { games, rooms, server } from '@cockatrice/datatrice';
+import type { GameCommandFailedPayload } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
-import { useLeaveGame, useReduxEffect } from '@app/hooks';
+import { useCommandFailureMessage, useLeaveGame, useReduxEffect } from '@app/hooks';
 import type { ServerInfo_DeckStorage_Folder, ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
 import { parseCod } from '@app/services';
 import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat } from '@app/types';
@@ -324,8 +325,25 @@ export default function GameLobby({ gameId }: { gameId: number }) {
   // rows stay bracket-less unless we later broadcast via gameSay or
   // upstream Cockatrice grows bracket in ServerInfo_PlayerProperties.
   const [myPickedDeckId, setMyPickedDeckId] = useState<number | null>(null);
+
+  // A rejected or unanswered Command_DeckSelect leaves the picker up; say why
+  // instead of silently staying there (desktop has no handler for this).
+  const describeFailure = useCommandFailureMessage();
+  useReduxEffect<GameCommandFailedPayload>(
+    ({ payload }) => {
+      if (payload.gameId !== gameId) {
+        return;
+      }
+      setMyPickedDeckId(null);
+      setUploadError(describeFailure(payload.failure, t('GameLobby.deckSelectFailed')));
+    },
+    games.Types.DECK_SELECT_FAILED,
+    [gameId, describeFailure, t],
+  );
+
   const handleSelectDeck = (deckId: number) => {
     setMyPickedDeckId(deckId);
+    setUploadError(null);
     webClient.request.game.deckSelect(gameId, { deckId });
     // No gameSay: Cockatrice emits its own event
     // ("X has loaded a deck (…)") on the deckHash property update.
