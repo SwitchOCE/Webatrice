@@ -84,6 +84,7 @@ describe('registered sections', () => {
       SettingsSectionId.General,
       SettingsSectionId.Appearance,
       SettingsSectionId.UserInterface,
+      SettingsSectionId.Storage,
       SettingsSectionId.Chat,
       SettingsSectionId.Sound,
       SettingsSectionId.Shortcuts,
