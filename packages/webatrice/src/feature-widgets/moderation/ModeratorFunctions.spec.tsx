@@ -2,6 +2,7 @@ import { act, fireEvent, screen } from '@testing-library/react';
 
 import { server } from '@cockatrice/datatrice';
 import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { connectedState, createMockWebClient, makeUser, renderWithProviders } from '../../__test-utils__';
 import ModeratorFunctions from './ModeratorFunctions';
@@ -60,6 +61,17 @@ describe('ModeratorFunctions', () => {
       store.dispatch(server.Actions.moderatorCommandFailed({ command: 'grantReplayAccess', responseCode, target: '9' }));
     });
     expect(screen.getByText(message)).toBeInTheDocument();
+  });
+
+  it('explains a grant the server never answered with the transport reason', async () => {
+    const { store } = setup();
+    await grant('9');
+    act(() => {
+      store.dispatch(server.Actions.moderatorCommandFailed({
+        command: 'grantReplayAccess', responseCode: -1, target: '9', failure: WebsocketTypes.CommandFailure.Timeout,
+      }));
+    });
+    expect(screen.getByText('CommandFailure.timeout')).toBeInTheDocument();
   });
 
   it('force-activates the trimmed user name', async () => {

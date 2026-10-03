@@ -8,6 +8,7 @@ import {
   ServerInfo_WarningSchema,
 } from '@cockatrice/sockatrice/generated';
 import { Actions as ServerActions } from '../store/server/server.actions';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { ModeratorResponseImpl } from './ModeratorResponseImpl';
 
 function setup() {
@@ -87,7 +88,17 @@ describe('ModeratorResponseImpl', () => {
     const { impl, dispatch } = setup();
     impl.commandFailed('grantReplayAccess', 13, '42');
     expect(dispatch).toHaveBeenCalledWith(
-      ServerActions.moderatorCommandFailed({ command: 'grantReplayAccess', responseCode: 13, target: '42' }),
+      ServerActions.moderatorCommandFailed({ command: 'grantReplayAccess', responseCode: 13, target: '42', failure: undefined }),
+    );
+  });
+
+  it('commandFailed carries the transport reason when the server never answered', () => {
+    const { impl, dispatch } = setup();
+    impl.commandFailed('viewLogHistory', -1, 'alice', WebsocketTypes.CommandFailure.Disconnected);
+    expect(dispatch).toHaveBeenCalledWith(
+      ServerActions.moderatorCommandFailed({
+        command: 'viewLogHistory', responseCode: -1, target: 'alice', failure: WebsocketTypes.CommandFailure.Disconnected,
+      }),
     );
   });
 });

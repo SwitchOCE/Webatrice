@@ -5,7 +5,7 @@ import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { Response_WarnList, ServerInfo_Ban, ServerInfo_User, ServerInfo_Warning } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { useReduxEffect } from '@app/hooks';
+import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 
 import type { ModerationAction } from './moderationMenu';
@@ -58,7 +58,7 @@ export interface ModerationFlowState {
 }
 
 interface UserNamePayload { userName: string }
-interface FailedPayload { command: string; responseCode: number; target: string }
+interface FailedPayload { command: string; responseCode: number; target: string; failure?: WebsocketTypes.CommandFailure }
 
 /**
  * Drives desktop's UserContextMenu moderator round trips (user_context_menu.cpp)
@@ -67,6 +67,7 @@ interface FailedPayload { command: string; responseCode: number; target: string 
  */
 export function useModerationFlow(): ModerationFlowState {
   const { t } = useTranslation();
+  const describeFailure = useCommandFailureMessage();
   const webClient = useWebClient();
   const ownName = useAppSelector((state) => server.Selectors.getUser(state)?.name ?? '');
   const [flow, setFlow] = useState<ModerationFlow | null>(null);
@@ -214,9 +215,10 @@ export function useModerationFlow(): ModerationFlowState {
     const failure = failures[command];
     if (failure) {
       setFlow(null);
-      setNotice(failure);
+      // A timeout or lost connection explains itself in place of desktop's text.
+      setNotice({ ...failure, message: describeFailure(payload.failure, failure.message) });
     }
-  }, server.Types.MODERATOR_COMMAND_FAILED, [flow, t]);
+  }, server.Types.MODERATOR_COMMAND_FAILED, [describeFailure, flow, t]);
 
   useReduxEffect<{ userName: string }>(({ payload }) => {
     const promoted = pendingRoleChanges.current.get(payload.userName);
@@ -239,10 +241,10 @@ export function useModerationFlow(): ModerationFlowState {
     pendingRoleChanges.current.delete(payload.target);
     setNotice({
       title: t('Moderation.common.failed'),
-      message: t(promoted ? 'Moderation.adjustMod.promoteFailed' : 'Moderation.adjustMod.demoteFailed'),
+      message: describeFailure(payload.failure, t(promoted ? 'Moderation.adjustMod.promoteFailed' : 'Moderation.adjustMod.demoteFailed')),
       severity: 'info',
     });
-  }, server.Types.ADMIN_COMMAND_FAILED, [t]);
+  }, server.Types.ADMIN_COMMAND_FAILED, [describeFailure, t]);
 
   const submitWarn = useCallback((values: WarnUserFormValues) => {
     if (flow?.kind !== 'warnUser' || !ownName) {

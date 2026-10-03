@@ -28,13 +28,13 @@ const SignalActions = {
   grantReplayAccess: createAction<{ replayId: number; moderatorName: string }>('server/grantReplayAccess'),
   forceActivateUser: createAction<{ usernameToActivate: string; moderatorName: string }>('server/forceActivateUser'),
   getUserInfoFailed: createAction<{ userName: string; responseCode: number }>('server/getUserInfoFailed'),
-  moderatorCommandFailed: createAction<{ command: WebsocketTypes.ModeratorCommandName; responseCode: number; target: string }>(
+  moderatorCommandFailed: createAction<CommandFailedPayload & { command: WebsocketTypes.ModeratorCommandName; target: string }>(
     'server/moderatorCommandFailed'
   ),
   sessionCommandFailed: createAction<{ command: WebsocketTypes.SessionCommandName; responseCode: number; target: string }>(
     'server/sessionCommandFailed'
   ),
-  adminCommandFailed: createAction<{ command: WebsocketTypes.AdminCommandName; responseCode: number; target: string }>(
+  adminCommandFailed: createAction<CommandFailedPayload & { command: WebsocketTypes.AdminCommandName; target: string }>(
     'server/adminCommandFailed'
   ),
   // Command failure outcomes: `failure` is set when the server never answered
