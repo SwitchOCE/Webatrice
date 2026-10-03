@@ -97,7 +97,8 @@ export interface ISessionResponse {
   serverMessage(message: string): void;
   accountAwaitingActivation(options: PendingActivationContext): void;
   accountActivationSuccess(): void;
-  accountActivationFailed(): void;
+  /** `failure` is set when the activation got no server answer (timeout, lost connection). */
+  accountActivationFailed(failure?: CommandFailure): void;
   registrationRequiresEmail(): void;
   registrationSuccess(): void;
   registrationFailed(reason: string, endTime?: number): void;

@@ -6,7 +6,7 @@ import type { CommandFailedPayload } from './server.interfaces';
 
 const SignalActions = {
   accountAwaitingActivation: createAction<{ options: WebsocketTypes.PendingActivationContext }>('server/accountAwaitingActivation'),
-  accountActivationFailed: createAction('server/accountActivationFailed'),
+  accountActivationFailed: createAction<{ failure: WebsocketTypes.CommandFailure } | undefined>('server/accountActivationFailed'),
   accountActivationSuccess: createAction('server/accountActivationSuccess'),
   loginSuccessful: createAction<{ options: WebsocketTypes.LoginSuccessContext }>('server/loginSuccessful'),
   connectionFailed: createAction('server/connectionFailed'),

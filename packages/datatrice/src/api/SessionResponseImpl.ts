@@ -124,8 +124,8 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.accountActivationSuccess());
   }
 
-  accountActivationFailed(): void {
-    this.store.dispatch(ServerActions.accountActivationFailed());
+  accountActivationFailed(failure?: WebsocketTypes.CommandFailure): void {
+    this.store.dispatch(ServerActions.accountActivationFailed(failure ? { failure } : undefined));
   }
 
   registrationRequiresEmail(): void {
