@@ -1,3 +1,4 @@
+import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { App, Enriched } from '../../types';
 
 export interface RoomsState {
@@ -11,6 +12,14 @@ export interface RoomsState {
   gameFilters: RoomsStateGameFilters;
   joinGamePending: boolean;
   joinGameError: JoinGameError | null;
+}
+
+// Payload of the rooms `*Failed` command-outcome signal actions. `failure` is
+// set when the server never answered and undefined for a server rejection.
+export interface RoomCommandFailedPayload {
+  roomId: number;
+  responseCode: number;
+  failure?: WebsocketTypes.CommandFailure;
 }
 
 export interface JoinGameError {

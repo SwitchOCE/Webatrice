@@ -517,6 +517,16 @@
       "room.sendMessage": "Send message"
     }
   },
+  "DeckEditor": {
+    "downloadFailed": "Failed to download this deck from the server.",
+    "loadFailedTitle": "Deck could not be loaded",
+    "saveFailed": "Save failed",
+    "saveFailedHint": "Your last change was not saved. It will be sent again with your next change."
+  },
+  "Decks": {
+    "listError": "Failed to load your decks from the server.",
+    "retry": "Retry"
+  },
   "AccountActivationDialog": {
     "title": "Account Activation",
     "subtitle1": "Your account has not been activated yet.",
@@ -682,6 +692,23 @@
       "shortcuts": "Shortcuts"
     }
   },
+  "CommandFailureNotices": {
+    "joinRoom": {
+      "title": "Could not join room",
+      "notFound": "Failed to join the server room: it doesn't exist on the server.",
+      "contextError": "The server thinks you are in the server room but your client is unable to display it. Try restarting your client.",
+      "userLevelTooLow": "You do not have the required permission to join this server room.",
+      "unknown": "Failed to join the server room due to an unknown error: {code}."
+    },
+    "createGame": {
+      "title": "Could not create game",
+      "serverError": "Server error."
+    },
+    "deckUpload": {
+      "title": "Could not save deck",
+      "serverError": "Failed to upload deck to server"
+    }
+  },
   "Initialize": {
     "title": "DID YOU KNOW",
     "subtitle": "<1>Cockatrice is run by volunteers</1><2>that love card games!</2>"
@@ -690,5 +717,10 @@
     "title": "Unsupported Browser",
     "subtitle1": "Please update your browser and/or check your permissions.",
     "subtitle2": "Note: Private browsing causes some browsers to disable certain permissions or features."
+  },
+  "CommandFailure": {
+    "notSent": "You are not connected to the server.",
+    "timeout": "The server did not respond. Please try again.",
+    "disconnected": "The connection to the server has been lost."
   }
 }

@@ -1,0 +1,6 @@
+{
+  "Decks": {
+    "listError": "Failed to load your decks from the server.",
+    "retry": "Retry"
+  }
+}

@@ -24,6 +24,8 @@ export type {
   ServerConnectionHealth,
   TestConnectionStatus,
 } from './server/server.interfaces';
+export type { CommandFailedPayload } from './server/server.interfaces';
+export type { RoomCommandFailedPayload } from './rooms/rooms.interfaces';
 // ServerCapability is a const and a type of the same name; tsup's namespace bundle
 // keeps only the type, so the value is re-exported flat as well.
 export { ServerCapability } from './server/server.capabilities';
