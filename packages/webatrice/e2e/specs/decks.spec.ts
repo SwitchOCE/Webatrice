@@ -51,9 +51,11 @@ test('deck folders, undo/redo and autosave round-trip through Servatrice', async
   await expect(page.getByText('Saved', { exact: true })).toBeVisible({ timeout: 15_000 });
 
   // Back in My Decks the server's copy carries the undone name, inside the folder.
+  // The open-deck tab also reads "E2E Brew", so match the deck card itself.
+  const deckRow = page.getByRole('button', { name: /^E2E Brew / });
   await page.getByTitle('View your decks').click();
   await page.getByText('Tournament', { exact: true }).click();
-  await expect(page.getByText('E2E Brew', { exact: true })).toBeVisible({ timeout: 15_000 });
+  await expect(deckRow).toBeVisible({ timeout: 15_000 });
 
   // Move it to the root: copy uploaded there, original deleted.
   await page.getByRole('button', { name: 'Move E2E Brew to another folder' }).click();
@@ -62,7 +64,7 @@ test('deck folders, undo/redo and autosave round-trip through Servatrice', async
   await expect(page.getByText('This folder is empty.')).toBeVisible({ timeout: 15_000 });
 
   await breadcrumb.getByRole('button', { name: /Server deck storage/ }).click();
-  await expect(page.getByText('E2E Brew', { exact: true })).toBeVisible();
+  await expect(deckRow).toBeVisible();
 
   // Delete the now-empty folder.
   await page.getByRole('button', { name: 'Delete Tournament' }).click();
