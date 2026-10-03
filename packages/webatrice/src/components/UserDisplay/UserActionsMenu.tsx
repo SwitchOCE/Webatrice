@@ -95,6 +95,7 @@ export default function UserActionsMenu({
             onClose();
           }}
           disabled={!canReportUser(name)}
+          disabledReason={t('ReportUserDialog.menuItemSelf')}
           icon={<Flag size={14} />}
         >
           {t('ReportUserDialog.menuItem')}
