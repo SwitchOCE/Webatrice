@@ -4,7 +4,7 @@ import Routes from './AppShellRoutes';
 
 import './AppShell.css';
 
-import { RouteErrorBoundary, ToastProvider } from '@app/components';
+import { GameLinkJoinHost, RouteErrorBoundary, ToastProvider } from '@app/components';
 import { ReportUserProvider } from '@app/dialogs';
 import { useAdminLockSession, useApplyLanguagePreference, useSyncLocaleToStore } from '@app/hooks';
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
@@ -65,6 +65,8 @@ function AppShell() {
                 <PrivateMessageNotifier />
                 {/* Sounds and notifications for game, room and buddy events. */}
                 <AppAlerts />
+                {/* Runs the join flow for game links clicked in any chat. */}
+                <GameLinkJoinHost />
                 {/* REPORT_RESOLVED / REPORT_COMMENT popups (desktop processNotifyUserEvent). */}
                 <ReportNotifier />
                 {/* Hosts the report-user dialog for useReportUser().openReportUser. */}

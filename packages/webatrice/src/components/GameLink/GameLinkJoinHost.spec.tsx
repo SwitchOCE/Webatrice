@@ -1,0 +1,157 @@
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { useLocation } from 'react-router-dom';
+import { create, type MessageInitShape } from '@bufbuild/protobuf';
+import { games, rooms } from '@cockatrice/datatrice';
+import {
+  Event_GameJoinedSchema,
+  ServerInfo_GameSchema,
+  ServerInfo_RoomSchema,
+  type ServerInfo_Game,
+} from '@cockatrice/sockatrice/generated';
+import type { WebClient } from '@cockatrice/sockatrice';
+
+import {
+  connectedWithRoomsState,
+  createMockWebClient,
+  makeStoreState,
+  renderWithProviders,
+} from '../../__test-utils__';
+import { makeGameJoinLink } from '@app/utils';
+import { GameLinkButton } from './GameLinkButton';
+import GameLinkJoinHost, { GAME_LINK_WAIT_MS } from './GameLinkJoinHost';
+
+function LocationProbe() {
+  return <div data-testid="location">{useLocation().pathname}</div>;
+}
+
+function listedGame(overrides: MessageInitShape<typeof ServerInfo_GameSchema> = {}): ServerInfo_Game {
+  return create(ServerInfo_GameSchema, {
+    gameId: 7,
+    roomId: 1,
+    description: 'Friday modern',
+    playerCount: 1,
+    maxPlayers: 2,
+    ...overrides,
+  });
+}
+
+function stateWith(game: ServerInfo_Game | null) {
+  const room = connectedWithRoomsState.rooms!.rooms[1];
+  return makeStoreState({
+    ...connectedWithRoomsState,
+    rooms: {
+      ...connectedWithRoomsState.rooms,
+      rooms: { 1: { ...room, games: game ? { [game.gameId]: { info: game, gameType: '' } } : {} } },
+    },
+  });
+}
+
+const link = (overrides: Partial<Parameters<typeof makeGameJoinLink>[0]> = {}) =>
+  makeGameJoinLink({ hostname: 'localhost', port: '4748', roomId: 1, gameId: 7, description: 'Friday modern', ...overrides });
+
+function renderHost(url: string, game: ServerInfo_Game | null = listedGame()) {
+  const webClient = createMockWebClient() as unknown as WebClient;
+  const utils = renderWithProviders(
+    <>
+      <GameLinkButton url={url} />
+      <GameLinkJoinHost />
+      <LocationProbe />
+    </>,
+    { preloadedState: stateWith(game), webClient },
+  );
+  fireEvent.click(screen.getByRole('button', { name: /GameLink\.anchor/ }));
+  return { ...utils, webClient };
+}
+
+const dialogButton = (name: string) => within(screen.getByRole('dialog')).getByRole('button', { name });
+
+describe('GameLinkJoinHost (GAME-033 incoming links)', () => {
+  it('confirms, then joins the listed game through Command_JoinGame and opens it', () => {
+    const { webClient, store } = renderHost(link());
+    expect(within(screen.getByRole('dialog')).getByText('GameLink.confirm.descriptionInRoom')).toBeInTheDocument();
+    expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
+
+    fireEvent.click(dialogButton('GameLink.yes'));
+    expect(webClient.request.session.joinRoom).not.toHaveBeenCalled();
+    expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(1, {
+      gameId: 7,
+      password: '',
+      spectator: false,
+      overrideRestrictions: false,
+      joinAsJudge: false,
+    });
+
+    act(() => {
+      store.dispatch(games.Actions.gameJoined({
+        data: create(Event_GameJoinedSchema, { gameInfo: listedGame(), playerId: 2, hostId: 1 }),
+      }));
+    });
+    expect(screen.getByTestId('location')).toHaveTextContent('/game/7');
+  });
+
+  it('declining the confirmation sends nothing', async () => {
+    const { webClient } = renderHost(link());
+    fireEvent.click(dialogButton('GameLink.no'));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(webClient.request.session.joinRoom).not.toHaveBeenCalled();
+    expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
+  });
+
+  it('joins the room first when the user is not in it, then the game once it is listed', () => {
+    const { webClient, store } = renderHost(link({ roomId: 2 }));
+    fireEvent.click(dialogButton('GameLink.yes'));
+    expect(webClient.request.session.joinRoom).toHaveBeenCalledWith(2);
+    expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
+
+    act(() => {
+      store.dispatch(rooms.Actions.joinRoom({
+        roomInfo: create(ServerInfo_RoomSchema, { roomId: 2, name: 'Side', gameList: [listedGame({ roomId: 2 })] }),
+      }));
+    });
+    expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(2, expect.objectContaining({ gameId: 7 }));
+  });
+
+  it('reports a game that never appears in the room', () => {
+    vi.useFakeTimers();
+    try {
+      const { webClient } = renderHost(link(), null);
+      fireEvent.click(dialogButton('GameLink.yes'));
+      act(() => {
+        vi.advanceTimersByTime(GAME_LINK_WAIT_MS);
+      });
+      expect(within(screen.getByRole('dialog')).getByText('GameLink.notFound')).toBeInTheDocument();
+      expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('offers to spectate a full game', () => {
+    const { webClient } = renderHost(link(), listedGame({ playerCount: 2, maxPlayers: 2 }));
+    fireEvent.click(dialogButton('GameLink.yes'));
+    expect(within(screen.getByRole('dialog')).getByText('GameLink.full')).toBeInTheDocument();
+    fireEvent.click(dialogButton('GameLink.yes'));
+    expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(1, expect.objectContaining({ spectator: true }));
+  });
+
+  it('asks for the password of a protected game', () => {
+    const { webClient } = renderHost(link(), listedGame({ withPassword: true }));
+    fireEvent.click(dialogButton('GameLink.yes'));
+    fireEvent.change(within(screen.getByRole('dialog')).getByRole('textbox'), { target: { value: 'hunter2' } });
+    fireEvent.click(dialogButton('GameLink.join'));
+    expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(1, expect.objectContaining({ password: 'hunter2' }));
+  });
+
+  it('explains a link for another server instead of joining', () => {
+    const { webClient } = renderHost(link({ hostname: 'other.example' }));
+    fireEvent.click(dialogButton('GameLink.yes'));
+    expect(within(screen.getByRole('dialog')).getByText('GameLink.otherServer')).toBeInTheDocument();
+    expect(webClient.request.session.joinRoom).not.toHaveBeenCalled();
+    expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
+  });
+
+  it('rejects an invalid link with desktop\'s message', () => {
+    renderHost('cockatrice://joingame?hostname=h&port=x&roomid=1&gameid=7');
+    expect(within(screen.getByRole('dialog')).getByText('GameLink.invalid.port')).toBeInTheDocument();
+  });
+});
