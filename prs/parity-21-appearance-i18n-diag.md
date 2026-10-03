@@ -103,3 +103,5 @@ Final tip `e984f0f` (on #19 `e3a1137`), after `git submodule update --init` and 
 - 21 @037e262 TopBar/userMenuEntries/UserMenu.i18n: 21's route|dialog entry union (import cards + debug log dialogs) with 13/14's staff/report entries and capability filter (visibleUserMenuEntries(userLevel, supports))
 - 21 @4df63bf v6.schema.ts comment: 21's migrateSetting wording + 19's merge-order note (review fix); also repaired i18n-default.json that my 037e262 resolution had staged with markers (regenerated in every affected commit)
 - 21 @bb48552 (cross-PR): Storage page lists 15's replay tables (REPLAY_STORES, never cleared) so Record<Stores,number> stays total; labels added, i18n regenerated
+- 21 @243eef3 (cross-PR, found by e2e): LocalReplays formats sizes with toBcp47(i18n.language) — catalogue codes such as en_US made #15's Intl.NumberFormat throw and crash the Replays page.
+- Storage page lists #15's replay tables (never cleared); #20 adds its card-preference tables beside them.
