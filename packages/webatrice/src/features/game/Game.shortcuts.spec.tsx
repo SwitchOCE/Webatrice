@@ -154,6 +154,31 @@ describe('Game seat shortcuts', () => {
     expect(game.revealCards).toHaveBeenCalledWith(1, { zoneName: 'hand', cardId: [60, 61] });
   });
 
+  it('Alt+digit sends the matching message macro verbatim, and nothing without one', () => {
+    window.localStorage.setItem('webatrice.messageMacros', JSON.stringify(['gg', 'Respond?']));
+    try {
+      const { game } = renderGame();
+
+      press('Digit2', { altKey: true });
+      press('Digit3', { altKey: true });
+
+      expect(vi.mocked(game.gameSay).mock.calls).toEqual([[1, { message: 'Respond?' }]]);
+    } finally {
+      window.localStorage.removeItem('webatrice.messageMacros');
+    }
+  });
+
+  it('a spectator has no Say macros', () => {
+    window.localStorage.setItem('webatrice.messageMacros', JSON.stringify(['gg']));
+    try {
+      const { game } = renderGame({ localPlayerId: 3, spectator: true });
+      press('Digit1', { altKey: true });
+      expect(game.gameSay).not.toHaveBeenCalled();
+    } finally {
+      window.localStorage.removeItem('webatrice.messageMacros');
+    }
+  });
+
   it('seats install no keydown listener of their own', () => {
     const add = vi.spyOn(window, 'addEventListener');
     const remove = vi.spyOn(window, 'removeEventListener');

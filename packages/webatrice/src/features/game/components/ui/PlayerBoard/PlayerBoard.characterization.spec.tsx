@@ -245,6 +245,7 @@ describe('PlayerBoard characterization — menu trees', () => {
       'Create predefined token (disabled)',
       'Game info...',
       'Tally',
+      'Say (disabled)',
     ]);
     await dismissMenus();
     expect(menuLabels(openContextMenu(battlefieldEl(2)))).toEqual(['Graveyard', 'Exile', 'Tally']);
