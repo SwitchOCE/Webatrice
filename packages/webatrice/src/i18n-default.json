@@ -739,6 +739,8 @@
       "game.shuffleLibrary": "Shuffle library",
       "game.nextPhase": "Next phase",
       "game.prevPhase": "Previous phase",
+      "game.nextPhaseAction": "Next phase with action",
+      "game.reverseTurn": "Reverse turn order",
       "game.drawMultipleCards": "Draw multiple cards…",
       "game.undoDraw": "Undo draw",
       "game.rollDice": "Roll dice…",
@@ -1404,6 +1406,16 @@
       "empty": "No one to invite",
       "invite": "Invite",
       "cancel": "Cancel"
+    }
+  },
+  "GameMenu": {
+    "button": "Game",
+    "title": "Game actions",
+    "item": {
+      "nextPhase": "Next phase",
+      "nextPhaseAction": "Next phase with action",
+      "nextTurn": "Next turn",
+      "reverseTurn": "Reverse turn order"
     }
   },
   "GameReplay": {

@@ -30,6 +30,8 @@
       "game.shuffleLibrary": "Shuffle library",
       "game.nextPhase": "Next phase",
       "game.prevPhase": "Previous phase",
+      "game.nextPhaseAction": "Next phase with action",
+      "game.reverseTurn": "Reverse turn order",
       "game.drawMultipleCards": "Draw multiple cards…",
       "game.undoDraw": "Undo draw",
       "game.rollDice": "Roll dice…",
