@@ -87,6 +87,9 @@ const session = {
   publicDeckDownloaded: vi.fn(),
   reportMyList: vi.fn(),
   reportDetails: vi.fn(),
+  deckListFailed: vi.fn(),
+  deckDownloadFailed: vi.fn(),
+  deckUploadFailed: vi.fn(),
 };
 
 const room = {
@@ -103,6 +106,8 @@ const room = {
   joinedGame: vi.fn(),
   setJoinGamePending: vi.fn(),
   setJoinGameError: vi.fn(),
+  joinRoomFailed: vi.fn(),
+  createGameFailed: vi.fn(),
 };
 
 const game = {
