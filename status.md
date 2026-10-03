@@ -3,3 +3,4 @@
 - 20:53Z mention completer + all specs + 2 e2e specs written (uncommitted); targeted unit run in progress → fix, full gate, e2e
 - 21:22Z typecheck 5/5, lint 3/3, targeted specs green; open-deck-in-new-tab added → full unit+integration, e2e
 - 21:36Z first full unit run OOM-killed (two vitest runs at once, code 137); re-running webatrice alone → integration, e2e
+- 21:54Z webatrice unit suite OOM (node hit 13.6GB, cgroup cap) twice, incl. run alone; retrying with --max-old-space-size=2048 → integration, e2e
