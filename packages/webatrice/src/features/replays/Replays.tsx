@@ -6,6 +6,7 @@ import { Layout } from '@app/feature-wrappers/layout';
 import LocalReplays from './LocalReplays';
 import ReplayShareCodeDialog from './ReplayShareCodeDialog';
 import ServerReplays from './ServerReplays';
+import { splitReplayName } from './replayFiles';
 import { useLocalReplays } from './useLocalReplays';
 import { useServerReplays } from './useServerReplays';
 
@@ -37,7 +38,7 @@ function Replays() {
           ? (renaming.kind === 'folder' ? t('Replays.local.renameFolderTitle') : t('Replays.local.renameFileTitle'))
           : t('Replays.action.newFolder')}
         label={renaming ? t('Replays.local.newName') : t('Replays.local.newFolderName')}
-        initialValue={renaming?.name ?? ''}
+        initialValue={renaming ? splitReplayName(renaming.name).base : ''}
         validate={(value) => (value.trim() ? null : t('Replays.local.nameRequired'))}
         onSubmit={local.submitPrompt}
         onCancel={local.cancelPrompt}
