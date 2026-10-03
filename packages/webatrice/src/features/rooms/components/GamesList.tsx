@@ -1,10 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import type { ListImperativeAPI } from 'react-window';
 import { Filter, FilterX, Plus, LogIn, Eye, Gavel, ArrowUp, ArrowDown } from 'lucide-react';
 
 import { server, rooms, type GameFilters, type Room, type Game } from '@cockatrice/datatrice';
 import { useAppDispatch, useAppSelector } from '@app/store';
 import { VirtualRows } from '@app/components';
-import { useJoinGame, useNavigateOnGameJoined } from '@app/hooks';
+import { useGridRows, useJoinGame, useNavigateOnGameJoined } from '@app/hooks';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { CreateGameParams } from '@cockatrice/sockatrice/generated';
 import { AlertDialog, PromptDialog } from '@app/dialogs';
@@ -42,9 +43,10 @@ const GRID_COLS = 'grid grid-cols-[6rem_minmax(0,1fr)_10rem_8rem_14rem_5rem_8rem
 const GAME_ROW_HEIGHT = 37;
 
 /**
- * Fancy-themed replacement for `<GameSelector>`. Keeps all og redux
- * hooks + dialogs (create/filter/password/error) so backend behavior
- * is identical; only the presentation changes.
+ * A room's open games, mirroring desktop's GameSelector: a sortable table with
+ * single-row selection, a toolbar (filter, create, join, spectate, judge) and
+ * the password and join-error dialogs. Rows are a keyboard grid like the
+ * QTreeView: ↑/↓/Home/End move the selection, Enter joins like a double-click.
  */
 export default function GamesList({ room }: GamesListProps) {
   const roomId = room.info.roomId;
@@ -62,11 +64,10 @@ export default function GamesList({ room }: GamesListProps) {
   useNavigateOnGameJoined();
 
   const { sortBy, games: gameList, selectedGameId, handleSort, handleSelect, handleActivate } =
-    useOpenGames({ roomId, onActivateGame: (_id) => beginJoin(false, false) });
+    useOpenGames({ roomId, onActivateGame: (gameId) => joinById(gameId, false, false) });
 
-  const selectedGame = useAppSelector((state) =>
-    selectedGameId != null ? rooms.Selectors.getRoomGames(state, roomId)[selectedGameId] : undefined,
-  );
+  const roomGames = useAppSelector((state) => rooms.Selectors.getRoomGames(state, roomId));
+  const selectedGame = selectedGameId != null ? roomGames[selectedGameId] : undefined;
   const counts = useAppSelector((state) => rooms.Selectors.getRoomGameCounts(state, roomId));
   const isFilterActive = useAppSelector((state) => rooms.Selectors.isGameFilterActive(state, roomId));
   const filters = useAppSelector((state) => rooms.Selectors.getGameFilters(state, roomId));
@@ -75,11 +76,35 @@ export default function GamesList({ room }: GamesListProps) {
   const [createOpen, setCreateOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
 
-  function beginJoin(asSpectator: boolean, asJudge: boolean) {
-    if (selectedGame) {
-      joinGame(roomId, selectedGame.info, asSpectator, asJudge);
+  // By id rather than through `selectedGame`: Enter or a double-click selects
+  // and joins in one go, before the selection has re-rendered.
+  function joinById(gameId: number, asSpectator: boolean, asJudge: boolean) {
+    const game = roomGames[gameId];
+    if (game) {
+      joinGame(roomId, game.info, asSpectator, asJudge);
     }
   }
+
+  function beginJoin(asSpectator: boolean, asJudge: boolean) {
+    if (selectedGameId != null) {
+      joinById(selectedGameId, asSpectator, asJudge);
+    }
+  }
+
+  // The body is virtualized, so a keyboard move to a row outside the window
+  // scrolls it in; useGridRows focuses it once react-window mounts it.
+  const listRef = useRef<ListImperativeAPI>(null);
+  const keys = useMemo(() => gameList.map((game) => String(game.info.gameId)), [gameList]);
+  const selectRow = useCallback((key: string) => {
+    handleSelect(Number(key));
+    listRef.current?.scrollToRow({ index: keys.indexOf(key), align: 'smart' });
+  }, [handleSelect, keys]);
+  const { getRowProps } = useGridRows({
+    keys,
+    selectedKey: selectedGameId != null ? String(selectedGameId) : null,
+    onSelect: selectRow,
+    onActivate: (key) => handleActivate(Number(key)),
+  });
 
   const canJoin =
     Boolean(selectedGame && selectedGame.info.playerCount < selectedGame.info.maxPlayers) && !joinPending;
@@ -100,17 +125,22 @@ export default function GamesList({ room }: GamesListProps) {
   // Stable renderRow identity (deps are only what changes a row's drawing:
   // selection + the row handlers) so react-window's row memoization holds — see
   // webatrice.instructions.md § Virtualized lists.
-  const renderGameRow = useCallback((game: Game) => {
+  const renderGameRow = useCallback((game: Game, index: number) => {
     const { info, gameType } = game;
     const isSelected = info.gameId === selectedGameId;
     return (
       <div
         role="row"
+        {...getRowProps(String(info.gameId))}
+        aria-selected={isSelected}
+        // Row 1 is the header; react-window renders only a window of the rest.
+        aria-rowindex={index + 2}
         onClick={() => handleSelect(info.gameId)}
         onDoubleClick={() => handleActivate(info.gameId)}
         className={[
           GRID_COLS,
           'cursor-pointer transition-colors',
+          'focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
           isSelected
             ? 'bg-accent/20 hover:bg-accent/25'
             : 'hover:bg-bg-elevated',
@@ -139,7 +169,7 @@ export default function GamesList({ room }: GamesListProps) {
         </div>
       </div>
     );
-  }, [selectedGameId, handleSelect, handleActivate]);
+  }, [selectedGameId, getRowProps, handleSelect, handleActivate]);
 
   return (
     <section className="flex h-full flex-col bg-bg-surface border border-border-subtle rounded-lg overflow-hidden">
@@ -161,13 +191,13 @@ export default function GamesList({ room }: GamesListProps) {
           header). The gutter's track is transparent (thin-scrollbar.css), so
           the header's reserved-but-unused gutter is invisible. */}
       <div
-        role="table"
+        role="grid"
         aria-label={`Games in ${room.info.name}`}
-        aria-rowcount={counts.total}
+        aria-rowcount={gameList.length + 1}
         className="flex-1 min-h-0 flex flex-col overflow-hidden"
       >
         <div role="rowgroup" className="shrink-0">
-          <div role="row" className={`${GRID_COLS} bg-bg-elevated text-sm overflow-auto [scrollbar-gutter:stable]`}>
+          <div role="row" aria-rowindex={1} className={`${GRID_COLS} bg-bg-elevated text-sm overflow-auto [scrollbar-gutter:stable]`}>
             {COLUMNS.map(({ label, field }) => {
               const active = field === sortBy.field;
               return (
@@ -178,14 +208,20 @@ export default function GamesList({ room }: GamesListProps) {
                   className={[
                     'text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted',
                     'border-b border-border-subtle select-none',
-                    field ? 'cursor-pointer hover:text-text-primary' : '',
                   ].join(' ')}
-                  onClick={() => field && handleSort(field)}
                 >
-                  <span className="inline-flex items-center gap-1">
-                    {label}
-                    {active && (sortOrder === 'asc' ? <ArrowUp size={11} /> : <ArrowDown size={11} />)}
-                  </span>
+                  {field ? (
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 uppercase tracking-wider hover:text-text-primary"
+                      onClick={() => handleSort(field)}
+                    >
+                      {label}
+                      {active && (sortOrder === 'asc' ? <ArrowUp size={11} /> : <ArrowDown size={11} />)}
+                    </button>
+                  ) : (
+                    label
+                  )}
                 </div>
               );
             })}
@@ -203,6 +239,7 @@ export default function GamesList({ room }: GamesListProps) {
               role="rowgroup"
               className="[scrollbar-gutter:stable]"
               renderRow={renderGameRow}
+              listRef={listRef}
             />
           </div>
         )}

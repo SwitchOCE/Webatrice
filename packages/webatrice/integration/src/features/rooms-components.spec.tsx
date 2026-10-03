@@ -2,10 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 
-import GameSelector from '../../../src/features/rooms/components/GameSelector/GameSelector';
-import OpenGames from '../../../src/features/rooms/components/OpenGames';
+import GamesList from '../../../src/features/rooms/components/GamesList';
 import Messages from '../../../src/features/rooms/components/Messages';
-import SayMessage from '../../../src/features/rooms/components/SayMessage';
 import CreateGameDialog from '../../../src/features/rooms/dialogs/CreateGameDialog/CreateGameDialog';
 import FilterGamesDialog from '../../../src/features/rooms/dialogs/FilterGamesDialog/FilterGamesDialog';
 import { rooms } from '@cockatrice/datatrice';
@@ -39,17 +37,13 @@ const makeRoom = (): RoomType => ({
 }) as unknown as RoomType;
 
 describe('Rooms components (integration)', () => {
-  it('mounts GameSelector with a known room and renders its toolbar/games panel', () => {
-    const { container } = renderFeatureScreen(<GameSelector room={makeRoom()} />);
+  it('mounts GamesList with an empty room as a games grid with sortable headers and a toolbar', () => {
+    renderFeatureScreen(<GamesList room={makeRoom()} />);
 
-    expect(container.querySelector('.games')).toBeInTheDocument();
-  });
-
-  it('mounts OpenGames with an empty room', () => {
-    renderFeatureScreen(<OpenGames room={makeRoom()} />);
-
-    expect(screen.getByText('Age')).toBeInTheDocument();
-    expect(screen.getByText('Description')).toBeInTheDocument();
+    expect(screen.getByRole('grid', { name: 'Games in Lobby' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Age' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Description' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Create/ })).toBeInTheDocument();
   });
 
   it('mounts Messages with rendered message data', () => {
@@ -59,13 +53,6 @@ describe('Rooms components (integration)', () => {
 
     expect(container.querySelectorAll('.message-wrapper')).toHaveLength(1);
     expect(screen.getByText('hello')).toBeInTheDocument();
-  });
-
-  it('mounts SayMessage and renders the chat input + send button', () => {
-    renderFeatureScreen(<SayMessage onSubmit={vi.fn()} />);
-
-    expect(screen.getByRole('textbox')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument();
   });
 
   it('mounts CreateGameDialog open', () => {
