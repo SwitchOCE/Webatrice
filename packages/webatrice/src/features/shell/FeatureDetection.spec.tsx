@@ -6,11 +6,21 @@ import { renderWithProviders, disconnectedState } from '../../__test-utils__';
 
 const hoisted = vi.hoisted(() => ({
   testConnection: vi.fn(),
+  detectBrowserSupport: vi.fn(),
+  pushToast: vi.fn(),
 }));
 
 vi.mock('@app/services', async (importOriginal) => ({
   ...await importOriginal<typeof import('@app/services')>(),
   dexieService: { testConnection: hoisted.testConnection },
+}));
+
+vi.mock('@app/utils', () => ({
+  detectBrowserSupport: hoisted.detectBrowserSupport,
+}));
+
+vi.mock('@app/components', () => ({
+  usePushToast: () => hoisted.pushToast,
 }));
 
 import FeatureDetection from './FeatureDetection';
@@ -23,12 +33,12 @@ const flush = async () => {
 
 describe('FeatureDetection', () => {
   beforeEach(() => {
-    hoisted.testConnection.mockReset();
+    vi.clearAllMocks();
+    hoisted.testConnection.mockResolvedValue(undefined);
+    hoisted.detectBrowserSupport.mockReturnValue({ missingRequired: [], missingOptional: [] });
   });
 
   it('renders nothing and stays put when IndexedDB is available', async () => {
-    hoisted.testConnection.mockResolvedValue(undefined);
-
     const { container } = renderWithProviders(<FeatureDetection />, {
       preloadedState: disconnectedState,
       route: '/',
@@ -53,5 +63,25 @@ describe('FeatureDetection', () => {
     await waitFor(() => {
       expect(screen.getByText('unsupported-page')).toBeInTheDocument();
     });
+  });
+
+  it('shows no notice when every optional feature is present', async () => {
+    renderWithProviders(<FeatureDetection />, { preloadedState: disconnectedState, route: '/' });
+    await flush();
+
+    expect(hoisted.pushToast).not.toHaveBeenCalled();
+  });
+
+  it('names the missing optional features in one warning notice', async () => {
+    hoisted.detectBrowserSupport.mockReturnValue({
+      missingRequired: [],
+      missingOptional: ['worker', 'clipboard'],
+    });
+
+    renderWithProviders(<FeatureDetection />, { preloadedState: disconnectedState, route: '/' });
+    await flush();
+
+    expect(hoisted.pushToast).toHaveBeenCalledTimes(1);
+    expect(hoisted.pushToast).toHaveBeenCalledWith('FeatureDetection.degraded', { severity: 'warning' });
   });
 });

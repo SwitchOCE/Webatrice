@@ -102,6 +102,10 @@ export default defineConfig({
   publicDir: 'public',
   build: {
     outDir: 'build',
+    // Chrome/Edge 111, Firefox 114, Safari 16.4: the supported browsers declared
+    // in package.json `browserslist` (keep the two in step). The e2e suite runs
+    // Chromium, Firefox and WebKit; utils/browserSupport.ts preflights the APIs.
+    target: 'baseline-widely-available',
     rollupOptions: {
       output: {
         // Split heavy, stable third-party libraries out of the entry chunk so

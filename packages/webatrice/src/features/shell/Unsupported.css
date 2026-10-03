@@ -4,6 +4,8 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
+  background: rgb(var(--bg-base));
+  color: rgb(var(--text-primary));
 }
 
 .Unsupported-paper {
@@ -15,4 +17,16 @@
 
 .Unsupported-paper__header {
   margin-bottom: 40px;
+}
+
+.Unsupported-paper__missing {
+  margin-bottom: 40px;
+  text-align: left;
+}
+
+.Unsupported-paper__missing ul {
+  margin-top: 8px;
+  padding-left: 24px;
+  list-style: disc;
+  color: rgb(var(--text-secondary));
 }
