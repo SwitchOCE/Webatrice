@@ -25,7 +25,7 @@ import type { GameCommandFailedPayload } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
 import { useCommandFailureMessage, useLeaveGame, useReduxEffect, useRequestTracker } from '@app/hooks';
 import type { ServerInfo_DeckStorage_Folder, ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
-import { parseCod } from '@app/services';
+import { bracketToneClass, parseCod } from '@app/services';
 import { onSessionEnd } from '@app/services/session';
 import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat } from '@app/types';
 
@@ -819,18 +819,10 @@ function isValidCod(xml: string): boolean {
   return doc.documentElement?.tagName === 'cockatrice_deck';
 }
 
-// Bracket tone palette — mirrors DeckBreakdown's traffic-light coloring
-// so a B3 chip in the lobby matches the B3 verdict in the editor.
-const BRACKET_TONE: Record<number, string> = {
-  1: 'text-success bg-emerald-500/10 border-emerald-500/40',
-  2: 'text-success bg-emerald-500/10 border-emerald-500/40',
-  3: 'text-warning bg-yellow-500/10 border-yellow-500/40',
-  4: 'text-danger bg-red-500/10 border-red-500/40',
-  5: 'text-danger bg-red-500/10 border-red-500/40',
-};
-
 function BracketBadge({ level }: { level: number }) {
-  const tone = BRACKET_TONE[level] ?? 'text-text-secondary bg-bg-elevated border-border-subtle';
+  // The deck editor's traffic-light palette, so a B3 chip in the lobby
+  // matches the B3 verdict in the editor.
+  const tone = bracketToneClass(level);
   return (
     <span
       className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-bold tabular-nums shrink-0 ${tone}`}

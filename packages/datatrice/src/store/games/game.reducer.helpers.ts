@@ -19,24 +19,6 @@ import type { LogEntry } from './messageLog';
 
 export const MAX_GAME_MESSAGES = 1000;
 
-const LEAVE_REASON_MESSAGES: Record<number, string> = {
-  1: 'reason unknown',
-  2: 'kicked by game host or moderator',
-  3: 'player left the game',
-  4: 'player disconnected from server',
-};
-
-export function formatLeaveMessage(playerName: string, reason: number): LogEntry {
-  const reasonText = LEAVE_REASON_MESSAGES[reason] ?? LEAVE_REASON_MESSAGES[1];
-  return {
-    text: `${playerName} has left the game (${reasonText}).`,
-    segments: [
-      { text: playerName, kind: 'player' },
-      { text: ` has left the game (${reasonText}).`, kind: 'plain' },
-    ],
-  };
-}
-
 export function eventTimestamp(): number {
   return Date.now();
 }

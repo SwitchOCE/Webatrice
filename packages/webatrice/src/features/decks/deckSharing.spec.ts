@@ -1,7 +1,6 @@
 import {
   buildDeckShareLink,
   captureDeckShareLink,
-  deckColorIdentity,
   deckShareQuery,
   formatShareExpiry,
   isBlankDeck,
@@ -10,7 +9,7 @@ import {
   parseDeckShareQuery,
   takePendingDeckShareLink,
 } from './deckSharing';
-import type { DeckCard, HydratedDeck } from './types';
+import type { HydratedDeck } from './types';
 
 const link = { token: 'abc123', hostname: 'server.cockatrice.us', port: '4748' };
 
@@ -110,19 +109,6 @@ describe('isBlankDeck', () => {
     expect(isBlankDeck({ ...blank, bannerCard: 'Lightning Bolt' })).toBe(false);
     expect(isBlankDeck({ ...blank, tagsXml: '<tags><tag>Aggro</tag></tags>' })).toBe(false);
     expect(isBlankDeck({ ...blank, cards: [{ name: 'x', quantity: 1, category: 'main', lookupSource: 'dexie' }] })).toBe(false);
-  });
-});
-
-describe('deckColorIdentity', () => {
-  const card = (category: DeckCard['category'], colors?: string[]): DeckCard =>
-    ({ name: 'x', quantity: 1, category, colors, lookupSource: 'dexie' });
-
-  it('collects main and side colors in WUBRG order', () => {
-    expect(deckColorIdentity([card('main', ['G', 'U']), card('sideboard', ['W']), card('main')])).toBe('WUG');
-  });
-
-  it('is empty for colorless decks', () => {
-    expect(deckColorIdentity([card('main', [])])).toBe('');
   });
 });
 
