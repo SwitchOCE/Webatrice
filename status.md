@@ -2,3 +2,4 @@
 - 18:18 worktrees+cockatrice ready → parallel review of 17b and 23d
 - 18:18 review agents running for 17b and 23d → write reviews/rv10.md
 - 18:24 17b review done (spot-checked majors) → awaiting 23d review
+- 18:27 reviews/rv10.md written (17b: 3 major, 23d: 3 major incl. 2 privacy) → done
