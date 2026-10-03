@@ -6,7 +6,7 @@
 
 .game-selector__title {
   padding: 6px 12px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  border-bottom: 1px solid rgb(var(--border-subtle));
   font-weight: 600;
 }
 
@@ -20,7 +20,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  border-top: 1px solid rgb(var(--border-subtle));
   flex-wrap: wrap;
 }
 

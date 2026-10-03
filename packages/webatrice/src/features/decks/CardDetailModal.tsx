@@ -591,7 +591,7 @@ export default function CardDetailModal({
                     icon={
                       <Crown
                         size={14}
-                        className={cardIsCommander ? 'text-yellow-400' : ''}
+                        className={cardIsCommander ? 'text-warning' : ''}
                       />
                     }
                     label={cardIsCommander ? 'Unmark as commander' : 'Mark as commander'}
@@ -749,7 +749,7 @@ function ActionButton({
       className={[
         'w-full flex items-center gap-2 px-3 py-2 rounded-md border text-sm text-left transition-colors',
         danger
-          ? 'bg-bg-elevated border-border-subtle text-red-300 hover:bg-red-500/10 hover:border-red-500/40'
+          ? 'bg-bg-elevated border-border-subtle text-danger hover:bg-red-500/10 hover:border-red-500/40'
           : 'bg-bg-elevated border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-strong',
         'disabled:opacity-40 disabled:cursor-not-allowed',
       ].join(' ')}

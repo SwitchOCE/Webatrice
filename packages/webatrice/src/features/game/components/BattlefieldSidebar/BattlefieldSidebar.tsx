@@ -332,7 +332,7 @@ export default function BattlefieldSidebar() {
           data-testid="spectating-tag"
           className={[
             'px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest',
-            'text-yellow-300 bg-yellow-500/10 border-b border-yellow-500/30 text-center',
+            'text-warning bg-yellow-500/10 border-b border-yellow-500/30 text-center',
           ].join(' ')}
         >
           {readOnly ? t('GameReplay.sidebar.tag') : 'Spectating'}
