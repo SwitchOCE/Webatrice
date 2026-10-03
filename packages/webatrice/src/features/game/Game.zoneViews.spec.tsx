@@ -19,6 +19,7 @@ import {
   pileEl,
 } from './__test-utils__/seatFixtures';
 import Game from './Game';
+import { lookupCardsCached } from '../../services/cards/cardCatalog';
 
 vi.mock('../../hooks/useSettings');
 
@@ -99,8 +100,12 @@ function answerCountPrompt(title: RegExp, value: string) {
   });
 }
 
+const unknownCard = (name: string) => ({ found: false, source: 'unknown', name, printings: [] });
+
 afterEach(() => {
   window.localStorage.clear();
+  vi.mocked(lookupCardsCached).mockImplementation(async (names: string[]) =>
+    new Map(names.map((n) => [n, unknownCard(n)])) as Awaited<ReturnType<typeof lookupCardsCached>>);
 });
 
 describe('seat zone views', () => {
@@ -295,9 +300,11 @@ describe('zone view card menu', () => {
     });
   });
 
-  // GAME-018: the items render, but have no action yet.
-  it('Select All selects nothing yet', () => {
-    renderSeats();
+  // GAME-018: Select All / Select Column select through the game selection,
+  // and Clone then applies to the selection (desktop aClone over the selected
+  // cards).
+  it('Select All selects every card the view shows; Clone then clones each', () => {
+    const { game } = renderSeats();
     openContextMenu(pileEl('Graveyard', 0));
     chooseMenuPath('View graveyard');
     const view = zoneView('Graveyard — P1');
@@ -305,7 +312,33 @@ describe('zone view card menu', () => {
     openContextMenu(viewCard(view, DURESS.id));
     chooseMenuPath('Select All');
 
-    expect(isHighlighted(viewCard(view, DURESS.id))).toBe(false);
+    expect(isHighlighted(viewCard(view, DURESS.id))).toBe(true);
+    expect(isHighlighted(viewCard(view, OPT.id))).toBe(true);
+
+    openContextMenu(viewCard(view, OPT.id));
+    chooseMenuPath('Clone');
+    expect(vi.mocked(game.createToken).mock.calls.map(([, params]) => params.cardName).sort()).toEqual(['Duress', 'Opt']);
+  });
+
+  it('Select Column selects the clicked card\'s column only', async () => {
+    vi.mocked(lookupCardsCached).mockImplementation(async (names: string[]) =>
+      new Map(names.map((name) => [name, {
+        found: true,
+        source: 'scryfall',
+        name,
+        typeLine: name === 'Opt' ? 'Instant' : 'Sorcery',
+        printings: [],
+      }])) as Awaited<ReturnType<typeof lookupCardsCached>>);
+    renderSeats();
+    openContextMenu(pileEl('Graveyard', 0));
+    chooseMenuPath('View graveyard');
+    const view = zoneView('Graveyard — P1');
+    await within(view).findByText(/^Sorcery/);
+
+    openContextMenu(viewCard(view, DURESS.id));
+    chooseMenuPath('Select Column');
+
+    expect(isHighlighted(viewCard(view, DURESS.id))).toBe(true);
     expect(isHighlighted(viewCard(view, OPT.id))).toBe(false);
   });
 });
