@@ -3,13 +3,15 @@ import { createPortal } from 'react-dom';
 import type { LucideIcon } from 'lucide-react';
 
 import { ACTIONS, initialState, reducer, ToastEntry } from './reducer';
-import Toast from './Toast';
+import Toast, { type ToastSeverity } from './Toast';
 
 export interface PushToastOptions {
   // Icon override for the toast pill. Defaults to the severity icon
   // (CheckCircle for the default 'success' severity), which reads as
   // an odd choice for e.g. incoming chat pings — pass MessageSquare.
   icon?: LucideIcon;
+  // Defaults to 'success'. Also picks the default icon and its color.
+  severity?: ToastSeverity;
 }
 
 interface ToastContextValue {
@@ -46,7 +48,10 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
   const pushToast = useCallback((toastChildren: ReactNode, options?: PushToastOptions) => {
     pushCounter.current += 1;
     const key = `push:${Date.now()}:${pushCounter.current}`;
-    dispatch({ type: ACTIONS.ADD_TOAST, payload: { key, children: toastChildren, icon: options?.icon } });
+    dispatch({
+      type: ACTIONS.ADD_TOAST,
+      payload: { key, children: toastChildren, icon: options?.icon, severity: options?.severity },
+    });
     dispatch({ type: ACTIONS.OPEN_TOAST, payload: { key } });
     // Remove the entry entirely after the auto-hide window (Toast
     // defaults to 10s) plus a small buffer for the slide-out
@@ -103,6 +108,7 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
                 open={entry.isOpen}
                 onClose={() => dispatch({ type: ACTIONS.CLOSE_TOAST, payload: { key } })}
                 icon={entry.icon}
+                severity={entry.severity}
               >
                 {entry.children}
               </Toast>
