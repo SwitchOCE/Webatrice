@@ -6,7 +6,6 @@
     "noResults": "No shortcuts match your search.",
     "edit": "Edit shortcut",
     "resetAction": "Reset to default",
-    "resetAll": "Reset all to defaults",
     "conflictWarning": "Conflicts with: {actions}",
     "recording": "Press a key combination…",
     "recordingHint": "Press Esc to cancel. Add additional combinations to support multiple bindings for one action.",

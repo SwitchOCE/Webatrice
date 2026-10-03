@@ -1,6 +1,5 @@
 {
   "Common": {
-    "language": "English",
     "disconnect": "Disconnect",
     "label": {
       "confirmEmail": "Confirm Email",
@@ -17,7 +16,8 @@
       "realName": "Real Name",
       "saveChanges": "Save Changes",
       "token": "Token",
-      "username": "Username"
+      "username": "Username",
+      "none": "None"
     },
     "validation": {
       "emailsMustMatch": "Emails don't match",
@@ -554,7 +554,6 @@
       "cardArt": "Card Art: image priority is decided in the following order: first the printing a card was chosen with, then the enabled sets in this list (top to bottom), then disabled sets."
     },
     "empty": "No sets loaded. Import a card database first.",
-    "saved": "Set preferences saved.",
     "error": {
       "load": "Could not read the sets: {error}",
       "save": "Could not save the set preferences: {error}"
@@ -565,7 +564,6 @@
     "subtitle": "Adding a new host allows you to connect to different servers. Enter the details below to your host list."
   },
   "KnownHostForm": {
-    "help": "Need help adding a new host?",
     "label": {
       "add": "Add Host",
       "find": "Find Host"
@@ -608,7 +606,6 @@
       "ok": "OK",
       "cancel": "Cancel",
       "close": "Close",
-      "error": "Error",
       "success": "Success",
       "failed": "Failed",
       "loading": "Loading…"
@@ -681,7 +678,6 @@
     "noResults": "No shortcuts match your search.",
     "edit": "Edit shortcut",
     "resetAction": "Reset to default",
-    "resetAll": "Reset all to defaults",
     "conflictWarning": "Conflicts with: {actions}",
     "recording": "Press a key combination…",
     "recordingHint": "Press Esc to cancel. Add additional combinations to support multiple bindings for one action.",
@@ -1098,8 +1094,8 @@
       "subtitle2": "Cross-platform virtual tabletop for multiplayer card games. Forever free."
     },
     "toasts": {
-      "passwordResetSuccessToast": "Password Reset Successfully",
-      "accountActivationSuccess": "Account Activated Successfully"
+      "accountActivationSuccess": "Account Activated Successfully",
+      "passwordResetSuccess": "Password Reset Successfully"
     },
     "status": {
       "serverUnreachable": "Trouble reaching the server. Wait a minute and try again.",
@@ -1209,7 +1205,8 @@
       "title": "Message History",
       "empty": "There are no messages for the selected filters.",
       "failed": "Failed to collect message history information."
-    }
+    },
+    "title": "Log Results"
   },
   "ModerationPage": {
     "search": {
@@ -1324,7 +1321,6 @@
       "removeBuddy": "Remove from Buddy List",
       "addIgnore": "Add to Ignore List",
       "removeIgnore": "Remove from Ignore List",
-      "message": "Message",
       "notFound": "User not found or still loading…"
     }
   },
@@ -1575,7 +1571,6 @@
   },
   "Settings": {
     "title": "Settings",
-    "navLabel": "Settings",
     "searchLabel": "Search settings",
     "searchPlaceholder": "Search settings...",
     "searchResults": "Search results",
@@ -1592,7 +1587,10 @@
       "userInterface": "User Interface",
       "chat": "Chat",
       "sound": "Sound",
-      "shortcuts": "Shortcuts"
+      "shortcuts": "Shortcuts",
+      "general": "General",
+      "cardSources": "Card Sources",
+      "storage": "Storage"
     }
   },
   "PlaymatSettings": {

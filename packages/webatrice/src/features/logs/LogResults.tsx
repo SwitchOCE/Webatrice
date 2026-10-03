@@ -105,7 +105,7 @@ const LogResults = ({ logs }: LogResultsProps) => {
           onChange={handleChange}
           textColor="inherit"
           indicatorColor="secondary"
-          aria-label={t('Logs.title', { defaultValue: 'Log Results' })}
+          aria-label={t('Logs.title')}
         >
           <Tab label={`${t('Logs.tab.rooms')}${roomCount > 0 ? ` [${roomCount}]` : ''}`} {...a11yProps(0)} />
           <Tab label={`${t('Logs.tab.games')}${gameCount > 0 ? ` [${gameCount}]` : ''}`} {...a11yProps(1)} />
