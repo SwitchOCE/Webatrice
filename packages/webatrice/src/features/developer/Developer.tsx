@@ -22,7 +22,7 @@ import { MAX_REFRESH_INTERVAL_SECS, MIN_REFRESH_INTERVAL_SECS, useDeveloper } fr
 import './Developer.css';
 
 /** Desktop TabDeveloper (tab_developer.cpp). */
-const Developer = () => {
+const DeveloperContent = () => {
   const { t } = useTranslation();
   const developer = useDeveloper();
   const [intervalText, setIntervalText] = useState(String(developer.intervalSecs));
@@ -35,11 +35,7 @@ const Developer = () => {
   const commandRows = developer.stats ? buildCommandRows(developer.stats.commandStats) : [];
 
   return (
-    <Layout className="developer scrollable">
-      <AuthGuard />
-      <DeveloperGuard />
-      <CapabilityGuard capability={ServerCapability.DEVELOPER_ROLE} />
-
+    <>
       <div className="developer__tables">
         <Paper className="developer__stats">
           <Table size="small" aria-label={t('Developer.table.stats')}>
@@ -114,8 +110,21 @@ const Developer = () => {
         />
         <Button variant="contained" onClick={developer.refresh}>{t('Developer.button.refresh')}</Button>
       </div>
-    </Layout>
+    </>
   );
 };
+
+// The guards mount the page body only when it is allowed, so its mount effects
+// never send a staff or 3.1 command the user or server cannot serve.
+const Developer = () => (
+  <Layout className="developer scrollable">
+    <AuthGuard />
+    <DeveloperGuard>
+      <CapabilityGuard capability={ServerCapability.DEVELOPER_ROLE}>
+        <DeveloperContent />
+      </CapabilityGuard>
+    </DeveloperGuard>
+  </Layout>
+);
 
 export default Developer;
