@@ -4,6 +4,12 @@ import { CREATE_TOKEN_DEFAULT_COLOR, useCreateTokenDialog } from './useCreateTok
 
 const hoisted = vi.hoisted(() => ({
   toArray: vi.fn(() => Promise.resolve([])),
+  annotateTokens: false,
+}));
+
+vi.mock('@app/hooks', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@app/hooks')>()),
+  usePreference: (key: string) => (key === 'annotateTokens' ? hoisted.annotateTokens : undefined),
 }));
 
 vi.mock('@app/services', () => ({
@@ -14,6 +20,7 @@ describe('useCreateTokenDialog', () => {
   beforeEach(() => {
     hoisted.toArray.mockReset();
     hoisted.toArray.mockResolvedValue([]);
+    hoisted.annotateTokens = false;
   });
 
   it('seeds default fields and color when the dialog opens', () => {
@@ -123,5 +130,27 @@ describe('useCreateTokenDialog', () => {
 
     act(() => result.current.setSearch('zom'));
     expect(result.current.filteredTokens.map((t) => t.name?.value)).toEqual(['Zombie']);
+  });
+
+  describe('picking a token from the database', () => {
+    const treasure = {
+      name: { value: 'Treasure' },
+      text: { value: 'Sacrifice this artifact: Add one mana of any color.' },
+      prop: { value: { pt: { value: '' } } },
+    };
+
+    it('fills in its rules text as the annotation with "Annotate card text on tokens" on', () => {
+      hoisted.annotateTokens = true;
+      const { result } = renderHook(() => useCreateTokenDialog({ isOpen: true, onSubmit: vi.fn() }));
+      act(() => result.current.selectPredefinedToken(treasure as never));
+      expect(result.current.annotation).toBe('Sacrifice this artifact: Add one mana of any color.');
+    });
+
+    it('leaves the annotation alone with the option off, as desktop does', () => {
+      const { result } = renderHook(() => useCreateTokenDialog({ isOpen: true, onSubmit: vi.fn() }));
+      act(() => result.current.setAnnotation('mine'));
+      act(() => result.current.selectPredefinedToken(treasure as never));
+      expect(result.current.annotation).toBe('mine');
+    });
   });
 });
