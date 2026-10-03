@@ -38,6 +38,7 @@ import {
   type BattlefieldSlot,
 } from '../battlefield/Battlefield/battlefieldLayout';
 import { MAX_SUBPOS } from '../battlefield/Battlefield/gridMath';
+import type { BattlefieldCardViewModel, PlayerCardViewModel } from '../ui/PlayerBoard/playerBoard.types';
 import { useCardScale } from './cardScale';
 import { CardImage } from '@app/components';
 import { usePreference, useSnapGridVisible } from '@app/hooks';
@@ -87,72 +88,10 @@ const DIALOG_PRIMARY_BUTTON_CLASS =
 const DIALOG_SUBMIT_BUTTON_CLASS =
   `${DIALOG_PRIMARY_BUTTON_CLASS} disabled:opacity-50 disabled:cursor-not-allowed`;
 
-/**
- * A single instance of a card in the game. Deck rows have a `quantity` field
- * so one row can represent 4 copies; expanding a deck row into `quantity`
- * individual HandCards is how we track each physical card independently.
- */
-export type HandCard = {
-  id: string;
-  name: string;
-  scryfallId: string;
-  /** Optional server-set annotation. Only meaningful for the STACK
-   *  render — Cockatrice's `Server_Card::resetState(keepAnnotations)`
-   *  clears this on any TABLE→non-TABLE move EXCEPT to the stack (see
-   *  server_abstract_player.cpp:429), so hand / graveyard / exile
-   *  cards never carry one anyway. Rendering it on the stack keeps
-   *  the "Owner: <name>" tag visible while the spell resolves. */
-  annotation?: string;
-};
-
-/** A card that has been placed on a battlefield, occupying a specific slot. */
-export type BattlefieldCard = HandCard & {
-  /** True owner of this card's underlying zone entry. Usually equals
-   *  the PlayerBox's own `playerId`, but for cross-player attached
-   *  children (Cockatrice's "Aura on opponent's creature" case) the
-   *  child is rendered under the parent's PlayerBox while its data
-   *  still lives in the source owner's zone. Wire commands that
-   *  address a specific zone (moveCard) must route via this owner. */
-  ownerPlayerId?: number;
-  slot: BattlefieldSlot;
-  /** Sub-slot inside the slot's stack column (0..2). Cockatrice packs
-   *  up to 3 cards into one visual column via `wire_x % 3`; the render
-   *  offsets each successive sub-slot diagonally so their names stay
-   *  visible. Local optimistic drops always land at sub-slot 0. */
-  subSlot: number;
-  /** Tapped cards render rotated 90° (used, attacking, paying costs). */
-  tapped: boolean;
-  /** Face-down cards render as a card back (morph, manifest, etc.). */
-  faceDown?: boolean;
-  /** Server-side P/T override (via `AttrPT` on Command_SetCardAttr) or
-   *  the initial P/T Cockatrice's `playCard` sends. Empty for cards
-   *  the server hasn't tagged with a PT; renderer falls back to the
-   *  base P/T from the Scryfall lookup cache. */
-  pt?: string;
-  /** True when Cockatrice's `AttrDoesntUntap` is set on the card —
-   *  the card is skipped during the untap step. Marked visually so
-   *  the owner remembers to untap it manually. */
-  doesntUntap?: boolean;
-  /** Free-form color string (e.g. "RG") set via `AttrColor` or on
-   *  play. Preserved so cloning a card copies its color into the
-   *  `Command_CreateToken` payload. */
-  color?: string;
-  /** Player-added text annotation. Preserved so clones carry it. */
-  annotation?: string;
-  /** Attach target — set when this card is attached to another card
-   *  (Aura, Equipment, Fortification). `attachTargetCardId === -1`
-   *  means unattached; matches Cockatrice's wire sentinels. Cross-
-   *  player attach uses `attachTargetPlayerId` to identify the target
-   *  card's owner; the render pins the child to its parent's rendered
-   *  position when they share a PlayerBox. */
-  attachTargetPlayerId?: number;
-  attachTargetCardId?: number;
-  /** Per-card counters as (slot id, count) pairs. Cockatrice supports 6
-   *  slots (0..5) with color-coded circular badges — see COUNTER_COLORS.
-   *  Zero-value counters are omitted (server strips them). Sourced from
-   *  ServerInfo_Card.counterList. */
-  counters?: readonly { id: number; value: number }[];
-};
+/** Seat card shapes. Owned by the PlayerBoard seat contract; the aliases keep
+ *  this façade's local names until its regions move to PlayerBoard. */
+export type HandCard = PlayerCardViewModel;
+export type BattlefieldCard = BattlefieldCardViewModel;
 
 /** Which zone a drag was initiated from. Individual card identities are
  *  carried on the DragState itself (`cards[*].id`), so we don't need a
