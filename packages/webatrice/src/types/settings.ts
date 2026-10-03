@@ -22,6 +22,9 @@ export class Setting {
   // General — language. A `Language` code, or '' to follow the browser's language.
   language: string;
 
+  // General — debug log (desktop servers_settings `clearDebugLogStatus`)
+  clearDebugLogOnClose: boolean;
+
   // Appearance — theme palette
   themeMode: ThemeMode;
 
@@ -88,6 +91,8 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   autoConnect: false,
 
   language: '',
+
+  clearDebugLogOnClose: false,
 
   // Desktop writes an unset scheme as "System" (theme_config.cpp).
   themeMode: ThemeMode.System,

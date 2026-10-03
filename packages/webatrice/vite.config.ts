@@ -135,6 +135,10 @@ export default defineConfig({
   },
   server: {
     open: true,
+    // The debug log wraps console.*; ignore-listing the wrapper lets dev tools attribute each
+    // message to the code that logged it rather than to services/debugLog/DebugLog.ts.
+    sourcemapIgnoreList: (sourcePath) =>
+      sourcePath.includes('node_modules') || sourcePath.endsWith('services/debugLog/DebugLog.ts'),
     watch: {
       ignored: ['build', 'coverage', 'integration']
     }

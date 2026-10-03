@@ -1,6 +1,6 @@
 import {
-  BarChart3, FileText, Flag, Image, Keyboard, Settings as SettingsIcon, ShieldAlert, ShieldCheck, UserCircle2, UserSearch,
-  type LucideIcon,
+  BarChart3, Download, FileText, Flag, Image, Keyboard, ScrollText, Settings as SettingsIcon, ShieldAlert, ShieldCheck,
+  UserCircle2, UserSearch, type LucideIcon,
 } from 'lucide-react';
 
 import { ServerCapability } from '@cockatrice/datatrice';
@@ -11,11 +11,16 @@ import { RouteEnum } from '@app/types';
 export type { UserLevelPredicate } from '@app/hooks';
 export { isModerator, isAdmin, isDeveloper, canReadLogs } from '@app/hooks';
 
-export interface UserMenuEntry {
+/** Dialogs the TopBar owns and opens in place, for menu destinations that are not routes. */
+export enum UserMenuDialog {
+  CardImport = 'cardImport',
+  DebugLog = 'debugLog',
+}
+
+interface UserMenuEntryBase {
   /** i18n key of the menu label. */
   label: string;
   icon: LucideIcon;
-  route: RouteEnum;
   /** Omitted: every signed-in user sees the entry. */
   visibleTo?: UserLevelPredicate;
   /** A Cockatrice 3.1 page: hidden unless the connected server offers this capability. */
@@ -24,6 +29,18 @@ export interface UserMenuEntry {
 
 /** Whether the connected server offers a capability (`server.Selectors.supports`). */
 export type CapabilityCheck = (capability: ServerCapability) => boolean;
+
+export interface UserMenuRouteEntry extends UserMenuEntryBase {
+  route: RouteEnum;
+  dialog?: never;
+}
+
+export interface UserMenuDialogEntry extends UserMenuEntryBase {
+  dialog: UserMenuDialog;
+  route?: never;
+}
+
+export type UserMenuEntry = UserMenuRouteEntry | UserMenuDialogEntry;
 
 const { CARD_ART, MODERATION_TOOLS, DEVELOPER_ROLE, REPORTS } = ServerCapability;
 
@@ -43,6 +60,9 @@ export const USER_MENU_ENTRIES: readonly UserMenuEntry[] = [
   { label: 'UserMenu.reportQueue', icon: ShieldAlert, route: RouteEnum.REPORT_QUEUE, visibleTo: isModerator, requires: MODERATION_TOOLS },
   { label: 'UserMenu.moderation', icon: UserSearch, route: RouteEnum.MODERATION, visibleTo: isModerator, requires: MODERATION_TOOLS },
   { label: 'UserMenu.developer', icon: BarChart3, route: RouteEnum.DEVELOPER, visibleTo: isDeveloper, requires: DEVELOPER_ROLE },
+  { label: 'UserMenu.importCards', icon: Download, dialog: UserMenuDialog.CardImport },
+  // Desktop's Help › View debug log (dlg_view_log), open to every user.
+  { label: 'UserMenu.debugLog', icon: ScrollText, dialog: UserMenuDialog.DebugLog },
 ];
 
 export const visibleUserMenuEntries = (userLevel: number, supports: CapabilityCheck = () => true): UserMenuEntry[] =>
