@@ -1,4 +1,4 @@
-import Dexie from 'dexie';
+import Dexie, { type Table } from 'dexie';
 
 import { schemaV1 } from './DexieSchemas/v1.schema';
 import { Stores, schemaV2 } from './DexieSchemas/v2.schema';
@@ -43,6 +43,18 @@ class DexieService {
   // survives a page reload — see the note on Stores.SCRYFALL_CACHE.
   get scryfallCache() {
     return this.db.table(Stores.SCRYFALL_CACHE);
+  }
+
+  get replays() {
+    return this.db.table(Stores.REPLAYS);
+  }
+
+  get replayData() {
+    return this.db.table(Stores.REPLAY_DATA);
+  }
+
+  readWrite<T>(tables: Table[], scope: () => Promise<T>): Promise<T> {
+    return this.db.transaction('rw', tables, scope);
   }
 
   testConnection() {
