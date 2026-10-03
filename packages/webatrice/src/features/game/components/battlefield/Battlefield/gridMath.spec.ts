@@ -1,6 +1,5 @@
 import { makeCard } from '@cockatrice/datatrice/testing';
 import {
-  ATTACH_OFFSET_FRACTION,
   CARD_HEIGHT_PX,
   CARD_WIDTH_PX,
   MAX_SUBPOS,
@@ -8,7 +7,6 @@ import {
   STACKED_CARD_OFFSET_X_PX,
   STACKED_CARD_OFFSET_Y_PX,
   applyInvertY,
-  attachmentStackFactor,
   closestGridPoint,
   effectiveCardDimensions,
   getStackColumn,
@@ -16,7 +14,6 @@ import {
   gridXFromColumn,
   mapToGridX,
   nextAvailableColumn,
-  roundPercent,
   stackColumnWidth,
   stackCountsForRow,
 } from './gridMath';
@@ -137,11 +134,7 @@ describe('gridMath', () => {
     });
   });
 
-  describe('attachment + stack constants', () => {
-    it('uses the desktop WIDTH/3 attachment fraction exactly', () => {
-      expect(ATTACH_OFFSET_FRACTION).toBeCloseTo(1 / 3);
-    });
-
+  describe('stack constants', () => {
     it('keeps stack Y bulge within ~15% of card height so cards do not shrink dramatically', () => {
       // A full 3-card stack adds (MAX_SUBPOS - 1) * STACKED_CARD_OFFSET_Y_PX
       // to the column's aspect-ratio height. Capping at ~15% of card height
@@ -193,16 +186,6 @@ describe('gridMath', () => {
     });
   });
 
-  describe('attachmentStackFactor', () => {
-    it('is 1 with no attachments', () => {
-      expect(attachmentStackFactor(0)).toBe(1);
-    });
-
-    it('grows by ATTACH_OFFSET_FRACTION per attachment', () => {
-      expect(attachmentStackFactor(3)).toBeCloseTo(1 + 3 * ATTACH_OFFSET_FRACTION);
-    });
-  });
-
   describe('effectiveCardDimensions', () => {
     it('returns nominal dimensions for non-positive laneHeight', () => {
       expect(effectiveCardDimensions(0)).toEqual({
@@ -215,13 +198,6 @@ describe('gridMath', () => {
       const { width, offsetX } = effectiveCardDimensions(CARD_HEIGHT_PX * 2);
       expect(width).toBeCloseTo(CARD_WIDTH_PX * 2);
       expect(offsetX).toBeCloseTo(STACKED_CARD_OFFSET_X_PX * 2);
-    });
-  });
-
-  describe('roundPercent', () => {
-    it('rounds to two decimal places', () => {
-      expect(roundPercent(33.336)).toBe(33.34);
-      expect(roundPercent(33.334)).toBe(33.33);
     });
   });
 
