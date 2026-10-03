@@ -748,6 +748,8 @@
       "game.shuffleLibrary": "Shuffle library",
       "game.nextPhase": "Next phase",
       "game.prevPhase": "Previous phase",
+      "game.nextPhaseAction": "Next phase with action",
+      "game.reverseTurn": "Reverse turn order",
       "game.drawMultipleCards": "Draw multiple cards…",
       "game.undoDraw": "Undo draw",
       "game.rollDice": "Roll dice…",
@@ -1428,6 +1430,16 @@
       "cancel": "Cancel"
     },
     "desktopPortRequired": "Set this server's desktop port in server settings to copy links or send invites."
+  },
+  "GameMenu": {
+    "button": "Game",
+    "title": "Game actions",
+    "item": {
+      "nextPhase": "Next phase",
+      "nextPhaseAction": "Next phase with action",
+      "nextTurn": "Next turn",
+      "reverseTurn": "Reverse turn order"
+    }
   },
   "GameReplay": {
     "missing": "This replay is no longer open. Replays are kept only until the page is reloaded.",

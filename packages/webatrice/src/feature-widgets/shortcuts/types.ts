@@ -38,6 +38,8 @@ export type ActionId =
   | 'game.shuffleLibrary'
   | 'game.nextPhase'
   | 'game.prevPhase'
+  | 'game.nextPhaseAction'
+  | 'game.reverseTurn'
   | 'game.rollDice'
   | 'game.leaveGame'
   | 'game.viewSideboard'

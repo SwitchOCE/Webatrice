@@ -189,6 +189,8 @@ describe('useGameShortcuts', () => {
     expect(registrations.has('game.shuffleLibrary')).toBe(true);
     expect(registrations.has('game.nextPhase')).toBe(true);
     expect(registrations.has('game.prevPhase')).toBe(true);
+    expect(registrations.has('game.nextPhaseAction')).toBe(true);
+    expect(registrations.has('game.reverseTurn')).toBe(true);
   });
 
   it('sends a single bulk setCardAttr with cardId -1 for untap-all', () => {
@@ -244,6 +246,33 @@ describe('useGameShortcuts', () => {
     );
   });
 
+  it('steps back one phase, wrapping Untap to End', () => {
+    const { webClient } = setup({ activePhase: 0 });
+
+    fire('game.prevPhase');
+
+    expect(webClient.request.game.setActivePhase).toHaveBeenCalledWith(1, { phase: 10 }, expect.anything());
+  });
+
+  it('runs next phase with action: Upkeep sets Draw, then draws one', () => {
+    const { webClient } = setup({ activePhase: 1 });
+
+    fire('game.nextPhaseAction');
+
+    expect(webClient.request.game.setActivePhase).toHaveBeenCalledWith(1, { phase: 2 }, expect.anything());
+    expect(webClient.request.game.drawCards).toHaveBeenCalledWith(1, { number: 1 });
+  });
+
+  it('reverses the turn order for a participant, and not once they have conceded', () => {
+    const active = setup();
+    fire('game.reverseTurn');
+    expect(active.webClient.request.game.reverseTurn).toHaveBeenCalledWith(1);
+
+    const conceded = setup({ conceded: true });
+    fire('game.reverseTurn');
+    expect(conceded.webClient.request.game.reverseTurn).not.toHaveBeenCalled();
+  });
+
   it('does not draw or pass turn when the local player has conceded', () => {
     const { webClient } = setup({ conceded: true });
 
@@ -263,7 +292,10 @@ describe('useGameShortcuts', () => {
     fire('game.concede');
     fire('game.shuffleLibrary');
     fire('game.nextPhase');
+    fire('game.nextPhaseAction');
+    fire('game.reverseTurn');
 
+    expect(webClient.request.game.reverseTurn).not.toHaveBeenCalled();
     expect(webClient.request.game.setCardAttr).not.toHaveBeenCalled();
     expect(webClient.request.game.drawCards).not.toHaveBeenCalled();
     expect(webClient.request.game.nextTurn).not.toHaveBeenCalled();
