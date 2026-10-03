@@ -6,8 +6,7 @@
       "import": "Import cards",
       "database": "Loaded data",
       "sets": "Manage sets",
-      "tokens": "Custom tokens",
-      "sources": "Card sources"
+      "tokens": "Custom tokens"
     }
   }
 }

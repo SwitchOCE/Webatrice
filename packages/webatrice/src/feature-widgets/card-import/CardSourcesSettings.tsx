@@ -20,11 +20,19 @@ const buildTemplateSchema = (t: TFunction) => z.object({
 
 type TemplateValues = z.infer<ReturnType<typeof buildTemplateSchema>>;
 
+export interface CardSourcesSettingsProps {
+  /** Id of the element naming this editor (the Settings row label). */
+  labelId?: string;
+  /** Id of the element describing it (the Settings row description). */
+  describedBy?: string;
+}
+
 /**
- * Picture URL template editor — desktop's card-source settings. Exported for
- * the Settings page to embed as its "Card Sources" section.
+ * Picture URL template editor — desktop's "URL Download Priority" group on the
+ * Card Sources settings page. The Settings page supplies the heading and the
+ * description; each change is saved immediately, as on desktop.
  */
-const CardSourcesSettings = () => {
+const CardSourcesSettings = ({ labelId, describedBy }: CardSourcesSettingsProps) => {
   const { t } = useTranslation();
   const sources = usePictureUrlTemplates();
   const [message, setMessage] = useState<string | null>(null);
@@ -57,9 +65,7 @@ const CardSourcesSettings = () => {
   };
 
   return (
-    <section className="cardDatabase-sources" aria-labelledby="card-sources-title">
-      <h3 id="card-sources-title">{t('CardSourcesSettings.title')}</h3>
-      <p>{t('CardSourcesSettings.description')}</p>
+    <div className="cardDatabase-sources" role="group" aria-labelledby={labelId} aria-describedby={describedBy}>
 
       <ol className="cardDatabase-templateList" role="listbox" aria-label={t('CardSourcesSettings.label.list')}>
         {sources.templates.map((template, index) => (
@@ -116,8 +122,8 @@ const CardSourcesSettings = () => {
       </details>
 
       {message && <div role="status">{message}</div>}
-      {sources.error && <div className="error">{sources.error}</div>}
-    </section>
+      {sources.error && <div className="cardDatabase-error" role="alert">{sources.error}</div>}
+    </div>
   );
 };
 

@@ -167,7 +167,7 @@ const EditTokens = () => {
         )}
       </div>
 
-      {editor.error && <div className="error">{editor.error}</div>}
+      {editor.error && <div className="cardDatabase-error" role="alert">{editor.error}</div>}
     </div>
   );
 };
