@@ -19,6 +19,8 @@ export interface ToastProps {
   // a MessageSquare, not a success checkmark). Pass a lucide-react
   // icon component; the pill's iconColor still comes from severity.
   icon?: LucideIcon;
+  /** Told when focus enters or leaves the toast. */
+  onFocusChange?: (focused: boolean) => void;
 }
 
 // Severity → icon + accent color. The status tokens keep each severity
@@ -64,6 +66,7 @@ function Toast({
   autoHideDuration = 10000,
   children,
   icon,
+  onFocusChange,
 }: ToastProps) {
   // Delay the slide-in one frame so the initial `translate-x-full`
   // paints first and the transition actually animates. Without this,
@@ -113,10 +116,14 @@ function Toast({
       data-testid="toast"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onFocus={() => setFocused(true)}
+      onFocus={() => {
+        setFocused(true);
+        onFocusChange?.(true);
+      }}
       onBlur={(e) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
           setFocused(false);
+          onFocusChange?.(false);
         }
       }}
       className={[
