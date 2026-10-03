@@ -83,7 +83,10 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
       <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-border-subtle">
         <MessageSquare size={14} className="text-text-muted" />
         <span className="text-sm font-semibold text-text-primary truncate">{peerName}</span>
-        <span className="text-xs text-text-muted">{t('PrivateChat.subtitle')}</span>
+        <span className="text-xs text-text-muted">
+          <span aria-hidden>· </span>
+          {t('PrivateChat.subtitle')}
+        </span>
         <span className="ml-auto flex items-center gap-1.5 text-xs text-text-muted" data-testid="private-chat-presence">
           <span
             aria-hidden

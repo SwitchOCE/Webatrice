@@ -1850,7 +1850,7 @@
     },
     "log": "Private chat with {name}",
     "input": "Message {name}",
-    "subtitle": "· private chat",
+    "subtitle": "private chat",
     "empty": "No messages yet — say hi."
   },
   "PrivateMessageNotifier": {
@@ -2100,7 +2100,7 @@
     },
     "log": "{room} chat",
     "input": "Message {room}",
-    "subtitle": "· room chat",
+    "subtitle": "room chat",
     "empty": "No messages yet — say hi."
   },
   "RoomUsers": {
