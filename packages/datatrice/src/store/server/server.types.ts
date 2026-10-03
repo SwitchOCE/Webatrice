@@ -63,6 +63,7 @@ export const Types = {
   WARN_USER: a.warnUser.type,
   GRANT_REPLAY_ACCESS: a.grantReplayAccess.type,
   FORCE_ACTIVATE_USER: a.forceActivateUser.type,
+  SESSION_COMMAND_FAILED: a.sessionCommandFailed.type,
   MODERATOR_COMMAND_FAILED: a.moderatorCommandFailed.type,
   ADMIN_COMMAND_FAILED: a.adminCommandFailed.type,
   DEVELOPER_COMMAND_FAILED: a.developerCommandFailed.type,
@@ -97,4 +98,8 @@ export const Types = {
   USER_AVATAR_REMOVED: a.userAvatarRemoved.type,
   CARD_ART_RULES: a.cardArtRules.type,
   SERVER_STATS: a.serverStats.type,
+  // Reports
+  REPORT_ASSIGNED: a.reportAssigned.type,
+  REPORT_RESOLVED: a.reportResolved.type,
+  REPORT_REPLAY_DOWNLOADED: a.reportReplayDownloaded.type,
 } as const;

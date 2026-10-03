@@ -291,6 +291,13 @@ describe('Actions', () => {
     });
   });
 
+  it('sessionCommandFailed', () => {
+    expect(Actions.sessionCommandFailed({ command: 'reportMyList', responseCode: 18, target: '' })).toEqual({
+      type: Types.SESSION_COMMAND_FAILED,
+      payload: { command: 'reportMyList', responseCode: 18, target: '' },
+    });
+  });
+
   it('moderatorCommandFailed', () => {
     expect(Actions.moderatorCommandFailed({ command: 'banHistory', responseCode: 18, target: 'Ned' })).toEqual({
       type: Types.MODERATOR_COMMAND_FAILED,

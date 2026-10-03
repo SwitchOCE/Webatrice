@@ -188,4 +188,5 @@ describe('ModeratorResponseImpl report replay through a real store', () => {
     impl.replayDownloadedByGameId(9, create(Response_ReplayDownloadByGameIdSchema, { replayId: 4, replayData }));
     expect(store.getState().server.reports.replay).toEqual({ gameId: 9, replayId: 4, replayData });
   });
+
 });

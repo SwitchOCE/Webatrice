@@ -152,6 +152,11 @@ export interface ISessionResponse {
   /** The caller's own reports (#7091). */
   reportMyList?(reports: ServerInfo_Report[]): void;
   reportDetails?(report: ServerInfo_Report): void;
+  /**
+   * A report read failed; same contract as IModeratorResponse.commandFailed.
+   * `target` is the report id as a string, empty for the list.
+   */
+  commandFailed?(command: SessionCommandName, responseCode: number, target: string, failure?: CommandFailure): void;
   // Command failure outcomes. `failure` is set for a transport failure (no
   // server answer) and undefined for a server-sent rejection. Optional for
   // backward compatibility with existing consumers.
@@ -217,6 +222,9 @@ export interface IGameResponse {
   gameLogNotice?(gameId: number, playerId: number, noticeType: Event_GameLogNotice_NoticeType): void;
 }
 
+/** Session commands whose failure desktop's report views show (dlg_my_reports.cpp). */
+export type SessionCommandName = 'reportMyList' | 'reportDetails';
+
 /** Admin commands whose non-OK response the desktop client reports to the admin. */
 export type AdminCommandName =
   | 'adjustMod'
@@ -241,7 +249,12 @@ export type ModeratorCommandName =
   | 'getUserSessions'
   | 'getModeratorLastLogins'
   | 'removeUserAvatar'
-  | 'listCardArtRules';
+  | 'listCardArtRules'
+  | 'reportList'
+  | 'reportAssign'
+  | 'reportResolve'
+  | 'reportStats'
+  | 'replayDownloadByGameId';
 
 /** Developer commands whose failure desktop's TabDeveloper reports. */
 export type DeveloperCommandName = 'getServerStats';
@@ -292,8 +305,9 @@ export interface IModeratorResponse {
   replayDownloadedByGameId?(gameId: number, response: Response_ReplayDownloadByGameId): void;
 
   /**
-   * A command failed; `target` names what it acted on (a user name, or the
-   * replay id as a string). `failure` is set when the server never answered
+   * A command failed; `target` names what it acted on (a user name, the replay
+   * or report id as a string, the game id for replayDownloadByGameId, or empty
+   * for the report list and stats). `failure` is set when the server never answered
    * (see CommandFailure) and undefined for a server rejection. Optional for
    * backward compatibility.
    */

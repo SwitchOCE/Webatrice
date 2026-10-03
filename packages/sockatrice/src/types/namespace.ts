@@ -6,6 +6,7 @@ export type {
   IModeratorResponse,
   IDeveloperResponse,
   IWebClientResponse,
+  SessionCommandName,
   AdminCommandName,
   ModeratorCommandName,
   DeveloperCommandName,

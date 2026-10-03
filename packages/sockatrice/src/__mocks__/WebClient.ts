@@ -89,6 +89,7 @@ const session = {
   publicDeckDownloaded: vi.fn(),
   reportMyList: vi.fn(),
   reportDetails: vi.fn(),
+  commandFailed: vi.fn(),
   deckListFailed: vi.fn(),
   deckDownloadFailed: vi.fn(),
   deckUploadFailed: vi.fn(),

@@ -578,6 +578,14 @@ describe('SessionResponseImpl reports', () => {
     expect(dispatch).toHaveBeenCalledWith(ServerActions.reportMyList({ reports }));
   });
 
+  it('commandFailed dispatches sessionCommandFailed with the command, code and target', () => {
+    const { impl, dispatch } = setup();
+    impl.commandFailed('reportDetails', 3, '7');
+    expect(dispatch).toHaveBeenCalledWith(
+      ServerActions.sessionCommandFailed({ command: 'reportDetails', responseCode: 3, target: '7', failure: undefined }),
+    );
+  });
+
   it('reportDetails lands the full report in server.reports.details', () => {
     const { store, impl } = setup();
     const report = create(ServerInfo_ReportSchema, { reportId: 3, chatLog: 'log' });

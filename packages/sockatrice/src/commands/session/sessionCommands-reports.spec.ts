@@ -157,19 +157,21 @@ describe('setCardArtParams', () => {
 });
 
 describe('own-report load failures', () => {
-  it('reportMyList passes a failure code to onFailure', () => {
-    const onFailure = vi.fn();
-    reportMyList(onFailure);
+  it('reportMyList reports a failure through the session commandFailed', () => {
+    reportMyList();
     invokeOnError(Response_ResponseCode.RespFunctionNotAllowed);
-    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespFunctionNotAllowed, expect.anything());
+    expect(WebClient.instance.response.session.commandFailed).toHaveBeenCalledWith(
+      'reportMyList', Response_ResponseCode.RespFunctionNotAllowed, '', undefined,
+    );
     expect(WebClient.instance.response.session.reportMyList).not.toHaveBeenCalled();
   });
 
-  it('reportDetails passes RespAccessDenied to onFailure', () => {
-    const onFailure = vi.fn();
-    reportDetails(3, onFailure);
+  it('reportDetails reports RespAccessDenied with the report id as the target', () => {
+    reportDetails(3);
     invokeOnError(Response_ResponseCode.RespAccessDenied);
-    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespAccessDenied, expect.anything());
+    expect(WebClient.instance.response.session.commandFailed).toHaveBeenCalledWith(
+      'reportDetails', Response_ResponseCode.RespAccessDenied, '3', undefined,
+    );
     expect(WebClient.instance.response.session.reportDetails).not.toHaveBeenCalled();
   });
 });

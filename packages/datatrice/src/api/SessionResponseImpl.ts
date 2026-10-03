@@ -307,4 +307,13 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
   reportDetails(report: ServerInfo_Report): void {
     this.store.dispatch(ServerActions.reportDetails({ report }));
   }
+
+  commandFailed(
+    command: WebsocketTypes.SessionCommandName,
+    responseCode: number,
+    target: string,
+    failure?: WebsocketTypes.CommandFailure,
+  ): void {
+    this.store.dispatch(ServerActions.sessionCommandFailed({ command, responseCode, target, failure }));
+  }
 }

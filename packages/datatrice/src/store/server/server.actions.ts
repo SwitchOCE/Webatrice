@@ -27,6 +27,9 @@ const SignalActions = {
   removeFromList: createAction<{ list: string; userName: string }>('server/removeFromList'),
   grantReplayAccess: createAction<{ replayId: number; moderatorName: string }>('server/grantReplayAccess'),
   forceActivateUser: createAction<{ usernameToActivate: string; moderatorName: string }>('server/forceActivateUser'),
+  sessionCommandFailed: createAction<CommandFailedPayload & { command: WebsocketTypes.SessionCommandName; target: string }>(
+    'server/sessionCommandFailed'
+  ),
   moderatorCommandFailed: createAction<CommandFailedPayload & { command: WebsocketTypes.ModeratorCommandName; target: string }>(
     'server/moderatorCommandFailed'
   ),
