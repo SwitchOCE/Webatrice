@@ -16,6 +16,8 @@ import type { BattlefieldCardViewModel, SeatDeckCard } from './playerBoard.types
 export interface SeatCardMeta {
   typeLine: string;
   pt?: string;
+  /** cards.xml `<cipt>`: played face up, the card comes in tapped. */
+  cipt?: boolean;
   manaCost?: string;
   cmc?: number;
   colors?: string[];
@@ -55,6 +57,7 @@ export function seatCardMetaFromLookup(r: LookupResult): SeatCardMeta {
   return {
     typeLine: r.typeLine ?? '',
     pt,
+    cipt: r.cipt,
     manaCost: r.manaCost,
     cmc: r.cmc,
     colors: r.colors,

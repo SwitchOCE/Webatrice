@@ -21,24 +21,43 @@ import { buildHandOrZoneCardMenu } from './handCardMenu.model';
 /** What playing a card needs from its catalog entry. */
 export interface PlayCardMeta {
   typeLine: string;
+  /** Printed P/T; the card lands on the battlefield with it. */
+  pt?: string;
+  /** cards.xml `<cipt>`: the card comes into play tapped. */
+  cipt?: boolean;
 }
 
 /**
- * The Command_MoveCard a play from the hand or a zone view sends; desktop
- * PlayerActions::playCard (player_actions.cpp:51-98). With `playToStack`
- * (double-click) everything but a land goes to the stack; without it (the
- * menu's Play) only row 3 does. Face down always lands in row 2.
+ * The Command_MoveCard a play sends; desktop PlayerActions::playCard
+ * (player_actions.cpp:51-98). The hand menu's Play sends only row 3 to the
+ * stack; a double-click (`playToStack`) sends everything but a land there.
+ * From the stack (`fromStack`), an instant or sorcery goes to the graveyard
+ * and anything else to the battlefield. Face down always lands in row 2. A
+ * card that reaches the battlefield face up carries its printed P/T, and
+ * comes in tapped when cards.xml says cipt.
  */
 export function playCardMove(
   cardId: number,
   meta: PlayCardMeta | undefined,
-  { faceDown = false, playToStack = false }: { faceDown?: boolean; playToStack?: boolean } = {},
+  { faceDown = false, playToStack = false, fromStack = false }: {
+    faceDown?: boolean;
+    playToStack?: boolean;
+    fromStack?: boolean;
+  } = {},
 ): { card: SeatMoveCard; to: SeatMoveDestination } {
   const tableRow = legacyTableRowFromTypeLine(meta?.typeLine ?? '');
-  if (!faceDown && (playToStack ? tableRow !== 0 : tableRow === 3)) {
+  if (!faceDown && fromStack && tableRow === 3) {
+    return { card: cardId, to: { zone: ZoneName.GRAVE, index: 'end' } };
+  }
+  if (!faceDown && !fromStack && (playToStack ? tableRow !== 0 : tableRow === 3)) {
     return { card: cardId, to: { zone: ZoneName.STACK, index: 'end' } };
   }
-  const card: SeatMoveCard = faceDown ? { id: cardId, faceDown: true } : cardId;
+  let card: SeatMoveCard = cardId;
+  if (faceDown) {
+    card = { id: cardId, faceDown: true };
+  } else if (meta?.pt || meta?.cipt) {
+    card = { id: cardId, ...(meta.pt && { pt: meta.pt }), ...(meta.cipt && { tapped: true as const }) };
+  }
   return { card, to: { zone: ZoneName.TABLE, index: 'end', row: tableRowToGridY(faceDown ? 2 : tableRow) } };
 }
 
