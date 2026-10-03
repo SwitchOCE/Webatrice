@@ -12,3 +12,4 @@
 - 13 a6642c3..e2fb4b7 → new tip 6dae547, typecheck ok on every commit; gate: lint ok, unit sock 838/data 1215/web 1530+2skip, integration sock 170/data 137/web 165+2skip. commandFailed deduped onto 03's names (13 adds failure arg + admin/developer signals); CardArtRules uses useGridRows
 - 06 e2fb4b7..19a7954 → new tip 1008fa9, typecheck ok on every commit; gate: lint ok, unit sock 840/data 1216/web 1534+2skip, integration sock 170/data 137/web 165+2skip (joinRoom: 06's success-path userInitiated merged with 04/11 failure path)
 - 15 d2e3d1e..50214e1 → new tip e501c86, typecheck ok on every commit; lint ok, unit sock 850/data 1227/web 1639+2skip, integration sock 170/data 137/web 173+2skip (useGridRows reused from 11)
+- 18:52Z 14 rebased (f14 60b3669) onto new 15, failure pattern fully deduped (one commandFailed(command, code, target, failure?) on all four scopes); running unit + per-commit typecheck → push 14, then 19
