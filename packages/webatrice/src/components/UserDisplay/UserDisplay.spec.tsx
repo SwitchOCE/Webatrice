@@ -87,9 +87,15 @@ describe('UserDisplay', () => {
       expect(screen.getByRole('menuitem', { name: /UserActionsMenu.viewPublicDecks/ })).toHaveAttribute('href', '/decks/public/bob');
     });
 
+    it('is shown disabled for yourself, like desktop', () => {
+      openMenu(makeUser({ name: connectedState.server!.user!.name, userLevel: registered }));
+      const item = screen.getByRole('menuitem', { name: /UserActionsMenu.viewPublicDecks/ });
+      expect(item).toHaveAttribute('aria-disabled', 'true');
+      expect(item).not.toHaveAttribute('href');
+    });
+
     it.each([
       ['an unregistered user', makeUser({ name: 'bob', userLevel: 0 }), connected31State],
-      ['yourself', makeUser({ name: connectedState.server!.user!.name, userLevel: registered }), connected31State],
       ['anyone on a 3.0 server', makeUser({ name: 'bob', userLevel: registered }), connectedState],
     ])('is not offered for %s', (_case, user, state) => {
       openMenu(user, state);
