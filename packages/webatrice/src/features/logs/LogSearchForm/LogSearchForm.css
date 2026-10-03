@@ -3,7 +3,7 @@
 }
 
 hr.MuiDivider-root {
-  margin: 20px 0;
+  margin: 16px 0;
 }
 
 .log-search__form {
@@ -11,25 +11,51 @@ hr.MuiDivider-root {
   padding: 20px;
 }
 
+.log-search__group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.log-search__legend {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
 .log-search__form-item {
-  display: flex;
-}
-
-.log-search__form-item.log-location {
-  display: flex;
-  justify-content: space-around;
-}
-
-.log-search__form-item.log-location .checkbox-field {
   display: flex;
   flex-direction: column;
 }
 
-.log-search__form-item.log-location .checkbox-field__box {
-  order: 1;
+.log-search__form-item.log-location,
+.log-search__form-item.log-range {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  gap: 8px;
 }
 
-.log-search__form-submit.MuiButton-root {
-  display: block;
-  margin: 0 auto;
+.log-search__radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+}
+
+.log-search__description {
+  font-size: 0.8125rem;
+  margin: 0 0 12px;
+}
+
+.log-search__error {
+  color: var(--color-error, #f87171);
+  font-size: 0.8125rem;
+  margin: 0 0 12px;
+}
+
+.log-search__buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
 }
