@@ -165,6 +165,73 @@ describe('useLogin', () => {
     expect(webClient.request.authentication.activateAccount).not.toHaveBeenCalled();
   });
 
+  describe('activation-to-login continuity', () => {
+    const pending = { host: 'h.example', port: '1', userName: 'newcomer' };
+
+    function registerThenAwaitActivation() {
+      const ctx = setup(disconnectedState);
+      act(() => {
+        ctx.result.current.handleRegistrationDialogSubmit({
+          userName: 'newcomer',
+          password: 'secret',
+          email: 'a@b.com',
+          country: 'US',
+          realName: '',
+          selectedHost: makeHost() as any,
+        } as any);
+      });
+      act(() => {
+        ctx.store.dispatch({ type: server.Types.ACCOUNT_AWAITING_ACTIVATION, payload: { options: pending } });
+      });
+      return ctx;
+    }
+
+    it('carries the registration password into the activation request so the client logs in afterwards', () => {
+      const { result, webClient } = registerThenAwaitActivation();
+      expect(result.current.dialogState.activationDialog).toBe(true);
+
+      act(() => {
+        result.current.handleAccountActivationDialogSubmit({ token: 'tok' });
+      });
+
+      expect(webClient.request.authentication.activateAccount).toHaveBeenCalledWith({
+        ...pending,
+        token: 'tok',
+        password: 'secret',
+      });
+    });
+
+    it('carries the login password when the server reports the account is not activated yet', () => {
+      const { result, webClient, store } = setup(disconnectedState);
+      act(() => {
+        result.current.handleLogin(makeLoginValues({ userName: 'newcomer', password: 'pw2' }));
+      });
+      act(() => {
+        store.dispatch({ type: server.Types.ACCOUNT_AWAITING_ACTIVATION, payload: { options: pending } });
+      });
+      act(() => {
+        result.current.handleAccountActivationDialogSubmit({ token: 'tok' });
+      });
+
+      const call = vi.mocked(webClient.request.authentication.activateAccount).mock.calls[0][0];
+      expect(call.password).toBe('pw2');
+    });
+
+    it('drops the retained password when the activation dialog is cancelled', () => {
+      const { result, webClient } = registerThenAwaitActivation();
+
+      act(() => {
+        result.current.closeActivateAccountDialog();
+      });
+      act(() => {
+        result.current.handleAccountActivationDialogSubmit({ token: 'tok' });
+      });
+
+      const call = vi.mocked(webClient.request.authentication.activateAccount).mock.calls[0][0];
+      expect(call.password).toBeUndefined();
+    });
+  });
+
   it('shows the description when disconnected with a non-empty description', () => {
     const { result } = setup({
       ...disconnectedState,
