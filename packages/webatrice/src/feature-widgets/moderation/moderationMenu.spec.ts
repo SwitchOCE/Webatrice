@@ -87,3 +87,24 @@ describe('buildModerationMenu', () => {
     expect(groups.flat().every((entry) => entry.disabled)).toBe(true);
   });
 });
+
+describe('buildModerationMenu: investigate and the admin lock', () => {
+  it('adds "Investigate user" after admin notes on a server with the moderation tools', () => {
+    const groups = buildModerationMenu({
+      localUserLevel: MODERATOR, targetUserLevel: REGULAR, isSelf: false, ...ON_3_1, canInvestigate: true,
+    });
+    expect(actions(groups)[2]).toEqual(['adminNotes', 'investigateUser']);
+  });
+
+  it('keeps "Investigate user" disabled on yourself, as desktop enables it only for another user', () => {
+    const groups = buildModerationMenu({
+      localUserLevel: MODERATOR, targetUserLevel: MODERATOR, isSelf: true, ...ON_3_1, canInvestigate: true,
+    });
+    expect(groups[2].find((entry) => entry.action === 'investigateUser')?.disabled).toBe(true);
+  });
+
+  it('hides the whole section while the Administration lock is on', () => {
+    const options = { localUserLevel: ADMIN, targetUserLevel: REGULAR, isSelf: false, ...ON_3_1, adminLocked: true };
+    expect(buildModerationMenu(options)).toEqual([]);
+  });
+});

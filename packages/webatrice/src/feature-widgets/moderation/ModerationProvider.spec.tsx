@@ -1,4 +1,5 @@
 import { act, fireEvent, screen, within } from '@testing-library/react';
+import { useLocation } from 'react-router-dom';
 import { create } from '@bufbuild/protobuf';
 
 import { server } from '@cockatrice/datatrice';
@@ -367,5 +368,32 @@ describe('ModerationProvider', () => {
       renderMenu('3.1.0-beta.12 (2026-09-01)');
       expect(screen.getByText('promoteDeveloper')).toBeInTheDocument();
     });
+  });
+});
+
+describe('investigate user', () => {
+  it('opens the Moderation page on the user, as desktop openTabModeration(userName)', () => {
+    const LocationProbe = () => {
+      const location = useLocation();
+      return <span data-testid="location">{location.pathname + location.search}</span>;
+    };
+    const webClient = createMockWebClient();
+    renderWithProviders(
+      <ModerationProvider>
+        <Trigger action="investigateUser" />
+        <LocationProbe />
+      </ModerationProvider>,
+      {
+        preloadedState: {
+          ...connectedState,
+          server: { ...(connectedState.server as any), user: makeUser({ name: 'mod', userLevel: MODERATOR }) },
+        },
+        webClient,
+      },
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'trigger investigateUser' }));
+
+    expect(screen.getByTestId('location')).toHaveTextContent('/moderation?user=alice');
   });
 });

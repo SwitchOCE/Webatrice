@@ -5,7 +5,7 @@ import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { Response_WarnList, ServerInfo_Ban, ServerInfo_User, ServerInfo_Warning } from '@cockatrice/sockatrice/generated';
 import type { RequestId, WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { useCommandFailureMessage, useReduxEffect, useRequestTracker } from '@app/hooks';
+import { useCommandFailureMessage, useOpenUserInvestigation, useReduxEffect, useRequestTracker } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 import { onSessionEnd } from '@app/services/session';
 import { useRoleChanges } from './useRoleChanges';
@@ -70,6 +70,7 @@ export function useModerationFlow(): ModerationFlowState {
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
   const webClient = useWebClient();
+  const openUserInvestigation = useOpenUserInvestigation();
   const ownName = useAppSelector((state) => server.Selectors.getUser(state)?.name ?? '');
   const requests = useRequestTracker();
   const [flow, setFlowState] = useState<ModerationFlow | null>(null);
@@ -121,6 +122,9 @@ export function useModerationFlow(): ModerationFlowState {
       case 'adminNotes':
         webClient.request.moderator.getAdminNotes(userName, beginFlow({ kind: 'adminNotes', userName, stage: 'loading' }));
         break;
+      case 'investigateUser':
+        openUserInvestigation(userName);
+        break;
       case 'promoteMod':
       case 'demoteMod':
         changeRole(userName, { shouldBeMod: action === 'promoteMod' });
@@ -134,7 +138,7 @@ export function useModerationFlow(): ModerationFlowState {
         changeRole(userName, { shouldBeDeveloper: action === 'promoteDeveloper' });
         break;
     }
-  }, [webClient, changeRole, beginFlow]);
+  }, [webClient, changeRole, beginFlow, openUserInvestigation]);
 
   const awaiting = (userName: string, requestId?: RequestId) => {
     const current = currentFlow.current;
