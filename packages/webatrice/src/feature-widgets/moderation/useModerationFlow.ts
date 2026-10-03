@@ -24,11 +24,15 @@ type Stage = 'loading' | 'ready';
  * The dialog flow in progress. Each one mirrors a desktop round trip:
  *  - warnUser: GetUserInfo → GetWarnList(name, clientid) → WarningDialog
  *  - banUser: GetUserInfo → BanDialog (pre-filled with address / clientid)
+ *
+ * Desktop does not check GetUserInfo's response code: when it fails, warn still
+ * asks for the warning list with an empty client id, and ban opens with only the
+ * name filled in (`noUserInfo`).
  *  - warnHistory / banHistory / adminNotes: one moderator command → table or editor
  */
 export type ModerationFlow =
   | { kind: 'warnUser'; userName: string; stage: Stage; clientId: string | null }
-  | { kind: 'banUser'; userName: string; stage: Stage }
+  | { kind: 'banUser'; userName: string; stage: Stage; noUserInfo: boolean }
   | { kind: 'warnHistory' | 'banHistory' | 'adminNotes'; userName: string; stage: Stage };
 
 export interface ModerationNotice {
@@ -98,7 +102,7 @@ export function useModerationFlow(): ModerationFlowState {
         webClient.request.session.getUserInfo(userName);
         break;
       case 'banUser':
-        setFlow({ kind: 'banUser', userName, stage: 'loading' });
+        setFlow({ kind: 'banUser', userName, stage: 'loading', noUserInfo: false });
         webClient.request.session.getUserInfo(userName);
         break;
       case 'warnHistory':
@@ -143,6 +147,18 @@ export function useModerationFlow(): ModerationFlowState {
       webClient.request.moderator.getWarnList(ownName, flow.userName, clientId);
     }
   }, server.Types.GET_USER_INFO, [flow, ownName, webClient]);
+
+  useReduxEffect<{ userName: string; responseCode: number }>(({ payload }) => {
+    if (!flow || flow.stage !== 'loading' || payload.userName !== flow.userName) {
+      return;
+    }
+    if (flow.kind === 'banUser') {
+      setFlow({ ...flow, stage: 'ready', noUserInfo: true });
+    } else if (flow.kind === 'warnUser' && flow.clientId === null) {
+      setFlow({ ...flow, clientId: '' });
+      webClient.request.moderator.getWarnList(ownName, flow.userName, '');
+    }
+  }, server.Types.GET_USER_INFO_FAILED, [flow, ownName, webClient]);
 
   useReduxEffect<{ warnList: Response_WarnList[] }>(({ payload }) => {
     if (flow?.kind === 'warnUser' && flow.clientId !== null && payload.warnList.some((list) => list.userName === flow.userName)) {

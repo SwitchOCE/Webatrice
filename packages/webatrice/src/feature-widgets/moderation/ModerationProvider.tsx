@@ -1,6 +1,8 @@
 import { useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { create } from '@bufbuild/protobuf';
 
+import { ServerInfo_UserSchema } from '@cockatrice/sockatrice/generated';
 import { UserMenuSlotProvider } from '@app/components';
 import { AlertDialog, DialogShell } from '@app/dialogs';
 
@@ -51,6 +53,8 @@ export const ModerationDialogs = ({
         onCancel={close}
       />
     );
+  } else if (flow?.kind === 'banUser' && flow.noUserInfo) {
+    dialog = <BanUserDialog userInfo={create(ServerInfo_UserSchema, { name: flow.userName })} onSubmit={submitBan} onCancel={close} />;
   } else if (flow?.kind === 'banUser' && userInfo) {
     dialog = <BanUserDialog userInfo={userInfo} onSubmit={submitBan} onCancel={close} />;
   } else if (flow?.kind === 'banHistory') {
