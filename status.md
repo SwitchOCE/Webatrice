@@ -1,3 +1,4 @@
 - 17:36Z started f16, read brief+review → inspect branch
 - 17:40Z major 1 (locked sideboard plan) fixed+pushed → major 2 GameLinkJoinHost
 - 17:40Z major 1 (locked sideboard plan) fixed+pushed → major 2 GameLinkJoinHost
+- 17:47Z major 2 (link join reuses useJoinGame) fixed+pushed → minors
