@@ -363,4 +363,12 @@ describe('PromptDialog', () => {
     expect(input.selectionStart).toBe(0);
     expect(input.selectionEnd).toBe(2);
   });
+
+  it('renders a number input when asked', () => {
+    render(
+      <PromptDialog isOpen title="Draw" label="Cards" type="number" initialValue="2" onSubmit={() => {}} onCancel={() => {}} />,
+    );
+
+    expect(screen.getByRole('spinbutton', { name: 'Cards' })).toHaveValue(2);
+  });
 });
