@@ -121,4 +121,12 @@ describe('TopBar user menu', () => {
     openMenuAndPick('UserMenu.importCards');
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
+
+  it('opens the debug log', () => {
+    renderTopBar();
+
+    openMenuAndPick('UserMenu.debugLog');
+    expect(screen.getByRole('dialog', { name: /DebugLogDialog\.title/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Sign out/ })).not.toBeInTheDocument();
+  });
 });

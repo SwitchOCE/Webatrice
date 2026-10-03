@@ -2,6 +2,7 @@ import { Settings2 } from 'lucide-react';
 
 import { Language, LanguageNative } from '@app/types';
 
+import DebugLogButton from '../controls/DebugLogButton';
 import { SettingsSectionId, type SettingsSection } from '../registry';
 
 /**
@@ -31,6 +32,19 @@ export const generalSection: SettingsSection = {
               ...Object.values(Language).map((language) => ({ value: language, label: LanguageNative[language] })),
             ],
           },
+        },
+      ],
+    },
+    {
+      id: 'general.diagnostics',
+      titleKey: 'SettingsGeneral.group.diagnostics',
+      entries: [
+        {
+          id: 'debugLog',
+          labelKey: 'SettingsGeneral.debugLog.label',
+          descriptionKey: 'SettingsGeneral.debugLog.description',
+          // The dialog's own "Clear log when closing" box edits this preference.
+          control: { kind: 'custom', component: DebugLogButton, keys: ['clearDebugLogOnClose'] },
         },
       ],
     },

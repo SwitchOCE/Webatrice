@@ -4,6 +4,7 @@
     "settings": "Settings",
     "shortcuts": "Shortcuts",
     "logs": "Logs",
-    "importCards": "Import cards"
+    "importCards": "Import cards",
+    "debugLog": "View debug log"
   }
 }
