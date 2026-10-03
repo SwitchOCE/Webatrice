@@ -2,3 +2,4 @@
 - 17:40Z major 1 (locked sideboard plan) fixed+pushed → major 2 GameLinkJoinHost
 - 17:40Z major 1 (locked sideboard plan) fixed+pushed → major 2 GameLinkJoinHost
 - 17:47Z major 2 (link join reuses useJoinGame) fixed+pushed → minors
+- 17:52Z minors invite-failure + gameLink port pushed → a11y/i18n/closed-game minors
