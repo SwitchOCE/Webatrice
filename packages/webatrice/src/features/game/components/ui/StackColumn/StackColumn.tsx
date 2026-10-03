@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from 'react';
+import { useForkRef } from '@mui/material/utils';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { lookupCard } from '@app/services';
 
@@ -27,11 +29,28 @@ export default function StackColumn() {
     selection,
     setCardMetaByName,
     stackDisplayList,
-    stackSize,
     stackZoneRef,
     startSeatCardDrag,
     zoneCommands,
   } = usePlayerSeatContext();
+  // The pile lays itself out in the space the column gives it.
+  const sizeRef = useRef<HTMLDivElement>(null);
+  const stackRef = useForkRef(stackZoneRef, sizeRef);
+  const [stackSize, setStackSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = sizeRef.current;
+    if (!el) {
+      return;
+    }
+    const ro = new ResizeObserver(([entry]) => {
+      setStackSize({
+        w: entry.contentRect.width,
+        h: entry.contentRect.height,
+      });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   return (
     <div
@@ -41,7 +60,7 @@ export default function StackColumn() {
       {/* Stack — spells/abilities waiting to resolve. Cards zig-zag
         vertically; index 0 renders topmost. Dropping between two
         existing cards inserts at that position. */}
-      <div ref={stackZoneRef} className="flex-1 min-h-0 relative">
+      <div ref={stackRef} className="flex-1 min-h-0 relative">
         {(() => {
           const visible = stackDisplayList.filter(
             (c) => !isDragging(c.id, 'stack'),

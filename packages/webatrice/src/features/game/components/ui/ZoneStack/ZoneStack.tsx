@@ -234,6 +234,7 @@ const CardBackZone = forwardRef<
  */
 export default function ZoneStack() {
   const {
+    seatDrag,
     alwaysLookAtTopCard,
     alwaysRevealTopCard,
     deckCount,
@@ -245,12 +246,10 @@ export default function ZoneStack() {
     exileDisplayList,
     exileMenuItemsOpponent,
     exileMenuItemsSelf,
-    exileTop,
     exileZoneRef,
     graveDisplayList,
     graveMenuItemsOpponent,
     graveMenuItemsSelf,
-    graveyardTop,
     graveyardZoneRef,
     isSelf,
     libraryZoneRef,
@@ -268,6 +267,14 @@ export default function ZoneStack() {
     startPileDrag,
     zoneCommands,
   } = usePlayerSeatContext();
+  // A pile shows its top card, or the one under it while the top is dragged off.
+  const graveyardTopIdx =
+    graveDisplayList.length - 1 - (seatDrag?.zone === 'graveyard' ? 1 : 0);
+  const exileTopIdx =
+    exileDisplayList.length - 1 - (seatDrag?.zone === 'exile' ? 1 : 0);
+  const graveyardTop =
+    graveyardTopIdx >= 0 ? graveDisplayList[graveyardTopIdx] : null;
+  const exileTop = exileTopIdx >= 0 ? exileDisplayList[exileTopIdx] : null;
 
   return (
     <>

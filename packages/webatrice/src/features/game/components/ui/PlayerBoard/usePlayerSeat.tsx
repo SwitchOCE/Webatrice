@@ -9,14 +9,11 @@ import {
 import {
 } from '../../../hooks/dialogs/seatPrompts';
 import type {
-  BattlefieldCardViewModel,
   PlayerBoardCommands,
   PlayerBoardModel,
   PlayerCardViewModel,
 } from './playerBoard.types';
 import { useCardScale } from '../CardScaleContext';
-import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
-import Card from '../SeatCard/SeatCard';
 import { useSeatSelection, type SeatSelection } from '../../../hooks/useSeatSelection';
 import { useMoveTopUntil } from '../../../hooks/useMoveTopUntil';
 import { useGameSelectionState } from '../GameSelectionContext';
@@ -37,10 +34,8 @@ import { useLibraryMenuItems } from '../ZoneStack/useLibraryMenuItems';
 import { useHandMenuItems } from '../HandZone/useHandMenuItems';
 import { useBattlefieldMenuItems } from '../../battlefield/Battlefield/useBattlefieldMenuItems';
 
-/** Seat card shapes. Owned by the PlayerBoard seat contract; the aliases keep
- *  this façade's local names until its regions move to PlayerBoard. */
+/** Seat card shape. Owned by the PlayerBoard seat contract. */
 type HandCard = PlayerCardViewModel;
-type BattlefieldCard = BattlefieldCardViewModel;
 
 /** Which zone a drag was initiated from. */
 type DragSourceZone = SeatZone;
@@ -156,21 +151,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
   const graveyardRef = useRef<HTMLDivElement>(null);
   const exileRef = useRef<HTMLDivElement>(null);
   const stackRef = useRef<HTMLDivElement>(null);
-  const [stackSize, setStackSize] = useState({ w: 0, h: 0 });
-  useEffect(() => {
-    const el = stackRef.current;
-    if (!el) {
-      return;
-    }
-    const ro = new ResizeObserver(([entry]) => {
-      setStackSize({
-        w: entry.contentRect.width,
-        h: entry.contentRect.height,
-      });
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
 
   // Marquee selection. Selection is single-zone — the marquee groups whatever
   // it touches by zone and picks the zone contributing the most cards. It is
@@ -199,15 +179,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
   const cardContextMenu = seatMenu?.kind === 'battlefield' ? seatMenu : null;
   const pileCardMenu = seatMenu?.kind === 'pile' ? seatMenu : null;
   const stackCardMenu = seatMenu?.kind === 'stack' ? seatMenu : null;
-  // Whether the hand row is being hovered — controls the auto-expand
-  // that reveals full-size cards over the play area without reflowing
-  // the shell (same pattern the PhaseTrack uses on the left edge).
-  const [handExpanded, setHandExpanded] = useState(false);
-  // Tracks whether the hand's slide tween is mid-flight. Combined with
-  // `handExpanded` to keep the outer wrapper's `overflow-visible` on
-  // until the return-to-idle animation actually finishes — otherwise
-  // the wrapper clips its own cards mid-slide when hover ends.
-  const [handAnimating, setHandAnimating] = useState(false);
   const [marquee, setMarquee] = useState<{
     x1: number;
     y1: number;
@@ -612,21 +583,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     pendingArrowPointer,
   } = usePendingArrows({ playerId, targetCommands });
   // Placeholder values — real state lands with the game-state iteration.
-  // Mana pool: read from the wired `manaCounters` when available
-  // (Redux-authoritative), fall back to zeros during pre-hydration.
-  // Local mana pool is per-player and matches Cockatrice's
-  // Servatrice-created counters (w/u/b/r/g/x/storm) — see
-  // server_player.cpp:96-102.
-  const manaPool: Record<'W' | 'U' | 'B' | 'R' | 'G' | 'C' | 'O', number> = {
-    W: manaCounters?.W?.count ?? 0,
-    U: manaCounters?.U?.count ?? 0,
-    B: manaCounters?.B?.count ?? 0,
-    R: manaCounters?.R?.count ?? 0,
-    G: manaCounters?.G?.count ?? 0,
-    C: manaCounters?.C?.count ?? 0,
-    O: manaCounters?.O?.count ?? 0,
-  };
-
   // Displayed counts mirror Cockatrice desktop: read straight from the
   // server-authoritative `zone.cardCount` and DON'T decrement while a
   // card is under the cursor mid-drag. The desktop client also shows
@@ -663,13 +619,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     moveCards: zoneCommands.moveCards,
   });
   const openMoveTopUntilDialog = () => openMoveTopUntil({ onSubmit: startMoveTopUntil });
-  const graveyardTopIdx =
-    graveDisplayList.length - 1 - (seatDrag?.zone === 'graveyard' ? 1 : 0);
-  const exileTopIdx =
-    exileDisplayList.length - 1 - (seatDrag?.zone === 'exile' ? 1 : 0);
-  const graveyardTop =
-    graveyardTopIdx >= 0 ? graveDisplayList[graveyardTopIdx] : null;
-  const exileTop = exileTopIdx >= 0 ? exileDisplayList[exileTopIdx] : null;
 
   const {
     graveMenuItemsSelf,
@@ -758,75 +707,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     counterCommands,
     targetCommands,
   });
-
-  // The drag ghost: the dragged cards under the pointer, anchored where the
-  // first was grabbed. Library drags show a card back: the server's position
-  // is authoritative, so the local top card's face could be the wrong card.
-  const renderDragGhost = (
-    cards: readonly HandCard[],
-    zone: DragSourceZone,
-    lent: boolean,
-    origin: { x: number; y: number },
-  ) =>
-    cards.map((c, i) => {
-      // Runtime object is the FULL BattlefieldCard when the
-      // source is the battlefield (BattlefieldCard extends
-      // HandCard so the widening at drag start doesn't strip
-      // the fields — they just get erased in the static type).
-      // Cast to read the extended props so the ghost mirrors
-      // what the resting card looks like: modified P/T, on-card
-      // counters, annotation pill, face-down flip, tapped
-      // rotation, picked printing. Non-battlefield sources
-      // (hand / graveyard / exile / stack) leave the extended
-      // fields undefined, and Card handles that gracefully.
-      const bc = c as BattlefieldCard;
-      const baseMeta = cardMetaByName.get(c.name);
-      const isLibraryBack = zone === 'library' && !lent;
-      return (
-        <div
-          key={c.id}
-          data-drag-ghost
-          style={{
-            position: 'fixed',
-            left: origin.x + i * 4,
-            top: origin.y + i * 4,
-            width: CARD_WIDTH,
-            height: CARD_HEIGHT,
-            pointerEvents: 'none',
-            // Above the search-library dialog (z-1000) so a
-            // card dragged out of the dialog is visible under
-            // the cursor from the moment the drag starts.
-            zIndex: 1100 + i,
-            // Tapped cards drag rotated 90° like they render
-            // on the board (plus a small tilt for depth).
-            transform: `rotate(${bc.tapped ? 92 : 2}deg)`,
-            filter: 'drop-shadow(0 8px 12px rgba(0,0,0,0.4))',
-          }}
-        >
-          {isLibraryBack ? (
-            <img
-              src={CARD_BACK_URL}
-              alt=''
-              draggable={false}
-              className='w-full h-full select-none pointer-events-none'
-              style={{ borderRadius: CARD_CORNER_RADIUS }}
-            />
-          ) : (
-            <Card
-              id={c.id}
-              name={c.name}
-              scryfallId={c.scryfallId || baseMeta?.scryfallId}
-              pt={bc.pt || (bc.faceDown ? undefined : baseMeta?.pt)}
-              basePT={baseMeta?.pt}
-              annotation={bc.annotation}
-              counters={bc.counters}
-              faceDown={bc.faceDown}
-              imageUri={resolveFaceImageUri(c.name)}
-            />
-          )}
-        </div>
-      );
-    });
 
   // ---- Seat drag and drop (useGameDnd) ------------------------------------
   // The game's DnD coordinator drives these drags; this seat says what is
@@ -987,7 +867,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     exileDisplayList,
     exileMenuItemsOpponent,
     exileMenuItemsSelf,
-    exileTop,
     exileZoneRef,
     flights,
     flipHandCardBacks,
@@ -995,12 +874,9 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     graveDisplayList,
     graveMenuItemsOpponent,
     graveMenuItemsSelf,
-    graveyardTop,
     graveyardZoneRef,
-    handAnimating,
     handCount,
     handDisplayList,
-    handExpanded,
     handMenuItems,
     handOnTop,
     handSize,
@@ -1012,7 +888,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     life,
     lifeControl,
     manaCounters,
-    manaPool,
     marquee,
     menuOwnerId,
     name,
@@ -1033,7 +908,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     pendingArrowPointer,
     pileCardMenu,
     playerId,
-    renderDragGhost,
     resolveFaceImageUri,
     revealTargets,
     seat,
@@ -1044,14 +918,11 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     setAttachPending,
     setCardMetaByName,
     setDrawArrowPending,
-    setHandAnimating,
-    setHandExpanded,
     setLife,
     setSelection,
     shortcutHints,
     stackCardMenu,
     stackDisplayList,
-    stackSize,
     stackZoneRef,
     startPileDrag,
     startSeatCardDrag,
