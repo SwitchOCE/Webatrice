@@ -1,3 +1,5 @@
+import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import react from '@vitejs/plugin-react';
@@ -5,6 +7,21 @@ import { defineConfig } from 'vitest/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const srcPath = (...segments: string[]) => path.resolve(__dirname, 'src', ...segments);
+
+// Build identity sent to Servatrice as Command_Login.clientver (see src/clientConfig.ts).
+// Mirrors desktop's VERSION_STRING inputs: the package version and the last
+// commit date (cmake/getversion.cmake `git log -1 --date=short`), which falls
+// back to empty outside a git checkout exactly like desktop's does.
+const packageVersion: string = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf8')).version;
+function lastCommitDate(): string {
+  try {
+    return execSync('git log -1 --date=short --pretty=%cd', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim();
+  } catch {
+    return '';
+  }
+}
 
 // Unit test suite (`npm run test` / `test:coverage`).
 //
@@ -19,6 +36,10 @@ const srcPath = (...segments: string[]) => path.resolve(__dirname, 'src', ...seg
 // real Servatrice belong in the e2e suite (`playwright.config.ts`).
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __WEBATRICE_VERSION__: JSON.stringify(packageVersion),
+    __WEBATRICE_BUILD_DATE__: JSON.stringify(lastCommitDate()),
+  },
   resolve: {
     alias: {
       '@app/components': srcPath('components/index.ts'),

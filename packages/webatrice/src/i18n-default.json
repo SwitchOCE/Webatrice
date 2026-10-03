@@ -490,7 +490,9 @@
       "accountActivationSuccess": "Account Activated Successfully"
     },
     "status": {
-      "serverUnreachable": "Trouble reaching the server. Wait a minute and try again."
+      "serverUnreachable": "Trouble reaching the server. Wait a minute and try again.",
+      "passwordChangeRequired": "An administrator has reset your password. Contact your server administrator for your temporary password, log in with it, then change it under Account.",
+      "serverFull": "The server has reached its maximum number of users. Please check back later."
     }
   },
   "Logs": {

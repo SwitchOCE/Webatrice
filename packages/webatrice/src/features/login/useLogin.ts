@@ -9,6 +9,7 @@ import { server } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
 import { getHostPort } from '@app/utils';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
+import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
 
 import type { LoginFormValues } from './forms/LoginForm/LoginForm';
 import type { RegisterFormValues } from './forms/RegisterForm/RegisterForm';
@@ -44,18 +45,32 @@ export interface Login {
   closeActivateAccountDialog: () => void;
 }
 
+// Login rejections with a localized explanation (desktop
+// remote_connection_controller.cpp shows a dedicated dialog for each); any
+// other code keeps Sockatrice's English status line.
+const LOGIN_FAILURE_MESSAGE_KEYS: Partial<Record<number, string>> = {
+  [Response_ResponseCode.RespPasswordChangeRequired]: 'Login.status.passwordChangeRequired',
+  [Response_ResponseCode.RespServerFull]: 'Login.status.serverFull',
+};
+
 export function useLogin(): Login {
   const rawDescription = useAppSelector((s) => server.Selectors.getDescription(s));
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
   const connectionAttemptMade = useAppSelector(server.Selectors.getConnectionAttemptMade);
   const connectUnreachable = useAppSelector(server.Selectors.getConnectUnreachable);
+  const loginFailureCode = useAppSelector(server.Selectors.getLoginFailureCode);
   const webClient = useWebClient();
   const { t } = useTranslation();
 
-  // Show a reachability hint instead of the generic status when a connect never opened.
-  const description = !isConnected && connectUnreachable
-    ? t('Login.status.serverUnreachable')
-    : rawDescription;
+  // Show a reachability hint instead of the generic status when a connect never opened,
+  // and a localized reason for the login rejections the user can act on.
+  const loginFailureKey = loginFailureCode === null ? undefined : LOGIN_FAILURE_MESSAGE_KEYS[loginFailureCode];
+  let description = rawDescription;
+  if (!isConnected && connectUnreachable) {
+    description = t('Login.status.serverUnreachable');
+  } else if (!isConnected && loginFailureKey) {
+    description = t(loginFailureKey);
+  }
 
   const [pendingActivationOptions, setPendingActivationOptions] =
     useState<WebsocketTypes.PendingActivationContext | null>(null);

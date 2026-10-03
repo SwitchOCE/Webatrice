@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 
 import { createStore, server } from '@cockatrice/datatrice';
 import { WebClientContext } from '@cockatrice/datatrice/react';
+import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
 
 import { rootReducerMap, type RootState } from '../../store';
 import {
@@ -214,6 +215,42 @@ describe('useLogin', () => {
     });
 
     expect(result.current.description).toBe('Connection Failed');
+  });
+
+  it.each([
+    [Response_ResponseCode.RespPasswordChangeRequired, 'Login.status.passwordChangeRequired'],
+    [Response_ResponseCode.RespServerFull, 'Login.status.serverFull'],
+  ])('explains login rejection %s with %s', (loginFailureCode, key) => {
+    const { result } = setup({
+      ...disconnectedState,
+      server: {
+        ...(disconnectedState.server as any),
+        loginFailureCode,
+        status: {
+          ...(disconnectedState.server as any).status,
+          description: 'Login failed: something',
+        },
+      },
+    });
+
+    expect(result.current.description).toBe(key);
+    expect(result.current.showDescription()).toBe(true);
+  });
+
+  it('keeps the status line for a login rejection without a localized message', () => {
+    const { result } = setup({
+      ...disconnectedState,
+      server: {
+        ...(disconnectedState.server as any),
+        loginFailureCode: Response_ResponseCode.RespWrongPassword,
+        status: {
+          ...(disconnectedState.server as any).status,
+          description: 'Login failed: incorrect username or password',
+        },
+      },
+    });
+
+    expect(result.current.description).toBe('Login failed: incorrect username or password');
   });
 
   it('does not surface the reachability message once connected, even if the flag lingers', () => {
