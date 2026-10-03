@@ -48,7 +48,7 @@ export class Setting {
   roomHistory: boolean;
 
   // In-game message macros (desktop message_settings). Read by the game's Say menu.
-  messageMacros: string[];
+  messageMacros: readonly string[];
 
   // Sound (desktop sound_settings)
   soundEnabled: boolean;
@@ -98,7 +98,8 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   showMentionPopups: true,
   roomHistory: true,
 
-  messageMacros: [],
+  // Frozen too: handed out before the row loads, it must not be pushed to.
+  messageMacros: Object.freeze([]),
 
   soundEnabled: false,
   soundTheme: DEFAULT_SOUND_THEME,
