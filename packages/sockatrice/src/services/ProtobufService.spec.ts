@@ -23,6 +23,7 @@ import type {
   DeveloperCommand,
   GameCommand,
   GameEvent,
+  GameEventContainer,
   ModeratorCommand,
   Response,
   RoomCommand,
@@ -579,6 +580,29 @@ describe('ProtobufService', () => {
       });
 
       expect(handler).toHaveBeenCalledWith(payload, expect.objectContaining({ gameId: -1, playerId: -1 }));
+    });
+
+    it('addresses a replayed container to the supplied local game id', () => {
+      const handler = vi.fn();
+      const mockExt = {} as GenExtension<GameEvent, unknown>;
+      const payload = { someData: 1 };
+
+      (gameEvents as any).push([mockExt, handler]);
+      const service = makeService();
+      vi.mocked(hasExtension).mockReturnValue(true);
+      vi.mocked(getExtension).mockReturnValue(payload);
+
+      // Servatrice stores replay containers with game_id cleared.
+      service.replayGameEventContainer({
+        gameId: -1,
+        secondsElapsed: 12,
+        eventList: [{ playerId: 3 }],
+      } as unknown as GameEventContainer, -1000);
+
+      expect(handler).toHaveBeenCalledWith(
+        payload,
+        expect.objectContaining({ gameId: -1000, playerId: 3, secondsElapsed: 12 }),
+      );
     });
   });
 

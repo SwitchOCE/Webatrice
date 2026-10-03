@@ -3,7 +3,11 @@ import { WebClient } from '../../WebClient';
 
 import { Command_ReplayModifyMatch_ext, Command_ReplayModifyMatchSchema } from '../../generated';
 
-export function replayModifyMatch(gameId: number, doNotHide: boolean): void {
+export function replayModifyMatch(
+  gameId: number,
+  doNotHide: boolean,
+  onFailure?: (responseCode: number) => void,
+): void {
   WebClient.instance.protobuf.sendSessionCommand(
     Command_ReplayModifyMatch_ext,
     create(Command_ReplayModifyMatchSchema, { gameId, doNotHide }),
@@ -11,6 +15,7 @@ export function replayModifyMatch(gameId: number, doNotHide: boolean): void {
       onSuccess: () => {
         WebClient.instance.response.session.replayModifyMatch(gameId, doNotHide);
       },
+      onError: onFailure,
     }
   );
 }

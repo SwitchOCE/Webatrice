@@ -351,16 +351,35 @@ export class ProtobufService {
     }
   }
 
+  /**
+   * Runs a recorded GameEventContainer through the same game-event registry live
+   * traffic uses, addressed to `gameId`. Servatrice clears `game_id` on every
+   * container it stores in a GameReplay (server_game.cpp sendGameEventContainer),
+   * so the replay player supplies the id of the local game it is rebuilding.
+   * Mirrors desktop feeding ReplayManager events into
+   * GameEventHandler::processGameEventContainer.
+   */
+  public replayGameEventContainer(container: GameEventContainer, gameId: number): void {
+    this.dispatchGameEvents(container, gameId);
+  }
+
   private processGameEvent(container: GameEventContainer | undefined): void {
-    if (!container?.eventList?.length) {
+    if (!container) {
+      return;
+    }
+    this.dispatchGameEvents(container, container.gameId ?? -1);
+  }
+
+  private dispatchGameEvents(container: GameEventContainer, gameId: number): void {
+    if (!container.eventList?.length) {
       return;
     }
 
-    const { gameId, context, secondsElapsed, forcedByJudge } = container;
+    const { context, secondsElapsed, forcedByJudge } = container;
 
     for (const event of container.eventList) {
       const meta: GameEventMeta = {
-        gameId: gameId ?? -1,
+        gameId,
         playerId: event.playerId ?? -1,
         context,
         secondsElapsed: secondsElapsed ?? 0,

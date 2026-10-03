@@ -14,6 +14,7 @@ vi.mock('../../commands/session', () => ({
   forgotPasswordChallenge: vi.fn(),
   forgotPasswordReset: vi.fn(),
   requestPasswordSalt: vi.fn(),
+  replayList: vi.fn(),
 }));
 
 vi.mock('../../utils', () => ({
@@ -109,6 +110,12 @@ describe('replayAdded', () => {
     });
     replayAdded(data);
     expect(WebClient.instance.response.session.replayAdded).toHaveBeenCalledWith(data.matchInfo);
+  });
+
+  it('refreshes the replay list when the event carries no match info', () => {
+    replayAdded(create(Event_ReplayAddedSchema, {}));
+    expect(SessionCmds.replayList).toHaveBeenCalled();
+    expect(WebClient.instance.response.session.replayAdded).not.toHaveBeenCalled();
   });
 });
 
