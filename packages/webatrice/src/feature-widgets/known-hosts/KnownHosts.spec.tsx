@@ -1,4 +1,5 @@
 import { act, fireEvent, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import { server } from '@cockatrice/datatrice';
 
@@ -39,7 +40,7 @@ describe('KnownHosts public servers', () => {
   it('allows configuring the desktop port of a built-in host', async () => {
     setup();
     await openPicker();
-    fireEvent.click(screen.getByRole('button', { name: 'Edit host' }));
+    fireEvent.click(screen.getByRole('button', { name: 'KnownHosts.edit' }));
     expect(screen.getByRole('spinbutton', { name: 'KnownHostForm.label.desktopPort' })).toBeEnabled();
     expect(screen.getByRole('textbox', { name: 'Common.label.hostAddress' })).toBeDisabled();
   });
@@ -141,38 +142,130 @@ describe('KnownHosts keyboard and screen-reader access', () => {
     expect(option).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('picks a host from the keyboard and returns focus to the picker', async () => {
-    const { hook } = setup();
+  function setupMany(selected = 1) {
+    const hook = makeKnownHostsHook();
+    const hosts = [
+      makeHost({ id: 1, name: 'Alpha', editable: true }),
+      makeHost({ id: 2, name: 'Bravo' }),
+      makeHost({ id: 3, name: 'Charlie' }),
+    ];
+    hook.value = { hosts, selectedHost: hosts[selected] };
+    vi.mocked(useKnownHosts).mockReturnValue(hook);
+    renderWithProviders(<KnownHosts value={hosts[selected]} onChange={vi.fn()} />, { preloadedState: connectedState });
+    return { hook, hosts };
+  }
+
+  const activeOption = (listbox: HTMLElement) =>
+    document.getElementById(listbox.getAttribute('aria-activedescendant') ?? '');
+
+  it('is a single tab stop whose options are not themselves focusable', async () => {
+    setupMany();
     await openPicker();
 
-    const option = screen.getByRole('option', { name: /Rooster/ });
-    option.focus();
-    await act(async () => {
-      fireEvent.click(option);
-    });
+    const listbox = screen.getByRole('listbox', { name: 'KnownHosts.saved' });
+    expect(listbox).toHaveAttribute('tabindex', '0');
+    for (const option of within(listbox).getAllByRole('option')) {
+      expect(option).not.toHaveAttribute('tabindex');
+      expect(within(option).queryByRole('button')).not.toBeInTheDocument();
+    }
+  });
 
-    expect(hook.select).toHaveBeenCalledWith(SAVED.id);
+  it('starts on the selected host and moves with the arrow, Home and End keys', async () => {
+    const user = userEvent.setup();
+    setupMany();
+    await user.click(screen.getByRole('button', { name: 'KnownHosts.toggle' }));
+
+    const listbox = screen.getByRole('listbox');
+    listbox.focus();
+    expect(activeOption(listbox)).toHaveTextContent('Bravo');
+
+    await user.keyboard('{ArrowDown}');
+    expect(activeOption(listbox)).toHaveTextContent('Charlie');
+    await user.keyboard('{ArrowDown}');
+    expect(activeOption(listbox)).toHaveTextContent('Charlie');
+    await user.keyboard('{Home}');
+    expect(activeOption(listbox)).toHaveTextContent('Alpha');
+    await user.keyboard('{ArrowUp}');
+    expect(activeOption(listbox)).toHaveTextContent('Alpha');
+    await user.keyboard('{End}');
+    expect(activeOption(listbox)).toHaveTextContent('Charlie');
+  });
+
+  it('jumps to a host by typing the start of its name', async () => {
+    const user = userEvent.setup();
+    setupMany();
+    await user.click(screen.getByRole('button', { name: 'KnownHosts.toggle' }));
+
+    const listbox = screen.getByRole('listbox');
+    listbox.focus();
+    await user.keyboard('ch');
+
+    expect(activeOption(listbox)).toHaveTextContent('Charlie');
+  });
+
+  it.each([['Enter', '{Enter}'], ['Space', ' ']])('picks the active host with %s and returns focus to the picker', async (_, key) => {
+    const user = userEvent.setup();
+    const { hook, hosts } = setupMany();
+    await user.click(screen.getByRole('button', { name: 'KnownHosts.toggle' }));
+
+    screen.getByRole('listbox').focus();
+    await user.keyboard('{Home}');
+    await user.keyboard(key);
+
+    expect(hook.select).toHaveBeenCalledWith(hosts[0].id);
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'KnownHosts.label' })).toHaveFocus();
+  });
+
+  it('picks a host by click', async () => {
+    const user = userEvent.setup();
+    const { hook, hosts } = setupMany();
+    await user.click(screen.getByRole('button', { name: 'KnownHosts.toggle' }));
+
+    await user.click(screen.getByRole('option', { name: /Charlie/ }));
+
+    expect(hook.select).toHaveBeenCalledWith(hosts[2].id);
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
+
+  it('reaches the listbox and then the Edit control by Tab', async () => {
+    const user = userEvent.setup();
+    const editable = makeHost({ id: 3, name: 'Mine', editable: true });
+    const hook = makeKnownHostsHook();
+    hook.value = { hosts: [editable], selectedHost: editable };
+    vi.mocked(useKnownHosts).mockReturnValue(hook);
+    renderWithProviders(<KnownHosts value={editable} onChange={vi.fn()} />, { preloadedState: connectedState });
+    await user.click(screen.getByRole('button', { name: 'KnownHosts.toggle' }));
+
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'KnownHosts.add' })).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole('listbox')).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'KnownHosts.edit' })).toHaveFocus();
   });
 
   it('closes on Escape and returns focus to the picker', async () => {
     setup();
     await openPicker();
 
-    screen.getByRole('option', { name: /Rooster/ }).focus();
+    screen.getByRole('listbox').focus();
     fireEvent.keyDown(document, { key: 'Escape' });
 
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'KnownHosts.label' })).toHaveFocus();
   });
 
-  it('names each Edit button after its host', async () => {
-    const hook = makeKnownHostsHook();
-    const editable = makeHost({ id: 3, name: 'Mine', editable: true });
-    hook.value = { hosts: [editable], selectedHost: editable };
-    vi.mocked(useKnownHosts).mockReturnValue(hook);
-    renderWithProviders(<KnownHosts value={editable} onChange={vi.fn()} />, { preloadedState: connectedState });
+  it('offers one Edit control, outside the listbox, for an editable selected host', async () => {
+    setupMany(0);
+    await openPicker();
+
+    const edit = screen.getByRole('button', { name: 'KnownHosts.edit' });
+    expect(screen.getByRole('listbox')).not.toContainElement(edit);
+  });
+
+  it('offers Edit for a built-in selected host too, for its desktop port', async () => {
+    setup();
     await openPicker();
 
     expect(screen.getByRole('button', { name: 'KnownHosts.edit' })).toBeInTheDocument();
