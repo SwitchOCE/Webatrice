@@ -46,6 +46,8 @@ test('a page without Web Crypto (plain http://) boots with a password-hashing no
   await login.goto();
 
   await expect(login.hostPicker).toBeVisible();
-  await expect(page.getByRole('alert').filter({ hasText: 'Some features are unavailable in this browser' }))
+  // The notice is a toast inside the app's "Notifications" region (ToastProvider).
+  await expect(page.getByRole('region', { name: 'Notifications' })
+    .getByText('Some features are unavailable in this browser'))
     .toContainText('passwords are sent to the server unhashed instead');
 });
