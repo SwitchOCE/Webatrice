@@ -55,11 +55,14 @@ export function buildRelatedViewItems(
  *     is a follow-up. `persistent="persistent"` inverts the
  *     default destroy-on-zone-change (rare — most tokens vanish
  *     off the battlefield).
+ *   - With "Annotate card text on tokens" (`annotate`), each token
+ *     carries its rules text as its annotation (PlayerActions::createCard).
  */
 export function buildRelatedTokenItems(
   related: RelatedCardRef[],
   tokenMeta: Map<string, LookupResult>,
   onCreateToken: CreateTokenHandler | undefined,
+  annotate = false,
 ): CardMenuItem[] {
   const out: CardMenuItem[] = [];
   for (const ref of related) {
@@ -92,7 +95,7 @@ export function buildRelatedTokenItems(
             name: tok?.name ?? ref.name,
             color: tokColor,
             pt: tokPT ?? '',
-            annotation: '',
+            annotation: annotate ? tok?.text ?? '' : '',
             destroyOnZoneChange: ref.persistent !== 'persistent',
             faceDown: false,
             providerId: tokProviderId,
@@ -129,13 +132,15 @@ const TRANSFORMABLE_LAYOUTS = new Set(['transform', 'modal_dfc', 'reversible_car
  * Scryfall face data hasn't landed yet, or when the source card
  * has no numeric id (optimistic mock-id cards can't be targeted).
  * Otherwise returns exactly ONE item — the transform target is the
- * one non-front face.
+ * one non-front face. With `annotate`, the new face carries its rules
+ * text as its annotation, as a related token does.
  */
 export function buildTransformItems(
   parentMeta: { layout?: string; faces?: LookupCardFace[] } | undefined,
   sourceCardId: number | undefined,
   parentName: string,
   onCreateToken: CreateTokenHandler | undefined,
+  annotate = false,
 ): CardMenuItem[] {
   // Servatrice numbers cards from 0 (server_player.cpp newCardId), so 0 is a real id.
   if (!parentMeta || sourceCardId == null || !onCreateToken) {
@@ -174,7 +179,7 @@ export function buildTransformItems(
           name: target.name,
           color: targetColor,
           pt: targetPT ?? '',
-          annotation: '',
+          annotation: annotate ? target.text ?? '' : '',
           destroyOnZoneChange: false,
           faceDown: false,
           targetCardId: sourceCardId,

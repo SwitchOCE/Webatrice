@@ -37,6 +37,8 @@ export default function HandCardMenu() {
     zoneViewCardMenu,
     zones,
   } = usePlayerSeatContext();
+  // Desktop's "Annotate card text on tokens".
+  const annotateTokens = usePreference('annotateTokens');
   // Write access to this seat's cards: the owner, or a judge.
   const canModify = useCanActFor()(menuOwnerId);
 
@@ -62,7 +64,8 @@ export default function HandCardMenu() {
     promptMoveXFromTop: openMoveXFromTopPrompt,
     startArrow: startDrawArrow,
     relatedViewItems: relatedViewItemsFor,
-    tokenItems: (name) => buildRelatedTokenItems(cardMetaByName.get(name)?.related ?? [], tokenMetaByName, cardCommands.createToken),
+    tokenItems: (name) =>
+      buildRelatedTokenItems(cardMetaByName.get(name)?.related ?? [], tokenMetaByName, cardCommands.createToken, annotateTokens),
     close: closeSeatCardMenu,
   });
   return menu && <CardMenuPopup {...menu} onClose={closeSeatCardMenu} />;
