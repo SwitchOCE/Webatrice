@@ -1,123 +1,172 @@
-import { act, renderHook, waitFor } from '@testing-library/react';
-import { combineReducers } from '@reduxjs/toolkit';
+import { act, waitFor } from '@testing-library/react';
 
 import { server } from '@cockatrice/datatrice';
+import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
+import { lookupCard } from '@app/services';
 
-import { rootReducerMap, type RootState } from '../../../store';
-import { connectedState, createMockWebClient } from '../../../__test-utils__';
-import { makeReduxWebClientHookWrapper } from '../../../__test-utils__/makeHookWrapper';
+import { connectedState, createMockWebClient, renderWithProviders } from '../../../__test-utils__';
+import { clearDeckEditorCache, getCachedDeck, setCachedDeck } from '../deckEditorCache';
+import { hydrateDeck } from '../hydrate';
+import type { HydratedDeck } from '../types';
+import { useDeckEditor, type UseDeckEditor } from './useDeckEditor';
 
-vi.mock('@app/services', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@app/services')>();
-  return { ...actual, lookupCards: vi.fn(async () => new Map()), trackEvent: vi.fn() };
-});
+vi.mock('../hydrate', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../hydrate')>()),
+  hydrateDeck: vi.fn(),
+}));
+vi.mock('../deckPersistence', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../deckPersistence')>()),
+  uploadDeckUpdate: vi.fn(),
+}));
+vi.mock('@app/services', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@app/services')>()),
+  lookupCard: vi.fn(),
+  trackEvent: vi.fn(),
+}));
 
-import { emptyCod } from '@app/services';
-import { clearDeckEditorCache } from '../deckEditorCache';
-import { useDeckEditor } from './useDeckEditor';
+const COD = '<cockatrice_deck version="1"><deckname>Burn</deckname><format>modern</format>'
+  + '<zone name="main"><card number="1" name="Sol Ring"/></zone></cockatrice_deck>';
 
-const reducer = combineReducers(rootReducerMap);
-const DECK_A = 1;
-const DECK_B = 2;
-
-function setup(initialDeckId: number) {
-  const webClient = createMockWebClient();
-  const sendSessionCommand = vi.fn();
-  (webClient as any).protobuf = { sendSessionCommand };
-  const { Wrapper, store } = makeReduxWebClientHookWrapper({
-    reducer: reducer as never,
-    preloadedState: connectedState as Partial<RootState> as never,
-    webClient,
-  });
-  const hook = renderHook(({ deckId }) => useDeckEditor(deckId), {
-    wrapper: Wrapper,
-    initialProps: { deckId: initialDeckId },
-  });
-  const download = async (deckId: number, name: string, format: string) => {
-    act(() => {
-      store.dispatch(server.Actions.deckDownloaded({
-        deckId, deck: emptyCod(name, format),
-        requestId: vi.mocked(webClient.request.session.deckDownload).mock.calls.at(-1)![1],
-      }));
-    });
-    await waitFor(() => expect(hook.result.current.deck?.name).toBe(name));
+function hydrated(overrides: Partial<HydratedDeck> = {}): HydratedDeck {
+  return {
+    name: 'Burn',
+    meta: { v: 1, updatedAt: 'x' },
+    format: 'modern',
+    cards: [{ name: 'Sol Ring', quantity: 1, category: 'main', lookupSource: 'scryfall' }],
+    ...overrides,
   };
-  const uploads = () =>
-    sendSessionCommand.mock.calls.map(([, cmd]) => ({ deckId: cmd.deckId, deckList: cmd.deckList as string }));
-  return { ...hook, Wrapper, download, uploads };
+}
+
+let latest: UseDeckEditor;
+function Probe({ deckId }: { deckId: number | null }) {
+  latest = useDeckEditor(deckId);
+  return null;
+}
+
+function setup(deckId: number | null = 5) {
+  const webClient = createMockWebClient();
+  const view = renderWithProviders(<Probe deckId={deckId} />, { preloadedState: connectedState, webClient });
+  // The download's request id; outcomes for any other request are ignored.
+  const requestId = () => vi.mocked(webClient.request.session.deckDownload).mock.lastCall?.[1];
+  return { ...view, webClient, requestId };
 }
 
 beforeEach(() => {
   clearDeckEditorCache();
-  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.mocked(hydrateDeck).mockResolvedValue(hydrated());
 });
 
-afterEach(() => {
-  vi.useRealTimers();
-  vi.clearAllMocks();
-});
+describe('useDeckEditor', () => {
+  it('downloads the deck, hydrates it and seeds the session cache', async () => {
+    const { webClient, store, requestId } = setup();
+    expect(webClient.request.session.deckDownload).toHaveBeenCalledWith(5, expect.any(String));
+    expect(latest.loading).toBe(true);
 
-describe('useDeckEditor — switching deckId on a mounted editor', () => {
-  it('re-seeds from the cache and autosaves the open deck, not the previous one', async () => {
-    const { result, rerender, download, uploads } = setup(DECK_A);
-    await download(DECK_A, 'Alpha', 'modern');
-
-    rerender({ deckId: DECK_B });
-    await download(DECK_B, 'Bravo', 'standard');
-
-    // A is cached now: switching back must show A without a download.
-    rerender({ deckId: DECK_A });
-    expect(result.current.deck?.name).toBe('Alpha');
-    expect(result.current.deck?.format).toBe('modern');
-
-    act(() => result.current.setDescription('edited'));
     act(() => {
-      vi.advanceTimersByTime(1000);
+      store.dispatch(server.Actions.deckDownloaded({ deckId: 5, deck: COD, requestId: requestId() }));
     });
 
-    expect(uploads()).toHaveLength(1);
-    expect(uploads()[0].deckId).toBe(DECK_A);
-    expect(uploads()[0].deckList).toContain('<deckname>Alpha</deckname>');
-    expect(uploads()[0].deckList).toContain('modern');
-    expect(uploads()[0].deckList).not.toContain('standard');
+    await waitFor(() => expect(latest.loading).toBe(false));
+    expect(latest.deck?.name).toBe('Burn');
+    expect(latest.totalMainboardCount).toBe(1);
+    expect(getCachedDeck(5)?.savedXml).toBe(COD);
   });
 
-  it('does not mirror the previous deck into the next deck\'s cache entry', async () => {
-    const { rerender, unmount, Wrapper, download } = setup(DECK_A);
-    await download(DECK_A, 'Alpha', 'modern');
-    rerender({ deckId: DECK_B });
-    await download(DECK_B, 'Bravo', 'standard');
-    rerender({ deckId: DECK_A });
-    unmount();
-
-    const { result } = renderHook(() => useDeckEditor(DECK_A), { wrapper: Wrapper });
-
-    expect(result.current.deck?.name).toBe('Alpha');
-    expect(result.current.deck?.format).toBe('modern');
+  it('ignores another deck’s download', () => {
+    const { store } = setup();
+    act(() => {
+      store.dispatch(server.Actions.deckDownloaded({ deckId: 6, deck: COD }));
+    });
+    expect(hydrateDeck).not.toHaveBeenCalled();
+    expect(latest.loading).toBe(true);
   });
 
-  it('clears the previous deck while an uncached deck downloads', async () => {
-    const { result, rerender, download } = setup(DECK_A);
-    await download(DECK_A, 'Alpha', 'modern');
-
-    rerender({ deckId: DECK_B });
-
-    expect(result.current.deck).toBeNull();
-    expect(result.current.loading).toBe(true);
+  it('reports an unreadable deck as not found', async () => {
+    const { store, requestId } = setup();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    act(() => {
+      store.dispatch(server.Actions.deckDownloaded({ deckId: 5, deck: 'not xml', requestId: requestId() }));
+    });
+    await waitFor(() => expect(latest.notFound).toBe(true));
+    expect(latest.loading).toBe(false);
   });
 
-  it('flushes a pending edit to the deck it was made on when the deckId changes', async () => {
-    const { result, rerender, download, uploads } = setup(DECK_A);
-    await download(DECK_A, 'Alpha', 'modern');
-    rerender({ deckId: DECK_B });
-    await download(DECK_B, 'Bravo', 'standard');
-    rerender({ deckId: DECK_A });
+  it('stops loading and explains a timed-out download', () => {
+    const { store, requestId } = setup();
+    act(() => {
+      store.dispatch(server.Actions.deckDownloadFailed({
+        deckId: 5,
+        requestId: requestId(),
+        responseCode: Response_ResponseCode.RespNotConnected,
+        failure: WebsocketTypes.CommandFailure.Timeout,
+      }));
+    });
+    expect(latest.loading).toBe(false);
+    expect(latest.notFound).toBe(true);
+    expect(latest.loadError).toBe('CommandFailure.timeout');
+  });
 
-    act(() => result.current.setDescription('edited'));
-    rerender({ deckId: DECK_B });
+  it('uses the generic download message for a server rejection', () => {
+    const { store, requestId } = setup();
+    act(() => {
+      store.dispatch(server.Actions.deckDownloadFailed({
+        deckId: 5, requestId: requestId(), responseCode: Response_ResponseCode.RespNameNotFound,
+      }));
+    });
+    expect(latest.loadError).toBe('DeckEditor.downloadFailed');
+  });
 
-    expect(uploads()).toHaveLength(1);
-    expect(uploads()[0].deckId).toBe(DECK_A);
-    expect(uploads()[0].deckList).toContain('<deckname>Alpha</deckname>');
+  it('ignores another deck’s download failure', () => {
+    const { store } = setup();
+    act(() => {
+      store.dispatch(server.Actions.deckDownloadFailed({ deckId: 6, responseCode: Response_ResponseCode.RespNameNotFound }));
+    });
+    expect(latest.loading).toBe(true);
+    expect(latest.loadError).toBeNull();
+  });
+
+  it('serves a deck opened earlier this session without downloading it', () => {
+    setCachedDeck(5, { deck: hydrated({ name: 'Cached' }), savedXml: COD });
+    const { webClient } = setup();
+    expect(latest.loading).toBe(false);
+    expect(latest.deck?.name).toBe('Cached');
+    expect(webClient.request.session.deckDownload).not.toHaveBeenCalled();
+  });
+
+  it('applies edits optimistically, marks the deck dirty and mirrors it into the cache', () => {
+    setCachedDeck(5, { deck: hydrated(), savedXml: COD });
+    setup();
+
+    act(() => latest.setName('Burn v2'));
+    expect(latest.deck?.name).toBe('Burn v2');
+    expect(latest.saveState).toBe('dirty');
+    expect(getCachedDeck(5)?.deck.name).toBe('Burn v2');
+
+    act(() => latest.incQuantity(0, 2));
+    expect(latest.deck?.cards[0].quantity).toBe(3);
+    act(() => latest.setCategory(0, 'sideboard'));
+    expect(latest.totalSideboardCount).toBe(3);
+    act(() => latest.deleteCard(0));
+    expect(latest.deck?.cards).toEqual([]);
+  });
+
+  it('adds a card by name, incrementing an existing mainboard row', async () => {
+    setCachedDeck(5, { deck: hydrated(), savedXml: COD });
+    vi.mocked(lookupCard).mockResolvedValue({ found: false, source: 'unknown', name: 'Mox', printings: [] });
+    setup();
+
+    await act(() => latest.addCard('sol ring'));
+    expect(latest.deck?.cards).toHaveLength(1);
+    expect(latest.deck?.cards[0].quantity).toBe(2);
+
+    await act(() => latest.addCard('Mox // Back'));
+    expect(lookupCard).toHaveBeenCalledWith('Mox');
+    expect(latest.deck?.cards.map((c) => c.name)).toEqual(['Sol Ring', 'Mox']);
+  });
+
+  it('does nothing without a deck id', () => {
+    const { webClient } = setup(null);
+    expect(webClient.request.session.deckDownload).not.toHaveBeenCalled();
   });
 });
