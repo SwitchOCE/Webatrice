@@ -7,3 +7,4 @@
 - 14:16Z playmat render pushed (352b143) → resolver + SetPlaymat sync, then settings tab
 - 14:19Z SetPlaymat sync pushed (180baaa) → Playmats settings tab
 - 14:24Z all features + changesets pushed (400362b) → full gate
+- 14:32Z gate: typecheck 5/5, lint 3/3, unit sock 790 / data 1210 / web 1525+2skip, integ 167/137/160+2skip → e2e (sockatrice + webatrice containerised)
