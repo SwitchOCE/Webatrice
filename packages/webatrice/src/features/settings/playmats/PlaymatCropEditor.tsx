@@ -13,6 +13,7 @@ const asDecimal = (value: number) => value.toFixed(2);
 
 interface PlaymatCropEditorProps {
   playmat: games.Playmat;
+  /** Called once per edit, when a slider is released, not on every tick of a drag. */
   onChange: (params: games.PlaymatParams) => void;
 }
 
@@ -24,7 +25,9 @@ interface PlaymatCropEditorProps {
 export default function PlaymatCropEditor({ playmat, onChange }: PlaymatCropEditorProps) {
   const { t } = useTranslation();
   const [card, setCard] = useState<Size | null>(null);
-  const { params } = playmat;
+  // The values being dragged; the preview follows them, the collection is saved on release.
+  const [draft, setDraft] = useState<games.PlaymatParams | null>(null);
+  const params = draft ?? playmat.params;
   const box = card ? playmatImageBox(card, params, PREVIEW) : null;
   const src = getScryfallUrl({ providerId: playmat.cardProviderId, name: playmat.cardName }, ScryfallImageSize.Large);
 
@@ -72,7 +75,11 @@ export default function PlaymatCropEditor({ playmat, onChange }: PlaymatCropEdit
             valueLabelDisplay="auto"
             valueLabelFormat={format}
             getAriaValueText={format}
-            onChange={(_, value) => onChange({ ...params, [key]: value as number })}
+            onChange={(_, value) => setDraft({ ...params, [key]: value as number })}
+            onChangeCommitted={(_, value) => {
+              setDraft(null);
+              onChange({ ...params, [key]: value as number });
+            }}
             slotProps={{ input: { 'aria-label': label } }}
           />
         </label>
