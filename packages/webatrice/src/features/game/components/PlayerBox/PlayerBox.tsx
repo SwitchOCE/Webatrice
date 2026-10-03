@@ -35,7 +35,7 @@ import {
 } from './gameBattlefield';
 import { useCardScale } from './cardScale';
 import { CardImage } from '@app/components';
-import { useSnapGridVisible } from '@app/hooks';
+import { usePreference, useSnapGridVisible } from '@app/hooks';
 import {
   CARD_BACK_URL,
   CARD_CORNER_RADIUS,
@@ -3030,6 +3030,9 @@ function PlayerBox(
     onRequestGameInfo,
     onRequestViewSideboard,
   } = useGameDialogActions();
+  // User-interface preferences (Settings → User Interface).
+  const playToStack = usePreference('playToStack');
+  const tapAnimation = usePreference('tapAnimation');
   // Sideboard view state — mounted below in the modal render block
   // when isSelf. Both open triggers (right-sidebar button + battlefield
   // menu) dispatch through useGameDialogActions so this is the single
@@ -9064,7 +9067,7 @@ function PlayerBox(
                       // card's midpoint so it doesn't drift off its slot.
                       transform: c.tapped ? 'rotate(90deg)' : undefined,
                       transformOrigin: 'center',
-                      transition: 'transform 150ms ease-out',
+                      transition: tapAnimation ? 'transform 150ms ease-out' : undefined,
                     }}
                   >
                     <Card
@@ -9309,7 +9312,8 @@ function PlayerBox(
                       onDoubleClick={async () => {
                         // Double-click auto-play chain: lands go straight to
                         // the battlefield; everything else takes a stack
-                        // detour so spells are visible before resolving. The
+                        // detour so spells are visible before resolving
+                        // (permanents skip it when playToStack is off). The
                         // stack card itself has its own double-click handler
                         // that resolves the second step (instant/sorcery →
                         // graveyard, permanent → battlefield). Card type
@@ -9352,8 +9356,11 @@ function PlayerBox(
                           }
                         }
                         const tableRow = typeLineToTableRow(typeLine);
-                        if (tableRow === 0) {
-                          // Land — straight to the battlefield bottom row.
+                        // Desktop PlayerActions::playCard: lands go to the
+                        // battlefield and instants/sorceries to the stack;
+                        // other permanents take the stack only with "Play
+                        // all nonlands onto the stack" on (the default).
+                        if (tableRow === 0 || (tableRow !== 3 && !playToStack)) {
                           onMoveCard({
                             startPlayerId: playerId,
                             startZone: ZoneName.HAND,
@@ -9364,8 +9371,8 @@ function PlayerBox(
                             y: tableRowToGridY(tableRow),
                           });
                         } else {
-                          // Non-land (creature / other permanent / instant /
-                          // sorcery / unknown) — detour through the stack.
+                          // Detour through the stack so the spell is visible
+                          // before it resolves.
                           onMoveCard({
                             startPlayerId: playerId,
                             startZone: ZoneName.HAND,
