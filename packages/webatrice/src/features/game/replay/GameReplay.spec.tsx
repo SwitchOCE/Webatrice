@@ -181,6 +181,23 @@ describe('GameBoard in read-only mode', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
+  it('lets no click on the phase track reach a game command', () => {
+    const webClient = createMockWebClient();
+    renderWithProviders(
+      <GameReadOnlyProvider value>
+        <GameBoard gameId={REPLAY_GAME_ID} />
+      </GameReadOnlyProvider>,
+      { preloadedState: boardState(), webClient, gameId: undefined },
+    );
+    vi.clearAllMocks();
+    const phaseBar = screen.getByTestId('phase-bar');
+    for (const element of [phaseBar, ...Array.from(phaseBar.querySelectorAll('*'))]) {
+      fireEvent.click(element);
+      fireEvent.doubleClick(element);
+    }
+    expect(allRequestSpies(webClient).filter((spy) => spy.mock.calls.length > 0)).toEqual([]);
+  });
+
   it('the same input on a live board does reach the server (control)', () => {
     expect(hammerBoard(false).length).toBeGreaterThan(0);
   });
