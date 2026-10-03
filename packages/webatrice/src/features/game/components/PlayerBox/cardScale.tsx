@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
   type RefObject,
-} from "react";
+} from 'react';
 
 /**
  * Card-scale multiplier — everything sized by a card (cards themselves,
@@ -60,12 +60,16 @@ const CardScaleContext = createContext<CardScaleContextValue>({
 });
 
 function clampScale(n: number): number {
-  if (!Number.isFinite(n)) return CARD_SCALE_DEFAULT;
+  if (!Number.isFinite(n)) {
+    return CARD_SCALE_DEFAULT;
+  }
   return Math.min(CARD_SCALE_MAX, Math.max(CARD_SCALE_MIN, n));
 }
 
 function computeScale(height: number, rows: number): number {
-  if (height <= 0) return CARD_SCALE_DEFAULT;
+  if (height <= 0) {
+    return CARD_SCALE_DEFAULT;
+  }
   // Per-cell height: the board grid stacks rows of PlayerBox cells, and
   // each cell has to fit a fixed vertical layout (battlefield + hand +
   // header). Dividing by rows gives the per-cell height, then the
@@ -102,13 +106,17 @@ export function CardScaleProvider({
   // a jump, visible as a card-size pop on mount.
   useLayoutEffect(() => {
     const el = containerRef?.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     const measure = () => {
       const rect = el.getBoundingClientRect();
       setScale(computeScale(rect.height, rows));
     };
     measure();
-    if (typeof ResizeObserver === "undefined") return;
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
@@ -121,12 +129,14 @@ export function CardScaleProvider({
   useEffect(() => {
     const onFontChange = () => {
       const el = containerRef?.current;
-      if (!el) return;
+      if (!el) {
+        return;
+      }
       const rect = el.getBoundingClientRect();
       setScale(computeScale(rect.height, rows));
     };
-    window.addEventListener("resize", onFontChange);
-    return () => window.removeEventListener("resize", onFontChange);
+    window.addEventListener('resize', onFontChange);
+    return () => window.removeEventListener('resize', onFontChange);
   }, [containerRef, rows]);
 
   // Apply the CSS vars at the document root so descendants inherit them
@@ -136,18 +146,18 @@ export function CardScaleProvider({
   // cardSize.ts so a Game unmount doesn't leave orphan vars on :root.
   useLayoutEffect(() => {
     const root = document.documentElement;
-    root.style.setProperty("--card-width", `${BASE_CARD_WIDTH_PX * scale}px`);
-    root.style.setProperty("--card-height", `${BASE_CARD_HEIGHT_PX * scale}px`);
+    root.style.setProperty('--card-width', `${BASE_CARD_WIDTH_PX * scale}px`);
+    root.style.setProperty('--card-height', `${BASE_CARD_HEIGHT_PX * scale}px`);
     // Gap + stack offset stay proportional to card size; the base values
     // (18 / 13.5) preserve the previous 20 / 15 gap-to-card ratio now
     // that the base card is 72 wide instead of 80.
-    root.style.setProperty("--card-gap-px", `${18 * scale}px`);
-    root.style.setProperty("--card-stack-offset-px", `${13.5 * scale}px`);
+    root.style.setProperty('--card-gap-px', `${18 * scale}px`);
+    root.style.setProperty('--card-stack-offset-px', `${13.5 * scale}px`);
     return () => {
-      root.style.removeProperty("--card-width");
-      root.style.removeProperty("--card-height");
-      root.style.removeProperty("--card-gap-px");
-      root.style.removeProperty("--card-stack-offset-px");
+      root.style.removeProperty('--card-width');
+      root.style.removeProperty('--card-height');
+      root.style.removeProperty('--card-gap-px');
+      root.style.removeProperty('--card-stack-offset-px');
     };
   }, [scale]);
 
@@ -178,10 +188,10 @@ export function useCardScaleStyle(): React.CSSProperties {
   return useMemo(
     () =>
       ({
-        "--card-width": `${BASE_CARD_WIDTH_PX * scale}px`,
-        "--card-height": `${BASE_CARD_HEIGHT_PX * scale}px`,
-        "--card-gap-px": `${18 * scale}px`,
-        "--card-stack-offset-px": `${13.5 * scale}px`,
+        '--card-width': `${BASE_CARD_WIDTH_PX * scale}px`,
+        '--card-height': `${BASE_CARD_HEIGHT_PX * scale}px`,
+        '--card-gap-px': `${18 * scale}px`,
+        '--card-stack-offset-px': `${13.5 * scale}px`,
       }) as React.CSSProperties,
     [scale],
   );

@@ -30,9 +30,13 @@ export function setPickedMockDeck(cards: DeckCard[]): void {
 export function getPickedMockDeck(): DeckCard[] | null {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
     const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return null;
+    if (!Array.isArray(parsed)) {
+      return null;
+    }
     return parsed as DeckCard[];
   } catch {
     return null;

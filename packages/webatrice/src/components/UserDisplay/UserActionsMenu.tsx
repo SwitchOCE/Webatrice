@@ -50,7 +50,9 @@ export default function UserActionsMenu({
       }
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+      }
     };
     // Delay attaching the outside-click listener by a tick so the
     // contextmenu event that opened us doesn't immediately close us.

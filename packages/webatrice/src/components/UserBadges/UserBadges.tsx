@@ -40,7 +40,9 @@ export function UserBadges({
     (userLevel & ServerInfo_User_UserLevelFlag.IsJudge)
       === ServerInfo_User_UserLevelFlag.IsJudge;
 
-  if (!isAdmin && !isModerator && !isJudge) return null;
+  if (!isAdmin && !isModerator && !isJudge) {
+    return null;
+  }
 
   return (
     <span className={`inline-flex items-center gap-0.5 shrink-0 ${className}`}>

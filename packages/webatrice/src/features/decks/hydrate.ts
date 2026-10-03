@@ -120,12 +120,16 @@ function pickPrinting(
   hint: ParsedCard,
   printings: PrintingSummary[],
 ): PrintingSummary | undefined {
-  if (!printings.length) return undefined;
+  if (!printings.length) {
+    return undefined;
+  }
 
   // Prefer an exact Scryfall id match.
   if (hint.scryfallId) {
     const byId = printings.find((p) => p.scryfallId === hint.scryfallId);
-    if (byId) return byId;
+    if (byId) {
+      return byId;
+    }
     // A scryfallId hint that Dexie can't resolve means the user picked
     // a printing from Scryfall that's not in their imported card DB.
     // Returning undefined preserves the hint values in assembleDeckCard
@@ -142,7 +146,9 @@ function pickPrinting(
         p.set?.toLowerCase() === hint.set!.toLowerCase() &&
         (!hint.collectorNumber || p.collectorNumber === hint.collectorNumber),
     );
-    if (bySet) return bySet;
+    if (bySet) {
+      return bySet;
+    }
     return undefined;
   }
 

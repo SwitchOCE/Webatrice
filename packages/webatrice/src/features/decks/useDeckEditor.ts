@@ -114,8 +114,12 @@ export interface UseDeckEditor {
  */
 interface CachedDeck { deck: HydratedDeck; savedXml: string }
 const deckCache: Map<number, CachedDeck> = new Map();
-export function clearDeckEditorCache(): void { deckCache.clear(); }
-export function deleteCachedDeck(deckId: number): void { deckCache.delete(deckId); }
+export function clearDeckEditorCache(): void {
+  deckCache.clear();
+}
+export function deleteCachedDeck(deckId: number): void {
+  deckCache.delete(deckId);
+}
 
 export function useDeckEditor(deckId: number | null): UseDeckEditor {
   const webClient = useWebClient();
@@ -140,7 +144,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
 
   // --- Load ---
   useEffect(() => {
-    if (deckId == null) return;
+    if (deckId == null) {
+      return;
+    }
     // Cached: state already seeded from the cache above; skip the
     // network round-trip entirely so tab switches feel instant.
     if (deckCache.has(deckId)) {
@@ -148,7 +154,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
       setNotFound(false);
       return;
     }
-    if (!isConnected) return;
+    if (!isConnected) {
+      return;
+    }
     setLoading(true);
     setNotFound(false);
     setDeck(null);
@@ -158,7 +166,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
 
   useReduxEffect<{ deckId: number; deck: string }>(
     ({ payload }) => {
-      if (payload.deckId !== deckId) return;
+      if (payload.deckId !== deckId) {
+        return;
+      }
       (async () => {
         try {
           const parsed = parseCod(payload.deck);
@@ -208,7 +218,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   // --- Save (debounced) ---
   const scheduleSave = useCallback(() => {
     setSaveState('dirty');
-    if (saveTimerRef.current != null) window.clearTimeout(saveTimerRef.current);
+    if (saveTimerRef.current != null) {
+      window.clearTimeout(saveTimerRef.current);
+    }
     saveTimerRef.current = window.setTimeout(() => {
       saveTimerRef.current = null;
       persistNow();
@@ -217,7 +229,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
 
   const persistNow = useCallback(() => {
     const current = deckRef.current;
-    if (!current || deckId == null) return;
+    if (!current || deckId == null) {
+      return;
+    }
     const nextMeta = touchMeta(current.meta);
     const xml = serializeCod({
       name: current.name,
@@ -229,13 +243,17 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
       tagsXml: current.tagsXml,
       bracketAssessment: current.bracketAssessment,
     });
-    if (xml === savedSignatureRef.current) return; // nothing changed
+    if (xml === savedSignatureRef.current) {
+      return;
+    } // nothing changed
     savedSignatureRef.current = xml;
     // Refresh the cached saved-signature so a remount after autosave
     // still sees the deck as "clean" (matches the last-known-saved
     // XML) and doesn't queue a spurious re-save.
     const cached = deckCache.get(deckId);
-    if (cached) deckCache.set(deckId, { deck: cached.deck, savedXml: xml });
+    if (cached) {
+      deckCache.set(deckId, { deck: cached.deck, savedXml: xml });
+    }
     setSaveState('saving');
     // uploadDeckUpdate handles both the server "saved" ack (flips our
     // saveState) and a follow-up deckList refetch that keeps MyDecks
@@ -259,7 +277,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   // (including unsaved edits), not the last-downloaded XML. Runs after
   // every setDeck — cheap, just a Map.set.
   useEffect(() => {
-    if (deckId == null || !deck) return;
+    if (deckId == null || !deck) {
+      return;
+    }
     const existing = deckCache.get(deckId);
     deckCache.set(deckId, {
       deck,
@@ -287,7 +307,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   const setDescription = useCallback(
     (description: string) => {
       setDeck((prev) => {
-        if (!prev) return prev;
+        if (!prev) {
+          return prev;
+        }
         const nextMeta: DeckMeta = { ...prev.meta, description: description || undefined };
         return { ...prev, meta: nextMeta };
       });
@@ -299,7 +321,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   const setPriceCache = useCallback(
     (priceUsd: number | undefined, priceMissingCount: number | undefined) => {
       setDeck((prev) => {
-        if (!prev) return prev;
+        if (!prev) {
+          return prev;
+        }
         // Skip the state churn (and the autosave it triggers) when the
         // computed values match what's already in meta. Without this,
         // the pricing effect would re-fire on every editor open even
@@ -321,7 +345,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   const setBracketAssessment = useCallback(
     (assessment: BracketAssessment | undefined) => {
       setDeck((prev) => {
-        if (!prev) return prev;
+        if (!prev) {
+          return prev;
+        }
         const prevLevel = prev.meta.bracketLevel;
         const nextLevel = assessment?.level;
         const prevFingerprint = prev.bracketAssessment?.fingerprint;
@@ -344,7 +370,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   const updateCard = useCallback(
     (index: number, patch: Partial<DeckCard>) => {
       setDeck((prev) => {
-        if (!prev) return prev;
+        if (!prev) {
+          return prev;
+        }
         const next = prev.cards.slice();
         next[index] = { ...next[index], ...patch };
         return { ...prev, cards: next };
@@ -357,7 +385,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   const deleteCard = useCallback(
     (index: number) => {
       setDeck((prev) => {
-        if (!prev) return prev;
+        if (!prev) {
+          return prev;
+        }
         const next = prev.cards.slice();
         next.splice(index, 1);
         return { ...prev, cards: next };
@@ -370,7 +400,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   const incQuantity = useCallback(
     (index: number, delta: number) => {
       setDeck((prev) => {
-        if (!prev) return prev;
+        if (!prev) {
+          return prev;
+        }
         const next = prev.cards.slice();
         const nextQty = next[index].quantity + delta;
         if (nextQty <= 0) {
@@ -388,7 +420,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   const setCategory = useCallback(
     (index: number, category: DeckCard['category']) => {
       setDeck((prev) => {
-        if (!prev) return prev;
+        if (!prev) {
+          return prev;
+        }
         const next = prev.cards.slice();
         next[index] = { ...next[index], category };
         return { ...prev, cards: next };
@@ -405,10 +439,14 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   const setCommander = useCallback(
     (index: number, isCommander: boolean) => {
       setDeck((prev) => {
-        if (!prev) return prev;
+        if (!prev) {
+          return prev;
+        }
         const next = prev.cards.slice();
         const current = next[index];
-        if (!current) return prev;
+        if (!current) {
+          return prev;
+        }
         next[index] = {
           ...current,
           isCommander,
@@ -432,7 +470,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
       // the same front-face record either way. Idempotent for
       // single-face names (no ` // ` present → no change).
       const trimmed = name.trim().split(' // ')[0].trim();
-      if (!trimmed) return;
+      if (!trimmed) {
+        return;
+      }
       // Increment first if a mainboard row already exists — matches
       // fancy's "one row per (name, category)" invariant.
       const current = deckRef.current;
@@ -442,7 +482,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
         );
         if (existingIdx >= 0) {
           setDeck((prev) => {
-            if (!prev) return prev;
+            if (!prev) {
+              return prev;
+            }
             const next = prev.cards.slice();
             next[existingIdx] = {
               ...next[existingIdx],
@@ -497,8 +539,11 @@ function countCards(cards: DeckCard[] | undefined): {
   let main = 0;
   let side = 0;
   for (const c of cards ?? []) {
-    if (c.category === 'sideboard') side += c.quantity;
-    else main += c.quantity;
+    if (c.category === 'sideboard') {
+      side += c.quantity;
+    } else {
+      main += c.quantity;
+    }
   }
   return { totalMainboardCount: main, totalSideboardCount: side };
 }
@@ -557,7 +602,9 @@ const DECK_LIST_REFETCH_DEBOUNCE_MS = 500;
 let deckListRefetchTimer: number | null = null;
 
 function scheduleDeckListRefetch(): void {
-  if (deckListRefetchTimer != null) window.clearTimeout(deckListRefetchTimer);
+  if (deckListRefetchTimer != null) {
+    window.clearTimeout(deckListRefetchTimer);
+  }
   deckListRefetchTimer = window.setTimeout(() => {
     deckListRefetchTimer = null;
     WebClient.instance.request.session.deckList();

@@ -43,10 +43,14 @@ export type PreviewMode = 'image' | 'text' | 'both';
 const CARD_PREVIEW_MODE_STORAGE_KEY = 'webatrice.cardPreviewMode';
 
 function readPersistedPreviewMode(): PreviewMode {
-  if (typeof window === 'undefined') return 'image';
+  if (typeof window === 'undefined') {
+    return 'image';
+  }
   try {
     const raw = window.localStorage.getItem(CARD_PREVIEW_MODE_STORAGE_KEY);
-    if (raw === 'text' || raw === 'both') return raw;
+    if (raw === 'text' || raw === 'both') {
+      return raw;
+    }
     return 'image';
   } catch {
     return 'image';
@@ -94,13 +98,17 @@ async function fetchScryfallDetail(
     const url = scryfallId
       ? `https://api.scryfall.com/cards/${encodeURIComponent(scryfallId)}`
       : `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(
-          name.replace(/\s*\(?\bToken\b\)?\s*$/i, ''),
-        )}`;
+        name.replace(/\s*\(?\bToken\b\)?\s*$/i, ''),
+      )}`;
     const res = await fetch(url, { signal });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      return null;
+    }
     return (await res.json()) as ScryfallDetail;
   } catch (e) {
-    if ((e as { name?: string })?.name === 'AbortError') throw e;
+    if ((e as { name?: string })?.name === 'AbortError') {
+      throw e;
+    }
     return null;
   }
 }
@@ -123,7 +131,9 @@ export default function BattlefieldSidebar() {
   const [previewMode, setPreviewMode] = useState<PreviewMode>(readPersistedPreviewMode);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      return;
+    }
     try {
       window.localStorage.setItem(CARD_PREVIEW_MODE_STORAGE_KEY, previewMode);
     } catch {
@@ -239,7 +249,9 @@ export default function BattlefieldSidebar() {
         setDetailFetchState(d ? 'loaded' : 'not-found');
       })
       .catch((e) => {
-        if ((e as { name?: string })?.name === 'AbortError') return;
+        if ((e as { name?: string })?.name === 'AbortError') {
+          return;
+        }
         setDetailFetchState('not-found');
       });
     return () => controller.abort();
@@ -252,7 +264,9 @@ export default function BattlefieldSidebar() {
   // doesn't drop the user out of a game they meant to stay in. The
   // confirm's `onConfirm` fires the wire command + local dispatch.
   const handleLeave = () => {
-    if (gameId != null) onRequestLeave();
+    if (gameId != null) {
+      onRequestLeave();
+    }
   };
 
   // Fancy's exact URL pattern — prefer the exact printing by id,

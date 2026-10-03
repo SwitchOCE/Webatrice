@@ -74,7 +74,9 @@ export function parseCod(xml: string): ParsedDeck {
     const isCommanderZone = zoneName?.toLowerCase() === 'commander';
     for (const cardEl of directChildren(zone, 'card')) {
       const parsed = readCardElement(cardEl, category, isCommanderZone);
-      if (parsed) cards.push(parsed);
+      if (parsed) {
+        cards.push(parsed);
+      }
     }
   }
 
@@ -200,7 +202,9 @@ export function serializeCod(deck: {
 
   for (const category of Object.keys(byCategory) as DeckCategory[]) {
     const rows = byCategory[category];
-    if (!rows.length) continue;
+    if (!rows.length) {
+      continue;
+    }
     const zone = doc.createElement('zone');
     zone.setAttribute('name', categoryToZoneName(category));
     for (const row of rows) {
@@ -240,13 +244,17 @@ function readCardElement(
 ): ParsedCard | null {
   // `number` attribute is quantity. Default to 1 (Cockatrice desktop's default).
   const quantity = parseInt(el.getAttribute('number') || '1', 10);
-  if (!Number.isFinite(quantity) || quantity <= 0) return null;
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    return null;
+  }
 
   // Two accepted name locations: `name` attribute OR text content.
   const nameAttr = el.getAttribute('name')?.trim();
   const nameText = el.textContent?.trim();
   const name = nameAttr || nameText;
-  if (!name) return null;
+  if (!name) {
+    return null;
+  }
 
   // Commander marker sources, in priority order:
   //   1. Our own `commander="1"` attribute — modern serializeCod
@@ -272,9 +280,15 @@ function readCardElement(
   const set = el.getAttribute('setShortName')?.trim() || el.getAttribute('set')?.trim();
   const num = el.getAttribute('collectorNumber')?.trim() || el.getAttribute('num')?.trim();
   const uuid = el.getAttribute('uuid')?.trim();
-  if (set) parsed.set = set;
-  if (num) parsed.collectorNumber = num;
-  if (uuid) parsed.scryfallId = uuid;
+  if (set) {
+    parsed.set = set;
+  }
+  if (num) {
+    parsed.collectorNumber = num;
+  }
+  if (uuid) {
+    parsed.scryfallId = uuid;
+  }
   return parsed;
 }
 
@@ -285,9 +299,15 @@ function writeCardElement(doc: XMLDocument, card: DeckCard): Element {
   // Emit the Cockatrice-desktop-standard attribute names so files
   // written by us round-trip cleanly through the desktop client and
   // any third-party tooling that follows the same convention.
-  if (card.set) el.setAttribute('setShortName', card.set);
-  if (card.collectorNumber) el.setAttribute('collectorNumber', card.collectorNumber);
-  if (card.scryfallId) el.setAttribute('uuid', card.scryfallId);
+  if (card.set) {
+    el.setAttribute('setShortName', card.set);
+  }
+  if (card.collectorNumber) {
+    el.setAttribute('collectorNumber', card.collectorNumber);
+  }
+  if (card.scryfallId) {
+    el.setAttribute('uuid', card.scryfallId);
+  }
   return el;
 }
 
@@ -356,14 +376,20 @@ function appendTextElement(doc: XMLDocument, parent: Element, tagName: string, t
 
 function readBracketAssessment(root: Element): BracketAssessment | undefined {
   const el = directChildren(root, 'bracketAssessment')[0];
-  if (!el) return undefined;
+  if (!el) {
+    return undefined;
+  }
 
   const levelAttr = parseInt(el.getAttribute('level') ?? '', 10);
-  if (!Number.isInteger(levelAttr) || levelAttr < 1 || levelAttr > 5) return undefined;
+  if (!Number.isInteger(levelAttr) || levelAttr < 1 || levelAttr > 5) {
+    return undefined;
+  }
   const level = levelAttr as 1 | 2 | 3 | 4 | 5;
 
   const fingerprint = el.getAttribute('fingerprint')?.trim();
-  if (!fingerprint) return undefined;
+  if (!fingerprint) {
+    return undefined;
+  }
 
   return {
     level,
@@ -394,7 +420,9 @@ function writeBracketAssessment(doc: XMLDocument, a: BracketAssessment): Element
 
 function readCardListChild(parent: Element, tagName: string): string[] {
   const el = directChildren(parent, tagName)[0];
-  if (!el) return [];
+  if (!el) {
+    return [];
+  }
   return directChildren(el, 'card')
     .map((c) => c.textContent?.trim() ?? '')
     .filter((n) => n.length > 0);
@@ -402,13 +430,17 @@ function readCardListChild(parent: Element, tagName: string): string[] {
 
 function writeCardList(doc: XMLDocument, tagName: string, names: string[]): Element {
   const el = doc.createElement(tagName);
-  for (const name of names) appendTextElement(doc, el, 'card', name);
+  for (const name of names) {
+    appendTextElement(doc, el, 'card', name);
+  }
   return el;
 }
 
 function readCombosChild(parent: Element, tagName: string): BracketAssessmentCombo[] {
   const el = directChildren(parent, tagName)[0];
-  if (!el) return [];
+  if (!el) {
+    return [];
+  }
   const out: BracketAssessmentCombo[] = [];
   for (const comboEl of directChildren(el, 'combo')) {
     const id = comboEl.getAttribute('id')?.trim() ?? '';
@@ -417,7 +449,9 @@ function readCombosChild(parent: Element, tagName: string): BracketAssessmentCom
     const cardNames = directChildren(comboEl, 'card')
       .map((c) => c.textContent?.trim() ?? '')
       .filter((n) => n.length > 0);
-    if (id && cardNames.length > 0) out.push({ id, cardNames, totalMana });
+    if (id && cardNames.length > 0) {
+      out.push({ id, cardNames, totalMana });
+    }
   }
   return out;
 }
@@ -432,7 +466,9 @@ function writeCombos(
     const comboEl = doc.createElement('combo');
     comboEl.setAttribute('id', combo.id);
     comboEl.setAttribute('totalMana', String(combo.totalMana));
-    for (const name of combo.cardNames) appendTextElement(doc, comboEl, 'card', name);
+    for (const name of combo.cardNames) {
+      appendTextElement(doc, comboEl, 'card', name);
+    }
     el.appendChild(comboEl);
   }
   return el;

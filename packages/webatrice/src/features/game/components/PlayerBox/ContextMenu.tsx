@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
-import { useViewportClampedPopup } from "./useViewportClampedPopup";
+import { useViewportClampedPopup } from './useViewportClampedPopup';
 
 /**
  * A right-click context menu that overrides the browser's default menu.
@@ -63,28 +63,34 @@ export default function ContextMenu({
   );
 
   useEffect(() => {
-    if (!position) return;
+    if (!position) {
+      return;
+    }
     const onDown = (e: MouseEvent) => {
       // Any click anywhere (inside or outside the menu) dismisses it. Items
       // handle their own click first via onClick, which sets position=null
       // before this fires.
       const target = e.target as HTMLElement | null;
-      if (target?.closest("[data-context-menu]")) return;
+      if (target?.closest('[data-context-menu]')) {
+        return;
+      }
       setPosition(null);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setPosition(null);
+      if (e.key === 'Escape') {
+        setPosition(null);
+      }
     };
     // Slight delay so the right-click that opened the menu doesn't immediately
     // close it via the mousedown listener.
     const t = setTimeout(() => {
-      document.addEventListener("mousedown", onDown);
-      document.addEventListener("keydown", onKey);
+      document.addEventListener('mousedown', onDown);
+      document.addEventListener('keydown', onKey);
     }, 0);
     return () => {
       clearTimeout(t);
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
     };
   }, [position]);
 
@@ -146,7 +152,7 @@ function MenuList({
   // with "View library" (not) in the same menu would visibly indent
   // just the checkable rows.
   const menuHasCheckable = items.some(
-    (item) => !("divider" in item) && item.checked !== undefined,
+    (item) => !('divider' in item) && item.checked !== undefined,
   );
   return (
     <div
@@ -156,7 +162,7 @@ function MenuList({
       style={{ left: pos.x, top: pos.y }}
     >
       {items.map((item, i) => {
-        if ("divider" in item) {
+        if ('divider' in item) {
           return (
             <div
               key={`d-${i}`}
@@ -178,7 +184,9 @@ function MenuList({
               }}
               disabled={effectivelyDisabled}
               onClick={() => {
-                if (effectivelyDisabled) return;
+                if (effectivelyDisabled) {
+                  return;
+                }
                 if (item.onClick) {
                   item.onClick();
                   onDismiss();
@@ -194,7 +202,7 @@ function MenuList({
                   aria-hidden
                   className="w-3 text-text-primary text-xs shrink-0"
                 >
-                  {item.checked ? "✓" : ""}
+                  {item.checked ? '✓' : ''}
                 </span>
               )}
               <span className="flex-1">{item.label}</span>

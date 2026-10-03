@@ -96,14 +96,30 @@ export type CardTypeGroup =
  */
 export function primaryType(typeLine: string | undefined | null): CardTypeGroup {
   const front = (typeLine ?? '').split('—')[0];
-  if (/creature/i.test(front)) return 'Creature';
-  if (/planeswalker/i.test(front)) return 'Planeswalker';
-  if (/battle/i.test(front)) return 'Battle';
-  if (/instant/i.test(front)) return 'Instant';
-  if (/sorcery/i.test(front)) return 'Sorcery';
-  if (/enchantment/i.test(front)) return 'Enchantment';
-  if (/artifact/i.test(front)) return 'Artifact';
-  if (/land/i.test(front)) return 'Land';
+  if (/creature/i.test(front)) {
+    return 'Creature';
+  }
+  if (/planeswalker/i.test(front)) {
+    return 'Planeswalker';
+  }
+  if (/battle/i.test(front)) {
+    return 'Battle';
+  }
+  if (/instant/i.test(front)) {
+    return 'Instant';
+  }
+  if (/sorcery/i.test(front)) {
+    return 'Sorcery';
+  }
+  if (/enchantment/i.test(front)) {
+    return 'Enchantment';
+  }
+  if (/artifact/i.test(front)) {
+    return 'Artifact';
+  }
+  if (/land/i.test(front)) {
+    return 'Land';
+  }
   return 'Other';
 }
 
@@ -130,16 +146,16 @@ export interface DeckCard {
   typeLine?: string;
   manaCost?: string;
   cmc?: number;
-  colors?: string[];      // ["W", "U", ...]
+  colors?: string[]; // ["W", "U", ...]
   power?: string;
   toughness?: string;
 
   // --- Selected printing (either the user's pick from the XML attrs
   //     or the default: newest entry in `card.set[]`)
-  set?: string;              // set code, e.g. "C21"
-  collectorNumber?: string;  // "203"
-  scryfallId?: string;       // Scryfall UUID — Cockatrice's `set.uuid` for modern DBs
-  imageUri?: string;         // preferred picurl or Scryfall CDN URL
+  set?: string; // set code, e.g. "C21"
+  collectorNumber?: string; // "203"
+  scryfallId?: string; // Scryfall UUID — Cockatrice's `set.uuid` for modern DBs
+  imageUri?: string; // preferred picurl or Scryfall CDN URL
 
   /** Where the lookup came from. `unknown` = card name wasn't in Dexie
    *  and Scryfall couldn't find it either (typo, retired card, etc.).

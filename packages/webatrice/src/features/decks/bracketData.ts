@@ -54,7 +54,7 @@ export const RESTRICTED_MLD: ReadonlySet<string> = new Set([
   'Epicenter',
   'Global Ruin',
   'Hokori, Dust Drinker',
-  "Razia's Purification",
+  'Razia\'s Purification',
   'Rising Waters',
   'Soulscour',
   'Sunder',
@@ -71,7 +71,7 @@ export const RESTRICTED_MLD: ReadonlySet<string> = new Set([
   'Numot, the Devastator',
   'Kudzu',
   'Demonic Hordes',
-  "Urza's Sylex",
+  'Urza\'s Sylex',
   'Infernal Darkness',
   'Trinisphere',
   'Worldfire',
@@ -128,11 +128,11 @@ export const EARLY_COMBO_MANA_CUTOFF = 7;
 /** Per-category caps indexed by bracket 1..5. If a category's match
  *  count exceeds `maxes[N-1]`, the deck is pushed above bracket N. */
 export const EDHPL_MAXES = {
-  turns:        [0, 2, 3, 100, 100],
-  denial:       [0, 0, 0, 100, 100],
+  turns: [0, 2, 3, 100, 100],
+  denial: [0, 0, 0, 100, 100],
   gameChangers: [0, 0, 3, 100, 100],
-  earlyCombos:  [0, 0, 0, 100, 100],
-  lateCombos:   [0, 0, 100, 100, 100],
+  earlyCombos: [0, 0, 0, 100, 100],
+  lateCombos: [0, 0, 100, 100, 100],
 } as const;
 
 /** Restricted-list "auto-bump" threshold. Any restricted extra-turn

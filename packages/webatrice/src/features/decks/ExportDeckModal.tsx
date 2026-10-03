@@ -69,17 +69,27 @@ function toPlain(cards: DeckCard[]): string {
   const parts: string[] = [];
   if (commanders.length > 0) {
     parts.push('// Commander');
-    for (const c of commanders) parts.push(`${c.quantity} ${c.name}`);
+    for (const c of commanders) {
+      parts.push(`${c.quantity} ${c.name}`);
+    }
   }
   if (main.length > 0) {
-    if (parts.length > 0) parts.push('');
+    if (parts.length > 0) {
+      parts.push('');
+    }
     parts.push('// Deck');
-    for (const c of main) parts.push(`${c.quantity} ${c.name}`);
+    for (const c of main) {
+      parts.push(`${c.quantity} ${c.name}`);
+    }
   }
   if (side.length > 0) {
-    if (parts.length > 0) parts.push('');
+    if (parts.length > 0) {
+      parts.push('');
+    }
     parts.push('// Sideboard');
-    for (const c of side) parts.push(`${c.quantity} ${c.name}`);
+    for (const c of side) {
+      parts.push(`${c.quantity} ${c.name}`);
+    }
   }
   return parts.join('\n');
 }
@@ -88,7 +98,9 @@ function toArena(cards: DeckCard[]): string {
   const line = (c: DeckCard) => {
     const set = c.set ? c.set.toUpperCase() : '';
     const num = c.collectorNumber ?? '';
-    if (set && num) return `${c.quantity} ${c.name} (${set}) ${num}`;
+    if (set && num) {
+      return `${c.quantity} ${c.name} (${set}) ${num}`;
+    }
     return `${c.quantity} ${c.name}`;
   };
   // Commander is a per-card flag, not a category — cards live in
@@ -101,17 +113,27 @@ function toArena(cards: DeckCard[]): string {
   const parts: string[] = [];
   if (commanders.length > 0) {
     parts.push('Commander');
-    for (const c of commanders) parts.push(line(c));
+    for (const c of commanders) {
+      parts.push(line(c));
+    }
   }
   if (main.length > 0) {
-    if (parts.length > 0) parts.push('');
+    if (parts.length > 0) {
+      parts.push('');
+    }
     parts.push('Deck');
-    for (const c of main) parts.push(line(c));
+    for (const c of main) {
+      parts.push(line(c));
+    }
   }
   if (side.length > 0) {
-    if (parts.length > 0) parts.push('');
+    if (parts.length > 0) {
+      parts.push('');
+    }
     parts.push('Sideboard');
-    for (const c of side) parts.push(line(c));
+    for (const c of side) {
+      parts.push(line(c));
+    }
   }
   return parts.join('\n');
 }
@@ -155,10 +177,14 @@ export default function ExportDeckModal({
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     setCopied(false);
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -212,7 +238,9 @@ export default function ExportDeckModal({
     URL.revokeObjectURL(url);
   };
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">

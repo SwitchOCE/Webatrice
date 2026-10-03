@@ -67,17 +67,25 @@ export default function PrivateMessageNotifier() {
       seenCountRef.current.set(peer, currentCount);
       // First pass across the whole map is baseline-only — don't
       // toast any of it. Subsequent passes toast only the new tail.
-      if (!initializedRef.current) continue;
-      if (currentCount <= previousCount) continue;
+      if (!initializedRef.current) {
+        continue;
+      }
+      if (currentCount <= previousCount) {
+        continue;
+      }
 
       const newEntries = list.slice(previousCount);
       for (const entry of newEntries) {
         // Skip messages we sent (server echoes them back).
-        if (entry.senderName === selfName) continue;
+        if (entry.senderName === selfName) {
+          continue;
+        }
         // Skip if already looking at that peer's page.
         const peerPath = generatePath(RouteEnum.PLAYER, { name: entry.senderName });
         const alreadyThere = matchPath({ path: RouteEnum.PLAYER, end: true }, pathnameRef.current);
-        if (alreadyThere && alreadyThere.params.name === entry.senderName) continue;
+        if (alreadyThere && alreadyThere.params.name === entry.senderName) {
+          continue;
+        }
         renderToast(entry.senderName, entry.message, peerPath);
       }
     }

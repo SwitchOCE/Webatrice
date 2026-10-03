@@ -7,7 +7,9 @@ import { displaySequenceForOs } from './shortcutSequence';
 import { ActionId } from './types';
 
 function isMacUA(): boolean {
-  if (typeof navigator === 'undefined') return false;
+  if (typeof navigator === 'undefined') {
+    return false;
+  }
   return /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 }
 

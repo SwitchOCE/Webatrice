@@ -23,10 +23,14 @@ function loadPersisted(): boolean {
   // Default to pinned when nothing is stored yet — new users see the
   // fully-expanded track. Users who've explicitly turned auto-hide on
   // (persisted "0") get their preference back on reload.
-  if (typeof window === 'undefined') return true;
+  if (typeof window === 'undefined') {
+    return true;
+  }
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw == null) return true;
+    if (raw == null) {
+      return true;
+    }
     return raw === '1';
   } catch {
     return true;
@@ -34,7 +38,9 @@ function loadPersisted(): boolean {
 }
 
 function persist(value: boolean): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') {
+    return;
+  }
   try {
     window.localStorage.setItem(STORAGE_KEY, value ? '1' : '0');
   } catch {
@@ -71,7 +77,9 @@ export function usePhaseTrackPinned(): boolean {
 export function usePhaseTrackPinnedSetting(): [boolean, (next: boolean) => void] {
   const value = usePhaseTrackPinned();
   const setValue = useCallback((next: boolean) => {
-    if (next === singleton) return;
+    if (next === singleton) {
+      return;
+    }
     singleton = next;
     persist(next);
     listeners.forEach((cb) => cb());

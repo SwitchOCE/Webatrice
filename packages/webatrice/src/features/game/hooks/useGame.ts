@@ -126,7 +126,9 @@ export function useGame(): Game {
     // shortcut handler can decide to preventDefault or fall through.
     onCloseRecentZoneView: () => {
       const top = dialogs.zoneViews[dialogs.zoneViews.length - 1];
-      if (!top) return false;
+      if (!top) {
+        return false;
+      }
       dialogs.handleCloseZoneView(top.playerId, top.zoneName);
       return true;
     },

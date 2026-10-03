@@ -34,7 +34,9 @@ const KnownHostForm = ({ host, onRemove, onSubmit }: KnownHostFormProps) => {
   const submit = handleSubmit(onSubmit);
 
   const handleRemoveClick = () => {
-    if (!host) return;
+    if (!host) {
+      return;
+    }
     if (!confirmDelete) {
       setConfirmDelete(true);
       return;

@@ -163,182 +163,182 @@ function GameBoard() {
       <CardRegistryContext.Provider value={cardRegistry}>
         <GameIdProvider value={gameId}>
           <HoveredCardProvider>
-          <BigCardPreviewProvider>
-          <ForeignDragProvider>
-          <CardScaleProvider containerRef={boardRef} rows={layout.rows}>
-          <DndContext
-            sensors={sensors}
-            collisionDetection={dnd.collisionDetection}
-            onDragStart={dnd.handleDragStart}
-            onDragEnd={dnd.handleDragEnd}
-          >
-            <GameInteractionProvider value={interactionHandlers}>
-              <CardVisualStateProvider
-                arrowSourceKey={arrows.arrowSourceKey}
-                arrowTargetKey={arrows.arrowTargetKey}
-                selectedCardKeys={selectedCardKeys}
-                canActFor={canActFor}
-              >
-                <GameDialogActionsProvider value={dialogActions}>
-                  <CardPreviewProvider value={previewCard ?? null}>
-                    <GameDialogsProvider value={dialogs}>
-                      <div
-                        className="game"
-                        data-testid="game-container"
-                        ref={gameRef}
-                        onMouseDown={handleGameMouseDown}
-                        style={{
+            <BigCardPreviewProvider>
+              <ForeignDragProvider>
+                <CardScaleProvider containerRef={boardRef} rows={layout.rows}>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={dnd.collisionDetection}
+                    onDragStart={dnd.handleDragStart}
+                    onDragEnd={dnd.handleDragEnd}
+                  >
+                    <GameInteractionProvider value={interactionHandlers}>
+                      <CardVisualStateProvider
+                        arrowSourceKey={arrows.arrowSourceKey}
+                        arrowTargetKey={arrows.arrowTargetKey}
+                        selectedCardKeys={selectedCardKeys}
+                        canActFor={canActFor}
+                      >
+                        <GameDialogActionsProvider value={dialogActions}>
+                          <CardPreviewProvider value={previewCard ?? null}>
+                            <GameDialogsProvider value={dialogs}>
+                              <div
+                                className="game"
+                                data-testid="game-container"
+                                ref={gameRef}
+                                onMouseDown={handleGameMouseDown}
+                                style={{
                                   '--sidebar-width': `${sidebarWidth}px`,
                                   '--phase-track-width': `${phaseTrackColumnWidth}px`,
-                        } as React.CSSProperties}
-                      >
-                        <PhaseTrack />
+                                } as React.CSSProperties}
+                              >
+                                <PhaseTrack />
 
-                        {/* Grid-column-1 placeholder — only rendered
+                                {/* Grid-column-1 placeholder — only rendered
                              when PhaseTrack is in its default floating
                              (position: absolute) mode. In pinned mode
                              the PhaseTrack itself is `position:
                              relative` and consumes column 1, so a
                              placeholder here would displace every
                              other cell one column to the right. */}
-                        {!phaseTrackPinned && <div aria-hidden />}
+                                {!phaseTrackPinned && <div aria-hidden />}
 
-                        <div
-                          className="game__board"
-                          ref={boardRef}
-                          onMouseDown={arrows.handleBoardMouseDown}
-                        >
-                          {!game && (
-                            <div className="game__empty" data-testid="game-empty">
+                                <div
+                                  className="game__board"
+                                  ref={boardRef}
+                                  onMouseDown={arrows.handleBoardMouseDown}
+                                >
+                                  {!game && (
+                                    <div className="game__empty" data-testid="game-empty">
                   No active game. Join a game from a room to see the board.
-                            </div>
-                          )}
+                                    </div>
+                                  )}
 
-                          {game && layout.cells.length > 0 && (
-                            <div
-                              className="game__board-grid"
-                              style={{
-                                gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
-                                gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
-                              }}
-                            >
-                              {layout.cells.map((cell) => (
-                                <GameBoardCell
-                                  key={cell.playerId}
-                                  cell={cell}
-                                  totalPlayers={layout.cells.length}
-                                  onPlayerContextMenu={dialogs.handlePlayerContextMenu}
-                                  onPlayerClick={arrows.handlePlayerClick}
-                                  onHandContextMenu={dialogs.handleHandContextMenu}
-                                />
-                              ))}
-                            </div>
-                          )}
-                          {/* Bottom-bar HandZone removed: each PlayerBox now
+                                  {game && layout.cells.length > 0 && (
+                                    <div
+                                      className="game__board-grid"
+                                      style={{
+                                        gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
+                                        gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
+                                      }}
+                                    >
+                                      {layout.cells.map((cell) => (
+                                        <GameBoardCell
+                                          key={cell.playerId}
+                                          cell={cell}
+                                          totalPlayers={layout.cells.length}
+                                          onPlayerContextMenu={dialogs.handlePlayerContextMenu}
+                                          onPlayerClick={arrows.handlePlayerClick}
+                                          onHandContextMenu={dialogs.handleHandContextMenu}
+                                        />
+                                      ))}
+                                    </div>
+                                  )}
+                                  {/* Bottom-bar HandZone removed: each PlayerBox now
                               renders its own hand inline. Kept the space so
                               downstream layout hooks that watched the empty
                               bottom bar don't recompute their heights. */}
-                        </div>
+                                </div>
 
-                        <SidebarResizer width={sidebarWidth} onResize={setSidebarWidth} />
+                                <SidebarResizer width={sidebarWidth} onResize={setSidebarWidth} />
 
-                        <BattlefieldSidebar />
+                                <BattlefieldSidebar />
 
-                        <GameArrowOverlay containerRef={gameRef} dragPreview={arrows.dragPreview} />
+                                <GameArrowOverlay containerRef={gameRef} dragPreview={arrows.dragPreview} />
 
-                        <BoxSelectOverlay preview={boxSelectPreview} />
+                                <BoxSelectOverlay preview={boxSelectPreview} />
 
-                        <DeckSelectDialog />
+                                <DeckSelectDialog />
 
-                        {dialogs.zoneViews.map((v, idx) => (
-                          <ZoneViewDialog
-                            key={`${v.playerId}-${v.zoneName}`}
-                            isOpen
-                            playerId={v.playerId}
-                            zoneName={v.zoneName}
-                            handleClose={(shuffleOnClose) => dialogs.handleCloseZoneView(v.playerId, v.zoneName, shuffleOnClose)}
-                            initialPosition={{ x: 80 + idx * 36, y: 80 + idx * 36 }}
-                          />
-                        ))}
+                                {dialogs.zoneViews.map((v, idx) => (
+                                  <ZoneViewDialog
+                                    key={`${v.playerId}-${v.zoneName}`}
+                                    isOpen
+                                    playerId={v.playerId}
+                                    zoneName={v.zoneName}
+                                    handleClose={(shuffleOnClose) => dialogs.handleCloseZoneView(v.playerId, v.zoneName, shuffleOnClose)}
+                                    initialPosition={{ x: 80 + idx * 36, y: 80 + idx * 36 }}
+                                  />
+                                ))}
 
-                        <CardContextMenu />
+                                <CardContextMenu />
 
-                        <ZoneContextMenu />
+                                <ZoneContextMenu />
 
-                        <PlayerContextMenu />
+                                <PlayerContextMenu />
 
-                        <HandContextMenu />
+                                <HandContextMenu />
 
-                        {dialogs.prompt && (
-                          <PromptDialog
-                            isOpen
-                            title={dialogs.prompt.title}
-                            label={dialogs.prompt.label}
-                            initialValue={dialogs.prompt.initialValue}
-                            helperText={dialogs.prompt.helperText}
-                            validate={dialogs.prompt.validate}
-                            onSubmit={dialogs.prompt.onSubmit}
-                            onCancel={dialogs.closePrompt}
-                          />
-                        )}
+                                {dialogs.prompt && (
+                                  <PromptDialog
+                                    isOpen
+                                    title={dialogs.prompt.title}
+                                    label={dialogs.prompt.label}
+                                    initialValue={dialogs.prompt.initialValue}
+                                    helperText={dialogs.prompt.helperText}
+                                    validate={dialogs.prompt.validate}
+                                    onSubmit={dialogs.prompt.onSubmit}
+                                    onCancel={dialogs.closePrompt}
+                                  />
+                                )}
 
-                        <RollDieDialog />
+                                <RollDieDialog />
 
-                        <CreateTokenDialog />
+                                <CreateTokenDialog />
 
-                        <SideboardDialog />
+                                <SideboardDialog />
 
-                        <RevealCardsDialog />
+                                <RevealCardsDialog />
 
-                        {/* Receiver-side popup: opens whenever an
+                                {/* Receiver-side popup: opens whenever an
                             Event_RevealCards arrives with a populated
                             card list (someone revealed a zone to us,
                             or "to all players" including us). Reads /
                             dismisses via the incomingReveal slice. */}
-                        <IncomingRevealDialog />
+                                <IncomingRevealDialog />
 
-                        <ConfirmDialog
-                          isOpen={dialogs.concedeConfirm === 'concede'}
-                          title="Concede this game?"
-                          message={CONCEDE_CONFIRM_MESSAGE}
-                          confirmLabel="Concede"
-                          destructive
-                          onConfirm={dialogs.confirmConcede}
-                          onCancel={dialogs.closeConcedeConfirm}
-                        />
+                                <ConfirmDialog
+                                  isOpen={dialogs.concedeConfirm === 'concede'}
+                                  title="Concede this game?"
+                                  message={CONCEDE_CONFIRM_MESSAGE}
+                                  confirmLabel="Concede"
+                                  destructive
+                                  onConfirm={dialogs.confirmConcede}
+                                  onCancel={dialogs.closeConcedeConfirm}
+                                />
 
-                        <ConfirmDialog
-                          isOpen={dialogs.concedeConfirm === 'unconcede'}
-                          title="Rejoin the game?"
-                          message="This undoes your concede and puts you back into the active player rotation."
-                          confirmLabel="Unconcede"
-                          onConfirm={dialogs.confirmUnconcede}
-                          onCancel={dialogs.closeConcedeConfirm}
-                        />
+                                <ConfirmDialog
+                                  isOpen={dialogs.concedeConfirm === 'unconcede'}
+                                  title="Rejoin the game?"
+                                  message="This undoes your concede and puts you back into the active player rotation."
+                                  confirmLabel="Unconcede"
+                                  onConfirm={dialogs.confirmUnconcede}
+                                  onCancel={dialogs.closeConcedeConfirm}
+                                />
 
-                        <ConfirmDialog
-                          isOpen={dialogs.leaveConfirm}
-                          title="Leave this game?"
-                          message={LEAVE_CONFIRM_MESSAGE}
-                          confirmLabel="Leave"
-                          destructive
-                          onConfirm={dialogs.confirmLeave}
-                          onCancel={dialogs.closeLeaveConfirm}
-                        />
+                                <ConfirmDialog
+                                  isOpen={dialogs.leaveConfirm}
+                                  title="Leave this game?"
+                                  message={LEAVE_CONFIRM_MESSAGE}
+                                  confirmLabel="Leave"
+                                  destructive
+                                  onConfirm={dialogs.confirmLeave}
+                                  onCancel={dialogs.closeLeaveConfirm}
+                                />
 
-                        <GameInfoDialog />
-                      </div>
-                    </GameDialogsProvider>
-                  </CardPreviewProvider>
-                </GameDialogActionsProvider>
-              </CardVisualStateProvider>
-            </GameInteractionProvider>
+                                <GameInfoDialog />
+                              </div>
+                            </GameDialogsProvider>
+                          </CardPreviewProvider>
+                        </GameDialogActionsProvider>
+                      </CardVisualStateProvider>
+                    </GameInteractionProvider>
 
-            <CardDragOverlayHost />
-          </DndContext>
-          </CardScaleProvider>
-          </ForeignDragProvider>
-          </BigCardPreviewProvider>
+                    <CardDragOverlayHost />
+                  </DndContext>
+                </CardScaleProvider>
+              </ForeignDragProvider>
+            </BigCardPreviewProvider>
           </HoveredCardProvider>
         </GameIdProvider>
       </CardRegistryContext.Provider>

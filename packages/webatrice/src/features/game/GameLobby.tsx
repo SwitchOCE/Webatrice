@@ -57,7 +57,9 @@ interface FlatDeck {
 function flattenDecks(folder: ServerInfo_DeckStorage_Folder | undefined): FlatDeck[] {
   const out: FlatDeck[] = [];
   const walk = (items: ServerInfo_DeckStorage_TreeItem[] | undefined) => {
-    if (!items) return;
+    if (!items) {
+      return;
+    }
     for (const item of items) {
       if (item.file) {
         out.push({ id: item.id, name: item.name });
@@ -87,8 +89,12 @@ CATEGORY_LABELS[CATEGORY_UNKNOWN] = 'Unknown format';
 /** Bucket a deck's format string into a category slug for display. */
 function categoryOf(format: string | undefined): string {
   const n = normalizeFormat(format ?? '');
-  if (!n) return CATEGORY_UNKNOWN;
-  if (MTG_FORMATS.includes(n)) return n;
+  if (!n) {
+    return CATEGORY_UNKNOWN;
+  }
+  if (MTG_FORMATS.includes(n)) {
+    return n;
+  }
   return CATEGORY_OTHER;
 }
 
@@ -144,10 +150,14 @@ export default function GameLobby({ gameId }: { gameId: number }) {
     game ? rooms.Selectors.getRoom(state, game.info.roomId) : undefined,
   );
   const roomFormatLabel = useMemo(() => {
-    if (!room || !game?.info.gameTypes.length) return '';
+    if (!room || !game?.info.gameTypes.length) {
+      return '';
+    }
     for (const id of game.info.gameTypes) {
       const label = room.gametypeMap[id];
-      if (label) return label;
+      if (label) {
+        return label;
+      }
     }
     return '';
   }, [room, game?.info.gameTypes]);
@@ -162,10 +172,16 @@ export default function GameLobby({ gameId }: { gameId: number }) {
   );
   const inFlightRef = useRef<Set<number>>(new Set());
   useEffect(() => {
-    if (!isConnected) return;
+    if (!isConnected) {
+      return;
+    }
     for (const deck of myDecks) {
-      if (summaryByDeckId.has(deck.id)) continue;
-      if (inFlightRef.current.has(deck.id)) continue;
+      if (summaryByDeckId.has(deck.id)) {
+        continue;
+      }
+      if (inFlightRef.current.has(deck.id)) {
+        continue;
+      }
       inFlightRef.current.add(deck.id);
       webClient.request.session.deckDownload(deck.id);
     }
@@ -234,7 +250,9 @@ export default function GameLobby({ gameId }: { gameId: number }) {
       order.push(roomFormatSlug);
     }
     for (const f of MTG_FORMAT_LABELS) {
-      if (f.value === roomFormatSlug) continue;
+      if (f.value === roomFormatSlug) {
+        continue;
+      }
       order.push(f.value);
     }
     order.push(CATEGORY_OTHER);
@@ -257,7 +275,9 @@ export default function GameLobby({ gameId }: { gameId: number }) {
   const bracketByDeckId = useMemo(() => {
     const out = new Map<number, number>();
     for (const [id, s] of summaryByDeckId) {
-      if (s.bracketLevel != null) out.set(id, s.bracketLevel);
+      if (s.bracketLevel != null) {
+        out.set(id, s.bracketLevel);
+      }
     }
     return out;
   }, [summaryByDeckId]);
@@ -269,7 +289,9 @@ export default function GameLobby({ gameId }: { gameId: number }) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const handleFilePicked = (file: File | null) => {
     setUploadError(null);
-    if (!file) return;
+    if (!file) {
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
       const xml = typeof reader.result === 'string' ? reader.result : '';
@@ -298,7 +320,9 @@ export default function GameLobby({ gameId }: { gameId: number }) {
   };
 
   const handleReadyToggle = () => {
-    if (!localPlayer) return;
+    if (!localPlayer) {
+      return;
+    }
     const newReady = !localPlayer.properties.readyStart;
     webClient.request.game.readyStart(gameId, { ready: newReady });
     // No gameSay: Cockatrice emits its own event
@@ -323,7 +347,9 @@ export default function GameLobby({ gameId }: { gameId: number }) {
     // cache from the earlier deckDownload round-trip, since the lobby
     // downloads every deck up front to build the pick list.
     const cards = deckCardsCache.get(deckId);
-    if (cards) setPickedMockDeck(cards);
+    if (cards) {
+      setPickedMockDeck(cards);
+    }
     // No gameSay: Cockatrice emits its own event
     // ("X has loaded a deck (…)") on the deckHash property update.
   };
@@ -335,7 +361,9 @@ export default function GameLobby({ gameId }: { gameId: number }) {
   // non-judge, non-host) player. Once no unready players remain,
   // Servatrice auto-starts the game. Confirmation gate below.
   const seatedPlayers = useMemo(() => {
-    if (!game) return [];
+    if (!game) {
+      return [];
+    }
     return game.seatOrder
       .map((id) => game.players[id])
       .filter((p): p is NonNullable<typeof p> =>
@@ -345,7 +373,9 @@ export default function GameLobby({ gameId }: { gameId: number }) {
   const unreadyPlayers = seatedPlayers.filter((p) => !p.properties.readyStart);
   const [forceStartPending, setForceStartPending] = useState(false);
   const handleForceStart = () => {
-    if (!isHost) return;
+    if (!isHost) {
+      return;
+    }
     if (!forceStartPending) {
       setForceStartPending(true);
       return;
@@ -353,7 +383,9 @@ export default function GameLobby({ gameId }: { gameId: number }) {
     // Confirmed — kick every unready player. If the host is unready
     // themselves it's excluded; the host has to ready up first.
     for (const p of unreadyPlayers) {
-      if (p.properties.playerId === game?.localPlayerId) continue;
+      if (p.properties.playerId === game?.localPlayerId) {
+        continue;
+      }
       webClient.request.game.kickFromGame(gameId, { playerId: p.properties.playerId });
     }
     setForceStartPending(false);
@@ -385,248 +417,248 @@ export default function GameLobby({ gameId }: { gameId: number }) {
     <Layout>
       <AuthGuard />
       <GameIdProvider value={gameId}>
-      <div className="h-full flex bg-bg-base bg-purple-radial">
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <div className="max-w-xl mx-auto py-10 px-6 flex flex-col gap-8">
-            {/* Header */}
-            <div className="text-center">
-              <h1 className="font-modern text-2xl font-semibold text-text-primary">
-                {game.info.description || `Game #${gameId}`}
-              </h1>
-              {roomFormatLabel && (
-                <p className="text-sm text-text-muted mt-1">{roomFormatLabel}</p>
-              )}
-            </div>
-
-            {/* Players */}
-            <div className="space-y-3">
-              <div className="text-xs font-semibold uppercase tracking-widest text-text-muted text-center">
-                Players
+        <div className="h-full flex bg-bg-base bg-purple-radial">
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className="max-w-xl mx-auto py-10 px-6 flex flex-col gap-8">
+              {/* Header */}
+              <div className="text-center">
+                <h1 className="font-modern text-2xl font-semibold text-text-primary">
+                  {game.info.description || `Game #${gameId}`}
+                </h1>
+                {roomFormatLabel && (
+                  <p className="text-sm text-text-muted mt-1">{roomFormatLabel}</p>
+                )}
               </div>
-              {seatedPlayers.map((p) => {
-                const isLocalPlayer = p.properties.playerId === game.localPlayerId;
-                return (
-                  <PlayerRow
-                    key={p.properties.playerId}
-                    playerName={p.properties.userInfo?.name || `Player ${p.properties.playerId}`}
-                    isHost={p.properties.playerId === game.hostId}
-                    ready={p.properties.readyStart}
-                    hasDeck={!!p.properties.deckHash}
-                    // Bracket + deck-name are only known for the local
-                    // player today (see the comment on myPickedDeckId
-                    // above for the Cockatrice protocol reason).
-                    // Remote players fall back to "Deck submitted".
-                    bracket={
-                      isLocalPlayer && !!p.properties.deckHash ? myBracket : undefined
-                    }
-                    deckName={
-                      isLocalPlayer && !!p.properties.deckHash ? myDeckName : undefined
-                    }
-                    showKick={isHost && !isLocalPlayer}
-                    onKick={() =>
-                      webClient.request.game.kickFromGame(gameId, {
-                        playerId: p.properties.playerId,
-                      })
-                    }
-                  />
-                );
-              })}
-              {Array.from({ length: emptySeats }).map((_, i) => (
-                <div
-                  key={`empty-${i}`}
-                  className="flex items-center gap-4 px-4 py-3 rounded-lg border border-dashed border-border-subtle bg-bg-surface/30"
-                >
-                  <div className="h-11 w-11 rounded-full border-2 border-dashed border-border-subtle" />
-                  <span className="text-sm italic text-text-muted">Waiting for player…</span>
-                </div>
-              ))}
-            </div>
 
-            {/* Deck selection (only for seated players, only pre-ready) */}
-            {iAmSeated && !iAmReady && (
-              <div className="border-t border-border-strong pt-6 space-y-3">
+              {/* Players */}
+              <div className="space-y-3">
                 <div className="text-xs font-semibold uppercase tracking-widest text-text-muted text-center">
-                  Your deck
+                Players
                 </div>
+                {seatedPlayers.map((p) => {
+                  const isLocalPlayer = p.properties.playerId === game.localPlayerId;
+                  return (
+                    <PlayerRow
+                      key={p.properties.playerId}
+                      playerName={p.properties.userInfo?.name || `Player ${p.properties.playerId}`}
+                      isHost={p.properties.playerId === game.hostId}
+                      ready={p.properties.readyStart}
+                      hasDeck={!!p.properties.deckHash}
+                      // Bracket + deck-name are only known for the local
+                      // player today (see the comment on myPickedDeckId
+                      // above for the Cockatrice protocol reason).
+                      // Remote players fall back to "Deck submitted".
+                      bracket={
+                        isLocalPlayer && !!p.properties.deckHash ? myBracket : undefined
+                      }
+                      deckName={
+                        isLocalPlayer && !!p.properties.deckHash ? myDeckName : undefined
+                      }
+                      showKick={isHost && !isLocalPlayer}
+                      onKick={() =>
+                        webClient.request.game.kickFromGame(gameId, {
+                          playerId: p.properties.playerId,
+                        })
+                      }
+                    />
+                  );
+                })}
+                {Array.from({ length: emptySeats }).map((_, i) => (
+                  <div
+                    key={`empty-${i}`}
+                    className="flex items-center gap-4 px-4 py-3 rounded-lg border border-dashed border-border-subtle bg-bg-surface/30"
+                  >
+                    <div className="h-11 w-11 rounded-full border-2 border-dashed border-border-subtle" />
+                    <span className="text-sm italic text-text-muted">Waiting for player…</span>
+                  </div>
+                ))}
+              </div>
 
-                <div className="rounded-lg bg-bg-surface border border-border-subtle overflow-hidden">
-                  <div className="px-4 py-2 border-b border-border-subtle flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-text-secondary">
-                    <Library size={13} /> From My Decks
-                    {stillLoadingFormats && myDecks.length > 0 && (
-                      <Loader2 size={11} className="animate-spin text-text-muted ml-auto" />
+              {/* Deck selection (only for seated players, only pre-ready) */}
+              {iAmSeated && !iAmReady && (
+                <div className="border-t border-border-strong pt-6 space-y-3">
+                  <div className="text-xs font-semibold uppercase tracking-widest text-text-muted text-center">
+                  Your deck
+                  </div>
+
+                  <div className="rounded-lg bg-bg-surface border border-border-subtle overflow-hidden">
+                    <div className="px-4 py-2 border-b border-border-subtle flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-text-secondary">
+                      <Library size={13} /> From My Decks
+                      {stillLoadingFormats && myDecks.length > 0 && (
+                        <Loader2 size={11} className="animate-spin text-text-muted ml-auto" />
+                      )}
+                    </div>
+                    {!backendDecks ? (
+                      <div className="px-4 py-6 flex items-center gap-2 text-sm text-text-muted justify-center">
+                        <Loader2 size={14} className="animate-spin" /> Loading your decks…
+                      </div>
+                    ) : myDecks.length === 0 ? (
+                      <div className="px-4 py-6 text-sm text-text-muted italic text-center">
+                      No decks yet — create one from the My Decks page, or upload a .cod below.
+                      </div>
+                    ) : (
+                      <div className="max-h-72 overflow-y-auto">
+                        {groupedDecks.map(({ category, decks }) => {
+                          return (
+                            <div key={category}>
+                              <div className="sticky top-0 z-10 px-4 py-1.5 bg-bg-elevated border-b border-border-subtle text-[10px] font-semibold uppercase tracking-widest text-text-muted flex items-center gap-2">
+                                <span>{CATEGORY_LABELS[category] ?? category}</span>
+                                <span className="text-text-muted tabular-nums">{decks.length}</span>
+                              </div>
+                              <ul className="divide-y divide-border-subtle/50">
+                                {decks.map((deck) => {
+                                  const bracket = bracketByDeckId.get(deck.id);
+                                  return (
+                                    <li key={deck.id}>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleSelectDeck(deck.id)}
+                                        className="w-full flex items-center gap-2 px-4 py-2 hover:bg-bg-elevated text-sm text-text-primary transition-colors text-left"
+                                      >
+                                        <span className="flex-1 min-w-0 truncate">{deck.name}</span>
+                                        {bracket != null && <BracketBadge level={bracket} />}
+                                      </button>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
-                  {!backendDecks ? (
-                    <div className="px-4 py-6 flex items-center gap-2 text-sm text-text-muted justify-center">
-                      <Loader2 size={14} className="animate-spin" /> Loading your decks…
-                    </div>
-                  ) : myDecks.length === 0 ? (
-                    <div className="px-4 py-6 text-sm text-text-muted italic text-center">
-                      No decks yet — create one from the My Decks page, or upload a .cod below.
-                    </div>
-                  ) : (
-                    <div className="max-h-72 overflow-y-auto">
-                      {groupedDecks.map(({ category, decks }) => {
-                        return (
-                          <div key={category}>
-                            <div className="sticky top-0 z-10 px-4 py-1.5 bg-bg-elevated border-b border-border-subtle text-[10px] font-semibold uppercase tracking-widest text-text-muted flex items-center gap-2">
-                              <span>{CATEGORY_LABELS[category] ?? category}</span>
-                              <span className="text-text-muted tabular-nums">{decks.length}</span>
-                            </div>
-                            <ul className="divide-y divide-border-subtle/50">
-                              {decks.map((deck) => {
-                                const bracket = bracketByDeckId.get(deck.id);
-                                return (
-                                  <li key={deck.id}>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleSelectDeck(deck.id)}
-                                      className="w-full flex items-center gap-2 px-4 py-2 hover:bg-bg-elevated text-sm text-text-primary transition-colors text-left"
-                                    >
-                                      <span className="flex-1 min-w-0 truncate">{deck.name}</span>
-                                      {bracket != null && <BracketBadge level={bracket} />}
-                                    </button>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
 
-                <div className="rounded-lg bg-bg-surface border border-border-subtle p-3">
-                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-text-secondary mb-2">
-                    <Upload size={13} /> Upload a .cod file
+                  <div className="rounded-lg bg-bg-surface border border-border-subtle p-3">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-text-secondary mb-2">
+                      <Upload size={13} /> Upload a .cod file
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".cod,application/xml,text/xml"
+                      onChange={(e) => {
+                        handleFilePicked(e.target.files?.[0] ?? null);
+                        // Reset so re-uploading the same file re-triggers change.
+                        e.target.value = '';
+                      }}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-border-strong bg-bg-elevated hover:bg-border-subtle text-text-primary text-sm font-medium transition-colors"
+                    >
+                      <Upload size={13} /> Choose .cod file
+                    </button>
+                    {uploadError && (
+                      <div className="mt-2 flex items-start gap-2 text-xs text-red-300 bg-red-500/10 border border-red-500/30 rounded-md px-2 py-1">
+                        <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+                        <span>{uploadError}</span>
+                      </div>
+                    )}
                   </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".cod,application/xml,text/xml"
-                    onChange={(e) => {
-                      handleFilePicked(e.target.files?.[0] ?? null);
-                      // Reset so re-uploading the same file re-triggers change.
-                      e.target.value = '';
-                    }}
-                    className="hidden"
-                  />
+                </div>
+              )}
+
+              {/* Ready toggle */}
+              {iAmSeated && (
+                <div className="flex items-center gap-2 justify-center flex-wrap">
                   <button
                     type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md border border-border-strong bg-bg-elevated hover:bg-border-subtle text-text-primary text-sm font-medium transition-colors"
+                    onClick={handleReadyToggle}
+                    disabled={!iHaveDeck}
+                    title={iHaveDeck ? undefined : 'Select a deck first'}
+                    className={[
+                      'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold shadow-glow transition-colors',
+                      'disabled:opacity-50 disabled:cursor-not-allowed',
+                      iAmReady
+                        ? 'bg-bg-elevated hover:bg-border-subtle text-text-primary border border-border-strong'
+                        : 'bg-accent hover:bg-accent-hover text-white',
+                    ].join(' ')}
                   >
-                    <Upload size={13} /> Choose .cod file
+                    {iAmReady && <CheckCircle2 size={14} />}
+                    {iAmReady ? 'Unready' : 'Ready up'}
                   </button>
-                  {uploadError && (
-                    <div className="mt-2 flex items-start gap-2 text-xs text-red-300 bg-red-500/10 border border-red-500/30 rounded-md px-2 py-1">
-                      <AlertTriangle size={12} className="shrink-0 mt-0.5" />
-                      <span>{uploadError}</span>
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => leaveGame(gameId)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-text-secondary hover:text-red-300 hover:bg-red-500/10 border border-border-subtle transition-colors"
+                  >
+                    <LogOut size={14} /> Leave game
+                  </button>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Ready toggle */}
-            {iAmSeated && (
-              <div className="flex items-center gap-2 justify-center flex-wrap">
-                <button
-                  type="button"
-                  onClick={handleReadyToggle}
-                  disabled={!iHaveDeck}
-                  title={iHaveDeck ? undefined : 'Select a deck first'}
-                  className={[
-                    'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold shadow-glow transition-colors',
-                    'disabled:opacity-50 disabled:cursor-not-allowed',
-                    iAmReady
-                      ? 'bg-bg-elevated hover:bg-border-subtle text-text-primary border border-border-strong'
-                      : 'bg-accent hover:bg-accent-hover text-white',
-                  ].join(' ')}
-                >
-                  {iAmReady && <CheckCircle2 size={14} />}
-                  {iAmReady ? 'Unready' : 'Ready up'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => leaveGame(gameId)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-text-secondary hover:text-red-300 hover:bg-red-500/10 border border-border-subtle transition-colors"
-                >
-                  <LogOut size={14} /> Leave game
-                </button>
-              </div>
-            )}
-
-            {/* Spectator / judge notice — no deck, no ready. */}
-            {!iAmSeated && (
-              <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
-                <Eye size={14} />
+              {/* Spectator / judge notice — no deck, no ready. */}
+              {!iAmSeated && (
+                <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
+                  <Eye size={14} />
                 Watching as {isJudge ? 'judge' : 'spectator'}
-                <button
-                  type="button"
-                  onClick={() => leaveGame(gameId)}
-                  className="ml-4 flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium text-text-secondary hover:text-red-300 hover:bg-red-500/10 border border-border-subtle transition-colors"
-                >
-                  <LogOut size={12} /> Leave
-                </button>
-              </div>
-            )}
+                  <button
+                    type="button"
+                    onClick={() => leaveGame(gameId)}
+                    className="ml-4 flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium text-text-secondary hover:text-red-300 hover:bg-red-500/10 border border-border-subtle transition-colors"
+                  >
+                    <LogOut size={12} /> Leave
+                  </button>
+                </div>
+              )}
 
-            {/* Host controls — visible whenever at least one player is
+              {/* Host controls — visible whenever at least one player is
                  ready, regardless of whether the host themselves is
                  ready and regardless of whether there are unready
                  players to kick. When there's nothing to kick the
                  button is a no-op label ("Force start"), but keeping
                  it visible matches the host's mental model of "I
                  should always be able to press this". */}
-            {isHost && readyCount >= 1 && (
-              <div className="border-t border-border-strong pt-6 space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-widest text-text-muted text-center">
+              {isHost && readyCount >= 1 && (
+                <div className="border-t border-border-strong pt-6 space-y-2">
+                  <div className="text-xs font-semibold uppercase tracking-widest text-text-muted text-center">
                   Host controls
-                </div>
-                <div className="flex items-center justify-center">
-                  <button
-                    type="button"
-                    onClick={handleForceStart}
-                    disabled={unreadyPlayers.length === 0}
-                    className="flex items-center gap-2 px-4 py-2 rounded-md bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-200 border border-yellow-500/50 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    title={
-                      unreadyPlayers.length === 0
-                        ? 'Everyone seated is ready — Cockatrice will start the game automatically. Force start is only useful when there are unready players to kick.'
-                        : 'Kicks all unready players so Cockatrice auto-starts with whoever is left.'
-                    }
-                  >
-                    <FastForward size={14} />
-                    {unreadyPlayers.length === 0
-                      ? 'Force start'
-                      : forceStartPending
-                        ? `Confirm — kick ${unreadyPlayers.length} unready player${unreadyPlayers.length === 1 ? '' : 's'}?`
-                        : `Force start (${unreadyPlayers.length} unready)`}
-                  </button>
-                  {forceStartPending && (
+                  </div>
+                  <div className="flex items-center justify-center">
                     <button
                       type="button"
-                      onClick={() => setForceStartPending(false)}
-                      className="ml-2 text-xs text-text-muted hover:text-text-primary"
+                      onClick={handleForceStart}
+                      disabled={unreadyPlayers.length === 0}
+                      className="flex items-center gap-2 px-4 py-2 rounded-md bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-200 border border-yellow-500/50 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={
+                        unreadyPlayers.length === 0
+                          ? 'Everyone seated is ready — Cockatrice will start the game automatically. Force start is only useful when there are unready players to kick.'
+                          : 'Kicks all unready players so Cockatrice auto-starts with whoever is left.'
+                      }
                     >
-                      cancel
+                      <FastForward size={14} />
+                      {unreadyPlayers.length === 0
+                        ? 'Force start'
+                        : forceStartPending
+                          ? `Confirm — kick ${unreadyPlayers.length} unready player${unreadyPlayers.length === 1 ? '' : 's'}?`
+                          : `Force start (${unreadyPlayers.length} unready)`}
                     </button>
-                  )}
+                    {forceStartPending && (
+                      <button
+                        type="button"
+                        onClick={() => setForceStartPending(false)}
+                        className="ml-2 text-xs text-text-muted hover:text-text-primary"
+                      >
+                      cancel
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-        {/* Persistent chat log — the shared ChatLog component (same one
+          {/* Persistent chat log — the shared ChatLog component (same one
              the in-game sidebar renders) so lobby chat, deck-select
              announcements, and ready-up announcements land in the
              same message list players will continue to see once the
              game starts. */}
-        <aside className="hidden md:flex w-80 shrink-0 border-l border-border-strong flex-col bg-bg-base p-3">
-          <ChatLog />
-        </aside>
-      </div>
+          <aside className="hidden md:flex w-80 shrink-0 border-l border-border-strong flex-col bg-bg-base p-3">
+            <ChatLog />
+          </aside>
+        </div>
       </GameIdProvider>
     </Layout>
   );
@@ -723,9 +755,13 @@ function PlayerRow({
 }
 
 function isValidCod(xml: string): boolean {
-  if (xml.length === 0) return false;
+  if (xml.length === 0) {
+    return false;
+  }
   const doc = new DOMParser().parseFromString(xml, 'application/xml');
-  if (doc.getElementsByTagName('parsererror').length > 0) return false;
+  if (doc.getElementsByTagName('parsererror').length > 0) {
+    return false;
+  }
   return doc.documentElement?.tagName === 'cockatrice_deck';
 }
 

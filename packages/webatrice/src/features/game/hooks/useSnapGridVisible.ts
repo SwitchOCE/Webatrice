@@ -16,7 +16,9 @@ import { useCallback, useSyncExternalStore } from 'react';
 const STORAGE_KEY = 'webatrice.snapGridVisible';
 
 function loadPersisted(): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === 'undefined') {
+    return false;
+  }
   try {
     return window.localStorage.getItem(STORAGE_KEY) === '1';
   } catch {
@@ -25,7 +27,9 @@ function loadPersisted(): boolean {
 }
 
 function persist(value: boolean): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') {
+    return;
+  }
   try {
     window.localStorage.setItem(STORAGE_KEY, value ? '1' : '0');
   } catch {
@@ -62,7 +66,9 @@ export function useSnapGridVisible(): boolean {
 export function useSnapGridSetting(): [boolean, (next: boolean) => void] {
   const value = useSnapGridVisible();
   const setValue = useCallback((next: boolean) => {
-    if (next === singleton) return;
+    if (next === singleton) {
+      return;
+    }
     singleton = next;
     persist(next);
     listeners.forEach((cb) => cb());

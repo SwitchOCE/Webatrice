@@ -62,7 +62,9 @@ const SB_PREFIX_RE = /^\s*SB:\s*/i;
 // zone, only a UI marker.
 function mapSection(header: string): { category: DeckCategory; isCommander: boolean } {
   const h = header.toLowerCase();
-  if (h.startsWith('commander')) return { category: 'main', isCommander: true };
+  if (h.startsWith('commander')) {
+    return { category: 'main', isCommander: true };
+  }
   if (h.startsWith('sideboard') || h.startsWith('companion') || h.startsWith('maybeboard')) {
     return { category: 'sideboard', isCommander: false };
   }
@@ -79,8 +81,12 @@ export function parseDecklist(text: string): ParseResult {
 
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trimEnd();
-    if (!line.trim()) continue;
-    if (COMMENT_RE.test(line)) continue;
+    if (!line.trim()) {
+      continue;
+    }
+    if (COMMENT_RE.test(line)) {
+      continue;
+    }
 
     const sectionMatch = line.match(SECTION_RE);
     if (sectionMatch) {

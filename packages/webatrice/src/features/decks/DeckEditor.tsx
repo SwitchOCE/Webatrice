@@ -133,7 +133,9 @@ const DeckEditor = () => {
   // adding a name-only card triggers a name-based price fetch instead
   // of leaving it unpriced.
   const priceKey = useMemo(() => {
-    if (!editor.deck) return '';
+    if (!editor.deck) {
+      return '';
+    }
     const tokens = editor.deck.cards.map((c) =>
       c.scryfallId ? `id:${c.scryfallId}` : `name:${c.name.toLowerCase()}`,
     );
@@ -142,22 +144,30 @@ const DeckEditor = () => {
 
   const setPriceCache = editor.setPriceCache;
   useEffect(() => {
-    if (!priceKey || !editor.deck) return;
+    if (!priceKey || !editor.deck) {
+      return;
+    }
     let cancelled = false;
     setPricesLoading(true);
     // Stream partial results through onProgress so the sidebar total
     // ticks up as each Scryfall chunk lands — otherwise the whole
     // deck sits at $0.00 while both/three chunks race to finish.
     fetchPricesForCards(editor.deck.cards, (partial) => {
-      if (cancelled) return;
+      if (cancelled) {
+        return;
+      }
       setPrices(partial);
     })
       .then(() => {
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         setPricesLoading(false);
       })
       .catch(() => {
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         setPricesLoading(false);
       });
     return () => {
@@ -172,8 +182,12 @@ const DeckEditor = () => {
   // update when nothing actually changed, so this doesn't trigger a
   // save-loop.
   useEffect(() => {
-    if (!editor.deck) return;
-    if (pricesLoading) return;
+    if (!editor.deck) {
+      return;
+    }
+    if (pricesLoading) {
+      return;
+    }
     const { total, missing } = computeDeckPrice(editor.deck.cards, prices);
     setPriceCache(
       total > 0 ? Number(total.toFixed(2)) : undefined,
@@ -205,9 +219,15 @@ const DeckEditor = () => {
     editor.loading,
   );
 
-  if (editor.loading) return <DeckEditorSkeleton loaded={0} total={0} />;
-  if (editor.notFound || !editor.deck) return <NotFoundShell />;
-  if (!preload.ready) return <DeckEditorSkeleton loaded={preload.loaded} total={preload.total} />;
+  if (editor.loading) {
+    return <DeckEditorSkeleton loaded={0} total={0} />;
+  }
+  if (editor.notFound || !editor.deck) {
+    return <NotFoundShell />;
+  }
+  if (!preload.ready) {
+    return <DeckEditorSkeleton loaded={preload.loaded} total={preload.total} />;
+  }
 
   return (
     <Layout>
@@ -248,7 +268,9 @@ const DeckEditor = () => {
         request={printingRequest}
         onClose={() => setPrintingRequest(null)}
         onPick={(printing) => {
-          if (!printingRequest) return;
+          if (!printingRequest) {
+            return;
+          }
           editor.updateCard(printingRequest.index, {
             set: printing.set,
             collectorNumber: printing.collectorNumber,
@@ -422,7 +444,7 @@ function SidebarFormatPicker({
         className="w-full appearance-none bg-bg-base border border-border-subtle rounded-md pl-2 pr-7 py-1 text-xs text-text-primary focus:outline-none focus:border-accent transition-colors"
         style={{
           backgroundImage:
-            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%237A6E8F' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>\")",
+            'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%237A6E8F\' stroke-width=\'3\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'6 9 12 15 18 9\'/></svg>")',
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'right 6px center',
         }}
@@ -481,10 +503,14 @@ function DeckBuyButton({
     const seen = new Set<string>();
     let priced = 0;
     for (const card of cards) {
-      if (seen.has(card.name)) continue;
+      if (seen.has(card.name)) {
+        continue;
+      }
       seen.add(card.name);
       const info = priceForCard(prices, card);
-      if (info?.usd != null && Number.isFinite(info.usd)) priced += 1;
+      if (info?.usd != null && Number.isFinite(info.usd)) {
+        priced += 1;
+      }
     }
     return { pricedUnique: priced, totalUnique: seen.size };
   }, [cards, prices]);
@@ -497,11 +523,15 @@ function DeckBuyButton({
   // computed post-load — during load the list is a moving target and
   // the user should be looking at the progress caption instead.
   const missingCards = useMemo(() => {
-    if (loading) return [];
+    if (loading) {
+      return [];
+    }
     const grouped = new Map<string, number>();
     for (const card of cards) {
       const info = priceForCard(prices, card);
-      if (info?.usd != null && Number.isFinite(info.usd)) continue;
+      if (info?.usd != null && Number.isFinite(info.usd)) {
+        continue;
+      }
       grouped.set(card.name, (grouped.get(card.name) ?? 0) + card.quantity);
     }
     return Array.from(grouped, ([name, qty]) => ({ name, qty })).sort((a, b) =>
@@ -690,7 +720,9 @@ function CardPricePill({
  *    • `cards.scryfall.io/small/front/…jpg`  (CDN — path segment size)
  *  Non-Scryfall URLs pass through unchanged. */
 function upgradeScryfallImageSize(url: string | undefined): string | undefined {
-  if (!url) return url;
+  if (!url) {
+    return url;
+  }
   if (url.includes('api.scryfall.com')) {
     return url.replace(/([?&])version=[^&]+/i, '$1version=normal');
   }
@@ -880,7 +912,9 @@ function PlainAddCard({ onAdd }: { onAdd: (name: string) => void }) {
   const [value, setValue] = useState('');
   const handleAdd = () => {
     const trimmed = value.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      return;
+    }
     onAdd(trimmed);
     setValue('');
   };
@@ -1023,7 +1057,9 @@ function QuickAddSearch({ query, onQueryChange, onAdd }: QuickAddSearchProps) {
 
   // Debounced suggestion fetch.
   useEffect(() => {
-    if (timerRef.current != null) window.clearTimeout(timerRef.current);
+    if (timerRef.current != null) {
+      window.clearTimeout(timerRef.current);
+    }
     if (query.trim().length < 2) {
       setSuggestions([]);
       setLoading(false);
@@ -1036,26 +1072,34 @@ function QuickAddSearch({ query, onQueryChange, onAdd }: QuickAddSearchProps) {
       const token = ++queryTokenRef.current;
       searchCards(query, QUICK_ADD_MAX_SUGGESTIONS)
         .then((rows) => {
-          if (token !== queryTokenRef.current) return;
+          if (token !== queryTokenRef.current) {
+            return;
+          }
           setSuggestions(rows);
           setLoading(false);
           setHighlight(rows.length ? 0 : -1);
         })
         .catch(() => {
-          if (token !== queryTokenRef.current) return;
+          if (token !== queryTokenRef.current) {
+            return;
+          }
           setSuggestions([]);
           setLoading(false);
           setHighlight(-1);
         });
     }, SEARCH_DEBOUNCE_MS);
     return () => {
-      if (timerRef.current != null) window.clearTimeout(timerRef.current);
+      if (timerRef.current != null) {
+        window.clearTimeout(timerRef.current);
+      }
     };
   }, [query]);
 
   // Close dropdown on click outside.
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     const onClick = (e: MouseEvent) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
         setOpen(false);
@@ -1066,7 +1110,9 @@ function QuickAddSearch({ query, onQueryChange, onAdd }: QuickAddSearchProps) {
   }, [open]);
 
   const handleAdd = (name: string) => {
-    if (!name) return;
+    if (!name) {
+      return;
+    }
     onAdd(name);
     setQuery('');
     setSuggestions([]);
@@ -1357,14 +1403,18 @@ function RowActionsMenu({
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
 
   useLayoutEffect(() => {
-    if (!open || !triggerRef.current) return;
+    if (!open || !triggerRef.current) {
+      return;
+    }
     const rect = triggerRef.current.getBoundingClientRect();
     const MENU_WIDTH = 220;
     const MENU_ESTIMATED_HEIGHT = 220;
     const EDGE = 8;
 
     let left = rect.right - MENU_WIDTH;
-    if (left < EDGE) left = Math.min(rect.left, window.innerWidth - MENU_WIDTH - EDGE);
+    if (left < EDGE) {
+      left = Math.min(rect.left, window.innerWidth - MENU_WIDTH - EDGE);
+    }
 
     let top = rect.bottom + 4;
     if (top + MENU_ESTIMATED_HEIGHT > window.innerHeight) {
@@ -1374,15 +1424,23 @@ function RowActionsMenu({
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     const onClick = (e: MouseEvent) => {
       const target = e.target as Node;
-      if (menuRef.current?.contains(target)) return;
-      if (triggerRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) {
+        return;
+      }
+      if (triggerRef.current?.contains(target)) {
+        return;
+      }
       setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') {
+        setOpen(false);
+      }
     };
     document.addEventListener('mousedown', onClick);
     document.addEventListener('keydown', onKey);
@@ -1569,7 +1627,9 @@ function PrintingPickerModal({
   const [prices, setPrices] = useState<PriceLookup>(() => emptyPriceLookup());
 
   useEffect(() => {
-    if (!request) return;
+    if (!request) {
+      return;
+    }
     setPrintings([]);
     setPrices(emptyPriceLookup());
     setError(null);
@@ -1578,7 +1638,9 @@ function PrintingPickerModal({
     (async () => {
       try {
         const scryfall = await fetchAllPrintings(request.card.name);
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         let resolved: PrintingSummary[];
         if (scryfall.length > 0) {
           resolved = scryfall;
@@ -1586,7 +1648,9 @@ function PrintingPickerModal({
           // Scryfall miss (offline / unknown card): fall back to
           // whatever Dexie has so the modal isn't empty.
           const dexie = await lookupCard(request.card.name);
-          if (cancelled) return;
+          if (cancelled) {
+            return;
+          }
           resolved = dexie.printings;
         }
         setPrintings(resolved);
@@ -1603,7 +1667,9 @@ function PrintingPickerModal({
         if (cards.length > 0) {
           fetchPricesForCards(cards)
             .then((lookup) => {
-              if (cancelled) return;
+              if (cancelled) {
+                return;
+              }
               setPrices(lookup);
             })
             .catch(() => {
@@ -1611,7 +1677,9 @@ function PrintingPickerModal({
             });
         }
       } catch (e) {
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         setError(e instanceof Error ? e.message : 'Failed to load printings');
         setLoading(false);
       }
@@ -1622,15 +1690,21 @@ function PrintingPickerModal({
   }, [request?.card.name]);
 
   useEffect(() => {
-    if (!request) return;
+    if (!request) {
+      return;
+    }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [request, onClose]);
 
-  if (!request) return null;
+  if (!request) {
+    return null;
+  }
   const currentId = request.card.scryfallId;
 
   return createPortal(
@@ -1775,7 +1849,9 @@ function ManaSymbols({
   className?: string;
 }) {
   const tokens = cost.match(/\{[^}]+\}/g);
-  if (!tokens || tokens.length === 0) return null;
+  if (!tokens || tokens.length === 0) {
+    return null;
+  }
   return (
     <span className={`inline-flex items-center gap-0.5 align-middle ${className ?? ''}`}>
       {tokens.map((tok, i) => {
@@ -1857,7 +1933,9 @@ const COLOR_LABEL: Record<FilterColor, string> = {
 function buildScryfallQuery(typed: string, f: SearchFiltersState): string {
   const parts: string[] = [];
   const text = typed.trim();
-  if (text) parts.push(text);
+  if (text) {
+    parts.push(text);
+  }
 
   if (f.colors.length > 0) {
     const letters = f.colors.map((c) => c.toLowerCase()).join('');
@@ -1878,14 +1956,20 @@ function buildScryfallQuery(typed: string, f: SearchFiltersState): string {
       parts.push(`t:${subtype.toLowerCase()}`);
     } else {
       const tokens = subtype.split(/\s+/).filter(Boolean);
-      for (const tok of tokens) parts.push(`t:${tok.toLowerCase()}`);
+      for (const tok of tokens) {
+        parts.push(`t:${tok.toLowerCase()}`);
+      }
     }
   }
 
   const min = f.cmcMin.trim();
   const max = f.cmcMax.trim();
-  if (min && /^\d+$/.test(min)) parts.push(`cmc>=${min}`);
-  if (max && /^\d+$/.test(max)) parts.push(`cmc<=${max}`);
+  if (min && /^\d+$/.test(min)) {
+    parts.push(`cmc>=${min}`);
+  }
+  if (max && /^\d+$/.test(max)) {
+    parts.push(`cmc<=${max}`);
+  }
 
   const oracle = f.oracle.trim();
   if (oracle) {
@@ -1955,7 +2039,9 @@ function AdvancedSearchView({
         const cards = await searchScryfallCards(q, controller.signal);
         setResults(cards);
       } catch (e) {
-        if ((e as { name?: string })?.name === 'AbortError') return;
+        if ((e as { name?: string })?.name === 'AbortError') {
+          return;
+        }
         setError(e instanceof Error ? e.message : 'Search failed');
       } finally {
         setLoading(false);
@@ -2139,7 +2225,7 @@ function SearchFilters({
           title="Color match mode"
           style={{
             backgroundImage:
-              "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%237A6E8F' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>\")",
+              'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%237A6E8F\' stroke-width=\'3\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'6 9 12 15 18 9\'/></svg>")',
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'right 6px center',
           }}
@@ -2330,10 +2416,16 @@ function useDeckImagePreload(
   }, [deck]);
 
   useEffect(() => {
-    if (loading || deckId == null) return;
-    if (readyDeckId === deckId) return;
+    if (loading || deckId == null) {
+      return;
+    }
+    if (readyDeckId === deckId) {
+      return;
+    }
     const snapshot = deckRef.current;
-    if (!snapshot) return;
+    if (!snapshot) {
+      return;
+    }
 
     const urls = Array.from(
       new Set(
@@ -2354,10 +2446,14 @@ function useDeckImagePreload(
     let cancelled = false;
     let loaded = 0;
     const tick = () => {
-      if (cancelled) return;
+      if (cancelled) {
+        return;
+      }
       loaded += 1;
       setProgress({ loaded, total: urls.length });
-      if (loaded === urls.length) setReadyDeckId(deckId);
+      if (loaded === urls.length) {
+        setReadyDeckId(deckId);
+      }
     };
 
     urls.forEach((url) => {
@@ -2544,8 +2640,12 @@ function bucketOf(card: DeckCard, isCommander: boolean): string {
   // type bucket rather than lingering under a phantom section header.
   // The `commander="1"` attribute stays in the XML so switching the
   // format back restores the visual grouping.
-  if (isCommander && card.isCommander) return 'Commander';
-  if (card.category === 'sideboard') return 'Sideboard';
+  if (isCommander && card.isCommander) {
+    return 'Commander';
+  }
+  if (card.category === 'sideboard') {
+    return 'Sideboard';
+  }
   return primaryType(card.typeLine);
 }
 

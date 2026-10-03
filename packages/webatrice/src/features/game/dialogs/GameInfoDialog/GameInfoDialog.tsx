@@ -31,7 +31,9 @@ function GameInfoDialog() {
   const { game } = useCurrentGame(gameId);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      return;
+    }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -56,7 +58,9 @@ function GameInfoDialog() {
   useEffect(() => {
     // Only tick while the dialog is open — no reason to burn a timer
     // in the background when nobody's looking at it.
-    if (!isOpen) return undefined;
+    if (!isOpen) {
+      return undefined;
+    }
     const id = window.setInterval(() => {
       setDisplaySeconds((prev) => prev + 1);
     }, 1000);
@@ -140,10 +144,18 @@ function GameInfoDialog() {
               const pid = p.properties.playerId;
               const pname = playerName(p);
               const tags: string[] = [];
-              if (pid === game.hostId) tags.push('host');
-              if (p.properties.spectator) tags.push('spectator');
-              if (p.properties.judge) tags.push('judge');
-              if (pid === game.localPlayerId) tags.push('you');
+              if (pid === game.hostId) {
+                tags.push('host');
+              }
+              if (p.properties.spectator) {
+                tags.push('spectator');
+              }
+              if (p.properties.judge) {
+                tags.push('judge');
+              }
+              if (pid === game.localPlayerId) {
+                tags.push('you');
+              }
               return (
                 <li
                   key={pid}

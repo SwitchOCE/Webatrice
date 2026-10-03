@@ -180,7 +180,9 @@ export default function ChatLog() {
                             }
                           }}
                           onMouseUp={(e) => {
-                            if (e.button === 1) closeBigPreview();
+                            if (e.button === 1) {
+                              closeBigPreview();
+                            }
                           }}
                         >
                           {seg.text}

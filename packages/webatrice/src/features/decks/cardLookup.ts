@@ -39,7 +39,7 @@ export interface LookupResult {
   typeLine?: string;
   manaCost?: string;
   cmc?: number;
-  colors?: string[];      // ["W", "U", ...]
+  colors?: string[]; // ["W", "U", ...]
   power?: string;
   toughness?: string;
   /** All known printings. Cards from Dexie may have many; a Scryfall
@@ -230,7 +230,9 @@ export async function lookupCards(
       uniqueHints.set(hint.name, hint);
     }
   }
-  if (uniqueHints.size === 0) return out;
+  if (uniqueHints.size === 0) {
+    return out;
+  }
 
   const uniqueNames = Array.from(uniqueHints.keys());
 
@@ -526,7 +528,9 @@ async function putScryfallCache(result: LookupResult): Promise<void> {
 }
 
 async function bulkPutScryfallCache(results: LookupResult[]): Promise<void> {
-  if (results.length === 0) return;
+  if (results.length === 0) {
+    return;
+  }
   try {
     await dexieService.scryfallCache.bulkPut(results);
   } catch {
@@ -537,8 +541,12 @@ async function bulkPutScryfallCache(results: LookupResult[]): Promise<void> {
 function pickImageUri(printing: CardInSet): string | undefined {
   // Prefer the imported card DB's picurl (respects self-hosted mirrors);
   // fall back to Scryfall CDN by UUID.
-  if (printing.picurl) return printing.picurl;
-  if (printing.picURL) return printing.picURL;
+  if (printing.picurl) {
+    return printing.picurl;
+  }
+  if (printing.picURL) {
+    return printing.picURL;
+  }
   if (printing.uuid) {
     return `https://api.scryfall.com/cards/${encodeURIComponent(printing.uuid)}?format=image&version=${ScryfallImageSize.Small}`;
   }
@@ -550,7 +558,9 @@ function normalizeSets(setField: CardInSet | CardInSet[] | undefined): CardInSet
   // scalar; `set` can be one printing or many. Signature is broader
   // than Card['set'] so token records (whose `set` is optional) can
   // reuse the same helper.
-  if (!setField) return [];
+  if (!setField) {
+    return [];
+  }
   return Array.isArray(setField) ? setField : [setField];
 }
 
@@ -562,7 +572,9 @@ function normalizeSets(setField: CardInSet | CardInSet[] | undefined): CardInSet
 function normalizeRelated(
   field: RelatedCard[] | RelatedCard | undefined,
 ): RelatedCard[] {
-  if (!field) return [];
+  if (!field) {
+    return [];
+  }
   return Array.isArray(field) ? field : [field];
 }
 
@@ -576,13 +588,17 @@ function readStringProp(node: unknown): string | undefined {
 
 function readNumberProp(node: unknown): number | undefined {
   const s = readStringProp(node);
-  if (!s) return undefined;
+  if (!s) {
+    return undefined;
+  }
   const n = parseFloat(s);
   return Number.isFinite(n) ? n : undefined;
 }
 
 function splitColors(raw: string | undefined): string[] | undefined {
-  if (!raw) return undefined;
+  if (!raw) {
+    return undefined;
+  }
   // Cockatrice packs colors as "W" / "WU" / "WUBRG". Split on chars.
   const out = raw
     .toUpperCase()
@@ -648,7 +664,9 @@ async function fetchScryfall(name: string): Promise<ScryfallCard | null> {
   const url = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cleaned)}`;
   try {
     const res = await fetch(url);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      return null;
+    }
     return (await res.json()) as ScryfallCard;
   } catch {
     return null;
@@ -685,7 +703,9 @@ async function fetchScryfall(name: string): Promise<ScryfallCard | null> {
  */
 async function batchFetchScryfall(hints: LookupHint[]): Promise<Map<string, ScryfallCard>> {
   const out = new Map<string, ScryfallCard>();
-  if (hints.length === 0) return out;
+  if (hints.length === 0) {
+    return out;
+  }
 
   const CHUNK = 75;
   const chunks: LookupHint[][] = [];
@@ -793,7 +813,9 @@ export async function fetchAllPrintings(name: string): Promise<PrintingSummary[]
   const url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}&unique=prints&order=released&dir=desc`;
   try {
     const res = await fetch(url);
-    if (!res.ok) return [];
+    if (!res.ok) {
+      return [];
+    }
     const body = (await res.json()) as { data?: ScryfallCard[] };
     return (body.data ?? []).map((c) => ({
       set: c.set,

@@ -26,7 +26,9 @@ export default function SidebarResizer({ width, onResize }: SidebarResizerProps)
 
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     // Left button only; treat other buttons (context menu, middle) as no-ops.
-    if (e.button !== 0) return;
+    if (e.button !== 0) {
+      return;
+    }
     e.preventDefault();
     dragStateRef.current = { startX: e.clientX, startWidth: width };
     setDragging(true);
@@ -37,7 +39,9 @@ export default function SidebarResizer({ width, onResize }: SidebarResizerProps)
 
   const handlePointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     const state = dragStateRef.current;
-    if (!state) return;
+    if (!state) {
+      return;
+    }
     // Right-anchored: dragging left (negative delta) grows the sidebar,
     // dragging right shrinks it. Matches the resizer's visual position.
     const delta = state.startX - e.clientX;
@@ -45,7 +49,9 @@ export default function SidebarResizer({ width, onResize }: SidebarResizerProps)
   }, [onResize]);
 
   const endDrag = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragStateRef.current) return;
+    if (!dragStateRef.current) {
+      return;
+    }
     dragStateRef.current = null;
     setDragging(false);
     try {
@@ -60,17 +66,27 @@ export default function SidebarResizer({ width, onResize }: SidebarResizerProps)
   // to the layout preference.
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     const STEP = 24;
-    if (e.key === 'ArrowLeft') { e.preventDefault(); onResize(width + STEP); return; }
-    if (e.key === 'ArrowRight') { e.preventDefault(); onResize(width - STEP); return; }
-    if (e.key === 'Home') { e.preventDefault(); onResize(SIDEBAR_WIDTH_MAX); return; }
-    if (e.key === 'End') { e.preventDefault(); onResize(SIDEBAR_WIDTH_MIN); return; }
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault(); onResize(width + STEP); return;
+    }
+    if (e.key === 'ArrowRight') {
+      e.preventDefault(); onResize(width - STEP); return;
+    }
+    if (e.key === 'Home') {
+      e.preventDefault(); onResize(SIDEBAR_WIDTH_MAX); return;
+    }
+    if (e.key === 'End') {
+      e.preventDefault(); onResize(SIDEBAR_WIDTH_MIN); return;
+    }
   }, [onResize, width]);
 
   // While dragging, show a col-resize cursor even when the pointer
   // strays off the 8-px handle. body-level class toggle so the whole
   // page reflects it — matches the feel of native window resizers.
   useEffect(() => {
-    if (!dragging) return;
+    if (!dragging) {
+      return;
+    }
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
     return () => {

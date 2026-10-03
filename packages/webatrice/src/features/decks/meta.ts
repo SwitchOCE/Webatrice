@@ -37,14 +37,18 @@ export function defaultMeta(): DeckMeta {
  */
 export function parseMeta(commentsText: string | null | undefined): DeckMeta {
   const text = commentsText?.trim();
-  if (!text) return defaultMeta();
+  if (!text) {
+    return defaultMeta();
+  }
 
   // Case 2: our JSON blob.
   if (text.startsWith('{')) {
     try {
       const raw: unknown = JSON.parse(text);
       const migrated = migrate(raw);
-      if (migrated) return migrated;
+      if (migrated) {
+        return migrated;
+      }
     } catch {
       // fallthrough — malformed JSON: treat as description
     }
@@ -74,7 +78,9 @@ export function touchMeta(meta: DeckMeta): DeckMeta {
  * caller can fall through to the human-comments case).
  */
 function migrate(raw: unknown): DeckMeta | null {
-  if (!isRecord(raw) || typeof raw.v !== 'number') return null;
+  if (!isRecord(raw) || typeof raw.v !== 'number') {
+    return null;
+  }
 
   // v1 → v1: no-op, just validate + coerce shape.
   if (raw.v === 1) {
@@ -82,9 +88,15 @@ function migrate(raw: unknown): DeckMeta | null {
       v: 1,
       updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : new Date().toISOString(),
     };
-    if (typeof raw.description === 'string') out.description = raw.description;
-    if (typeof raw.priceUsd === 'number') out.priceUsd = raw.priceUsd;
-    if (typeof raw.priceMissingCount === 'number') out.priceMissingCount = raw.priceMissingCount;
+    if (typeof raw.description === 'string') {
+      out.description = raw.description;
+    }
+    if (typeof raw.priceUsd === 'number') {
+      out.priceUsd = raw.priceUsd;
+    }
+    if (typeof raw.priceMissingCount === 'number') {
+      out.priceMissingCount = raw.priceMissingCount;
+    }
     if (
       typeof raw.bracketLevel === 'number' &&
       raw.bracketLevel >= 1 &&

@@ -14,7 +14,7 @@ const TOKEN_RE = /\{[^}]+\}/g;
 const SINGLE_TOKEN_RE = /^\{[^}]+\}$/;
 
 function ManaSymbol({ token, size }: { token: string; size: number | string }) {
-  const inner = token.slice(1, -1).replace(/\//g, "");
+  const inner = token.slice(1, -1).replace(/\//g, '');
   // Size via CSS style, not HTML width/height attrs, so em/rem/% work.
   // HTML width/height expect plain pixel numbers; a string like "2.75em"
   // silently falls back to the SVG's intrinsic 24×24 viewbox size.
@@ -39,9 +39,11 @@ export function ManaSymbols({
   className?: string;
 }) {
   const tokens = cost.match(TOKEN_RE);
-  if (!tokens || tokens.length === 0) return null;
+  if (!tokens || tokens.length === 0) {
+    return null;
+  }
   return (
-    <span className={`inline-flex items-center gap-0.5 align-middle ${className ?? ""}`}>
+    <span className={`inline-flex items-center gap-0.5 align-middle ${className ?? ''}`}>
       {tokens.map((tok, i) => (
         <ManaSymbol key={i} token={tok} size={size} />
       ))}
@@ -57,7 +59,9 @@ export function SymbolText({ text, size = 12 }: { text: string; size?: number })
   return (
     <>
       {parts.map((p, i) => {
-        if (SINGLE_TOKEN_RE.test(p)) return <ManaSymbol key={i} token={p} size={size} />;
+        if (SINGLE_TOKEN_RE.test(p)) {
+          return <ManaSymbol key={i} token={p} size={size} />;
+        }
         return <span key={i}>{p}</span>;
       })}
     </>

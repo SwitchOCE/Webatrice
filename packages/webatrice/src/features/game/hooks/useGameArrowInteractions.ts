@@ -372,10 +372,10 @@ export function useGameArrowInteractions({
     const domEl = registryEl
       ? null
       : (document.querySelector(
-          `[data-card-id="${CSS.escape(String(arrowDrag.sourceCardId))}"][data-card-owner="${CSS.escape(
-            String(arrowDrag.sourcePlayerId),
-          )}"][data-card-zone="${CSS.escape(arrowDrag.sourceZone)}"]`,
-        ) as HTMLElement | null);
+        `[data-card-id="${CSS.escape(String(arrowDrag.sourceCardId))}"][data-card-owner="${CSS.escape(
+          String(arrowDrag.sourcePlayerId),
+        )}"][data-card-zone="${CSS.escape(arrowDrag.sourceZone)}"]`,
+      ) as HTMLElement | null);
     const sourceEl = registryEl ?? domEl;
     if (!containerRect || !sourceEl) {
       return null;

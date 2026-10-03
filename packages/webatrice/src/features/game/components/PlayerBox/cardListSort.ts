@@ -69,19 +69,27 @@ const COLOR_ALIASES: Record<string, string> = {
  *  and prefixed key:value expressions (t:type, c:color, cmc:N, set:XXX). */
 export function matchesQuery(card: DeckCard, query: string): boolean {
   const trimmed = query.trim();
-  if (!trimmed) return true;
+  if (!trimmed) {
+    return true;
+  }
   const tokens = trimmed.toLowerCase().split(/\s+/);
   for (const t of tokens) {
     if (!t.includes(':')) {
-      if (!card.name.toLowerCase().includes(t)) return false;
+      if (!card.name.toLowerCase().includes(t)) {
+        return false;
+      }
       continue;
     }
     const [rawKey, ...rest] = t.split(':');
     const key = rawKey;
     const val = rest.join(':');
-    if (!val) continue;
+    if (!val) {
+      continue;
+    }
     if (key === 't' || key === 'type') {
-      if (!(card.type_line ?? '').toLowerCase().includes(val)) return false;
+      if (!(card.type_line ?? '').toLowerCase().includes(val)) {
+        return false;
+      }
     } else if (key === 'c' || key === 'color') {
       const chars = val.length > 1 && !(val in COLOR_ALIASES)
         ? val.split('')
@@ -89,19 +97,31 @@ export function matchesQuery(card: DeckCard, query: string): boolean {
       const required = chars
         .map((ch) => COLOR_ALIASES[ch])
         .filter((c): c is string => Boolean(c));
-      if (required.length === 0) return false;
+      if (required.length === 0) {
+        return false;
+      }
       for (const r of required) {
-        if (!card.colors.includes(r)) return false;
+        if (!card.colors.includes(r)) {
+          return false;
+        }
       }
     } else if (key === 'cmc' || key === 'mv' || key === 'manavalue') {
       const parsed = parseFloat(val);
-      if (Number.isNaN(parsed) || (card.cmc ?? 0) !== parsed) return false;
+      if (Number.isNaN(parsed) || (card.cmc ?? 0) !== parsed) {
+        return false;
+      }
     } else if (key === 'set' || key === 's') {
-      if ((card.set ?? '').toLowerCase() !== val) return false;
+      if ((card.set ?? '').toLowerCase() !== val) {
+        return false;
+      }
     } else if (key === 'name' || key === 'n') {
-      if (!card.name.toLowerCase().includes(val)) return false;
+      if (!card.name.toLowerCase().includes(val)) {
+        return false;
+      }
     } else {
-      if (!card.name.toLowerCase().includes(t)) return false;
+      if (!card.name.toLowerCase().includes(t)) {
+        return false;
+      }
     }
   }
   return true;
@@ -111,9 +131,13 @@ export function matchesQuery(card: DeckCard, query: string): boolean {
  *  "*" and "1+*" get sorted after fixed numeric values; non-creatures
  *  (null) sort last so P/T sort surfaces creatures at the top. */
 function ptSortKey(v: string | null): number {
-  if (v == null) return Number.POSITIVE_INFINITY;
+  if (v == null) {
+    return Number.POSITIVE_INFINITY;
+  }
   const n = parseFloat(v);
-  if (!Number.isNaN(n)) return n;
+  if (!Number.isNaN(n)) {
+    return n;
+  }
   return 1e6; // variable/non-numeric groups after real numbers
 }
 
@@ -139,9 +163,13 @@ export function compareCards(a: DeckCard, b: DeckCard, mode: SortMode): number {
         a.name.localeCompare(b.name);
     case 'pt': {
       const dp = ptSortKey(a.power) - ptSortKey(b.power);
-      if (dp !== 0) return dp;
+      if (dp !== 0) {
+        return dp;
+      }
       const dt = ptSortKey(a.toughness) - ptSortKey(b.toughness);
-      if (dt !== 0) return dt;
+      if (dt !== 0) {
+        return dt;
+      }
       return a.name.localeCompare(b.name);
     }
     default:
@@ -162,7 +190,9 @@ export function groupCards(cards: EnrichedCard[], mode: GroupMode): CardGroup[] 
   };
 
   if (mode === 'type') {
-    for (const c of cards) push(primaryType(c.meta.type_line), c);
+    for (const c of cards) {
+      push(primaryType(c.meta.type_line), c);
+    }
     return TYPE_ORDER.filter((t) => buckets.has(t)).map((t) => ({
       key: t,
       label: t,
@@ -170,7 +200,9 @@ export function groupCards(cards: EnrichedCard[], mode: GroupMode): CardGroup[] 
     }));
   }
   if (mode === 'cmc') {
-    for (const c of cards) push(String(c.meta.cmc ?? 0), c);
+    for (const c of cards) {
+      push(String(c.meta.cmc ?? 0), c);
+    }
     return [...buckets.keys()]
       .map(Number)
       .sort((a, b) => a - b)
@@ -188,8 +220,12 @@ export function groupCards(cards: EnrichedCard[], mode: GroupMode): CardGroup[] 
   }
   return [...buckets.keys()]
     .sort((a, b) => {
-      if (a === 'Colorless') return 1;
-      if (b === 'Colorless') return -1;
+      if (a === 'Colorless') {
+        return 1;
+      }
+      if (b === 'Colorless') {
+        return -1;
+      }
       const rank = (k: string) =>
         k.length === 1 ? COLOR_KEY_ORDER.indexOf(k as never) : 10 + k.length;
       return rank(a) - rank(b) || a.localeCompare(b);

@@ -36,7 +36,7 @@ function getSnapshot(): number | null {
 export function useSelectionOwner(): [
   number | null,
   (ownerPlayerId: number | null) => void,
-] {
+  ] {
   const owner = useSyncExternalStore(subscribe, getSnapshot);
   const setOwner = useCallback((ownerPlayerId: number | null) => {
     if (currentOwner === ownerPlayerId) {

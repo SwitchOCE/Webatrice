@@ -117,8 +117,8 @@ describe('serializeCod → parseCod round-trip', () => {
     const parsed = parseCod(xml);
     expect(parsed.name).toBe('Round Trip');
     // serializeCod groups cards into one <zone> per category (main
-     // first, then sideboard), so the round-tripped order isn't the
-     // original input order — it's category-then-input order.
+    // first, then sideboard), so the round-tripped order isn't the
+    // original input order — it's category-then-input order.
     expect(parsed.cards).toEqual([
       {
         name: 'Sol Ring',

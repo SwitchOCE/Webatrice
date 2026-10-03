@@ -82,10 +82,14 @@ async function fetchScryfallDetail(
       url = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cleaned)}`;
     }
     const res = await fetch(url, { signal });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      return null;
+    }
     return (await res.json()) as ScryfallDetail;
   } catch (e) {
-    if ((e as { name?: string })?.name === 'AbortError') throw e;
+    if ((e as { name?: string })?.name === 'AbortError') {
+      throw e;
+    }
     return null;
   }
 }
@@ -189,7 +193,9 @@ export default function CardDetailModal({
         setDetailLoading(false);
       })
       .catch((e) => {
-        if ((e as { name?: string })?.name === 'AbortError') return;
+        if ((e as { name?: string })?.name === 'AbortError') {
+          return;
+        }
         setDetailLoading(false);
       });
     return () => controller.abort();
@@ -197,15 +203,21 @@ export default function CardDetailModal({
   }, [fetchKey]);
 
   useEffect(() => {
-    if (!snapshot) return;
+    if (!snapshot) {
+      return;
+    }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [snapshot, onClose]);
 
-  if (!snapshot) return null;
+  if (!snapshot) {
+    return null;
+  }
 
   // Resolve the target deck row for actions. Two cases:
   //  1. Not browsing → resolve by snapshot (the row the user clicked).
@@ -217,18 +229,20 @@ export default function CardDetailModal({
   const targetName = browseOverride?.name ?? snapshot.name;
   const liveIndex = browseOverride
     ? (() => {
-        // Prefer main-category matches over sideboard for the same
-        // name so "Mark as commander" applies to the mainboard copy
-        // when both exist.
-        const mainIdx = deckCards.findIndex(
-          (c) => c.name === targetName && c.category === 'main',
-        );
-        if (mainIdx >= 0) return mainIdx;
-        return deckCards.findIndex((c) => c.name === targetName);
-      })()
-    : deckCards.findIndex(
-        (c) => c.name === snapshot.name && c.category === snapshot.category,
+      // Prefer main-category matches over sideboard for the same
+      // name so "Mark as commander" applies to the mainboard copy
+      // when both exist.
+      const mainIdx = deckCards.findIndex(
+        (c) => c.name === targetName && c.category === 'main',
       );
+      if (mainIdx >= 0) {
+        return mainIdx;
+      }
+      return deckCards.findIndex((c) => c.name === targetName);
+    })()
+    : deckCards.findIndex(
+      (c) => c.name === snapshot.name && c.category === snapshot.category,
+    );
   const liveCard = liveIndex >= 0 ? deckCards[liveIndex] : null;
   // `removed` = the snapshot row was deleted (only meaningful when
   // NOT browsing). `browsedNotInDeck` = the user is browsing a related
@@ -260,28 +274,38 @@ export default function CardDetailModal({
   const activeCardName = browseOverride?.name ?? snapshot.name;
   const face = (() => {
     const facesArr = detail?.card_faces;
-    if (!facesArr || facesArr.length === 0) return undefined;
+    if (!facesArr || facesArr.length === 0) {
+      return undefined;
+    }
     const stripToken = (s: string) => s.replace(/\s*\(?\bToken\b\)?\s*$/i, '').trim();
     const active = activeCardName.toLowerCase();
     const activeStripped = stripToken(activeCardName).toLowerCase();
     // 1: exact
     const exact = facesArr.find((f) => f.name?.toLowerCase() === active);
-    if (exact) return exact;
+    if (exact) {
+      return exact;
+    }
     // 2: exact after strip
     const exactStripped = facesArr.find(
       (f) => f.name && stripToken(f.name).toLowerCase() === activeStripped,
     );
-    if (exactStripped) return exactStripped;
+    if (exactStripped) {
+      return exactStripped;
+    }
     // 3: face name ⊂ chip name
     const faceInChip = facesArr.find(
       (f) => f.name && active.includes(f.name.toLowerCase()),
     );
-    if (faceInChip) return faceInChip;
+    if (faceInChip) {
+      return faceInChip;
+    }
     // 4: chip name ⊂ face name
     const chipInFace = facesArr.find(
       (f) => f.name?.toLowerCase().includes(active),
     );
-    if (chipInFace) return chipInFace;
+    if (chipInFace) {
+      return chipInFace;
+    }
     // 5: default
     return facesArr[0];
   })();
@@ -320,8 +344,12 @@ export default function CardDetailModal({
   const cmc = (() => {
     if (face) {
       const faceMana = face.mana_cost ?? '';
-      if (!faceMana) return undefined;
-      if (typeof face.cmc === 'number') return face.cmc;
+      if (!faceMana) {
+        return undefined;
+      }
+      if (typeof face.cmc === 'number') {
+        return face.cmc;
+      }
     }
     return typeof detail?.cmc === 'number' ? detail.cmc : liveCard?.cmc ?? displayFallback.cmc;
   })();
@@ -468,7 +496,9 @@ export default function CardDetailModal({
                       pendingNavigationRef.current?.name === target.name
                       && pendingNavigationRef.current?.scryfallId === target.scryfallId
                     );
-                    if (!stillCurrent) return;
+                    if (!stillCurrent) {
+                      return;
+                    }
                     // Commit atomically: browseOverride change would
                     // otherwise trigger the fetch effect below to
                     // re-fetch what we just fetched. Pre-seeding
@@ -491,96 +521,106 @@ export default function CardDetailModal({
                  all, the block is hidden — no point offering
                  "Change printing" on a card you don't own. */}
             {!browsedNotInDeck && (
-            <div className="mt-2 border-t border-border-subtle pt-3 space-y-2">
-              <div className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
+              <div className="mt-2 border-t border-border-subtle pt-3 space-y-2">
+                <div className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
                 Actions
-              </div>
-
-              <div className="flex items-center justify-between px-3 py-2 rounded-md bg-bg-elevated border border-border-subtle">
-                <span className="text-sm text-text-secondary">
-                  Quantity{' '}
-                  {removed && (
-                    <span className="text-xs text-text-muted">· removed from deck</span>
-                  )}
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => liveIndex >= 0 && onDec(liveIndex)}
-                    disabled={removed}
-                    className="p-1 rounded hover:bg-bg-base text-text-muted hover:text-text-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                    aria-label="Decrease quantity"
-                  >
-                    <Minus size={14} />
-                  </button>
-                  <span className="w-6 text-center tabular-nums text-text-primary font-semibold">
-                    {quantity}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => liveIndex >= 0 && onInc(liveIndex)}
-                    disabled={removed}
-                    className="p-1 rounded hover:bg-bg-base text-text-muted hover:text-text-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                    aria-label="Increase quantity"
-                  >
-                    <Plus size={14} />
-                  </button>
                 </div>
-              </div>
 
-              <ActionButton
-                icon={<Layers size={14} />}
-                label="Change printing"
-                disabled={removed}
-                onClick={closeAfter(() => {
-                  if (liveCard && liveIndex >= 0) onChangePrinting(liveIndex, liveCard);
-                })}
-              />
-              {isCommanderDeck && (
+                <div className="flex items-center justify-between px-3 py-2 rounded-md bg-bg-elevated border border-border-subtle">
+                  <span className="text-sm text-text-secondary">
+                  Quantity{' '}
+                    {removed && (
+                      <span className="text-xs text-text-muted">· removed from deck</span>
+                    )}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => liveIndex >= 0 && onDec(liveIndex)}
+                      disabled={removed}
+                      className="p-1 rounded hover:bg-bg-base text-text-muted hover:text-text-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                      aria-label="Decrease quantity"
+                    >
+                      <Minus size={14} />
+                    </button>
+                    <span className="w-6 text-center tabular-nums text-text-primary font-semibold">
+                      {quantity}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => liveIndex >= 0 && onInc(liveIndex)}
+                      disabled={removed}
+                      className="p-1 rounded hover:bg-bg-base text-text-muted hover:text-text-primary disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                      aria-label="Increase quantity"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                </div>
+
                 <ActionButton
-                  icon={
-                    <Crown
-                      size={14}
-                      className={cardIsCommander ? 'text-yellow-400' : ''}
-                    />
-                  }
-                  label={cardIsCommander ? 'Unmark as commander' : 'Mark as commander'}
+                  icon={<Layers size={14} />}
+                  label="Change printing"
                   disabled={removed}
                   onClick={closeAfter(() => {
-                    if (liveIndex < 0) return;
-                    onSetCommander(liveIndex, !cardIsCommander);
+                    if (liveCard && liveIndex >= 0) {
+                      onChangePrinting(liveIndex, liveCard);
+                    }
                   })}
                 />
-              )}
-              {cardIsSideboard ? (
+                {isCommanderDeck && (
+                  <ActionButton
+                    icon={
+                      <Crown
+                        size={14}
+                        className={cardIsCommander ? 'text-yellow-400' : ''}
+                      />
+                    }
+                    label={cardIsCommander ? 'Unmark as commander' : 'Mark as commander'}
+                    disabled={removed}
+                    onClick={closeAfter(() => {
+                      if (liveIndex < 0) {
+                        return;
+                      }
+                      onSetCommander(liveIndex, !cardIsCommander);
+                    })}
+                  />
+                )}
+                {cardIsSideboard ? (
+                  <ActionButton
+                    icon={<PackageOpen size={14} />}
+                    label="Move to main"
+                    disabled={removed}
+                    onClick={closeAfter(() => {
+                      if (liveIndex >= 0) {
+                        onSetCategory(liveIndex, 'main');
+                      }
+                    })}
+                  />
+                ) : (
+                  <ActionButton
+                    icon={<Archive size={14} />}
+                    label="Move to sideboard"
+                    disabled={removed || cardIsCommander}
+                    onClick={closeAfter(() => {
+                      if (liveIndex >= 0) {
+                        onSetCategory(liveIndex, 'sideboard');
+                      }
+                    })}
+                  />
+                )}
                 <ActionButton
-                  icon={<PackageOpen size={14} />}
-                  label="Move to main"
+                  icon={<Trash2 size={14} />}
+                  label="Remove from deck"
+                  danger
                   disabled={removed}
                   onClick={closeAfter(() => {
-                    if (liveIndex >= 0) onSetCategory(liveIndex, 'main');
+                    if (liveIndex >= 0) {
+                      onDelete(liveIndex);
+                    }
                   })}
                 />
-              ) : (
-                <ActionButton
-                  icon={<Archive size={14} />}
-                  label="Move to sideboard"
-                  disabled={removed || cardIsCommander}
-                  onClick={closeAfter(() => {
-                    if (liveIndex >= 0) onSetCategory(liveIndex, 'sideboard');
-                  })}
-                />
-              )}
-              <ActionButton
-                icon={<Trash2 size={14} />}
-                label="Remove from deck"
-                danger
-                disabled={removed}
-                onClick={closeAfter(() => {
-                  if (liveIndex >= 0) onDelete(liveIndex);
-                })}
-              />
-            </div>
+              </div>
             )}
 
             {browsedNotInDeck && browseOverride && (() => {
@@ -599,7 +639,9 @@ export default function CardDetailModal({
                 || browseOverride.kind === 'combo_piece';
               // If there's nothing to offer, skip the whole section
               // rather than rendering an empty "Actions" header.
-              if (!canAdd) return null;
+              if (!canAdd) {
+                return null;
+              }
               return (
                 <div className="mt-2 border-t border-border-subtle pt-3 space-y-2">
                   <div className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
@@ -723,7 +765,9 @@ function ManaSymbols({
   className?: string;
 }) {
   const tokens = cost.match(TOKEN_RE);
-  if (!tokens || tokens.length === 0) return null;
+  if (!tokens || tokens.length === 0) {
+    return null;
+  }
   return (
     <span className={`inline-flex items-center gap-0.5 align-middle ${className ?? ''}`}>
       {tokens.map((tok, i) => (
@@ -741,7 +785,9 @@ function SymbolText({ text, size = 12 }: { text: string; size?: number }) {
   return (
     <>
       {parts.map((p, i) => {
-        if (SINGLE_TOKEN_RE.test(p)) return <ManaSymbol key={i} token={p} size={size} />;
+        if (SINGLE_TOKEN_RE.test(p)) {
+          return <ManaSymbol key={i} token={p} size={size} />;
+        }
         return <span key={i}>{p}</span>;
       })}
     </>

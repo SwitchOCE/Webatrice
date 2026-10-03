@@ -15,7 +15,9 @@ export function useViewportClampedPopup(anchorX: number, anchorY: number) {
   const [pos, setPos] = useState({ x: anchorX, y: anchorY });
   useLayoutEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     const rect = el.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;

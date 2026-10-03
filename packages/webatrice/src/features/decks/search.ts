@@ -25,12 +25,16 @@ const MIN_QUERY = 2;
 
 export async function searchCards(query: string, limit = 20): Promise<SearchResult[]> {
   const q = query.trim();
-  if (q.length < MIN_QUERY) return [];
+  if (q.length < MIN_QUERY) {
+    return [];
+  }
 
   const url = `https://api.scryfall.com/cards/autocomplete?q=${encodeURIComponent(q)}`;
   try {
     const res = await fetch(url);
-    if (!res.ok) return [];
+    if (!res.ok) {
+      return [];
+    }
     const body = (await res.json()) as { data?: string[] };
     return (body.data ?? []).slice(0, limit).map((name) => ({ name, source: 'scryfall' }));
   } catch {
@@ -67,17 +71,23 @@ export async function searchScryfallCards(
   signal?: AbortSignal,
 ): Promise<ScryfallSearchCard[]> {
   const q = query.trim();
-  if (!q) return [];
+  if (!q) {
+    return [];
+  }
   // `unique=cards` collapses printings so each card appears once, which
   // matches how the printings picker layers on top of a search result.
   const url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}&unique=cards&order=name`;
   try {
     const res = await fetch(url, { signal });
-    if (!res.ok) return []; // 404 = zero matches; treat as empty
+    if (!res.ok) {
+      return [];
+    } // 404 = zero matches; treat as empty
     const body = (await res.json()) as { data?: ScryfallSearchCard[] };
     return body.data ?? [];
   } catch (e) {
-    if ((e as { name?: string })?.name === 'AbortError') throw e;
+    if ((e as { name?: string })?.name === 'AbortError') {
+      throw e;
+    }
     return [];
   }
 }

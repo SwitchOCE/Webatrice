@@ -5,12 +5,12 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
   type RefObject,
-} from "react";
-import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+} from 'react';
+import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 
-import Card from "./Card";
-import { CARD_HEIGHT, CARD_WIDTH } from "./cardSize";
+import Card from './Card';
+import { CARD_HEIGHT, CARD_WIDTH } from './cardSize';
 
 type HandCard = { id: string; name: string; scryfallId: string };
 
@@ -69,8 +69,8 @@ export interface ZoneRevealDialogProps {
 /** localStorage keys — shared across ALL zone-reveal invocations so the
  *  user's remembered position/size applies whether they're viewing the
  *  library, graveyard, or exile. */
-const POSITION_STORAGE_KEY = "webatrice.zoneRevealPosition";
-const SIZE_STORAGE_KEY = "webatrice.zoneRevealSize";
+const POSITION_STORAGE_KEY = 'webatrice.zoneRevealPosition';
+const SIZE_STORAGE_KEY = 'webatrice.zoneRevealSize';
 
 const MIN_DIALOG_W = 400;
 const MIN_DIALOG_H = 240;
@@ -78,15 +78,19 @@ const DEFAULT_DIALOG_W = 900;
 const DEFAULT_DIALOG_H = 480;
 
 function readStoredPosition(): { x: number; y: number } | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined') {
+    return null;
+  }
   try {
     const raw = window.localStorage.getItem(POSITION_STORAGE_KEY);
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
     const parsed = JSON.parse(raw);
     if (
       parsed &&
-      typeof parsed.x === "number" &&
-      typeof parsed.y === "number" &&
+      typeof parsed.x === 'number' &&
+      typeof parsed.y === 'number' &&
       Number.isFinite(parsed.x) &&
       Number.isFinite(parsed.y)
     ) {
@@ -99,7 +103,9 @@ function readStoredPosition(): { x: number; y: number } | null {
 }
 
 function writeStoredPosition(pos: { x: number; y: number }): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') {
+    return;
+  }
   try {
     window.localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(pos));
   } catch {
@@ -108,15 +114,19 @@ function writeStoredPosition(pos: { x: number; y: number }): void {
 }
 
 function readStoredSize(): { w: number; h: number } | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined') {
+    return null;
+  }
   try {
     const raw = window.localStorage.getItem(SIZE_STORAGE_KEY);
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
     const parsed = JSON.parse(raw);
     if (
       parsed &&
-      typeof parsed.w === "number" &&
-      typeof parsed.h === "number" &&
+      typeof parsed.w === 'number' &&
+      typeof parsed.h === 'number' &&
       Number.isFinite(parsed.w) &&
       Number.isFinite(parsed.h)
     ) {
@@ -129,7 +139,9 @@ function readStoredSize(): { w: number; h: number } | null {
 }
 
 function writeStoredSize(size: { w: number; h: number }): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') {
+    return;
+  }
   try {
     window.localStorage.setItem(SIZE_STORAGE_KEY, JSON.stringify(size));
   } catch {
@@ -141,7 +153,9 @@ function clampToViewport(
   pos: { x: number; y: number },
   size: { w: number; h: number },
 ): { x: number; y: number } {
-  if (typeof window === "undefined") return pos;
+  if (typeof window === 'undefined') {
+    return pos;
+  }
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   return {
@@ -154,7 +168,9 @@ function clampSizeToViewport(size: { w: number; h: number }): {
   w: number;
   h: number;
 } {
-  if (typeof window === "undefined") return size;
+  if (typeof window === 'undefined') {
+    return size;
+  }
   return {
     w: Math.min(Math.max(MIN_DIALOG_W, size.w), window.innerWidth),
     h: Math.min(Math.max(MIN_DIALOG_H, size.h), window.innerHeight),
@@ -186,9 +202,13 @@ export default function ZoneRevealDialog({
   // so the native `resize: both` handle can freely change the inline
   // width/height without racing React state.
   useLayoutEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      return;
+    }
     const el = dialogRef.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     const storedSize = readStoredSize();
     if (storedSize) {
       const clamped = clampSizeToViewport(storedSize);
@@ -209,7 +229,9 @@ export default function ZoneRevealDialog({
       return;
     }
     const el = dialogRef.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     const rect = el.getBoundingClientRect();
     const stored = readStoredPosition();
     if (stored) {
@@ -227,9 +249,13 @@ export default function ZoneRevealDialog({
   // default), which the user hasn't actively set. Any subsequent fire
   // means the user grabbed the resize handle.
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      return;
+    }
     const el = dialogRef.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     let first = true;
     let timer: number | null = null;
     const ro = new ResizeObserver(([entry]) => {
@@ -239,7 +265,9 @@ export default function ZoneRevealDialog({
       }
       const w = entry.contentRect.width;
       const h = entry.contentRect.height;
-      if (timer !== null) window.clearTimeout(timer);
+      if (timer !== null) {
+        window.clearTimeout(timer);
+      }
       timer = window.setTimeout(() => {
         writeStoredSize({ w, h });
       }, 500);
@@ -247,33 +275,41 @@ export default function ZoneRevealDialog({
     ro.observe(el);
     return () => {
       ro.disconnect();
-      if (timer !== null) window.clearTimeout(timer);
+      if (timer !== null) {
+        window.clearTimeout(timer);
+      }
     };
   }, [isOpen]);
 
   // Global pointer listeners while dragging the header.
   useEffect(() => {
-    if (!dragging) return;
+    if (!dragging) {
+      return;
+    }
     const onMove = (e: PointerEvent) => {
       const off = dragOffset.current;
-      if (!off) return;
+      if (!off) {
+        return;
+      }
       setPos({ x: e.clientX - off.x, y: e.clientY - off.y });
     };
     const onUp = () => {
       dragOffset.current = null;
       setDragging(false);
     };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
     return () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
     };
   }, [dragging]);
 
   // Persist position 500ms after last move (skipped on first open).
   useEffect(() => {
-    if (!isOpen || !pos || !hasBeenDraggedRef.current) return;
+    if (!isOpen || !pos || !hasBeenDraggedRef.current) {
+      return;
+    }
     const timer = window.setTimeout(() => {
       writeStoredPosition(pos);
     }, 500);
@@ -281,13 +317,19 @@ export default function ZoneRevealDialog({
   }, [isOpen, pos]);
 
   const onHeaderPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0) {
+      return;
+    }
     // Don't start a drag from the close button (or any other button
     // that might land in the header later).
     const target = e.target as HTMLElement | null;
-    if (target?.closest("button")) return;
+    if (target?.closest('button')) {
+      return;
+    }
     const rect = dialogRef.current?.getBoundingClientRect();
-    if (!rect) return;
+    if (!rect) {
+      return;
+    }
     dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
     setPos({ x: rect.left, y: rect.top });
     setDragging(true);
@@ -295,18 +337,22 @@ export default function ZoneRevealDialog({
   };
 
   useEffect(() => {
-    if (!isOpen) return undefined;
+    if (!isOpen) {
+      return undefined;
+    }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         e.preventDefault();
         onClose();
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return createPortal(
     // The outer wrapper is pointer-events: none so clicks pass through
@@ -319,14 +365,16 @@ export default function ZoneRevealDialog({
       <div
         ref={(el) => {
           dialogRef.current = el;
-          if (dropRef) dropRef.current = el;
+          if (dropRef) {
+            dropRef.current = el;
+          }
         }}
         className="bg-bg-surface border border-border-subtle rounded-lg shadow-glow flex flex-col pointer-events-auto resize overflow-hidden"
         style={{
           minWidth: `${MIN_DIALOG_W}px`,
           minHeight: `${MIN_DIALOG_H}px`,
           ...(pos
-            ? { position: "absolute", left: pos.x, top: pos.y, margin: 0 }
+            ? { position: 'absolute', left: pos.x, top: pos.y, margin: 0 }
             : null),
         }}
       >
@@ -334,9 +382,9 @@ export default function ZoneRevealDialog({
         <div
           onPointerDown={onHeaderPointerDown}
           className={[
-            "px-4 py-3 border-b border-border-subtle flex items-center gap-2 shrink-0 select-none",
-            dragging ? "cursor-grabbing" : "cursor-grab",
-          ].join(" ")}
+            'px-4 py-3 border-b border-border-subtle flex items-center gap-2 shrink-0 select-none',
+            dragging ? 'cursor-grabbing' : 'cursor-grab',
+          ].join(' ')}
         >
           <div className="min-w-0 flex-1">
             <h2 className="font-modern text-base font-semibold text-text-primary truncate">
@@ -377,17 +425,19 @@ export default function ZoneRevealDialog({
                       data-card
                       data-card-id={c.id}
                       onPointerDown={(e) => {
-                        if (e.button !== 0) return;
+                        if (e.button !== 0) {
+                          return;
+                        }
                         onCardPointerDown?.(e, c);
                       }}
                       style={{
                         width: CARD_WIDTH,
                         height: CARD_HEIGHT,
-                        cursor: onCardPointerDown ? "grab" : "default",
+                        cursor: onCardPointerDown ? 'grab' : 'default',
                         opacity: isDragging ? 0 : 1,
-                        touchAction: onCardPointerDown ? "none" : undefined,
-                        borderRadius: "7.5%",
-                        transition: "opacity 100ms ease-out",
+                        touchAction: onCardPointerDown ? 'none' : undefined,
+                        borderRadius: '7.5%',
+                        transition: 'opacity 100ms ease-out',
                       }}
                     >
                       <Card name={c.name} scryfallId={c.scryfallId} />

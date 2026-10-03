@@ -52,10 +52,14 @@ const DEFAULT_DIALOG_H = 520;
 const PILE_STEP_FRACTION = 0.25;
 
 function readStoredPosition(): { x: number; y: number } | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === 'undefined') {
+    return null;
+  }
   try {
     const raw = window.localStorage.getItem(POSITION_STORAGE_KEY);
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
     const parsed = JSON.parse(raw);
     if (
       parsed &&
@@ -73,7 +77,9 @@ function readStoredPosition(): { x: number; y: number } | null {
 }
 
 function writeStoredPosition(pos: { x: number; y: number }): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') {
+    return;
+  }
   try {
     window.localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(pos));
   } catch {
@@ -82,10 +88,14 @@ function writeStoredPosition(pos: { x: number; y: number }): void {
 }
 
 function readStoredSize(): { w: number; h: number } | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === 'undefined') {
+    return null;
+  }
   try {
     const raw = window.localStorage.getItem(SIZE_STORAGE_KEY);
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
     const parsed = JSON.parse(raw);
     if (
       parsed &&
@@ -103,7 +113,9 @@ function readStoredSize(): { w: number; h: number } | null {
 }
 
 function writeStoredSize(size: { w: number; h: number }): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') {
+    return;
+  }
   try {
     window.localStorage.setItem(SIZE_STORAGE_KEY, JSON.stringify(size));
   } catch {
@@ -115,7 +127,9 @@ function clampToViewport(
   pos: { x: number; y: number },
   size: { w: number; h: number },
 ): { x: number; y: number } {
-  if (typeof window === 'undefined') return pos;
+  if (typeof window === 'undefined') {
+    return pos;
+  }
   return {
     x: Math.min(Math.max(0, pos.x), Math.max(0, window.innerWidth - size.w)),
     y: Math.min(Math.max(0, pos.y), Math.max(0, window.innerHeight - size.h)),
@@ -191,9 +205,11 @@ function renderRevealCard(
       onPointerDown={
         dragToBattlefield
           ? (e) => {
-              if (e.button !== 0) return;
-              dragToBattlefield(e, c);
+            if (e.button !== 0) {
+              return;
             }
+            dragToBattlefield(e, c);
+          }
           : undefined
       }
     >
@@ -210,7 +226,9 @@ export default function IncomingRevealDialog() {
   const { openBigPreview, closeBigPreview } = useBigCardPreview();
 
   const sourceName = useAppSelector((state) => {
-    if (!reveal) return undefined;
+    if (!reveal) {
+      return undefined;
+    }
     const player = games.Selectors.getPlayer(state, reveal.gameId, reveal.sourceOwnerId);
     return player?.properties.userInfo?.name;
   });
@@ -229,11 +247,11 @@ export default function IncomingRevealDialog() {
   const liveCards = useAppSelector((state) =>
     reveal
       ? games.Selectors.getRevealedCards(
-          state,
-          reveal.gameId,
-          reveal.sourceOwnerId,
-          reveal.zoneName,
-        )
+        state,
+        reveal.gameId,
+        reveal.sourceOwnerId,
+        reveal.zoneName,
+      )
       : undefined,
   );
   const revealCards = liveCards ?? reveal?.cards ?? [];
@@ -242,7 +260,9 @@ export default function IncomingRevealDialog() {
   // side of Command_MoveCard when we (the lend recipient) pull a card
   // from the lender's deck into one of our own zones.
   const localPlayerId = useAppSelector((state) => {
-    if (!reveal) return undefined;
+    if (!reveal) {
+      return undefined;
+    }
     return games.Selectors.getLocalPlayerId(state, reveal.gameId);
   });
 
@@ -269,7 +289,9 @@ export default function IncomingRevealDialog() {
     localPlayerId != null &&
     reveal.sourceOwnerId !== localPlayerId;
   const dragToBattlefield = useMemo(() => {
-    if (!canDragLent || !reveal) return undefined;
+    if (!canDragLent || !reveal) {
+      return undefined;
+    }
     return (e: React.PointerEvent<HTMLElement>, c: EnrichedCard) => {
       // The revealed card's id IS its deck position (Cockatrice
       // invariant after `zoneViewRevealed` reindex — see
@@ -302,7 +324,9 @@ export default function IncomingRevealDialog() {
   // type, sort by name, pile view on. Persisted separately so the two
   // dialogs can be tuned independently.
   const [groupBy, setGroupBy] = useState<GroupMode>(() => {
-    if (typeof window === 'undefined') return 'type';
+    if (typeof window === 'undefined') {
+      return 'type';
+    }
     try {
       const raw = window.localStorage.getItem(GROUP_BY_STORAGE_KEY);
       if (raw === 'none' || raw === 'type' || raw === 'cmc' || raw === 'color') {
@@ -314,7 +338,9 @@ export default function IncomingRevealDialog() {
     return 'type';
   });
   const [sortBy, setSortBy] = useState<SortMode>(() => {
-    if (typeof window === 'undefined') return 'name';
+    if (typeof window === 'undefined') {
+      return 'name';
+    }
     try {
       const raw = window.localStorage.getItem(SORT_BY_STORAGE_KEY);
       if (
@@ -334,17 +360,23 @@ export default function IncomingRevealDialog() {
     return 'name';
   });
   const [pileView, setPileView] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
+    if (typeof window === 'undefined') {
+      return true;
+    }
     try {
       const raw = window.localStorage.getItem(PILE_VIEW_STORAGE_KEY);
-      if (raw === null) return true;
+      if (raw === null) {
+        return true;
+      }
       return raw === '1';
     } catch {
       return true;
     }
   });
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      return;
+    }
     try {
       window.localStorage.setItem(GROUP_BY_STORAGE_KEY, groupBy);
     } catch {
@@ -352,7 +384,9 @@ export default function IncomingRevealDialog() {
     }
   }, [groupBy]);
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      return;
+    }
     try {
       window.localStorage.setItem(SORT_BY_STORAGE_KEY, sortBy);
     } catch {
@@ -360,7 +394,9 @@ export default function IncomingRevealDialog() {
     }
   }, [sortBy]);
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      return;
+    }
     try {
       window.localStorage.setItem(PILE_VIEW_STORAGE_KEY, pileView ? '1' : '0');
     } catch {
@@ -384,10 +420,14 @@ export default function IncomingRevealDialog() {
     const uniqueNames = Array.from(
       new Set(reveal.cards.map((c) => c.name).filter((n) => n.length > 0)),
     );
-    if (uniqueNames.length === 0) return;
+    if (uniqueNames.length === 0) {
+      return;
+    }
     void (async () => {
       const results = await lookupCardsCached(uniqueNames);
-      if (cancelled) return;
+      if (cancelled) {
+        return;
+      }
       const next = new Map<string, DeckCard>();
       for (const [name, r] of results) {
         next.set(name, {
@@ -414,9 +454,13 @@ export default function IncomingRevealDialog() {
   }, [reveal]);
 
   useLayoutEffect(() => {
-    if (!reveal) return;
+    if (!reveal) {
+      return;
+    }
     const el = dialogRef.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     const stored = readStoredSize();
     if (stored) {
       el.style.width = `${stored.w}px`;
@@ -434,7 +478,9 @@ export default function IncomingRevealDialog() {
       return;
     }
     const el = dialogRef.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     const rect = el.getBoundingClientRect();
     const stored = readStoredPosition();
     if (stored) {
@@ -448,9 +494,13 @@ export default function IncomingRevealDialog() {
   }, [reveal]);
 
   useEffect(() => {
-    if (!reveal) return;
+    if (!reveal) {
+      return;
+    }
     const el = dialogRef.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     let first = true;
     let timer: number | null = null;
     const ro = new ResizeObserver(([entry]) => {
@@ -460,21 +510,29 @@ export default function IncomingRevealDialog() {
       }
       const w = entry.contentRect.width;
       const h = entry.contentRect.height;
-      if (timer !== null) window.clearTimeout(timer);
+      if (timer !== null) {
+        window.clearTimeout(timer);
+      }
       timer = window.setTimeout(() => writeStoredSize({ w, h }), 500);
     });
     ro.observe(el);
     return () => {
       ro.disconnect();
-      if (timer !== null) window.clearTimeout(timer);
+      if (timer !== null) {
+        window.clearTimeout(timer);
+      }
     };
   }, [reveal]);
 
   useEffect(() => {
-    if (!dragging) return;
+    if (!dragging) {
+      return;
+    }
     const onMove = (e: PointerEvent) => {
       const off = dragOffset.current;
-      if (!off) return;
+      if (!off) {
+        return;
+      }
       setPos({ x: e.clientX - off.x, y: e.clientY - off.y });
     };
     const onUp = () => {
@@ -490,7 +548,9 @@ export default function IncomingRevealDialog() {
   }, [dragging]);
 
   useEffect(() => {
-    if (!reveal || !pos || !hasBeenDraggedRef.current) return;
+    if (!reveal || !pos || !hasBeenDraggedRef.current) {
+      return;
+    }
     const timer = window.setTimeout(() => writeStoredPosition(pos), 500);
     return () => window.clearTimeout(timer);
   }, [reveal, pos]);
@@ -515,7 +575,9 @@ export default function IncomingRevealDialog() {
   );
 
   useEffect(() => {
-    if (!reveal) return undefined;
+    if (!reveal) {
+      return undefined;
+    }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -527,11 +589,17 @@ export default function IncomingRevealDialog() {
   }, [reveal, close]);
 
   const onHeaderPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0) {
+      return;
+    }
     const target = e.target as HTMLElement | null;
-    if (target?.closest('button')) return;
+    if (target?.closest('button')) {
+      return;
+    }
     const rect = dialogRef.current?.getBoundingClientRect();
-    if (!rect) return;
+    if (!rect) {
+      return;
+    }
     dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
     setPos({ x: rect.left, y: rect.top });
     setDragging(true);
@@ -558,7 +626,9 @@ export default function IncomingRevealDialog() {
   const effectiveSortBy: SortMode = metadataLoaded ? sortBy : 'none';
 
   const groups = useMemo(() => {
-    if (!reveal) return [];
+    if (!reveal) {
+      return [];
+    }
     const enriched: EnrichedCard[] = revealCards.map((c, i) => ({
       handCard: {
         id: String(c.id ?? i),
@@ -571,7 +641,9 @@ export default function IncomingRevealDialog() {
     return groupCards(enriched, effectiveGroupBy);
   }, [reveal, revealCards, metaByName, effectiveSortBy, effectiveGroupBy]);
 
-  if (!reveal) return null;
+  if (!reveal) {
+    return null;
+  }
 
   const title = sourceName
     ? `${sourceName} reveals their ${zoneLabel(reveal.zoneName)}`
@@ -764,9 +836,11 @@ export default function IncomingRevealDialog() {
                             onPointerDown={
                               dragToBattlefield
                                 ? (e) => {
-                                    if (e.button !== 0) return;
-                                    dragToBattlefield(e, c);
+                                  if (e.button !== 0) {
+                                    return;
                                   }
+                                  dragToBattlefield(e, c);
+                                }
                                 : undefined
                             }
                             onMouseEnter={() => {
@@ -776,21 +850,27 @@ export default function IncomingRevealDialog() {
                               });
                             }}
                             onMouseDown={(e) => {
-                              if (e.button !== 1) return;
+                              if (e.button !== 1) {
+                                return;
+                              }
                               e.preventDefault();
                               openBigPreview({
                                 name: c.handCard.name,
                                 scryfallId: c.handCard.scryfallId,
                               });
                               const handleUp = (ev: MouseEvent) => {
-                                if (ev.button !== 1) return;
+                                if (ev.button !== 1) {
+                                  return;
+                                }
                                 closeBigPreview();
                                 window.removeEventListener('mouseup', handleUp);
                               };
                               window.addEventListener('mouseup', handleUp);
                             }}
                             onAuxClick={(e) => {
-                              if (e.button === 1) e.preventDefault();
+                              if (e.button === 1) {
+                                e.preventDefault();
+                              }
                             }}
                           >
                             <div

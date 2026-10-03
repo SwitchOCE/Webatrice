@@ -94,10 +94,10 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
   const imageUrl = faceDown
     ? CARD_BACK_URL
     : imageUri
-    ? imageUri
-    : scryfallId
-    ? `https://api.scryfall.com/cards/${scryfallId}?format=image&version=large`
-    : `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(scryfallLookupName)}&format=image&version=large`;
+      ? imageUri
+      : scryfallId
+        ? `https://api.scryfall.com/cards/${scryfallId}?format=image&version=large`
+        : `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(scryfallLookupName)}&format=image&version=large`;
 
   // Cockatrice paints a face-down card's label as `"# {id}"` (see
   // `AbstractCardItem::paintPicture`). We use the same "# " prefix so
@@ -126,7 +126,9 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
         // so the sidebar's text-mode preview can render them when the
         // Scryfall fetch fails (user-created tokens without a
         // matching Scryfall record).
-        if (faceDown) return;
+        if (faceDown) {
+          return;
+        }
         setHoveredCard({ name, scryfallId, imageUri, pt, annotation });
       }}
       // Press-and-hold middle mouse to zoom the card (image + full
@@ -139,11 +141,15 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
       // onMouseUp only fires when the release happens on the same
       // element.
       onMouseDown={(e) => {
-        if (e.button !== 1 || faceDown) return;
+        if (e.button !== 1 || faceDown) {
+          return;
+        }
         e.preventDefault();
         openBigPreview({ name, scryfallId, imageUri });
         const handleUp = (ev: MouseEvent) => {
-          if (ev.button !== 1) return;
+          if (ev.button !== 1) {
+            return;
+          }
           closeBigPreview();
           window.removeEventListener('mouseup', handleUp);
         };
@@ -154,7 +160,9 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
       // to ancestor listeners that treat middle-click as "open in new
       // tab" or similar.
       onAuxClick={(e) => {
-        if (e.button === 1) e.preventDefault();
+        if (e.button === 1) {
+          e.preventDefault();
+        }
       }}
     >
       <CardImage

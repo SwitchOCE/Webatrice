@@ -56,7 +56,9 @@ export function useGameLog({ gameId, listRef }: UseGameLogArgs): GameLog {
   // command otherwise, so we disable the input up front rather than
   // let the user type a message that will silently fail.
   const spectatorsCanChat = useAppSelector((state) => {
-    if (gameId == null) return true;
+    if (gameId == null) {
+      return true;
+    }
     return games.Selectors.getGame(state, gameId)?.info.spectatorsCanChat ?? true;
   });
   const canChat = !(isSpectator && !spectatorsCanChat);

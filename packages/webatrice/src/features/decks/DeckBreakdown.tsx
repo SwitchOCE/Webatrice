@@ -300,9 +300,9 @@ function TypeBreakdown({
 const BRACKET_TONE: Record<number, { text: string; bg: string; border: string }> = {
   1: { text: 'text-emerald-300', bg: 'bg-emerald-500/15', border: 'border-emerald-500/40' },
   2: { text: 'text-emerald-300', bg: 'bg-emerald-500/15', border: 'border-emerald-500/40' },
-  3: { text: 'text-yellow-300',  bg: 'bg-yellow-500/15',  border: 'border-yellow-500/40'  },
-  4: { text: 'text-red-300',     bg: 'bg-red-500/15',     border: 'border-red-500/40'     },
-  5: { text: 'text-red-300',     bg: 'bg-red-500/15',     border: 'border-red-500/40'     },
+  3: { text: 'text-yellow-300', bg: 'bg-yellow-500/15', border: 'border-yellow-500/40' },
+  4: { text: 'text-red-300', bg: 'bg-red-500/15', border: 'border-red-500/40' },
+  5: { text: 'text-red-300', bg: 'bg-red-500/15', border: 'border-red-500/40' },
 };
 
 /**
@@ -342,7 +342,9 @@ function SignalBadge({
   const canHover = items.length > 0;
 
   const show = () => {
-    if (!canHover || !ref.current) return;
+    if (!canHover || !ref.current) {
+      return;
+    }
     if (hideTimer.current) {
       clearTimeout(hideTimer.current);
       hideTimer.current = null;
@@ -350,13 +352,17 @@ function SignalBadge({
     setRect(ref.current.getBoundingClientRect());
   };
   const scheduleHide = () => {
-    if (hideTimer.current) clearTimeout(hideTimer.current);
+    if (hideTimer.current) {
+      clearTimeout(hideTimer.current);
+    }
     hideTimer.current = setTimeout(() => setRect(null), 120);
   };
 
   useEffect(() => {
     return () => {
-      if (hideTimer.current) clearTimeout(hideTimer.current);
+      if (hideTimer.current) {
+        clearTimeout(hideTimer.current);
+      }
     };
   }, []);
 
@@ -365,25 +371,25 @@ function SignalBadge({
   const TOOLTIP_WIDTH = 260;
   const layout = rect
     ? (() => {
-        const EDGE = 8;
-        const GAP = 6;
-        const spaceBelow = window.innerHeight - rect.bottom - EDGE;
-        const spaceAbove = rect.top - EDGE;
-        const showBelow = spaceBelow >= 220 || spaceBelow >= spaceAbove;
-        const maxHeight = Math.min(
-          560,
-          showBelow ? spaceBelow - GAP : spaceAbove - GAP,
-        );
-        return {
-          left: Math.max(
-            EDGE,
-            Math.min(rect.left, window.innerWidth - TOOLTIP_WIDTH - EDGE),
-          ),
-          top: showBelow ? rect.bottom + GAP : undefined,
-          bottom: showBelow ? undefined : window.innerHeight - rect.top + GAP,
-          maxHeight,
-        };
-      })()
+      const EDGE = 8;
+      const GAP = 6;
+      const spaceBelow = window.innerHeight - rect.bottom - EDGE;
+      const spaceAbove = rect.top - EDGE;
+      const showBelow = spaceBelow >= 220 || spaceBelow >= spaceAbove;
+      const maxHeight = Math.min(
+        560,
+        showBelow ? spaceBelow - GAP : spaceAbove - GAP,
+      );
+      return {
+        left: Math.max(
+          EDGE,
+          Math.min(rect.left, window.innerWidth - TOOLTIP_WIDTH - EDGE),
+        ),
+        top: showBelow ? rect.bottom + GAP : undefined,
+        bottom: showBelow ? undefined : window.innerHeight - rect.top + GAP,
+        maxHeight,
+      };
+    })()
     : null;
 
   return (
@@ -470,13 +476,17 @@ function BracketSection({
     setError(null);
     analyzeBracket(cards)
       .then((r) => {
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         setReport(r);
         setLoading(false);
         onAssessmentComputed?.(toBracketAssessment(r, fingerprint));
       })
       .catch((e) => {
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         setError(e instanceof Error ? e.message : 'Bracket assessment failed');
         setLoading(false);
         onAssessmentComputed?.(undefined);
@@ -501,7 +511,9 @@ function BracketSection({
     return <div className="text-sm text-text-muted">Couldn't assess bracket: {error}</div>;
   }
 
-  if (!report) return null;
+  if (!report) {
+    return null;
+  }
   const tone = BRACKET_TONE[report.level];
   const { signals } = report;
 
@@ -608,7 +620,9 @@ export default function DeckBreakdown({
   // weirdly for pauper we can tighten to `format === 'commander'` only.
   const showBracket = isCommanderFormat(format) && stats.totalCards > 0;
 
-  if (stats.totalCards === 0) return null;
+  if (stats.totalCards === 0) {
+    return null;
+  }
 
   return (
     <div className="space-y-6">

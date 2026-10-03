@@ -4,15 +4,15 @@ import {
   useMemo,
   useRef,
   useState,
-} from "react";
-import { createPortal } from "react-dom";
-import { Search, X } from "lucide-react";
-import type { DeckCard } from "./mockTypes";
-import Card from "./Card";
-import { CARD_HEIGHT, CARD_WIDTH } from "./cardSize";
-import { useHoveredCard } from "./hoveredCard";
-import { useBigCardPreview } from "./bigCardPreview";
-import { lookupCardsCached } from "../../../decks/cardLookup";
+} from 'react';
+import { createPortal } from 'react-dom';
+import { Search, X } from 'lucide-react';
+import type { DeckCard } from './mockTypes';
+import Card from './Card';
+import { CARD_HEIGHT, CARD_WIDTH } from './cardSize';
+import { useHoveredCard } from './hoveredCard';
+import { useBigCardPreview } from './bigCardPreview';
+import { lookupCardsCached } from '../../../decks/cardLookup';
 import {
   compareCards,
   groupCards,
@@ -20,33 +20,37 @@ import {
   type EnrichedCard,
   type GroupMode,
   type SortMode,
-} from "./cardListSort";
+} from './cardListSort';
 
 type HandCard = { id: string; name: string; scryfallId: string };
 
 /** localStorage keys for the dialog's persisted UI state. Cockatrice
  *  desktop persists these via SettingsCache (view_zone_widget.cpp:161-163);
  *  we mirror the behavior in browser localStorage. */
-const POSITION_STORAGE_KEY = "webatrice.searchLibraryPosition";
-const SHUFFLE_ON_CLOSE_STORAGE_KEY = "webatrice.searchLibraryShuffleOnClose";
-const SIZE_STORAGE_KEY = "webatrice.searchLibrarySize";
-const SORT_BY_STORAGE_KEY = "webatrice.searchLibrarySortBy";
-const GROUP_BY_STORAGE_KEY = "webatrice.searchLibraryGroupBy";
-const PILE_VIEW_STORAGE_KEY = "webatrice.searchLibraryPileView";
+const POSITION_STORAGE_KEY = 'webatrice.searchLibraryPosition';
+const SHUFFLE_ON_CLOSE_STORAGE_KEY = 'webatrice.searchLibraryShuffleOnClose';
+const SIZE_STORAGE_KEY = 'webatrice.searchLibrarySize';
+const SORT_BY_STORAGE_KEY = 'webatrice.searchLibrarySortBy';
+const GROUP_BY_STORAGE_KEY = 'webatrice.searchLibraryGroupBy';
+const PILE_VIEW_STORAGE_KEY = 'webatrice.searchLibraryPileView';
 
 const MIN_DIALOG_W = 400;
 const MIN_DIALOG_H = 300;
 
 function readStoredPosition(): { x: number; y: number } | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined') {
+    return null;
+  }
   try {
     const raw = window.localStorage.getItem(POSITION_STORAGE_KEY);
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
     const parsed = JSON.parse(raw);
     if (
       parsed &&
-      typeof parsed.x === "number" &&
-      typeof parsed.y === "number" &&
+      typeof parsed.x === 'number' &&
+      typeof parsed.y === 'number' &&
       Number.isFinite(parsed.x) &&
       Number.isFinite(parsed.y)
     ) {
@@ -59,7 +63,9 @@ function readStoredPosition(): { x: number; y: number } | null {
 }
 
 function writeStoredPosition(pos: { x: number; y: number }): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') {
+    return;
+  }
   try {
     window.localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(pos));
   } catch {
@@ -68,15 +74,19 @@ function writeStoredPosition(pos: { x: number; y: number }): void {
 }
 
 function readStoredSize(): { w: number; h: number } | null {
-  if (typeof window === "undefined") return null;
+  if (typeof window === 'undefined') {
+    return null;
+  }
   try {
     const raw = window.localStorage.getItem(SIZE_STORAGE_KEY);
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
     const parsed = JSON.parse(raw);
     if (
       parsed &&
-      typeof parsed.w === "number" &&
-      typeof parsed.h === "number" &&
+      typeof parsed.w === 'number' &&
+      typeof parsed.h === 'number' &&
       Number.isFinite(parsed.w) &&
       Number.isFinite(parsed.h)
     ) {
@@ -89,7 +99,9 @@ function readStoredSize(): { w: number; h: number } | null {
 }
 
 function writeStoredSize(size: { w: number; h: number }): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === 'undefined') {
+    return;
+  }
   try {
     window.localStorage.setItem(SIZE_STORAGE_KEY, JSON.stringify(size));
   } catch {
@@ -190,65 +202,75 @@ export default function LibrarySearchDialog({
 }: Props) {
   const { setHoveredCard } = useHoveredCard();
   const { openBigPreview, closeBigPreview } = useBigCardPreview();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   // Grouping/sorting defaults match Cockatrice's SettingsCache
   // (cache_settings.cpp:383-384): `zoneview/groupby` defaults to index 1
   // (By Type) and `zoneview/sortby` defaults to index 1 (By Name).
   // Persisted across sessions like desktop's SettingsCache-backed
   // settings, keyed off the option string rather than the index.
   const [groupBy, setGroupBy] = useState<GroupMode>(() => {
-    if (typeof window === "undefined") return "type";
+    if (typeof window === 'undefined') {
+      return 'type';
+    }
     try {
       const raw = window.localStorage.getItem(GROUP_BY_STORAGE_KEY);
       if (
-        raw === "none" ||
-        raw === "type" ||
-        raw === "cmc" ||
-        raw === "color"
+        raw === 'none' ||
+        raw === 'type' ||
+        raw === 'cmc' ||
+        raw === 'color'
       ) {
         return raw;
       }
     } catch {
       // ignore
     }
-    return "type";
+    return 'type';
   });
   const [sortBy, setSortBy] = useState<SortMode>(() => {
-    if (typeof window === "undefined") return "name";
+    if (typeof window === 'undefined') {
+      return 'name';
+    }
     try {
       const raw = window.localStorage.getItem(SORT_BY_STORAGE_KEY);
       if (
-        raw === "none" ||
-        raw === "name" ||
-        raw === "cmc" ||
-        raw === "type" ||
-        raw === "color" ||
-        raw === "set" ||
-        raw === "pt"
+        raw === 'none' ||
+        raw === 'name' ||
+        raw === 'cmc' ||
+        raw === 'type' ||
+        raw === 'color' ||
+        raw === 'set' ||
+        raw === 'pt'
       ) {
         return raw;
       }
     } catch {
       // ignore
     }
-    return "name";
+    return 'name';
   });
   // Pile view: stacks cards within each group into a fan. Only
   // meaningful when grouped — Cockatrice disables the checkbox when
   // grouping is off (view_zone_widget.cpp:197). Default ON so a
   // 90+ card library fits without endless vertical scrolling.
   const [pileView, setPileView] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
+    if (typeof window === 'undefined') {
+      return true;
+    }
     try {
       const raw = window.localStorage.getItem(PILE_VIEW_STORAGE_KEY);
-      if (raw === null) return true;
-      return raw === "1";
+      if (raw === null) {
+        return true;
+      }
+      return raw === '1';
     } catch {
       return true;
     }
   });
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') {
+      return;
+    }
     try {
       window.localStorage.setItem(GROUP_BY_STORAGE_KEY, groupBy);
     } catch {
@@ -256,7 +278,9 @@ export default function LibrarySearchDialog({
     }
   }, [groupBy]);
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') {
+      return;
+    }
     try {
       window.localStorage.setItem(SORT_BY_STORAGE_KEY, sortBy);
     } catch {
@@ -264,9 +288,11 @@ export default function LibrarySearchDialog({
     }
   }, [sortBy]);
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') {
+      return;
+    }
     try {
-      window.localStorage.setItem(PILE_VIEW_STORAGE_KEY, pileView ? "1" : "0");
+      window.localStorage.setItem(PILE_VIEW_STORAGE_KEY, pileView ? '1' : '0');
     } catch {
       // ignore
     }
@@ -275,21 +301,27 @@ export default function LibrarySearchDialog({
   // defaults this to on; unchecking lets the player peek at library
   // order without wrecking the game state. Persist across sessions.
   const [shuffleOnClose, setShuffleOnClose] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
+    if (typeof window === 'undefined') {
+      return true;
+    }
     try {
       const raw = window.localStorage.getItem(SHUFFLE_ON_CLOSE_STORAGE_KEY);
-      if (raw === null) return true;
-      return raw === "1";
+      if (raw === null) {
+        return true;
+      }
+      return raw === '1';
     } catch {
       return true;
     }
   });
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') {
+      return;
+    }
     try {
       window.localStorage.setItem(
         SHUFFLE_ON_CLOSE_STORAGE_KEY,
-        shuffleOnClose ? "1" : "0",
+        shuffleOnClose ? '1' : '0',
       );
     } catch {
       // ignore quota / disabled storage errors
@@ -314,9 +346,13 @@ export default function LibrarySearchDialog({
   // the browser's native `resize: both` handle can freely modify the
   // inline width/height without racing React state.
   useLayoutEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      return;
+    }
     const el = dialogRef.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     const storedSize = readStoredSize();
     if (storedSize) {
       const clamped = clampSizeToViewport(storedSize);
@@ -325,8 +361,8 @@ export default function LibrarySearchDialog({
     } else {
       // Ensure we don't leave stale inline size from a previous open —
       // fall back to the Tailwind default width/height.
-      el.style.width = "";
-      el.style.height = "";
+      el.style.width = '';
+      el.style.height = '';
     }
   }, [isOpen]);
 
@@ -341,7 +377,9 @@ export default function LibrarySearchDialog({
       return;
     }
     const el = dialogRef.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     const rect = el.getBoundingClientRect();
     const stored = readStoredPosition();
     if (stored) {
@@ -361,9 +399,13 @@ export default function LibrarySearchDialog({
   // size (from storage or CSS default), which the user hasn't actively
   // set. Any subsequent fire means the user grabbed the resize handle.
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      return;
+    }
     const el = dialogRef.current;
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     let first = true;
     let timer: number | null = null;
     const ro = new ResizeObserver(([entry]) => {
@@ -373,7 +415,9 @@ export default function LibrarySearchDialog({
       }
       const w = entry.contentRect.width;
       const h = entry.contentRect.height;
-      if (timer !== null) window.clearTimeout(timer);
+      if (timer !== null) {
+        window.clearTimeout(timer);
+      }
       timer = window.setTimeout(() => {
         writeStoredSize({ w, h });
       }, 500);
@@ -381,7 +425,9 @@ export default function LibrarySearchDialog({
     ro.observe(el);
     return () => {
       ro.disconnect();
-      if (timer !== null) window.clearTimeout(timer);
+      if (timer !== null) {
+        window.clearTimeout(timer);
+      }
     };
   }, [isOpen]);
 
@@ -389,21 +435,25 @@ export default function LibrarySearchDialog({
   // Registered only during a drag; released on pointerup.
   const [dragging, setDragging] = useState(false);
   useEffect(() => {
-    if (!dragging) return;
+    if (!dragging) {
+      return;
+    }
     const onMove = (e: PointerEvent) => {
       const off = dragOffset.current;
-      if (!off) return;
+      if (!off) {
+        return;
+      }
       setPos({ x: e.clientX - off.x, y: e.clientY - off.y });
     };
     const onUp = () => {
       dragOffset.current = null;
       setDragging(false);
     };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
     return () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
     };
   }, [dragging]);
 
@@ -414,7 +464,9 @@ export default function LibrarySearchDialog({
   // useLayoutEffect that positions the dialog on open doesn't also
   // trigger a redundant save.
   useEffect(() => {
-    if (!isOpen || !pos || !hasBeenDraggedRef.current) return;
+    if (!isOpen || !pos || !hasBeenDraggedRef.current) {
+      return;
+    }
     const timer = window.setTimeout(() => {
       writeStoredPosition(pos);
     }, 500);
@@ -422,13 +474,19 @@ export default function LibrarySearchDialog({
   }, [isOpen, pos]);
 
   const onHeaderPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0) {
+      return;
+    }
     // Don't start a drag from the close button (or any other button we
     // might add to the header later).
     const target = e.target as HTMLElement | null;
-    if (target?.closest("button")) return;
+    if (target?.closest('button')) {
+      return;
+    }
     const rect = dialogRef.current?.getBoundingClientRect();
-    if (!rect) return;
+    if (!rect) {
+      return;
+    }
     dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
     setPos({ x: rect.left, y: rect.top });
     setDragging(true);
@@ -445,12 +503,16 @@ export default function LibrarySearchDialog({
   >(null);
 
   const onContentPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0) {
+      return;
+    }
     const target = e.target as HTMLElement | null;
     // Skip clicks on cards themselves (future: card interaction) and any
     // controls that shouldn't kick off a marquee.
-    if (target?.closest("[data-card]")) return;
-    if (target?.closest("input, button, select, textarea, [role='button']")) {
+    if (target?.closest('[data-card]')) {
+      return;
+    }
+    if (target?.closest('input, button, select, textarea, [role=\'button\']')) {
       return;
     }
     // Skip clicks that land on the content area's scrollbar — those are
@@ -466,7 +528,9 @@ export default function LibrarySearchDialog({
       const onVScrollbar =
         contentEl.scrollHeight > contentEl.clientHeight &&
         localX > contentEl.clientWidth;
-      if (onHScrollbar || onVScrollbar) return;
+      if (onHScrollbar || onVScrollbar) {
+        return;
+      }
     }
     // Skip clicks on the native `resize: both` handle at the dialog's
     // bottom-right corner. Handle occupies roughly the last 20px of
@@ -498,19 +562,25 @@ export default function LibrarySearchDialog({
     bottom: number;
   }) => {
     const boxEl = contentRef.current;
-    if (!boxEl) return new Set<string>();
-    const els = boxEl.querySelectorAll<HTMLElement>("[data-card]");
+    if (!boxEl) {
+      return new Set<string>();
+    }
+    const els = boxEl.querySelectorAll<HTMLElement>('[data-card]');
     const ids = new Set<string>();
     els.forEach((el) => {
       const id = el.dataset.cardId;
-      if (!id) return;
+      if (!id) {
+        return;
+      }
       const r = el.getBoundingClientRect();
       const disjoint =
         r.right < rect.left ||
         r.left > rect.right ||
         r.bottom < rect.top ||
         r.top > rect.bottom;
-      if (disjoint) return;
+      if (disjoint) {
+        return;
+      }
       ids.add(id);
     });
     return ids;
@@ -522,16 +592,20 @@ export default function LibrarySearchDialog({
   // every pointermove — only when the marquee turns on / off.
   const marqueeActive = marquee !== null;
   useEffect(() => {
-    if (!marqueeActive) return;
+    if (!marqueeActive) {
+      return;
+    }
     const prev = document.body.style.userSelect;
-    document.body.style.userSelect = "none";
+    document.body.style.userSelect = 'none';
     return () => {
       document.body.style.userSelect = prev;
     };
   }, [marqueeActive]);
 
   useEffect(() => {
-    if (!marquee) return;
+    if (!marquee) {
+      return;
+    }
     const onMove = (e: PointerEvent) => {
       const rect = {
         left: Math.min(marquee.x1, e.clientX),
@@ -545,11 +619,11 @@ export default function LibrarySearchDialog({
       );
     };
     const onUp = () => setMarquee(null);
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
     return () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
     };
   }, [marquee]);
 
@@ -567,15 +641,17 @@ export default function LibrarySearchDialog({
   // pointer-events-none), so the only ways to dismiss are Escape or the
   // header's close button.
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      return;
+    }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === 'Escape') {
         e.preventDefault();
         onClose(showShuffleOnClose && shuffleOnClose);
       }
     };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
   }, [isOpen, onClose, showShuffleOnClose, shuffleOnClose]);
 
   // Build a name → DeckCard map so we can look up metadata for each
@@ -590,7 +666,9 @@ export default function LibrarySearchDialog({
   const metaByName = useMemo(() => {
     const m = new Map<string, DeckCard>();
     for (const c of deckCards) {
-      if (c.name) m.set(c.name, c);
+      if (c.name) {
+        m.set(c.name, c);
+      }
     }
     return m;
   }, [deckCards]);
@@ -721,7 +799,9 @@ export default function LibrarySearchDialog({
     const enriched: EnrichedCard[] = [];
     for (const hc of library) {
       const meta = resolveMeta(hc.name, hc.scryfallId);
-      if (!matchesQuery(meta, query)) continue;
+      if (!matchesQuery(meta, query)) {
+        continue;
+      }
       enriched.push({ handCard: hc, meta });
     }
     enriched.sort((a, b) => compareCards(a.meta, b.meta, effectiveSortBy));
@@ -731,7 +811,9 @@ export default function LibrarySearchDialog({
 
   const totalShown = groups.reduce((n, g) => n + g.cards.length, 0);
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return createPortal(
     <div
@@ -746,7 +828,9 @@ export default function LibrarySearchDialog({
       <div
         ref={(el) => {
           dialogRef.current = el;
-          if (dropRef) dropRef.current = el;
+          if (dropRef) {
+            dropRef.current = el;
+          }
         }}
         className="bg-bg-surface border border-border-subtle rounded-lg shadow-glow w-[min(1100px,95vw)] h-[min(85vh,900px)] max-w-screen max-h-screen flex flex-col pointer-events-auto resize overflow-hidden"
         // Override the shared card-size CSS variables so every card
@@ -759,12 +843,12 @@ export default function LibrarySearchDialog({
         // parent centers it — no visible jump.
         style={
           {
-            "--card-width": "9rem",
-            "--card-height": "12.6rem",
+            '--card-width': '9rem',
+            '--card-height': '12.6rem',
             minWidth: `${MIN_DIALOG_W}px`,
             minHeight: `${MIN_DIALOG_H}px`,
             ...(pos
-              ? { position: "absolute", left: pos.x, top: pos.y, margin: 0 }
+              ? { position: 'absolute', left: pos.x, top: pos.y, margin: 0 }
               : null),
           } as React.CSSProperties
         }
@@ -773,9 +857,9 @@ export default function LibrarySearchDialog({
         <div
           onPointerDown={onHeaderPointerDown}
           className={[
-            "flex items-center justify-between px-4 py-3 border-b border-border-subtle shrink-0 select-none",
-            dragging ? "cursor-grabbing" : "cursor-grab",
-          ].join(" ")}
+            'flex items-center justify-between px-4 py-3 border-b border-border-subtle shrink-0 select-none',
+            dragging ? 'cursor-grabbing' : 'cursor-grab',
+          ].join(' ')}
         >
           <h2 className="text-lg font-semibold text-text-primary">
             {title ?? `${playerName}'s library`}
@@ -786,21 +870,21 @@ export default function LibrarySearchDialog({
           <div className="flex items-center gap-3">
             <label
               className={[
-                "flex items-center gap-1.5 text-xs select-none",
-                groupBy === "none"
-                  ? "text-text-disabled cursor-not-allowed"
-                  : "text-text-muted cursor-pointer",
-              ].join(" ")}
+                'flex items-center gap-1.5 text-xs select-none',
+                groupBy === 'none'
+                  ? 'text-text-disabled cursor-not-allowed'
+                  : 'text-text-muted cursor-pointer',
+              ].join(' ')}
               title={
-                groupBy === "none"
-                  ? "Pile view requires a grouping"
-                  : "Stack cards within each group"
+                groupBy === 'none'
+                  ? 'Pile view requires a grouping'
+                  : 'Stack cards within each group'
               }
             >
               <input
                 type="checkbox"
-                checked={pileView && groupBy !== "none"}
-                disabled={groupBy === "none"}
+                checked={pileView && groupBy !== 'none'}
+                disabled={groupBy === 'none'}
                 onChange={(e) => setPileView(e.target.checked)}
                 className="accent-accent"
               />
@@ -885,12 +969,12 @@ export default function LibrarySearchDialog({
             // (one column per group), flat-view lays them out in a wrapping
             // grid within each group. Cockatrice's pile-view checkbox
             // toggles between these (view_zone_widget.cpp:64 + 197).
-            <div className={pileView && groupBy !== "none" ? "flex gap-3 items-start" : "flex flex-col gap-6"}>
+            <div className={pileView && groupBy !== 'none' ? 'flex gap-3 items-start' : 'flex flex-col gap-6'}>
               {groups.map((g) => (
                 <div
                   key={g.key}
-                  className={pileView && groupBy !== "none" ? "shrink-0" : ""}
-                  style={pileView && groupBy !== "none" ? { width: CARD_WIDTH } : undefined}
+                  className={pileView && groupBy !== 'none' ? 'shrink-0' : ''}
+                  style={pileView && groupBy !== 'none' ? { width: CARD_WIDTH } : undefined}
                 >
                   {/* Group label — hidden when ungrouped ("all"/"" key). */}
                   {g.label && (
@@ -898,7 +982,7 @@ export default function LibrarySearchDialog({
                       {g.label} <span className="text-text-muted normal-case">({g.cards.length})</span>
                     </div>
                   )}
-                  {pileView && groupBy !== "none" ? (
+                  {pileView && groupBy !== 'none' ? (
                     <div
                       className="relative"
                       style={{
@@ -932,15 +1016,17 @@ export default function LibrarySearchDialog({
                             data-card-id={c.handCard.id}
                             className="absolute left-0 hover:z-10 group"
                             onPointerDown={(e) => {
-                              if (e.button !== 0) return;
+                              if (e.button !== 0) {
+                                return;
+                              }
                               onCardPointerDown?.(e, c.handCard);
                             }}
                             onContextMenu={
                               onCardContextMenu
                                 ? (e) => {
-                                    e.preventDefault();
-                                    onCardContextMenu(e, c.handCard);
-                                  }
+                                  e.preventDefault();
+                                  onCardContextMenu(e, c.handCard);
+                                }
                                 : undefined
                             }
                             onMouseEnter={() => {
@@ -958,21 +1044,27 @@ export default function LibrarySearchDialog({
                               // held down = show big preview, release =
                               // dismiss. Same reason as the mouseEnter
                               // above: Card can't receive this itself.
-                              if (e.button !== 1) return;
+                              if (e.button !== 1) {
+                                return;
+                              }
                               e.preventDefault();
                               openBigPreview({
                                 name: c.handCard.name,
                                 scryfallId: c.handCard.scryfallId,
                               });
                               const handleUp = (ev: MouseEvent) => {
-                                if (ev.button !== 1) return;
+                                if (ev.button !== 1) {
+                                  return;
+                                }
                                 closeBigPreview();
                                 window.removeEventListener('mouseup', handleUp);
                               };
                               window.addEventListener('mouseup', handleUp);
                             }}
                             onAuxClick={(e) => {
-                              if (e.button === 1) e.preventDefault();
+                              if (e.button === 1) {
+                                e.preventDefault();
+                              }
                             }}
                             style={{
                               top: `calc(${CARD_HEIGHT} * ${PILE_STEP_FRACTION} * ${i})`,
@@ -980,13 +1072,13 @@ export default function LibrarySearchDialog({
                               height: isLast
                                 ? CARD_HEIGHT
                                 : `calc(${CARD_HEIGHT} * ${PILE_STEP_FRACTION})`,
-                              borderRadius: "7.5%",
+                              borderRadius: '7.5%',
                               boxShadow: selected
-                                ? "0 0 0 2px rgb(59 130 246), 0 0 12px 2px rgb(59 130 246 / 0.6)"
+                                ? '0 0 0 2px rgb(59 130 246), 0 0 12px 2px rgb(59 130 246 / 0.6)'
                                 : undefined,
                               opacity: dragging ? 0 : 1,
-                              touchAction: onCardPointerDown ? "none" : undefined,
-                              cursor: onCardPointerDown ? "grab" : undefined,
+                              touchAction: onCardPointerDown ? 'none' : undefined,
+                              cursor: onCardPointerDown ? 'grab' : undefined,
                             }}
                           >
                             <div
@@ -1018,27 +1110,29 @@ export default function LibrarySearchDialog({
                             data-card-id={c.handCard.id}
                             className="shrink-0"
                             onPointerDown={(e) => {
-                              if (e.button !== 0) return;
+                              if (e.button !== 0) {
+                                return;
+                              }
                               onCardPointerDown?.(e, c.handCard);
                             }}
                             onContextMenu={
                               onCardContextMenu
                                 ? (e) => {
-                                    e.preventDefault();
-                                    onCardContextMenu(e, c.handCard);
-                                  }
+                                  e.preventDefault();
+                                  onCardContextMenu(e, c.handCard);
+                                }
                                 : undefined
                             }
                             style={{
                               width: CARD_WIDTH,
                               height: CARD_HEIGHT,
-                              borderRadius: "7.5%",
+                              borderRadius: '7.5%',
                               boxShadow: selected
-                                ? "0 0 0 2px rgb(59 130 246), 0 0 12px 2px rgb(59 130 246 / 0.6)"
+                                ? '0 0 0 2px rgb(59 130 246), 0 0 12px 2px rgb(59 130 246 / 0.6)'
                                 : undefined,
                               opacity: dragging ? 0 : 1,
-                              touchAction: onCardPointerDown ? "none" : undefined,
-                              cursor: onCardPointerDown ? "grab" : undefined,
+                              touchAction: onCardPointerDown ? 'none' : undefined,
+                              cursor: onCardPointerDown ? 'grab' : undefined,
                             }}
                           >
                             <Card
@@ -1067,8 +1161,8 @@ export default function LibrarySearchDialog({
             top: Math.min(marquee.y1, marquee.y2),
             width: Math.abs(marquee.x2 - marquee.x1),
             height: Math.abs(marquee.y2 - marquee.y1),
-            border: "1px dashed rgb(59 130 246)",
-            background: "rgb(59 130 246 / 0.12)",
+            border: '1px dashed rgb(59 130 246)',
+            background: 'rgb(59 130 246 / 0.12)',
             zIndex: 1001,
           }}
         />

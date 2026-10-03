@@ -109,8 +109,12 @@ export function CardRelatedLinks({
   const meldPieces: CardRelatedLinksPart[] = [];
   const comboPieces: CardRelatedLinksPart[] = [];
   for (const part of allParts ?? []) {
-    if (!part.name) continue;
-    if (parentName && part.name.toLowerCase() === parentName.toLowerCase()) continue;
+    if (!part.name) {
+      continue;
+    }
+    if (parentName && part.name.toLowerCase() === parentName.toLowerCase()) {
+      continue;
+    }
     // Skip Scryfall's checklist entries — Wizards printed physical
     // "checklist cards" as tokens for pre-M15 DFC sets and Scryfall
     // lists them in `all_parts`. They're not real gameplay tokens

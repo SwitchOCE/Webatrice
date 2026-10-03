@@ -54,14 +54,20 @@ export function priceForCard(
     const byId = lookup.byId.get(card.scryfallId);
     // Fall through to the name lookup when the exact printing has no
     // price on file — the default printing typically does.
-    if (byId && byId.usd != null) return byId;
+    if (byId && byId.usd != null) {
+      return byId;
+    }
   }
   const byName = lookup.byName.get(card.name.toLowerCase());
-  if (byName) return byName;
+  if (byName) {
+    return byName;
+  }
   // No name hit — surface whatever the id lookup returned even if it
   // was priceless, so downstream sees "we tried and got nothing" vs
   // "we haven't tried yet".
-  if (card.scryfallId) return lookup.byId.get(card.scryfallId);
+  if (card.scryfallId) {
+    return lookup.byId.get(card.scryfallId);
+  }
   return undefined;
 }
 
@@ -169,12 +175,16 @@ export async function fetchPricesForCards(
     for (const card of cards) {
       if (card.scryfallId) {
         const info = idCache.get(card.scryfallId);
-        if (info) out.byId.set(card.scryfallId, info);
+        if (info) {
+          out.byId.set(card.scryfallId, info);
+        }
       }
       if (card.name) {
         const nk = card.name.toLowerCase();
         const info = nameCache.get(nk);
-        if (info) out.byName.set(nk, info);
+        if (info) {
+          out.byName.set(nk, info);
+        }
       }
     }
     return out;
@@ -189,8 +199,12 @@ export async function fetchPricesForCards(
     for (let i = 0; i < toFetch.length; i += MAX_PER_REQUEST) {
       const chunk = toFetch.slice(i, i + MAX_PER_REQUEST);
       const chunkPromise = fetchChunk(chunk).then((res) => {
-        for (const [id, info] of res.byId) idCache.set(id, info);
-        for (const [name, info] of res.byName) nameCache.set(name, info);
+        for (const [id, info] of res.byId) {
+          idCache.set(id, info);
+        }
+        for (const [name, info] of res.byName) {
+          nameCache.set(name, info);
+        }
         // Only negative-cache on a SUCCESSFUL response — otherwise a
         // single failed chunk (network flake, timeout, 500 from
         // Scryfall) would permanently poison the cache for those 75
@@ -224,12 +238,16 @@ export async function fetchPricesForCards(
       const chunkKeys = chunk.map((ident) =>
         ident.id ? `id:${ident.id}` : `name:${(ident.name ?? '').toLowerCase()}`,
       );
-      for (const k of chunkKeys) inFlight.set(k, chunkPromise);
+      for (const k of chunkKeys) {
+        inFlight.set(k, chunkPromise);
+      }
       try {
         await chunkPromise;
         onProgress?.(assemble());
       } finally {
-        for (const k of chunkKeys) inFlight.delete(k);
+        for (const k of chunkKeys) {
+          inFlight.delete(k);
+        }
       }
     }
   }
@@ -260,7 +278,9 @@ async function fetchChunk(identifiers: Identifier[]): Promise<ChunkResult> {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ identifiers }),
     });
-    if (!res.ok) return empty;
+    if (!res.ok) {
+      return empty;
+    }
     const body = (await res.json()) as {
       data?: ScryfallCollectionCard[];
       not_found?: Identifier[];
@@ -336,8 +356,12 @@ export function buildTcgMassEntryUrl(cards: DeckCard[]): string {
     .filter((c) => c.quantity > 0 && c.name)
     .map((c) => {
       const parts: string[] = [`${c.quantity}%20${encodeToken(c.name)}`];
-      if (c.set) parts.push(`%5B${c.set.toUpperCase()}%5D`);
-      if (c.collectorNumber) parts.push(encodeToken(c.collectorNumber));
+      if (c.set) {
+        parts.push(`%5B${c.set.toUpperCase()}%5D`);
+      }
+      if (c.collectorNumber) {
+        parts.push(encodeToken(c.collectorNumber));
+      }
       return parts.join('%20');
     })
     .join('||');
@@ -346,6 +370,6 @@ export function buildTcgMassEntryUrl(cards: DeckCard[]): string {
 
 function encodeToken(s: string): string {
   return encodeURIComponent(s)
-    .replace(/%27/g, "'")
+    .replace(/%27/g, '\'')
     .replace(/%21/g, '!');
 }

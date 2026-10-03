@@ -23,8 +23,8 @@ type TabType =
   | 'server'
   | 'room'
   | 'game'
-  | 'decks'   // /decks — My Decks list
-  | 'deck'    // /deck/:id — deck editor
+  | 'decks' // /decks — My Decks list
+  | 'deck' // /deck/:id — deck editor
   | 'my-decks'
   | 'settings'
   | 'shortcuts'
@@ -98,7 +98,9 @@ export default function TopBar() {
   const [stickyTabs, setStickyTabs] = useStickyTabs();
   useEffect(() => {
     const transient = detectTransientTab(location.pathname);
-    if (!transient) return;
+    if (!transient) {
+      return;
+    }
     const shouldStick =
       transient.type === 'decks' ||
       transient.type === 'deck' ||
@@ -109,7 +111,9 @@ export default function TopBar() {
       // navigate to that already exists. Each `player:<name>` key is
       // unique so multiple concurrent conversations coexist.
       transient.type === 'player';
-    if (!shouldStick) return;
+    if (!shouldStick) {
+      return;
+    }
     setStickyTabs((prev) => {
       // Deck editor: single-slot — replace the previous 'deck' tab if any.
       if (transient.type === 'deck') {
@@ -134,8 +138,12 @@ export default function TopBar() {
   // deck-editor sticky tab's title stays stuck on the "Deck #N"
   // fallback because deckIdToName has nothing to enrich from.
   useEffect(() => {
-    if (!isConnected) return;
-    if (backendDecks) return;
+    if (!isConnected) {
+      return;
+    }
+    if (backendDecks) {
+      return;
+    }
     webClient.request.session.deckList();
   }, [isConnected, backendDecks, webClient]);
 
@@ -148,11 +156,15 @@ export default function TopBar() {
   // now-stale deck route, bounce them to the lobby so the editor
   // doesn't try to load an id that doesn't exist here.
   const identity = useMemo(() => {
-    if (!serverName || !user?.name) return null;
+    if (!serverName || !user?.name) {
+      return null;
+    }
     return `${serverName}::${user.name}`;
   }, [serverName, user?.name]);
   useEffect(() => {
-    if (identity == null) return;
+    if (identity == null) {
+      return;
+    }
     const previous = window.localStorage.getItem(STICKY_OWNER_KEY);
     if (previous && previous !== identity) {
       setStickyTabs((prev) => prev.filter((t) => t.type !== 'deck' && t.type !== 'decks'));
@@ -184,16 +196,24 @@ export default function TopBar() {
   // persisted title until deckList responds — a visible flash we can
   // just avoid by saving the good title while we have it.
   useEffect(() => {
-    if (deckIdToName.size === 0) return;
+    if (deckIdToName.size === 0) {
+      return;
+    }
     setStickyTabs((prev) => {
       let changed = false;
       const next = prev.map((tab) => {
-        if (tab.type !== 'deck') return tab;
+        if (tab.type !== 'deck') {
+          return tab;
+        }
         const match = tab.key.match(/^deck:(\d+)$/);
         const id = match ? Number(match[1]) : null;
-        if (id == null) return tab;
+        if (id == null) {
+          return tab;
+        }
         const name = deckIdToName.get(id);
-        if (!name || name === tab.title) return tab;
+        if (!name || name === tab.title) {
+          return tab;
+        }
         changed = true;
         return { ...tab, title: name };
       });
@@ -441,9 +461,13 @@ function UserMenu({
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
     };
     document.addEventListener('mousedown', onClick);
     return () => document.removeEventListener('mousedown', onClick);
@@ -533,7 +557,9 @@ function UserMenu({
  *  :params). Handles the wildcard `*` fallback used for the initialize
  *  route by never matching it here. */
 function routeMatches(pathname: string, route: string): boolean {
-  if (route === '*') return false;
+  if (route === '*') {
+    return false;
+  }
   return matchPath({ path: route, end: true }, pathname) !== null;
 }
 
@@ -584,7 +610,9 @@ function flattenDeckNames(
 ): Map<number, string> {
   const out = new Map<number, string>();
   const walk = (items: readonly ServerInfo_DeckStorage_TreeItem[] | undefined) => {
-    if (!items) return;
+    if (!items) {
+      return;
+    }
     for (const item of items) {
       if (item.file && item.id) {
         out.set(item.id, item.name || `Deck #${item.id}`);
@@ -622,12 +650,18 @@ const VALID_TAB_TYPES: TabType[] = [
 ];
 
 function loadPersistedStickyTabs(): Tab[] {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === 'undefined') {
+    return [];
+  }
   try {
     const raw = window.localStorage.getItem(STICKY_STORAGE_KEY);
-    if (!raw) return [];
+    if (!raw) {
+      return [];
+    }
     const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
     return parsed.filter(isValidPersistedTab);
   } catch {
     return [];
@@ -635,7 +669,9 @@ function loadPersistedStickyTabs(): Tab[] {
 }
 
 function isValidPersistedTab(t: unknown): t is Tab {
-  if (!t || typeof t !== 'object') return false;
+  if (!t || typeof t !== 'object') {
+    return false;
+  }
   const rec = t as Record<string, unknown>;
   return (
     typeof rec.key === 'string' &&
@@ -648,7 +684,9 @@ function isValidPersistedTab(t: unknown): t is Tab {
 }
 
 function persistStickyTabs(tabs: Tab[]): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') {
+    return;
+  }
   try {
     // Strip onClose (functions don't survive JSON) before writing.
     const serializable = tabs.map(({ key, type, title, route, closeable }) => ({
@@ -679,7 +717,9 @@ function useStickyTabs(): [Tab[], (updater: (prev: Tab[]) => Tab[]) => void] {
   const tabs = useSyncExternalStore(subscribeSticky, getStickySnapshot);
   const update = useCallback((updater: (prev: Tab[]) => Tab[]) => {
     const next = updater(stickySingleton);
-    if (next === stickySingleton) return; // no-op, don't notify
+    if (next === stickySingleton) {
+      return;
+    } // no-op, don't notify
     stickySingleton = next;
     persistStickyTabs(next);
     stickyListeners.forEach((cb) => cb());
@@ -695,7 +735,9 @@ function useStickyTabs(): [Tab[], (updater: (prev: Tab[]) => Tab[]) => void] {
 const LAST_ROUTE_STORAGE_KEY = 'webatrice.lastRoute';
 
 export function persistLastRoute(pathname: string): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') {
+    return;
+  }
   try {
     window.localStorage.setItem(LAST_ROUTE_STORAGE_KEY, pathname);
   } catch {
@@ -704,7 +746,9 @@ export function persistLastRoute(pathname: string): void {
 }
 
 export function loadPersistedLastRoute(): string | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === 'undefined') {
+    return null;
+  }
   try {
     return window.localStorage.getItem(LAST_ROUTE_STORAGE_KEY);
   } catch {

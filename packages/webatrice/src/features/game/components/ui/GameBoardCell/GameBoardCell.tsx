@@ -56,10 +56,15 @@ function flattenBackendDecks(
 ): { id: number; name: string }[] {
   const out: { id: number; name: string }[] = [];
   const walk = (items: ServerInfo_DeckStorage_TreeItem[] | undefined) => {
-    if (!items) return;
+    if (!items) {
+      return;
+    }
     for (const item of items) {
-      if (item.file) out.push({ id: item.id, name: item.name });
-      else if (item.folder) walk(item.folder.items);
+      if (item.file) {
+        out.push({ id: item.id, name: item.name });
+      } else if (item.folder) {
+        walk(item.folder.items);
+      }
     }
   };
   walk(folder?.items);
@@ -78,7 +83,9 @@ const EMPTY_HAND_CARDS: HandCard[] = [];
 function zoneToHandCards(
   zone: { order: number[]; byId: Record<number, { name: string; providerId: string; annotation?: string }> } | undefined,
 ): HandCard[] {
-  if (!zone) return EMPTY_HAND_CARDS;
+  if (!zone) {
+    return EMPTY_HAND_CARDS;
+  }
   return zone.order.map((id) => {
     const card = zone.byId[id];
     return {
@@ -101,7 +108,9 @@ function zoneToHandCards(
 function revealedCardsToHandCards(
   cards: readonly { id: number; name: string; providerId: string }[] | undefined,
 ): HandCard[] {
-  if (!cards || cards.length === 0) return EMPTY_HAND_CARDS;
+  if (!cards || cards.length === 0) {
+    return EMPTY_HAND_CARDS;
+  }
   return cards.map((c, idx) => ({
     id: String(c.id ?? idx),
     name: c.name ?? '',
@@ -187,7 +196,9 @@ function zoneToBattlefieldCards(
   zone: ZoneForBattlefield | undefined,
   ownerPlayerId: number,
 ): BattlefieldCard[] {
-  if (!zone) return EMPTY_BATTLEFIELD_CARDS;
+  if (!zone) {
+    return EMPTY_BATTLEFIELD_CARDS;
+  }
   return zone.order.map((id) => projectCard(id, zone.byId[id], ownerPlayerId));
 }
 
@@ -379,7 +390,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // "Other" in the Cockatrice desktop UI — we use 'O' as its symbol
   // to match, tinted orange like desktop's makeColor(255,150,30).
   const manaCounters = useMemo(() => {
-    if (!countersMap) return undefined;
+    if (!countersMap) {
+      return undefined;
+    }
     const byWireName: Record<string, 'W' | 'U' | 'B' | 'R' | 'G' | 'C' | 'O'> = {
       w: 'W',
       u: 'U',
@@ -394,7 +407,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
     > = {};
     for (const c of Object.values(countersMap)) {
       const symbol = byWireName[c.name.trim().toLowerCase()];
-      if (symbol) out[symbol] = { id: c.id, count: c.count };
+      if (symbol) {
+        out[symbol] = { id: c.id, count: c.count };
+      }
     }
     return out;
   }, [countersMap]);
@@ -407,7 +422,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // `counterSet` is an idempotent field-assignment reducer so the
   // server's echo just re-applies the same value on success.
   const onModifyCounter = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (counterId: number, delta: number) => {
       const currentCounter = store.getState().games.games[gameId]
         ?.players[cell.playerId]?.counters[counterId];
@@ -435,7 +452,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // with cardId=-1 tells Servatrice to untap every card in TABLE
   // while respecting per-card `doesntUntap` flags server-side.
   const onUntapAll = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return () => {
       webClient.request.game.setCardAttr(gameId, {
         zone: ZoneName.TABLE,
@@ -449,7 +468,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // (player_actions.cpp:866-872). Server broadcasts Event_RollDie and
   // the chat log renders the outcome.
   const onFlipCoin = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return () => {
       webClient.request.game.rollDie(gameId, { sides: 2, count: 1 });
     };
@@ -460,7 +481,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // with rollback via `onError`. See `onModifyCounter` for the same
   // pattern.
   const onSetPlayerCounter = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (counterId: number, value: number) => {
       const currentCounter = store.getState().games.games[gameId]
         ?.players[cell.playerId]?.counters[counterId];
@@ -490,7 +513,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // player's own battlefield (TABLE zone) — cross-player card
   // counters aren't in scope for the current wiring.
   const onBulkSetCardCounters = useMemo(() => {
-    if (gameId == null || cell.playerId == null) return undefined;
+    if (gameId == null || cell.playerId == null) {
+      return undefined;
+    }
     const owner = cell.playerId;
     return (
       entries: readonly {
@@ -499,7 +524,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
         value: number;
       }[],
     ) => {
-      if (entries.length === 0) return;
+      if (entries.length === 0) {
+        return;
+      }
       webClient.request.game.bulkSetCardCounterEntries(
         gameId,
         entries.map((e) => ({
@@ -549,7 +576,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // feel instant, and the wire's `onError` reverts if the server
   // rejects (rare — life is unrestricted for the local player).
   const lifeControl = useMemo(() => {
-    if (gameId == null || !lifeCounter) return undefined;
+    if (gameId == null || !lifeCounter) {
+      return undefined;
+    }
     const counterId = lifeCounter.id;
     const applyLocally = (value: number) => {
       dispatch(games.Actions.counterSet({
@@ -596,11 +625,11 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
     () =>
       realPlayer
         ? {
-            deck: realPlayer.zones[ZoneName.DECK]?.cardCount,
-            grave: realPlayer.zones[ZoneName.GRAVE]?.cardCount,
-            rfg: realPlayer.zones[ZoneName.EXILE]?.cardCount,
-            hand: realPlayer.zones[ZoneName.HAND]?.cardCount,
-          }
+          deck: realPlayer.zones[ZoneName.DECK]?.cardCount,
+          grave: realPlayer.zones[ZoneName.GRAVE]?.cardCount,
+          rfg: realPlayer.zones[ZoneName.EXILE]?.cardCount,
+          hand: realPlayer.zones[ZoneName.HAND]?.cardCount,
+        }
         : undefined,
     [realPlayer],
   );
@@ -667,7 +696,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   const deckTopCard = useMemo<{ name: string; scryfallId: string } | null>(
     () => {
       const c = deckZone?.topRevealedCard;
-      if (!c) return null;
+      if (!c) {
+        return null;
+      }
       return { name: c.name, scryfallId: c.providerId };
     },
     [deckZone],
@@ -705,7 +736,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
           attachCardId >= 0
           && attachZone === ZoneName.TABLE
           && attachPlayerId !== cell.playerId;
-        if (attachedElsewhere) return acc;
+        if (attachedElsewhere) {
+          return acc;
+        }
         acc.push(projectCard(id, c, cell.playerId));
         return acc;
       }, [])
@@ -719,12 +752,18 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
     if (allPlayers) {
       for (const [ownerIdStr, otherPlayer] of Object.entries(allPlayers)) {
         const otherOwnerId = Number(ownerIdStr);
-        if (otherOwnerId === cell.playerId) continue;
+        if (otherOwnerId === cell.playerId) {
+          continue;
+        }
         const otherTable = otherPlayer?.zones[ZoneName.TABLE];
-        if (!otherTable) continue;
+        if (!otherTable) {
+          continue;
+        }
         for (const cid of otherTable.order) {
           const c = otherTable.byId[cid];
-          if (!c) continue;
+          if (!c) {
+            continue;
+          }
           if (
             c.attachCardId >= 0
             && c.attachZone === ZoneName.TABLE
@@ -736,7 +775,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
       }
     }
 
-    if (foreignChildren.length === 0) return own;
+    if (foreignChildren.length === 0) {
+      return own;
+    }
     return own.concat(foreignChildren);
   }, [tableZone, allPlayers, cell.playerId]);
 
@@ -769,7 +810,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   //   • cardMovedBetweenZones (cross-zone AND battlefield-same-zone):
   //     NOT idempotent, listener skips the second dispatch entirely
   const onMoveCard = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (baseParams: MoveCardParams) => {
       // Resolve the stack sub-slot at the drop site using the target
       // player's battlefield state from Redux — works for our own
@@ -1025,13 +1068,17 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // `handCards` / `zoneCounts.hand` props re-read them. Undefined
   // during the pre-hydration transient before the game id is known.
   const onDrawCards = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (number: number) => {
       webClient.request.game.drawCards(gameId, { number });
     };
   }, [gameId, webClient]);
   const onMulligan = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (number: number) => {
       webClient.request.game.mulligan(gameId, { number });
     };
@@ -1040,7 +1087,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // most-recently-drawn card back onto the top of the library.
   // Mirrors `PlayerActions::actUndoDraw` (player_actions.cpp:371-374).
   const onUndoDraw = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return () => {
       webClient.request.game.undoDraw(gameId);
     };
@@ -1053,7 +1102,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // `Response_DumpZone` back and datatrice's listener writes it into
   // `revealedCards`.
   const onDumpTopCards = useMemo(() => {
-    if (gameId == null || cell.playerId == null) return undefined;
+    if (gameId == null || cell.playerId == null) {
+      return undefined;
+    }
     return (numberCards: number, isReversed: boolean) => {
       webClient.request.game.dumpZone(gameId, {
         playerId: cell.playerId,
@@ -1067,7 +1118,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // so re-opening always re-dumps fresh. Matches Cockatrice's
   // `zoneViewCleared` broadcast on `handleCloseZoneView`.
   const onClearRevealedDeck = useMemo(() => {
-    if (gameId == null || cell.playerId == null) return undefined;
+    if (gameId == null || cell.playerId == null) {
+      return undefined;
+    }
     return () => {
       dispatch(
         games.Actions.zoneViewCleared({
@@ -1083,7 +1136,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // pile. Response populates `sideboardZone.revealedCards` which the
   // sideboard modal reads. Clear on close so the next open re-dumps.
   const onDumpSideboard = useMemo(() => {
-    if (gameId == null || cell.playerId == null) return undefined;
+    if (gameId == null || cell.playerId == null) {
+      return undefined;
+    }
     return () => {
       webClient.request.game.dumpZone(gameId, {
         playerId: cell.playerId,
@@ -1094,7 +1149,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
     };
   }, [gameId, webClient, cell.playerId]);
   const onClearRevealedSideboard = useMemo(() => {
-    if (gameId == null || cell.playerId == null) return undefined;
+    if (gameId == null || cell.playerId == null) {
+      return undefined;
+    }
     return () => {
       dispatch(
         games.Actions.zoneViewCleared({
@@ -1106,7 +1163,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
     };
   }, [gameId, dispatch, cell.playerId]);
   const onShuffle = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return () => {
       webClient.request.game.shuffle(gameId, {
         zoneName: ZoneName.DECK,
@@ -1122,7 +1181,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // wire above stays as its own convenience — that's the F5 flow and
   // reads cleaner as a nullary call.
   const onShuffleRange = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (start: number, end: number) => {
       webClient.request.game.shuffle(gameId, {
         zoneName: ZoneName.DECK,
@@ -1155,9 +1216,13 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
     }
   }, [cell.isLocal, isConnected, backendDecks, webClient]);
   const gameDeckName = useMemo<string | null>(() => {
-    if (!cell.isLocal) return null;
+    if (!cell.isLocal) {
+      return null;
+    }
     const xml = realPlayer?.deckList;
-    if (!xml) return null;
+    if (!xml) {
+      return null;
+    }
     try {
       return parseCod(xml).name || null;
     } catch {
@@ -1165,7 +1230,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
     }
   }, [cell.isLocal, realPlayer?.deckList]);
   const openDeckInEditorDeckId = useMemo<number | null>(() => {
-    if (!cell.isLocal || !gameDeckName || !backendDecks) return null;
+    if (!cell.isLocal || !gameDeckName || !backendDecks) {
+      return null;
+    }
     const rows = flattenBackendDecks(backendDecks.root);
     const target = gameDeckName.trim().toLowerCase();
     const match = rows.find((r) => r.name.trim().toLowerCase() === target);
@@ -1173,7 +1240,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   }, [cell.isLocal, gameDeckName, backendDecks]);
   const navigate = useNavigate();
   const onOpenDeckInEditor = useMemo(() => {
-    if (openDeckInEditorDeckId == null) return undefined;
+    if (openDeckInEditorDeckId == null) {
+      return undefined;
+    }
     return () => {
       navigate(
         generatePath(RouteEnum.DECK, {
@@ -1192,7 +1261,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // reject). Mirrors Cockatrice's PlayerActions::actRevealLibrary
   // (player_actions.cpp:1712-1721).
   const onRevealLibrary = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (targetPlayerId: number) => {
       const params = { zoneName: ZoneName.DECK };
       if (targetPlayerId !== -1) {
@@ -1208,10 +1279,14 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // and omits `playerId` from the wire (proto2 field presence trap —
   // same reason as reveal-library above).
   const onRevealZone = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (zoneName: string, targetPlayerId: number) => {
       const params: { zoneName: string; playerId?: number } = { zoneName };
-      if (targetPlayerId !== -1) params.playerId = targetPlayerId;
+      if (targetPlayerId !== -1) {
+        params.playerId = targetPlayerId;
+      }
       webClient.request.game.revealCards(gameId, params);
     };
   }, [gameId, webClient]);
@@ -1228,7 +1303,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // (player_actions.h:42).
   const RANDOM_CARD_FROM_ZONE = -2;
   const onRevealRandomFromZone = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (zoneName: string, targetPlayerId: number) => {
       const params: {
         zoneName: string;
@@ -1252,7 +1329,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // PlayerBox menu doesn't offer it), so player_id is always set.
   // Mirrors PlayerActions::actLendLibrary (player_actions.cpp:1723-1733).
   const onLendLibrary = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (targetPlayerId: number) => {
       webClient.request.game.revealCards(gameId, {
         zoneName: ZoneName.DECK,
@@ -1272,7 +1351,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // players" → OMIT player_id entirely (Servatrice's has_player_id
   // check at server_abstract_player.cpp:1476).
   const onRevealTopCards = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (targetPlayerId: number, count: number) => {
       const params: {
         zoneName: string;
@@ -1299,7 +1380,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // owner for always-look-at). Mirrors PlayerActions::actAlwaysReveal /
   // actAlwaysLookAt (player_actions.cpp:199-215).
   const onSetAlwaysRevealTopCard = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (value: boolean) => {
       webClient.request.game.changeZoneProperties(gameId, {
         zoneName: ZoneName.DECK,
@@ -1308,7 +1391,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
     };
   }, [gameId, webClient]);
   const onSetAlwaysLookAtTopCard = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (value: boolean) => {
       webClient.request.game.changeZoneProperties(gameId, {
         zoneName: ZoneName.DECK,
@@ -1328,7 +1413,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // marker when the server's echo arrives; cardFieldsUpdated is
   // idempotent so the second dispatch is a no-op.
   const onSetCardTapped = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (cardIds: number[], tapped: boolean) => {
       const attrValue = tapped ? '1' : '0';
       for (const cardId of cardIds) {
@@ -1413,7 +1500,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // `zone.byId[id].faceDown`, which flows through `battlefieldCards`
   // to render the card back on face-down cards.
   const onFlipCard = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (cardId: number, faceDown: boolean) => {
       webClient.request.game.flipCard(gameId, {
         zone: ZoneName.TABLE,
@@ -1430,9 +1519,13 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // PlayerBox. bulkPeek's CardLocation only reads `.id`, so a minimal
   // { id } cast is safe (see bulkPeek.ts).
   const onPeekCards = useMemo(() => {
-    if (gameId == null || !cellInfo.isLocal) return undefined;
+    if (gameId == null || !cellInfo.isLocal) {
+      return undefined;
+    }
     return (cardIds: readonly number[]) => {
-      if (cardIds.length === 0) return;
+      if (cardIds.length === 0) {
+        return;
+      }
       const targets = cardIds.map((id) => ({
         ownerPlayerId: cellInfo.playerId,
         zone: ZoneName.TABLE,
@@ -1447,7 +1540,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // the reducer flips `zone.byId[id].doesntUntap`, which flows through
   // `battlefieldCards` into the highlight state on the card render.
   const onSetCardDoesntUntap = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (cardId: number, doesntUntap: boolean) => {
       webClient.request.game.setCardAttr(gameId, {
         zone: ZoneName.TABLE,
@@ -1465,7 +1560,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // leaves the battlefield. Server picks the column (`x: -1`); the
   // clone lands on the same row (`y`) as its source.
   const onCloneCard = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (source: {
       name: string;
       providerId: string;
@@ -1563,7 +1660,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // `AttrAnnotation`. Empty string clears it. Mirrors Cockatrice's
   // `PlayerActions::actSetAnnotation`.
   const onSetAnnotation = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (cardId: number, annotation: string) => {
       webClient.request.game.setCardAttr(gameId, {
         zone: ZoneName.TABLE,
@@ -1583,7 +1682,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // cardFieldsUpdated (idempotent) so the PT pill updates instantly;
   // rollback per-card via `onError` if the server rejects.
   const onSetPT = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (items: { cardId: number; pt: string }[]) => {
       for (const { cardId, pt } of items) {
         const currentCard = store.getState().games.games[gameId]
@@ -1632,12 +1733,18 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // `player.arrows` maps and are untouched, matching Cockatrice's
   // "local arrows only" scope.
   const onClearOwnArrows = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return () => {
-      if (!realPlayer) return;
+      if (!realPlayer) {
+        return;
+      }
       for (const arrowId of Object.keys(realPlayer.arrows)) {
         const id = Number(arrowId);
-        if (!Number.isFinite(id)) continue;
+        if (!Number.isFinite(id)) {
+          continue;
+        }
         webClient.request.game.deleteArrow(gameId, { arrowId: id });
       }
     };
@@ -1651,7 +1758,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // source were in another zone Cockatrice plays it to the table
   // first — that path lives on the pending-arrow flow, not here.
   const onAttachCard = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (
       sourceCardId: number,
       target: { playerId: number; cardId: number },
@@ -1674,7 +1783,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // sentinels (empty targetZone → set attachPlayerId=-1 etc.) so the
   // client picks up the state change through the same event.
   const onUnattachCard = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (sourceCardId: number) => {
       // proto2 field-presence: OMIT the target fields entirely so
       // Servatrice's `has_target_zone()` / `has_target_card_id()` /
@@ -1701,7 +1812,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // the listener's `cardCounterChanged` effect (dispatches
   // cardFieldsUpdated with a rewritten counterList).
   const onSetCardCounter = useMemo(() => {
-    if (gameId == null) return undefined;
+    if (gameId == null) {
+      return undefined;
+    }
     return (cardId: number, counterId: number, value: number) => {
       const clamped = Math.max(0, value);
       const currentCard = store.getState().games.games[gameId]
@@ -1767,7 +1880,9 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   // useGameArrowInteractions). Color defaults to red — the menu-driven
   // path doesn't expose modifiers.
   const onCreateArrow = useMemo(() => {
-    if (gameId == null || cell.playerId == null) return undefined;
+    if (gameId == null || cell.playerId == null) {
+      return undefined;
+    }
     return (
       sourceCardId: number,
       sourceZone: string,

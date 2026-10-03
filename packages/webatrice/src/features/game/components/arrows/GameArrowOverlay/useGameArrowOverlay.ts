@@ -22,7 +22,9 @@ function findCardEl(playerId: number, zone: string, cardId: number): HTMLElement
   const exact = document.querySelector<HTMLElement>(
     `[data-card-id="${CSS.escape(String(cardId))}"][data-card-owner="${CSS.escape(String(playerId))}"][data-card-zone="${CSS.escape(zone)}"]`,
   );
-  if (exact) return exact;
+  if (exact) {
+    return exact;
+  }
   // Fallback: arrows drawn from a card in a pile-type zone (grave /
   // exile / library) can't hit-test the individual card element — the
   // cards there either aren't rendered at all or live inside a

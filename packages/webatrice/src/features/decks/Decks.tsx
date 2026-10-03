@@ -81,10 +81,16 @@ CATEGORY_LABELS[CATEGORY_UNKNOWN] = 'Unknown format';
  *  XML hasn't landed yet); empty format → UNKNOWN; MTG format → its
  *  own slug; anything else → OTHER. */
 function categoryOfDeck(summary: DeckSummary | undefined): string {
-  if (!summary) return CATEGORY_LOADING;
+  if (!summary) {
+    return CATEGORY_LOADING;
+  }
   const n = normalizeFormat(summary.format ?? '');
-  if (!n) return CATEGORY_UNKNOWN;
-  if (MTG_FORMATS.includes(n)) return n;
+  if (!n) {
+    return CATEGORY_UNKNOWN;
+  }
+  if (MTG_FORMATS.includes(n)) {
+    return n;
+  }
   return CATEGORY_OTHER;
 }
 
@@ -116,7 +122,9 @@ function Decks() {
   // Kick off the initial fetch when we don't yet have a tree. Refresh
   // button also uses this handler.
   const fetchList = () => {
-    if (!isConnected) return;
+    if (!isConnected) {
+      return;
+    }
     // Clear the fetched guard so a manual refresh re-downloads every
     // deck's XML and picks up any changes made in the editor (or
     // elsewhere) since we last visited this page. Wipe both the
@@ -133,7 +141,9 @@ function Decks() {
     webClient.request.session.deckList();
   };
   useEffect(() => {
-    if (isConnected && !backendDecks) fetchList();
+    if (isConnected && !backendDecks) {
+      fetchList();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConnected, backendDecks]);
 
@@ -141,7 +151,9 @@ function Decks() {
   // creationTime desc (newest first) since we don't yet have
   // updated_at at the list level.
   const decks = useMemo<FlatDeck[]>(() => {
-    if (!backendDecks?.root) return [];
+    if (!backendDecks?.root) {
+      return [];
+    }
     return flattenFolder(backendDecks.root, '').sort(
       (a, b) => b.creationTime - a.creationTime,
     );
@@ -153,7 +165,9 @@ function Decks() {
   const pendingCreateRef = useRef(false);
   useReduxEffect<{ path: string; treeItem: ServerInfo_DeckStorage_TreeItem }>(
     ({ payload: { treeItem } }) => {
-      if (!pendingCreateRef.current) return;
+      if (!pendingCreateRef.current) {
+        return;
+      }
       pendingCreateRef.current = false;
       if (treeItem.id) {
         navigate(generatePath(RouteEnum.DECK, { deckId: String(treeItem.id) }));
@@ -165,7 +179,9 @@ function Decks() {
 
   const [createOpen, setCreateOpen] = useState(false);
   const handleCreateSubmit = (name: string, format: string) => {
-    if (!isConnected) return;
+    if (!isConnected) {
+      return;
+    }
     setCreateOpen(false);
     pendingCreateRef.current = true;
     // deckId=0 tells Servatrice to assign a new id. Path "" = root.
@@ -175,7 +191,9 @@ function Decks() {
   // --- Import ---
   const [importOpen, setImportOpen] = useState(false);
   const handleImportSubmit = (xml: string) => {
-    if (!isConnected) return;
+    if (!isConnected) {
+      return;
+    }
     setImportOpen(false);
     // Same DECK_UPLOAD listener used by "New deck" — reusing the flag
     // means the newly-imported deck automatically opens in the editor.
@@ -211,9 +229,13 @@ function Decks() {
   const priceFetchedRef = useRef<Set<number>>(new Set(priceFetchedCache));
 
   useEffect(() => {
-    if (!isConnected || decks.length === 0) return;
+    if (!isConnected || decks.length === 0) {
+      return;
+    }
     for (const deck of decks) {
-      if (priceFetchedRef.current.has(deck.id)) continue;
+      if (priceFetchedRef.current.has(deck.id)) {
+        continue;
+      }
       priceFetchedRef.current.add(deck.id);
       priceFetchedCache.add(deck.id);
       webClient.request.session.deckDownload(deck.id);
@@ -244,7 +266,9 @@ function Decks() {
         summaryCache.set(payload.deckId, next);
         setSummaryMap((prev) => {
           const existing = prev.get(payload.deckId);
-          if (existing && summariesEqual(existing, next)) return prev;
+          if (existing && summariesEqual(existing, next)) {
+            return prev;
+          }
           const out = new Map(prev);
           out.set(payload.deckId, next);
           return out;
@@ -306,7 +330,9 @@ function Decks() {
   // --- Delete (with confirmation) ---
   const [pendingDelete, setPendingDelete] = useState<FlatDeck | null>(null);
   const confirmDelete = () => {
-    if (!pendingDelete) return;
+    if (!pendingDelete) {
+      return;
+    }
     webClient.request.session.deckDel(pendingDelete.id);
     // Evict the editor's cached copy so a stale entry can't be shown
     // if the user reopens a deck slot the server later reuses for a
@@ -515,7 +541,9 @@ function summariesEqual(a: DeckSummary, b: DeckSummary): boolean {
  * browser caches the CDN URL aggressively across page loads.
  */
 function deckArtUrl(s: DeckSummary | undefined): string | null {
-  if (!s) return null;
+  if (!s) {
+    return null;
+  }
   if (s.bannerCard && s.bannerCard.trim()) {
     return `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(s.bannerCard.trim())}&format=image&version=art_crop`;
   }
@@ -602,7 +630,9 @@ const VIEW_MODE_STORAGE_KEY = 'decks:viewMode';
 function readStoredViewMode(): ViewMode {
   try {
     const raw = window.localStorage.getItem(VIEW_MODE_STORAGE_KEY);
-    if (raw === 'compact' || raw === 'card') return raw;
+    if (raw === 'compact' || raw === 'card') {
+      return raw;
+    }
   } catch {
     // Storage disabled — fall through.
   }
@@ -805,7 +835,9 @@ function DeckRowCompact({ deck, summary, onOpen, onDelete }: DeckRowProps) {
  *  value (title-cased) for custom / non-MTG formats. */
 function formatDisplayLabel(format: string): string {
   const known = MTG_FORMAT_LABELS.find((f) => f.value === normalizeFormat(format));
-  if (known) return known.label;
+  if (known) {
+    return known.label;
+  }
   return format.replace(/^\w/, (c) => c.toUpperCase());
 }
 
@@ -901,7 +933,9 @@ function ImportDeckModal({
   // Reset on open so a previous close-mid-flow doesn't leak state
   // into the new session.
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     setName('');
     setFormat('commander');
     setText('');
@@ -911,19 +945,27 @@ function ImportDeckModal({
     setError(null);
     setFileParsed(null);
     setFileName(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   const handleFilePicked = (file: File | null) => {
     setError(null);
@@ -942,13 +984,17 @@ function ImportDeckModal({
         // Auto-fill the deck name from the file's <deckname> only when
         // the user hasn't typed anything, so we never overwrite their
         // in-progress input.
-        if (!name.trim()) setName(parsed.name);
+        if (!name.trim()) {
+          setName(parsed.name);
+        }
         // Same rule for format: if the file has a <format>, adopt it
         // so the picker reflects the file's declared format. We always
         // adopt (even if user had picked one) because the file's
         // format is authoritative for its own contents; if they want
         // to change it after, the picker still works.
-        if (parsed.format) setFormat(parsed.format);
+        if (parsed.format) {
+          setFormat(parsed.format);
+        }
       } catch (e) {
         setFileParsed(null);
         setFileName(null);
@@ -957,7 +1003,9 @@ function ImportDeckModal({
             ? `Not a valid Cockatrice .cod: ${e.message}`
             : 'Not a valid Cockatrice .cod file',
         );
-        if (fileInputRef.current) fileInputRef.current.value = '';
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
     };
     reader.onerror = () => {
@@ -970,11 +1018,15 @@ function ImportDeckModal({
     setFileParsed(null);
     setFileName(null);
     setError(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const handleImportFile = () => {
-    if (!fileParsed) return;
+    if (!fileParsed) {
+      return;
+    }
     setError(null);
     setPhase('importing');
     // Round-trip via serializeCod so we can apply the user's typed
@@ -1349,7 +1401,7 @@ function FormatPicker({
         className="w-full appearance-none bg-bg-base border border-border-subtle rounded-md pl-3 pr-8 py-2 text-sm text-text-primary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
         style={{
           backgroundImage:
-            "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%237A6E8F' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>\")",
+            'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'10\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%237A6E8F\' stroke-width=\'3\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><polyline points=\'6 9 12 15 18 9\'/></svg>")',
           backgroundRepeat: 'no-repeat',
           backgroundPosition: 'right 10px center',
         }}
@@ -1397,21 +1449,29 @@ function CreateDeckModal({
   const [format, setFormat] = useState('commander');
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     setName('');
     setFormat('commander');
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      return;
+    }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+      }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   // Empty format is fine (defaults to commander in emptyCod), but if
   // the user picked "Other" and typed nothing, keep them here.
@@ -1419,7 +1479,9 @@ function CreateDeckModal({
   const submitDisabled = !trimmedFormat;
 
   const handleSubmit = () => {
-    if (submitDisabled) return;
+    if (submitDisabled) {
+      return;
+    }
     onCreate(name.trim(), trimmedFormat.toLowerCase());
   };
 
@@ -1448,7 +1510,9 @@ function CreateDeckModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSubmit();
+                if (e.key === 'Enter') {
+                  handleSubmit();
+                }
               }}
               maxLength={80}
               placeholder="Untitled Deck"
@@ -1505,9 +1569,15 @@ function FileSummary({
   );
   const totalCount = parsed.cards.reduce((sum, c) => sum + c.quantity, 0);
   const parts: string[] = [];
-  if (totals.commander) parts.push(`${totals.commander} commander`);
-  if (totals.main) parts.push(`${totals.main} main`);
-  if (totals.sideboard) parts.push(`${totals.sideboard} sideboard`);
+  if (totals.commander) {
+    parts.push(`${totals.commander} commander`);
+  }
+  if (totals.main) {
+    parts.push(`${totals.main} main`);
+  }
+  if (totals.sideboard) {
+    parts.push(`${totals.sideboard} sideboard`);
+  }
 
   return (
     <div className="flex-1 min-h-[240px] flex flex-col items-center justify-center bg-bg-base border border-border-subtle rounded-md p-6 text-center">
@@ -1545,7 +1615,9 @@ interface DeleteConfirmDialogProps {
 function DeleteConfirmDialog({ deckName, onCancel, onConfirm }: DeleteConfirmDialogProps) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
+      if (e.key === 'Escape') {
+        onCancel();
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -1612,13 +1684,23 @@ function flattenFolder(folder: ServerInfo_DeckStorage_Folder, pathPrefix: string
 /** Loose "3 hours ago" formatter for Unix seconds. Good enough for
  *  the list view; the editor can show absolute timestamps. */
 function formatTimestamp(unixSeconds: number): string {
-  if (!unixSeconds) return 'unknown';
+  if (!unixSeconds) {
+    return 'unknown';
+  }
   const then = new Date(unixSeconds * 1000);
   const diffSec = (Date.now() - then.getTime()) / 1000;
-  if (diffSec < 60) return 'just now';
-  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
-  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
-  if (diffSec < 604800) return `${Math.floor(diffSec / 86400)}d ago`;
+  if (diffSec < 60) {
+    return 'just now';
+  }
+  if (diffSec < 3600) {
+    return `${Math.floor(diffSec / 60)}m ago`;
+  }
+  if (diffSec < 86400) {
+    return `${Math.floor(diffSec / 3600)}h ago`;
+  }
+  if (diffSec < 604800) {
+    return `${Math.floor(diffSec / 86400)}d ago`;
+  }
   return then.toLocaleDateString();
 }
 

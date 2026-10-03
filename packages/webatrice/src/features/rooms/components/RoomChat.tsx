@@ -22,13 +22,17 @@ export default function RoomChat({ roomName, messages, onSay }: RoomChatProps) {
 
   useEffect(() => {
     const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
   }, [messages?.length]);
 
   const send = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = draft.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      return;
+    }
     onSay({ message: trimmed });
     setDraft('');
   };

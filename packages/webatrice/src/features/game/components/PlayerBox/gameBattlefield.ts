@@ -78,7 +78,9 @@ export function slotsAlongAxis(
   cardPx: number,
   gapPx = BATTLEFIELD_GAP_PX,
 ): number {
-  if (containerPx <= 0 || cardPx <= 0) return 0;
+  if (containerPx <= 0 || cardPx <= 0) {
+    return 0;
+  }
   // Fit N cards + (N-1) gaps into containerPx.  Solve for N: containerPx = N*card + (N-1)*gap  →  N = (containerPx + gap) / (card + gap)
   return Math.max(1, Math.floor((containerPx + gapPx) / (cardPx + gapPx)));
 }
@@ -331,7 +333,9 @@ export function computeContentWidth(
     let x = r.mLeft;
     for (let i = 0; i <= lastCol; i++) {
       x += (widths.get(cellKey(row, i)) ?? r.cardW);
-      if (i < lastCol) x += r.gapX;
+      if (i < lastCol) {
+        x += r.gapX;
+      }
     }
     maxRight = Math.max(maxRight, x);
   }
@@ -366,11 +370,15 @@ export function snapPxToSlot(
   while (true) {
     const w = widths.get(cellKey(row, col)) ?? r.cardW;
     const step = w + r.gapX;
-    if (acc + step > xInGrid) break;
+    if (acc + step > xInGrid) {
+      break;
+    }
     acc += step;
     col += 1;
     // Bail after a reasonable ceiling so a runaway pointer doesn't loop.
-    if (col > 2048) break;
+    if (col > 2048) {
+      break;
+    }
   }
   const xInCol = Math.max(0, xInGrid - acc);
   const subSlot = clampInt(

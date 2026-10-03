@@ -75,12 +75,16 @@ function Toast({
 
   // Auto-hide timer.
   useEffect(() => {
-    if (!open || autoHideDuration <= 0) return;
+    if (!open || autoHideDuration <= 0) {
+      return;
+    }
     const t = window.setTimeout(() => onClose(), autoHideDuration);
     return () => window.clearTimeout(t);
   }, [open, autoHideDuration, onClose]);
 
-  if (!open) return null;
+  if (!open) {
+    return null;
+  }
 
   const Icon = icon ?? SEVERITY_ICON[severity];
   const iconColor = SEVERITY_COLOR[severity];

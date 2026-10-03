@@ -72,13 +72,17 @@ async function fetchScryfallDetail(
     const url = scryfallId
       ? `https://api.scryfall.com/cards/${encodeURIComponent(scryfallId)}`
       : `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(
-          name.replace(/\s*\(?\bToken\b\)?\s*$/i, ''),
-        )}`;
+        name.replace(/\s*\(?\bToken\b\)?\s*$/i, ''),
+      )}`;
     const res = await fetch(url, { signal });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      return null;
+    }
     return (await res.json()) as ScryfallDetail;
   } catch (e) {
-    if ((e as { name?: string })?.name === 'AbortError') throw e;
+    if ((e as { name?: string })?.name === 'AbortError') {
+      throw e;
+    }
     return null;
   }
 }
@@ -99,7 +103,9 @@ export function BigCardPreviewProvider({ children }: { children: ReactNode }) {
     fetchScryfallDetail(card.scryfallId, card.name, controller.signal)
       .then((d) => setDetail(d))
       .catch((e) => {
-        if ((e as { name?: string })?.name === 'AbortError') return;
+        if ((e as { name?: string })?.name === 'AbortError') {
+          return;
+        }
       });
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -118,8 +124,8 @@ export function BigCardPreviewProvider({ children }: { children: ReactNode }) {
       : card.scryfallId
         ? `https://api.scryfall.com/cards/${card.scryfallId}?format=image&version=large`
         : `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(
-            card.name.replace(/\s*\(?\bToken\b\)?\s*$/i, ''),
-          )}&format=image&version=large`
+          card.name.replace(/\s*\(?\bToken\b\)?\s*$/i, ''),
+        )}&format=image&version=large`
     : null;
 
   // Pick the face matching the hovered name — same logic as

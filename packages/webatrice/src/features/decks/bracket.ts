@@ -97,7 +97,9 @@ function fnv1aBase36(s: string): string {
 function classify(matchCount: number, maxes: readonly number[], restrictedCount = 0): number {
   let I = 0;
   maxes.forEach((max, idx) => {
-    if (matchCount > max) I = idx + 1;
+    if (matchCount > max) {
+      I = idx + 1;
+    }
   });
   if (restrictedCount > 0 && I < RESTRICTED_UNDER_BRACKET) {
     I = RESTRICTED_UNDER_BRACKET;
@@ -131,16 +133,24 @@ let gameChangersInFlight: Promise<Set<string>> | null = null;
 /** Fetches WotC's Game Changers list from Scryfall (`is:gamechanger`)
  *  and returns the set of card names. Cached for the session. */
 export async function fetchGameChangers(): Promise<Set<string>> {
-  if (gameChangersCache) return gameChangersCache;
-  if (gameChangersInFlight) return gameChangersInFlight;
+  if (gameChangersCache) {
+    return gameChangersCache;
+  }
+  if (gameChangersInFlight) {
+    return gameChangersInFlight;
+  }
   gameChangersInFlight = (async () => {
     try {
       const url = 'https://api.scryfall.com/cards/search?q=is%3Agamechanger&order=name&unique=cards';
       const res = await fetch(url);
-      if (!res.ok) return new Set<string>();
+      if (!res.ok) {
+        return new Set<string>();
+      }
       const body = (await res.json()) as { data?: Array<{ name: string }> };
       const names = new Set<string>();
-      for (const c of body.data ?? []) names.add(c.name);
+      for (const c of body.data ?? []) {
+        names.add(c.name);
+      }
       gameChangersCache = names;
       return names;
     } catch {
@@ -173,16 +183,23 @@ export async function fetchOracleTextByName(names: string[]): Promise<Map<string
   const need: string[] = [];
   const awaiting: Array<Promise<void>> = [];
   for (const key of uniqueLower) {
-    if (oracleCache.has(key)) continue;
+    if (oracleCache.has(key)) {
+      continue;
+    }
     const pending = oracleInFlight.get(key);
-    if (pending) awaiting.push(pending);
-    else need.push(key);
+    if (pending) {
+      awaiting.push(pending);
+    } else {
+      need.push(key);
+    }
   }
 
   if (need.length > 0) {
     // Preserve the original casing for the Scryfall payload.
     const originalByLower = new Map<string, string>();
-    for (const n of names) originalByLower.set(n.toLowerCase(), n);
+    for (const n of names) {
+      originalByLower.set(n.toLowerCase(), n);
+    }
 
     for (let i = 0; i < need.length; i += 75) {
       const chunk = need.slice(i, i + 75);
@@ -195,7 +212,9 @@ export async function fetchOracleTextByName(names: string[]): Promise<Map<string
             body: JSON.stringify({ identifiers }),
           });
           if (!res.ok) {
-            for (const k of chunk) oracleCache.set(k, '');
+            for (const k of chunk) {
+              oracleCache.set(k, '');
+            }
             return;
           }
           const body = (await res.json()) as { data?: ScryfallCollectionCard[] };
@@ -219,17 +238,25 @@ export async function fetchOracleTextByName(names: string[]): Promise<Map<string
           }
           // Names Scryfall didn't return get empty-string cache entries.
           for (const k of chunk) {
-            if (!returnedLower.has(k)) oracleCache.set(k, '');
+            if (!returnedLower.has(k)) {
+              oracleCache.set(k, '');
+            }
           }
         } catch {
-          for (const k of chunk) oracleCache.set(k, '');
+          for (const k of chunk) {
+            oracleCache.set(k, '');
+          }
         }
       })();
-      for (const k of chunk) oracleInFlight.set(k, p);
+      for (const k of chunk) {
+        oracleInFlight.set(k, p);
+      }
       try {
         await p;
       } finally {
-        for (const k of chunk) oracleInFlight.delete(k);
+        for (const k of chunk) {
+          oracleInFlight.delete(k);
+        }
       }
     }
   }
@@ -238,7 +265,9 @@ export async function fetchOracleTextByName(names: string[]): Promise<Map<string
   const out = new Map<string, string>();
   for (const key of uniqueLower) {
     const text = oracleCache.get(key);
-    if (text != null) out.set(key, text);
+    if (text != null) {
+      out.set(key, text);
+    }
   }
   return out;
 }
@@ -294,7 +323,9 @@ async function fetchSpellbookCombos(cards: DeckCard[]): Promise<SpellbookCombo[]
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ main }),
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      return [];
+    }
     const body = (await res.json()) as SpellbookResponse;
     return body.results?.included ?? [];
   } catch {
@@ -316,7 +347,9 @@ function filterAndSplitCombos(
 ): { early: ComboSummary[]; late: ComboSummary[] } {
   const cmcByName = new Map<string, number>();
   for (const c of cards) {
-    if (c.cmc != null) cmcByName.set(c.name, c.cmc);
+    if (c.cmc != null) {
+      cmcByName.set(c.name, c.cmc);
+    }
   }
 
   const early: ComboSummary[] = [];
@@ -352,7 +385,9 @@ function filterAndSplitCombos(
       if (r.template != null && !COMBO_REQUIREMENTS_WHITELIST.has(r.template.id)) {
         ba = true;
       }
-      if (A < 3) ba = false;
+      if (A < 3) {
+        ba = false;
+      }
     }
 
     // da: no notable-prerequisite disqualifier. ka: prerequisite-based
@@ -365,15 +400,20 @@ function filterAndSplitCombos(
     for (const line of prereqs) {
       for (const [regex, bonus] of COMBO_PREREQUISITE_RULES) {
         if (regex.test(line.toLowerCase())) {
-          if (typeof bonus !== 'undefined') ka += bonus;
-          else da = false;
+          if (typeof bonus !== 'undefined') {
+            ka += bonus;
+          } else {
+            da = false;
+          }
         }
       }
     }
 
     // Keep the combo only when all four filter flags pass AND it's a
     // strictly 2-card combo (A < 3).
-    if (!(oa && ba && da && A < 3)) continue;
+    if (!(oa && ba && da && A < 3)) {
+      continue;
+    }
 
     // Sum CMC of on-battlefield combo cards. Spellbook zones use "B"
     // for battlefield.
@@ -391,8 +431,11 @@ function filterAndSplitCombos(
       cardNames: uses.map((c) => c.card.name),
       totalMana,
     };
-    if (totalMana > EARLY_COMBO_MANA_CUTOFF) late.push(summary);
-    else early.push(summary);
+    if (totalMana > EARLY_COMBO_MANA_CUTOFF) {
+      late.push(summary);
+    } else {
+      early.push(summary);
+    }
   }
 
   return { early, late };
@@ -424,22 +467,32 @@ export async function analyzeBracket(cards: DeckCard[]): Promise<BracketReport> 
 
   const seen = new Set<string>();
   for (const card of cards) {
-    if (seen.has(card.name)) continue;
+    if (seen.has(card.name)) {
+      continue;
+    }
     seen.add(card.name);
     const oracle = oracleByName.get(card.name.toLowerCase()) ?? '';
 
     // Extra turns: regex-based detection.
-    if (EDHPL_EXTRA_TURN_REGEX.test(oracle)) turnsMatches.push(card.name);
-    if (RESTRICTED_EXTRA_TURNS.has(card.name)) turnsRestricted.push(card.name);
+    if (EDHPL_EXTRA_TURN_REGEX.test(oracle)) {
+      turnsMatches.push(card.name);
+    }
+    if (RESTRICTED_EXTRA_TURNS.has(card.name)) {
+      turnsRestricted.push(card.name);
+    }
 
     // MLD: regex + curated list, but never for whitelisted names.
     if (!MLD_WHITELIST.has(card.name) && EDHPL_MLD_REGEX.test(oracle)) {
       denialMatches.push(card.name);
     }
-    if (RESTRICTED_MLD.has(card.name)) denialRestricted.push(card.name);
+    if (RESTRICTED_MLD.has(card.name)) {
+      denialRestricted.push(card.name);
+    }
 
     // Game Changers: exact-name membership.
-    if (gameChangers.has(card.name)) gameChangerMatches.push(card.name);
+    if (gameChangers.has(card.name)) {
+      gameChangerMatches.push(card.name);
+    }
   }
 
   const { early, late } = filterAndSplitCombos(rawCombos, cards);

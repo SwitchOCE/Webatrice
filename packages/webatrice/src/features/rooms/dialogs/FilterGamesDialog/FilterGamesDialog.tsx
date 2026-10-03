@@ -49,9 +49,13 @@ export default function FilterGamesDialog({
 
   // Close on Escape.
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      return;
+    }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
+      if (e.key === 'Escape') {
+        onCancel();
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -69,8 +73,11 @@ export default function FilterGamesDialog({
   const toggleGameType = (id: number) => {
     setForm((prev) => {
       const set = new Set(prev.gameTypeFilter);
-      if (set.has(id)) set.delete(id);
-      else set.add(id);
+      if (set.has(id)) {
+        set.delete(id);
+      } else {
+        set.add(id);
+      }
       return { ...prev, gameTypeFilter: Array.from(set) };
     });
   };
@@ -89,7 +96,9 @@ export default function FilterGamesDialog({
     setCreatorNamesText('');
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return createPortal(
     <div

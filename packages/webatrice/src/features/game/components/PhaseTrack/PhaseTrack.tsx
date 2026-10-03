@@ -147,7 +147,9 @@ export default function PhaseTrack() {
   }, [activePhase]);
 
   const onDoubleClickFor = (kind: PhaseEntry['builtInOnDoubleClick']) => {
-    if (kind === 'untapAll') return handleUntapAll;
+    if (kind === 'untapAll') {
+      return handleUntapAll;
+    }
     // Draw is now handled by single-click on the already-active
     // draw phase (see button onClick below). We drop the double-
     // click binding to avoid firing draw twice on a double-click
@@ -177,9 +179,9 @@ export default function PhaseTrack() {
         expanded
           ? 'bg-bg-surface/85 backdrop-blur-sm border-r border-border-subtle py-4 px-2 gap-2 shadow-glow'
           : // `pr-1` (4 px) reserves invisible hit-area past the visible
-            // 8 px bars so the overlay still expands when the pointer
-            // is up to 4 px right of the strip.
-            'py-2 pr-1',
+        // 8 px bars so the overlay still expands when the pointer
+        // is up to 4 px right of the strip.
+          'py-2 pr-1',
       ].join(' ')}
       style={{ width: expanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH }}
     >
@@ -213,7 +215,9 @@ export default function PhaseTrack() {
                 // every card on your battlefield except those tagged
                 // with `AttrDoesntUntap`. The server filters that set
                 // when it receives `cardId: -1` + `AttrTapped: "0"`.
-                if (builtInOnDoubleClick === 'untapAll') handleUntapAll();
+                if (builtInOnDoubleClick === 'untapAll') {
+                  handleUntapAll();
+                }
                 // Draw a card when the user clicks the already-active
                 // Draw phase — matches the mental model "click Draw to
                 // draw." Double-click also draws (naturally: click 1

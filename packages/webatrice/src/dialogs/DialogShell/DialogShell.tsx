@@ -34,15 +34,21 @@ const DialogShell = ({
   maxWidth = 'max-w-md',
 }: DialogShellProps) => {
   useEffect(() => {
-    if (!isOpen || !handleClose) return;
+    if (!isOpen || !handleClose) {
+      return;
+    }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleClose();
+      if (e.key === 'Escape') {
+        handleClose();
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [isOpen, handleClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return createPortal(
     <div
