@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import { usePreference } from '@app/hooks';
 import { TokenDTO, dexieService } from '@app/services';
 
 import type { CreateTokenSubmit } from './CreateTokenDialog';
@@ -95,6 +96,8 @@ export function useCreateTokenDialog({
   // The printing chosen for a token, and the name it belongs to: renaming the
   // token drops it, so a hand-typed name never carries another token's art.
   const [provider, setProvider] = useState<{ id: string; name: string } | undefined>(undefined);
+  // Desktop's "Annotate card text on tokens": picking a token fills in its rules text.
+  const annotateTokens = usePreference('annotateTokens');
 
   useEffect(() => {
     if (isOpen) {
@@ -162,6 +165,9 @@ export function useCreateTokenDialog({
     setColor(colorFromToken(token));
     const ptRaw = token.prop?.value?.pt?.value ?? '';
     setPT(ptRaw.slice(0, MAX_PT_LEN));
+    if (annotateTokens) {
+      setAnnotation((token.text?.value ?? '').slice(0, MAX_ANNOTATION_LEN));
+    }
     const id = providerIdFromToken(token);
     setProvider(id ? { id, name: tokenName.slice(0, MAX_NAME_LEN).trim() } : undefined);
     if (error) {

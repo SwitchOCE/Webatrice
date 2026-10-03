@@ -54,6 +54,12 @@ export const userInterfaceSection: SettingsSection = {
           control: { kind: 'toggle', key: 'focusCardViewSearchBar' },
         },
         {
+          id: 'annotateTokens',
+          labelKey: 'SettingsUserInterface.annotateTokens.label',
+          descriptionKey: 'SettingsUserInterface.annotateTokens.description',
+          control: { kind: 'toggle', key: 'annotateTokens' },
+        },
+        {
           id: 'showDragSelectionCount',
           labelKey: 'SettingsUserInterface.showDragSelectionCount.label',
           control: { kind: 'toggle', key: 'showDragSelectionCount' },

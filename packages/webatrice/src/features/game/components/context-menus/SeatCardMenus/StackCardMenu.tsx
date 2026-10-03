@@ -1,4 +1,5 @@
 import { ZoneName } from '@cockatrice/sockatrice';
+import { usePreference } from '@app/hooks';
 
 import type { SeatMoveDestination } from '../../ui/PlayerBoard/playerBoard.types';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
@@ -33,6 +34,8 @@ export default function StackCardMenu() {
     tokenMetaByName,
     zoneCommands,
   } = usePlayerSeatContext();
+  // Desktop's "Annotate card text on tokens".
+  const annotateTokens = usePreference('annotateTokens');
 
   return (
     <>
@@ -120,12 +123,14 @@ export default function StackCardMenu() {
                   cardMetaByName.get(card.name)?.related ?? [],
                   tokenMetaByName,
                   cardCommands.createToken,
+                  annotateTokens,
                 ),
                 ...buildTransformItems(
                   cardMetaByName.get(card.name),
                   Number.isFinite(cardIdNum) ? cardIdNum : undefined,
                   card.name,
                   cardCommands.createToken,
+                  annotateTokens,
                 ),
               ];
               return tokens.length > 0
@@ -300,12 +305,14 @@ export default function StackCardMenu() {
                 cardMetaByName.get(card.name)?.related ?? [],
                 tokenMetaByName,
                 cardCommands.createToken,
+                annotateTokens,
               ),
               ...buildTransformItems(
                 cardMetaByName.get(card.name),
                 Number.isFinite(cardIdNum) ? cardIdNum : undefined,
                 card.name,
                 cardCommands.createToken,
+                annotateTokens,
               ),
             ];
             return tokens.length > 0

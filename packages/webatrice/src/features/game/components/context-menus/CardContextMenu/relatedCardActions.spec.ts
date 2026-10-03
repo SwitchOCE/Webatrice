@@ -83,6 +83,33 @@ describe('buildRelatedTokenItems', () => {
   });
 });
 
+describe('annotating tokens with their card text', () => {
+  it('gives a related token its rules text with "Annotate card text on tokens" on, and nothing off', () => {
+    const tokenMeta = new Map([['Treasure', lookup('Treasure', { text: 'Sacrifice this artifact: Add one mana of any color.' })]]);
+    const create = vi.fn();
+    const [annotated] = buildRelatedTokenItems([ref('Treasure')], tokenMeta, create, true).map(row);
+    annotated.onClick!();
+    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({
+      annotation: 'Sacrifice this artifact: Add one mana of any color.',
+    }));
+
+    const [plain] = buildRelatedTokenItems([ref('Treasure')], tokenMeta, create).map(row);
+    plain.onClick!();
+    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ annotation: '' }));
+  });
+
+  it('gives a transformed face its own rules text', () => {
+    const faces = [
+      { name: 'Delver of Secrets', text: 'At the beginning of your upkeep, look at the top card of your library.' },
+      { name: 'Insectile Aberration', text: 'Flying' },
+    ];
+    const create = vi.fn();
+    const [item] = buildTransformItems({ layout: 'transform', faces }, 42, 'Delver of Secrets', create, true).map(row);
+    item.onClick!();
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ name: 'Insectile Aberration', annotation: 'Flying' }));
+  });
+});
+
 describe('buildTransformItems', () => {
   const faces = [
     { name: 'Delver of Secrets', power: '1', toughness: '1', colors: ['U'] },

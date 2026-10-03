@@ -51,6 +51,8 @@ export class Setting {
   doNotDeleteArrowsInSubPhases: boolean;
   closeEmptyCardView: boolean;
   focusCardViewSearchBar: boolean;
+  /** Give a new token its card's rules text as its annotation. */
+  annotateTokens: boolean;
   /** How many cards a drag (rubber-band) selection holds, drawn in the band. */
   showDragSelectionCount: boolean;
   /** How many cards are selected, drawn in the board's corner once more than one is. */
@@ -147,6 +149,7 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   doNotDeleteArrowsInSubPhases: true,
   closeEmptyCardView: true,
   focusCardViewSearchBar: true,
+  annotateTokens: false,
   showDragSelectionCount: true,
   showTotalSelectionCount: true,
   keepGameChatFocus: false,

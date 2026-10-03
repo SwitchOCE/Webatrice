@@ -2213,6 +2213,10 @@
     "focusCardViewSearchBar": {
       "label": "Auto focus search bar when card view window is opened"
     },
+    "annotateTokens": {
+      "label": "Annotate card text on tokens",
+      "description": "A token you create, from a card's token list or the token dialog, carries its rules text as its annotation."
+    },
     "showDragSelectionCount": {
       "label": "Show selection count during drag selection"
     },

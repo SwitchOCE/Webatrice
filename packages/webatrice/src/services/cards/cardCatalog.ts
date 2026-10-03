@@ -97,6 +97,8 @@ export interface LookupCardFace {
   colors?: string[];
   power?: string;
   toughness?: string;
+  /** The face's rules text (Scryfall `card_faces[N].oracle_text`). */
+  text?: string;
   /** Per-face image URL (typically Scryfall's `normal` / ~488×680
    *  JPG). Used by Card.tsx to render the back-face art after a
    *  DFC transform lands. */
@@ -992,6 +994,7 @@ function scryfallToLookup(card: ScryfallCard): LookupResult {
         colors: f.colors,
         power: f.power,
         toughness: f.toughness,
+        text: f.oracle_text,
         imageUri: f.image_uris?.normal ?? f.image_uris?.small,
       }))
     : undefined;

@@ -1,4 +1,5 @@
 import { ZoneName } from '@cockatrice/sockatrice';
+import { usePreference } from '@app/hooks';
 
 import type { BattlefieldCardViewModel, SeatMoveDestination } from '../../ui/PlayerBoard/playerBoard.types';
 import { MAX_COUNTER_VALUE } from '../../ui/PlayerBoard/counterLimits';
@@ -38,6 +39,8 @@ export default function BattlefieldCardMenu() {
     zoneCommands,
     zones,
   } = usePlayerSeatContext();
+  // Desktop's "Annotate card text on tokens".
+  const annotateTokens = usePreference('annotateTokens');
 
   return (
     <>
@@ -220,12 +223,14 @@ export default function BattlefieldCardMenu() {
                   cardMetaByName.get(card.name)?.related ?? [],
                   tokenMetaByName,
                   cardCommands.createToken,
+                  annotateTokens,
                 ),
                 ...buildTransformItems(
                   cardMetaByName.get(card.name),
                   Number.isFinite(cardIdNum) ? cardIdNum : undefined,
                   card.name,
                   cardCommands.createToken,
+                  annotateTokens,
                 ),
               ];
               return items.length > 0
@@ -320,12 +325,14 @@ export default function BattlefieldCardMenu() {
               cardMetaByName.get(card.name)?.related ?? [],
               tokenMetaByName,
               cardCommands.createToken,
+              annotateTokens,
             ),
             ...buildTransformItems(
               cardMetaByName.get(card.name),
               Number.isFinite(cardIdNum) ? cardIdNum : undefined,
               card.name,
               cardCommands.createToken,
+              annotateTokens,
             ),
           ]
           : [];
