@@ -33,15 +33,41 @@ export function parseSequence(sequence: string): ParsedSequence {
   };
 }
 
-export function matchesEvent(sequence: string, event: KeyboardEvent): boolean {
+/** True on macOS and iOS, where Qt (and so desktop Cockatrice) maps Ctrl to Cmd. */
+export function isMacPlatform(): boolean {
+  if (typeof navigator === 'undefined') {
+    return false;
+  }
+  return /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+}
+
+/**
+ * Whether `event` triggers `sequence`.
+ *
+ * On macOS a binding's Ctrl answers to Cmd: Qt maps `Qt::CTRL` to the Command
+ * key there, so desktop's `Ctrl+M` mulligan is `⌘M`, which is also how
+ * `displaySequenceForOs` labels it. The Control key keeps answering too, so a
+ * binding never stops working for someone already pressing it. Holding both
+ * at once matches neither; a sequence that names Meta as well is matched
+ * exactly.
+ */
+export function matchesEvent(
+  sequence: string,
+  event: KeyboardEvent,
+  isMac: boolean = isMacPlatform(),
+): boolean {
   const parsed = parseSequence(sequence);
-  return (
-    parsed.code === event.code &&
-    parsed.ctrl === event.ctrlKey &&
-    parsed.alt === event.altKey &&
-    parsed.shift === event.shiftKey &&
-    parsed.meta === event.metaKey
-  );
+  if (
+    parsed.code !== event.code ||
+    parsed.alt !== event.altKey ||
+    parsed.shift !== event.shiftKey
+  ) {
+    return false;
+  }
+  if (isMac && parsed.ctrl && !parsed.meta) {
+    return event.ctrlKey !== event.metaKey;
+  }
+  return parsed.ctrl === event.ctrlKey && parsed.meta === event.metaKey;
 }
 
 // Pure modifier presses (Ctrl, Shift alone) shouldn't trigger or get captured.

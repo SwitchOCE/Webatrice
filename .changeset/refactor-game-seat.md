@@ -5,7 +5,7 @@
 Internal refactor of the game seat (`PlayerBox`), with a few visible changes:
 
 - Card counter badges and their menu swatches use desktop Cockatrice's counter colours, the same ones the rest of the game already uses.
-- Mulligan (Ctrl+M), Set life (Ctrl+L) and Remove local arrows (Ctrl+R) are now rebindable in the Shortcuts settings, with desktop's defaults. Like every other game shortcut they no longer also answer to Cmd on macOS.
+- Mulligan (Ctrl+M), Set life (Ctrl+L) and Remove local arrows (Ctrl+R) are now rebindable in the Shortcuts settings, with desktop's defaults.
 - Another player's cards can no longer be dragged (the server always rejected the move); clicking them still selects them. A judge can drag any player's cards, and the move is sent on that player's behalf, as on desktop.
 - While dragging onto a battlefield, the landing slot is highlighted on the board under the pointer, including an opponent's when gifting a card.
 - Escape clears a card selection on the board.
