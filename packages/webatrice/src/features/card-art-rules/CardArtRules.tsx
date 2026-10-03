@@ -36,7 +36,7 @@ type RuleFormValues = z.infer<ReturnType<typeof buildRuleSchema>>;
 const DEFAULT_VALUES: RuleFormValues = { cardName: '', cardProviderId: '', mode: 'ALLOW', reason: '' };
 
 /** Desktop TabCardArtRules (tab_card_art_rules.cpp). */
-const CardArtRules = () => {
+const CardArtRulesContent = () => {
   const { t } = useTranslation();
   const rulesState = useCardArtRules();
   const { rules, selectedIndex, printings } = rulesState;
@@ -53,11 +53,7 @@ const CardArtRules = () => {
     t('CardArtRules.column.mode'), t('CardArtRules.column.reason')];
 
   return (
-    <Layout className="card-art-rules scrollable">
-      <AuthGuard />
-      <ModGuard />
-      <CapabilityGuard capability={ServerCapability.CARD_ART} />
-
+    <>
       <Paper component="section" className="card-art-rules__form-panel">
         <form className="card-art-rules__form" onSubmit={handleSubmit(rulesState.addRule)} noValidate>
           <Controller
@@ -146,8 +142,21 @@ const CardArtRules = () => {
           </TableBody>
         </Table>
       </Paper>
-    </Layout>
+    </>
   );
 };
+
+// The guards mount the page body only when it is allowed, so its mount effects
+// never send a staff or 3.1 command the user or server cannot serve.
+const CardArtRules = () => (
+  <Layout className="card-art-rules scrollable">
+    <AuthGuard />
+    <ModGuard>
+      <CapabilityGuard capability={ServerCapability.CARD_ART}>
+        <CardArtRulesContent />
+      </CapabilityGuard>
+    </ModGuard>
+  </Layout>
+);
 
 export default CardArtRules;

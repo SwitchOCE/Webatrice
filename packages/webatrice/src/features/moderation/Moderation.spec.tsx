@@ -59,14 +59,25 @@ async function investigate(name: string) {
 }
 
 describe('Moderation gating', () => {
-  it('sends a non-moderator away', () => {
-    setup(IsRegistered);
+  // The page body must not mount, or its effects would send staff commands the server refuses.
+  const expectNothingSent = (webClient: ReturnType<typeof createMockWebClient>) => {
+    const mod = moderator(webClient);
+    expect(mod.getModeratorLastLogins).not.toHaveBeenCalled();
+    expect(mod.reportUserInfo).not.toHaveBeenCalled();
+    expect(mod.getUserSessions).not.toHaveBeenCalled();
+    expect(mod.getUserAlts).not.toHaveBeenCalled();
+  };
+
+  it('sends a non-moderator away without sending any moderator command', () => {
+    const { webClient } = setup(IsRegistered, '/moderation?user=bad');
     expect(screen.getByText('server-page')).toBeInTheDocument();
+    expectNothingSent(webClient);
   });
 
   it('is unavailable on a 3.0 server, which has no investigation commands', () => {
-    setup(MODERATOR, '/moderation', '3.0.0 ()');
+    const { webClient } = setup(MODERATOR, '/moderation?user=bad', '3.0.0 ()');
     expect(screen.getByText('server-page')).toBeInTheDocument();
+    expectNothingSent(webClient);
   });
 
   it('offers Reset Password only to admins (Servatrice serves it in the admin family)', () => {

@@ -91,15 +91,12 @@ const ActivateUserForm = ({ disabled, onSubmit }: SingleFieldFormProps) => {
 };
 
 /** Desktop TabAdmin (tab_admin.cpp). */
-const Administration = () => {
+const AdministrationContent = () => {
   const { t } = useTranslation();
   const admin = useAdministration();
 
   return (
-    <Layout className="administration scrollable">
-      <AuthGuard />
-      <ModGuard />
-
+    <>
       <Paper component="section" className="administration__group" aria-labelledby="administration-admin-title">
         <h2 id="administration-admin-title" className="administration__title">{t('Administration.admin.title')}</h2>
         <div className="administration__buttons">
@@ -146,8 +143,19 @@ const Administration = () => {
         buttonLabel={t('Administration.button.ok')}
         onDismiss={admin.dismissNotice}
       />
-    </Layout>
+    </>
   );
 };
+
+// The guards mount the page body only when it is allowed, so its mount effects
+// never send a staff or 3.1 command the user or server cannot serve.
+const Administration = () => (
+  <Layout className="administration scrollable">
+    <AuthGuard />
+    <ModGuard>
+      <AdministrationContent />
+    </ModGuard>
+  </Layout>
+);
 
 export default Administration;

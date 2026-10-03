@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import { useEffect, type ReactElement } from 'react';
 import { screen } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 
@@ -56,5 +56,42 @@ describe('DeveloperGuard', () => {
   it('sends a moderator without the developer bit away', () => {
     renderPage(<DeveloperGuard />, state('3.1.0 ()', ServerInfo_User_UserLevelFlag.IsModerator));
     expect(screen.getByText('server-page')).toBeInTheDocument();
+  });
+});
+
+describe('staff guards wrapping a page', () => {
+  const mounted = vi.fn();
+  const StaffPage = () => {
+    useEffect(mounted, []);
+    return <div>staff-page</div>;
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('CapabilityGuard never mounts the page on a server without the capability', () => {
+    renderPage(
+      <CapabilityGuard capability={ServerCapability.MODERATION_TOOLS}><StaffPage /></CapabilityGuard>,
+      state('3.0.0 (2024-01-01)'),
+    );
+    expect(screen.getByText('server-page')).toBeInTheDocument();
+    expect(mounted).not.toHaveBeenCalled();
+  });
+
+  it('DeveloperGuard never mounts the page for a non-developer', () => {
+    renderPage(<DeveloperGuard><StaffPage /></DeveloperGuard>, state('3.1.0 ()', ServerInfo_User_UserLevelFlag.IsModerator));
+    expect(screen.getByText('server-page')).toBeInTheDocument();
+    expect(mounted).not.toHaveBeenCalled();
+  });
+
+  it('mounts the page when both allow it', () => {
+    renderPage(
+      <DeveloperGuard>
+        <CapabilityGuard capability={ServerCapability.DEVELOPER_ROLE}><StaffPage /></CapabilityGuard>
+      </DeveloperGuard>,
+      state('3.1.0 ()', ServerInfo_User_UserLevelFlag.IsDeveloper),
+    );
+    expect(mounted).toHaveBeenCalledTimes(1);
   });
 });
