@@ -16,6 +16,14 @@ React 19 + TypeScript, built with [Vite](https://vite.dev/) 8. State via Redux T
 
 - Node.js and npm
 
+## Supported browsers
+
+Current Chrome, Edge, Firefox and Safari: Chrome/Edge 111, Firefox 114 and Safari 16.4 (macOS and iOS) or newer, as
+declared in `packages/webatrice/package.json` `browserslist` and matching the Vite build target. The e2e suite runs on
+Chromium, Firefox and WebKit. The page must be served over `https://` (or from `localhost`): logging in hashes the
+password with Web Crypto, which browsers expose only in secure contexts. At startup the app checks for the APIs it needs
+and shows an "Unsupported Browser" screen naming what is missing instead of booting.
+
 ## Getting started
 
 ```bash
