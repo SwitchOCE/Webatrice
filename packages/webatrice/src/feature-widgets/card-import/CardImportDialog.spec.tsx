@@ -11,7 +11,6 @@ vi.mock('./CardImportForm', () => ({
 vi.mock('./CardDatabaseOverview', () => ({ default: () => <div data-testid="card-database-overview" /> }));
 vi.mock('./ManageSets', () => ({ default: () => <div data-testid="manage-sets" /> }));
 vi.mock('./EditTokens', () => ({ default: () => <div data-testid="edit-tokens" /> }));
-vi.mock('./CardSourcesSettings', () => ({ default: () => <div data-testid="card-sources" /> }));
 
 import CardImportDialog from './CardImportDialog';
 
@@ -30,8 +29,8 @@ describe('CardImportDialog', () => {
   });
 
   it('opens on the requested tab', () => {
-    renderWithProviders(<CardImportDialog isOpen handleClose={vi.fn()} initialTab="sources" />);
-    expect(screen.getByTestId('card-sources')).toBeInTheDocument();
+    renderWithProviders(<CardImportDialog isOpen handleClose={vi.fn()} initialTab="tokens" />);
+    expect(screen.getByTestId('edit-tokens')).toBeInTheDocument();
   });
 
   it('switches between the card database tabs', () => {
