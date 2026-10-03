@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 import type { ServerInfo_User } from '@cockatrice/sockatrice/generated';
 
@@ -71,6 +72,7 @@ function buildItems(
   ignoreList: Props['ignoreList'],
   moderationItems: ContextMenuItem[],
   actions: PlayerListMenuActions,
+  reportUserLabel: string,
 ): ContextMenuItem[] {
   const items: ContextMenuItem[] = [];
 
@@ -124,7 +126,7 @@ function buildItems(
     const onReportUser = actions.onReportUser;
     items.push({ divider: true });
     items.push({
-      label: 'Report user',
+      label: reportUserLabel,
       onClick: () => onReportUser(target.userName),
       disabled: target.isSelf,
     });
@@ -160,6 +162,7 @@ function PlayerListContextMenu({
   actions,
   onDismiss,
 }: Props) {
+  const { t } = useTranslation();
   const isOpen = anchor != null && target != null;
   useEffect(() => {
     if (!isOpen) {
@@ -200,6 +203,7 @@ function PlayerListContextMenu({
     ignoreList,
     moderationItems,
     actions,
+    t('ReportUserDialog.menuItem'),
   );
   return createPortal(
     <MenuList items={items} x={anchor.x} y={anchor.y} onDismiss={onDismiss} />,
