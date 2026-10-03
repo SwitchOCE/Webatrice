@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useImperativeHandle,
   useMemo,
@@ -74,6 +75,7 @@ import { deckCardImageUrl } from './deckCardImageUrl';
 import { useCardPreviewActions } from '../ui/CardPreviewContext';
 import { usePublishSeatShortcuts, type SeatShortcutOperations } from '../ui/SeatShortcutsContext';
 import { useSeatSelection, type SeatSelection } from '../../hooks/useSeatSelection';
+import { useMoveTopUntil } from '../../hooks/useMoveTopUntil';
 import { useGameSelectionState } from '../ui/GameSelectionContext';
 import { makeCardKey } from '../../utils/CardRegistry/CardRegistryContext';
 import { useCanActFor } from '../ui/CardVisualStateContext';
@@ -90,7 +92,7 @@ import { PlayerPlaymat } from '../PlayerPlaymat';
 import { useGameDialogActions } from '../ui/GameDialogActionsContext';
 import { useGameDialogsContext } from '../ui/GameDialogsContext';
 import { useShortcutHints } from '@app/feature-widgets/shortcuts';
-import { isFilterEmpty, matchCard, parseCardFilter, type CardFilter, type FilterableCard } from '../../utils/cardFilter';
+import type { FilterableCard } from '../../utils/cardFilter';
 import { buildArrowGeometry } from '../arrows/GameArrowOverlay/arrowPath';
 import { ArrowColor, rgbaToCss } from '@app/types';
 import {
@@ -100,12 +102,6 @@ import {
   type LookupResult,
   type RelatedCardRef,
 } from '@app/services';
-
-const DIALOG_PRIMARY_BUTTON_CLASS =
-  'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover '
-  + 'shadow-glow transition-colors';
-const DIALOG_SUBMIT_BUTTON_CLASS =
-  `${DIALOG_PRIMARY_BUTTON_CLASS} disabled:opacity-50 disabled:cursor-not-allowed`;
 
 /** Seat card shapes. Owned by the PlayerBoard seat contract; the aliases keep
  *  this façade's local names until its regions move to PlayerBoard. */
@@ -879,126 +875,6 @@ const CardBackZone = forwardRef<
  *  auto-play plays each matched card. Simplified from Cockatrice:
  *  match is a case-insensitive substring of the card name (Cockatrice
  *  supports a filter DSL — MVP just does name match). */
-function MoveTopUntilModal({
-  deckSize,
-  onCancel,
-  onConfirm,
-}: {
-  deckSize: number;
-  onCancel: () => void;
-  onConfirm: (args: { filter: string; hits: number; autoPlay: boolean }) => void;
-}) {
-  const [filter, setFilter] = useState('');
-  const [hitsDraft, setHitsDraft] = useState('1');
-  const [autoPlay, setAutoPlay] = useState(false);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onCancel();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onCancel]);
-  const parsedHits = parseInt(hitsDraft, 10);
-  const validHits = Number.isFinite(parsedHits) && parsedHits >= 1 && parsedHits <= 99;
-  const validFilter = filter.trim().length > 0;
-  const canSubmit = validHits && validFilter && deckSize > 0;
-  return (
-    <div
-      className="fixed inset-0 z-[400] flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Put top cards on stack until"
-    >
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onCancel}
-        aria-hidden
-      />
-      <div className="relative w-full max-w-sm rounded-lg bg-bg-surface border border-border-subtle shadow-glow overflow-hidden">
-        <div className="px-4 py-3 border-b border-border-subtle">
-          <h2 className="font-modern text-base font-semibold text-text-primary">
-            Put top cards on stack until…
-          </h2>
-          <p className="text-xs text-text-muted mt-0.5">
-            Library size: {Math.max(0, deckSize)}
-          </p>
-        </div>
-        <form
-          className="px-4 py-3 flex flex-col gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!canSubmit) {
-              return;
-            }
-            onConfirm({ filter: filter.trim(), hits: parsedHits, autoPlay });
-          }}
-        >
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-text-secondary">
-              Card name (or search expressions)
-            </label>
-            <input
-              autoFocus
-              type="text"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className={[
-                'w-full bg-bg-base border border-border-subtle rounded-md',
-                'px-3 py-2 text-sm text-text-primary',
-                'focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent',
-              ].join(' ')}
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-text-secondary">Number of hits</label>
-            <input
-              type="number"
-              min={1}
-              max={99}
-              step={1}
-              value={hitsDraft}
-              onChange={(e) => setHitsDraft(e.target.value)}
-              onFocus={(e) => e.currentTarget.select()}
-              className={[
-                'w-full bg-bg-base border border-border-subtle rounded-md',
-                'px-3 py-2 text-sm text-text-primary',
-                'focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent',
-              ].join(' ')}
-            />
-          </div>
-          <label className="flex items-center gap-2 text-sm text-text-secondary">
-            <input
-              type="checkbox"
-              checked={autoPlay}
-              onChange={(e) => setAutoPlay(e.target.checked)}
-            />
-            Auto play hits
-          </label>
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:bg-bg-base transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!canSubmit}
-              className={DIALOG_SUBMIT_BUTTON_CLASS}
-            >
-              Start
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
 function ManaPip({
   symbol,
   label,
@@ -1154,6 +1030,7 @@ function PlayerBox(
   // prompt then dispatches Command_Mulligan.
   const {
     openZoneView,
+    openMoveTopUntil,
     handleRequestSortHandBy,
     handleRequestChooseMulligan,
     seatCardMenu,
@@ -1711,7 +1588,7 @@ function PlayerBox(
     if (!isSelf || deckCount <= 0) {
       return;
     }
-    setMoveTopUntilModalOpen(true);
+    openMoveTopUntilDialog();
   };
 
   // Deck-flip toggles (Ctrl+Alt+N / Ctrl+Alt+Shift+N). Cockatrice
@@ -2801,14 +2678,6 @@ function PlayerBox(
     description: `Current: ${currentValue}`,
     onSubmit: (value) => onSetPlayerCounter?.(counterId, Math.max(0, value)),
   }));
-  // "Put top cards on stack until…" dialog + iterative loop. `Modal`
-  // holds dialog-open state; `moveTopUntil` is the active loop config
-  // (null = idle). See the useEffect further down that watches
-  // stackCards for the reveal-and-decide step.
-  const [moveTopUntilModalOpen, setMoveTopUntilModalOpen] = useState(false);
-  const [moveTopUntil, setMoveTopUntil] = useState<
-    { filter: CardFilter; remainingHits: number; autoPlay: boolean } | null
-  >(null);
   // Set annotation / Set P/T prompts. The target ids are snapshotted when
   // the prompt opens, so the answer applies to every card that was selected
   // then, even if the selection changes meanwhile (Cockatrice's
@@ -3280,114 +3149,27 @@ function PlayerBox(
   // that comment for the mock-id mismatch bug this avoids.
   const stackDisplayList = useMemo(() => stackCards ?? [], [stackCards]);
 
-  // Move-top-until iterative loop. When the dialog confirms, we fire
-  // the first Command_MoveCard (DECK top → STACK) and enter active
-  // state. Each server-broadcast Event_MoveCard updates `stackCards`,
-  // this effect detects the new stack entry, checks its name against
-  // the filter, decrements the hit counter on match (optionally
-  // auto-plays), and fires the next move — or stops when the counter
-  // hits zero or the library empties. Mirrors Cockatrice's
-  // PlayerActions::moveOneCardUntil (player_actions.cpp:504-528).
-  //
-  // `seenStackIdsRef` is a snapshot of stack ids the loop has already
-  // processed (initialized when the loop starts). Cards added by
-  // *other* moves (e.g. someone else casts a spell) are recorded but
-  // don't affect the match logic — only same-owner DECK-sourced moves
-  // count. The Event_MoveCard listener already gates the reducer so
-  // the same card doesn't land in stackCards twice.
-  const seenStackIdsRef = useRef<Set<number | string>>(new Set());
-  useEffect(() => {
-    if (!isSelf || !moveTopUntil) {
-      return;
-    }
-    // Detect newly-added stack ids.
-    const newIds: (number | string)[] = [];
-    for (const c of stackDisplayList) {
-      if (!seenStackIdsRef.current.has(c.id)) {
-        newIds.push(c.id);
-      }
-    }
-    // Update the seen set regardless of whether we act on the new
-    // cards — a mid-loop stack entry from an unrelated move should
-    // still be recorded so the NEXT reveal we fire is the only "new"
-    // card when it arrives.
-    for (const id of newIds) {
-      seenStackIdsRef.current.add(id);
-    }
-    if (newIds.length === 0) {
-      return;
-    }
-    // MVP: only care about the last new card (Cockatrice fires one
-    // move at a time, so realistically newIds.length === 1). If
-    // multiple appeared, take the top-most (last in stack order).
-    const revealedId = newIds[newIds.length - 1];
-    const revealed = stackDisplayList.find((c) => c.id === revealedId);
-    if (!revealed) {
-      return;
-    }
-    const revealedMeta = cardMetaByName.get(revealed.name);
-    const filterableCard: FilterableCard = {
-      name: revealed.name ?? '',
-      typeLine: revealedMeta?.typeLine,
-      cmc: revealedMeta?.cmc,
-      colors: revealedMeta?.colors,
-      power: revealedMeta?.power,
-      toughness: revealedMeta?.toughness,
+  // "Put top cards on stack until…": the dialog is a game dialog; the
+  // reveal loop runs on this seat's stack (desktop moveOneCardUntil).
+  const describeCard = useCallback((cardName: string): FilterableCard => {
+    const meta = cardMetaByName.get(cardName);
+    return {
+      name: cardName,
+      typeLine: meta?.typeLine,
+      cmc: meta?.cmc,
+      colors: meta?.colors,
+      power: meta?.power,
+      toughness: meta?.toughness,
     };
-    const isMatch = revealed.name != null && matchCard(moveTopUntil.filter, filterableCard);
-    let remaining = moveTopUntil.remainingHits;
-    if (isMatch) {
-      remaining -= 1;
-      if (moveTopUntil.autoPlay) {
-        // Play the matched card: move from STACK to TABLE.
-        const revealedIdNum = Number(revealed.id);
-        if (onMoveCards && Number.isFinite(revealedIdNum)) {
-          onMoveCards(ZoneName.STACK, [revealedIdNum], { zone: ZoneName.TABLE, index: 'end' });
-        }
-      }
-    }
-    // Stop if we've hit the target count OR the library ran out.
-    if (remaining <= 0 || deckCount <= 0) {
-      setMoveTopUntil(null);
-      return;
-    }
-    // Fire the next reveal. If we found a match this iteration but
-    // still have remaining hits, keep going.
-    if (!onMoveCards) {
-      setMoveTopUntil(null);
-      return;
-    }
-    onMoveCards(ZoneName.DECK, [0], { zone: ZoneName.STACK, index: 'end' });
-    if (isMatch) {
-      setMoveTopUntil({ ...moveTopUntil, remainingHits: remaining });
-    }
-  }, [stackDisplayList, moveTopUntil, isSelf, deckCount, onMoveCards, cardMetaByName]);
-
-  // Kicks off the loop: snapshot current stack ids so the *next*
-  // stack addition is treated as the first reveal, then fire the
-  // first move. Called by the dialog's onConfirm.
-  const startMoveTopUntil = (args: {
-    filter: string;
-    hits: number;
-    autoPlay: boolean;
-  }): void => {
-    if (!isSelf || !onMoveCards || deckCount <= 0) {
-      return;
-    }
-    const parsed = parseCardFilter(args.filter);
-    if (isFilterEmpty(parsed)) {
-      // Refuse to run an empty filter — it would match every reveal
-      // and dump the whole library into the stack.
-      return;
-    }
-    seenStackIdsRef.current = new Set(stackDisplayList.map((c) => c.id));
-    setMoveTopUntil({
-      filter: parsed,
-      remainingHits: args.hits,
-      autoPlay: args.autoPlay,
-    });
-    onMoveCards(ZoneName.DECK, [0], { zone: ZoneName.STACK, index: 'end' });
-  };
+  }, [cardMetaByName]);
+  const startMoveTopUntil = useMoveTopUntil({
+    enabled: isSelf,
+    stackCards: stackDisplayList,
+    deckCount,
+    describeCard,
+    moveCards: onMoveCards,
+  });
+  const openMoveTopUntilDialog = () => openMoveTopUntil({ onSubmit: startMoveTopUntil });
   const graveyardTopIdx =
     graveDisplayList.length - 1 - (seatDrag?.zone === 'graveyard' ? 1 : 0);
   const exileTopIdx =
@@ -3812,7 +3594,7 @@ function PlayerBox(
         },
         {
           label: 'Put top cards on stack until…',
-          onClick: () => setMoveTopUntilModalOpen(true),
+          onClick: openMoveTopUntilDialog,
           disabled: deckCount <= 0,
           shortcut: shortcutHints['game.moveTopUntil'],
         },
@@ -5171,7 +4953,7 @@ function PlayerBox(
                     {
                       // "Put top cards on stack until..." — Cockatrice
                       label: 'Put top cards on stack until…',
-                      onClick: () => setMoveTopUntilModalOpen(true),
+                      onClick: openMoveTopUntilDialog,
                       disabled: deckCount <= 0,
                       shortcut: shortcutHints['game.moveTopUntil'],
                     },
@@ -6519,23 +6301,6 @@ function PlayerBox(
             document.body,
           );
         })()}
-
-      {/* "Put top cards on stack until…" — Cockatrice's aMoveTopCardsUntil.
-          Submit kicks off the iterative loop; the useEffect above
-          drives the reveal / match / decide cycle on each stackCards
-          update. */}
-      {moveTopUntilModalOpen &&
-        createPortal(
-          <MoveTopUntilModal
-            deckSize={deckCount}
-            onCancel={() => setMoveTopUntilModalOpen(false)}
-            onConfirm={(args) => {
-              setMoveTopUntilModalOpen(false);
-              startMoveTopUntil(args);
-            }}
-          />,
-          document.body,
-        )}
 
       {/* Card context menu — right-click a battlefield card to open.
           All actions apply to a single card via its real numeric id;

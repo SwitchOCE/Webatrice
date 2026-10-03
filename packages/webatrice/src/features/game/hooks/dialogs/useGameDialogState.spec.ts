@@ -14,6 +14,7 @@ describe('useGameDialogState', () => {
       handMenu: null,
       zoneViews: [],
       prompt: null,
+      moveTopUntil: null,
       rollDieOpen: false,
       lastDieSides: DEFAULT_DIE_SIDES,
       lastDieCount: DEFAULT_DIE_COUNT,
@@ -35,6 +36,21 @@ describe('useGameDialogState', () => {
 
     expect(onSubmit).toHaveBeenCalledWith('7');
     expect(result.current.state.prompt).toBeNull();
+  });
+
+  it('closes the move-top-until dialog after its submit handler runs, or on close', () => {
+    const { result } = renderHook(() => useGameDialogState());
+    const onSubmit = vi.fn();
+
+    act(() => result.current.toggles.openMoveTopUntil({ onSubmit }));
+    act(() => result.current.state.moveTopUntil!.onSubmit({ filter: 'Bolt', hits: 1, autoPlay: false }));
+    expect(onSubmit).toHaveBeenCalledWith({ filter: 'Bolt', hits: 1, autoPlay: false });
+    expect(result.current.state.moveTopUntil).toBeNull();
+
+    act(() => result.current.toggles.openMoveTopUntil({ onSubmit }));
+    act(() => result.current.toggles.closeMoveTopUntil());
+    expect(result.current.state.moveTopUntil).toBeNull();
+    expect(onSubmit).toHaveBeenCalledTimes(1);
   });
 
   it('opens and closes each flag through its toggle', () => {

@@ -75,6 +75,7 @@ const NOOP_GAME_DIALOGS: GameDialogs = {
   handMenu: null,
   zoneViews: [],
   prompt: null,
+  moveTopUntil: null,
   rollDieOpen: false,
   lastDieSides: 0,
   lastDieCount: 0,
