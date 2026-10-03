@@ -11,6 +11,7 @@ import { Logs } from '@app/features/logs';
 import { Moderation } from '@app/features/moderation';
 import { Player } from '@app/features/player';
 import { Replays } from '@app/features/replays';
+import { MyReports, ReportQueue } from '@app/features/reports';
 import { Login } from '@app/features/login';
 import { Room } from '@app/features/rooms';
 import { Server } from '@app/features/server';
@@ -39,6 +40,8 @@ const AppShellRoutes = () => (
       <Route path={RouteEnum.SERVER} element={<Server />} />
       <Route path={RouteEnum.SETTINGS} element={<Settings />} />
       <Route path={RouteEnum.SHORTCUTS} element={<Shortcuts />} />
+      <Route path={RouteEnum.MY_REPORTS} element={<MyReports />} />
+      <Route path={RouteEnum.REPORT_QUEUE} element={<ReportQueue />} />
       <Route path={RouteEnum.LOGIN} element={<Login />} />
       <Route path={RouteEnum.UNSUPPORTED} element={<Unsupported />} />
     </Routes>

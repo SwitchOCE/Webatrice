@@ -1,12 +1,15 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Send, Hash } from 'lucide-react';
 
 import { Message as MessageBubble } from '@app/components';
+import { ReportChatScope } from '@app/dialogs';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { formatChatHistoryTime } from '@app/utils';
 import { rooms, type Message } from '@cockatrice/datatrice';
 import { Event_RoomSay_RoomMessageType } from '@cockatrice/sockatrice/generated';
+
+import { roomChatContext } from './roomChatContext';
 
 interface RoomChatProps {
   roomId: number;
@@ -24,12 +27,26 @@ function historyTimestamp(message: Message): string | undefined {
 }
 
 /**
+ * A report opened from a name in this chat attaches the room chat log, as
+ * desktop does for a report raised from a room's ChatView.
+ */
+export default function RoomChat(props: RoomChatProps) {
+  const { messages } = props;
+  const getChatContext = useCallback(() => roomChatContext(messages), [messages]);
+  return (
+    <ReportChatScope getChatContext={getChatContext}>
+      <RoomChatView {...props} />
+    </ReportChatScope>
+  );
+}
+
+/**
  * Fancy-themed chat panel for the room page. Preserves og's rich
  * message parsing (card callouts, @mentions, URLs, Name: prefix) by
  * delegating each row to the `Message` component. Only chrome + input
  * are new; parsing logic is unchanged.
  */
-export default function RoomChat({ roomId, roomName, messages, onSay }: RoomChatProps) {
+function RoomChatView({ roomId, roomName, messages, onSay }: RoomChatProps) {
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
   const noticeText = (m: Message) =>
