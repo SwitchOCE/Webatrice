@@ -52,6 +52,8 @@ export default function HandZone() {
     handZoneRef,
     isDragging,
     isSelf,
+    menuOwnerId,
+    openSeatCardMenu,
     playerId,
     selection,
     setCardMetaByName,
@@ -255,6 +257,11 @@ export default function HandZone() {
                     onPointerDown={(e) =>
                       startSeatCardDrag(e, c, 'hand', handDisplayList)
                     }
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      openSeatCardMenu({ kind: 'hand', playerId: menuOwnerId, cardId: c.id, x: e.clientX, y: e.clientY });
+                    }}
                     onDoubleClick={async () => {
                     // Double-click auto-play chain: lands go straight to
                     // the battlefield; everything else takes a stack

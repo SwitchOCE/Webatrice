@@ -32,6 +32,8 @@ import { useSeatMarquee } from './useSeatMarquee';
 import { useSeatPrompts } from './useSeatPrompts';
 import { useSeatShortcutOperations } from './useSeatShortcutOperations';
 
+const EMPTY_CARD_KEYS: ReadonlySet<string> = new Set();
+
 export type PlayerSeatProps = {
   /** What the seat shows: identity, zones, counters, permissions. */
   model: PlayerBoardModel;
@@ -151,9 +153,10 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
   const seatId = playerId;
   const activeSeatDrag = useActiveSeatDrag();
   const seatDrag = activeSeatDrag?.seatPlayerId === seatId ? activeSeatDrag : null;
-  // The seat's card menus: battlefield, pile view (graveyard / exile) and
-  // stack. The open menu lives in the game dialog state, so it is one of the
-  // game's mutually exclusive context menus; this seat renders it when it
+  // The seat's card menus: battlefield, pile view (graveyard / exile),
+  // stack, hand and library / sideboard view. The open menu lives in the
+  // game dialog state, so it is one of the game's mutually exclusive
+  // context menus; this seat renders it when it
   // opened it, and CardMenuPopup closes it on an outside click or Escape.
   const menuOwnerId = playerId;
   const gameSelection = useGameSelectionState();
@@ -161,6 +164,8 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
   const cardContextMenu = seatMenu?.kind === 'battlefield' ? seatMenu : null;
   const pileCardMenu = seatMenu?.kind === 'pile' ? seatMenu : null;
   const stackCardMenu = seatMenu?.kind === 'stack' ? seatMenu : null;
+  const handCardMenu = seatMenu?.kind === 'hand' ? seatMenu : null;
+  const zoneViewCardMenu = seatMenu?.kind === 'zoneView' ? seatMenu : null;
   // The seat root — used both to bound the marquee-start (only clicks
   // inside this box begin a marquee) and to query card elements when
   // finalizing the selection.
@@ -305,9 +310,11 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     counterCommands,
   });
   useSeatShortcutOperations({
+    seatId,
     isSelf,
     selection,
     setSelection,
+    selectedCardKeys: gameSelection?.selectedCardKeys ?? EMPTY_CARD_KEYS,
     battlefieldDisplayList,
     cardMetaByName,
     deckCount,
@@ -401,6 +408,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     graveMenuItemsOpponent,
     graveMenuItemsSelf,
     graveyardZoneRef,
+    handCardMenu,
     handCount,
     handDisplayList,
     handMenuItems,
@@ -456,6 +464,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     targetCommands,
     tokenMetaByName,
     zoneCommands,
+    zoneViewCardMenu,
     zones,
   };
 }

@@ -62,6 +62,12 @@ describe('useHandMenuItems', () => {
     expect(find(handMenuItems, 'Sort hand by...', 'Name').disabled).toBe(true);
   });
 
+  it('lists "All players" in the reveal submenus even when playing alone', () => {
+    const { handMenuItems } = setup({ revealTargets: [] });
+    expect(labels(find(handMenuItems, 'Reveal hand to...').submenu!)).toEqual(['All players', '---']);
+    expect(labels(find(handMenuItems, 'Reveal random card to...').submenu!)).toEqual(['All players', '---']);
+  });
+
   it('views, sorts, reveals and mulligans', () => {
     const { handMenuItems, dialogs, zoneCommands } = setup();
     find(handMenuItems, 'View hand').onClick!();

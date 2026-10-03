@@ -762,6 +762,7 @@
       "game.flipCard": "Flip card face-down",
       "game.unattachCard": "Unattach card",
       "game.cloneCard": "Clone card",
+      "game.revealSelectedToAll": "Reveal selected cards to all players",
       "game.moveSelectedToGrave": "Move selection to graveyard",
       "game.moveSelectedToLibraryBottom": "Move selection to bottom of library",
       "game.setCardPT": "Set power/toughness…",

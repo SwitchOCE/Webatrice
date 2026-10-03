@@ -1,9 +1,10 @@
-import { ZoneName } from '@cockatrice/sockatrice';
+import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 
 import type { SeatSelection, SeatSelectionApi } from '../../../hooks/useSeatSelection';
 import { applyPTDelta, parsePT } from '../../context-menus/CardContextMenu/cardAttributeEdits';
 import { useGameDialogsContext } from '../GameDialogsContext';
 import { usePublishSeatShortcuts, type SeatShortcutOperations } from '../SeatShortcutsContext';
+import { parseCardKey } from '../../../utils/CardRegistry/CardRegistryContext';
 import { MAX_COUNTER_VALUE } from './counterLimits';
 import type {
   BattlefieldCardViewModel,
@@ -15,15 +16,19 @@ import type {
 } from './playerBoard.types';
 import type { usePendingArrows } from './usePendingArrows';
 import type { SeatCardMeta } from './useSeatCardMetadata';
+import { toRecipient } from './revealRecipient';
 import type { LifeControl, useSeatPrompts } from './useSeatPrompts';
 
 type SeatPrompts = ReturnType<typeof useSeatPrompts>;
 type PendingArrows = ReturnType<typeof usePendingArrows>;
 
 export interface UseSeatShortcutOperationsArgs {
+  seatId: number;
   isSelf: boolean;
   selection: SeatSelection | null;
   setSelection: SeatSelectionApi['setSelection'];
+  /** The game selection, which holds a library / sideboard view's selected cards. */
+  selectedCardKeys: ReadonlySet<string>;
   battlefieldDisplayList: readonly BattlefieldCardViewModel[];
   cardMetaByName: ReadonlyMap<string, SeatCardMeta>;
   deckCount: number;
@@ -55,9 +60,11 @@ export interface UseSeatShortcutOperationsArgs {
  * SeatShortcutsContext. Most act on the seat's battlefield selection.
  */
 export function useSeatShortcutOperations({
+  seatId,
   isSelf,
   selection,
   setSelection,
+  selectedCardKeys,
   battlefieldDisplayList,
   cardMetaByName,
   deckCount,
@@ -644,6 +651,33 @@ export function useSeatShortcutOperations({
       return;
     }
     zoneCommands.moveCards(ZoneName.TABLE, targetIds, { zone: ZoneName.DECK, reversed: true });
+  };
+
+  // Reveal Selected Cards to All Players (desktop aRevealToAll, unbound by
+  // default): one Command_RevealCards, no player_id, for the selected cards
+  // of one hidden zone of this seat — the hand, or an open library /
+  // sideboard view (the card menu's "Reveal to... > All players").
+  seatShortcuts['game.revealSelectedToAll'] = () => {
+    if (!isSelf) {
+      return;
+    }
+    if (selection?.zone === 'hand') {
+      const ids = Array.from(selection.ids, Number).filter((n) => Number.isFinite(n));
+      if (ids.length > 0) {
+        zoneCommands.reveal(ZoneName.HAND, toRecipient(-1), { cardIds: ids });
+      }
+      return;
+    }
+    const picked = Array.from(selectedCardKeys, (key) => parseCardKey(key));
+    const zone = picked[0]?.zone;
+    if (
+      picked.length === 0 ||
+      (zone !== ZoneName.DECK && zone !== ZoneName.SIDEBOARD) ||
+      !picked.every((p) => p?.playerId === seatId && p.zone === zone)
+    ) {
+      return;
+    }
+    zoneCommands.reveal(zone as ZoneNameValue, toRecipient(-1), { cardIds: picked.map((p) => p!.cardId) });
   };
 
   // Clone Card (Ctrl+J). Fires one Command_CreateToken per selected

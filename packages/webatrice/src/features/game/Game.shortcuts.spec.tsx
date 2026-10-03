@@ -3,11 +3,18 @@
 // keystroke reaches exactly one handler and sends exactly one command set.
 
 import { act, fireEvent, screen } from '@testing-library/react';
-import { makeArrow } from '@cockatrice/datatrice/testing';
+import { makeArrow, makeCard } from '@cockatrice/datatrice/testing';
 
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
+import { shortcuts } from '@app/store';
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
-import { buildSeatGameState, type SeatGameSpec } from './__test-utils__/seatFixtures';
+import {
+  buildSeatGameState,
+  cardEl,
+  chooseMenuPath,
+  openContextMenu,
+  type SeatGameSpec,
+} from './__test-utils__/seatFixtures';
 import Game from './Game';
 
 vi.mock('../../hooks/useSettings');
@@ -123,6 +130,28 @@ describe('Game seat shortcuts', () => {
 
     expect(event.defaultPrevented).toBe(false);
     expect(game.deleteArrow).not.toHaveBeenCalled();
+  });
+
+  it('a bound "Reveal selected cards to all players" reveals the hand selection in one command', () => {
+    const { game, store } = renderGame({
+      seats: [
+        { playerId: 1, deckCount: 40, hand: [makeCard({ id: 60, name: 'Opt' }), makeCard({ id: 61, name: 'Ponder' })] },
+        { playerId: 2, deckCount: 40 },
+      ],
+    });
+    act(() => {
+      store.dispatch(shortcuts.Actions.setOverride({ actionId: 'game.revealSelectedToAll', sequences: ['Alt+KeyV'] }));
+    });
+
+    press('KeyV', { altKey: true });
+    expect(game.revealCards).not.toHaveBeenCalled();
+
+    openContextMenu(cardEl(60, 'hand'));
+    chooseMenuPath('Select All');
+    press('KeyV', { altKey: true });
+
+    expect(game.revealCards).toHaveBeenCalledTimes(1);
+    expect(game.revealCards).toHaveBeenCalledWith(1, { zoneName: 'hand', cardId: [60, 61] });
   });
 
   it('seats install no keydown listener of their own', () => {

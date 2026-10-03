@@ -40,9 +40,16 @@ const SEAT_ZONE: Partial<Record<string, SeatZone>> = {
   [ZoneName.SIDEBOARD]: 'sideboard',
 };
 
-/** Graveyard and exile cards get desktop's zone-view card menu (Draw arrow,
- *  Clone, Select All, Select Column), rendered by the owning seat. */
-const ZONES_WITH_CARD_MENU: ReadonlySet<string> = new Set([ZoneName.GRAVE, ZoneName.EXILE]);
+/** The card menu each zone's view cards get, rendered by the owning seat:
+ *  graveyard and exile cards desktop's zone-view menu (Draw arrow, Clone,
+ *  Select All, Select Column), library and sideboard cards its
+ *  hand-or-custom-zone menu (Play, Reveal to..., Move to, ...). */
+const CARD_MENU_KIND: Partial<Record<string, 'pile' | 'zoneView'>> = {
+  [ZoneName.GRAVE]: 'pile',
+  [ZoneName.EXILE]: 'pile',
+  [ZoneName.DECK]: 'zoneView',
+  [ZoneName.SIDEBOARD]: 'zoneView',
+};
 
 /**
  * One zone view (desktop ZoneViewWidget), stacked by Game from the game
@@ -147,10 +154,11 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
   const { selectedIds, setSelectedIds } = useZoneViewSelection(playerId, zoneName, cards);
 
   const { openSeatCardMenu } = useGameDialogsContext();
-  const onCardContextMenu = ZONES_WITH_CARD_MENU.has(zoneName)
+  const cardMenuKind = CARD_MENU_KIND[zoneName];
+  const onCardContextMenu = cardMenuKind
     ? (e: React.MouseEvent<HTMLElement>, card: { id: string; name: string }, scope: ZoneViewCardScope) => {
       openSeatCardMenu({
-        kind: 'pile',
+        kind: cardMenuKind,
         playerId,
         zone: zoneName,
         cardId: card.id,
