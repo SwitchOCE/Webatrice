@@ -29,7 +29,7 @@ const SERVER_HAS_REPORTS = !/Release-3\.0\./.test(servatriceImage());
 
 async function openUserMenuItem(page: Page, userName: string, item: string): Promise<void> {
   await page.getByRole('banner').getByRole('button', { name: userName }).click();
-  await page.getByRole('button', { name: item }).click();
+  await page.getByRole('menuitem', { name: item }).click();
 }
 
 async function openPlayerPage(page: Page, userName: string): Promise<void> {
@@ -47,7 +47,8 @@ test('3.0 servers show no report entry points', async ({ newContext }) => {
   await openPlayerPage(pageA, b.user.username);
   await expect(pageA.getByRole('button', { name: 'Report user' })).toHaveCount(0);
   await pageA.getByRole('banner').getByRole('button', { name: a.user.username }).click();
-  await expect(pageA.getByRole('button', { name: 'My Reports' })).toHaveCount(0);
+  await expect(pageA.getByRole('menuitem', { name: 'Account' })).toBeVisible();
+  await expect(pageA.getByRole('menuitem', { name: 'My Reports' })).toHaveCount(0);
 });
 
 test('a report goes from user A to a moderator and its resolution back to A', async ({ newContext }) => {

@@ -83,7 +83,7 @@ describe('UserRows', () => {
     mountRows(container);
 
     openMenuFor('alice');
-    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: /Add to Buddy List/i }));
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'UserActionsMenu.addBuddy' }));
 
     expect(mockWebClient.request.session.addToBuddyList).toHaveBeenCalledWith('alice');
   });
@@ -106,7 +106,7 @@ describe('UserRows', () => {
     // never fire for carol, who took alice's slot.
     const menu = screen.queryByRole('menu');
     if (menu) {
-      fireEvent.click(within(menu).getByRole('menuitem', { name: /Add to Buddy List/i }));
+      fireEvent.click(within(menu).getByRole('menuitem', { name: 'UserActionsMenu.addBuddy' }));
     }
     expect(mockWebClient.request.session.addToBuddyList).not.toHaveBeenCalledWith('carol');
   });

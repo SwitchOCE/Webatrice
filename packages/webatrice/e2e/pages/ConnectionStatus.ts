@@ -1,16 +1,16 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 
-// Page object for the global connection-status indicator. The pre-redo
-// LeftNav is gone; TopBar.tsx now renders a small lucide `<Circle>` next
-// to the Webatrice logo whose `aria-label` flips between "Connected"
-// (green) and "Disconnected" (red) off `selectIsConnected` (Datatrice:
-// `server.status.state === LOGGED_IN`). Match by role+name so we don't
-// depend on Tailwind class hashes.
+// Page object for the global connection-status indicator. TopBar.tsx
+// renders a small lucide `<Circle>` next to the Webatrice logo plus a
+// visually hidden `role="status"` whose text flips between "Connected"
+// (green), "Server not responding" (amber) and "Disconnected" (red) off
+// `selectIsConnected` (Datatrice: `server.status.state === LOGGED_IN`).
+// Match by role+text so we don't depend on Tailwind class hashes.
 export class ConnectionStatus {
   constructor(private readonly page: Page) {}
 
   get indicator(): Locator {
-    return this.page.getByRole('img', { name: /^connected$/i });
+    return this.page.getByRole('status').filter({ hasText: /^connected$/i });
   }
 
   // LatencyStatus: "Ping: N ms" plus a sparkline, hidden until the first

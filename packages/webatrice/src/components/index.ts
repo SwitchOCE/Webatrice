@@ -11,6 +11,7 @@ export { VirtualRows } from './VirtualList/VirtualList';
 export { default as UserDisplay } from './UserDisplay/UserDisplay';
 export { default as UserRows } from './UserRows/UserRows';
 export { default as UserActionsMenu } from './UserDisplay/UserActionsMenu';
+export * from './Menu';
 export { useUserDisplay } from './UserDisplay/useUserDisplay';
 export { UserMenuSlotProvider, useUserMenuSlot } from './UserDisplay/UserMenuSlot';
 export type { UserMenuSlotProps } from './UserDisplay/UserMenuSlot';

@@ -302,6 +302,14 @@
       "retry": "Reload page"
     }
   },
+  "UserActionsMenu": {
+    "label": "Actions for {name}",
+    "privateChat": "Private chat",
+    "addBuddy": "Add to Buddy List",
+    "removeBuddy": "Remove from Buddy List",
+    "addIgnore": "Add to Ignore List",
+    "removeIgnore": "Remove from Ignore List"
+  },
   "DebugLogDialog": {
     "title": "Debug Log",
     "logLabel": "Client log",
@@ -829,7 +837,22 @@
       "title": "Watch and manage replays",
       "tab": "Replays"
     },
-    "replayTab": "Replay"
+    "replayTab": "Replay",
+    "connection": {
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "stale": "Server not responding"
+    },
+    "user": {
+      "signedIn": "Signed in",
+      "signOut": "Sign out"
+    },
+    "game": {
+      "snapGrid": "Snap grid",
+      "phaseTrackToggle": "Toggle auto-hide phase tracker",
+      "phaseTrackCollapse": "Collapse the phase track into an auto-hiding HUD",
+      "phaseTrackPin": "Keep the phase track always visible"
+    }
   },
   "UserMenu": {
     "account": "Account",
