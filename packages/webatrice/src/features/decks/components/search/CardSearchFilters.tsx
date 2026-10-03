@@ -1,5 +1,7 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
+import { getScryfallSymbolUrl } from '@app/services';
+
 import {
   FILTER_RARITIES,
   FILTER_TYPES,
@@ -8,7 +10,7 @@ import {
   type FilterColorMode,
   type SearchFiltersState,
 } from '../../cardSearchQuery';
-import { MANA_COLORS, MANA_COLOR_LABEL, manaSymbolUrl } from '../../manaSymbols';
+import { MANA_COLORS, MANA_COLOR_LABEL } from '../../manaSymbols';
 import { SELECT_CHEVRON_BACKGROUND } from '../../selectChevron';
 import { NUMBER_INPUT_CLASS, TEXT_INPUT_CLASS } from '../editor/editorStyles';
 
@@ -50,7 +52,7 @@ export function CardSearchFilters({
               aria-pressed={active}
             >
               <img
-                src={manaSymbolUrl(c)}
+                src={getScryfallSymbolUrl(c)}
                 alt={MANA_COLOR_LABEL[c]}
                 className="w-full h-full block"
                 draggable={false}

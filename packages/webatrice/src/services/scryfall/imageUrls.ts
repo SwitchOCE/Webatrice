@@ -44,6 +44,16 @@ export function getScryfallUrl(
   return null;
 }
 
+/**
+ * Scryfall's SVG for a mana or rules symbol. Accepts a bare symbol (`W`,
+ * `2`) or a braced token (`{W/U}`). Hybrid/phyrexian tokens drop the slash
+ * on the CDN (`{W/U}` → `WU.svg`, `{2/W}` → `2W.svg`).
+ */
+export function getScryfallSymbolUrl(symbol: string): string {
+  const inner = /^\{[^}]+\}$/.test(symbol) ? symbol.slice(1, -1) : symbol;
+  return `https://svgs.scryfall.io/card-symbols/${inner.replace(/\//g, '')}.svg`;
+}
+
 /** A board card's image: its printing by Scryfall id when it has one, else
  *  its exact name (a card Servatrice knows only by name has an empty id). */
 export function getScryfallUrlByIdOrExactName(

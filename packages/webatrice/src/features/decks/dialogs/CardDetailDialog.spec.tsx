@@ -7,9 +7,10 @@ import type { DeckCard } from '../types';
 import { CardDetailDialog, type CardDetailDialogProps } from './CardDetailDialog';
 
 vi.mock('../hooks/useCardDetail', () => ({ useCardDetail: vi.fn() }));
-vi.mock('@app/components', () => ({
+vi.mock('@app/components', async () => ({
   CardRelatedLinks: ({ parentName }: { parentName: string }) => <div>related to {parentName}</div>,
   relatedCardKey: (target: { name: string }) => target.name,
+  ...(await import('../../../components/ManaSymbols/ManaSymbols')),
 }));
 
 const solRing: DeckCard = {
