@@ -13,7 +13,8 @@ vi.mock('@app/services', async (importOriginal) => {
 });
 
 import { emptyCod } from '@app/services';
-import { clearDeckEditorCache, useDeckEditor } from './useDeckEditor';
+import { clearDeckEditorCache } from './deckEditorCache';
+import { useDeckEditor } from './useDeckEditor';
 
 const reducer = combineReducers(rootReducerMap);
 const DECK_A = 1;
