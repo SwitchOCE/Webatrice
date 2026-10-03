@@ -23,10 +23,18 @@ import { CARD_ART_RULE_MODES, useCardArtRules } from './useCardArtRules';
 
 import './CardArtRules.css';
 
+// Servatrice's cmdAddCardArtRule rejects an empty card name or a field past
+// MAX_NAME_LENGTH. The provider id may be empty: desktop sends whatever its
+// provider box holds, which is nothing for a card missing from the local database.
+const MAX_FIELD_LENGTH = 0xff;
+
 const buildRuleSchema = (t: TFunction) =>
   z.object({
-    cardName: z.string().trim().min(1, t('Common.validation.required')),
-    cardProviderId: z.string().trim().min(1, t('Common.validation.required')),
+    cardName: z.string().trim()
+      .min(1, t('Common.validation.required'))
+      .max(MAX_FIELD_LENGTH, t('CardArtRules.validation.tooLong', { max: MAX_FIELD_LENGTH })),
+    cardProviderId: z.string().trim()
+      .max(MAX_FIELD_LENGTH, t('CardArtRules.validation.tooLong', { max: MAX_FIELD_LENGTH })),
     mode: z.enum(CARD_ART_RULE_MODES),
     reason: z.string(),
   });
@@ -65,6 +73,7 @@ const CardArtRulesContent = () => {
                 size="small"
                 label={t('CardArtRules.label.card')}
                 placeholder={t('CardArtRules.label.cardPlaceholder')}
+                slotProps={{ htmlInput: { maxLength: MAX_FIELD_LENGTH } }}
                 error={Boolean(fieldState.error)}
                 helperText={fieldState.error?.message}
                 onBlur={() => {
@@ -83,6 +92,7 @@ const CardArtRulesContent = () => {
                 size="small"
                 select={printings.length > 0}
                 label={t('CardArtRules.label.providerId')}
+                slotProps={{ htmlInput: { maxLength: MAX_FIELD_LENGTH } }}
                 error={Boolean(fieldState.error)}
                 helperText={fieldState.error?.message}
               >

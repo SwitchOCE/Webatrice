@@ -693,6 +693,9 @@
       "add": "Add rule",
       "remove": "Remove rule",
       "refresh": "Refresh"
+    },
+    "validation": {
+      "tooLong": "At most {max} characters"
     }
   },
   "DeckEditor": {
