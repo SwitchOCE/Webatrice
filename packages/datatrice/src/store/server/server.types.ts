@@ -50,6 +50,7 @@ export const Types = {
   ACCOUNT_EDIT_CHANGED: a.accountEditChanged.type,
   ACCOUNT_IMAGE_CHANGED: a.accountImageChanged.type,
   GET_USER_INFO: a.getUserInfo.type,
+  GET_USER_INFO_FAILED: a.getUserInfoFailed.type,
   NOTIFY_USER: a.notifyUser.type,
   SERVER_SHUTDOWN: a.serverShutdown.type,
   USER_MESSAGE: a.userMessage.type,

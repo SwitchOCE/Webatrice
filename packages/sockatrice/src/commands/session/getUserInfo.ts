@@ -9,5 +9,8 @@ export function getUserInfo(userName: string): void {
     onSuccess: (response) => {
       WebClient.instance.response.session.getUserInfo(response.userInfo);
     },
+    onError: (responseCode) => {
+      WebClient.instance.response.session.getUserInfoFailed?.(userName, responseCode);
+    },
   });
 }

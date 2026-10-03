@@ -291,6 +291,13 @@ describe('Actions', () => {
     });
   });
 
+  it('getUserInfoFailed', () => {
+    expect(Actions.getUserInfoFailed({ userName: 'Ned', responseCode: 34 })).toEqual({
+      type: Types.GET_USER_INFO_FAILED,
+      payload: { userName: 'Ned', responseCode: 34 },
+    });
+  });
+
   it('moderatorCommandFailed', () => {
     expect(Actions.moderatorCommandFailed({ command: 'banHistory', responseCode: 18, target: 'Ned' })).toEqual({
       type: Types.MODERATOR_COMMAND_FAILED,
