@@ -315,7 +315,15 @@ describe('joinRoom', () => {
     joinRoom(5);
     invokeOnError(Response_ResponseCode.RespNameNotFound);
     expect(WebClient.instance.response.room.joinRoomFailed).toHaveBeenCalledWith(
-      5, Response_ResponseCode.RespNameNotFound, undefined,
+      5, Response_ResponseCode.RespNameNotFound, undefined, true,
+    );
+  });
+
+  it('marks an autojoin failure as not user-initiated', () => {
+    joinRoom(5, false);
+    invokeOnError(Response_ResponseCode.RespNameNotFound);
+    expect(WebClient.instance.response.room.joinRoomFailed).toHaveBeenCalledWith(
+      5, Response_ResponseCode.RespNameNotFound, undefined, false,
     );
   });
 });

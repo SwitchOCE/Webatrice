@@ -244,7 +244,7 @@ describe('listRooms', () => {
       ]
     }));
     expect(SessionCmds.joinRoom).toHaveBeenCalledTimes(1);
-    expect(SessionCmds.joinRoom).toHaveBeenCalledWith(2);
+    expect(SessionCmds.joinRoom).toHaveBeenCalledWith(2, false);
   });
 });
 
