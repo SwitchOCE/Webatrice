@@ -1,4 +1,4 @@
-import { useCallback, useId, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
+import { useCallback, useId, useState, type KeyboardEvent, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 import { useListRef } from 'react-window';
 import { useTranslation } from 'react-i18next';
 
@@ -52,7 +52,7 @@ const ManageSets = ({ onSaved, onCancel }: ManageSetsProps) => {
   const activeIndex = active === null ? -1 : rows.findIndex((r) => r.code === active);
   const rowId = (index: number) => `${rowIdPrefix}-row-${index}`;
 
-  const renderRow = useCallback((row: SetRow, index: number) => {
+  const renderRow = useCallback((row: SetRow, index: number, style: CSSProperties) => {
     const onClick = (e: MouseEvent) => {
       setActive(row.code);
       select(row.code, { toggle: e.ctrlKey || e.metaKey, range: e.shiftKey });
@@ -68,6 +68,7 @@ const ManageSets = ({ onSaved, onCancel }: ManageSetsProps) => {
       <div
         id={`${rowIdPrefix}-row-${index}`}
         className={classes.join(' ')}
+        style={style}
         role="row"
         aria-selected={selected.has(row.code)}
         onClick={onClick}
