@@ -42,7 +42,7 @@ import { applyPTDelta, applyPTSet, parsePT } from '../context-menus/CardContextM
 import { buildCardContextMenu, type CardMenuItem } from '../context-menus/CardContextMenu/cardContextMenu.model';
 import { CardMenuPopup } from '../context-menus/CardContextMenu/CardContextMenu';
 import { buildRelatedTokenItems, buildTransformItems } from '../context-menus/CardContextMenu/relatedCardActions';
-import { evalLifeExpression } from '../right-sidebar/PlayerInfoPanel/lifeExpression';
+import { expressionPrompt } from '../../hooks/dialogs/seatPrompts';
 import { counterColorForId } from '../ui/CardSlot/counterColors';
 import type {
   BattlefieldCardViewModel,
@@ -860,143 +860,6 @@ const CardBackZone = forwardRef<
         );
       }
       );
-
-/**
- * Modal for setting the local player's life to an arbitrary value.
- * Portal-rendered by PlayerBox; opens via the Ctrl / Cmd + L
- * shortcut. Auto-focuses the input, Enter to save, Escape to cancel,
- * backdrop click to cancel.
- *
- * Accepts basic arithmetic — the user can type `40+10` or `20*2` and
- * the modal computes the value on save. Live preview under the input
- * shows what the current expression evaluates to.
- */
-function SetLifeModal({
-  currentLife,
-  onCancel,
-  onConfirm,
-  title,
-  subtitle,
-  ariaLabel,
-}: {
-  currentLife: number;
-  onCancel: () => void;
-  onConfirm: (value: number) => void;
-  /** Optional overrides so this modal can be reused for setting mana
-   *  pool / storm counters (not just life). Defaults keep the
-   *  original life-total labels. */
-  title?: string;
-  subtitle?: string;
-  ariaLabel?: string;
-}) {
-  const [draft, setDraft] = useState(String(currentLife));
-  const preview = evalLifeExpression(draft);
-  // Whether the draft is a plain number (no arithmetic). Used to hide
-  // the preview line when it would just duplicate the input.
-  const isPlainNumber = /^-?\d+$/.test(draft.trim());
-
-  // Escape closes the modal — bound at window level so the input's
-  // native Esc handling isn't the only escape hatch (keeps behavior
-  // consistent with clicking the backdrop).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onCancel();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onCancel]);
-
-  const commit = () => {
-    if (preview != null) {
-      onConfirm(preview);
-    } else {
-      onCancel();
-    }
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-[400] flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label={ariaLabel ?? 'Set life total'}
-    >
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onCancel}
-        aria-hidden
-      />
-      <div className="relative w-full max-w-xs rounded-lg bg-bg-surface border border-border-subtle shadow-glow overflow-hidden">
-        <div className="px-4 py-3 border-b border-border-subtle">
-          <h2 className="font-modern text-base font-semibold text-text-primary">
-            {title ?? 'Set life total'}
-          </h2>
-          <p className="text-xs text-text-muted mt-0.5">
-            {subtitle ?? (
-              <>
-                Numbers or math (e.g.{' '}
-                <span className="tabular-nums">40+10</span>)
-              </>
-            )}
-          </p>
-        </div>
-        <form
-          className="px-4 py-3 flex flex-col gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            commit();
-          }}
-        >
-          {/* `type="text"` (not "number") so `+`, `-`, `*`, `/`, `(`, `)`
-              are allowed — the browser's number input would strip them. */}
-          <input
-            autoFocus
-            type="text"
-            inputMode="numeric"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onFocus={(e) => e.currentTarget.select()}
-            className={[
-              'w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-lg tabular-nums',
-              'text-text-primary text-center focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent',
-            ].join(' ')}
-          />
-          {/* Live preview — only shown when the input is an expression
-              (skipped for a plain number since the preview would just
-              echo what's already in the input). */}
-          <div className="text-xs text-text-muted text-center h-4 tabular-nums">
-            {preview == null
-              ? draft.trim().length > 0
-                ? '…'
-                : ''
-              : isPlainNumber
-                ? ''
-                : `= ${preview}`}
-          </div>
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              className={DIALOG_SECONDARY_BUTTON_CLASS}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={preview == null}
-              className={DIALOG_SUBMIT_BUTTON_CLASS}
-            >
-              Save
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
 
 /** Mirrors Cockatrice desktop's `actRequestSetPTDialog` + `actSetPT`:
  *  a small modal pre-filled with the card's current PT. Free-form input
@@ -2104,6 +1967,7 @@ function PlayerBox(
     seatCardMenu,
     openSeatCardMenu,
     closeSeatCardMenu,
+    openPrompt,
   } = useGameDialogsContext();
   // Fire Command_DumpZone(zone=SIDEBOARD) each time the modal opens.
   // Same pattern as View library: sideboard is a HiddenZone so we
@@ -2652,7 +2516,7 @@ function PlayerBox(
   // (Ctrl+R) deletes every arrow this player drew, one Command_DeleteArrow
   // each, and never touches other players' arrows.
   seatShortcuts['game.mulligan'] = () => handleRequestChooseMulligan();
-  seatShortcuts['game.setLife'] = () => setSetLifeModalOpen(true);
+  seatShortcuts['game.setLife'] = () => openLifePrompt();
   seatShortcuts['game.removeLocalArrows'] = () => onClearOwnArrows?.();
 
   // Cockatrice-parity Toggle Skip Untapping (Alt+U). Acts on the
@@ -2834,9 +2698,8 @@ function PlayerBox(
     if (!isSelf || !manaCounters?.O) {
       return;
     }
-    setSetManaCounterModal({
+    openCounterPrompt({
       counterId: manaCounters.O.id,
-      symbol: 'O',
       label: 'Other',
       currentValue: manaCounters.O.count,
     });
@@ -3773,13 +3636,21 @@ function PlayerBox(
       return Math.min(LIFE_MAX, Math.trunc(raw));
     });
   };
-  // Open state for the set-life modal (Ctrl/Cmd+L for the local player).
-  const [setLifeModalOpen, setSetLifeModalOpen] = useState(false);
-  // "Set counter..." modal for mana / storm counters. Reuses SetLifeModal
-  // (extended with title/subtitle overrides). `null` = closed.
-  const [setManaCounterModal, setSetManaCounterModal] = useState<
-    { counterId: number; symbol: string; label: string; currentValue: number } | null
-  >(null);
+  // Set life (Ctrl+L, Counters → Life) and the mana / storm counters'
+  // "Set counter..." share the game's sum prompt. Command_SetCounter takes
+  // the absolute value; Servatrice clamps it, and player counters floor at 0.
+  const openLifePrompt = () => openPrompt(expressionPrompt({ current: life, onSubmit: (value) => setLife(value) }));
+  const openCounterPrompt = ({ counterId, label, currentValue }: {
+    counterId: number;
+    label: string;
+    currentValue: number;
+  }) => openPrompt(expressionPrompt({
+    current: currentValue,
+    title: `Set ${label.toLowerCase()} counter`,
+    label,
+    description: `Current: ${currentValue}`,
+    onSubmit: (value) => onSetPlayerCounter?.(counterId, Math.max(0, value)),
+  }));
   // "Put top cards on stack until…" dialog + iterative loop. `Modal`
   // holds dialog-open state; `moveTopUntil` is the active loop config
   // (null = idle). See the useEffect further down that watches
@@ -5180,7 +5051,7 @@ function PlayerBox(
   const lifeCounterItems: ContextMenuItem[] = [
     {
       label: 'Set counter...',
-      onClick: () => setSetLifeModalOpen(true),
+      onClick: () => openLifePrompt(),
       disabled: !lifeControl,
     },
     { divider: true },
@@ -5198,16 +5069,14 @@ function PlayerBox(
       disabled: !canModify,
       submenu: [
         {
-          // Reuses SetLifeModal (the same arithmetic-input modal
-          // Ctrl+L opens) with title/subtitle overrides for the
+          // The same sum prompt Ctrl+L opens, titled with the
           // counter name. Fires Command_SetCounter with the
           // absolute value.
           label: 'Set counter...',
           onClick: () => {
             if (counter) {
-              setSetManaCounterModal({
+              openCounterPrompt({
                 counterId: counter.id,
-                symbol: m.symbol,
                 label: m.label,
                 currentValue: counter.count,
               });
@@ -7579,50 +7448,6 @@ function PlayerBox(
         }
         draggingCardIds={draggingIdsFrom('library')}
       />
-
-      {/* Set-life modal — opens on Ctrl/Cmd+L. Portal-rendered so it
-          sits above every other PlayerBox regardless of stacking
-          context. Only the local player can trigger it (keyboard
-          binding gated on isSelf), but the modal itself renders
-          without extra guards since the setter is only ever wired
-          from the local box's keydown handler. */}
-      {setLifeModalOpen &&
-        createPortal(
-          <SetLifeModal
-            currentLife={life}
-            onCancel={() => setSetLifeModalOpen(false)}
-            onConfirm={(value) => {
-              setLife(value);
-              setSetLifeModalOpen(false);
-            }}
-          />,
-          document.body,
-        )}
-
-      {/* Set-mana-counter modal — opens from the battlefield menu's
-          Counters → <color> → "Set counter..." row. Reuses SetLifeModal
-          (same arithmetic-input UX) with the counter's name in the
-          title. Fires Command_SetCounter via `onSetPlayerCounter`;
-          server clamps to [0, MAX_COUNTER_VALUE] so we can just
-          pass the raw evaluated value. */}
-      {setManaCounterModal &&
-        createPortal(
-          <SetLifeModal
-            currentLife={setManaCounterModal.currentValue}
-            title={`Set ${setManaCounterModal.label.toLowerCase()} counter`}
-            subtitle={`Current: ${setManaCounterModal.currentValue}`}
-            ariaLabel={`Set ${setManaCounterModal.label} counter`}
-            onCancel={() => setSetManaCounterModal(null)}
-            onConfirm={(value) => {
-              onSetPlayerCounter?.(
-                setManaCounterModal.counterId,
-                Math.max(0, value),
-              );
-              setSetManaCounterModal(null);
-            }}
-          />,
-          document.body,
-        )}
 
       {/* Annotation modal — opens from the "Set annotation..." card
           context menu item. Submit sends Command_SetCardAttr with

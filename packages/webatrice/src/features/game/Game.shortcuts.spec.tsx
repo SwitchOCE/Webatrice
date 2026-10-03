@@ -83,7 +83,7 @@ describe('Game seat shortcuts', () => {
     press('KeyL', { ctrlKey: true });
     expect(screen.getByRole('dialog', { name: 'Set life total' })).toBeInTheDocument();
     act(() => {
-      fireEvent.keyDown(window, { key: 'Escape' });
+      fireEvent.keyDown(screen.getByRole('dialog', { name: 'Set life total' }), { key: 'Escape' });
     });
     expect(screen.queryByRole('dialog', { name: 'Set life total' })).not.toBeInTheDocument();
 
