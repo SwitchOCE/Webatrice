@@ -3,3 +3,4 @@
 - 22:35Z client + catalog split pushed → D4 cardDetail lift
 - 22:44Z D4 + D5 pushed → D7 ManaSymbols
 - 22:49Z D7 + D12 pushed → D13 small duplicates
+- 22:57Z D13 pushed → serializeCod sideboard_plan test
