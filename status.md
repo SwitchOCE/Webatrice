@@ -2,3 +2,4 @@
 - 15:48 chat filters decided on arrival (d41dbce) → mentions
 - 15:54 majors done; minors: sections/sliders/usePreference done → migration types, alert words, restore defaults, nits, squash
 - 16:00 all fixes + history fold pushed; typechecking each commit → full gate, PR file
+- 16:10 DONE: claude/parity-19-settings @ 531c773, full gate green; PR file updated

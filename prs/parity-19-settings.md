@@ -1,10 +1,12 @@
 # feat(settings): desktop settings page, chat preferences, sound and notifications
 
-> **Stacks on parity/11-rooms-chat-users** (`a6642c3`; below it #10 account/auth → #04 command outcomes → #12 moderation → #03 3.1 protocol → #02 → #01). Review and merge after #11. The replays branch, which takes Dexie version 5, lands before this one in the final stack.
+> **Stacks on parity/11-rooms-chat-users** (`a6642c3`; below it #10 account/auth → #04 command outcomes → #12 moderation → #03 3.1 protocol → #02 → #01). Review and merge after #11.
+>
+> **Merge order (Dexie): this PR must merge after the replays PR (#15).** Replays declares `db.version(5)` and is not an ancestor of this branch; this PR declares `db.version(6)`. If this lands first, every user is already at version 6 when replays adds `version(5)`, and a normal upgrade never creates the replay tables. The series order is 06 → 15 (v5) → 14 → 19 (v6) → 21 → 20 (v7). `DexieSchemas/v6.schema.ts` says the same.
 
 ## Summary
-- **Settings page.** It now works like desktop's settings dialog. Sections are listed in desktop's order with a search box, and search results are ranked the way desktop's `settings_search_model` ranks them. Every change is saved as soon as it is made, as on desktop, and each section has a "Restore defaults" button. Sections are plain data in one registry, `features/settings/sections/index.ts`. Built-in toggle, select, range and colour controls bind straight to a preference key; custom controls cover everything else. When several modules register the same section id, their groups are merged. The `SettingsSectionId` enum already reserves General, Card Sources and Storage, so the sibling Appearance/Storage/Language PR can add sections, or add groups to Appearance, without editing these files.
-- **Typed, versioned settings.** The `Setting` row now holds every preference, with desktop's defaults (`PREFERENCE_DEFAULTS`). The row also carries a `version`. A Dexie **version 6** upgrade fills in defaults for missing preferences and keeps every stored value and shortcut override. The same `migrateSetting` step also runs on every load. `usePreference` / `usePreferences` return typed values, and fall back to the defaults until the row has loaded. `getPreferencesSnapshot` is a one-shot read for event handlers. `useMessageMacros` is the selector the in-game Say menu will read.
+- **Settings page.** It now works like desktop's settings dialog. Sections are listed in desktop's order with a search box, and search results are ranked the way desktop's `settings_search_model` ranks them. Every change is saved as soon as it is made, as on desktop; sliders and colour pickers save once you let go. Each section has a "Restore defaults" button, which asks first: desktop has no per-page reset, and on Chat it would delete every message macro. Sections are plain data in one registry, `features/settings/sections/index.ts`. Built-in toggle, select, range and colour controls bind straight to a preference key; custom controls cover everything else. When several modules register the same section id, their groups are merged. The `SettingsSectionId` enum already reserves General, Card Sources and Storage, so the sibling Appearance/Storage/Language PR can add sections, or add groups to Appearance, without editing these files.
+- **Typed, versioned settings.** The `Setting` row now holds every preference, with desktop's defaults (`PREFERENCE_DEFAULTS`). The row also carries a `version`. A Dexie **version 6** upgrade fills in defaults for missing preferences and keeps every stored value and shortcut override. The same `migrateSetting` step also runs on every load. A stored value with the wrong type (`null`, a string volume) is replaced by its default too. `usePreference` / `usePreferences` return typed values, and fall back to the defaults until the row has loaded; `usePreference` re-renders only when its own preference changes. `getPreferencesSnapshot` is a one-shot read for event handlers. `useMessageMacros` is the selector the in-game Say menu will read.
 - **User Interface preferences, connected to the board:**
   - "Play all nonlands onto the stack": with it off, a permanent goes from hand straight to the battlefield, following `PlayerActions::playCard` routing. This applies to both the PlayerBox hand double-click and `autoPlayCard`.
   - "Tap/untap animation".
@@ -12,8 +14,8 @@
   - "Invert vertical coordinate": the board already honoured it; it now has a control.
 - **Chat preferences, connected to room chat and private chat:**
   - Room message history, and hiding unregistered senders. These compose with #11: ignored senders are already dropped on arrival by Datatrice, and #11's flood / not-sent notice lines always show.
-  - Highlighting of your own mentions and of a moderator's `@/all`, with mention colour and invert. Mentions can be turned off.
-  - Alert words, with their own colour.
+  - Highlighting of your own mentions and of a moderator's `@/all`, with mention colour and invert. Mentions can be turned off. A mention runs over the `_.-` characters Servatrice allows in usernames, so `@foo.bar` mentions `foo.bar` and never `foo`; as in desktop's `checkMention`, trailing characters are cut back until the token names the reader.
+  - Alert words, with their own colour, saved as typed (desktop has no validator).
   - The three private-message filters, with desktop's semantics: "ignore all" lets only moderators and administrators through, and the unregistered and non-buddy filters only stop a *new* conversation from opening.
   - An in-game message macro editor (add, edit, remove).
 - **Sound.** `SoundEngine` copies desktop's `sound_engine.cpp`: the same event names, a theme with a fallback to the Default theme, master volume, a test sound, and one sound at a time. Desktop's Default and Legacy themes ship in `public/sounds`. `AppAlerts` plays the sounds `MessageLogWidget` plays for game events. Mention, private-message and buddy sounds play where desktop plays them.
@@ -51,25 +53,24 @@
 - `cockatrice/src/game_graphics/player/menu/say_menu.cpp`: macros and the Ctrl+1..0 binding, for the follow-up.
 
 ## Testing
-After rebasing onto #11 (`a6642c3`), I ran `git submodule update` and `npm ci`, then the full gate from the worktree root, with Vitest capped at `--maxWorkers=2`:
-- `npx turbo run typecheck --concurrency=1`: passes (5/5 tasks).
-- `npm run lint`: passes (3/3 tasks), with 0 errors.
+On the final tip, rebased onto #11 (`a6642c3`), after `git submodule update --init && npm ci`, from the repo root with Vitest capped at `--maxWorkers=2`:
+- `npx turbo run typecheck --concurrency=1`: passes (5/5 tasks). Also run at **every commit** of the branch (`git rebase -x`): all pass.
+- `npm run lint`: passes (3/3 tasks), 0 errors.
 - `npm test -- -- --maxWorkers=2`:
   - Sockatrice: 763 passed.
   - Datatrice: 1176 passed.
-  - Webatrice: 1538 passed, 2 skipped. Both skips were already there.
+  - Webatrice: 1558 passed, 2 skipped (both pre-existing).
 - `npm run test:integration -- -- --maxWorkers=2`:
   - Sockatrice: 159 passed.
   - Datatrice: 132 passed.
-  - Webatrice: 159 passed, 2 skipped. Both skips were already there.
+  - Webatrice: 159 passed, 2 skipped (both pre-existing).
 - E2E: not run. No server flow changed; everything here is client-side preference handling, rendering and local feedback.
 - New or extended specs:
-  - **Persistence:** `settingsMigration`, plus a real-Dexie v4→v6 upgrade in `integration/src/services/dexie/settingsMigration.spec.ts`; `SettingDTO`; `useSettings` (`usePreference`, `getPreferencesSnapshot`, `useMessageMacros`).
-  - **Settings page:** the registry (`buildSettingsSections`, `preferenceKeysOf`), `searchSettings`, `Settings`, and each custom control: macro editor, alert words, permission button, sound test.
-  - **Sound and notifications:** `SoundEngine` (fake `Audio`; also checks the theme manifest matches the shipped files); `NotificationService` and `useNotify` (fake `Notification`, `document.hidden`); `playSound`.
-  - **Chat:** `chatHighlight`, `chatFilters`, the `Message` highlighting, `RoomChat` filtering, `usePlayer` PM filtering and `PrivateMessageNotifier`.
-  - **Alerts and board:** `gameEventSound`, `AppAlerts`; `playCard` / `useGameArrowInteractions` play-to-stack; `ZoneViewDialog` close-on-empty.
-- Environment note: earlier full runs without the worker cap died with V8 out-of-memory on the shared host. Every failing spec from those runs passed when run on its own, and the capped runs above are clean.
+  - **Persistence:** `settingsMigration` (incl. wrongly typed values, frozen defaults), plus a real-Dexie v4→v6 upgrade in `integration/src/services/dexie/settingsMigration.spec.ts`; `SettingDTO`; `useSettings` (`usePreference` re-renders only for its own key, `getPreferencesSnapshot`, `useMessageMacros`).
+  - **Settings page:** the registry, `searchSettings`, `Settings` (dependsOn, volume saved on release with the test sound, restore-defaults confirmation), and each custom control: macro editor, alert words (saved as typed), permission button (follows browser changes), sound test.
+  - **Sound and notifications:** `SoundEngine`; `NotificationService` (incl. `watchNotificationPermission`) and `useNotify`; `playSound`.
+  - **Chat:** `chatHighlight` (`parseMention`, punctuated usernames), `MENTION_REGEX`, `chatFilters` (verdicts taken on arrival: sender leaves, peer goes offline, moderator logs off, filter changed later), the `Message` highlighting, `RoomChat` filtering (incl. after the sender leaves and after a filter change), `usePlayer` PM filtering and `PrivateMessageNotifier`.
+  - **Alerts and board:** `gameEventSound`, `AppAlerts`; play-to-stack; `ZoneViewDialog` close-on-empty.
 
 ## Notes for reviewers
 
@@ -124,7 +125,7 @@ Status key:
 | User Interface › General | Keep game chat focused when clicking in game | Follow-up (game) | |
 | User Interface › Notifications | Enable notifications in taskbar | **Done** | Marks the hidden tab's title on game events (`emitUserEvent` set). Relabelled for the browser. |
 | User Interface › Notifications | Notify in the taskbar for game events while spectating | **Done** | |
-| User Interface › Notifications | Notify in the taskbar when users in your buddy list connect | **Done** | "Your buddy X has signed on!" as an OS notification or a toast. |
+| User Interface › Notifications | Notify in the taskbar when users in your buddy list connect | **Done** | "Your buddy X has signed on!" as an OS notification or a toast. Greyed out with the spectator option while notifications are off, as on desktop. |
 | User Interface › Animation | Enable all / Disable all animations | Follow-up (game) | Only one animation exists, so the buttons would be noise. Add them with the next animation. |
 | User Interface › Animation | Tap/untap animation | **Done** | |
 | User Interface › Animation | Arrow draw animation | Follow-up (game) | Arrows are not animated. |
@@ -158,16 +159,16 @@ Status key:
 | Sound | Enable sounds | **Done** | Off by default, as on desktop. |
 | Sound | Current sounds theme | **Done** | |
 | Sound | Test system sound engine | **Done** | |
-| Sound | Master volume | **Done** | |
+| Sound | Master volume | **Done** | Letting go of the slider plays the test sound, as on desktop. Volume and theme stay editable while sound is off, as on desktop; the test button, which would play nothing, is disabled. |
 | Shortcuts | All shortcut bindings | Already exists | Now the Shortcuts section. |
 
 ### Deliberate choices
-- **Where the filters apply.** The store still holds every message, and the chat filters apply when messages are read. Desktop drops filtered messages as they arrive. Here the PM filters are a pure function of the conversation (`visiblePrivateMessages`): a conversation counts as open once you have written to the peer or one of their messages got through. That is the browser equivalent of desktop's "a tab already exists". Turning a filter off brings back history it had hidden.
+- **When the filters decide.** Desktop decides once, as a message arrives. Here the store still holds every message, but each message's verdict is also taken once: `chatFilterVerdicts` is a `WeakMap` keyed by the stored message object (Datatrice never replaces one), filled by the app-wide watchers (`AppAlerts` for room lines, `PrivateMessageNotifier` for private messages) as each message arrives, against the sender, presence and preferences of that moment. `RoomChat` and the Player page read the same verdicts. So a line stays hidden after an unregistered sender leaves the room or a non-buddy goes offline, a moderator's message stays visible under "ignore all" after they log off, and changing a filter affects only messages that arrive afterwards, as on desktop. A PM conversation counts as open once you have written to the peer or one of their messages got through, the browser equivalent of desktop's "a tab already exists".
 - **Ignore list (rebased onto #11).** #11 drops ignored senders when their lines arrive, as desktop's `TabRoom::processRoomSayEvent` does. This branch therefore no longer hides them at render time. Its room filter covers only the two settings, room history and unregistered senders. Room notices carry no sender, so they always show.
 - **#11's PM notices and presence lines.** These live in `privateChatNotices`, not in `server.messages`, so `PrivateMessageNotifier` never raises a sound or notification for them.
   - `usePlayer` now runs the PM filters over #11's merged conversation. Filtered messages drop out; notices keep their place.
   - Room flood / not-sent notices come from `roomSayFailed`, not `ADD_MESSAGE`, so `AppAlerts` ignores them. Specs cover both cases, plus an ignored sender arriving via `roomSayReceived`.
-- **Dexie version.** The settings upgrade is `db.version(6)` (`DexieSchemas/v6.schema.ts`). The replays branch, which lands earlier in the final stack, uses version 5; Dexie accepts the gap.
+- **Dexie version.** The settings upgrade is `db.version(6)` (`DexieSchemas/v6.schema.ts`), leaving 5 to the replays branch. Dexie accepts the gap, but correctness depends on merge order: replays (#15) must merge first (see the note at the top). The version is not renumbered, because 20 and 21 already build on 6.
 - **Navigation.** No TopBar edits. The Settings entry already exists in #10's `userMenuEntries.ts`.
 - **Alert-word colour.** Desktop's `ChatView::getCustomHighlightColor` reads the *mention* colour, which is a bug. Here the alert-word highlight uses the alert-word colour the user picks.
 - **Chat history and alerts.** Join history never plays sounds or raises notifications. Desktop runs `checkMention` over history lines as they are drawn.
@@ -176,7 +177,7 @@ Status key:
   - A shuffle during a mulligan plays the shuffle sound.
   - Disconnect/reconnect is read from the ping crossing `-1`.
 - **Tab marker.** Game events mark a hidden tab's title with `(*) `, which clears when the tab is shown again. Webatrice does not otherwise set `document.title`, so nothing competes with the marker.
-- **Shared hub edits.** `AppShell.tsx` gets one additive import line and one element. The import is a separate line, not a change to the existing `features/shell` import, to keep rebases cheap.
+- **Shared hub edits.** `AppShell.tsx` adds `AppAlerts` to the existing `features/shell` import and renders one element.
 - **Barrels.** The services, components, hooks and utils barrels each get additive lines only.
 - **Desktop popup timing.** Desktop shows a popup only while its window is inactive. When the tab is visible but you are elsewhere in the app, Webatrice shows an in-app toast instead. For private messages that toast is today's behaviour, kept. Mention and buddy toasts are new, and can be turned off with their preferences.
 
@@ -184,3 +185,21 @@ Status key:
 - **Game PRs**: the follow-up rows above; the Say menu reading `useMessageMacros` with Ctrl+1..0; and aligning context-menu Play with `playToStack`.
 - **Pre-existing**: `PrivateMessageNotifier` counts messages, so once a conversation reaches the store's `MAX_USER_MESSAGES` cap, new messages are not noticed. This PR does not change that.
 - **Sound themes**: Default and Legacy ship. Desktop also loads user themes from its data directory; there is no browser equivalent, so that part is N/A.
+
+## Review response (rv6)
+- **major, filters evaluated at render time** → fixed (`fix(chat): decide chat filters when a message arrives`). Each message gets one verdict, taken on arrival against that moment's sender, presence and preferences, and kept in `chatFilterVerdicts`. Specs cover the sender leaving the room, the peer going offline, a moderator logging off under "ignore all", and a filter turned on later.
+- **major, mentions stop at `.`/`-`** → fixed in both `MENTION_REGEX` and the alert matcher. `parseMention` follows desktop's `checkMention` chop loop for the reader's own name and otherwise drops only trailing sentence punctuation. `@alice.smith` no longer pings `alice`.
+- **major, Dexie v5/v6 ordering** → not renumbered (20/21 build on v6). The required merge order (15 before 19; series 06 → 15 → 14 → 19 → 21 → 20) is stated at the top of this PR and in `v6.schema.ts`.
+- **minor, `fillPreferenceDefaults` type check** → fixed: null and wrongly typed values are replaced by the default.
+- **minor, Chat order** → macros group moved first.
+- **minor, Sound order/test on release/dependsOn** → reordered to enable, volume, theme, test. Letting go of the slider plays the test sound. `dependsOn` removed from volume and theme, as on desktop. The test button stays disabled while sound is off, since desktop's test would play nothing then.
+- **minor, buddy notify dependsOn** → added. Desktop also unchecks it when notifications are turned off; not copied, so the user's choice survives toggling.
+- **minor, alert-word validator** → removed; saved as typed, like desktop.
+- **minor, Restore defaults destructive** → now asks for confirmation first.
+- **minor, per-tick writes / whole-row `usePreference`** → range and colour inputs save on the native `change` event; `usePreference` subscribes with a per-key snapshot.
+- **minor, toast focus** → `focus-visible` ring.
+- **minor, red intermediate commits** → the integration spec update is folded into the Settings page commit. The test commit's message now says v6, and the changeset is in its own `chore` commit. Every commit typechecks.
+- **nit, shallow freeze** → `messageMacros` default frozen; preference typed `readonly string[]`.
+- **nit, stale permission status** → watches the Permissions API `change` event, with a fallback that re-reads on window focus; the status is `aria-live="polite"`.
+- **nit, duplicate AppShell import** → merged.
+- **nit, unused section strings** → General/Card Sources/Storage titles removed from the i18n files (the enum ids stay for the sibling PR).
