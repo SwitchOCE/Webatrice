@@ -1,0 +1,184 @@
+import {
+  BRACKET_SOURCE_TIMEOUT_MS,
+  clearBracketSourceCaches,
+  fetchGameChangers,
+  fetchOracleText,
+  fetchSpellbookCombos,
+} from './bracketSources';
+import type { DeckCard } from './types';
+
+function json(body: unknown, status = 200): Response {
+  return { ok: status >= 200 && status < 300, status, json: async () => body } as Response;
+}
+
+function malformed(): Response {
+  return {
+    ok: true,
+    status: 200,
+    json: async () => {
+      throw new SyntaxError('Unexpected token <');
+    },
+  } as unknown as Response;
+}
+
+/** A fetch that only settles when its signal aborts. */
+function hanging(_url: unknown, init?: RequestInit): Promise<Response> {
+  return new Promise((_resolve, reject) => {
+    init?.signal?.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })));
+  });
+}
+
+let fetchMock: ReturnType<typeof vi.fn>;
+
+beforeEach(() => {
+  clearBracketSourceCaches();
+  fetchMock = vi.fn();
+  vi.stubGlobal('fetch', fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
+
+describe('fetchGameChangers', () => {
+  it('returns the list and caches it for the session', async () => {
+    fetchMock.mockResolvedValue(json({ data: [{ name: 'Sol Ring' }, { name: 'Rhystic Study' }] }));
+
+    expect(await fetchGameChangers()).toEqual({ status: 'ok', data: new Set(['Sol Ring', 'Rhystic Study']) });
+    expect(await fetchGameChangers()).toEqual({ status: 'ok', data: new Set(['Sol Ring', 'Rhystic Study']) });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('shares one request between concurrent callers', async () => {
+    fetchMock.mockResolvedValue(json({ data: [] }));
+    await Promise.all([fetchGameChangers(), fetchGameChangers()]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['an HTTP error', () => json({}, 500), { kind: 'http', status: 500 }],
+    ['malformed JSON', malformed, { kind: 'malformed' }],
+    ['a body without a data array', () => json({ object: 'error' }), { kind: 'malformed' }],
+  ])('reports %s as unavailable instead of an empty list, and does not cache it', async (_name, respond, failure) => {
+    fetchMock.mockImplementation(async () => respond());
+
+    expect(await fetchGameChangers()).toEqual({ status: 'unavailable', failure });
+
+    fetchMock.mockResolvedValue(json({ data: [{ name: 'Sol Ring' }] }));
+    expect(await fetchGameChangers()).toEqual({ status: 'ok', data: new Set(['Sol Ring']) });
+  });
+
+  it('reports a network failure', async () => {
+    fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
+    expect(await fetchGameChangers()).toEqual({ status: 'unavailable', failure: { kind: 'network' } });
+  });
+
+  it('gives up after the timeout', async () => {
+    vi.useFakeTimers();
+    fetchMock.mockImplementation(hanging);
+
+    const result = fetchGameChangers();
+    await vi.advanceTimersByTimeAsync(BRACKET_SOURCE_TIMEOUT_MS);
+
+    expect(await result).toEqual({ status: 'unavailable', failure: { kind: 'timeout' } });
+  });
+});
+
+describe('fetchOracleText', () => {
+  function collectionResponder(failChunkContaining?: string) {
+    return async (_url: unknown, init?: RequestInit) => {
+      const { identifiers } = JSON.parse(String(init?.body)) as { identifiers: Array<{ name: string }> };
+      if (failChunkContaining && identifiers.some((i) => i.name === failChunkContaining)) {
+        return json({}, 503);
+      }
+      return json({
+        data: identifiers
+          .filter((i) => i.name !== 'Unknown Card')
+          .map((i) => ({ name: i.name, oracle_text: `${i.name} text` })),
+      });
+    };
+  }
+
+  it('keys text by lower-cased name and caches names Scryfall has no match for as empty', async () => {
+    fetchMock.mockImplementation(collectionResponder());
+
+    const result = await fetchOracleText(['Sol Ring', 'Unknown Card']);
+
+    expect(result).toEqual({
+      status: 'ok',
+      data: new Map([['sol ring', 'Sol Ring text'], ['unknown card', '']]),
+    });
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body)).identifiers).toEqual([
+      { name: 'Sol Ring' },
+      { name: 'Unknown Card' },
+    ]);
+    await fetchOracleText(['sol ring']);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('joins face texts and also keys a split card by its front face', async () => {
+    fetchMock.mockResolvedValue(json({
+      data: [{ name: 'Fire // Ice', card_faces: [{ oracle_text: 'Fire text' }, { oracle_text: 'Ice text' }] }],
+    }));
+    const result = await fetchOracleText(['Fire']);
+    expect(result).toEqual({ status: 'ok', data: new Map([['fire', 'Fire text\nIce text']]) });
+  });
+
+  it('reports a failed batch as partial, without caching the names it missed', async () => {
+    const names = Array.from({ length: 80 }, (_, i) => `Card ${i}`);
+    fetchMock.mockImplementation(collectionResponder('Card 79'));
+
+    const result = await fetchOracleText(names);
+
+    expect(result.status).toBe('partial');
+    expect(result).toEqual(expect.objectContaining({
+      failure: { kind: 'http', status: 503 },
+      missing: 5,
+      total: 80,
+    }));
+
+    fetchMock.mockImplementation(collectionResponder());
+    expect((await fetchOracleText(names)).status).toBe('ok');
+    const retried = JSON.parse(String(fetchMock.mock.calls[2][1].body)).identifiers;
+    expect(retried).toHaveLength(5);
+  });
+
+  it('reports a total failure as unavailable', async () => {
+    fetchMock.mockResolvedValue(malformed());
+    expect(await fetchOracleText(['Sol Ring'])).toEqual({ status: 'unavailable', failure: { kind: 'malformed' } });
+  });
+});
+
+describe('fetchSpellbookCombos', () => {
+  const cards: DeckCard[] = [
+    { name: 'Sol Ring', quantity: 1, category: 'main', lookupSource: 'scryfall', set: 'c21' },
+    { name: 'Negate', quantity: 1, category: 'main', lookupSource: 'scryfall' },
+    { name: 'Negate', quantity: 2, category: 'sideboard', lookupSource: 'scryfall' },
+  ];
+
+  it('sends only names and merged quantities, and returns the included combos', async () => {
+    fetchMock.mockResolvedValue(json({ results: { included: [{ id: 'c1' }] } }));
+
+    expect(await fetchSpellbookCombos(cards)).toEqual({ status: 'ok', data: [{ id: 'c1' }] });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://backend.commanderspellbook.com/find-my-combos/');
+    expect(JSON.parse(String(init.body))).toEqual({
+      main: [{ card: 'Sol Ring', quantity: 1 }, { card: 'Negate', quantity: 3 }],
+    });
+  });
+
+  it('treats an answer with no included list as no combos', async () => {
+    fetchMock.mockResolvedValue(json({ results: {} }));
+    expect(await fetchSpellbookCombos(cards)).toEqual({ status: 'ok', data: [] });
+  });
+
+  it.each([
+    ['an outage', () => json({ detail: 'down' }, 502), { kind: 'http', status: 502 }],
+    ['malformed JSON', malformed, { kind: 'malformed' }],
+    ['a body without results', () => json({ detail: 'x' }), { kind: 'malformed' }],
+  ])('reports %s as unavailable rather than "no combos"', async (_name, respond, failure) => {
+    fetchMock.mockImplementation(async () => respond());
+    expect(await fetchSpellbookCombos(cards)).toEqual({ status: 'unavailable', failure });
+  });
+});

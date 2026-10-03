@@ -1,0 +1,21 @@
+{
+  "DeckBracket": {
+    "partialTitle": "At least bracket {level} · {label}",
+    "provenance": "Card data from Scryfall; combos from Commander Spellbook, which receives the deck’s card names and quantities.",
+    "partialNotice": "Partial estimate: this deck may sit in a higher bracket. It isn’t saved with the deck until every source answers.",
+    "sourceUnavailable": "{source} unavailable ({reason})",
+    "sourcePartial": "{source}: {missing} of {total} cards missing ({reason})",
+    "retry": "Retry",
+    "source": {
+      "gameChangers": "Scryfall Game Changers list",
+      "oracleText": "Scryfall card text",
+      "combos": "Commander Spellbook combos"
+    },
+    "failure": {
+      "timeout": "timed out",
+      "network": "network error",
+      "http": "HTTP {status}",
+      "malformed": "unexpected response"
+    }
+  }
+}
