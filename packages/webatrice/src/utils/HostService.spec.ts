@@ -1,6 +1,6 @@
 import { Host } from '@app/types';
 
-import { getHostPort } from './HostService';
+import { getHostKey, getHostPort } from './HostService';
 
 describe('getHostPort', () => {
   it('returns the host and port verbatim', () => {
@@ -35,5 +35,12 @@ describe('getHostPort', () => {
 
   it('returns empty strings when no host is provided', () => {
     expect(getHostPort(undefined as unknown as Host)).toEqual({ host: '', port: '' });
+  });
+});
+
+describe('getHostKey', () => {
+  it('joins the address and port', () => {
+    const host = { name: 'Rooster', host: 'server.cockatrice.us/servatrice', port: '4748', editable: false } as Host;
+    expect(getHostKey(host)).toBe('server.cockatrice.us/servatrice:4748');
   });
 });

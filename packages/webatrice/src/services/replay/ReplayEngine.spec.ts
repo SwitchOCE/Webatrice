@@ -196,6 +196,24 @@ describe('ReplayEngine seeking', () => {
     expect(applied).toEqual([0, 5]);
   });
 
+  it('follows a changed buffer time from the next backward skip', () => {
+    const { engine, rewinds } = makeEngine([sayContainer(0), sayContainer(5), sayContainer(9)], {
+      rewindBufferingMs: 200,
+    });
+    engine.seek(9000);
+
+    engine.setRewindBufferingMs(1000);
+    engine.skipBy(-1000);
+    vi.advanceTimersByTime(999);
+    expect(rewinds()).toBe(1);
+    vi.advanceTimersByTime(1);
+    expect(rewinds()).toBe(2);
+
+    engine.setRewindBufferingMs(0);
+    engine.skipBy(-1000);
+    expect(rewinds()).toBe(3);
+  });
+
   it('a backward seek from a click rewinds without buffering', () => {
     const { engine, rewinds } = makeEngine([sayContainer(0), sayContainer(5)], { rewindBufferingMs: 200 });
     engine.seek(5000);

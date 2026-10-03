@@ -10,7 +10,7 @@ export { ALL_MENTION, findChatAlert, highlightStyle, parseHighlightWords, parseM
 export type { ChatAlertContext, ChatAlertKind, ChatHighlight, Mention, TextSegment, TextSegmentKind } from './chatHighlight';
 export { cx } from './cx';
 export type { CxArg } from './cx';
-export { DefaultHosts, getHostPort } from './HostService';
+export { DefaultHosts, getHostKey, getHostPort } from './HostService';
 export { getBrowserSupport } from './browserSupport';
 export type { BrowserFeature, BrowserSupport } from './browserSupport';
 export { LANGUAGE_STORAGE_KEY, resolveSupportedLanguage, toBcp47, toSupportedLanguage } from './locale';

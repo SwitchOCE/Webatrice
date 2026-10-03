@@ -13,7 +13,7 @@ import { UserGamesProvider } from '@app/feature-widgets/user-games';
 import { loadPersistedLastRoute, ShellLifecycleProvider } from '@app/feature-wrappers/layout';
 import { PrivateMessageNotifier } from '@app/features/player';
 import { ReportNotifier } from '@app/features/reports';
-import { AppAlerts, CommandFailureNotices, FeatureDetection, ServerNotices } from '@app/features/shell';
+import { AppAlerts, CommandFailureNotices, FeatureDetection, MissingFeaturesNotice, ServerNotices } from '@app/features/shell';
 import { appShellLifecycle } from './appShellLifecycle';
 
 // CssBaseline removed: it was MUI's global body reset (font, color,
@@ -62,6 +62,8 @@ function AppShell() {
               <CommandFailureNotices />
               {/* Server shutdown countdown and Event_NotifyUser messages. */}
               <ServerNotices />
+              {/* Desktop's "server supports features your client lacks" box, after a login. */}
+              <MissingFeaturesNotice />
               {/* REPORT_RESOLVED / REPORT_COMMENT popups (desktop processNotifyUserEvent). */}
               <ReportNotifier />
               {/* Hosts the report-user dialog for useReportUser().openReportUser. */}
