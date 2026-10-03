@@ -1,1 +1,2 @@
 - 15:24Z started f1011; read brief/task/rv3 → fix PR 10
+- 15:30Z PR10: semver shim (1da0e8b) + public-server URL (631bd64) pushed → PR10 gate
