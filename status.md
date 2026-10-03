@@ -3,3 +3,4 @@
 - 18:52Z play pt/cipt, X-from-top, draft upload queue pushed (e8e476d) → Say macro seam, minors
 - 18:59Z minors: reveal-all, tally a11y, reveal keyboard, draft tab, draft cap pushed (48b1317) → related-cards meta, integration spec, nits
 - 19:03Z all fixes pushed (5a8feae) → full gate
+- 19:09Z gate: tc/lint/unit/integration green → webatrice e2e
