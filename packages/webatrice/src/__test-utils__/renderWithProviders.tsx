@@ -39,7 +39,6 @@ import { GameDialogActionsProvider, type GameDialogActions } from '../features/g
 import { GameIdProvider } from '../features/game/components/ui/GameIdContext';
 import { CardPreviewProvider, createCardPreviewStore, type CardPreviewStore } from '../features/game/components/ui/CardPreviewContext';
 import { GameDialogsProvider } from '../features/game/components/ui/GameDialogsContext';
-import { BoardCellProvider, type BoardCellInfo } from '../features/game/components/ui/BoardCellContext';
 import { NOOP_GAME_DIALOGS_ACTIONS, type GameDialogs } from '../features/game/hooks/useGameDialogs';
 import { createMockWebClient } from './mockWebClient';
 
@@ -101,12 +100,6 @@ const NOOP_SHELL_LIFECYCLE: ShellLifecycle = {
 const EMPTY_SELECTION: ReadonlySet<string> = new Set();
 const DENY_ALL: CanActFor = () => false;
 
-// Board components (PlayerBoard, StackColumn, Battlefield, PlayerInfoPanel,
-// ZoneStack) read their seat from BoardCellContext; default to the local seat 1
-// (matching the dominant localPlayerId: 1 fixture — so isLocal is true). Opponent
-// specs override with boardCell: { playerId: 2, isLocal: false }.
-const DEFAULT_BOARD_CELL: BoardCellInfo = { playerId: 1, mirrored: false, isLocal: true };
-
 let defaultWebClient: WebClient | undefined;
 function getDefaultWebClient(): WebClient {
   if (!defaultWebClient) {
@@ -160,9 +153,6 @@ interface ExtendedRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   // Partial overrides for the dialogs slice (defaults to a closed/no-op slice).
   // Set the relevant menu state + handlers a dialog spec asserts against.
   gameDialogs?: Partial<GameDialogs>;
-  // The seat a board component renders, provided via BoardCellContext. Defaults
-  // to the local seat (playerId 1); pass to render an opponent/mirrored cell.
-  boardCell?: Partial<BoardCellInfo>;
   // The shell lifecycle port page chrome (TopBar) reports to. Defaults to
   // no-ops; pass `null` to render without the provider.
   shellLifecycle?: ShellLifecycle | null;
@@ -181,14 +171,10 @@ export function renderWithProviders(
     cardVisualState,
     gameDialogActions,
     gameDialogs,
-    boardCell,
     previewStore = createCardPreviewStore(),
     shellLifecycle = NOOP_SHELL_LIFECYCLE,
     ...renderOptions
   } = options;
-  const boardCellInfo: BoardCellInfo = boardCell
-    ? { ...DEFAULT_BOARD_CELL, ...boardCell }
-    : DEFAULT_BOARD_CELL;
   // Distinguish "omitted" (default game 1) from an explicit `gameId: undefined`
   // (no-active-game tests) — a destructure default can't tell them apart.
   const gameId = 'gameId' in options ? options.gameId : 1;
@@ -242,13 +228,11 @@ export function renderWithProviders(
                           <GameDialogActionsProvider value={dialogActions}>
                             <CardPreviewProvider store={previewStore}>
                               <GameDialogsProvider value={dialogs}>
-                                <BoardCellProvider value={boardCellInfo}>
-                                  {shellLifecycle ? (
-                                    <ShellLifecycleProvider value={shellLifecycle}>{children}</ShellLifecycleProvider>
-                                  ) : (
-                                    children
-                                  )}
-                                </BoardCellProvider>
+                                {shellLifecycle ? (
+                                  <ShellLifecycleProvider value={shellLifecycle}>{children}</ShellLifecycleProvider>
+                                ) : (
+                                  children
+                                )}
                               </GameDialogsProvider>
                             </CardPreviewProvider>
                           </GameDialogActionsProvider>
