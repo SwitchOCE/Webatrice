@@ -18,6 +18,7 @@ export type { GamesState } from './games/game.interfaces';
 export type { RoomsState, GameFilters, JoinGameError } from './rooms/rooms.interfaces';
 export type { JoinRoomError } from './rooms/rooms.interfaces';
 export type { PrivateChatNotice, PrivateChatNoticeKind, PrivateConversationEntry } from './server/server.interfaces';
+export type { GamesOfUserStatus } from './server/server.interfaces';
 export type {
   ServerState,
   ServerStateStatus,

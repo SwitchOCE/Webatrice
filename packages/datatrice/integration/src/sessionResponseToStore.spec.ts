@@ -322,6 +322,23 @@ describe('integration: session messaging and notifications', () => {
       create(Event_PlayerPropertiesChangedSchema, {}))).not.toThrow();
   });
 
+  it('getGamesOfUser request lifecycle: pending, then failed or loaded', () => {
+    const store = createStore();
+    const response = attachResponseHandlers(store);
+
+    response.session.getGamesOfUserPending('alice');
+    expect(server.Selectors.getGamesOfUserStatus(store.getState(), 'alice')).toEqual({ state: 'loading' });
+    response.session.getGamesOfUserFailed('alice', 16);
+    expect(server.Selectors.getGamesOfUserStatus(store.getState(), 'alice')).toEqual({ state: 'failed', code: 16 });
+
+    response.session.getGamesOfUserPending('alice');
+    response.session.getGamesOfUser('alice', create(Response_GetGamesOfUserSchema, {
+      roomList: [], gameList: [create(ServerInfo_GameSchema, { gameId: 7, description: 'casual' })],
+    }));
+    expect(server.Selectors.getGamesOfUserStatus(store.getState(), 'alice')).toEqual({ state: 'loaded' });
+    expect(server.Selectors.getGamesOfUser(store.getState(), 'alice').map((g) => g.info.description)).toEqual(['casual']);
+  });
+
   it('getGamesOfUser stores normalized games keyed by username', () => {
     const store = createStore();
     const response = attachResponseHandlers(store);
