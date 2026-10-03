@@ -757,7 +757,7 @@ The history from PB-13 on was rewritten (`git rebase -i` with a scripted sequenc
 
 - Every rewritten commit (`3bb953d` … `dc7ce0b`, 39 commits) passes `tsc --noEmit` and eslint on its changed files. The untouched earlier commits are as rv8 verified them.
 - `npx turbo run typecheck --concurrency=1`: pass. `npm run lint`: pass (0 errors).
-- Unit tests: sockatrice 39 / 775, datatrice 29 / 1196, webatrice **256 files / 1988 tests** (at `7e91c45` it was 256 / 1978: +14 new review-fix cases, −4 cases for the deleted port methods).
+- Unit tests: sockatrice 39 / 775, datatrice 29 / 1196, webatrice **256 files / 1988 tests** (at `7e91c45` it was 256 / 1978: 13 new cases, and 3 removed with the deleted port methods).
 - Integration tests: sockatrice 19 / 166, datatrice 9 / 136, webatrice **38 / 163**, 0 skipped.
 - Webatrice e2e (3.0.0 image; the browsers run in `mcr.microsoft.com/playwright:v1.60.0-noble`, with the host's docker CLI and socket mounted for `staff-tools`): **36 passed (10.4 min)** in chromium, firefox and webkit. The stack was torn down.
 - Sockatrice e2e: not run. No sockatrice or server flow changed.
