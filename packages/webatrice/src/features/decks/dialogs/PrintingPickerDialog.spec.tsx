@@ -68,4 +68,12 @@ describe('PrintingPickerDialog', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('lists the printings the deck holds first, as desktop\'s "Bump sets" option does', () => {
+    printings({ printings: [m11, a25] });
+    const deck = [{ ...bolt, scryfallId: 'a25-id' }];
+    render(<PrintingPickerDialog request={{ index: 0, card: bolt }} deckCards={deck} onClose={vi.fn()} onPick={vi.fn()} />);
+    const titles = screen.getAllByTitle(/· Lightning Bolt$/).map((el) => el.getAttribute('title'));
+    expect(titles).toEqual(['A25 · Lightning Bolt', 'M11 · Lightning Bolt']);
+  });
 });

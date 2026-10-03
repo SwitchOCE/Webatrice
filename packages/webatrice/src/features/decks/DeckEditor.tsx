@@ -196,6 +196,7 @@ const DeckEditor = () => {
 
       <PrintingPickerDialog
         request={printingRequest}
+        deckCards={editor.deck?.cards}
         onClose={() => setPrintingRequest(null)}
         onPick={(printing) => {
           if (!printingRequest) {
