@@ -112,7 +112,10 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
     buildRelatedViewItems(
       cardMetaByName.get(cardName)?.related ?? [],
       (name) => tokenMetaByName.get(name)?.found ?? false,
-      (ref) => showCardInfo({ name: ref.name, scryfallId: ref.scryfallId }),
+      (ref) => {
+        showCardInfo({ name: ref.name, scryfallId: ref.scryfallId });
+        closeSeatCardMenu();
+      },
     );
 
   const deckCount = zones.library.cardCount ?? 0;
