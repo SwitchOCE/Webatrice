@@ -1,3 +1,4 @@
 - 20:22Z started; branch from restack-23-playmats → read code, implement A
 - 20:32Z DialogShell focus/trap/restore + FilterGames/SequenceEdit migrated, pushed → Menu primitive
 - 20:39Z Menu primitive + UserActionsMenu/TopBar menu + connection status, pushed → toasts, live regions
+- 20:45Z toasts region/pause/persistent + chat role=log + P12, pushed → P14 form errors, P18 lang/title, contrast
