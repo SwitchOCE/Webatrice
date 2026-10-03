@@ -89,7 +89,9 @@ export class DebugLog {
   private header: readonly string[] = [];
   private entries: DebugLogEntry[] = [];
   private readonly listeners = new Set<() => void>();
-  private snapshot: readonly DebugLogEntry[] = [];
+  /** Built on first read after a change, so appends nobody is watching cost no copy. */
+  private snapshot: readonly DebugLogEntry[] | null = [];
+  private notifyQueued = false;
 
   constructor(private readonly capacity = DEBUG_LOG_MAX_ENTRIES) {}
 
@@ -112,7 +114,7 @@ export class DebugLog {
   }
 
   /** Stable between changes, for `useSyncExternalStore`. */
-  getEntries = (): readonly DebugLogEntry[] => this.snapshot;
+  getEntries = (): readonly DebugLogEntry[] => (this.snapshot ??= [...this.entries]);
 
   clear(): void {
     this.entries = [];
@@ -131,9 +133,21 @@ export class DebugLog {
     };
   };
 
+  /**
+   * Listeners hear about changes in a microtask, once per burst. `append` runs inside every
+   * `console.*` call, including React's own warnings made while it renders another component;
+   * notifying synchronously there would update the log view mid-render.
+   */
   private notify(): void {
-    this.snapshot = [...this.entries];
-    this.listeners.forEach((listener) => listener());
+    this.snapshot = null;
+    if (this.notifyQueued || this.listeners.size === 0) {
+      return;
+    }
+    this.notifyQueued = true;
+    queueMicrotask(() => {
+      this.notifyQueued = false;
+      this.listeners.forEach((listener) => listener());
+    });
   }
 }
 
