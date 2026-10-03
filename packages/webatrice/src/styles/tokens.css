@@ -17,9 +17,15 @@
   --bg-elevated: 42 33 64;          /* #2A2140 */
   --border-subtle: 58 46 90;        /* #3A2E5A */
   --border-strong: 90 74 133;       /* #5A4A85 */
+  /* Form-control edges (inputs, unchecked checkboxes): 3:1 against every
+     surface and the field fill (WCAG 1.4.11). Dividers stay border-subtle. */
+  --border-control: 124 106 168;    /* #7C6AA8 */
   --accent-primary: 159 122 234;    /* #9F7AEA */
   --accent-primary-hover: 183 148 244; /* #B794F4 */
   --accent-secondary: 107 70 193;   /* #6B46C1 */
+  /* Text and icons on an accent fill (primary buttons). The dark accent is
+     light, so it takes dark text: white on it is only 3.3:1. */
+  --text-on-accent: 20 16 31;       /* #14101F */
   --text-primary: 245 240 246;      /* #F5F0F6 */
   --text-secondary: 199 191 212;    /* #C7BFD4 */
   /* Muted: hints and labels people read, so AA (4.5:1) on every surface. */
@@ -43,9 +49,11 @@
   --bg-elevated: 238 233 245;       /* #EEE9F5 */
   --border-subtle: 220 211 233;     /* #DCD3E9 */
   --border-strong: 180 166 207;     /* #B4A6CF */
+  --border-control: 133 119 153;    /* #857799 */
   --accent-primary: 107 70 193;     /* #6B46C1 */
   --accent-primary-hover: 85 60 154; /* #553C9A */
   --accent-secondary: 159 122 234;  /* #9F7AEA */
+  --text-on-accent: 255 255 255;    /* #FFFFFF */
   --text-primary: 29 22 48;         /* #1D1630 */
   --text-secondary: 70 60 92;       /* #463C5C */
   --text-muted: 103 93 126;         /* #675D7E */

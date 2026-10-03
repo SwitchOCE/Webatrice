@@ -71,7 +71,7 @@ const SequenceEdit = ({ actionId, onClose }: SequenceEditProps) => {
             onClick={handleSave}
             className={[
               'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent',
-              'text-white hover:bg-accent-hover shadow-glow transition-colors',
+              'text-on-accent hover:bg-accent-hover shadow-glow transition-colors',
             ].join(' ')}
           >
             {t('ShortcutsTab.save')}
