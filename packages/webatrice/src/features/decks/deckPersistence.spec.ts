@@ -1,6 +1,6 @@
 import { parseCod } from '@app/services';
 
-import { deckSaveSignature, serializeDeckForSave } from './deckPersistence';
+import { deckColorIdentity, deckSaveSignature, serializeDeckForSave } from './deckPersistence';
 import type { HydratedDeck } from './types';
 
 const deck: HydratedDeck = {
@@ -25,6 +25,24 @@ describe('serializeDeckForSave', () => {
     expect(parsed.bannerCardProviderId).toBe('abc-123');
     expect(parsed.bracketAssessment?.level).toBe(2);
     expect(parsed.meta.updatedAt).not.toBe('2020-01-01T00:00:00.000Z');
+  });
+});
+
+describe('deckColorIdentity', () => {
+  const card = (name: string, colors: string[] | undefined, category: 'main' | 'sideboard' = 'main') =>
+    ({ name, quantity: 1, category, lookupSource: 'scryfall' as const, colors });
+
+  it('unions main and sideboard colors in WUBRG order, like desktop getDeckColorIdentity', () => {
+    expect(deckColorIdentity([
+      card('Lightning Bolt', ['R']),
+      card('Duress', ['B'], 'sideboard'),
+      card('Azorius Charm', ['W', 'U']),
+      card('Sol Ring', []),
+    ])).toBe('WUBR');
+  });
+
+  it('is empty for a colorless deck or cards whose data has not loaded', () => {
+    expect(deckColorIdentity([card('Sol Ring', []), card('Unknown', undefined)])).toBe('');
   });
 });
 

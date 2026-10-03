@@ -31,6 +31,17 @@ describe('Command_DeckUpload proto2 presence (update vs create)', () => {
     expect(parsed.deckList).toBe('<cockatrice_deck/>');
   });
 
+  it('deckUpdate sends the color identity, and leaves visibility unset unless given', () => {
+    deckUpdate(7, '<cockatrice_deck/>', undefined, 'UB');
+
+    const parsed = fromBinary(Command_DeckUploadSchema, toBinary(Command_DeckUploadSchema, lastSentMessage()));
+
+    expect(isFieldSet(parsed, Command_DeckUploadSchema.field.colorIdentity)).toBe(true);
+    expect(parsed.colorIdentity).toBe('UB');
+    expect(isFieldSet(parsed, Command_DeckUploadSchema.field.isPublic)).toBe(false);
+    expect(isFieldSet(parsed, Command_DeckUploadSchema.field.path)).toBe(false);
+  });
+
   it('deckUpload marks an empty root path present, so the server creates a deck', () => {
     deckUpload('', 0, '<cockatrice_deck/>');
 
