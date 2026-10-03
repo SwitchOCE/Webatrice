@@ -1,2 +1,3 @@
 - 15:24Z started f1011; read brief/task/rv3 → fix PR 10
 - 15:30Z PR10: semver shim (1da0e8b) + public-server URL (631bd64) pushed → PR10 gate
+- 15:39Z PR10 tip 4119363 pushed; typecheck/lint/unit/integration green → rebase+fold PR11
