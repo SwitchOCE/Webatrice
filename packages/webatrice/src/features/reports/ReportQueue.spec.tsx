@@ -9,6 +9,7 @@ import {
   Response_ResponseCode,
   ServerInfo_RoomSchema,
 } from '@cockatrice/sockatrice/generated';
+import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import type { Mock } from 'vitest';
 
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
@@ -52,6 +53,9 @@ function ReplayViewProbe() {
   return <div data-testid="replay-view">{getOpenedReplay(replayKey)?.title}</div>;
 }
 
+const failed = (command: WebsocketTypes.ModeratorCommandName, target = '') =>
+  server.Actions.moderatorCommandFailed({ command, responseCode: Response_ResponseCode.RespInvalidData, target });
+
 const button = (name: string) => screen.getByRole('button', { name }) as HTMLButtonElement;
 
 describe('ReportQueue gating', () => {
@@ -72,10 +76,23 @@ describe('ReportQueue gating', () => {
 describe('ReportQueue', () => {
   it('loads the unresolved queue and the stats on open, and re-queries when the switch flips', () => {
     const { moderator } = renderQueue();
-    expect(moderator.reportList).toHaveBeenCalledWith(true, undefined, undefined, expect.any(Function));
+    expect(moderator.reportList).toHaveBeenCalledWith(true);
     expect(moderator.reportStats).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByLabelText('Reports.queue.unresolvedOnly'));
-    expect(moderator.reportList).toHaveBeenLastCalledWith(false, undefined, undefined, expect.any(Function));
+    expect(moderator.reportList).toHaveBeenLastCalledWith(false);
+  });
+
+  it('shows the list and stats failure lines from the moderator failure signal', () => {
+    const { store } = renderQueue();
+    act(() => {
+      store.dispatch(failed('reportStats'));
+    });
+    expect(screen.getByTestId('report-stats').textContent).toBe('Reports.stats.failed');
+    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.loading');
+    act(() => {
+      store.dispatch(failed('reportList'));
+    });
+    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.loadFailed');
   });
 
   it('filters by search text and status locally', () => {
@@ -106,37 +123,53 @@ describe('ReportQueue', () => {
   });
 
   it('assigns to me, then refreshes; a failure says so without refreshing', () => {
-    const { moderator, load } = renderQueue();
+    const { moderator, load, store } = renderQueue();
     load();
     fireEvent.click(screen.getByTestId('report-row-1'));
     fireEvent.click(button('Reports.queue.assign'));
-    expect(moderator.reportAssign).toHaveBeenCalledWith(1, expect.any(Function), expect.any(Function));
+    expect(moderator.reportAssign).toHaveBeenCalledWith(1);
     expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.assigning');
     expect(button('Reports.queue.resolve').disabled).toBe(true);
 
-    act(() => moderator.reportAssign.mock.calls[0][2](20));
+    // Another report's failure is not this assignment's.
+    act(() => {
+      store.dispatch(failed('reportAssign', '2'));
+    });
+    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.assigning');
+    act(() => {
+      store.dispatch(failed('reportAssign', '1'));
+    });
     expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.assignFailed');
     expect(moderator.reportList).toHaveBeenCalledTimes(1);
 
     fireEvent.click(button('Reports.queue.assign'));
-    act(() => moderator.reportAssign.mock.calls[1][1]());
+    act(() => {
+      store.dispatch(server.Actions.reportAssigned({ reportId: 1 }));
+    });
     expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.assignedDone');
     expect(moderator.reportList).toHaveBeenCalledTimes(2);
   });
 
   it('resolves without a note, and dismisses with the note from the prompt', () => {
-    const { moderator, load } = renderQueue();
+    const { moderator, load, store } = renderQueue();
     load();
     fireEvent.click(screen.getByTestId('report-row-2'));
     fireEvent.click(button('Reports.queue.resolve'));
-    expect(moderator.reportResolve).toHaveBeenCalledWith(2, undefined, false, expect.any(Function), expect.any(Function));
-    act(() => moderator.reportResolve.mock.calls[0][4](20));
+    expect(moderator.reportResolve).toHaveBeenCalledWith(2, undefined, false);
+    act(() => {
+      store.dispatch(failed('reportResolve', '2'));
+    });
     expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.actionFailed');
 
     fireEvent.click(button('Reports.queue.dismiss'));
     fireEvent.change(screen.getByLabelText('Reports.queue.dismissNoteLabel'), { target: { value: ' duplicate ' } });
     fireEvent.click(screen.getByRole('button', { name: 'Reports.queue.ok' }));
-    expect(moderator.reportResolve).toHaveBeenLastCalledWith(2, 'duplicate', true, expect.any(Function), expect.any(Function));
+    expect(moderator.reportResolve).toHaveBeenLastCalledWith(2, 'duplicate', true);
+    act(() => {
+      store.dispatch(server.Actions.reportResolved({ reportId: 2, dismissed: true }));
+    });
+    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.done');
+    expect(moderator.reportList).toHaveBeenCalledTimes(2);
   });
 
   it('requests and shows the reported user context', () => {
@@ -177,7 +210,7 @@ describe('ReportQueue', () => {
     load();
     fireEvent.click(screen.getByTestId('report-row-2'));
     fireEvent.click(button('Reports.queue.viewReplay'));
-    expect(moderator.replayDownloadByGameId).toHaveBeenCalledWith(30, expect.any(Function));
+    expect(moderator.replayDownloadByGameId).toHaveBeenCalledWith(30);
     expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.loadingReplay');
 
     // A replay for another game (a stale response) is ignored.
@@ -186,6 +219,24 @@ describe('ReportQueue', () => {
       store.dispatch(server.Actions.reportReplayDownloaded({ gameId: 31, replayId: 8, replayData }));
     });
     expect(screen.queryByTestId('replay-view')).toBeNull();
+
+    act(() => {
+      store.dispatch(server.Actions.reportReplayDownloaded({ gameId: 30, replayId: 9, replayData }));
+    });
+    expect(screen.getByTestId('replay-view').textContent).toBe('Reports.queue.replayTitle');
+  });
+
+  it('waits for the new download when the same game\'s replay was fetched before', () => {
+    const { load, store } = renderQueue();
+    load();
+    const replayData = toBinary(GameReplaySchema, buildReplay([sayContainer(0)], 30));
+    act(() => {
+      store.dispatch(server.Actions.reportReplayDownloaded({ gameId: 30, replayId: 9, replayData }));
+    });
+    fireEvent.click(screen.getByTestId('report-row-2'));
+    fireEvent.click(button('Reports.queue.viewReplay'));
+    expect(screen.queryByTestId('replay-view')).toBeNull();
+    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.loadingReplay');
 
     act(() => {
       store.dispatch(server.Actions.reportReplayDownloaded({ gameId: 30, replayId: 9, replayData }));
@@ -206,11 +257,13 @@ describe('ReportQueue', () => {
   });
 
   it('says there is no replay when the download fails', () => {
-    const { moderator, load } = renderQueue();
+    const { load, store } = renderQueue();
     load();
     fireEvent.click(screen.getByTestId('report-row-2'));
     fireEvent.click(button('Reports.queue.viewReplay'));
-    act(() => moderator.replayDownloadByGameId.mock.calls[0][1](8));
+    act(() => {
+      store.dispatch(failed('replayDownloadByGameId', '30'));
+    });
     expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.noReplay');
   });
 

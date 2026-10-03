@@ -99,4 +99,8 @@ export const Types = {
   USER_AVATAR_REMOVED: a.userAvatarRemoved.type,
   CARD_ART_RULES: a.cardArtRules.type,
   SERVER_STATS: a.serverStats.type,
+  // Reports
+  REPORT_ASSIGNED: a.reportAssigned.type,
+  REPORT_RESOLVED: a.reportResolved.type,
+  REPORT_REPLAY_DOWNLOADED: a.reportReplayDownloaded.type,
 } as const;

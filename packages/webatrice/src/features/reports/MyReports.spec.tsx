@@ -42,9 +42,27 @@ describe('MyReports', () => {
   });
 
   it('shows the failure line when the list cannot be loaded', () => {
-    const { session } = renderMyReports();
-    act(() => session.reportMyList.mock.calls[0][0]());
+    const { store } = renderMyReports();
+    act(() => {
+      store.dispatch(server.Actions.sessionCommandFailed({ command: 'reportMyList', responseCode: 20, target: '' }));
+    });
     expect(screen.getByTestId('report-list-status').textContent).toBe('Reports.loadFailed');
+  });
+
+  it('says the details failed only for the report whose lookup failed', () => {
+    const { store } = renderMyReports();
+    act(() => {
+      store.dispatch(server.Actions.reportMyList({ reports: [makeReport({ reportId: 4 })] }));
+    });
+    fireEvent.click(screen.getByTestId('report-row-4'));
+    act(() => {
+      store.dispatch(server.Actions.sessionCommandFailed({ command: 'reportDetails', responseCode: 20, target: '5' }));
+    });
+    expect(screen.queryByText('Reports.thread.detailsFailed')).toBeNull();
+    act(() => {
+      store.dispatch(server.Actions.sessionCommandFailed({ command: 'reportDetails', responseCode: 20, target: '4' }));
+    });
+    expect(screen.getByText('Reports.thread.detailsFailed')).toBeTruthy();
   });
 
   it('loads details for the selected report and sends a comment, then refreshes', () => {
@@ -53,7 +71,7 @@ describe('MyReports', () => {
       store.dispatch(server.Actions.reportMyList({ reports: [makeReport({ reportId: 4, status: 'assigned' })] }));
     });
     fireEvent.click(screen.getByTestId('report-row-4'));
-    expect(session.reportDetails).toHaveBeenCalledWith(4, expect.any(Function));
+    expect(session.reportDetails).toHaveBeenCalledWith(4);
     act(() => {
       store.dispatch(server.Actions.reportDetails({ report: makeReport({ reportId: 4, status: 'assigned', chatLog: 'log' }) }));
     });
