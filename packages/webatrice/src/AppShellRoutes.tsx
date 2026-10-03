@@ -29,6 +29,7 @@ const AppShellRoutes = () => (
       <Route path={RouteEnum.CARD_ART_RULES} element={<CardArtRules />} />
       <Route path={RouteEnum.DECKS} element={<Decks />} />
       <Route path={RouteEnum.DECK} element={<DeckEditor />} />
+      <Route path={RouteEnum.DECK_DRAFT} element={<DeckEditor />} />
       <Route path={RouteEnum.SHARED_DECK} element={<SharedDeck />} />
       <Route path={RouteEnum.PUBLIC_DECKS} element={<PublicDecks />} />
       <Route path={RouteEnum.DEVELOPER} element={<Developer />} />

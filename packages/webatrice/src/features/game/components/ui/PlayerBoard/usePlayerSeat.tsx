@@ -39,8 +39,9 @@ export type PlayerSeatProps = {
   model: PlayerBoardModel;
   /** What the seat can ask for, grouped by zone / card / counter / target. */
   commands: PlayerBoardCommands;
-  /** Webatrice's "Open deck in deck editor" link. Undefined when the game's
-   *  deck matches none of the user's saved decks (see useOpenDeckInEditor). */
+  /** "Open deck in deck editor": opens the deck being played in the deck
+   *  editor as an unsaved draft (desktop actOpenDeckInDeckEditor). Undefined,
+   *  disabling the menu item, until the seat's deck is known. */
   onOpenDeckInEditor?: () => void;
 };
 

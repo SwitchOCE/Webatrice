@@ -27,9 +27,17 @@ export interface DeckAutosave {
   savedSignature: () => string | null;
 }
 
+/** An unsaved draft's autosave (`deckId` null): its first save stores it. */
+export interface DraftAutosave {
+  /** The draft's first save was stored as deck `deckId`, holding `signature`. */
+  onStored: (deckId: number, signature: string) => void;
+}
+
 /**
  * Debounced autosave for the open deck, sent as Sockatrice `deckUpdate`
- * (desktop `actSaveDeck` for a remote deck).
+ * (desktop `actSaveDeck` for a remote deck). An unsaved draft (`deckId`
+ * null, `draft` given) is stored by its first save instead, as a new deck
+ * at the root (`deckUpload` with id 0, like My Decks' "New deck").
  *
  * Each save reads the latest deck through `readDeck` (so the timer never sees
  * a stale snapshot) and uploads only when its signature differs from the last
@@ -42,6 +50,7 @@ export function useDeckAutosave(
   deckId: number | null,
   readDeck: () => HydratedDeck | null,
   initialSavedSignature: string | null,
+  draft?: DraftAutosave,
 ): DeckAutosave {
   const webClient = useWebClient();
   const [saveState, setSaveState] = useState<SaveState>('idle');
@@ -50,6 +59,10 @@ export function useDeckAutosave(
   const inFlightRef = useRef<string[]>([]);
   // What the indicator falls back to when a dirty deck turns out unchanged.
   const settledStateRef = useRef<SaveState>('idle');
+  // A draft's first save while its deckUpload is in flight: its signature.
+  const draftUploadRef = useRef<string | null>(null);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
 
   const settle = useCallback((state: SaveState) => {
     settledStateRef.current = state;
@@ -58,10 +71,18 @@ export function useDeckAutosave(
 
   const persistNow = useCallback(() => {
     const current = readDeck();
-    if (!current || deckId == null) {
+    if (!current || (deckId == null && !draftRef.current)) {
       return;
     }
     const signature = deckSaveSignature(current);
+    if (deckId == null) {
+      if (draftUploadRef.current == null && signature !== savedSignatureRef.current) {
+        draftUploadRef.current = signature;
+        setSaveState('saving');
+        webClient.request.session.deckUpload('', 0, serializeDeckForSave(current), undefined, deckColorIdentity(current.cards));
+      }
+      return;
+    }
     const inFlight = inFlightRef.current;
     const latestKnown = inFlight.length > 0 ? inFlight[inFlight.length - 1] : savedSignatureRef.current;
     if (signature === latestKnown) {
@@ -103,6 +124,32 @@ export function useDeckAutosave(
     },
     [server.Types.DECK_UPDATED, server.Types.DECK_UPDATE_FAILED],
     [deckId],
+  );
+
+  // A draft's first save came back as a new stored deck.
+  useReduxEffect<{ path: string; treeItem: { id: number } }>(
+    ({ payload }) => {
+      const signature = draftUploadRef.current;
+      if (signature == null || deckId != null) {
+        return;
+      }
+      draftUploadRef.current = null;
+      savedSignatureRef.current = signature;
+      settle('saved');
+      draftRef.current?.onStored(payload.treeItem.id, signature);
+    },
+    server.Types.DECK_UPLOAD,
+    [deckId, settle],
+  );
+  useReduxEffect(
+    () => {
+      if (draftUploadRef.current != null) {
+        draftUploadRef.current = null;
+        settle('failed');
+      }
+    },
+    server.Types.DECK_UPLOAD_FAILED,
+    [settle],
   );
 
   const scheduleSave = useCallback(() => {
