@@ -3,6 +3,7 @@ import type { useShortcutHints } from '@app/feature-widgets/shortcuts';
 import type { SeatSelection } from '../../../hooks/useSeatSelection';
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import { MANA_COLORS } from '../../right-sidebar/PlayerInfoPanel/manaColors';
+import { useTallyType } from '../../../hooks/useTallyType';
 import { useGameDialogActions } from '../../ui/GameDialogActionsContext';
 import { MAX_COUNTER_VALUE } from '../../ui/PlayerBoard/counterLimits';
 import type {
@@ -12,6 +13,7 @@ import type {
   PlayerCounterViewModel,
 } from '../../ui/PlayerBoard/playerBoard.types';
 import type { LifeControl, useSeatPrompts } from '../../ui/PlayerBoard/useSeatPrompts';
+import { buildTallyMenu } from './tallyMenu';
 
 type ShortcutHints = ReturnType<typeof useShortcutHints>;
 type SeatPrompts = ReturnType<typeof useSeatPrompts>;
@@ -41,8 +43,9 @@ export interface UseBattlefieldMenuItemsArgs {
  * The battlefield's right-click menus. The owner gets desktop's PlayerMenu
  * (player_menu.cpp:60-62): the hand, library, graveyard, exile and sideboard
  * menus as submenus, the player counters, card-counter and untap utilities,
- * dice, tokens and game info. Every other viewer gets only the graveyard and
- * exile views, as desktop gates the rest behind the local player.
+ * dice, tokens, game info and Tally. Every other viewer gets only the
+ * graveyard and exile views and Tally, as desktop gates the rest behind the
+ * local player.
  */
 export function useBattlefieldMenuItems({
   handMenuItems,
@@ -64,6 +67,10 @@ export function useBattlefieldMenuItems({
   counterCommands,
 }: UseBattlefieldMenuItemsArgs) {
   const { onRequestRollDie, onRequestGameInfo, onRequestViewSideboard } = useGameDialogActions();
+  // Every player's menu ends with Tally (player_menu.cpp:48), a local choice
+  // the game overlays on the selection.
+  const [tallyType, setTallyType] = useTallyType();
+  const tallyMenu = buildTallyMenu(tallyType, setTallyType);
 
   // Counters submenu — Cockatrice's AbstractCounter builds a menu per
   // counter with "Set counter..." + ±1..±10 rows (abstract_counter.cpp:36-57).
@@ -312,19 +319,22 @@ export function useBattlefieldMenuItems({
       label: 'Game info...',
       onClick: () => onRequestGameInfo?.(),
     },
+    tallyMenu,
   ];
 
   // Opponent battlefield right-click menu. Ports Cockatrice's
   // player_menu.cpp:14-58 opponent branch: all utility items (Create
   // token, Roll die, Counters, Untap all, Hand / Library / Sideboard
   // submenus) are OWN-ONLY, so the opponent menu narrows to just the
-  // two public zones you can peek at — graveyard and exile. Reuses
+  // two public zones you can peek at — graveyard and exile — plus the
+  // menus every player's menu carries (Tally, player_menu.cpp:48). Reuses
   // the same opponent grave/exile item arrays the pile-level menus
   // already attach so "View graveyard" opens the same LibrarySearch
   // dialog either way.
   const opponentBattlefieldMenuItems: ContextMenuItem[] = [
     { label: 'Graveyard', submenu: graveMenuItemsOpponent },
     { label: 'Exile', submenu: exileMenuItemsOpponent },
+    tallyMenu,
   ];
 
   return {
