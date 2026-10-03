@@ -25,6 +25,18 @@ describe('useGameDialogState', () => {
     });
   });
 
+  it('closes an opened prompt after its submit handler runs', () => {
+    const { result } = renderHook(() => useGameDialogState());
+    const onSubmit = vi.fn();
+
+    act(() => result.current.toggles.openPrompt({ title: 'T', label: 'L', onSubmit }));
+    expect(result.current.state.prompt?.title).toBe('T');
+    act(() => result.current.state.prompt!.onSubmit('7'));
+
+    expect(onSubmit).toHaveBeenCalledWith('7');
+    expect(result.current.state.prompt).toBeNull();
+  });
+
   it('opens and closes each flag through its toggle', () => {
     const { result } = renderHook(() => useGameDialogState());
 

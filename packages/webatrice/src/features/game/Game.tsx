@@ -341,12 +341,7 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                                 {dialogs.prompt && (
                                   <PromptDialog
                                     isOpen
-                                    title={dialogs.prompt.title}
-                                    label={dialogs.prompt.label}
-                                    initialValue={dialogs.prompt.initialValue}
-                                    helperText={dialogs.prompt.helperText}
-                                    validate={dialogs.prompt.validate}
-                                    onSubmit={dialogs.prompt.onSubmit}
+                                    {...dialogs.prompt}
                                     onCancel={dialogs.closePrompt}
                                   />
                                 )}
