@@ -1,7 +1,7 @@
 import { create } from '@bufbuild/protobuf';
 import { ServerInfo_RoomSchema } from '@cockatrice/sockatrice/generated';
 import { GameSortField, SortDirection, UserSortField } from '@cockatrice/datatrice';
-import { makeUser as makeUpstreamUser } from '@cockatrice/datatrice/testing';
+import { makeReportsState, makeUser as makeUpstreamUser } from '@cockatrice/datatrice/testing';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import type { RootState } from '../store';
 
@@ -48,6 +48,7 @@ export const disconnectedState: Partial<RootState> = {
     gamesOfUserStatus: {},
     registrationError: null,
     staff: { investigation: null, moderatorLastLogins: null, cardArtRules: null, serverStats: null },
+    reports: makeReportsState(),
   },
   rooms: {
     rooms: {},

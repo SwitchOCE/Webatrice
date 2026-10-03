@@ -1,6 +1,8 @@
 import type { Store } from '@reduxjs/toolkit';
 import {
   Response_CardArtRuleEntry,
+  Response_ReplayDownloadByGameId,
+  Response_ReportStats,
   Response_ReportUserInfo,
   Response_WarnList,
   ServerInfo_Ban,
@@ -8,6 +10,7 @@ import {
   ServerInfo_ModeratorLogin,
   ServerInfo_UserAlt,
   ServerInfo_UserSession,
+  ServerInfo_Report,
   ServerInfo_Warning,
 } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
@@ -112,5 +115,29 @@ export class ModeratorResponseImpl implements WebsocketTypes.IModeratorResponse 
 
   cardArtRuleRemoved(cardName: string, cardProviderId: string): void {
     this.store.dispatch(ServerActions.cardArtRuleRemoved({ cardName, cardProviderId }));
+  }
+
+  reportList(reports: ServerInfo_Report[], totalCount: number): void {
+    this.store.dispatch(ServerActions.reportList({ reports, totalCount }));
+  }
+
+  reportAssigned(reportId: number): void {
+    this.store.dispatch(ServerActions.reportAssigned({ reportId }));
+  }
+
+  reportResolved(reportId: number, dismissed: boolean): void {
+    this.store.dispatch(ServerActions.reportResolved({ reportId, dismissed }));
+  }
+
+  reportStats(stats: Response_ReportStats): void {
+    this.store.dispatch(ServerActions.reportStats({ stats }));
+  }
+
+  replayDownloadedByGameId(gameId: number, response: Response_ReplayDownloadByGameId): void {
+    this.store.dispatch(ServerActions.reportReplayDownloaded({
+      gameId,
+      replayId: response.replayId,
+      replayData: response.replayData,
+    }));
   }
 }

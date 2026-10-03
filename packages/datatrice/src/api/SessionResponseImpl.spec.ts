@@ -17,6 +17,7 @@ import {
   ServerInfo_DeckStorage_TreeItemSchema,
   ServerInfo_PlayerPropertiesSchema,
   ServerInfo_ReplayMatchSchema,
+  ServerInfo_ReportSchema,
   ServerInfo_UserSchema,
 } from '@cockatrice/sockatrice/generated';
 import { Actions as ServerActions } from '../store/server/server.actions';
@@ -580,5 +581,37 @@ describe('SessionResponseImpl forwards', () => {
     expect(dispatch).toHaveBeenCalledWith(
       ServerActions.deckUploadFailed({ path: '', responseCode: -1, failure: WebsocketTypes.CommandFailure.Disconnected }),
     );
+  });
+});
+
+describe('SessionResponseImpl reports', () => {
+  it('reportMyList dispatches reportMyList', () => {
+    const { impl, dispatch } = setup();
+    const reports = [create(ServerInfo_ReportSchema, { reportId: 3 })];
+    impl.reportMyList(reports);
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.reportMyList({ reports }));
+  });
+
+  it('reportDetails lands the full report in server.reports.details', () => {
+    const { store, impl } = setup();
+    const report = create(ServerInfo_ReportSchema, { reportId: 3, chatLog: 'log' });
+    impl.reportDetails(report);
+    expect(store.getState().server.reports.details[3]).toBe(report);
+  });
+
+  it.each([
+    Event_NotifyUser_NotificationType.REPORT_RESOLVED,
+    Event_NotifyUser_NotificationType.REPORT_COMMENT,
+  ])('notifyUser also raises reportNotified for report notification type %s', (type) => {
+    const { store, impl } = setup();
+    const notification = create(Event_NotifyUserSchema, { type, customTitle: 'Report Resolved', customContent: 'Done' });
+    impl.notifyUser(notification);
+    expect(store.getState().server.reports.lastNotice).toEqual({ seq: 1, notification });
+  });
+
+  it('notifyUser does not raise reportNotified for other notification types', () => {
+    const { store, impl } = setup();
+    impl.notifyUser(create(Event_NotifyUserSchema, { type: Event_NotifyUser_NotificationType.PROMOTED }));
+    expect(store.getState().server.reports.lastNotice).toBeNull();
   });
 });
