@@ -1,0 +1,185 @@
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { Route, Routes } from 'react-router-dom';
+import { toBinary } from '@bufbuild/protobuf';
+
+import { GameReplaySchema } from '@cockatrice/sockatrice/generated';
+import { REPLAY_LIBRARY_ROOT, ReplayFileDTO, ReplayNameTakenError } from '@app/services';
+import { RouteEnum } from '@app/types';
+
+import { disconnectedState, makeStoreState, renderWithProviders } from '../../__test-utils__';
+import { buildReplay, sayContainer } from '../../services/replay/__mocks__/fixtures';
+import Replays from './Replays';
+
+vi.mock('../../hooks/useSettings');
+
+function entry(id: number, name: string, kind: 'folder' | 'replay' = 'replay', parentId = REPLAY_LIBRARY_ROOT) {
+  return Object.assign(new ReplayFileDTO(), {
+    id, name, kind, parentId, size: kind === 'replay' ? 2048 : 0, modifiedAt: '2026-10-01T12:00:00.000Z',
+  });
+}
+
+const replayBytes = () => toBinary(GameReplaySchema, buildReplay([sayContainer(0)]));
+
+/** Library contents by folder id. */
+let library: Record<number, ReplayFileDTO[]>;
+
+function renderReplays() {
+  // Local replays work offline: no login needed.
+  return renderWithProviders(
+    <Routes>
+      <Route path={RouteEnum.REPLAYS} element={<Replays />} />
+      <Route path={RouteEnum.REPLAY} element={<div data-testid="replay-view" />} />
+    </Routes>,
+    { route: RouteEnum.REPLAYS, preloadedState: makeStoreState(disconnectedState) },
+  );
+}
+
+function localPane() {
+  return within(screen.getByRole('region', { name: 'Replays.local.title' }));
+}
+
+beforeEach(() => {
+  library = {
+    [REPLAY_LIBRARY_ROOT]: [entry(1, 'zeta.cor'), entry(2, 'Tournament', 'folder'), entry(3, 'alpha.cor')],
+    2: [entry(4, 'round1.cor', 'replay', 2)],
+  };
+  vi.spyOn(ReplayFileDTO, 'listFolder').mockImplementation(async (parentId = REPLAY_LIBRARY_ROOT) => library[parentId] ?? []);
+  vi.spyOn(ReplayFileDTO, 'getAll').mockImplementation(async () => Object.values(library).flat());
+  vi.spyOn(ReplayFileDTO, 'readData').mockResolvedValue(replayBytes());
+});
+
+describe('Local replays', () => {
+  it('lists folders before replays, by name', async () => {
+    renderReplays();
+
+    await localPane().findByTestId('local-replay-zeta.cor');
+    const names = localPane().getAllByRole('row').slice(1).map((row) => row.getAttribute('data-testid'));
+    expect(names).toEqual(['local-replay-Tournament', 'local-replay-alpha.cor', 'local-replay-zeta.cor']);
+  });
+
+  it('opens a folder on double-click and walks back up via the path', async () => {
+    renderReplays();
+
+    fireEvent.doubleClick(await localPane().findByTestId('local-replay-Tournament'));
+    expect(await localPane().findByTestId('local-replay-round1.cor')).toBeInTheDocument();
+    expect(localPane().getByRole('navigation')).toHaveTextContent('Replays.local.root / Tournament');
+
+    fireEvent.click(localPane().getByRole('button', { name: 'Replays.local.root' }));
+    expect(await localPane().findByTestId('local-replay-zeta.cor')).toBeInTheDocument();
+  });
+
+  it('watches a library replay on double-click', async () => {
+    renderReplays();
+
+    fireEvent.doubleClick(await localPane().findByTestId('local-replay-alpha.cor'));
+
+    expect(await screen.findByTestId('replay-view')).toBeInTheDocument();
+    expect(ReplayFileDTO.readData).toHaveBeenCalledWith(3);
+  });
+
+  it('reports a stored entry that is not a replay', async () => {
+    vi.mocked(ReplayFileDTO.readData).mockResolvedValue(new Uint8Array([0xff, 0xff]));
+    renderReplays();
+
+    fireEvent.doubleClick(await localPane().findByTestId('local-replay-alpha.cor'));
+
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Replays.local.invalidFile');
+  });
+
+  it('creates a folder in the current folder', async () => {
+    const addFolder = vi.spyOn(ReplayFileDTO, 'addFolder').mockResolvedValue(9);
+    renderReplays();
+    await localPane().findByTestId('local-replay-zeta.cor');
+
+    fireEvent.click(localPane().getByRole('button', { name: 'Replays.action.newFolder' }));
+    fireEvent.change(screen.getByLabelText('Replays.local.newFolderName'), { target: { value: 'Casual' } });
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'OK' }));
+
+    await waitFor(() => expect(addFolder).toHaveBeenCalledWith(REPLAY_LIBRARY_ROOT, 'Casual'));
+  });
+
+  it('renames the selected entry, prefilled with its name', async () => {
+    const rename = vi.spyOn(ReplayFileDTO, 'rename').mockResolvedValue();
+    renderReplays();
+
+    fireEvent.click(await localPane().findByTestId('local-replay-zeta.cor'));
+    fireEvent.click(localPane().getByRole('button', { name: 'Replays.action.rename' }));
+    const input = screen.getByLabelText('Replays.local.newName');
+    expect(input).toHaveValue('zeta.cor');
+    expect(screen.getByRole('dialog')).toHaveTextContent('Replays.local.renameFileTitle');
+
+    fireEvent.change(input, { target: { value: 'final.cor' } });
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'OK' }));
+
+    await waitFor(() => expect(rename).toHaveBeenCalledWith(1, 'final.cor'));
+  });
+
+  it('reports a rename that clashes with a sibling', async () => {
+    vi.spyOn(ReplayFileDTO, 'rename').mockRejectedValue(new ReplayNameTakenError('alpha.cor'));
+    renderReplays();
+
+    fireEvent.click(await localPane().findByTestId('local-replay-zeta.cor'));
+    fireEvent.click(localPane().getByRole('button', { name: 'Replays.action.rename' }));
+    fireEvent.change(screen.getByLabelText('Replays.local.newName'), { target: { value: 'alpha.cor' } });
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'OK' }));
+
+    expect(await screen.findByText('Replays.local.nameTaken')).toBeInTheDocument();
+  });
+
+  it('deletes the selection only after confirming', async () => {
+    const remove = vi.spyOn(ReplayFileDTO, 'delete').mockResolvedValue();
+    renderReplays();
+
+    fireEvent.click(await localPane().findByTestId('local-replay-Tournament'));
+    fireEvent.click(localPane().getByRole('button', { name: 'Replays.action.delete' }));
+    expect(remove).not.toHaveBeenCalled();
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveTextContent('Replays.local.deleteMessage');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Replays.action.delete' }));
+
+    await waitFor(() => expect(remove).toHaveBeenCalledWith([2]));
+  });
+
+  it('imports picked .cor files into the current folder and rejects anything else', async () => {
+    const addReplay = vi.spyOn(ReplayFileDTO, 'addReplay').mockResolvedValue(10);
+    renderReplays();
+    await localPane().findByTestId('local-replay-zeta.cor');
+
+    fireEvent.change(screen.getByTestId('replay-import-files'), {
+      target: {
+        files: [
+          new File([replayBytes() as BlobPart], 'replay_31.cor'),
+          new File(['1 Island'], 'deck.cor'),
+        ],
+      },
+    });
+
+    await waitFor(() => expect(addReplay).toHaveBeenCalledTimes(1));
+    expect(addReplay).toHaveBeenCalledWith(REPLAY_LIBRARY_ROOT, 'replay_31.cor', expect.any(Uint8Array));
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Replays.local.invalidFiles');
+  });
+
+  it('watches a picked file without adding it to the library', async () => {
+    const addReplay = vi.spyOn(ReplayFileDTO, 'addReplay');
+    renderReplays();
+
+    fireEvent.change(screen.getByTestId('replay-watch-file'), {
+      target: { files: [new File([replayBytes() as BlobPart], 'from-disk.cor')] },
+    });
+
+    expect(await screen.findByTestId('replay-view')).toBeInTheDocument();
+    expect(addReplay).not.toHaveBeenCalled();
+  });
+
+  it('shows a useful error for a picked file that is not a replay', async () => {
+    renderReplays();
+
+    fireEvent.change(screen.getByTestId('replay-watch-file'), {
+      target: { files: [new File(['not a replay'], 'notes.txt')] },
+    });
+
+    expect(await screen.findByRole('dialog')).toHaveTextContent('Replays.local.invalidFile');
+    expect(screen.queryByTestId('replay-view')).not.toBeInTheDocument();
+  });
+});

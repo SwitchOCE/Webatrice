@@ -4,6 +4,8 @@ import { useLocation } from 'react-router-dom';
 import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
 import { connectedState, makeUser, renderWithProviders } from '../../__test-utils__';
 import { RouteEnum } from '@app/types';
+import { openReplay } from '@app/services';
+import { buildReplay, sayContainer } from '../../services/replay/__mocks__/fixtures';
 
 import { ShellLifecycleProvider, type ShellLifecycle } from './ShellLifecycleContext';
 import TopBar from './TopBar';
@@ -120,5 +122,22 @@ describe('TopBar user menu', () => {
 
     openMenuAndPick('UserMenu.importCards');
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+});
+
+describe('TopBar replays entry', () => {
+  it('opens the replays tab from the top bar', () => {
+    renderTopBar();
+
+    fireEvent.click(screen.getByRole('button', { name: /Replays/ }));
+
+    expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.REPLAYS);
+  });
+
+  it('shows an open replay as a tab titled after it', () => {
+    const replayKey = openReplay(buildReplay([sayContainer(0)]), 'final.cor');
+    renderTopBar(`/replay/${replayKey}`);
+
+    expect(screen.getByRole('tab', { name: /final\.cor/ })).toHaveAttribute('aria-selected', 'true');
   });
 });
