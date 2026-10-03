@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
-import { useViewportClampedMenu } from '../context-menus/useViewportClampedMenu';
+import { useViewportClampedMenu } from '../useViewportClampedMenu';
 
 /**
  * A right-click context menu that overrides the browser's default menu.

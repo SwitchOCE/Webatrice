@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { ServerInfo_User } from '@cockatrice/sockatrice/generated';
 
-import type { ContextMenuItem } from '../../PlayerBox/ContextMenu';
+import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import { useViewportClampedMenu } from '../../context-menus/useViewportClampedMenu';
 
 /**
