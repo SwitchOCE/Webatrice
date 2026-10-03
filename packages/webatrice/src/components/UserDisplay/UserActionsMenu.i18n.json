@@ -1,0 +1,9 @@
+{
+  "UserActionsMenu": {
+    "privateChat": "Private chat",
+    "addBuddy": "Add to Buddy List",
+    "removeBuddy": "Remove from Buddy List",
+    "addIgnore": "Add to Ignore List",
+    "removeIgnore": "Remove from Ignore List"
+  }
+}

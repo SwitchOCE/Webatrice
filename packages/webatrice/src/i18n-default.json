@@ -300,8 +300,30 @@
       "send": "Send",
       "apply": "Apply",
       "reset": "Reset",
-      "join": "Join"
+      "join": "Join",
+      "dismiss": "Dismiss"
     }
+  },
+  "CardDetails": {
+    "label": {
+      "name": "Name:",
+      "pt": "P/T:",
+      "cost": "Cost:",
+      "cmc": "CMC:",
+      "identity": "Identity:",
+      "colors": "Color(s):",
+      "mainType": "Main Type:",
+      "type": "Type:",
+      "side": "Side:",
+      "layout": "Layout:"
+    }
+  },
+  "CardRelatedLinks": {
+    "otherFace": "Other face",
+    "tokens": "{count, plural, one {Token} other {Tokens}}",
+    "meld": "Meld",
+    "usedBy": "Cards that use this token ({count})",
+    "related": "Related"
   },
   "ErrorFallback": {
     "returnToLobby": "Return to lobby",
@@ -310,6 +332,18 @@
       "message": "This page hit an unexpected error. Your connection to the server is unaffected.",
       "retry": "Reload page"
     }
+  },
+  "UserBadges": {
+    "admin": "Admin",
+    "moderator": "Moderator",
+    "judge": "Judge"
+  },
+  "UserActionsMenu": {
+    "privateChat": "Private chat",
+    "addBuddy": "Add to Buddy List",
+    "removeBuddy": "Remove from Buddy List",
+    "addIgnore": "Add to Ignore List",
+    "removeIgnore": "Remove from Ignore List"
   },
   "DebugLogDialog": {
     "title": "Debug Log",

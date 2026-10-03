@@ -109,7 +109,7 @@ export default function UserActionsMenu({
       >
         {/* Cockatrice-parity label. Opens the Player page which hosts
          *  the PrivateChat panel for this user. */}
-        <MessageSquare size={14} /> Private chat
+        <MessageSquare size={14} /> {t('UserActionsMenu.privateChat')}
       </NavLink>
       <div className="my-1 border-t border-border-subtle" />
       {!isABuddy ? (
@@ -119,7 +119,7 @@ export default function UserActionsMenu({
           className={MENU_ITEM_CLASS}
           role="menuitem"
         >
-          <UserRoundPlus size={14} /> Add to Buddy List
+          <UserRoundPlus size={14} /> {t('UserActionsMenu.addBuddy')}
         </button>
       ) : (
         <button
@@ -128,7 +128,7 @@ export default function UserActionsMenu({
           className={MENU_ITEM_CLASS}
           role="menuitem"
         >
-          <UserRoundMinus size={14} /> Remove from Buddy List
+          <UserRoundMinus size={14} /> {t('UserActionsMenu.removeBuddy')}
         </button>
       )}
       {!isIgnored ? (
@@ -138,7 +138,7 @@ export default function UserActionsMenu({
           className={MENU_ITEM_CLASS}
           role="menuitem"
         >
-          <VolumeX size={14} /> Add to Ignore List
+          <VolumeX size={14} /> {t('UserActionsMenu.addIgnore')}
         </button>
       ) : (
         <button
@@ -147,7 +147,7 @@ export default function UserActionsMenu({
           className={MENU_ITEM_CLASS}
           role="menuitem"
         >
-          <Volume2 size={14} /> Remove from Ignore List
+          <Volume2 size={14} /> {t('UserActionsMenu.removeIgnore')}
         </button>
       )}
       {/* Desktop UserContextMenu lists "Report user" when the server takes

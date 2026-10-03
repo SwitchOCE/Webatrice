@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export interface DialogShellProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ const DialogShell = ({
   contentClassName,
   maxWidth = 'max-w-md',
 }: DialogShellProps) => {
+  const { t } = useTranslation();
   useEffect(() => {
     if (!isOpen || !handleClose) {
       return;
@@ -78,8 +80,8 @@ const DialogShell = ({
               type="button"
               onClick={handleClose}
               className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"
-              title="Close"
-              aria-label="Close"
+              title={t('Common.action.close')}
+              aria-label={t('Common.action.close')}
             >
               <X size={16} />
             </button>

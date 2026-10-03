@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ArrowRightLeft, ChevronDown, ChevronRight, Loader2, Puzzle, Sparkles, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Clickable links to a card's related printings — the front/back faces
@@ -91,6 +92,7 @@ export function CardRelatedLinks({
    *  flicker. Match key is `relatedCardKey({ name, scryfallId })`. */
   pendingKey?: string;
 }) {
+  const { t } = useTranslation();
   // "Token" appears in every token's type_line (Scryfall convention:
   // "Token Artifact — Food", "Token Creature — 1/1 Boar"). Match on
   // the space-delimited word so we don't false-positive real cards
@@ -161,7 +163,7 @@ export function CardRelatedLinks({
       {otherFaces.length > 0 && (
         <Section
           icon={<ArrowRightLeft size={11} className="text-text-muted" />}
-          label="Other face"
+          label={t('CardRelatedLinks.otherFace')}
         >
           {otherFaces.map((f, i) => {
             const key = relatedCardKey({ name: f.name! });
@@ -188,17 +190,17 @@ export function CardRelatedLinks({
       {tokens.length > 0 && !parentIsToken && (
         <Section
           icon={<Sparkles size={11} className="text-text-muted" />}
-          label={tokens.length === 1 ? 'Token' : 'Tokens'}
+          label={t('CardRelatedLinks.tokens', { count: tokens.length })}
         >
-          {tokens.map((t, i) => {
-            const key = relatedCardKey({ name: t.name!, scryfallId: t.id });
+          {tokens.map((token, i) => {
+            const key = relatedCardKey({ name: token.name!, scryfallId: token.id });
             return (
               <LinkChip
                 key={`tok-${i}`}
-                label={t.name!}
+                label={token.name!}
                 loading={pendingKey === key}
                 disabled={anyPending}
-                onClick={() => onNavigate({ name: t.name!, scryfallId: t.id, kind: 'token' })}
+                onClick={() => onNavigate({ name: token.name!, scryfallId: token.id, kind: 'token' })}
               />
             );
           })}
@@ -207,7 +209,7 @@ export function CardRelatedLinks({
       {meldPieces.length > 0 && (
         <Section
           icon={<Puzzle size={11} className="text-text-muted" />}
-          label="Meld"
+          label={t('CardRelatedLinks.meld')}
         >
           {meldPieces.map((m, i) => {
             const key = relatedCardKey({ name: m.name!, scryfallId: m.id });
@@ -251,7 +253,7 @@ export function CardRelatedLinks({
             >
               {reverseExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
               <Users size={11} />
-              {`Cards that use this token (${comboPieces.length})`}
+              {t('CardRelatedLinks.usedBy', { count: comboPieces.length })}
             </button>
             {reverseExpanded && (
               <div className="flex flex-wrap gap-1">
@@ -273,7 +275,7 @@ export function CardRelatedLinks({
         ) : (
           <Section
             icon={<Users size={11} className="text-text-muted" />}
-            label="Related"
+            label={t('CardRelatedLinks.related')}
           >
             {comboPieces.map((c, i) => {
               const key = relatedCardKey({ name: c.name!, scryfallId: c.id });

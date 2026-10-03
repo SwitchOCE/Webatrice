@@ -1,6 +1,7 @@
 import { ReactNode, SyntheticEvent, useEffect, useState } from 'react';
 import { CheckCircle, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 /** Same severity levels the pre-redo MUI `Alert` accepted. Callers
  *  passing 'success' / 'info' / 'warning' / 'error' keep working. */
@@ -58,6 +59,7 @@ function Toast({
   children,
   icon,
 }: ToastProps) {
+  const { t } = useTranslation();
   // Delay the slide-in one frame so the initial `translate-x-full`
   // paints first and the transition actually animates. Without this,
   // React commits both classes in the same frame and there's no
@@ -106,8 +108,8 @@ function Toast({
         type="button"
         onClick={() => onClose()}
         className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors shrink-0"
-        title="Dismiss"
-        aria-label="Dismiss"
+        title={t('Common.action.dismiss')}
+        aria-label={t('Common.action.dismiss')}
       >
         <X size={14} />
       </button>
