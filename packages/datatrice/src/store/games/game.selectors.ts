@@ -114,27 +114,14 @@ const selectAllAttachments = lruMemoize(buildAttachments, { resultEqualityCheck:
 // The normalized playmat keeps its reference until the announced playmat
 // actually changes. playerPropertiesUpdated deep-clones the properties on every
 // non-ping update (a ready toggle, a sideboard lock), which hands the params a
-// new ref, so a ref-keyed cache alone would still churn: a miss is compared by
-// value with the player's previous result and that result reused when equal.
-const playmatByParams = new WeakMap<object, Playmat | null>();
-const lastPlaymatByPlayer = new Map<string, Playmat | null>();
+// new ref, so a ref-keyed cache alone would still churn: on a miss the result
+// is compared by value with the recently derived playmats and an equal one
+// reused. The cache is bounded, so nothing outlives a left game.
+const selectPlaymat = lruMemoize(playmatFromParams, { maxSize: 32, resultEqualityCheck: dequal });
 
-function playmatOf(gameId: number, playerId: number, player: Enriched.PlayerEntry | undefined): Playmat | null {
+function playmatOf(player: Enriched.PlayerEntry | undefined): Playmat | null {
   const params = player?.properties.playmatParams;
-  if (!params) {
-    return null;
-  }
-  const cached = playmatByParams.get(params);
-  if (cached !== undefined) {
-    return cached;
-  }
-  const key = `${gameId}:${playerId}`;
-  const derived = playmatFromParams(params);
-  const previous = lastPlaymatByPlayer.get(key);
-  const playmat = previous !== undefined && dequal(previous, derived) ? previous : derived;
-  playmatByParams.set(params, playmat);
-  lastPlaymatByPlayer.set(key, playmat);
-  return playmat;
+  return params ? selectPlaymat(params) : null;
 }
 
 export const Selectors = {
@@ -165,7 +152,7 @@ export const Selectors = {
    *  set. Arrives in the join snapshot and in Event_PlayerPropertiesChanged
    *  after a deck select or a Command_SetPlaymat; 3.0 servers never send one. */
   getPlayerPlaymat: ({ games }: State, gameId: number, playerId: number): Playmat | null =>
-    playmatOf(gameId, playerId, games.games[gameId]?.players[playerId]),
+    playmatOf(games.games[gameId]?.players[playerId]),
 
   getSeatedPlayers: ({ games }: State, gameId: number): Enriched.PlayerEntry[] => {
     const game = games.games[gameId];
