@@ -2,6 +2,7 @@ import { createAction } from '@reduxjs/toolkit';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { serverSlice } from './server.reducer';
+import type { CommandFailedPayload } from './server.interfaces';
 
 const SignalActions = {
   accountAwaitingActivation: createAction<{ options: WebsocketTypes.PendingActivationContext }>('server/accountAwaitingActivation'),
@@ -33,6 +34,11 @@ const SignalActions = {
   adminCommandFailed: createAction<{ command: WebsocketTypes.AdminCommandName; responseCode: number; target: string }>(
     'server/adminCommandFailed'
   ),
+  // Command failure outcomes: `failure` is set when the server never answered
+  // (timeout, disconnect, not sent) and undefined for a server rejection.
+  deckListFailed: createAction<CommandFailedPayload>('server/deckListFailed'),
+  deckDownloadFailed: createAction<CommandFailedPayload & { deckId: number }>('server/deckDownloadFailed'),
+  deckUploadFailed: createAction<CommandFailedPayload & { path: string }>('server/deckUploadFailed'),
 };
 
 export const Actions = { ...serverSlice.actions, ...SignalActions };

@@ -79,6 +79,9 @@ export const Types = {
   DECK_UPLOAD: a.deckUpload.type,
   DECK_DELETE: a.deckDelete.type,
   DECK_DOWNLOADED: a.deckDownloaded.type,
+  DECK_LIST_FAILED: a.deckListFailed.type,
+  DECK_DOWNLOAD_FAILED: a.deckDownloadFailed.type,
+  DECK_UPLOAD_FAILED: a.deckUploadFailed.type,
   REPLAY_DOWNLOADED: a.replayDownloaded.type,
   // User games
   GAMES_OF_USER: a.gamesOfUser.type,
