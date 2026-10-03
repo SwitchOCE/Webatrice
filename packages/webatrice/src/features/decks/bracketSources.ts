@@ -58,16 +58,18 @@ async function fetchJson(url: string, init?: RequestInit): Promise<unknown> {
     }
     try {
       return await res.json();
-    } catch {
-      throw new SourceError(MALFORMED);
+    } catch (e) {
+      // The timeout can fire while the body is still streaming.
+      throw new SourceError((e as { name?: string })?.name === 'AbortError' ? { kind: 'timeout' } : MALFORMED);
     }
   } finally {
     clearTimeout(timer);
   }
 }
 
+/** `fetchJson` reports transport failures itself; anything else thrown while reading a body is a shape we didn't expect. */
 function failureOf(e: unknown): SourceFailure {
-  return e instanceof SourceError ? e.failure : { kind: 'network' };
+  return e instanceof SourceError ? e.failure : MALFORMED;
 }
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -98,6 +100,11 @@ export async function fetchGameChangers(): Promise<SourceResult<Set<string>>> {
         if (typeof c?.name === 'string') {
           names.add(c.name);
         }
+      }
+      // The list is never empty; no names means a shape we don't understand,
+      // and caching it would hide every Game Changer for the session.
+      if (names.size === 0) {
+        return { status: 'unavailable', failure: MALFORMED };
       }
       gameChangersCache = names;
       return { status: 'ok', data: names };
@@ -211,8 +218,13 @@ async function fetchOracleChunk(
     if (!isRecord(body) || !Array.isArray(body.data)) {
       return MALFORMED;
     }
+    const cards = body.data as ScryfallCollectionCard[];
+    // Validate the whole chunk before caching any of it.
+    if (!cards.every((card) => typeof card?.name === 'string')) {
+      return MALFORMED;
+    }
     const returned = new Set<string>();
-    for (const card of body.data as ScryfallCollectionCard[]) {
+    for (const card of cards) {
       const combined =
         card.oracle_text ??
         (card.card_faces ?? []).map((f) => f.oracle_text ?? '').filter(Boolean).join('\n');
@@ -280,7 +292,8 @@ export async function fetchSpellbookCombos(cards: DeckCard[]): Promise<SourceRes
     if (!isRecord(body) || !isRecord(body.results)) {
       return { status: 'unavailable', failure: MALFORMED };
     }
-    const included = body.results.included ?? [];
+    // A missing `included` is not "no combos": the deck would be persisted as combo-free.
+    const included = body.results.included;
     if (!Array.isArray(included)) {
       return { status: 'unavailable', failure: MALFORMED };
     }
