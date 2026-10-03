@@ -100,6 +100,16 @@ describe('TopBar user menu', () => {
     expect(screen.queryByRole('tab', { name: /Settings/ })).not.toBeInTheDocument();
   });
 
+  it('gives an unsaved deck draft the deck editor tab', () => {
+    renderTopBar('/deck/draft/abc');
+
+    expect(screen.getByRole('tab', { name: /Unsaved deck/ })).toHaveAttribute('aria-selected', 'true');
+
+    fireEvent.click(screen.getByRole('tab', { name: /Lobby|Server/ }));
+    fireEvent.click(screen.getByRole('tab', { name: /Unsaved deck/ }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/deck/draft/abc');
+  });
+
   it('offers Logs to moderators only', () => {
     renderTopBar(RouteEnum.SERVER, moderatorState);
 
