@@ -58,6 +58,8 @@ import {
   emptyPriceLookup,
   fetchPricesForCards,
   priceForCard,
+  pricingProgress,
+  unpricedCards,
   type PriceLookup,
 } from './pricing';
 import {
@@ -66,7 +68,20 @@ import {
   type ScryfallSearchCard,
   type SearchResult,
 } from './search';
-import { primaryType, type DeckCard, type HydratedDeck } from './types';
+import type { DeckCard, HydratedDeck } from './types';
+import {
+  EMPTY_FILTERS,
+  FILTER_RARITIES,
+  FILTER_TYPES,
+  buildScryfallQuery,
+  hasActiveFilters,
+  toggleFilter,
+  type FilterColorMode,
+  type SearchFiltersState,
+} from './cardSearchQuery';
+import { groupDeckCards, sortIndicesByName, type DeckCardGroup } from './deckGrouping';
+import { MANA_COLORS, MANA_COLOR_LABEL, manaCostTokens, manaSymbolUrl } from './manaSymbols';
+import { previewImageUrls, upgradeScryfallImageSize } from './scryfallImage';
 import { useDeckEditor, type SaveState } from './useDeckEditor';
 import { SELECT_CHEVRON_BACKGROUND } from './selectChevron';
 
@@ -214,7 +229,7 @@ const DeckEditor = () => {
   const isCommander = isCommanderFormat(editor.deck?.format);
 
   const groups = useMemo(
-    () => groupCards(editor.deck?.cards ?? [], isCommander),
+    () => groupDeckCards(editor.deck?.cards ?? [], isCommander),
     [editor.deck, isCommander],
   );
 
@@ -318,13 +333,7 @@ const DeckEditor = () => {
       <ExportDeckModal
         open={exportOpen}
         onClose={() => setExportOpen(false)}
-        deckName={editor.deck.name}
-        cards={editor.deck.cards}
-        meta={editor.deck.meta}
-        format={editor.deck.format}
-        bannerCard={editor.deck.bannerCard}
-        lastLoadedTimestamp={editor.deck.lastLoadedTimestamp}
-        tagsXml={editor.deck.tagsXml}
+        deck={editor.deck}
       />
     </Layout>
   );
@@ -516,49 +525,15 @@ function DeckBuyButton({
   const disabled = cards.length === 0;
   const [showMissing, setShowMissing] = useState(false);
 
-  // Unique-name count for the loading caption. Using unique names
-  // rather than quantity here because "45 of 100" (unique cards) is
-  // what the user perceives as "cards being looked up" — quantities
-  // affect the total but not the number of Scryfall lookups pending.
-  const { pricedUnique, totalUnique } = useMemo(() => {
-    const seen = new Set<string>();
-    let priced = 0;
-    for (const card of cards) {
-      if (seen.has(card.name)) {
-        continue;
-      }
-      seen.add(card.name);
-      const info = priceForCard(prices, card);
-      if (info?.usd != null && Number.isFinite(info.usd)) {
-        priced += 1;
-      }
-    }
-    return { pricedUnique: priced, totalUnique: seen.size };
-  }, [cards, prices]);
+  const { pricedUnique, totalUnique } = useMemo(() => pricingProgress(cards, prices), [cards, prices]);
   const pendingUnique = Math.max(0, totalUnique - pricedUnique);
 
-  // Names of every card in the deck that priceForCard couldn't
-  // resolve. Grouped by name so quantities show alongside — helps the
-  // user quickly spot whether it's "Sol Ring x1" (weird — should be
-  // known) or "Some Custom Token x1" (obviously unmatched). Only
-  // computed post-load — during load the list is a moving target and
-  // the user should be looking at the progress caption instead.
-  const missingCards = useMemo(() => {
-    if (loading) {
-      return [];
-    }
-    const grouped = new Map<string, number>();
-    for (const card of cards) {
-      const info = priceForCard(prices, card);
-      if (info?.usd != null && Number.isFinite(info.usd)) {
-        continue;
-      }
-      grouped.set(card.name, (grouped.get(card.name) ?? 0) + card.quantity);
-    }
-    return Array.from(grouped, ([name, qty]) => ({ name, qty })).sort((a, b) =>
-      a.name.localeCompare(b.name),
-    );
-  }, [cards, prices, loading]);
+  // Only listed once loading settles — mid-load the list is a moving
+  // target and the progress caption is the useful signal.
+  const missingCards = useMemo(
+    () => (loading ? [] : unpricedCards(cards, prices)),
+    [cards, prices, loading],
+  );
 
   const inner = (
     <>
@@ -744,29 +719,11 @@ function CardPricePill({
   );
 }
 
-/** Bump a Scryfall image URL to `normal` resolution — the sweet spot
- *  for a ~250px sidebar preview. Handles both URL forms Scryfall serves:
- *    • `api.scryfall.com/cards/<uuid>?format=image&version=small`
- *    • `cards.scryfall.io/small/front/…jpg`  (CDN — path segment size)
- *  Non-Scryfall URLs pass through unchanged. */
-function upgradeScryfallImageSize(url: string | undefined): string | undefined {
-  if (!url) {
-    return url;
-  }
-  if (url.includes('api.scryfall.com')) {
-    return url.replace(/([?&])version=[^&]+/i, '$1version=normal');
-  }
-  if (url.includes('cards.scryfall.io')) {
-    return url.replace(/(cards\.scryfall\.io\/)(small|border_crop|art_crop|png|large)(\/)/i, '$1normal$3');
-  }
-  return url;
-}
-
 // ---------- Right: main pane (QuickAdd + card columns) ----------
 
 interface MainPaneProps {
   deck: HydratedDeck;
-  groups: Array<{ label: string; indices: number[] }>;
+  groups: DeckCardGroup[];
   onAddByName: (name: string) => void;
   onInc: (index: number, delta: number) => void;
   onDelete: (index: number) => void;
@@ -989,13 +946,7 @@ function FlatCardList({
   onInc: (index: number, delta: number) => void;
   onDelete: (index: number) => void;
 }) {
-  const sortedIndices = useMemo(() => {
-    return cards
-      .map((_, i) => i)
-      .sort((a, b) =>
-        cards[a].name.localeCompare(cards[b].name, undefined, { sensitivity: 'base' }),
-      );
-  }, [cards]);
+  const sortedIndices = useMemo(() => sortIndicesByName(cards, cards.map((_, i) => i)), [cards]);
 
   return (
     <ul>
@@ -1911,18 +1862,17 @@ function ManaSymbols({
   size?: number | string;
   className?: string;
 }) {
-  const tokens = cost.match(/\{[^}]+\}/g);
-  if (!tokens || tokens.length === 0) {
+  const tokens = manaCostTokens(cost);
+  if (tokens.length === 0) {
     return null;
   }
   return (
     <span className={`inline-flex items-center gap-0.5 align-middle ${className ?? ''}`}>
       {tokens.map((tok, i) => {
-        const inner = tok.slice(1, -1).replace(/\//g, '');
         return (
           <img
             key={i}
-            src={`https://svgs.scryfall.io/card-symbols/${inner}.svg`}
+            src={manaSymbolUrl(tok)}
             alt={tok}
             style={{ width: size, height: size }}
             className="inline-block align-text-bottom"
@@ -1935,123 +1885,6 @@ function ManaSymbols({
 }
 
 // ---------- Advanced search view ----------
-
-type FilterColor = 'W' | 'U' | 'B' | 'R' | 'G' | 'C';
-type FilterColorMode = 'includes' | 'exactly' | 'atMost';
-type FilterCardType =
-  | 'Creature'
-  | 'Instant'
-  | 'Sorcery'
-  | 'Enchantment'
-  | 'Artifact'
-  | 'Planeswalker'
-  | 'Land';
-type FilterRarity = 'common' | 'uncommon' | 'rare' | 'mythic';
-
-interface SearchFiltersState {
-  colors: FilterColor[];
-  colorMode: FilterColorMode;
-  types: FilterCardType[];
-  subtype: string;
-  showAdvanced: boolean;
-  cmcMin: string;
-  cmcMax: string;
-  oracle: string;
-  rarities: FilterRarity[];
-}
-
-const EMPTY_FILTERS: SearchFiltersState = {
-  colors: [],
-  colorMode: 'includes',
-  types: [],
-  subtype: '',
-  showAdvanced: false,
-  cmcMin: '',
-  cmcMax: '',
-  oracle: '',
-  rarities: [],
-};
-
-const FILTER_COLORS: FilterColor[] = ['W', 'U', 'B', 'R', 'G', 'C'];
-const FILTER_TYPES: FilterCardType[] = [
-  'Creature', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Planeswalker', 'Land',
-];
-const FILTER_RARITIES: Array<{ id: FilterRarity; label: string }> = [
-  { id: 'common', label: 'C' },
-  { id: 'uncommon', label: 'U' },
-  { id: 'rare', label: 'R' },
-  { id: 'mythic', label: 'M' },
-];
-const COLOR_SVG = (c: FilterColor) => `https://svgs.scryfall.io/card-symbols/${c}.svg`;
-const COLOR_LABEL: Record<FilterColor, string> = {
-  W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green', C: 'Colorless',
-};
-
-/**
- * Combine the user's typed query with filter state into a Scryfall
- * query. Filters AND-combine with the typed text (Scryfall AND is
- * implicit). Ports fancy webatrice's buildScryfallQuery verbatim so
- * both apps understand the same URL scheme.
- */
-function buildScryfallQuery(typed: string, f: SearchFiltersState): string {
-  const parts: string[] = [];
-  const text = typed.trim();
-  if (text) {
-    parts.push(text);
-  }
-
-  if (f.colors.length > 0) {
-    const letters = f.colors.map((c) => c.toLowerCase()).join('');
-    const op = f.colorMode === 'exactly' ? '=' : f.colorMode === 'atMost' ? '<=' : ':';
-    parts.push(`c${op}${letters}`);
-  }
-
-  if (f.types.length > 0) {
-    const clauses = f.types.map((t) => `t:${t.toLowerCase()}`);
-    parts.push(clauses.length > 1 ? `(${clauses.join(' or ')})` : clauses[0]);
-  }
-
-  // Subtype: quoted phrase → single clause; otherwise per-token AND.
-  const subtype = f.subtype.trim();
-  if (subtype) {
-    const hasQuotes = /^".*"$/.test(subtype);
-    if (hasQuotes) {
-      parts.push(`t:${subtype.toLowerCase()}`);
-    } else {
-      const tokens = subtype.split(/\s+/).filter(Boolean);
-      for (const tok of tokens) {
-        parts.push(`t:${tok.toLowerCase()}`);
-      }
-    }
-  }
-
-  const min = f.cmcMin.trim();
-  const max = f.cmcMax.trim();
-  if (min && /^\d+$/.test(min)) {
-    parts.push(`cmc>=${min}`);
-  }
-  if (max && /^\d+$/.test(max)) {
-    parts.push(`cmc<=${max}`);
-  }
-
-  const oracle = f.oracle.trim();
-  if (oracle) {
-    const safe = oracle.replace(/"/g, '\\"');
-    parts.push(`o:"${safe}"`);
-  }
-
-  // Full selection == no filter; only emit when partially narrowed.
-  if (f.rarities.length > 0 && f.rarities.length < 4) {
-    const clauses = f.rarities.map((r) => `r:${r}`);
-    parts.push(clauses.length > 1 ? `(${clauses.join(' or ')})` : clauses[0]);
-  }
-
-  return parts.join(' ');
-}
-
-function toggleFilter<T>(arr: T[], item: T): T[] {
-  return arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item];
-}
 
 /**
  * Full-page advanced search view — replaces the deck list body when
@@ -2257,14 +2090,7 @@ function SearchFilters({
   const set = <K extends keyof SearchFiltersState>(key: K, v: SearchFiltersState[K]) =>
     onChange({ ...value, [key]: v });
 
-  const hasAny =
-    value.colors.length > 0 ||
-    value.types.length > 0 ||
-    value.subtype.trim() !== '' ||
-    value.cmcMin.trim() !== '' ||
-    value.cmcMax.trim() !== '' ||
-    value.oracle.trim() !== '' ||
-    value.rarities.length > 0;
+  const hasAny = hasActiveFilters(value);
 
   return (
     <div className="space-y-2">
@@ -2273,7 +2099,7 @@ function SearchFilters({
         <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
           Colors
         </span>
-        {FILTER_COLORS.map((c) => {
+        {MANA_COLORS.map((c) => {
           const active = value.colors.includes(c);
           return (
             <button
@@ -2286,12 +2112,12 @@ function SearchFilters({
                   ? 'ring-2 ring-offset-1 ring-offset-bg-surface ring-accent'
                   : 'opacity-40 hover:opacity-80',
               ].join(' ')}
-              title={COLOR_LABEL[c]}
+              title={MANA_COLOR_LABEL[c]}
               aria-pressed={active}
             >
               <img
-                src={COLOR_SVG(c)}
-                alt={COLOR_LABEL[c]}
+                src={manaSymbolUrl(c)}
+                alt={MANA_COLOR_LABEL[c]}
                 className="w-full h-full block"
                 draggable={false}
               />
@@ -2510,13 +2336,7 @@ function useDeckImagePreload(
       return;
     }
 
-    const urls = Array.from(
-      new Set(
-        snapshot.cards
-          .map((c) => upgradeScryfallImageSize(c.imageUri))
-          .filter((u): u is string => !!u),
-      ),
-    );
+    const urls = previewImageUrls(snapshot.cards);
 
     if (urls.length === 0) {
       setProgress({ loaded: 0, total: 0 });
@@ -2688,65 +2508,6 @@ function EmptyCardsHint({ isMtg }: { isMtg: boolean }) {
       </div>
     </>
   );
-}
-
-// ---------- Grouping ----------
-
-const GROUP_ORDER = [
-  'Commander',
-  'Creature',
-  'Planeswalker',
-  'Battle',
-  'Instant',
-  'Sorcery',
-  'Enchantment',
-  'Artifact',
-  'Land',
-  'Other',
-  'Sideboard',
-] as const;
-
-function groupCards(
-  cards: DeckCard[],
-  isCommander: boolean,
-): Array<{ label: string; indices: number[] }> {
-  const map = new Map<string, number[]>();
-  cards.forEach((card, index) => {
-    const label = bucketOf(card, isCommander);
-    const bucket = map.get(label) ?? [];
-    bucket.push(index);
-    map.set(label, bucket);
-  });
-  return GROUP_ORDER
-    .map((label) => {
-      const indices = map.get(label) ?? [];
-      // Sort each bucket alphabetically by card name (case-insensitive,
-      // locale-aware) — matches fancy webatrice's Moxfield-style
-      // ordering. Sorting by index-into-cards rather than mapping to
-      // a new array keeps the (index → card) contract the rows rely
-      // on for hover / mutate callbacks.
-      indices.sort((a, b) =>
-        cards[a].name.localeCompare(cards[b].name, undefined, { sensitivity: 'base' }),
-      );
-      return { label, indices };
-    })
-    .filter((g) => g.indices.length > 0);
-}
-
-function bucketOf(card: DeckCard, isCommander: boolean): string {
-  // Only surface the "Commander" section when the deck's format is
-  // Commander. If the deck was previously commander and got switched
-  // to (say) Modern, any commander-marked cards fall back to their
-  // type bucket rather than lingering under a phantom section header.
-  // The `commander="1"` attribute stays in the XML so switching the
-  // format back restores the visual grouping.
-  if (isCommander && card.isCommander) {
-    return 'Commander';
-  }
-  if (card.category === 'sideboard') {
-    return 'Sideboard';
-  }
-  return primaryType(card.typeLine);
 }
 
 export default DeckEditor;

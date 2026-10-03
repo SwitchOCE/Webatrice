@@ -14,9 +14,25 @@ import { useAppSelector } from '@app/store';
 import { useCommandFailureMessage, useReduxEffect, useRequestTracker } from '@app/hooks';
 import { lookupCard, parseCod, serializeCod, touchMeta, trackEvent } from '@app/services';
 import { onSessionEnd } from '@app/services/session';
-import type { BracketAssessment, DeckMeta } from '@app/types';
+import type { BracketAssessment } from '@app/types';
 import { useWebClient } from '@cockatrice/datatrice/react';
 
+import {
+  adjustCardQuantity,
+  appendCard,
+  findMainboardRow,
+  normalizeAddedCardName,
+  patchCard,
+  removeCard,
+  renameDeck,
+  setCardCategory,
+  setCardCommander,
+  setDeckBracketAssessment,
+  setDeckDescription,
+  setDeckFormat,
+  setDeckPriceCache,
+} from './deckEdits';
+import { countDeckCards } from './deckGrouping';
 import { assembleDeckCard, hydrateDeck } from './hydrate';
 import type { DeckCard, HydratedDeck } from './types';
 
@@ -361,227 +377,77 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   }, [deckId, deck]);
 
   // --- Mutations ---
-  const setName = useCallback(
-    (name: string) => {
-      setDeck((prev) => (prev ? { ...prev, name } : prev));
+  // Each applies a pure transition from `deckEdits` optimistically and
+  // schedules the autosave.
+  const applyEdit = useCallback(
+    (edit: (current: HydratedDeck) => HydratedDeck) => {
+      setDeck((prev) => (prev ? edit(prev) : prev));
       scheduleSave();
     },
     [scheduleSave],
   );
 
-  const setFormat = useCallback(
-    (format: string) => {
-      setDeck((prev) => (prev ? { ...prev, format } : prev));
-      scheduleSave();
-    },
-    [scheduleSave],
-  );
-
+  const setName = useCallback((name: string) => applyEdit((d) => renameDeck(d, name)), [applyEdit]);
+  const setFormat = useCallback((format: string) => applyEdit((d) => setDeckFormat(d, format)), [applyEdit]);
   const setDescription = useCallback(
-    (description: string) => {
-      setDeck((prev) => {
-        if (!prev) {
-          return prev;
-        }
-        const nextMeta: DeckMeta = { ...prev.meta, description: description || undefined };
-        return { ...prev, meta: nextMeta };
-      });
-      scheduleSave();
-    },
-    [scheduleSave],
+    (description: string) => applyEdit((d) => setDeckDescription(d, description)),
+    [applyEdit],
   );
-
+  // Skips the state churn when the values already match (the pricing
+  // effect re-fires on every editor open).
   const setPriceCache = useCallback(
-    (priceUsd: number | undefined, priceMissingCount: number | undefined) => {
-      setDeck((prev) => {
-        if (!prev) {
-          return prev;
-        }
-        // Skip the state churn (and the autosave it triggers) when the
-        // computed values match what's already in meta. Without this,
-        // the pricing effect would re-fire on every editor open even
-        // when nothing has changed.
-        if (
-          prev.meta.priceUsd === priceUsd &&
-          prev.meta.priceMissingCount === priceMissingCount
-        ) {
-          return prev;
-        }
-        const nextMeta: DeckMeta = { ...prev.meta, priceUsd, priceMissingCount };
-        return { ...prev, meta: nextMeta };
-      });
-      scheduleSave();
-    },
-    [scheduleSave],
+    (priceUsd: number | undefined, priceMissingCount: number | undefined) =>
+      applyEdit((d) => setDeckPriceCache(d, priceUsd, priceMissingCount)),
+    [applyEdit],
   );
-
+  // Skips the churn when the assessment matches what is already on disk
+  // (a reopened deck replays the same result).
   const setBracketAssessment = useCallback(
-    (assessment: BracketAssessment | undefined) => {
-      setDeck((prev) => {
-        if (!prev) {
-          return prev;
-        }
-        const prevLevel = prev.meta.bracketLevel;
-        const nextLevel = assessment?.level;
-        const prevFingerprint = prev.bracketAssessment?.fingerprint;
-        const nextFingerprint = assessment?.fingerprint;
-        // Skip the state churn (and the autosave it triggers) when the
-        // assessment matches what we already had on disk. Same-shape
-        // deck reopened → BracketSection replays analyzeBracket and
-        // hands us back an assessment we've already saved.
-        if (prevLevel === nextLevel && prevFingerprint === nextFingerprint) {
-          return prev;
-        }
-        const nextMeta: DeckMeta = { ...prev.meta, bracketLevel: nextLevel };
-        return { ...prev, meta: nextMeta, bracketAssessment: assessment };
-      });
-      scheduleSave();
-    },
-    [scheduleSave],
+    (assessment: BracketAssessment | undefined) => applyEdit((d) => setDeckBracketAssessment(d, assessment)),
+    [applyEdit],
   );
-
   const updateCard = useCallback(
-    (index: number, patch: Partial<DeckCard>) => {
-      setDeck((prev) => {
-        if (!prev) {
-          return prev;
-        }
-        const next = prev.cards.slice();
-        next[index] = { ...next[index], ...patch };
-        return { ...prev, cards: next };
-      });
-      scheduleSave();
-    },
-    [scheduleSave],
+    (index: number, patch: Partial<DeckCard>) => applyEdit((d) => patchCard(d, index, patch)),
+    [applyEdit],
   );
-
-  const deleteCard = useCallback(
-    (index: number) => {
-      setDeck((prev) => {
-        if (!prev) {
-          return prev;
-        }
-        const next = prev.cards.slice();
-        next.splice(index, 1);
-        return { ...prev, cards: next };
-      });
-      scheduleSave();
-    },
-    [scheduleSave],
-  );
-
+  const deleteCard = useCallback((index: number) => applyEdit((d) => removeCard(d, index)), [applyEdit]);
   const incQuantity = useCallback(
-    (index: number, delta: number) => {
-      setDeck((prev) => {
-        if (!prev) {
-          return prev;
-        }
-        const next = prev.cards.slice();
-        const nextQty = next[index].quantity + delta;
-        if (nextQty <= 0) {
-          next.splice(index, 1);
-        } else {
-          next[index] = { ...next[index], quantity: nextQty };
-        }
-        return { ...prev, cards: next };
-      });
-      scheduleSave();
-    },
-    [scheduleSave],
+    (index: number, delta: number) => applyEdit((d) => adjustCardQuantity(d, index, delta)),
+    [applyEdit],
   );
-
   const setCategory = useCallback(
-    (index: number, category: DeckCard['category']) => {
-      setDeck((prev) => {
-        if (!prev) {
-          return prev;
-        }
-        const next = prev.cards.slice();
-        next[index] = { ...next[index], category };
-        return { ...prev, cards: next };
-      });
-      scheduleSave();
-    },
-    [scheduleSave],
+    (index: number, category: DeckCard['category']) => applyEdit((d) => setCardCategory(d, index, category)),
+    [applyEdit],
   );
-
-  // Toggle the commander marker on a card. Independent of category —
-  // the card stays in whatever zone it's currently in. Also clamps
-  // quantity to 1 when marking (Commander convention: only one copy
-  // of the commander in the deck).
   const setCommander = useCallback(
-    (index: number, isCommander: boolean) => {
-      setDeck((prev) => {
-        if (!prev) {
-          return prev;
-        }
-        const next = prev.cards.slice();
-        const current = next[index];
-        if (!current) {
-          return prev;
-        }
-        next[index] = {
-          ...current,
-          isCommander,
-          quantity: isCommander ? 1 : current.quantity,
-        };
-        return { ...prev, cards: next };
-      });
-      scheduleSave();
-    },
-    [scheduleSave],
+    (index: number, isCommander: boolean) => applyEdit((d) => setCardCommander(d, index, isCommander)),
+    [applyEdit],
   );
 
   const addCard = useCallback(
     async (name: string) => {
-      // Strip DFC back-face suffix ("A // B" → "A") so the deck row
-      // saves and later resolves under the single front-face name.
-      // Scryfall's autocomplete returns the combined "A // B" form
-      // for MDFCs / transform cards, but users expect "Riverglide
-      // Pathway" in their deck, not the full split name — and our
-      // Dexie cards table + Scryfall exact-name lookups both hit
-      // the same front-face record either way. Idempotent for
-      // single-face names (no ` // ` present → no change).
-      const trimmed = name.trim().split(' // ')[0].trim();
+      const trimmed = normalizeAddedCardName(name);
       if (!trimmed) {
         return;
       }
-      // Increment first if a mainboard row already exists — matches
-      // fancy's "one row per (name, category)" invariant.
+      // One row per (name, zone): an existing mainboard row is bumped.
       const current = deckRef.current;
       if (current) {
-        const existingIdx = current.cards.findIndex(
-          (c) => c.category === 'main' && c.name.toLowerCase() === trimmed.toLowerCase(),
-        );
+        const existingIdx = findMainboardRow(current, trimmed);
         if (existingIdx >= 0) {
-          setDeck((prev) => {
-            if (!prev) {
-              return prev;
-            }
-            const next = prev.cards.slice();
-            next[existingIdx] = {
-              ...next[existingIdx],
-              quantity: next[existingIdx].quantity + 1,
-            };
-            return { ...prev, cards: next };
-          });
-          scheduleSave();
+          applyEdit((d) => adjustCardQuantity(d, existingIdx, 1));
           return;
         }
       }
-      // Otherwise: look up + assemble a new row, append to mainboard.
+      // Otherwise look the card up and append a new mainboard row.
       const lookup = await lookupCard(trimmed);
-      const newCard = assembleDeckCard(
-        { name: trimmed, quantity: 1, category: 'main' },
-        lookup,
-      );
-      setDeck((prev) => (prev ? { ...prev, cards: [...prev.cards, newCard] } : prev));
-      scheduleSave();
+      const newCard = assembleDeckCard({ name: trimmed, quantity: 1, category: 'main' }, lookup);
+      applyEdit((d) => appendCard(d, newCard));
     },
-    [scheduleSave],
+    [applyEdit],
   );
 
-  const { totalMainboardCount, totalSideboardCount } = countCards(deck?.cards);
+  const { totalMainboardCount, totalSideboardCount } = countDeckCards(deck?.cards);
 
   return {
     deck,
@@ -604,22 +470,6 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     addCard,
     flushSave,
   };
-}
-
-function countCards(cards: DeckCard[] | undefined): {
-  totalMainboardCount: number;
-  totalSideboardCount: number;
-} {
-  let main = 0;
-  let side = 0;
-  for (const c of cards ?? []) {
-    if (c.category === 'sideboard') {
-      side += c.quantity;
-    } else {
-      main += c.quantity;
-    }
-  }
-  return { totalMainboardCount: main, totalSideboardCount: side };
 }
 
 /**
