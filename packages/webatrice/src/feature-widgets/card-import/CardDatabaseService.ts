@@ -57,6 +57,8 @@ export interface NewSourceInput {
   url?: string;
   /** Defaults to the kind desktop infers from the file name. */
   kind?: CardSourceKind;
+  /** `xml` already parsed (the import preview did), so it is not parsed again. */
+  records?: CardSourceRecords;
 }
 
 /** A parsed source not stored yet: its listing row and its contents. */
@@ -105,7 +107,7 @@ class CardDatabaseService {
   createSource(input: NewSourceInput, existing: readonly CardSource[]): PendingSource {
     const kind = input.kind ?? sourceKindForFile(input.fileName);
     const order = kind === 'custom' ? nextCustomOrder(existing) : 0;
-    const records = parseRecords(input.xml);
+    const records = input.records ?? parseRecords(input.xml);
     const importedAt = new Date().toISOString();
     const id = sourceIdFor(kind, input.fileName, order);
     this.parsedCache.set(id, { importedAt, records });
