@@ -71,7 +71,7 @@ describe('listDeckFolder', () => {
     const view = listDeckFolder(root, 'Modern');
     expect(view.path).toBe('Modern');
     expect(view.folders.map((f) => f.path)).toEqual(['Modern/Empty', 'Modern/Old']);
-    expect(view.decks).toEqual([{ id: 2, name: 'Burn', path: 'Modern', creationTime: 300 }]);
+    expect(view.decks).toEqual([expect.objectContaining({ id: 2, name: 'Burn', path: 'Modern', creationTime: 300 })]);
   });
 
   it('falls back to the root for a folder that no longer exists', () => {

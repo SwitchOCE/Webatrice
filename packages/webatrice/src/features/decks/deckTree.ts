@@ -11,6 +11,10 @@ export interface FlatDeck {
   path: string;
   /** Unix seconds. Not `updated_at` — Servatrice only tracks creation. */
   creationTime: number;
+  /** Published to other users (3.1 servers; absent means private). */
+  isPublic?: boolean;
+  /** Stored color identity, e.g. "WUB" (3.1 servers; empty for older uploads). */
+  colorIdentity?: string;
 }
 
 /**
@@ -26,6 +30,8 @@ export function flattenFolder(folder: ServerInfo_DeckStorage_Folder, pathPrefix:
         name: item.name || `Deck #${item.id}`,
         path: pathPrefix,
         creationTime: item.file.creationTime ?? 0,
+        isPublic: item.file.isPublic,
+        colorIdentity: item.file.colorIdentity,
       });
     } else if (item.folder) {
       const nextPath = pathPrefix ? `${pathPrefix}/${item.name}` : item.name;

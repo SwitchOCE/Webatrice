@@ -1146,7 +1146,10 @@
   },
   "Decks": {
     "listError": "Failed to load your decks from the server.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "moveFailed": "Couldn’t move {name}. The original deck is unchanged.",
+    "uploadFailed": "Couldn’t save {name} to the server.",
+    "dismiss": "Dismiss"
   },
   "CreateFolder": {
     "title": "New folder",
@@ -1170,7 +1173,7 @@
   "MoveDeck": {
     "title": "Move {name}",
     "target": "To folder",
-    "howItWorks": "The deck is copied into the folder, then the original is deleted.",
+    "howItWorks": "The deck is copied into the folder and keeps its visibility; the original is deleted once the copy is saved. The copy gets a new deck id. Share links you already made keep working: they hold a copy of the deck from when they were made.",
     "move": "Move",
     "cancel": "Cancel"
   },

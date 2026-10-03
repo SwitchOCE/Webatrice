@@ -31,7 +31,7 @@ describe('flattenFolder', () => {
         folder('Cube', [file(2, 'Inner', 300), folder('Old', [file(3, 'Deep', 200)])]),
       ],
     });
-    expect(flattenFolder(root, '')).toEqual([
+    expect(flattenFolder(root, '').map(({ id, name, path, creationTime }) => ({ id, name, path, creationTime }))).toEqual([
       { id: 1, name: 'Root', path: '', creationTime: 100 },
       { id: 2, name: 'Inner', path: 'Cube', creationTime: 300 },
       { id: 3, name: 'Deep', path: 'Cube/Old', creationTime: 200 },
@@ -42,7 +42,22 @@ describe('flattenFolder', () => {
     const root = create(ServerInfo_DeckStorage_FolderSchema, {
       items: [file(4, '', 1), file(0, 'Ghost', 2)],
     });
-    expect(flattenFolder(root, 'A')).toEqual([{ id: 4, name: 'Deck #4', path: 'A', creationTime: 1 }]);
+    expect(flattenFolder(root, 'A')).toEqual([
+      expect.objectContaining({ id: 4, name: 'Deck #4', path: 'A', creationTime: 1 }),
+    ]);
+  });
+
+  it('carries the visibility and color identity a move must keep', () => {
+    const root = create(ServerInfo_DeckStorage_FolderSchema, {
+      items: [
+        create(ServerInfo_DeckStorage_TreeItemSchema, {
+          id: 5,
+          name: 'Public',
+          file: create(ServerInfo_DeckStorage_FileSchema, { creationTime: 1, isPublic: true, colorIdentity: 'UR' }),
+        }),
+      ],
+    });
+    expect(flattenFolder(root, '')).toEqual([expect.objectContaining({ isPublic: true, colorIdentity: 'UR' })]);
   });
 });
 
