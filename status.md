@@ -1,2 +1,3 @@
 - 18:39Z started f17b, read brief/review → inline menu handler extraction
 - 18:46Z menu handler extracted (84f009a, pushed) → play pt / X-from-top / deck draft upload
+- 18:52Z play pt/cipt, X-from-top, draft upload queue pushed (e8e476d) → Say macro seam, minors
