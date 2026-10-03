@@ -393,6 +393,36 @@ describe('MenuSubmenu pointer behaviour', () => {
     expect(screen.getByRole('menuitem', { name: 'Add counter' })).toHaveFocus();
   });
 
+  function hoverOpen(entry: HTMLElement) {
+    fireEvent.mouseOver(entry);
+    fireEvent.mouseEnter(entry);
+    act(() => {
+      vi.advanceTimersByTime(SUBMENU_OPEN_DELAY);
+    });
+    expect(screen.getByRole('menu', { name: 'Counters' })).toBeInTheDocument();
+  }
+
+  it.each([['ArrowDown'], ['ArrowUp'], ['End']])('closes a hover-opened submenu when %s moves away from its entry', (key) => {
+    const { entry, tap } = renderNested();
+    hoverOpen(entry);
+
+    fireEvent.keyDown(entry, { key });
+
+    expect(tap).toHaveFocus();
+    expect(screen.queryByRole('menu', { name: 'Counters' })).not.toBeInTheDocument();
+    expect(entry).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('keeps a hover-opened submenu open when Home lands on its own entry', () => {
+    const { entry } = renderNested();
+    hoverOpen(entry);
+
+    fireEvent.keyDown(entry, { key: 'Home' });
+
+    expect(entry).toHaveFocus();
+    expect(screen.getByRole('menu', { name: 'Counters' })).toBeInTheDocument();
+  });
+
   it('does not open when the pointer only passes over the entry', () => {
     const { entry } = renderNested();
 
