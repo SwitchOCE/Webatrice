@@ -16,7 +16,7 @@ import { updateStatus } from './';
 export function requestPasswordSalt(
   options: ConnectTarget & RequestPasswordSaltParams,
   onSaltReceived: (passwordSalt: string) => void,
-  onFailure: () => void,
+  onFailure: (failure?: CommandFailure) => void,
 ): void {
   const { userName } = options;
 
@@ -42,7 +42,7 @@ export function requestPasswordSalt(
           ? 'Login failed: the server did not respond'
           : 'Login failed: Unknown Reason');
       }
-      onFailure();
+      onFailure(failure);
     },
   });
 }
