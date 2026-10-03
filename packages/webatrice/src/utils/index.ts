@@ -20,3 +20,12 @@ export { formatRestrictions, formatSpectators } from './gameInfo';
 export { downloadBlob } from './downloadBlob';
 export { computeArtSourceRect, coverFitRect, playmatImageBox } from './playmatCrop';
 export type { Rect, Size } from './playmatCrop';
+export {
+  GAME_LINK_REGEX,
+  containsGameLink,
+  gameLinkServer,
+  isSameServerHost,
+  makeGameJoinLink,
+  parseGameJoinLink,
+} from './gameLink';
+export type { GameJoinLink, GameJoinLinkError, ParsedGameJoinLink } from './gameLink';
