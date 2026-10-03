@@ -13,8 +13,8 @@ export class RoomResponseImpl implements WebsocketTypes.IRoomResponse<WebsocketT
     this.store.dispatch(RoomsActions.clearStore());
   }
 
-  joinRoom(roomInfo: ServerInfo_Room): void {
-    this.store.dispatch(RoomsActions.joinRoom({ roomInfo }));
+  joinRoom(roomInfo: ServerInfo_Room, userInitiated?: boolean): void {
+    this.store.dispatch(RoomsActions.joinRoom({ roomInfo, userInitiated }));
   }
 
   leaveRoom(roomId: number): void {

@@ -19,8 +19,10 @@ import ServerUsers from './ServerUsers';
  * spanning both rows. All MUI (Paper, Table, ListItemButton,
  * VirtualList) removed; every panel is a Tailwind card.
  *
- * JOIN_ROOM effect stays as-is: on join success, redirect into the
- * corresponding /room/:roomId route.
+ * JOIN_ROOM effect: when a join the user asked for succeeds, redirect into
+ * the corresponding /room/:roomId route. A server auto-join opens the room
+ * without switching to it, as desktop does (setCurrent = false,
+ * tab_server.cpp), so it never pulls the user out of the Lobby.
  */
 const Server = () => {
   const message = useAppSelector((state) => server.Selectors.getMessage(state));
@@ -29,7 +31,10 @@ const Server = () => {
   const users = useAppSelector((state) => server.Selectors.getSortedUsers(state));
   const navigate = useNavigate();
 
-  useReduxEffect<{ roomInfo: ServerInfo_Room }>((action) => {
+  useReduxEffect<{ roomInfo: ServerInfo_Room; userInitiated?: boolean }>((action) => {
+    if (action.payload.userInitiated === false) {
+      return;
+    }
     const roomId = action.payload.roomInfo.roomId.toString();
     navigate(generatePath(RouteEnum.ROOM, { roomId }));
   }, rooms.Types.JOIN_ROOM, []);

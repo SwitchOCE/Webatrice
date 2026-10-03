@@ -52,7 +52,12 @@ export const clearStore: CaseReducer<RoomsState> = () => initialState;
 
 export const updateRooms: CaseReducer<RoomsState, PayloadAction<{ rooms: ServerInfo_Room[] }>> = () => {};
 
-export const joinRoom: CaseReducer<RoomsState, PayloadAction<{ roomInfo: ServerInfo_Room }>> = (state, action) => {
+// `userInitiated` is false for a server auto-join; the reducer stores the room either
+// way, and the UI uses it to decide whether to switch to the room.
+export const joinRoom: CaseReducer<RoomsState, PayloadAction<{ roomInfo: ServerInfo_Room; userInitiated?: boolean }>> = (
+  state,
+  action,
+) => {
   const { roomInfo: rawRoomInfo } = action.payload;
 
   const roomEntry = normalizeRoomInfo(rawRoomInfo);
