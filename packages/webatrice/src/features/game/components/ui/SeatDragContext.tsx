@@ -45,6 +45,10 @@ export interface SeatDragSourceOptions {
   zone: SeatZone;
   /** Owner of a lent zone; see SeatDragSource. */
   lenderPlayerId?: number;
+  /** False when the local user may not move these cards (another player's,
+   *  unless they judge; desktop CardItem::mouseMoveEvent). A press then
+   *  still clicks (selection) but never becomes a drag. */
+  canDrag?: boolean;
   disabled?: boolean;
 }
 
@@ -72,21 +76,28 @@ export function useSeatDragSource(id: string, options: SeatDragSourceOptions): S
     activationDistance: SEAT_DRAG_THRESHOLD_PX,
   }).current;
   const { setNodeRef, listeners } = useDraggable({ id, data, disabled: options.disabled });
-  const { seatPlayerId, zone, lenderPlayerId } = options;
+  const { seatPlayerId, zone, lenderPlayerId, canDrag = true } = options;
 
   return useCallback<SeatDragStart>(
     (event, cards, onRelease) => {
       if (event.button !== 0 || cards.length === 0 || !listeners) {
         return;
       }
-      Object.assign(data, { seatPlayerId, zone, lenderPlayerId, cards, onRelease });
+      Object.assign(data, {
+        seatPlayerId,
+        zone,
+        lenderPlayerId,
+        cards,
+        onRelease,
+        activationDistance: canDrag ? SEAT_DRAG_THRESHOLD_PX : Number.POSITIVE_INFINITY,
+      });
       setNodeRef(event.currentTarget);
       listeners.onPointerDown(event);
       // After dnd-kit has seen the press (it ignores prevented events): no
       // text selection and no native HTML5 drag of the card art.
       event.preventDefault();
     },
-    [data, listeners, setNodeRef, seatPlayerId, zone, lenderPlayerId],
+    [data, listeners, setNodeRef, seatPlayerId, zone, lenderPlayerId, canDrag],
   );
 }
 

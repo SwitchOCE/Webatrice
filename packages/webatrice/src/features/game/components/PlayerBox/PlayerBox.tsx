@@ -62,6 +62,7 @@ import Card from './Card';
 import { useCardPreviewActions } from '../ui/CardPreviewContext';
 import { usePublishSeatShortcuts, type SeatShortcutOperations } from '../ui/SeatShortcutsContext';
 import { useSeatSelection, type SeatSelection } from '../../hooks/useSeatSelection';
+import { useCanActFor } from '../ui/CardVisualStateContext';
 import { SEAT_DROP_PRIORITY, type SeatZone } from '../../hooks/seatDropPlan';
 import {
   SeatDragGhost,
@@ -5864,31 +5865,63 @@ function PlayerBox(
   // dragged and, for each zone it renders, where a drop on it lands (it owns
   // the zone's layout).
 
-  const handDragSource = useSeatDragSource(`seat-${seatId}-hand`, { seatPlayerId: seatId, zone: 'hand' });
-  const stackDragSource = useSeatDragSource(`seat-${seatId}-stack`, { seatPlayerId: seatId, zone: 'stack' });
-  const graveyardDragSource = useSeatDragSource(`seat-${seatId}-graveyard`, { seatPlayerId: seatId, zone: 'graveyard' });
-  const exileDragSource = useSeatDragSource(`seat-${seatId}-exile`, { seatPlayerId: seatId, zone: 'exile' });
+  // Desktop starts a card drag only for the local player's cards, or any
+  // card for a judge (CardItem::mouseMoveEvent, getLocalOrJudge). On any
+  // other seat a press still selects but never drags.
+  const canMoveSeatCards = useCanActFor()(seatId);
+  const handDragSource = useSeatDragSource(`seat-${seatId}-hand`, {
+    seatPlayerId: seatId,
+    zone: 'hand',
+    canDrag: canMoveSeatCards,
+  });
+  const stackDragSource = useSeatDragSource(`seat-${seatId}-stack`, {
+    seatPlayerId: seatId,
+    zone: 'stack',
+    canDrag: canMoveSeatCards,
+  });
+  const graveyardDragSource = useSeatDragSource(`seat-${seatId}-graveyard`, {
+    seatPlayerId: seatId,
+    zone: 'graveyard',
+    canDrag: canMoveSeatCards,
+  });
+  const exileDragSource = useSeatDragSource(`seat-${seatId}-exile`, {
+    seatPlayerId: seatId,
+    zone: 'exile',
+    canDrag: canMoveSeatCards,
+  });
   // The graveyard / exile / hand view dialog drags from the pile it shows.
   const pileViewDragSource = useSeatDragSource(`seat-${seatId}-pile-view`, {
     seatPlayerId: seatId,
+    canDrag: canMoveSeatCards,
     zone: pileView?.zone ?? 'graveyard',
     disabled: !pileView,
   });
   const battlefieldDragSource = useSeatDragSource(`seat-${seatId}-battlefield`, {
     seatPlayerId: seatId,
+    canDrag: canMoveSeatCards,
     zone: 'battlefield',
   });
   // Hidden zones: the library pile drags its top card (position 0); the
   // search, reveal and sideboard dialogs drag by the server position their
   // snapshot carries as the card id.
-  const libraryDragSource = useSeatDragSource(`seat-${seatId}-library`, { seatPlayerId: seatId, zone: 'library' });
-  const librarySearchDragSource = useSeatDragSource(`seat-${seatId}-library-search`, {
+  const libraryDragSource = useSeatDragSource(`seat-${seatId}-library`, {
     seatPlayerId: seatId,
     zone: 'library',
+    canDrag: canMoveSeatCards,
   });
-  const revealDragSource = useSeatDragSource(`seat-${seatId}-reveal`, { seatPlayerId: seatId, zone: 'library' });
+  const librarySearchDragSource = useSeatDragSource(`seat-${seatId}-library-search`, {
+    seatPlayerId: seatId,
+    canDrag: canMoveSeatCards,
+    zone: 'library',
+  });
+  const revealDragSource = useSeatDragSource(`seat-${seatId}-reveal`, {
+    seatPlayerId: seatId,
+    zone: 'library',
+    canDrag: canMoveSeatCards,
+  });
   const sideboardDragSource = useSeatDragSource(`seat-${seatId}-sideboard-view`, {
     seatPlayerId: seatId,
+    canDrag: canMoveSeatCards,
     zone: 'sideboard',
   });
   const seatDragSources: Partial<Record<DragSourceZone, SeatDragStart>> = {
