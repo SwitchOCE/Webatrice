@@ -1,0 +1,29 @@
+{
+  "GamesList": {
+    "heading": "Games in {room}",
+    "showing": "Showing {visible} / {total}",
+    "empty": "No games open right now — click <create>Create</create> to start one.",
+    "column": {
+      "age": "Age",
+      "description": "Description",
+      "creator": "Creator",
+      "type": "Type",
+      "restrictions": "Restrictions",
+      "players": "Players",
+      "spectators": "Spectators"
+    },
+    "action": {
+      "filter": "Filter games",
+      "clearFilter": "Clear filter",
+      "spectate": "Spectate",
+      "judge": "Judge",
+      "judgeSpectate": "Judge · Spectate"
+    },
+    "password": {
+      "title": "Password required"
+    },
+    "error": {
+      "title": "Error"
+    }
+  }
+}

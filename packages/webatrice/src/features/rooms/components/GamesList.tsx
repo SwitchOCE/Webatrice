@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { ListImperativeAPI } from 'react-window';
 import { Filter, FilterX, Plus, LogIn, Eye, Gavel, ArrowUp, ArrowDown } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 
 import { server, rooms, type GameFilters, type Room, type Game } from '@cockatrice/datatrice';
 import { useAppDispatch, useAppSelector } from '@app/store';
@@ -28,14 +29,14 @@ interface GamesListProps {
 // fields stay in sync with what the row cells render. Column widths live in
 // GRID_COLS (shared by header and rows) — the body is virtualized with
 // react-window, so table layout is replaced by a fixed grid template.
-const COLUMNS: Array<{ label: string; field?: string }> = [
-  { label: 'Age', field: 'info.startTime' },
-  { label: 'Description', field: 'info.description' },
-  { label: 'Creator', field: 'info.creatorInfo.name' },
-  { label: 'Type', field: 'gameType' },
-  { label: 'Restrictions' },
-  { label: 'Players' },
-  { label: 'Spectators', field: 'info.spectatorsCount' },
+const COLUMNS: Array<{ id: string; field?: string }> = [
+  { id: 'age', field: 'info.startTime' },
+  { id: 'description', field: 'info.description' },
+  { id: 'creator', field: 'info.creatorInfo.name' },
+  { id: 'type', field: 'gameType' },
+  { id: 'restrictions' },
+  { id: 'players' },
+  { id: 'spectators', field: 'info.spectatorsCount' },
 ];
 
 const GRID_COLS = 'grid grid-cols-[6rem_minmax(0,1fr)_10rem_8rem_14rem_5rem_8rem]';
@@ -49,6 +50,7 @@ const GAME_ROW_HEIGHT = 37;
  * QTreeView: ↑/↓/Home/End move the selection, Enter joins like a double-click.
  */
 export default function GamesList({ room }: GamesListProps) {
+  const { t } = useTranslation();
   const roomId = room.info.roomId;
   const webClient = useWebClient();
   const dispatch = useAppDispatch();
@@ -160,26 +162,26 @@ export default function GamesList({ room }: GamesListProps) {
           {gameType}
         </div>
         <div role="gridcell" className="px-3 py-2 border-b border-border-subtle/50 text-text-secondary overflow-hidden">
-          <div className="truncate">{formatRestrictions(info)}</div>
+          <div className="truncate">{formatRestrictions(t, info)}</div>
         </div>
         <div role="gridcell" className="px-3 py-2 border-b border-border-subtle/50 text-text-primary tabular-nums whitespace-nowrap">
           {info.playerCount}/{info.maxPlayers}
         </div>
         <div role="gridcell" className="px-3 py-2 border-b border-border-subtle/50 text-text-secondary overflow-hidden">
-          <div className="truncate">{formatSpectators(info)}</div>
+          <div className="truncate">{formatSpectators(t, info)}</div>
         </div>
       </div>
     );
-  }, [selectedGameId, getRowProps, handleSelect, handleActivate]);
+  }, [t, selectedGameId, getRowProps, handleSelect, handleActivate]);
 
   return (
     <section className="flex h-full flex-col bg-bg-surface border border-border-subtle rounded-lg overflow-hidden">
       {/* Header */}
       <div className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-border-subtle">
         <div>
-          <h2 className="font-modern text-lg font-semibold text-text-primary">Games in {room.info.name}</h2>
+          <h2 className="font-modern text-lg font-semibold text-text-primary">{t('GamesList.heading', { room: room.info.name })}</h2>
           <p className="text-xs text-text-muted mt-0.5 tabular-nums">
-            Showing {counts.visible} / {counts.total}
+            {t('GamesList.showing', { visible: counts.visible, total: counts.total })}
           </p>
         </div>
       </div>
@@ -193,18 +195,18 @@ export default function GamesList({ room }: GamesListProps) {
           the header's reserved-but-unused gutter is invisible. */}
       <div
         role="grid"
-        aria-label={`Games in ${room.info.name}`}
+        aria-label={t('GamesList.heading', { room: room.info.name })}
         aria-rowcount={gameList.length + 1}
         className="flex-1 min-h-0 flex flex-col overflow-hidden"
       >
         <div role="rowgroup" className="shrink-0">
           <div role="row" aria-rowindex={1} className={`${GRID_COLS} bg-bg-elevated text-sm overflow-auto [scrollbar-gutter:stable]`}>
-            {COLUMNS.map(({ label, field }) => {
+            {COLUMNS.map(({ id, field }) => {
               const active = field === sortBy.field;
               return (
                 <div
                   role="columnheader"
-                  key={label}
+                  key={id}
                   aria-sort={active ? (sortOrder === 'asc' ? 'ascending' : 'descending') : undefined}
                   className={[
                     'text-left px-3 py-2 text-xs font-semibold uppercase tracking-wider text-text-muted',
@@ -217,11 +219,11 @@ export default function GamesList({ room }: GamesListProps) {
                       className="inline-flex items-center gap-1 uppercase tracking-wider hover:text-text-primary"
                       onClick={() => handleSort(field)}
                     >
-                      {label}
+                      {t(`GamesList.column.${id}`)}
                       {active && (sortOrder === 'asc' ? <ArrowUp size={11} /> : <ArrowDown size={11} />)}
                     </button>
                   ) : (
-                    label
+                    t(`GamesList.column.${id}`)
                   )}
                 </div>
               );
@@ -230,7 +232,7 @@ export default function GamesList({ room }: GamesListProps) {
         </div>
         {gameList.length === 0 ? (
           <div className="flex-1 min-h-0 px-4 py-8 text-center text-sm text-text-muted">
-            No games open right now — click <span className="text-text-primary">Create</span> to start one.
+            <Trans i18nKey="GamesList.empty" components={{ create: <span className="text-text-primary" /> }} />
           </div>
         ) : (
           <div className="flex-1 min-h-0 text-sm">
@@ -259,7 +261,7 @@ export default function GamesList({ room }: GamesListProps) {
               : 'bg-bg-elevated text-text-secondary hover:text-text-primary border border-border-subtle',
           ].join(' ')}
         >
-          <Filter size={14} /> Filter games
+          <Filter size={14} /> {t('GamesList.action.filter')}
         </button>
         <button
           type="button"
@@ -267,7 +269,7 @@ export default function GamesList({ room }: GamesListProps) {
           disabled={!isFilterActive}
           className={TOOLBAR_BUTTON_CLASS}
         >
-          <FilterX size={14} /> Clear filter
+          <FilterX size={14} /> {t('GamesList.action.clearFilter')}
         </button>
 
         <div className="flex-1" />
@@ -280,7 +282,7 @@ export default function GamesList({ room }: GamesListProps) {
             'font-semibold bg-accent text-on-accent hover:bg-accent-hover shadow-glow transition-colors',
           ].join(' ')}
         >
-          <Plus size={14} /> Create
+          <Plus size={14} /> {t('Common.action.create')}
         </button>
         <button
           type="button"
@@ -288,7 +290,7 @@ export default function GamesList({ room }: GamesListProps) {
           disabled={!canJoin}
           className={TOOLBAR_BUTTON_CLASS}
         >
-          <LogIn size={14} /> Join
+          <LogIn size={14} /> {t('Common.action.join')}
         </button>
         <button
           type="button"
@@ -296,7 +298,7 @@ export default function GamesList({ room }: GamesListProps) {
           disabled={!canSpectate}
           className={TOOLBAR_BUTTON_CLASS}
         >
-          <Eye size={14} /> Spectate
+          <Eye size={14} /> {t('GamesList.action.spectate')}
         </button>
         {isJudgeUser && (
           <>
@@ -306,7 +308,7 @@ export default function GamesList({ room }: GamesListProps) {
               disabled={!canJoin}
               className={TOOLBAR_BUTTON_CLASS}
             >
-              <Gavel size={14} /> Judge
+              <Gavel size={14} /> {t('GamesList.action.judge')}
             </button>
             <button
               type="button"
@@ -314,7 +316,7 @@ export default function GamesList({ room }: GamesListProps) {
               disabled={!canSpectate}
               className={TOOLBAR_BUTTON_CLASS}
             >
-              <Gavel size={14} /> Judge · Spectate
+              <Gavel size={14} /> {t('GamesList.action.judgeSpectate')}
             </button>
           </>
         )}
@@ -336,15 +338,15 @@ export default function GamesList({ room }: GamesListProps) {
       />
       <PromptDialog
         isOpen={passwordRequired}
-        title="Password required"
-        label="Password"
-        submitLabel="Join"
+        title={t('GamesList.password.title')}
+        label={t('Common.label.password')}
+        submitLabel={t('Common.action.join')}
         onSubmit={submitPassword}
         onCancel={cancelPassword}
       />
       <AlertDialog
         isOpen={joinError !== null}
-        title="Error"
+        title={t('GamesList.error.title')}
         message={joinError?.message ?? ''}
         onDismiss={clearJoinError}
       />

@@ -292,6 +292,14 @@
       "ru": "Russian",
       "tok": "Toki Pona",
       "yue": "Cantonese"
+    },
+    "action": {
+      "cancel": "Cancel",
+      "create": "Create",
+      "send": "Send",
+      "apply": "Apply",
+      "reset": "Reset",
+      "join": "Join"
     }
   }
 }
