@@ -6,6 +6,17 @@
       "contextError": "The server thinks you are in the server room but your client is unable to display it. Try restarting your client.",
       "userLevelTooLow": "You do not have the required permission to join this server room.",
       "unknown": "Failed to join the server room due to an unknown error: {code}."
-    }
+    },
+    "title": "Rooms",
+    "available": "{count} available",
+    "column": {
+      "name": "Name",
+      "description": "Description",
+      "permissions": "Permissions",
+      "players": "Players",
+      "games": "Games"
+    },
+    "empty": "No rooms available.",
+    "open": "Open"
   }
 }

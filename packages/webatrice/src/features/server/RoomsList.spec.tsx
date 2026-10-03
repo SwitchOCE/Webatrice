@@ -36,11 +36,11 @@ describe('RoomsList', () => {
     renderWithProviders(<RoomsList rooms={{}} joinedRooms={[]} />, {
       preloadedState: connectedState,
     });
-    expect(screen.getByText('Name')).toBeInTheDocument();
-    expect(screen.getByText('Description')).toBeInTheDocument();
-    expect(screen.getByText('Permissions')).toBeInTheDocument();
-    expect(screen.getByText('Players')).toBeInTheDocument();
-    expect(screen.getByText('Games')).toBeInTheDocument();
+    expect(screen.getByText('RoomsList.column.name')).toBeInTheDocument();
+    expect(screen.getByText('RoomsList.column.description')).toBeInTheDocument();
+    expect(screen.getByText('RoomsList.column.permissions')).toBeInTheDocument();
+    expect(screen.getByText('RoomsList.column.players')).toBeInTheDocument();
+    expect(screen.getByText('RoomsList.column.games')).toBeInTheDocument();
   });
 
   it('renders a row per room', () => {
@@ -58,7 +58,7 @@ describe('RoomsList', () => {
       preloadedState: connectedState,
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Join' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Common.action.join' }));
     expect(hoisted.mockWebClient.request.session.joinRoom).toHaveBeenCalledWith(1);
   });
 
@@ -72,7 +72,7 @@ describe('RoomsList', () => {
     // Joined rooms now render an "Open" button (navigate) instead of the
     // "Join" button (webClient.joinRoom); assert it does not call the
     // join request.
-    fireEvent.click(screen.getByRole('button', { name: 'Open' }));
+    fireEvent.click(screen.getByRole('button', { name: 'RoomsList.open' }));
     expect(hoisted.mockWebClient.request.session.joinRoom).not.toHaveBeenCalled();
   });
 

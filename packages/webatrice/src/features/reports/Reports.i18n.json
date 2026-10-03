@@ -96,7 +96,8 @@
       "ageValue": "{days} days (since {date})",
       "none": "(none)",
       "noRecent": "No previous reports against this user.",
-      "loadFailed": "Error loading user info."
+      "loadFailed": "Error loading user info.",
+      "recentLine": "[{date}] #{id} by {reporter} [{status}]: {category}"
     },
     "stats": {
       "title": "Report Statistics",

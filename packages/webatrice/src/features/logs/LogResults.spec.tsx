@@ -42,7 +42,9 @@ describe('LogResults', () => {
       chat: [],
     };
     renderWithProviders(<LogResults logs={logs} />, { preloadedState: disconnectedState });
-    expect(screen.getByRole('tab', { name: /\[2\]/ })).toBeInTheDocument();
+    // The test i18n instance echoes keys, so the counted label shows as its key.
+    expect(screen.getAllByRole('tab')[0]).toHaveAccessibleName('Logs.tabWithCount');
+    expect(screen.getAllByRole('tab')[1]).toHaveAccessibleName('Logs.tab.games');
   });
 
   it('switches to the games tab when clicked', () => {
@@ -53,7 +55,7 @@ describe('LogResults', () => {
     };
     renderWithProviders(<LogResults logs={logs} />, { preloadedState: disconnectedState });
 
-    fireEvent.click(screen.getByRole('tab', { name: /Logs\.tab\.games/ }));
+    fireEvent.click(screen.getAllByRole('tab')[1]);
     expect(screen.getByText('game-log-entry')).toBeInTheDocument();
   });
 });
