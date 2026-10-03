@@ -23,7 +23,7 @@ import {
 
 /**
  * The seat side of the game's DnD (useGameDnd): drag sources, drop zones and
- * the drag ghost for the PlayerBox seat surfaces.
+ * the drag ghost for the seat (PlayerBoard) surfaces.
  */
 
 /** Pixels the pointer must leave the press point by, along either axis, before

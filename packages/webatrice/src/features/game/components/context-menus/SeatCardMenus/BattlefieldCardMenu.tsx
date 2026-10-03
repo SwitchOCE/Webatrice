@@ -1,6 +1,7 @@
 import { ZoneName } from '@cockatrice/sockatrice';
 
 import type { BattlefieldCardViewModel, SeatMoveDestination } from '../../ui/PlayerBoard/playerBoard.types';
+import { MAX_COUNTER_VALUE } from '../../ui/PlayerBoard/counterLimits';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import { applyPTDelta, parsePT } from '../CardContextMenu/cardAttributeEdits';
 import { CardMenuPopup } from '../CardContextMenu/CardContextMenu';
@@ -14,7 +15,6 @@ import { buildRelatedTokenItems, buildTransformItems } from '../CardContextMenu/
  */
 export default function BattlefieldCardMenu() {
   const {
-    MAX_COUNTER_VALUE,
     battlefieldDisplayList,
     cardCommands,
     cardContextMenu,
@@ -61,8 +61,8 @@ export default function BattlefieldCardMenu() {
           // rule as own-side — if the right-clicked card is part of
           // THIS battlefield's local selection, actions treat the
           // whole selection as targets; otherwise just this card.
-          // Local selection state is scoped per PlayerBox, so an
-          // opponent PlayerBox has its OWN selection here (used by
+          // Selection state is scoped per seat, so an
+          // opponent seat has its OWN selection here (used by
           // the viewer to visually group opponent cards).
           const targets: BattlefieldCardViewModel[] = card
             && selection?.zone === 'battlefield'
@@ -124,7 +124,7 @@ export default function BattlefieldCardMenu() {
               // negative delta. Cockatrice sends this against the
               // card owner's life counter id; Servatrice creates
               // the life counter with the same numeric id for every
-              // seat, so calling `onDelta` on THIS PlayerBox's
+              // seat, so calling `onDelta` on THIS seat's
               // lifeControl (which carries the opponent's life
               // counter id) routes through the local client and
               // modifies the LOCAL player's life counter — matching
@@ -159,7 +159,7 @@ export default function BattlefieldCardMenu() {
             },
             { divider: true },
             {
-              // Mirror the own-side handlers. Opponent PlayerBox
+              // Mirror the own-side handlers. Opponent seat
               // owns its own local marquee-selection state; setting
               // it here highlights the opponent's cards visually so
               // a subsequent Draw arrow / Clone can act on the group.

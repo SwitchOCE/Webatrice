@@ -1,5 +1,5 @@
 /**
- * Shared visual dimensions for MTG cards inside a PlayerBox.
+ * Shared visual dimensions for MTG cards on a seat.
  *
  * Base pixel size matches Cockatrice desktop's logical card dimensions
  * (72 × 102, from card_dimensions.h). CardScaleProvider multiplies these

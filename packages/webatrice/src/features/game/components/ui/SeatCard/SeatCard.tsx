@@ -5,10 +5,9 @@ import { counterColorForId } from '../CardSlot/counterColors';
 
 
 /**
- * A single MTG card as it appears inside a PlayerBox (hand, battlefield,
- * command zone, stack). Static visual only — no drag / tap / context
- * menu wiring yet; those land as follow-up slices in the PlayerBox
- * port plan.
+ * A single MTG card as it appears on a seat (hand, battlefield, stack,
+ * zone views, the drag ghost). Visual only: drags, taps and menus are
+ * wired by the region that renders it.
  *
  * Image source: prefers `scryfallId` when known (returns the exact
  * printing chosen in the deck), falls back to `/cards/named?exact=`

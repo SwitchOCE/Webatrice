@@ -1,5 +1,5 @@
 /**
- * Scaled pixel layout for the PlayerBox seat: battlefield cell widths, slot
+ * Scaled pixel layout for the seat (PlayerBoard): battlefield cell widths, slot
  * origins, content size and pointer → slot snapping, plus the spell-stack
  * pile layout.
  *
