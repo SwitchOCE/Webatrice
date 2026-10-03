@@ -50,4 +50,24 @@ describe('ZoneStack', () => {
     expect(openMenus()).toEqual([]);
     expect(menuLabels(openContextMenu(pileEl('Exile')))).toEqual(['View exile (disabled)']);
   });
+
+  it('draws a pile\'s top card from its printing, else from its exact name', () => {
+    renderSeatCell({
+      localPlayerId: 1,
+      seats: [{
+        playerId: 1,
+        deckCount: 40,
+        grave: [makeCard({ id: 40, name: 'Rhino, Warrior Token', providerId: '0f1a2b3c-4d5e-4f60-8a7b-9c0d1e2f3a4b' })],
+        exile: [makeCard({ id: 41, name: 'Rhino, Warrior Token' })],
+      }],
+    });
+    expect(pileEl('Graveyard').querySelector('img')).toHaveAttribute(
+      'src',
+      'https://api.scryfall.com/cards/0f1a2b3c-4d5e-4f60-8a7b-9c0d1e2f3a4b?format=image&version=large',
+    );
+    expect(pileEl('Exile').querySelector('img')).toHaveAttribute(
+      'src',
+      'https://api.scryfall.com/cards/named?exact=Rhino%2C%20Warrior%20Token&format=image&version=large',
+    );
+  });
 });
