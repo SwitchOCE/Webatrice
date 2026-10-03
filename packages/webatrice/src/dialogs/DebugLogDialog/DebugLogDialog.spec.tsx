@@ -35,13 +35,13 @@ describe('DebugLogDialog', () => {
 
   const log = () => screen.getByRole<HTMLTextAreaElement>('textbox', { name: 'DebugLogDialog.logLabel' });
 
-  test('shows the header and the buffered log, and follows new lines', () => {
+  test('shows the header and the buffered log, and follows new lines', async () => {
     render(<DebugLogDialog isOpen onClose={vi.fn()} />);
 
     expect(log().value).toMatch(/^Client: webatrice test\n---\n\[[\d:.]+\] WARN {2}socket closed$/);
     expect(log()).toHaveAttribute('readonly');
 
-    act(() => debugLog.append('error', 'later'));
+    await act(async () => debugLog.append('error', 'later'));
     expect(log().value).toMatch(/ERROR later$/);
   });
 
@@ -67,10 +67,12 @@ describe('DebugLogDialog', () => {
     expect(screen.getByRole('status')).toHaveTextContent('DebugLogDialog.copyFailed');
   });
 
-  test('clears the log on demand, keeping the header', () => {
+  test('clears the log on demand, keeping the header', async () => {
     render(<DebugLogDialog isOpen onClose={vi.fn()} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /DebugLogDialog\.clear$/ }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /DebugLogDialog\.clear$/ }));
+    });
 
     expect(log().value).toBe('Client: webatrice test\n---');
   });
@@ -88,6 +90,18 @@ describe('DebugLogDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
 
     expect(debugLog.getEntries()).toHaveLength(0);
+  });
+
+  test('holds no log subscription while closed', () => {
+    const subscribe = vi.spyOn(debugLog, 'subscribe');
+    const { rerender } = render(<DebugLogDialog isOpen={false} onClose={vi.fn()} />);
+
+    expect(subscribe).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    rerender(<DebugLogDialog isOpen onClose={vi.fn()} />);
+    expect(subscribe).toHaveBeenCalled();
+    subscribe.mockRestore();
   });
 
   test('persists the "Clear log when closing" choice', () => {
