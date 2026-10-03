@@ -1,0 +1,9 @@
+{
+  "EditUserDialog": {
+    "title": "Edit user profile",
+    "label": {
+      "passwordCheck": "Current password (required to change your email)"
+    },
+    "success": "User information updated."
+  }
+}

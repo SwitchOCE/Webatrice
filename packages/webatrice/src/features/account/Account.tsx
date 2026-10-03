@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Button from '@mui/material/Button';
@@ -8,12 +9,17 @@ import { UserDisplay, VirtualList, AuthGuard, LanguageDropdown } from '@app/comp
 import { Layout } from '@app/feature-wrappers/layout';
 
 import AddUserForm from './AddUserForm';
+import { ChangeAvatarDialog, ChangePasswordDialog, EditUserDialog } from './dialogs';
 import { useAccount } from './useAccount';
 
 import './Account.css';
 
+type AccountDialog = 'edit' | 'password' | 'avatar';
+
 const Account = () => {
   const { t } = useTranslation();
+  const [openDialog, setOpenDialog] = useState<AccountDialog | null>(null);
+  const closeDialog = () => setOpenDialog(null);
   const {
     buddyList,
     ignoreList,
@@ -73,10 +79,19 @@ const Account = () => {
           <p>Account Age: {String(accountageSecs)}</p>
           <p>Real Name: {realName}</p>
           <div className="account-details__actions">
-            <Button size="small" color="primary" variant="contained">Edit</Button>
-            <Button size="small" color="primary" variant="contained">Change<br />Password</Button>
-            <Button size="small" color="primary" variant="contained">Change<br />Avatar</Button>
+            <Button size="small" color="primary" variant="contained" onClick={() => setOpenDialog('edit')}>
+              {t('Account.action.edit')}
+            </Button>
+            <Button size="small" color="primary" variant="contained" onClick={() => setOpenDialog('password')}>
+              {t('Account.action.changePassword')}
+            </Button>
+            <Button size="small" color="primary" variant="contained" onClick={() => setOpenDialog('avatar')}>
+              {t('Account.action.changeAvatar')}
+            </Button>
           </div>
+          <EditUserDialog isOpen={openDialog === 'edit'} handleClose={closeDialog} />
+          <ChangePasswordDialog isOpen={openDialog === 'password'} handleClose={closeDialog} />
+          <ChangeAvatarDialog isOpen={openDialog === 'avatar'} handleClose={closeDialog} />
 
         </Paper>
         <Paper className="account-details">

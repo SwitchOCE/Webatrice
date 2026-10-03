@@ -110,17 +110,33 @@ describe('Account', () => {
   it('renders the Edit, Change Password, and Change Avatar action buttons', () => {
     renderWithProviders(<Account />, { preloadedState: connectedState });
 
-    expect(screen.getByRole('button', { name: /^Edit$/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Change.*Password/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Change.*Avatar/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Account.action.edit' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Account.action.changePassword' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Account.action.changeAvatar' })).toBeInTheDocument();
   });
 
-  it('clicking Edit does not invoke accountEdit on the web client (not yet wired)', () => {
+  it.each([
+    ['Account.action.edit', 'EditUserDialog.title'],
+    ['Account.action.changePassword', 'ChangePasswordDialog.title'],
+    ['Account.action.changeAvatar', 'ChangeAvatarDialog.title'],
+  ])('%s opens its dialog without sending anything until confirmed', (button, title) => {
     renderWithProviders(<Account />, { preloadedState: connectedState });
 
-    fireEvent.click(screen.getByRole('button', { name: /^Edit$/ }));
+    fireEvent.click(screen.getByRole('button', { name: button }));
+
+    expect(screen.getByRole('dialog', { name: title })).toBeInTheDocument();
     expect(hoisted.mockWebClient.request.session.accountEdit).not.toHaveBeenCalled();
     expect(hoisted.mockWebClient.request.session.accountPassword).not.toHaveBeenCalled();
+    expect(hoisted.mockWebClient.request.session.accountImage).not.toHaveBeenCalled();
+  });
+
+  it('closes an account dialog on cancel', () => {
+    renderWithProviders(<Account />, { preloadedState: connectedState });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Account.action.changePassword' }));
+    fireEvent.click(screen.getByRole('button', { name: 'AccountDialogs.label.cancel' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('clears the buddy input after a successful submission', async () => {
