@@ -1,1 +1,2 @@
 - 15:24Z started f0102; read brief/task/rv1 → set up 01 work branch
+- 15:30Z 01: fixed both majors, pushed claude/parity-01-lint → minors (ShellLifecycle, LoginForm callbacks)
