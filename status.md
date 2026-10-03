@@ -1,2 +1,3 @@
 - 14:33Z started w15 → rebase 15 onto 06
 - 14:40Z rebased (3 conflicts resolved), typecheck green, pushed ec1b2bc → integrate 04 failures / e2e fixture
+- 14:45Z 04-style failures + e2e fixture conversion pushed 0d1d235 → full gate
