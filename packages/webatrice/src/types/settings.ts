@@ -48,6 +48,9 @@ export class Setting {
   closeEmptyCardView: boolean;
   tapAnimation: boolean;
 
+  // User interface — deck editor/storage (desktop deck_editor_settings `openDeckInNewTab`)
+  openDeckInNewTab: boolean;
+
   // User interface — replay (desktop interface_settings `replay/rewindBufferingMs`)
   replayRewindBufferingMs: number;
 
@@ -136,6 +139,8 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   playToStack: true,
   closeEmptyCardView: true,
   tapAnimation: true,
+
+  openDeckInNewTab: false,
 
   replayRewindBufferingMs: 200,
 

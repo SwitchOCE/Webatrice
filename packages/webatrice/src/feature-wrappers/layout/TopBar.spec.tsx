@@ -9,6 +9,7 @@ import { RouteEnum } from '@app/types';
 import { closeReplay, getOpenedReplay, getOpenedReplays, openReplay } from '@app/services';
 import { buildReplay, sayContainer } from '../../services/replay/__mocks__/fixtures';
 
+import { getSettings, settingsStore } from '../../hooks/useSettings';
 import TopBar from './TopBar';
 
 const TABS_KEY = 'webatrice.stickyTabs';
@@ -327,5 +328,41 @@ describe('TopBar tab titles', () => {
     await act(() => i18n.changeLanguage('de'));
 
     expect(document.title).toBe('Einstellungen · Webatrice');
+  });
+});
+
+describe('TopBar deck tabs', () => {
+  // Deck tabs in tab order, by the route each one links to.
+  const deckTab = () => screen
+    .queryAllByRole('link', { name: 'TopBar.tab.deck' })
+    .map((tab) => tab.getAttribute('href'));
+
+  beforeEach(async () => {
+    window.localStorage.clear();
+    settingsStore.reset();
+    await getSettings();
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+    settingsStore.reset();
+  });
+
+  it('keeps one deck tab by default, as desktop does with the option off', () => {
+    renderTopBar('/deck/1').unmount();
+    renderTopBar('/deck/2');
+
+    expect(deckTab()).toEqual(['/deck/2']);
+  });
+
+  it('opens a tab per deck once "Open deck in new tab by default" is on', async () => {
+    const settings = await getSettings();
+    settings.openDeckInNewTab = true;
+    settingsStore.setValue(settings);
+
+    renderTopBar('/deck/1').unmount();
+    renderTopBar('/deck/2');
+
+    expect(deckTab().sort()).toEqual(['/deck/1', '/deck/2']);
   });
 });
