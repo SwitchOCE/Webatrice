@@ -1,1 +1,2 @@
 - 16:00Z started; inbox empty → rebase
+- 16:07Z rebased onto dc77ebd, e2e fixture + deckSelectFailed committed/pushed → full gate
