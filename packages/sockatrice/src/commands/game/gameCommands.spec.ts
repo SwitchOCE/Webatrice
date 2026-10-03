@@ -35,6 +35,7 @@ import {
   Command_Shuffle_ext,
   Command_UndoDraw_ext,
   Command_Unconcede_ext,
+  Command_SetPlaymat_ext,
 } from '../../generated';
 
 import { attachCard } from './attachCard';
@@ -65,6 +66,7 @@ import { setActivePhase } from './setActivePhase';
 import { setCardAttr } from './setCardAttr';
 import { setCardCounter } from './setCardCounter';
 import { setCounter } from './setCounter';
+import { setPlaymat } from './setPlaymat';
 import { setSideboardLock } from './setSideboardLock';
 import { setSideboardPlan } from './setSideboardPlan';
 import { shuffle } from './shuffle';
@@ -268,6 +270,15 @@ describe('Game commands — delegate to WebClient.instance.protobuf.sendGameComm
     setCounter(gameId, { counterId: 1, value: 10 });
     expect(WebClient.instance.protobuf.sendGameCommand).toHaveBeenCalledWith(
       gameId, Command_SetCounter_ext, expect.objectContaining({ counterId: 1, value: 10 }), undefined
+    );
+  });
+
+  it('setPlaymat sends Command_SetPlaymat with the playmat params', () => {
+    setPlaymat(gameId, { playmatParams: { cardName: 'Island', cardProviderId: 'abc', zoom: 1.5 } });
+    expect(WebClient.instance.protobuf.sendGameCommand).toHaveBeenCalledWith(
+      gameId,
+      Command_SetPlaymat_ext,
+      expect.objectContaining({ playmatParams: expect.objectContaining({ cardName: 'Island', cardProviderId: 'abc', zoom: 1.5 }) })
     );
   });
 

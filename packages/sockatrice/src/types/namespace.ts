@@ -4,6 +4,7 @@ export type {
   IGameResponse,
   IAdminResponse,
   IModeratorResponse,
+  IDeveloperResponse,
   IWebClientResponse,
 } from './WebClientResponse';
 

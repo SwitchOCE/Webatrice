@@ -34,6 +34,7 @@ import {
   Event_GameJoinedSchema,
   Event_ListRoomsSchema,
   Event_NotifyUserSchema,
+  Event_NotifyUser_NotificationType,
   Event_RemoveFromListSchema,
   Event_ReplayAddedSchema,
   Event_ServerCompleteListSchema,
@@ -85,6 +86,15 @@ describe('notifyUser', () => {
 
   it('calls WebClient.instance.response.session.notifyUser', () => {
     const data = create(Event_NotifyUserSchema, { warningReason: 'yo' });
+    notifyUser(data);
+    expect(WebClient.instance.response.session.notifyUser).toHaveBeenCalledWith(data);
+  });
+
+  it.each([
+    Event_NotifyUser_NotificationType.REPORT_RESOLVED,
+    Event_NotifyUser_NotificationType.REPORT_COMMENT,
+  ])('forwards report notification type %s with its title and content', (type) => {
+    const data = create(Event_NotifyUserSchema, { type, customTitle: 'Report #3', customContent: 'Resolved' });
     notifyUser(data);
     expect(WebClient.instance.response.session.notifyUser).toHaveBeenCalledWith(data);
   });

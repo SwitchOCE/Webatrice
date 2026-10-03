@@ -10,6 +10,7 @@ import {
   RoomCommandSchema,
   ModeratorCommandSchema,
   AdminCommandSchema,
+  DeveloperCommandSchema,
   ServerMessageSchema,
   ServerMessage_MessageType,
   type Response,
@@ -19,6 +20,7 @@ import {
   type RoomCommand,
   type ModeratorCommand,
   type AdminCommand,
+  type DeveloperCommand,
   type ServerMessage,
   type GameEventContainer,
   type SessionEvent,
@@ -181,6 +183,21 @@ export class ProtobufService {
     const adminCmd = create(AdminCommandSchema);
     setExtension(adminCmd, ext, value);
     const cmd = create(CommandContainerSchema, { adminCommand: [adminCmd] });
+    this.dispatchCommand(ext.typeName, cmd, options);
+  }
+
+  // Developer-family commands (Cockatrice #7211). A message usable through several
+  // families (Command_ViewLogHistory) declares one extension per family; callers pass
+  // the DeveloperCommand-scoped one (`dev_ext`), mirroring desktop's
+  // AbstractClient::prepareDeveloperCommand.
+  public sendDeveloperCommand<V, R = unknown>(
+    ext: GenExtension<DeveloperCommand, V>,
+    value: V,
+    options?: CommandOptions<R>
+  ): void {
+    const devCmd = create(DeveloperCommandSchema);
+    setExtension(devCmd, ext, value);
+    const cmd = create(CommandContainerSchema, { developerCommand: [devCmd] });
     this.dispatchCommand(ext.typeName, cmd, options);
   }
 
