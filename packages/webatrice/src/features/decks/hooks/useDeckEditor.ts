@@ -167,27 +167,29 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
     deckId,
     readDeck,
     initialCached?.savedSignature ?? null,
-    isDraft ? { onStored: onDraftStored } : undefined,
+    isDraft ? { key: draftToken, onStored: onDraftStored } : undefined,
   );
   const { scheduleSave, markSaved, resetSaved, savedSignature } = autosave;
   const history = useDeckHistory();
   const { record, clear: clearHistory, undo: undoHistory, redo: redoHistory } = history;
 
-  // The route keeps this hook mounted across `/deck/:deckId` changes,
-  // so re-seed per deckId: otherwise switching to a cached deck keeps
+  // Routes keep this hook mounted across deck ids and draft tokens,
+  // so re-seed per identity: otherwise switching to a cached deck keeps
   // the previous deck in state and the next autosave uploads it under
   // the new id. Adjusting state during render (rather than in an
   // effect) means no effect ever runs with the new id and the old deck.
-  const [seededDeckId, setSeededDeckId] = useState(deckId);
-  if (seededDeckId !== deckId) {
+  const identity = deckId ?? draftToken;
+  const [seededIdentity, setSeededIdentity] = useState(identity);
+  if (seededIdentity !== identity) {
     // Desktop clears history when replacing the deck. Do this before the
     // new identity exposes actions, including when its deck is cached.
     clearHistory();
-    const cached = deckId != null ? getCachedDeck(deckId) : undefined;
-    setSeededDeckId(deckId);
-    setDeck(cached?.deck ?? null);
+    const cached = initialCached?.deck ?? initialDraft;
+    setSeededIdentity(identity);
+    setDeck(cached ?? null);
     setLoading(!cached);
     setNotFound(false);
+    setLoadError(null);
   }
 
   // Synced in an effect, not during render: on a deckId change the

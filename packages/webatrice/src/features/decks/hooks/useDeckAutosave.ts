@@ -29,6 +29,8 @@ export interface DeckAutosave {
 
 /** An unsaved draft's autosave (`deckId` null): its first save stores it. */
 export interface DraftAutosave {
+  /** Handoff token: changing route tokens need not remount the editor. */
+  key: string;
   /** The draft's first save was stored as deck `deckId`, holding `signature`. */
   onStored: (deckId: number, signature: string) => void;
 }
@@ -46,7 +48,10 @@ export function useDeckAutosave(
   const webClient = useWebClient();
   const store = useStore<RootState>();
   const registry = useMemo(() => getDeckSaveRegistry(store, webClient), [store, webClient]);
-  const getSnapshot = useCallback(() => registry.getSnapshot(deckId), [registry, deckId]);
+  // The upload can finish before navigation supplies the stored deck id.
+  // Read this ref in callbacks too, so a pending cleanup cannot upload again.
+  const storedIdRef = useRef<number | null>(null);
+  const getSnapshot = useCallback(() => registry.getSnapshot(deckId ?? storedIdRef.current), [registry, deckId]);
   const { saveState: storedSaveState } = useSyncExternalStore(registry.subscribe, getSnapshot);
   const saveTimerRef = useRef<number | null>(null);
   const [draftSaveState, setDraftSaveState] = useState<SaveState>('idle');
@@ -55,21 +60,38 @@ export function useDeckAutosave(
   const draftUploadRef = useRef<{ signature: string; requestId: string } | null>(null);
   const draftRef = useRef(draft);
   draftRef.current = draft;
+  const draftKey = draft?.key ?? null;
+  const previousDraftKeyRef = useRef(draftKey);
+
+  useEffect(() => {
+    if (previousDraftKeyRef.current === draftKey) {
+      return;
+    }
+    // The previous identity's cleanup flushes before this reset, while
+    // readDeck still holds its contents. B must never inherit A's stored id.
+    previousDraftKeyRef.current = draftKey;
+    storedIdRef.current = null;
+    draftUploadRef.current = null;
+    draftSavedSignatureRef.current = null;
+    setDraftSaveState('idle');
+  }, [draftKey]);
 
   useEffect(() => {
     registry.connect();
     if (deckId != null) {
       registry.initialize(deckId, initialSavedSignature);
+      storedIdRef.current = null;
     }
   }, [registry, deckId, initialSavedSignature]);
 
   const persistNow = useCallback(() => {
     const current = readDeck();
+    const targetId = deckId ?? storedIdRef.current;
     if (!current) {
       return;
     }
-    if (deckId != null) {
-      registry.save(deckId, current);
+    if (targetId != null) {
+      registry.save(targetId, current);
       return;
     }
     if (!draftRef.current) {
@@ -93,13 +115,24 @@ export function useDeckAutosave(
       }
       const { signature } = upload;
       draftUploadRef.current = null;
+      storedIdRef.current = payload.treeItem.id;
       draftSavedSignatureRef.current = signature;
       setDraftSaveState('saved');
+      if (saveTimerRef.current != null) {
+        window.clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
       registry.initialize(payload.treeItem.id, signature);
+      const current = readDeck();
       draftRef.current?.onStored(payload.treeItem.id, signature);
+      // Include edits whose debounce already fired as well as ones still
+      // waiting on it. The registry skips unchanged contents and owns replies.
+      if (current) {
+        registry.save(payload.treeItem.id, current);
+      }
     },
     server.Types.DECK_UPLOAD,
-    [deckId, registry],
+    [deckId, registry, readDeck],
   );
   useReduxEffect<{ requestId?: string }>(
     ({ payload }) => {
@@ -114,8 +147,9 @@ export function useDeckAutosave(
   );
 
   const scheduleSave = useCallback(() => {
-    if (deckId != null) {
-      registry.markDirty(deckId);
+    const targetId = deckId ?? storedIdRef.current;
+    if (targetId != null) {
+      registry.markDirty(targetId);
     } else if (draftRef.current) {
       setDraftSaveState('dirty');
     } else {
@@ -139,28 +173,34 @@ export function useDeckAutosave(
       persistNow();
     }
   }, [persistNow]);
-  useEffect(() => flushSave, [flushSave]);
+  useEffect(() => flushSave, [flushSave, draftKey]);
 
   const markSaved = useCallback((signature: string) => {
-    if (deckId != null) {
-      registry.markSaved(deckId, signature);
+    const targetId = deckId ?? storedIdRef.current;
+    if (targetId != null) {
+      registry.markSaved(targetId, signature);
     } else {
       draftSavedSignatureRef.current = signature;
       setDraftSaveState('idle');
     }
   }, [registry, deckId]);
   const resetSaved = useCallback(() => {
-    if (deckId != null) {
-      registry.markSaved(deckId, null);
+    const targetId = deckId ?? storedIdRef.current;
+    if (targetId != null) {
+      registry.markSaved(targetId, null);
     } else {
       draftSavedSignatureRef.current = null;
       setDraftSaveState('idle');
     }
   }, [registry, deckId]);
-  const savedSignature = useCallback(() => deckId == null
-    ? draftSavedSignatureRef.current
-    : registry.getSnapshot(deckId).savedSignature, [registry, deckId]);
-  const saveState = deckId == null ? draftSaveState : storedSaveState;
+  const savedSignature = useCallback(() => {
+    const targetId = deckId ?? storedIdRef.current;
+    return targetId == null ? draftSavedSignatureRef.current : registry.getSnapshot(targetId).savedSignature;
+  }, [registry, deckId]);
+  // A newly initialized entry is idle. Until navigation, retain the upload's
+  // saved indicator unless the registry has an update to report.
+  const saveState = deckId == null && (storedIdRef.current == null || storedSaveState === 'idle')
+    ? draftSaveState : storedSaveState;
 
   return { saveState, scheduleSave, flushSave, markSaved, resetSaved, savedSignature };
 }

@@ -1,11 +1,12 @@
 import { act, waitFor } from '@testing-library/react';
-import { useLocation } from 'react-router-dom';
+import { useRef } from 'react';
+import { Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { server } from '@cockatrice/datatrice';
 import { stageDeckDocument } from '@app/services';
 
 import { connectedState, createMockWebClient, renderWithProviders } from '../../../__test-utils__';
-import { clearDeckEditorCache, getCachedDeck } from '../deckEditorCache';
+import { clearDeckEditorCache, getCachedDeck, getCachedDraft, setCachedDraft } from '../deckEditorCache';
 import { useDeckEditor, type UseDeckEditor } from './useDeckEditor';
 
 // An unsaved draft handed over by token (the game's "Open deck in deck
@@ -63,6 +64,45 @@ beforeEach(() => {
 });
 
 describe('useDeckEditor draft', () => {
+  it.each([true, false])('switches draft route tokens without remounting and reseeds B (cached: %s)', async (cached) => {
+    const tokenA = stageDeckDocument(GAME_DECK);
+    const tokenB = stageDeckDocument(GAME_DECK.replace('Burn', 'Draft B'));
+    let navigate!: ReturnType<typeof useNavigate>;
+    let instance!: object;
+    function RoutedDraftProbe() {
+      instance = useRef({}).current;
+      navigate = useNavigate();
+      editor.current = useDeckEditor(null, useParams().token!);
+      return null;
+    }
+    const webClient = createMockWebClient();
+    renderWithProviders(<Routes><Route path="/deck/draft/:token" element={<RoutedDraftProbe />} /></Routes>, {
+      preloadedState: connectedState, webClient, route: `/deck/draft/${tokenA}`,
+    });
+    await waitFor(() => expect(editor.current!.loading).toBe(false));
+    const originalInstance = instance;
+    if (cached) {
+      setCachedDraft(tokenB, { ...editor.current!.deck!, name: 'Draft B' });
+    }
+    act(() => editor.current!.setName('Draft A edited'));
+    act(() => navigate(`/deck/draft/${tokenB}`));
+    await waitFor(() => expect(editor.current!.deck?.name).toBe('Draft B'));
+    expect(instance).toBe(originalInstance);
+    expect(editor.current!.canUndo).toBe(false);
+    expect(editor.current!.saveState).toBe('idle');
+    expect(getCachedDraft(tokenA)?.name).toBe('Draft A edited');
+    expect(getCachedDraft(tokenB)?.name).toBe('Draft B');
+    act(() => {
+      editor.current!.setName('Draft B edited');
+      editor.current!.flushSave();
+    });
+    const uploads = vi.mocked(webClient.request.session.deckUpload).mock.calls;
+    expect(uploads).toHaveLength(2);
+    expect(uploads[0][2]).toContain('<deckname>Draft A edited</deckname>');
+    expect(uploads[1][2]).toContain('<deckname>Draft B edited</deckname>');
+    expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+  });
+
   it('hydrates the staged deck with every printing field, downloading nothing', async () => {
     const { webClient } = setupDraft(stageDeckDocument(GAME_DECK));
     await waitFor(() => expect(editor.current!.loading).toBe(false));
@@ -106,6 +146,79 @@ describe('useDeckEditor draft', () => {
       expect(editor.current!.saveState).toBe('saved');
       expect(location.pathname).toBe('/deck/42');
       expect(getCachedDeck(42)?.deck.name).toBe('Burn v2');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  const uploaded = (id: number, name: string, requestId?: string, path = '') => server.Actions.deckUpload({
+    path,
+    requestId,
+    treeItem: { id, name } as Parameters<typeof server.Actions.deckUpload>[0]['treeItem'],
+  });
+
+  it('saves edits made during the first upload to the new deck once its id arrives', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { webClient, store } = setupDraft(stageDeckDocument(GAME_DECK));
+      await waitFor(() => expect(editor.current!.loading).toBe(false));
+
+      act(() => editor.current!.setName('Burn v2'));
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+
+      // Edited while the upload is in flight: nothing more is sent yet.
+      act(() => editor.current!.setName('Burn v3'));
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+      expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+
+      // Another root upload (say, My Decks' "New deck") is not this draft's answer.
+      act(() => {
+        store.dispatch(uploaded(41, 'Something else'));
+      });
+      expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+      expect(editor.current!.saveState).not.toBe('saved');
+
+      act(() => {
+        store.dispatch(uploaded(42, 'Burn v2', vi.mocked(webClient.request.session.deckUpload).mock.calls[0][5]));
+      });
+      expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+      expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);
+      const [deckId, deckList] = vi.mocked(webClient.request.session.deckUpdate).mock.calls[0];
+      expect(deckId).toBe(42);
+      expect(deckList).toContain('<deckname>Burn v3</deckname>');
+      expect(editor.current!.saveState).toBe('saving');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('saves an edit still waiting on the autosave debounce to the new deck', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { webClient, store } = setupDraft(stageDeckDocument(GAME_DECK));
+      await waitFor(() => expect(editor.current!.loading).toBe(false));
+
+      act(() => editor.current!.setName('Burn v2'));
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      act(() => editor.current!.setName('Burn v3'));
+      act(() => {
+        store.dispatch(uploaded(42, 'Burn v2', vi.mocked(webClient.request.session.deckUpload).mock.calls[0][5]));
+      });
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+
+      expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+      expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(webClient.request.session.deckUpdate).mock.calls[0][0]).toBe(42);
     } finally {
       vi.useRealTimers();
     }
