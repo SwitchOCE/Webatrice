@@ -9,7 +9,7 @@ import {
   parseReplay,
 } from '@app/services';
 
-import { MAX_REPLAY_FILE_BYTES, hasReplayExtension, readReplayFile, saveReplayFile } from './replayFiles';
+import { MAX_REPLAY_FILE_BYTES, hasReplayExtension, readReplayFile, saveReplayFile, splitReplayName } from './replayFiles';
 import type { ReplayNotice } from './useServerReplays';
 
 export interface LibraryCrumb {
@@ -240,13 +240,14 @@ export function useLocalReplays(refreshKey = 0): LocalReplays {
     if (!current || !name) {
       return;
     }
+    const entryName = current.kind === 'newFolder' ? name : `${name}${splitReplayName(current.entry.name).extension}`;
     const action = current.kind === 'newFolder'
-      ? ReplayFileDTO.addFolder(folderId, name)
-      : ReplayFileDTO.rename(current.entry.id!, name);
+      ? ReplayFileDTO.addFolder(folderId, entryName)
+      : ReplayFileDTO.rename(current.entry.id!, entryName);
     action
       .catch((err) => {
         if (err instanceof ReplayNameTakenError) {
-          showError(t('Replays.local.nameTaken', { name }));
+          showError(t('Replays.local.nameTaken', { name: entryName }));
         } else {
           showError(current.kind === 'newFolder' ? t('Replays.local.newFolderFailed') : t('Replays.local.renameFailed'));
         }

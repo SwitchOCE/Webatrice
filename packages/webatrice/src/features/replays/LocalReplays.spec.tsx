@@ -147,17 +147,17 @@ describe('Local replays', () => {
     await waitFor(() => expect(addFolder).toHaveBeenCalledWith(REPLAY_LIBRARY_ROOT, 'Casual'));
   });
 
-  it('renames the selected entry, prefilled with its name', async () => {
+  it('renames the selected entry, editing only the name before .cor', async () => {
     const rename = vi.spyOn(ReplayFileDTO, 'rename').mockResolvedValue();
     renderReplays();
 
     fireEvent.click(await localPane().findByTestId('local-replay-zeta.cor'));
     fireEvent.click(localPane().getByRole('button', { name: 'Replays.action.rename' }));
     const input = screen.getByLabelText('Replays.local.newName');
-    expect(input).toHaveValue('zeta.cor');
+    expect(input).toHaveValue('zeta');
     expect(screen.getByRole('dialog')).toHaveTextContent('Replays.local.renameFileTitle');
 
-    fireEvent.change(input, { target: { value: 'final.cor' } });
+    fireEvent.change(input, { target: { value: 'final' } });
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'OK' }));
 
     await waitFor(() => expect(rename).toHaveBeenCalledWith(1, 'final.cor'));
