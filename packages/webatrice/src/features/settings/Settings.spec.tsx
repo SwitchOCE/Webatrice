@@ -1,111 +1,188 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 
 import { renderWithProviders, connectedState } from '../../__test-utils__';
+import { getPreferencesSnapshot, getSettings, settingsStore } from '../../hooks/useSettings';
 import { shortcuts } from '../../store';
 import Settings from './Settings';
 
+const renderSettings = async () => {
+  const result = renderWithProviders(<Settings />, { preloadedState: connectedState });
+  await act(async () => {
+    await getSettings();
+  });
+  return result;
+};
+
+const openSection = (name: RegExp) => {
+  fireEvent.click(screen.getByRole('tab', { name }));
+};
+
+const search = (value: string) => {
+  fireEvent.change(screen.getByLabelText(/Settings\.searchLabel/), { target: { value } });
+};
+
 describe('Settings', () => {
-  it('renders the shortcuts tab', () => {
-    renderWithProviders(<Settings />, { preloadedState: connectedState });
-
-    expect(screen.getByRole('tab', { name: /Settings\.tab\.shortcuts/ })).toBeInTheDocument();
+  beforeEach(() => {
+    // Fresh defaults per test: the store is a module singleton and Dexie is stubbed empty.
+    settingsStore.reset();
   });
 
-  it('shows the shortcuts tab panel by default', () => {
-    renderWithProviders(<Settings />, { preloadedState: connectedState });
+  it('lists the registered sections in desktop order and opens the first', async () => {
+    await renderSettings();
 
-    const panel = document.getElementById('settings-tabpanel-0');
-    expect(panel).not.toBeNull();
-    expect(panel).not.toHaveAttribute('hidden');
+    const tabs = within(screen.getByRole('tablist', { name: /Settings\.title/ })).getAllByRole('tab');
+    expect(tabs.map((tab) => tab.textContent)).toEqual([
+      'Settings.section.appearance',
+      'Settings.section.userInterface',
+      'Settings.section.chat',
+      'Settings.section.sound',
+      'Settings.section.shortcuts',
+    ]);
+    expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('SettingsAppearance.group.tableGrid');
   });
 
-  it('exposes the Settings.title as the aria-label on the tab list', () => {
-    renderWithProviders(<Settings />, { preloadedState: connectedState });
+  it('switches section on click and with the arrow keys', async () => {
+    await renderSettings();
 
-    expect(screen.getByRole('tablist', { name: /Settings\.title/ })).toBeInTheDocument();
+    openSection(/Settings\.section\.sound/);
+    expect(screen.getByRole('tabpanel')).toHaveTextContent('SettingsSound.group.sound');
+
+    fireEvent.keyDown(screen.getByRole('tab', { name: /Settings\.section\.sound/ }), { key: 'ArrowDown' });
+    expect(screen.getByRole('tab', { name: /Settings\.section\.shortcuts/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: /Settings\.section\.shortcuts/ })).toHaveFocus();
+
+    fireEvent.keyDown(screen.getByRole('tab', { name: /Settings\.section\.shortcuts/ }), { key: 'Home' });
+    expect(screen.getByRole('tab', { name: /Settings\.section\.appearance/ })).toHaveAttribute('aria-selected', 'true');
   });
 
-  it('renders all default-binding accordion groups inside the shortcuts panel', () => {
-    renderWithProviders(<Settings />, { preloadedState: connectedState });
+  it('saves a preference as soon as its control changes', async () => {
+    await renderSettings();
+    openSection(/Settings\.section\.userInterface/);
 
+    const toggle = screen.getByRole('switch', { name: /SettingsUserInterface\.tapAnimation\.label/ });
+    expect(toggle).toBeChecked();
+
+    await act(async () => {
+      fireEvent.click(toggle);
+    });
+
+    expect(toggle).not.toBeChecked();
+    expect(getPreferencesSnapshot().tapAnimation).toBe(false);
+  });
+
+  it('disables a setting while the preference it depends on is off', async () => {
+    await renderSettings();
+    openSection(/Settings\.section\.sound/);
+
+    expect(getPreferencesSnapshot().soundEnabled).toBe(false);
+    expect(screen.getByLabelText(/SettingsSound\.masterVolume\.label/)).toBeDisabled();
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('switch', { name: /SettingsSound\.soundEnabled\.label/ }));
+    });
+
+    expect(screen.getByLabelText(/SettingsSound\.masterVolume\.label/)).toBeEnabled();
+  });
+
+  it('stores colors as desktop does, as hex without the hash', async () => {
+    await renderSettings();
+    openSection(/Settings\.section\.chat/);
+
+    const color = screen.getByLabelText(/SettingsChat\.chatMentionColor\.label/);
+    expect(color).toHaveValue('#a6120d');
+
+    await act(async () => {
+      fireEvent.change(color, { target: { value: '#00ff88' } });
+    });
+    expect(getPreferencesSnapshot().chatMentionColor).toBe('00FF88');
+  });
+
+  it('offers every shipped sound theme', async () => {
+    await renderSettings();
+    openSection(/Settings\.section\.sound/);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('switch', { name: /SettingsSound\.soundEnabled\.label/ }));
+    });
+
+    const select = screen.getByLabelText(/SettingsSound\.soundTheme\.label/);
+    expect(within(select).getAllByRole('option').map((o) => o.textContent)).toEqual(['Default', 'Legacy']);
+
+    await act(async () => {
+      fireEvent.change(select, { target: { value: 'Legacy' } });
+    });
+    expect(getPreferencesSnapshot().soundTheme).toBe('Legacy');
+  });
+
+  it('restores a section to its defaults', async () => {
+    await renderSettings();
+    openSection(/Settings\.section\.chat/);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('switch', { name: /SettingsChat\.roomHistory\.label/ }));
+    });
+    expect(getPreferencesSnapshot().roomHistory).toBe(false);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Settings\.restoreDefaults/ }));
+    });
+    expect(getPreferencesSnapshot().roomHistory).toBe(true);
+  });
+
+  it('searches every section and edits results in place', async () => {
+    await renderSettings();
+
+    search('roomHistory');
+
+    const panel = screen.getByRole('tabpanel');
+    expect(within(panel).getByRole('switch', { name: /SettingsChat\.roomHistory\.label/ })).toBeInTheDocument();
+    expect(within(panel).queryByText(/SettingsAppearance\.group\.tableGrid/)).not.toBeInTheDocument();
+    const tabs = within(screen.getByRole('tablist', { name: /Settings\.title/ })).getAllByRole('tab');
+    expect(tabs.every((tab) => tab.getAttribute('aria-selected') === 'false')).toBe(true);
+  });
+
+  it('says so when nothing matches', async () => {
+    await renderSettings();
+    search('___nothing___');
+    expect(screen.getByText(/Settings\.noResults/)).toBeInTheDocument();
+  });
+
+  it('offers custom pages found by title and opens them', async () => {
+    await renderSettings();
+    search('section.shortcuts');
+
+    fireEvent.click(screen.getByRole('button', { name: /Settings\.openSection/ }));
+
+    expect(screen.getByRole('tab', { name: /Settings\.section\.shortcuts/ })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText(/ShortcutsTab\.group\.game$/)).toBeInTheDocument();
-    expect(screen.getByText(/ShortcutsTab\.group\.gamePhases/)).toBeInTheDocument();
-    expect(screen.getByText(/ShortcutsTab\.group\.deckEditor/)).toBeInTheDocument();
-    expect(screen.getByText(/ShortcutsTab\.group\.room/)).toBeInTheDocument();
   });
 
-  it('filters the rendered shortcuts when the search box is typed into', async () => {
-    renderWithProviders(<Settings />, { preloadedState: connectedState });
+  describe('shortcuts section', () => {
+    it('renders the shortcut groups and filters them with their own search', async () => {
+      await renderSettings();
+      openSection(/Settings\.section\.shortcuts/);
 
-    expect(screen.getByText(/ShortcutsTab\.action\.deck\.save/)).toBeInTheDocument();
-    expect(screen.getByText(/ShortcutsTab\.action\.chat\.focus/)).toBeInTheDocument();
+      expect(screen.getByText(/ShortcutsTab\.group\.gamePhases/)).toBeInTheDocument();
+      expect(screen.getByText(/ShortcutsTab\.action\.chat\.focus/)).toBeInTheDocument();
 
-    const searchInput = screen.getByLabelText(/ShortcutsTab\.search/);
-    await act(async () => {
-      fireEvent.change(searchInput, { target: { value: 'deck.save' } });
+      fireEvent.change(screen.getByLabelText(/ShortcutsTab\.search/), { target: { value: 'deck.save' } });
+
+      expect(screen.getByText(/ShortcutsTab\.action\.deck\.save/)).toBeInTheDocument();
+      expect(screen.queryByText(/ShortcutsTab\.action\.chat\.focus/)).not.toBeInTheDocument();
     });
 
-    expect(screen.getByText(/ShortcutsTab\.action\.deck\.save/)).toBeInTheDocument();
-    expect(screen.queryByText(/ShortcutsTab\.action\.chat\.focus/)).not.toBeInTheDocument();
-  });
+    it('keeps shortcut overrides in the shortcuts slice', async () => {
+      const { store } = await renderSettings();
 
-  it('shows the no-results message when the search filters everything out', async () => {
-    renderWithProviders(<Settings />, { preloadedState: connectedState });
+      act(() => {
+        store.dispatch(shortcuts.Actions.setOverride({ actionId: 'game.drawCard', sequences: ['Ctrl+KeyZ'] }));
+      });
+      expect(store.getState().shortcuts.overrides['game.drawCard']).toEqual(['Ctrl+KeyZ']);
 
-    const searchInput = screen.getByLabelText(/ShortcutsTab\.search/);
-    await act(async () => {
-      fireEvent.change(searchInput, { target: { value: '___no_such_shortcut___' } });
+      act(() => {
+        store.dispatch(shortcuts.Actions.resetAll());
+      });
+      await waitFor(() => expect(store.getState().shortcuts.overrides).toEqual({}));
     });
-
-    expect(screen.getByText(/ShortcutsTab\.noResults/)).toBeInTheDocument();
-  });
-
-  it('dispatching setOverride persists into the shortcuts slice (setting change → store update)', () => {
-    const { store } = renderWithProviders(<Settings />, { preloadedState: connectedState });
-
-    expect(store.getState().shortcuts.overrides['game.drawCard']).toBeUndefined();
-
-    act(() => {
-      store.dispatch(
-        shortcuts.Actions.setOverride({ actionId: 'game.drawCard', sequences: ['Ctrl+KeyZ'] }),
-      );
-    });
-
-    expect(store.getState().shortcuts.overrides['game.drawCard']).toEqual(['Ctrl+KeyZ']);
-  });
-
-  it('dispatching resetAction removes a single override (settings reset)', () => {
-    const { store } = renderWithProviders(<Settings />, { preloadedState: connectedState });
-
-    act(() => {
-      store.dispatch(
-        shortcuts.Actions.setOverride({ actionId: 'deck.save', sequences: ['Ctrl+Shift+KeyS'] }),
-      );
-    });
-    expect(store.getState().shortcuts.overrides['deck.save']).toEqual(['Ctrl+Shift+KeyS']);
-
-    act(() => {
-      store.dispatch(shortcuts.Actions.resetAction({ actionId: 'deck.save' }));
-    });
-    expect(store.getState().shortcuts.overrides['deck.save']).toBeUndefined();
-  });
-
-  it('dispatching resetAll clears every override at once', () => {
-    const { store } = renderWithProviders(<Settings />, { preloadedState: connectedState });
-
-    act(() => {
-      store.dispatch(
-        shortcuts.Actions.setOverride({ actionId: 'deck.new', sequences: ['Ctrl+KeyM'] }),
-      );
-      store.dispatch(
-        shortcuts.Actions.setOverride({ actionId: 'deck.load', sequences: ['Ctrl+KeyL'] }),
-      );
-    });
-    expect(Object.keys(store.getState().shortcuts.overrides)).toHaveLength(2);
-
-    act(() => {
-      store.dispatch(shortcuts.Actions.resetAll());
-    });
-    expect(store.getState().shortcuts.overrides).toEqual({});
   });
 });

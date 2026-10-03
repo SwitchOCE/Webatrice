@@ -2,7 +2,20 @@
   "Settings": {
     "title": "Settings",
     "navLabel": "Settings",
-    "tab": {
+    "searchLabel": "Search settings",
+    "searchPlaceholder": "Search settings...",
+    "searchResults": "Search results",
+    "noResults": "No settings match \"{query}\".",
+    "openSection": "Open {section}",
+    "restoreDefaults": "Restore defaults",
+    "section": {
+      "general": "General",
+      "appearance": "Appearance",
+      "userInterface": "User Interface",
+      "cardSources": "Card Sources",
+      "storage": "Storage",
+      "chat": "Chat",
+      "sound": "Sound",
       "shortcuts": "Shortcuts"
     }
   }

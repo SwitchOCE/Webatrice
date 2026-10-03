@@ -1,0 +1,40 @@
+{
+  "SettingsUserInterface": {
+    "group": {
+      "general": "General interface settings",
+      "notifications": "Notifications settings",
+      "animation": "Animation settings"
+    },
+    "playToStack": {
+      "label": "Play all nonlands onto the stack (not the battlefield) by default",
+      "description": "When off, double-clicking a permanent in your hand puts it straight onto the battlefield. Instants and sorceries still go to the stack."
+    },
+    "closeEmptyCardView": {
+      "label": "Close card view window when last card is removed"
+    },
+    "notificationsEnabled": {
+      "label": "Mark the browser tab when something happens in your game",
+      "description": "While Webatrice is in a background tab, its title is marked until you come back."
+    },
+    "spectatorNotificationsEnabled": {
+      "label": "Also mark the tab for game events while you are spectating"
+    },
+    "buddyConnectNotificationsEnabled": {
+      "label": "Notify when users in your buddy list connect"
+    },
+    "browserNotifications": {
+      "label": "Desktop notifications",
+      "description": "Lets Webatrice show system notifications while its tab is in the background. Without them, notifications appear inside the page.",
+      "status": {
+        "granted": "Allowed",
+        "denied": "Blocked. Allow notifications for this site in your browser settings.",
+        "default": "Not allowed yet",
+        "unsupported": "Not supported by this browser"
+      },
+      "request": "Allow notifications"
+    },
+    "tapAnimation": {
+      "label": "Tap/untap animation"
+    }
+  }
+}
