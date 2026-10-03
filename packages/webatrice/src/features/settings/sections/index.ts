@@ -3,6 +3,7 @@ import { appearanceSection } from './appearance';
 import { cardSourcesSection } from './cardSources';
 import { chatSection } from './chat';
 import { generalSection } from './general';
+import { playmatsSection } from './playmats';
 import { shortcutsSection } from './shortcuts';
 import { soundSection } from './sound';
 import { storageSection } from './storage';
@@ -18,6 +19,7 @@ const registrations: readonly SettingsSection[] = [
   generalSection,
   themeSection,
   appearanceSection,
+  playmatsSection,
   userInterfaceSection,
   cardSourcesSection,
   storageSection,

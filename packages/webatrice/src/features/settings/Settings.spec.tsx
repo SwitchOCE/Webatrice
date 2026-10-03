@@ -198,6 +198,15 @@ describe('Settings', () => {
     expect(within(panel).queryByRole('button', { name: /Settings\.restoreDefaults/ })).not.toBeInTheDocument();
   });
 
+  it('shows the playmat settings as a group of the Appearance page', async () => {
+    await renderSettings();
+    openSection(/Settings\.section\.appearance/);
+
+    const panel = screen.getByRole('tabpanel');
+    expect(within(panel).getByText('PlaymatSettings.title')).toBeInTheDocument();
+    expect(within(panel).getByRole('region', { name: 'PlaymatSettings.label' })).toBeInTheDocument();
+  });
+
   it('finds the picture download URLs by search', async () => {
     await renderSettings();
     search('pictureUrls');
