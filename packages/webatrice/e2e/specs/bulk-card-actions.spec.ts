@@ -25,43 +25,39 @@ test('bulk tap and bulk move act on every selected battlefield card', async ({ n
   test.setTimeout(180_000);
   const ctx = await newContext();
 
-  try {
-    const page = await ctx.newPage();
-    const session = await registerAndJoinFirstRoom(page);
+  const page = await ctx.newPage();
+  const session = await registerAndJoinFirstRoom(page);
 
-    const gameDescription = `bulk-${randomSuffix()}`;
-    await session.rooms.createGame(gameDescription, { maxPlayers: 1 });
-    const game = new GamePage(page);
-    await game.loadDeck(DECK_PATH);
-    await game.setReady();
-    await game.waitForBoard();
+  const gameDescription = `bulk-${randomSuffix()}`;
+  await session.rooms.createGame(gameDescription, { maxPlayers: 1 });
+  const game = new GamePage(page);
+  await game.loadDeck(DECK_PATH);
+  await game.setReady();
+  await game.waitForBoard();
 
-    // Two cards onto the battlefield: draw 2, play each from hand.
-    await game.drawCard();
-    await game.drawCard();
-    await game.playCardFromHand('Forest');
-    await game.playCardFromHand('Forest');
-    await expect(game.cardsOnBoard()).toHaveCount(2);
+  // Two cards onto the battlefield: draw 2, play each from hand.
+  await game.drawCard();
+  await game.drawCard();
+  await game.playCardFromHand('Forest');
+  await game.playCardFromHand('Forest');
+  await expect(game.cardsOnBoard()).toHaveCount(2);
 
-    // 1. Bulk tap: select both, then double-click one — the double-click on a
-    //    ≥2 selection taps the whole TABLE subset (batched SetCardAttr).
-    await game.boxSelectBattlefield();
-    await game.cardsOnBoard().first().dblclick();
-    // PlayerBox renders tapped state as an inline `transform: rotate(90deg)`
-    // on the card's inner style container — no `.card-slot--tapped` class in
-    // the current DOM. Assert against the inline style instead.
-    await expect(game.cardsOnBoard().nth(0)).toHaveAttribute('style', /rotate\(90deg\)/);
-    await expect(game.cardsOnBoard().nth(1)).toHaveAttribute('style', /rotate\(90deg\)/);
+  // 1. Bulk tap: select both, then double-click one — the double-click on a
+  //    ≥2 selection taps the whole TABLE subset (batched SetCardAttr).
+  await game.boxSelectBattlefield();
+  await game.cardsOnBoard().first().dblclick();
+  // PlayerBox renders tapped state as an inline `transform: rotate(90deg)`
+  // on the card's inner style container — no `.card-slot--tapped` class in
+  // the current DOM. Assert against the inline style instead.
+  await expect(game.cardsOnBoard().nth(0)).toHaveAttribute('style', /rotate\(90deg\)/);
+  await expect(game.cardsOnBoard().nth(1)).toHaveAttribute('style', /rotate\(90deg\)/);
 
-    // 2. Bulk move: re-select (don't rely on the tap preserving selection), then
-    //    "Send to Graveyard" on a selected card → both move in one MoveCard.
-    await game.boxSelectBattlefield();
-    await game.moveViaCardMenu(game.cardsOnBoard().first(), /send to graveyard/i);
-    await expect.poll(() => game.zoneStackCount('grave')).toBe(2);
-    await expect(game.cardsOnBoard()).toHaveCount(0);
+  // 2. Bulk move: re-select (don't rely on the tap preserving selection), then
+  //    "Send to Graveyard" on a selected card → both move in one MoveCard.
+  await game.boxSelectBattlefield();
+  await game.moveViaCardMenu(game.cardsOnBoard().first(), /send to graveyard/i);
+  await expect.poll(() => game.zoneStackCount('grave')).toBe(2);
+  await expect(game.cardsOnBoard()).toHaveCount(0);
 
-    await game.leaveGame();
-  } finally {
-    await ctx.close();
-  }
+  await game.leaveGame();
 });

@@ -74,7 +74,6 @@ test('a moderator looks up the alts of an account from Moderation', async ({ new
     });
     await expect(page.getByRole('button', { name: 'Administration', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Moderation', exact: true })).toHaveCount(0);
-    await suspectContext.close();
     return;
   }
 
@@ -87,6 +86,4 @@ test('a moderator looks up the alts of an account from Moderation', async ({ new
   await expect(alts.getByRole('cell', { name: suspect.username, exact: true })).toBeVisible({ timeout: 15_000 });
   const info = page.getByRole('region', { name: 'User Info' });
   await expect(info.getByText('active', { exact: true })).toBeVisible();
-
-  await suspectContext.close();
 });
