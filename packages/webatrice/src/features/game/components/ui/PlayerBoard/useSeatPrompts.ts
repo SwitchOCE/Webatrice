@@ -154,8 +154,8 @@ export function useSeatPrompts({
   // "X cards from the top of library..." prompt: Command_MoveCard with x = N
   // puts the card at position N of the library. The library size is
   // snapshotted when it opens, so a draw meanwhile doesn't move the clamp.
-  const openMoveXFromTopPrompt = ({ cardId, cardName, deckSize, fromZone = ZoneName.TABLE }: {
-    cardId: number;
+  const openMoveXFromTopPrompt = ({ cardIds, cardName, deckSize, fromZone = ZoneName.TABLE }: {
+    cardIds: number[];
     cardName: string;
     deckSize: number;
     fromZone?: ZoneNameValue;
@@ -164,7 +164,7 @@ export function useSeatPrompts({
       cardName,
       deckSize,
       initial: Math.min(3, Math.max(0, deckSize)),
-      onSubmit: (position) => zoneCommands.moveCards(fromZone, [cardId], { zone: ZoneName.DECK, index: position, reversed: false }),
+      onSubmit: (position) => zoneCommands.moveCards(fromZone, cardIds, { zone: ZoneName.DECK, index: position, reversed: false }),
     }));
   // Library count prompts: Draw cards..., View top / bottom cards..., Reveal
   // top cards to..., and the Top / Bottom of library "N cards" items. Each
