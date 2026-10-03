@@ -12,6 +12,17 @@ export const appearanceSection: SettingsSection = {
   icon: Palette,
   groups: [
     {
+      id: 'appearance.menus',
+      titleKey: 'SettingsAppearance.group.menus',
+      entries: [
+        {
+          id: 'showShortcutsInMenus',
+          labelKey: 'SettingsAppearance.showShortcutsInMenus.label',
+          control: { kind: 'toggle', key: 'showShortcutsInMenus' },
+        },
+      ],
+    },
+    {
       id: 'appearance.cardRendering',
       titleKey: 'SettingsAppearance.group.cardRendering',
       entries: [

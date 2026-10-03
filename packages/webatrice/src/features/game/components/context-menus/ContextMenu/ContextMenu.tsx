@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { usePreference } from '@app/hooks';
 
 import { useViewportClampedMenu } from '../useViewportClampedMenu';
 
@@ -144,6 +145,8 @@ function MenuList({
   // would overflow. Same helper the card context menu uses so a
   // right-click near a screen edge doesn't clip the menu.
   const { ref: popupRef, position: pos } = useViewportClampedMenu(x, y);
+  // Desktop's "Show keyboard shortcuts in right-click menus".
+  const showShortcuts = usePreference('showShortcutsInMenus');
   // If any item in this menu is checkable, reserve the ✓ slot on
   // every row so labels line up regardless of checked state — matches
   // native menu conventions (macOS / Qt), where a menu with any
@@ -213,7 +216,7 @@ function MenuList({
                 <span className="text-xs text-text-muted" aria-hidden>
                   ▶
                 </span>
-              ) : item.shortcut ? (
+              ) : showShortcuts && item.shortcut ? (
                 <span className="text-xs text-text-muted">
                   {item.shortcut}
                 </span>

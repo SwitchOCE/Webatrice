@@ -37,6 +37,9 @@ export class Setting {
   // Appearance — theme palette
   themeMode: ThemeMode;
 
+  // Appearance — menus (desktop interface `showShortcuts`)
+  showShortcutsInMenus: boolean;
+
   // Appearance — card rendering (desktop cards_display `displayCardNames`,
   // `autoRotateSidewaysLayoutCards`, `scaleCards`, `roundCardCorners`; appearance `maxFontSize`)
   displayCardNames: boolean;
@@ -203,6 +206,8 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
 
   // Desktop writes an unset scheme as "System" (theme_config.cpp).
   themeMode: ThemeMode.System,
+
+  showShortcutsInMenus: true,
 
   displayCardNames: true,
   autoRotateSidewaysLayoutCards: true,
