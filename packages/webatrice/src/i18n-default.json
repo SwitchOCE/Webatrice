@@ -690,7 +690,8 @@
       "registerPrompt": "Not registered yet?",
       "registerAction": "Create an account",
       "credit": "Cockatrice is an open source project",
-      "version": "Version"
+      "version": "Version",
+      "debugLog": "View debug log"
     },
     "content": {
       "subtitle1": "Play multiplayer card games online.",
