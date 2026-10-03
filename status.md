@@ -1,0 +1,1 @@
+- 15:25Z started rv5, read brief+template → fetch PR branches, clone desktop
