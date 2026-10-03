@@ -10,6 +10,7 @@ import { GameReplay } from '@app/features/game';
 import { closeReplay, getOpenedReplays, getOpenedReplay, openReplay, parseReplay } from '@app/services';
 import { RouteEnum } from '@app/types';
 
+import { buildReplay, sayContainer } from '../../../../src/services/replay/__mocks__/fixtures';
 import { renderFeatureScreen, store } from '../helpers';
 
 // A real replay: a two-player game played against the e2e Servatrice by
@@ -96,5 +97,21 @@ describe('replay playback of a recorded game', () => {
     expect(gameOf(gameId).messages.at(-1)?.message).toBe('The game has been closed.');
     expect(screen.getByRole('button', { name: 'GameReplay.controls.play' })).toBeInTheDocument();
     expect(screen.getByTestId('replay-time')).toHaveTextContent(/^(\d+:\d\d) \/ \1$/);
+  });
+
+  it('logs each line at the game time of its recorded container, however fast it plays', () => {
+    const replay = buildReplay([sayContainer(0, 'hello'), sayContainer(65, 'attack'), sayContainer(3725, 'gg')]);
+    const { gameId } = getOpenedReplay(openReplay(replay, 'timed.cor', WebClient.instance))!;
+    for (const container of replay.eventList) {
+      WebClient.instance.replayGameEventContainer(container, gameId);
+    }
+
+    // All three play in no wall time at all; each line keeps its container's game time.
+    const said = gameOf(gameId).messages.filter((m) => m.kind === 'chat');
+    expect(said.map((m) => [m.message, m.gameSeconds])).toEqual([
+      ['hello', 0],
+      ['attack', 65],
+      ['gg', 3725],
+    ]);
   });
 });
