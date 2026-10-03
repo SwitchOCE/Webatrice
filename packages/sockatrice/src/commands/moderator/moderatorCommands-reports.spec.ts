@@ -164,3 +164,54 @@ describe('replayDownloadByGameId', () => {
     expect(WebClient.instance.response.moderator.replayDownloadedByGameId).not.toHaveBeenCalled();
   });
 });
+
+describe('report queue failure and completion callbacks', () => {
+
+  it('reportList passes a failure code to onFailure without touching the response contract', () => {
+    const onFailure = vi.fn();
+    reportList(true, undefined, undefined, onFailure);
+    invokeOnError(Response_ResponseCode.RespInternalError);
+    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespInternalError);
+    expect(WebClient.instance.response.moderator.reportList).not.toHaveBeenCalled();
+  });
+
+  it('reportAssign calls onAssigned after the response contract on success', () => {
+    const onAssigned = vi.fn();
+    reportAssign(4, onAssigned);
+    invokeOnSuccess();
+    expect(WebClient.instance.response.moderator.reportAssigned).toHaveBeenCalledWith(4);
+    expect(onAssigned).toHaveBeenCalled();
+  });
+
+  it('reportAssign passes RespInvalidData (already taken) to onFailure', () => {
+    const onAssigned = vi.fn();
+    const onFailure = vi.fn();
+    reportAssign(4, onAssigned, onFailure);
+    invokeOnError(Response_ResponseCode.RespInvalidData);
+    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespInvalidData);
+    expect(onAssigned).not.toHaveBeenCalled();
+    expect(WebClient.instance.response.moderator.reportAssigned).not.toHaveBeenCalled();
+  });
+
+  it('reportResolve reports success and failure to the caller', () => {
+    const onResolved = vi.fn();
+    const onFailure = vi.fn();
+    reportResolve(4, 'note', false, onResolved, onFailure);
+    invokeOnSuccess();
+    expect(onResolved).toHaveBeenCalled();
+    invokeOnError(Response_ResponseCode.RespInvalidData);
+    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespInvalidData);
+  });
+
+  it('reportStats and replayDownloadByGameId pass failures to onFailure', () => {
+    const onFailure = vi.fn();
+    reportStats(onFailure);
+    invokeOnError(Response_ResponseCode.RespInternalError);
+    replayDownloadByGameId(77, onFailure);
+    invokeOnError(Response_ResponseCode.RespNameNotFound);
+    expect(onFailure.mock.calls.map(([code]) => code)).toEqual([
+      Response_ResponseCode.RespInternalError,
+      Response_ResponseCode.RespNameNotFound,
+    ]);
+  });
+});
