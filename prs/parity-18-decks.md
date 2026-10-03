@@ -143,7 +143,9 @@ New and changed coverage:
 
 ## Follow-ups
 
-Four commits at the tip of this branch, after review of the series.
+Five commits at the tip of this branch, after review of the series. The first,
+`chore(webatrice): regenerate the i18n rollup`, only re-orders `src/i18n-default.json` to what `npm run translate`
+produces now. The pre-commit hook would otherwise have folded that into the next commit.
 
 - **`fix(sockatrice)`: optional deck update callbacks.** `updateServerDeck` and `updateServerDeckFailed` are now
   optional members of `ISessionResponse`, as the series does elsewhere (#10's `updateInfo` argument,
@@ -197,6 +199,7 @@ Follow-up testing (from the repo root, after `npm ci` and building sockatrice an
 | `npm run lint` | 3/3 tasks pass, 0 problems |
 | `npm test -- -- --maxWorkers=2` | sockatrice 610, datatrice 1091, webatrice 1728 (247 files): all pass |
 | `npm run test:integration -- -- --maxWorkers=2` | sockatrice 146, datatrice 124, webatrice 168 pass + 2 skipped (pre-existing) |
-| webatrice e2e (Playwright 1.60 container, docker Servatrice 3.0.0) | E2E_RESULT |
+| `npm run test:e2e -w @cockatrice/sockatrice` | 3/3 pass |
+| webatrice e2e (Playwright 1.60 container, docker Servatrice 3.0.0) | 16/21 pass, including the decks spec in all three browsers. 5 fail: `app-boots` (chromium, webkit) on `net::ERR_CERT_AUTHORITY_INVALID` (the sandbox's TLS-intercepting proxy, not trusted inside the container), and `bulk-card-actions` (all three) at `cardsOnBoard()` count 0. The same 5 fail the same way on the untouched `parity/18-decks` tip in this sandbox, so neither is from these commits. Worth re-running on a normal network. |
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
