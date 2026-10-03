@@ -5,7 +5,7 @@ import {
   ServerInfo_UserSchema,
 } from '@cockatrice/sockatrice/generated';
 
-import { isPrivilegedUser, isRoomMessageVisible, visiblePrivateMessages } from './chatFilters';
+import { isPrivilegedUser, isRoomMessageVisible, visiblePrivateMessages, type ChatFilterVerdicts } from './chatFilters';
 
 const user = (name: string, userLevel: number) => create(ServerInfo_UserSchema, { name, userLevel });
 const guest = user('guest', Level.IsUser);
@@ -70,6 +70,53 @@ describe('visiblePrivateMessages', () => {
     expect(visiblePrivateMessages(chat, { selfName: 'me', peer: member, peerIsBuddy: true }, filter)).toEqual([chat[1]]);
     expect(visiblePrivateMessages(chat, { selfName: 'me', peer: mod, peerIsBuddy: false }, filter)).toEqual(chat);
     expect(visiblePrivateMessages(chat, { selfName: 'me', peer: undefined, peerIsBuddy: false }, filter)).toEqual([chat[1]]);
+  });
+});
+
+describe('verdicts taken on arrival', () => {
+  let verdicts: ChatFilterVerdicts;
+  beforeEach(() => {
+    verdicts = new WeakMap();
+  });
+
+  const roomFilter = { roomHistory: true, ignoreUnregisteredUsers: true };
+  const pmNone = { ignoreAllPrivateMessages: false, ignoreUnregisteredUserMessages: false, ignoreNonBuddyUserMessages: false };
+
+  it('keeps an unregistered sender\'s line hidden after they leave the room', () => {
+    const line = { name: 'guest' };
+    expect(isRoomMessageVisible(line, { guest }, roomFilter, verdicts)).toBe(false);
+    expect(isRoomMessageVisible(line, {}, roomFilter, verdicts)).toBe(false);
+  });
+
+  it('keeps a shown line when the filter is turned on later', () => {
+    const line = { name: 'guest' };
+    expect(isRoomMessageVisible(line, { guest }, { ...roomFilter, ignoreUnregisteredUsers: false }, verdicts)).toBe(true);
+    expect(isRoomMessageVisible(line, { guest }, roomFilter, verdicts)).toBe(true);
+    expect(isRoomMessageVisible({ name: 'guest' }, { guest }, roomFilter, verdicts)).toBe(false);
+  });
+
+  it('keeps a non-buddy\'s messages hidden after the peer goes offline', () => {
+    const filter = { ...pmNone, ignoreNonBuddyUserMessages: true };
+    const chat = [{ senderName: 'peer' }, { senderName: 'peer' }];
+    expect(visiblePrivateMessages(chat, { selfName: 'me', peer: member, peerIsBuddy: false }, filter, verdicts)).toEqual([]);
+    expect(visiblePrivateMessages(chat, { selfName: 'me', peer: undefined, peerIsBuddy: false }, filter, verdicts)).toEqual([]);
+  });
+
+  it('keeps a moderator\'s messages shown under "ignore all" after they log off', () => {
+    const filter = { ...pmNone, ignoreAllPrivateMessages: true };
+    const chat = [{ senderName: 'mod' }];
+    expect(visiblePrivateMessages(chat, { selfName: 'me', peer: mod, peerIsBuddy: false }, filter, verdicts)).toEqual(chat);
+    expect(visiblePrivateMessages(chat, { selfName: 'me', peer: undefined, peerIsBuddy: false }, filter, verdicts)).toEqual(chat);
+  });
+
+  it('decides a new message against the conversation as it stood when it arrived', () => {
+    const filter = { ...pmNone, ignoreNonBuddyUserMessages: true };
+    const first = { senderName: 'peer' };
+    const ctx = { selfName: 'me', peer: member, peerIsBuddy: true };
+    expect(visiblePrivateMessages([first], ctx, filter, verdicts)).toEqual([first]);
+    // Unbuddied since: the conversation is already open, so the next message still gets through.
+    const next = { senderName: 'peer' };
+    expect(visiblePrivateMessages([first, next], { ...ctx, peerIsBuddy: false }, filter, verdicts)).toEqual([first, next]);
   });
 });
 

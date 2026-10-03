@@ -9,7 +9,7 @@ import { getPreferencesSnapshot, playSound, usePrivateMessageFilter } from '@app
 import { isPageHidden } from '@app/services';
 import { useAppSelector } from '@app/store';
 import { RouteEnum } from '@app/types';
-import { visiblePrivateMessages } from '@app/utils';
+import { chatFilterVerdicts, visiblePrivateMessages } from '@app/utils';
 
 /**
  * Global notifier for incoming private-chat messages (desktop TabMessage::processUserMessageEvent).
@@ -73,17 +73,20 @@ export default function PrivateMessageNotifier() {
       const previousCount = seenCountRef.current.get(peer) ?? 0;
       const currentCount = list.length;
       seenCountRef.current.set(peer, currentCount);
+      // Desktop filters a message once, as it arrives: settle each new message's verdict now,
+      // against the peer and preferences of this moment, and the Player page shows what was
+      // decided. Messages already decided keep their verdict.
+      const visible = new Set(visiblePrivateMessages(
+        list,
+        { selfName, peer: onlineUsers[peer], peerIsBuddy: Boolean(buddyList[peer]) },
+        filter,
+        chatFilterVerdicts,
+      ));
       // First pass across the whole map is baseline-only. Subsequent
       // passes look only at the new tail.
       if (!initializedRef.current || currentCount <= previousCount) {
         continue;
       }
-
-      const visible = new Set(visiblePrivateMessages(
-        list,
-        { selfName, peer: onlineUsers[peer], peerIsBuddy: Boolean(buddyList[peer]) },
-        filter,
-      ));
       for (const entry of list.slice(previousCount)) {
         // Skip messages we sent (server echoes them back) and ones the
         // Chat preferences filter out.

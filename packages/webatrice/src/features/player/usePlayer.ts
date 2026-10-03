@@ -5,7 +5,7 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import { server, type PrivateConversationEntry } from '@cockatrice/datatrice';
 import { usePrivateMessageFilter } from '@app/hooks';
 import { useAppSelector } from '@app/store';
-import { visiblePrivateMessages } from '@app/utils';
+import { chatFilterVerdicts, visiblePrivateMessages } from '@app/utils';
 import { ServerInfo_User } from '@cockatrice/sockatrice/generated';
 
 const NO_CONVERSATION: PrivateConversationEntry[] = [];
@@ -63,14 +63,16 @@ export function usePlayer(): PlayerViewModel {
     isIgnored: Boolean(name && ignoreList[name]),
   }), [currentUser, name, buddyList, ignoreList]);
 
-  // Settings → Chat private-message filters apply to messages; the client's
-  // notices stay where Datatrice put them.
+  // Settings → Chat private-message filters apply to messages, each keeping the
+  // verdict PrivateMessageNotifier gave it on arrival; the client's notices stay
+  // where Datatrice put them.
   const conversation = useMemo(() => {
     const messages = fullConversation.flatMap((entry) => (entry.type === 'message' ? [entry.message] : []));
     const visible = new Set(visiblePrivateMessages(
       messages,
       { selfName: currentUser?.name ?? null, peer: onlinePeer, peerIsBuddy: isABuddy },
       privateMessageFilter,
+      chatFilterVerdicts,
     ));
     return visible.size === messages.length
       ? fullConversation
