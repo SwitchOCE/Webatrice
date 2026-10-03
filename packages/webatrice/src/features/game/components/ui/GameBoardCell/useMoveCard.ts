@@ -7,8 +7,6 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import type { MoveCardParams } from '@cockatrice/sockatrice/generated';
 import { useAppDispatch, type RootState } from '@app/store';
 
-import { useGameId } from '../GameIdContext';
-
 /**
  * Resolve a battlefield drop to a free sub-slot on the target player's board.
  * PlayerBox only sees its own seat, so it always asks for sub-slot 0; without
@@ -76,8 +74,8 @@ export function resolveBattlefieldDropX(params: MoveCardParams, targetBattlefiel
 }
 
 /**
- * Send one Command_MoveCard for the current game. Undefined until the game id
- * is known. The seat's zone port and the game's drag coordinator (useGameDnd)
+ * Send one Command_MoveCard for the game. Undefined until the game id is
+ * known. The seat's zone port and the game's drag coordinator (useGameDnd)
  * both send through here, so every move gets the same treatment:
  *
  * - a battlefield destination is resolved to a free sub-slot on the target
@@ -88,8 +86,7 @@ export function resolveBattlefieldDropX(params: MoveCardParams, targetBattlefiel
  *   cardMovedBetweenZones is deduplicated). Hidden-zone sources, batches,
  *   unknown cards and tokens leaving the battlefield wait for the server.
  */
-export function useMoveCard(): ((params: MoveCardParams) => void) | undefined {
-  const gameId = useGameId();
+export function useMoveCard(gameId: number | undefined): ((params: MoveCardParams) => void) | undefined {
   const webClient = useWebClient();
   const dispatch = useAppDispatch();
   // Snapshot reads for rollback closures and drop resolution.

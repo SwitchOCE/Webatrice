@@ -79,11 +79,11 @@ export default tseslint.config(
       'src/features/game/components/battlefield/Battlefield/{battlefieldLayout,cardPlacement}.ts',
       'src/features/game/components/context-menus/CardContextMenu/{cardAttributeEdits,cardContextMenu.model,relatedCardActions}.ts',
       'src/features/game/components/right-sidebar/PlayerInfoPanel/lifeExpression.ts',
-      'src/features/game/components/ui/{CardPreviewContext,GameSelectionContext,SeatShortcutsContext}.tsx',
+      'src/features/game/components/ui/{CardPreviewContext,GameSelectionContext,SeatDragContext,SeatShortcutsContext}.tsx',
       'src/features/game/components/ui/PlayerBoard/playerBoard.types.ts',
       'src/features/game/components/ui/GameBoardCell/use{PlayerSeatViewModel,Player*Commands,OpenDeckInEditor,MoveCard}.ts',
       'src/features/game/dialogs/ZoneViewDialog/zoneViewSort.ts',
-      'src/features/game/hooks/useSeatSelection.ts',
+      'src/features/game/hooks/{useSeatSelection,seatDropPlan,gamePointerSensor}.ts',
     ],
     rules: {
       'no-restricted-imports': ['error', {
