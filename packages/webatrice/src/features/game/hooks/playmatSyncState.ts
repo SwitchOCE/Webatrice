@@ -20,8 +20,8 @@ export interface PlaymatSyncState {
   rotation: number;
   wasStarted: boolean;
   wasReady: boolean;
-  /** The settings last resolved with. */
-  settings: PlaymatSettings | undefined;
+  /** The collection settings last resolved with; visibility is not part of the pick. */
+  settings: Pick<PlaymatSettings, 'mode' | 'fallbackBehavior' | 'fallbackList'> | undefined;
 }
 
 const states = new Map<number, PlaymatSyncState>();
