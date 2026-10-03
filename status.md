@@ -1,2 +1,3 @@
 - 15:06Z started rv4 → review PR 13
 - 15:07Z diffs listed, Cockatrice cloned, reviews of 13/06/24 running in parallel → collect findings
+- 15:14Z reviews/rv4.md written (13: needs rework, 5 major; 06: ready after fixes, 1 major; 24: needs rework, 4 major) → done
