@@ -75,7 +75,7 @@ export function ShareDeckDialog({ open, defaultName, state, onClose, onCreate }:
                   type="text"
                   readOnly
                   value={created.link}
-                  aria-label={t('DeckSharing.title')}
+                  aria-label={t('DeckSharing.linkLabel')}
                   onFocus={(e) => e.currentTarget.select()}
                   className="flex-1 min-w-0 bg-bg-base border border-border-subtle rounded-md px-3 py-2 text-xs text-text-primary"
                 />

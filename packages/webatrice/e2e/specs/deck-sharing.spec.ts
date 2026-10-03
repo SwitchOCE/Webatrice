@@ -71,7 +71,7 @@ test.describe('on a 3.1 server', () => {
     await ownerPage.getByRole('textbox', { name: 'Share name:' }).fill('For a friend');
     await ownerPage.getByRole('button', { name: 'Create share link' }).click();
     const shareDialog = ownerPage.getByRole('dialog', { name: 'Share deck' });
-    const linkField = shareDialog.getByRole('textbox');
+    const linkField = shareDialog.getByRole('textbox', { name: 'Share link' });
     await expect(linkField).toHaveValue(/#share=/, { timeout: 15_000 });
     const link = await linkField.inputValue();
     // The token rides in the fragment, which the browser never sends to the web host.
