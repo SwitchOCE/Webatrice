@@ -1093,6 +1093,12 @@
     "empty": "Tag name cannot be empty!",
     "duplicate": "This tag already exists."
   },
+  "SampleHand": {
+    "title": "Sample hand",
+    "redraw": "Draw a new sample hand",
+    "size": "Sample hand size",
+    "empty": "Add cards to the main deck to draw a sample hand."
+  },
   "DeckEditor": {
     "downloadFailed": "Failed to download this deck from the server.",
     "loadFailedTitle": "Deck could not be loaded"
