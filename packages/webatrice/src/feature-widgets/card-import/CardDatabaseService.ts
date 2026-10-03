@@ -384,16 +384,23 @@ class CardDatabaseService {
       importedAt: new Date().toISOString(),
       counts: countsOf(records),
     };
+    const code = CUSTOM_TOKEN_SET.name.value;
     await dexieService.cardDataTransaction(async () => {
       await dexieService.tokens.bulkDelete([...removedNames]);
       await dexieService.tokens.bulkPut([...tokens]);
-      if (tokens.length && !(await dexieService.sets.get(CUSTOM_TOKEN_SET.name.value))) {
+      if (tokens.length && !(await dexieService.sets.get(code))) {
         await dexieService.sets.put(CUSTOM_TOKEN_SET);
+      }
+      // The user made these, so TK is never a "new set" to ask about.
+      if (tokens.length && !(await dexieService.setPreferences.get(code))) {
+        const sortKey = await dexieService.setPreferences.count();
+        await dexieService.setPreferences.put({ code, sortKey, enabled: true, isKnown: true } satisfies SetPreference);
       }
       await dexieService.cardSources.put(source);
       await dexieService.cardSourcePayloads.put({ id: source.id, records } satisfies CardSourcePayload);
     });
     this.parsedCache.delete(source.id);
+    await refreshCardDataPreferences();
   }
 }
 

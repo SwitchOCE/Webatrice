@@ -144,6 +144,15 @@ describe('card database sources (real Dexie)', () => {
     await cardDatabaseService.saveCustomTokens([], ['Spirit']);
     expect(await dexieService.tokens.get('Spirit')).toBeUndefined();
   });
+
+  it('treats the editor token set as known, so a rebuild never asks about TK', async () => {
+    await cardDatabaseService.addSources([{ fileName: 'cards.xml', xml: cardsXml, origin: 'file' }]);
+    await cardDatabaseService.saveCustomTokens([{ name: { value: 'Spirit' }, set: { value: 'TK' }, token: { value: '1' } }]);
+
+    expect(await dexieService.setPreferences.get('TK')).toMatchObject({ enabled: true, isKnown: true });
+    expect((await currentCardDataPreferences()).setLongNames.get('TK')).toBe('Dummy set containing tokens');
+    expect((await cardDatabaseService.reload()).unknownSets).toEqual([]);
+  });
 });
 
 // Opens a private database at `version` with exactly the schema steps up to it, the way an
