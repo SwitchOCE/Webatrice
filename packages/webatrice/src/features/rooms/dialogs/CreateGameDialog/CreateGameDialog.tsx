@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
 import Dialog from '@mui/material/Dialog';
@@ -64,6 +64,8 @@ function initialFormState(isRegistered: boolean): FormState {
 }
 
 function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGameDialogProps) {
+  // Labels the checkbox and radio sections as groups.
+  const sectionId = useId();
   const isRegistered = useAppSelector(server.Selectors.getIsUserRegistered);
   const isJudge = useAppSelector(server.Selectors.getIsUserJudge);
 
@@ -150,8 +152,9 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
 
           {gameTypes.length > 0 && (
             <div className="create-game-dialog__section">
-              <Typography variant="subtitle2">Game type</Typography>
+              <Typography variant="subtitle2" id={`${sectionId}-gameType`}>Game type</Typography>
               <RadioGroup
+                aria-labelledby={`${sectionId}-gameType`}
                 value={form.gameTypeId ?? ''}
                 onChange={(_, value) => update('gameTypeId', value === '' ? null : Number(value))}
               >
@@ -162,8 +165,8 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
             </div>
           )}
 
-          <div className="create-game-dialog__section">
-            <Typography variant="subtitle2">Permissions</Typography>
+          <div className="create-game-dialog__section" role="group" aria-labelledby={`${sectionId}-permissions`}>
+            <Typography variant="subtitle2" id={`${sectionId}-permissions`}>Permissions</Typography>
             <FormControlLabel
               control={
                 <Checkbox
@@ -187,8 +190,8 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
             />
           </div>
 
-          <div className="create-game-dialog__section">
-            <Typography variant="subtitle2">Spectators</Typography>
+          <div className="create-game-dialog__section" role="group" aria-labelledby={`${sectionId}-spectators`}>
+            <Typography variant="subtitle2" id={`${sectionId}-spectators`}>Spectators</Typography>
             <FormControlLabel
               control={
                 <Checkbox
@@ -244,8 +247,8 @@ function CreateGameDialog({ isOpen, gametypeMap, onCancel, onSubmit }: CreateGam
             />
           </div>
 
-          <div className="create-game-dialog__section">
-            <Typography variant="subtitle2">Other</Typography>
+          <div className="create-game-dialog__section" role="group" aria-labelledby={`${sectionId}-other`}>
+            <Typography variant="subtitle2" id={`${sectionId}-other`}>Other</Typography>
             <FormControlLabel
               control={
                 <Checkbox

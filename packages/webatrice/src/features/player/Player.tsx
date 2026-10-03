@@ -144,7 +144,7 @@ const Player = () => {
                     <img
                       className="player-view__country-flag"
                       src={Images.Countries[userInfo.country]}
-                      alt={countryCode}
+                      alt=""
                     />
                   )}
                   {countryCode || '—'}
@@ -181,7 +181,7 @@ const Player = () => {
               )}
 
               {moderation.groups.length > 0 && (
-                <div className="player-view__actions" aria-label={t('Player.moderation')}>
+                <div className="player-view__actions" role="group" aria-label={t('Player.moderation')}>
                   {moderation.groups.flat().map(({ action, disabled }) => (
                     <Button key={action} variant="outlined" disabled={disabled} onClick={() => moderation.open(action)}>
                       {t(MODERATION_MENU_LABEL_KEYS[action])}

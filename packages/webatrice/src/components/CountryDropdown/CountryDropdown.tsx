@@ -47,7 +47,7 @@ const CountryDropdown = ({ value, onChange, onBlur, name }: CountryDropdownProps
         {sortedCountries.map(country => (
           <MenuItem value={country} key={country}>
             <div className="CountryDropdown-item">
-              <img className="CountryDropdown-item__image" src={Images.Countries[country.toLowerCase()]} />
+              <img className="CountryDropdown-item__image" src={Images.Countries[country.toLowerCase()]} alt="" />
               <span className="CountryDropdown-item__label">{translateCountry(country)}</span>
             </div>
           </MenuItem>
