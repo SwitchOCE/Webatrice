@@ -5,7 +5,7 @@
 - **Force start (GAME-013).** The lobby looped `Command_KickFromGame` over unready players. That never readied the host or started the game, and the kicks could partly succeed or race. It now does what `DeckViewContainer::forceStart` does: desktop's Yes/No question ("Are you sure you want to force start? / This will kick all non-ready players from the game."), then **one** `Command_ReadyStart{ready: true, force_start: true}`. Servatrice readies the host, kicks the unready players and starts the game in one step (`Server_AbstractPlayer::cmdReadyStart` → `startGameIfReady(true)`). As on desktop, only the host sees the button, and only once a deck is loaded.
 - **Sideboarding before ready (GAME-014).** The lobby now has `DeckViewContainer`'s two states. With no deck loaded it shows the deck picker. Once loaded it shows the server's copy of the deck as Maindeck/Sideboard plus desktop's buttons: Unload deck, Ready to start (toggle), Sideboard locked/unlocked (toggle) and Force start (host).
   - While the sideboard is unlocked and the player is not ready, clicking a card moves one copy to the other zone and sends the full plan (`Command_SetSideboardPlan`), as `sideboardPlanChanged` does.
-  - Readying disables editing and the lock toggle (`setReadyStart`). Locking resets the view to the bare deck (`setSideboardLocked` → `resetSideboardPlan`), matching the server, which clears its plan on lock.
+  - Readying disables editing and the lock toggle (`setReadyStart`). The view always shows the plan the server will deal with: the deck's stored plan (`DeckViewScene::setDeck`), whatever the lock state, because `cmdDeckSelect` locks without clearing it. Only an explicit lock of the same deck resets the view to the bare deck (`setSideboardLocked` → `resetSideboardPlan`), matching `cmdSetSideboardLock`, which clears the server's plan.
   - Between games the same view returns from the `deck_list` resync. That resync includes the stored sideboard plan.
 - To build that view the client needs its own deck. Desktop takes it from the `Response_DeckDownload` that answers `Command_DeckSelect`, and Sockatrice was dropping that response. Sockatrice now routes it to a new **optional** `IGameResponse.deckSelected(gameId, deckList)`. Datatrice stores it on the local `PlayerEntry.deckList` (`games.Types.DECK_SELECTED`), the same field a resync fills.
 - **Invite / copy link (GAME-033), outbound.** "Copy game link" and "Invite to Game..." sit in the lobby header and the in-game player-list header (desktop: Game menu, plus the dock "Invite" button).
@@ -16,8 +16,9 @@
   - validate the link (desktop's four "Invalid or missing ..." errors);
   - confirm ("Join game \"desc\" (#id) in \"room\" on host:port?");
   - join the room if needed, and wait up to 15 s for the game to be listed ("Game N not found in the room");
-  - then `GameSelector::joinGame`: an already-joined game just opens, a full game offers spectating, a password prompt appears when needed;
-  - send `Command_JoinGame` and open `/game/:id` on `Event_GameJoined`.
+  - a full game offers spectating (desktop's intent asks first);
+  - then the join goes through the shared `useJoinGame` / `useNavigateOnGameJoined` flow that every game list uses (`GameSelector::joinGame`: an already-joined game just opens, a password prompt appears when needed, `Command_JoinGame`, open `/game/:id` on `Event_GameJoined`). On a room page the room's GamesList reports a rejection; elsewhere the host does.
+  - An invite the server rejects or never answers is reported with a toast (ignoring you, offline, other rejection, or the transport reason).
 
 ## Parity rows closed
 
@@ -69,9 +70,10 @@ New coverage:
 - **Divergence: invite feedback.** Desktop focuses the private-chat tab after sending an invite. Navigating away from the lobby would disrupt the host in a single-window app, so we show a toast ("Invitation sent to X") instead. "Copy game link" also toasts success or failure, because a browser clipboard write can fail silently.
 - **Sockatrice API:** `IGameResponse.deckSelected` is optional, following the `updateConnectionHealth` precedent, so existing implementers keep compiling. `WebClient.connectTarget` is a read-only getter, so UI code still reaches the server only through `request.*`.
 - **Force start errors:** desktop sends the command without a response handler, and so do we. Servatrice rejects a force start from a non-host or without a deck, and the UI never offers it in those states.
-- **Sideboard lock edge case:** while locked the view shows the bare deck. While unlocked it shows the user's edits or, if none, the plan stored in the deck string. That is what the server applies if the player readies without editing. Desktop's view hides a `.cod`-stored plan after the initial lock even though the server still applies it; we show what the server will do.
+- **Sideboard lock edge case:** the view shows the user's edits or, if none, the plan stored in the deck string, locked or not; `setupZones` applies `getCurrentSideboardPlan()` whatever the lock state and `cmdDeckSelect` does not clear it. An explicit lock on the same deck resets to the bare deck, as the server clears its plan there. The reset is taken from the lock event itself, and a deck-select response cancels it, because Servatrice broadcasts the deck select's own lock event before that response.
+- **Game links from a pathed target:** a host with a port before the path (`example.com:8443/servatrice`) yields hostname `example.com` and port `8443`; otherwise the scheme default, decided by Sockatrice's now-exported `isLocalTargetHost`.
 - **Follow-up (not in scope):** the started-board `SideboardDialog` (opened from the player menu) sends plan moves with game zone names (`deck`/`sb`). `Server_Player::setupZones` only honours `main`/`side`, so its plans are silently ignored. Desktop has no mid-game plan editor; the dialog should probably be removed or retargeted. I left it untouched because it lives on the board that the parallel PlayerBox refactor is reshaping.
-- New Webatrice strings are in co-located `*.i18n.json` (`GameLobby`, `GameInvite`, `GameLink`); `i18n-default.json` was regenerated by the hook. Existing hard-coded lobby strings were not migrated.
+- New Webatrice strings are in co-located `*.i18n.json` (`GameLobby`, `GameInvite`, `GameLink`); `i18n-default.json` was regenerated by the hook. The "Your deck" heading (both states) now uses `GameLobby.deck.heading`; other pre-existing hard-coded lobby strings (upload card) were not migrated.
 - `PlayerBox.tsx` and `GameBoardCell.tsx` are untouched. The only board-side edit is one line in `BattlefieldSidebar` (the invite controls).
 
 ## Rebase (w16r)
@@ -103,3 +105,35 @@ Rebased from the old refactor base `f8d0250` onto `dc77ebd` (`parity/05-refactor
 **GAME-013/014/033 after the rebase:** GAME-013/014 are proven end-to-end against Servatrice 3.0 by `lobby-sideboard-force-start`: unlock, swap an Island into the maindeck, force start; the unready joiner is kicked and the host library is 61 cards. GAME-033 is covered by the `invite-link` integration spec (invite → `Command_Message` with the link; chat link → `Command_JoinGame` → `/game/77`) and the unit suites, all green. There is no Servatrice e2e for invites; that is unchanged from before the rebase.
 
 **Note:** this branch's i18n keys for the deck view first appear in the copy-link commit, not in the deck-view commit, because the deck-view commit's regeneration ran before `npm ci`. The tip is correct.
+
+## Review response (rv9, f16)
+
+Seven commits on top of `b2158d5`, parent still `dc77ebd`. Tip is `c8f8c37` on `claude/parity-16-game-lobby` (a fast-forward, no history rewritten).
+
+| Finding | Response |
+|---|---|
+| **major**: locked view hides the plan the server applies | Fixed (`1fd8dfe`). The `sideboardLocked` short-circuit is gone, so the stored plan shows whatever the lock state, as in `DeckViewScene::setDeck`. An explicit lock of the same deck resets the view to the bare deck, as `cmdSetSideboardLock` clears the plan. The reset comes from the `PLAYER_PROPERTIES_CHANGED` event, not a render diff, and `DECK_SELECTED` cancels it, because Servatrice sends the deck select's own lock event (`ges.sendToGame`) before the response. New specs: locked with stored plan → plan shown; explicit lock → bare deck; unlock then re-select in one batch → plan shown. Integration round trip in server order added (`b6af788`). The first and third specs and the integration spec fail on the old hook. |
+| **major**: `GameLinkJoinHost` duplicates the join flow | Fixed (`79933f8`). The host keeps only the link-specific steps (validate, confirm, join room, wait for the listing, ask before spectating a full game) and calls `useJoinGame().beginJoin`. It routes through `useNavigateOnGameJoined`, which is mounted only while a link join is in flight, so other `Event_GameJoined`s don't navigate from anywhere new. The `routedJoins` dedupe now covers the GamesList listener too. The host's own navigate and its join-error dialog are gone on a room page (`useMatch(RouteEnum.ROOM)`), where GamesList already shows `joinGameError`. New integration specs click a link in a `Room`'s chat: one navigation (Back returns to `/room/1`), and one error dialog on `RespGameFull`. Both fail on the old host. Unit specs added: host error off the room page plus dismiss; cancel password. |
+| minor: invite toast before any answer | Fixed (`dfb396f`). `useGameInvite` remembers the text it sent to each user and toasts `PRIVATE_MESSAGE_FAILED` for those messages only (ignoring, offline, other rejection, or the transport reason). |
+| minor: `LOCAL_HOSTNAMES` copy; `host:port/path` | Fixed (`47c9980`). Sockatrice exports `isLocalTargetHost`, which `gameLinkServer` now uses. A port written before the path is used for the link. Specs on both sides; the Sockatrice changeset is extended. |
+| minor: deck-row `aria-label` hides counts | Fixed (`5027636`). The accessible name is the visible "2 Lightning Bolt". The move hint is `aria-describedby` + `title` and is present only when the row is editable. |
+| minor: hard-coded "Your deck" | Fixed (`5027636`). `GameLobby.deck.heading` is used in both lobby states; `i18n-default.json` was regenerated by the hook. |
+| minor: invite controls for closed / started / full | Partly applied. A closed game is deleted from the games slice (`gameClosed`), so the link becomes null and Invite is disabled. A spec now pins that (`c8f8c37`). I did not hide the sidebar Invite for started or full games. Desktop hides only its *dock* button there and keeps the Game-menu action enabled for started/full games (comment at tab_game.cpp:533-535: "legitimate spectate invites"). The in-game sidebar is Webatrice's only in-game entry, so it mirrors the menu action. Copy link stays enabled, as desktop's `aCopyGameLink` is ungated. |
+| minor: missing tests | Added with each major, above. |
+| nit: deck-select error inside the upload card | Fixed (`5027636`). A separate `deckSelectError` with `role="alert"` sits under the deck heading. |
+| nit: sideboard toggle double state | Fixed (`5027636`). `aria-pressed` dropped; the changing desktop label carries the state. |
+| nit: `deckSelected?` comment | Fixed (`c8f8c37`), now JSDoc. |
+| nit: Sockatrice mock lacks `connectTarget` | Fixed (`c8f8c37`). |
+| nit: `connectTarget` read imperatively | Not changed. Moving the target into the server slice is a cross-package API change beyond this review. The getter is documented on `WebClient` as the way consumers name the current server. |
+| nit: hunks in the wrong commits / b2158d5 message wording | Not changed. Both need a rewrite of nine already-reviewed commits. The tip is correct and every commit typechecks. Safe to clean up with a squash-merge. |
+| nit: invite list `aria-pressed` toggles | Not changed. A correct `listbox`/`option` needs roving focus and arrow-key handling over the virtualised list. Adding the roles without that would announce a listbox that the keyboard can't operate, which is worse than now. Left as a follow-up. |
+
+**Gate on `c8f8c37`** (`--maxWorkers=2`):
+
+| Gate | Result |
+|---|---|
+| typecheck | pass (turbo, all tasks) |
+| lint | pass, 3/3 packages |
+| Unit | sockatrice 782 (39 files), datatrice 1200 (29), webatrice 1657 (213) |
+| Integration | sockatrice 168 (19), datatrice 137 (9), webatrice 169 passed + 2 skipped (40 files; the skips are upstream) |
+| Webatrice e2e, chromium+firefox+webkit (Servatrice 3.0.0, Playwright 1.60 container) | 36/39 on the full run (11.3 min). The 3 failures were `staff-tools` (one per browser): the container had no `docker compose` for that spec's MySQL seeding. Re-run with the docker CLI and compose plugin mounted: 6/6. `lobby-sideboard-force-start` passed on all three browsers. |
