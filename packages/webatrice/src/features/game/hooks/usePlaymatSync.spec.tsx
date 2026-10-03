@@ -16,6 +16,7 @@ import {
 } from '@app/hooks';
 
 import { makeReduxWebClientHookWrapper } from '../../../__test-utils__/makeHookWrapper';
+import { prunePlaymatSyncState } from './playmatSyncState';
 import { usePlaymatSync } from './usePlaymatSync';
 
 const PARAMS = { marginPctL: 0.07, marginPctR: 0.07, verticalOffset: 0.33, zoom: 1 };
@@ -55,12 +56,15 @@ function setup({ version = '3.1.0 ()', spectator = false } = {}) {
       }));
     });
   const setPlaymat = webClient.request.game.setPlaymat as ReturnType<typeof vi.fn>;
-  return { hook, store, announce, setPlaymat };
+  // Leaving `/game/:id` (for Settings, say) unmounts the Game route; coming back mounts it again.
+  const remount = () => renderHook(() => usePlaymatSync(1), { wrapper: Wrapper });
+  return { hook, store, announce, setPlaymat, remount };
 }
 
 describe('usePlaymatSync', () => {
   afterEach(() => {
     act(() => setPlaymatSettings(DEFAULT_PLAYMAT_SETTINGS));
+    prunePlaymatSyncState([]);
     vi.clearAllMocks();
   });
 
@@ -139,6 +143,24 @@ describe('usePlaymatSync', () => {
     });
     announce({ deckHash: 'h2', playmatParams: { cardName: '' } });
     expect(setPlaymat).toHaveBeenLastCalledWith(1, { playmatParams: expect.objectContaining({ cardName: 'B' }) });
+  });
+
+  it('keeps the deck\'s playmat across leaving and returning to the game', () => {
+    act(() => setPlaymatSettings({ mode: PlaymatMode.OVERRIDE_DECK, fallbackList: [mat('A')] }));
+    const { hook, announce, remount, setPlaymat } = setup();
+    announce({ deckHash: 'h1', playmatParams: { cardName: 'Deck Mat' } });
+    announce({ playmatParams: { cardName: 'A' } });
+    expect(setPlaymat).toHaveBeenCalledTimes(1);
+
+    hook.unmount();
+    act(() => setPlaymatSettings({ mode: PlaymatMode.DECK_ONLY }));
+    remount();
+
+    // 'A' is the echo of what was sent, not the deck's playmat.
+    expect(setPlaymat).toHaveBeenCalledTimes(2);
+    expect(setPlaymat).toHaveBeenLastCalledWith(1, {
+      playmatParams: expect.objectContaining({ cardName: 'Deck Mat' }),
+    });
   });
 
   it('starts each game from a clean slate', () => {
