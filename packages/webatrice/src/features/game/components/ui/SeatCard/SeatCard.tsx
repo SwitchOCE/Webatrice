@@ -83,7 +83,7 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
   // on `/cards/named?exact=`. Strip the suffix (with or without
   // parens) before hitting the endpoint so tokens spawned via
   // Command_CreateToken with the Cockatrice-style " Token" naming
-  // still get art. Mirrors cleanScryfallName in services/cards/cardCatalog.ts.
+  // still get art. Mirrors cleanScryfallName in services/scryfall/client.ts.
   const scryfallLookupName = name.replace(/\s*\(?\bToken\b\)?\s*$/i, '') || name;
   const imageUrl = faceDown
     ? CARD_BACK_URL

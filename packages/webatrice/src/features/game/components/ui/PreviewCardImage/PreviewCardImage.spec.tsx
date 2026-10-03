@@ -1,10 +1,10 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 
 import { getSettings, settingsStore } from '../../../../../hooks/useSettings';
-import { lookupCardsCached } from '../../../../../services/cards/cardCatalog';
+import { lookupCardsCached } from '../../../../../services/cards/catalog/lookup';
 import PreviewCardImage from './PreviewCardImage';
 
-vi.mock('../../../../../services/cards/cardCatalog', () => ({
+vi.mock('../../../../../services/cards/catalog/lookup', () => ({
   lookupCardsCached: vi.fn(async (names: string[]) =>
     new Map(names.map((name) => [name, { found: true, source: 'dexie', name, printings: [], landscape: name === 'Invasion of Tarkir' }]))),
 }));

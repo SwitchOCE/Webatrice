@@ -12,8 +12,8 @@ import { useDeckEditor, type UseDeckEditor } from './useDeckEditor';
 // An unsaved draft handed over by token (the game's "Open deck in deck
 // editor"), hydrated for real so every printing field is checked.
 
-vi.mock('../../../services/cards/cardCatalog', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../services/cards/cardCatalog')>();
+vi.mock('../../../services/cards/catalog/lookup', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../services/cards/catalog/lookup')>();
   const unknown = (name: string) => ({ found: false, source: 'unknown', name, printings: [] });
   return {
     ...actual,

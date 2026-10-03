@@ -25,7 +25,7 @@ vi.mock('./components/ui/PlayerBoard/usePlayerSeat', async (importOriginal) => {
 
 vi.mock('../../hooks/useSettings');
 
-vi.mock('../../services/cards/cardCatalog', () => {
+vi.mock('../../services/cards/catalog/lookup', () => {
   const unknown = (name: string) => ({ found: false, source: 'unknown', name, printings: [] });
   return {
     lookupCard: vi.fn(async (name: string) => unknown(name)),

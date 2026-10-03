@@ -6,13 +6,13 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
-import { lookupCard, lookupCards } from '../../services/cards/cardCatalog';
+import { lookupCard, lookupCards } from '../../services/cards/catalog/lookup';
 import { buildSeatGameState, cardEl, chooseMenuPath, openContextMenu, type SeatGameSpec } from './__test-utils__/seatFixtures';
 import Game from './Game';
 
 vi.mock('../../hooks/useSettings');
 
-vi.mock('../../services/cards/cardCatalog', () => {
+vi.mock('../../services/cards/catalog/lookup', () => {
   const unknown = (name: string) => ({ found: false, source: 'unknown', name, printings: [] });
   return {
     lookupCard: vi.fn(async (name: string) => unknown(name)),
