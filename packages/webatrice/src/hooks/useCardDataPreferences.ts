@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 
 import {
+  currentCardDataPreferences,
   DEFAULT_PICTURE_URL_TEMPLATES,
-  loadCardDataPreferences,
+  refreshCardDataPreferences as reloadCardDataPreferences,
   resolveCardImageUrls,
   type CardDataPreferences,
   type CardImageSubject,
@@ -11,25 +12,17 @@ import {
 import { createSharedStore, LoadingState, useSharedStore, type Loadable } from './useSharedStore';
 
 /**
- * Process-wide snapshot of the user's set priority and picture URL templates.
- * The card-database dialogs call `refreshCardDataPreferences` after a save so
- * every image and lookup re-resolves against the new choices.
+ * React view of the services-owned preferences snapshot. The card-database
+ * dialogs call `refreshCardDataPreferences` after a save so every image and
+ * lookup re-resolves against the new choices.
  */
 // Arrow keeps the services binding lazy, so specs that mock `@app/services` can still import `@app/hooks`.
-export const cardDataPreferencesStore = createSharedStore<CardDataPreferences>(() => loadCardDataPreferences());
+export const cardDataPreferencesStore = createSharedStore<CardDataPreferences>(() => currentCardDataPreferences());
 
 export async function refreshCardDataPreferences(): Promise<CardDataPreferences> {
-  const next = await loadCardDataPreferences();
+  const next = await reloadCardDataPreferences();
   cardDataPreferencesStore.setValue(next);
   return next;
-}
-
-/**
- * The current preferences for one-off async readers. Not `whenReady()` alone:
- * that resolves once and would keep returning the pre-save snapshot.
- */
-export async function currentCardDataPreferences(): Promise<CardDataPreferences> {
-  return cardDataPreferencesStore.peek() ?? cardDataPreferencesStore.whenReady();
 }
 
 export function useCardDataPreferences(): Loadable<CardDataPreferences> {

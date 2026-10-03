@@ -12,10 +12,9 @@ import {
 } from '@cockatrice/sockatrice/generated';
 import { useAppSelector } from '@app/store';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
-import { trackEvent } from '@app/services';
+import { lookupCard, trackEvent } from '@app/services';
 import { useWebClient } from '@cockatrice/datatrice/react';
 
-import { lookupCard } from './cardLookup';
 import { parseCod, serializeCod } from './cod';
 import { assembleDeckCard, hydrateDeck } from './hydrate';
 import { touchMeta } from './meta';

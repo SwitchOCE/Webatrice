@@ -7,13 +7,9 @@ import { rootReducerMap, type RootState } from '../../store';
 import { connectedState, createMockWebClient } from '../../__test-utils__';
 import { makeReduxWebClientHookWrapper } from '../../__test-utils__/makeHookWrapper';
 
-vi.mock('./cardLookup', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./cardLookup')>();
-  return { ...actual, lookupCards: vi.fn(async () => new Map()) };
-});
 vi.mock('@app/services', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@app/services')>();
-  return { ...actual, trackEvent: vi.fn() };
+  return { ...actual, lookupCards: vi.fn(async () => new Map()), trackEvent: vi.fn() };
 });
 
 import { emptyCod } from './cod';

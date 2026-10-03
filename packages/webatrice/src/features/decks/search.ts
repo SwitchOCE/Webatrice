@@ -13,7 +13,8 @@
  *     we're fixing.
  *   - Autocomplete is fast (a single small JSON payload) and correct.
  *   - The dropdown only needs the name; hydration happens later, at
- *     which point Dexie is consulted first via `cardLookup.ts`.
+ *     which point Dexie is consulted first via the root card catalog
+ *     (`services/cards/cardCatalog.ts`).
  */
 
 export interface SearchResult {
