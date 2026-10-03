@@ -1,6 +1,7 @@
-export { default as Decks, clearDecksListCache } from './Decks';
+export { default as Decks } from './Decks';
+export { clearDecksListCache } from './hooks/useDeckList';
 export { default as DeckEditor } from './DeckEditor';
-export { clearDeckEditorCache } from './useDeckEditor';
+export { clearDeckEditorCache } from './deckEditorCache';
 
 // --- Data layer (Piece 1: foundation for MyDecks feature) ---
 // The Cockatrice deck document codec and its types are root owners

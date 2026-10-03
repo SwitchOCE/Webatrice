@@ -1,0 +1,68 @@
+import { CircleAlert, FileText, Loader2, Plus, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+
+const NEW_DECK_BUTTON_CLASS =
+  'inline-flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold bg-accent '
+  + 'text-white hover:bg-accent-hover shadow-glow disabled:opacity-40 '
+  + 'disabled:cursor-not-allowed transition-colors';
+
+export function NewDeckButton({ onClick, disabled }: { onClick: () => void; disabled: boolean }) {
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} className={NEW_DECK_BUTTON_CLASS}>
+      <Plus size={14} /> New deck
+    </button>
+  );
+}
+
+export function DeckListLoading() {
+  return (
+    <div className="h-full min-h-[240px] flex items-center justify-center">
+      <div className="flex items-center gap-2 text-sm text-text-muted">
+        <Loader2 size={16} className="animate-spin text-accent" />
+        Loading decks…
+      </div>
+    </div>
+  );
+}
+
+export function DeckListError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="h-full min-h-[240px] flex items-center justify-center">
+      <div role="alert" className="flex flex-col items-center gap-3 text-sm text-text-muted text-center max-w-sm">
+        <span className="inline-flex items-center gap-2">
+          <CircleAlert size={16} className="text-red-400" />
+          {message}
+        </span>
+        <button
+          type="button"
+          onClick={onRetry}
+          className={[
+            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md',
+            'border border-border-subtle text-text-primary hover:bg-bg-elevated',
+          ].join(' ')}
+        >
+          <RefreshCw size={14} /> {t('Decks.retry')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function DeckListEmpty({ onCreate, disabled }: { onCreate: () => void; disabled: boolean }) {
+  return (
+    <div className="h-full min-h-[280px] flex items-center justify-center">
+      <div className="text-center max-w-sm">
+        <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-bg-elevated border border-border-subtle mb-3">
+          <FileText size={20} className="text-accent" />
+        </div>
+        <div className="text-text-primary font-medium">No decks yet</div>
+        <div className="text-sm text-text-muted mt-1 mb-4">
+          Decks live on the Servatrice server tied to your account.
+          Create your first one to get started.
+        </div>
+        <NewDeckButton onClick={onCreate} disabled={disabled} />
+      </div>
+    </div>
+  );
+}
