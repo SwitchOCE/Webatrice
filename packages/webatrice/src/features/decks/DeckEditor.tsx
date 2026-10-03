@@ -37,7 +37,16 @@ import {
 
 import { AuthGuard } from '@app/components';
 import { Layout } from '@app/feature-wrappers/layout';
-import { RouteEnum } from '@app/types';
+import {
+  MTG_FORMAT_LABELS,
+  MTG_FORMATS,
+  RouteEnum,
+  isCommanderFormat,
+  isMtgFormat,
+  normalizeFormat,
+  type BracketAssessment,
+  type DeckCategory,
+} from '@app/types';
 
 import CardDetailModal from './CardDetailModal';
 import DeckBreakdown from './DeckBreakdown';
@@ -57,18 +66,7 @@ import {
   type ScryfallSearchCard,
   type SearchResult,
 } from './search';
-import {
-  MTG_FORMAT_LABELS,
-  MTG_FORMATS,
-  isCommanderFormat,
-  isMtgFormat,
-  normalizeFormat,
-  primaryType,
-  type BracketAssessment,
-  type DeckCard,
-  type DeckCategory,
-  type HydratedDeck,
-} from './types';
+import { primaryType, type DeckCard, type HydratedDeck } from './types';
 import { useDeckEditor, type SaveState } from './useDeckEditor';
 import { SELECT_CHEVRON_BACKGROUND } from './selectChevron';
 

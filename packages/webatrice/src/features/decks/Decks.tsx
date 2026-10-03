@@ -24,15 +24,20 @@ import type { ServerInfo_DeckStorage_Folder, ServerInfo_DeckStorage_TreeItem } f
 import { useAppSelector } from '@app/store';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { useWebClient } from '@cockatrice/datatrice/react';
-import { RouteEnum } from '@app/types';
+import { MTG_FORMAT_LABELS, MTG_FORMATS, RouteEnum, normalizeFormat, type ParsedDeck } from '@app/types';
 
-import { lookupCards, type LookupResult } from '@app/services';
-import { emptyCod, parseCod, serializeCod } from './cod';
+import {
+  defaultMeta,
+  emptyCod,
+  lookupCards,
+  parseCod,
+  serializeCod,
+  type LookupResult,
+} from '@app/services';
 import { parseDecklist, type ParsedEntry } from './decklistParser';
 import { assembleDeckCard } from './hydrate';
-import { defaultMeta } from './meta';
 import { SELECT_CHEVRON_BACKGROUND } from './selectChevron';
-import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat, type DeckCard, type ParsedDeck } from './types';
+import type { DeckCard } from './types';
 import { clearDeckEditorCache, deleteCachedDeck } from './useDeckEditor';
 
 const NEW_DECK_BUTTON_CLASS =

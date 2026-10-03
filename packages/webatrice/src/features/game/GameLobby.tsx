@@ -19,9 +19,9 @@ import { rooms, server } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
 import { useLeaveGame, useReduxEffect } from '@app/hooks';
 import type { ServerInfo_DeckStorage_Folder, ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
+import { parseCod } from '@app/services';
+import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat } from '@app/types';
 
-import { parseCod } from '../decks/cod';
-import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat } from '../decks/types';
 import { useCurrentGame } from './hooks/useCurrentGame';
 import ChatLog from './components/ChatLog/ChatLog';
 import { GameIdProvider } from './components/ui/GameIdContext';

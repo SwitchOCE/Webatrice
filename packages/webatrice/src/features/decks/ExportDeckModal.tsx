@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Copy, Check, Download, FileText, Swords, Package } from 'lucide-react';
 
-import { serializeCod } from './cod';
-import type { DeckCard, DeckMeta } from './types';
+import { serializeCod } from '@app/services';
+import type { DeckMeta } from '@app/types';
+
+import type { DeckCard } from './types';
 
 /**
  * Deck exporter. Portal modal with a format picker, live preview

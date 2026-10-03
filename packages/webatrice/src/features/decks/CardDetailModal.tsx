@@ -16,7 +16,9 @@ import {
 import { CardRelatedLinks, relatedCardKey, type RelatedCardKind } from '@app/components';
 
 import { priceForCard, type PriceLookup } from './pricing';
-import type { DeckCard, DeckCategory } from './types';
+import type { DeckCategory } from '@app/types';
+
+import type { DeckCard } from './types';
 
 const QUANTITY_BUTTON_CLASS =
   'p-1 rounded hover:bg-bg-base text-text-muted hover:text-text-primary disabled:opacity-40 '

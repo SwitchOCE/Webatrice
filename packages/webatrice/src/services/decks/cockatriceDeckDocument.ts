@@ -1,13 +1,13 @@
 import type {
   BracketAssessment,
   BracketAssessmentCombo,
-  DeckCard,
   DeckCategory,
   DeckMeta,
   ParsedCard,
   ParsedDeck,
-} from './types';
-import { defaultMeta, parseMeta, serializeMeta, touchMeta } from './meta';
+} from '@app/types';
+
+import { defaultMeta, parseMeta, serializeMeta, touchMeta } from './cockatriceDeckMetadata';
 
 /**
  * Parser + serializer for Cockatrice `.cod` deck XML.
@@ -123,7 +123,8 @@ export function parseCod(xml: string): ParsedDeck {
 export function serializeCod(deck: {
   name: string;
   meta: DeckMeta;
-  cards: DeckCard[];
+  /** Hydrated editor cards are accepted as-is; only the `.cod` fields are written. */
+  cards: readonly ParsedCard[];
   format?: string;
   bannerCard?: string;
   lastLoadedTimestamp?: string;
@@ -192,7 +193,7 @@ export function serializeCod(deck: {
   // (libcockatrice_deck_list only defines DECK_ZONE_MAIN /
   // _SIDE / _TOKENS). Any other zone name would be silently
   // dropped from the game library at start.
-  const byCategory: Record<DeckCategory, DeckCard[]> = {
+  const byCategory: Record<DeckCategory, ParsedCard[]> = {
     main: [],
     sideboard: [],
   };
@@ -292,7 +293,7 @@ function readCardElement(
   return parsed;
 }
 
-function writeCardElement(doc: XMLDocument, card: DeckCard): Element {
+function writeCardElement(doc: XMLDocument, card: ParsedCard): Element {
   const el = doc.createElement('card');
   el.setAttribute('number', String(card.quantity));
   el.setAttribute('name', card.name);
