@@ -1,42 +1,97 @@
 import { act, waitFor } from '@testing-library/react';
+
 import { server } from '@cockatrice/datatrice';
-import type { WebClient } from '@cockatrice/sockatrice';
 import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { emptyCod } from '@app/services';
+import { lookupCard } from '@app/services';
 
-import { renderWithProviders, connectedState, createMockWebClient } from '../../../__test-utils__';
-import { clearDeckEditorCache } from '../deckEditorCache';
+import { connectedState, createMockWebClient, renderWithProviders } from '../../../__test-utils__';
+import { clearDeckEditorCache, getCachedDeck, setCachedDeck } from '../deckEditorCache';
+import { hydrateDeck } from '../hydrate';
+import type { HydratedDeck } from '../types';
 import { useDeckEditor, type UseDeckEditor } from './useDeckEditor';
 
-// Covers how the editor settles when the server never answers (or rejects)
-// its download and autosave commands; the happy path is exercised through
-// DeckEditor in the integration suite.
+vi.mock('../hydrate', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../hydrate')>()),
+  hydrateDeck: vi.fn(),
+}));
+vi.mock('../deckPersistence', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../deckPersistence')>()),
+  uploadDeckUpdate: vi.fn(),
+}));
+vi.mock('@app/services', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@app/services')>()),
+  lookupCard: vi.fn(),
+  trackEvent: vi.fn(),
+}));
 
-const editor: { current: UseDeckEditor | null } = { current: null };
+const COD = '<cockatrice_deck version="1"><deckname>Burn</deckname><format>modern</format>'
+  + '<zone name="main"><card number="1" name="Sol Ring"/></zone></cockatrice_deck>';
 
-function Probe({ deckId }: { deckId: number }) {
-  editor.current = useDeckEditor(deckId);
+function hydrated(overrides: Partial<HydratedDeck> = {}): HydratedDeck {
+  return {
+    name: 'Burn',
+    meta: { v: 1, updatedAt: 'x' },
+    format: 'modern',
+    cards: [{ name: 'Sol Ring', quantity: 1, category: 'main', lookupSource: 'scryfall' }],
+    ...overrides,
+  };
+}
+
+let latest: UseDeckEditor;
+function Probe({ deckId }: { deckId: number | null }) {
+  latest = useDeckEditor(deckId);
   return null;
 }
 
-function setup(deckId = 5) {
-  const webClient = createMockWebClient() as WebClient & { protobuf: { sendSessionCommand: ReturnType<typeof vi.fn> } };
-  (webClient as unknown as { protobuf: unknown }).protobuf = { sendSessionCommand: vi.fn() };
-  const result = renderWithProviders(<Probe deckId={deckId} />, { preloadedState: connectedState, webClient });
-  return { ...result, webClient };
+function setup(deckId: number | null = 5) {
+  const webClient = createMockWebClient();
+  const view = renderWithProviders(<Probe deckId={deckId} />, { preloadedState: connectedState, webClient });
+  return { ...view, webClient };
 }
 
 beforeEach(() => {
   clearDeckEditorCache();
-  editor.current = null;
+  vi.mocked(hydrateDeck).mockResolvedValue(hydrated());
 });
 
-describe('useDeckEditor download failure', () => {
-  it('stops loading and explains a timed-out download', () => {
-    const { store } = setup(5);
-    expect(editor.current!.loading).toBe(true);
+describe('useDeckEditor', () => {
+  it('downloads the deck, hydrates it and seeds the session cache', async () => {
+    const { webClient, store } = setup();
+    expect(webClient.request.session.deckDownload).toHaveBeenCalledWith(5);
+    expect(latest.loading).toBe(true);
 
+    act(() => {
+      store.dispatch(server.Actions.deckDownloaded({ deckId: 5, deck: COD }));
+    });
+
+    await waitFor(() => expect(latest.loading).toBe(false));
+    expect(latest.deck?.name).toBe('Burn');
+    expect(latest.totalMainboardCount).toBe(1);
+    expect(getCachedDeck(5)?.savedXml).toBe(COD);
+  });
+
+  it('ignores another deck’s download', () => {
+    const { store } = setup();
+    act(() => {
+      store.dispatch(server.Actions.deckDownloaded({ deckId: 6, deck: COD }));
+    });
+    expect(hydrateDeck).not.toHaveBeenCalled();
+    expect(latest.loading).toBe(true);
+  });
+
+  it('reports an unreadable deck as not found', async () => {
+    const { store } = setup();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    act(() => {
+      store.dispatch(server.Actions.deckDownloaded({ deckId: 5, deck: 'not xml' }));
+    });
+    await waitFor(() => expect(latest.notFound).toBe(true));
+    expect(latest.loading).toBe(false);
+  });
+
+  it('stops loading and explains a timed-out download', () => {
+    const { store } = setup();
     act(() => {
       store.dispatch(server.Actions.deckDownloadFailed({
         deckId: 5,
@@ -44,71 +99,69 @@ describe('useDeckEditor download failure', () => {
         failure: WebsocketTypes.CommandFailure.Timeout,
       }));
     });
-
-    expect(editor.current!.loading).toBe(false);
-    expect(editor.current!.notFound).toBe(true);
-    expect(editor.current!.loadError).toBe('CommandFailure.timeout');
+    expect(latest.loading).toBe(false);
+    expect(latest.notFound).toBe(true);
+    expect(latest.loadError).toBe('CommandFailure.timeout');
   });
 
   it('uses the generic download message for a server rejection', () => {
-    const { store } = setup(5);
+    const { store } = setup();
     act(() => {
       store.dispatch(server.Actions.deckDownloadFailed({ deckId: 5, responseCode: Response_ResponseCode.RespNameNotFound }));
     });
-    expect(editor.current!.loadError).toBe('DeckEditor.downloadFailed');
+    expect(latest.loadError).toBe('DeckEditor.downloadFailed');
   });
 
-  it('ignores a failure for a different deck', () => {
-    const { store } = setup(5);
+  it('ignores another deck’s download failure', () => {
+    const { store } = setup();
     act(() => {
       store.dispatch(server.Actions.deckDownloadFailed({ deckId: 6, responseCode: Response_ResponseCode.RespNameNotFound }));
     });
-    expect(editor.current!.loading).toBe(true);
-    expect(editor.current!.loadError).toBeNull();
+    expect(latest.loading).toBe(true);
+    expect(latest.loadError).toBeNull();
   });
-});
 
-describe('useDeckEditor autosave failure', () => {
-  async function loadDeck() {
-    const ctx = setup(5);
-    act(() => {
-      ctx.store.dispatch(server.Actions.deckDownloaded({ deckId: 5, deck: emptyCod('Test', 'commander') }));
-    });
-    await waitFor(() => expect(editor.current!.loading).toBe(false));
-    return ctx;
-  }
+  it('serves a deck opened earlier this session without downloading it', () => {
+    setCachedDeck(5, { deck: hydrated({ name: 'Cached' }), savedXml: COD });
+    const { webClient } = setup();
+    expect(latest.loading).toBe(false);
+    expect(latest.deck?.name).toBe('Cached');
+    expect(webClient.request.session.deckDownload).not.toHaveBeenCalled();
+  });
 
-  function lastUploadOptions(webClient: { protobuf: { sendSessionCommand: ReturnType<typeof vi.fn> } }) {
-    const calls = webClient.protobuf.sendSessionCommand.mock.calls;
-    return calls[calls.length - 1][2] as { onSuccess: () => void; onError: (...args: unknown[]) => void };
-  }
+  it('applies edits optimistically, marks the deck dirty and mirrors it into the cache', () => {
+    setCachedDeck(5, { deck: hydrated(), savedXml: COD });
+    setup();
 
-  it('flags the save as failed when the upload errors, and resends the same content on the next save', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    try {
-      const { webClient } = await loadDeck();
-      webClient.protobuf.sendSessionCommand.mockClear();
+    act(() => latest.setName('Burn v2'));
+    expect(latest.deck?.name).toBe('Burn v2');
+    expect(latest.saveState).toBe('dirty');
+    expect(getCachedDeck(5)?.deck.name).toBe('Burn v2');
 
-      act(() => editor.current!.setName('Renamed'));
-      act(() => {
-        vi.advanceTimersByTime(600);
-      });
-      expect(editor.current!.saveState).toBe('saving');
-      expect(webClient.protobuf.sendSessionCommand).toHaveBeenCalledTimes(1);
+    act(() => latest.incQuantity(0, 2));
+    expect(latest.deck?.cards[0].quantity).toBe(3);
+    act(() => latest.setCategory(0, 'sideboard'));
+    expect(latest.totalSideboardCount).toBe(3);
+    act(() => latest.deleteCard(0));
+    expect(latest.deck?.cards).toEqual([]);
+  });
 
-      act(() => lastUploadOptions(webClient).onError(
-        Response_ResponseCode.RespNotConnected, {}, WebsocketTypes.CommandFailure.Timeout,
-      ));
-      expect(editor.current!.saveState).toBe('failed');
+  it('adds a card by name, incrementing an existing mainboard row', async () => {
+    setCachedDeck(5, { deck: hydrated(), savedXml: COD });
+    vi.mocked(lookupCard).mockResolvedValue({ found: false, source: 'unknown', name: 'Mox', printings: [] });
+    setup();
 
-      // The failed content is no longer considered saved, so a flush sends it again.
-      act(() => editor.current!.setName('Renamed'));
-      act(() => {
-        vi.advanceTimersByTime(600);
-      });
-      expect(webClient.protobuf.sendSessionCommand).toHaveBeenCalledTimes(2);
-    } finally {
-      vi.useRealTimers();
-    }
+    await act(() => latest.addCard('sol ring'));
+    expect(latest.deck?.cards).toHaveLength(1);
+    expect(latest.deck?.cards[0].quantity).toBe(2);
+
+    await act(() => latest.addCard('Mox // Back'));
+    expect(lookupCard).toHaveBeenCalledWith('Mox');
+    expect(latest.deck?.cards.map((c) => c.name)).toEqual(['Sol Ring', 'Mox']);
+  });
+
+  it('does nothing without a deck id', () => {
+    const { webClient } = setup(null);
+    expect(webClient.request.session.deckDownload).not.toHaveBeenCalled();
   });
 });
