@@ -333,6 +333,22 @@ describe('deckUpdate', () => {
       7, Response_ResponseCode.RespContextError, undefined,
     );
   });
+
+  it('tolerates a response implementation without the deck update callbacks', () => {
+    const session = WebClient.instance.response.session;
+    const { updateServerDeck, updateServerDeckFailed } = session;
+    delete session.updateServerDeck;
+    delete session.updateServerDeckFailed;
+    try {
+      deckUpdate(7, 'content');
+      expect(() => invokeOnSuccess({ newFile: { id: 7 } }, { responseCode: 0 })).not.toThrow();
+      deckUpdate(7, 'content');
+      expect(() => invokeOnError(19)).not.toThrow();
+    } finally {
+      session.updateServerDeck = updateServerDeck;
+      session.updateServerDeckFailed = updateServerDeckFailed;
+    }
+  });
 });
 
 describe('disconnect', () => {

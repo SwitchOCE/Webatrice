@@ -19,12 +19,13 @@ export function deckUpdate(deckId: number, deckList: string): void {
     {
       responseExt: Response_DeckUpload_ext,
       // `new_file` carries the server's re-derived name; servers that omit
-      // it still acknowledge the save.
+      // it still acknowledge the save. Both callbacks are optional members of
+      // `ISessionResponse`, so implementations that predate them still build.
       onSuccess: (response) => {
-        WebClient.instance.response.session.updateServerDeck(deckId, response.newFile);
+        WebClient.instance.response.session.updateServerDeck?.(deckId, response.newFile);
       },
       onError: (responseCode, _raw, failure) => {
-        WebClient.instance.response.session.updateServerDeckFailed(deckId, responseCode, failure);
+        WebClient.instance.response.session.updateServerDeckFailed?.(deckId, responseCode, failure);
       },
     }
   );
