@@ -26,6 +26,13 @@ describe('RoomResponseImpl', () => {
     expect(dispatch).toHaveBeenCalledWith(RoomsActions.joinRoom({ roomInfo }));
   });
 
+  it('joinRoom carries whether the user asked for the room', () => {
+    const { impl, dispatch } = setup();
+    const roomInfo = create(ServerInfo_RoomSchema, { roomId: 1, name: 'Main' });
+    impl.joinRoom(roomInfo, false);
+    expect(dispatch).toHaveBeenCalledWith(RoomsActions.joinRoom({ roomInfo, userInitiated: false }));
+  });
+
   it('leaveRoom dispatches the leaveRoom action', () => {
     const { impl, dispatch } = setup();
     impl.leaveRoom(7);
