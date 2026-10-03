@@ -46,16 +46,17 @@ export const LOG_SEARCH_DEFAULTS: LogSearchFormValues = {
 
 /**
  * The defaults TabLog::getClicked writes back into an under-specified search:
- * no date range → the past 20 days, no location → all three, no maximum → 1000.
+ * no date range → the past 20 days, no location → all three (rooms and games only for the developer
+ * family, which cannot read private chats), no maximum → 1000.
  */
-export function applyLogSearchDefaults(values: LogSearchFormValues): LogSearchFormValues {
+export function applyLogSearchDefaults(values: LogSearchFormValues, developer = false): LogSearchFormValues {
   const next = { ...values, logLocation: { ...values.logLocation } };
   if (next.dateRange === '') {
     next.dateRange = 'pastDays';
     next.pastDays = LOG_MAX_DAYS;
   }
   if (!next.logLocation.room && !next.logLocation.game && !next.logLocation.chat) {
-    next.logLocation = { room: true, game: true, chat: true };
+    next.logLocation = { room: true, game: true, chat: !developer };
   }
   if (next.maximumResults === 0) {
     next.maximumResults = LOG_MAX_RESULTS;

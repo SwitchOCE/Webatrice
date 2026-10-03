@@ -17,6 +17,8 @@ export interface LogsNotice {
 }
 
 export interface Logs {
+  /** True for a developer without moderator rights: searches go through the developer family. */
+  developer: boolean;
   logs: ServerStateLogs;
   notice: LogsNotice | null;
   dismissNotice: () => void;
@@ -51,6 +53,10 @@ export function useLogs(): Logs {
   const dispatch = useAppDispatch();
   const logs = useAppSelector((state) => server.Selectors.getLogs(state));
   const webClient = useWebClient();
+  // Desktop TabSupervisor::openTabLog: the developer bit selects the narrowed developer family only
+  // when the user is not also a moderator.
+  const isModerator = useAppSelector(server.Selectors.getIsUserModerator);
+  const developer = useAppSelector(server.Selectors.getIsUserDeveloper) && !isModerator;
   const [notice, setNotice] = useState<LogsNotice | null>(null);
   // Report outcomes only for searches sent from this page.
   const searching = useRef(false);
@@ -89,10 +95,14 @@ export function useLogs(): Logs {
 
   const onSubmit = useCallback((values: LogSearchFormValues) => {
     searching.current = true;
-    webClient.request.moderator.viewLogHistory(toViewLogHistoryParams(values));
-  }, [webClient]);
+    if (developer) {
+      webClient.request.developer.viewLogHistory(toViewLogHistoryParams(values));
+    } else {
+      webClient.request.moderator.viewLogHistory(toViewLogHistoryParams(values));
+    }
+  }, [webClient, developer]);
 
   const dismissNotice = useCallback(() => setNotice(null), []);
 
-  return { logs, notice, dismissNotice, onSubmit };
+  return { developer, logs, notice, dismissNotice, onSubmit };
 }

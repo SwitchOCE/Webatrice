@@ -10,9 +10,9 @@ const flush = async () => {
   });
 };
 
-function renderForm() {
+function renderForm(developer = false) {
   const onSubmit = vi.fn();
-  renderWithProviders(<LogSearchForm onSubmit={onSubmit} />, { preloadedState: disconnectedState });
+  renderWithProviders(<LogSearchForm onSubmit={onSubmit} developer={developer} />, { preloadedState: disconnectedState });
   return onSubmit;
 }
 
@@ -55,6 +55,17 @@ describe('LogSearchForm', () => {
     // ...and writes the completed values back into the form.
     expect(screen.getByLabelText('LogSearchForm.label.days')).toHaveValue(20);
     expect(screen.getByRole('radio', { name: 'LogSearchForm.label.pastDays' })).toBeChecked();
+  });
+
+  it('hides the IP filter and Private Chat for the developer family, as desktop TabLog does', async () => {
+    const onSubmit = renderForm(true);
+    expect(screen.queryByLabelText('LogSearchForm.label.ipAddress')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
+
+    await type('LogSearchForm.label.userName', 'searchUser');
+    await submit();
+
+    expect(onSubmit.mock.calls[0][0].logLocation).toEqual({ room: true, game: true, chat: false });
   });
 
   it('keeps an explicit location, range and maximum', async () => {

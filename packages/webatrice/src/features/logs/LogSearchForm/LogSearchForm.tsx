@@ -24,6 +24,11 @@ export type { LogSearchFormValues };
 
 interface LogSearchFormProps {
   onSubmit: (values: LogSearchFormValues) => void;
+  /**
+   * Searching through the developer command family: like desktop TabLog, hide the IP filter (ignored
+   * server-side) and Private Chat (developers cannot read private conversations).
+   */
+  developer?: boolean;
 }
 
 type TextFilter = 'userName' | 'ipAddress' | 'gameName' | 'gameId' | 'message';
@@ -70,7 +75,7 @@ const NumberField = ({ control, name, label, max, disabled }: {
  * under-specified search is completed the way desktop completes it, and the
  * completed values are written back into the form.
  */
-const LogSearchForm = ({ onSubmit }: LogSearchFormProps) => {
+const LogSearchForm = ({ onSubmit, developer = false }: LogSearchFormProps) => {
   const { t } = useTranslation();
   const resolver = useMemo(() => zodResolver(buildLogSearchSchema(t)), [t]);
   const { control, handleSubmit, reset, formState } = useForm<LogSearchFormValues>({
@@ -82,7 +87,7 @@ const LogSearchForm = ({ onSubmit }: LogSearchFormProps) => {
   const searchError = formState.errors.userName?.message ?? formState.errors.pastDays?.message;
 
   const submit = handleSubmit((values) => {
-    const completed = applyLogSearchDefaults(values);
+    const completed = applyLogSearchDefaults(values, developer);
     reset(completed, { keepDefaultValues: true });
     onSubmit(completed);
   });
@@ -92,7 +97,7 @@ const LogSearchForm = ({ onSubmit }: LogSearchFormProps) => {
       <form className="log-search__form" onSubmit={submit} noValidate>
         <fieldset className="log-search__group">
           <legend className="log-search__legend">{t('LogSearchForm.group.filters')}</legend>
-          {TEXT_FILTERS.map((name) => (
+          {TEXT_FILTERS.filter((name) => !developer || name !== 'ipAddress').map((name) => (
             <div className="log-search__form-item" key={name}>
               <Controller
                 name={name}
@@ -122,11 +127,13 @@ const LogSearchForm = ({ onSubmit }: LogSearchFormProps) => {
               control={control}
               render={({ field }) => <CheckboxField {...field} label={t('LogSearchForm.label.games')} />}
             />
-            <Controller
-              name="logLocation.chat"
-              control={control}
-              render={({ field }) => <CheckboxField {...field} label={t('LogSearchForm.label.chats')} />}
-            />
+            {!developer && (
+              <Controller
+                name="logLocation.chat"
+                control={control}
+                render={({ field }) => <CheckboxField {...field} label={t('LogSearchForm.label.chats')} />}
+              />
+            )}
           </div>
         </fieldset>
         <Divider />

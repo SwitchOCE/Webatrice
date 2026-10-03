@@ -77,7 +77,7 @@ describe('3.1 query failure reporting', () => {
     answer('developer', Response_ResponseCode.RespFunctionNotAllowed);
 
     expect(responseScope('moderator').commandFailed)
-      .toHaveBeenCalledWith('viewLogHistory', Response_ResponseCode.RespFunctionNotAllowed, 'bob');
+      .toHaveBeenCalledWith('viewLogHistory', Response_ResponseCode.RespFunctionNotAllowed, 'bob', undefined);
     expect(responseScope('moderator').viewLogs).not.toHaveBeenCalled();
   });
 
