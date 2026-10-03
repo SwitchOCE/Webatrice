@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 
+import { BRACKET_LOOKUPS_STORAGE_KEY, writeBracketLookupsAllowed } from '../../bracketConsent';
 import { useBracketAssessment } from '../../hooks/useBracketAssessment';
 import { BracketSection } from './BracketSection';
 
@@ -13,7 +14,37 @@ const signals = {
   lateCombos: [],
 };
 
+afterEach(() => {
+  window.localStorage.clear();
+});
+
 describe('BracketSection', () => {
+  it('asks before any third-party lookup, and remembers the opt-in', () => {
+    vi.mocked(useBracketAssessment).mockReturnValue({ status: 'consentRequired', retry: vi.fn() });
+    render(<BracketSection cards={[]} />);
+
+    expect(screen.getByText('DeckBracket.consent.prompt')).toBeInTheDocument();
+    expect(vi.mocked(useBracketAssessment).mock.lastCall?.[3]).toBe(false);
+
+    fireEvent.click(screen.getByRole('button', { name: /DeckBracket\.consent\.allow/ }));
+    expect(window.localStorage.getItem(BRACKET_LOOKUPS_STORAGE_KEY)).toBe('true');
+    expect(vi.mocked(useBracketAssessment).mock.lastCall?.[3]).toBe(true);
+  });
+
+  it('lets the user turn the lookups off again', () => {
+    writeBracketLookupsAllowed(true);
+    vi.mocked(useBracketAssessment).mockReturnValue({
+      status: 'complete',
+      report: { level: 2, signals },
+      retry: vi.fn(),
+    });
+    render(<BracketSection cards={[]} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'DeckBracket.consent.revoke' }));
+    expect(window.localStorage.getItem(BRACKET_LOOKUPS_STORAGE_KEY)).toBe('false');
+    expect(vi.mocked(useBracketAssessment).mock.lastCall?.[3]).toBe(false);
+  });
+
   it('shows progress while assessing', () => {
     vi.mocked(useBracketAssessment).mockReturnValue({ status: 'loading', retry: vi.fn() });
     render(<BracketSection cards={[]} />);

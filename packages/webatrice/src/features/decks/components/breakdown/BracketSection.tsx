@@ -1,10 +1,11 @@
 import { useTranslation } from 'react-i18next';
-import { CircleAlert, Loader2, RefreshCw } from 'lucide-react';
+import { CircleAlert, Globe, Loader2, RefreshCw } from 'lucide-react';
 
 import type { BracketAssessment } from '@app/types';
 
 import type { UnavailableSource } from '../../bracket';
 import { bracketSignalBadges } from '../../bracketBadges';
+import { useBracketLookupsConsent } from '../../bracketConsent';
 import { BRACKET_LABEL } from '../../bracketData';
 import type { SourceFailure } from '../../bracketSources';
 import { BRACKET_TONE } from '../../bracketTone';
@@ -24,7 +25,12 @@ export interface BracketSectionProps {
 
 export function BracketSection({ cards, cachedAssessment, onAssessmentComputed }: BracketSectionProps) {
   const { t } = useTranslation();
-  const assessment = useBracketAssessment(cards, cachedAssessment, onAssessmentComputed);
+  const [lookupsAllowed, setLookupsAllowed] = useBracketLookupsConsent();
+  const assessment = useBracketAssessment(cards, cachedAssessment, onAssessmentComputed, lookupsAllowed);
+
+  if (assessment.status === 'consentRequired') {
+    return <BracketConsentPrompt onAllow={() => setLookupsAllowed(true)} />;
+  }
 
   if (assessment.status === 'loading') {
     return (
@@ -71,7 +77,21 @@ export function BracketSection({ cards, cachedAssessment, onAssessmentComputed }
             </a>
             's algorithm: Game Changers, MLD, extra turns, and early game-defining combos.
           </div>
-          <div className="text-xs text-text-muted mt-1">{t('DeckBracket.provenance')}</div>
+          <div className="text-xs text-text-muted mt-1">
+            {t('DeckBracket.provenance')}
+            {lookupsAllowed && (
+              <>
+                {' '}
+                <button
+                  type="button"
+                  onClick={() => setLookupsAllowed(false)}
+                  className="underline hover:text-text-primary"
+                >
+                  {t('DeckBracket.consent.revoke')}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -90,6 +110,29 @@ export function BracketSection({ cards, cachedAssessment, onAssessmentComputed }
           />
         ))}
       </div>
+    </div>
+  );
+}
+
+/**
+ * First use: nothing goes to Scryfall or Commander Spellbook until the
+ * user allows it. The choice is remembered for every deck.
+ */
+function BracketConsentPrompt({ onAllow }: { onAllow: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="space-y-2">
+      <p className="text-sm text-text-muted">{t('DeckBracket.consent.prompt')}</p>
+      <button
+        type="button"
+        onClick={onAllow}
+        className={[
+          'inline-flex items-center gap-1.5 px-3 py-1 rounded-md border border-border-strong bg-bg-elevated',
+          'text-sm text-text-primary hover:bg-border-subtle',
+        ].join(' ')}
+      >
+        <Globe size={13} /> {t('DeckBracket.consent.allow')}
+      </button>
     </div>
   );
 }

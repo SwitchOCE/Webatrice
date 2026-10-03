@@ -14,3 +14,5 @@ The deck pages catch up with desktop's deck editor and deck storage:
 Autosave now uploads only when the deck actually changed (it used to upload on every scheduled save), goes through Sockatrice's `deckUpdate`, and reports a failed save with a Retry link.
 
 The Commander bracket estimate no longer counts sideboard cards when it asks Commander Spellbook for combos, and sends designated commanders in Spellbook's own `commanders` list.
+
+The bracket estimate now asks before contacting Scryfall and Commander Spellbook. Until you choose "Allow online lookups" in the bracket section (remembered in this browser, and revocable from the same place), opening a deck sends nothing to either service; a bracket already saved with the deck still shows.

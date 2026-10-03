@@ -1,7 +1,12 @@
 {
   "DeckBracket": {
     "partialTitle": "At least bracket {level} · {label}",
-    "provenance": "Card data from Scryfall; combos from Commander Spellbook, which receives the deck’s card names and quantities.",
+    "provenance": "Card data from Scryfall; combos from Commander Spellbook, which receives the main deck’s card names and quantities.",
+    "consent": {
+      "prompt": "Estimating the bracket sends this deck’s card names to Scryfall (Game Changers list and card text), and the main deck’s card names and quantities to Commander Spellbook (combos). Nothing is sent until you allow it.",
+      "allow": "Allow online lookups",
+      "revoke": "Turn off online lookups"
+    },
     "partialNotice": "Partial estimate: this deck may sit in a higher bracket. It isn’t saved with the deck until every source answers.",
     "sourceUnavailable": "{source} unavailable ({reason})",
     "sourcePartial": "{source}: {missing} of {total} cards missing ({reason})",
