@@ -699,7 +699,8 @@ describe('PlayerBox characterization — global listener cleanup', () => {
 
     openContextMenu(pileEl('Library', 0));
     chooseMenuPath('Draw cards...');
-    fireEvent.keyDown(window, { key: 'Escape' });
+    // The prompt is the game's PromptDialog, which handles its own Escape.
+    fireEvent.keyDown(screen.getByRole('dialog', { name: 'Draw cards' }), { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: 'Draw cards' })).not.toBeInTheDocument();
 
     act(() => {
