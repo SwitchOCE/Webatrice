@@ -52,7 +52,7 @@ describe('PublicDecks', () => {
     });
     expect(screen.getByText('Llanowar Elves')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /ReadOnlyDeck.import/ }));
-    expect(webClient.request.session.deckUpload).toHaveBeenCalledWith('', 0, COD);
+    expect(webClient.request.session.deckUpload).toHaveBeenCalledWith('', 0, COD, undefined, 'G');
   });
 
   it('says when the user has published nothing', () => {
