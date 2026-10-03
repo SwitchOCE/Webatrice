@@ -65,7 +65,6 @@ export function useZoneContextMenu({
     }
     webClient.request.game.revealCards(gameId, {
       zoneName: ZoneName.DECK,
-      playerId: -1,
       topCards: 1,
     });
   };
