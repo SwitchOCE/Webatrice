@@ -83,7 +83,7 @@ export default tseslint.config(
       'src/features/game/components/ui/{CardPreviewContext,GameSelectionContext,SeatDragContext,SeatShortcutsContext}.tsx',
       'src/features/game/components/ui/PlayerBoard/playerBoard.types.ts',
       'src/features/game/components/ui/GameBoardCell/use{PlayerSeatViewModel,Player*Commands,OpenDeckInEditor,MoveCard}.ts',
-      'src/features/game/dialogs/ZoneViewDialog/zoneViewSort.ts',
+      'src/features/game/dialogs/ZoneViewDialog/*.{ts,tsx}',
       'src/features/game/dialogs/IncomingRevealDialog/IncomingRevealDialog.tsx',
       'src/features/game/components/ui/SeatCard/{SeatCard.tsx,cardSize.ts}',
       'src/features/game/hooks/{useSeatSelection,seatDropPlan,gamePointerSensor}.ts',

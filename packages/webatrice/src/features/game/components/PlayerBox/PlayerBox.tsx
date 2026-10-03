@@ -69,7 +69,7 @@ import {
   CARD_WIDTH,
 } from '../ui/SeatCard/cardSize';
 import ContextMenu, { type ContextMenuItem } from './ContextMenu';
-import LibrarySearchDialog from './LibrarySearchDialog';
+import ZoneViewPanel from '../../dialogs/ZoneViewDialog/ZoneViewPanel';
 import Card from '../ui/SeatCard/SeatCard';
 import { useCardPreviewActions } from '../ui/CardPreviewContext';
 import { usePublishSeatShortcuts, type SeatShortcutOperations } from '../ui/SeatShortcutsContext';
@@ -84,7 +84,7 @@ import {
   useSeatDropZone,
   type SeatDragStart,
 } from '../ui/SeatDragContext';
-import ZoneRevealDialog from './ZoneRevealDialog';
+import ZoneRevealPanel from '../../dialogs/ZoneViewDialog/ZoneRevealPanel';
 import { useGameDialogActions } from '../ui/GameDialogActionsContext';
 import { useGameDialogsContext } from '../ui/GameDialogsContext';
 import { useShortcutHints } from '@app/feature-widgets/shortcuts';
@@ -6666,7 +6666,7 @@ function PlayerBox(
           passing. Without this, "Group by Type" would bucket every
           card into "Other" and "Sort by CMC" would treat everything
           as 0. */}
-      <LibrarySearchDialog
+      <ZoneViewPanel
         isOpen={librarySearchOpen}
         onClose={(shuffleOnClose) => {
           setLibrarySearchOpen(false);
@@ -6796,7 +6796,7 @@ function PlayerBox(
           reorder — the parent forwards that as
           Command_MoveCard(source=zone, target=zone, x=toIndex). */}
       {topCardsView && (
-        <ZoneRevealDialog
+        <ZoneRevealPanel
           isOpen
           title={`${topCardsView.isReversed ? 'Bottom' : 'Top'} ${revealedDeckCards?.length ?? 0} cards — ${name}`}
           cards={revealedDeckCards ?? []}
@@ -6856,7 +6856,7 @@ function PlayerBox(
           seat drop zone, which routes to
           Command_MoveCard(target={GRAVE|EXILE|HAND}). */}
       {pileView && (
-        <LibrarySearchDialog
+        <ZoneViewPanel
           isOpen
           title={`${
             pileView.zone === 'graveyard'
@@ -6928,7 +6928,7 @@ function PlayerBox(
           resolves to `{ zone: "sideboard" }`, and the move fires
           Command_MoveCard(target=SIDEBOARD, x=-1) to append. */}
       {isSelf && viewSideboardOpen && (
-        <LibrarySearchDialog
+        <ZoneViewPanel
           isOpen
           title={`Sideboard — ${name}`}
           showShuffleOnClose={false}
