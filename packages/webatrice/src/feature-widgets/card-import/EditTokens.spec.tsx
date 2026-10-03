@@ -112,7 +112,11 @@ describe('EditTokens', () => {
     const createObjectURL = vi.fn(() => 'blob:tk');
     const revokeObjectURL = vi.fn();
     vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL }));
-    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const attached: boolean[] = [];
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function recordClick(this: HTMLAnchorElement) {
+      attached.push(this.isConnected);
+    });
+    vi.useFakeTimers();
     const hook = makeHook();
     hoisted.useEditTokens.mockReturnValue(hook);
     renderWithProviders(<EditTokens />);
@@ -120,6 +124,12 @@ describe('EditTokens', () => {
     fireEvent.click(screen.getByRole('button', { name: 'EditTokens.button.export' }));
     expect(hook.exportXml).toHaveBeenCalled();
     expect(click).toHaveBeenCalled();
+    expect(attached).toEqual([true]);
+    expect(document.querySelector('a[download="TK.xml"]')).toBeNull();
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+    vi.runAllTimers();
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:tk');
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 });
