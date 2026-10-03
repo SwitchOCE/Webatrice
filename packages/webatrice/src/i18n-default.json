@@ -820,6 +820,9 @@
       "notSent": "Message not sent: {reason}"
     }
   },
+  "PrivateMessageNotifier": {
+    "title": "New message from {sender}"
+  },
   "RoomChat": {
     "notice": {
       "chatFlood": "You are flooding the chat. Please wait a couple of seconds.",
