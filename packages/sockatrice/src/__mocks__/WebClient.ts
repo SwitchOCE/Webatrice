@@ -200,6 +200,8 @@ export const WebClient = {
     disconnect: vi.fn(),
     updateStatus: vi.fn(),
     replayGameEventContainer: vi.fn(),
+    loadReplayGame: vi.fn(),
+    unloadReplayGame: vi.fn(),
     status: 0 as number,
     clientConfig: {
       clientid: 'test-clientid',

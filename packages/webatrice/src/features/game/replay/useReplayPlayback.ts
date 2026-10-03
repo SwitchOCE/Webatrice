@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 
-import { games } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 import { useSettings } from '@app/hooks';
@@ -13,7 +12,6 @@ import {
   type ReplayPlaybackState,
   type ReplaySink,
 } from '@app/services';
-import { useAppDispatch } from '@app/store';
 
 export interface ReplayPlayback {
   state: ReplayPlaybackState;
@@ -44,13 +42,14 @@ const getIdleState = () => IDLE_STATE;
 
 /**
  * Plays an opened replay into its local game, desktop's ReplayWidget +
- * ReplayManager wiring. Rewinds load a fresh replay game into the store; each
- * recorded container runs through the live game-event pipeline
- * (`WebClient.replayGameEventContainer`), so the board, log and selectors
- * behave exactly as for a live game. The game is unloaded on unmount.
+ * ReplayManager wiring. Rewinds load a fresh replay game
+ * (`WebClient.loadReplayGame`); each recorded container runs through the live
+ * game-event pipeline (`WebClient.replayGameEventContainer`), so the board, log
+ * and selectors behave exactly as for a live game. Both reach the store through
+ * Datatrice's GameResponseImpl, never by dispatching from the UI. The game is
+ * unloaded on unmount.
  */
 export function useReplayPlayback(opened: OpenedReplay | undefined): ReplayPlayback {
-  const dispatch = useAppDispatch();
   const webClient = useWebClient();
   const settings = useSettings();
   const [engine, setEngine] = useState<ReplayEngine | null>(null);
@@ -63,7 +62,7 @@ export function useReplayPlayback(opened: OpenedReplay | undefined): ReplayPlayb
     const { gameId, replay } = opened;
     const gameInfo = opened.replay.gameInfo;
     const sink: ReplaySink = {
-      rewind: () => dispatch(games.Actions.replayGameLoaded({ gameId, gameInfo })),
+      rewind: () => webClient.loadReplayGame(gameId, gameInfo),
       apply: (container) => webClient.replayGameEventContainer(container, gameId),
     };
     const next = new ReplayEngine(replay, sink);
@@ -71,10 +70,10 @@ export function useReplayPlayback(opened: OpenedReplay | undefined): ReplayPlayb
     setEngine(next);
     return () => {
       next.dispose();
-      dispatch(games.Actions.replayGameUnloaded({ gameId }));
+      webClient.unloadReplayGame(gameId);
       setEngine(null);
     };
-  }, [opened, dispatch, webClient]);
+  }, [opened, webClient]);
 
   const state = useSyncExternalStore(engine?.subscribe ?? subscribeNothing, engine?.getState ?? getIdleState);
 

@@ -1,6 +1,8 @@
+import { combineReducers } from '@reduxjs/toolkit';
 import { fireEvent, screen } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 
+import { attachResponseHandlers, createStore } from '@cockatrice/datatrice';
 import { ZoneName } from '@cockatrice/sockatrice';
 import type { WebClient } from '@cockatrice/sockatrice';
 import {
@@ -12,6 +14,7 @@ import {
   makeZoneEntry,
 } from '@cockatrice/datatrice/testing';
 import { openReplay } from '@app/services';
+import { rootReducerMap, type RootState } from '@app/store';
 import { RouteEnum } from '@app/types';
 
 import { createMockWebClient, connectedState, makeStoreState, makeUser, renderWithProviders } from '../../../__test-utils__';
@@ -24,6 +27,14 @@ import GameReplay from './GameReplay';
 vi.mock('../../../hooks/useSettings');
 
 function renderReplayRoute(replayKey: string, webClient: WebClient = createMockWebClient()) {
+  const store = createStore<RootState>({
+    reducer: combineReducers(rootReducerMap),
+    preloadedState: makeStoreState({ ...connectedState, games: { games: {}, pings: {} } }),
+  });
+  // Replay games reach the store the shipped way: WebClient → GameResponseImpl.
+  const response = attachResponseHandlers(store);
+  vi.mocked(webClient.loadReplayGame).mockImplementation((gameId, gameInfo) => response.game.replayGameLoaded?.(gameId, gameInfo));
+  vi.mocked(webClient.unloadReplayGame).mockImplementation((gameId) => response.game.replayGameUnloaded?.(gameId));
   return renderWithProviders(
     <Routes>
       <Route path={RouteEnum.REPLAY} element={<GameReplay />} />
@@ -31,7 +42,7 @@ function renderReplayRoute(replayKey: string, webClient: WebClient = createMockW
     </Routes>,
     {
       route: `/replay/${replayKey}`,
-      preloadedState: makeStoreState({ ...connectedState, games: { games: {} } }),
+      store,
       webClient,
       gameId: undefined,
     },
