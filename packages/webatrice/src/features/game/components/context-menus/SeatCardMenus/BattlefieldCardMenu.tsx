@@ -429,7 +429,7 @@ export default function BattlefieldCardMenu() {
               // Cockatrice's `player->getDeckZone()->getCards().size()`.
               const deckSize = zones.library.cardCount ?? 0;
               openMoveXFromTopPrompt({
-                cardId: cardIdNum,
+                cardIds: [cardIdNum],
                 cardName: card.name,
                 deckSize,
               });
