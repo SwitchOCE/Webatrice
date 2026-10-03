@@ -47,6 +47,7 @@ export interface PromptState {
   description?: string;
   placeholder?: string;
   submitLabel?: string;
+  type?: 'text' | 'number';
   inputMode?: 'text' | 'numeric';
   selectOnFocus?: boolean;
   preview?: (value: string) => string | null;

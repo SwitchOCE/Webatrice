@@ -35,6 +35,8 @@ export interface PromptDialogProps {
   /** A line under the title: what is being edited, or the input's range. */
   description?: string;
   placeholder?: string;
+  /** `number` for whole-number answers (arrow keys step the value). */
+  type?: 'text' | 'number';
   /** `numeric` brings up a number keypad without restricting what can be typed. */
   inputMode?: 'text' | 'numeric';
   /** Select the seeded value on focus, so typing replaces it. */
@@ -55,6 +57,7 @@ function PromptDialog({
   helperText,
   description,
   placeholder,
+  type = 'text',
   inputMode,
   selectOnFocus = false,
   preview,
@@ -93,6 +96,7 @@ function PromptDialog({
             size="small"
             label={label}
             value={value}
+            type={type}
             placeholder={placeholder}
             onChange={(e) => handleChange(e.target.value)}
             onFocus={selectOnFocus ? (e) => e.target.select() : undefined}
