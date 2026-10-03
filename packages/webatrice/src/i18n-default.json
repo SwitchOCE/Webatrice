@@ -1393,7 +1393,8 @@
       "message": "This will kick all non-ready players from the game.",
       "confirm": "Yes",
       "cancel": "No"
-    }
+    },
+    "deckSelectFailed": "The server did not accept this deck."
   },
   "GameInvite": {
     "copyLink": "Copy game link",
