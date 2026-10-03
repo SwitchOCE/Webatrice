@@ -38,20 +38,18 @@ function Decks() {
   const [importOpen, setImportOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<FlatDeck | null>(null);
 
+  // A dialog stays open (keeping what was typed) when the hook refuses
+  // because the connection dropped.
   const handleCreate = (name: string, format: string) => {
-    if (!list.isConnected) {
-      return;
+    if (list.createDeck(name, format)) {
+      setCreateOpen(false);
     }
-    setCreateOpen(false);
-    list.createDeck(name, format);
   };
 
   const handleImport = (xml: string) => {
-    if (!list.isConnected) {
-      return;
+    if (list.importDeck(xml)) {
+      setImportOpen(false);
     }
-    setImportOpen(false);
-    list.importDeck(xml);
   };
 
   const confirmDelete = () => {
