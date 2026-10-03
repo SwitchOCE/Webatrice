@@ -105,6 +105,7 @@ export interface HydratedDeck {
   cards: DeckCard[];
   format: string;
   bannerCard?: string;
+  bannerCardProviderId?: string;
   lastLoadedTimestamp?: string;
   tagsXml?: string;
   bracketAssessment?: BracketAssessment;
