@@ -3,10 +3,10 @@ import { createPortal } from 'react-dom';
 
 import { CardImage, CardRelatedLinks } from '@app/components';
 
-import { useBigPreviewCard, useCardPreviewActions } from '../ui/CardPreviewContext';
+import { useBigPreviewCard, useCardPreviewActions } from '../CardPreviewContext';
 
-import { CARD_CORNER_RADIUS } from '../ui/SeatCard/cardSize';
-import { ManaSymbols, SymbolText } from './ManaSymbols';
+import { CARD_CORNER_RADIUS } from '../SeatCard/cardSize';
+import { ManaSymbols, SymbolText } from '../ManaSymbols/ManaSymbols';
 
 /**
  * "Big card preview" — Cockatrice's middle-click card zoom: image plus full

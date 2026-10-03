@@ -11,7 +11,7 @@ import { useLocalIdentity } from '../../hooks/useLocalIdentity';
 import { useGameAffordances } from '../../hooks/useGameAffordances';
 import { useCardPreview } from '../ui/CardPreviewContext';
 import { CARD_CORNER_RADIUS } from '../ui/SeatCard/cardSize';
-import { ManaSymbols, SymbolText } from '../PlayerBox/ManaSymbols';
+import { ManaSymbols, SymbolText } from '../ui/ManaSymbols/ManaSymbols';
 import { useCardPreviewPopup } from '../CardPreviewPopup/useCardPreviewPopup';
 
 const SIDEBAR_ACTION_BUTTON_CLASS =

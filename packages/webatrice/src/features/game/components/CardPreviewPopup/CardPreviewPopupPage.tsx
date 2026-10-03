@@ -4,7 +4,7 @@ import { ChevronLeft } from 'lucide-react';
 import { CardImage, CardRelatedLinks } from '@app/components';
 import type { PreviewMode } from '../BattlefieldSidebar/BattlefieldSidebar';
 import type { PreviewCard } from '../ui/CardPreviewContext';
-import { ManaSymbols, SymbolText } from '../PlayerBox/ManaSymbols';
+import { ManaSymbols, SymbolText } from '../ui/ManaSymbols/ManaSymbols';
 import {
   postCardPreviewMessage,
   subscribeToCardPreviewChannel,
