@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { generatePath, useNavigate } from 'react-router-dom';
 
 import { games, rooms, server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { Event_GameJoined } from '@cockatrice/sockatrice/generated';
+import type { RoomCommandFailedPayload } from '@cockatrice/datatrice';
 import { useReduxEffect } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 import { RouteEnum } from '@app/types';
@@ -18,7 +19,8 @@ interface PendingJoin {
  * its room first when needed (IntentJoinServerGame). Restrictions are only
  * overridden for judges, matching desktop's default admin-locked
  * canOverrideGameRestrictions(). Join errors surface through the shared
- * rooms.joinGameError like any other join; a successful join opens the game.
+ * rooms.joinGameError like any other join; a successful join of the requested
+ * game opens it.
  */
 export function useJoinReportGame(): (gameId: number, roomId: number) => void {
   const webClient = useWebClient();
@@ -27,8 +29,11 @@ export function useJoinReportGame(): (gameId: number, roomId: number) => void {
   const activeGameIds = useAppSelector(games.Selectors.getActiveGameIds);
   const isJudge = useAppSelector(server.Selectors.getIsUserJudge);
   const [pending, setPending] = useState<PendingJoin | null>(null);
+  // The game this hook asked to spectate; other games joined meanwhile are not ours to open.
+  const requestedGameId = useRef<number | null>(null);
 
   const sendJoin = useCallback((gameId: number, roomId: number) => {
+    requestedGameId.current = gameId;
     webClient.request.rooms.joinGame(roomId, {
       gameId,
       password: '',
@@ -46,9 +51,16 @@ export function useJoinReportGame(): (gameId: number, roomId: number) => void {
     }
   }, [pending, joinedRoomIds, sendJoin]);
 
+  // A failed room join drops the pending spectate, so joining that room later
+  // does not suddenly open the old reported game.
+  useReduxEffect<RoomCommandFailedPayload>((action) => {
+    setPending((current) => (current?.roomId === action.payload.roomId ? null : current));
+  }, rooms.Types.JOIN_ROOM_FAILED, []);
+
   useReduxEffect<{ data: Event_GameJoined }>((action) => {
     const gameId = action.payload.data.gameInfo?.gameId;
-    if (gameId != null) {
+    if (gameId != null && gameId === requestedGameId.current) {
+      requestedGameId.current = null;
       navigate(generatePath(RouteEnum.GAME, { gameId: gameId.toString() }));
     }
   }, games.Types.GAME_JOINED, [navigate]);

@@ -1,12 +1,14 @@
 import { act, fireEvent, screen } from '@testing-library/react';
 import { Routes, Route, useParams } from 'react-router-dom';
 import { create, toBinary } from '@bufbuild/protobuf';
-import { rooms, server } from '@cockatrice/datatrice';
+import { games, rooms, server } from '@cockatrice/datatrice';
 import {
+  Event_GameJoinedSchema,
   GameReplaySchema,
   Response_ReportStatsSchema,
   Response_ReportUserInfoSchema,
   Response_ResponseCode,
+  ServerInfo_GameSchema,
   ServerInfo_RoomSchema,
 } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
@@ -280,6 +282,42 @@ describe('ReportQueue', () => {
     expect(roomsRequest.joinGame).toHaveBeenCalledWith(4, {
       gameId: 30, password: '', spectator: true, overrideRestrictions: false, joinAsJudge: false,
     });
+  });
+
+  it('forgets the spectate when the room join fails', () => {
+    const { roomsRequest, load, store } = renderQueue();
+    load();
+    fireEvent.click(screen.getByTestId('report-row-2'));
+    fireEvent.click(button('Reports.queue.joinGame'));
+    act(() => {
+      store.dispatch(rooms.Actions.joinRoomFailed({ roomId: 4, responseCode: Response_ResponseCode.RespNameNotFound }));
+    });
+    act(() => {
+      store.dispatch(rooms.Actions.joinRoom({ roomInfo: create(ServerInfo_RoomSchema, { roomId: 4, name: 'Main' }) }));
+    });
+    expect(roomsRequest.joinGame).not.toHaveBeenCalled();
+  });
+
+  it('opens only the game it asked to spectate', () => {
+    const { load, store } = renderQueue();
+    load();
+    act(() => {
+      store.dispatch(rooms.Actions.joinRoom({ roomInfo: create(ServerInfo_RoomSchema, { roomId: 4, name: 'Main' }) }));
+    });
+    const joined = (gameId: number) => games.Actions.gameJoined({
+      data: create(Event_GameJoinedSchema, { gameInfo: create(ServerInfo_GameSchema, { gameId, roomId: 4 }) }),
+    }) as never;
+    act(() => {
+      store.dispatch(joined(31));
+    });
+    expect(screen.queryByText('game page')).toBeNull();
+
+    fireEvent.click(screen.getByTestId('report-row-2'));
+    fireEvent.click(button('Reports.queue.joinGame'));
+    act(() => {
+      store.dispatch(joined(30));
+    });
+    expect(screen.getByText('game page')).toBeTruthy();
   });
 
   it('renders the statistics once they land', () => {
