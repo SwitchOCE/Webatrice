@@ -132,6 +132,23 @@ export interface PlayerBoardModel {
 /** Who sees a reveal: one player, or every player at the table. */
 export type RevealRecipient = number | 'all';
 
+/** One card to move: its server id, or its position in a hidden zone (0 = top of the library). */
+export type SeatMoveCard = number | { id: number; faceDown: true };
+
+/** Where a move from one of the seat's zones lands, on the seat's own player. */
+export interface SeatMoveDestination {
+  zone: ZoneNameValue;
+  /**
+   * Insert position in a pile (0 = top of the library), or `'end'` to append.
+   * On the battlefield `'end'` asks Servatrice for a free column. Defaults to 0.
+   */
+  index?: number | 'end';
+  /** Battlefield row. Defaults to 0. */
+  row?: number;
+  /** Insert the batch in reverse order (Command_MoveCard.is_reversed); sent only when given. */
+  reversed?: boolean;
+}
+
 /** Which cards of a zone a reveal shows. */
 export type RevealSelection = 'zone' | 'random' | { top: number };
 
@@ -145,6 +162,12 @@ export interface PlayerZoneCommands {
    * `applyMove`). The destination translation moves here with DnD convergence.
    */
   move(params: MoveCardParams): void;
+  /**
+   * Move cards between two of the seat's own zones, in one Command_MoveCard.
+   * Goes through `move`, so a battlefield destination gets the same free
+   * sub-slot resolution and a single known card the same optimistic update.
+   */
+  moveCards(from: ZoneNameValue, cards: readonly SeatMoveCard[], to: SeatMoveDestination): void;
   draw(count: number): void;
   undoDraw(): void;
   mulligan(handSize: number): void;

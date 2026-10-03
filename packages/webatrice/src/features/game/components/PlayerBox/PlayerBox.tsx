@@ -11,8 +11,7 @@ import { useForkRef } from '@mui/material/utils';
 import { motion } from 'motion/react';
 import { Hand, Heart, Skull, Sparkles } from 'lucide-react';
 import type { RoomMemberWithProfile, DeckCard } from './mockTypes';
-import type { MoveCardParams } from '@cockatrice/sockatrice/generated';
-import { ZoneName } from '@cockatrice/sockatrice';
+import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 import { ManaSymbols } from './ManaSymbols';
 import {
   BATTLEFIELD_GAP_PX as BATTLEFIELD_GAP_PX_BASE,
@@ -45,7 +44,13 @@ import { CardMenuPopup } from '../context-menus/CardContextMenu/CardContextMenu'
 import { buildRelatedTokenItems, buildTransformItems } from '../context-menus/CardContextMenu/relatedCardActions';
 import { evalLifeExpression } from '../right-sidebar/PlayerInfoPanel/lifeExpression';
 import { counterColorForId } from '../ui/CardSlot/counterColors';
-import type { BattlefieldCardViewModel, PlayerCardViewModel } from '../ui/PlayerBoard/playerBoard.types';
+import type {
+  BattlefieldCardViewModel,
+  PlayerCardViewModel,
+  PlayerZoneCommands,
+  SeatMoveCard,
+  SeatMoveDestination,
+} from '../ui/PlayerBoard/playerBoard.types';
 import { useCardScale } from './cardScale';
 import { CardImage } from '@app/components';
 import { useSnapGridVisible } from '@app/hooks';
@@ -234,20 +239,15 @@ type Props = {
    *  stack render and provides real numeric ids for stack-source
    *  drag-drops. */
   stackCards?: readonly HandCard[];
-  /** Numeric Cockatrice player id for this seat. Used as the
-   *  `start_player_id` / `target_player_id` on `Command_MoveCard`
-   *  when `onMoveCard` is wired. `player.user_id` is a string
+  /** Numeric Cockatrice player id for this seat (`onMoveCards` and the
+   *  seat menus address it). `player.user_id` is a string
    *  (RoomMemberWithProfile carries the room-member id) so we can't
    *  reuse it for the wire command. */
   playerId?: number;
-  /** Optional wire to send a `Command_MoveCard` for the OWN player's
-   *  library drag drops. When provided, PlayerBox also fires the
-   *  local mutation so the destination pile's top-card art picks up
-   *  the moved card; the server broadcasts back an Event_MoveCard,
-   *  the reducer updates the zone counts, and the wired `zoneCounts`
-   *  prop re-reads them. Undefined only during the pre-hydration
-   *  transient before the game id is known. */
-  onMoveCard?: (params: MoveCardParams) => void;
+  /** Move cards between two of this seat's zones (zone port `moveCards`).
+   *  Undefined only during the pre-hydration transient before the game id
+   *  is known. */
+  onMoveCards?: PlayerZoneCommands['moveCards'];
   /** Optional wires for library-management commands. When provided,
    *  they fire alongside the existing local mock mutations so the
    *  server drives the actual hand contents (via Redux) while the
@@ -2021,7 +2021,7 @@ function PlayerBox(
     battlefieldCards,
     stackCards,
     playerId,
-    onMoveCard,
+    onMoveCards,
     onDrawCards,
     onMulligan,
     onShuffle,
@@ -2932,7 +2932,7 @@ function PlayerBox(
   // Command_MoveCard with cards_to_move for every selected card,
   // matching the "Send to Graveyard" menu path via dispatchMove.
   seatShortcuts['game.moveSelectedToGrave'] = () => {
-    if (!isSelf || !onMoveCard || playerId == null || !selection || selection.zone !== 'battlefield') {
+    if (!isSelf || !onMoveCards || !selection || selection.zone !== 'battlefield') {
       return;
     }
     const targetIds = battlefieldDisplayList
@@ -2942,18 +2942,7 @@ function PlayerBox(
     if (targetIds.length === 0) {
       return;
     }
-    onMoveCard({
-      startPlayerId: playerId,
-      startZone: ZoneName.TABLE,
-      cardsToMove: {
-        card: targetIds.map((cardId) => ({ cardId })),
-      },
-      targetPlayerId: playerId,
-      targetZone: ZoneName.GRAVE,
-      x: 0,
-      y: 0,
-      isReversed: false,
-    });
+    onMoveCards(ZoneName.TABLE, targetIds, { zone: ZoneName.GRAVE, reversed: false });
   };
 
   // Set Power/Toughness (Ctrl+P). Opens the PT modal against the
@@ -3211,7 +3200,7 @@ function PlayerBox(
   // moveSelectedToGrave; targetZone=DECK with isReversed=true is the
   // "bottom" idiom (matches PlayerBox onMoveToBottom at line ~9157).
   seatShortcuts['game.moveSelectedToLibraryBottom'] = () => {
-    if (!isSelf || !onMoveCard || playerId == null || !selection || selection.zone !== 'battlefield') {
+    if (!isSelf || !onMoveCards || !selection || selection.zone !== 'battlefield') {
       return;
     }
     const targetIds = battlefieldDisplayList
@@ -3221,18 +3210,7 @@ function PlayerBox(
     if (targetIds.length === 0) {
       return;
     }
-    onMoveCard({
-      startPlayerId: playerId,
-      startZone: ZoneName.TABLE,
-      cardsToMove: {
-        card: targetIds.map((cardId) => ({ cardId })),
-      },
-      targetPlayerId: playerId,
-      targetZone: ZoneName.DECK,
-      x: 0,
-      y: 0,
-      isReversed: true,
-    });
+    onMoveCards(ZoneName.TABLE, targetIds, { zone: ZoneName.DECK, reversed: true });
   };
 
   // Clone Card (Ctrl+J). Fires one Command_CreateToken per selected
@@ -4381,16 +4359,8 @@ function PlayerBox(
       if (moveTopUntil.autoPlay) {
         // Play the matched card: move from STACK to TABLE.
         const revealedIdNum = Number(revealed.id);
-        if (onMoveCard && playerId != null && Number.isFinite(revealedIdNum)) {
-          onMoveCard({
-            startPlayerId: playerId,
-            startZone: ZoneName.STACK,
-            cardsToMove: { card: [{ cardId: revealedIdNum }] },
-            targetPlayerId: playerId,
-            targetZone: ZoneName.TABLE,
-            x: -1,
-            y: 0,
-          });
+        if (onMoveCards && Number.isFinite(revealedIdNum)) {
+          onMoveCards(ZoneName.STACK, [revealedIdNum], { zone: ZoneName.TABLE, index: 'end' });
         }
       }
     }
@@ -4401,23 +4371,15 @@ function PlayerBox(
     }
     // Fire the next reveal. If we found a match this iteration but
     // still have remaining hits, keep going.
-    if (!onMoveCard || playerId == null) {
+    if (!onMoveCards) {
       setMoveTopUntil(null);
       return;
     }
-    onMoveCard({
-      startPlayerId: playerId,
-      startZone: ZoneName.DECK,
-      cardsToMove: { card: [{ cardId: 0 }] },
-      targetPlayerId: playerId,
-      targetZone: ZoneName.STACK,
-      x: -1,
-      y: 0,
-    });
+    onMoveCards(ZoneName.DECK, [0], { zone: ZoneName.STACK, index: 'end' });
     if (isMatch) {
       setMoveTopUntil({ ...moveTopUntil, remainingHits: remaining });
     }
-  }, [stackDisplayList, moveTopUntil, isSelf, deckCount, onMoveCard, playerId, cardMetaByName]);
+  }, [stackDisplayList, moveTopUntil, isSelf, deckCount, onMoveCards, cardMetaByName]);
 
   // Kicks off the loop: snapshot current stack ids so the *next*
   // stack addition is treated as the first reveal, then fire the
@@ -4427,7 +4389,7 @@ function PlayerBox(
     hits: number;
     autoPlay: boolean;
   }): void => {
-    if (!isSelf || !onMoveCard || playerId == null || deckCount <= 0) {
+    if (!isSelf || !onMoveCards || deckCount <= 0) {
       return;
     }
     const parsed = parseCardFilter(args.filter);
@@ -4442,15 +4404,7 @@ function PlayerBox(
       remainingHits: args.hits,
       autoPlay: args.autoPlay,
     });
-    onMoveCard({
-      startPlayerId: playerId,
-      startZone: ZoneName.DECK,
-      cardsToMove: { card: [{ cardId: 0 }] },
-      targetPlayerId: playerId,
-      targetZone: ZoneName.STACK,
-      x: -1,
-      y: 0,
-    });
+    onMoveCards(ZoneName.DECK, [0], { zone: ZoneName.STACK, index: 'end' });
   };
   const graveyardTopIdx =
     graveDisplayList.length - 1 - (seatDrag?.zone === 'graveyard' ? 1 : 0);
@@ -4474,31 +4428,21 @@ function PlayerBox(
   const buildMoveAll = (
     source: 'graveyard' | 'exile',
     list: readonly HandCard[],
-    startZone: string,
-    targetZone: string,
-    x: number,
+    startZone: ZoneNameValue,
+    targetZone: ZoneNameValue,
+    index: SeatMoveDestination['index'],
   ): (() => void) => () => {
-    if (!onMoveCard || playerId == null || list.length === 0) {
+    if (!onMoveCards || list.length === 0) {
       return;
     }
-    const cards = list
-      .map((c) => ({ cardId: Number(c.id) }))
-      .filter((c) => Number.isFinite(c.cardId));
-    if (cards.length === 0) {
+    const cardIds = list.map((c) => Number(c.id)).filter((id) => Number.isFinite(id));
+    if (cardIds.length === 0) {
       return;
     }
     // `source` param is intentionally unused inside the wire (startZone
     // carries the wire name); it's a documentation hint for the caller.
     void source;
-    onMoveCard({
-      startPlayerId: playerId,
-      startZone,
-      cardsToMove: { card: cards },
-      targetPlayerId: playerId,
-      targetZone,
-      x,
-      y: 0,
-    });
+    onMoveCards(startZone, cardIds, { zone: targetZone, index });
   };
   // "Reveal random card to..." submenu — used by grave. Same shape as
   // reveal-library: All players (playerId=-1) + separator + one row
@@ -4552,7 +4496,7 @@ function PlayerBox(
         },
         {
           label: 'Bottom of library',
-          onClick: buildMoveAll('graveyard', graveDisplayList, ZoneName.GRAVE, ZoneName.DECK, -1),
+          onClick: buildMoveAll('graveyard', graveDisplayList, ZoneName.GRAVE, ZoneName.DECK, 'end'),
           disabled: displayedGraveyardCount <= 0,
         },
         { divider: true },
@@ -4598,7 +4542,7 @@ function PlayerBox(
         },
         {
           label: 'Bottom of library',
-          onClick: buildMoveAll('exile', exileDisplayList, ZoneName.EXILE, ZoneName.DECK, -1),
+          onClick: buildMoveAll('exile', exileDisplayList, ZoneName.EXILE, ZoneName.DECK, 'end'),
           disabled: displayedExileCount <= 0,
         },
         { divider: true },
@@ -4632,57 +4576,37 @@ function PlayerBox(
   // Helper: single-card "Top of library..." → target move click. Wire
   // uses cardId=0 (cmdSetTopCard, player_actions.cpp:376).
   const buildMoveTopCardTo = (
-    targetZone: string,
-    x: number,
+    targetZone: ZoneNameValue,
+    index: SeatMoveDestination['index'],
     faceDown?: boolean,
   ): (() => void) => () => {
-    if (!onMoveCard || playerId == null || deckCount <= 0) {
+    if (!onMoveCards || deckCount <= 0) {
       return;
     }
-    onMoveCard({
-      startPlayerId: playerId,
-      startZone: ZoneName.DECK,
-      cardsToMove: {
-        card: [faceDown ? { cardId: 0, faceDown: true } : { cardId: 0 }],
-      },
-      targetPlayerId: playerId,
-      targetZone,
-      x,
-      y: 0,
-    });
+    onMoveCards(ZoneName.DECK, [faceDown ? { id: 0, faceDown: true } : 0], { zone: targetZone, index });
   };
   // Single-card "Bottom of library..." → target move click. Wire uses
   // cardId=deckCount-1 (cmdSetBottomCard, player_actions.cpp:384).
   const buildMoveBottomCardTo = (
-    targetZone: string,
-    x: number,
+    targetZone: ZoneNameValue,
+    index: SeatMoveDestination['index'],
     faceDown?: boolean,
   ): (() => void) => () => {
-    if (!onMoveCard || playerId == null || deckCount <= 0) {
+    if (!onMoveCards || deckCount <= 0) {
       return;
     }
     const id = deckCount - 1;
-    onMoveCard({
-      startPlayerId: playerId,
-      startZone: ZoneName.DECK,
-      cardsToMove: {
-        card: [faceDown ? { cardId: id, faceDown: true } : { cardId: id }],
-      },
-      targetPlayerId: playerId,
-      targetZone,
-      x,
-      y: 0,
-    });
+    onMoveCards(ZoneName.DECK, [faceDown ? { id, faceDown: true } : id], { zone: targetZone, index });
   };
   // Multi-card "Move top N to <target>" prompt. Iterates i in
   // [N-1..0] to match moveTopCardsTo iteration order (player_actions.cpp:475).
   const promptMoveTopNTo = (
     title: string,
-    targetZone: string,
+    targetZone: ZoneNameValue,
     faceDown?: boolean,
   ): (() => void) => () => {
     const size = deckCount;
-    if (!onMoveCard || playerId == null || size <= 0) {
+    if (!onMoveCards || size <= 0) {
       return;
     }
     setCountPrompt({
@@ -4694,19 +4618,11 @@ function PlayerBox(
         if (count <= 0) {
           return;
         }
-        const cards: { cardId: number; faceDown?: boolean }[] = [];
+        const cards: SeatMoveCard[] = [];
         for (let i = count - 1; i >= 0; i--) {
-          cards.push(faceDown ? { cardId: i, faceDown: true } : { cardId: i });
+          cards.push(faceDown ? { id: i, faceDown: true } : i);
         }
-        onMoveCard({
-          startPlayerId: playerId,
-          startZone: ZoneName.DECK,
-          cardsToMove: { card: cards },
-          targetPlayerId: playerId,
-          targetZone,
-          x: 0,
-          y: 0,
-        });
+        onMoveCards(ZoneName.DECK, cards, { zone: targetZone });
       },
     });
   };
@@ -4716,11 +4632,11 @@ function PlayerBox(
   const promptMoveBottomNTo = (
     title: string,
     submitLabel: string,
-    targetZone: string,
+    targetZone: ZoneNameValue,
     faceDown?: boolean,
   ): (() => void) => () => {
     const size = deckCount;
-    if (!onMoveCard || playerId == null || size <= 0) {
+    if (!onMoveCards || size <= 0) {
       return;
     }
     setCountPrompt({
@@ -4732,19 +4648,11 @@ function PlayerBox(
         if (count <= 0) {
           return;
         }
-        const cards: { cardId: number; faceDown?: boolean }[] = [];
+        const cards: SeatMoveCard[] = [];
         for (let i = size - count; i < size; i++) {
-          cards.push(faceDown ? { cardId: i, faceDown: true } : { cardId: i });
+          cards.push(faceDown ? { id: i, faceDown: true } : i);
         }
-        onMoveCard({
-          startPlayerId: playerId,
-          startZone: ZoneName.DECK,
-          cardsToMove: { card: cards },
-          targetPlayerId: playerId,
-          targetZone,
-          x: 0,
-          y: 0,
-        });
+        onMoveCards(ZoneName.DECK, cards, { zone: targetZone });
       },
     });
   };
@@ -4868,18 +4776,18 @@ function PlayerBox(
       submenu: [
         {
           label: 'Play top card',
-          onClick: buildMoveTopCardTo(ZoneName.STACK, -1),
+          onClick: buildMoveTopCardTo(ZoneName.STACK, 'end'),
           disabled: deckCount <= 0,
           shortcut: shortcutHints['game.playTop'],
         },
         {
           label: 'Play top card face down',
-          onClick: buildMoveTopCardTo(ZoneName.TABLE, -1, true),
+          onClick: buildMoveTopCardTo(ZoneName.TABLE, 'end', true),
           disabled: deckCount <= 0,
         },
         {
           label: 'Put top card on bottom',
-          onClick: buildMoveTopCardTo(ZoneName.DECK, -1),
+          onClick: buildMoveTopCardTo(ZoneName.DECK, 'end'),
           disabled: deckCount <= 0,
         },
         { divider: true },
@@ -4977,12 +4885,12 @@ function PlayerBox(
         { divider: true },
         {
           label: 'Play bottom card',
-          onClick: buildMoveBottomCardTo(ZoneName.STACK, -1),
+          onClick: buildMoveBottomCardTo(ZoneName.STACK, 'end'),
           disabled: deckCount <= 0,
         },
         {
           label: 'Play bottom card face down',
-          onClick: buildMoveBottomCardTo(ZoneName.TABLE, -1, true),
+          onClick: buildMoveBottomCardTo(ZoneName.TABLE, 'end', true),
           disabled: deckCount <= 0,
         },
         {
@@ -5140,27 +5048,17 @@ function PlayerBox(
   // Helper: build a "move all cards from HAND to <target>" click
   // handler. Hand card ids are real numeric ids on the wire.
   const moveAllHandTo = (
-    targetZone: string,
-    x: number,
+    targetZone: ZoneNameValue,
+    index: SeatMoveDestination['index'],
   ): (() => void) => () => {
-    if (!onMoveCard || playerId == null || !handCards || handCards.length === 0) {
+    if (!onMoveCards || !handCards || handCards.length === 0) {
       return;
     }
-    const cards = handCards
-      .map((c) => ({ cardId: Number(c.id) }))
-      .filter((c) => Number.isFinite(c.cardId));
-    if (cards.length === 0) {
+    const cardIds = handCards.map((c) => Number(c.id)).filter((id) => Number.isFinite(id));
+    if (cardIds.length === 0) {
       return;
     }
-    onMoveCard({
-      startPlayerId: playerId,
-      startZone: ZoneName.HAND,
-      cardsToMove: { card: cards },
-      targetPlayerId: playerId,
-      targetZone,
-      x,
-      y: 0,
-    });
+    onMoveCards(ZoneName.HAND, cardIds, { zone: targetZone, index });
   };
   const handMenuItems: ContextMenuItem[] = [
     {
@@ -5238,7 +5136,7 @@ function PlayerBox(
         },
         {
           label: 'Bottom of library',
-          onClick: moveAllHandTo(ZoneName.DECK, -1),
+          onClick: moveAllHandTo(ZoneName.DECK, 'end'),
           disabled: handSize <= 0,
         },
         { divider: true },
@@ -6213,16 +6111,8 @@ function PlayerBox(
                     {
                       label: 'Play top card',
                       onClick: () => {
-                        if (onMoveCard && playerId != null && deckCount > 0) {
-                          onMoveCard({
-                            startPlayerId: playerId,
-                            startZone: ZoneName.DECK,
-                            cardsToMove: { card: [{ cardId: 0 }] },
-                            targetPlayerId: playerId,
-                            targetZone: ZoneName.STACK,
-                            x: -1,
-                            y: 0,
-                          });
+                        if (onMoveCards && deckCount > 0) {
+                          onMoveCards(ZoneName.DECK, [0], { zone: ZoneName.STACK, index: 'end' });
                         }
                       },
                       disabled: deckCount <= 0,
@@ -6230,18 +6120,8 @@ function PlayerBox(
                     {
                       label: 'Play top card face down',
                       onClick: () => {
-                        if (onMoveCard && playerId != null && deckCount > 0) {
-                          onMoveCard({
-                            startPlayerId: playerId,
-                            startZone: ZoneName.DECK,
-                            cardsToMove: {
-                              card: [{ cardId: 0, faceDown: true }],
-                            },
-                            targetPlayerId: playerId,
-                            targetZone: ZoneName.TABLE,
-                            x: -1,
-                            y: 0,
-                          });
+                        if (onMoveCards && deckCount > 0) {
+                          onMoveCards(ZoneName.DECK, [{ id: 0, faceDown: true }], { zone: ZoneName.TABLE, index: 'end' });
                         }
                       },
                       disabled: deckCount <= 0,
@@ -6249,16 +6129,8 @@ function PlayerBox(
                     {
                       label: 'Put top card on bottom',
                       onClick: () => {
-                        if (onMoveCard && playerId != null && deckCount > 0) {
-                          onMoveCard({
-                            startPlayerId: playerId,
-                            startZone: ZoneName.DECK,
-                            cardsToMove: { card: [{ cardId: 0 }] },
-                            targetPlayerId: playerId,
-                            targetZone: ZoneName.DECK,
-                            x: -1,
-                            y: 0,
-                          });
+                        if (onMoveCards && deckCount > 0) {
+                          onMoveCards(ZoneName.DECK, [0], { zone: ZoneName.DECK, index: 'end' });
                         }
                       },
                       disabled: deckCount <= 0,
@@ -6267,16 +6139,8 @@ function PlayerBox(
                     {
                       label: 'Move top card to graveyard',
                       onClick: () => {
-                        if (onMoveCard && playerId != null && deckCount > 0) {
-                          onMoveCard({
-                            startPlayerId: playerId,
-                            startZone: ZoneName.DECK,
-                            cardsToMove: { card: [{ cardId: 0 }] },
-                            targetPlayerId: playerId,
-                            targetZone: ZoneName.GRAVE,
-                            x: 0,
-                            y: 0,
-                          });
+                        if (onMoveCards && deckCount > 0) {
+                          onMoveCards(ZoneName.DECK, [0], { zone: ZoneName.GRAVE });
                         }
                       },
                       disabled: deckCount <= 0,
@@ -6286,8 +6150,7 @@ function PlayerBox(
                       onClick: () => {
                         const size = deckCount;
                         if (
-                          !onMoveCard ||
-                            playerId == null ||
+                          !onMoveCards ||
                             size <= 0
                         ) {
                           return;
@@ -6306,21 +6169,11 @@ function PlayerBox(
                             // that order keeps parity with any log
                             // formatting or replay tooling that
                             // assumes the same ordering.
-                            const cards: {
-                                cardId: number;
-                              }[] = [];
+                            const cards: SeatMoveCard[] = [];
                             for (let i = count - 1; i >= 0; i--) {
-                              cards.push({ cardId: i });
+                              cards.push(i);
                             }
-                            onMoveCard({
-                              startPlayerId: playerId,
-                              startZone: ZoneName.DECK,
-                              cardsToMove: { card: cards },
-                              targetPlayerId: playerId,
-                              targetZone: ZoneName.GRAVE,
-                              x: 0,
-                              y: 0,
-                            });
+                            onMoveCards(ZoneName.DECK, cards, { zone: ZoneName.GRAVE });
                           },
                         });
                       },
@@ -6331,8 +6184,7 @@ function PlayerBox(
                       onClick: () => {
                         const size = deckCount;
                         if (
-                          !onMoveCard ||
-                            playerId == null ||
+                          !onMoveCards ||
                             size <= 0
                         ) {
                           return;
@@ -6347,22 +6199,11 @@ function PlayerBox(
                             if (count <= 0) {
                               return;
                             }
-                            const cards: {
-                                cardId: number;
-                                faceDown: boolean;
-                              }[] = [];
+                            const cards: SeatMoveCard[] = [];
                             for (let i = count - 1; i >= 0; i--) {
-                              cards.push({ cardId: i, faceDown: true });
+                              cards.push({ id: i, faceDown: true });
                             }
-                            onMoveCard({
-                              startPlayerId: playerId,
-                              startZone: ZoneName.DECK,
-                              cardsToMove: { card: cards },
-                              targetPlayerId: playerId,
-                              targetZone: ZoneName.GRAVE,
-                              x: 0,
-                              y: 0,
-                            });
+                            onMoveCards(ZoneName.DECK, cards, { zone: ZoneName.GRAVE });
                           },
                         });
                       },
@@ -6371,16 +6212,8 @@ function PlayerBox(
                     {
                       label: 'Move top card to exile',
                       onClick: () => {
-                        if (onMoveCard && playerId != null && deckCount > 0) {
-                          onMoveCard({
-                            startPlayerId: playerId,
-                            startZone: ZoneName.DECK,
-                            cardsToMove: { card: [{ cardId: 0 }] },
-                            targetPlayerId: playerId,
-                            targetZone: ZoneName.EXILE,
-                            x: 0,
-                            y: 0,
-                          });
+                        if (onMoveCards && deckCount > 0) {
+                          onMoveCards(ZoneName.DECK, [0], { zone: ZoneName.EXILE });
                         }
                       },
                       disabled: deckCount <= 0,
@@ -6390,8 +6223,7 @@ function PlayerBox(
                       onClick: () => {
                         const size = deckCount;
                         if (
-                          !onMoveCard ||
-                            playerId == null ||
+                          !onMoveCards ||
                             size <= 0
                         ) {
                           return;
@@ -6405,21 +6237,11 @@ function PlayerBox(
                             if (count <= 0) {
                               return;
                             }
-                            const cards: {
-                                cardId: number;
-                              }[] = [];
+                            const cards: SeatMoveCard[] = [];
                             for (let i = count - 1; i >= 0; i--) {
-                              cards.push({ cardId: i });
+                              cards.push(i);
                             }
-                            onMoveCard({
-                              startPlayerId: playerId,
-                              startZone: ZoneName.DECK,
-                              cardsToMove: { card: cards },
-                              targetPlayerId: playerId,
-                              targetZone: ZoneName.EXILE,
-                              x: 0,
-                              y: 0,
-                            });
+                            onMoveCards(ZoneName.DECK, cards, { zone: ZoneName.EXILE });
                           },
                         });
                       },
@@ -6430,8 +6252,7 @@ function PlayerBox(
                       onClick: () => {
                         const size = deckCount;
                         if (
-                          !onMoveCard ||
-                            playerId == null ||
+                          !onMoveCards ||
                             size <= 0
                         ) {
                           return;
@@ -6445,22 +6266,11 @@ function PlayerBox(
                             if (count <= 0) {
                               return;
                             }
-                            const cards: {
-                                cardId: number;
-                                faceDown: boolean;
-                              }[] = [];
+                            const cards: SeatMoveCard[] = [];
                             for (let i = count - 1; i >= 0; i--) {
-                              cards.push({ cardId: i, faceDown: true });
+                              cards.push({ id: i, faceDown: true });
                             }
-                            onMoveCard({
-                              startPlayerId: playerId,
-                              startZone: ZoneName.DECK,
-                              cardsToMove: { card: cards },
-                              targetPlayerId: playerId,
-                              targetZone: ZoneName.EXILE,
-                              x: 0,
-                              y: 0,
-                            });
+                            onMoveCards(ZoneName.DECK, cards, { zone: ZoneName.EXILE });
                           },
                         });
                       },
@@ -6517,18 +6327,8 @@ function PlayerBox(
                     {
                       label: 'Draw bottom card',
                       onClick: () => {
-                        if (onMoveCard && playerId != null && deckCount > 0) {
-                          onMoveCard({
-                            startPlayerId: playerId,
-                            startZone: ZoneName.DECK,
-                            cardsToMove: {
-                              card: [{ cardId: deckCount - 1 }],
-                            },
-                            targetPlayerId: playerId,
-                            targetZone: ZoneName.HAND,
-                            x: 0,
-                            y: 0,
-                          });
+                        if (onMoveCards && deckCount > 0) {
+                          onMoveCards(ZoneName.DECK, [deckCount - 1], { zone: ZoneName.HAND });
                         }
                       },
                       disabled: deckCount <= 0,
@@ -6538,8 +6338,7 @@ function PlayerBox(
                       onClick: () => {
                         const size = deckCount;
                         if (
-                          !onMoveCard ||
-                            playerId == null ||
+                          !onMoveCards ||
                             size <= 0
                         ) {
                           return;
@@ -6559,21 +6358,11 @@ function PlayerBox(
                             // which reverses. Preserve that ordering
                             // so any downstream log/replay tooling
                             // matches desktop.
-                            const cards: {
-                                cardId: number;
-                              }[] = [];
+                            const cards: SeatMoveCard[] = [];
                             for (let i = size - count; i < size; i++) {
-                              cards.push({ cardId: i });
+                              cards.push(i);
                             }
-                            onMoveCard({
-                              startPlayerId: playerId,
-                              startZone: ZoneName.DECK,
-                              cardsToMove: { card: cards },
-                              targetPlayerId: playerId,
-                              targetZone: ZoneName.HAND,
-                              x: 0,
-                              y: 0,
-                            });
+                            onMoveCards(ZoneName.DECK, cards, { zone: ZoneName.HAND });
                           },
                         });
                       },
@@ -6583,18 +6372,8 @@ function PlayerBox(
                     {
                       label: 'Play bottom card',
                       onClick: () => {
-                        if (onMoveCard && playerId != null && deckCount > 0) {
-                          onMoveCard({
-                            startPlayerId: playerId,
-                            startZone: ZoneName.DECK,
-                            cardsToMove: {
-                              card: [{ cardId: deckCount - 1 }],
-                            },
-                            targetPlayerId: playerId,
-                            targetZone: ZoneName.STACK,
-                            x: -1,
-                            y: 0,
-                          });
+                        if (onMoveCards && deckCount > 0) {
+                          onMoveCards(ZoneName.DECK, [deckCount - 1], { zone: ZoneName.STACK, index: 'end' });
                         }
                       },
                       disabled: deckCount <= 0,
@@ -6602,22 +6381,10 @@ function PlayerBox(
                     {
                       label: 'Play bottom card face down',
                       onClick: () => {
-                        if (onMoveCard && playerId != null && deckCount > 0) {
-                          onMoveCard({
-                            startPlayerId: playerId,
-                            startZone: ZoneName.DECK,
-                            cardsToMove: {
-                              card: [
-                                {
-                                  cardId: deckCount - 1,
-                                  faceDown: true,
-                                },
-                              ],
-                            },
-                            targetPlayerId: playerId,
-                            targetZone: ZoneName.TABLE,
-                            x: -1,
-                            y: 0,
+                        if (onMoveCards && deckCount > 0) {
+                          onMoveCards(ZoneName.DECK, [{ id: deckCount - 1, faceDown: true }], {
+                            zone: ZoneName.TABLE,
+                            index: 'end',
                           });
                         }
                       },
@@ -6626,18 +6393,8 @@ function PlayerBox(
                     {
                       label: 'Put bottom card on top',
                       onClick: () => {
-                        if (onMoveCard && playerId != null && deckCount > 0) {
-                          onMoveCard({
-                            startPlayerId: playerId,
-                            startZone: ZoneName.DECK,
-                            cardsToMove: {
-                              card: [{ cardId: deckCount - 1 }],
-                            },
-                            targetPlayerId: playerId,
-                            targetZone: ZoneName.DECK,
-                            x: 0,
-                            y: 0,
-                          });
+                        if (onMoveCards && deckCount > 0) {
+                          onMoveCards(ZoneName.DECK, [deckCount - 1], { zone: ZoneName.DECK });
                         }
                       },
                       disabled: deckCount <= 0,
@@ -6646,18 +6403,8 @@ function PlayerBox(
                     {
                       label: 'Move bottom card to graveyard',
                       onClick: () => {
-                        if (onMoveCard && playerId != null && deckCount > 0) {
-                          onMoveCard({
-                            startPlayerId: playerId,
-                            startZone: ZoneName.DECK,
-                            cardsToMove: {
-                              card: [{ cardId: deckCount - 1 }],
-                            },
-                            targetPlayerId: playerId,
-                            targetZone: ZoneName.GRAVE,
-                            x: 0,
-                            y: 0,
-                          });
+                        if (onMoveCards && deckCount > 0) {
+                          onMoveCards(ZoneName.DECK, [deckCount - 1], { zone: ZoneName.GRAVE });
                         }
                       },
                       disabled: deckCount <= 0,
@@ -6667,8 +6414,7 @@ function PlayerBox(
                       onClick: () => {
                         const size = deckCount;
                         if (
-                          !onMoveCard ||
-                            playerId == null ||
+                          !onMoveCards ||
                             size <= 0
                         ) {
                           return;
@@ -6682,21 +6428,11 @@ function PlayerBox(
                             if (count <= 0) {
                               return;
                             }
-                            const cards: {
-                                cardId: number;
-                              }[] = [];
+                            const cards: SeatMoveCard[] = [];
                             for (let i = size - count; i < size; i++) {
-                              cards.push({ cardId: i });
+                              cards.push(i);
                             }
-                            onMoveCard({
-                              startPlayerId: playerId,
-                              startZone: ZoneName.DECK,
-                              cardsToMove: { card: cards },
-                              targetPlayerId: playerId,
-                              targetZone: ZoneName.GRAVE,
-                              x: 0,
-                              y: 0,
-                            });
+                            onMoveCards(ZoneName.DECK, cards, { zone: ZoneName.GRAVE });
                           },
                         });
                       },
@@ -6708,8 +6444,7 @@ function PlayerBox(
                       onClick: () => {
                         const size = deckCount;
                         if (
-                          !onMoveCard ||
-                            playerId == null ||
+                          !onMoveCards ||
                             size <= 0
                         ) {
                           return;
@@ -6724,22 +6459,11 @@ function PlayerBox(
                             if (count <= 0) {
                               return;
                             }
-                            const cards: {
-                                cardId: number;
-                                faceDown: boolean;
-                              }[] = [];
+                            const cards: SeatMoveCard[] = [];
                             for (let i = size - count; i < size; i++) {
-                              cards.push({ cardId: i, faceDown: true });
+                              cards.push({ id: i, faceDown: true });
                             }
-                            onMoveCard({
-                              startPlayerId: playerId,
-                              startZone: ZoneName.DECK,
-                              cardsToMove: { card: cards },
-                              targetPlayerId: playerId,
-                              targetZone: ZoneName.GRAVE,
-                              x: 0,
-                              y: 0,
-                            });
+                            onMoveCards(ZoneName.DECK, cards, { zone: ZoneName.GRAVE });
                           },
                         });
                       },
@@ -6748,18 +6472,8 @@ function PlayerBox(
                     {
                       label: 'Move bottom card to exile',
                       onClick: () => {
-                        if (onMoveCard && playerId != null && deckCount > 0) {
-                          onMoveCard({
-                            startPlayerId: playerId,
-                            startZone: ZoneName.DECK,
-                            cardsToMove: {
-                              card: [{ cardId: deckCount - 1 }],
-                            },
-                            targetPlayerId: playerId,
-                            targetZone: ZoneName.EXILE,
-                            x: 0,
-                            y: 0,
-                          });
+                        if (onMoveCards && deckCount > 0) {
+                          onMoveCards(ZoneName.DECK, [deckCount - 1], { zone: ZoneName.EXILE });
                         }
                       },
                       disabled: deckCount <= 0,
@@ -6769,8 +6483,7 @@ function PlayerBox(
                       onClick: () => {
                         const size = deckCount;
                         if (
-                          !onMoveCard ||
-                            playerId == null ||
+                          !onMoveCards ||
                             size <= 0
                         ) {
                           return;
@@ -6784,21 +6497,11 @@ function PlayerBox(
                             if (count <= 0) {
                               return;
                             }
-                            const cards: {
-                                cardId: number;
-                              }[] = [];
+                            const cards: SeatMoveCard[] = [];
                             for (let i = size - count; i < size; i++) {
-                              cards.push({ cardId: i });
+                              cards.push(i);
                             }
-                            onMoveCard({
-                              startPlayerId: playerId,
-                              startZone: ZoneName.DECK,
-                              cardsToMove: { card: cards },
-                              targetPlayerId: playerId,
-                              targetZone: ZoneName.EXILE,
-                              x: 0,
-                              y: 0,
-                            });
+                            onMoveCards(ZoneName.DECK, cards, { zone: ZoneName.EXILE });
                           },
                         });
                       },
@@ -6809,8 +6512,7 @@ function PlayerBox(
                       onClick: () => {
                         const size = deckCount;
                         if (
-                          !onMoveCard ||
-                            playerId == null ||
+                          !onMoveCards ||
                             size <= 0
                         ) {
                           return;
@@ -6824,22 +6526,11 @@ function PlayerBox(
                             if (count <= 0) {
                               return;
                             }
-                            const cards: {
-                                cardId: number;
-                                faceDown: boolean;
-                              }[] = [];
+                            const cards: SeatMoveCard[] = [];
                             for (let i = size - count; i < size; i++) {
-                              cards.push({ cardId: i, faceDown: true });
+                              cards.push({ id: i, faceDown: true });
                             }
-                            onMoveCard({
-                              startPlayerId: playerId,
-                              startZone: ZoneName.DECK,
-                              cardsToMove: { card: cards },
-                              targetPlayerId: playerId,
-                              targetZone: ZoneName.EXILE,
-                              x: 0,
-                              y: 0,
-                            });
+                            onMoveCards(ZoneName.DECK, cards, { zone: ZoneName.EXILE });
                           },
                         });
                       },
@@ -7086,8 +6777,7 @@ function PlayerBox(
                         const cardId = Number(c.id);
                         if (
                           !Number.isFinite(cardId) ||
-                          !onMoveCard ||
-                          playerId == null
+                          !onMoveCards
                         ) {
                           return;
                         }
@@ -7119,25 +6809,9 @@ function PlayerBox(
                         }
                         const tableRow = legacyTableRowFromTypeLine(typeLine);
                         if (tableRow === 3) {
-                          onMoveCard({
-                            startPlayerId: playerId,
-                            startZone: ZoneName.STACK,
-                            cardsToMove: { card: [{ cardId }] },
-                            targetPlayerId: playerId,
-                            targetZone: ZoneName.GRAVE,
-                            x: -1,
-                            y: 0,
-                          });
+                          onMoveCards(ZoneName.STACK, [cardId], { zone: ZoneName.GRAVE, index: 'end' });
                         } else {
-                          onMoveCard({
-                            startPlayerId: playerId,
-                            startZone: ZoneName.STACK,
-                            cardsToMove: { card: [{ cardId }] },
-                            targetPlayerId: playerId,
-                            targetZone: ZoneName.TABLE,
-                            x: -1,
-                            y: tableRowToGridY(tableRow),
-                          });
+                          onMoveCards(ZoneName.STACK, [cardId], { zone: ZoneName.TABLE, index: 'end', row: tableRowToGridY(tableRow) });
                         }
                       }
                       : undefined
@@ -7697,8 +7371,7 @@ function PlayerBox(
                         const cardId = Number(c.id);
                         if (
                           !Number.isFinite(cardId) ||
-                          !onMoveCard ||
-                          playerId == null
+                          !onMoveCards
                         ) {
                           return;
                         }
@@ -7731,27 +7404,11 @@ function PlayerBox(
                         const tableRow = legacyTableRowFromTypeLine(typeLine);
                         if (tableRow === 0) {
                           // Land — straight to the battlefield bottom row.
-                          onMoveCard({
-                            startPlayerId: playerId,
-                            startZone: ZoneName.HAND,
-                            cardsToMove: { card: [{ cardId }] },
-                            targetPlayerId: playerId,
-                            targetZone: ZoneName.TABLE,
-                            x: -1,
-                            y: tableRowToGridY(tableRow),
-                          });
+                          onMoveCards(ZoneName.HAND, [cardId], { zone: ZoneName.TABLE, index: 'end', row: tableRowToGridY(tableRow) });
                         } else {
                           // Non-land (creature / other permanent / instant /
                           // sorcery / unknown) — detour through the stack.
-                          onMoveCard({
-                            startPlayerId: playerId,
-                            startZone: ZoneName.HAND,
-                            cardsToMove: { card: [{ cardId }] },
-                            targetPlayerId: playerId,
-                            targetZone: ZoneName.STACK,
-                            x: -1,
-                            y: 0,
-                          });
+                          onMoveCards(ZoneName.HAND, [cardId], { zone: ZoneName.STACK, index: 'end' });
                         }
                       }}
                       style={{
@@ -8400,17 +8057,8 @@ function PlayerBox(
             initial={Math.min(3, Math.max(0, moveXModal.deckSize))}
             onCancel={() => setMoveXModal(null)}
             onConfirm={(value) => {
-              if (onMoveCard && playerId != null) {
-                onMoveCard({
-                  startPlayerId: playerId,
-                  startZone: ZoneName.TABLE,
-                  cardsToMove: { card: [{ cardId: moveXModal.cardId }] },
-                  targetPlayerId: playerId,
-                  targetZone: ZoneName.DECK,
-                  x: value,
-                  y: 0,
-                  isReversed: false,
-                });
+              if (onMoveCards) {
+                onMoveCards(ZoneName.TABLE, [moveXModal.cardId], { zone: ZoneName.DECK, index: value, reversed: false });
               }
               setMoveXModal(null);
             }}
@@ -8680,28 +8328,14 @@ function PlayerBox(
           const targetIds: number[] = targetCards
             .map((c) => Number(c.id))
             .filter((n) => Number.isFinite(n));
-          const dispatchMove = (
-            targetZone: string,
-            extra: { x?: number; y?: number; isReversed?: boolean } = {},
-          ) => {
-            if (targetIds.length === 0 || !onMoveCard || playerId == null) {
+          const dispatchMove = (to: SeatMoveDestination) => {
+            if (targetIds.length === 0 || !onMoveCards) {
               return;
             }
             // Single Command_MoveCard with cards_to_move populated for
             // every selected card — matches Cockatrice's batched
             // move (cardsToMove is a repeated field).
-            onMoveCard({
-              startPlayerId: playerId,
-              startZone: ZoneName.TABLE,
-              cardsToMove: {
-                card: targetIds.map((cardId) => ({ cardId })),
-              },
-              targetPlayerId: playerId,
-              targetZone,
-              x: extra.x ?? 0,
-              y: extra.y ?? 0,
-              isReversed: extra.isReversed ?? false,
-            });
+            onMoveCards(ZoneName.TABLE, targetIds, { reversed: false, ...to });
           };
           // Effective current PT — prefer server's tagged PT, fall back
           // to the Scryfall base so Inc/Dec/Flow have a starting value
@@ -8852,11 +8486,11 @@ function PlayerBox(
               close();
             },
             onMoveToTop: () => {
-              dispatchMove(ZoneName.DECK, { x: 0 });
+              dispatchMove({ zone: ZoneName.DECK });
               close();
             },
             onMoveToBottom: () => {
-              dispatchMove(ZoneName.DECK, { x: 0, isReversed: true });
+              dispatchMove({ zone: ZoneName.DECK, reversed: true });
               close();
             },
             onMoveToXCardsFromTop: () => {
@@ -8874,19 +8508,19 @@ function PlayerBox(
               close();
             },
             onMoveToTable: () => {
-              dispatchMove(ZoneName.TABLE);
+              dispatchMove({ zone: ZoneName.TABLE });
               close();
             },
             onMoveToHand: () => {
-              dispatchMove(ZoneName.HAND);
+              dispatchMove({ zone: ZoneName.HAND });
               close();
             },
             onMoveToGrave: () => {
-              dispatchMove(ZoneName.GRAVE);
+              dispatchMove({ zone: ZoneName.GRAVE });
               close();
             },
             onMoveToExile: () => {
-              dispatchMove(ZoneName.EXILE);
+              dispatchMove({ zone: ZoneName.EXILE });
               close();
             },
             onIncP: () => {
@@ -9354,52 +8988,32 @@ function PlayerBox(
             );
           }
           // Own stack — full menu.
-          const moveFromStack = (
-            targetZone: string,
-            extra: { x?: number; y?: number; isReversed?: boolean } = {},
-          ) => {
-            if (!onMoveCard || playerId == null || targetIds.length === 0) {
+          const moveFromStack = (to: SeatMoveDestination) => {
+            if (!onMoveCards || targetIds.length === 0) {
               return;
             }
-            onMoveCard({
-              startPlayerId: playerId,
-              startZone: ZoneName.STACK,
-              cardsToMove: {
-                card: targetIds.map((cardId) => ({ cardId })),
-              },
-              targetPlayerId: playerId,
-              targetZone,
-              x: extra.x ?? 0,
-              y: extra.y ?? 0,
-              isReversed: extra.isReversed ?? false,
-            });
+            onMoveCards(ZoneName.STACK, targetIds, { reversed: false, ...to });
           };
           const items: CardMenuItem[] = [
             {
               label: 'Play',
               onClick: () => {
-                moveFromStack(ZoneName.TABLE, { x: -1, y: 0 });
+                moveFromStack({ zone: ZoneName.TABLE, index: 'end' });
                 close();
               },
             },
             {
               label: 'Play Face Down',
               onClick: () => {
-                if (!onMoveCard || playerId == null || targetIds.length === 0) {
+                if (!onMoveCards || targetIds.length === 0) {
                   close();
                   return;
                 }
-                onMoveCard({
-                  startPlayerId: playerId,
-                  startZone: ZoneName.STACK,
-                  cardsToMove: {
-                    card: targetIds.map((cardId) => ({ cardId, faceDown: true })),
-                  },
-                  targetPlayerId: playerId,
-                  targetZone: ZoneName.TABLE,
-                  x: -1,
-                  y: 0,
-                });
+                onMoveCards(
+                  ZoneName.STACK,
+                  targetIds.map((id) => ({ id, faceDown: true as const })),
+                  { zone: ZoneName.TABLE, index: 'end' },
+                );
                 close();
               },
             },
@@ -9432,28 +9046,28 @@ function PlayerBox(
                 {
                   label: 'Hand',
                   onClick: () => {
-                    moveFromStack(ZoneName.HAND, { x: -1, y: 0 });
+                    moveFromStack({ zone: ZoneName.HAND, index: 'end' });
                     close();
                   },
                 },
                 {
                   label: 'Battlefield',
                   onClick: () => {
-                    moveFromStack(ZoneName.TABLE, { x: -1, y: 0 });
+                    moveFromStack({ zone: ZoneName.TABLE, index: 'end' });
                     close();
                   },
                 },
                 {
                   label: 'Graveyard',
                   onClick: () => {
-                    moveFromStack(ZoneName.GRAVE, { x: 0, y: 0 });
+                    moveFromStack({ zone: ZoneName.GRAVE });
                     close();
                   },
                 },
                 {
                   label: 'Exile',
                   onClick: () => {
-                    moveFromStack(ZoneName.EXILE, { x: 0, y: 0 });
+                    moveFromStack({ zone: ZoneName.EXILE });
                     close();
                   },
                 },
@@ -9461,14 +9075,14 @@ function PlayerBox(
                 {
                   label: 'Top of Library',
                   onClick: () => {
-                    moveFromStack(ZoneName.DECK, { x: 0, y: 0 });
+                    moveFromStack({ zone: ZoneName.DECK });
                     close();
                   },
                 },
                 {
                   label: 'Bottom of Library',
                   onClick: () => {
-                    moveFromStack(ZoneName.DECK, { x: -1, y: 0 });
+                    moveFromStack({ zone: ZoneName.DECK, index: 'end' });
                     close();
                   },
                 },
