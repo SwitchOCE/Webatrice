@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { CardImage } from '@app/components';
 import { usePreference } from '@app/hooks';
+import { ScryfallImageSize } from '@cockatrice/datatrice';
+import { CardImage } from '@app/components';
+import { cleanScryfallName, getScryfallUrlByIdOrExactName } from '@app/services';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from './cardSize';
 import { useCardPreviewActions } from '../CardPreviewContext';
 import { counterColorForId } from '../CardSlot/counterColors';
@@ -83,15 +85,13 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
   // on `/cards/named?exact=`. Strip the suffix (with or without
   // parens) before hitting the endpoint so tokens spawned via
   // Command_CreateToken with the Cockatrice-style " Token" naming
-  // still get art. Mirrors cleanScryfallName in services/scryfall/client.ts.
-  const scryfallLookupName = name.replace(/\s*\(?\bToken\b\)?\s*$/i, '') || name;
+  // still get art.
+  const scryfallLookupName = cleanScryfallName(name) || name;
   const imageUrl = faceDown
     ? CARD_BACK_URL
     : imageUri
       ? imageUri
-      : scryfallId
-        ? `https://api.scryfall.com/cards/${scryfallId}?format=image&version=large`
-        : `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(scryfallLookupName)}&format=image&version=large`;
+      : getScryfallUrlByIdOrExactName({ scryfallId, name: scryfallLookupName }, ScryfallImageSize.Large);
 
   // Cockatrice paints a face-down card's label as `"# {id}"` (see
   // `AbstractCardItem::paintPicture`). We use the same "# " prefix so

@@ -1,3 +1,6 @@
+import { ScryfallImageSize } from '@cockatrice/datatrice';
+
+import { getScryfallUrlByExactName, getScryfallUrlById } from '@app/services';
 import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat, type ParsedDeck } from '@app/types';
 
 import { readDeckTags } from './deckTags';
@@ -89,15 +92,15 @@ export function deckArtUrl(s: DeckSummary | undefined): string | null {
   }
   if (s.bannerCard && s.bannerCard.trim()) {
     if (s.bannerCardProviderId && SCRYFALL_ID.test(s.bannerCardProviderId)) {
-      return `https://api.scryfall.com/cards/${s.bannerCardProviderId}?format=image&version=art_crop`;
+      return getScryfallUrlById(s.bannerCardProviderId, ScryfallImageSize.ArtCrop);
     }
-    return `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(s.bannerCard.trim())}&format=image&version=art_crop`;
+    return getScryfallUrlByExactName(s.bannerCard.trim(), ScryfallImageSize.ArtCrop);
   }
   if (s.commanderScryfallId) {
-    return `https://api.scryfall.com/cards/${encodeURIComponent(s.commanderScryfallId)}?format=image&version=art_crop`;
+    return getScryfallUrlById(s.commanderScryfallId, ScryfallImageSize.ArtCrop);
   }
   if (s.commanderName && s.commanderName.trim()) {
-    return `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(s.commanderName.trim())}&format=image&version=art_crop`;
+    return getScryfallUrlByExactName(s.commanderName.trim(), ScryfallImageSize.ArtCrop);
   }
   return null;
 }
