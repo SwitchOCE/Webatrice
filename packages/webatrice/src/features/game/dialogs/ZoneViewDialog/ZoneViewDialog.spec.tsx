@@ -122,6 +122,54 @@ describe('ZoneViewDialog', () => {
     expect(viewCards(panel(/^Graveyard/))).toHaveLength(1);
   });
 
+  describe('card view height, in desktop\'s rows', () => {
+    const innerHeight = window.innerHeight;
+    beforeEach(() => {
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: 2000 });
+    });
+    afterEach(() => {
+      Object.defineProperty(window, 'innerHeight', { configurable: true, value: innerHeight });
+    });
+
+    const dialogHeight = () => panel(/^Graveyard/).style.height;
+
+    it('opens at "Maximum initial height for card view window"', () => {
+      renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
+      // 14 rows of a 12.6rem (201.6 px) card: 15 thirds and 5 px.
+      expect(dialogHeight()).toBe('1013px');
+    });
+
+    it('follows the setting, and keeps a size the user set instead', async () => {
+      const settings = await getSettings();
+      settingsStore.setValue(Object.assign(settings, { cardViewInitialRowsMax: 5 }));
+      const first = renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
+      expect(dialogHeight()).toBe('408px');
+      first.unmount();
+
+      window.localStorage.setItem('webatrice.searchLibrarySize', JSON.stringify({ w: 900, h: 640 }));
+      renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
+      expect(dialogHeight()).toBe('640px');
+    });
+
+    it('opens no taller than its cards need', () => {
+      const scrollHeight = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(450);
+      renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
+      expect(dialogHeight()).toBe('450px');
+      scrollHeight.mockRestore();
+    });
+
+    it('switches to the expanded height on a title bar double-click', () => {
+      renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
+      const content = panel(/^Graveyard/).querySelector<HTMLElement>('.overflow-auto')!;
+      // jsdom has no layout: the card area reports the height the view opened at.
+      content.getBoundingClientRect = () => new DOMRect(0, 0, 900, 1013);
+      panel(/^Graveyard/).getBoundingClientRect = () => new DOMRect(0, 0, 900, 1013);
+      fireEvent.doubleClick(screen.getByRole('heading', { name: /^Graveyard/ }));
+      // 20 rows: 21 thirds of 201.6 px and 5 px.
+      expect(dialogHeight()).toBe('1416px');
+    });
+  });
+
   it('closes from its search box on Escape, which the game shortcut skips', () => {
     const { handleClose } = renderView(
       { playerId: 1, zoneName: ZoneName.GRAVE },

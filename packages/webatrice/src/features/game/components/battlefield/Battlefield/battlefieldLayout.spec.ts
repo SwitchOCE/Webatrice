@@ -11,7 +11,6 @@ import {
   computeCellWidths,
   computeContentHeight,
   computeContentWidth,
-  layoutStackPile,
   rowTopY,
   SEAT_CARD_HEIGHT_PX,
   SEAT_CARD_WIDTH_PX,
@@ -137,27 +136,4 @@ describe('battlefieldLayout', () => {
     });
   });
 
-  describe('layoutStackPile', () => {
-    it('returns nothing for an empty stack and centers a single card', () => {
-      expect(layoutStackPile(0, 200, 300)).toEqual([]);
-      expect(layoutStackPile(1, 200, 300)).toEqual([{ x: (200 - 72) / 2, y: (300 - 102) / 2 }]);
-    });
-
-    it('steps by 35% of the card height and zig-zags around the center', () => {
-      const step = 102 * 0.35;
-      const startY = (300 - 2 * step - 102) / 2;
-      expect(layoutStackPile(3, 200, 300)).toEqual([
-        { x: 64 - 8, y: startY },
-        { x: 64 + 8, y: startY + step },
-        { x: 64 - 8, y: startY + 2 * step },
-      ]);
-    });
-
-    it('squeezes the step when the container is too short, with scaled card sizes', () => {
-      const positions = layoutStackPile(5, 150, 200, 108, 153, 12);
-      // maxSpan = 200 - 153 = 47 → step = 47 / 4.
-      expect(positions.map((p) => p.y)).toEqual([0, 11.75, 23.5, 35.25, 47]);
-      expect(positions.map((p) => p.x)).toEqual([9, 33, 9, 33, 9]);
-    });
-  });
 });

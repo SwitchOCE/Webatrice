@@ -2271,7 +2271,8 @@
       "theme": "Theme settings",
       "tableGrid": "Table grid layout",
       "handLayout": "Hand layout",
-      "cardRendering": "Card rendering"
+      "cardRendering": "Card rendering",
+      "cardLayout": "Card layout"
     },
     "themeMode": {
       "label": "Active theme palette",
@@ -2311,6 +2312,18 @@
     },
     "maxFontSizeForCards": {
       "label": "Maximum font size for information displayed on cards"
+    },
+    "percentSuffix": "%",
+    "rowsSuffix": "rows",
+    "verticalCardOverlapPercent": {
+      "label": "Minimum overlap percentage of cards on the stack and in vertical hand"
+    },
+    "cardViewInitialRowsMax": {
+      "label": "Maximum initial height for card view window"
+    },
+    "cardViewExpandedRowsMax": {
+      "label": "Maximum expanded height for card view window",
+      "description": "Double-click a card view's title bar to switch between its initial and expanded heights. A size you set by dragging its corner is kept instead."
     }
   },
   "SettingsCardSources": {
