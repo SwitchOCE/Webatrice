@@ -54,6 +54,39 @@ describe('planSeatMove', () => {
     expect(plan[0]).not.toHaveProperty('isReversed');
   });
 
+  // Seat 2's board shows player 1's card attached to one of seat 2's cards.
+  const attachedForeign = source({
+    seatPlayerId: 2,
+    zone: 'battlefield',
+    cards: [{ id: '12', slot: { row: 0, col: 1 }, ownerPlayerId: 1 }],
+  });
+
+  it('moves a card attached across seats out of its owner\'s table', () => {
+    expect(planSeatMove(attachedForeign, { zone: 'graveyard' })).toEqual([{
+      startPlayerId: 1,
+      startZone: ZoneName.TABLE,
+      cardsToMove: { card: [{ cardId: 12 }] },
+      targetPlayerId: 1,
+      targetZone: ZoneName.GRAVE,
+      x: 0,
+      y: 0,
+      isReversed: false,
+    }]);
+  });
+
+  it('drops a card attached across seats on the board that shows it as a move from its owner\'s table', () => {
+    expect(planSeatMove(attachedForeign, battlefield(2, 1, 3))).toEqual([{
+      startPlayerId: 1,
+      startZone: ZoneName.TABLE,
+      cardsToMove: { card: [{ cardId: 12 }] },
+      targetPlayerId: 2,
+      targetZone: ZoneName.TABLE,
+      x: 9,
+      y: 1,
+      isReversed: false,
+    }]);
+  });
+
   it.each<[string, Partial<SeatDragSource>, SeatDropTarget, number]>([
     ['hand reorder at the insertion index', { zone: 'hand' }, { zone: 'hand', index: 1 }, 1],
     ['stack insert at the index', { zone: 'hand' }, { zone: 'stack', index: 2 }, 2],
@@ -129,6 +162,12 @@ describe('seat drop zones', () => {
     expect(seatDropAccepts(zone(), source())).toBe(true);
     expect(seatDropAccepts(zone(), source({ seatPlayerId: 2 }))).toBe(false);
     expect(seatDropAccepts(zone({ acceptsOtherSeats: true }), source({ seatPlayerId: 2 }))).toBe(true);
+  });
+
+  it('take a card attached across seats on its owner\'s zones, not the showing seat\'s', () => {
+    const foreign = source({ seatPlayerId: 2, zone: 'battlefield', cards: [{ id: '12', ownerPlayerId: 1 }] });
+    expect(seatDropAccepts(zone(), foreign)).toBe(true);
+    expect(seatDropAccepts(zone({ seatPlayerId: 2 }), foreign)).toBe(false);
   });
 
   it('are told apart from structured drag data', () => {

@@ -42,19 +42,31 @@ vi.mock('../../services/cards/cardCatalog', () => {
 const BOLT = makeCard({ id: 10, name: 'Bolt', x: 3, y: 1 });
 const BEAR = makeCard({ id: 20, name: 'Bear', x: 0, y: 0 });
 const LENT_CARDS = [makeCard({ id: 0, name: 'Lent Card' })];
+// Cross-player attachments: each lives in its owner's TABLE but renders on the
+// board of the card it is attached to (desktop re-parents it in the scene).
+const OWN_AURA = makeCard({ id: 12, name: 'Pacifism', attachPlayerId: 2, attachZone: ZoneName.TABLE, attachCardId: BEAR.id });
+const OPP_AURA = makeCard({ id: 22, name: 'Rancor', attachPlayerId: 1, attachZone: ZoneName.TABLE, attachCardId: BOLT.id });
 const OWN_BF = { left: 0, top: 500, width: 800, height: 400 };
 const OPP_BF = { left: 0, top: 0, width: 800, height: 400 };
 const OWN_GRAVE = { left: 900, top: 500, width: 80, height: 110 };
 const OPP_GRAVE = { left: 900, top: 0, width: 80, height: 110 };
 
-function renderGame(incomingReveal?: object, { spectator = false, judge = false } = {}) {
+function renderGame(
+  incomingReveal?: object,
+  { spectator = false, judge = false, attachments = false } = {},
+) {
   const preloadedState = buildSeatGameState({
     localPlayerId: 1,
     spectator,
     judge,
     seats: [
-      { playerId: 1, table: [BOLT], grave: [makeCard({ id: 40, name: 'Opt' })] },
-      { playerId: 2, table: [BEAR], handCount: 5, grave: [makeCard({ id: 41, name: 'Duress' })] },
+      { playerId: 1, table: attachments ? [BOLT, OWN_AURA] : [BOLT], grave: [makeCard({ id: 40, name: 'Opt' })] },
+      {
+        playerId: 2,
+        table: attachments ? [BEAR, OPP_AURA] : [BEAR],
+        handCount: 5,
+        grave: [makeCard({ id: 41, name: 'Duress' })],
+      },
     ],
   });
   if (incomingReveal) {
@@ -144,6 +156,74 @@ describe('Game drag-drop across seats', () => {
         2,
       ],
     ]);
+  });
+
+  // Desktop gates a drag by the card's owner, not the board it shows on
+  // (card_item.cpp mouseMoveEvent: owner->getPlayerInfo()->getLocalOrJudge()),
+  // and moves it out of its own zone (TableZone::handleDropEventByGrid takes
+  // the start player from the card's zone).
+  describe('a card attached across seats', () => {
+    function inBoard(cardId: number, playerId: number): HTMLElement {
+      const el = battlefieldEl(playerId).querySelector<HTMLElement>(`[data-card][data-card-id="${cardId}"]`);
+      if (!el) {
+        throw new Error(`card ${cardId} is not on player ${playerId}'s battlefield`);
+      }
+      return el;
+    }
+
+    it('drags the local player\'s card off an opponent\'s board, from the owner\'s table', () => {
+      const game = renderGame(undefined, { attachments: true });
+
+      pointerDrag(inBoard(OWN_AURA.id, 2), { x: 10, y: 10 }, { x: 920, y: 520 });
+
+      expect(vi.mocked(game.moveCard).mock.calls.map(([, params, judgeTargetId]) => [params, judgeTargetId])).toEqual([
+        [
+          {
+            startPlayerId: 1,
+            startZone: ZoneName.TABLE,
+            cardsToMove: { card: [{ cardId: OWN_AURA.id }] },
+            targetPlayerId: 1,
+            targetZone: ZoneName.GRAVE,
+            x: 0,
+            y: 0,
+            isReversed: false,
+          },
+          undefined,
+        ],
+      ]);
+    });
+
+    it('does not drag an opponent\'s card shown on the local board: the press only selects it', () => {
+      const game = renderGame(undefined, { attachments: true });
+
+      // Onto the local graveyard, which would take a local card.
+      pointerDrag(inBoard(OPP_AURA.id, 1), { x: 10, y: 510 }, { x: 920, y: 520 });
+
+      expect(game.moveCard).not.toHaveBeenCalled();
+      expect(document.querySelector('[data-card][data-selected]')?.getAttribute('data-card-id')).toBe(String(OPP_AURA.id));
+    });
+
+    it('lets a judge drag it, sent as its owner through Command_Judge', () => {
+      const game = renderGame(undefined, { judge: true, attachments: true });
+
+      pointerDrag(inBoard(OPP_AURA.id, 1), { x: 10, y: 510 }, { x: 920, y: 20 });
+
+      expect(vi.mocked(game.moveCard).mock.calls.map(([, params, judgeTargetId]) => [params, judgeTargetId])).toEqual([
+        [
+          {
+            startPlayerId: 2,
+            startZone: ZoneName.TABLE,
+            cardsToMove: { card: [{ cardId: OPP_AURA.id }] },
+            targetPlayerId: 2,
+            targetZone: ZoneName.GRAVE,
+            x: 0,
+            y: 0,
+            isReversed: false,
+          },
+          2,
+        ],
+      ]);
+    });
   });
 
   describe('lent library (reveal with write access)', () => {

@@ -6,7 +6,7 @@ Internal refactor of the game seat (`PlayerBox`), with a few visible changes:
 
 - Card counter badges and their menu swatches use desktop Cockatrice's counter colours, the same ones the rest of the game already uses.
 - Mulligan (Ctrl+M), Set life (Ctrl+L) and Remove local arrows (Ctrl+R) are now rebindable in the Shortcuts settings, with desktop's defaults.
-- Another player's cards can no longer be dragged (the server always rejected the move); clicking them still selects them. A judge can drag any player's cards, and the move is sent on that player's behalf, as on desktop.
+- You can only drag cards you own, wherever they are shown: your aura on an opponent's creature can be dragged off their board, and theirs on yours cannot (the server always rejected that move). Clicking another player's card still selects it. A judge can drag any player's cards, and the move is sent on the card owner's behalf, as on desktop.
 - While dragging onto a battlefield, the landing slot is highlighted on the board under the pointer, including an opponent's when gifting a card.
 - Escape clears a card selection on the board.
 - The seat's number and text prompts (set life, P/T, annotation, counters, library counts) and its Create token dialog are now the game's shared dialogs, and only one card menu is open at a time across all seats.
