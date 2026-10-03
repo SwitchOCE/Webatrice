@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RotateCcw } from 'lucide-react';
 
+import { ConfirmDialog } from '@app/dialogs';
 import { LoadingState, useSettings } from '@app/hooks';
 import { PREFERENCE_DEFAULTS, type PreferenceKey, type Preferences } from '@app/types';
 
@@ -15,6 +17,7 @@ interface SettingsSectionViewProps {
 export default function SettingsSectionView({ section }: SettingsSectionViewProps) {
   const { t } = useTranslation();
   const settings = useSettings();
+  const [confirming, setConfirming] = useState(false);
 
   if (section.component) {
     const Page = section.component;
@@ -27,6 +30,7 @@ export default function SettingsSectionView({ section }: SettingsSectionViewProp
       keys.map((key: PreferenceKey) => [key, structuredClone(PREFERENCE_DEFAULTS[key])]),
     ) as Partial<Preferences>;
     void settings.update(patch);
+    setConfirming(false);
   };
 
   return (
@@ -37,7 +41,8 @@ export default function SettingsSectionView({ section }: SettingsSectionViewProp
           <button
             type="button"
             className="settings-button"
-            onClick={restoreDefaults}
+            // Desktop has no per-page reset; this one can wipe the message macros, so ask first.
+            onClick={() => setConfirming(true)}
             disabled={settings.status !== LoadingState.READY}
           >
             <RotateCcw size={14} aria-hidden />
@@ -46,6 +51,16 @@ export default function SettingsSectionView({ section }: SettingsSectionViewProp
         )}
       </div>
       {section.groups?.map((group) => <SettingsGroupBox key={group.id} group={group} />)}
+      <ConfirmDialog
+        isOpen={confirming}
+        title={t('Settings.restoreDefaultsConfirm.title', { section: t(section.titleKey) })}
+        message={t('Settings.restoreDefaultsConfirm.message')}
+        confirmLabel={t('Settings.restoreDefaults')}
+        cancelLabel={t('Settings.restoreDefaultsConfirm.cancel')}
+        destructive
+        onConfirm={restoreDefaults}
+        onCancel={() => setConfirming(false)}
+      />
     </div>
   );
 }

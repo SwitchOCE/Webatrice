@@ -144,7 +144,7 @@ describe('Settings', () => {
     expect(getPreferencesSnapshot().soundTheme).toBe('Legacy');
   });
 
-  it('restores a section to its defaults', async () => {
+  it('restores a section to its defaults once confirmed', async () => {
     await renderSettings();
     openSection(/Settings\.section\.chat/);
 
@@ -153,8 +153,15 @@ describe('Settings', () => {
     });
     expect(getPreferencesSnapshot().roomHistory).toBe(false);
 
+    const restore = screen.getByRole('button', { name: /Settings\.restoreDefaults/ });
+    fireEvent.click(restore);
+    const dialog = screen.getByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: /Settings\.restoreDefaultsConfirm\.cancel/ }));
+    expect(getPreferencesSnapshot().roomHistory).toBe(false);
+
+    fireEvent.click(restore);
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /Settings\.restoreDefaults/ }));
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^Settings\.restoreDefaults$/ }));
     });
     expect(getPreferencesSnapshot().roomHistory).toBe(true);
   });
