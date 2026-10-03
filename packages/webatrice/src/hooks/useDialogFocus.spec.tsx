@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { useDialogFocus, type ReturnFocusTo } from './useDialogFocus';
+import { tabbableElements, useDialogFocus, type ReturnFocusTo } from './useDialogFocus';
 
 interface DialogProps {
   isOpen: boolean;
@@ -186,5 +186,56 @@ describe('useDialogFocus', () => {
     await user.keyboard('{Escape}');
 
     expect(screen.getByRole('main', { name: 'Page' })).toHaveFocus();
+  });
+
+  it('takes focus back when the focused control unmounts, so Escape still closes', async () => {
+    const user = userEvent.setup();
+    function Busy() {
+      const [open, setOpen] = useState(false);
+      const [busy, setBusy] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>Open</button>
+          <Dialog isOpen={open} onEscape={() => setOpen(false)}>
+            {busy ? <span>Working</span> : <button type="button" onClick={() => setBusy(true)}>Go</button>}
+          </Dialog>
+        </>
+      );
+    }
+    render(<Busy />);
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    await user.click(screen.getByRole('button', { name: 'Go' }));
+
+    await waitFor(() => expect(screen.getByRole('dialog')).toHaveFocus());
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open' })).toHaveFocus();
+  });
+});
+
+describe('tabbableElements', () => {
+  it('leaves out what the browser does not tab to', () => {
+    const { container } = render(
+      <div>
+        <button type="button">Button</button>
+        <button type="button" tabIndex={-1}>Skipped button</button>
+        <a href="#x">Link</a>
+        <a href="#y" tabIndex={-1}>Skipped link</a>
+        <input aria-label="Native select mirror" tabIndex={-1} />
+        <button type="button" style={{ display: 'none' }}>Not displayed</button>
+        <div style={{ display: 'none' }}><button type="button">Inside not displayed</button></div>
+        <button type="button" style={{ visibility: 'hidden' }}>Invisible</button>
+        <input type="radio" name="duration" aria-label="Minutes" />
+        <input type="radio" name="duration" aria-label="Permanent" defaultChecked />
+        <input type="radio" name="kind" aria-label="First" />
+        <input type="radio" name="kind" aria-label="Second" />
+      </div>,
+    );
+
+    const labels = tabbableElements(container.firstElementChild as HTMLElement)
+      .map((element) => element.getAttribute('aria-label') ?? element.textContent);
+
+    expect(labels).toEqual(['Button', 'Link', 'Permanent', 'First']);
   });
 });
