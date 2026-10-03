@@ -48,6 +48,18 @@ describe('ExportDeckDialog', () => {
     expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
   });
 
+  it('keeps the copied feedback when the parent re-renders with a new onClose', async () => {
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: vi.fn().mockResolvedValue(undefined) }, configurable: true });
+    const { rerender } = render(<ExportDeckDialog open onClose={() => {}} deck={deck} />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+    });
+
+    rerender(<ExportDeckDialog open onClose={() => {}} deck={deck} />);
+
+    expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
+  });
+
   it('downloads the preview under a slugged file name', () => {
     const createObjectURL = vi.fn(() => 'blob:x');
     Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() });
