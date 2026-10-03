@@ -19,6 +19,8 @@ import {
   makeZoneEntry,
 } from '@cockatrice/datatrice/testing';
 import { connectedState, createMockWebClient, makeStoreState, makeUser, renderWithProviders } from '../../../__test-utils__';
+import GameBoardCell from '../components/ui/GameBoardCell/GameBoardCell';
+import type { BoardCell } from '../hooks/useGameBoardLayout';
 
 export const LIFE_COUNTER_ID = 1;
 
@@ -151,6 +153,25 @@ export function renderSeatHook<T>(
   }
   const utils = renderWithProviders(createElement(Probe), { preloadedState, webClient });
   return { ...utils, result: () => latest as T, game: webClient.request.game };
+}
+
+/** Render one seat (GameBoardCell → PlayerBoard, with the real seat model and
+ *  command ports) on its own: the given player's cell, local when it is the
+ *  spec's local player and mirrored otherwise. Exposes the game request spies. */
+export function renderSeatCell(
+  spec: SeatGameSpec,
+  playerId: number = spec.localPlayerId,
+  options: Omit<Parameters<typeof renderWithProviders>[1], 'preloadedState' | 'webClient'> = {},
+) {
+  const preloadedState = buildSeatGameState(spec);
+  const webClient = createMockWebClient();
+  const isLocal = playerId === spec.localPlayerId;
+  const cell: BoardCell = { playerId, isLocal, mirrored: !isLocal, canAct: isLocal, showHand: isLocal, row: 0, col: 0 };
+  const utils = renderWithProviders(
+    createElement(GameBoardCell, { cell, totalPlayers: spec.seats.length }),
+    { ...options, preloadedState, webClient },
+  );
+  return { ...utils, game: webClient.request.game };
 }
 
 // --- Menu helpers ----------------------------------------------------------
