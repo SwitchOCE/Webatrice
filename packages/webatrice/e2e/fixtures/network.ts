@@ -3,20 +3,27 @@ import { resolve } from 'node:path';
 
 import type { BrowserContext, Route } from '@playwright/test';
 
+import { DefaultHosts } from '../../src/utils/HostService';
+
 // Network isolation for every e2e browser context.
 //
 // The suite talks to exactly two servers, both on this machine: `vite
 // preview` (the app) and the docker Servatrice. Everything else the app can
 // reach — the public servers in `DefaultHosts`, desktop's public server
 // list, Scryfall card data and images, Google Fonts — is either stubbed here
-// or refused, so a run never depends on (or leaks traffic to) the internet. Without this, the login
-// screen's automatic test-connection against the first default host
-// (Chickatrice) made `app-boots` fail whenever that server was slow or
-// refused the TLS handshake.
+// or refused, so a run never depends on (or leaks traffic to) the internet.
+// Without this, the login screen's automatic test-connection against the
+// first default host (Chickatrice) made `app-boots` fail whenever that server
+// was slow or refused the TLS handshake.
 //
-// Known external traffic gets a deterministic stand-in. Anything else is
-// aborted and reported by `assertNoUnexpectedRequests()`, so a new external
-// dependency fails loudly here instead of silently reaching the internet.
+// Known external traffic gets a deterministic stand-in: the Scryfall routes
+// the app reads (`/cards/named`, `/cards/<id>`), the public server list,
+// fonts, and sockets to the known game servers (closed, so they read as
+// unreachable). Anything else — another Scryfall endpoint, another host, a
+// socket to an unknown server — is aborted and reported by
+// `assertNoUnexpectedRequests()`, so a new external dependency fails loudly
+// here instead of silently reaching the internet or a stand-in of the wrong
+// shape.
 
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]']);
 
@@ -52,14 +59,20 @@ const SCRYFALL_NOT_FOUND = JSON.stringify({
   details: 'No e2e fixture for this card; add one under e2e/fixtures/scryfall/.',
 });
 
-// `/cards/named?exact=<name>` and `/cards/<id>`; every other endpoint
-// (search, autocomplete, collection) has no fixture data.
+const SCRYFALL_CARD_BY_ID = /^\/cards\/([0-9a-f-]{36})$/;
+
+// The single-card routes the app reads: `/cards/named?exact=<name>` and
+// `/cards/<id>`, each with or without `format=image`. Other endpoints (search,
+// autocomplete, collection) answer in other shapes, so they get no stand-in.
+const isScryfallCardRoute = (url: URL): boolean =>
+  url.pathname === '/cards/named' || SCRYFALL_CARD_BY_ID.test(url.pathname);
+
 function scryfallCardFor(url: URL): { id: string; name: string } | undefined {
   const exact = url.searchParams.get('exact');
   if (url.pathname === '/cards/named' && exact) {
     return SCRYFALL_CARDS.find((card) => card.name.toLowerCase() === exact.toLowerCase());
   }
-  const id = url.pathname.match(/^\/cards\/([0-9a-f-]{36})$/)?.[1];
+  const id = url.pathname.match(SCRYFALL_CARD_BY_ID)?.[1];
   return id ? SCRYFALL_CARDS.find((card) => card.id === id) : undefined;
 }
 
@@ -71,6 +84,15 @@ function scryfallCardFor(url: URL): { id: string; name: string } | undefined {
 // meets the unreachable external socket below.
 const PUBLIC_SERVERS_URL = 'https://cockatrice.github.io/public-servers.json';
 const PUBLIC_SERVERS = readFileSync(resolve(__dirname, 'public-servers.json'), 'utf8');
+
+// The game servers the app may open a socket to on its own: its built-in
+// `DefaultHosts` (the login screen tests the first one) and the public list
+// above. A `host` may carry a path (`server.cockatrice.us/servatrice`).
+const hostnameOf = (host: string): string => new URL(`wss://${host}`).hostname;
+const KNOWN_GAME_SERVERS = new Set([
+  ...DefaultHosts.map(({ host }) => hostnameOf(host)),
+  ...(JSON.parse(PUBLIC_SERVERS) as { servers: { host: string }[] }).servers.map(({ host }) => hostnameOf(host)),
+]);
 
 const SCRYFALL_IMAGE_HOSTS = new Set(['cards.scryfall.io', 'backs.scryfall.io']);
 
@@ -94,7 +116,7 @@ function stubFor(url: URL): Parameters<Route['fulfill']>[0] | null {
   if (SCRYFALL_IMAGE_HOSTS.has(url.hostname)) {
     return { status: 200, contentType: 'image/svg+xml', body: CARD_IMAGE_SVG };
   }
-  if (url.hostname === 'api.scryfall.com') {
+  if (url.hostname === 'api.scryfall.com' && isScryfallCardRoute(url)) {
     // `?format=image` answers with the image itself (via a redirect on the
     // real API); every other endpoint answers with JSON.
     if (url.searchParams.get('format') === 'image') {
@@ -126,17 +148,23 @@ export async function isolateNetwork(context: BrowserContext): Promise<NetworkIs
     await route.abort('blockedbyclient');
   });
 
-  // External game servers (the public entries in `DefaultHosts`) behave as
-  // unreachable: the socket is closed before Servatrice's identification
-  // ever arrives, so the app reports a failed test-connection. Sockets to
-  // the docker Servatrice on localhost are not routed and stay real.
-  await context.routeWebSocket(isExternal, (ws) => ws.close());
+  // Known external game servers behave as unreachable: the socket is closed
+  // before Servatrice's identification ever arrives, so the app reports a
+  // failed test-connection. A socket to any other external host is reported
+  // too. Sockets to the docker Servatrice on localhost are not routed and
+  // stay real.
+  await context.routeWebSocket(isExternal, (ws) => {
+    if (!KNOWN_GAME_SERVERS.has(new URL(ws.url()).hostname)) {
+      unexpected.push(`WebSocket ${ws.url()}`);
+    }
+    ws.close();
+  });
 
   return {
     assertNoUnexpectedRequests() {
       if (unexpected.length > 0) {
         throw new Error(
-          'The app made external requests that the e2e suite has no stub for. ' +
+          'The app made external requests or opened sockets that the e2e suite has no stub for. ' +
           'Add a stub to e2e/fixtures/network.ts rather than letting e2e reach the internet:\n' +
           unexpected.join('\n'),
         );
