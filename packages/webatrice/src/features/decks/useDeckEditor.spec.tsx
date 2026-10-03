@@ -146,7 +146,8 @@ describe('useDeckEditor draft', () => {
   }
 
   function setupDraft(token: string) {
-    const webClient = createMockWebClient();
+    const webClient = createMockWebClient() as WebClient & { protobuf: { sendSessionCommand: ReturnType<typeof vi.fn> } };
+    (webClient as unknown as { protobuf: unknown }).protobuf = { sendSessionCommand: vi.fn() };
     const result = renderWithProviders(<DraftProbe token={token} />, { preloadedState: connectedState, webClient });
     return { ...result, webClient };
   }
@@ -190,6 +191,78 @@ describe('useDeckEditor draft', () => {
         }));
       });
       expect(editor.current!.saveState).toBe('saved');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  const uploaded = (id: number, name: string, path = '') => server.Actions.deckUpload({
+    path,
+    treeItem: { id, name } as Parameters<typeof server.Actions.deckUpload>[0]['treeItem'],
+  });
+
+  it('saves edits made during the first upload to the new deck once its id arrives', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { webClient, store } = setupDraft(stageDeckDocument(GAME_DECK));
+      await waitFor(() => expect(editor.current!.loading).toBe(false));
+
+      act(() => editor.current!.setName('Burn v2'));
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+
+      // Edited while the upload is in flight: nothing more is sent yet.
+      act(() => editor.current!.setName('Burn v3'));
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+      expect(webClient.protobuf.sendSessionCommand).not.toHaveBeenCalled();
+
+      // Another root upload (say, My Decks' "New deck") is not this draft's answer.
+      act(() => {
+        store.dispatch(uploaded(41, 'Something else'));
+      });
+      expect(webClient.protobuf.sendSessionCommand).not.toHaveBeenCalled();
+      expect(editor.current!.saveState).not.toBe('saved');
+
+      act(() => {
+        store.dispatch(uploaded(42, 'Burn v2'));
+      });
+      expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+      expect(webClient.protobuf.sendSessionCommand).toHaveBeenCalledTimes(1);
+      const [, command] = webClient.protobuf.sendSessionCommand.mock.calls[0];
+      expect(command.deckId).toBe(42);
+      expect(command.deckList).toContain('<deckname>Burn v3</deckname>');
+      expect(editor.current!.saveState).toBe('saving');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('saves an edit still waiting on the autosave debounce to the new deck', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const { webClient, store } = setupDraft(stageDeckDocument(GAME_DECK));
+      await waitFor(() => expect(editor.current!.loading).toBe(false));
+
+      act(() => editor.current!.setName('Burn v2'));
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+      act(() => editor.current!.setName('Burn v3'));
+      act(() => {
+        store.dispatch(uploaded(42, 'Burn v2'));
+      });
+      act(() => {
+        vi.advanceTimersByTime(600);
+      });
+
+      expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+      expect(webClient.protobuf.sendSessionCommand).toHaveBeenCalledTimes(1);
+      expect(webClient.protobuf.sendSessionCommand.mock.calls[0][1].deckId).toBe(42);
     } finally {
       vi.useRealTimers();
     }

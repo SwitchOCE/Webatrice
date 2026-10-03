@@ -164,8 +164,14 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
   const deckRef = useRef<HydratedDeck | null>(null);
   const saveTimerRef = useRef<number | null>(null);
   const savedSignatureRef = useRef<string | null>(initialCached?.savedXml ?? null);
-  // The XML of a draft's first save while its deckUpload is in flight.
-  const draftUploadRef = useRef<string | null>(null);
+  // A draft's first save while its deckUpload is in flight: the XML sent and
+  // the deck name Servatrice files it under, which identifies the answer.
+  const draftUploadRef = useRef<{ xml: string; name: string } | null>(null);
+  // An edit came in while that upload was in flight; it is saved to the new
+  // deck once its id arrives.
+  const draftEditedRef = useRef(false);
+  // The id the draft was stored under; later saves update that deck.
+  const draftDeckIdRef = useRef<number | null>(null);
   deckRef.current = deck;
 
   // --- Load a draft ---
@@ -208,35 +214,6 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
       cancelled = true;
     };
   }, [isDraft, draftToken]);
-
-  // A draft's first save came back as a new stored deck: carry the editor
-  // state over to it and move there.
-  useReduxEffect<{ path: string; treeItem: { id: number } }>(
-    ({ payload }) => {
-      const xml = draftUploadRef.current;
-      if (xml == null || !isDraft || !deckRef.current) {
-        return;
-      }
-      draftUploadRef.current = null;
-      deckCache.set(payload.treeItem.id, { deck: deckRef.current, savedXml: xml });
-      draftCache.delete(draftToken);
-      draftDocuments.delete(draftToken);
-      setSaveState('saved');
-      navigate(generatePath(RouteEnum.DECK, { deckId: String(payload.treeItem.id) }), { replace: true });
-    },
-    server.Types.DECK_UPLOAD,
-    [isDraft, draftToken, navigate],
-  );
-  useReduxEffect(
-    () => {
-      if (draftUploadRef.current != null) {
-        draftUploadRef.current = null;
-        setSaveState('failed');
-      }
-    },
-    server.Types.DECK_UPLOAD_FAILED,
-    [],
-  );
 
   // --- Load ---
   useEffect(() => {
@@ -329,7 +306,8 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
   // --- Save (debounced) ---
   const persistNow = useCallback(() => {
     const current = deckRef.current;
-    if (!current || (deckId == null && !isDraft)) {
+    const targetId = deckId ?? draftDeckIdRef.current;
+    if (!current || (targetId == null && !isDraft)) {
       return;
     }
     const nextMeta = touchMeta(current.meta);
@@ -346,13 +324,16 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
     if (xml === savedSignatureRef.current) {
       return;
     } // nothing changed
-    if (deckId == null) {
+    if (targetId == null) {
       // A draft: the first save stores it as a new deck at the root
       // (deckId 0 asks Servatrice for a new id), like My Decks' "New deck".
+      // Servatrice files it under the deck name, or "Unnamed deck".
       if (draftUploadRef.current == null) {
-        draftUploadRef.current = xml;
+        draftUploadRef.current = { xml, name: current.name || 'Unnamed deck' };
         setSaveState('saving');
         webClient.request.session.deckUpload('', 0, xml);
+      } else {
+        draftEditedRef.current = true;
       }
       return;
     }
@@ -361,23 +342,23 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
     // Refresh the cached saved-signature so a remount after autosave
     // still sees the deck as "clean" (matches the last-known-saved
     // XML) and doesn't queue a spurious re-save.
-    const cached = deckCache.get(deckId);
+    const cached = deckCache.get(targetId);
     if (cached) {
-      deckCache.set(deckId, { deck: cached.deck, savedXml: xml });
+      deckCache.set(targetId, { deck: cached.deck, savedXml: xml });
     }
     setSaveState('saving');
     // uploadDeckUpdate handles both the server "saved" ack (flips our
     // saveState) and a follow-up deckList refetch that keeps MyDecks
     // + the sticky tab title in sync without needing a manual refresh.
-    uploadDeckUpdate(webClient, deckId, xml, () => setSaveState('saved'), () => {
+    uploadDeckUpdate(webClient, targetId, xml, () => setSaveState('saved'), () => {
       // Not saved: forget the optimistic signature (here and in the cache) so
       // the next edit or unmount flush sends this content again.
       if (savedSignatureRef.current === xml) {
         savedSignatureRef.current = previousSignature;
       }
-      const entry = deckCache.get(deckId);
+      const entry = deckCache.get(targetId);
       if (entry?.savedXml === xml) {
-        deckCache.set(deckId, { deck: entry.deck, savedXml: previousSignature ?? '' });
+        deckCache.set(targetId, { deck: entry.deck, savedXml: previousSignature ?? '' });
       }
       setSaveState('failed');
     });
@@ -405,20 +386,70 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
   }, [persistNow]);
   useEffect(() => flushSave, [flushSave]);
 
+  // A draft's first save came back as a new stored deck: carry the editor
+  // state over to it and move there. The answer is the root-level upload
+  // filed under this deck's name. Edits made while it was in flight are
+  // saved to the new deck now.
+  useReduxEffect<{ path: string; treeItem: { id: number; name: string } }>(
+    ({ payload }) => {
+      const upload = draftUploadRef.current;
+      if (
+        upload == null || !isDraft || !deckRef.current ||
+        payload.path !== '' || payload.treeItem.name !== upload.name
+      ) {
+        return;
+      }
+      const id = payload.treeItem.id;
+      draftUploadRef.current = null;
+      draftDeckIdRef.current = id;
+      savedSignatureRef.current = upload.xml;
+      deckCache.set(id, { deck: deckRef.current, savedXml: upload.xml });
+      draftCache.delete(draftToken);
+      draftDocuments.delete(draftToken);
+      const edited = draftEditedRef.current || saveTimerRef.current != null;
+      draftEditedRef.current = false;
+      if (saveTimerRef.current != null) {
+        window.clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      if (edited) {
+        persistNow();
+      } else {
+        setSaveState('saved');
+      }
+      navigate(generatePath(RouteEnum.DECK, { deckId: String(id) }), { replace: true });
+    },
+    server.Types.DECK_UPLOAD,
+    [isDraft, draftToken, navigate, persistNow],
+  );
+  useReduxEffect<{ path: string }>(
+    ({ payload }) => {
+      if (draftUploadRef.current != null && payload.path === '') {
+        draftUploadRef.current = null;
+        // The in-flight edits are in the next attempt's XML.
+        draftEditedRef.current = false;
+        setSaveState('failed');
+      }
+    },
+    server.Types.DECK_UPLOAD_FAILED,
+    [],
+  );
+
   // Mirror local edits into the module cache so returning to this
   // deck's tab after switching away shows the latest in-editor state
   // (including unsaved edits), not the last-downloaded XML. Runs after
   // every setDeck — cheap, just a Map.set.
   useEffect(() => {
-    if (isDraft && deck) {
+    const storedId = deckId ?? draftDeckIdRef.current;
+    if (isDraft && storedId == null && deck) {
       draftCache.set(draftToken, deck);
       return;
     }
-    if (deckId == null || !deck) {
+    if (storedId == null || !deck) {
       return;
     }
-    const existing = deckCache.get(deckId);
-    deckCache.set(deckId, {
+    const existing = deckCache.get(storedId);
+    deckCache.set(storedId, {
       deck,
       savedXml: existing?.savedXml ?? savedSignatureRef.current ?? '',
     });
