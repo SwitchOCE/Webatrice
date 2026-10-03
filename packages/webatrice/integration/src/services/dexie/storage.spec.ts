@@ -113,4 +113,22 @@ describe('Delete card data with loaded sources (real Dexie)', () => {
     expect(await dexieService.setPreferences.toArray()).toEqual(preferences);
   });
 
+  it('keeps the tokens made in the token editor, loaded and through a reload', async () => {
+    await dexieService.clear([Stores.CARDS, Stores.SETS, Stores.TOKENS, Stores.CARD_SOURCES, Stores.CARD_SOURCE_PAYLOADS]);
+    await cardDatabaseService.addSources([{ fileName: 'cards.xml', xml: cardsXml, origin: 'file' }]);
+    const spirit = { name: { value: 'Spirit' }, set: { value: 'TK' }, token: { value: '1' } };
+    await cardDatabaseService.saveCustomTokens([spirit]);
+
+    await clearCardData();
+
+    expect(await dexieService.cards.count()).toBe(0);
+    expect((await cardDatabaseService.listSources()).map((s) => s.id)).toEqual(['user-tokens']);
+    expect(await cardDatabaseService.getCustomTokens()).toEqual([spirit]);
+    expect(await dexieService.tokens.get('Spirit')).toBeDefined();
+    expect(await dexieService.sets.get('TK')).toBeDefined();
+
+    await cardDatabaseService.reload();
+    expect(await dexieService.tokens.get('Spirit')).toBeDefined();
+    expect(await dexieService.cards.count()).toBe(0);
+  });
 });
