@@ -39,23 +39,33 @@ export const moderationReducers = {
     state.adminNotes[action.payload.userName] = action.payload.notes;
   }) as CaseReducer<ServerState, PayloadAction<{ userName: string; notes: string }>>,
 
+  // Mirrors Servatrice cmdAdjustMod: a role changes only when its flag was sent
+  // (has_should_be_*); an undefined flag leaves that bit alone.
   adjustMod: ((state, action) => {
-    const { userName, shouldBeMod, shouldBeJudge } = action.payload;
+    const { userName, shouldBeMod, shouldBeJudge, shouldBeDeveloper } = action.payload;
     const user = state.users[userName];
     if (!user) {
       return;
     }
+    const applyFlag = (level: number, flag: ServerInfo_User_UserLevelFlag, on: boolean | undefined): number => {
+      if (on === undefined) {
+        return level;
+      }
+      return on ? (level | flag) : (level & ~flag);
+    };
     let newLevel = user.userLevel;
-    newLevel = shouldBeMod
-      ? (newLevel | ServerInfo_User_UserLevelFlag.IsModerator)
-      : (newLevel & ~ServerInfo_User_UserLevelFlag.IsModerator);
-    newLevel = shouldBeJudge
-      ? (newLevel | ServerInfo_User_UserLevelFlag.IsJudge)
-      : (newLevel & ~ServerInfo_User_UserLevelFlag.IsJudge);
+    newLevel = applyFlag(newLevel, ServerInfo_User_UserLevelFlag.IsModerator, shouldBeMod);
+    newLevel = applyFlag(newLevel, ServerInfo_User_UserLevelFlag.IsJudge, shouldBeJudge);
+    newLevel = applyFlag(newLevel, ServerInfo_User_UserLevelFlag.IsDeveloper, shouldBeDeveloper);
     // Reassign a fresh clone; Immer can't draft protobuf-es, so `user.userLevel = …` in
     // place would go untracked and the moderator badge wouldn't re-render.
     state.users[userName] = cloneWith(ServerInfo_UserSchema, user, { userLevel: newLevel });
-  }) as CaseReducer<ServerState, PayloadAction<{ userName: string; shouldBeMod: boolean; shouldBeJudge: boolean }>>,
+  }) as CaseReducer<ServerState, PayloadAction<{
+    userName: string;
+    shouldBeMod?: boolean;
+    shouldBeJudge?: boolean;
+    shouldBeDeveloper?: boolean;
+  }>>,
 
   viewLogs: ((state, action) => {
     state.logs = normalizeLogs(action.payload.logs);

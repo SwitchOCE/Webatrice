@@ -27,6 +27,11 @@ export interface ServerState {
   // transport never self-disconnects on silence — see sockatrice KeepAliveService.
   connectionHealth: ServerConnectionHealth;
   connectUnreachable: boolean;
+  // Response.ResponseCode the server rejected the last login with (e.g.
+  // RespPasswordChangeRequired, RespServerFull), so the login screen can explain
+  // it in the user's language; null when no login has been rejected since the
+  // last connection attempt. status.description carries the English fallback.
+  loginFailureCode: number | null;
   logs: ServerStateLogs;
   user: ServerInfo_User | null;
   users: { [userName: string]: ServerInfo_User };

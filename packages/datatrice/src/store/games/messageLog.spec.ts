@@ -28,6 +28,7 @@ import {
   formatTurnReversed,
   formatZoneDumped,
   formatZonePropertiesChanged,
+  formatUndoDrawFailed,
   formatZoneShuffled,
 } from './messageLog';
 import {
@@ -534,6 +535,14 @@ describe('formatCardsDrawn', () => {
   });
 });
 
+describe('formatUndoDrawFailed', () => {
+  it('mirrors desktop logUndoDrawFailed with a player segment', () => {
+    const entry = formatUndoDrawFailed(gameWithTwoPlayers(), 1);
+    expect(entry.text).toBe('Alice failed to undo their last draw.');
+    expect(entry.segments[0]).toEqual({ text: 'Alice', kind: 'player' });
+  });
+});
+
 describe('formatZoneShuffled / formatZoneDumped / formatZonePropertiesChanged', () => {
   const game = gameWithTwoPlayers();
   it('shuffle', () => {
@@ -811,6 +820,7 @@ describe('classifyLogTone', () => {
     expect(classifyLogTone('Alice has locked their sideboard.')).toBe('system');
     expect(classifyLogTone('Alice has unlocked their sideboard.')).toBe('system');
     expect(classifyLogTone('Alice has loaded a deck (abc123).')).toBe('system');
+    expect(classifyLogTone('Alice failed to undo their last draw.')).toBe('system');
   });
   it('routine card actions → "action"', () => {
     expect(classifyLogTone('Alice puts Bolt into play from their hand.')).toBe('action');

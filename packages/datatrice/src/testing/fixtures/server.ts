@@ -171,6 +171,7 @@ export function makeServerState(overrides: Partial<ServerState> = {}): ServerSta
     },
     connectionHealth: HEALTHY_CONNECTION_HEALTH,
     connectUnreachable: false,
+    loginFailureCode: null,
     info: {
       message: null,
       name: null,

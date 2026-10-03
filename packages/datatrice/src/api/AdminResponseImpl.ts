@@ -6,8 +6,8 @@ import { Actions as ServerActions } from '../store/server/server.actions';
 export class AdminResponseImpl implements WebsocketTypes.IAdminResponse {
   constructor(private store: Store) {}
 
-  adjustMod(userName: string, shouldBeMod: boolean, shouldBeJudge: boolean): void {
-    this.store.dispatch(ServerActions.adjustMod({ userName, shouldBeMod, shouldBeJudge }));
+  adjustMod(userName: string, shouldBeMod?: boolean, shouldBeJudge?: boolean, shouldBeDeveloper?: boolean): void {
+    this.store.dispatch(ServerActions.adjustMod({ userName, shouldBeMod, shouldBeJudge, shouldBeDeveloper }));
   }
 
   reloadConfig(): void {

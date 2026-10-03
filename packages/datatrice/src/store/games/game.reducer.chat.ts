@@ -1,6 +1,7 @@
 import { CaseReducer, PayloadAction } from '@reduxjs/toolkit';
 import {
   Event_DumpZone,
+  Event_GameLogNotice_NoticeType,
   Event_RollDie,
   Event_Shuffle,
   ServerInfo_Zone_ZoneType,
@@ -9,6 +10,7 @@ import { GamesState } from './game.interfaces';
 import { MAX_GAME_MESSAGES, clearZoneKnownCards, pushEventMessage } from './game.reducer.helpers';
 import {
   formatDieRolled,
+  formatUndoDrawFailed,
   formatZoneDumped,
   formatZoneShuffled,
 } from './messageLog';
@@ -62,4 +64,21 @@ export const chatReducers = {
     }
     pushEventMessage(game, playerId, formatDieRolled(game, playerId, data));
   }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; playerId: number; data: Event_RollDie }>>,
+
+  // Event_GameLogNotice: log-only, and by protocol contract a notice type this
+  // client doesn't know is dropped (desktop PlayerEventHandler::eventGameLogNotice).
+  gameLogNotice: ((state, action) => {
+    const { gameId, playerId, noticeType } = action.payload;
+    const game = state.games[gameId];
+    if (!game) {
+      return;
+    }
+    switch (noticeType) {
+      case Event_GameLogNotice_NoticeType.UNDO_DRAW_FAILED:
+        pushEventMessage(game, playerId, formatUndoDrawFailed(game, playerId));
+        break;
+      default:
+        break;
+    }
+  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; playerId: number; noticeType: Event_GameLogNotice_NoticeType }>>,
 };

@@ -7,6 +7,7 @@ import {
 } from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { SortUtil } from '../../common';
+import { ServerCapability, serverSupports } from './server.capabilities';
 import { ServerState } from './server.interfaces';
 import { HEALTHY_CONNECTION_HEALTH } from './server.reducer.connection';
 
@@ -30,6 +31,11 @@ export const Selectors = {
   getConnectionHealth: ({ server }: State) => server.connectionHealth ?? HEALTHY_CONNECTION_HEALTH,
   getIsServerUnresponsive: ({ server }: State) => (server.connectionHealth?.missedPongs ?? 0) > 0,
   getConnectUnreachable: ({ server }: State) => server.connectUnreachable ?? false,
+  getLoginFailureCode: ({ server }: State) => server.loginFailureCode ?? null,
+  // Capability gate for 3.1-only actions; see server.capabilities.ts and
+  // .github/instructions/datatrice.instructions.md#server-capabilities.
+  supports: ({ server }: State, capability: ServerCapability): boolean =>
+    serverSupports(server.info.version, capability),
   getUser: ({ server }: State) => server.user,
 
   getIsConnected: createSelector(
@@ -55,6 +61,19 @@ export const Selectors = {
         return false;
       }
       const mask = ServerInfo_User_UserLevelFlag.IsJudge;
+      return (user.userLevel & mask) === mask;
+    }
+  ),
+
+  // Developer staff role (Cockatrice #7211). Desktop routes log lookups through the
+  // developer command family only for developers who are not also moderators.
+  getIsUserDeveloper: createSelector(
+    [({ server }: State) => server.user],
+    (user): boolean => {
+      if (!user) {
+        return false;
+      }
+      const mask = ServerInfo_User_UserLevelFlag.IsDeveloper;
       return (user.userLevel & mask) === mask;
     }
   ),
