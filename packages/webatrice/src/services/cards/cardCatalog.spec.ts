@@ -265,6 +265,104 @@ describe('lookupCards', () => {
   });
 });
 
+describe('Scryfall request shapes (characterization)', () => {
+  const COLLECTION_URL = 'https://api.scryfall.com/cards/collection';
+
+  function collectionCalls() {
+    return fetchMock.mock.calls.filter(([url]) => url === COLLECTION_URL);
+  }
+
+  it('posts JSON identifiers with exactly a method, a content type and a body', async () => {
+    fetchMock.mockImplementation(() => respond({ data: [] }));
+
+    await lookupCards([{ name: 'Opt', set: 'XLN', collectorNumber: '65' }]);
+
+    expect(collectionCalls()[0]).toEqual([
+      COLLECTION_URL,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{"identifiers":[{"set":"xln","collector_number":"65"}]}',
+      },
+    ]);
+  });
+
+  it('sends the exact-name request with the URL as its only argument', async () => {
+    await lookupCard('Opt');
+    expect(fetchMock.mock.calls).toEqual([['https://api.scryfall.com/cards/named?exact=Opt']]);
+  });
+
+  it('splits identifiers into chunks of 75 and sends every chunk at once', async () => {
+    const pending: Array<() => void> = [];
+    fetchMock.mockImplementation((url: string) =>
+      url === COLLECTION_URL
+        ? new Promise<Response>((resolve) => pending.push(() => resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ data: [] }),
+        } as Response)))
+        : respond({}, false, 404));
+    const names = Array.from({ length: 151 }, (_, i) => `Card ${i}`);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const result = lookupCards(names);
+    await vi.waitFor(() => expect(pending).toHaveLength(3));
+    pending.forEach((settle) => settle());
+    await result;
+
+    expect(collectionCalls().map(([, init]) => JSON.parse(init.body).identifiers.length)).toEqual([75, 75, 1]);
+    expect(JSON.parse(collectionCalls()[1][1].body).identifiers[0]).toEqual({ name: 'Card 75' });
+    warn.mockRestore();
+  });
+
+  it('strips a Token suffix and NFC-normalises names in batch identifiers and exact-name retries', async () => {
+    const nfd = 'Donnie\u2019s Bo\u0304';
+    fetchMock.mockImplementation(() => respond({ data: [] }));
+
+    await lookupCards([nfd, 'Soldier Token']);
+
+    expect(JSON.parse(collectionCalls()[0][1].body)).toEqual({
+      identifiers: [{ name: nfd.normalize('NFC') }, { name: 'Soldier' }],
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(nfd.normalize('NFC'))}`,
+    );
+    expect(fetchMock).toHaveBeenCalledWith('https://api.scryfall.com/cards/named?exact=Soldier');
+  });
+
+  it('matches an NFD name to the NFC response card', async () => {
+    const nfd = 'Donnie\u2019s Bo\u0304';
+    fetchMock.mockImplementation((url: string) =>
+      url === COLLECTION_URL ? respond({ data: [{ id: 'd', name: nfd.normalize('NFC') }] }) : respond({}, false, 404));
+
+    const result = await lookupCards([nfd]);
+
+    expect(result.get(nfd)).toMatchObject({ found: true, printings: [{ scryfallId: 'd' }] });
+  });
+
+  it('falls back to the name when the printing Scryfall returned is not the one asked for', async () => {
+    fetchMock.mockImplementation((url: string) =>
+      url === COLLECTION_URL
+        ? respond({ data: [{ id: 'promo', name: 'Opt', set: 'pxln', collector_number: '65p' }] })
+        : respond({}, false, 404));
+
+    const result = await lookupCards([{ name: 'Opt', set: 'XLN', collectorNumber: '65' }]);
+
+    expect(result.get('Opt')).toMatchObject({ found: true, printings: [{ scryfallId: 'promo' }] });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('warns with the status and chunk size when a batch is refused', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    fetchMock.mockImplementation((url: string) => (url === COLLECTION_URL ? respond({}, false, 429) : respond({}, false, 404)));
+
+    await lookupCards(['Opt', 'Ponder']);
+
+    expect(warn).toHaveBeenCalledWith('Scryfall /cards/collection returned 429 for 2 identifiers');
+    warn.mockRestore();
+  });
+});
+
 describe('lookupCardsCached', () => {
   it('memoizes found cards for the session but never unknown ones', async () => {
     fetchMock.mockImplementation((url: string) =>
