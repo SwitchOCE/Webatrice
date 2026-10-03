@@ -1,2 +1,3 @@
 - 15:26Z started rv6 → fetch branches, clone cockatrice
 - 15:27Z diffs fetched, 3 parallel reviewers launched (PR19/21/20) → verify + assemble reviews/rv6.md
+- 15:33Z PR20 review done (ready after fixes, 6 majors) → waiting PR19/21
