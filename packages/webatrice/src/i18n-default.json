@@ -1176,6 +1176,8 @@
     "copied": "Copied",
     "createFailed": "Failed to create the share link (server response code {code}).",
     "notConnected": "You must be connected to the server to share a deck.",
+    "notSupported": "This server does not support deck share links or public decks.",
+    "noServer": "This session's server is not known, so a share link for it can't be made.",
     "emptyDeck": "The deck is empty. Add cards before sharing it.",
     "visibilityFailed": "Failed to change deck visibility on server (response code {code}).",
     "error": "Error",

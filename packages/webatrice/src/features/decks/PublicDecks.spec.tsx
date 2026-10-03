@@ -66,6 +66,7 @@ describe('PublicDecks', () => {
   it('asks nothing of a server without public decks', () => {
     const { webClient } = renderPage(connectedState);
     expect(webClient.request.session.deckListOtherUser).not.toHaveBeenCalled();
-    expect(screen.getByText('PublicDecks.empty')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('DeckSharing.notSupported');
+    expect(screen.queryByText('PublicDecks.empty')).toBeNull();
   });
 });
