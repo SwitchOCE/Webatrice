@@ -21,6 +21,7 @@ export default function PileCardMenu() {
     graveDisplayList,
     menuOwnerId,
     pileCardMenu,
+    relatedViewItemsFor,
     setDrawArrowPending,
     shortcutHints,
   } = usePlayerSeatContext();
@@ -112,6 +113,7 @@ export default function PileCardMenu() {
             shortcut: shortcutHints['game.selectColumnBattlefield'],
             onClick: () => selectPileCards(pileCardMenu.columnCardIds),
           },
+          ...relatedViewItemsFor(pileCardMenu.cardName),
         ];
         return (
           <CardMenuPopup

@@ -22,6 +22,7 @@ export default function StackCardMenu() {
     cardMetaByName,
     closeSeatCardMenu,
     isSelf,
+    relatedViewItemsFor,
     selection,
     setAttachExtraSourceIds,
     setAttachPending,
@@ -107,6 +108,7 @@ export default function StackCardMenu() {
                 close();
               },
             },
+            ...(card ? relatedViewItemsFor(card.name) : []),
             // Related "Token: …" items — same as the battlefield
             // menu. Fires as the LOCAL player so the token lands on
             // OUR side even when right-clicking an opponent's stack
@@ -288,6 +290,7 @@ export default function StackCardMenu() {
               close();
             },
           },
+          ...(card ? relatedViewItemsFor(card.name) : []),
           // Related "Token: …" items — same block as the battlefield
           // menu. Divider prefix when non-empty, otherwise omitted so
           // there's no dangling separator at the bottom of the menu.

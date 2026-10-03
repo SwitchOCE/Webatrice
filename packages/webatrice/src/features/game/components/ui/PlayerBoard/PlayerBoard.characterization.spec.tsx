@@ -223,7 +223,6 @@ describe('PlayerBoard characterization — menu trees', () => {
       'Reduce life by power',
       'Select All',
       'Select Row',
-      'View related cards',
     ]);
     await dismissMenus();
   });
