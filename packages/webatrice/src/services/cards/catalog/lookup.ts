@@ -1,5 +1,5 @@
 import { currentCardDataPreferences, type CardDataPreferences } from '../../cardDatabase';
-import { fetchCollection, fetchNamedCard, fetchPrintings, SCRYFALL_NAMED_RETRY_CAP } from '../../scryfall';
+import { fetchCollection, fetchNamedCard, fetchPrintings, SCRYFALL_NAMED_RETRY_CAP } from '../../scryfall/client';
 import { bulkGetFromDexie, dexieToLookup, getFromDexie } from './dexieCardMapper';
 import {
   bulkGetFromScryfallCache,

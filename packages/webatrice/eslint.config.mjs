@@ -6,6 +6,18 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import i18next from 'eslint-plugin-i18next';
 import { boundariesConfig } from './eslint.boundaries.mjs';
 
+const WEB_CLIENT_IMPORT = {
+  name: '@cockatrice/sockatrice',
+  importNames: ['WebClient'],
+  message: 'UI/store/feature code must use useWebClient() from `@cockatrice/datatrice/react` for runtime WebClient access. For type-only references, use `import type { WebClient } from "@cockatrice/sockatrice"`.',
+  allowTypeImports: true,
+};
+
+const SCRYFALL_CLIENT_IMPORT = {
+  group: ['**/scryfall/client'],
+  message: 'The raw Scryfall client bypasses the card catalog\'s cache, session memo and retry cap. Look cards up through the catalog (`lookupCard`, `lookupCards`, …) and build image URLs with the `getScryfallUrl*` builders from `@app/services`.',
+};
+
 export default tseslint.config(
   // Global ignores
   { ignores: ['node_modules/**', 'build/**'] },
@@ -36,17 +48,21 @@ export default tseslint.config(
   // everywhere. Other Sockatrice exports are unrestricted. Integration
   // tests are exempt. Datatrice's WebClientProvider is the sole
   // construction site, and it lives outside this repo.
+  //
+  // Internal boundary: only the card catalog and the two deck modules that
+  // batch their own collection requests (pricing, bracket sources) may use
+  // the raw Scryfall client in services/scryfall/client.ts.
   {
     rules: {
       '@typescript-eslint/no-restricted-imports': ['error', {
-        paths: [{
-          name: '@cockatrice/sockatrice',
-          importNames: ['WebClient'],
-          message: 'UI/store/feature code must use useWebClient() from `@cockatrice/datatrice/react` for runtime WebClient access. For type-only references, use `import type { WebClient } from "@cockatrice/sockatrice"`.',
-          allowTypeImports: true,
-        }],
+        paths: [WEB_CLIENT_IMPORT],
+        patterns: [SCRYFALL_CLIENT_IMPORT],
       }],
     },
+  },
+  {
+    files: ['src/services/cards/catalog/**', 'src/features/decks/pricing.ts', 'src/features/decks/bracketSources.ts'],
+    rules: { '@typescript-eslint/no-restricted-imports': ['error', { paths: [WEB_CLIENT_IMPORT] }] },
   },
   { files: ['integration/**'], rules: { '@typescript-eslint/no-restricted-imports': 'off' } },
 
