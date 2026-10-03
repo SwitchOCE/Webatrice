@@ -134,6 +134,8 @@ export interface ISessionResponse {
   deleteServerDeck(deckId: number): void;
   updateServerDecks(deckList: Response_DeckList): void;
   uploadServerDeck(path: string, treeItem: ServerInfo_DeckStorage_TreeItem): void;
+  updateServerDeck(deckId: number, treeItem: ServerInfo_DeckStorage_TreeItem | undefined): void;
+  updateServerDeckFailed(deckId: number, responseCode: number, failure?: CommandFailure): void;
   downloadServerDeck(deckId: number, response: Response_DeckDownload, requestId?: RequestId): void;
   createServerDeckDir(path: string, dirName: string): void;
   deleteServerDeckDir(path: string): void;

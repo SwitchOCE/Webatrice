@@ -46,6 +46,7 @@ const SignalActions = {
   deckDownloadFailed: createAction<CommandFailedPayload & { deckId: number }>('server/deckDownloadFailed'),
   deckUploadFailed: createAction<CommandFailedPayload & { path: string }>('server/deckUploadFailed'),
   replayListFailed: createAction<CommandFailedPayload>('server/replayListFailed'),
+  deckUpdateFailed: createAction<CommandFailedPayload & { deckId: number }>('server/deckUpdateFailed'),
 };
 
 export const Actions = { ...serverSlice.actions, ...SignalActions };
