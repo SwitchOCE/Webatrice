@@ -45,7 +45,7 @@ const Account = () => {
       <div className="account-column">
         <Paper className="account-list">
           <div>
-            Buddies Online: ?/{buddyList.length}
+            {t('Account.buddies.online', { total: buddyList.length })}
           </div>
           <VirtualList
             items={buddyList.map(user => (
@@ -55,14 +55,14 @@ const Account = () => {
             ))}
           />
           <div style={{ borderTop: '1px solid' }}>
-            <AddUserForm label="Add to Buddies" onSubmit={handleAddToBuddies} />
+            <AddUserForm label={t('Account.buddies.add')} onSubmit={handleAddToBuddies} />
           </div>
         </Paper>
       </div>
       <div className="account-column">
         <Paper className="account-list scrollable">
           <div>
-            Ignored Users Online: ?/{ignoreList.length}
+            {t('Account.ignored.online', { total: ignoreList.length })}
           </div>
           <VirtualList
             items={ignoreList.map(user => (
@@ -72,7 +72,7 @@ const Account = () => {
             ))}
           />
           <div style={{ borderTop: '1px solid' }}>
-            <AddUserForm label="Add to Ignore" onSubmit={handleAddToIgnore} />
+            <AddUserForm label={t('Account.ignored.add')} onSubmit={handleAddToIgnore} />
           </div>
         </Paper>
       </div>
@@ -80,10 +80,10 @@ const Account = () => {
         <Paper className="account-details" style={{ margin: '0 0 5px 0' }}>
           {avatarUrl && <img src={avatarUrl} alt={name} />}
           <p><strong>{name}</strong></p>
-          <p>Location: ({country?.toUpperCase()})</p>
-          <p>User Level: {userLevel}</p>
-          <p>Account Age: {String(accountageSecs)}</p>
-          <p>Real Name: {realName}</p>
+          <p>{t('Account.details.location', { country: country?.toUpperCase() })}</p>
+          <p>{t('Account.details.userLevel', { userLevel })}</p>
+          <p>{t('Account.details.accountAge', { accountAge: String(accountageSecs) })}</p>
+          <p>{t('Account.details.realName', { realName })}</p>
           <div className="account-details__actions">
             <Button size="small" color="primary" variant="contained" onClick={() => setOpenDialog('edit')}>
               {t('Account.action.edit')}
@@ -107,8 +107,8 @@ const Account = () => {
 
         </Paper>
         <Paper className="account-details">
-          <p>Server Name: {serverName}</p>
-          <p>Server Version: {serverVersion}</p>
+          <p>{t('Account.server.name', { serverName })}</p>
+          <p>{t('Account.server.version', { serverVersion })}</p>
           <Button color="primary" variant="contained" onClick={handleDisconnect}>
             {t('Common.disconnect')}
           </Button>
