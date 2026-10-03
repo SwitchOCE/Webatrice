@@ -12,6 +12,7 @@ import { UserGamesProvider } from '@app/feature-widgets/user-games';
 import { loadPersistedLastRoute, ShellLifecycleProvider } from '@app/feature-wrappers/layout';
 import { PrivateMessageNotifier } from '@app/features/player';
 import { CommandFailureNotices, FeatureDetection, ServerNotices } from '@app/features/shell';
+import { AppAlerts } from '@app/features/shell';
 import { appShellLifecycle } from './appShellLifecycle';
 
 // CssBaseline removed: it was MUI's global body reset (font, color,
@@ -51,6 +52,8 @@ function AppShell() {
                *  useLocation work; inside ToastProvider so pushToast
                *  is available. */}
               <PrivateMessageNotifier />
+              {/* Sounds and notifications for game, room and buddy events. */}
+              <AppAlerts />
               {/* Error dialogs for commands whose UI has moved on before the
                *  server answers (join room, create game, deck upload). Renders
                *  nothing until one fails. */}
