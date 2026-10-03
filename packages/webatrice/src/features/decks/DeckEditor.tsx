@@ -38,12 +38,9 @@ import {
 import { AuthGuard } from '@app/components';
 import { Layout } from '@app/feature-wrappers/layout';
 import {
-  MTG_FORMAT_LABELS,
-  MTG_FORMATS,
   RouteEnum,
   isCommanderFormat,
   isMtgFormat,
-  normalizeFormat,
   type BracketAssessment,
   type DeckCategory,
 } from '@app/types';
@@ -84,6 +81,7 @@ import { MANA_COLORS, MANA_COLOR_LABEL, manaCostTokens, manaSymbolUrl } from './
 import { previewImageUrls, upgradeScryfallImageSize } from './scryfallImage';
 import { useDeckEditor, type SaveState } from './useDeckEditor';
 import { SELECT_CHEVRON_BACKGROUND } from './selectChevron';
+import { FormatPicker } from './components/FormatPicker';
 
 const TEXT_INPUT_CLASS =
   'w-full bg-bg-base border border-border-subtle rounded-md px-2 py-1 text-xs '
@@ -397,7 +395,7 @@ function DeckSidebar({
           <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
             Format
           </span>
-          <SidebarFormatPicker value={deck.format} onChange={onFormatChange} />
+          <FormatPicker value={deck.format} onChange={onFormatChange} variant="sidebar" />
         </div>
 
         <div className="mt-3 space-y-2">
@@ -431,76 +429,6 @@ function DeckSidebar({
         <div className="flex-1 min-h-0 overflow-y-auto p-6" />
       )}
     </aside>
-  );
-}
-
-/** Compact format picker rendered inline in the sidebar. Same options
- *  as the create/import modals' `FormatPicker` but stripped down for
- *  the tight sidebar column. Delegates full picker semantics (Other +
- *  custom text) via a small popover-less two-row layout. */
-function SidebarFormatPicker({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  const normalized = value.trim().toLowerCase();
-  const isKnown = MTG_FORMATS.includes(normalized);
-  // See FormatPicker in Decks.tsx for why this local flag is needed:
-  // an empty value alone can't distinguish "user picked Other and
-  // hasn't typed" from "no format selected, default to Commander".
-  const [otherMode, setOtherMode] = useState(() => !isKnown && normalized !== '');
-
-  const inOtherMode = otherMode || (!isKnown && normalized !== '');
-  const dropdownValue = inOtherMode ? 'other' : (isKnown ? normalized : 'commander');
-
-  return (
-    <div className="mt-1 space-y-1.5">
-      <select
-        value={dropdownValue}
-        onChange={(e) => {
-          const next = e.target.value;
-          if (next === 'other') {
-            setOtherMode(true);
-            onChange('');
-          } else {
-            setOtherMode(false);
-            onChange(next);
-          }
-        }}
-        className={[
-          'w-full appearance-none bg-bg-base border border-border-subtle rounded-md pl-2 pr-7',
-          'py-1 text-xs text-text-primary focus:outline-none focus:border-accent transition-colors',
-        ].join(' ')}
-        style={{
-          backgroundImage: SELECT_CHEVRON_BACKGROUND,
-          backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'right 6px center',
-        }}
-      >
-        {MTG_FORMAT_LABELS.map((f) => (
-          <option key={f.value} value={f.value}>{f.label}</option>
-        ))}
-        <option value="other">Other</option>
-      </select>
-      {inOtherMode && (
-        <input
-          type="text"
-          value={isKnown ? '' : value}
-          onChange={(e) => {
-            const next = e.target.value;
-            onChange(next);
-            if (MTG_FORMATS.includes(normalizeFormat(next))) {
-              setOtherMode(false);
-            }
-          }}
-          placeholder="e.g. Netrunner, Playtest"
-          maxLength={60}
-          className={TEXT_INPUT_CLASS}
-        />
-      )}
-    </div>
   );
 }
 

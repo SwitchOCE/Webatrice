@@ -6,7 +6,8 @@ import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { emptyCod } from '@app/services';
 
 import { renderWithProviders, connectedState, createMockWebClient } from '../../__test-utils__';
-import { clearDeckEditorCache, useDeckEditor, type UseDeckEditor } from './useDeckEditor';
+import { clearDeckEditorCache } from './deckEditorCache';
+import { useDeckEditor, type UseDeckEditor } from './useDeckEditor';
 
 // Covers how the editor settles when the server never answers (or rejects)
 // its download and autosave commands; the happy path is exercised through
