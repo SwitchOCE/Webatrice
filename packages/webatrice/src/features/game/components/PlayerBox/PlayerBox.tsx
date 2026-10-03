@@ -58,6 +58,7 @@ import { ShortcutScope, useShortcut, useShortcutHints } from '@app/feature-widge
 import type { ActionId } from '@app/feature-widgets/shortcuts';
 import { isFilterEmpty, matchCard, parseCardFilter, type CardFilter, type FilterableCard } from '../../utils/cardFilter';
 import { buildArrowGeometry } from '../arrows/GameArrowOverlay/arrowPath';
+import { planHandReorder } from './handReorder';
 import { ArrowColor, rgbaToCss } from '@app/types';
 import {
   lookupCard,
@@ -5311,7 +5312,8 @@ function PlayerBox(
 
   // Move a group of cards from their source zone to the resolved drop
   // target. Handles both single-card and group drags. Same-zone drops are
-  // no-ops except battlefield (re-slot), hand, and library reveal reorders.
+  // no-ops except battlefield (re-slot), hand (reorder), and library
+  // reveal reorders.
   //
   // `sourcePlayerId` defaults to the local player. Set only when the
   // drag started from another player's zone that they lent us (via
@@ -5384,8 +5386,36 @@ function PlayerBox(
     if (target.zone === 'stack' && sourceZone === 'stack') {
       return;
     }
-    // Hand reorders use the normal wire path below: target.index already
-    // excludes the dragged cards and is the post-removal insertion position.
+    // Hand reorders: target.index is the slot among the hand cards not
+    // being dragged (only the hand strip yields a hand→hand target; the
+    // hand viewer resolves none). planHandReorder turns it into one
+    // single-card command per dragged card so a group keeps its order.
+    if (target.zone === 'hand' && sourceZone === 'hand') {
+      if (onMoveCard && playerId != null) {
+        const plan = planHandReorder(
+          handDisplayList.map((c) => c.id),
+          cards.map((c) => c.id),
+          target.index,
+        );
+        for (const { cardId, x } of plan) {
+          const wireId = Number(cardId);
+          if (!Number.isFinite(wireId)) {
+            continue;
+          }
+          onMoveCard({
+            startPlayerId: playerId,
+            startZone: ZoneName.HAND,
+            cardsToMove: { card: [{ cardId: wireId }] },
+            targetPlayerId: playerId,
+            targetZone: ZoneName.HAND,
+            x,
+            y: 0,
+            isReversed: false,
+          });
+        }
+      }
+      return;
+    }
     // Same-zone drops for the remaining zones are no-ops — EXCEPT a
     // library→library drop that landed on the zone-reveal dialog: that's
     // a reorder within the visible reveal, which we forward as
@@ -5401,7 +5431,6 @@ function PlayerBox(
       target.zone === sourceZone &&
       target.zone !== 'battlefield' &&
       target.zone !== 'stack' &&
-      target.zone !== 'hand' &&
       !isLibraryRevealReorder
     ) {
       return;

@@ -29,6 +29,11 @@ function drag(from: HTMLElement, fromX: number, toX: number, toY = 550, init: Pa
   fireEvent.pointerUp(window, { clientX: toX, clientY: toY });
 }
 
+function click(card: HTMLElement, x: number, init: Partial<PointerEventInit> = {}) {
+  fireEvent.pointerDown(card, { button: 0, clientX: x, clientY: 550, ...init });
+  fireEvent.pointerUp(window, { clientX: x, clientY: 550, ...init });
+}
+
 function deliverEcho(cardId: number, x: number) {
   // Servatrice omits target_zone for a same-zone move.
   act(() => deliverMessage(buildGameEventMessage({
@@ -111,6 +116,25 @@ describe('Hand drag reorder', () => {
     expect(commands).toHaveLength(1);
     expect(commands[0].value).toMatchObject({ cardsToMove: { card: [{ cardId: 102 }] }, x: 1 });
     expect(handOrder()).toEqual(['101', '102', '103']);
+  });
+
+  it('keeps a two-card group in order by sending one command per card', async () => {
+    const cards = await renderHand();
+    click(cards[0], 140);
+    click(cards[1], 240, { ctrlKey: true });
+
+    drag(cards[0], 140, 390);
+
+    const commands = findAllGameCommands(Command_MoveCard_ext);
+    expect(commands.map((command) => command.value)).toMatchObject([
+      { cardsToMove: { card: [{ cardId: 101 }] }, x: 2 },
+      { cardsToMove: { card: [{ cardId: 102 }] }, x: 2 },
+    ]);
+    expect(handOrder()).toEqual(['103', '101', '102']);
+
+    deliverEcho(101, 2);
+    deliverEcho(102, 2);
+    expect(handOrder()).toEqual(['103', '101', '102']);
   });
 
   it('sends nothing when a hand card is dropped on the hand viewer', async () => {
