@@ -11,7 +11,7 @@ import { RoomCommands, SessionCommands } from '../../src';
 import { DEFAULT_COMMAND_TIMEOUT_MS } from '../../src/services/ProtobufService';
 import { WebsocketTypes } from '../../src/types';
 
-import { connectAndLogin, getMockResponse, getMockWebSocket } from '../../src/testing/setup';
+import { connectAndHandshake, connectAndLogin, connectRaw, getMockResponse, getMockWebSocket, getWebClient } from '../../src/testing/setup';
 import { buildResponse, buildResponseMessage, deliverMessage } from '../../src/testing/protobuf-builders';
 import { findLastRoomCommand, findLastSessionCommand } from '../../src/testing/command-capture';
 
@@ -66,5 +66,24 @@ describe('command outcomes', () => {
     // The deadline was cancelled with the command: no second outcome later.
     vi.advanceTimersByTime(DEFAULT_COMMAND_TIMEOUT_MS);
     expect(getMockResponse().room.setJoinGameError).toHaveBeenCalledTimes(1);
+  });
+
+  // connect() over an open socket retires it without an onclose. The old
+  // session's commands must settle there and then, not time out into the new one.
+  it('settles commands in flight when connect() replaces an open socket', () => {
+    connectAndHandshake();
+    expect(() => findLastSessionCommand(Data.Command_Login_ext)).not.toThrow();
+
+    connectRaw();
+    expect(getMockResponse().session.loginFailed).toHaveBeenCalledTimes(1);
+    const status = getWebClient().status;
+
+    vi.advanceTimersByTime(DEFAULT_COMMAND_TIMEOUT_MS);
+    expect(getMockResponse().session.loginFailed).toHaveBeenCalledTimes(1);
+    expect(getWebClient().status).toBe(status);
+    expect(getMockResponse().session.updateStatus).not.toHaveBeenCalledWith(
+      WebsocketTypes.StatusEnum.DISCONNECTED,
+      'Login failed: the server did not respond',
+    );
   });
 });
