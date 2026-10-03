@@ -36,7 +36,7 @@ describe('ShareDeckDialog', () => {
   it('shows the created link, its expiry and whether it was copied', () => {
     renderDialog({ status: 'created', link: 'https://x/#share=t', expiresAt: 1800000000n, itemCount: 1, copied: true });
     expect(screen.getByText('DeckSharing.createdCopied')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('https://x/#share=t')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'DeckSharing.linkLabel' })).toHaveValue('https://x/#share=t');
     expect(screen.getByText('DeckSharing.expires')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /DeckSharing.create/ })).toBeNull();
     expect(screen.getByRole('button', { name: 'DeckSharing.close' })).toBeInTheDocument();
