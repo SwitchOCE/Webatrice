@@ -29,17 +29,22 @@ describe('publicServerOptions', () => {
     expect(option.unavailableReason).toBe('noWebSocket');
   });
 
-  it('offers WebSocket-capable servers', () => {
-    const [option] = publicServerOptions([server({})], []);
+  it('marks servers whose WebSocket port is not 443 as unavailable, since desktop dials them over plain ws', () => {
+    const [option] = publicServerOptions([server({ websocketPort: '4748' })], []);
+    expect(option.unavailableReason).toBe('noSecureWebSocket');
+  });
+
+  it('offers servers with a secure WebSocket port', () => {
+    const [option] = publicServerOptions([server({ websocketPort: '443' })], []);
     expect(option.unavailableReason).toBeNull();
   });
 });
 
 describe('toSavedHost', () => {
-  it('saves the server on its WebSocket port as a user-editable host', () => {
+  it('saves the server with desktop\'s /servatrice path on its WebSocket port as a user-editable host', () => {
     expect(toSavedHost(server({ name: 'New', host: 'new.example', websocketPort: '443' }))).toEqual({
       name: 'New',
-      host: 'new.example',
+      host: 'new.example/servatrice',
       port: '443',
       editable: true,
     });

@@ -42,6 +42,7 @@ describe('KnownHosts public servers', () => {
         { name: 'Rooster Ranges', host: 'server.cockatrice.us', port: '4747', websocketPort: '443', isInactive: false },
         { name: 'Fresh', host: 'fresh.example', port: '4747', websocketPort: '443', location: 'USA', isInactive: false },
         { name: 'Desktop Only', host: 'tcp.example', port: '4747', isInactive: false },
+        { name: 'Plain WS', host: 'ws.example', port: '4747', websocketPort: '4748', isInactive: false },
         { name: 'Gone', host: 'gone.example', isInactive: true },
       ],
     });
@@ -63,6 +64,9 @@ describe('KnownHosts public servers', () => {
     const desktopOnly = screen.getByRole('button', { name: /Desktop Only/ });
     expect(desktopOnly).toBeDisabled();
     expect(desktopOnly).toHaveTextContent('KnownHosts.public.unavailable.noWebSocket');
+    const plainWs = screen.getByRole('button', { name: /Plain WS/ });
+    expect(plainWs).toBeDisabled();
+    expect(plainWs).toHaveTextContent('KnownHosts.public.unavailable.noSecureWebSocket');
     expect(screen.queryByRole('button', { name: /Rooster Ranges/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Gone/ })).not.toBeInTheDocument();
   });
@@ -75,7 +79,7 @@ describe('KnownHosts public servers', () => {
       fireEvent.click(screen.getByRole('button', { name: /Fresh/ }));
     });
 
-    expect(hook.add).toHaveBeenCalledWith({ name: 'Fresh', host: 'fresh.example', port: '443', editable: true });
+    expect(hook.add).toHaveBeenCalledWith({ name: 'Fresh', host: 'fresh.example/servatrice', port: '443', editable: true });
     expect(hook.select).toHaveBeenCalledWith(created.id);
     expect(onChange).toHaveBeenCalledWith(created);
   });

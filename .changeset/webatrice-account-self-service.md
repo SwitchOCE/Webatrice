@@ -14,8 +14,11 @@ Account self-service, server discovery and navigation now match desktop:
   with, held in memory only until activation finishes or is cancelled. An activation that times out or
   loses its connection says so instead of reporting a rejected token.
 - The host picker lists Cockatrice's public servers (the list desktop downloads), with a refresh
-  button and an offline fallback to the last download. Saved hosts are never overwritten; servers
-  without a WebSocket port are shown disabled as desktop-only.
+  button and an offline fallback to the last download. Saved hosts are never overwritten. A picked
+  server is saved as `host/servatrice` on port 443 and dials `wss://host/servatrice`, the endpoint
+  desktop opens on that port; servers without a WebSocket port on 443 are shown disabled as
+  desktop-only, since desktop reaches any other WebSocket port over plain `ws://`, which an https page
+  cannot open.
 - The user menu reaches Account, Settings, Shortcuts, Logs (moderators and developers) and card
   import. Developers who are not moderators search the logs through the developer command family,
   without the IP filter and Private Chat, as on desktop. Its
