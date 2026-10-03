@@ -28,6 +28,7 @@ import {
   type PasswordResetConnectOptions,
 } from '../../types/ConnectOptions';
 import { StatusEnum } from '../../types/StatusEnum';
+import { CommandFailure } from '../../services/command-options';
 import {
   Command_Activate_ext,
   Command_ForgotPasswordChallenge_ext,
@@ -276,6 +277,22 @@ describe('login', () => {
     expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledWith(Response_ResponseCode.RespServerFull);
     expect(SessionIndexMocks.disconnect).toHaveBeenCalled();
   });
+
+  it('a timed-out login fails with a no-response message and disconnects', () => {
+    login(makeLoginOpts(), 'pw');
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Timeout);
+    expect(SessionIndexMocks.updateStatus).toHaveBeenCalledWith(StatusEnum.DISCONNECTED, 'Login failed: the server did not respond');
+    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalled();
+    expect(SessionIndexMocks.disconnect).toHaveBeenCalled();
+  });
+
+  it('a login cut off by a disconnect settles the form but leaves the status to the disconnect', () => {
+    login(makeLoginOpts(), 'pw');
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    expect(WebClient.instance.response.session.loginFailed).toHaveBeenCalledTimes(1);
+    expect(SessionIndexMocks.updateStatus).not.toHaveBeenCalled();
+    expect(SessionIndexMocks.disconnect).not.toHaveBeenCalled();
+  });
 });
 
 describe('register', () => {
@@ -384,6 +401,21 @@ describe('register', () => {
     invokeOnError();
     expect(WebClient.instance.response.session.registrationFailed).toHaveBeenCalled();
   });
+
+  it('a timed-out registration reports the missing response and disconnects', () => {
+    register(makeRegisterOpts(), 'pw');
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Timeout);
+    expect(WebClient.instance.response.session.registrationFailed).toHaveBeenCalledWith('The server did not respond. Please try again.');
+    expect(SessionIndexMocks.disconnect).toHaveBeenCalled();
+  });
+
+  it('a registration cut off by a disconnect reports the lost connection without disconnecting again', () => {
+    register(makeRegisterOpts(), 'pw');
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    expect(WebClient.instance.response.session.registrationFailed).toHaveBeenCalledWith('The connection to the server has been lost.');
+    expect(SessionIndexMocks.updateStatus).not.toHaveBeenCalled();
+    expect(SessionIndexMocks.disconnect).not.toHaveBeenCalled();
+  });
 });
 
 describe('activate', () => {
@@ -417,6 +449,14 @@ describe('activate', () => {
     invokeOnError();
     expect(WebClient.instance.response.session.accountActivationFailed).toHaveBeenCalled();
     expect(SessionIndexMocks.disconnect).toHaveBeenCalled();
+  });
+
+  it('an activation cut off by a disconnect settles the dialog without disconnecting again', () => {
+    activate(makeActivateOpts());
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    expect(WebClient.instance.response.session.accountActivationFailed).toHaveBeenCalled();
+    expect(SessionIndexMocks.updateStatus).not.toHaveBeenCalled();
+    expect(SessionIndexMocks.disconnect).not.toHaveBeenCalled();
   });
 });
 
@@ -551,6 +591,22 @@ describe('requestPasswordSalt', () => {
     requestPasswordSalt({ host: 'h', port: '1', userName: 'alice' }, onSaltReceived, onFailure);
     invokeOnError();
     expect(SessionIndexMocks.updateStatus).toHaveBeenCalled();
+    expect(onFailure).toHaveBeenCalled();
+  });
+
+  it('a timed-out salt request reports the missing response', () => {
+    const onFailure = vi.fn();
+    requestPasswordSalt({ host: 'h', port: '1', userName: 'alice' }, vi.fn(), onFailure);
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Timeout);
+    expect(SessionIndexMocks.updateStatus).toHaveBeenCalledWith(StatusEnum.DISCONNECTED, 'Login failed: the server did not respond');
+    expect(onFailure).toHaveBeenCalled();
+  });
+
+  it('a salt request cut off by a disconnect only settles the caller', () => {
+    const onFailure = vi.fn();
+    requestPasswordSalt({ host: 'h', port: '1', userName: 'alice' }, vi.fn(), onFailure);
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    expect(SessionIndexMocks.updateStatus).not.toHaveBeenCalled();
     expect(onFailure).toHaveBeenCalled();
   });
 });

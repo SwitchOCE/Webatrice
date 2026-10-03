@@ -199,7 +199,10 @@ export class WebClient {
   public updateStatus(status: StatusEnum): void {
     this.status = status;
 
-    if (status === StatusEnum.DISCONNECTED) {
+    // A command in flight on a socket that has closed can never be answered:
+    // a reconnect opens a fresh server session. Fail them now (desktop's
+    // doDisconnectFromServer) instead of leaving their callers waiting.
+    if (status === StatusEnum.DISCONNECTED || status === StatusEnum.RECONNECTING) {
       this.protobuf.resetCommands();
     }
   }
