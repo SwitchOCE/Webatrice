@@ -77,3 +77,22 @@ export const bootThemeMode = (): ThemeMode => readBootThemeMode() ?? ThemeMode.D
 export function bootColorScheme(): void {
   applyColorScheme(resolveColorScheme(bootThemeMode(), systemColorScheme()));
 }
+
+/**
+ * Keeps the boot palette current in a window that never loads settings (the card-preview popup):
+ * re-applies it when another window mirrors a new mode, or when the system switches in System
+ * mode. Returns the function that stops following.
+ */
+export function followBootColorScheme(): () => void {
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === THEME_MODE_STORAGE_KEY) {
+      bootColorScheme();
+    }
+  };
+  window.addEventListener('storage', onStorage);
+  const unsubscribeSystem = subscribeToSystemColorScheme(bootColorScheme);
+  return () => {
+    window.removeEventListener('storage', onStorage);
+    unsubscribeSystem();
+  };
+}
