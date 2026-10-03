@@ -49,12 +49,23 @@ describe('zoneViewSort', () => {
       ['type', ['Mystery', 'Forest', 'Grizzly Bears', 'Ancient Elk', 'Tarmogoyf', 'Lightning Bolt']],
       ['color', ['Forest', 'Mystery', 'Grizzly Bears', 'Tarmogoyf', 'Lightning Bolt', 'Ancient Elk']],
       ['set', ['Mystery', 'Tarmogoyf', 'Lightning Bolt', 'Ancient Elk', 'Forest', 'Grizzly Bears']],
-      // Fixed P/T first, variable (*) after, non-creatures last. Two non-creatures
-      // compare as NaN (Infinity - Infinity), i.e. equal, so they keep their
-      // input order rather than falling back to the name.
-      ['pt', ['Grizzly Bears', 'Ancient Elk', 'Tarmogoyf', 'Lightning Bolt', 'Forest', 'Mystery']],
+      // Fixed P/T first, variable (*) after, non-creatures last and by name.
+      ['pt', ['Grizzly Bears', 'Ancient Elk', 'Tarmogoyf', 'Forest', 'Lightning Bolt', 'Mystery']],
     ] as const)('by %s', (mode: SortMode, names) => {
       expect([...ALL].sort((a, b) => compareCards(a, b, mode)).map((c) => c.name)).toEqual(names);
+    });
+  });
+
+  describe('compareCards by pt', () => {
+    it('orders non-creatures by name whatever the input order', () => {
+      const names = [UNKNOWN, BOLT, FOREST].sort((a, b) => compareCards(a, b, 'pt')).map((c) => c.name);
+      expect(names).toEqual(['Forest', 'Lightning Bolt', 'Mystery']);
+    });
+
+    it('breaks a name tie by set', () => {
+      const m10 = card('Forest', { set: 'm10' });
+      const lea = card('Forest', { set: 'lea' });
+      expect([m10, lea].sort((a, b) => compareCards(a, b, 'pt'))).toEqual([lea, m10]);
     });
   });
 
