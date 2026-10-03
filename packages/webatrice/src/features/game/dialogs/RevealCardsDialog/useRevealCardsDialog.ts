@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import type { RevealCardsSubmit } from './RevealCardsDialog';
+import { ALL_PLAYERS } from './revealRecipient';
 
 export interface RevealCardsDialogState {
   targetPlayerId: number;
@@ -20,7 +21,6 @@ export interface UseRevealCardsDialogArgs {
   onSubmit?: (args: RevealCardsSubmit) => void;
 }
 
-const ALL_PLAYERS = -1;
 
 export function useRevealCardsDialog({
   isOpen,

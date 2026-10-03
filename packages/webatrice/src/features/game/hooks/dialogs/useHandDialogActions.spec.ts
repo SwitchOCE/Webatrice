@@ -2,7 +2,7 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import { renderHook } from '@testing-library/react';
 
 import { makeDialogTestEnv, makeDialogTestGame, makeSetterSpies } from '../../__test-utils__/dialogTestEnv';
-import type { PromptState } from './gameDialogs.types';
+import type { PromptState, RevealState } from './gameDialogs.types';
 import { useHandDialogActions } from './useHandDialogActions';
 
 function setup({ canOpenMenus = true, hand = [7, 8, 9] } = {}) {
@@ -55,6 +55,20 @@ describe('useHandDialogActions', () => {
     expect(vi.mocked(webClient.request.game.moveCard).mock.calls.map(([, p]) => [p.cardsToMove, p.x])).toEqual([
       [{ card: [{ cardId: 7 }] }, -1],
       [{ card: [{ cardId: 8 }] }, -1],
+    ]);
+  });
+
+  it('reveals the hand to all players without a player id, or to the chosen player', () => {
+    const { result, set, webClient } = setup();
+
+    result.current.handleRequestRevealHand();
+    const reveal = set.setRevealState.mock.calls[0][0] as RevealState;
+    reveal.onSubmit({ targetPlayerId: -1, topCards: -1 });
+    reveal.onSubmit({ targetPlayerId: 2, topCards: -1 });
+
+    expect(vi.mocked(webClient.request.game.revealCards).mock.calls.map(([, p]) => p)).toEqual([
+      { zoneName: ZoneName.HAND, topCards: -1 },
+      { zoneName: ZoneName.HAND, playerId: 2, topCards: -1 },
     ]);
   });
 });

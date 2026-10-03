@@ -4,6 +4,7 @@ import { useCallback, useMemo } from 'react';
 import type { GameDialogsActions } from './gameDialogs.types';
 import type { GameDialogEnv } from './gameDialogEnv';
 import type { GameDialogSetters } from './useGameDialogState';
+import { revealRecipient } from '../../dialogs/RevealCardsDialog/revealRecipient';
 
 export type LibraryDialogActions = Pick<
   GameDialogsActions,
@@ -82,7 +83,7 @@ export function useLibraryDialogActions({ env, set }: UseLibraryDialogActionsArg
       onSubmit: ({ targetPlayerId, topCards }) => {
         webClient.request.game.revealCards(gameId, {
           zoneName: ZoneName.DECK,
-          playerId: targetPlayerId,
+          ...revealRecipient(targetPlayerId),
           topCards,
         });
         setRevealState(null);

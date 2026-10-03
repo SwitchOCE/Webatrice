@@ -8,6 +8,7 @@ import type { GameDialogEnv } from './gameDialogEnv';
 import type { GameDialogSetters } from './useGameDialogState';
 import { readShuffleOnClose } from '../../dialogs/ZoneViewDialog/zoneViewPreferences';
 import { isHiddenZone, offersShuffleOnClose } from '../../dialogs/ZoneViewDialog/zoneViewTarget';
+import { revealRecipient } from '../../dialogs/RevealCardsDialog/revealRecipient';
 
 export type ZoneDialogActions = Pick<
   GameDialogsActions,
@@ -161,7 +162,7 @@ export function useZoneDialogActions({
       onSubmit: ({ targetPlayerId }) => {
         webClient.request.game.revealCards(gameId, {
           zoneName,
-          playerId: targetPlayerId,
+          ...revealRecipient(targetPlayerId),
           topCards: -1,
         });
         setRevealState(null);
@@ -247,7 +248,7 @@ export function useZoneDialogActions({
         webClient.request.game.revealCards(gameId, {
           zoneName: sourceZoneName,
           cardId: [RANDOM_CARD_FROM_ZONE],
-          playerId: targetPlayerId,
+          ...revealRecipient(targetPlayerId),
           topCards: -1,
         });
         setRevealState(null);
