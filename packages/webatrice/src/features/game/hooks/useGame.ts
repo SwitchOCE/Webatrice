@@ -157,17 +157,10 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
     onRequestPlayTop: () => dialogs.handleRequestPlayTop(false),
     onRequestMoveTopToGrave: () => dialogs.handleRequestMoveTopCardToZone('grave'),
     onRequestMoveTopNToGrave: () => dialogs.handleRequestMoveTopNToZone('grave'),
-    // Esc close-recent-view: pops the topmost zone-view dialog if any
-    // exist. Returns whether it actually consumed the keystroke so the
-    // shortcut handler can decide to preventDefault or fall through.
-    onCloseRecentZoneView: () => {
-      const top = dialogs.zoneViews[dialogs.zoneViews.length - 1];
-      if (!top) {
-        return false;
-      }
-      dialogs.handleCloseZoneView(top.playerId, top.zoneName);
-      return true;
-    },
+    // Every zone view closes itself on Escape (ZoneViewPanel and
+    // ZoneRevealPanel listen for it, as the seat's viewers did), so one
+    // Esc closes them all and close-recent-view has nothing left to close.
+    onCloseRecentZoneView: () => false,
   });
 
   return {

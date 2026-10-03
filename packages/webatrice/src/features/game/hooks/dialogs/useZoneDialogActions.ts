@@ -6,9 +6,18 @@ import { useAppDispatch } from '@app/store';
 import type { GameDialogsActions, ZoneMenuState, ZoneViewTarget } from './gameDialogs.types';
 import type { GameDialogEnv } from './gameDialogEnv';
 import type { GameDialogSetters } from './useGameDialogState';
+import { readShuffleOnClose } from '../../dialogs/ZoneViewDialog/zoneViewPreferences';
+import { isHiddenZone, offersShuffleOnClose } from '../../dialogs/ZoneViewDialog/zoneViewTarget';
+
+const PILE_ZONES: ReadonlySet<string> = new Set([ZoneName.GRAVE, ZoneName.EXILE, ZoneName.HAND]);
+const isPileZone = (zoneName: string) => PILE_ZONES.has(zoneName);
 
 export type ZoneDialogActions = Pick<
   GameDialogsActions,
+  | 'openZoneView'
+  | 'openViewLibrary'
+  | 'openViewGraveyard'
+  | 'openViewSideboard'
   | 'handleZoneClick'
   | 'handleCloseZoneView'
   | 'handleZoneContextMenu'
@@ -23,6 +32,8 @@ export interface UseZoneDialogActionsArgs {
   env: GameDialogEnv;
   zoneViews: ZoneViewTarget[];
   zoneMenu: ZoneMenuState | null;
+  /** Whether the local user has a seat whose own zones the view shortcuts open. */
+  hasSeat: boolean;
   set: Pick<GameDialogSetters, 'setZoneViews' | 'setZoneMenu' | 'setRevealState'>;
   closeAllContextMenus: () => void;
 }
@@ -32,46 +43,81 @@ export function useZoneDialogActions({
   env,
   zoneViews,
   zoneMenu,
+  hasSeat,
   set,
   closeAllContextMenus,
 }: UseZoneDialogActionsArgs): ZoneDialogActions {
-  const { gameId, webClient, readGame } = env;
+  const { gameId, webClient, readGame, readLocalPlayer } = env;
   const { setZoneViews, setZoneMenu, setRevealState } = set;
   const dispatch = useAppDispatch();
 
-  const handleZoneClick = useCallback((playerId: number, zoneName: string) => {
+  // One view per zone. Re-opening the same view is a no-op (no re-dump); a
+  // different count of the same hidden zone replaces it and dumps afresh, as
+  // both read the zone's one revealed snapshot. A seat holds one pile view, so
+  // its graveyard, exile and hand views replace each other. Only the local
+  // player's hidden zones are dumped (Command_DumpZone; desktop actViewLibrary,
+  // actViewTopCards / actViewBottomCards, actViewSideboard).
+  const openZoneView = useCallback((view: ZoneViewTarget) => {
     const game = readGame();
-    const alreadyOpen = zoneViews.some((v) => v.playerId === playerId && v.zoneName === zoneName);
+    const sameZone = (v: ZoneViewTarget) => v.playerId === view.playerId && v.zoneName === view.zoneName;
+    const sameSlot = (v: ZoneViewTarget) =>
+      sameZone(v) || (v.playerId === view.playerId && isPileZone(v.zoneName) && isPileZone(view.zoneName));
+    const open = zoneViews.find(sameZone);
+    if (open && open.numberCards === view.numberCards && open.isReversed === view.isReversed) {
+      return;
+    }
     setZoneViews((prev) =>
-      alreadyOpen ? prev : [...prev, { playerId, zoneName }],
+      prev.some(sameSlot)
+        ? prev.map((v) => (sameSlot(v) ? view : v))
+        : [...prev, view],
     );
-    // Reveal the deck's hidden cards: dump the local player's library and let the
-    // Response_DumpZone card list flow into the store (read back via getRevealedCards).
-    // Re-opening an already-open view is a no-op (don't re-dump), matching desktop.
-    if (
-      !alreadyOpen &&
-      gameId != null &&
-      playerId === game?.localPlayerId &&
-      zoneName === ZoneName.DECK
-    ) {
-      webClient.request.game.dumpZone(gameId, { playerId, zoneName, numberCards: -1, isReversed: false });
+    if (gameId != null && view.playerId === game?.localPlayerId && isHiddenZone(view.zoneName)) {
+      webClient.request.game.dumpZone(gameId, {
+        playerId: view.playerId,
+        zoneName: view.zoneName,
+        numberCards: view.numberCards ?? -1,
+        isReversed: view.isReversed ?? false,
+      });
     }
   }, [zoneViews, gameId, readGame, webClient, setZoneViews]);
 
+  const handleZoneClick = useCallback(
+    (playerId: number, zoneName: string) => openZoneView({ playerId, zoneName }),
+    [openZoneView],
+  );
+
+  // The view shortcuts and sidebar buttons open the local seat's own zones.
+  const openOwnZoneView = useCallback((zoneName: string) => {
+    const playerId = readGame()?.localPlayerId;
+    if (hasSeat && playerId != null && readLocalPlayer() != null) {
+      openZoneView({ playerId, zoneName });
+    }
+  }, [hasSeat, readGame, readLocalPlayer, openZoneView]);
+  const openViewLibrary = useCallback(() => openOwnZoneView(ZoneName.DECK), [openOwnZoneView]);
+  const openViewGraveyard = useCallback(() => openOwnZoneView(ZoneName.GRAVE), [openOwnZoneView]);
+  const openViewSideboard = useCallback(() => openOwnZoneView(ZoneName.SIDEBOARD), [openOwnZoneView]);
+
+  // Closing a whole-library view shuffles it when "shuffle when closing" is
+  // on (desktop ZoneViewWidget::closeEvent); without an explicit answer (Esc)
+  // the remembered preference decides. A hidden zone's snapshot is dropped so
+  // a later view dumps it fresh (desktop zoneViewCleared).
   const handleCloseZoneView = useCallback((playerId: number, zoneName: string, shuffleOnClose?: boolean) => {
     const game = readGame();
+    const view = zoneViews.find((v) => v.playerId === playerId && v.zoneName === zoneName);
+    if (!view) {
+      return;
+    }
     setZoneViews((prev) =>
       prev.filter((v) => !(v.playerId === playerId && v.zoneName === zoneName)),
     );
-    // Closing a deck view shuffles the library (desktop "shuffle on close") and discards the
-    // revealed snapshot so a later view re-dumps fresh.
-    if (gameId != null && playerId === game?.localPlayerId && zoneName === ZoneName.DECK) {
-      if (shuffleOnClose) {
-        webClient.request.game.shuffle(gameId, { zoneName, start: 0, end: -1 });
-      }
-      dispatch(games.Actions.zoneViewCleared({ gameId, playerId, zoneName }));
+    if (gameId == null || playerId !== game?.localPlayerId || !isHiddenZone(zoneName)) {
+      return;
     }
-  }, [gameId, readGame, webClient, dispatch, setZoneViews]);
+    if (offersShuffleOnClose(view) && (shuffleOnClose ?? readShuffleOnClose())) {
+      webClient.request.game.shuffle(gameId, { zoneName, start: 0, end: -1 });
+    }
+    dispatch(games.Actions.zoneViewCleared({ gameId, playerId, zoneName }));
+  }, [zoneViews, gameId, readGame, webClient, dispatch, setZoneViews]);
 
   const handleZoneContextMenu = useCallback(
     (playerId: number, zoneName: string, event: React.MouseEvent) => {
@@ -217,6 +263,10 @@ export function useZoneDialogActions({
 
   return useMemo(
     () => ({
+      openZoneView,
+      openViewLibrary,
+      openViewGraveyard,
+      openViewSideboard,
       handleZoneClick,
       handleCloseZoneView,
       handleZoneContextMenu,
@@ -227,6 +277,10 @@ export function useZoneDialogActions({
       handleRequestRevealRandomFromZone,
     }),
     [
+      openZoneView,
+      openViewLibrary,
+      openViewGraveyard,
+      openViewSideboard,
       handleZoneClick,
       handleCloseZoneView,
       handleZoneContextMenu,
