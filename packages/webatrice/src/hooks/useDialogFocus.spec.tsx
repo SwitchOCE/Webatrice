@@ -185,7 +185,12 @@ describe('useDialogFocus', () => {
 
     await user.keyboard('{Escape}');
 
-    expect(screen.getByRole('main', { name: 'Page' })).toHaveFocus();
+    const main = screen.getByRole('main', { name: 'Page' });
+    expect(main).toHaveFocus();
+    // The tabindex that let it take focus goes once focus moves on.
+    await user.tab();
+    expect(main).not.toHaveFocus();
+    expect(main).not.toHaveAttribute('tabindex');
   });
 
   it('takes focus back when the focused control unmounts, so Escape still closes', async () => {
