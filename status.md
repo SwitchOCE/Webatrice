@@ -2,3 +2,4 @@
 - 16:09Z commit 0 (playerMenu.model extraction) pushed → §9 related cards
 - 16:15Z §9 related cards pushed (b6397fa) → §7 reveal to (hand card menu)
 - 16:28Z §7 reveal-to pushed → §8 hide
+- 16:35Z §8 hide pushed → §4 deck in editor
