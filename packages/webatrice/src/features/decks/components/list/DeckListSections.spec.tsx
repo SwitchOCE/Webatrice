@@ -4,8 +4,8 @@ import type { FlatDeck } from '../../deckTree';
 import { DeckListSections } from './DeckListSections';
 import { DeckListEmpty, DeckListLoading } from './DeckListStates';
 
-const burn: FlatDeck = { id: 1, name: 'Burn', path: '', creationTime: 0 };
-const elves: FlatDeck = { id: 2, name: 'Elves', path: '', creationTime: 0 };
+const burn: FlatDeck = { id: 1, name: 'Burn', path: '', creationTime: 0, visibility: 'private' };
+const elves: FlatDeck = { id: 2, name: 'Elves', path: '', creationTime: 0, visibility: 'private' };
 
 describe('DeckListSections', () => {
   it('titles each format section with its deck count and wires the rows', () => {

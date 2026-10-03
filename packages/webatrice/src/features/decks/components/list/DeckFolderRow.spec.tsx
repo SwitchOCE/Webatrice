@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 
 import { DeckFolderRow } from './DeckFolderRow';
 
-const folder = { name: 'Modern', path: 'Modern', deckCount: 3, folderCount: 1 };
+const folder = { name: 'Modern', path: 'Modern', deckCount: 3, folderCount: 1, visibility: 'private' as const };
 
 describe('DeckFolderRow', () => {
   it('opens, downloads and deletes the folder', () => {

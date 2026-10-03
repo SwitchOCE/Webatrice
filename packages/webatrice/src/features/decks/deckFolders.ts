@@ -1,6 +1,6 @@
 import type { ServerInfo_DeckStorage_Folder } from '@cockatrice/sockatrice/generated';
 
-import { flattenFolder, type FlatDeck } from './deckTree';
+import { deckVisibility, flattenFolder, type DeckVisibility, type FlatDeck } from './deckTree';
 
 /**
  * Folders of Servatrice deck storage, as desktop's remote tree in
@@ -18,6 +18,7 @@ export interface DeckFolderEntry {
   deckCount: number;
   /** Subfolders at any depth. */
   folderCount: number;
+  visibility: DeckVisibility;
 }
 
 export interface DeckFolderView {
@@ -45,6 +46,27 @@ export function deckPathCrumbs(path: string): { name: string; path: string }[] {
   }
   const segments = path.split('/');
   return segments.map((name, i) => ({ name, path: segments.slice(0, i + 1).join('/') }));
+}
+
+/** Whether `path` or a folder above it is public, so what it holds inherits it. */
+export function isUnderPublicFolder(root: ServerInfo_DeckStorage_Folder | undefined, path: string): boolean {
+  if (!root) {
+    return false;
+  }
+  let folder: ServerInfo_DeckStorage_Folder | undefined = root;
+  if (folder.isPublic) {
+    return true;
+  }
+  for (const segment of path ? path.split('/') : []) {
+    folder = folder?.items.find((item) => item.folder && item.name === segment)?.folder;
+    if (!folder) {
+      return false;
+    }
+    if (folder.isPublic) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /** The folder at `path`, or `undefined` when there is none. */
@@ -77,6 +99,7 @@ export function listDeckFolder(root: ServerInfo_DeckStorage_Folder | undefined, 
   if (!shown) {
     return { path: '', folders: [], decks: [] };
   }
+  const inherited = isUnderPublicFolder(root, shownPath);
   const folders: DeckFolderEntry[] = shown.items
     .filter((item) => item.folder)
     .map((item) => {
@@ -86,10 +109,11 @@ export function listDeckFolder(root: ServerInfo_DeckStorage_Folder | undefined, 
         path: childPath,
         deckCount: flattenFolder(item.folder!, childPath).length,
         folderCount: countFolders(item.folder!),
+        visibility: deckVisibility(item.folder!.isPublic, inherited),
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
-  const decks = flattenFolder({ ...shown, items: shown.items.filter((item) => !item.folder) }, shownPath)
+  const decks = flattenFolder({ ...shown, items: shown.items.filter((item) => !item.folder) }, shownPath, inherited)
     .sort((a, b) => b.creationTime - a.creationTime);
   return { path: shownPath, folders, decks };
 }
@@ -97,7 +121,7 @@ export function listDeckFolder(root: ServerInfo_DeckStorage_Folder | undefined, 
 /** Every deck at or below `path` — the scope of a folder delete or download. */
 export function decksUnderFolder(root: ServerInfo_DeckStorage_Folder | undefined, path: string): FlatDeck[] {
   const folder = findDeckFolder(root, path);
-  return folder ? flattenFolder(folder, path) : [];
+  return folder ? flattenFolder(folder, path, isUnderPublicFolder(root, parentDeckPath(path))) : [];
 }
 
 /** Every folder path, root first, for picking where a deck goes. */

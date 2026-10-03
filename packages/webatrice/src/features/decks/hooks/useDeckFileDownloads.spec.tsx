@@ -14,8 +14,8 @@ function Probe() {
   return null;
 }
 
-const burn = { id: 3, name: 'Burn', path: 'Modern', creationTime: 0 };
-const affinity = { id: 4, name: 'Affinity', path: 'Modern/Old', creationTime: 0 };
+const burn = { id: 3, name: 'Burn', path: 'Modern', creationTime: 0, visibility: 'private' as const };
+const affinity = { id: 4, name: 'Affinity', path: 'Modern/Old', creationTime: 0, visibility: 'private' as const };
 
 describe('deckFileName', () => {
   it('prefixes the folders below the downloaded one', () => {
