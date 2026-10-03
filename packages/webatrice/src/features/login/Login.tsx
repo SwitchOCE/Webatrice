@@ -65,7 +65,7 @@ const Login = () => {
           <Paper className="login-content">
             <div className="login-content__form">
               <div className="login-content__header">
-                <img src={Images.Logo} alt="logo" />
+                <img src={Images.Logo} alt="" />
                 <span>COCKATRICE</span>
               </div>
               <Typography variant="h1">{t('Login.header.title')}</Typography>
@@ -130,19 +130,19 @@ const Login = () => {
                 <div className="login-content__description-cards">
                   <div className="login-content__description-cards__card leftCard">
                     <div className="login-content__description-cards__card-wrapper">
-                      <img src={Images.Faces.face1} alt='Stock Player' />
+                      <img src={Images.Faces.face1} alt='' />
                       <span>1mrlee</span>
                     </div>
                   </div>
                   <div className="login-content__description-cards__card rightCard">
                     <div className="login-content__description-cards__card-wrapper">
-                      <img src={Images.Faces.face2} alt='Stock Player' />
+                      <img src={Images.Faces.face2} alt='' />
                       <span>CyberX</span>
                     </div>
                   </div>
                   <div className="login-content__description-cards__card topCard">
                     <div className="login-content__description-cards__card-wrapper">
-                      <img src={Images.Faces.face3} alt='Stock Player' />
+                      <img src={Images.Faces.face3} alt='' />
                       <span>Gamer69</span>
                     </div>
                   </div>

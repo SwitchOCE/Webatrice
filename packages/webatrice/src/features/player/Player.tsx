@@ -144,7 +144,7 @@ const Player = () => {
                     <img
                       className="player-view__country-flag"
                       src={Images.Countries[userInfo.country]}
-                      alt={countryCode}
+                      alt=""
                     />
                   )}
                   {countryCode || '—'}

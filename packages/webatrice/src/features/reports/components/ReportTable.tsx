@@ -38,6 +38,8 @@ interface ReportTableProps {
   columns: ReportColumn[];
   selectedId: number | null;
   onSelect: (reportId: number) => void;
+  /** Accessible name of the grid. */
+  label: string;
 }
 
 /**
@@ -47,7 +49,7 @@ interface ReportTableProps {
  * reports, one 100-row queue page), so rows render directly. Rows are a
  * keyboard grid like the QTableWidget: ↑/↓/Home/End move the selection.
  */
-export default function ReportTable({ reports, columns, selectedId, onSelect }: ReportTableProps) {
+export default function ReportTable({ reports, columns, selectedId, onSelect, label }: ReportTableProps) {
   const { t } = useTranslation();
   // No sort until a header is clicked: rows keep the server's newest-first order.
   const [sort, setSort] = useState<{ column: ReportColumn; ascending: boolean } | null>(null);
@@ -104,7 +106,7 @@ export default function ReportTable({ reports, columns, selectedId, onSelect }: 
 
   return (
     <div className="flex-1 min-h-0 overflow-auto rounded-md border border-border-subtle">
-      <table className="w-full text-sm text-left" role="grid">
+      <table className="w-full text-sm text-left" role="grid" aria-label={label}>
         <thead className="sticky top-0 bg-bg-elevated text-xs uppercase text-text-muted">
           <tr>
             {columns.map((column) => (

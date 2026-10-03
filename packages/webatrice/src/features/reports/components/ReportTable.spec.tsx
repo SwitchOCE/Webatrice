@@ -15,7 +15,7 @@ function rowIds() {
 
 describe('ReportTable', () => {
   it('renders the desktop My Reports columns and formats the cells', () => {
-    renderWithProviders(<ReportTable reports={rows} columns={MY_REPORT_COLUMNS} selectedId={null} onSelect={vi.fn()} />);
+    renderWithProviders(<ReportTable reports={rows} columns={MY_REPORT_COLUMNS} selectedId={null} onSelect={vi.fn()} label="Reports" />);
     expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(
       MY_REPORT_COLUMNS.map((c) => `Reports.column.${c}`),
     );
@@ -26,13 +26,13 @@ describe('ReportTable', () => {
   });
 
   it('shows replay and room in the queue columns', () => {
-    renderWithProviders(<ReportTable reports={rows} columns={QUEUE_COLUMNS} selectedId={null} onSelect={vi.fn()} />);
+    renderWithProviders(<ReportTable reports={rows} columns={QUEUE_COLUMNS} selectedId={null} onSelect={vi.fn()} label="Reports" />);
     expect(within(screen.getByTestId('report-row-5')).getByText('Reports.column.yes')).toBeTruthy();
     expect(within(screen.getByTestId('report-row-2')).getByText('Reports.column.no')).toBeTruthy();
   });
 
   it('keeps server order until a header is clicked, then toggles the direction', () => {
-    renderWithProviders(<ReportTable reports={rows} columns={MY_REPORT_COLUMNS} selectedId={null} onSelect={vi.fn()} />);
+    renderWithProviders(<ReportTable reports={rows} columns={MY_REPORT_COLUMNS} selectedId={null} onSelect={vi.fn()} label="Reports" />);
     expect(rowIds()).toEqual(['report-row-2', 'report-row-5']);
     fireEvent.click(screen.getByText('Reports.column.reportedUser'));
     expect(rowIds()).toEqual(['report-row-5', 'report-row-2']);
@@ -43,7 +43,7 @@ describe('ReportTable', () => {
   it('is a keyboard grid: one tab stop on the selected row, arrows and Home/End move the selection', () => {
     const onSelect = vi.fn();
     const { rerender } = renderWithProviders(
-      <ReportTable reports={rows} columns={QUEUE_COLUMNS} selectedId={null} onSelect={onSelect} />,
+      <ReportTable reports={rows} columns={QUEUE_COLUMNS} selectedId={null} onSelect={onSelect} label="Reports" />,
     );
     expect(screen.getByRole('grid')).toBeTruthy();
     // Nothing selected: the first row holds the tab stop.
@@ -55,7 +55,7 @@ describe('ReportTable', () => {
     fireEvent.keyDown(screen.getByTestId('report-row-2'), { key: 'ArrowDown' });
     expect(onSelect).toHaveBeenLastCalledWith(5);
 
-    rerender(<ReportTable reports={rows} columns={QUEUE_COLUMNS} selectedId={5} onSelect={onSelect} />);
+    rerender(<ReportTable reports={rows} columns={QUEUE_COLUMNS} selectedId={5} onSelect={onSelect} label="Reports" />);
     expect(screen.getByTestId('report-row-5').tabIndex).toBe(0);
     expect(document.activeElement).toBe(screen.getByTestId('report-row-5'));
     fireEvent.keyDown(screen.getByTestId('report-row-5'), { key: 'Home' });
@@ -65,7 +65,7 @@ describe('ReportTable', () => {
   });
 
   it('marks the sorted column for assistive technology', () => {
-    renderWithProviders(<ReportTable reports={rows} columns={MY_REPORT_COLUMNS} selectedId={null} onSelect={vi.fn()} />);
+    renderWithProviders(<ReportTable reports={rows} columns={MY_REPORT_COLUMNS} selectedId={null} onSelect={vi.fn()} label="Reports" />);
     const header = screen.getByText('Reports.column.reportedUser').closest('th')!;
     expect(header.getAttribute('aria-sort')).toBeNull();
     fireEvent.click(screen.getByText('Reports.column.reportedUser'));
@@ -76,9 +76,14 @@ describe('ReportTable', () => {
 
   it('selects a row on click and marks the selected row', () => {
     const onSelect = vi.fn();
-    renderWithProviders(<ReportTable reports={rows} columns={MY_REPORT_COLUMNS} selectedId={5} onSelect={onSelect} />);
+    renderWithProviders(<ReportTable reports={rows} columns={MY_REPORT_COLUMNS} selectedId={5} onSelect={onSelect} label="Reports" />);
     expect(screen.getByTestId('report-row-5').getAttribute('aria-selected')).toBe('true');
     fireEvent.click(screen.getByTestId('report-row-2'));
     expect(onSelect).toHaveBeenCalledWith(2);
+  });
+
+  it('names the grid', () => {
+    renderWithProviders(<ReportTable reports={[]} columns={MY_REPORT_COLUMNS} selectedId={null} onSelect={vi.fn()} label="My reports" />);
+    expect(screen.getByRole('grid', { name: 'My reports' })).toBeInTheDocument();
   });
 });
