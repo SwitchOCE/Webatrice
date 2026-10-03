@@ -1,4 +1,6 @@
-import Popover from '@mui/material/Popover';
+import { useId } from 'react';
+import Paper from '@mui/material/Paper';
+import Popper from '@mui/material/Popper';
 
 import CardDetails from '../CardDetails/CardDetails';
 import TokenDetails from '../TokenDetails/TokenDetails';
@@ -11,41 +13,53 @@ interface CardCalloutProps {
   name: string;
 }
 
+// Popper's bottom-left corner on the name's top-right corner.
+const POPPER_MODIFIERS = [
+  { name: 'offset', options: { offset: ({ reference }: { reference: { width: number } }) => [reference.width, 0] } },
+];
+
+/**
+ * A card named in chat. Hovering or focusing it previews the card; blur,
+ * mouse-out or Escape hides the preview. The preview is a non-modal Popper so
+ * focus and the rest of the page stay where they are while it shows.
+ */
 const CardCallout = ({ name }: CardCalloutProps) => {
   const { card, token, anchorEl, open, handlePopoverOpen, handlePopoverClose } =
     useCardCallout(name);
+  const previewId = useId();
+  const showPreview = open && Boolean(card || token);
 
   return (
     <span className='callout'>
-      <span
+      <button
+        type="button"
+        className="callout__name"
+        aria-describedby={showPreview ? previewId : undefined}
         onMouseEnter={handlePopoverOpen}
         onMouseLeave={handlePopoverClose}
-      >{card?.name?.value || token?.name?.value || name}</span>
+        onFocus={handlePopoverOpen}
+        onBlur={handlePopoverClose}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape' && open) {
+            event.stopPropagation();
+            handlePopoverClose();
+          }
+        }}
+      >{card?.name?.value || token?.name?.value || name}</button>
 
-      <Popover
-        open={open && Boolean(card || token)}
+      <Popper
+        id={previewId}
+        open={showPreview}
         anchorEl={anchorEl}
-        onClose={handlePopoverClose}
-        anchorOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'bottom',
-          horizontal: 'left',
-        }}
-        disableAutoFocus
-        disableEnforceFocus
-        disableRestoreFocus
-        disableScrollLock
-        sx={{ pointerEvents: 'none' }}
-        slotProps={{ paper: { sx: { pointerEvents: 'none' } } }}
+        placement="top-start"
+        modifiers={POPPER_MODIFIERS}
+        sx={{ pointerEvents: 'none', zIndex: (theme) => theme.zIndex.tooltip }}
       >
-        <div className="callout-card">
+        <Paper className="callout-card">
           {card && (<CardDetails card={card} />)}
           {token && (<TokenDetails token={token} />)}
-        </div>
-      </Popover>
+        </Paper>
+      </Popper>
     </span>
   );
 };
