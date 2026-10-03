@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint src integration e2e",
     "lint:fix": "eslint src integration e2e --fix",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p e2e --noEmit",
     "test": "vitest run",
     "test:coverage": "npm run test -- --coverage",
     "test:watch": "vitest",
