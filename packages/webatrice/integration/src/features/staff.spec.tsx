@@ -1,0 +1,146 @@
+import { create } from '@bufbuild/protobuf';
+import { act, fireEvent, screen, within } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+  Command_GetModeratorLastLogins_ext,
+  Command_GetUserAlts_ext,
+  Command_Login_ext,
+  Command_UpdateServerMessage_ext,
+  Event_ServerIdentification_ext,
+  Event_ServerIdentificationSchema,
+  Response_Login_ext,
+  Response_LoginSchema,
+  Response_ModeratorLastLogins_ext,
+  Response_ModeratorLastLoginsSchema,
+  Response_ResponseCode,
+  Response_UserAlts_ext,
+  Response_UserAltsSchema,
+  ServerInfo_ModeratorLoginSchema,
+  ServerInfo_UserAltSchema,
+  ServerInfo_UserSchema,
+  ServerInfo_User_UserLevelFlag,
+} from '@cockatrice/sockatrice/generated';
+import { Route, Routes } from 'react-router-dom';
+import { UserDisplay } from '@app/components';
+import { ModerationProvider } from '@app/feature-widgets/moderation';
+import { Administration } from '@app/features/administration';
+import { Moderation } from '@app/features/moderation';
+
+import { connectRaw, PROTOCOL_VERSION } from '../helpers/setup';
+import { buildResponse, buildResponseMessage, buildSessionEventMessage, deliverMessage } from '../helpers/protobuf-builders';
+import { findLastAdminCommand, findLastModeratorCommand, findLastSessionCommand } from '../helpers/command-capture';
+import { renderFeatureScreen } from './helpers';
+
+const { IsRegistered, IsModerator, IsAdmin } = ServerInfo_User_UserLevelFlag;
+
+// Log in as a staff account on a 3.1 Servatrice, through the real wire.
+function loginAsStaff(userLevel = IsRegistered | IsModerator | IsAdmin) {
+  connectRaw({ userName: 'boss' });
+  deliverMessage(buildSessionEventMessage(
+    Event_ServerIdentification_ext,
+    create(Event_ServerIdentificationSchema, {
+      serverName: 'TestServer',
+      serverVersion: '3.1.0 (2026-01-01)',
+      protocolVersion: PROTOCOL_VERSION,
+    }),
+  ));
+  const login = findLastSessionCommand(Command_Login_ext);
+  deliverMessage(buildResponseMessage(buildResponse({
+    cmdId: login.cmdId,
+    responseCode: Response_ResponseCode.RespOk,
+    ext: Response_Login_ext,
+    value: create(Response_LoginSchema, {
+      userInfo: create(ServerInfo_UserSchema, { name: 'boss', userLevel }),
+      buddyList: [],
+      ignoreList: [],
+    }),
+  })));
+}
+
+beforeEach(() => {
+  vi.useRealTimers();
+});
+
+describe('Administration (integration)', () => {
+  it('sends Command_UpdateServerMessage and shows the server acknowledgement', () => {
+    loginAsStaff();
+    renderFeatureScreen(<Administration />, '/administration');
+
+    fireEvent.click(screen.getByRole('button', { name: /Administration\.admin\.updateServerMessage/ }));
+    const { cmdId } = findLastAdminCommand(Command_UpdateServerMessage_ext);
+
+    act(() => {
+      deliverMessage(buildResponseMessage(buildResponse({ cmdId, responseCode: Response_ResponseCode.RespOk })));
+    });
+
+    expect(screen.getByText('Administration.result.serverMessageUpdated')).toBeInTheDocument();
+  });
+});
+
+describe('Moderation (integration)', () => {
+  it('investigates the routed user and lists the alts Servatrice returns', () => {
+    loginAsStaff(IsRegistered | IsModerator);
+    renderFeatureScreen(<Moderation />, '/moderation?user=alice');
+
+    const { cmdId, value } = findLastModeratorCommand(Command_GetUserAlts_ext);
+    expect(value.userName).toBe('alice');
+
+    act(() => {
+      deliverMessage(buildResponseMessage(buildResponse({
+        cmdId,
+        responseCode: Response_ResponseCode.RespOk,
+        ext: Response_UserAlts_ext,
+        value: create(Response_UserAltsSchema, {
+          alts: [
+            create(ServerInfo_UserAltSchema, { userName: 'alice', isActive: true }),
+            create(ServerInfo_UserAltSchema, { userName: 'alice_smurf', banCount: 2 }),
+          ],
+        }),
+      })));
+    });
+
+    const alts = screen.getByRole('region', { name: /ModerationPage\.alts\.title/ });
+    expect(within(alts).getByText('alice_smurf')).toBeInTheDocument();
+    expect(within(alts).getByText('2')).toBeInTheDocument();
+  });
+
+  it('lists staff last logins on open', () => {
+    loginAsStaff(IsRegistered | IsModerator);
+    renderFeatureScreen(<Moderation />, '/moderation');
+
+    const { cmdId } = findLastModeratorCommand(Command_GetModeratorLastLogins_ext);
+    act(() => {
+      deliverMessage(buildResponseMessage(buildResponse({
+        cmdId,
+        responseCode: Response_ResponseCode.RespOk,
+        ext: Response_ModeratorLastLogins_ext,
+        value: create(Response_ModeratorLastLoginsSchema, {
+          logins: [create(ServerInfo_ModeratorLoginSchema, { userName: 'judge_judy', userLevel: IsModerator })],
+        }),
+      })));
+    });
+
+    expect(screen.getByText('judge_judy')).toBeInTheDocument();
+  });
+});
+
+describe('Investigate user (integration)', () => {
+  it('opens the Moderation page on the user from the context menu and runs the lookups', () => {
+    loginAsStaff(IsRegistered | IsModerator);
+    renderFeatureScreen(
+      <ModerationProvider>
+        <Routes>
+          <Route path="/" element={<UserDisplay user={create(ServerInfo_UserSchema, { name: 'suspect', userLevel: IsRegistered })} />} />
+          <Route path="/moderation" element={<Moderation />} />
+        </Routes>
+      </ModerationProvider>,
+    );
+
+    fireEvent.contextMenu(screen.getByText('suspect'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Moderation.menu.investigateUser' }));
+
+    expect(findLastModeratorCommand(Command_GetUserAlts_ext).value.userName).toBe('suspect');
+    expect(screen.getByRole('searchbox', { name: /ModerationPage\.search\.placeholder/ })).toHaveValue('suspect');
+  });
+});
