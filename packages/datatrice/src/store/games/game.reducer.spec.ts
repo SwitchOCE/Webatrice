@@ -2431,9 +2431,12 @@ describe('2J: Turn, phase, and chat', () => {
       expect(lastLine(result)).toMatchObject({ playerId: 2, message: 'Bob reversed turn order, now it\'s reversed.' });
     });
 
-    it.each([undefined, -1])('falls back to the active player when the actor is %s', (playerId) => {
-      const result = dispatchThroughStore(twoSeats(), Actions.turnReversed({ gameId: 1, reversed: false, playerId }));
-      expect(lastLine(result)).toMatchObject({ playerId: 1, message: 'Alice reversed turn order, now it\'s normal.' });
+    it.each([undefined, -1, 9])('logs nothing when the actor is %s, like desktop', (playerId) => {
+      const state = twoSeats();
+      const before = state.games[1].messages.length;
+      const result = dispatchThroughStore(state, Actions.turnReversed({ gameId: 1, reversed: true, playerId }));
+      expect(result.games[1].reversed).toBe(true);
+      expect(result.games[1].messages).toHaveLength(before);
     });
   });
 
