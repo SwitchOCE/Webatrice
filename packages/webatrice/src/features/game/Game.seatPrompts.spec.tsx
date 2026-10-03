@@ -286,3 +286,80 @@ describe('seat prompts', () => {
     `);
   });
 });
+
+describe('seat create-token dialog', () => {
+  function tokenDialog() {
+    return screen.getByRole('dialog', { name: /^create token$/i });
+  }
+
+  function nameInput(dialog: HTMLElement) {
+    return within(dialog).queryByLabelText('Token name') ?? within(dialog).getByLabelText('Name');
+  }
+
+  function createToken(name: string) {
+    openContextMenu(battlefieldEl(1));
+    chooseMenuPath('Create token...');
+    const dialog = tokenDialog();
+    fireEvent.change(nameInput(dialog), { target: { value: name } });
+    act(() => {
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
+    });
+  }
+
+  it('creates the token on the local battlefield and closes', async () => {
+    const game = renderSeats();
+
+    createToken('Goblin');
+    await act(async () => {});
+
+    expect(screen.queryByRole('dialog', { name: /^create token$/i })).not.toBeInTheDocument();
+    expect(wire(game)).toMatchInlineSnapshot(`
+      [
+        "createToken 
+          zone: table
+          cardName: Goblin
+          cardProviderId: 
+          color: w
+          pt: 
+          annotation: 
+          destroyOnZoneChange: true
+          faceDown: false
+          x: -1
+          y: 0",
+      ]
+    `);
+  });
+
+  it('refuses a blank name and sends nothing on cancel', () => {
+    const game = renderSeats();
+    openContextMenu(battlefieldEl(1));
+    chooseMenuPath('Create token...');
+    act(() => {
+      fireEvent.submit(nameInput(tokenDialog()).closest('form')!);
+    });
+    expect(tokenDialog()).toBeInTheDocument();
+
+    fireEvent.click(within(tokenDialog()).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog', { name: /^create token$/i })).not.toBeInTheDocument();
+    expect(wire(game)).toEqual([]);
+  });
+
+  it('reopens on the last token, and "Create another token" repeats it', async () => {
+    const game = renderSeats();
+    createToken('Soldier');
+    await act(async () => {});
+
+    openContextMenu(battlefieldEl(1));
+    chooseMenuPath('Create token...');
+    expect(nameInput(tokenDialog())).toHaveValue('Soldier');
+    fireEvent.click(within(tokenDialog()).getByRole('button', { name: 'Cancel' }));
+
+    openContextMenu(battlefieldEl(1));
+    chooseMenuPath('Create another token');
+    await act(async () => {});
+
+    expect(wire(game).filter((c) => c.startsWith('createToken'))).toHaveLength(2);
+    expect(wire(game)[1]).toBe(wire(game)[0]);
+  });
+});
+
