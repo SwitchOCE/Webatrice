@@ -8,6 +8,7 @@ import { GamesState, IncomingReveal } from './game.interfaces';
 type State = { games: GamesState };
 
 const EMPTY_ARRAY: ServerInfo_Card[] = [];
+const EMPTY_MESSAGES: Enriched.GameMessage[] = [];
 const EMPTY_OBJECT = {} as Record<string, never>;
 const EMPTY_PINGS: { [playerId: number]: number } = {};
 const EMPTY_ATTACHMENTS: ReadonlyMap<number, AttachedChild[]> = new Map();
@@ -227,7 +228,7 @@ export const Selectors = {
     games.games[gameId]?.reversed ?? false,
 
   getMessages: ({ games }: State, gameId: number) =>
-    games.games[gameId]?.messages ?? EMPTY_ARRAY,
+    games.games[gameId]?.messages ?? EMPTY_MESSAGES,
 
   // Server games only: a replay being played back is not a joined game, so it
   // gets no game tab, no leave command and no auto-routing.
