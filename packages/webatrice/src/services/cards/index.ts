@@ -10,3 +10,4 @@ export {
   type PrintingSummary,
   type RelatedCardRef,
 } from './cardCatalog';
+export { getFormatRules } from './formatRules';

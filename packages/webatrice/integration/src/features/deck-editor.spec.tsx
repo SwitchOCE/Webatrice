@@ -459,6 +459,26 @@ describe('DeckEditor (integration)', () => {
     expect(cleared.tagsXml).toBe('<tags><color>red</color><tag>Burn</tag></tags>');
   });
 
+  it('flags cards that are not legal in the deck format and re-checks on a format change', async () => {
+    await openDeck(MODERN_DECK);
+
+    expect(await screen.findByText('DeckLegality.illegal')).toBeInTheDocument();
+    const solRing = screen.getByRole('button', { name: 'Sol Ring' }).parentElement!;
+    expect(within(solRing).getByRole('img', { name: 'DeckLegality.reason.notLegal' })).toBeInTheDocument();
+    const bolt = screen.getByRole('button', { name: 'Lightning Bolt' }).parentElement!;
+    expect(within(bolt).queryByRole('img', { name: /DeckLegality/ })).toBeNull();
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), { target: { value: 'legacy' } });
+    expect(await within(solRing).findByRole('img', { name: 'DeckLegality.reason.banned' })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), { target: { value: 'commander' } });
+    expect(await screen.findByText('DeckLegality.legal')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), { target: { value: 'other' } });
+    fireEvent.change(screen.getByPlaceholderText('e.g. Netrunner, Playtest'), { target: { value: 'Cube' } });
+    expect(await screen.findByText('DeckLegality.unavailable')).toBeInTheDocument();
+  });
+
   it('shows the not-found shell for an unreadable deck and links back to My Decks', async () => {
     renderFeatureScreen(
       <Routes>
