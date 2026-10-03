@@ -185,6 +185,7 @@ const moderator = {
 
 const developer = {
   serverStats: vi.fn(),
+  commandFailed: vi.fn(),
 };
 
 export const WebClient = {

@@ -217,7 +217,11 @@ export interface IGameResponse {
 }
 
 /** Admin commands whose non-OK response the desktop client reports to the admin. */
-export type AdminCommandName = 'adjustMod';
+export type AdminCommandName =
+  | 'adjustMod'
+  | 'updateServerMessage'
+  | 'shutdownServer'
+  | 'reloadConfig';
 
 /**
  * Moderator commands whose non-OK response the desktop client reports to the
@@ -230,7 +234,16 @@ export type ModeratorCommandName =
   | 'getAdminNotes'
   | 'viewLogHistory'
   | 'grantReplayAccess'
-  | 'forceActivateUser';
+  | 'forceActivateUser'
+  | 'reportUserInfo'
+  | 'getUserAlts'
+  | 'getUserSessions'
+  | 'getModeratorLastLogins'
+  | 'removeUserAvatar'
+  | 'listCardArtRules';
+
+/** Developer commands whose failure desktop's TabDeveloper reports. */
+export type DeveloperCommandName = 'getServerStats';
 
 export interface IAdminResponse {
   /** Each flag is `undefined` when the command left that role unchanged (proto2 presence). */
@@ -289,6 +302,8 @@ export interface IModeratorResponse {
 /** Developer staff role (#7211, #7212). Developer log lookups route to IModeratorResponse.viewLogs. */
 export interface IDeveloperResponse {
   serverStats?(stats: Response_GetServerStats): void;
+  /** A developer command failed; same contract as IModeratorResponse.commandFailed. */
+  commandFailed?(command: DeveloperCommandName, responseCode: number, target: string, failure?: CommandFailure): void;
 }
 
 export interface IWebClientResponse<

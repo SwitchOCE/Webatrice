@@ -13,6 +13,9 @@ export function getUserSessions(userName: string, limit?: number): void {
       onSuccess: (response) => {
         WebClient.instance.response.moderator.userSessions?.(userName, response.sessions);
       },
+      onError: (responseCode, _raw, failure) => {
+        WebClient.instance.response.moderator.commandFailed?.('getUserSessions', responseCode, userName, failure);
+      },
     },
   );
 }

@@ -8,6 +8,7 @@ export type {
   IWebClientResponse,
   AdminCommandName,
   ModeratorCommandName,
+  DeveloperCommandName,
 } from './WebClientResponse';
 
 export * from './ClientConfig';

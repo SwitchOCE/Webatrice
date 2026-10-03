@@ -16,6 +16,9 @@ export function getModeratorLastLogins(): void {
       onSuccess: (response) => {
         WebClient.instance.response.moderator.moderatorLastLogins?.(response.logins);
       },
+      onError: (responseCode, _raw, failure) => {
+        WebClient.instance.response.moderator.commandFailed?.('getModeratorLastLogins', responseCode, '', failure);
+      },
     },
   );
 }

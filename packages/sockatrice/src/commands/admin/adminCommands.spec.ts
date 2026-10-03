@@ -161,7 +161,28 @@ describe('resetUserPassword', () => {
     const onFailure = vi.fn();
     resetUserPassword('mod1', onReset, onFailure);
     invokeOnError(Response_ResponseCode.RespAccessDenied);
-    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespAccessDenied, expect.anything());
+    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespAccessDenied, undefined);
     expect(onReset).not.toHaveBeenCalled();
+  });
+});
+
+describe('admin staff failures', () => {
+  it.each([
+    ['updateServerMessage', () => updateServerMessage()],
+    ['reloadConfig', () => reloadConfig()],
+    ['shutdownServer', () => shutdownServer('maintenance', 5)],
+  ])('reports a failed %s through response.admin.commandFailed', (command, send) => {
+    send();
+    invokeOnError(Response_ResponseCode.RespFunctionNotAllowed);
+    expect(WebClient.instance.response.admin.commandFailed).toHaveBeenCalledWith(
+      command, Response_ResponseCode.RespFunctionNotAllowed, '', undefined,
+    );
+  });
+
+  it('hands a reset that never got an answer to the caller with the transport reason', () => {
+    const onFailure = vi.fn();
+    resetUserPassword('alice', undefined, onFailure);
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Timeout);
+    expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespNotConnected, CommandFailure.Timeout);
   });
 });

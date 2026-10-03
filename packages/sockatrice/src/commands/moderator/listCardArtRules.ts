@@ -9,5 +9,8 @@ export function listCardArtRules(): void {
     onSuccess: (response) => {
       WebClient.instance.response.moderator.cardArtRules?.(response.entries);
     },
+    onError: (responseCode, _raw, failure) => {
+      WebClient.instance.response.moderator.commandFailed?.('listCardArtRules', responseCode, '', failure);
+    },
   });
 }

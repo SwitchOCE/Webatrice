@@ -13,6 +13,9 @@ export function removeUserAvatar(userName: string): void {
         // Servatrice echoes the canonical account name it acted on.
         WebClient.instance.response.moderator.userAvatarRemoved?.(response.userName || userName);
       },
+      onError: (responseCode, _raw, failure) => {
+        WebClient.instance.response.moderator.commandFailed?.('removeUserAvatar', responseCode, userName, failure);
+      },
     },
   );
 }

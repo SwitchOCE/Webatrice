@@ -12,6 +12,9 @@ export function reportUserInfo(userName: string): void {
       onSuccess: (response) => {
         WebClient.instance.response.moderator.reportUserInfo?.(response);
       },
+      onError: (responseCode, _raw, failure) => {
+        WebClient.instance.response.moderator.commandFailed?.('reportUserInfo', responseCode, userName, failure);
+      },
     },
   );
 }

@@ -33,6 +33,9 @@ const SignalActions = {
   adminCommandFailed: createAction<CommandFailedPayload & { command: WebsocketTypes.AdminCommandName; target: string }>(
     'server/adminCommandFailed'
   ),
+  developerCommandFailed: createAction<CommandFailedPayload & { command: WebsocketTypes.DeveloperCommandName; target: string }>(
+    'server/developerCommandFailed'
+  ),
   // Command failure outcomes: `failure` is set when the server never answered
   // (timeout, disconnect, not sent) and undefined for a server rejection.
   deckListFailed: createAction<CommandFailedPayload>('server/deckListFailed'),
