@@ -3,7 +3,7 @@ import { WebClient } from '../../WebClient';
 import { StatusEnum } from '../../types/StatusEnum';
 import { consumePendingOptions } from '../../utils/connectionState';
 import { WebSocketConnectReason } from '../../types/ConnectOptions';
-import { generateSalt, hashPassword, passwordSaltSupported } from '../../utils';
+import { generateSalt, hashPassword, passwordHashAvailable, passwordSaltSupported } from '../../utils';
 import * as SessionCommands from '../../commands/session';
 import { CommandFailure } from '../../types/CommandFailure';
 
@@ -30,8 +30,11 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
     return;
   }
 
-  const getPasswordSalt = passwordSaltSupported(serverOptions);
-  WebClient.instance.serverSupportsPasswordHash = getPasswordSalt;
+  const serverSupportsPasswordHash = passwordSaltSupported(serverOptions);
+  WebClient.instance.serverSupportsPasswordHash = serverSupportsPasswordHash;
+  // Without Web Crypto (an insecure context) the client cannot hash, so it takes
+  // the same plain-password path as a server that does not support hashing.
+  const getPasswordSalt = serverSupportsPasswordHash && passwordHashAvailable();
   const options = consumePendingOptions();
 
   if (!options) {
@@ -125,5 +128,5 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
     }
   }
 
-  response.session.updateInfo(serverName, serverVersion, getPasswordSalt);
+  response.session.updateInfo(serverName, serverVersion, serverSupportsPasswordHash);
 }

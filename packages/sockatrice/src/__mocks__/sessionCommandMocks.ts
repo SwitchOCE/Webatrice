@@ -41,6 +41,7 @@ export function makeUtilsMock() {
     hashPassword: vi.fn().mockResolvedValue('hashed_pw'),
     generateSalt: vi.fn().mockReturnValue('randSalt'),
     passwordSaltSupported: vi.fn().mockReturnValue(0),
+    passwordHashAvailable: vi.fn().mockReturnValue(true),
   };
 }
 
