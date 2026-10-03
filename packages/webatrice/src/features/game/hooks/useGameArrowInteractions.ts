@@ -360,7 +360,7 @@ export function useGameArrowInteractions({
 
   // viewport → board-relative coords for the SVG preview line. The source
   // element lookup falls back to a DOM query when the CardRegistry isn't
-  // populated (the ported fancy PlayerBox tags cards with data attrs but
+  // populated (the seat tags cards with data attrs but
   // doesn't register them via ref callbacks).
   const dragPreview = useMemo<ArrowDragPreview | null>(() => {
     if (!arrowDrag || !arrowDrag.moved) {

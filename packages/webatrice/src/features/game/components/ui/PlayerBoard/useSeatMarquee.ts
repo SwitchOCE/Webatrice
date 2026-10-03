@@ -240,9 +240,9 @@ export function useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelecti
     };
   };
 
-  // PlayerBox root pointerdown: start a marquee when the click landed on
+  // Seat root pointerdown: start a marquee when the click landed on
   // background (not on any card/pile). Both viewer + opponent boxes handle
-  // this — opponent boxes forward to the viewer's PlayerBox via
+  // this — opponent boxes forward to the viewer's seat via
   // `onMarqueeStart` so a marquee can begin over any battlefield.
   const onPointerDownBox = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) {
@@ -253,7 +253,7 @@ export function useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelecti
     // pointerdown; let them handle it (they'll manage selection state).
     // Also skip clicks that land inside a floating context menu —
     // React events on portal-rendered menus bubble through the React
-    // tree back to this PlayerBox, and treating a menu-item click as
+    // tree back to this seat, and treating a menu-item click as
     // "clicked empty background" would clear the marquee selection
     // BEFORE the item's click handler fires, causing the item to
     // rebuild against a stale (null) selection.

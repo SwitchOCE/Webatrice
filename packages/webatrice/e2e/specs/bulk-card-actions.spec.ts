@@ -46,7 +46,7 @@ test('bulk tap and bulk move act on every selected battlefield card', async ({ n
   //    ≥2 selection taps the whole TABLE subset (batched SetCardAttr).
   await game.boxSelectBattlefield();
   await game.cardsOnBoard().first().dblclick();
-  // PlayerBox renders tapped state as an inline `transform: rotate(90deg)`
+  // The seat renders tapped state as an inline `transform: rotate(90deg)`
   // on the card's inner style container — no `.card-slot--tapped` class in
   // the current DOM. Assert against the inline style instead.
   await expect(game.cardsOnBoard().nth(0)).toHaveAttribute('style', /rotate\(90deg\)/);

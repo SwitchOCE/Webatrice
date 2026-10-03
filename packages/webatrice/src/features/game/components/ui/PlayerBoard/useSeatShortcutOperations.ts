@@ -631,7 +631,7 @@ export function useSeatShortcutOperations({
 
   // Move selection → Bottom of Library (Ctrl+B). Same shape as
   // moveSelectedToGrave; targetZone=DECK with isReversed=true is the
-  // "bottom" idiom (matches PlayerBox onMoveToBottom at line ~9157).
+  // "bottom" idiom (matches the card menu's Move to > Bottom of library).
   seatShortcuts['game.moveSelectedToLibraryBottom'] = () => {
     if (!isSelf || !selection || selection.zone !== 'battlefield') {
       return;

@@ -26,7 +26,7 @@ import { getStackColumn, getSubPosition, mapToGridX, MAX_SUBPOS, ROW_COUNT } fro
 // components/PlayerBox unchanged; these pin its outputs so later convergence
 // with gridMath / Battlefield.tsx cannot drift silently.
 
-/** The options PlayerBox builds from its card scale. */
+/** The options useBattlefieldLayout builds from the card scale. */
 function seatLayout(scale: number): BattlefieldLayoutOpts {
   return {
     cardWidthPx: SEAT_CARD_WIDTH_PX * scale,
