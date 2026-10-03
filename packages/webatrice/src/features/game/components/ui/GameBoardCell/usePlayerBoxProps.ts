@@ -60,6 +60,7 @@ export function usePlayerBoxSeatProps(model: PlayerBoardModel) {
     battlefieldCards: zones.battlefield.cards,
     sideboardCards: zones.sideboard.revealedCards,
     revealedDeckCards: zones.library.revealedCards,
+    customZones: zones.customZones,
     deckTopCard: zones.library.topCard,
     alwaysRevealTopCard: zones.library.alwaysRevealTopCard,
     alwaysLookAtTopCard: zones.library.alwaysLookAtTopCard,

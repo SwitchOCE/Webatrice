@@ -114,6 +114,19 @@ export interface PlayerBoardPermissions {
   canAct: boolean;
 }
 
+/**
+ * A zone a server adds beyond the seven builtins (desktop's custom zones,
+ * player_logic.cpp:98-170). It has no place on the board; the player menu
+ * lists it for viewing. No stock Servatrice creates one.
+ */
+export interface CustomZoneViewModel {
+  name: string;
+  /** ServerInfo_Zone.type: private, public or hidden. */
+  type: number;
+  withCoords: boolean;
+  cardCount: number;
+}
+
 export interface PlayerBoardModel {
   seat: PlayerSeatViewModel;
   zones: {
@@ -124,6 +137,8 @@ export interface PlayerBoardModel {
     stack: VisibleZoneViewModel;
     battlefield: BattlefieldViewModel;
     sideboard: HiddenZoneViewModel;
+    /** Non-builtin zones, in the server's order; usually none. */
+    customZones?: readonly CustomZoneViewModel[];
   };
   counters: PlayerCounterViewModel;
   permissions: PlayerBoardPermissions;

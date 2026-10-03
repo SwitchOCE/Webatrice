@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 
 import { games } from '@cockatrice/datatrice';
-import { ZoneName } from '@cockatrice/sockatrice';
+import { ZoneName, isBuiltinZone } from '@cockatrice/sockatrice';
 import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
 import { useAppSelector } from '@app/store';
 
@@ -300,9 +300,18 @@ export function usePlayerSeatViewModel(cell: BoardCell, totalPlayers: number): P
     [playerId, tableZone, allPlayers],
   );
 
+  // Desktop makes every other ServerInfo_Zone a custom zone (player_logic.cpp:98-170).
+  const allZones = player?.zones;
+  const customZones = useMemo(
+    () => Object.values(allZones ?? {})
+      .filter((z) => !isBuiltinZone(z.name))
+      .map((z) => ({ name: z.name, type: z.type, withCoords: z.withCoords, cardCount: z.cardCount })),
+    [allZones],
+  );
+
   const zones = useMemo(
-    () => ({ hand, library, graveyard, exile, stack, battlefield, sideboard }),
-    [hand, library, graveyard, exile, stack, battlefield, sideboard],
+    () => ({ hand, library, graveyard, exile, stack, battlefield, sideboard, customZones }),
+    [hand, library, graveyard, exile, stack, battlefield, sideboard, customZones],
   );
 
   return useMemo(

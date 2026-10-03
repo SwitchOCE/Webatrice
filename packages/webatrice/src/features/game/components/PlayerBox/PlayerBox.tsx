@@ -50,6 +50,7 @@ import {
   buildHandMenu,
   buildLibraryMenu,
   buildOpponentBattlefieldMenu,
+  buildCustomZonesMenu,
   buildTallyMenu,
 } from '../context-menus/PlayerContextMenu/playerMenu.model';
 import { useTallyType } from '../../hooks/useTallyType';
@@ -390,6 +391,9 @@ type Props = {
    *  server-authoritative card faces in the search dialog. Empty when
    *  no dump is in flight or after it's been cleared. */
   revealedDeckCards?: readonly HandCard[];
+  /** Zones beyond the seven builtins (desktop custom zones); the own
+   *  battlefield menu lists them for viewing. */
+  customZones?: readonly { name: string }[];
   /** Set the tapped state of one or more battlefield cards. Fires on
    *  double-click; GameBoardCell dispatches one Command_SetCardAttr
    *  per card id. Multi-id calls happen when the double-clicked card
@@ -997,6 +1001,7 @@ function PlayerBox(
     revealTargets,
     sideboardCards,
     revealedDeckCards,
+    customZones,
     onRevealLibrary,
     onLendLibrary,
     onRevealTopCards,
@@ -3507,6 +3512,7 @@ function PlayerBox(
     countersMenuItems, selection, battlefieldDisplayList, lastToken, openCreateTokenDialog,
     onCreateToken, onRequestViewSideboard, onRequestRollDie, onRequestGameInfo,
     onBulkSetCardCounters, onUntapAll, onFlipCoin, trailingItems: [tallyMenu],
+    customZonesItems: buildCustomZonesMenu(customZones ?? [], (zoneName) => openZoneView({ playerId: seatId, zoneName })),
   });
   const opponentBattlefieldMenuItems = buildOpponentBattlefieldMenu({
     graveMenuItemsOpponent, exileMenuItemsOpponent, trailingItems: [tallyMenu],

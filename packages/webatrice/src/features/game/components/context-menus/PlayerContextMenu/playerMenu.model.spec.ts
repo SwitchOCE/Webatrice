@@ -6,6 +6,7 @@ import type { ContextMenuItem } from '../../PlayerBox/ContextMenu';
 import {
   buildBattlefieldMenu,
   buildCountersMenu,
+  buildCustomZonesMenu,
   buildHandMenu,
   buildLibraryMenu,
   buildOpponentBattlefieldMenu,
@@ -303,6 +304,20 @@ describe('buildTallyMenu', () => {
       trailingItems: [tally],
     });
     expect(tree(opponent).filter((l) => !l.startsWith(' '))).toEqual(['Graveyard', 'Exile', 'Tally']);
+  });
+});
+
+describe('buildCustomZonesMenu', () => {
+  it('is hidden while the player has no custom zone', () => {
+    expect(buildCustomZonesMenu([], vi.fn())).toEqual([]);
+  });
+
+  it('views each zone by name', () => {
+    const onView = vi.fn();
+    const items = buildCustomZonesMenu([{ name: 'command' }, { name: 'vault' }], onView);
+    expect(tree(items)).toEqual(['Custom Zones', '  View custom zone \'command\'', '  View custom zone \'vault\'']);
+    find(items, 'Custom Zones', 'View custom zone \'vault\'').onClick?.();
+    expect(onView).toHaveBeenCalledWith('vault');
   });
 });
 

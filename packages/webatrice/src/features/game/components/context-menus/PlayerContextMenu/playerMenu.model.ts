@@ -75,6 +75,24 @@ export function buildTallyMenu(current: TallyType, onSet: (type: TallyType) => v
   };
 }
 
+/**
+ * The "Custom Zones" submenu, one "View custom zone '<name>'" item per zone
+ * (desktop CustomZoneMenu, custom_zone_menu.cpp), or nothing when the player
+ * has none: desktop hides the menu while it is empty.
+ */
+export function buildCustomZonesMenu(
+  zones: readonly { name: string }[],
+  onView: (zoneName: string) => void,
+): ContextMenuItem[] {
+  if (zones.length === 0) {
+    return [];
+  }
+  return [{
+    label: 'Custom Zones',
+    submenu: zones.map((zone) => ({ label: `View custom zone '${zone.name}'`, onClick: () => onView(zone.name) })),
+  }];
+}
+
 export interface LibraryMenuArgs {
   shortcutHints: ShortcutHints;
   seatId: number;
@@ -726,6 +744,8 @@ export interface BattlefieldMenuArgs<Token> {
   ) => void;
   onUntapAll?: () => void;
   onFlipCoin?: () => void;
+  /** "Custom Zones" (buildCustomZonesMenu), after Sideboard. */
+  customZonesItems?: ContextMenuItem[];
   /** Player-menu entries after the utility items, desktop order: Tally,
    *  then Say (player_menu.cpp:48-54). */
   trailingItems?: ContextMenuItem[];
@@ -737,15 +757,14 @@ export interface BattlefieldMenuArgs<Token> {
 // Graveyard, Exile, Sideboard) already have their own right-click
 // menus on their piles; here we surface a single hint item pointing
 // there instead of duplicating hundreds of lines of already-wired
-// items. Utility actions we don't yet wire (untap-all, flip-coin,
-// create-token, counters, custom-zones) render disabled so the shape
-// still reads as identical to Cockatrice. Gated to isSelf per
+// items. Utility actions we don't yet wire render disabled so the
+// shape still reads as identical to Cockatrice. Gated to isSelf per
 // player_menu.cpp — spectators / opponents don't get this menu.
 export function buildBattlefieldMenu<Token>({
   shortcutHints, handMenuItems, libraryMenuItems, graveMenuItemsSelf, exileMenuItemsSelf,
   countersMenuItems, selection, battlefieldDisplayList, lastToken, openCreateTokenDialog,
   onCreateToken, onRequestViewSideboard, onRequestRollDie, onRequestGameInfo,
-  onBulkSetCardCounters, onUntapAll, onFlipCoin, trailingItems = [],
+  onBulkSetCardCounters, onUntapAll, onFlipCoin, customZonesItems = [], trailingItems = [],
 }: BattlefieldMenuArgs<Token>): ContextMenuItem[] {
   // Rest of the battlefield menu — pile submenus are placeholders
   // (already wired on the piles themselves), utility items wire
@@ -793,6 +812,7 @@ export function buildBattlefieldMenu<Token>({
         },
       ],
     },
+    ...customZonesItems,
     { divider: true },
     {
       // Counters submenu — Cockatrice's countersMenu lists every

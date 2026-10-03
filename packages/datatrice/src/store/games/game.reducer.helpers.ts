@@ -1,4 +1,3 @@
-import type { ZoneNameValue } from '@cockatrice/sockatrice';
 import { create } from '@bufbuild/protobuf';
 import { Enriched } from '../../types';
 import {
@@ -80,7 +79,7 @@ export function normalizePlayers(playerList: ServerInfo_Player[]): { [playerId: 
         byId[card.id] = card;
       }
       zones[zone.name] = {
-        name: zone.name as ZoneNameValue,
+        name: zone.name,
         type: zone.type,
         withCoords: zone.withCoords,
         cardCount: zone.cardCount,

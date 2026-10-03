@@ -94,7 +94,9 @@ export interface PlayerEntry {
 }
 
 export interface ZoneEntry {
-  name: ZoneNameValue;
+  /** One of the builtin zones, or a custom zone a forked server adds
+   *  (see `isBuiltinZone`). */
+  name: ZoneNameValue | (string & {});
   type: number;
   withCoords: boolean;
   // Hidden zones: cardCount may exceed order.length.
