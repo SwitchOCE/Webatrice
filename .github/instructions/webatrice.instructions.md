@@ -43,7 +43,7 @@ Websocket protocol/transport types (`StatusEnum`, `WebSocketConnectReason`, the 
 Enforced by [eslint.boundaries.mjs](../../packages/webatrice/eslint.boundaries.mjs); zero violations today, keep it that way.
 
 - `feature-widgets/` — multi-file capabilities composed by ≥2 features (known-hosts, shortcuts, card-import). Pull from root layers; never from features or other widgets.
-- `feature-wrappers/` — page-chrome wrappers (currently `layout/`, holding Layout + LeftNav). Composes feature-widgets; consumed by features.
+- `feature-wrappers/` — page-chrome wrappers (currently `layout/`, holding Layout + TopBar + LeftNav). Composes feature-widgets; consumed by features. Chrome that must trigger feature work (e.g. dropping deck caches on an identity change) reports it through `ShellLifecycleContext`; `AppShell` supplies the feature-side implementation.
 - `features/` — vertical slices, one per route. Pull from root layers + `feature-wrappers` + `feature-widgets`. Only `AppShell` pulls from features.
 - Shortcuts persistence lives in the feature layer (not a store listener) because boundaries forbid `store/* → hooks/*`. Anything that needs to bridge persistence into Redux belongs in a feature hook.
 
@@ -70,7 +70,7 @@ Dexie (IndexedDB) holds cards, sets, tokens, known hosts, and settings; separate
 
 ### UI
 
-Route-level UI in `src/features/<slice>/` (one per route — account, decks, game, login, logs, player, rooms, server, settings, shell). Page chrome (Layout, LeftNav) in `src/feature-wrappers/layout/`. Root orchestration at [src/AppShell.tsx](../../packages/webatrice/src/AppShell.tsx) with route registration in [src/AppShellRoutes.tsx](../../packages/webatrice/src/AppShellRoutes.tsx). Load-bearing hooks: **`useWebClient`** (the only way UI reaches the server; see the layering invariant) and **`useAutoLogin`** (owns the once-per-session gate). Datatrice's `WebClientContext` is consumed directly from `@cockatrice/datatrice/react` so integration tests and per-test `renderHook` wrappers can inject a pre-built `WebClient`. **Don't double-portal MUI components.** MUI's Snackbar/Tooltip/Popover already portal themselves; wrapping them in our own `createPortal` leaks DOM nodes under React 18 StrictMode (effects fire twice; the inner portal's mount runs before the outer's cleanup). UI kit: MUI v9 + `@emotion`; i18n via `react-i18next` + ICU (Transifex).
+Route-level UI in `src/features/<slice>/` (one per route — account, decks, game, login, logs, player, rooms, server, settings, shell). Page chrome (Layout, TopBar, LeftNav) in `src/feature-wrappers/layout/`. Root orchestration at [src/AppShell.tsx](../../packages/webatrice/src/AppShell.tsx) with route registration in [src/AppShellRoutes.tsx](../../packages/webatrice/src/AppShellRoutes.tsx). Load-bearing hooks: **`useWebClient`** (the only way UI reaches the server; see the layering invariant) and **`useAutoLogin`** (owns the once-per-session gate). Datatrice's `WebClientContext` is consumed directly from `@cockatrice/datatrice/react` so integration tests and per-test `renderHook` wrappers can inject a pre-built `WebClient`. **Don't double-portal MUI components.** MUI's Snackbar/Tooltip/Popover already portal themselves; wrapping them in our own `createPortal` leaks DOM nodes under React 18 StrictMode (effects fire twice; the inner portal's mount runs before the outer's cleanup). UI kit: MUI v9 + `@emotion`; i18n via `react-i18next` + ICU (Transifex).
 
 ### Virtualized lists
 

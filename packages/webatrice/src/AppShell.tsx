@@ -7,9 +7,10 @@ import './AppShell.css';
 import { ToastProvider } from '@app/components';
 import { useSyncLocaleToStore } from '@app/hooks';
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
+import { loadPersistedLastRoute, ShellLifecycleProvider } from '@app/feature-wrappers/layout';
 import { PrivateMessageNotifier } from '@app/features/player';
 import { FeatureDetection } from '@app/features/shell';
-import { loadPersistedLastRoute } from './components/layout/TopBar';
+import { appShellLifecycle } from './appShellLifecycle';
 
 // CssBaseline removed: it was MUI's global body reset (font, color,
 // background, box-sizing, anchor styles). The equivalent rules now
@@ -38,17 +39,19 @@ function AppShell() {
     <ToastProvider>
       <div className="AppShell">
         <Router initialEntries={initialEntries}>
-          <ShortcutProvider>
-            <FeatureDetection />
-            {/* Global listener for incoming private-chat messages —
-             *  renders nothing, dispatches Toast pills whose
-             *  onClick navigates to the sender's /player/:name
-             *  tab. Mounted inside the Router so useNavigate /
-             *  useLocation work; inside ToastProvider so pushToast
-             *  is available. */}
-            <PrivateMessageNotifier />
-            <Routes />
-          </ShortcutProvider>
+          <ShellLifecycleProvider value={appShellLifecycle}>
+            <ShortcutProvider>
+              <FeatureDetection />
+              {/* Global listener for incoming private-chat messages —
+               *  renders nothing, dispatches Toast pills whose
+               *  onClick navigates to the sender's /player/:name
+               *  tab. Mounted inside the Router so useNavigate /
+               *  useLocation work; inside ToastProvider so pushToast
+               *  is available. */}
+              <PrivateMessageNotifier />
+              <Routes />
+            </ShortcutProvider>
+          </ShellLifecycleProvider>
         </Router>
       </div>
     </ToastProvider>

@@ -35,6 +35,7 @@ import {
 } from './gameBattlefield';
 import { useCardScale } from './cardScale';
 import { CardImage } from '@app/components';
+import { useSnapGridVisible } from '@app/hooks';
 import {
   CARD_BACK_URL,
   CARD_CORNER_RADIUS,
@@ -58,7 +59,6 @@ import type { ActionId } from '@app/feature-widgets/shortcuts';
 import { isFilterEmpty, matchCard, parseCardFilter, type CardFilter, type FilterableCard } from '../../utils/cardFilter';
 import { buildArrowGeometry } from '../arrows/GameArrowOverlay/arrowPath';
 import { ArrowColor, rgbaToCss } from '@app/types';
-import { useSnapGridVisible } from '../../hooks/useSnapGridVisible';
 import {
   lookupCard,
   lookupCards,

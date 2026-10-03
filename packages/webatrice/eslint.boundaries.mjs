@@ -40,10 +40,11 @@ const rules = [
     allow: types('components', 'dialogs', 'hooks', 'images', 'services', 'store', 'types', 'utils')
   },
 
-  // Feature-wrappers are page-chrome wrappers (currently just `layout/`, holding Layout
-  // and LeftNav). They compose feature-widgets for top-level affordances (e.g. card-import
-  // dialog accessible from any page) and are consumed by features (below) for wrapping
-  // their route content.
+  // Feature-wrappers are page-chrome wrappers (currently just `layout/`, holding Layout,
+  // TopBar and LeftNav). They compose feature-widgets for top-level affordances (e.g.
+  // card-import dialog accessible from any page) and are consumed by features (below) for
+  // wrapping their route content. Feature work triggered by the chrome goes through
+  // `ShellLifecycleContext`, implemented by AppShell.
   {
     from: { type: 'feature-wrappers' },
     allow: types('components', 'dialogs', 'feature-widgets', 'hooks', 'images', 'services', 'store', 'types', 'utils')

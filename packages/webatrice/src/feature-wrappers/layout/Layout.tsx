@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 
-import TopBar from '../../components/layout/TopBar';
+import TopBar from './TopBar';
 
 // Layout.css intentionally not imported — the pre-redo styles it
 // contained (`.layout`, `.page__body`, `.bottom-bar__container`) don't

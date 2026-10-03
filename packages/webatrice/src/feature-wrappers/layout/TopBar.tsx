@@ -7,17 +7,15 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
-import { useSnapGridSetting } from '../../features/game/hooks/useSnapGridVisible';
-import { usePhaseTrackPinnedSetting } from '../../features/game/hooks/usePhaseTrackPinned';
-
 import { server, rooms, games } from '@cockatrice/datatrice';
 import type { ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
 import { useAppSelector } from '@app/store';
 import { useWebClient } from '@cockatrice/datatrice/react';
-import { useLeaveGame } from '@app/hooks';
+import { useLeaveGame, usePhaseTrackPinnedSetting, useSnapGridSetting } from '@app/hooks';
 import { Images } from '@app/images';
 import { RouteEnum } from '@app/types';
-import { clearDeckEditorCache, clearDecksListCache } from '../../features/decks';
+
+import { useShellLifecycle } from './ShellLifecycleContext';
 
 const USER_MENU_ITEM_CLASS =
   'w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary '
@@ -85,6 +83,7 @@ export default function TopBar() {
   const backendDecks = useAppSelector(server.Selectors.getBackendDecks);
   const [snapGridVisible, setSnapGridVisible] = useSnapGridSetting();
   const [phaseTrackPinned, setPhaseTrackPinned] = usePhaseTrackPinnedSetting();
+  const { onIdentityChanged } = useShellLifecycle();
 
   // Sticky tabs = the deck-related routes the user has visited and not
   // explicitly closed. Keeps My Decks pinned alongside the currently-
@@ -127,7 +126,7 @@ export default function TopBar() {
       // Decks list / Shortcuts / Player: additive, no-op if already present.
       return prev.some((t) => t.key === transient.key) ? prev : [...prev, transient];
     });
-  }, [location.pathname]);
+  }, [location.pathname, setStickyTabs]);
 
   // Mirror the current pathname to localStorage so an F5 refresh drops
   // the user back on the same route (MemoryRouter has no URL to lean
@@ -156,7 +155,8 @@ export default function TopBar() {
   // signing into a different server or as a different user. Watch
   // `(serverName, userName)`; when it transitions to a new non-null
   // value that doesn't match the last known owner, purge deck sticky
-  // tabs and both deck caches. If the user is currently sitting on a
+  // tabs and report the change so features drop their server-scoped
+  // caches (AppShell wires the deck caches). If the user is on a
   // now-stale deck route, bounce them to the lobby so the editor
   // doesn't try to load an id that doesn't exist here.
   const identity = useMemo(() => {
@@ -172,8 +172,7 @@ export default function TopBar() {
     const previous = window.localStorage.getItem(STICKY_OWNER_KEY);
     if (previous && previous !== identity) {
       setStickyTabs((prev) => prev.filter((t) => t.type !== 'deck' && t.type !== 'decks'));
-      clearDeckEditorCache();
-      clearDecksListCache();
+      onIdentityChanged();
       if (
         location.pathname.startsWith('/deck/')
         || location.pathname === RouteEnum.DECKS
@@ -188,7 +187,7 @@ export default function TopBar() {
     // same identity are no-ops. Depending on pathname would rerun
     // this effect on every route hop.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run on identity change only (see above)
-  }, [identity, setStickyTabs]);
+  }, [identity, setStickyTabs, onIdentityChanged]);
 
   // Enrich a deck-editor sticky tab with the actual deck name once
   // backendDecks has loaded it. Falls back to `Deck #N` before that.

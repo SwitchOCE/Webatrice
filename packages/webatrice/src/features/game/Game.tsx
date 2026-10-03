@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { DndContext } from '@dnd-kit/core';
 
 import { AuthGuard } from '@app/components';
+import { usePhaseTrackPinned } from '@app/hooks';
 import { Layout } from '@app/feature-wrappers/layout';
 import { ConfirmDialog, PromptDialog } from '@app/dialogs';
 import GameLobby from './GameLobby';
@@ -16,7 +17,6 @@ import ZoneContextMenu from './components/context-menus/ZoneContextMenu/ZoneCont
 import PhaseTrack from './components/PhaseTrack/PhaseTrack';
 import BattlefieldSidebar from './components/BattlefieldSidebar/BattlefieldSidebar';
 import SidebarResizer from './components/SidebarResizer/SidebarResizer';
-import { usePhaseTrackPinned } from './hooks/usePhaseTrackPinned';
 import { useSidebarWidth } from './hooks/useSidebarWidth';
 import { CardDragOverlayHost } from './components/ui/CardDragOverlay/CardDragOverlay';
 import GameBoardCell from './components/ui/GameBoardCell/GameBoardCell';

@@ -16,9 +16,9 @@ import {
 } from 'lucide-react';
 
 import { Phase } from '@cockatrice/datatrice';
+import { usePhaseTrackPinned } from '@app/hooks';
 
 import { useGameId } from '../ui/GameIdContext';
-import { usePhaseTrackPinned } from '../../hooks/usePhaseTrackPinned';
 
 import { usePhaseBar } from './usePhaseBar';
 
