@@ -1,26 +1,29 @@
 /**
- * Battlefield grid + snap logic.
+ * Scaled pixel layout for the PlayerBox seat: battlefield cell widths, slot
+ * origins, content size and pointer → slot snapping, plus the spell-stack
+ * pile layout.
  *
- * The battlefield is a 3-row grid — this matches Cockatrice's desktop
- * client (`TABLEROWS = 3`) so wire y coordinates stay meaningful across
- * both clients:
- *   • row 0 (top of owner's board)    → lands
- *   • row 1                           → non-creature permanents
- *   • row 2 (bottom of owner's board) → creatures
- * Column count is dynamic: however many card-sized slots fit horizontally
- * in the container, with a fixed gap between them.
+ * Ports `table_zone.cpp` at desktop's logical card size (72 × 102). The
+ * seat multiplies every length here by its card scale and passes the
+ * result in `BattlefieldLayoutOpts`, so the helpers only add and look up.
  *
- * Battlefields are per-player: each player has their own grid. A card can
- * live on any player's battlefield — its `battlefieldOwnerId` on the game
- * card names which one.
+ * Wire packing (`x = column * MAX_SUBPOS + subPosition`), occupancy and
+ * y-inversion belong to `gridMath.ts`; this module reuses its constants and
+ * never encodes a wire coordinate itself.
  *
- * All functions here are pure — no state, no side effects. UI and game-state
- * modules layer on top.
+ * All functions here are pure.
  */
 
-/** Number of rows on every battlefield. Matches Cockatrice desktop's
- *  `TABLEROWS` constant so wire y coordinates round-trip identically. */
-export const BATTLEFIELD_ROWS = 3;
+import { MAX_SUBPOS, ROW_COUNT } from './gridMath';
+
+/** Base card size at scale 1 — desktop's `CardDimensions::WIDTH / HEIGHT`
+ *  (card_dimensions.h). Keep in sync with the CSS fallbacks in the seat's
+ *  `cardSize.ts`. */
+export const SEAT_CARD_WIDTH_PX = 72;
+export const SEAT_CARD_HEIGHT_PX = 102;
+
+/** Number of rows on every battlefield (desktop `TABLEROWS`). */
+export const BATTLEFIELD_ROWS = ROW_COUNT;
 
 /** Constant spacing between adjacent slots (px). Ported from Cockatrice
  *  desktop's `TableZone::PADDING_X` (table_zone.h:37) so a card + stack
@@ -52,96 +55,12 @@ export const BATTLEFIELD_MARGIN_TOP_PX = 10;
  *  row so an empty battlefield still reads as a play area. */
 export const BATTLEFIELD_MIN_COLS = 5;
 
-/** Number of sub-slots per visual column (Cockatrice's wire-x % 3). */
-export const SUBSLOTS_PER_COLUMN = 3;
-
 /** A single slot address on some battlefield (whose battlefield is tracked
  *  separately on the card itself). */
 export type BattlefieldSlot = {
   row: number;
   col: number;
 };
-
-/** Battlefield grid dimensions computed from container size + card size. */
-export type BattlefieldGrid = {
-  cols: number;
-  rows: number;
-};
-
-/**
- * How many card-sized slots (with the fixed gap between them) fit along
- * one axis given the container size. Always returns at least 1 so an
- * absurdly small battlefield still has one slot.
- */
-export function slotsAlongAxis(
-  containerPx: number,
-  cardPx: number,
-  gapPx = BATTLEFIELD_GAP_PX,
-): number {
-  if (containerPx <= 0 || cardPx <= 0) {
-    return 0;
-  }
-  // Fit N cards + (N-1) gaps into containerPx.  Solve for N: containerPx = N*card + (N-1)*gap  →  N = (containerPx + gap) / (card + gap)
-  return Math.max(1, Math.floor((containerPx + gapPx) / (cardPx + gapPx)));
-}
-
-/** Compute grid dimensions that fit in a container. Rows are always
- *  `BATTLEFIELD_ROWS` (3) to stay wire-compatible with Cockatrice; only
- *  the column count adapts to the container width. The height argument
- *  is retained for callers that still pass it but no longer influences
- *  the returned row count. */
-export function fitBattlefieldGrid(
-  containerWidthPx: number,
-  _containerHeightPx: number,
-  cardWidthPx: number,
-  _cardHeightPx: number,
-  gapPx = BATTLEFIELD_GAP_PX,
-): BattlefieldGrid {
-  return {
-    cols: slotsAlongAxis(containerWidthPx, cardWidthPx, gapPx),
-    rows: BATTLEFIELD_ROWS,
-  };
-}
-
-/**
- * Snap fractional coordinates within a battlefield (0..1 in both axes) to
- * the nearest grid slot given the current grid dimensions.
- */
-export function snapToSlot(
-  fx: number,
-  fy: number,
-  grid: BattlefieldGrid,
-): BattlefieldSlot {
-  const cols = Math.max(1, grid.cols);
-  const rows = Math.max(1, grid.rows);
-  return {
-    col: clampInt(Math.round(fx * (cols - 1)), 0, cols - 1),
-    row: clampInt(Math.round(fy * (rows - 1)), 0, rows - 1),
-  };
-}
-
-/**
- * Convert a slot into a fraction 0..1 along each axis representing where
- * the card's top-left corner should sit within the usable (container minus
- * one card size) area. Rendering layer multiplies by `container - card` to
- * get absolute px.
- */
-export function slotFraction(
-  slot: BattlefieldSlot,
-  grid: BattlefieldGrid,
-): { fx: number; fy: number } {
-  const cols = Math.max(1, grid.cols);
-  const rows = Math.max(1, grid.rows);
-  return {
-    fx: cols === 1 ? 0 : slot.col / (cols - 1),
-    fy: rows === 1 ? 0 : slot.row / (rows - 1),
-  };
-}
-
-/** Whether two slots refer to the same cell. */
-export function sameSlot(a: BattlefieldSlot, b: BattlefieldSlot): boolean {
-  return a.row === b.row && a.col === b.col;
-}
 
 function clampInt(n: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, n));
@@ -384,7 +303,51 @@ export function snapPxToSlot(
   const subSlot = clampInt(
     Math.floor(xInCol / r.stackX),
     0,
-    SUBSLOTS_PER_COLUMN - 1,
+    MAX_SUBPOS - 1,
   );
   return { row, col: Math.max(0, col), subSlot };
+}
+
+/** How far each successive spell-stack card advances downward, as a
+ *  fraction of the card height. 0.35 leaves each card's title readable. */
+export const STACK_PILE_VERTICAL_STEP_FRACTION = 0.35;
+
+/** Horizontal zig-zag offset (px at scale 1). Alternates left/right by
+ *  index so the pile visually "shares" the center rather than drifting. */
+export const STACK_PILE_HORIZONTAL_OFFSET_PX = 8;
+
+/**
+ * Position each card of the spell stack within a container of the given
+ * size. Index 0 is the top of the pile (resolves next); it renders highest
+ * in the container. Cards are centered as a group and squished together if
+ * the container can't fit the ideal spacing.
+ */
+export function layoutStackPile(
+  count: number,
+  containerW: number,
+  containerH: number,
+  cardWPx: number = SEAT_CARD_WIDTH_PX,
+  cardHPx: number = SEAT_CARD_HEIGHT_PX,
+  hOffsetPx: number = STACK_PILE_HORIZONTAL_OFFSET_PX,
+): { x: number; y: number }[] {
+  if (count === 0) {
+    return [];
+  }
+  const idealStep = cardHPx * STACK_PILE_VERTICAL_STEP_FRACTION;
+  const maxSpan = Math.max(0, containerH - cardHPx);
+  const step =
+    count > 1 ? Math.min(idealStep, maxSpan / (count - 1)) : 0;
+  const totalSpan = (count - 1) * step;
+  const startY = Math.max(0, (containerH - totalSpan - cardHPx) / 2);
+  const cx = (containerW - cardWPx) / 2;
+  const out: { x: number; y: number }[] = [];
+  for (let i = 0; i < count; i++) {
+    // Single card sits dead center; zig-zag only applies once there's a
+    // second card to share the middle with. Without this, a lone stack
+    // card would render shifted 8px left of column center.
+    const xOffset =
+      count === 1 ? 0 : (i % 2 === 0 ? -1 : 1) * hOffsetPx;
+    out.push({ x: cx + xOffset, y: startY + i * step });
+  }
+  return out;
 }
