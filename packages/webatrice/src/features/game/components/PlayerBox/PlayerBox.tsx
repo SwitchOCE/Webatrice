@@ -6669,8 +6669,22 @@ function PlayerBox(
     seatPlayerId: seatId,
     zone: 'battlefield',
   });
+  // Hidden zones: the library pile drags its top card (position 0); the
+  // search, reveal and sideboard dialogs drag by the server position their
+  // snapshot carries as the card id.
+  const libraryDragSource = useSeatDragSource(`seat-${seatId}-library`, { seatPlayerId: seatId, zone: 'library' });
+  const librarySearchDragSource = useSeatDragSource(`seat-${seatId}-library-search`, {
+    seatPlayerId: seatId,
+    zone: 'library',
+  });
+  const revealDragSource = useSeatDragSource(`seat-${seatId}-reveal`, { seatPlayerId: seatId, zone: 'library' });
+  const sideboardDragSource = useSeatDragSource(`seat-${seatId}-sideboard-view`, {
+    seatPlayerId: seatId,
+    zone: 'sideboard',
+  });
   const seatDragSources: Partial<Record<DragSourceZone, SeatDragStart>> = {
     battlefield: battlefieldDragSource,
+    library: libraryDragSource,
     hand: handDragSource,
     stack: stackDragSource,
     graveyard: graveyardDragSource,
@@ -8936,14 +8950,10 @@ function PlayerBox(
         // verbatim as Command_MoveCard.cardId.
         onCardPointerDown={
           isSelf
-            ? (e, c) => beginDrag(e, [c], 'library')
+            ? (e, c) => librarySearchDragSource(e, [c])
             : undefined
         }
-        draggingCardIds={
-          drag?.sourceZone === 'library'
-            ? new Set(drag.cards.map((c) => c.id))
-            : undefined
-        }
+        draggingCardIds={draggingIdsFrom('library')}
       />
 
       {/* Set-life modal — opens on Ctrl/Cmd+L. Portal-rendered so it
@@ -9220,15 +9230,11 @@ function PlayerBox(
           // via `zoneRevealDialogRef` in detectDropTarget.
           onCardPointerDown={
             isSelf
-              ? (e, c) => beginDrag(e, [c], 'library')
+              ? (e, c) => revealDragSource(e, [c])
               : undefined
           }
           dropRef={revealDialogZoneRef}
-          draggingCardIds={
-            drag?.sourceZone === 'library'
-              ? new Set(drag.cards.map((c) => c.id))
-              : undefined
-          }
+          draggingCardIds={draggingIdsFrom('library')}
           onClose={() => {
             setTopCardsView(null);
             onClearRevealedDeck?.();
@@ -9331,13 +9337,9 @@ function PlayerBox(
           library={sideboardCards ?? []}
           deckCards={enrichedDeckCards}
           playerName={name}
-          onCardPointerDown={(e, c) => beginDrag(e, [c], 'sideboard')}
+          onCardPointerDown={(e, c) => sideboardDragSource(e, [c])}
           dropRef={sideboardDialogZoneRef}
-          draggingCardIds={
-            drag?.sourceZone === 'sideboard'
-              ? new Set(drag.cards.map((c) => c.id))
-              : undefined
-          }
+          draggingCardIds={draggingIdsFrom('sideboard')}
           onClose={() => {
             closeViewSideboard();
             // Clear the revealed snapshot so the next open re-dumps
