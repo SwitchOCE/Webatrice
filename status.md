@@ -5,3 +5,4 @@
 - 21:38Z KnownHosts listbox committed+pushed (eac5fd2) → useGridRows tab-stop re-home
 - 21:39Z useGridRows re-home pushed → VirtualList style into renderRow
 - 21:42Z VirtualList, CardCallout, changeset pushed → full gate
+- 21:59Z gate: typecheck/lint/unit/integration green; PR file drafted → waiting on webatrice e2e (container, 3 browsers)

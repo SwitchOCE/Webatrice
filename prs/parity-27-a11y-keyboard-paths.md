@@ -10,18 +10,20 @@ This closes the audit's P1 keyboard blocker: a game can now be joined without a 
   - Sortable headers are `<button>`s inside `columnheader`, which carries `aria-sort`, as in ReportTable.
   - Because the body is virtualized, a keyboard move calls `scrollToRow` on the react-window list ref.
   - Joining now looks the game up by id. Before, Enter or double-click on a row that was not yet selected would have used the stale selection.
+- **`useGridRows` keeps a rendered tab stop.** Virtualized callers pass the list's `onRowsRendered` range back to the hook (`VirtualRows` forwards it to react-window). While the selected row is outside the rendered window, the first visible row holds the tab stop, so Tab always enters the grid; selection is unchanged. Callers that never report a range behave as before.
 - **`useGridRows` waits for virtualized rows.** A focus request now stays pending until the target row's element mounts (the row's ref callback focuses it). Before, a move to a row that was not yet rendered lost focus. The existing callers (replays, card-art rules, reports, user games) behave the same.
-- **VirtualRows ARIA passthrough (P17).** For a list that keeps react-window's default `role=list`, `RowsRow` now spreads react-window v2's per-row `ariaAttributes` (`role=listitem`, `aria-posinset`, `aria-setsize`). The API is confirmed in `react-window.d.ts`. So `UserRows` exposes list items. Callers that set their own role, like the games grid's `rowgroup`, keep control of their rows.
+- **VirtualRows ARIA passthrough (P17).** For a list that keeps react-window's default `role=list`, `RowsRow` now spreads react-window v2's per-row `ariaAttributes` (`role=listitem`, `aria-posinset`, `aria-setsize`). The API is confirmed in `react-window.d.ts`. So `UserRows` exposes list items. Callers that set their own role, like the games grid's `rowgroup`, render their rows bare: `renderRow` receives react-window's positioning `style` and spreads it on the `role=row` element, so rows are direct children of the rowgroup (GamesList, ManageSets).
 - **TopBar tabs are navigation (P3).** The tabs are now `<nav aria-label="Open tabs">` → `<ul>` → `<li>` items, each holding a `<Link aria-current=page>` and a sibling Close `<button aria-label="Close {title}">`.
   - Middle-click still closes a tab, and now calls `preventDefault` so the link doesn't open in a new browser tab.
   - Close shows on `focus-visible`.
   - There is no ARIA tablist, because there are no tab panels.
-- **KnownHosts listbox (P7).** Saved hosts are a `role=listbox` of `<button role=option aria-selected>`.
-  - Edit is named "Edit {host}" and becomes visible on `focus-visible`.
+- **KnownHosts listbox (P7).** Saved hosts are an APG single-select listbox: one tab stop that points at its active option with `aria-activedescendant`.
+  - ↑/↓/Home/End move the active option (starting on the selected host), typing a name prefix jumps to a host, and Enter or Space picks it. Options are plain clickable `<li role=option aria-selected>`.
+  - A single Edit button after the listbox, named "Edit {host}", acts on the selected host (shown only when it is editable).
   - The trigger and the chevron report `aria-expanded` and `aria-controls`.
   - Picking a host or pressing Escape returns focus to the trigger.
   - The colour-only connection test result is announced through an `sr-only` `role=status` region.
-- **CardCallout focus (P13).** A `[[card]]` name in chat is a `<button>` that previews on focus or hover and hides on blur, mouse-out or Escape. It is linked to the preview with `aria-describedby`.
+- **CardCallout focus (P13).** A `[[card]]` name in chat is a `<button>` that previews on focus or hover and hides on blur, mouse-out or Escape. Its `aria-describedby` points at an `sr-only` summary inside the preview (type line and P/T), and is omitted when the card has neither.
   - The preview moved from a modal MUI `Popover` to a non-modal `Popper` with the same corner placement. The Popover's modal manager sets `aria-hidden` on the rest of the page, which would have hidden the focused name.
 - **P15 batch:**
   - Decorative logos and stock avatars (Login, Initialize) and CountryDropdown flags get `alt=""`.
@@ -32,7 +34,7 @@ This closes the audit's P1 keyboard blocker: a game can now be joined without a 
   - ShortcutsRow: Edit and Reset are named after the row's action, and a conflict is spelled out in `sr-only` text.
 - **Dead code (P19).** Deleted `GameSelector/*`, `OpenGames` (+css/spec) and `SayMessage` (+spec). They were imported only by their own specs and by `integration/src/features/rooms-components.spec.tsx`, which now mounts `GamesList` instead.
 - **e2e.** Added `specs/keyboard-only.spec.ts`: it logs in, joins a room and joins a game using only Tab, Shift+Tab, arrows, Space and Enter. The setup (registering the account, and the host creating the game) is mouse-driven.
-  - Selectors changed: page objects now use a `topBarTab()` helper (`navigation` → `link`, with `aria-current` replacing `aria-selected`). LoginPage picks hosts by `role=option`.
+  - Selectors changed: page objects now use a `topBarTab()` helper (`navigation` → `link`, with `aria-current` replacing `aria-selected`). LoginPage picks hosts by `role=option`. The keyboard spec tabs to the listbox, types the host name and checks `aria-activedescendant` before Enter.
 
 ## Parity rows closed
 Audit accessibility rows P1, P2, P3, P7, P13, P15, P17 and P19. These are accessibility rows, not desktop-parity-matrix rows. Desktop's QTreeView/QTabBar already offer these keyboard paths, so this restores parity of input model.
@@ -64,10 +66,18 @@ Tip `0afe92d`, from the repo root:
   - **staff-tools "admin publishes a new server message" ×3:** environmental. The spec shells out to `docker compose exec mysql`, and the Playwright container has no docker CLI (`spawnSync docker ENOENT`).
 - Sockatrice e2e not run: no sockatrice changes.
 
+## Review response (rv11)
+- **major, KnownHosts not a real listbox** → implemented the APG listbox: one tab stop, `aria-activedescendant`, ↑/↓/Home/End, type-ahead, Enter/Space pick; Edit moved out to one control after the listbox acting on the selected host. Specs with user-event (+7), keyboard e2e updated. (eac5fd2)
+- **minor, GamesList tab stop lost when scrolled** → `useGridRows` re-homes the tab stop to the first visible row via the rendered-range callback; selection unchanged; other callers unaffected. Spec +1. (bdc9e73)
+- **minor, bisectability** → not done in this run: rewriting history was blocked by the session's permissions. Deferred to the restack worker wR3, which folds 94a1ecb into baf3b91 when it replays 27 (orchestrator M1).
+- **minor, VirtualList wrapper div** → roled lists pass `style` into `renderRow` and render rows bare. Spec +1. (2c9f43a)
+- **nit, CardCallout description** → `sr-only` type line / P/T summary as the described-by target. Specs +2. (3905cb6)
+- **nit, changeset** → `minor`, text updated. (aee9592)
+
 ## Notes for reviewers
 - **TopBar uses `Link`, not `NavLink`.** The current tab comes from the existing `activeKey`, which falls back to the Lobby for unmatched routes. NavLink's own path matching can't express that.
-- **KnownHosts listbox structure.** Each option `<button>` sits in an `<li role=presentation>` next to its Edit `<button>`, so a strict validator may flag a non-option inside the listbox. The alternative was moving Edit out of the row. Moving keyboard focus between options is plain Tab; there is no arrow-key roving inside the popup yet.
-- **Virtualized tab stop.** If the user mouse-scrolls the selected row out of the rendered window, the grid has no tab stop until that row is rendered again. A fix would put the tab stop on the scroller, or use `onRowsRendered`.
+- **KnownHosts uses `aria-activedescendant`, not roving tabindex**, matching ManageSets' grid. Type-ahead resets after 500 ms. `@testing-library/user-event` is added as a webatrice dev dependency for the keyboard specs.
+- **Commit history.** `baf3b91` (deletion) and `94a1ecb` (integration spec update) are still separate, so the integration suite cannot import at the four commits between them. The squash is deferred to the restack (wR3).
 - **Follow-ups (not in this PR):**
   - `features/rooms/components/Messages.tsx` is also dead: only its spec and the integration spec import it. The task scoped deletion to GameSelector, OpenGames and SayMessage.
   - GamesList's column labels and toolbar strings are still literals (i18n PR D).
