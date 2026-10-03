@@ -1,11 +1,12 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
 import { PREFERENCE_DEFAULTS } from '@app/types';
 
-import { usePreference } from '../../../../../hooks/useSettings';
+import { usePreferences } from '../../../../../hooks/useSettings';
 import { lookupCard } from '../../../../../services/cards/cardCatalog';
+import type { Preferences } from '../../../../../types';
 import {
   buildSeatGameState, cardEl, chooseMenuPath, menuLabels, openContextMenu, renderSeatCell, type SeatGameSpec,
 } from '../../../__test-utils__/seatFixtures';
@@ -35,6 +36,11 @@ const found = (name: string, typeLine: string) =>
 const tappedBear = (name: string) =>
   ({ ...found(name, 'Creature — Bear'), power: '2', toughness: '2', cipt: true }) as Awaited<ReturnType<typeof lookupCard>>;
 
+// Read by the next render: useSettings is mocked, so a change does not re-render a mounted seat.
+const setPreferences = (patch: Partial<Preferences>) => {
+  vi.mocked(usePreferences).mockReturnValue({ ...PREFERENCE_DEFAULTS, ...patch });
+};
+
 const handButton = () => screen.getByTitle(/^Hand — /);
 // The hand row is the element the hand button sits in.
 const handBacks = () => handButton().parentElement!.querySelectorAll(`img[src="${CARD_BACK_URL}"]`);
@@ -42,7 +48,7 @@ const handBacks = () => handButton().parentElement!.querySelectorAll(`img[src="$
 afterEach(() => {
   vi.mocked(lookupCard).mockImplementation(async (name: string) =>
     ({ found: false, source: 'unknown', name, printings: [] }) as Awaited<ReturnType<typeof lookupCard>>);
-  vi.mocked(usePreference).mockImplementation(((key: keyof typeof PREFERENCE_DEFAULTS) => PREFERENCE_DEFAULTS[key]) as never);
+  vi.mocked(usePreferences).mockReturnValue(PREFERENCE_DEFAULTS);
 });
 
 describe('HandZone', () => {
@@ -67,8 +73,7 @@ describe('HandZone', () => {
   });
 
   it.each([true, false])('menu Play reads playToStack=%s from preferences', async (playToStack) => {
-    vi.mocked(usePreference).mockImplementation(((key: keyof typeof PREFERENCE_DEFAULTS) =>
-      key === 'playToStack' ? playToStack : PREFERENCE_DEFAULTS[key]) as never);
+    setPreferences({ playToStack });
     const client = createMockWebClient();
     const game = client.request.game;
     renderWithProviders(<Game />, { preloadedState: buildSeatGameState(SPEC), webClient: client, route: '/game/1' });
@@ -96,7 +101,7 @@ describe('HandZone', () => {
   });
 
   it('with "Play all nonlands onto the stack" off, plays a creature to the battlefield with its seat metadata P/T and cipt', async () => {
-    vi.mocked(usePreference).mockImplementation(((key: string) => key !== 'playToStack') as never);
+    setPreferences({ playToStack: false });
     vi.mocked(lookupCard).mockImplementation(async (name: string) => tappedBear(name));
     const deckList = '<?xml version="1.0"?><cockatrice_deck version="1"><zone name="main">'
       + '<card number="1" name="Shock"/></zone></cockatrice_deck>';
@@ -113,6 +118,60 @@ describe('HandZone', () => {
       startZone: ZoneName.HAND,
       targetZone: ZoneName.TABLE,
       cardsToMove: { card: [{ cardId: SHOCK.id, pt: '2/2', tapped: true }] },
+    });
+  });
+
+  it('centres the hand row by default and starts it at the left when left justified', async () => {
+    renderSeatCell(SPEC);
+    const row = () => cardEl(FOREST.id, 'hand').parentElement!;
+    expect(row()).toHaveClass('m-auto');
+    expect(row().style.marginLeft).toBe('');
+    cleanup();
+
+    setPreferences({ leftJustifiedHand: true });
+    renderSeatCell(SPEC);
+
+    expect(row()).not.toHaveClass('m-auto');
+    expect(row()).toHaveClass('mr-auto');
+    expect(row().style.marginLeft).toBe('calc(var(--card-width, 72px) * 1.4)');
+  });
+
+  describe('vertical hand', () => {
+    it('puts the hand in a column beside the info column, every card still playable', async () => {
+      setPreferences({ horizontalHand: false });
+      const { game } = renderSeatCell(SPEC);
+
+      const column = screen.getByTestId('hand-zone-1').parentElement!;
+      expect(column.style.gridColumn).toBe('2');
+      expect(column.style.gridRow).toBe('1');
+      expect(column).toContainElement(handButton());
+      expect(column).toContainElement(cardEl(FOREST.id, 'hand'));
+      expect(column).toContainElement(cardEl(SHOCK.id, 'hand'));
+
+      vi.mocked(lookupCard).mockResolvedValueOnce(found('Shock', 'Instant'));
+      fireEvent.doubleClick(cardEl(SHOCK.id, 'hand'));
+      await waitFor(() => expect(game.moveCard).toHaveBeenCalledTimes(1));
+      expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({ startZone: ZoneName.HAND, targetZone: ZoneName.STACK });
+    });
+
+    it('brings the hovered card to the front', async () => {
+      setPreferences({ horizontalHand: false });
+      renderSeatCell(SPEC);
+      const slot = (id: number) => cardEl(id, 'hand').parentElement!;
+      expect(slot(FOREST.id).style.zIndex).toBe('0');
+      expect(slot(SHOCK.id).style.zIndex).toBe('1');
+
+      fireEvent.mouseEnter(slot(FOREST.id));
+      expect(slot(FOREST.id).style.zIndex).toBe('2');
+
+      fireEvent.mouseLeave(slot(FOREST.id));
+      expect(slot(FOREST.id).style.zIndex).toBe('0');
+    });
+
+    it('shows another player\'s hand as a column of card backs', async () => {
+      setPreferences({ horizontalHand: false });
+      renderSeatCell(SPEC, 2);
+      expect(screen.getByTestId('hand-zone-2').querySelectorAll(`img[src="${CARD_BACK_URL}"]`)).toHaveLength(3);
     });
   });
 });
