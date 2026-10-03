@@ -3,6 +3,7 @@ import { create } from '@bufbuild/protobuf';
 import { server } from '@cockatrice/datatrice';
 import {
   Response_DeckListSchema,
+  Response_DeckShareCreateSchema,
   Response_ResponseCode,
   ServerInfo_DeckStorage_FileSchema,
   ServerInfo_DeckStorage_FolderSchema,
@@ -12,6 +13,12 @@ import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { renderWithProviders, connected31State, connectedState, disconnectedState } from '../../__test-utils__';
 import Decks from './Decks';
+
+// Share links name the server this session logged into: the selected known host.
+vi.mock('@app/feature-widgets/known-hosts', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@app/feature-widgets/known-hosts')>(),
+  useKnownHosts: () => ({ status: 'loaded', value: { hosts: [], selectedHost: { host: 'server.example', port: '4748' } } }),
+}));
 
 // Piece 2 coverage: smoke-test the new MyDecks list. Full RTL
 // coverage (create/delete flows, useReduxEffect navigation) lives in
@@ -95,6 +102,21 @@ describe('Decks sharing (Servatrice 3.1)', () => {
       name: 'DeckSharing.defaultDecksName',
       items: [{ deckId: 3 }],
     }));
+  });
+
+  it('drops a share answered after the dialog was cancelled: nothing is copied', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    const { store, webClient } = renderLoaded();
+    fireEvent.click(screen.getByRole('button', { name: 'DeckSharing.shareDeckNamed' }));
+    fireEvent.click(screen.getByRole('button', { name: /DeckSharing.create/ }));
+    await waitFor(() => expect(webClient.request.session.deckShareCreate).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole('button', { name: 'DeckSharing.cancel' }));
+
+    await act(async () => {
+      store.dispatch(server.Actions.deckShareCreated({ share: create(Response_DeckShareCreateSchema, { token: 'late' }) }));
+    });
+    expect(writeText).not.toHaveBeenCalled();
   });
 
   it('shares a folder\'s decks by path', async () => {
