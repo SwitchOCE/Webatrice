@@ -1,0 +1,1 @@
+- 16:00Z started rv8, read brief+template → reading PR file and diff
