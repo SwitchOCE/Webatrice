@@ -87,7 +87,7 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
         <span className="ml-auto flex items-center gap-1.5 text-xs text-text-muted" data-testid="private-chat-presence">
           <span
             aria-hidden
-            className={['h-2 w-2 rounded-full', isOnline ? 'bg-emerald-500' : 'bg-text-muted'].join(' ')}
+            className={['h-2 w-2 rounded-full', isOnline ? 'bg-success' : 'bg-text-muted'].join(' ')}
           />
           {isOnline ? t('PrivateChat.presence.online') : t('PrivateChat.presence.offline')}
         </span>

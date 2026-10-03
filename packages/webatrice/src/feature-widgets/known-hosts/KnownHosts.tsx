@@ -91,7 +91,7 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
         <div
           className={[
             'w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm bg-bg-elevated border transition-colors',
-            showError ? 'border-red-400/60' : 'border-border-subtle hover:border-border-strong',
+            showError ? 'border-danger/60' : 'border-border-subtle hover:border-border-strong',
             'focus-within:outline-none focus-within:ring-1 focus-within:border-accent focus-within:ring-accent',
             disabled ? 'opacity-60' : '',
           ].join(' ')}
@@ -249,7 +249,7 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
             <div className="px-3 py-1.5 text-xs text-text-muted">{t('KnownHosts.public.loading')}</div>
           )}
           {publicServers.status === LoadingState.ERROR && (
-            <div className="px-3 py-1.5 text-xs text-red-400">{t('KnownHosts.public.error')}</div>
+            <div className="px-3 py-1.5 text-xs text-danger">{t('KnownHosts.public.error')}</div>
           )}
           {publicServers.status === LoadingState.READY && publicServers.value?.stale && (
             <div className="px-3 py-1.5 text-xs text-text-muted">{t('KnownHosts.public.stale')}</div>
