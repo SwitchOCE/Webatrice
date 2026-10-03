@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { CardRelatedLinks } from '@app/components';
+import { detailTargetKey, fetchScryfallDetail, type ScryfallDetail } from '@app/services';
 
 import { useBigPreviewCard, useCardPreviewActions } from '../CardPreviewContext';
 
@@ -16,68 +17,12 @@ import PreviewCardImage from '../PreviewCardImage/PreviewCardImage';
  * preview store (CardPreviewContext), which also drives the right-rail hover
  * preview. This component only draws whatever the store holds.
  */
-/** Scryfall fields the description panel renders. Same shape as the
- *  BattlefieldSidebar's text-mode fetch — kept local so this file can
- *  fetch on its own without cross-file coupling. */
-interface ScryfallDetail {
-  id: string;
-  name: string;
-  mana_cost?: string;
-  type_line?: string;
-  oracle_text?: string;
-  flavor_text?: string;
-  power?: string;
-  toughness?: string;
-  loyalty?: string;
-  card_faces?: Array<{
-    name?: string;
-    mana_cost?: string;
-    type_line?: string;
-    oracle_text?: string;
-    flavor_text?: string;
-    power?: string;
-    toughness?: string;
-    loyalty?: string;
-  }>;
-  /** Scryfall `all_parts` — tokens, meld pieces, combo pieces. Powers
-   *  the "Related" link section rendered by CardRelatedLinks. */
-  all_parts?: Array<{
-    id?: string;
-    name?: string;
-    component?: string;
-  }>;
-}
-
-async function fetchScryfallDetail(
-  scryfallId: string | undefined,
-  name: string,
-  signal?: AbortSignal,
-): Promise<ScryfallDetail | null> {
-  try {
-    const url = scryfallId
-      ? `https://api.scryfall.com/cards/${encodeURIComponent(scryfallId)}`
-      : `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(
-        name.replace(/\s*\(?\bToken\b\)?\s*$/i, ''),
-      )}`;
-    const res = await fetch(url, { signal });
-    if (!res.ok) {
-      return null;
-    }
-    return (await res.json()) as ScryfallDetail;
-  } catch (e) {
-    if ((e as { name?: string })?.name === 'AbortError') {
-      throw e;
-    }
-    return null;
-  }
-}
-
 export function BigCardPreview() {
   const card = useBigPreviewCard();
   const { openBigPreview } = useCardPreviewActions();
   const [detail, setDetail] = useState<ScryfallDetail | null>(null);
 
-  const hoverKey = card ? card.scryfallId ?? `name:${card.name}` : null;
+  const hoverKey = card ? detailTargetKey(card) : null;
 
   useEffect(() => {
     if (!card) {
