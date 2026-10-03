@@ -5,7 +5,7 @@ import { CardImage, CardRelatedLinks } from '@app/components';
 
 import { useBigPreviewCard, useCardPreviewActions } from '../ui/CardPreviewContext';
 
-import { CARD_CORNER_RADIUS } from './cardSize';
+import { CARD_CORNER_RADIUS } from '../ui/SeatCard/cardSize';
 import { ManaSymbols, SymbolText } from './ManaSymbols';
 
 /**
