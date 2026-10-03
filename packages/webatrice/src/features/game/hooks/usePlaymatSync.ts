@@ -40,6 +40,12 @@ export function usePlaymatSync(gameId: number | undefined): void {
   const wasStarted = useRef(started);
   const lastSettings = useRef(settings);
 
+  // A different game starts from a clean slate: nothing has been sent there yet.
+  useEffect(() => {
+    deckPlaymat.current = null;
+    lastSent.current = undefined;
+  }, [gameId]);
+
   useEffect(() => {
     if (wasStarted.current && !started) {
       rotation.current++;
