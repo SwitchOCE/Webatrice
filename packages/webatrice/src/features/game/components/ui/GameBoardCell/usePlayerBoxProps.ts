@@ -4,6 +4,7 @@ import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 
 import type PlayerBox from '../../PlayerBox/PlayerBox';
 import type { RoomMemberWithProfile } from '../../PlayerBox/mockTypes';
+import { ALL_PLAYERS } from '../../../dialogs/RevealCardsDialog/revealRecipient';
 import type {
   PlayerBoardCommands,
   PlayerBoardModel,
@@ -70,8 +71,9 @@ export function usePlayerBoxSeatProps(model: PlayerBoardModel) {
   } satisfies Partial<PlayerBoxProps>;
 }
 
-/** PlayerBox's "-1 = every player" convention for reveal targets. */
-const toRecipient = (targetPlayerId: number): RevealRecipient => (targetPlayerId === -1 ? 'all' : targetPlayerId);
+/** PlayerBox's reveal target, with the dialogs' "All players" sentinel. */
+const toRecipient = (targetPlayerId: number): RevealRecipient =>
+  (targetPlayerId === ALL_PLAYERS ? 'all' : targetPlayerId);
 
 /** The command half of PlayerBox's props, adapted from the grouped ports. */
 export function usePlayerBoxCommandProps(
