@@ -315,6 +315,11 @@
 
 .login-footer__language {
   margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 /* Connection-status message (MUI Paper). Recolored to blend with the
