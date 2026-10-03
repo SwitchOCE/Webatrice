@@ -1,2 +1,3 @@
 - 22:13Z started; base worktree ready → listing large files
 - 22:14Z 14 files >500 lines listed (sockatrice: none) → fan-out review agents
+- 22:15Z 5 review agents launched (zones/dialogs, seat menus+hooks, lobby/topbar/services, datatrice, dupes) → synthesize specs/aud2.md
