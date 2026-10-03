@@ -14,6 +14,7 @@ import {
   ServerInfo_PlayerSchema,
   ServerInfo_UserSchema,
   ServerInfo_ZoneSchema,
+  type ServerInfo_Zone,
 } from '@cockatrice/sockatrice/generated';
 import { games, server } from '@cockatrice/datatrice';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
@@ -61,6 +62,8 @@ export interface BuildGameStateOptions {
   // Seed the named player's `table` zone with cards (default: empty zones, so
   // the board-rendering flows stay behavior-equivalent to the pre-split spec).
   tableCardsByPlayer?: Record<number, TableCardSeed[]>;
+  // Zones beyond the builtins (a forked server's custom zones), by player.
+  extraZonesByPlayer?: Record<number, ServerInfo_Zone[]>;
 }
 
 export function buildEventGameStateChanged(
@@ -129,6 +132,7 @@ export function buildEventGameStateChanged(
             cardCount: 0,
             cardList: [],
           }),
+          ...(opts.extraZonesByPlayer?.[pid] ?? []),
         ],
         counterList: [],
         arrowList: [],
