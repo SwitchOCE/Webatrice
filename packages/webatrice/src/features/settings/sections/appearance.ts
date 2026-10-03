@@ -22,6 +22,12 @@ export const appearanceSection: SettingsSection = {
           descriptionKey: 'SettingsAppearance.invertVerticalCoordinate.description',
           control: { kind: 'toggle', key: 'invertVerticalCoordinate' },
         },
+        {
+          id: 'minPlayersForMultiColumnLayout',
+          labelKey: 'SettingsAppearance.minPlayersForMultiColumnLayout.label',
+          // Desktop's spin box: at least 2, and QSpinBox's default ceiling.
+          control: { kind: 'number', key: 'minPlayersForMultiColumnLayout', min: 2, max: 99 },
+        },
       ],
     },
   ],

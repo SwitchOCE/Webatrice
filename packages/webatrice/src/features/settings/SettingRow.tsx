@@ -119,6 +119,30 @@ function BuiltInControl({ id, control, preferences, disabled, describedBy, onCha
           onChange={onChange}
         />
       );
+    case 'number':
+      return (
+        <span className="settings-number">
+          <CommittedInput
+            id={id}
+            type="number"
+            inputMode="numeric"
+            className="settings-input settings-number__input"
+            min={control.min}
+            max={control.max}
+            step={1}
+            value={String(preferences[control.key])}
+            disabled={disabled}
+            aria-describedby={describedBy}
+            onCommit={(raw) => {
+              const value = clampWhole(raw, control.min, control.max);
+              if (value !== undefined) {
+                onChange({ [control.key]: value });
+              }
+            }}
+          />
+          {control.suffixKey && <span className="settings-number__suffix">{t(control.suffixKey)}</span>}
+        </span>
+      );
     case 'color':
       // Stored as desktop does: six hex digits without the '#'.
       return (
@@ -133,6 +157,18 @@ function BuiltInControl({ id, control, preferences, disabled, describedBy, onCha
         />
       );
   }
+}
+
+/**
+ * A spin box's value: a whole number within its range, as QSpinBox keeps it. A cleared or
+ * unparsable box saves nothing, and the box shows the stored value again.
+ */
+export function clampWhole(raw: string, min: number, max: number): number | undefined {
+  const value = Number(raw);
+  if (raw.trim() === '' || !Number.isFinite(value)) {
+    return undefined;
+  }
+  return Math.min(max, Math.max(min, Math.round(value)));
 }
 
 type RangeControlProps = Omit<BuiltInControlProps, 'control'> & {
@@ -178,8 +214,9 @@ type CommittedInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'va
 };
 
 /**
- * A range or colour input that saves once the user lets go. The native `change` event fires on
- * release, on a keyboard step and when the colour picker closes; React's onChange fires on every
+ * A range, number or colour input that saves once the user lets go. The native `change` event
+ * fires on release, on a keyboard or spinner step, when a typed number is committed (Enter or
+ * leaving the box) and when the colour picker closes; React's onChange fires on every
  * drag tick, and saving each one would write the settings row and re-render its readers per tick.
  */
 function CommittedInput({ value, onDraft, onCommit, ...props }: CommittedInputProps) {

@@ -21,6 +21,9 @@ const MIGRATIONS: Record<number, (row: SettingRow) => void> = {
     row.themeMode = ThemeMode.Dark;
     row.language = legacyLanguageChoice() ?? '';
   },
+  // v3: the board preferences (hand and table layout, card clicks, arrows, selection counts,
+  // animations, card rendering). Every one is new, so the closing fillPreferenceDefaults gives
+  // each its desktop default; there is nothing to carry over.
 };
 
 function legacyLanguageChoice(): string | undefined {

@@ -55,6 +55,15 @@ export type SettingControl =
     /** Runs once the user lets go, with the preferences as saved. */
     onCommit?: (preferences: Preferences) => void;
   }
+  /** A whole number typed or stepped in, like desktop's spin boxes; saved once it is committed. */
+  | {
+    kind: 'number';
+    key: NumberPreferenceKey;
+    min: number;
+    max: number;
+    /** Translation key for a unit shown after the box (desktop's spin-box suffix). */
+    suffixKey?: string;
+  }
   | { kind: 'color'; key: StringPreferenceKey }
   /**
    * Anything else. `keys` lists the preferences it edits so "Restore defaults" covers them;

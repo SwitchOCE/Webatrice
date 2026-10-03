@@ -237,6 +237,23 @@
   color: rgb(var(--text-secondary));
 }
 
+.settings-number {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-number__input {
+  min-width: 0;
+  width: 6rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-number__suffix {
+  font-size: 0.875rem;
+  color: rgb(var(--text-secondary));
+}
+
 .settings-color {
   width: 3rem;
   height: 1.75rem;

@@ -122,6 +122,26 @@ describe('useGameBoardLayout', () => {
     expect(result.current.cells.some((c) => c.row === 2 && c.col === 1)).toBe(false);
   });
 
+  it('splits into two columns at the "minimum player count for multi-column layout"', () => {
+    const three = buildGame({ localPlayerId: 1, playerSpec: seats([1, 2, 3]) });
+    const { result, rerender } = renderHook(({ min }) => useGameBoardLayout(three, min), {
+      initialProps: { min: 3 },
+    });
+    expect(result.current.columns).toBe(2);
+    expect(result.current.rows).toBe(2);
+
+    rerender({ min: 4 });
+    expect(result.current.columns).toBe(1);
+    expect(result.current.rows).toBe(3);
+  });
+
+  it('keeps a single column below a raised threshold', () => {
+    const five = buildGame({ localPlayerId: 1, playerSpec: seats([1, 2, 3, 4, 5]) });
+    const { result } = renderHook(() => useGameBoardLayout(five, 6));
+    expect(result.current.columns).toBe(1);
+    expect(result.current.rows).toBe(5);
+  });
+
   it('6 players fill a full 2x3 grid', () => {
     const game = buildGame({ localPlayerId: 1, playerSpec: seats([1, 2, 3, 4, 5, 6]) });
     const { result } = renderHook(() => useGameBoardLayout(game));

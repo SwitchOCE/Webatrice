@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 
 import { GameEntry, games } from '@cockatrice/datatrice';
+import { PREFERENCE_DEFAULTS } from '@app/types';
 
 import { computeCanAct } from './useGameAccess';
 
@@ -28,10 +29,6 @@ export interface GameBoardLayout {
   bottomHand: { playerId: number; canAct: boolean } | undefined;
 }
 
-// Cockatrice switches to a 2-column board at this player count
-// (its getMinPlayersForMultiColumnLayout default; see Cockatrice issue #3533).
-const MIN_PLAYERS_FOR_TWO_COLUMNS = 4;
-
 const EMPTY_LAYOUT: GameBoardLayout = {
   cells: [],
   columns: 1,
@@ -48,8 +45,15 @@ const EMPTY_LAYOUT: GameBoardLayout = {
  * order; the local player anchors the bottom-left cell and the ring is rotated so
  * everyone else keeps their seating order relative to the local player. Cells fill
  * up the left column (bottom -> top) then down the right column (top -> bottom).
+ *
+ * `minPlayersForMultiColumn` is desktop's "Minimum player count for multi-column layout"
+ * (Appearance › Table grid layout, default 4; see Cockatrice issue #3533): at that many seated
+ * players the board splits into two columns.
  */
-export function useGameBoardLayout(game: GameEntry | undefined): GameBoardLayout {
+export function useGameBoardLayout(
+  game: GameEntry | undefined,
+  minPlayersForMultiColumn: number = PREFERENCE_DEFAULTS.minPlayersForMultiColumnLayout,
+): GameBoardLayout {
   return useMemo<GameBoardLayout>(() => {
     if (!game) {
       return EMPTY_LAYOUT;
@@ -84,7 +88,7 @@ export function useGameBoardLayout(game: GameEntry | undefined): GameBoardLayout
         ? { playerId: localPlayerId, canAct: computeCanAct(game, localPlayerId) }
         : undefined;
 
-    const columns = n >= MIN_PLAYERS_FOR_TWO_COLUMNS ? 2 : 1;
+    const columns = n >= minPlayersForMultiColumn ? 2 : 1;
     const rows = Math.ceil(n / columns);
 
     // Rotate the ring so the anchored (local) player leads. Spectators have no
@@ -125,5 +129,5 @@ export function useGameBoardLayout(game: GameEntry | undefined): GameBoardLayout
     });
 
     return { cells, columns, rows, handMode, bottomHand };
-  }, [game]);
+  }, [game, minPlayersForMultiColumn]);
 }
