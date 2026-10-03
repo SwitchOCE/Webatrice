@@ -85,6 +85,23 @@ describe('CardArtRules', () => {
     expect(webClient.request.moderator.addCardArtRule).toHaveBeenCalledWith('Unknown Card', 'custom-id', 'ALLOW', '');
   });
 
+  it('adds a rule without a provider id, as desktop does for a card missing from the local database', async () => {
+    const { webClient } = setup();
+    const card = screen.getByRole('textbox', { name: /label\.card/ });
+    fireEvent.change(card, { target: { value: 'Unknown Card' } });
+    fireEvent.blur(card);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /button\.add/ }));
+    });
+    expect(webClient.request.moderator.addCardArtRule).toHaveBeenCalledWith('Unknown Card', '', 'ALLOW', '');
+  });
+
+  it('caps the card name and provider id at the server limit', () => {
+    setup();
+    expect(screen.getByRole('textbox', { name: /label\.card/ })).toHaveAttribute('maxLength', '255');
+    expect(screen.getByRole('textbox', { name: /label\.providerId/ })).toHaveAttribute('maxLength', '255');
+  });
+
   it('does not add a rule without a card', async () => {
     const { webClient } = setup();
     await act(async () => {
