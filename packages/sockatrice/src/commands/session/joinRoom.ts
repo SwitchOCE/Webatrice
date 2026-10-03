@@ -22,6 +22,8 @@ import { pendingRoomJoins as pendingJoins } from './pendingRoomJoins';
  *   code, `failure` when the server never answered, and whether a user asked for the
  *   room. Auto-joins (`userInitiated = false`, desktop's `setCurrent = false`) fail
  *   without a message box on desktop, so consumers keep them silent.
+ * - A success passes `userInitiated` on with the room, so the client switches to the
+ *   room only when the user asked for it (desktop `addRoomTab(info, setCurrent)`).
  */
 export function joinRoom(roomId: number, userInitiated = true): void {
   if (pendingJoins.has(roomId)) {
@@ -44,9 +46,9 @@ function sendJoinRoom(roomId: number, isHealingRejoin: boolean): void {
   WebClient.instance.protobuf.sendSessionCommand(Command_JoinRoom_ext, create(Command_JoinRoomSchema, { roomId }), {
     responseExt: Response_JoinRoom_ext,
     onSuccess: (response) => {
-      settle();
+      const userInitiated = settle();
       if (response.roomInfo) {
-        WebClient.instance.response.room.joinRoom(response.roomInfo);
+        WebClient.instance.response.room.joinRoom(response.roomInfo, userInitiated);
       }
     },
     onResponseCode: {

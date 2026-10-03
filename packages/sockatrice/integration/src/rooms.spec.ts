@@ -95,8 +95,10 @@ describe('rooms', () => {
       value: joined,
     })));
 
+    // An auto-join is not user-initiated, so the client opens the room without switching to it.
     expect(getMockResponse().room.joinRoom).toHaveBeenCalledWith(
       expect.objectContaining({ roomId: 1, name: 'Lobby' }),
+      false,
     );
   });
 
