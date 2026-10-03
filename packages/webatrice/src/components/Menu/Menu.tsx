@@ -239,7 +239,16 @@ export function Menu({ anchor, label, onClose, triggerRef, autoFocus = true, id,
     }
     const items = menuItems(menu);
     const index = items.indexOf(document.activeElement as HTMLElement);
-    const focusAt = (i: number) => items[(i + items.length) % items.length]?.focus();
+    const focusAt = (i: number) => {
+      const next = items[(i + items.length) % items.length];
+      next?.focus();
+      // Moving off the entry of a submenu opened by hovering closes it, as QMenu does when its
+      // current action changes.
+      if (openSubmenu != null && next?.dataset.submenu !== openSubmenu) {
+        window.clearTimeout(closeTimer.current);
+        setOpenSubmenu(null);
+      }
+    };
     switch (event.key) {
       case 'ArrowDown':
         focusAt(index + 1);
