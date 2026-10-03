@@ -89,6 +89,8 @@ export class Setting {
   showMessagePopups: boolean;
   showMentionPopups: boolean;
   roomHistory: boolean;
+  /** Stamp game log lines with the game time instead of the local time. */
+  useGameTime: boolean;
 
   // In-game message macros (desktop message_settings). Read by the game's Say menu.
   messageMacros: readonly string[];
@@ -172,6 +174,7 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   showMessagePopups: true,
   showMentionPopups: true,
   roomHistory: true,
+  useGameTime: false,
 
   // Frozen too: handed out before the row loads, it must not be pushed to.
   messageMacros: Object.freeze([]),

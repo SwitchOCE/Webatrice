@@ -41,6 +41,10 @@
       "label": "Ignore all private messages",
       "description": "Also silences conversations you already have open. Messages from moderators and administrators still arrive."
     },
+    "useGameTime": {
+      "label": "Use game time instead of local time in game logs",
+      "description": "Each line shows how long the game had been running when it happened."
+    },
     "highlightWords": {
       "label": "Alert words",
       "description": "Separate words with a space, alphanumeric characters only.",
