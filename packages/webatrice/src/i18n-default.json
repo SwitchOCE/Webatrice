@@ -2283,7 +2283,8 @@
       "tableGrid": "Table grid layout",
       "handLayout": "Hand layout",
       "cardRendering": "Card rendering",
-      "cardLayout": "Card layout"
+      "cardLayout": "Card layout",
+      "cardCounters": "Card counters"
     },
     "themeMode": {
       "label": "Active theme palette",
@@ -2335,6 +2336,14 @@
     "cardViewExpandedRowsMax": {
       "label": "Maximum expanded height for card view window",
       "description": "Double-click a card view's title bar to switch between its initial and expanded heights. A size you set by dragging its corner is kept instead."
+    },
+    "cardCounterColor": {
+      "A": "Counter A",
+      "B": "Counter B",
+      "C": "Counter C",
+      "D": "Counter D",
+      "E": "Counter E",
+      "F": "Counter F"
     }
   },
   "SettingsCardSources": {
