@@ -83,7 +83,7 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
       <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-border-subtle">
         <MessageSquare size={14} className="text-text-muted" />
         <span className="text-sm font-semibold text-text-primary truncate">{peerName}</span>
-        <span className="text-xs text-text-muted">· private chat</span>
+        <span className="text-xs text-text-muted">{t('PrivateChat.subtitle')}</span>
         <span className="ml-auto flex items-center gap-1.5 text-xs text-text-muted" data-testid="private-chat-presence">
           <span
             aria-hidden
@@ -102,7 +102,7 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
       >
         {entries.length === 0 && (
           <div className="h-full flex items-center justify-center text-xs text-text-muted italic">
-            No messages yet — say hi.
+            {t('PrivateChat.empty')}
           </div>
         )}
         {entries.map((entry, index) => {
@@ -171,8 +171,8 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
             'p-2 rounded-md bg-accent text-on-accent hover:bg-accent-hover',
             'disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
           ].join(' ')}
-          title={t('PrivateChat.send')}
-          aria-label={t('PrivateChat.send')}
+          title={t('Common.action.send')}
+          aria-label={t('Common.action.send')}
         >
           <Send size={16} />
         </button>

@@ -129,7 +129,7 @@ describe('useCardImportForm', () => {
       await result.current.handleLocalSave();
     });
 
-    expect(result.current.error).toBe('Failed to save imported data');
+    expect(result.current.error).toBe('CardImportForm.message.saveFailed');
     expect(result.current.activeStep).toBe(1);
   });
 

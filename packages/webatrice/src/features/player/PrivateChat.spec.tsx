@@ -93,7 +93,7 @@ describe('PrivateChat', () => {
     fireEvent.submit(input);
     expect(onSend).not.toHaveBeenCalled();
     expect(input).toHaveValue('hello');
-    expect(screen.getByRole('button', { name: 'PrivateChat.send' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Common.action.send' })).toBeDisabled();
   });
 
   it('refuses to send to a user you have ignored', () => {

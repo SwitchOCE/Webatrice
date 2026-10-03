@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { cardDatabaseService, type RebuildResult, type UnknownSetsAnswer } from './CardDatabaseService';
 import { localOracleImportService, IngestResult } from './LocalOracleImportService';
@@ -23,6 +24,7 @@ export interface CardImportForm {
 const STEP_KEYS = ['importFiles', 'reviewAndSave', 'finished'] as const;
 
 export function useCardImportForm(): CardImportForm {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [importedCards, setImportedCards] = useState<Card[]>([]);
@@ -73,7 +75,7 @@ export function useCardImportForm(): CardImportForm {
       handleNext();
     } catch (e) {
       console.error(e);
-      setError('Failed to save imported data');
+      setError(t('CardImportForm.message.saveFailed'));
     } finally {
       setLoading(false);
     }

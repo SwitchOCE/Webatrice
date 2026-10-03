@@ -54,7 +54,7 @@ describe('Account', () => {
   it('adds a buddy through the AddUserForm', async () => {
     renderWithProviders(<Account />, { preloadedState: connectedState });
 
-    const addButtons = screen.getAllByRole('button', { name: 'Add' });
+    const addButtons = screen.getAllByRole('button', { name: 'Account.addUser.submit' });
     const textboxes = screen.getAllByRole('textbox');
     await act(async () => {
       fireEvent.change(textboxes[0], { target: { value: 'buddyA' } });
@@ -70,7 +70,7 @@ describe('Account', () => {
   it('adds an ignored user through the second AddUserForm', async () => {
     renderWithProviders(<Account />, { preloadedState: connectedState });
 
-    const addButtons = screen.getAllByRole('button', { name: 'Add' });
+    const addButtons = screen.getAllByRole('button', { name: 'Account.addUser.submit' });
     const textboxes = screen.getAllByRole('textbox');
     await act(async () => {
       fireEvent.change(textboxes[1], { target: { value: 'ignoreB' } });
@@ -171,7 +171,7 @@ describe('Account', () => {
     renderWithProviders(<Account />, { preloadedState: connectedState });
 
     hoisted.mockWebClient.request.session.addToBuddyList.mockClear();
-    const addButtons = screen.getAllByRole('button', { name: 'Add' });
+    const addButtons = screen.getAllByRole('button', { name: 'Account.addUser.submit' });
     const [buddyInput] = screen.getAllByRole('textbox');
     await act(async () => {
       fireEvent.change(buddyInput, { target: { value: 'tempBuddy' } });

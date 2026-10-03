@@ -69,7 +69,13 @@ export default function ReportUserContextPanel({ userName, failed }: ReportUserC
             <ul className="max-h-28 overflow-y-auto font-mono text-xs">
               {info.recentReports.map((r) => (
                 <li key={r.reportId}>
-                  [{formatReportDate(r.reportTime)}] #{r.reportId} by {r.reporterName} [{r.status}]: {r.category}
+                  {t('Reports.userContext.recentLine', {
+                    date: formatReportDate(r.reportTime),
+                    id: String(r.reportId),
+                    reporter: r.reporterName,
+                    status: r.status,
+                    category: r.category,
+                  })}
                 </li>
               ))}
             </ul>
