@@ -20,6 +20,10 @@
       "phaseTrackToggle": "Toggle auto-hide phase tracker",
       "phaseTrackCollapse": "Collapse the phase track into an auto-hiding HUD",
       "phaseTrackPin": "Keep the phase track always visible"
+    },
+    "tabs": {
+      "label": "Open tabs",
+      "close": "Close {title}"
     }
   }
 }
