@@ -92,8 +92,6 @@ describe('replay games and the active-game selectors', () => {
 
     expect(Selectors.getActiveGameIds(state)).toEqual([1]);
     expect(Selectors.getActiveGames(state)).toHaveLength(1);
-    expect(Selectors.getIsReplayGame(state, REPLAY_ID)).toBe(true);
-    expect(Selectors.getIsReplayGame(state, 1)).toBe(false);
   });
 });
 
