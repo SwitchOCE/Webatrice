@@ -18,7 +18,7 @@
     },
     "log": "Private chat with {name}",
     "input": "Message {name}",
-    "subtitle": "· private chat",
+    "subtitle": "private chat",
     "empty": "No messages yet — say hi."
   }
 }
