@@ -6,3 +6,4 @@
 - 21:54Z webatrice unit suite OOM (node hit 13.6GB, cgroup cap) twice, incl. run alone; retrying with --max-old-space-size=2048 → integration, e2e
 - 22:31Z earlier OOMs traced to concurrent vitest runs + an unbounded heap; webatrice unit now running with --max-old-space-size=8192 → integration, e2e
 - 22:52Z single-command webatrice unit run exhausts the container (node reaches the 13.6GB cgroup cap, workers die); running the suite in 6 chunks for honest counts → integration, e2e
+- 23:57Z webatrice unit green per-directory: 286/294 files, 2239 passed, 2 skipped (pre-existing); re-running 8 stragglers + integration → e2e
