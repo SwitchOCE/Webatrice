@@ -1,1 +1,2 @@
 - 13:57Z started w23p, read brief+task → setup branch from parity/13-administration
+- 14:00Z desktop spec read: playmats=#7101 (PlayerProperties.playmat_params + SetPlaymat, card-art crop), RTT=#7153 client-only latency tracker + status bar widget → survey webatrice
