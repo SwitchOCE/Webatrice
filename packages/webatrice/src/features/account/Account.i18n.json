@@ -1,0 +1,9 @@
+{
+  "Account": {
+    "action": {
+      "edit": "Edit",
+      "changePassword": "Change Password",
+      "changeAvatar": "Change Avatar"
+    }
+  }
+}
