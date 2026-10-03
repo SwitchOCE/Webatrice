@@ -1,4 +1,4 @@
-import { Card, Format, Info, Set, Token } from '@app/services';
+import type { Card, CardSourceRecords, Format, Info, Set, Token } from '@app/services';
 
 import { cardDatabaseService, type RebuildResult } from './CardDatabaseService';
 import { cockatriceXmlParser } from './CockatriceXmlParser';
@@ -9,6 +9,8 @@ const XML_FILENAME = /\.xml$/i;
 export interface IngestedFile {
   name: string;
   xml: string;
+  /** The file as parsed for the preview, so storing it does not parse it again. */
+  records?: CardSourceRecords;
 }
 
 export interface IngestResult {
@@ -54,7 +56,17 @@ class LocalOracleImportService {
       const parsed = cockatriceXmlParser.parse(text);
 
       result.acceptedFiles.push(file.name);
-      result.files.push({ name: file.name, xml: text });
+      result.files.push({
+        name: file.name,
+        xml: text,
+        records: {
+          cards: parsed.cards ?? [],
+          sets: parsed.sets ?? [],
+          tokens: parsed.tokens ?? [],
+          formats: parsed.formats ?? [],
+          info: parsed.info,
+        },
+      });
 
       if (parsed.info) {
         result.info = parsed.info;
@@ -84,7 +96,7 @@ class LocalOracleImportService {
    */
   persist(ingest: Pick<IngestResult, 'files'>): Promise<RebuildResult> {
     return cardDatabaseService.addSources(
-      ingest.files.map((file) => ({ fileName: file.name, xml: file.xml, origin: 'file' as const })),
+      ingest.files.map((file) => ({ fileName: file.name, xml: file.xml, records: file.records, origin: 'file' as const })),
     );
   }
 }

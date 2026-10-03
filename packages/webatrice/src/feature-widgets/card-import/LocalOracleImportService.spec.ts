@@ -199,7 +199,7 @@ describe('LocalOracleImportService', () => {
 
     it('keeps each accepted file\'s text so it can be stored as a source', async () => {
       const result = await localOracleImportService.ingest([fakeFile('cards.xml', oracleCardsXml)]);
-      expect(result.files).toEqual([{ name: 'cards.xml', xml: oracleCardsXml }]);
+      expect(result.files).toEqual([expect.objectContaining({ name: 'cards.xml', xml: oracleCardsXml })]);
     });
 
     it('accepts any .xml as a custom set file when allowCustomSets is on', async () => {
@@ -213,6 +213,21 @@ describe('LocalOracleImportService', () => {
   });
 
   describe('persist', () => {
+    it('hands the records parsed for the preview on, so files are parsed once', async () => {
+      hoisted.addSources.mockResolvedValue({
+        summary: { cards: 0, sets: 0, tokens: 0, formats: 0 },
+        unknownSets: [],
+        allNewSetsEnabled: false,
+      });
+      const ingest = await localOracleImportService.ingest([fakeFile('cards.xml', oracleCardsXml)]);
+
+      await localOracleImportService.persist(ingest);
+
+      const [[inputs]] = hoisted.addSources.mock.calls;
+      expect(inputs[0].records.cards).toEqual(ingest.cards);
+      expect(inputs[0].records.sets).toEqual(ingest.sets);
+    });
+
     it('stores every accepted file as a card-database source', async () => {
       const rebuild = { summary: { cards: 1, sets: 1, tokens: 0, formats: 1 }, unknownSets: [], allNewSetsEnabled: true };
       hoisted.addSources.mockResolvedValue(rebuild);
