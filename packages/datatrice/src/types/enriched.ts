@@ -74,6 +74,10 @@ export interface GameEntry {
   // No ping field here by design: the live ping clock lives out of the game
   // graph in GamesState.pings — read it via Selectors.getPings / getPlayerPing.
   messages: GameMessage[];
+  // Local replay playback (desktop TabGame in replay mode), never a server game:
+  // rebuilt from a GameReplay's event containers under a client-chosen id, kept
+  // across disconnects, and excluded from the active-game selectors.
+  replay?: boolean;
 }
 
 export interface PlayerEntry {
