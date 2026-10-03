@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Hand } from 'lucide-react';
 import { ZoneName } from '@cockatrice/sockatrice';
@@ -43,10 +44,8 @@ export default function HandZone() {
   const {
     cardMetaByName,
     flipHandCardBacks,
-    handAnimating,
     handCount,
     handDisplayList,
-    handExpanded,
     handMenuItems,
     handOnTop,
     handSize,
@@ -56,12 +55,19 @@ export default function HandZone() {
     playerId,
     selection,
     setCardMetaByName,
-    setHandAnimating,
-    setHandExpanded,
     startSeatCardDrag,
     zoneCommands,
   } = usePlayerSeatContext();
   const playToStack = usePreference('playToStack');
+  // Whether the hand row is being hovered — controls the auto-expand
+  // that reveals full-size cards over the play area without reflowing
+  // the shell (same pattern the PhaseTrack uses on the left edge).
+  const [handExpanded, setHandExpanded] = useState(false);
+  // Tracks whether the hand's slide tween is mid-flight. Combined with
+  // `handExpanded` to keep the outer wrapper's `overflow-visible` on
+  // until the return-to-idle animation actually finishes — otherwise
+  // the wrapper clips its own cards mid-slide when hover ends.
+  const [handAnimating, setHandAnimating] = useState(false);
 
   return (
     <div

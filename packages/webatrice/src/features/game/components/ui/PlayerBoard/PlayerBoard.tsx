@@ -14,6 +14,7 @@ import { SeatDragGhost } from '../SeatDragContext';
 import StackColumn from '../StackColumn/StackColumn';
 import type { PlayerCardViewModel } from './playerBoard.types';
 import { PlayerSeatProvider } from './PlayerSeatContext';
+import SeatDragGhostCards from './SeatDragGhostCards';
 import { usePlayerSeat, type PlayerSeatProps } from './usePlayerSeat';
 
 /**
@@ -52,7 +53,6 @@ function PlayerBoard(props: PlayerSeatProps) {
     onPointerDownBox,
     pendingArrowPointer,
     playerId,
-    renderDragGhost,
     seatDrag,
   } = controller;
 
@@ -267,12 +267,12 @@ function PlayerBoard(props: PlayerSeatProps) {
         createPortal(
           <SeatDragGhost>
             {(origin) =>
-              renderDragGhost(
-                seatDrag.cards as readonly PlayerCardViewModel[],
-                seatDrag.zone,
-                seatDrag.lenderPlayerId !== undefined,
-                origin,
-              )}
+              <SeatDragGhostCards
+                cards={seatDrag.cards as readonly PlayerCardViewModel[]}
+                zone={seatDrag.zone}
+                lent={seatDrag.lenderPlayerId !== undefined}
+                origin={origin}
+              />}
           </SeatDragGhost>,
           document.body,
         )}
