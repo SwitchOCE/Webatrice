@@ -1,1 +1,2 @@
 - 16:01Z started; branch created from 0412500 → commit 1 (transform id 0)
+- 16:03Z commits 1-2 pushed (d00fed9) → commit 3 reveal-to-all wire test
