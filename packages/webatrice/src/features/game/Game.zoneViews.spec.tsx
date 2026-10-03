@@ -43,16 +43,18 @@ const PATH = makeCard({ id: 50, name: 'Path' });
 const SHOCK = makeCard({ id: 30, name: 'Shock' });
 const THEIR_GRAVE = makeCard({ id: 60, name: 'Thoughtseize' });
 
-function renderSeats() {
+function renderSeats(mutate?: (state: ReturnType<typeof buildSeatGameState>) => void) {
   const webClient = createMockWebClient();
+  const preloadedState = buildSeatGameState({
+    localPlayerId: 1,
+    seats: [
+      { playerId: 1, hand: [SHOCK], grave: [DURESS, OPT], exile: [PATH], deckCount: 10, sideboardCount: 2 },
+      { playerId: 2, handCount: 5, grave: [THEIR_GRAVE], deckCount: 33 },
+    ],
+  });
+  mutate?.(preloadedState);
   const { store } = renderWithProviders(<ShortcutProvider><Game /></ShortcutProvider>, {
-    preloadedState: buildSeatGameState({
-      localPlayerId: 1,
-      seats: [
-        { playerId: 1, hand: [SHOCK], grave: [DURESS, OPT], exile: [PATH], deckCount: 10, sideboardCount: 2 },
-        { playerId: 2, handCount: 5, grave: [THEIR_GRAVE], deckCount: 33 },
-      ],
-    }),
+    preloadedState,
     webClient,
     route: '/game/1',
   });
@@ -270,6 +272,29 @@ describe('seat zone views', () => {
     chooseMenuPath('View graveyard');
 
     expect(zoneView('Graveyard — P2').querySelectorAll('[data-card][data-card-id]')).toHaveLength(1);
+  });
+
+  // Desktop closes a view when its zone is destroyed (ZoneViewZone::closed →
+  // ZoneViewWidget::zoneDeleted); the seat's views used to unmount with it.
+  it('closes a player\'s views when that player leaves, and keeps the others', () => {
+    const { game, store } = renderSeats((state) => {
+      state.games!.pings = { 1: { 1: 0, 2: 0 } };
+    });
+    openContextMenu(pileEl('Graveyard', 1));
+    chooseMenuPath('View graveyard');
+    openContextMenu(pileEl('Graveyard', 0));
+    chooseMenuPath('View graveyard');
+    expect(zoneView('Graveyard — P2')).toBeInTheDocument();
+
+    act(() => {
+      store.dispatch(games.Actions.playerLeft({ gameId: 1, playerId: 2, reason: 1, timeReceived: 0 }));
+    });
+
+    // A view whose player is gone falls back to "Player 2" with no cards.
+    expect(screen.queryByRole('heading', { name: /^Graveyard — (P2|Player 2)/ })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { name: /^Graveyard — / })).toHaveLength(1);
+    expect(zoneView('Graveyard — P1')).toBeInTheDocument();
+    expect(game.shuffle).not.toHaveBeenCalled();
   });
 
   // Desktop keeps a view per zone (GameScene::toggleZoneView); the seat used to
