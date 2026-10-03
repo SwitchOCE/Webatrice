@@ -95,6 +95,7 @@ function GameBoard() {
     handleGameMouseDown,
     boxSelectPreview,
     layout,
+    rotateView,
     arrows,
     dialogs,
     dnd,
@@ -142,7 +143,7 @@ function GameBoard() {
     return (playerId: number) => byPlayerId.get(playerId) ?? false;
   }, [layout.cells]);
 
-  // Dialog/confirm-opening actions surfaced by the TurnControls sidebar. Provided
+  // Dialog/confirm-opening actions and the view rotation, surfaced by the sidebar. Provided
   // via context so RightPanel (which doesn't use them) needn't forward them.
   const dialogActions = useMemo(
     () => ({
@@ -152,6 +153,7 @@ function GameBoard() {
       onRequestGameInfo: dialogs.openGameInfo,
       onRequestViewSideboard: dialogs.openViewSideboard,
       onRequestLeave: dialogs.openLeaveConfirm,
+      onRotateView: rotateView,
     }),
     [
       dialogs.openRollDie,
@@ -160,6 +162,7 @@ function GameBoard() {
       dialogs.openGameInfo,
       dialogs.openViewSideboard,
       dialogs.openLeaveConfirm,
+      rotateView,
     ],
   );
 
@@ -248,7 +251,7 @@ function GameBoard() {
 
                                 <BattlefieldSidebar />
 
-                                <GameArrowOverlay containerRef={gameRef} dragPreview={arrows.dragPreview} />
+                                <GameArrowOverlay containerRef={gameRef} layoutVersion={layout} dragPreview={arrows.dragPreview} />
 
                                 <BoxSelectOverlay preview={boxSelectPreview} />
 

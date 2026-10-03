@@ -60,6 +60,7 @@ const NOOP_DIALOG_ACTIONS: GameDialogActions = {
   onRequestGameInfo: () => undefined,
   onRequestViewSideboard: () => undefined,
   onRequestLeave: () => undefined,
+  onRotateView: () => undefined,
 };
 
 // Closed/no-op default for the whole dialogs slice: the closed-state fields plus

@@ -24,6 +24,9 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // Desktop reads `Player/aReverseTurn` but never registers a default, so it has no key there.
   // Listed here (unbound) so it can be bound.
   'game.reverseTurn': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
+  // Desktop's `aRotateViewCW` / `aRotateViewCCW` have no default either.
+  'game.rotateViewCW': { scope: ShortcutScope.GAME, group: 'game', sequences: [] },
+  'game.rotateViewCCW': { scope: ShortcutScope.GAME, group: 'game', sequences: [] },
 
   // New bindings (Cockatrice-parity, browser-safe):
   'game.drawMultipleCards': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyE'] },

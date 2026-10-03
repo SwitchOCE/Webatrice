@@ -7,6 +7,8 @@ import './GameArrowOverlay.css';
 
 export interface GameArrowOverlayProps {
   containerRef: React.RefObject<HTMLElement | null>;
+  /** Re-measures the arrows when it changes; see useGameArrowOverlay. */
+  layoutVersion?: unknown;
   /** Live drag preview endpoint (viewport → board-relative coords). The
    *  `fullColor` flag mirrors Cockatrice's `ArrowDragItem::fullColor`
    *  (alpha 200 when snapped to a valid target, 150 otherwise). */
@@ -90,9 +92,9 @@ function ArrowShape({
   );
 }
 
-function GameArrowOverlay({ containerRef, dragPreview = null }: GameArrowOverlayProps) {
+function GameArrowOverlay({ containerRef, layoutVersion, dragPreview = null }: GameArrowOverlayProps) {
   const gameId = useGameId();
-  const { arrows, width, height, handleArrowClick } = useGameArrowOverlay({ gameId, containerRef });
+  const { arrows, width, height, handleArrowClick } = useGameArrowOverlay({ gameId, containerRef, layoutVersion });
 
   // Committed arrows always render at Cockatrice's "locked target" alpha
   // (α=200) — they've already resolved to a real endpoint.
