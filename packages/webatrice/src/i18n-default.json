@@ -879,6 +879,12 @@
     "empty": "Tag name cannot be empty!",
     "duplicate": "This tag already exists."
   },
+  "SampleHand": {
+    "title": "Sample hand",
+    "redraw": "Draw a new sample hand",
+    "size": "Sample hand size",
+    "empty": "Add cards to the main deck to draw a sample hand."
+  },
   "AccountActivationDialog": {
     "title": "Account Activation",
     "subtitle1": "Your account has not been activated yet.",
