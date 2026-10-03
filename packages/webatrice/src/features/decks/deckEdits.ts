@@ -5,21 +5,22 @@ import type { DeckCard, HydratedDeck } from './types';
 /**
  * Pure deck-editor transitions. Each takes the current deck and returns
  * the next one — the same object when nothing changes, so React can
- * skip the render. `useDeckEditor` applies them optimistically and
- * schedules the autosave; keeping them pure leaves room for undo/redo.
+ * skip the render and the undo history records no empty step.
+ * `useDeckEditor` applies them optimistically and schedules the autosave.
  */
 
 export function renameDeck(deck: HydratedDeck, name: string): HydratedDeck {
-  return { ...deck, name };
+  return deck.name === name ? deck : { ...deck, name };
 }
 
 /** Any format string — known MTG slug or a custom label. */
 export function setDeckFormat(deck: HydratedDeck, format: string): HydratedDeck {
-  return { ...deck, format };
+  return deck.format === format ? deck : { ...deck, format };
 }
 
 export function setDeckDescription(deck: HydratedDeck, description: string): HydratedDeck {
-  return { ...deck, meta: { ...deck.meta, description: description || undefined } };
+  const next = description || undefined;
+  return deck.meta.description === next ? deck : { ...deck, meta: { ...deck.meta, description: next } };
 }
 
 /** Cache the deck's computed price; a no-op when the values already match. */
@@ -88,7 +89,33 @@ export function adjustCardQuantity(deck: HydratedDeck, index: number, delta: num
 }
 
 export function setCardCategory(deck: HydratedDeck, index: number, category: DeckCategory): HydratedDeck {
-  return patchCard(deck, index, { category });
+  return deck.cards[index]?.category === category ? deck : patchCard(deck, index, { category });
+}
+
+/** The printing fields a printings-picker choice replaces on a row. */
+export interface CardPrinting {
+  set?: string;
+  collectorNumber?: string;
+  scryfallId?: string;
+  imageUri?: string;
+}
+
+export function setCardPrinting(deck: HydratedDeck, index: number, printing: CardPrinting): HydratedDeck {
+  const card = deck.cards[index];
+  if (
+    !card
+    || (card.set === printing.set
+      && card.collectorNumber === printing.collectorNumber
+      && card.scryfallId === printing.scryfallId)
+  ) {
+    return deck;
+  }
+  return patchCard(deck, index, {
+    set: printing.set,
+    collectorNumber: printing.collectorNumber,
+    scryfallId: printing.scryfallId,
+    imageUri: printing.imageUri,
+  });
 }
 
 /**
@@ -98,7 +125,7 @@ export function setCardCategory(deck: HydratedDeck, index: number, category: Dec
  */
 export function setCardCommander(deck: HydratedDeck, index: number, isCommander: boolean): HydratedDeck {
   const current = deck.cards[index];
-  if (!current) {
+  if (!current || (current.isCommander === true) === isCommander) {
     return deck;
   }
   return patchCard(deck, index, {

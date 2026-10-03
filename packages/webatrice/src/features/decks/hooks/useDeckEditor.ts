@@ -15,21 +15,29 @@ import {
   appendCard,
   findMainboardRow,
   normalizeAddedCardName,
-  patchCard,
   removeCard,
   renameDeck,
   setCardCategory,
   setCardCommander,
+  setCardPrinting,
   setDeckBracketAssessment,
   setDeckDescription,
   setDeckFormat,
   setDeckPriceCache,
+  type CardPrinting,
 } from '../deckEdits';
 import { countDeckCards } from '../deckGrouping';
+import {
+  DESCRIPTION_COALESCE_MS,
+  RENAME_COALESCE_MS,
+  type DeckHistory,
+  type DeckHistoryReason,
+} from '../deckHistory';
 import { deckSaveSignature } from '../deckPersistence';
 import { assembleDeckCard, hydrateDeck } from '../hydrate';
 import type { DeckCard, HydratedDeck } from '../types';
 import { useDeckAutosave, type SaveState } from './useDeckAutosave';
+import { useDeckHistory } from './useDeckHistory';
 
 export type { SaveState } from './useDeckAutosave';
 
@@ -43,9 +51,11 @@ export type { SaveState } from './useDeckAutosave';
  * `deck`. A deck already opened this session is served from the
  * session cache instead, with no round-trip.
  *
- * Every mutation applies a pure transition from `deckEdits` locally and
- * schedules the autosave (`useDeckAutosave`), which uploads the deck as
- * a deck-id update and refreshes the deck tree on the server's ack.
+ * Every mutation applies a pure transition from `deckEdits` locally,
+ * records a named memento of the previous deck for undo (`useDeckHistory`;
+ * derived caches such as the price are not recorded) and schedules the
+ * autosave (`useDeckAutosave`), which sends the deck as a deck-id update.
+ * Loading a deck from the server starts a fresh history.
  */
 export interface UseDeckEditor {
   deck: HydratedDeck | null;
@@ -73,7 +83,8 @@ export interface UseDeckEditor {
    *  cards and a deck fingerprint for staleness detection), mirroring the
    *  level into `meta.bracketLevel`. `undefined` clears both. */
   setBracketAssessment: (assessment: BracketAssessment | undefined) => void;
-  updateCard: (index: number, patch: Partial<DeckCard>) => void;
+  /** Switch a row to another printing of the same card. */
+  setPrinting: (index: number, printing: CardPrinting) => void;
   deleteCard: (index: number) => void;
   incQuantity: (index: number, delta: number) => void;
   setCategory: (index: number, category: DeckCard['category']) => void;
@@ -88,6 +99,14 @@ export interface UseDeckEditor {
   flushSave: () => void;
   /** Send the deck again after a failed save. */
   retrySave: () => void;
+
+  // --- Undo/redo (desktop DeckStateManager + DeckListHistoryManager) ---
+  history: DeckHistory;
+  canUndo: boolean;
+  canRedo: boolean;
+  /** Undo `steps` edits (default 1); a history-list click jumps several. */
+  undo: (steps?: number) => void;
+  redo: (steps?: number) => void;
 }
 
 export function useDeckEditor(deckId: number | null): UseDeckEditor {
@@ -104,12 +123,15 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
 
-  // Mirrors state so the autosave timer reads the latest snapshot.
+  // Mirrors state so the autosave timer and back-to-back edits read the
+  // latest snapshot. Every write below updates it before `setDeck`.
   const deckRef = useRef<HydratedDeck | null>(null);
   const readDeck = useCallback(() => deckRef.current, []);
 
   const autosave = useDeckAutosave(deckId, readDeck, initialCached?.savedSignature ?? null);
   const { scheduleSave, markSaved, resetSaved, savedSignature } = autosave;
+  const history = useDeckHistory();
+  const { record, clear: clearHistory, undo: undoHistory, redo: redoHistory } = history;
 
   // The route keeps this hook mounted across `/deck/:deckId` changes,
   // so re-seed per deckId: otherwise switching to a cached deck keeps
@@ -184,6 +206,7 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
           const signature = needsMigration ? null : deckSaveSignature(hydrated);
           deckRef.current = hydrated;
           setDeck(hydrated);
+          clearHistory();
           if (signature == null) {
             resetSaved();
           } else {
@@ -236,18 +259,77 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   }, [deckId, deck, savedSignature]);
 
   // --- Mutations ---
+  // Applies `edit` to the latest deck. A user edit passes the `reason` it
+  // is listed under in the undo history (desktop `DeckStateManager`
+  // `modifyDeck` / `requestHistorySave`); derived caches pass none. An
+  // edit that returns the same deck is not an edit at all.
   const applyEdit = useCallback(
-    (edit: (current: HydratedDeck) => HydratedDeck) => {
-      setDeck((prev) => (prev ? edit(prev) : prev));
+    (edit: (current: HydratedDeck) => HydratedDeck, reason?: DeckHistoryReason, coalesceMs?: number) => {
+      const before = deckRef.current;
+      if (!before) {
+        return;
+      }
+      const next = edit(before);
+      if (next === before) {
+        return;
+      }
+      if (reason) {
+        record(before, reason, coalesceMs);
+      }
+      deckRef.current = next;
+      setDeck(next);
+      scheduleSave();
+    },
+    [record, scheduleSave],
+  );
+
+  /** A user edit to the card at `index`, named after that card. */
+  const editCard = useCallback(
+    (index: number, edit: (current: HydratedDeck) => HydratedDeck, reason: (card: DeckCard) => DeckHistoryReason) => {
+      const card = deckRef.current?.cards[index];
+      if (card) {
+        applyEdit(edit, reason(card));
+      }
+    },
+    [applyEdit],
+  );
+
+  // Undo/redo restore a whole deck; the autosave then settles the server
+  // on it (or sends nothing when it matches the last save).
+  const restore = useCallback(
+    (step: (current: HydratedDeck) => HydratedDeck | null) => {
+      const current = deckRef.current;
+      const restored = current ? step(current) : null;
+      if (!restored) {
+        return;
+      }
+      deckRef.current = restored;
+      setDeck(restored);
       scheduleSave();
     },
     [scheduleSave],
   );
+  const undo = useCallback((steps = 1) => restore((d) => undoHistory(d, steps)), [restore, undoHistory]);
+  const redo = useCallback((steps = 1) => restore((d) => redoHistory(d, steps)), [restore, redoHistory]);
 
-  const setName = useCallback((name: string) => applyEdit((d) => renameDeck(d, name)), [applyEdit]);
-  const setFormat = useCallback((format: string) => applyEdit((d) => setDeckFormat(d, format)), [applyEdit]);
+  const setName = useCallback(
+    (name: string) => applyEdit(
+      (d) => renameDeck(d, name),
+      { kind: 'rename', from: deckRef.current?.name ?? '', to: name },
+      RENAME_COALESCE_MS,
+    ),
+    [applyEdit],
+  );
+  const setFormat = useCallback(
+    (format: string) => applyEdit((d) => setDeckFormat(d, format), { kind: 'format', format }),
+    [applyEdit],
+  );
   const setDescription = useCallback(
-    (description: string) => applyEdit((d) => setDeckDescription(d, description)),
+    (description: string) => applyEdit(
+      (d) => setDeckDescription(d, description),
+      { kind: 'description', before: deckRef.current?.meta.description?.length ?? 0, after: description.length },
+      DESCRIPTION_COALESCE_MS,
+    ),
     [applyEdit],
   );
   const setPriceCache = useCallback(
@@ -259,22 +341,41 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     (assessment: BracketAssessment | undefined) => applyEdit((d) => setDeckBracketAssessment(d, assessment)),
     [applyEdit],
   );
-  const updateCard = useCallback(
-    (index: number, patch: Partial<DeckCard>) => applyEdit((d) => patchCard(d, index, patch)),
-    [applyEdit],
+  const setPrinting = useCallback(
+    (index: number, printing: CardPrinting) => editCard(
+      index,
+      (d) => setCardPrinting(d, index, printing),
+      (card) => ({ kind: 'changePrinting', name: card.name, set: printing.set ?? '' }),
+    ),
+    [editCard],
   );
-  const deleteCard = useCallback((index: number) => applyEdit((d) => removeCard(d, index)), [applyEdit]);
+  const deleteCard = useCallback(
+    (index: number) => editCard(index, (d) => removeCard(d, index), (card) => ({ kind: 'removeCard', name: card.name })),
+    [editCard],
+  );
   const incQuantity = useCallback(
-    (index: number, delta: number) => applyEdit((d) => adjustCardQuantity(d, index, delta)),
-    [applyEdit],
+    (index: number, delta: number) => editCard(
+      index,
+      (d) => adjustCardQuantity(d, index, delta),
+      (card) => ({ kind: 'adjustCard', delta, name: card.name }),
+    ),
+    [editCard],
   );
   const setCategory = useCallback(
-    (index: number, category: DeckCard['category']) => applyEdit((d) => setCardCategory(d, index, category)),
-    [applyEdit],
+    (index: number, category: DeckCard['category']) => editCard(
+      index,
+      (d) => setCardCategory(d, index, category),
+      (card) => ({ kind: 'moveCard', count: card.quantity, name: card.name, zone: category }),
+    ),
+    [editCard],
   );
   const setCommander = useCallback(
-    (index: number, isCommander: boolean) => applyEdit((d) => setCardCommander(d, index, isCommander)),
-    [applyEdit],
+    (index: number, isCommander: boolean) => editCard(
+      index,
+      (d) => setCardCommander(d, index, isCommander),
+      (card) => ({ kind: isCommander ? 'setCommander' : 'unsetCommander', name: card.name }),
+    ),
+    [editCard],
   );
 
   const addCard = useCallback(
@@ -287,15 +388,21 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
       if (current) {
         const existingIdx = findMainboardRow(current, trimmed);
         if (existingIdx >= 0) {
-          applyEdit((d) => adjustCardQuantity(d, existingIdx, 1));
+          // Desktop `DeckStateManager::addCard` names an add the same way
+          // whether it creates the row or bumps it.
+          editCard(
+            existingIdx,
+            (d) => adjustCardQuantity(d, existingIdx, 1),
+            (card) => ({ kind: 'addCard', zone: 'main', name: card.name }),
+          );
           return;
         }
       }
       const lookup = await lookupCard(trimmed);
       const newCard = assembleDeckCard({ name: trimmed, quantity: 1, category: 'main' }, lookup);
-      applyEdit((d) => appendCard(d, newCard));
+      applyEdit((d) => appendCard(d, newCard), { kind: 'addCard', zone: 'main', name: newCard.name });
     },
-    [applyEdit],
+    [applyEdit, editCard],
   );
 
   const { totalMainboardCount, totalSideboardCount } = countDeckCards(deck?.cards);
@@ -313,7 +420,7 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     setFormat,
     setPriceCache,
     setBracketAssessment,
-    updateCard,
+    setPrinting,
     deleteCard,
     incQuantity,
     setCategory,
@@ -321,5 +428,10 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     addCard,
     flushSave: autosave.flushSave,
     retrySave: scheduleSave,
+    history: history.history,
+    canUndo: history.canUndo,
+    canRedo: history.canRedo,
+    undo,
+    redo,
   };
 }
