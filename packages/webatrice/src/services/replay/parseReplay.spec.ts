@@ -1,10 +1,34 @@
-import { create, toBinary } from '@bufbuild/protobuf';
-import { GameReplaySchema, ServerInfo_GameSchema } from '@cockatrice/sockatrice/generated';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+import { create, hasExtension, toBinary } from '@bufbuild/protobuf';
+import {
+  Event_GameClosed_ext,
+  Event_Join_ext,
+  GameReplaySchema,
+  ServerInfo_GameSchema,
+} from '@cockatrice/sockatrice/generated';
 
 import { buildReplay, sayContainer } from './__mocks__/fixtures';
 import { ReplayParseError, parseReplay, replayFileName } from './parseReplay';
 
 describe('parseReplay', () => {
+  it('decodes a .cor recorded by Servatrice', () => {
+    // Saved from the replays tab after e2e/specs/replays.spec.ts played a game.
+    const bytes = new Uint8Array(readFileSync(resolve(__dirname, '__mocks__/two-player-game.cor')));
+
+    const replay = parseReplay(bytes);
+    const events = replay.eventList.flatMap((container) => container.eventList);
+
+    expect(replay.replayId).toBeGreaterThan(0n);
+    expect(replay.gameInfo?.description).toMatch(/^replay-/);
+    expect(replay.gameInfo?.maxPlayers).toBe(2);
+    // Servatrice clears game_id on every stored container.
+    expect(replay.eventList.every((container) => container.gameId === 0)).toBe(true);
+    expect(events.filter((event) => hasExtension(event, Event_Join_ext))).toHaveLength(2);
+    expect(hasExtension(events.at(-1)!, Event_GameClosed_ext)).toBe(true);
+  });
+
   it('decodes a serialized GameReplay', () => {
     const bytes = toBinary(GameReplaySchema, buildReplay([sayContainer(0, 'hi'), sayContainer(4)], 12));
 

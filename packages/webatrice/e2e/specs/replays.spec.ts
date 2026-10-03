@@ -83,12 +83,12 @@ test('a finished game can be found, managed and watched from the replays tab', a
     await expect(replays.log).toContainText('You are watching a replay of game #');
     await expect(replays.time).toHaveText(/^0:00 \/ \d+:\d\d$/);
 
-    // Step forward until both players have joined the recorded game.
+    // Step forward until both players have joined the recorded game. (A scripted
+    // game is short: its events may all fall inside the first second.)
     for (let i = 0; i < 3; i++) {
       await hostPage.getByRole('button', { name: 'Skip forward 10 seconds' }).click();
     }
     await expect(replays.log).toContainText(`${joiner.user.username} has joined the game.`);
-    await expect(replays.time).not.toHaveText(/^0:00 /);
 
     // Seeking back rebuilds the game from the start: the join lines are gone.
     await replays.seekToFraction(0);
@@ -97,9 +97,9 @@ test('a finished game can be found, managed and watched from the replays tab', a
 
     // Fast-forward playback runs to the recorded end.
     await hostPage.getByRole('button', { name: /^Fast forward/ }).click();
-    await hostPage.getByRole('button', { name: 'Play' }).click();
+    await hostPage.getByRole('button', { name: 'Play', exact: true }).click();
     await expect(replays.log).toContainText('The game has been closed.', { timeout: 60_000 });
-    await expect(hostPage.getByRole('button', { name: 'Play' })).toBeVisible();
+    await expect(hostPage.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
 
     // Close returns to the replays tab.
     await hostGame.rightPanel.getByRole('button', { name: /^close$/i }).click();
