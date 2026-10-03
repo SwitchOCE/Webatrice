@@ -6,7 +6,7 @@ import {
   type ServerInfo_DeckStorage_TreeItem,
 } from '@cockatrice/sockatrice/generated';
 
-import { flattenDeckTree, formatDeckAge } from './deckTree';
+import { flattenFolder, formatDeckAge } from './deckTree';
 
 function file(id: number, name: string, creationTime: number): ServerInfo_DeckStorage_TreeItem {
   return create(ServerInfo_DeckStorage_TreeItemSchema, {
@@ -23,18 +23,18 @@ function folder(name: string, items: ServerInfo_DeckStorage_TreeItem[]): ServerI
   });
 }
 
-describe('flattenDeckTree', () => {
-  it('collects files from nested folders with their path, newest first', () => {
+describe('flattenFolder', () => {
+  it('collects files from nested folders with their path', () => {
     const root = create(ServerInfo_DeckStorage_FolderSchema, {
       items: [
         file(1, 'Root', 100),
         folder('Cube', [file(2, 'Inner', 300), folder('Old', [file(3, 'Deep', 200)])]),
       ],
     });
-    expect(flattenDeckTree(root)).toEqual([
+    expect(flattenFolder(root, '')).toEqual([
+      { id: 1, name: 'Root', path: '', creationTime: 100 },
       { id: 2, name: 'Inner', path: 'Cube', creationTime: 300 },
       { id: 3, name: 'Deep', path: 'Cube/Old', creationTime: 200 },
-      { id: 1, name: 'Root', path: '', creationTime: 100 },
     ]);
   });
 
@@ -42,11 +42,7 @@ describe('flattenDeckTree', () => {
     const root = create(ServerInfo_DeckStorage_FolderSchema, {
       items: [file(4, '', 1), file(0, 'Ghost', 2)],
     });
-    expect(flattenDeckTree(root)).toEqual([{ id: 4, name: 'Deck #4', path: '', creationTime: 1 }]);
-  });
-
-  it('is empty without a tree', () => {
-    expect(flattenDeckTree(undefined)).toEqual([]);
+    expect(flattenFolder(root, 'A')).toEqual([{ id: 4, name: 'Deck #4', path: 'A', creationTime: 1 }]);
   });
 });
 
