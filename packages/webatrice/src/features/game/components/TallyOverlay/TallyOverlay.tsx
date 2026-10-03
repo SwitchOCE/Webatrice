@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { useSelectionTally } from '../../hooks/useSelectionTally';
 
 const PANEL_CLASS = [
@@ -12,9 +14,11 @@ const PANEL_CLASS = [
  * cards, the tally above it while it has rows.
  *
  * Desktop gates the count behind its "show total selection count" setting;
- * the web client always shows it.
+ * the web client always shows it. Only the tally is announced: the count
+ * changes with every click, so its region stays silent.
  */
 export default function TallyOverlay() {
+  const { t } = useTranslation();
   const { rows, count } = useSelectionTally();
   if (rows.length === 0 && count <= 1) {
     return null;
@@ -22,7 +26,7 @@ export default function TallyOverlay() {
   return (
     <div className="absolute bottom-2.5 right-2.5 z-10 flex flex-col items-end gap-1 pointer-events-none">
       {rows.length > 0 && (
-        <div role="status" aria-label="Tally" className={PANEL_CLASS}>
+        <div role="status" aria-label={t('TallyOverlay.tally')} className={PANEL_CLASS}>
           <table>
             <tbody>
               {rows.map((row) => (
@@ -36,7 +40,12 @@ export default function TallyOverlay() {
         </div>
       )}
       {count > 1 && (
-        <div role="status" aria-label={`${count} cards selected`} className={`${PANEL_CLASS} tabular-nums`}>
+        <div
+          role="status"
+          aria-live="off"
+          aria-label={t('TallyOverlay.selectedCount', { count })}
+          className={`${PANEL_CLASS} tabular-nums`}
+        >
           {count}
         </div>
       )}
