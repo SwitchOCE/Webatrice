@@ -7,15 +7,36 @@ import { dexieService, Stores } from '../dexie';
  * counts, clearing what can be re-fetched or re-imported, and asking the browser not to evict.
  */
 
-/** Imported card database: everything `LocalOracleImportService` writes. Re-importable. */
-export const CARD_DATA_STORES: readonly Stores[] = [Stores.CARDS, Stores.SETS, Stores.TOKENS, Stores.FORMATS, Stores.INFO];
+/**
+ * Imported card database: the loaded files (`cardSources`) and the tables rebuilt from them.
+ * Clearing the sources too keeps a later "Reload card database" from bringing the cards back.
+ * Re-importable.
+ */
+export const CARD_DATA_STORES: readonly Stores[] = [
+  Stores.CARDS,
+  Stores.SETS,
+  Stores.TOKENS,
+  Stores.FORMATS,
+  Stores.INFO,
+  Stores.CARD_SOURCES,
+];
+
+/**
+ * The user's card-data choices: Manage sets order and enabled sets, picture download URLs.
+ * Desktop keeps these in its settings, so like settings they survive deleting the card database.
+ */
+export const CARD_PREFERENCE_STORES: readonly Stores[] = [Stores.SET_PREFERENCES, Stores.CARD_DATA_SETTINGS];
 
 /** Card lookups cached from Scryfall. Refetched on demand. */
 export const SCRYFALL_CACHE_STORES: readonly Stores[] = [Stores.SCRYFALL_CACHE];
 
-/** Every table, in the order the Storage page lists them. Settings and hosts are never cleared here. */
+/**
+ * Every table, in the order the Storage page lists them. Card preferences, settings and hosts are
+ * never cleared here.
+ */
 export const ALL_STORES: readonly Stores[] = [
   ...CARD_DATA_STORES,
+  ...CARD_PREFERENCE_STORES,
   ...SCRYFALL_CACHE_STORES,
   Stores.HOSTS,
   Stores.SETTINGS,
@@ -67,5 +88,5 @@ export async function countStoredRecords(): Promise<Record<Stores, number>> {
 
 export const clearScryfallCache = (): Promise<void> => dexieService.clear(SCRYFALL_CACHE_STORES);
 
-/** Deletes the imported card database. Settings, shortcuts and known hosts are kept. */
+/** Deletes the imported card database. Card preferences, settings, shortcuts and known hosts are kept. */
 export const clearCardData = (): Promise<void> => dexieService.clear(CARD_DATA_STORES);

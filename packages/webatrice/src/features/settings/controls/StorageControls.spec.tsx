@@ -19,6 +19,13 @@ import {
 } from './StorageControls';
 import { resetStorageStatus } from './useStorageStatus';
 
+const hoisted = vi.hoisted(() => ({ refreshCardDataPreferences: vi.fn() }));
+
+vi.mock('@app/hooks', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@app/hooks')>()),
+  refreshCardDataPreferences: hoisted.refreshCardDataPreferences,
+}));
+
 vi.mock('@app/services', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@app/services')>()),
   estimateStorage: vi.fn(),
@@ -62,6 +69,7 @@ describe('Storage controls', () => {
     vi.mocked(isStoragePersisted).mockResolvedValue(false);
     vi.mocked(clearScryfallCache).mockResolvedValue();
     vi.mocked(clearCardData).mockResolvedValue();
+    hoisted.refreshCardDataPreferences.mockResolvedValue(undefined);
   });
 
   test('formats byte counts in the largest whole unit', () => {
@@ -76,6 +84,9 @@ describe('Storage controls', () => {
     expect(await screen.findByText(/SettingsStorage\.usage\.value/)).toHaveTextContent('"used":"3 MB","quota":"2 GB"');
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
     expect(screen.getByText('SettingsStorage.table.cards').nextSibling).toHaveTextContent('31,000');
+    expect(screen.getByText('SettingsStorage.table.cardSources')).toBeInTheDocument();
+    expect(screen.getByText('SettingsStorage.table.setPreferences')).toBeInTheDocument();
+    expect(screen.getByText('SettingsStorage.table.cardDataSettings')).toBeInTheDocument();
   });
 
   test('says so when the browser gives no estimate', async () => {
@@ -141,6 +152,14 @@ describe('Storage controls', () => {
     });
 
     expect(clearCardData).toHaveBeenCalledTimes(1);
+    expect(hoisted.refreshCardDataPreferences).toHaveBeenCalledTimes(1);
+  });
+
+  test('counts the loaded card files with the card database', async () => {
+    vi.mocked(countStoredRecords).mockResolvedValue(counts({ [Stores.CARD_SOURCES]: 2, [Stores.SET_PREFERENCES]: 40 }));
+    render(<ClearCardDataControl {...props} />);
+
+    expect(await screen.findByText(/SettingsStorage\.cardData\.count/)).toHaveTextContent('"count":2');
   });
 
   test('reports a failed clear', async () => {
