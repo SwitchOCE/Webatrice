@@ -70,11 +70,16 @@ export function seatCardMetaFromLookup(r: LookupResult): SeatCardMeta {
   };
 }
 
+const NO_OTHER_CARDS: readonly (readonly { name: string }[])[] = [];
+
 export interface UseSeatCardMetadataArgs {
   isSelf: boolean;
   /** The seat's loaded deck list (own seat only). */
   deckCards: readonly SeatDeckCard[];
   battlefieldCards: readonly BattlefieldCardViewModel[];
+  /** The other zones whose cards are visible (stack, graveyard, exile and the
+   *  open library / sideboard views); their card menus need the metadata too. */
+  otherVisibleCards?: readonly (readonly { name: string }[])[];
 }
 
 /**
@@ -83,7 +88,12 @@ export interface UseSeatCardMetadataArgs {
  * (either seat), then the tokens and transform faces those cards relate to.
  * Also preloads the own deck's card images.
  */
-export function useSeatCardMetadata({ isSelf, deckCards, battlefieldCards }: UseSeatCardMetadataArgs) {
+export function useSeatCardMetadata({
+  isSelf,
+  deckCards,
+  battlefieldCards,
+  otherVisibleCards = NO_OTHER_CARDS,
+}: UseSeatCardMetadataArgs) {
   // Preload every image in the viewer's deck the moment we have the deck
   // list, so drawing feels instant instead of waiting on Scryfall. Only for
   // the local player — opponents' hand cards never reveal their face, so
@@ -201,14 +211,17 @@ export function useSeatCardMetadata({ isSelf, deckCards, battlefieldCards }: Use
   // enriching whatever appears on the battlefield right now, so an
   // opponent's Grizzly Bears reads "2/2" the same as one you cast
   // yourself. Skipped when the deck-driven effect above already
-  // covered the name (has-check).
+  // covered the name (has-check). The stack, graveyard, exile and open
+  // zone views are enriched too, so their card menus offer "View related
+  // cards" for an opponent's cards as well.
   useEffect(() => {
-    if (battlefieldCards.length === 0) {
+    const visible = [battlefieldCards, ...otherVisibleCards].flat();
+    if (visible.length === 0) {
       return;
     }
     let cancelled = false;
     const uniqueNames = Array.from(
-      new Set(battlefieldCards.map((c) => c.name)),
+      new Set(visible.map((c) => c.name)),
     ).filter((name) => name && !cardMetaByName.has(name));
     if (uniqueNames.length === 0) {
       return;
@@ -236,7 +249,7 @@ export function useSeatCardMetadata({ isSelf, deckCards, battlefieldCards }: Use
     // cardMetaByName intentionally omitted for the same reason as
     // the deck-driven effect above.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
-  }, [battlefieldCards]);
+  }, [battlefieldCards, otherVisibleCards]);
 
   // Resolve related-card metadata for every parent card that has a
   // related list. Powers the "Token: …" right-click menu items
