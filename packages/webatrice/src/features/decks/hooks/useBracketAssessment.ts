@@ -43,8 +43,8 @@ export function useBracketAssessment(
   persist: ((assessment: BracketAssessment | undefined) => void) | undefined,
   lookupsAllowed: boolean,
 ): BracketAssessmentState & { retry: () => void } {
-  // Printing swaps and zone moves don't change the fingerprint, so they
-  // don't trigger a re-analysis.
+  // Printing swaps don't change the fingerprint, so they don't trigger a
+  // re-analysis; zone moves and commander changes do.
   const fingerprint = useMemo(() => deckFingerprint(cards), [cards]);
   const [state, setState] = useState<BracketAssessmentState>({ status: 'loading' });
   const [attempt, setAttempt] = useState(0);
