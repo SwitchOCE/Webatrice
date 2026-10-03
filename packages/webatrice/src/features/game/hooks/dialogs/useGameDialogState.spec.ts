@@ -10,7 +10,6 @@ describe('useGameDialogState', () => {
     expect(result.current.state).toMatchObject({
       cardMenu: null,
       zoneMenu: null,
-      playerMenu: null,
       handMenu: null,
       zoneViews: [],
       prompt: null,
@@ -19,7 +18,6 @@ describe('useGameDialogState', () => {
       lastDieSides: DEFAULT_DIE_SIDES,
       lastDieCount: DEFAULT_DIE_COUNT,
       createTokenOpen: false,
-      sideboardOpen: false,
       concedeConfirm: null,
       leaveConfirm: false,
       revealState: null,
@@ -71,7 +69,6 @@ describe('useGameDialogState', () => {
     act(() => {
       result.current.set.setSeatCardMenu({ kind: 'stack', playerId: 1, cardId: '5', x: 0, y: 0 });
       result.current.set.setZoneMenu({ playerId: 1, zoneName: 'grave', anchorPosition: { top: 0, left: 0 } });
-      result.current.set.setPlayerMenu({ top: 0, left: 0 });
       result.current.set.setHandMenu({ top: 0, left: 0 });
     });
 
@@ -81,7 +78,6 @@ describe('useGameDialogState', () => {
       cardMenu: null,
       seatCardMenu: null,
       zoneMenu: null,
-      playerMenu: null,
       handMenu: null,
     });
   });

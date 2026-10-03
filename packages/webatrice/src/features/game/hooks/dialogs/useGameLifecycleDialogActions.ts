@@ -3,18 +3,14 @@ import { games } from '@cockatrice/datatrice';
 import { useCallback, useMemo } from 'react';
 
 import { useAppDispatch } from '@app/store';
-import type { SideboardPlanMove } from '../../dialogs/SideboardDialog/SideboardDialog';
 import type { CreateTokenRequest, GameDialogsActions } from './gameDialogs.types';
 import type { GameDialogEnv } from './gameDialogEnv';
 import type { GameDialogSetters } from './useGameDialogState';
 
 export type GameLifecycleDialogActions = Pick<
   GameDialogsActions,
-  | 'handlePlayerContextMenu'
   | 'handleRollDieSubmit'
   | 'handleCreateTokenSubmit'
-  | 'handleSideboardSubmit'
-  | 'handleToggleSideboardLock'
   | 'confirmConcede'
   | 'confirmUnconcede'
   | 'confirmLeave'
@@ -22,56 +18,35 @@ export type GameLifecycleDialogActions = Pick<
 
 export interface UseGameLifecycleDialogActionsArgs {
   env: GameDialogEnv;
-  /** Whether the local user may act at all (not a spectator, `canAct` not false). */
-  canOpenMenus: boolean;
   set: Pick<
     GameDialogSetters,
-    | 'setPlayerMenu'
     | 'setRollDieOpen'
     | 'setLastDieSides'
     | 'setLastDieCount'
     | 'setCreateTokenRequest'
-    | 'setSideboardOpen'
     | 'setConcedeConfirm'
     | 'setLeaveConfirm'
   >;
-  closeAllContextMenus: () => void;
   /** The open create-token request; its submitter replaces the default command. */
   createTokenRequest: CreateTokenRequest | null;
 }
 
-/** Player-level dialogs: the player menu, dice, tokens, sideboard plan, concede and leave. */
+/** Player-level dialogs: dice, tokens, concede and leave. */
 export function useGameLifecycleDialogActions({
   env,
-  canOpenMenus,
   set,
-  closeAllContextMenus,
   createTokenRequest,
 }: UseGameLifecycleDialogActionsArgs): GameLifecycleDialogActions {
   const { gameId, webClient } = env;
   const {
-    setPlayerMenu,
     setRollDieOpen,
     setLastDieSides,
     setLastDieCount,
     setCreateTokenRequest,
-    setSideboardOpen,
     setConcedeConfirm,
     setLeaveConfirm,
   } = set;
   const dispatch = useAppDispatch();
-
-  const handlePlayerContextMenu = useCallback(
-    (event: React.MouseEvent) => {
-      if (gameId == null || !canOpenMenus) {
-        return;
-      }
-      event.preventDefault();
-      closeAllContextMenus();
-      setPlayerMenu({ top: event.clientY, left: event.clientX });
-    },
-    [gameId, canOpenMenus, closeAllContextMenus, setPlayerMenu],
-  );
 
   const handleRollDieSubmit = useCallback(
     ({ sides, count }: { sides: number; count: number }) => {
@@ -122,27 +97,6 @@ export function useGameLifecycleDialogActions({
     [gameId, webClient, setCreateTokenRequest, createTokenRequest],
   );
 
-  const handleSideboardSubmit = useCallback(
-    (moveList: SideboardPlanMove[]) => {
-      if (gameId == null) {
-        return;
-      }
-      webClient.request.game.setSideboardPlan(gameId, { moveList });
-      setSideboardOpen(false);
-    },
-    [gameId, webClient, setSideboardOpen],
-  );
-
-  const handleToggleSideboardLock = useCallback(
-    (locked: boolean) => {
-      if (gameId == null) {
-        return;
-      }
-      webClient.request.game.setSideboardLock(gameId, { locked });
-    },
-    [gameId, webClient],
-  );
-
   const confirmConcede = useCallback(() => {
     if (gameId != null) {
       webClient.request.game.concede(gameId);
@@ -172,21 +126,15 @@ export function useGameLifecycleDialogActions({
 
   return useMemo(
     () => ({
-      handlePlayerContextMenu,
       handleRollDieSubmit,
       handleCreateTokenSubmit,
-      handleSideboardSubmit,
-      handleToggleSideboardLock,
       confirmConcede,
       confirmUnconcede,
       confirmLeave,
     }),
     [
-      handlePlayerContextMenu,
       handleRollDieSubmit,
       handleCreateTokenSubmit,
-      handleSideboardSubmit,
-      handleToggleSideboardLock,
       confirmConcede,
       confirmUnconcede,
       confirmLeave,
