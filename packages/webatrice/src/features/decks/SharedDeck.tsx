@@ -33,7 +33,10 @@ function SharedDeck() {
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
 
   const problem = 'problem' in link ? t(`OpenShareLink.problem.${link.problem}`) : null;
-  const otherServer = !problem && !('problem' in link) && shareServer && !isSameShareServer(link, shareServer.hostname)
+  // Fails closed, like desktop, which sends the token only once logged into
+  // the link's own server: when this session's server isn't known (hosts not
+  // loaded, none selected), the token isn't sent anywhere.
+  const otherServer = !('problem' in link) && !(shareServer && isSameShareServer(link, shareServer.hostname))
     ? t('SharedDeck.otherServer', { server: `${link.hostname}:${link.port}` })
     : null;
   const usable = !('problem' in link) && supported && !otherServer;

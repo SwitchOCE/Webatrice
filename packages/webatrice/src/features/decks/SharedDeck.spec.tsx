@@ -7,10 +7,18 @@ import { Response_DeckShareListSchema, ServerInfo_DeckShareItemSchema } from '@c
 import { connected31State, connectedState, renderWithProviders } from '../../__test-utils__';
 import SharedDeck from './SharedDeck';
 
-const knownHost = vi.hoisted(() => ({ host: 'server.example', port: '4748' }));
+const knownHosts = vi.hoisted(() => {
+  const loaded = { hosts: [], selectedHost: { host: 'server.example', port: '4748' } as { host: string; port: string } | undefined };
+  return { loaded, value: loaded as typeof loaded | undefined };
+});
 vi.mock('@app/feature-widgets/known-hosts', () => ({
-  useKnownHosts: () => ({ status: 'loaded', value: { hosts: [], selectedHost: knownHost } }),
+  useKnownHosts: () => ({ status: 'loaded', value: knownHosts.value }),
 }));
+
+afterEach(() => {
+  knownHosts.value = knownHosts.loaded;
+  knownHosts.loaded.selectedHost = { host: 'server.example', port: '4748' };
+});
 
 const COD = '<cockatrice_deck version="1"><deckname>Burn</deckname><zone name="main">'
   + '<card number="4" name="Lightning Bolt"/></zone></cockatrice_deck>';
@@ -58,6 +66,20 @@ describe('SharedDeck', () => {
 
   it('says which server a link for another server needs', () => {
     const { webClient } = renderPage('share=tok&hostname=elsewhere.example&port=4747');
+    expect(screen.getByRole('alert')).toHaveTextContent('SharedDeck.otherServer');
+    expect(webClient.request.session.deckShareList).not.toHaveBeenCalled();
+  });
+
+  it('sends the token nowhere while the known hosts are not loaded', () => {
+    knownHosts.value = undefined;
+    const { webClient } = renderPage();
+    expect(screen.getByRole('alert')).toHaveTextContent('SharedDeck.otherServer');
+    expect(webClient.request.session.deckShareList).not.toHaveBeenCalled();
+  });
+
+  it('sends the token nowhere when no host is selected', () => {
+    knownHosts.loaded.selectedHost = undefined;
+    const { webClient } = renderPage();
     expect(screen.getByRole('alert')).toHaveTextContent('SharedDeck.otherServer');
     expect(webClient.request.session.deckShareList).not.toHaveBeenCalled();
   });
