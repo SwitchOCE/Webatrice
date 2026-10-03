@@ -1,5 +1,6 @@
-import { defaultMeta, parseMeta, serializeMeta, touchMeta } from './meta';
-import type { DeckMeta } from './types';
+import type { DeckMeta } from '@app/types';
+
+import { defaultMeta, parseMeta, serializeMeta, touchMeta } from './cockatriceDeckMetadata';
 
 describe('parseMeta', () => {
   it('returns default meta when input is empty/whitespace/null/undefined', () => {

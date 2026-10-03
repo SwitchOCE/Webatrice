@@ -12,14 +12,13 @@ import {
 } from '@cockatrice/sockatrice/generated';
 import { useAppSelector } from '@app/store';
 import { useCommandFailureMessage, useReduxEffect, useRequestTracker } from '@app/hooks';
-import { lookupCard, trackEvent } from '@app/services';
+import { lookupCard, parseCod, serializeCod, touchMeta, trackEvent } from '@app/services';
 import { onSessionEnd } from '@app/services/session';
+import type { BracketAssessment, DeckMeta } from '@app/types';
 import { useWebClient } from '@cockatrice/datatrice/react';
 
-import { parseCod, serializeCod } from './cod';
 import { assembleDeckCard, hydrateDeck } from './hydrate';
-import { touchMeta } from './meta';
-import type { BracketAssessment, DeckCard, DeckMeta, HydratedDeck } from './types';
+import type { DeckCard, HydratedDeck } from './types';
 
 /**
  * State + actions the DeckEditor UI uses. Splitting the hook out of

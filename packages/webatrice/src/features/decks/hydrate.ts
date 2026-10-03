@@ -1,8 +1,9 @@
 import { ScryfallImageSize } from '@cockatrice/datatrice';
 
-import { lookupCards, type LookupResult, type PrintingSummary } from '@app/services';
-import { parseCod } from './cod';
-import type { DeckCard, HydratedDeck, ParsedCard, ParsedDeck } from './types';
+import { lookupCards, parseCod, type LookupResult, type PrintingSummary } from '@app/services';
+import type { ParsedCard, ParsedDeck } from '@app/types';
+
+import type { DeckCard, HydratedDeck } from './types';
 
 /**
  * Top-level "load a deck" pipeline: raw `.cod` XML → structured

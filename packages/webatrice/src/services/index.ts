@@ -1,6 +1,7 @@
 export * from './ScryfallService';
 export * from './analytics';
 export * from './cards';
+export * from './decks';
 export * from './debugLog';
 export * from './dexie';
 export * from './cardDatabase';

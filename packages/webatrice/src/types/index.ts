@@ -1,5 +1,7 @@
+export * from './cockatriceDeck';
 export * from './colors';
 export * from './countries';
+export * from './deckFormat';
 export * from './forms';
 export * from './languages';
 export * from './regex-patterns';

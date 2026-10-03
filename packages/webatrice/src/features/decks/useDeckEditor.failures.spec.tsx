@@ -3,9 +3,9 @@ import { server } from '@cockatrice/datatrice';
 import type { WebClient } from '@cockatrice/sockatrice';
 import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
+import { emptyCod } from '@app/services';
 
 import { renderWithProviders, connectedState, createMockWebClient } from '../../__test-utils__';
-import { emptyCod } from './cod';
 import { clearDeckEditorCache, useDeckEditor, type UseDeckEditor } from './useDeckEditor';
 
 // Covers how the editor settles when the server never answers (or rejects)

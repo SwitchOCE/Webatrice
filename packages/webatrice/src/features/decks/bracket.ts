@@ -28,7 +28,9 @@ import {
   RESTRICTED_MLD,
   RESTRICTED_UNDER_BRACKET,
 } from './bracketData';
-import type { BracketAssessment, DeckCard } from './types';
+import type { BracketAssessment } from '@app/types';
+
+import type { DeckCard } from './types';
 
 // ---------- Types ----------
 
