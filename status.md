@@ -1,2 +1,3 @@
 - 16:00Z started; inbox empty → rebase
 - 16:07Z rebased onto dc77ebd, e2e fixture + deckSelectFailed committed/pushed → full gate
+- 16:30Z full gate green on b2158d5 (e2e 39/39 incl. staff-tools rerun with docker CLI; sockatrice e2e 5/5); PR note written → done
