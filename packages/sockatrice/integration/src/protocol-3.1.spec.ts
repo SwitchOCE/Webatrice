@@ -1,6 +1,6 @@
 // Cockatrice 3.1 protocol round trips: the new developer command family, a
-// moderation-queue query, a caller-callback submission, a 3.1 login code and
-// the new game event — encoded, correlated and dispatched end to end.
+// moderation-queue query, a caller-callback submission, a 3.1 login code, the
+// new game event and deck sharing — encoded, correlated and dispatched end to end.
 
 import { create } from '@bufbuild/protobuf';
 import { describe, expect, it, vi } from 'vitest';
@@ -138,4 +138,51 @@ describe('Cockatrice 3.1 protocol', () => {
       12, 3, Data.Event_GameLogNotice_NoticeType.UNDO_DRAW_FAILED,
     );
   });
+
+  it('deckShareCreate returns the share token, and a refused share reaches deckSharingFailed', () => {
+    connectAndLogin();
+
+    SessionCommands.deckShareCreate({ name: 'Cube', items: [{ deckId: 4 }] });
+    const created = findLastSessionCommand(Data.Command_DeckShareCreate_ext);
+    expect(created.value.items[0].deckId).toBe(4);
+    deliverMessage(buildResponseMessage(buildResponse({
+      cmdId: created.cmdId,
+      responseCode: Data.Response_ResponseCode.RespOk,
+      ext: Data.Response_DeckShareCreate_ext,
+      value: create(Data.Response_DeckShareCreateSchema, { token: 'tok', expiresAt: 100n, itemCount: 1 }),
+    })));
+    expect(getMockResponse().session.deckShareCreated).toHaveBeenCalledWith(
+      expect.objectContaining({ token: 'tok', expiresAt: 100n, itemCount: 1 }),
+    );
+
+    SessionCommands.deckShareCreate({ name: 'Cube', folderPath: 'cubes' });
+    const refused = findLastSessionCommand(Data.Command_DeckShareCreate_ext);
+    deliverMessage(buildResponseMessage(buildResponse({
+      cmdId: refused.cmdId,
+      responseCode: Data.Response_ResponseCode.RespTooManyRequests,
+    })));
+    expect(getMockResponse().session.deckSharingFailed).toHaveBeenCalledWith(
+      'deckShareCreate', Data.Response_ResponseCode.RespTooManyRequests, '', undefined,
+    );
+  });
+
+  it('deckSetVisibility echoes its target on success and names it on failure', () => {
+    connectAndLogin();
+
+    SessionCommands.deckSetVisibility({ folderPath: 'cubes', isPublic: true });
+    const ok = findLastSessionCommand(Data.Command_DeckSetVisibility_ext);
+    deliverMessage(buildResponseMessage(buildResponse({ cmdId: ok.cmdId, responseCode: Data.Response_ResponseCode.RespOk })));
+    expect(getMockResponse().session.deckVisibilityChanged).toHaveBeenCalledWith({ folderPath: 'cubes', isPublic: true });
+
+    SessionCommands.deckSetVisibility({ deckId: 9, isPublic: false });
+    const refused = findLastSessionCommand(Data.Command_DeckSetVisibility_ext);
+    deliverMessage(buildResponseMessage(buildResponse({
+      cmdId: refused.cmdId,
+      responseCode: Data.Response_ResponseCode.RespNameNotFound,
+    })));
+    expect(getMockResponse().session.deckSharingFailed).toHaveBeenCalledWith(
+      'deckSetVisibility', Data.Response_ResponseCode.RespNameNotFound, '9', undefined,
+    );
+  });
 });
+
