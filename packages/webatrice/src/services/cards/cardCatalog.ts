@@ -7,6 +7,13 @@ import {
   type CardDataPreferences,
 } from '../cardDatabase';
 import { dexieService, type Card, type CardInSet, type RelatedCard } from '../dexie';
+import {
+  fetchCollection,
+  fetchNamedCard,
+  fetchPrintings,
+  SCRYFALL_NAMED_RETRY_CAP,
+  type ScryfallCard,
+} from '../scryfall';
 
 /**
  * Browser card catalog shared by the deck and game features: card
@@ -168,7 +175,7 @@ export async function lookupCard(name: string): Promise<LookupResult> {
 
   let scryfallLookup = scryfallCached;
   if (!scryfallLookup) {
-    const fetched = await fetchScryfall(name);
+    const fetched = await fetchNamedCard(name);
     if (fetched) {
       scryfallLookup = scryfallToLookup(fetched);
       // Write-through to the persistent cache. Fire-and-forget —
@@ -294,7 +301,7 @@ export async function lookupCards(
   }
 
   if (needScryfall.length > 0) {
-    const collected = await batchFetchScryfall(needScryfall);
+    const collected = await fetchCollection(needScryfall);
     const toCache: LookupResult[] = [];
     for (const hint of needScryfall) {
       const hit = collected.get(hint.name);
@@ -322,10 +329,9 @@ export async function lookupCards(
     const stillMissing = needScryfall.filter(
       (h) => !scryfallLookups.has(h.name),
     );
-    const RETRY_CAP = 50;
-    if (stillMissing.length > 0 && stillMissing.length <= RETRY_CAP) {
+    if (stillMissing.length > 0 && stillMissing.length <= SCRYFALL_NAMED_RETRY_CAP) {
       const retried = await Promise.all(
-        stillMissing.map((h) => fetchScryfall(h.name)),
+        stillMissing.map((h) => fetchNamedCard(h.name)),
       );
       for (let i = 0; i < stillMissing.length; i++) {
         const hit = retried[i];
@@ -335,9 +341,9 @@ export async function lookupCards(
           toCache.push(parsed);
         }
       }
-    } else if (stillMissing.length > RETRY_CAP) {
+    } else if (stillMissing.length > SCRYFALL_NAMED_RETRY_CAP) {
       console.warn(
-        `Skipping per-name Scryfall retry: ${stillMissing.length} names unresolved (over ${RETRY_CAP}-name cap).`
+        `Skipping per-name Scryfall retry: ${stillMissing.length} names unresolved (over ${SCRYFALL_NAMED_RETRY_CAP}-name cap).`
         + ' Batch endpoint likely failed wholesale; individual retries would exceed Scryfall rate limits.',
       );
     }
@@ -707,193 +713,6 @@ function splitColors(raw: string | undefined): string[] | undefined {
 
 // ---------- Scryfall ----------
 
-interface ScryfallCard {
-  id: string;
-  name: string;
-  layout?: string;
-  mana_cost?: string;
-  cmc?: number;
-  type_line?: string;
-  colors?: string[];
-  color_identity?: string[];
-  power?: string;
-  toughness?: string;
-  set?: string;
-  collector_number?: string;
-  image_uris?: { small?: string; normal?: string; large?: string };
-  oracle_text?: string;
-  /** Format → `legal` | `not_legal` | `restricted` | `banned`. */
-  legalities?: Record<string, string>;
-  /** Present on multi-faced cards (transform, modal_dfc,
-   *  reversible_card, split, adventure, flip). Front-face is [0],
-   *  back-face is [1]. Fields on each face largely mirror the
-   *  top-level fields — for DFCs, top-level `name` is combined
-   *  "A // B" while each face has its own single-face name. */
-  card_faces?: Array<{
-    name?: string;
-    mana_cost?: string;
-    type_line?: string;
-    colors?: string[];
-    power?: string;
-    toughness?: string;
-    oracle_text?: string;
-    image_uris?: { small?: string; normal?: string };
-  }>;
-  /** Present on cards with related-object references — tokens
-   *  created, meld halves, combo pieces (transform back-faces).
-   *  See https://scryfall.com/docs/api/cards for the field spec. */
-  all_parts?: Array<{
-    id: string;
-    component: 'token' | 'meld_part' | 'meld_result' | 'combo_piece';
-    name: string;
-    type_line?: string;
-    uri: string;
-  }>;
-}
-
-/** Strip a trailing "(Token)" / "Token" suffix — those don't resolve
- *  on Scryfall's exact-match endpoints. Shared by the single-card and
- *  batch paths so the same input normalizes consistently. */
-function cleanScryfallName(name: string): string {
-  return name.replace(/\s*\(?\bToken\b\)?\s*$/i, '');
-}
-
-async function fetchScryfall(name: string): Promise<ScryfallCard | null> {
-  // NFC-normalize to align with Scryfall's canonical storage — same
-  // reason as batchFetchScryfall (see its comment). Prevents an NFD-
-  // encoded "Donnie's Bō" from silently 404-ing on the exact endpoint.
-  const cleaned = cleanScryfallName(name).normalize('NFC');
-  const url = `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(cleaned)}`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      return null;
-    }
-    return (await res.json()) as ScryfallCard;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Batch resolve `hints` through Scryfall's `/cards/collection` POST
- * endpoint (75 identifiers per request). Returns a Map keyed by the
- * hint's ORIGINAL name (case-sensitive, as the caller passed it);
- * missing entries mean Scryfall couldn't resolve the identifier.
- *
- * Identifier strategy — Scryfall's `/collection` accepts one of
- * `{name}`, `{set + collector_number}`, `{id}`, or `{oracle_id}`
- * per entry. We prefer `{set, collector_number}` when both are
- * present (deterministic — Moxfield / Archidekt exports carry them
- * explicitly, and it handles freshly-printed sets where Scryfall's
- * canonical `name` may not exactly match the export's spelling).
- * Fall back to `{name}` for hints without printing info.
- *
- * Name normalization — Scryfall stores canonical names in Unicode
- * NFC. Moxfield / other tools sometimes export NFD (`ō` decomposed
- * into `o + U+0304`), which fails a byte-comparison name match.
- * `String.prototype.normalize('NFC')` collapses both forms to the
- * same bytes so cards like "Donnie's Bō" resolve. Also strips the
- * "(Token)" / "Token" trailing suffix so token spawns hit the
- * canonical Scryfall token entry.
- *
- * Result matching — response cards carry `name` + `set` +
- * `collector_number`. We match each response back to the requesting
- * hint via set+collector when we sent that, else via
- * NFC-normalized name. Split cards also key by their first face for
- * callers that asked by the front-face name alone.
- */
-async function batchFetchScryfall(hints: LookupHint[]): Promise<Map<string, ScryfallCard>> {
-  const out = new Map<string, ScryfallCard>();
-  if (hints.length === 0) {
-    return out;
-  }
-
-  const CHUNK = 75;
-  const chunks: LookupHint[][] = [];
-  for (let i = 0; i < hints.length; i += CHUNK) {
-    chunks.push(hints.slice(i, i + CHUNK));
-  }
-
-  await Promise.all(
-    chunks.map(async (chunk) => {
-      try {
-        // Build one Scryfall identifier per hint, prefer set+collector.
-        const identifiers = chunk.map((h) => {
-          if (h.set && h.collectorNumber) {
-            return { set: h.set.toLowerCase(), collector_number: h.collectorNumber };
-          }
-          return { name: cleanScryfallName(h.name).normalize('NFC') };
-        });
-        const res = await fetch('https://api.scryfall.com/cards/collection', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identifiers }),
-        });
-        if (!res.ok) {
-          // Log so silent batch failures are diagnosable — otherwise
-          // upstream sees "everything is Other" with no clue why.
-          // Callers of lookupCards have a per-name retry via
-          // /cards/named that will still populate most entries.
-          console.warn(
-            `Scryfall /cards/collection returned ${res.status} for ${chunk.length} identifiers`,
-          );
-          return;
-        }
-        const body = (await res.json()) as {
-          data?: ScryfallCard[];
-          not_found?: Array<{ name?: string; set?: string; collector_number?: string }>;
-        };
-        // Index responses by both keying strategies so hint→card
-        // matching below can look up whichever identifier we sent.
-        const responseByName = new Map<string, ScryfallCard>();
-        const responseBySetCol = new Map<string, ScryfallCard>();
-        for (const card of body.data ?? []) {
-          const nameKey = card.name.normalize('NFC').toLowerCase();
-          responseByName.set(nameKey, card);
-          // Split cards resolve as "A // B"; also key by the first
-          // face so hints that asked by the front-face name alone hit.
-          const firstFace = nameKey.split(' // ')[0];
-          if (firstFace !== nameKey) {
-            responseByName.set(firstFace, card);
-          }
-          if (card.set && card.collector_number) {
-            responseBySetCol.set(
-              `${card.set.toLowerCase()}|${card.collector_number}`,
-              card,
-            );
-          }
-        }
-        // Match hints back to responses. Hints that sent set+collector
-        // check that map first (deterministic); hints that sent name
-        // check the name map. Fall through to name-based match if the
-        // set+collector path missed (rare — happens when Scryfall's
-        // response echoed a different set / promo variant than we
-        // asked for).
-        for (const h of chunk) {
-          let hit: ScryfallCard | undefined;
-          if (h.set && h.collectorNumber) {
-            hit = responseBySetCol.get(
-              `${h.set.toLowerCase()}|${h.collectorNumber}`,
-            );
-          }
-          if (!hit) {
-            const nameKey = cleanScryfallName(h.name).normalize('NFC').toLowerCase();
-            hit = responseByName.get(nameKey);
-          }
-          if (hit) {
-            out.set(h.name, hit);
-          }
-        }
-      } catch {
-        // Chunk failed — leave those cards missing.
-      }
-    }),
-  );
-
-  return out;
-}
-
 /**
  * Return every Scryfall printing for `name` (exact match), sorted
  * newest-first. Used by the printings picker — Dexie only knows the
@@ -905,21 +724,9 @@ async function batchFetchScryfall(hints: LookupHint[]): Promise<Map<string, Scry
  * without a try/catch.
  */
 export async function fetchAllPrintings(name: string): Promise<PrintingSummary[]> {
-  const cleaned = name.replace(/\s*\(?\bToken\b\)?\s*$/i, '');
-  // `!"…"` is Scryfall syntax for exact-name match (unquoted phrases
-  // fuzzy-match). `unique=prints` returns one row per printing rather
-  // than the default `cards` dedupe. `order=released` gives newest
-  // first so the current-print heuristic (last in the list) still
-  // reads intuitively in the grid.
-  const q = `!"${cleaned.replace(/"/g, '\\"')}"`;
-  const url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}&unique=prints&order=released&dir=desc`;
+  const cards = await fetchPrintings(name);
   try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      return [];
-    }
-    const body = (await res.json()) as { data?: ScryfallCard[] };
-    return (body.data ?? []).map((c) => ({
+    return cards.map((c) => ({
       set: c.set,
       collectorNumber: c.collector_number,
       scryfallId: c.id,
