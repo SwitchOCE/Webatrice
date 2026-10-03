@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ExternalLink, FileText, Flag, Image as ImageIcon, Layers, LayoutList, LogOut, X } from 'lucide-react';
 
 import { CardRelatedLinks } from '@app/components';
+import { detailTargetKey, fetchScryfallDetail, type ScryfallDetail } from '@app/services';
 
 import PlayerList from '../right-sidebar/PlayerList/PlayerList';
 import ChatLog from '../ChatLog/ChatLog';
@@ -72,62 +73,6 @@ function readPersistedPreviewMode(): PreviewMode {
   }
 }
 
-/** Scryfall fields the description view renders. Same shape as
- *  CardDetailModal's `ScryfallDetail`. Kept local so the sidebar can
- *  fetch on its own without dragging the modal's whole surface in. */
-interface ScryfallDetail {
-  id: string;
-  name: string;
-  mana_cost?: string;
-  type_line?: string;
-  oracle_text?: string;
-  flavor_text?: string;
-  power?: string;
-  toughness?: string;
-  loyalty?: string;
-  card_faces?: Array<{
-    name?: string;
-    mana_cost?: string;
-    type_line?: string;
-    oracle_text?: string;
-    flavor_text?: string;
-    power?: string;
-    toughness?: string;
-    loyalty?: string;
-  }>;
-  /** Scryfall `all_parts` — tokens, meld pieces, combo pieces. Powers
-   *  the "Related" link section rendered by CardRelatedLinks. */
-  all_parts?: Array<{
-    id?: string;
-    name?: string;
-    component?: string;
-  }>;
-}
-
-async function fetchScryfallDetail(
-  scryfallId: string | undefined,
-  name: string,
-  signal?: AbortSignal,
-): Promise<ScryfallDetail | null> {
-  try {
-    const url = scryfallId
-      ? `https://api.scryfall.com/cards/${encodeURIComponent(scryfallId)}`
-      : `https://api.scryfall.com/cards/named?exact=${encodeURIComponent(
-        name.replace(/\s*\(?\bToken\b\)?\s*$/i, ''),
-      )}`;
-    const res = await fetch(url, { signal });
-    if (!res.ok) {
-      return null;
-    }
-    return (await res.json()) as ScryfallDetail;
-  } catch (e) {
-    if ((e as { name?: string })?.name === 'AbortError') {
-      throw e;
-    }
-    return null;
-  }
-}
-
 export default function BattlefieldSidebar() {
   const gameId = useGameId();
   const { isSpectator } = useLocalIdentity();
@@ -168,9 +113,7 @@ export default function BattlefieldSidebar() {
   const override = overrideStack.length > 0
     ? overrideStack[overrideStack.length - 1]
     : null;
-  const hoveredKeyForReset = hoveredCard
-    ? hoveredCard.scryfallId ?? `name:${hoveredCard.name}`
-    : null;
+  const hoveredKeyForReset = hoveredCard ? detailTargetKey(hoveredCard) : null;
   useEffect(() => {
     setOverrideStack([]);
   }, [hoveredKeyForReset]);
@@ -220,9 +163,7 @@ export default function BattlefieldSidebar() {
   // both states looked identical to the UI and it kept showing
   // "Loading…" forever for cards Scryfall doesn't know about.
   const [detailFetchState, setDetailFetchState] = useState<'idle' | 'loading' | 'loaded' | 'not-found'>('idle');
-  const activeKey = activeCard
-    ? activeCard.scryfallId ?? `name:${activeCard.name}`
-    : null;
+  const activeKey = activeCard ? detailTargetKey(activeCard) : null;
 
   // Popped-out preview window. When active, `isPopupOpen` flips the
   // inline preview slot to a "popped-out" placeholder and the popup
