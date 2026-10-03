@@ -5,7 +5,7 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import { usePlaymatSettings } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 
-import { resolvePlaymat, samePlaymat } from '../utils/resolvePlaymat';
+import { resolvePlaymat, sameCollectionSettings, samePlaymat } from '../utils/resolvePlaymat';
 import { getPlaymatSyncState, prunePlaymatSyncState } from './playmatSyncState';
 
 /**
@@ -20,8 +20,8 @@ import { getPlaymatSyncState, prunePlaymatSyncState } from './playmatSyncState';
  * send (reselecting the same deck), is taken as the deck's playmat.
  *
  * As on desktop, the playmat is resolved against the user's collection and
- * sent after a deck select, on every Ready, and when the settings change;
- * the round-robin cursor advances when a game of the match ends
+ * sent after a deck select, on every Ready, and when the collection settings
+ * change; the round-robin cursor advances when a game of the match ends
  * (TabGame::stopGame). Nothing is sent when the result is already announced.
  * The per-game state lives in playmatSyncState, so it survives leaving the
  * game route.
@@ -61,7 +61,7 @@ export function usePlaymatSync(gameId: number | undefined): void {
     const deckSelected = deckHash !== sync.deckHash
       || sync.lastSent === undefined
       || !samePlaymat(announced, sync.lastSent);
-    const settingsChanged = sync.settings !== settings;
+    const settingsChanged = !sameCollectionSettings(sync.settings, settings);
     if (!deckSelected && !settingsChanged && !readied) {
       return;
     }
