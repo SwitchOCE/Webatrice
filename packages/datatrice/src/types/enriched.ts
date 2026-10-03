@@ -10,6 +10,7 @@ import type {
   ServerInfo_User,
 } from '@cockatrice/sockatrice/generated';
 import type { ZoneNameValue } from '@cockatrice/sockatrice';
+import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 // @critical `info` is the wire snapshot; repeated collections on it go stale. Read normalized siblings.
 // See .github/instructions/datatrice-store.instructions.md#data-structure-invariants.
@@ -29,12 +30,22 @@ export interface Game {
   gameType: string;
 }
 
+// A line the client itself appends to a chat, as desktop does with
+// ChatView::appendMessage (e.g. TabRoom::sayFinished's flood warning). The UI
+// renders the text for the kind; the line carries no sender and no wire text.
+// `notSent`: the server never answered the message (see Message.failure).
+export type ChatNotice = 'chatFlood' | 'notSent';
+
 export type Message = Event_RoomSay & {
   timeReceived: number;
   // Stable, monotonic client id assigned at store ingestion; absent on the
   // wire-derived message before it's stored. See rooms.reducer.inline.ts for the
   // rationale (chat rows key on it, not the array index).
   id?: number;
+  // Set only on client-generated lines; see ChatNotice.
+  notice?: ChatNotice;
+  // Why a `notSent` line's message got no answer.
+  failure?: WebsocketTypes.CommandFailure;
 };
 
 // @critical `info` = wire snapshot at join time; top-level twins hold live values updated by game events.

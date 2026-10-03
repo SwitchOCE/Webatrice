@@ -16,7 +16,7 @@ import { useRoom } from './useRoom';
  * follow-up will replace it with fancy's TopBar + Tabs.
  */
 const Room = () => {
-  const { room, roomMessages, handleRoomSay } = useRoom();
+  const { roomId, room, roomMessages, handleRoomSay } = useRoom();
 
   if (!room) {
     return null;
@@ -41,6 +41,7 @@ const Room = () => {
         </div>
         <div className="min-h-0 min-w-0">
           <RoomChat
+            roomId={roomId}
             roomName={room.info.name}
             messages={roomMessages}
             onSay={handleRoomSay}
