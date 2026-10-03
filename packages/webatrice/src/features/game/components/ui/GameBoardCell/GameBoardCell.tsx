@@ -3,7 +3,6 @@ import { memo, useMemo } from 'react';
 import { cx } from '@app/utils';
 
 import { BoardCell } from '../../../hooks/useGameBoardLayout';
-import { BoardCellProvider } from '../BoardCellContext';
 import PlayerBoard from '../PlayerBoard/PlayerBoard';
 import { useOpenDeckInEditor } from './useOpenDeckInEditor';
 import { usePlayerCardCommands } from './usePlayerCardCommands';
@@ -30,11 +29,6 @@ export interface GameBoardCellProps {
  * and hands them to the seat view.
  */
 function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
-  const cellInfo = useMemo(
-    () => ({ playerId: cell.playerId, mirrored: cell.mirrored, isLocal: cell.isLocal }),
-    [cell.playerId, cell.mirrored, cell.isLocal],
-  );
-
   const model = usePlayerSeatViewModel(cell, totalPlayers);
   const zone = usePlayerZoneCommands(cell.playerId);
   const card = usePlayerCardCommands(cell.playerId, cell.isLocal);
@@ -54,9 +48,7 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
       className={cx('game__board-cell', { 'game__board-cell--mirrored': cell.mirrored })}
       style={{ gridColumn: cell.col + 1, gridRow: cell.row + 1 }}
     >
-      <BoardCellProvider value={cellInfo}>
-        {commands && <PlayerBoard model={model} commands={commands} onOpenDeckInEditor={onOpenDeckInEditor} />}
-      </BoardCellProvider>
+      {commands && <PlayerBoard model={model} commands={commands} onOpenDeckInEditor={onOpenDeckInEditor} />}
     </div>
   );
 }
