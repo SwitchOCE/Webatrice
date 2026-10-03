@@ -61,10 +61,9 @@ export default function UserActionsMenu({
   const { reportingAvailable, canReportUser, openReportUser } = useReportUser();
   const ownName = useAppSelector((state) => server.Selectors.getUser(state)?.name);
   const deckSharing = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.DECK_SHARING));
-  // Desktop UserContextMenu: registered users only, and never yourself.
-  const showPublicDecks = deckSharing
-    && ((userLevel ?? 0) & ServerInfo_User_UserLevelFlag.IsRegistered) !== 0
-    && name !== ownName;
+  // Desktop UserContextMenu: registered users only, shown disabled for yourself.
+  const showPublicDecks = deckSharing && ((userLevel ?? 0) & ServerInfo_User_UserLevelFlag.IsRegistered) !== 0;
+  const isSelf = name === ownName;
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
@@ -120,7 +119,12 @@ export default function UserActionsMenu({
          *  the PrivateChat panel for this user. */}
         <MessageSquare size={14} /> Private chat
       </NavLink>
-      {showPublicDecks && (
+      {showPublicDecks && isSelf && (
+        <span role="menuitem" aria-disabled="true" className={`${MENU_ITEM_CLASS} opacity-40 cursor-not-allowed`}>
+          <Library size={14} /> {t('UserActionsMenu.viewPublicDecks')}
+        </span>
+      )}
+      {showPublicDecks && !isSelf && (
         <NavLink
           to={generatePath(RouteEnum.PUBLIC_DECKS, { userName: name })}
           onClick={onClose}
