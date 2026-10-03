@@ -20,6 +20,8 @@ test('a fresh login opens the startup tab; a reload keeps the current page', asy
   await userMenu.click();
   await page.getByRole('button', { name: /sign out/i }).click();
   await expect(login.hostPicker).toBeVisible();
+  // Signing out drops the connection, so the form waits on a fresh test-connection probe.
+  await login.selectHost(E2E_HOST_LABEL);
   await login.login(user.username, user.password);
   await expect(page).toHaveURL(/\/replays$/);
 
