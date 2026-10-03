@@ -14,6 +14,12 @@
 //   5. the committed `src/i18n-default.json` is byte for byte a fresh merge in
 //      prebuild.js's sorted path order, so key-order drift fails too;
 //   6. the `public/locales/*` folders are exactly the `Language` enum values.
+//
+// Two heuristics leave blind spots:
+//   - a `*Key` value counts as a key only when its namespace exists, so a
+//     mistyped namespace (`labelKey: 'Usermenu.x'`) is skipped, not reported;
+//   - a template prefix marks every key under it as used, so an orphan under a
+//     dynamic prefix (`ShortcutsTab.action.`, `Reports.queue.`) is never reported.
 
 import fs from 'node:fs';
 import path from 'node:path';
