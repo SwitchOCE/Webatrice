@@ -706,12 +706,21 @@ describe('integration: counters, arrows, turn state', () => {
 
   it('turnReversed flips the reversed flag and logs it', () => {
     const { store, response } = seedGame();
-    response.game.turnReversed(GAME_ID, true);
+    response.game.turnReversed(GAME_ID, true, 2);
     const state = store.getState();
     expect(games.Selectors.isReversed(state, GAME_ID)).toBe(true);
     const messages = games.Selectors.getMessages(state, GAME_ID);
-    // Intent: reversing the turn order emits a log line about turn order.
-    expect(messages.some(m => /turn order/i.test(m.message))).toBe(true);
+    // Intent: reversing the turn order emits a log line naming the actor.
+    expect(messages.some(m => m.message === 'Bob reversed turn order, now it\'s reversed.')).toBe(true);
+  });
+
+  it('turnReversed with no actor flips the flag but logs nothing, like desktop', () => {
+    const { store, response } = seedGame();
+    const before = games.Selectors.getMessages(store.getState(), GAME_ID).length;
+    response.game.turnReversed(GAME_ID, true);
+    const state = store.getState();
+    expect(games.Selectors.isReversed(state, GAME_ID)).toBe(true);
+    expect(games.Selectors.getMessages(state, GAME_ID)).toHaveLength(before);
   });
 
   it('ignores events for unknown games without throwing', () => {
