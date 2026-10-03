@@ -2281,7 +2281,8 @@
     "group": {
       "theme": "Theme settings",
       "tableGrid": "Table grid layout",
-      "handLayout": "Hand layout"
+      "handLayout": "Hand layout",
+      "cardRendering": "Card rendering"
     },
     "themeMode": {
       "label": "Active theme palette",
@@ -2304,6 +2305,23 @@
     "leftJustifiedHand": {
       "label": "Enable left justification",
       "description": "Starts a horizontal hand at the left instead of centring it."
+    },
+    "displayCardNames": {
+      "label": "Display card names on cards having a picture",
+      "description": "A face-down card, and a card whose picture cannot be loaded, always shows its name."
+    },
+    "autoRotateSidewaysLayoutCards": {
+      "label": "Auto-Rotate cards with sideways layout",
+      "description": "Battles, split cards and planes are turned sideways in the card preview so they read upright."
+    },
+    "scaleCards": {
+      "label": "Scale cards on mouse over"
+    },
+    "roundCardCorners": {
+      "label": "Use rounded card corners"
+    },
+    "maxFontSizeForCards": {
+      "label": "Maximum font size for information displayed on cards"
     }
   },
   "SettingsCardSources": {

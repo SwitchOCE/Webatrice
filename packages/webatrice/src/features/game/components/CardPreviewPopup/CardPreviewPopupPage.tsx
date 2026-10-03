@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 
-import { CardImage, CardRelatedLinks } from '@app/components';
+import { CardRelatedLinks } from '@app/components';
 import type { PreviewMode } from '../BattlefieldSidebar/BattlefieldSidebar';
 import type { PreviewCard } from '../ui/CardPreviewContext';
 import { ManaSymbols, SymbolText } from '../ui/ManaSymbols/ManaSymbols';
+import PreviewCardImage from '../ui/PreviewCardImage/PreviewCardImage';
 import {
   postCardPreviewMessage,
   subscribeToCardPreviewChannel,
@@ -166,10 +167,9 @@ export default function CardPreviewPopupPage() {
             ].join(' ')}
           >
             {imageUrl ? (
-              <CardImage
+              <PreviewCardImage
                 src={imageUrl}
                 name={card?.name}
-                draggable={false}
                 className={[
                   'shadow-glow rounded-lg shrink-0',
                   // `both`: fit within the 48.75% slot height,
@@ -179,7 +179,6 @@ export default function CardPreviewPopupPage() {
                   // Single-pane: keep image full-width.
                   mode === 'both' ? 'h-full max-h-full w-auto max-w-full' : 'max-w-full',
                 ].join(' ')}
-                style={{ aspectRatio: '5 / 7' }}
               />
             ) : (
               <div

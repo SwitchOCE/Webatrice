@@ -23,6 +23,7 @@ export const CARD_BACK_URL =
 /**
  * ~7.5% of the card width matches the real MTG corner curve. Prevents
  * the white JPG background from peeking through rounded corners without
- * eating into meaningful art.
+ * eating into meaningful art. Square with desktop's "Use rounded card
+ * corners" off (useApplyCardPresentation sets the variable).
  */
-export const CARD_CORNER_RADIUS = '7.5%';
+export const CARD_CORNER_RADIUS = 'var(--card-corner-radius, 7.5%)';
