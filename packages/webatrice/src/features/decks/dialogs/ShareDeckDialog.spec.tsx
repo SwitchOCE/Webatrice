@@ -34,9 +34,9 @@ describe('ShareDeckDialog', () => {
   });
 
   it('shows the created link, its expiry and whether it was copied', () => {
-    renderDialog({ status: 'created', link: 'https://x/?share=t', expiresAt: 1800000000n, itemCount: 1, copied: true });
+    renderDialog({ status: 'created', link: 'https://x/#share=t', expiresAt: 1800000000n, itemCount: 1, copied: true });
     expect(screen.getByText('DeckSharing.createdCopied')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('https://x/?share=t')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('https://x/#share=t')).toBeInTheDocument();
     expect(screen.getByText('DeckSharing.expires')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /DeckSharing.create/ })).toBeNull();
     expect(screen.getByRole('button', { name: 'DeckSharing.close' })).toBeInTheDocument();
@@ -45,10 +45,10 @@ describe('ShareDeckDialog', () => {
   it('copies the link again on request', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
-    renderDialog({ status: 'created', link: 'https://x/?share=t', expiresAt: 1n, itemCount: 1, copied: false });
+    renderDialog({ status: 'created', link: 'https://x/#share=t', expiresAt: 1n, itemCount: 1, copied: false });
     expect(screen.getByText('DeckSharing.created')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /DeckSharing.copy/ }));
-    expect(writeText).toHaveBeenCalledWith('https://x/?share=t');
+    expect(writeText).toHaveBeenCalledWith('https://x/#share=t');
     expect(await screen.findByRole('button', { name: /DeckSharing.copied/ })).toBeInTheDocument();
   });
 

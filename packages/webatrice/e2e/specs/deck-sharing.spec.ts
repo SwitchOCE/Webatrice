@@ -72,15 +72,19 @@ test.describe('on a 3.1 server', () => {
     await ownerPage.getByRole('button', { name: 'Create share link' }).click();
     const shareDialog = ownerPage.getByRole('dialog', { name: 'Share deck' });
     const linkField = shareDialog.getByRole('textbox');
-    await expect(linkField).toHaveValue(/[?&]share=/, { timeout: 15_000 });
+    await expect(linkField).toHaveValue(/#share=/, { timeout: 15_000 });
     const link = await linkField.inputValue();
-    expect(new URL(link).searchParams.get('hostname')).toBe(E2E_HOST.host);
+    // The token rides in the fragment, which the browser never sends to the web host.
+    expect(new URL(link).search).toBe('');
+    expect(new URLSearchParams(new URL(link).hash.slice(1)).get('hostname')).toBe(E2E_HOST.host);
     await shareDialog.getByRole('button', { name: 'Close', exact: true }).click();
 
     // The viewer arrives through the link, logged out: it waits for login.
     await viewerPage.goto(link);
     const login = new LoginPage(viewerPage);
     await expect(login.hostPicker).toBeVisible();
+    // The app took the link out of the address bar on load.
+    expect(viewerPage.url()).not.toContain('share=');
     await login.addHost(E2E_HOST_LABEL, E2E_HOST.host, E2E_HOST.port);
     await login.selectHost(E2E_HOST_LABEL);
     const viewer = randomUser();

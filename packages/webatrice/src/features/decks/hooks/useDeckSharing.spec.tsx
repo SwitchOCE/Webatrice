@@ -55,8 +55,8 @@ describe('useDeckShareCreate', () => {
       store.dispatch(server.Actions.deckShareCreated({ share }));
     });
     const link = new URL(window.location.href);
-    link.search = '?share=tok&hostname=server.example&port=4748';
-    link.hash = '';
+    link.search = '';
+    link.hash = 'share=tok&hostname=server.example&port=4748';
     expect(create$.state).toEqual({
       status: 'created', link: link.toString(), expiresAt: 1800000000n, itemCount: 3, copied: true,
     });

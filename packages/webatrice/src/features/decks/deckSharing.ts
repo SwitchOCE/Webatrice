@@ -6,12 +6,18 @@ import type { DeckCard } from './types';
  * Desktop's link is `cockatrice://opendeck?share=<token>&hostname=<host>&port=<port>`
  * (`DeckShareUtils::buildShareLink`), which the OS hands to the desktop client.
  * A browser can't register that scheme, so Webatrice's link is its own page
- * with the same query: `https://<webatrice>/?share=<token>&hostname=<host>&port=<port>`.
- * Opening it loads the app, `captureDeckShareLink` moves the query into
- * session storage (the router is a MemoryRouter, so the URL is read once, on
- * load) and, after login, the app opens `/decks/shared?<the same query>`.
- * Either form can also be pasted into "Open shared deck", which opens the
- * same route.
+ * with the same parameters in the fragment:
+ * `https://<webatrice>/#share=<token>&hostname=<host>&port=<port>`.
+ *
+ * The token is a bearer secret (Servatrice hands it to anyone who presents
+ * it), and desktop keeps it out of its logs. A fragment is never sent to the
+ * web host or in a Referer, so it can't reach access logs the way a query
+ * would. Opening the link loads the app, `captureDeckShareLink` takes the
+ * fragment out of the address bar and keeps it in memory (the router is a
+ * MemoryRouter, so the URL is read once, on load) and, after login, the app
+ * opens `/decks/shared?<the same parameters>` inside the router.
+ * Either form, or a link with a query, can also be pasted into
+ * "Open shared deck", which opens the same route.
  */
 
 export interface DeckShareLink {
@@ -30,8 +36,8 @@ const PORT_PARAM = 'port';
 /** A link to `base` (Webatrice's own address) that opens `link`. */
 export function buildDeckShareLink(base: string, link: DeckShareLink): string {
   const url = new URL(base);
-  url.hash = '';
-  url.search = deckShareQuery(link);
+  url.search = '';
+  url.hash = deckShareQuery(link);
   return url.toString();
 }
 
@@ -62,7 +68,16 @@ export function parseDeckShareQuery(params: URLSearchParams): DeckShareLink | { 
   return { token, hostname, port };
 }
 
-/** Read a Webatrice or desktop (`cockatrice://opendeck?…`) share link. */
+/** The parameters in a `#share=…` fragment, or `null` when it isn't one. */
+function fragmentParams(hash: string): URLSearchParams | null {
+  const params = new URLSearchParams(hash.replace(/^#/, ''));
+  return params.has(SHARE_PARAM) ? params : null;
+}
+
+/**
+ * Read a pasted share link: Webatrice's (`https://…/#share=…`, or the query
+ * form) or desktop's (`cockatrice://opendeck?…`). Other schemes are refused.
+ */
 export function parseDeckShareLink(text: string): DeckShareLink | { problem: DeckShareLinkProblem } {
   let url: URL;
   try {
@@ -70,10 +85,11 @@ export function parseDeckShareLink(text: string): DeckShareLink | { problem: Dec
   } catch {
     return { problem: 'invalid' };
   }
-  if (url.protocol === 'cockatrice:' && url.hostname !== 'opendeck') {
+  const desktop = url.protocol === 'cockatrice:' && url.hostname === 'opendeck';
+  if (!desktop && url.protocol !== 'https:' && url.protocol !== 'http:') {
     return { problem: 'invalid' };
   }
-  return parseDeckShareQuery(url.searchParams);
+  return parseDeckShareQuery(fragmentParams(url.hash) ?? url.searchParams);
 }
 
 /**
@@ -115,17 +131,19 @@ export function deckColorIdentity(cards: readonly DeckCard[]): string {
   return WUBRG.filter((color) => colors.has(color)).join('');
 }
 
-const PENDING_LINK_KEY = 'webatrice.pendingDeckShare';
+/** The share link the page was loaded with, until login opens it. Memory only. */
+let pendingLink: string | null = null;
 
 /**
- * Move a share link's query from the page's address into session storage and
- * drop it from the address bar, so a reload doesn't open it again. Called once
- * on load; returns whether there was one. The query is kept as it came, so an
- * incomplete link still reaches the shared-deck page and its error.
+ * Move a share link from the page's fragment into memory and drop it from the
+ * address bar, so it isn't left in browser history and a reload doesn't open
+ * it again. Called once on load; returns whether there was one. Only the share
+ * parameters are kept, as they came, so an incomplete link still reaches the
+ * shared-deck page and its error.
  */
 export function captureDeckShareLink(win: Window = window): boolean {
-  const params = new URLSearchParams(win.location.search);
-  if (!params.has(SHARE_PARAM)) {
+  const params = fragmentParams(win.location.hash);
+  if (!params) {
     return false;
   }
   const link = new URLSearchParams();
@@ -138,25 +156,17 @@ export function captureDeckShareLink(win: Window = window): boolean {
   }
   const rest = params.toString();
   try {
-    win.history.replaceState(win.history.state, '', `${win.location.pathname}${rest ? `?${rest}` : ''}${win.location.hash}`);
+    win.history.replaceState(win.history.state, '', `${win.location.pathname}${win.location.search}${rest ? `#${rest}` : ''}`);
   } catch {
-    /* the address bar keeps the query; nothing else reads it */
+    /* the address bar keeps the fragment; nothing else reads it */
   }
-  try {
-    win.sessionStorage.setItem(PENDING_LINK_KEY, link.toString());
-  } catch {
-    return false;
-  }
+  pendingLink = link.toString();
   return true;
 }
 
-/** The query of the share link waiting for login, removed as it is read. */
-export function takePendingDeckShareLink(win: Window = window): string | null {
-  try {
-    const query = win.sessionStorage.getItem(PENDING_LINK_KEY);
-    win.sessionStorage.removeItem(PENDING_LINK_KEY);
-    return query;
-  } catch {
-    return null;
-  }
+/** The parameters of the share link waiting for login, cleared as they are read. */
+export function takePendingDeckShareLink(): string | null {
+  const query = pendingLink;
+  pendingLink = null;
+  return query;
 }
