@@ -1,0 +1,1 @@
+- 14:01Z rebased 20 onto 21 (conflicts: DexieService, services/hooks barrels, i18n-default); schema now v7 → wire Settings Card Sources + Storage
