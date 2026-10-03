@@ -46,7 +46,7 @@ const SYMBOL_SVG =
 // card's type line from Scryfall to decide where a double-clicked card lands
 // (a land goes to the battlefield, an instant to the stack), so a missing or
 // wrong record changes game behaviour, not just art.
-const SCRYFALL_CARDS: { id: string; name: string }[] = ['forest.json'].map((file) =>
+const SCRYFALL_CARDS: { id: string; name: string }[] = ['forest.json', 'castle-ardenvale.json', 'human-token.json'].map((file) =>
   JSON.parse(readFileSync(resolve(__dirname, 'scryfall', file), 'utf8')),
 );
 
