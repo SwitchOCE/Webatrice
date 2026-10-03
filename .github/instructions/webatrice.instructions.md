@@ -64,9 +64,18 @@ The three server-data slices (`server`, `rooms`, `games`) live in **Datatrice** 
 
 ### Local persistence
 
-Dexie (IndexedDB) holds cards, sets, tokens, known hosts, and settings; separate from Redux (persists across reloads). Stubbed globally in [src/setupTests.ts](../../packages/webatrice/src/setupTests.ts) so unit specs never hit a real IndexedDB.
+Dexie (IndexedDB) holds cards, sets, tokens, known hosts, settings and the local replay library; separate from Redux (persists across reloads). The library (schema v5, additive) is two tables: `replays` (`++id, parentId` — folder and replay entries, a tree under `REPLAY_LIBRARY_ROOT`) and `replayData` (`id` — the `.cor` bytes, kept apart so folder listings never load them); go through `ReplayFileDTO`. Stubbed globally in [src/setupTests.ts](../../packages/webatrice/src/setupTests.ts) so unit specs never hit a real IndexedDB.
 
 **Schema migrations can't change a primary key in place.** Dexie throws "Not yet support for changing primary key" — drop the affected tables and recreate under the new key, accepting a clean re-import. The v1→v2→v3 migration of `cards`/`sets` to the XSD v4 shape is the worked example. Dexie tables that use `mapToClass(DTO)` (HostDTO, SettingDTO, …) return DTO instances — not plain interface shapes. Widen call-site types to the DTO when callbacks need `.save()` or instance methods.
+
+### Replay playback
+
+A replay is played into a **local game** in the Datatrice games slice, never a server game:
+
+- **Negative game id.** `openReplay` gives each opened replay its own id below `-1000`, so it can never collide with a Servatrice game id. The entry is flagged `replay: true`, is left out of `getActiveGameIds`/`getActiveGames` (no game tab, no leave command) and survives `clearStore`/disconnects.
+- **Through the response layer.** The replay game is created, rewound and removed with `WebClient.loadReplayGame` / `unloadReplayGame`, and recorded containers go through `WebClient.replayGameEventContainer`; Datatrice's `GameResponseImpl` dispatches, so replays need no exception to the [layering invariant](#ui--server-layering-invariant).
+- **Lifetime.** An opened replay (`services/replay/openedReplays.ts`) owns its `ReplayEngine` and local game until `closeReplay` — the replay tab's close button or "Close replay". Leaving the replay view keeps it playing, like a desktop replay tab; a reload drops it (in memory only).
+- **Read-only board.** `GameReplay` renders the regular board inside `GameReadOnlyProvider` ([GameReadOnlyContext.tsx](../../packages/webatrice/src/features/game/components/ui/GameReadOnlyContext.tsx)): the board swallows input, the sidebar and chat drop their live-game controls, and `useGameAffordances` turns every affordance off, so nothing on a replay can send a game command or an optimistic update.
 
 ### UI
 
