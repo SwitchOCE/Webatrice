@@ -28,6 +28,11 @@ export interface GameBoardLayout {
   bottomHand: { playerId: number; canAct: boolean } | undefined;
 }
 
+/** One step of desktop's GameScene::adjustPlayerRotation: clockwise is -1, counterclockwise +1. */
+export type RotationStep = 1 | -1;
+export const ROTATE_CLOCKWISE: RotationStep = -1;
+export const ROTATE_COUNTERCLOCKWISE: RotationStep = 1;
+
 // Cockatrice switches to a 2-column board at this player count
 // (its getMinPlayersForMultiColumnLayout default; see Cockatrice issue #3533).
 const MIN_PLAYERS_FOR_TWO_COLUMNS = 4;
@@ -48,8 +53,13 @@ const EMPTY_LAYOUT: GameBoardLayout = {
  * order; the local player anchors the bottom-left cell and the ring is rotated so
  * everyone else keeps their seating order relative to the local player. Cells fill
  * up the left column (bottom -> top) then down the right column (top -> bottom).
+ *
+ * `rotation` is desktop's playerRotation (GameScene::adjustPlayerRotation): each
+ * step turns the ring one seat further, -1 per "Rotate View Clockwise" and +1
+ * per "Rotate View Counterclockwise". Mirroring stays by row, as on desktop, so
+ * a rotated local seat away from the bottom row renders mirrored.
  */
-export function useGameBoardLayout(game: GameEntry | undefined): GameBoardLayout {
+export function useGameBoardLayout(game: GameEntry | undefined, rotation = 0): GameBoardLayout {
   return useMemo<GameBoardLayout>(() => {
     if (!game) {
       return EMPTY_LAYOUT;
@@ -87,15 +97,14 @@ export function useGameBoardLayout(game: GameEntry | undefined): GameBoardLayout
     const columns = n >= MIN_PLAYERS_FOR_TWO_COLUMNS ? 2 : 1;
     const rows = Math.ceil(n / columns);
 
-    // Rotate the ring so the anchored (local) player leads. Spectators have no
-    // anchor, so the seats fill in plain join order.
+    // Rotate the ring so the anchored (local) player leads, then by the view
+    // rotation. Spectators (and a conceded local player, who is not seated)
+    // have no anchor, so the seats start in plain join order.
     const localIndex = isSpectator
       ? -1
       : players.findIndex((p) => p === localPlayerId);
-    const ring =
-      localIndex >= 0
-        ? [...players.slice(localIndex), ...players.slice(0, localIndex)]
-        : players;
+    const start = (((Math.max(localIndex, 0) + rotation) % n) + n) % n;
+    const ring = [...players.slice(start), ...players.slice(0, start)];
 
     // Around-the-table cell path: up the left column (bottom -> top), then
     // (2-column only) down the right column (top -> bottom). path[0] is bottom-left.
@@ -125,5 +134,5 @@ export function useGameBoardLayout(game: GameEntry | undefined): GameBoardLayout
     });
 
     return { cells, columns, rows, handMode, bottomHand };
-  }, [game]);
+  }, [game, rotation]);
 }

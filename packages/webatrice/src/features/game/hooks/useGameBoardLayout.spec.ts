@@ -151,6 +151,46 @@ describe('useGameBoardLayout', () => {
     expect(result.current.cells.map((c) => c.playerId)).toEqual([2, 3, 4, 1]);
   });
 
+  describe('view rotation', () => {
+    // GameScene::rotatePlayers, literally: totalRotation = firstPlayerIndex +
+    // playerRotation, raised by n while negative, then that many takeFirst/append.
+    function desktopOrder(players: number[], firstPlayerIndex: number, playerRotation: number): number[] {
+      const rotated = [...players];
+      let totalRotation = firstPlayerIndex + playerRotation;
+      while (totalRotation < 0) {
+        totalRotation += rotated.length;
+      }
+      for (let i = 0; i < totalRotation; ++i) {
+        rotated.push(rotated.shift()!);
+      }
+      return rotated;
+    }
+
+    const cases = [2, 3, 4, 5, 6].flatMap((n) => [-2, -1, 0, 1, 2].map((rotation) => [n, rotation] as const));
+
+    it.each(cases)('%i players, rotation %i, seated as player 2', (n, rotation) => {
+      const ids = Array.from({ length: n }, (_, i) => i + 1);
+      const game = buildGame({ localPlayerId: 2, playerSpec: seats(ids) });
+      const { result } = renderHook(() => useGameBoardLayout(game, rotation));
+      expect(result.current.cells.map((c) => c.playerId)).toEqual(desktopOrder(ids, 1, rotation));
+    });
+
+    it.each(cases)('%i players, rotation %i, as a spectator', (n, rotation) => {
+      const ids = Array.from({ length: n }, (_, i) => i + 1);
+      const game = buildGame({ localPlayerId: 99, spectator: true, playerSpec: seats(ids) });
+      const { result } = renderHook(() => useGameBoardLayout(game, rotation));
+      expect(result.current.cells.map((c) => c.playerId)).toEqual(desktopOrder(ids, 0, rotation));
+    });
+
+    it('mirrors by row, so the local seat rotated off the bottom row is mirrored', () => {
+      const game = buildGame({ localPlayerId: 1, playerSpec: seats([1, 2]) });
+      const { result } = renderHook(() => useGameBoardLayout(game, 1));
+      const byId = cellById(result.current.cells);
+      expect(byId.get(2)).toMatchObject({ row: 1, mirrored: false });
+      expect(byId.get(1)).toMatchObject({ row: 0, mirrored: true, isLocal: true });
+    });
+  });
+
   it('spectator: all seats fill with no anchored local cell', () => {
     const game = buildGame({
       localPlayerId: 99,

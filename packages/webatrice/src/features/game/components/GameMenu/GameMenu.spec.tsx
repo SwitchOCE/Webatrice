@@ -7,6 +7,7 @@ import GameMenu from './GameMenu';
 
 function renderMenu({ activePlayerId = 1, spectator = false, conceded = false, activePhase = Phase.Upkeep as number } = {}) {
   const webClient = createMockWebClient();
+  const onRotateView = vi.fn();
   const game = makeGameEntry({
     started: true,
     activePhase,
@@ -15,11 +16,15 @@ function renderMenu({ activePlayerId = 1, spectator = false, conceded = false, a
     spectator,
     players: { 1: makePlayerEntry({ properties: makePlayerProperties({ playerId: 1, conceded }) }) },
   });
-  renderWithProviders(<GameMenu className="" />, { webClient, preloadedState: { games: { games: { 1: game }, pings: {} } } });
+  renderWithProviders(<GameMenu className="" />, {
+    webClient,
+    preloadedState: { games: { games: { 1: game }, pings: {} } },
+    gameDialogActions: { onRotateView },
+  });
   fireEvent.click(screen.getByRole('button', { name: /GameMenu.button/ }));
   const menu = within(screen.getByTestId('game-menu'));
   const item = (id: string) => menu.getByTestId(`game-menu-${id}`);
-  return { webClient, item };
+  return { webClient, item, onRotateView };
 }
 
 const isDisabled = (el: HTMLElement) => el.getAttribute('aria-disabled') === 'true';
@@ -27,7 +32,7 @@ const isDisabled = (el: HTMLElement) => el.getAttribute('aria-disabled') === 'tr
 describe('GameMenu', () => {
   it('lists the phase and turn actions in desktop order', () => {
     const { item } = renderMenu();
-    const order = ['nextPhase', 'nextPhaseAction', 'nextTurn', 'reverseTurn'].map(item);
+    const order = ['nextPhase', 'nextPhaseAction', 'nextTurn', 'reverseTurn', 'rotateViewCW', 'rotateViewCCW'].map(item);
     for (let i = 1; i < order.length; i++) {
       expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
@@ -80,5 +85,17 @@ describe('GameMenu', () => {
     expect(isDisabled(item('reverseTurn'))).toBe(true);
     fireEvent.click(item('reverseTurn'));
     expect(webClient.request.game.reverseTurn).not.toHaveBeenCalled();
+  });
+
+  it('rotates a spectator\'s view either way without a request', () => {
+    const { webClient, item, onRotateView } = renderMenu({ spectator: true, activePlayerId: 2 });
+
+    expect(isDisabled(item('rotateViewCW'))).toBe(false);
+    fireEvent.click(item('rotateViewCW'));
+    fireEvent.click(screen.getByRole('button', { name: /GameMenu.button/ }));
+    fireEvent.click(item('rotateViewCCW'));
+
+    expect(onRotateView.mock.calls).toEqual([[-1], [1]]);
+    expect(Object.values(webClient.request.game).some((fn) => vi.mocked(fn).mock.calls.length > 0)).toBe(false);
   });
 });

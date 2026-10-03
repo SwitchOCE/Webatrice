@@ -134,6 +134,7 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
     handleGameMouseDown,
     boxSelectPreview,
     layout,
+    rotateView,
     arrows,
     dialogs,
     dnd,
@@ -193,7 +194,7 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
     return (playerId: number) => byPlayerId.get(playerId) ?? false;
   }, [layout.cells]);
 
-  // Dialog/confirm-opening actions surfaced by the TurnControls sidebar. Provided
+  // Dialog/confirm-opening actions and the view rotation, surfaced by the sidebar. Provided
   // via context so RightPanel (which doesn't use them) needn't forward them.
   const dialogActions = useMemo(
     () => (readOnly
@@ -204,6 +205,7 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
         onRequestGameInfo: noop,
         onRequestViewSideboard: noop,
         onRequestLeave: onLeave ?? noop,
+        onRotateView: rotateView,
       }
       : {
         onRequestRollDie: dialogs.openRollDie,
@@ -212,6 +214,7 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
         onRequestGameInfo: dialogs.openGameInfo,
         onRequestViewSideboard: dialogs.openViewSideboard,
         onRequestLeave: onLeave ?? dialogs.openLeaveConfirm,
+        onRotateView: rotateView,
       }),
     [
       readOnly,
@@ -222,6 +225,7 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
       dialogs.openGameInfo,
       dialogs.openViewSideboard,
       dialogs.openLeaveConfirm,
+      rotateView,
     ],
   );
 
@@ -312,7 +316,7 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
 
                                 <BattlefieldSidebar />
 
-                                <GameArrowOverlay containerRef={gameRef} dragPreview={arrows.dragPreview} />
+                                <GameArrowOverlay containerRef={gameRef} layoutVersion={layout} dragPreview={arrows.dragPreview} />
 
                                 <BoxSelectOverlay preview={boxSelectPreview} />
 

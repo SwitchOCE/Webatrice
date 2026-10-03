@@ -109,11 +109,16 @@ export interface GameArrowOverlay {
 export interface UseGameArrowOverlayArgs {
   gameId: number | undefined;
   containerRef: React.RefObject<HTMLElement | null>;
+  /** Changes whenever seats move inside an unchanged board (e.g. a view
+   *  rotation): cards keep their registry entries and the board keeps its
+   *  size, so nothing else would re-measure. */
+  layoutVersion?: unknown;
 }
 
 export function useGameArrowOverlay({
   gameId,
   containerRef,
+  layoutVersion,
 }: UseGameArrowOverlayArgs): GameArrowOverlay {
   const webClient = useWebClient();
   const registry = useCardRegistry();
@@ -138,10 +143,11 @@ export function useGameArrowOverlay({
 
   // First-paint: the board ref is null during the initial render, so `containerRect`
   // is undefined and the arrows memo bails out. Bump once after mount so the
-  // next render sees a populated ref.
+  // next render sees a populated ref, and again after each layout change commits,
+  // since a render-time measure would still read the old positions.
   useLayoutEffect(() => {
     bump();
-  }, [bump]);
+  }, [bump, layoutVersion]);
 
   useLayoutEffect(() => {
     const el = containerRef.current;

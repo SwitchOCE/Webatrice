@@ -12,11 +12,14 @@ import { useNextPhaseAction } from '../components/PhaseTrack/useNextPhaseAction'
 import { usePhaseBar } from '../components/PhaseTrack/usePhaseBar';
 import { useCurrentGame } from './useCurrentGame';
 import { useGameAffordances } from './useGameAffordances';
+import { ROTATE_CLOCKWISE, ROTATE_COUNTERCLOCKWISE, type RotationStep } from './useGameBoardLayout';
 
 interface UseGameShortcutsArgs {
   gameId: number | undefined;
   /** Operations for the seat-scoped shortcuts, published by the local seat. */
   seatShortcuts: SeatShortcutRegistry;
+  /** Turns the local board view; spectators may use it too. */
+  onRotateView: (step: RotationStep) => void;
   onRequestConcede: () => void;
   onRequestDrawMultiple: () => void;
   onRequestUndoDraw: () => void;
@@ -35,6 +38,7 @@ interface UseGameShortcutsArgs {
 export function useGameShortcuts({
   gameId,
   seatShortcuts,
+  onRotateView,
   onRequestConcede,
   onRequestDrawMultiple,
   onRequestUndoDraw,
@@ -149,6 +153,13 @@ export function useGameShortcuts({
   );
 
   useShortcut('game.nextPhaseAction', nextPhaseAction.run, { scope: ShortcutScope.GAME, enabled: inGame });
+
+  // Local view only, so spectators get them too (hasLiveGame, not inGame).
+  useShortcut('game.rotateViewCW', () => onRotateView(ROTATE_CLOCKWISE), { scope: ShortcutScope.GAME, enabled: hasLiveGame });
+  useShortcut('game.rotateViewCCW', () => onRotateView(ROTATE_COUNTERCLOCKWISE), {
+    scope: ShortcutScope.GAME,
+    enabled: hasLiveGame,
+  });
 
   useShortcut(
     'game.reverseTurn',
