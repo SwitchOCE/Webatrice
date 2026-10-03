@@ -3,8 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { create, isFieldSet } from '@bufbuild/protobuf';
 
-import { DeckEditor, clearDeckEditorCache, clearDecksListCache } from '@app/features/decks';
-import { clearBracketSourceCaches } from '../../../src/features/decks/bracketSources';
+import { DeckEditor, clearBracketSourceCaches, clearDeckEditorCache, clearDecksListCache } from '@app/features/decks';
 import { parseCod } from '@app/services';
 import { RouteEnum, type ParsedDeck } from '@app/types';
 import {

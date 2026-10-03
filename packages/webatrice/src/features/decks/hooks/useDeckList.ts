@@ -43,10 +43,12 @@ export interface UseDeckList {
   summaries: ReadonlyMap<number, DeckSummary>;
   /** Drop every cached summary and editor copy, then re-request the tree. */
   refresh: () => void;
-  /** Upload an empty deck at the storage root; `onDeckCreated` fires with its id. */
-  createDeck: (name: string, format: string) => void;
-  /** Upload `.cod` XML as a new deck at the storage root; opens like a created deck. */
-  importDeck: (xml: string) => void;
+  /** Upload an empty deck at the storage root; `onDeckCreated` fires with its id.
+   *  False (nothing sent) while disconnected. */
+  createDeck: (name: string, format: string) => boolean;
+  /** Upload `.cod` XML as a new deck at the storage root; opens like a created deck.
+   *  False (nothing sent) while disconnected. */
+  importDeck: (xml: string) => boolean;
   deleteDeck: (deck: FlatDeck) => void;
 }
 
@@ -121,21 +123,23 @@ export function useDeckList({ onDeckCreated }: { onDeckCreated: (deckId: number)
     [onDeckCreated],
   );
 
-  const createDeck = (name: string, format: string) => {
+  const createDeck = (name: string, format: string): boolean => {
     if (!isConnected) {
-      return;
+      return false;
     }
     pendingCreateRef.current = true;
     // deckId 0 asks Servatrice for a new id; path "" is the root.
     webClient.request.session.deckUpload('', 0, emptyCod(name || 'New Deck', format));
+    return true;
   };
 
-  const importDeck = (xml: string) => {
+  const importDeck = (xml: string): boolean => {
     if (!isConnected) {
-      return;
+      return false;
     }
     pendingCreateRef.current = true;
     webClient.request.session.deckUpload('', 0, xml);
+    return true;
   };
 
   const deleteDeck = (deck: FlatDeck) => {
