@@ -349,6 +349,7 @@
       "banUser": "Ban from server",
       "banHistory": "View user's ban history",
       "adminNotes": "View admin notes",
+      "investigateUser": "Investigate user",
       "promoteMod": "Promote user to moderator",
       "demoteMod": "Demote user from moderator",
       "promoteJudge": "Promote user to judge",
