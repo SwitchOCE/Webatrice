@@ -57,6 +57,7 @@ const session = {
   accountEditChanged: vi.fn(),
   accountImageChanged: vi.fn(),
   getUserInfo: vi.fn(),
+  getUserInfoFailed: vi.fn(),
   getGamesOfUser: vi.fn(),
   gameJoined: vi.fn(),
   notifyUser: vi.fn(),

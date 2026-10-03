@@ -184,6 +184,10 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.getUserInfo({ userInfo }));
   }
 
+  getUserInfoFailed(userName: string, responseCode: number): void {
+    this.store.dispatch(ServerActions.getUserInfoFailed({ userName, responseCode }));
+  }
+
   getGamesOfUser(userName: string, response: Response_GetGamesOfUser): void {
     this.store.dispatch(ServerActions.gamesOfUser({ userName, response }));
   }

@@ -108,6 +108,8 @@ export interface ISessionResponse {
   accountEditChanged(realName?: string, email?: string, country?: string): void;
   accountImageChanged(avatarBmp: Uint8Array): void;
   getUserInfo(userInfo: ServerInfo_User): void;
+  /** Command_GetUserInfo for `userName` failed (e.g. RespNameNotFound for a guest who has left). */
+  getUserInfoFailed?(userName: string, responseCode: number): void;
   getGamesOfUser(userName: string, response: Response_GetGamesOfUser): void;
   gameJoined(gameJoinedData: Event_GameJoined): void;
   notifyUser(notification: Event_NotifyUser): void;

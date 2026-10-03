@@ -356,6 +356,12 @@ describe('SessionResponseImpl forwards', () => {
     expect(dispatch).toHaveBeenCalledWith(ServerActions.getUserInfo({ userInfo }));
   });
 
+  it('getUserInfoFailed dispatches the user name and code', () => {
+    const { impl, dispatch } = setup();
+    impl.getUserInfoFailed('alice', 34);
+    expect(dispatch).toHaveBeenCalledWith(ServerActions.getUserInfoFailed({ userName: 'alice', responseCode: 34 }));
+  });
+
   it('getGamesOfUser maps method name to gamesOfUser action', () => {
     const { impl, dispatch } = setup();
     const response = create(Response_GetGamesOfUserSchema, {});

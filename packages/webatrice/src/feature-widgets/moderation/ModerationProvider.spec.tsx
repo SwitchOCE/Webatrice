@@ -93,6 +93,21 @@ describe('ModerationProvider', () => {
       expect(screen.queryByRole('dialog', { name: 'Moderation.warn.title' })).not.toBeInTheDocument();
     });
 
+    it('still asks for the warning list, with an empty client id, when the user info fails', () => {
+      const { store, webClient } = setup('warnUser');
+      act(() => {
+        store.dispatch(server.Actions.getUserInfoFailed({ userName: 'alice', responseCode: 34 }));
+      });
+      expect(webClient.request.moderator.getWarnList).toHaveBeenCalledWith('mod', 'alice', '');
+
+      act(() => {
+        store.dispatch(server.Actions.warnListOptions({
+          warnList: [create(Response_WarnListSchema, { warning: ['Spamming'], userName: 'alice' })],
+        }));
+      });
+      expect(screen.getByRole('dialog', { name: 'Moderation.warn.title' })).toBeInTheDocument();
+    });
+
     it('refuses to send without a warning, with desktop\'s message', async () => {
       const { store, webClient } = setup('warnUser');
       act(() => {
@@ -110,6 +125,24 @@ describe('ModerationProvider', () => {
   });
 
   describe('ban user', () => {
+    it('opens with only the name filled in when the user info fails', () => {
+      const { store } = setup('banUser');
+      act(() => {
+        store.dispatch(server.Actions.getUserInfoFailed({ userName: 'alice', responseCode: 34 }));
+      });
+      const dialog = screen.getByRole('dialog', { name: 'Moderation.ban.title' });
+      expect(within(dialog).getByRole('textbox', { name: 'Moderation.ban.byName' })).toHaveValue('alice');
+      expect(within(dialog).getByRole('textbox', { name: 'Moderation.ban.byIp' })).toHaveValue('');
+    });
+
+    it('ignores a user info failure for another user', () => {
+      const { store } = setup('banUser');
+      act(() => {
+        store.dispatch(server.Actions.getUserInfoFailed({ userName: 'bob', responseCode: 34 }));
+      });
+      expect(screen.getByRole('dialog', { name: 'Moderation.common.loading' })).toBeInTheDocument();
+    });
+
     it('pre-fills name, IP and client id from the user info and sends a 5-minute temporary ban by default', async () => {
       const { store, webClient } = setup('banUser');
       expect(webClient.request.session.getUserInfo).toHaveBeenCalledWith('alice');

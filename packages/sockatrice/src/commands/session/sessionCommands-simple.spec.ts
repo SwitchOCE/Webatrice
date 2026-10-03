@@ -79,9 +79,10 @@ import {
   Response_ReplayDownload_ext,
   Response_ReplayGetCode_ext,
   Response_ReplayList_ext,
+  Response_ResponseCode,
 } from '../../generated';
 
-const { invokeOnSuccess, invokeCallback } = makeCallbackHelpers(
+const { invokeOnSuccess, invokeCallback, invokeOnError } = makeCallbackHelpers(
   WebClient.instance.protobuf.sendSessionCommand as Mock,
   2
 );
@@ -267,6 +268,12 @@ describe('getUserInfo', () => {
     const resp = { userInfo: { name: 'alice' } };
     invokeOnSuccess(resp, { responseCode: 0 });
     expect(WebClient.instance.response.session.getUserInfo).toHaveBeenCalledWith(resp.userInfo);
+  });
+
+  it('reports the user name and code on failure', () => {
+    getUserInfo('alice');
+    invokeOnError(Response_ResponseCode.RespNameNotFound);
+    expect(WebClient.instance.response.session.getUserInfoFailed).toHaveBeenCalledWith('alice', Response_ResponseCode.RespNameNotFound);
   });
 });
 
