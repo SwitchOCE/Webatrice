@@ -2,6 +2,7 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import { renderHook } from '@testing-library/react';
 import { combineReducers } from '@reduxjs/toolkit';
 import { games } from '@cockatrice/datatrice';
+import { makeGameEntry, makePlayerEntry, makePlayerProperties, makeZoneEntry } from '@cockatrice/datatrice/testing';
 
 import { makeReduxWebClientHookWrapper } from '../../../../__test-utils__/makeHookWrapper';
 import { makeDialogTestEnv, makeSetterSpies } from '../../__test-utils__/dialogTestEnv';
@@ -9,17 +10,37 @@ import type { RevealState, ZoneMenuState, ZoneViewTarget } from './gameDialogs.t
 import { useZoneDialogActions } from './useZoneDialogActions';
 import { writeShuffleOnClose } from '../../dialogs/ZoneViewDialog/zoneViewPreferences';
 
+/** Player 1 (local) and player 2, each with every zone a view here opens. */
+function makeZonesGame() {
+  const zones = (names: NonNullable<Parameters<typeof makeZoneEntry>[0]['name']>[]) =>
+    Object.fromEntries(names.map((name) => [name, makeZoneEntry({ name, cardCount: 0 })]));
+  return makeGameEntry({
+    localPlayerId: 1,
+    started: true,
+    players: {
+      1: makePlayerEntry({
+        properties: makePlayerProperties({ playerId: 1 }),
+        zones: zones([ZoneName.DECK, ZoneName.HAND, ZoneName.GRAVE, ZoneName.EXILE, ZoneName.SIDEBOARD]),
+      }),
+      2: makePlayerEntry({
+        properties: makePlayerProperties({ playerId: 2 }),
+        zones: zones([ZoneName.DECK, ZoneName.GRAVE, ZoneName.SIDEBOARD]),
+      }),
+    },
+  });
+}
+
 function setup({
   zoneViews = [] as ZoneViewTarget[],
   zoneMenu = null as ZoneMenuState | null,
   hasSeat = true,
 } = {}) {
-  const { env, webClient } = makeDialogTestEnv();
+  const { env, webClient, game } = makeDialogTestEnv(makeZonesGame());
   const set = makeSetterSpies();
   const closeAllContextMenus = vi.fn();
   const { Wrapper, store } = makeReduxWebClientHookWrapper({
     reducer: combineReducers({ games: games.gamesReducer }),
-    preloadedState: { games: { games: {}, pings: {} } },
+    preloadedState: { games: { games: { 1: game }, pings: {} } },
     webClient,
   });
   const dispatch = vi.spyOn(store, 'dispatch');
@@ -149,6 +170,26 @@ describe('useZoneDialogActions', () => {
     expect(webClient.request.game.dumpZone).not.toHaveBeenCalled();
     expect(webClient.request.game.shuffle).not.toHaveBeenCalled();
     expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('drops the views of a player or zone that is gone, sending nothing', () => {
+    const { set, webClient, dispatch } = setup({
+      zoneViews: [{ playerId: 1, zoneName: ZoneName.GRAVE }, { playerId: 3, zoneName: ZoneName.GRAVE }],
+    });
+
+    const prune = set.setZoneViews.mock.calls[0][0] as (prev: ZoneViewTarget[]) => ZoneViewTarget[];
+    expect(prune([
+      { playerId: 1, zoneName: ZoneName.GRAVE },
+      { playerId: 3, zoneName: ZoneName.GRAVE },
+      { playerId: 2, zoneName: 'nowhere' },
+    ])).toEqual([{ playerId: 1, zoneName: ZoneName.GRAVE }]);
+    expect(webClient.request.game.shuffle).not.toHaveBeenCalled();
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it('leaves the views alone while every zone exists', () => {
+    const { set } = setup({ zoneViews: [{ playerId: 1, zoneName: ZoneName.GRAVE }, { playerId: 2, zoneName: ZoneName.DECK }] });
+    expect(set.setZoneViews).not.toHaveBeenCalled();
   });
 
   it('closing a view that is not open sends nothing', () => {

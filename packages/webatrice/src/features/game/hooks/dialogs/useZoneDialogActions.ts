@@ -1,13 +1,17 @@
 import { ZoneName } from '@cockatrice/sockatrice';
-import { games } from '@cockatrice/datatrice';
-import { useCallback, useMemo } from 'react';
+import { games, type GameEntry } from '@cockatrice/datatrice';
+import { useCallback, useEffect, useMemo } from 'react';
 
-import { useAppDispatch } from '@app/store';
+import { useAppDispatch, useAppSelector } from '@app/store';
 import type { GameDialogsActions, ZoneMenuState, ZoneViewTarget } from './gameDialogs.types';
 import type { GameDialogEnv } from './gameDialogEnv';
 import type { GameDialogSetters } from './useGameDialogState';
 import { readShuffleOnClose } from '../../dialogs/ZoneViewDialog/zoneViewPreferences';
 import { isHiddenZone, offersShuffleOnClose } from '../../dialogs/ZoneViewDialog/zoneViewTarget';
+
+function viewHasZone(game: GameEntry | undefined, view: ZoneViewTarget): boolean {
+  return game?.players[view.playerId]?.zones[view.zoneName] != null;
+}
 
 export type ZoneDialogActions = Pick<
   GameDialogsActions,
@@ -94,6 +98,21 @@ export function useZoneDialogActions({
       });
     }
   }, [zoneViews, gameId, readGame, webClient, setZoneViews, sendViewClosed]);
+
+  // Desktop closes a view when its zone is destroyed (ZoneViewZone::closed →
+  // ZoneViewWidget::zoneDeleted), so a player who leaves takes their views
+  // along. The selector only answers whether any view has lost its zone, so
+  // game updates don't re-render the dialogs. Nothing is sent: the zone is gone.
+  const hasOrphanedView = useAppSelector((state) => {
+    const game = gameId != null ? games.Selectors.getGame(state, gameId) : undefined;
+    return zoneViews.some((v) => !viewHasZone(game, v));
+  });
+  useEffect(() => {
+    if (hasOrphanedView) {
+      const game = readGame();
+      setZoneViews((prev) => prev.filter((v) => viewHasZone(game, v)));
+    }
+  }, [hasOrphanedView, readGame, setZoneViews]);
 
   const handleZoneClick = useCallback(
     (playerId: number, zoneName: string) => openZoneView({ playerId, zoneName }),
