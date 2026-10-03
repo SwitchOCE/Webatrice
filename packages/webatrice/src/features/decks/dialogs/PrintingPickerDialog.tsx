@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { CheckCircle2, CircleAlert, Loader2, X } from 'lucide-react';
 
 import type { PrintingSummary } from '@app/services';
@@ -35,6 +36,7 @@ export function PrintingPickerDialog({
   // card doesn't refetch.
   const { printings, loading, error, prices } = useCardPrintings(request?.card.name);
   useEscapeKey(request != null, onClose);
+  const titleId = useId();
 
   if (!request) {
     return null;
@@ -42,7 +44,7 @@ export function PrintingPickerDialog({
   const currentId = request.card.scryfallId;
 
   return (
-    <DeckDialogFrame onClose={onClose}>
+    <DeckDialogFrame onClose={onClose} titleId={titleId}>
       <div
         className={[
           'relative w-full max-w-5xl rounded-xl bg-bg-surface border',
@@ -59,7 +61,7 @@ export function PrintingPickerDialog({
         </button>
 
         <div>
-          <h2 className="font-modern text-xl font-semibold text-text-primary truncate">
+          <h2 id={titleId} className="font-modern text-xl font-semibold text-text-primary truncate">
             Choose printing
           </h2>
           <p className="text-sm text-text-muted mt-1">

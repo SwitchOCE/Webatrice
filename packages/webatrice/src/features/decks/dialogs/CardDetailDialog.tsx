@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Archive, ArrowLeft, Crown, Layers, Loader2, Minus, PackageOpen, Plus, Trash2, X } from 'lucide-react';
 
 import { CardRelatedLinks, relatedCardKey } from '@app/components';
@@ -61,6 +61,7 @@ export function CardDetailDialog({
 }: CardDetailDialogProps) {
   const { detail, detailLoading, browsed, pending, browse, back } = useCardDetail(snapshot);
   useEscapeKey(snapshot != null, onClose);
+  const titleId = useId();
 
   if (!snapshot) {
     return null;
@@ -86,7 +87,7 @@ export function CardDetailDialog({
   const priceInfo = priceForCard(prices, liveCard ?? (browsed ? { name: browsed.name } as DeckCard : snapshot));
 
   return (
-    <DeckDialogFrame onClose={onClose}>
+    <DeckDialogFrame onClose={onClose} titleId={titleId}>
       <div
         className={[
           'relative w-full max-w-3xl rounded-xl bg-bg-surface border',
@@ -130,7 +131,7 @@ export function CardDetailDialog({
           <div className="min-w-0 flex flex-col gap-3">
             <div>
               <div className="flex items-baseline gap-2">
-                <h2 className="font-modern text-xl font-bold text-text-primary truncate">
+                <h2 id={titleId} className="font-modern text-xl font-bold text-text-primary truncate">
                   {view.name}
                 </h2>
                 {typeof view.cmc === 'number' && (

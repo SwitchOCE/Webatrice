@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { X, Copy, Check, Download, FileText, Swords, Package } from 'lucide-react';
 
 import { downloadBlob } from '@app/utils';
@@ -67,6 +67,7 @@ export function ExportDeckDialog({
     }
   }, [open, onClose]);
   useEscapeKey(open, onClose);
+  const titleId = useId();
 
   const content = useMemo(() => exportDeck(deck, exportFormat), [deck, exportFormat]);
 
@@ -92,7 +93,7 @@ export function ExportDeckDialog({
   }
 
   return (
-    <DeckDialogFrame onClose={onClose}>
+    <DeckDialogFrame onClose={onClose} titleId={titleId}>
       <div
         className={[
           'relative w-full max-w-2xl rounded-xl bg-bg-surface border',
@@ -109,7 +110,7 @@ export function ExportDeckDialog({
         </button>
 
         <div className="mb-4">
-          <h2 className="font-modern text-xl font-bold text-text-primary">Export deck</h2>
+          <h2 id={titleId} className="font-modern text-xl font-bold text-text-primary">Export deck</h2>
           <p className="text-xs text-text-muted mt-1 truncate">{deck.name}</p>
         </div>
 
