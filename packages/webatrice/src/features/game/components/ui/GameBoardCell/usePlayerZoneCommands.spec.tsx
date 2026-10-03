@@ -2,7 +2,8 @@ import { act } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { makeCard, makeZoneEntry } from '@cockatrice/datatrice/testing';
 import { renderSeatHook, type SeatGameSpec } from '../../../__test-utils__/seatFixtures';
-import { resolveBattlefieldDropX, usePlayerZoneCommands } from './usePlayerZoneCommands';
+import { resolveBattlefieldDropX } from './useMoveCard';
+import { usePlayerZoneCommands } from './usePlayerZoneCommands';
 
 const SHOCK = makeCard({ id: 30, name: 'Shock' });
 const BOLT = makeCard({ id: 31, name: 'Bolt' });
