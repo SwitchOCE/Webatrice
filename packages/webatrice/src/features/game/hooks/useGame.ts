@@ -35,6 +35,7 @@ export interface Game extends CurrentGame {
   /** Publishes a structured leaf's hovered server card to the preview store. */
   setHoveredCard: (card: ServerInfo_Card | null) => void;
   selectedCardKeys: ReadonlySet<string>;
+  setSelectedCardKeys: GameSelection['setSelectedCardKeys'];
   selectedCards: readonly SelectedCard[];
   onCardFocus: (ownerPlayerId: number | undefined, zone: string | undefined, card: ServerInfo_Card) => void;
   onCardBlur: (ownerPlayerId: number | undefined, zone: string | undefined, card: ServerInfo_Card) => void;
@@ -174,6 +175,7 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
     seatShortcuts,
     setHoveredCard,
     selectedCardKeys: selection.selectedCardKeys,
+    setSelectedCardKeys: selection.setSelectedCardKeys,
     selectedCards,
     onCardFocus: selection.onCardFocus,
     onCardBlur: selection.onCardBlur,
