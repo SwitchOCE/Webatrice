@@ -1,1 +1,2 @@
 - 21:55Z started rv13; read brief/template → read PR 26 diff
+- 22:04Z review written (reviews/rv13.md; static only — npm ci denied by permission policy) → done
