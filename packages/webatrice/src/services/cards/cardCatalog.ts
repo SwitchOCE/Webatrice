@@ -71,6 +71,17 @@ export interface LookupResult {
    *  needs to fire Command_CreateToken correctly (name, mana cost,
    *  colors, PT, type line). Absent for single-face cards. */
   faces?: LookupCardFace[];
+  /** Rules text (cards.xml `<text>`, Scryfall `oracle_text`). */
+  text?: string;
+  /** Card properties by Cockatrice name (cards.xml `<prop>` children such
+   *  as `type`, `maintype`, `cmc`). Scryfall records carry `type` only.
+   *  Format rules' exception conditions match against these. */
+  properties?: Record<string, string>;
+  /** Format legality by format name, Cockatrice labels (`legal`,
+   *  `restricted`, `banned`, …): cards.xml `format-<name>` props, or
+   *  Scryfall `legalities`. A format missing from a present map means
+   *  "not legal"; `undefined` means the source has no legality data. */
+  legalities?: Record<string, string>;
 }
 
 /** One face of a multi-faced card (Scryfall's `card_faces` entry).
@@ -385,6 +396,10 @@ function mergeLookup(
     // any merging logic. Powers the "Transform into …" menu item.
     layout: scryfall!.layout,
     faces: scryfall!.faces,
+    // cards.xml legalities win (desktop reads its card DB); a DB
+    // imported without them falls back to Scryfall's.
+    text: xml!.text ?? scryfall!.text,
+    legalities: xml!.legalities ?? scryfall!.legalities,
   };
 }
 
@@ -469,7 +484,50 @@ function dexieToLookup(card: Card): LookupResult {
     toughness: readStringProp(prop.toughness),
     printings,
     related: relatedList.length > 0 ? relatedList : undefined,
+    text: card.text?.value || undefined,
+    properties: readProperties(prop),
+    legalities: readLegalities(prop),
   };
+}
+
+function readProperties(prop: Record<string, { value?: unknown } | undefined>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [key, node] of Object.entries(prop)) {
+    if (typeof node?.value === 'string') {
+      out[key] = node.value;
+    }
+  }
+  return out;
+}
+
+/** cards.xml `format-<name>` props; `undefined` when the card has none. */
+function readLegalities(prop: Record<string, { value?: unknown } | undefined>): Record<string, string> | undefined {
+  let out: Record<string, string> | undefined;
+  for (const [key, node] of Object.entries(prop)) {
+    if (key.startsWith('format-') && typeof node?.value === 'string') {
+      out ??= {};
+      out[key.slice('format-'.length)] = node.value;
+    }
+  }
+  return out;
+}
+
+/**
+ * Scryfall `legalities` in cards.xml terms: Cockatrice's oracle writes a
+ * `format-<name>` prop only for legal / restricted / banned cards, so
+ * Scryfall's `not_legal` becomes an absent entry.
+ */
+function scryfallLegalities(legalities: Record<string, string> | undefined): Record<string, string> | undefined {
+  if (!legalities) {
+    return undefined;
+  }
+  const out: Record<string, string> = {};
+  for (const [format, label] of Object.entries(legalities)) {
+    if (label !== 'not_legal') {
+      out[format] = label;
+    }
+  }
+  return out;
 }
 
 // ---------- Dexie: scryfallCache table ----------
@@ -625,6 +683,9 @@ interface ScryfallCard {
   set?: string;
   collector_number?: string;
   image_uris?: { small?: string; normal?: string; large?: string };
+  oracle_text?: string;
+  /** Format → `legal` | `not_legal` | `restricted` | `banned`. */
+  legalities?: Record<string, string>;
   /** Present on multi-faced cards (transform, modal_dfc,
    *  reversible_card, split, adventure, flip). Front-face is [0],
    *  back-face is [1]. Fields on each face largely mirror the
@@ -637,6 +698,7 @@ interface ScryfallCard {
     colors?: string[];
     power?: string;
     toughness?: string;
+    oracle_text?: string;
     image_uris?: { small?: string; normal?: string };
   }>;
   /** Present on cards with related-object references — tokens
@@ -921,6 +983,9 @@ function scryfallToLookup(card: ScryfallCard): LookupResult {
     related: relatedList.length > 0 ? relatedList : undefined,
     layout: card.layout,
     faces: faces && faces.length > 0 ? faces : undefined,
+    text: card.oracle_text ?? card.card_faces?.map((f) => f.oracle_text ?? '').join('\n//\n'),
+    properties: card.type_line ? { type: card.type_line } : undefined,
+    legalities: scryfallLegalities(card.legalities),
   };
 }
 

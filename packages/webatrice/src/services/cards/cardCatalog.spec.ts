@@ -116,6 +116,39 @@ describe('lookupCard', () => {
     expect(result.related).toBeUndefined();
   });
 
+  it('carries legality and rules data: cards.xml props win, Scryfall fills in', async () => {
+    cards.get.mockResolvedValue({
+      ...XML_SWAN_SONG,
+      text: { value: 'Counter target noncreature spell.' },
+      prop: { value: { ...XML_SWAN_SONG.prop.value, 'format-modern': { value: 'legal' }, 'format-legacy': { value: 'banned' } } },
+    });
+    fetchMock.mockImplementation(() => respond({ ...SCRYFALL_SWAN_SONG, legalities: { modern: 'not_legal' } }));
+
+    const result = await lookupCard('Swan Song');
+    expect(result.text).toBe('Counter target noncreature spell.');
+    expect(result.legalities).toEqual({ modern: 'legal', legacy: 'banned' });
+    expect(result.properties).toEqual(expect.objectContaining({ type: 'Instant', 'format-modern': 'legal' }));
+  });
+
+  it('maps Scryfall legalities to cards.xml terms, dropping not_legal', async () => {
+    fetchMock.mockImplementation(() => respond({
+      ...SCRYFALL_SWAN_SONG,
+      oracle_text: 'Counter it.',
+      legalities: { modern: 'legal', vintage: 'restricted', standard: 'not_legal', legacy: 'banned' },
+    }));
+
+    const result = await lookupCard('Swan Song');
+    expect(result.legalities).toEqual({ modern: 'legal', vintage: 'restricted', legacy: 'banned' });
+    expect(result.properties).toEqual({ type: 'Instant' });
+    expect(result.text).toBe('Counter it.');
+  });
+
+  it('has no legality data for a cards.xml record without format props', async () => {
+    cards.get.mockResolvedValue(XML_SWAN_SONG);
+    const result = await lookupCard('Swan Song');
+    expect(result.legalities).toBeUndefined();
+  });
+
   it('strips a trailing "Token" suffix before the exact-name request', async () => {
     await lookupCard('Goblin Token');
     expect(fetchMock).toHaveBeenCalledWith('https://api.scryfall.com/cards/named?exact=Goblin');
