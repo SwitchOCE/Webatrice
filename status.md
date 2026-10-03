@@ -1,2 +1,3 @@
 - 18:17 started rv10; read brief+template → fetch branches, review 17b
 - 18:18 worktrees+cockatrice ready → parallel review of 17b and 23d
+- 18:18 review agents running for 17b and 23d → write reviews/rv10.md
