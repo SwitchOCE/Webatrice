@@ -4,3 +4,4 @@
 - 17:47Z major 2 (link join reuses useJoinGame) fixed+pushed → minors
 - 17:52Z minors invite-failure + gameLink port pushed → a11y/i18n/closed-game minors
 - 17:56Z all fixes pushed (c8f8c37) → full gate
+- 18:17Z gate green, PR file updated → done (tip c8f8c37)
