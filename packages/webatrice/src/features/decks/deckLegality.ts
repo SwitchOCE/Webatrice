@@ -156,7 +156,7 @@ export type DeckLegalityStatus = 'legal' | 'illegal' | 'unavailable' | 'none';
 export interface DeckLegality {
   /** By card index; the deck's cards in order. */
   rows: CardLegality[];
-  /** `none`: no format to check. `unavailable`: nothing could be checked. */
+  /** `none`: no format or no cards to check. `unavailable`: nothing could be checked. */
   status: DeckLegalityStatus;
   illegalCount: number;
   unknownCount: number;
@@ -172,7 +172,7 @@ export function deckLegality(
   factsByName: ReadonlyMap<string, LegalityFacts | undefined>,
   rules: FormatRules | undefined,
 ): DeckLegality {
-  if (!format.trim()) {
+  if (!format.trim() || cards.length === 0) {
     return { rows: cards.map(() => LEGAL), status: 'none', illegalCount: 0, unknownCount: 0 };
   }
   const rows = cards.map((card) => cardLegality(format, factsByName.get(card.name), card.quantity, rules));
