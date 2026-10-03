@@ -1,4 +1,4 @@
-import { PREFERENCE_DEFAULTS, PreferenceKey, Preferences, SETTINGS_VERSION, Setting } from '@app/types';
+import { PREFERENCE_DEFAULTS, PreferenceKey, Preferences, SETTINGS_VERSION, Setting, ThemeMode } from '@app/types';
 import { LANGUAGE_STORAGE_KEY, resolveSupportedLanguage } from '@app/utils';
 
 type SettingRow = Partial<Setting> & { user: string };
@@ -11,10 +11,13 @@ const MIGRATIONS: Record<number, (row: SettingRow) => void> = {
   // v1: first versioned schema. Pre-v1 rows hold only autoConnect, invertVerticalCoordinate and
   // shortcut overrides; every preference introduced with the Settings page takes its default.
   1: (row) => fillPreferenceDefaults(row),
-  // v2: language becomes a setting. Before it, the language was i18next's own localStorage cache;
-  // adopt it. The preference did not exist before v2, so assigning (rather than filling) cannot lose
-  // a choice — and must assign, because step 1 has already filled a v0 row with the default.
+  // v2: theme palette and language become settings. A row that predates them belongs to someone
+  // who has only ever seen the dark palette, so they keep it (fresh installs follow the system,
+  // as desktop does). Their language was i18next's own localStorage cache; adopt it. Neither
+  // preference existed before v2, so assigning (rather than filling) cannot lose a choice — and
+  // must assign, because step 1 has already filled a v0 row with the fresh-install defaults.
   2: (row) => {
+    row.themeMode = ThemeMode.Dark;
     row.language = legacyLanguageChoice() ?? '';
   },
 };

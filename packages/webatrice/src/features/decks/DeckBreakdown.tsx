@@ -298,11 +298,11 @@ function TypeBreakdown({
 // Bracket-tone palette: green for casual, yellow for mid-tier, red for
 // optimized/cEDH. Mirrors edhpowerlevel's traffic-light coloring.
 const BRACKET_TONE: Record<number, { text: string; bg: string; border: string }> = {
-  1: { text: 'text-emerald-300', bg: 'bg-emerald-500/15', border: 'border-emerald-500/40' },
-  2: { text: 'text-emerald-300', bg: 'bg-emerald-500/15', border: 'border-emerald-500/40' },
-  3: { text: 'text-yellow-300', bg: 'bg-yellow-500/15', border: 'border-yellow-500/40' },
-  4: { text: 'text-red-300', bg: 'bg-red-500/15', border: 'border-red-500/40' },
-  5: { text: 'text-red-300', bg: 'bg-red-500/15', border: 'border-red-500/40' },
+  1: { text: 'text-success', bg: 'bg-emerald-500/15', border: 'border-emerald-500/40' },
+  2: { text: 'text-success', bg: 'bg-emerald-500/15', border: 'border-emerald-500/40' },
+  3: { text: 'text-warning', bg: 'bg-yellow-500/15', border: 'border-yellow-500/40' },
+  4: { text: 'text-danger', bg: 'bg-red-500/15', border: 'border-red-500/40' },
+  5: { text: 'text-danger', bg: 'bg-red-500/15', border: 'border-red-500/40' },
 };
 
 /**
@@ -331,9 +331,9 @@ function SignalBadge({
 }) {
   const toneClass =
     tone === 'hot'
-      ? 'text-red-300 bg-red-500/10 border-red-500/30'
+      ? 'text-danger bg-red-500/10 border-red-500/30'
       : tone === 'warn'
-        ? 'text-yellow-300 bg-yellow-500/10 border-yellow-500/30'
+        ? 'text-warning bg-yellow-500/10 border-yellow-500/30'
         : 'text-text-secondary bg-bg-elevated border-border-subtle';
 
   const ref = useRef<HTMLDivElement>(null);

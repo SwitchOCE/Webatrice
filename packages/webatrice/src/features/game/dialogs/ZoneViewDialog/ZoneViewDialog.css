@@ -6,11 +6,11 @@
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  background: #0a1225;
-  border: 1px solid #233a68;
+  background: rgb(var(--bg-surface));
+  border: 1px solid rgb(var(--border-subtle));
   border-radius: 6px;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
-  color: #e5ecf7;
+  color: rgb(var(--text-primary));
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -19,8 +19,8 @@
   align-items: center;
   gap: 8px;
   padding: 6px 10px 6px 14px;
-  background: #17223d;
-  border-bottom: 1px solid #233a68;
+  background: rgb(var(--bg-elevated));
+  border-bottom: 1px solid rgb(var(--border-subtle));
   border-radius: 6px 6px 0 0;
   cursor: move;
   user-select: none;
@@ -31,11 +31,11 @@
   flex: 1;
   font-size: 14px;
   font-weight: 700;
-  color: #c8d4ef;
+  color: rgb(var(--text-primary));
 }
 
 .zone-view-dialog__close {
-  color: #c8d4ef !important;
+  color: rgb(var(--text-secondary)) !important;
 }
 
 .zone-view-dialog__body {
@@ -45,7 +45,7 @@
 }
 
 .zone-view-dialog__body--drop-over {
-  outline: 2px dashed #4a78c8;
+  outline: 2px dashed rgb(var(--accent-primary));
   outline-offset: -4px;
 }
 
@@ -66,7 +66,7 @@
 .zone-view-dialog__empty {
   padding: 32px 0;
   text-align: center;
-  color: #6a7488;
+  color: rgb(var(--text-muted));
   font-style: italic;
 }
 
@@ -74,9 +74,9 @@
   display: flex;
   align-items: center;
   padding: 4px 14px 6px;
-  background: #17223d;
-  border-top: 1px solid #233a68;
+  background: rgb(var(--bg-elevated));
+  border-top: 1px solid rgb(var(--border-subtle));
   border-radius: 0 0 6px 6px;
-  color: #c8d4ef;
+  color: rgb(var(--text-secondary));
   font-size: 13px;
 }

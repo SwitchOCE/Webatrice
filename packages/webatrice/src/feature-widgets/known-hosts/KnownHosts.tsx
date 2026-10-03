@@ -82,7 +82,7 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
         <span className="flex items-center justify-between text-xs font-medium text-text-muted mb-1">
           <span id={hostLabelId}>{t('KnownHosts.label')}</span>
           {showError && (
-            <span className="flex items-center gap-1 text-[0.7rem] text-red-400">
+            <span className="flex items-center gap-1 text-[0.7rem] text-danger">
               <AlertCircle size={11} />
               {error}
             </span>
@@ -195,11 +195,11 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
                 </span>
                 <span className="shrink-0">
                   {testConnectionStatus === TestConnection.FAILED && isSelected ? (
-                    <WifiOff size={14} className="text-red-400" />
+                    <WifiOff size={14} className="text-danger" />
                   ) : testConnectionStatus === TestConnection.SUCCESS && isSelected ? (
-                    <Wifi size={14} className="text-emerald-400" />
+                    <Wifi size={14} className="text-success" />
                   ) : testConnectionStatus === TestConnection.TESTING && isSelected ? (
-                    <Loader2 size={14} className="text-yellow-400 animate-spin" />
+                    <Loader2 size={14} className="text-warning animate-spin" />
                   ) : (
                     <Wifi size={14} className="text-text-muted" />
                   )}
@@ -318,11 +318,11 @@ function SelectedHost({
         : Wifi;
   const statusColor =
     status === TestConnection.FAILED
-      ? 'text-red-400'
+      ? 'text-danger'
       : status === TestConnection.SUCCESS
-        ? 'text-emerald-400'
+        ? 'text-success'
         : status === TestConnection.TESTING
-          ? 'text-yellow-400 animate-spin'
+          ? 'text-warning animate-spin'
           : 'text-text-muted';
   return (
     <>

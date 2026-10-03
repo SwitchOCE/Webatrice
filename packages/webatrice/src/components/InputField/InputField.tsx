@@ -45,7 +45,7 @@ const InputField = ({
       <span className="flex items-center justify-between text-xs font-medium text-text-muted mb-1">
         <span>{label}</span>
         {showError && (
-          <span className="flex items-center gap-1 text-[0.7rem] text-red-400">
+          <span className="flex items-center gap-1 text-[0.7rem] text-danger">
             <AlertCircle size={11} />
             {error}
           </span>
