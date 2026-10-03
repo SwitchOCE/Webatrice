@@ -53,7 +53,16 @@ describe('PrivateChat', () => {
       entries: [message('bob', 'hey'), notice(1, 'userLeft'), message('me', 'still there?'), notice(2, 'recipientOffline')],
     });
     const rows = Array.from(container.querySelectorAll('.space-y-2 > div')).map((row) => row.textContent);
-    expect(rows).toEqual(['hey', 'PrivateChat.notice.userLeft', 'still there?', 'PrivateChat.notice.recipientOffline']);
+    // Each bubble starts with its sender in visually hidden text, since alignment alone says who wrote it.
+    expect(rows).toEqual(['bob: hey', 'PrivateChat.notice.userLeft', 'me: still there?', 'PrivateChat.notice.recipientOffline']);
+  });
+
+  it('is a labelled log, so screen readers hear incoming messages', () => {
+    renderChat({ entries: [message('bob', 'hey')] });
+
+    const log = screen.getByRole('log', { name: 'PrivateChat.log' });
+    expect(log).toHaveTextContent('bob: hey');
+    expect(screen.getByRole('textbox', { name: 'PrivateChat.input' })).toBeInTheDocument();
   });
 
   it('explains a message the server never answered', () => {
@@ -84,7 +93,7 @@ describe('PrivateChat', () => {
     fireEvent.submit(input);
     expect(onSend).not.toHaveBeenCalled();
     expect(input).toHaveValue('hello');
-    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'PrivateChat.send' })).toBeDisabled();
   });
 
   it('refuses to send to a user you have ignored', () => {

@@ -107,10 +107,10 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
   const canSpectate = Boolean(selected && (selected.spectatorsAllowed || overrideRestrictions)) && !joinPending;
 
   let body;
+  let failure: string | null = null;
   if (status?.state === 'failed') {
     const key = FAILURE_KEYS[status.responseCode as Response_ResponseCode] ?? 'UserGamesDialog.error.unknown';
-    const message = describeFailure(status.failure, t(key, { name: userName }));
-    body = <p role="alert" className="text-sm text-text-secondary">{message}</p>;
+    failure = describeFailure(status.failure, t(key, { name: userName }));
   } else if (status?.state !== 'loaded') {
     body = <p className="text-sm text-text-muted">{t('UserGamesDialog.loading')}</p>;
   } else if (gameList.length === 0) {
@@ -167,7 +167,11 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
         handleClose={onClose}
         maxWidth="max-w-4xl"
       >
-        <div className="min-h-24 overflow-x-auto">{body}</div>
+        <div className="min-h-24 overflow-x-auto">
+          {/* Mounted for the dialog's lifetime so a failure is announced when it arrives. */}
+          <p role="alert" className={failure ? 'text-sm text-text-secondary' : 'sr-only'}>{failure}</p>
+          {body}
+        </div>
         <div className="mt-4 flex flex-wrap justify-end gap-2">
           <button type="button" className={BUTTON_CLASS} disabled={!canJoin} onClick={() => join(selected, false, false)}>
             {t('UserGamesDialog.action.join')}

@@ -45,7 +45,8 @@ export function useNotify(): (options: NotifyOptions) => NotifyResult {
           onActivate();
         })}
       />,
-      { icon },
+      // A toast that leads somewhere stays until it is used or dismissed.
+      { icon, persistent: Boolean(onActivate) },
     );
     return 'toast';
   }, [pushToast]);

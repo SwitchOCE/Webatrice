@@ -89,11 +89,10 @@ function OpenDebugLogDialog({ onClose }: Pick<DebugLogDialogProps, 'onClose'>) {
             {t('DebugLogDialog.clearOnClose')}
           </label>
           <span className="flex-1" />
-          {copied && (
-            <span role="status" className={copied === 'done' ? 'text-success' : 'text-danger'}>
-              {t(copied === 'done' ? 'DebugLogDialog.copied' : 'DebugLogDialog.copyFailed')}
-            </span>
-          )}
+          {/* Mounted while the dialog is, so the copy result is announced when it appears. */}
+          <span role="status" className={copied === 'done' ? 'text-success' : 'text-danger'}>
+            {copied && t(copied === 'done' ? 'DebugLogDialog.copied' : 'DebugLogDialog.copyFailed')}
+          </span>
           <button
             type="button"
             className={BUTTON_CLASS}

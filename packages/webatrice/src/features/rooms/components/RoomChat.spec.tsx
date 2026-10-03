@@ -37,6 +37,13 @@ function renderChat(messages: Message[] = [], onSay = vi.fn()) {
 }
 
 describe('RoomChat', () => {
+  it('is a labelled log with a labelled input, so screen readers hear and can answer the room', () => {
+    renderChat([makeMessage({ message: 'hello room' })]);
+
+    expect(screen.getByRole('log', { name: 'RoomChat.log' })).toHaveTextContent('hello room');
+    expect(screen.getByRole('textbox', { name: 'RoomChat.input' })).toBeInTheDocument();
+  });
+
   it('prefixes chat history lines with their server time', () => {
     const timeOf = BigInt(new Date(2026, 9, 3, 9, 5, 7).getTime());
     const { container } = renderChat([

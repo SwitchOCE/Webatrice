@@ -93,7 +93,13 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
         </span>
       </div>
 
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-2 bg-bg-base/40">
+      <div
+        ref={scrollRef}
+        role="log"
+        aria-label={t('PrivateChat.log', { name: peerName })}
+        tabIndex={0}
+        className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-2 bg-bg-base/40"
+      >
         {entries.length === 0 && (
           <div className="h-full flex items-center justify-center text-xs text-text-muted italic">
             No messages yet — say hi.
@@ -125,6 +131,8 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
                     : 'bg-bg-elevated text-text-primary border border-border-subtle',
                 ].join(' ')}
               >
+                {/* The side a bubble sits on says who wrote it; say it in words too. */}
+                <span className="sr-only">{`${m.senderName}: `}</span>
                 <MessageText text={m.message} highlight={isPrivilegedUser(users[m.senderName]) ? highlights.moderator : highlights.user} />
               </div>
             </div>
@@ -132,11 +140,13 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
         })}
       </div>
 
-      {blockedReason && (
-        <div className="shrink-0 px-4 py-1.5 text-xs text-text-muted border-t border-border-subtle" role="status">
-          {blockedReason}
-        </div>
-      )}
+      {/* Kept mounted so a change of reason is announced; empty while sending works. */}
+      <div
+        role="status"
+        className={blockedReason ? 'shrink-0 px-4 py-1.5 text-xs text-text-muted border-t border-border-subtle' : 'sr-only'}
+      >
+        {blockedReason}
+      </div>
       <form
         onSubmit={send}
         className="shrink-0 flex items-center gap-2 px-3 py-2 border-t border-border-subtle bg-bg-surface"
@@ -145,7 +155,8 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
           type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder={`Message ${peerName}`}
+          placeholder={t('PrivateChat.input', { name: peerName })}
+          aria-label={t('PrivateChat.input', { name: peerName })}
           className={[
             'flex-1 min-w-0 px-3 py-2 rounded-md bg-bg-base border',
             'border-border-subtle text-sm text-text-primary',
@@ -160,8 +171,8 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
             'p-2 rounded-md bg-accent text-white hover:bg-accent-hover',
             'disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
           ].join(' ')}
-          title="Send"
-          aria-label="Send"
+          title={t('PrivateChat.send')}
+          aria-label={t('PrivateChat.send')}
         >
           <Send size={16} />
         </button>
