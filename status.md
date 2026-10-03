@@ -1,1 +1,2 @@
 - 14:01Z rebased 20 onto 21 (conflicts: DexieService, services/hooks barrels, i18n-default); schema now v7 → wire Settings Card Sources + Storage
+- 14:07Z pushed 4c1af64 (v7 migration spec, Settings › Card Sources, Storage tables) → full gate
