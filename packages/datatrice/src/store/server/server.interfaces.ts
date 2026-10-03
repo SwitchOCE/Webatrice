@@ -186,5 +186,5 @@ export interface ServerStateReports {
   details: { [reportId: number]: ServerInfo_Report };
   stats: Response_ReportStats | null;
   replay: { gameId: number; replayId: number; replayData: Uint8Array } | null;
-  lastNotice: { seq: number; notification: Event_NotifyUser } | null;
+  lastNotice: { notification: Event_NotifyUser } | null;
 }

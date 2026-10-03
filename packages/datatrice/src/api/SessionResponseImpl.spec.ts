@@ -592,7 +592,7 @@ describe('SessionResponseImpl reports', () => {
     const { store, impl } = setup();
     const notification = create(Event_NotifyUserSchema, { type, customTitle: 'Report Resolved', customContent: 'Done' });
     impl.notifyUser(notification);
-    expect(store.getState().server.reports.lastNotice).toEqual({ seq: 1, notification });
+    expect(store.getState().server.reports.lastNotice).toEqual({ notification });
   });
 
   it('notifyUser does not raise reportNotified for other notification types', () => {
