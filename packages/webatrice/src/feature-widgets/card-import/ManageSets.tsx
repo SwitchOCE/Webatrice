@@ -13,8 +13,8 @@ import KeyboardDoubleArrowDownIcon from '@mui/icons-material/KeyboardDoubleArrow
 import KeyboardDoubleArrowUpIcon from '@mui/icons-material/KeyboardDoubleArrowUp';
 
 import { VirtualRows } from '@app/components';
+import { isSelectKey, navigationTarget } from '@app/hooks';
 
-import { isSelectKey, navigationTarget } from './listKeyboard';
 import type { MoveDirection, SetRow, SetSortColumn } from './manageSetsModel';
 import { useManageSets } from './useManageSets';
 

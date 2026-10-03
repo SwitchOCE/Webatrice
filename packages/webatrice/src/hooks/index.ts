@@ -17,6 +17,7 @@ export * from './useSyncLocaleToStore';
 export * from './useVersion';
 export * from './useCommandFailureMessage';
 export * from './useJoinGame';
+export * from './gridNavigation';
 export * from './useGridRows';
 export * from './useWatchReplay';
 export * from './useCardDataPreferences';
