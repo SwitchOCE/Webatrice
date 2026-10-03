@@ -124,4 +124,20 @@ describe('CardArtRules', () => {
     expect(webClient.request.moderator.removeCardArtRule).toHaveBeenCalledWith('Forest', 'uuid-9');
     expect(webClient.request.moderator.listCardArtRules).toHaveBeenCalledTimes(2);
   });
+
+  it.each([['Enter'], [' ']])('selects a rule row from the keyboard (%j) so it can be removed', (key) => {
+    const { webClient, store } = setup();
+    act(() => {
+      store.dispatch(server.Actions.cardArtRules({ entries: [rule('Island', 'uuid-1'), rule('Forest', 'uuid-9')] }));
+    });
+    const row = screen.getByRole('row', { name: /Forest/ });
+    expect(row).toHaveAttribute('tabindex', '0');
+
+    row.focus();
+    fireEvent.keyDown(row, { key });
+    expect(row).toHaveAttribute('aria-selected', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: /button\.remove/ }));
+    expect(webClient.request.moderator.removeCardArtRule).toHaveBeenCalledWith('Forest', 'uuid-9');
+  });
 });

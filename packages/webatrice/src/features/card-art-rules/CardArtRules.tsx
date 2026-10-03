@@ -127,7 +127,9 @@ const CardArtRulesContent = () => {
       </Paper>
 
       <Paper component="section" className="card-art-rules__table">
-        <Table size="small" stickyHeader aria-label={t('CardArtRules.title')}>
+        {/* A single-select grid: rows take focus and Enter or Space selects one, so
+            "Remove rule" works from the keyboard too. */}
+        <Table size="small" stickyHeader role="grid" aria-label={t('CardArtRules.title')}>
           <TableHead>
             <TableRow>
               {columns.map((label) => <TableCell key={label}>{label}</TableCell>)}
@@ -140,7 +142,14 @@ const CardArtRulesContent = () => {
                 hover
                 selected={index === selectedIndex}
                 aria-selected={index === selectedIndex}
+                tabIndex={0}
                 onClick={() => rulesState.select(index)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    rulesState.select(index);
+                  }
+                }}
                 className="card-art-rules__row"
               >
                 <TableCell>{rule.cardName}</TableCell>
