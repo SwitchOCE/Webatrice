@@ -1298,14 +1298,19 @@ function PlayerBox(
   // enriching whatever appears on the battlefield right now, so an
   // opponent's Grizzly Bears reads "2/2" the same as one you cast
   // yourself. Skipped when the deck-driven effect above already
-  // covered the name (has-check).
+  // covered the name (has-check). The stack, graveyard, exile and open
+  // zone views are enriched too, so their card menus offer "View related
+  // cards" for an opponent's cards as well.
   useEffect(() => {
-    if (!battlefieldCards || battlefieldCards.length === 0) {
+    const visible = [
+      battlefieldCards, stackCards, graveCards, exileCards, revealedDeckCards, sideboardCards,
+    ].flatMap((list) => list ?? []);
+    if (visible.length === 0) {
       return;
     }
     let cancelled = false;
     const uniqueNames = Array.from(
-      new Set(battlefieldCards.map((c) => c.name)),
+      new Set(visible.map((c) => c.name)),
     ).filter((name) => name && !cardMetaByName.has(name));
     if (uniqueNames.length === 0) {
       return;
@@ -1353,7 +1358,7 @@ function PlayerBox(
     // cardMetaByName intentionally omitted for the same reason as
     // the deck-driven effect above.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
-  }, [battlefieldCards]);
+  }, [battlefieldCards, stackCards, graveCards, exileCards, revealedDeckCards, sideboardCards]);
 
   // Resolve related-card metadata for every parent card that has a
   // related list. Powers the "Token: …" right-click menu items
