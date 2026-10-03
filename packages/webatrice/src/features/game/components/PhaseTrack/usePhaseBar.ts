@@ -15,6 +15,7 @@ export interface PhaseBar {
   handlePass: () => void;
   handleUntapAll: () => void;
   handleDrawOne: () => void;
+  handlePassAndUntap: () => void;
 }
 
 export function usePhaseBar(gameId: number | undefined): PhaseBar {
@@ -55,17 +56,33 @@ export function usePhaseBar(gameId: number | undefined): PhaseBar {
     webClient.request.game.nextTurn(gameId);
   };
 
-  // Untap-step double-click → Untap All. See .github/instructions/webatrice-game.instructions.md#phase-model.
-  const handleUntapAll = () => {
-    if (!canAdvancePhase || gameId == null) {
-      return;
-    }
-    webClient.request.game.setCardAttr(gameId, {
+  const sendUntapAll = (id: number) => {
+    webClient.request.game.setCardAttr(id, {
       zone: ZoneName.TABLE,
       cardId: -1,
       attribute: CardAttribute.AttrTapped,
       attrValue: '0',
     });
+  };
+
+  // Untap-step double-click → Untap All. See .github/instructions/webatrice-game.instructions.md#phase-model.
+  const handleUntapAll = () => {
+    if (!canAdvancePhase || gameId == null) {
+      return;
+    }
+    sendUntapAll(gameId);
+  };
+
+  // Desktop's wrap from End (TabGame::actNextPhaseAction): pass the turn, then
+  // run the Untap step's action on the local table. Both halves need only
+  // canPassTurn: the server takes Command_NextTurn from any player
+  // (server_player.cpp:544-556) and the untap touches only our own cards.
+  const handlePassAndUntap = () => {
+    if (!canPassTurn || gameId == null) {
+      return;
+    }
+    webClient.request.game.nextTurn(gameId);
+    sendUntapAll(gameId);
   };
 
   const handleDrawOne = () => {
@@ -83,5 +100,6 @@ export function usePhaseBar(gameId: number | undefined): PhaseBar {
     handlePass,
     handleUntapAll,
     handleDrawOne,
+    handlePassAndUntap,
   };
 }
