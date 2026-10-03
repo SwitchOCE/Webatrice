@@ -13,6 +13,12 @@ export class ConnectionStatus {
     return this.page.getByRole('img', { name: /^connected$/i });
   }
 
+  // LatencyStatus: "Ping: N ms" plus a sparkline, hidden until the first
+  // command round trip has been timed.
+  get latency(): Locator {
+    return this.page.getByRole('button', { name: /^ping$/i });
+  }
+
   async expectConnected(timeoutMs = 5_000): Promise<void> {
     await expect(this.indicator).toBeVisible({ timeout: timeoutMs });
   }
