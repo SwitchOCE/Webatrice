@@ -52,6 +52,7 @@ import Card from './Card';
 import { useHoveredCard } from './hoveredCard';
 import { useViewportClampedPopup } from './useViewportClampedPopup';
 import ZoneRevealDialog from './ZoneRevealDialog';
+import { PlayerPlaymat } from '../PlayerPlaymat';
 import { useGameDialogActions } from '../ui/GameDialogActionsContext';
 import { useGameDialogsContext } from '../ui/GameDialogsContext';
 import { ShortcutScope, useShortcut, useShortcutHints } from '@app/feature-widgets/shortcuts';
@@ -8797,6 +8798,7 @@ function PlayerBox(
         wrapperClassName="min-h-0 relative"
         wrapperStyle={{ gridColumn: 3, gridRow: handOnTop ? 2 : 1 }}
       >
+        {playerId != null && <PlayerPlaymat playerId={playerId} isSelf={isSelf} />}
         {/* Lands divider — spans the full width of the play area,
             ignoring the padding around the scrollable battlefield content
             so it reads as a continuous horizontal line across the box.
