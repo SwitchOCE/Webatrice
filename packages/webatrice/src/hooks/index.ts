@@ -24,3 +24,4 @@ export * from './useDocumentTitle';
 export * from './useWatchReplay';
 export * from './useCardDataPreferences';
 export * from './usePlaymatSettings';
+export * from './useAnimationPreferences';

@@ -64,7 +64,7 @@ describe('Settings', () => {
     await renderSettings();
     openSection(/Settings\.section\.userInterface/);
 
-    const toggle = screen.getByRole('switch', { name: /SettingsUserInterface\.tapAnimation\.label/ });
+    const toggle = screen.getByRole('switch', { name: /SettingsUserInterface\.closeEmptyCardView\.label/ });
     expect(toggle).toBeChecked();
 
     await act(async () => {
@@ -72,7 +72,45 @@ describe('Settings', () => {
     });
 
     expect(toggle).not.toBeChecked();
-    expect(getPreferencesSnapshot().tapAnimation).toBe(false);
+    expect(getPreferencesSnapshot().closeEmptyCardView).toBe(false);
+  });
+
+  it('records an animation switch as a choice for every animation', async () => {
+    await renderSettings();
+    openSection(/Settings\.section\.userInterface/);
+
+    const tap = screen.getByRole('switch', { name: /SettingsUserInterface\.tapAnimation\.label/ });
+    expect(tap).toBeChecked();
+    await act(async () => {
+      fireEvent.click(tap);
+    });
+
+    expect(tap).not.toBeChecked();
+    expect(getPreferencesSnapshot()).toMatchObject({
+      animationsChosen: true,
+      tapAnimation: false,
+      arrowDrawAnimation: true,
+      lifeCounterAnimations: true,
+      battlefieldFlash: true,
+    });
+  });
+
+  it('turns every animation off and on with desktop\'s two buttons', async () => {
+    await renderSettings();
+    openSection(/Settings\.section\.userInterface/);
+    const switches = () => ['tapAnimation', 'arrowDrawAnimation', 'lifeCounterAnimations', 'battlefieldFlash']
+      .map((key) => screen.getByRole('switch', { name: new RegExp(`SettingsUserInterface\\.${key}\\.label`) }));
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'SettingsUserInterface.animations.disableAll' }));
+    });
+    switches().forEach((toggle) => expect(toggle).not.toBeChecked());
+    expect(getPreferencesSnapshot()).toMatchObject({ animationsChosen: true, battlefieldFlash: false });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'SettingsUserInterface.animations.enableAll' }));
+    });
+    switches().forEach((toggle) => expect(toggle).toBeChecked());
   });
 
   it('disables a setting while the preference it depends on is off', async () => {
