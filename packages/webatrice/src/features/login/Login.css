@@ -299,6 +299,11 @@
   box-shadow: none;
 }
 
+.login-content__connectionStatus-action {
+  display: block;
+  margin: 8px auto 0;
+}
+
 /* --- MUI component overrides scoped to .login --- */
 
 /* OutlinedInput fields (Username, Password, Host Select) */

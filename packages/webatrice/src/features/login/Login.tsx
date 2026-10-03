@@ -29,6 +29,7 @@ const Login = () => {
   const { t } = useTranslation();
   const {
     description,
+    passwordChangeRequired,
     isConnected,
     dialogState,
     userToResetPassword,
@@ -74,6 +75,15 @@ const Login = () => {
               {showDescription() && (
                 <Paper className="login-content__connectionStatus">
                   {description}
+                  {passwordChangeRequired && (
+                    <Button
+                      className="login-content__connectionStatus-action"
+                      color="primary"
+                      onClick={openRequestPasswordResetDialog}
+                    >
+                      {t('Login.status.passwordChangeRequiredAction')}
+                    </Button>
+                  )}
                 </Paper>
               )}
 
