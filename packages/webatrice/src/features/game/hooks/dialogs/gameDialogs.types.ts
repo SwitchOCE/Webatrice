@@ -38,11 +38,18 @@ export interface ZoneMenuState {
   anchorPosition: AnchorPosition;
 }
 
+/** The game's one text prompt, rendered by the root PromptDialog (see its props). */
 export interface PromptState {
   title: string;
   label: string;
   initialValue?: string;
   helperText?: string;
+  description?: string;
+  placeholder?: string;
+  submitLabel?: string;
+  inputMode?: 'text' | 'numeric';
+  selectOnFocus?: boolean;
+  preview?: (value: string) => string | null;
   validate?: (value: string) => string | null;
   onSubmit: (value: string) => void;
 }
@@ -137,6 +144,8 @@ export interface GameDialogsActions {
   handleCloseZoneView: (playerId: number, zoneName: string, shuffleOnClose?: boolean) => void;
 
   // Prompt dialog
+  /** Opens the prompt; it closes itself after `onSubmit` runs. */
+  openPrompt: (prompt: PromptState) => void;
   closePrompt: () => void;
 
   // Roll die dialog
@@ -251,6 +260,7 @@ export const NOOP_GAME_DIALOGS_ACTIONS: GameDialogsActions = {
   handleHandContextMenu: noopDialogAction,
   handleZoneClick: noopDialogAction,
   handleCloseZoneView: noopDialogAction,
+  openPrompt: noopDialogAction,
   closePrompt: noopDialogAction,
   openRollDie: noopDialogAction,
   closeRollDie: noopDialogAction,

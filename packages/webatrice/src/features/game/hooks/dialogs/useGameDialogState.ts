@@ -41,6 +41,7 @@ export type GameDialogToggleActions = Pick<
   | 'closeZoneMenu'
   | 'closePlayerMenu'
   | 'closeHandMenu'
+  | 'openPrompt'
   | 'closePrompt'
   | 'openRollDie'
   | 'closeRollDie'
@@ -128,6 +129,13 @@ export function useGameDialogState(): GameDialogStateHandle {
     closeZoneMenu: () => setZoneMenu(null),
     closePlayerMenu: () => setPlayerMenu(null),
     closeHandMenu: () => setHandMenu(null),
+    openPrompt: (next) => setPrompt({
+      ...next,
+      onSubmit: (value) => {
+        next.onSubmit(value);
+        setPrompt(null);
+      },
+    }),
     closePrompt: () => setPrompt(null),
     openRollDie: () => setRollDieOpen(true),
     closeRollDie: () => setRollDieOpen(false),
