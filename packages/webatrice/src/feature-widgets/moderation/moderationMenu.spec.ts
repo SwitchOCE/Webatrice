@@ -104,7 +104,8 @@ describe('buildModerationMenu: investigate and the admin lock', () => {
   });
 
   it('hides the whole section while the Administration lock is on', () => {
-    const options = { localUserLevel: ADMIN, targetUserLevel: REGULAR, isSelf: false, ...ON_3_1, adminLocked: true };
-    expect(buildModerationMenu(options)).toEqual([]);
+    expect(buildModerationMenu({
+      localUserLevel: ADMIN, targetUserLevel: REGULAR, isSelf: false, ...ON_3_1, adminLocked: true,
+    })).toEqual([]);
   });
 });
