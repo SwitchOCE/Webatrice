@@ -1423,6 +1423,10 @@
       "rotateViewCCW": "Rotate view counterclockwise"
     }
   },
+  "TallyOverlay": {
+    "tally": "Tally",
+    "selectedCount": "{{count}} cards selected"
+  },
   "GameErrorBoundary": {
     "title": "The game board hit an unexpected error",
     "message": "You are still in the game. Reload the board to pick up where you left off.",
