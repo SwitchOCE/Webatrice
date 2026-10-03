@@ -8,10 +8,10 @@ import { RouteEnum } from '@app/types';
 import { captureDeckShareLink, takePendingDeckShareLink } from '../deckSharing';
 
 /**
- * Opens a share link the page was loaded with (`?share=…&hostname=…&port=…`)
+ * Opens a share link the page was loaded with (`#share=…&hostname=…&port=…`)
  * once the user is logged in, the way desktop's `IntentOpenSharedDeck` waits
  * for its connection. The link is read from the address once, on mount, and
- * kept in session storage until then, so it survives the login form.
+ * kept in memory only until then.
  *
  * Mounted once in AppShell, after the routes, so its navigation lands after
  * the login page's own redirect to the server tab. Renders nothing.
