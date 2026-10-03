@@ -41,6 +41,7 @@ import { legacyTableRowFromTypeLine, tableRowToGridY } from '../battlefield/Batt
 import { MAX_SUBPOS } from '../battlefield/Battlefield/gridMath';
 import { applyPTDelta, applyPTSet, parsePT } from '../context-menus/CardContextMenu/cardAttributeEdits';
 import { buildCardContextMenu, type CardMenuItem } from '../context-menus/CardContextMenu/cardContextMenu.model';
+import { buildHandOrZoneCardMenu } from '../context-menus/CardContextMenu/handCardMenu.model';
 import { CardMenuPopup } from '../context-menus/CardContextMenu/CardContextMenu';
 import {
   MAX_COUNTER_VALUE,
@@ -88,7 +89,7 @@ import { usePublishSeatShortcuts, type SeatShortcutOperations } from '../ui/Seat
 import { useSeatSelection, type SeatSelection } from '../../hooks/useSeatSelection';
 import { useMoveTopUntil } from '../../hooks/useMoveTopUntil';
 import { useGameSelectionState } from '../ui/GameSelectionContext';
-import { makeCardKey } from '../../utils/CardRegistry/CardRegistryContext';
+import { makeCardKey, parseCardKey } from '../../utils/CardRegistry/CardRegistryContext';
 import { useCanActFor } from '../ui/CardVisualStateContext';
 import { SEAT_DROP_PRIORITY, type SeatZone } from '../../hooks/seatDropPlan';
 import {
@@ -305,6 +306,10 @@ type Props = {
    *  Same proto2 field-presence trap as reveal-library — omit playerId
    *  when target is -1 (All players). */
   onRevealZone?: (zoneName: string, targetPlayerId: number) => void;
+  /** Reveal these cards of one zone to a player, or every player with -1
+   *  (desktop "Reveal to..." on a hand or zone-view card). One
+   *  Command_RevealCards carries every id. */
+  onRevealCards?: (zoneName: string, targetPlayerId: number, cardIds: readonly number[]) => void;
   /** Undo the last draw — server pops the most-recently-drawn card
    *  back onto the top of the library. Wraps `Command_UndoDraw` (no
    *  payload). Ports Cockatrice's `PlayerActions::actUndoDraw`
@@ -987,8 +992,11 @@ function PlayerBox(
     onOpenDeckInEditor,
     onRevealRandomFromZone,
     onRevealZone,
+    onRevealCards,
     onUndoDraw,
     revealTargets,
+    sideboardCards,
+    revealedDeckCards,
     onRevealLibrary,
     onLendLibrary,
     onRevealTopCards,
@@ -1467,6 +1475,8 @@ function PlayerBox(
   const cardContextMenu = seatMenu?.kind === 'battlefield' ? seatMenu : null;
   const pileCardMenu = seatMenu?.kind === 'pile' ? seatMenu : null;
   const stackCardMenu = seatMenu?.kind === 'stack' ? seatMenu : null;
+  const handCardMenu = seatMenu?.kind === 'hand' ? seatMenu : null;
+  const zoneViewCardMenu = seatMenu?.kind === 'zoneView' ? seatMenu : null;
   // Whether the hand row is being hovered — controls the auto-expand
   // that reveals full-size cards over the play area without reflowing
   // the shell (same pattern the PhaseTrack uses on the left edge).
@@ -2125,6 +2135,33 @@ function PlayerBox(
     onMoveCards(ZoneName.TABLE, targetIds, { zone: ZoneName.DECK, reversed: true });
   };
 
+  // Reveal Selected Cards to All Players (desktop aRevealToAll, unbound by
+  // default): one Command_RevealCards, no player_id, for the selected cards
+  // of one hidden zone of this seat — the hand, or an open library /
+  // sideboard view (the card menu's "Reveal to... > All players").
+  seatShortcuts['game.revealSelectedToAll'] = () => {
+    if (!isSelf || !onRevealCards) {
+      return;
+    }
+    if (selection?.zone === 'hand') {
+      const ids = Array.from(selection.ids, Number).filter((n) => Number.isFinite(n));
+      if (ids.length > 0) {
+        onRevealCards(ZoneName.HAND, -1, ids);
+      }
+      return;
+    }
+    const picked = Array.from(gameSelection?.selectedCardKeys ?? [], (key) => parseCardKey(key));
+    const zone = picked[0]?.zone;
+    if (
+      picked.length === 0 ||
+      (zone !== ZoneName.DECK && zone !== ZoneName.SIDEBOARD) ||
+      !picked.every((p) => p?.playerId === seatId && p.zone === zone)
+    ) {
+      return;
+    }
+    onRevealCards(zone, -1, picked.map((p) => p!.cardId));
+  };
+
   // Clone Card (Ctrl+J). Fires one Command_CreateToken per selected
   // card via onCloneCard, preserving each card's own name / provider /
   // color / pt / annotation / row. Matches the "Clone" menu item at
@@ -2732,12 +2769,17 @@ function PlayerBox(
   // "X cards from the top of library..." prompt: Command_MoveCard with x = N
   // puts the card at position N of the library. The library size is
   // snapshotted when it opens, so a draw meanwhile doesn't move the clamp.
-  const openMoveXFromTopPrompt = ({ cardId, cardName, deckSize }: { cardId: number; cardName: string; deckSize: number }) =>
+  const openMoveXFromTopPrompt = ({ cardId, cardName, deckSize, fromZone = ZoneName.TABLE }: {
+    cardId: number;
+    cardName: string;
+    deckSize: number;
+    fromZone?: ZoneNameValue;
+  }) =>
     openPrompt(moveXFromTopPrompt({
       cardName,
       deckSize,
       initial: Math.min(3, Math.max(0, deckSize)),
-      onSubmit: (position) => onMoveCards?.(ZoneName.TABLE, [cardId], { zone: ZoneName.DECK, index: position, reversed: false }),
+      onSubmit: (position) => onMoveCards?.(fromZone, [cardId], { zone: ZoneName.DECK, index: position, reversed: false }),
     }));
   // Library count prompts: Draw cards..., View top / bottom cards..., Reveal
   // top cards to..., and the Top / Bottom of library "N cards" items. Each
@@ -5313,6 +5355,11 @@ function PlayerBox(
                       onPointerDown={(e) =>
                         startSeatCardDrag(e, c, 'hand', handDisplayList)
                       }
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openSeatCardMenu({ kind: 'hand', playerId: menuOwnerId, cardId: c.id, x: e.clientX, y: e.clientY });
+                      }}
                       onDoubleClick={async () => {
                         // Double-click auto-play chain: lands go straight to
                         // the battlefield; everything else takes a stack
@@ -6337,6 +6384,135 @@ function PlayerBox(
             <CardMenuPopup
               items={items}
               anchor={{ x: pileCardMenu.x, y: pileCardMenu.y }}
+              disabled={!numeric}
+              onClose={closeSeatCardMenu}
+            />
+          );
+        })()}
+
+      {/* Hand and library / sideboard zone-view card menu — desktop's
+          CardMenu::createHandOrCustomZoneMenu (card_menu.cpp:296-342).
+          The items come from handCardMenu.model; this block resolves the
+          target cards and wires the seat's ports. Actions apply to the
+          selection when the clicked card is part of it (desktop's
+          selectedCards), else to the clicked card. */}
+      {(handCardMenu ?? zoneViewCardMenu) &&
+        (() => {
+          const close = closeSeatCardMenu;
+          const menu = (handCardMenu ?? zoneViewCardMenu)!;
+          const zone = (zoneViewCardMenu?.zone ?? ZoneName.HAND) as ZoneNameValue;
+          const zoneCards: readonly HandCard[] = zoneViewCardMenu
+            ? (zone === ZoneName.SIDEBOARD ? sideboardCards : revealedDeckCards) ?? []
+            : handDisplayList;
+          const viewKey = (id: string) => makeCardKey(menuOwnerId, zone, Number(id));
+          let targetIdStrings: string[];
+          if (zoneViewCardMenu) {
+            const selectedInView = zoneViewCardMenu.viewCardIds.filter(
+              (id) => gameSelection?.selectedCardKeys.has(viewKey(id)),
+            );
+            targetIdStrings = selectedInView.includes(menu.cardId) ? selectedInView : [menu.cardId];
+          } else {
+            targetIdStrings = selection?.zone === 'hand' && selection.ids.has(menu.cardId)
+              ? Array.from(selection.ids)
+              : [menu.cardId];
+          }
+          const targets = targetIdStrings
+            .map((id) => zoneCards.find((c) => c.id === id))
+            .filter((c): c is HandCard => c != null && Number.isFinite(Number(c.id)));
+          const targetIds = targets.map((c) => Number(c.id));
+          const card = zoneCards.find((c) => c.id === menu.cardId);
+          const cardName = card?.name ?? (zoneViewCardMenu?.cardName ?? '');
+          const cardIdNum = Number(menu.cardId);
+          const numeric = Number.isFinite(cardIdNum);
+          const run = (fn: () => void) => () => {
+            fn();
+            close();
+          };
+          const moveTargets = (to: SeatMoveDestination) => {
+            if (onMoveCards && targetIds.length > 0) {
+              onMoveCards(zone, targetIds, { reversed: false, ...to });
+            }
+          };
+          const selectInView = (ids: readonly string[]) =>
+            gameSelection?.setSelectedCardKeys(new Set(ids.map(viewKey)));
+          const items = buildHandOrZoneCardMenu({
+            shortcutHints,
+            source: handCardMenu ? 'hand' : 'zoneView',
+            canModify: canMoveSeatCards,
+            revealTargets: revealTargets ?? [],
+            // Desktop playCard: tablerow 3 goes to the stack, anything else
+            // to its battlefield row; face down always to row 2
+            // (player_actions.cpp:51-98). One command per card.
+            onPlay: run(() => {
+              for (const c of targets) {
+                const tableRow = legacyTableRowFromTypeLine(cardMetaByName.get(c.name)?.typeLine ?? '');
+                onMoveCards?.(zone, [Number(c.id)], tableRow === 3
+                  ? { zone: ZoneName.STACK, index: 'end' }
+                  : { zone: ZoneName.TABLE, index: 'end', row: tableRowToGridY(tableRow) });
+              }
+            }),
+            onPlayFaceDown: run(() => {
+              for (const id of targetIds) {
+                onMoveCards?.(zone, [{ id, faceDown: true }], { zone: ZoneName.TABLE, index: 'end', row: tableRowToGridY(2) });
+              }
+            }),
+            onReveal: (targetPlayerId) => run(() => {
+              if (targetIds.length > 0) {
+                onRevealCards?.(zone, targetPlayerId, targetIds);
+              }
+            })(),
+            onClone: run(() => {
+              for (const c of targets) {
+                onCloneCard?.({ name: c.name, providerId: c.scryfallId, color: '', pt: '', annotation: '', y: 0 });
+              }
+            }),
+            onMove: (target) => run(() => {
+              switch (target) {
+                case 'libraryTop':
+                  return moveTargets({ zone: ZoneName.DECK });
+                case 'libraryBottom':
+                  return moveTargets({ zone: ZoneName.DECK, reversed: true });
+                case 'libraryXFromTop':
+                  if (numeric) {
+                    openMoveXFromTopPrompt({ cardId: cardIdNum, cardName, deckSize: zoneCounts?.deck ?? 0, fromZone: zone });
+                  }
+                  return;
+                case 'table':
+                  return moveTargets({ zone: ZoneName.TABLE });
+                case 'hand':
+                  return moveTargets({ zone: ZoneName.HAND });
+                case 'grave':
+                  return moveTargets({ zone: ZoneName.GRAVE });
+                case 'exile':
+                  return moveTargets({ zone: ZoneName.EXILE });
+              }
+            })(),
+            onDrawArrow: run(() => {
+              if (numeric) {
+                setDrawArrowPending({ sourceCardId: cardIdNum, sourceCardName: cardName, sourceZone: zone });
+              }
+            }),
+            onSelectAll: run(() => {
+              if (zoneViewCardMenu) {
+                selectInView(zoneViewCardMenu.viewCardIds);
+              } else if (handDisplayList.length > 0) {
+                setSelection({ zone: 'hand', ids: new Set(handDisplayList.map((c) => c.id)) });
+              }
+            }),
+            onSelectColumn: zoneViewCardMenu
+              ? run(() => selectInView(zoneViewCardMenu.columnCardIds))
+              : undefined,
+            relatedViewItems: relatedViewItemsFor(cardName),
+            tokenItems: buildRelatedTokenItems(
+              cardMetaByName.get(cardName)?.related ?? [],
+              tokenMetaByName,
+              onCreateToken,
+            ),
+          });
+          return (
+            <CardMenuPopup
+              items={items}
+              anchor={{ x: menu.x, y: menu.y }}
               disabled={!numeric}
               onClose={closeSeatCardMenu}
             />

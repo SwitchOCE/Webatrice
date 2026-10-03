@@ -127,6 +127,20 @@ describe('seat zone views', () => {
     expect(view.querySelectorAll('[data-card][data-card-id]')).toHaveLength(2);
   });
 
+  it('a library view card reveals to a player by its id', () => {
+    const { game, store } = renderSeats();
+    openContextMenu(pileEl('Library', 0));
+    chooseMenuPath('View library');
+    dumpArrives(store, ZoneName.DECK, ['Island', 'Ponder']);
+
+    const card = zoneView('P1\'s library').querySelector('[data-card][data-card-id="1"]')!;
+    openContextMenu(card);
+    chooseMenuPath('Reveal to...', 'P2');
+
+    expect(game.revealCards).toHaveBeenCalledTimes(1);
+    expect(game.revealCards).toHaveBeenCalledWith(1, { zoneName: ZoneName.DECK, cardId: [1], playerId: 2 });
+  });
+
   it('closing the library view shuffles (on by default) and clears the snapshot', () => {
     const { game, store } = renderSeats();
     openContextMenu(pileEl('Library', 0));

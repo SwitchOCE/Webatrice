@@ -149,8 +149,9 @@ export interface SeatMoveDestination {
   reversed?: boolean;
 }
 
-/** Which cards of a zone a reveal shows. */
-export type RevealSelection = 'zone' | 'random' | { top: number };
+/** Which cards of a zone a reveal shows: the whole zone, one random card,
+ *  the top N, or these cards by id (desktop actReveal over the selection). */
+export type RevealSelection = 'zone' | 'random' | { top: number } | { cardIds: readonly number[] };
 
 export interface PlayerZoneCommands {
   /**

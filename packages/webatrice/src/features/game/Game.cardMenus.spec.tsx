@@ -407,3 +407,57 @@ describe('seat card menu ownership', () => {
   });
 });
 
+
+describe('hand card menu', () => {
+  const OPT = makeCard({ id: 60, name: 'Opt' });
+  const PONDER = makeCard({ id: 61, name: 'Ponder' });
+
+  function renderHand() {
+    const webClient = createMockWebClient();
+    renderWithProviders(<Game />, {
+      preloadedState: buildSeatGameState({
+        localPlayerId: 1,
+        seats: [
+          { playerId: 1, hand: [OPT, PONDER], deckCount: 40 },
+          { playerId: 2, name: 'Bob', handCount: 5, deckCount: 33 },
+        ],
+      }),
+      webClient,
+    });
+    return webClient.request.game;
+  }
+
+  it('Reveal to... a player sends one revealCards for the clicked card', () => {
+    const game = renderHand();
+    openContextMenu(cardEl(OPT.id, 'hand'));
+    chooseMenuPath('Reveal to...', 'Bob');
+
+    expect(game.revealCards).toHaveBeenCalledTimes(1);
+    expect(game.revealCards).toHaveBeenCalledWith(1, { zoneName: 'hand', cardId: [60], playerId: 2 });
+    expect(openMenus()).toHaveLength(0);
+  });
+
+  it('reveals the whole selection to all players without a player id', () => {
+    const game = renderHand();
+    openContextMenu(cardEl(OPT.id, 'hand'));
+    chooseMenuPath('Select All');
+    openContextMenu(cardEl(PONDER.id, 'hand'));
+    chooseMenuPath('Reveal to...', 'All players');
+
+    expect(game.revealCards).toHaveBeenCalledTimes(1);
+    expect(game.revealCards).toHaveBeenCalledWith(1, { zoneName: 'hand', cardId: [60, 61] });
+  });
+
+  it('plays a card face down onto the battlefield', () => {
+    const game = renderHand();
+    openContextMenu(cardEl(PONDER.id, 'hand'));
+    chooseMenuPath('Play Face Down');
+
+    expect(game.moveCard).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
+      startZone: 'hand',
+      targetZone: 'table',
+      cardsToMove: { card: [{ cardId: 61, faceDown: true }] },
+    });
+  });
+});

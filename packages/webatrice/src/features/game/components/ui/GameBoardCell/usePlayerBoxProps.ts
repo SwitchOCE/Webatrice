@@ -96,6 +96,8 @@ export function usePlayerBoxCommandProps(
       zone.reveal(zoneName as ZoneNameValue, toRecipient(targetPlayerId)),
     onRevealRandomFromZone: (zoneName: string, targetPlayerId: number) =>
       zone.reveal(zoneName as ZoneNameValue, toRecipient(targetPlayerId), 'random'),
+    onRevealCards: (zoneName: string, targetPlayerId: number, cardIds: readonly number[]) =>
+      zone.reveal(zoneName as ZoneNameValue, toRecipient(targetPlayerId), { cardIds }),
     onRevealTopCards: (targetPlayerId: number, count: number) =>
       zone.reveal(ZoneName.DECK, toRecipient(targetPlayerId), { top: count }),
     onLendLibrary: zone.lendLibrary,

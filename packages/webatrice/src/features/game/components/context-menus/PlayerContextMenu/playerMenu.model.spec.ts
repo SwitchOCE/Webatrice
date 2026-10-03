@@ -201,6 +201,12 @@ describe('buildHandMenu', () => {
     `);
   });
 
+  it('lists "All players" in the reveal submenus even when playing alone', () => {
+    const items = buildHandMenu(handArgs({ revealTargets: [] }));
+    expect(tree(find(items, 'Reveal hand to...').submenu ?? [])).toEqual(['All players', '---']);
+    expect(tree(find(items, 'Reveal random card to...').submenu ?? [])).toEqual(['All players', '---']);
+  });
+
   it('moves every hand card by its wire id', () => {
     const args = handArgs({
       handCards: [{ id: '4', name: 'A', scryfallId: '' }, { id: '9', name: 'B', scryfallId: '' }],

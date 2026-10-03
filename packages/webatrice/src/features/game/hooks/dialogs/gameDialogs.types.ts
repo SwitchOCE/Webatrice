@@ -33,15 +33,17 @@ export interface CardMenuState {
 }
 
 /**
- * A card menu opened on a seat: the battlefield, stack or pile-view (graveyard,
- * exile) card it belongs to and where it opens. The seat builds the items from
- * its live state and renders them through `CardMenuPopup`; keeping the open
- * menu here makes it one of the game's mutually exclusive context menus.
+ * A card menu opened on a seat: the battlefield, stack, hand or zone-view card
+ * it belongs to and where it opens. `pile` is a graveyard / exile view card,
+ * `zoneView` a library / sideboard view card (desktop's hand-or-custom-zone
+ * menu). The seat builds the items from its live state and renders them
+ * through `CardMenuPopup`; keeping the open menu here makes it one of the
+ * game's mutually exclusive context menus.
  */
 export type SeatCardMenuState =
-  | { kind: 'battlefield' | 'stack'; playerId: number; cardId: string; x: number; y: number }
+  | { kind: 'battlefield' | 'stack' | 'hand'; playerId: number; cardId: string; x: number; y: number }
   | {
-    kind: 'pile';
+    kind: 'pile' | 'zoneView';
     playerId: number;
     zone: string;
     cardId: string;

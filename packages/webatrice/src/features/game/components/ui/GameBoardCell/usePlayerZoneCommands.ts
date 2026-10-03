@@ -41,10 +41,13 @@ export function usePlayerZoneCommands(playerId: number): PlayerZoneCommands | un
     // -1 as an unknown player. Random uses the single -2 card id
     // (server_abstract_player.cpp:1498-1508); top-N sends top_cards plus the
     // `card_id: [0]` desktop keeps for old servers (player_actions.cpp:1745).
+    // Chosen cards send their ids in one command (player_actions.cpp:1668-1685).
     const reveal = (zoneName: string, to: RevealRecipient, cards: RevealSelection = 'zone') => {
       const params: { zoneName: string; topCards?: number; cardId?: number[]; playerId?: number } = { zoneName };
       if (cards === 'random') {
         params.cardId = [RANDOM_CARD_FROM_ZONE];
+      } else if (cards !== 'zone' && 'cardIds' in cards) {
+        params.cardId = [...cards.cardIds];
       } else if (cards !== 'zone') {
         params.topCards = cards.top;
         params.cardId = [0];

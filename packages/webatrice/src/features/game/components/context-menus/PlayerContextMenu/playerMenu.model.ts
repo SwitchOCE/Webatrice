@@ -29,6 +29,28 @@ export const MAX_COUNTER_VALUE = 999;
 type ShortcutHints = Record<ActionId, string>;
 type RevealTargets = readonly { playerId: number; name: string }[] | undefined;
 
+/**
+ * A "Reveal ... to..." submenu: "All players" (-1), a separator, then each
+ * other player. Desktop builds every such list this way, whether or not
+ * anyone else is seated (hand_menu.cpp:165-200, card_menu.cpp:360-369).
+ */
+export function buildRevealToSubmenu(
+  revealTargets: RevealTargets,
+  onPick: (targetPlayerId: number) => void,
+  disabled = false,
+  allPlayersShortcut?: string,
+): ContextMenuItem[] {
+  return [
+    { label: 'All players', onClick: () => onPick(-1), disabled, shortcut: allPlayersShortcut },
+    { divider: true },
+    ...(revealTargets ?? []).map((t) => ({
+      label: t.name,
+      onClick: () => onPick(t.playerId),
+      disabled,
+    })),
+  ];
+}
+
 export interface LibraryMenuArgs {
   shortcutHints: ShortcutHints;
   seatId: number;
@@ -439,45 +461,21 @@ export function buildHandMenu({
   handleRequestSortHandBy, handleRequestChooseMulligan, onMoveCards, onMulligan, onRevealZone,
   onRevealRandomFromZone,
 }: HandMenuArgs): ContextMenuItem[] {
-  // Reveal-hand submenu — same shape as reveal-library (All players
-  // + separator + one entry per opponent). Uses the same wire as
-  // reveal-library (Command_RevealCards with zoneName=hand). No
-  // playerId when targeting "All players" (-1) — proto2 field
-  // presence trap; server returns RespNameNotFound if we sent -1
-  // explicitly. Kept inline here since it's tiny.
-  const revealHandSubmenu: ContextMenuItem[] =
-    revealTargets && revealTargets.length > 0
-      ? [
-        {
-          label: 'All players',
-          onClick: () => onRevealZone?.(ZoneName.HAND, -1),
-          disabled: handSize <= 0,
-        },
-        { divider: true },
-        ...revealTargets.map((t) => ({
-          label: t.name,
-          onClick: () => onRevealZone?.(ZoneName.HAND, t.playerId),
-          disabled: handSize <= 0,
-        })),
-      ]
-      : [{ label: '(no players)' }];
-  const revealRandomHandSubmenu: ContextMenuItem[] =
-    revealTargets && revealTargets.length > 0
-      ? [
-        {
-          label: 'All players',
-          onClick: () => onRevealRandomFromZone?.(ZoneName.HAND, -1),
-          disabled: handSize <= 0,
-        },
-        { divider: true },
-        ...revealTargets.map((t) => ({
-          label: t.name,
-          onClick: () =>
-            onRevealRandomFromZone?.(ZoneName.HAND, t.playerId),
-          disabled: handSize <= 0,
-        })),
-      ]
-      : [{ label: '(no players)' }];
+  // Reveal-hand submenus. Desktop always lists "All players", a
+  // separator, then each other player, even when playing alone
+  // (hand_menu.cpp:165-200). Same wire as reveal-library
+  // (Command_RevealCards with zoneName=hand); the port omits playerId
+  // for "All players" (-1).
+  const revealHandSubmenu = buildRevealToSubmenu(
+    revealTargets,
+    (targetPlayerId) => onRevealZone?.(ZoneName.HAND, targetPlayerId),
+    handSize <= 0,
+  );
+  const revealRandomHandSubmenu = buildRevealToSubmenu(
+    revealTargets,
+    (targetPlayerId) => onRevealRandomFromZone?.(ZoneName.HAND, targetPlayerId),
+    handSize <= 0,
+  );
   // Helper: build a "move all cards from HAND to <target>" click
   // handler. Hand card ids are real numeric ids on the wire.
   const moveAllHandTo = (
