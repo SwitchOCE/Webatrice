@@ -26,8 +26,12 @@ function saveTextFile(fileName: string, text: string): void {
   const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = fileName;
+  // Attached and revoked a task later: Firefox and Safari can drop a download
+  // from a detached anchor or a URL revoked during the click.
+  document.body.appendChild(anchor);
   anchor.click();
-  URL.revokeObjectURL(url);
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 interface TokenDataFormProps {
