@@ -7,7 +7,7 @@ import ContextMenu from '../../context-menus/ContextMenu/ContextMenu';
 import { useCardPreviewActions } from '../CardPreviewContext';
 import type { PlayerCardViewModel, SeatMoveCard } from '../PlayerBoard/playerBoard.types';
 import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
-import { toRecipient } from '../PlayerBoard/revealRecipient';
+import { buildRevealToSubmenu, toRecipient } from '../PlayerBoard/revealRecipient';
 import {
   CARD_BACK_URL,
   CARD_CORNER_RADIUS,
@@ -356,23 +356,13 @@ export default function ZoneStack() {
             // populateRevealLibraryMenuWithActivePlayers
             // (library_menu.cpp:259-278). "All players"
             // sits at the top (player_id=-1), separator, then
-            // one entry per other seated player. Disabled when
+            // one entry per other seated player. Listed even when
             // nobody else is at the table.
               label: 'Reveal library to...',
-              submenu:
-                revealTargets && revealTargets.length > 0
-                  ? [
-                    {
-                      label: 'All players',
-                      onClick: () => zoneCommands.reveal(ZoneName.DECK, toRecipient(-1)),
-                    },
-                    { divider: true },
-                    ...revealTargets.map((t) => ({
-                      label: t.name,
-                      onClick: () => zoneCommands.reveal(ZoneName.DECK, toRecipient(t.playerId)),
-                    })),
-                  ]
-                  : [{ label: '(no players)' }],
+              submenu: buildRevealToSubmenu(
+                revealTargets,
+                (targetPlayerId) => zoneCommands.reveal(ZoneName.DECK, toRecipient(targetPlayerId)),
+              ),
             },
             {
             // "Lend library to..." — same targets as Reveal
@@ -400,30 +390,12 @@ export default function ZoneStack() {
             // Each entry opens a numeric prompt for the count
             // (library_menu.cpp:340-342) before firing the wire.
               label: 'Reveal top cards to...',
-              submenu:
-                revealTargets && revealTargets.length > 0
-                  ? [
-                    {
-                      label: 'All players',
-                      onClick: () =>
-                        openRevealTopCardsPrompt({
-                          targetPlayerId: -1,
-                          targetName: 'all players',
-                          deckSize: deckCount,
-                        }),
-                    },
-                    { divider: true },
-                    ...revealTargets.map((t) => ({
-                      label: t.name,
-                      onClick: () =>
-                        openRevealTopCardsPrompt({
-                          targetPlayerId: t.playerId,
-                          targetName: t.name,
-                          deckSize: deckCount,
-                        }),
-                    })),
-                  ]
-                  : [{ label: '(no players)' }],
+              submenu: buildRevealToSubmenu(revealTargets, (targetPlayerId) =>
+                openRevealTopCardsPrompt({
+                  targetPlayerId,
+                  targetName: revealTargets.find((t) => t.playerId === targetPlayerId)?.name ?? 'all players',
+                  deckSize: deckCount,
+                })),
             },
             {
             // "Always reveal top card" — toggles Cockatrice's

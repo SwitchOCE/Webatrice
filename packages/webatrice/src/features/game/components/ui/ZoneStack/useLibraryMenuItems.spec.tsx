@@ -78,6 +78,18 @@ describe('useLibraryMenuItems', () => {
     expect(props.openRevealTopCardsPrompt).toHaveBeenCalledWith({ targetPlayerId: 2, targetName: 'Opp', deckSize: 30 });
   });
 
+  it('still reveals to all players with no other players, as desktop does', () => {
+    const { items, props, zoneCommands } = setup({ revealTargets: [] });
+    expect(labels(find(items, 'Reveal library to...').submenu!)).toEqual(['All players', '---']);
+    expect(labels(find(items, 'Reveal top cards to...').submenu!)).toEqual(['All players', '---']);
+    expect(labels(find(items, 'Lend library to...').submenu!)).toEqual(['(no players)']);
+
+    find(items, 'Reveal library to...', 'All players').onClick!();
+    find(items, 'Reveal top cards to...', 'All players').onClick!();
+    expect(zoneCommands.reveal).toHaveBeenCalledWith(ZoneName.DECK, 'all');
+    expect(props.openRevealTopCardsPrompt).toHaveBeenCalledWith({ targetPlayerId: -1, targetName: 'all players', deckSize: 30 });
+  });
+
   it('shows the top-card toggles checked from the zone and flips them', () => {
     const { items, zoneCommands } = setup();
     expect(find(items, 'Always look at top card').checked).toBe(true);
