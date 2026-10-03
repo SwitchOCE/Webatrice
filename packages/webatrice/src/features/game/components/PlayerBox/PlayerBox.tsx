@@ -41,7 +41,10 @@ import { legacyTableRowFromTypeLine, tableRowToGridY } from '../battlefield/Batt
 import { MAX_SUBPOS } from '../battlefield/Battlefield/gridMath';
 import { applyPTDelta, applyPTSet, parsePT } from '../context-menus/CardContextMenu/cardAttributeEdits';
 import { buildCardContextMenu, type CardMenuItem } from '../context-menus/CardContextMenu/cardContextMenu.model';
-import { buildHandOrZoneCardMenu } from '../context-menus/CardContextMenu/handCardMenu.model';
+import {
+  resolveHandOrZoneCardMenu,
+  selectedHiddenZoneCards,
+} from '../context-menus/CardContextMenu/handCardMenu.actions';
 import { CardMenuPopup } from '../context-menus/CardContextMenu/CardContextMenu';
 import {
   MAX_COUNTER_VALUE,
@@ -94,7 +97,7 @@ import { usePublishSeatShortcuts, type SeatShortcutOperations } from '../ui/Seat
 import { useSeatSelection, type SeatSelection } from '../../hooks/useSeatSelection';
 import { useMoveTopUntil } from '../../hooks/useMoveTopUntil';
 import { useGameSelectionState } from '../ui/GameSelectionContext';
-import { makeCardKey, parseCardKey } from '../../utils/CardRegistry/CardRegistryContext';
+import { makeCardKey } from '../../utils/CardRegistry/CardRegistryContext';
 import { useCanActFor } from '../ui/CardVisualStateContext';
 import { SEAT_DROP_PRIORITY, type SeatZone } from '../../hooks/seatDropPlan';
 import {
@@ -131,6 +134,7 @@ type DragSourceZone = SeatZone;
 type Selection = SeatSelection;
 
 const NO_CARDS: readonly HandCard[] = [];
+const EMPTY_CARD_KEYS: ReadonlySet<string> = new Set();
 
 /** Card counter letters by counter id (desktop's six counter slots). */
 const COUNTER_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
@@ -1482,14 +1486,13 @@ function PlayerBox(
   // stack. The open menu lives in the game dialog state, so it is one of the
   // game's mutually exclusive context menus; this seat renders it when it
   // opened it, and CardMenuPopup closes it on an outside click or Escape.
+  // The hand and zone-view menu resolves in resolveHandOrZoneCardMenu.
   const menuOwnerId = playerId ?? -1;
   const gameSelection = useGameSelectionState();
   const seatMenu = seatCardMenu?.playerId === menuOwnerId ? seatCardMenu : null;
   const cardContextMenu = seatMenu?.kind === 'battlefield' ? seatMenu : null;
   const pileCardMenu = seatMenu?.kind === 'pile' ? seatMenu : null;
   const stackCardMenu = seatMenu?.kind === 'stack' ? seatMenu : null;
-  const handCardMenu = seatMenu?.kind === 'hand' ? seatMenu : null;
-  const zoneViewCardMenu = seatMenu?.kind === 'zoneView' ? seatMenu : null;
   // Whether the hand row is being hovered — controls the auto-expand
   // that reveals full-size cards over the play area without reflowing
   // the shell (same pattern the PhaseTrack uses on the left edge).
@@ -2155,26 +2158,12 @@ function PlayerBox(
   // of one hidden zone of this seat — the hand, or an open library /
   // sideboard view (the card menu's "Reveal to... > All players").
   seatShortcuts['game.revealSelectedToAll'] = () => {
-    if (!isSelf || !onRevealCards) {
-      return;
+    const picked = isSelf
+      ? selectedHiddenZoneCards(seatId, selection, gameSelection?.selectedCardKeys ?? EMPTY_CARD_KEYS)
+      : null;
+    if (picked) {
+      onRevealCards?.(picked.zone, -1, picked.cardIds);
     }
-    if (selection?.zone === 'hand') {
-      const ids = Array.from(selection.ids, Number).filter((n) => Number.isFinite(n));
-      if (ids.length > 0) {
-        onRevealCards(ZoneName.HAND, -1, ids);
-      }
-      return;
-    }
-    const picked = Array.from(gameSelection?.selectedCardKeys ?? [], (key) => parseCardKey(key));
-    const zone = picked[0]?.zone;
-    if (
-      picked.length === 0 ||
-      (zone !== ZoneName.DECK && zone !== ZoneName.SIDEBOARD) ||
-      !picked.every((p) => p?.playerId === seatId && p.zone === zone)
-    ) {
-      return;
-    }
-    onRevealCards(zone, -1, picked.map((p) => p!.cardId));
   };
 
   // Clone Card (Ctrl+J). Fires one Command_CreateToken per selected
@@ -2784,8 +2773,8 @@ function PlayerBox(
   // "X cards from the top of library..." prompt: Command_MoveCard with x = N
   // puts the card at position N of the library. The library size is
   // snapshotted when it opens, so a draw meanwhile doesn't move the clamp.
-  const openMoveXFromTopPrompt = ({ cardId, cardName, deckSize, fromZone = ZoneName.TABLE }: {
-    cardId: number;
+  const openMoveXFromTopPrompt = ({ cardIds, cardName, deckSize, fromZone = ZoneName.TABLE }: {
+    cardIds: number[];
     cardName: string;
     deckSize: number;
     fromZone?: ZoneNameValue;
@@ -2794,7 +2783,7 @@ function PlayerBox(
       cardName,
       deckSize,
       initial: Math.min(3, Math.max(0, deckSize)),
-      onSubmit: (position) => onMoveCards?.(fromZone, [cardId], { zone: ZoneName.DECK, index: position, reversed: false }),
+      onSubmit: (position) => onMoveCards?.(fromZone, cardIds, { zone: ZoneName.DECK, index: position, reversed: false }),
     }));
   // Library count prompts: Draw cards..., View top / bottom cards..., Reveal
   // top cards to..., and the Top / Bottom of library "N cards" items. Each
@@ -3747,6 +3736,31 @@ function PlayerBox(
   const libraryZoneRef = useForkRef(libraryRef, libraryDropRef);
   const graveyardZoneRef = useForkRef(graveyardRef, graveyardDropRef);
   const exileZoneRef = useForkRef(exileRef, exileDropRef);
+
+  const handOrZoneCardMenu = resolveHandOrZoneCardMenu({
+    menu: seatMenu,
+    ownerId: menuOwnerId,
+    shortcutHints,
+    canModify: canMoveSeatCards,
+    revealTargets: revealTargets ?? [],
+    handCards: handDisplayList,
+    libraryViewCards: revealedDeckCards ?? [],
+    sideboardCards: sideboardCards ?? [],
+    handSelection: selection,
+    setHandSelection: setSelection,
+    selectedCardKeys: gameSelection?.selectedCardKeys ?? EMPTY_CARD_KEYS,
+    setSelectedCardKeys: (keys) => gameSelection?.setSelectedCardKeys(keys),
+    cardMeta: (name) => cardMetaByName.get(name),
+    deckSize: zoneCounts?.deck ?? 0,
+    moveCards: onMoveCards,
+    revealCards: onRevealCards,
+    cloneCard: onCloneCard,
+    promptMoveXFromTop: openMoveXFromTopPrompt,
+    startArrow: setDrawArrowPending,
+    relatedViewItems: relatedViewItemsFor,
+    tokenItems: (name) => buildRelatedTokenItems(cardMetaByName.get(name)?.related ?? [], tokenMetaByName, onCreateToken),
+    close: closeSeatCardMenu,
+  });
 
   return (
     <div
@@ -6029,7 +6043,7 @@ function PlayerBox(
                 // Cockatrice's `player->getDeckZone()->getCards().size()`.
                 const deckSize = zoneCounts?.deck ?? 0;
                 openMoveXFromTopPrompt({
-                  cardId: cardIdNum,
+                  cardIds: [cardIdNum],
                   cardName: card.name,
                   deckSize,
                 });
@@ -6404,134 +6418,8 @@ function PlayerBox(
           );
         })()}
 
-      {/* Hand and library / sideboard zone-view card menu — desktop's
-          CardMenu::createHandOrCustomZoneMenu (card_menu.cpp:296-342).
-          The items come from handCardMenu.model; this block resolves the
-          target cards and wires the seat's ports. Actions apply to the
-          selection when the clicked card is part of it (desktop's
-          selectedCards), else to the clicked card. */}
-      {(handCardMenu ?? zoneViewCardMenu) &&
-        (() => {
-          const close = closeSeatCardMenu;
-          const menu = (handCardMenu ?? zoneViewCardMenu)!;
-          const zone = (zoneViewCardMenu?.zone ?? ZoneName.HAND) as ZoneNameValue;
-          const zoneCards: readonly HandCard[] = zoneViewCardMenu
-            ? (zone === ZoneName.SIDEBOARD ? sideboardCards : revealedDeckCards) ?? []
-            : handDisplayList;
-          const viewKey = (id: string) => makeCardKey(menuOwnerId, zone, Number(id));
-          let targetIdStrings: string[];
-          if (zoneViewCardMenu) {
-            const selectedInView = zoneViewCardMenu.viewCardIds.filter(
-              (id) => gameSelection?.selectedCardKeys.has(viewKey(id)),
-            );
-            targetIdStrings = selectedInView.includes(menu.cardId) ? selectedInView : [menu.cardId];
-          } else {
-            targetIdStrings = selection?.zone === 'hand' && selection.ids.has(menu.cardId)
-              ? Array.from(selection.ids)
-              : [menu.cardId];
-          }
-          const targets = targetIdStrings
-            .map((id) => zoneCards.find((c) => c.id === id))
-            .filter((c): c is HandCard => c != null && Number.isFinite(Number(c.id)));
-          const targetIds = targets.map((c) => Number(c.id));
-          const card = zoneCards.find((c) => c.id === menu.cardId);
-          const cardName = card?.name ?? (zoneViewCardMenu?.cardName ?? '');
-          const cardIdNum = Number(menu.cardId);
-          const numeric = Number.isFinite(cardIdNum);
-          const run = (fn: () => void) => () => {
-            fn();
-            close();
-          };
-          const moveTargets = (to: SeatMoveDestination) => {
-            if (onMoveCards && targetIds.length > 0) {
-              onMoveCards(zone, targetIds, { reversed: false, ...to });
-            }
-          };
-          const selectInView = (ids: readonly string[]) =>
-            gameSelection?.setSelectedCardKeys(new Set(ids.map(viewKey)));
-          const items = buildHandOrZoneCardMenu({
-            shortcutHints,
-            source: handCardMenu ? 'hand' : 'zoneView',
-            canModify: canMoveSeatCards,
-            revealTargets: revealTargets ?? [],
-            // Desktop playCard: tablerow 3 goes to the stack, anything else
-            // to its battlefield row; face down always to row 2
-            // (player_actions.cpp:51-98). One command per card.
-            onPlay: run(() => {
-              for (const c of targets) {
-                const tableRow = legacyTableRowFromTypeLine(cardMetaByName.get(c.name)?.typeLine ?? '');
-                onMoveCards?.(zone, [Number(c.id)], tableRow === 3
-                  ? { zone: ZoneName.STACK, index: 'end' }
-                  : { zone: ZoneName.TABLE, index: 'end', row: tableRowToGridY(tableRow) });
-              }
-            }),
-            onPlayFaceDown: run(() => {
-              for (const id of targetIds) {
-                onMoveCards?.(zone, [{ id, faceDown: true }], { zone: ZoneName.TABLE, index: 'end', row: tableRowToGridY(2) });
-              }
-            }),
-            onReveal: (targetPlayerId) => run(() => {
-              if (targetIds.length > 0) {
-                onRevealCards?.(zone, targetPlayerId, targetIds);
-              }
-            })(),
-            onClone: run(() => {
-              for (const c of targets) {
-                onCloneCard?.({ name: c.name, providerId: c.scryfallId, color: '', pt: '', annotation: '', y: 0 });
-              }
-            }),
-            onMove: (target) => run(() => {
-              switch (target) {
-                case 'libraryTop':
-                  return moveTargets({ zone: ZoneName.DECK });
-                case 'libraryBottom':
-                  return moveTargets({ zone: ZoneName.DECK, reversed: true });
-                case 'libraryXFromTop':
-                  if (numeric) {
-                    openMoveXFromTopPrompt({ cardId: cardIdNum, cardName, deckSize: zoneCounts?.deck ?? 0, fromZone: zone });
-                  }
-                  return;
-                case 'table':
-                  return moveTargets({ zone: ZoneName.TABLE });
-                case 'hand':
-                  return moveTargets({ zone: ZoneName.HAND });
-                case 'grave':
-                  return moveTargets({ zone: ZoneName.GRAVE });
-                case 'exile':
-                  return moveTargets({ zone: ZoneName.EXILE });
-              }
-            })(),
-            onDrawArrow: run(() => {
-              if (numeric) {
-                setDrawArrowPending({ sourceCardId: cardIdNum, sourceCardName: cardName, sourceZone: zone });
-              }
-            }),
-            onSelectAll: run(() => {
-              if (zoneViewCardMenu) {
-                selectInView(zoneViewCardMenu.viewCardIds);
-              } else if (handDisplayList.length > 0) {
-                setSelection({ zone: 'hand', ids: new Set(handDisplayList.map((c) => c.id)) });
-              }
-            }),
-            onSelectColumn: zoneViewCardMenu
-              ? run(() => selectInView(zoneViewCardMenu.columnCardIds))
-              : undefined,
-            relatedViewItems: relatedViewItemsFor(cardName),
-            tokenItems: buildRelatedTokenItems(
-              cardMetaByName.get(cardName)?.related ?? [],
-              tokenMetaByName,
-              onCreateToken,
-            ),
-          });
-          return (
-            <CardMenuPopup
-              items={items}
-              anchor={{ x: menu.x, y: menu.y }}
-              disabled={!numeric}
-              onClose={closeSeatCardMenu}
-            />
-          );
-        })()}
+      {/* Hand and library / sideboard zone-view card menu (handCardMenu.actions). */}
+      {handOrZoneCardMenu && <CardMenuPopup {...handOrZoneCardMenu} onClose={closeSeatCardMenu} />}
 
       {/* Stack-card context menu — ports Cockatrice's
           `CardMenu::createStackMenu` (card_menu.cpp:201-227). Own-stack
