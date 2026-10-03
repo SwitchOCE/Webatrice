@@ -3,3 +3,4 @@
 - 15:39Z PR10 tip 4119363 pushed; typecheck/lint/unit/integration green → rebase+fold PR11
 - 15:46Z PR11 rebased onto PR10 4119363, c1e3fa8/900ed97 spec squashed, a6642c3 folded into 15f622b/d6930a9/8c9212e/900ed97 (tree == old tip + PR10 diff), every commit typechecks; pushed ca08d9d → join-error owner, stale failures, keyboard
 - 15:54Z PR11: join-error owner (ef71ebe), stale failures guard (b90dd6d) pushed → keyboard access
+- 15:56Z PR11 keyboard grid (0491a03) pushed → full gate + webatrice e2e on PR11 tip
