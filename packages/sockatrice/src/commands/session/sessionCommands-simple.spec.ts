@@ -424,11 +424,26 @@ describe('joinRoom', () => {
     );
   });
 
-  it('calls WebClient.instance.response.room.joinRoom on success', () => {
+  it('calls WebClient.instance.response.room.joinRoom on success, as user-initiated', () => {
     joinRoom(5);
     const resp = { roomInfo: { roomId: 5 } };
     invokeOnSuccess(resp, { responseCode: 0 });
-    expect(WebClient.instance.response.room.joinRoom).toHaveBeenCalledWith(resp.roomInfo);
+    expect(WebClient.instance.response.room.joinRoom).toHaveBeenCalledWith(resp.roomInfo, true);
+  });
+
+  it('marks a successful auto-join as not user-initiated', () => {
+    joinRoom(5, false);
+    const resp = { roomInfo: { roomId: 5 } };
+    invokeOnSuccess(resp, { responseCode: 0 });
+    expect(WebClient.instance.response.room.joinRoom).toHaveBeenCalledWith(resp.roomInfo, false);
+  });
+
+  it('marks an auto-join the user asked for while it was in flight as user-initiated', () => {
+    joinRoom(5, false);
+    joinRoom(5);
+    const resp = { roomInfo: { roomId: 5 } };
+    invokeOnSuccess(resp, { responseCode: 0 });
+    expect(WebClient.instance.response.room.joinRoom).toHaveBeenCalledWith(resp.roomInfo, true);
   });
 
   it.each([
@@ -463,7 +478,7 @@ describe('joinRoom', () => {
 
     const resp = { roomInfo: { roomId: 5 } };
     invokeOnSuccess(resp, { responseCode: 0 });
-    expect(WebClient.instance.response.room.joinRoom).toHaveBeenCalledWith(resp.roomInfo);
+    expect(WebClient.instance.response.room.joinRoom).toHaveBeenCalledWith(resp.roomInfo, true);
   });
 
   it('surfaces RespContextError when the healing rejoin is rejected the same way', () => {

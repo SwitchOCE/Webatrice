@@ -1,5 +1,10 @@
 import { vi } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { act, screen, within } from '@testing-library/react';
+import { Route, Routes } from 'react-router-dom';
+import { create } from '@bufbuild/protobuf';
+
+import { rooms } from '@cockatrice/datatrice';
+import { ServerInfo_RoomSchema } from '@cockatrice/sockatrice/generated';
 
 import {
   renderWithProviders,
@@ -56,5 +61,35 @@ describe('Server', () => {
     // Empty-state row from RoomsList's <tbody> is the new "no rooms" signal;
     // the old `.server-rooms` container class no longer exists.
     expect(within(container).getByText(/No rooms available\./)).toBeInTheDocument();
+  });
+
+  describe('when a room join lands', () => {
+    function renderLobby() {
+      return renderWithProviders(
+        <Routes>
+          <Route path="/server" element={<Server />} />
+          <Route path="/room/:roomId" element={<div>room-page</div>} />
+        </Routes>,
+        { preloadedState: connectedWithRoomsState, route: '/server' },
+      );
+    }
+    const roomInfo = create(ServerInfo_RoomSchema, { roomId: 2, name: 'Side Room' });
+
+    it('opens the room the user asked to join', () => {
+      const { store } = renderLobby();
+      act(() => {
+        store.dispatch(rooms.Actions.joinRoom({ roomInfo, userInitiated: true }));
+      });
+      expect(screen.getByText('room-page')).toBeInTheDocument();
+    });
+
+    it('stays in the Lobby for a server auto-join, as desktop does (setCurrent = false)', () => {
+      const { store } = renderLobby();
+      act(() => {
+        store.dispatch(rooms.Actions.joinRoom({ roomInfo, userInitiated: false }));
+      });
+      expect(screen.queryByText('room-page')).not.toBeInTheDocument();
+      expect(screen.getByRole('columnheader', { name: 'Name' })).toBeInTheDocument();
+    });
   });
 });

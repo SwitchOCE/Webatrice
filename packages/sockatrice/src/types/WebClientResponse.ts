@@ -179,7 +179,9 @@ export interface ISessionResponse {
 
 export interface IRoomResponse<T extends RoomEventMap = WebSocketRoomResponseOverrides> {
   clearStore(): void;
-  joinRoom(roomInfo: ServerInfo_Room): void;
+  // `userInitiated` is false for a server auto-join, which desktop opens without
+  // switching to it (setCurrent = false). Optional for existing implementations.
+  joinRoom(roomInfo: ServerInfo_Room, userInitiated?: boolean): void;
   leaveRoom(roomId: number): void;
   updateRooms(rooms: ServerInfo_Room[]): void;
   updateGames(roomId: number, gameList: ServerInfo_Game[]): void;
