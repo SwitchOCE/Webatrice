@@ -5,6 +5,8 @@ export interface DeckDialogFrameProps {
   onClose: () => void;
   /** Id of the panel's heading, which names the dialog for assistive tech. */
   titleId: string;
+  /** `alertdialog` for a confirmation that interrupts the user. */
+  role?: 'dialog' | 'alertdialog';
   children: ReactNode;
 }
 
@@ -14,11 +16,11 @@ export interface DeckDialogFrameProps {
  * The dialog supplies its own panel as `children` and its own Escape
  * handling (`useEscapeKey`).
  */
-export function DeckDialogFrame({ onClose, titleId, children }: DeckDialogFrameProps) {
+export function DeckDialogFrame({ onClose, titleId, role = 'dialog', children }: DeckDialogFrameProps) {
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center px-4"
-      role="dialog"
+      role={role}
       aria-modal="true"
       aria-labelledby={titleId}
     >
