@@ -1,35 +1,44 @@
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { generatePath, matchPath, useLocation, useNavigate } from 'react-router-dom';
 import { MessageSquare } from 'lucide-react';
+import { server } from '@cockatrice/datatrice';
 
+import { useNotify } from '@app/components';
+import { getPreferencesSnapshot, playSound, usePrivateMessageFilter } from '@app/hooks';
+import { isPageHidden } from '@app/services';
 import { useAppSelector } from '@app/store';
-import { usePushToast } from '@app/components';
 import { RouteEnum } from '@app/types';
+import { visiblePrivateMessages } from '@app/utils';
 
 /**
- * Global notifier for incoming private-chat messages. Renders nothing —
- * subscribes to `state.server.messages`, and on every new inbound
- * (senderName !== self) entry pushes a Toast pill that:
- *   • labels the sender + shows a message preview,
- *   • navigates to `/player/<senderName>` on click (TopBar marks
- *     player tabs sticky, so an existing chat tab is focused rather
- *     than duplicated).
+ * Global notifier for incoming private-chat messages (desktop TabMessage::processUserMessageEvent).
+ * Renders nothing — subscribes to `state.server.messages`, and for every NEW inbound
+ * (senderName !== self) entry the Chat preferences let through:
+ *   • plays the private-message sound unless that conversation is on screen,
+ *   • raises a notification: an OS notification while the tab is hidden and "Enable desktop
+ *     notifications for private messages" is on, otherwise an in-app toast. Either one opens
+ *     `/player/<senderName>` on click (TopBar marks player tabs sticky, so an existing chat tab is
+ *     focused rather than duplicated).
  *
- * Suppressed when the user is already viewing that peer's Player page
- * — they're reading the message live; a toast would just be noise.
+ * Nothing is raised while the user is reading that peer's Player page in a visible tab — they
+ * see the message live.
  *
- * Mounted once inside AppShell below the Router so `useNavigate` /
- * `useLocation` work.
+ * Mounted once inside AppShell below the Router so `useNavigate` / `useLocation` work.
  */
 export default function PrivateMessageNotifier() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const pushToast = usePushToast();
+  const notify = useNotify();
   const messagesMap = useAppSelector((state) => state.server.messages);
   const selfName = useAppSelector((state) => state.server.user?.name ?? null);
+  const onlineUsers = useAppSelector(server.Selectors.getUsers);
+  const buddyList = useAppSelector(server.Selectors.getBuddyList);
+  const filter = usePrivateMessageFilter();
 
   // Per-peer "already-seen count" of messages. First observation is a
-  // baseline — we don't want to toast every historical message the
+  // baseline — we don't want to notify every historical message the
   // moment the notifier mounts, only NEW arrivals. `selfName` gates
   // the whole thing (nothing to compare against pre-login) and reset
   // when it changes (login as a different user).
@@ -53,7 +62,7 @@ export default function PrivateMessageNotifier() {
       return;
     }
     // Identity change (logout → login-as-other-user): re-baseline so
-    // we don't fire toasts for the new user's pre-existing history.
+    // we don't notify the new user's pre-existing history.
     if (lastSelfRef.current !== selfName) {
       seenCountRef.current = new Map();
       initializedRef.current = false;
@@ -64,56 +73,47 @@ export default function PrivateMessageNotifier() {
       const previousCount = seenCountRef.current.get(peer) ?? 0;
       const currentCount = list.length;
       seenCountRef.current.set(peer, currentCount);
-      // First pass across the whole map is baseline-only — don't
-      // toast any of it. Subsequent passes toast only the new tail.
-      if (!initializedRef.current) {
-        continue;
-      }
-      if (currentCount <= previousCount) {
+      // First pass across the whole map is baseline-only. Subsequent
+      // passes look only at the new tail.
+      if (!initializedRef.current || currentCount <= previousCount) {
         continue;
       }
 
-      const newEntries = list.slice(previousCount);
-      for (const entry of newEntries) {
-        // Skip messages we sent (server echoes them back).
-        if (entry.senderName === selfName) {
+      const visible = new Set(visiblePrivateMessages(
+        list,
+        { selfName, peer: onlineUsers[peer], peerIsBuddy: Boolean(buddyList[peer]) },
+        filter,
+      ));
+      for (const entry of list.slice(previousCount)) {
+        // Skip messages we sent (server echoes them back) and ones the
+        // Chat preferences filter out.
+        if (entry.senderName === selfName || !visible.has(entry)) {
           continue;
         }
-        // Skip if already looking at that peer's page.
         const peerPath = generatePath(RouteEnum.PLAYER, { name: entry.senderName });
-        const alreadyThere = matchPath({ path: RouteEnum.PLAYER, end: true }, pathnameRef.current);
-        if (alreadyThere && alreadyThere.params.name === entry.senderName) {
+        const onPeerPage = matchPath({ path: RouteEnum.PLAYER, end: true }, pathnameRef.current)
+          ?.params.name === entry.senderName;
+        if (onPeerPage && !isPageHidden()) {
           continue;
         }
-        renderToast(entry.senderName, entry.message, peerPath);
+        if (!onPeerPage) {
+          playSound('private_message');
+        }
+        notify({
+          title: t('PrivateMessageNotifier.title', { sender: entry.senderName }),
+          body: entry.message,
+          tag: `pm:${entry.senderName}`,
+          system: getPreferencesSnapshot().showMessagePopups,
+          toast: !onPeerPage,
+          // Chat-related glyph — the default success checkmark reads
+          // as "action confirmed", wrong for an incoming ping.
+          icon: MessageSquare,
+          onActivate: () => navigate(peerPath),
+        });
       }
     }
     initializedRef.current = true;
-
-    function renderToast(sender: string, message: string, path: string) {
-      const preview = message.length > 100 ? `${message.slice(0, 100)}…` : message;
-      const handle = pushToast(
-        <button
-          type="button"
-          onClick={() => {
-            handle.close();
-            navigate(path);
-          }}
-          className="w-full text-left flex flex-col gap-0.5 min-w-0 focus:outline-none"
-        >
-          <span className="text-xs font-semibold text-accent truncate">
-            New message from {sender}
-          </span>
-          <span className="text-sm text-text-primary whitespace-pre-wrap break-words line-clamp-3">
-            {preview}
-          </span>
-        </button>,
-        // Chat-related glyph — the default success checkmark reads
-        // as "action confirmed", wrong for an incoming ping.
-        { icon: MessageSquare },
-      );
-    }
-  }, [messagesMap, selfName, navigate, pushToast]);
+  }, [messagesMap, selfName, onlineUsers, buddyList, filter, navigate, notify, t]);
 
   return null;
 }
