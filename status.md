@@ -1,1 +1,2 @@
 - 19:42Z started, setup done → audit worktrees
+- 19:43Z worktrees ready; 3 audit sub-agents running (platform a11y, game a11y, i18n) → compile specs/aud.md
