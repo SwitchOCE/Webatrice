@@ -58,7 +58,18 @@ function setup({ version = '3.1.0 ()', spectator = false } = {}) {
   const setPlaymat = webClient.request.game.setPlaymat as ReturnType<typeof vi.fn>;
   // Leaving `/game/:id` (for Settings, say) unmounts the Game route; coming back mounts it again.
   const remount = () => renderHook(() => usePlaymatSync(1), { wrapper: Wrapper });
-  return { hook, store, announce, setPlaymat, remount };
+  // One game of the match: ready, the server starts it (clearing ready), then it ends.
+  const playGame = () => {
+    announce({ readyStart: true });
+    act(() => {
+      store.dispatch(games.Actions.gameInfoUpdated({ gameId: 1, gameStarted: true }));
+    });
+    announce({ readyStart: false });
+    act(() => {
+      store.dispatch(games.Actions.gameInfoUpdated({ gameId: 1, gameStarted: false }));
+    });
+  };
+  return { hook, store, announce, setPlaymat, remount, playGame };
 }
 
 describe('usePlaymatSync', () => {
@@ -126,23 +137,40 @@ describe('usePlaymatSync', () => {
     expect(setPlaymat).toHaveBeenLastCalledWith(1, { playmatParams: expect.objectContaining({ cardName: 'Deck Mat' }) });
   });
 
-  it('advances the round-robin cursor when a game ends', () => {
+  it('advances the round-robin cursor on the next game\'s Ready without a deck reselect', () => {
     act(() => setPlaymatSettings({
       fallbackBehavior: PlaymatFallbackBehavior.ROUND_ROBIN,
       fallbackList: [mat('A'), mat('B')],
     }));
-    const { announce, store, setPlaymat } = setup();
+    const { announce, playGame, setPlaymat } = setup();
     announce({ deckHash: 'h1', playmatParams: { cardName: '' } });
     expect(setPlaymat).toHaveBeenLastCalledWith(1, { playmatParams: expect.objectContaining({ cardName: 'A' }) });
+    announce({ playmatParams: { cardName: 'A' } });
 
-    act(() => {
-      store.dispatch(games.Actions.gameInfoUpdated({ gameId: 1, gameStarted: true }));
-    });
-    act(() => {
-      store.dispatch(games.Actions.gameInfoUpdated({ gameId: 1, gameStarted: false }));
-    });
-    announce({ deckHash: 'h2', playmatParams: { cardName: '' } });
+    // Game 1: Ready re-resolves to the same pick, so nothing new is sent.
+    playGame();
+    expect(setPlaymat).toHaveBeenCalledTimes(1);
+
+    // Game 2 keeps the deck (same hash); its Ready picks the next entry.
+    announce({ readyStart: true });
+    expect(setPlaymat).toHaveBeenCalledTimes(2);
     expect(setPlaymat).toHaveBeenLastCalledWith(1, { playmatParams: expect.objectContaining({ cardName: 'B' }) });
+  });
+
+  it('re-rolls a random pick on Ready, never repeating the previous one', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    act(() => setPlaymatSettings({
+      fallbackBehavior: PlaymatFallbackBehavior.RANDOM,
+      fallbackList: [mat('A'), mat('B')],
+    }));
+    const { announce, setPlaymat } = setup();
+    announce({ deckHash: 'h1', playmatParams: { cardName: '' } });
+    expect(setPlaymat).toHaveBeenLastCalledWith(1, { playmatParams: expect.objectContaining({ cardName: 'A' }) });
+    announce({ playmatParams: { cardName: 'A' } });
+
+    announce({ readyStart: true });
+    expect(setPlaymat).toHaveBeenLastCalledWith(1, { playmatParams: expect.objectContaining({ cardName: 'B' }) });
+    vi.restoreAllMocks();
   });
 
   it('keeps the deck\'s playmat across leaving and returning to the game', () => {
@@ -161,6 +189,24 @@ describe('usePlaymatSync', () => {
     expect(setPlaymat).toHaveBeenLastCalledWith(1, {
       playmatParams: expect.objectContaining({ cardName: 'Deck Mat' }),
     });
+  });
+
+  it('keeps the round-robin cursor across leaving and returning to the game', () => {
+    act(() => setPlaymatSettings({
+      fallbackBehavior: PlaymatFallbackBehavior.ROUND_ROBIN,
+      fallbackList: [mat('A'), mat('B')],
+    }));
+    const { hook, announce, playGame, remount, setPlaymat } = setup();
+    announce({ deckHash: 'h1', playmatParams: { cardName: '' } });
+    announce({ playmatParams: { cardName: 'A' } });
+    playGame();
+
+    hook.unmount();
+    remount();
+    expect(setPlaymat).toHaveBeenCalledTimes(1);
+
+    announce({ readyStart: true });
+    expect(setPlaymat).toHaveBeenLastCalledWith(1, { playmatParams: expect.objectContaining({ cardName: 'B' }) });
   });
 
   it('starts each game from a clean slate', () => {
