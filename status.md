@@ -1,1 +1,2 @@
 - 23:31Z started fr4; read brief/rv15 → checkout work branch
+- 23:39Z Home/End fix + per-site image URL specs pushed → barrel narrowing
