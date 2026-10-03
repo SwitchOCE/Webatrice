@@ -28,6 +28,14 @@ export class Setting {
   // Appearance — theme palette
   themeMode: ThemeMode;
 
+  // Appearance — card layout (desktop cards_display `verticalCardOverlapPercent`)
+  /** How much of each card the next one covers on the stack and in a vertical hand, at least. */
+  verticalCardOverlapPercent: number;
+
+  // Appearance — hand layout (desktop interface `hand/horizontal`, `leftJustified`)
+  horizontalHand: boolean;
+  leftJustifiedHand: boolean;
+
   // Appearance — table grid layout
   invertVerticalCoordinate: boolean;
   /** Seated players at which the board splits into two columns (desktop `minPlayersMulticolumn`). */
@@ -98,6 +106,11 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
 
   // Desktop writes an unset scheme as "System" (theme_config.cpp).
   themeMode: ThemeMode.System,
+
+  verticalCardOverlapPercent: 33,
+
+  horizontalHand: true,
+  leftJustifiedHand: false,
 
   invertVerticalCoordinate: false,
   minPlayersForMultiColumnLayout: 4,

@@ -143,6 +143,7 @@ export default function Battlefield() {
     opponentBattlefieldMenuItems,
     playerId,
     resolveFaceImageUri,
+    seatGrid,
     seatId,
     selection,
     startSeatCardDrag,
@@ -194,7 +195,7 @@ export default function Battlefield() {
     <ContextMenu
       items={isSelf ? battlefieldMenuItems : opponentBattlefieldMenuItems}
       wrapperClassName="min-h-0 relative"
-      wrapperStyle={{ gridColumn: 3, gridRow: handOnTop ? 2 : 1 }}
+      wrapperStyle={seatGrid.battlefield}
     >
       {playerId != null && <PlayerPlaymat playerId={playerId} isSelf={isSelf} />}
       {/* Lands divider — spans the full width of the play area,

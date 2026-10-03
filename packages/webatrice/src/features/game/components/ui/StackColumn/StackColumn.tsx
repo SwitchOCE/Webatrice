@@ -20,12 +20,12 @@ export default function StackColumn() {
     CARD_W_PX,
     STACK_HOFFSET_PX,
     cardMetaByName,
-    handOnTop,
     isDragging,
     isSelf,
     menuOwnerId,
     openSeatCardMenu,
     playerId,
+    seatGrid,
     selection,
     setCardMetaByName,
     stackDisplayList,
@@ -55,7 +55,7 @@ export default function StackColumn() {
   return (
     <div
       className="border-r border-border-subtle flex flex-col min-h-0 p-2"
-      style={{ gridColumn: 2, gridRow: handOnTop ? 2 : 1 }}
+      style={seatGrid.stack}
     >
       {/* Stack — spells/abilities waiting to resolve. Cards zig-zag
         vertically; index 0 renders topmost. Dropping between two

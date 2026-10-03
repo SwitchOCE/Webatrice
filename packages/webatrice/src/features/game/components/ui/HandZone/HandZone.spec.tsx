@@ -1,8 +1,10 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
+import { getSettings, settingsStore } from '../../../../../hooks/useSettings';
 import { lookupCard } from '../../../../../services/cards/cardCatalog';
+import type { Preferences } from '../../../../../types';
 import { cardEl, menuLabels, openContextMenu, renderSeatCell, type SeatGameSpec } from '../../../__test-utils__/seatFixtures';
 import { CARD_BACK_URL } from '../SeatCard/cardSize';
 
@@ -23,11 +25,22 @@ const SPEC: SeatGameSpec = {
 const found = (name: string, typeLine: string) =>
   ({ found: true, source: 'scryfall', name, typeLine, printings: [] }) as Awaited<ReturnType<typeof lookupCard>>;
 
+const setPreferences = async (patch: Partial<Preferences>) => {
+  const settings = await getSettings();
+  await act(async () => {
+    settingsStore.setValue(Object.assign(settings, patch));
+  });
+};
+
 const handButton = () => screen.getByTitle(/^Hand — /);
 // The hand row is the element the hand button sits in.
 const handBacks = () => handButton().parentElement!.querySelectorAll(`img[src="${CARD_BACK_URL}"]`);
 
 describe('HandZone', () => {
+  afterEach(() => {
+    settingsStore.reset();
+  });
+
   it('shows the owner their hand faces and its count', () => {
     renderSeatCell(SPEC);
     expect(handButton()).toHaveAttribute('title', 'Hand — 2 cards');
@@ -59,5 +72,57 @@ describe('HandZone', () => {
     fireEvent.doubleClick(cardEl(SHOCK.id, 'hand'));
     await waitFor(() => expect(game.moveCard).toHaveBeenCalledTimes(2));
     expect(vi.mocked(game.moveCard).mock.calls[1][1]).toMatchObject({ startZone: ZoneName.HAND, targetZone: ZoneName.STACK });
+  });
+
+  it('centres the hand row by default and starts it at the left when left justified', async () => {
+    renderSeatCell(SPEC);
+    const row = () => cardEl(FOREST.id, 'hand').parentElement!;
+    expect(row()).toHaveClass('m-auto');
+    expect(row().style.marginLeft).toBe('');
+
+    await setPreferences({ leftJustifiedHand: true });
+
+    expect(row()).not.toHaveClass('m-auto');
+    expect(row()).toHaveClass('mr-auto');
+    expect(row().style.marginLeft).toBe('calc(var(--card-width, 72px) * 1.4)');
+  });
+
+  describe('vertical hand', () => {
+    it('puts the hand in a column beside the info column, every card still playable', async () => {
+      const { game } = renderSeatCell(SPEC);
+      await setPreferences({ horizontalHand: false });
+
+      const column = screen.getByTestId('hand-zone-1').parentElement!;
+      expect(column.style.gridColumn).toBe('2');
+      expect(column.style.gridRow).toBe('1');
+      expect(column).toContainElement(handButton());
+      expect(column).toContainElement(cardEl(FOREST.id, 'hand'));
+      expect(column).toContainElement(cardEl(SHOCK.id, 'hand'));
+
+      vi.mocked(lookupCard).mockResolvedValueOnce(found('Shock', 'Instant'));
+      fireEvent.doubleClick(cardEl(SHOCK.id, 'hand'));
+      await waitFor(() => expect(game.moveCard).toHaveBeenCalledTimes(1));
+      expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({ startZone: ZoneName.HAND, targetZone: ZoneName.STACK });
+    });
+
+    it('brings the hovered card to the front', async () => {
+      renderSeatCell(SPEC);
+      await setPreferences({ horizontalHand: false });
+      const slot = (id: number) => cardEl(id, 'hand').parentElement!;
+      expect(slot(FOREST.id).style.zIndex).toBe('0');
+      expect(slot(SHOCK.id).style.zIndex).toBe('1');
+
+      fireEvent.mouseEnter(slot(FOREST.id));
+      expect(slot(FOREST.id).style.zIndex).toBe('2');
+
+      fireEvent.mouseLeave(slot(FOREST.id));
+      expect(slot(FOREST.id).style.zIndex).toBe('0');
+    });
+
+    it('shows another player\'s hand as a column of card backs', async () => {
+      renderSeatCell(SPEC, 2);
+      await setPreferences({ horizontalHand: false });
+      expect(screen.getByTestId('hand-zone-2').querySelectorAll(`img[src="${CARD_BACK_URL}"]`)).toHaveLength(3);
+    });
   });
 });

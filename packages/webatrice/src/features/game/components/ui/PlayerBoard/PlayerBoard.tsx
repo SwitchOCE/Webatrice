@@ -18,20 +18,12 @@ import SeatDragGhostCards from './SeatDragGhostCards';
 import { usePlayerSeat, type PlayerSeatProps } from './usePlayerSeat';
 
 /**
- * One player's seat. Layout:
- *
- *   +-------+---------+--------------------+
- *   | Info  |         |                    |
- *   |       | Stack   |    Battlefield     |
- *   |       |         |                    |
- *   +       +---------+--------------------+
- *   |       |            Hand              |
- *   +-------+------------------------------+
- *
- * The info column (PlayerInfoPanel: name, life, mana pool and the ZoneStack
- * piles) spans both rows so the hand doesn't cut into it. Mirrored seats put
- * the hand row on top. Every seat shows a hand row; an opponent's shows card
- * backs for the server's hand count.
+ * One player's seat: the info column (PlayerInfoPanel: name, life, mana pool
+ * and the ZoneStack piles), the stack, the battlefield and the hand, placed by
+ * seatGrid. With desktop's default horizontal hand, the hand is a row under
+ * the stack and battlefield (above them on a mirrored seat); with a vertical
+ * hand it is a column beside the info column. Every seat shows a hand; an
+ * opponent's shows card backs for the server's hand count.
  *
  * PlayerBoard runs the seat controller (usePlayerSeat) over the seat model and
  * command ports, provides it to its regions through PlayerSeatContext, and
@@ -47,13 +39,13 @@ function PlayerBoard(props: PlayerSeatProps) {
     boxRef,
     drawArrowPending,
     flights,
-    handOnTop,
     isActive,
     marquee,
     onPointerDownBox,
     pendingArrowPointer,
     playerId,
     seatDrag,
+    seatGrid,
   } = controller;
 
   return (
@@ -67,28 +59,7 @@ function PlayerBoard(props: PlayerSeatProps) {
         ].join(' ')}
         style={{
           display: 'grid',
-          // Info column width in em so it scales with the box's font-size.
-          // Info col hosts life + a 3×2 mana pip grid + the vertical zone
-          // stack (library / graveyard / exile). Zones are card-sized
-          // (CARD_HEIGHT wide because they're rotated) and the pip row
-          // (3 pips at ~2em each + gaps) is narrower, so we just need
-          // CARD_HEIGHT + a small padding allowance.
-          //
-          // Middle col holds command zone + stack — sized so that after
-          // p-2 (0.5rem each side = 1rem total) the inner width equals
-          // exactly one card width. Hand row height tracks CARD_HEIGHT
-          // + a small non-scaling breathing gap so hand cards don't
-          // overflow at bigger scales.
-          gridTemplateColumns: `calc(${CARD_HEIGHT} + 1.5em) calc((${CARD_WIDTH} + 1rem) * 1.2) 1fr`,
-          // Hand row reserves 60% of a card height + a hair of breathing
-          // room. When idle, 60% of each hand card is visible (bottom
-          // 40% clipped); on hover, the hand div flips its overflow open
-          // and lets the remaining 40% float into the play-area's cell
-          // without reflowing anything behind it. Same "hover overlay"
-          // pattern as the phase track.
-          gridTemplateRows: handOnTop
-            ? `calc(${CARD_HEIGHT} * 0.6 + 0.5em) 1fr`
-            : `1fr calc(${CARD_HEIGHT} * 0.6 + 0.5em)`,
+          ...seatGrid.template,
           // Stronger accent glow than shadow-glow when it's this player's turn.
           boxShadow: isActive
             ? '0 0 28px 0 rgb(var(--accent-primary) / 0.5), 0 0 10px 0 rgb(var(--accent-primary) / 0.35)'

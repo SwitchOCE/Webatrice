@@ -86,7 +86,7 @@ function ManaPip({
 }
 
 /**
- * Info column — spans both rows. Top: full-width header + life total.
+ * Info column — spans the seat's rows (see seatGrid). Top: full-width header + life total.
  * Bottom: mana-pool sub-column on the left + card zones on the right.
  */
 export default function PlayerInfoPanel() {
@@ -98,6 +98,7 @@ export default function PlayerInfoPanel() {
     name,
     playerId,
     seat,
+    seatGrid,
     setLife,
   } = usePlayerSeatContext();
   // Mana pool: read from the wired `manaCounters` when available
@@ -117,8 +118,8 @@ export default function PlayerInfoPanel() {
 
   return (
     <div
-      className="row-span-full border-r border-border-subtle bg-bg-surface/70 flex flex-col p-[0.75em] gap-[0.5em] min-h-0"
-      style={{ gridColumn: 1 }}
+      className="border-r border-border-subtle bg-bg-surface/70 flex flex-col p-[0.75em] gap-[0.5em] min-h-0"
+      style={seatGrid.info}
     >
       {/* Combined name + life-total pill. Avatar (or purple gradient
          fallback) fills the whole block; a 50% black wash keeps
