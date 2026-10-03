@@ -1,4 +1,5 @@
-import type { DeckCard } from './types';
+import { readDeckTags } from './deckTags';
+import type { DeckCard, HydratedDeck } from './types';
 
 /**
  * Deck share links (Cockatrice 3.1, #7241).
@@ -112,6 +113,20 @@ export function isSameShareServer(link: DeckShareLink, hostname: string | undefi
 /** Desktop `DeckShareUtils::formatShareExpiry`: local date and time, short. */
 export function formatShareExpiry(unixSeconds: bigint | number, locale?: string): string {
   return new Date(Number(unixSeconds) * 1000).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' });
+}
+
+/**
+ * Desktop `DeckList::isBlankDeck`, which the editor's Share refuses: no cards
+ * and no metadata (name, comments, format, banner card, tags). A named deck
+ * without cards can still be shared.
+ */
+export function isBlankDeck(deck: Pick<HydratedDeck, 'name' | 'meta' | 'cards' | 'format' | 'bannerCard' | 'tagsXml'>): boolean {
+  return deck.cards.length === 0
+    && !deck.name.trim()
+    && !deck.meta.description?.trim()
+    && !deck.format
+    && !deck.bannerCard
+    && readDeckTags(deck.tagsXml).length === 0;
 }
 
 const WUBRG = ['W', 'U', 'B', 'R', 'G'];

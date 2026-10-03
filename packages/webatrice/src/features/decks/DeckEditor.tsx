@@ -21,7 +21,7 @@ import { DeckSidebar } from './components/editor/DeckSidebar';
 import { DeckTagsEditor } from './components/editor/DeckTagsEditor';
 import { groupDeckCards } from './deckGrouping';
 import { serializeDeckForSave } from './deckPersistence';
-import { deckColorIdentity } from './deckSharing';
+import { deckColorIdentity, isBlankDeck } from './deckSharing';
 import { readDeckTags } from './deckTags';
 import { CardDetailDialog } from './dialogs/CardDetailDialog';
 import { ExportDeckDialog } from './dialogs/ExportDeckDialog';
@@ -98,7 +98,7 @@ const DeckEditor = () => {
   const startShare = () => {
     if (!isConnected) {
       setShareRefusal(t('DeckSharing.notConnected'));
-    } else if (!editor.deck?.cards.length) {
+    } else if (!editor.deck || isBlankDeck(editor.deck)) {
       setShareRefusal(t('DeckSharing.emptyDeck'));
     } else {
       share.reset();
