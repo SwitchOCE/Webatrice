@@ -5,6 +5,7 @@ import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMen
 import { MANA_COLORS } from '../../right-sidebar/PlayerInfoPanel/manaColors';
 import { useTallyType } from '../../../hooks/useTallyType';
 import { useGameDialogActions } from '../../ui/GameDialogActionsContext';
+import { useGameDialogsContext } from '../../ui/GameDialogsContext';
 import { MAX_COUNTER_VALUE } from '../../ui/PlayerBoard/counterLimits';
 import type {
   BattlefieldCardViewModel,
@@ -13,12 +14,16 @@ import type {
   PlayerCounterViewModel,
 } from '../../ui/PlayerBoard/playerBoard.types';
 import type { LifeControl, useSeatPrompts } from '../../ui/PlayerBoard/useSeatPrompts';
+import { buildCustomZonesMenu } from './customZonesMenu';
 import { buildTallyMenu } from './tallyMenu';
 
 type ShortcutHints = ReturnType<typeof useShortcutHints>;
 type SeatPrompts = ReturnType<typeof useSeatPrompts>;
 
 export interface UseBattlefieldMenuItemsArgs {
+  seatId: number;
+  /** Zones beyond the seven builtins (desktop custom zones), listed for viewing after Sideboard. */
+  customZones: readonly { name: string }[];
   handMenuItems: ContextMenuItem[];
   libraryMenuItems: ContextMenuItem[];
   graveMenuItemsSelf: ContextMenuItem[];
@@ -48,6 +53,8 @@ export interface UseBattlefieldMenuItemsArgs {
  * local player.
  */
 export function useBattlefieldMenuItems({
+  seatId,
+  customZones,
   handMenuItems,
   libraryMenuItems,
   graveMenuItemsSelf,
@@ -67,6 +74,7 @@ export function useBattlefieldMenuItems({
   counterCommands,
 }: UseBattlefieldMenuItemsArgs) {
   const { onRequestRollDie, onRequestGameInfo, onRequestViewSideboard } = useGameDialogActions();
+  const { openZoneView } = useGameDialogsContext();
   // Every player's menu ends with Tally (player_menu.cpp:48), a local choice
   // the game overlays on the selection.
   const [tallyType, setTallyType] = useTallyType();
@@ -191,6 +199,7 @@ export function useBattlefieldMenuItems({
         },
       ],
     },
+    ...buildCustomZonesMenu(customZones, (zoneName) => openZoneView({ playerId: seatId, zoneName })),
     { divider: true },
     {
       // Counters submenu — Cockatrice's countersMenu lists every

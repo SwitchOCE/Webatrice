@@ -1,5 +1,5 @@
 import { ZoneName } from '@cockatrice/sockatrice';
-import { makeCard } from '@cockatrice/datatrice/testing';
+import { makeCard, makeZoneEntry } from '@cockatrice/datatrice/testing';
 import { renderWithProviders } from '../../../../../__test-utils__';
 import { buildSeatGameState, LIFE_COUNTER_ID, MANA_COUNTER_IDS, type SeatGameSpec } from '../../../__test-utils__/seatFixtures';
 import type { BoardCell } from '../../../hooks/useGameBoardLayout';
@@ -186,6 +186,22 @@ describe('usePlayerSeatViewModel', () => {
     expect(renderModel(OWN, { mutate: withDeck('not a deck') }).model().deck).toEqual([]);
     // Servatrice sends the list to its owner only; other seats hold none.
     expect(renderModel(OPP).model().deck).toEqual([]);
+  });
+
+  it('lists the zones beyond the seven builtins as custom zones', () => {
+    const model = renderModel(OWN, {
+      mutate: (state) => {
+        state.games!.games![1]!.players![1]!.zones!.command = makeZoneEntry({
+          name: 'command',
+          type: 1,
+          withCoords: false,
+          cards: [makeCard({ id: 70, name: 'Kenrith' })],
+          cardCount: 1,
+        });
+      },
+    }).model();
+    expect(model.zones.customZones).toEqual([{ name: 'command', type: 1, withCoords: false, cardCount: 1 }]);
+    expect(renderModel(OPP).model().zones.customZones).toEqual([]);
   });
 
   it('is empty without an active game', () => {
