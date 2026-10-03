@@ -46,6 +46,7 @@ export const userInterfaceSection: SettingsSection = {
           id: 'buddyConnectNotificationsEnabled',
           labelKey: 'SettingsUserInterface.buddyConnectNotificationsEnabled.label',
           control: { kind: 'toggle', key: 'buddyConnectNotificationsEnabled' },
+          dependsOn: 'notificationsEnabled',
         },
         {
           id: 'browserNotifications',

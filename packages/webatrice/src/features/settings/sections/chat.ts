@@ -11,6 +11,18 @@ export const chatSection: SettingsSection = {
   icon: MessageSquare,
   groups: [
     {
+      id: 'chat.macros',
+      titleKey: 'SettingsChat.group.macros',
+      entries: [
+        {
+          id: 'messageMacros',
+          labelKey: 'SettingsChat.macros.label',
+          descriptionKey: 'SettingsChat.macros.description',
+          control: { kind: 'custom', component: MessageMacrosEditor, keys: ['messageMacros'], layout: 'block' },
+        },
+      ],
+    },
+    {
       id: 'chat.settings',
       titleKey: 'SettingsChat.group.chat',
       entries: [
@@ -93,18 +105,6 @@ export const chatSection: SettingsSection = {
           labelKey: 'SettingsChat.invertTextColor.label',
           descriptionKey: 'SettingsChat.invertTextColor.description',
           control: { kind: 'toggle', key: 'chatHighlightForeground' },
-        },
-      ],
-    },
-    {
-      id: 'chat.macros',
-      titleKey: 'SettingsChat.group.macros',
-      entries: [
-        {
-          id: 'messageMacros',
-          labelKey: 'SettingsChat.macros.label',
-          descriptionKey: 'SettingsChat.macros.description',
-          control: { kind: 'custom', component: MessageMacrosEditor, keys: ['messageMacros'], layout: 'block' },
         },
       ],
     },
