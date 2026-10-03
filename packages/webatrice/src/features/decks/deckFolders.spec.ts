@@ -63,10 +63,15 @@ describe('listDeckFolder', () => {
   it('lists the root: subfolders by name with recursive counts, then its own decks newest first', () => {
     const view = listDeckFolder(root, '');
     expect(view.folders).toEqual([
-      { name: 'Cube', path: 'Cube', deckCount: 0, folderCount: 0, visibility: 'private' },
-      { name: 'Modern', path: 'Modern', deckCount: 2, folderCount: 2, visibility: 'private' },
+      { name: 'Cube', path: 'Cube', deckCount: 0, directDeckCount: 0, folderCount: 0, visibility: 'private' },
+      { name: 'Modern', path: 'Modern', deckCount: 2, directDeckCount: 1, folderCount: 2, visibility: 'private' },
     ]);
     expect(view.decks.map((d) => d.name)).toEqual(['Newer root deck', 'Root deck']);
+  });
+
+  it('counts a folder holding only subfolders as having no decks of its own to share', () => {
+    const nested = create(ServerInfo_DeckStorage_FolderSchema, { items: [folder('Outer', [folder('Inner', [file(5, 'x', 1)])])] });
+    expect(listDeckFolder(nested, '').folders[0]).toMatchObject({ deckCount: 1, directDeckCount: 0 });
   });
 
   it('lists a nested folder with paths relative to the root', () => {

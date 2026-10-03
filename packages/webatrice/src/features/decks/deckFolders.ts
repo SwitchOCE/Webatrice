@@ -16,6 +16,8 @@ export interface DeckFolderEntry {
   path: string;
   /** Decks in the folder and all its subfolders. */
   deckCount: number;
+  /** Decks directly in the folder: what sharing it sends (Servatrice shares no subfolders). */
+  directDeckCount: number;
   /** Subfolders at any depth. */
   folderCount: number;
   visibility: DeckVisibility;
@@ -108,6 +110,7 @@ export function listDeckFolder(root: ServerInfo_DeckStorage_Folder | undefined, 
         name: item.name,
         path: childPath,
         deckCount: flattenFolder(item.folder!, childPath).length,
+        directDeckCount: item.folder!.items.filter((child) => !child.folder).length,
         folderCount: countFolders(item.folder!),
         visibility: deckVisibility(item.folder!.isPublic, inherited),
       };
