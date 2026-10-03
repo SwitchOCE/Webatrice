@@ -22,14 +22,12 @@ export interface GameDialogSetters {
   setCardMenu: React.Dispatch<React.SetStateAction<CardMenuState | null>>;
   setSeatCardMenu: React.Dispatch<React.SetStateAction<SeatCardMenuState | null>>;
   setZoneMenu: React.Dispatch<React.SetStateAction<ZoneMenuState | null>>;
-  setPlayerMenu: React.Dispatch<React.SetStateAction<AnchorPosition | null>>;
   setHandMenu: React.Dispatch<React.SetStateAction<AnchorPosition | null>>;
   setPrompt: React.Dispatch<React.SetStateAction<PromptState | null>>;
   setRollDieOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setLastDieSides: React.Dispatch<React.SetStateAction<number>>;
   setLastDieCount: React.Dispatch<React.SetStateAction<number>>;
   setCreateTokenRequest: React.Dispatch<React.SetStateAction<CreateTokenRequest | null>>;
-  setSideboardOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setRevealState: React.Dispatch<React.SetStateAction<RevealState | null>>;
   setConcedeConfirm: React.Dispatch<React.SetStateAction<ConcedeConfirm>>;
   setLeaveConfirm: React.Dispatch<React.SetStateAction<boolean>>;
@@ -41,7 +39,6 @@ export type GameDialogToggleActions = Pick<
   | 'closeCardMenu'
   | 'closeSeatCardMenu'
   | 'closeZoneMenu'
-  | 'closePlayerMenu'
   | 'closeHandMenu'
   | 'openPrompt'
   | 'closePrompt'
@@ -51,8 +48,6 @@ export type GameDialogToggleActions = Pick<
   | 'closeRollDie'
   | 'openCreateToken'
   | 'closeCreateToken'
-  | 'openSideboard'
-  | 'closeSideboard'
   | 'openGameInfo'
   | 'closeGameInfo'
   | 'openConcede'
@@ -88,9 +83,7 @@ export function useGameDialogState(): GameDialogStateHandle {
   const [createTokenRequest, setCreateTokenRequest] = useState<CreateTokenRequest | null>(null);
   const createTokenOpen = createTokenRequest != null;
   const createTokenInitial = createTokenRequest?.initial ?? null;
-  const [sideboardOpen, setSideboardOpen] = useState(false);
   const [revealState, setRevealState] = useState<RevealState | null>(null);
-  const [playerMenu, setPlayerMenu] = useState<AnchorPosition | null>(null);
   const [handMenu, setHandMenu] = useState<AnchorPosition | null>(null);
   const [concedeConfirm, setConcedeConfirm] = useState<ConcedeConfirm>(null);
   const [leaveConfirm, setLeaveConfirm] = useState(false);
@@ -100,7 +93,6 @@ export function useGameDialogState(): GameDialogStateHandle {
     setCardMenu(null);
     setSeatCardMenu(null);
     setZoneMenu(null);
-    setPlayerMenu(null);
     setHandMenu(null);
   }, []);
 
@@ -110,14 +102,12 @@ export function useGameDialogState(): GameDialogStateHandle {
     setCardMenu,
     setSeatCardMenu,
     setZoneMenu,
-    setPlayerMenu,
     setHandMenu,
     setPrompt,
     setRollDieOpen,
     setLastDieSides,
     setLastDieCount,
     setCreateTokenRequest,
-    setSideboardOpen,
     setRevealState,
     setConcedeConfirm,
     setLeaveConfirm,
@@ -127,7 +117,6 @@ export function useGameDialogState(): GameDialogStateHandle {
     closeCardMenu: () => setCardMenu(null),
     closeSeatCardMenu: () => setSeatCardMenu(null),
     closeZoneMenu: () => setZoneMenu(null),
-    closePlayerMenu: () => setPlayerMenu(null),
     closeHandMenu: () => setHandMenu(null),
     openPrompt: (next) => setPrompt({
       ...next,
@@ -148,8 +137,6 @@ export function useGameDialogState(): GameDialogStateHandle {
     closeRollDie: () => setRollDieOpen(false),
     openCreateToken: (request) => setCreateTokenRequest({ ...request }),
     closeCreateToken: () => setCreateTokenRequest(null),
-    openSideboard: () => setSideboardOpen(true),
-    closeSideboard: () => setSideboardOpen(false),
     openGameInfo: () => setGameInfoOpen(true),
     closeGameInfo: () => setGameInfoOpen(false),
     openConcede: () => setConcedeConfirm('concede'),
@@ -165,7 +152,6 @@ export function useGameDialogState(): GameDialogStateHandle {
       cardMenu,
       seatCardMenu,
       zoneMenu,
-      playerMenu,
       handMenu,
       zoneViews,
       prompt,
@@ -175,7 +161,6 @@ export function useGameDialogState(): GameDialogStateHandle {
       lastDieCount,
       createTokenOpen,
       createTokenInitial,
-      sideboardOpen,
       gameInfoOpen,
       concedeConfirm,
       leaveConfirm,
@@ -185,7 +170,6 @@ export function useGameDialogState(): GameDialogStateHandle {
       cardMenu,
       seatCardMenu,
       zoneMenu,
-      playerMenu,
       handMenu,
       zoneViews,
       prompt,
@@ -195,7 +179,6 @@ export function useGameDialogState(): GameDialogStateHandle {
       lastDieCount,
       createTokenOpen,
       createTokenInitial,
-      sideboardOpen,
       gameInfoOpen,
       concedeConfirm,
       leaveConfirm,

@@ -113,7 +113,7 @@ export function useGameDialogs({
     closeAllContextMenus,
     openZoneView: zone.handleZoneClick,
   });
-  const lifecycle = useGameLifecycleDialogActions({ env, canOpenMenus, set, closeAllContextMenus, createTokenRequest });
+  const lifecycle = useGameLifecycleDialogActions({ env, set, createTokenRequest });
 
   // The action surface is decoupled from game state (handlers read the latest
   // game/local-player from the store at call time), so it only changes when a

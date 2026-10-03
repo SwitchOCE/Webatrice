@@ -7,10 +7,9 @@ import { makeDialogTestEnv, makeSetterSpies } from '../../__test-utils__/dialogT
 import type { CreateTokenRequest } from './gameDialogs.types';
 import { useGameLifecycleDialogActions } from './useGameLifecycleDialogActions';
 
-function setup(canOpenMenus = true, createTokenRequest: CreateTokenRequest | null = null) {
+function setup(createTokenRequest: CreateTokenRequest | null = null) {
   const { env, webClient } = makeDialogTestEnv();
   const set = makeSetterSpies();
-  const closeAllContextMenus = vi.fn();
   const { Wrapper, store } = makeReduxWebClientHookWrapper({
     reducer: combineReducers({ games: games.gamesReducer }),
     preloadedState: { games: { games: {}, pings: {} } },
@@ -18,19 +17,13 @@ function setup(canOpenMenus = true, createTokenRequest: CreateTokenRequest | nul
   });
   const dispatch = vi.spyOn(store, 'dispatch');
   const { result } = renderHook(
-    () => useGameLifecycleDialogActions({ env, canOpenMenus, set, closeAllContextMenus, createTokenRequest }),
+    () => useGameLifecycleDialogActions({ env, set, createTokenRequest }),
     { wrapper: Wrapper },
   );
   return { result, set, webClient, dispatch };
 }
 
 describe('useGameLifecycleDialogActions', () => {
-  it('blocks the player menu when the user may not act', () => {
-    const { result, set } = setup(false);
-    result.current.handlePlayerContextMenu({ preventDefault: vi.fn() } as unknown as React.MouseEvent);
-    expect(set.setPlayerMenu).not.toHaveBeenCalled();
-  });
-
   it('remembers the last die and closes the roll dialog', () => {
     const { result, set, webClient } = setup();
 
@@ -56,7 +49,7 @@ describe('useGameLifecycleDialogActions', () => {
 
   it('hands the token to the submitter of whoever opened the dialog, not the default command', () => {
     const onSubmit = vi.fn();
-    const { result, webClient, set } = setup(true, { onSubmit });
+    const { result, webClient, set } = setup({ onSubmit });
     const token = { name: 'Elf', color: 'g', pt: '1/1', annotation: '', destroyOnZoneChange: true, faceDown: false };
 
     result.current.handleCreateTokenSubmit(token);
