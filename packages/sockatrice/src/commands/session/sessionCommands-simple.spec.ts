@@ -17,6 +17,7 @@ vi.mock('./', async () => {
 import { Mock } from 'vitest';
 import { makeCallbackHelpers } from '../../testing/callback-helpers';
 import { WebClient } from '../../WebClient';
+import { CommandFailure } from '../../types/CommandFailure';
 import { hashPassword, generateSalt, passwordSaltSupported } from '../../utils';
 
 import { accountEdit } from './accountEdit';
@@ -71,6 +72,7 @@ import {
   Command_ReplaySubmitCode_ext,
   Response_DeckDownload_ext,
   Response_DeckList_ext,
+  Response_ResponseCode,
   Response_DeckUpload_ext,
   Response_GetGamesOfUser_ext,
   Response_GetUserInfo_ext,
@@ -81,7 +83,7 @@ import {
   Response_ReplayList_ext,
 } from '../../generated';
 
-const { invokeOnSuccess, invokeCallback } = makeCallbackHelpers(
+const { invokeOnSuccess, invokeCallback, invokeOnError } = makeCallbackHelpers(
   WebClient.instance.protobuf.sendSessionCommand as Mock,
   2
 );
@@ -192,6 +194,14 @@ describe('deckList', () => {
     invokeOnSuccess({ root }, { responseCode: 0 });
     expect(WebClient.instance.response.session.updateServerDecks).toHaveBeenCalledWith({ root });
   });
+
+  it('reports a failure to deckListFailed', () => {
+    deckList();
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Disconnected);
+    expect(WebClient.instance.response.session.deckListFailed).toHaveBeenCalledWith(
+      Response_ResponseCode.RespNotConnected, CommandFailure.Disconnected,
+    );
+  });
 });
 
 describe('deckNewDir', () => {
@@ -224,6 +234,14 @@ describe('deckUpload', () => {
     const resp = { newFile: { id: 1 } };
     invokeOnSuccess(resp, { responseCode: 0 });
     expect(WebClient.instance.response.session.uploadServerDeck).toHaveBeenCalledWith('/path', resp.newFile);
+  });
+
+  it('reports a failure to deckUploadFailed with the path', () => {
+    deckUpload('/path', 1, 'content');
+    invokeOnError(Response_ResponseCode.RespContextError);
+    expect(WebClient.instance.response.session.deckUploadFailed).toHaveBeenCalledWith(
+      '/path', Response_ResponseCode.RespContextError, undefined,
+    );
   });
 });
 
@@ -285,6 +303,14 @@ describe('joinRoom', () => {
     const resp = { roomInfo: { roomId: 5 } };
     invokeOnSuccess(resp, { responseCode: 0 });
     expect(WebClient.instance.response.room.joinRoom).toHaveBeenCalledWith(resp.roomInfo);
+  });
+
+  it('reports a failure to room.joinRoomFailed with the roomId', () => {
+    joinRoom(5);
+    invokeOnError(Response_ResponseCode.RespNameNotFound);
+    expect(WebClient.instance.response.room.joinRoomFailed).toHaveBeenCalledWith(
+      5, Response_ResponseCode.RespNameNotFound, undefined,
+    );
   });
 });
 
@@ -498,6 +524,14 @@ describe('deckDownload', () => {
     const resp = { deck: 'deck-content' };
     invokeOnSuccess(resp, { responseCode: 0 });
     expect(WebClient.instance.response.session.downloadServerDeck).toHaveBeenCalledWith(42, resp);
+  });
+
+  it('reports a failure to deckDownloadFailed with the deckId', () => {
+    deckDownload(42);
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, CommandFailure.Timeout);
+    expect(WebClient.instance.response.session.deckDownloadFailed).toHaveBeenCalledWith(
+      42, Response_ResponseCode.RespNotConnected, CommandFailure.Timeout,
+    );
   });
 });
 
