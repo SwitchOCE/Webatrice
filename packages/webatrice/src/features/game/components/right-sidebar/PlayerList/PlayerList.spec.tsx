@@ -233,7 +233,7 @@ describe('PlayerList report user (#7091)', () => {
   it('offers "Report user" on a 3.1 server and opens the dialog with this game attached', () => {
     renderWithProviders(<ReportUserProvider><PlayerList /></ReportUserProvider>, { preloadedState: stateOn('3.1.0 ()') });
     fireEvent.contextMenu(screen.getByText('Bob'));
-    fireEvent.click(screen.getByRole('button', { name: 'Report user' }));
+    fireEvent.click(screen.getByRole('button', { name: 'ReportUserDialog.menuItem' }));
     expect(screen.getByTestId('report-reported-user').textContent).toBe('Bob');
     expect((screen.getByLabelText('ReportUserDialog.chatGroup') as HTMLTextAreaElement).value).toBe('');
     expect(screen.getByText('1', { selector: '#report-user-game-id' })).toBeTruthy();
@@ -242,6 +242,6 @@ describe('PlayerList report user (#7091)', () => {
   it('does not offer it on a 3.0 server', () => {
     renderWithProviders(<ReportUserProvider><PlayerList /></ReportUserProvider>, { preloadedState: stateOn('3.0.0 ()') });
     fireEvent.contextMenu(screen.getByText('Bob'));
-    expect(screen.queryByRole('button', { name: 'Report user' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'ReportUserDialog.menuItem' })).toBeNull();
   });
 });
