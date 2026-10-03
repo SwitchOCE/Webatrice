@@ -11,14 +11,16 @@ import CloseIcon from '@mui/icons-material/Close';
 
 import CardDatabaseOverview from './CardDatabaseOverview';
 import CardImportForm from './CardImportForm';
-import CardSourcesSettings from './CardSourcesSettings';
 import EditTokens from './EditTokens';
 import ManageSets from './ManageSets';
 
 import './CardImportDialog.css';
 
-/** Desktop's "Card Database" menu, one tab per action. */
-export const CARD_DATABASE_TABS = ['import', 'database', 'sets', 'tokens', 'sources'] as const;
+/**
+ * Desktop's "Card Database" menu, one tab per action. Picture URL templates live in Settings ›
+ * Card Sources, as on desktop.
+ */
+export const CARD_DATABASE_TABS = ['import', 'database', 'sets', 'tokens'] as const;
 export type CardDatabaseTab = (typeof CARD_DATABASE_TABS)[number];
 
 export interface CardImportDialogProps {
@@ -64,7 +66,6 @@ const CardImportDialog = ({ handleClose, isOpen, initialTab = 'import' }: CardIm
         {tab === 'database' && <CardDatabaseOverview onViewSets={viewSets} />}
         {tab === 'sets' && <ManageSets onSaved={handleClose} onCancel={handleClose} />}
         {tab === 'tokens' && <EditTokens />}
-        {tab === 'sources' && <CardSourcesSettings />}
       </DialogContent>
     </Dialog>
   );

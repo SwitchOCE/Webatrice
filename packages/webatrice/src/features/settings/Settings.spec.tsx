@@ -36,6 +36,7 @@ describe('Settings', () => {
       'Settings.section.general',
       'Settings.section.appearance',
       'Settings.section.userInterface',
+      'Settings.section.cardSources',
       'Settings.section.storage',
       'Settings.section.chat',
       'Settings.section.sound',
@@ -182,6 +183,28 @@ describe('Settings', () => {
       fireEvent.change(screen.getByLabelText(/SettingsGeneral\.language\.label/), { target: { value: 'de' } });
     });
     expect(getPreferencesSnapshot().language).toBe('de');
+  });
+
+  it('edits the picture download URLs on the Card Sources page, outside "Restore defaults"', async () => {
+    await renderSettings();
+    openSection(/Settings\.section\.cardSources/);
+
+    const panel = screen.getByRole('tabpanel');
+    expect(within(panel).getByText('SettingsCardSources.group.downloads')).toBeInTheDocument();
+    const editor = within(panel).getByRole('group', { name: /SettingsCardSources\.pictureUrls\.label/ });
+    expect(editor).toHaveAccessibleDescription(/SettingsCardSources\.pictureUrls\.description/);
+    expect(within(editor).getByRole('listbox', { name: /CardSourcesSettings\.label\.list/ })).toBeInTheDocument();
+    // The templates are card data, not settings-row preferences, so the page has nothing to restore.
+    expect(within(panel).queryByRole('button', { name: /Settings\.restoreDefaults/ })).not.toBeInTheDocument();
+  });
+
+  it('finds the picture download URLs by search', async () => {
+    await renderSettings();
+    search('pictureUrls');
+
+    expect(
+      within(screen.getByRole('tabpanel')).getByRole('group', { name: /SettingsCardSources\.pictureUrls\.label/ }),
+    ).toBeInTheDocument();
   });
 
   it('searches every section and edits results in place', async () => {
