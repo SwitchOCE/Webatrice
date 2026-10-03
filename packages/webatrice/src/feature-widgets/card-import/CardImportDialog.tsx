@@ -58,10 +58,16 @@ const CardImportDialog = ({ handleClose, isOpen, initialTab = 'import' }: CardIm
         aria-label={t('CardImportDialog.title')}
       >
         {CARD_DATABASE_TABS.map((key) => (
-          <Tab key={key} value={key} label={t(`CardImportDialog.tab.${key}`)} />
+          <Tab
+            key={key}
+            value={key}
+            label={t(`CardImportDialog.tab.${key}`)}
+            id={`cardDb-tab-${key}`}
+            aria-controls={`cardDb-tabpanel-${key}`}
+          />
         ))}
       </Tabs>
-      <DialogContent>
+      <DialogContent id={`cardDb-tabpanel-${tab}`} role="tabpanel" aria-labelledby={`cardDb-tab-${tab}`}>
         {tab === 'import' && <CardImportForm onSubmit={handleClose} onViewSets={viewSets} />}
         {tab === 'database' && <CardDatabaseOverview onViewSets={viewSets} />}
         {tab === 'sets' && <ManageSets onSaved={handleClose} onCancel={handleClose} />}
