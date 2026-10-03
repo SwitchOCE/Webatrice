@@ -2,3 +2,4 @@
 - 13:59Z inputs read; branch DAG computed → verifying desktop claims
 - 14:04Z pushed 27be928 (matrix + parity-pr-series.md) → acting on M1
 - ACK M1: replacing both files with one consolidated docs/cockatrice-parity.md (one row per ID, short evidence, out-of-scope, PR series/reviewer guide)
+- 14:06Z DONE: claude/parity-22-parity-docs @ 266fa80 (docs/cockatrice-parity.md only); lint green; PR notes written → finished
