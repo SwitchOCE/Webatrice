@@ -172,7 +172,7 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
           each line individually so the black pill hugs the text
           instead of stretching to the container width. */}
       <div className="absolute top-1 left-1 right-1 text-[0.7rem] font-semibold leading-tight line-clamp-2">
-        <span className="bg-black text-white rounded box-decoration-clone">
+        <span className="bg-over-art-backdrop text-over-art-text rounded box-decoration-clone">
           {displayName}
         </span>
       </div>
@@ -182,8 +182,10 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
       {pt && (
         <div className="absolute bottom-1 right-1 flex justify-end">
           <span
-            className="bg-black text-[0.6rem] font-semibold leading-none px-1.5 py-0.5 rounded tabular-nums"
-            style={{ color: ptModified ? 'rgb(255, 150, 0)' : 'white' }}
+            className={[
+              'bg-over-art-backdrop text-[0.6rem] font-semibold leading-none px-1.5 py-0.5 rounded tabular-nums',
+              ptModified ? 'text-pt-modified' : 'text-over-art-text',
+            ].join(' ')}
           >
             {pt}
           </span>
@@ -246,7 +248,7 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
           and the "token" label auto-applied to Clone-created copies. */}
       {annotation && (
         <div className="absolute inset-x-1 top-1/2 -translate-y-1/2 text-center text-[0.7rem] font-semibold leading-tight line-clamp-3">
-          <span className="bg-black text-white rounded box-decoration-clone">
+          <span className="bg-over-art-backdrop text-over-art-text rounded box-decoration-clone">
             {annotation}
           </span>
         </div>

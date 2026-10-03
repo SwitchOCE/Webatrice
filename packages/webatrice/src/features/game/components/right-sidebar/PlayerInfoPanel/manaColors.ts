@@ -1,20 +1,20 @@
 // The seat mana pool, in desktop order: one pip per Servatrice player counter
-// (w/u/b/r/g/x/storm, server_player.cpp:96-102).
+// (w/u/b/r/g/x/storm, server_player.cpp:96-102). Tints are the --mana-* tokens.
 export const MANA_COLORS: Array<{
   symbol: 'W' | 'U' | 'B' | 'R' | 'G' | 'C' | 'O';
   label: string;
   tint: string;
 }> = [
-  { symbol: 'W', label: 'White', tint: '#f9f1c8' },
-  { symbol: 'U', label: 'Blue', tint: '#3b82f6' },
-  { symbol: 'B', label: 'Black', tint: '#4b5563' },
-  { symbol: 'R', label: 'Red', tint: '#ef4444' },
-  { symbol: 'G', label: 'Green', tint: '#10b981' },
-  { symbol: 'C', label: 'Colorless', tint: '#9ca3af' },
+  { symbol: 'W', label: 'White', tint: 'rgb(var(--mana-w))' },
+  { symbol: 'U', label: 'Blue', tint: 'rgb(var(--mana-u))' },
+  { symbol: 'B', label: 'Black', tint: 'rgb(var(--mana-b))' },
+  { symbol: 'R', label: 'Red', tint: 'rgb(var(--mana-r))' },
+  { symbol: 'G', label: 'Green', tint: 'rgb(var(--mana-g))' },
+  { symbol: 'C', label: 'Colorless', tint: 'rgb(var(--mana-c))' },
   // 7th slot — Cockatrice's server pre-creates a "storm" counter
   // (id=7) with orange makeColor(255, 150, 30) at server_player.cpp:102;
   // the desktop UI labels it "Other" and slots it after the colorless
-  // pip. We mirror both the position and the tint so muscle memory
-  // carries over.
-  { symbol: 'O', label: 'Other', tint: '#f97316' },
+  // pip. We mirror both the position and the (orange) tint so muscle
+  // memory carries over.
+  { symbol: 'O', label: 'Other', tint: 'rgb(var(--mana-o))' },
 ];
