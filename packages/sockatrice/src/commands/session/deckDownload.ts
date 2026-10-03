@@ -12,6 +12,9 @@ export function deckDownload(deckId: number): void {
       onSuccess: (response) => {
         WebClient.instance.response.session.downloadServerDeck(deckId, response);
       },
+      onError: (responseCode, _raw, failure) => {
+        WebClient.instance.response.session.deckDownloadFailed?.(deckId, responseCode, failure);
+      },
     }
   );
 }

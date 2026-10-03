@@ -11,5 +11,8 @@ export function joinRoom(roomId: number): void {
         WebClient.instance.response.room.joinRoom(response.roomInfo);
       }
     },
+    onError: (responseCode, _raw, failure) => {
+      WebClient.instance.response.room.joinRoomFailed?.(roomId, responseCode, failure);
+    },
   });
 }

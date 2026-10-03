@@ -16,6 +16,9 @@ export function deckUpload(path: string, deckId: number, deckList: string, isPub
           WebClient.instance.response.session.uploadServerDeck(path, response.newFile);
         }
       },
+      onError: (responseCode, _raw, failure) => {
+        WebClient.instance.response.session.deckUploadFailed?.(path, responseCode, failure);
+      },
     }
   );
 }
