@@ -1,1 +1,2 @@
 - 21:04Z started rv11; PR file prs/parity-27-a11y-keyboard-paths.md absent on parity-notes → reviewing from diff+commit bodies+spec
+- 21:16Z static review done: diff read, 8 touched specs + typecheck green; deleted comps have no live importers/i18n; starting keyboard-only e2e in container → write review
