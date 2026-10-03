@@ -1,0 +1,9 @@
+---
+'@cockatrice/sockatrice': minor
+---
+
+Replay playback and replay-command error reporting.
+
+`WebClient.replayGameEventContainer(container, gameId)` feeds one recorded `GameReplay` event container through the live game-event pipeline, addressed to a local game id (Servatrice stores replay containers with `game_id` cleared). Replays therefore rebuild state with the same handlers, reducers and log lines as a live game, and nothing is sent to the server.
+
+`replayDownload` takes optional `onDownloaded(replayData)` and `onFailure(responseCode)` callbacks, and `replayDeleteMatch`, `replayModifyMatch` and `replayGetCode` take an optional `onFailure(responseCode)`, so a caller can tell watching from saving a download and surface rejections such as `RespFunctionNotAllowed`. `Event_ReplayAdded` without match info (a moderator grant or a redeemed share code) now refreshes the replay list, as desktop does, instead of passing `undefined` to the store.

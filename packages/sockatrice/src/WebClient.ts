@@ -4,6 +4,7 @@ import {
   Event_ServerIdentification_ext,
   ServerMessageSchema,
   ServerMessage_MessageType,
+  type GameEventContainer,
 } from './generated';
 
 import {
@@ -211,6 +212,16 @@ export class WebClient {
     if (status === StatusEnum.DISCONNECTED || status === StatusEnum.RECONNECTING) {
       this.protobuf.resetCommands();
     }
+  }
+
+  /**
+   * Feeds one recorded GameReplay event container into the local game `gameId`
+   * through the live game-event pipeline, so a replay rebuilds state with exactly
+   * the handlers, reducers and message-log formatting a live game uses. Works
+   * while disconnected: nothing is sent to the server.
+   */
+  public replayGameEventContainer(container: GameEventContainer, gameId: number): void {
+    this.protobuf.replayGameEventContainer(container, gameId);
   }
 
   public get isReconnecting(): boolean {
