@@ -5,8 +5,7 @@ import { classifyLogTone, type LogSegment, type LogTone } from '@cockatrice/data
 import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 
 import { useGameId } from '../ui/GameIdContext';
-import { useHoveredCard } from '../PlayerBox/hoveredCard';
-import { useBigCardPreview } from '../PlayerBox/bigCardPreview';
+import { useCardPreviewActions } from '../ui/CardPreviewContext';
 
 import { formatElapsed, useGameLog } from './useGameLog';
 
@@ -66,8 +65,7 @@ export default function ChatLog() {
   const gameId = useGameId();
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { setHoveredCard } = useHoveredCard();
-  const { openBigPreview, closeBigPreview } = useBigCardPreview();
+  const { setHoveredCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
   const {
     messages,
     players,

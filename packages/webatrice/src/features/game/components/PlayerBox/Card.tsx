@@ -1,7 +1,6 @@
 import { CardImage } from '@app/components';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from './cardSize';
-import { useHoveredCard } from './hoveredCard';
-import { useBigCardPreview } from './bigCardPreview';
+import { useCardPreviewActions } from '../ui/CardPreviewContext';
 import { counterColorForId } from '../ui/CardSlot/counterColors';
 
 
@@ -16,7 +15,7 @@ import { counterColorForId } from '../ui/CardSlot/counterColors';
  * for name-only entries. Both endpoints redirect to CDN URLs that
  * cache aggressively across the session.
  *
- * On mouse-enter the card publishes itself to HoveredCardContext so
+ * On mouse-enter the card publishes itself to the game preview store so
  * the right-rail preview (BattlefieldSidebar) can show it enlarged.
  * The hover-scale + tight name pill are ported straight from fancy
  * webatrice.
@@ -94,8 +93,7 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
   // players who bounce between the clients see a familiar tag.
   const displayName = faceDown && id != null ? `# ${id}` : name;
 
-  const { setHoveredCard } = useHoveredCard();
-  const { openBigPreview, closeBigPreview } = useBigCardPreview();
+  const { setHoveredCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
 
   return (
     <div

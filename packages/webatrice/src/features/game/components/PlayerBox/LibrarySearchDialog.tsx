@@ -10,8 +10,7 @@ import { Search, X } from 'lucide-react';
 import type { DeckCard } from './mockTypes';
 import Card from './Card';
 import { CARD_HEIGHT, CARD_WIDTH } from './cardSize';
-import { useHoveredCard } from './hoveredCard';
-import { useBigCardPreview } from './bigCardPreview';
+import { useCardPreviewActions } from '../ui/CardPreviewContext';
 import { lookupCardsCached } from '@app/services';
 import {
   compareCards,
@@ -204,8 +203,7 @@ export default function LibrarySearchDialog({
   draggingCardIds,
   dropRef,
 }: Props) {
-  const { setHoveredCard } = useHoveredCard();
-  const { openBigPreview, closeBigPreview } = useBigCardPreview();
+  const { setHoveredCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
   const [query, setQuery] = useState('');
   // Grouping/sorting defaults match Cockatrice's SettingsCache
   // (cache_settings.cpp:383-384): `zoneview/groupby` defaults to index 1

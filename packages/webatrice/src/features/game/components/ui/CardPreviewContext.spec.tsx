@@ -1,0 +1,167 @@
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { makeCard } from '@cockatrice/datatrice/testing';
+
+import { BigCardPreview } from '../PlayerBox/bigCardPreview';
+import {
+  CardPreviewProvider,
+  createCardPreviewStore,
+  previewCardFromServerCard,
+  useBigPreviewCard,
+  useCardPreview,
+  useCardPreviewActions,
+  type CardPreviewStore,
+} from './CardPreviewContext';
+
+const BOLT = { name: 'Lightning Bolt', scryfallId: 'bolt-id' };
+const OGRE = { name: 'Gray Ogre', pt: '2/2' };
+
+describe('createCardPreviewStore', () => {
+  it('shows the focused card over the hovered one and falls back when focus clears', () => {
+    const store = createCardPreviewStore();
+    store.setHoveredCard(BOLT);
+    expect(store.getPreviewCard()).toBe(BOLT);
+
+    store.setFocusedCard(OGRE);
+    expect(store.getPreviewCard()).toBe(OGRE);
+
+    store.setHoveredCard(null);
+    expect(store.getPreviewCard()).toBe(OGRE);
+
+    store.setFocusedCard(null);
+    store.setHoveredCard(BOLT);
+    expect(store.getPreviewCard()).toBe(BOLT);
+  });
+
+  it('notifies subscribers only when a card actually changes', () => {
+    const store = createCardPreviewStore();
+    const listener = vi.fn();
+    const unsubscribe = store.subscribe(listener);
+
+    store.setHoveredCard(BOLT);
+    store.setHoveredCard(BOLT);
+    store.closeBigPreview();
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    store.openBigPreview(OGRE);
+    expect(store.getBigPreviewCard()).toBe(OGRE);
+    store.closeBigPreview();
+    expect(store.getBigPreviewCard()).toBeNull();
+    expect(listener).toHaveBeenCalledTimes(3);
+
+    unsubscribe();
+    store.setHoveredCard(null);
+    expect(listener).toHaveBeenCalledTimes(3);
+  });
+
+  it('projects a structured-leaf server card to the presentation payload', () => {
+    expect(previewCardFromServerCard(makeCard({ id: 1, name: 'Bear', pt: '2/2', annotation: 'big' })))
+      .toEqual({ name: 'Bear', pt: '2/2', annotation: 'big' });
+    expect(previewCardFromServerCard(makeCard({ id: 1, name: 'Bear' })))
+      .toEqual({ name: 'Bear', pt: undefined, annotation: undefined });
+    // Face-down / unknown cards have no name and publish nothing.
+    expect(previewCardFromServerCard(makeCard({ id: 1, name: '' }))).toBeNull();
+    expect(previewCardFromServerCard(null)).toBeNull();
+  });
+});
+
+describe('CardPreviewContext hooks', () => {
+  function Publisher({ renders }: { renders: { count: number } }) {
+    renders.count += 1;
+    const { setHoveredCard } = useCardPreviewActions();
+    return <button onMouseEnter={() => setHoveredCard(BOLT)}>publisher</button>;
+  }
+
+  function Reader() {
+    const card = useCardPreview();
+    return <div data-testid="preview">{card?.name ?? 'none'}</div>;
+  }
+
+  function renderWithStore(store: CardPreviewStore, renders: { count: number }) {
+    return render(
+      <CardPreviewProvider store={store}>
+        <Publisher renders={renders} />
+        <Reader />
+      </CardPreviewProvider>,
+    );
+  }
+
+  it('updates readers on hover without re-rendering the publishing cards', () => {
+    const store = createCardPreviewStore();
+    const renders = { count: 0 };
+    renderWithStore(store, renders);
+    expect(screen.getByTestId('preview')).toHaveTextContent('none');
+
+    fireEvent.mouseEnter(screen.getByText('publisher'));
+    expect(screen.getByTestId('preview')).toHaveTextContent('Lightning Bolt');
+
+    // Pointer movement across many cards: readers follow, publishers stay put.
+    for (const card of [OGRE, BOLT, OGRE, null]) {
+      act(() => store.setHoveredCard(card));
+    }
+    expect(screen.getByTestId('preview')).toHaveTextContent('none');
+    expect(renders.count).toBe(1);
+  });
+
+  it('is inert outside a provider so isolated leaves still render', () => {
+    function Isolated() {
+      const actions = useCardPreviewActions();
+      const card = useCardPreview();
+      const big = useBigPreviewCard();
+      actions.setHoveredCard(BOLT);
+      actions.openBigPreview(BOLT);
+      return <div data-testid="isolated">{`${card?.name ?? 'none'}/${big?.name ?? 'none'}`}</div>;
+    }
+    render(<Isolated />);
+    expect(screen.getByTestId('isolated')).toHaveTextContent('none/none');
+  });
+
+  it('drops every reader subscription on unmount', () => {
+    const store = createCardPreviewStore();
+    const live = new Set<() => void>();
+    const subscribe = store.subscribe;
+    store.subscribe = (listener) => {
+      live.add(listener);
+      const unsubscribe = subscribe(listener);
+      return () => {
+        live.delete(listener);
+        unsubscribe();
+      };
+    };
+    const { unmount } = renderWithStore(store, { count: 0 });
+    expect(live.size).toBeGreaterThan(0);
+
+    unmount();
+    expect(live.size).toBe(0);
+  });
+});
+
+describe('BigCardPreview', () => {
+  beforeEach(() => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise(() => {}));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('draws the zoom for the card in the store and removes it on close', () => {
+    const store = createCardPreviewStore();
+    render(
+      <CardPreviewProvider store={store}>
+        <BigCardPreview />
+      </CardPreviewProvider>,
+    );
+    expect(screen.queryByText('Lightning Bolt')).not.toBeInTheDocument();
+
+    act(() => store.openBigPreview(BOLT));
+    expect(screen.getByText('Lightning Bolt')).toBeInTheDocument();
+    expect(screen.getByText('Loading…')).toBeInTheDocument();
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      'https://api.scryfall.com/cards/bolt-id',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+
+    act(() => store.closeBigPreview());
+    expect(screen.queryByText('Lightning Bolt')).not.toBeInTheDocument();
+  });
+});

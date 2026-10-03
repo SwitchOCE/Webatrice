@@ -61,7 +61,7 @@ import LibrarySearchDialog from './LibrarySearchDialog';
 import { useRegisterForeignDrag } from './foreignDragContext';
 import { useSelectionOwner } from './selectionOwner';
 import Card from './Card';
-import { useHoveredCard } from './hoveredCard';
+import { useCardPreviewActions } from '../ui/CardPreviewContext';
 import { useViewportClampedPopup } from './useViewportClampedPopup';
 import ZoneRevealDialog from './ZoneRevealDialog';
 import { useGameDialogActions } from '../ui/GameDialogActionsContext';
@@ -976,7 +976,7 @@ const LargeZoneBox = forwardRef<
         ref,
       ) {
         const draggable = !!onPointerDown;
-        const { setHoveredCard } = useHoveredCard();
+        const { setHoveredCard } = useCardPreviewActions();
         return (
           <div className="flex justify-center">
             <div

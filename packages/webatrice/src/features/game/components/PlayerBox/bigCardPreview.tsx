@@ -1,36 +1,20 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { CardImage, CardRelatedLinks } from '@app/components';
+
+import { useBigPreviewCard, useCardPreviewActions } from '../ui/CardPreviewContext';
 
 import { CARD_CORNER_RADIUS } from './cardSize';
 import { ManaSymbols, SymbolText } from './ManaSymbols';
 
 /**
- * "Big card preview" — Cockatrice's middle-click card zoom. A single
- * shared modal that any card on the board can open by publishing to
- * this context. Renders image + full description text side-by-side.
- *
- * Distinct from `HoveredCardProvider` (which drives the right-rail's
- * always-on hover preview): this is an explicit, click-triggered
- * affordance the user has to open and close. Kept as its own context
- * so the two lifecycles don't clash.
+ * "Big card preview" — Cockatrice's middle-click card zoom: image plus full
+ * description text in one modal above the board. Any card opens it through
+ * `useCardPreviewActions().openBigPreview`; the card lives in the game's
+ * preview store (CardPreviewContext), which also drives the right-rail hover
+ * preview. This component only draws whatever the store holds.
  */
-export interface BigPreviewCard {
-  name: string;
-  scryfallId?: string;
-  /** Optional image override for DFC back faces — mirrors
-   *  HoveredCard.imageUri. See hoveredCard.tsx for rationale. */
-  imageUri?: string;
-}
-
-interface BigCardPreviewContextValue {
-  openBigPreview: (card: BigPreviewCard) => void;
-  closeBigPreview: () => void;
-}
-
-const BigCardPreviewContext = createContext<BigCardPreviewContextValue | null>(null);
-
 /** Scryfall fields the description panel renders. Same shape as the
  *  BattlefieldSidebar's text-mode fetch — kept local so this file can
  *  fetch on its own without cross-file coupling. */
@@ -87,8 +71,9 @@ async function fetchScryfallDetail(
   }
 }
 
-export function BigCardPreviewProvider({ children }: { children: ReactNode }) {
-  const [card, setCard] = useState<BigPreviewCard | null>(null);
+export function BigCardPreview() {
+  const card = useBigPreviewCard();
+  const { openBigPreview } = useCardPreviewActions();
   const [detail, setDetail] = useState<ScryfallDetail | null>(null);
 
   const hoverKey = card ? card.scryfallId ?? `name:${card.name}` : null;
@@ -111,12 +96,7 @@ export function BigCardPreviewProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch only when the card identity (`hoverKey`) changes
   }, [hoverKey]);
 
-  const value: BigCardPreviewContextValue = {
-    openBigPreview: setCard,
-    closeBigPreview: () => setCard(null),
-  };
-
-  // `card.imageUri` wins when set — mirrors HoveredCard.imageUri so
+  // `card.imageUri` wins when set — mirrors PreviewCard.imageUri so
   // DFC back-face art shows correctly in the zoom modal.
   const imageUrl = card
     ? card.imageUri
@@ -149,8 +129,7 @@ export function BigCardPreviewProvider({ children }: { children: ReactNode }) {
   const displayLoyalty = face?.loyalty ?? detail?.loyalty;
 
   return (
-    <BigCardPreviewContext.Provider value={value}>
-      {children}
+    <>
       {card &&
         createPortal(
           // Non-interactive overlay — no dimming, no click handlers.
@@ -248,7 +227,7 @@ export function BigCardPreviewProvider({ children }: { children: ReactNode }) {
                     // rare cases like a token that transforms).
                     parentTypeLine={displayType || detail.type_line}
                     currentFaceName={displayName}
-                    onNavigate={(next) => setCard(next)}
+                    onNavigate={openBigPreview}
                   />
                 )}
               </div>
@@ -256,20 +235,6 @@ export function BigCardPreviewProvider({ children }: { children: ReactNode }) {
           </div>,
           document.body,
         )}
-    </BigCardPreviewContext.Provider>
-  );
-}
-
-/**
- * Read the big-preview open/close functions. Returns no-op handlers
- * when called outside the provider so isolated component previews
- * don't crash.
- */
-export function useBigCardPreview(): BigCardPreviewContextValue {
-  return (
-    useContext(BigCardPreviewContext) ?? {
-      openBigPreview: () => {},
-      closeBigPreview: () => {},
-    }
+    </>
   );
 }

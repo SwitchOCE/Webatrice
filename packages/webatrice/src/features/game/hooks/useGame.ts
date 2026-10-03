@@ -1,8 +1,13 @@
-import { RefObject, useCallback, useMemo, useRef, useState } from 'react';
+import { RefObject, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 
 import { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
+import {
+  createCardPreviewStore,
+  previewCardFromServerCard,
+  type CardPreviewStore,
+} from '../components/ui/CardPreviewContext';
 import { createCardRegistry, type CardRegistry } from '../utils/CardRegistry/CardRegistryContext';
 import { resolveSelectedCards, type SelectedCard } from '../utils/selection';
 import { useCurrentGame, type CurrentGame } from './useCurrentGame';
@@ -22,9 +27,10 @@ export interface Game extends CurrentGame {
   gameRef: RefObject<HTMLDivElement>;
   cardRegistry: CardRegistry;
   sensors: ReturnType<typeof useSensors>;
-  hoveredCard: ServerInfo_Card | null;
+  /** The game's one card-preview owner (hover, keyboard focus, zoom). */
+  previewStore: CardPreviewStore;
+  /** Publishes a structured leaf's hovered server card to the preview store. */
   setHoveredCard: (card: ServerInfo_Card | null) => void;
-  previewCard: ServerInfo_Card | null;
   selectedCardKeys: ReadonlySet<string>;
   selectedCards: readonly SelectedCard[];
   onCardFocus: (ownerPlayerId: number | undefined, zone: string | undefined, card: ServerInfo_Card) => void;
@@ -56,9 +62,17 @@ export function useGame(): Game {
     useSensor(PointerSensor, { activationConstraint: { distance: 0 } }),
     useSensor(KeyboardSensor),
   );
-  const [hoveredCard, setHoveredCard] = useState<ServerInfo_Card | null>(null);
+  const previewStore = useMemo(() => createCardPreviewStore(), []);
+  const setHoveredCard = useCallback(
+    (card: ServerInfo_Card | null) => previewStore.setHoveredCard(previewCardFromServerCard(card)),
+    [previewStore],
+  );
   const selection = useGameSelection();
-  const previewCard = selection.focused?.card ?? hoveredCard;
+  // Keyboard focus wins over hover in the preview pane.
+  const focusedCard = selection.focused?.card;
+  useEffect(() => {
+    previewStore.setFocusedCard(previewCardFromServerCard(focusedCard));
+  }, [previewStore, focusedCard]);
   const selectedCards = useMemo(
     () => (game ? resolveSelectedCards(game, selection.selectedCardKeys) : []),
     [game, selection.selectedCardKeys],
@@ -140,9 +154,8 @@ export function useGame(): Game {
     gameRef,
     cardRegistry,
     sensors,
-    hoveredCard,
+    previewStore,
     setHoveredCard,
-    previewCard,
     selectedCardKeys: selection.selectedCardKeys,
     selectedCards,
     onCardFocus: selection.onCardFocus,
