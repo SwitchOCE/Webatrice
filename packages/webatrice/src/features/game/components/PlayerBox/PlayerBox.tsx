@@ -67,10 +67,10 @@ import {
   CARD_SIDEWAYS_HEIGHT,
   CARD_SIDEWAYS_WIDTH,
   CARD_WIDTH,
-} from './cardSize';
+} from '../ui/SeatCard/cardSize';
 import ContextMenu, { type ContextMenuItem } from './ContextMenu';
 import LibrarySearchDialog from './LibrarySearchDialog';
-import Card from './Card';
+import Card from '../ui/SeatCard/SeatCard';
 import { useCardPreviewActions } from '../ui/CardPreviewContext';
 import { usePublishSeatShortcuts, type SeatShortcutOperations } from '../ui/SeatShortcutsContext';
 import { useSeatSelection, type SeatSelection } from '../../hooks/useSeatSelection';

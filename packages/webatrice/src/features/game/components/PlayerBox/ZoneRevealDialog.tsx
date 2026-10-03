@@ -10,8 +10,8 @@ import { createPortal } from 'react-dom';
 import { setRef } from '@mui/material/utils';
 import { X } from 'lucide-react';
 
-import Card from './Card';
-import { CARD_HEIGHT, CARD_WIDTH } from './cardSize';
+import Card from '../ui/SeatCard/SeatCard';
+import { CARD_HEIGHT, CARD_WIDTH } from '../ui/SeatCard/cardSize';
 
 type HandCard = { id: string; name: string; scryfallId: string };
 
