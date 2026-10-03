@@ -23,6 +23,8 @@ export * from './useJoinGame';
 export * from './useGridRows';
 export * from './useCanOverrideGameRestrictions';
 export * from './useDialogFocus';
+export * from './useDocumentLanguage';
+export * from './useDocumentTitle';
 export * from './useWatchReplay';
 
 export * from './useActionFeed';

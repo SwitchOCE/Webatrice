@@ -7,7 +7,7 @@ import Typography from '@mui/material/Typography';
 
 import { LanguageDropdown } from '@app/components';
 import { DebugLogDialog } from '@app/dialogs';
-import { useVersion } from '@app/hooks';
+import { useDocumentTitle, useVersion } from '@app/hooks';
 import { Images } from '@app/images';
 import { Layout } from '@app/feature-wrappers/layout';
 import { RouteEnum } from '@app/types';
@@ -29,6 +29,7 @@ import './Login.css';
 
 const Login = () => {
   const { t } = useTranslation();
+  useDocumentTitle(t('Login.header.title'));
   const {
     description,
     passwordChangeRequired,

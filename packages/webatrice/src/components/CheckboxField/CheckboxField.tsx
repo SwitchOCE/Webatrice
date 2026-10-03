@@ -53,14 +53,14 @@ const CheckboxField = ({
         <span
           className={[
             'h-4 w-4 rounded border flex items-center justify-center transition-colors',
-            checked ? 'bg-accent border-accent' : 'bg-bg-elevated border-border-strong',
+            checked ? 'bg-accent border-accent' : 'bg-bg-elevated border-border-control',
             !disabled && !checked ? 'peer-hover:border-accent' : '',
             !disabled ? FOCUS_RING_CLASS : '',
           ]
             .filter(Boolean)
             .join(' ')}
         >
-          {checked && <Check size={11} strokeWidth={3} className="text-white" />}
+          {checked && <Check size={11} strokeWidth={3} className="text-on-accent" />}
         </span>
       </span>
       {label != null && <span className="text-sm text-text-secondary">{label}</span>}

@@ -13,7 +13,7 @@ export function createAppTheme(scheme: ColorScheme): Theme {
   return createTheme({
     palette: {
       mode: scheme,
-      primary: { main: palette['accent-primary'] },
+      primary: { main: palette['accent-primary'], contrastText: palette['text-on-accent'] },
       secondary: { main: palette['accent-secondary'] },
       error: { main: palette['status-danger'] },
       success: { main: palette['status-success'] },

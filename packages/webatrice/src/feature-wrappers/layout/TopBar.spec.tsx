@@ -98,6 +98,7 @@ describe('TopBar user menu', () => {
     openMenuAndPick('UserMenu.account');
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.ACCOUNT);
     expect(screen.getByRole('tab', { name: /Account/ })).toHaveAttribute('aria-selected', 'true');
+    expect(document.title).toMatch(/Account · Webatrice$/);
 
     openMenuAndPick('UserMenu.settings');
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SETTINGS);

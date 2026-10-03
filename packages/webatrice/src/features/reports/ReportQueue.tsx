@@ -142,7 +142,7 @@ const ReportQueueContent = () => {
         ) : (
           <p className="text-sm text-text-muted">{t('Reports.thread.selectReport')}</p>
         )}
-        {q.thread.commentFailed && <p role="alert" className="text-sm text-red-400">{t('Reports.thread.commentFailed')}</p>}
+        {q.thread.commentFailed && <p role="alert" className="text-sm text-danger">{t('Reports.thread.commentFailed')}</p>}
 
         <ReportStatsPanel open={q.statsOpen} onToggle={q.setStatsOpen} state={q.statsState} />
       </div>

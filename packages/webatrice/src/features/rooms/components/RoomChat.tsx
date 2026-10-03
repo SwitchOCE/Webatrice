@@ -137,7 +137,7 @@ function RoomChatView({ roomId, roomName, messages, users, onSay }: RoomChatProp
           aria-label={t('RoomChat.input', { room: roomName })}
           className={[
             'flex-1 min-w-0 px-3 py-2 rounded-md bg-bg-base border',
-            'border-border-subtle text-sm text-text-primary',
+            'border-border-control text-sm text-text-primary',
             'placeholder:text-text-muted focus:outline-none',
             'focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
           ].join(' ')}
@@ -146,7 +146,7 @@ function RoomChatView({ roomId, roomName, messages, users, onSay }: RoomChatProp
           type="submit"
           disabled={!draft.trim()}
           className={[
-            'p-2 rounded-md bg-accent text-white hover:bg-accent-hover',
+            'p-2 rounded-md bg-accent text-on-accent hover:bg-accent-hover',
             'disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
           ].join(' ')}
           title="Send"

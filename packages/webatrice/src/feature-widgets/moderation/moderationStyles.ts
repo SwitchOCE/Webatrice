@@ -1,16 +1,16 @@
 // Tailwind class sets shared by the moderation dialogs, matching DialogShell's look.
 
 export const FIELD_CLASS =
-  'w-full px-3 py-2 rounded-md text-sm text-text-primary bg-bg-elevated border border-border-subtle '
-  + 'hover:border-border-strong focus:outline-none focus:ring-1 focus:border-accent focus:ring-accent '
+  'w-full px-3 py-2 rounded-md text-sm text-text-primary bg-bg-elevated border border-border-control '
+  + 'hover:border-text-muted focus:outline-none focus:ring-1 focus:border-accent focus:ring-accent '
   + 'disabled:opacity-60 disabled:cursor-not-allowed';
 
 export const LABEL_CLASS = 'block text-xs font-medium text-text-muted mb-1';
 
-export const ERROR_CLASS = 'text-xs text-red-400';
+export const ERROR_CLASS = 'text-xs text-danger';
 
 export const BUTTON_PRIMARY_CLASS =
-  'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover '
+  'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-on-accent hover:bg-accent-hover '
   + 'shadow-glow transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 
 export const BUTTON_SECONDARY_CLASS =

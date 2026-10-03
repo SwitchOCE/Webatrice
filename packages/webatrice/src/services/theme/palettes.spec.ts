@@ -37,6 +37,19 @@ const SELECTORS: Record<ColorScheme, string> = {
 };
 const SURFACES: PaletteToken[] = ['bg-base', 'bg-surface', 'bg-elevated'];
 
+const SRC = path.resolve(__dirname, '../..');
+
+/** Every .tsx file under `dir`. */
+function sourceFiles(dir: string): string[] {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      return sourceFiles(full);
+    }
+    return entry.name.endsWith('.tsx') && !entry.name.endsWith('.spec.tsx') ? [full] : [];
+  });
+}
+
 describe.each(Object.keys(PALETTES) as ColorScheme[])('the %s palette', (scheme) => {
   const palette: Palette = PALETTES[scheme];
 
@@ -48,26 +61,22 @@ describe.each(Object.keys(PALETTES) as ColorScheme[])('the %s palette', (scheme)
     expect(contrast('#FFFFFF', palette['accent-secondary'])).toBeGreaterThanOrEqual(4.5);
   });
 
-  test('keeps white action labels at AA in DeckEditor and PhaseTrack, including hover', () => {
-    for (const file of [
-      'features/decks/components/editor/DeckBuyButton.tsx',
-      'features/decks/components/editor/DeckCardPreview.tsx',
-      'features/game/components/PhaseTrack/PhaseTrack.tsx',
-    ]) {
-      const source = fs.readFileSync(path.resolve(__dirname, '../..', file), 'utf8');
-      const actions = source.split('\n').filter((line) => line.includes('bg-accent-secondary') && line.includes('text-white'));
-      expect(actions.length).toBeGreaterThan(0);
-      for (const action of actions) {
-        for (const [, secondary, opacity] of action.matchAll(/(?:hover:)?bg-accent(-secondary)?(?:\/(\d+))?(?=\s)/g)) {
-          const background = palette[secondary ? 'accent-secondary' : 'accent-primary'];
-          const alpha = opacity ? Number(opacity) / 100 : 1;
-          for (const surface of SURFACES) {
-            const blended = '#' + [1, 3, 5].map((index) => Math.round(
-              parseInt(background.slice(index, index + 2), 16) * alpha
-              + parseInt(palette[surface].slice(index, index + 2), 16) * (1 - alpha),
-            ).toString(16).padStart(2, '0')).join('');
-            expect(contrast('#FFFFFF', blended), `${file} on ${surface}: ${action.trim()}`).toBeGreaterThanOrEqual(4.5);
-          }
+  test('keeps white labels on secondary actions at AA, including hover', () => {
+    // The deck editor's buy and card-preview actions, the card detail dialog and the phase track's pass button.
+    const actions = sourceFiles(SRC)
+      .flatMap((file) => fs.readFileSync(file, 'utf8').split('\n'))
+      .filter((line) => line.includes('bg-accent-secondary') && line.includes('text-white'));
+    expect(actions.length).toBeGreaterThanOrEqual(3);
+    for (const action of actions) {
+      for (const [, secondary, opacity] of action.matchAll(/(?:hover:)?bg-accent(-secondary)?(?:\/(\d+))?(?=\s)/g)) {
+        const background = palette[secondary ? 'accent-secondary' : 'accent-primary'];
+        const alpha = opacity ? Number(opacity) / 100 : 1;
+        for (const surface of SURFACES) {
+          const blended = '#' + [1, 3, 5].map((index) => Math.round(
+            parseInt(background.slice(index, index + 2), 16) * alpha
+            + parseInt(palette[surface].slice(index, index + 2), 16) * (1 - alpha),
+          ).toString(16).padStart(2, '0')).join('');
+          expect(contrast('#FFFFFF', blended), `on ${surface}: ${action.trim()}`).toBeGreaterThanOrEqual(4.5);
         }
       }
     }
@@ -93,6 +102,23 @@ describe.each(Object.keys(PALETTES) as ColorScheme[])('the %s palette', (scheme)
 
   test.each(SURFACES)('keeps disabled text at least 3:1 on %s', (surface) => {
     expect(contrast(palette['text-disabled'], palette[surface])).toBeGreaterThanOrEqual(3);
+  });
+
+  test.each(['accent-primary', 'accent-primary-hover'] as PaletteToken[])(
+    'keeps text on the %s fill (primary buttons) at AA contrast',
+    (fill) => {
+      expect(contrast(palette['text-on-accent'], palette[fill])).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+
+  test.each(SURFACES)('keeps form-control edges at the 3:1 non-text minimum on %s (WCAG 1.4.11)', (surface) => {
+    expect(contrast(palette['border-control'], palette[surface])).toBeGreaterThanOrEqual(3);
+  });
+
+  test('keeps the danger colour readable as error text on every surface', () => {
+    for (const surface of SURFACES) {
+      expect(contrast(palette['status-danger'], palette[surface]), surface).toBeGreaterThanOrEqual(4.5);
+    }
   });
 });
 

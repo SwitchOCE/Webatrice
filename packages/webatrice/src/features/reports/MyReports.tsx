@@ -47,7 +47,7 @@ const MyReportsContent = () => {
             ) : (
               <p className="text-sm text-text-muted">{t('Reports.thread.selectReport')}</p>
             )}
-            {thread.commentFailed && <p role="alert" className="mt-2 text-sm text-red-400">{t('Reports.thread.commentFailed')}</p>}
+            {thread.commentFailed && <p role="alert" className="mt-2 text-sm text-danger">{t('Reports.thread.commentFailed')}</p>}
           </section>
         </div>
       </div>

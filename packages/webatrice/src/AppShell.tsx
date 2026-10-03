@@ -6,7 +6,7 @@ import './AppShell.css';
 
 import { GameLinkJoinHost, RouteErrorBoundary, ToastProvider } from '@app/components';
 import { ReportUserProvider } from '@app/dialogs';
-import { useAdminLockSession, useApplyLanguagePreference, useSyncLocaleToStore } from '@app/hooks';
+import { useAdminLockSession, useApplyLanguagePreference, useDocumentLanguage, useSyncLocaleToStore } from '@app/hooks';
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 import { ModerationProvider } from '@app/feature-widgets/moderation';
 import { UserGamesProvider } from '@app/feature-widgets/user-games';
@@ -27,6 +27,7 @@ function AppShell() {
   usePlaymatSync();
   useSyncLocaleToStore();
   useAdminLockSession();
+  useDocumentLanguage();
   useApplyLanguagePreference();
   const liveServer = useLiveServerEndpoint();
 

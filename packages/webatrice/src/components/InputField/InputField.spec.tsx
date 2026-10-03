@@ -22,6 +22,18 @@ describe('InputField', () => {
     expect(screen.getByText('Required')).toBeInTheDocument();
   });
 
+  it('names the input by its label and ties a shown error to it', () => {
+    const { rerender } = render(<InputField {...defaultProps} />);
+    const input = screen.getByRole('textbox', { name: 'Test Field' });
+    expect(input).not.toHaveAttribute('aria-invalid');
+
+    rerender(<InputField {...defaultProps} touched error="Required" />);
+
+    expect(screen.getByRole('textbox', { name: 'Test Field' })).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAccessibleDescription('Required');
+    expect(screen.getByRole('alert')).toHaveTextContent('Required');
+  });
+
   it('does not show validation messages when not touched', () => {
     render(<InputField {...defaultProps} touched={false} error="Required" />);
     expect(screen.queryByText('Required')).not.toBeInTheDocument();
@@ -87,8 +99,9 @@ describe('InputField', () => {
     // No error → no AlertCircle icon rendered anywhere in the field.
     expect(screen.queryByText('Required')).toBeNull();
     // The AlertCircle is the only svg the field renders when errored.
-    const label = screen.getByRole('textbox').closest('label');
-    expect(label?.querySelector('svg')).toBeNull();
+    const field = screen.getByRole('textbox').parentElement;
+    expect(field?.querySelector('svg')).toBeNull();
+    expect(screen.getByRole('textbox')).not.toHaveAttribute('aria-invalid');
   });
 
   it('forwards focus/blur callbacks to the underlying input', () => {

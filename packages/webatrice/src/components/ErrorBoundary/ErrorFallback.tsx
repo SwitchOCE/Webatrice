@@ -30,7 +30,7 @@ export default function ErrorFallback({ title, message, retryLabel, onRetry }: E
         <button
           type="button"
           onClick={onRetry}
-          className="px-4 py-2 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover transition-colors"
+          className="px-4 py-2 rounded-md text-sm font-semibold bg-accent text-on-accent hover:bg-accent-hover transition-colors"
         >
           {retryLabel}
         </button>
