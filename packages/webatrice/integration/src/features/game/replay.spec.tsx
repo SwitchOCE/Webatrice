@@ -5,8 +5,9 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { WebClient } from '@cockatrice/sockatrice';
 import { GameReplay } from '@app/features/game';
-import { getOpenedReplay, openReplay, parseReplay } from '@app/services';
+import { closeReplay, getOpenedReplays, getOpenedReplay, openReplay, parseReplay } from '@app/services';
 import { RouteEnum } from '@app/types';
 
 import { renderFeatureScreen, store } from '../helpers';
@@ -25,7 +26,7 @@ function gameOf(gameId: number) {
 
 function renderReplay() {
   const replay = parseReplay(new Uint8Array(readFileSync(FIXTURE)));
-  const replayKey = openReplay(replay, 'two-player-game.cor');
+  const replayKey = openReplay(replay, 'two-player-game.cor', WebClient.instance);
   const { gameId } = getOpenedReplay(replayKey)!;
   renderFeatureScreen(
     <Routes>
@@ -45,6 +46,7 @@ describe('replay playback of a recorded game', () => {
   });
 
   afterEach(() => {
+    getOpenedReplays().forEach(({ key }) => closeReplay(key));
     vi.useRealTimers();
   });
 

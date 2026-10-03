@@ -13,9 +13,9 @@ import { server, rooms, games } from '@cockatrice/datatrice';
 import type { ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
 import { useAppSelector } from '@app/store';
 import { useWebClient } from '@cockatrice/datatrice/react';
-import { useLeaveGame, usePhaseTrackPinnedSetting, useSnapGridSetting } from '@app/hooks';
+import { useLeaveGame, useOpenedReplays, usePhaseTrackPinnedSetting, useSnapGridSetting } from '@app/hooks';
 import { Images } from '@app/images';
-import { closeReplay, getOpenedReplay } from '@app/services';
+import { closeReplay } from '@app/services';
 import { RouteEnum } from '@app/types';
 import { CardImportDialog } from '@app/feature-widgets/card-import';
 
@@ -91,6 +91,7 @@ export default function TopBar() {
   const isServerUnresponsive = useAppSelector(server.Selectors.getIsServerUnresponsive);
   const joinedRooms = useAppSelector(rooms.Selectors.getJoinedRooms);
   const activeGames = useAppSelector(games.Selectors.getActiveGames);
+  const openedReplays = useOpenedReplays();
   const backendDecks = useAppSelector(server.Selectors.getBackendDecks);
   const [snapGridVisible, setSnapGridVisible] = useSnapGridSetting();
   const [phaseTrackPinned, setPhaseTrackPinned] = usePhaseTrackPinnedSetting();
@@ -274,6 +275,18 @@ export default function TopBar() {
       });
     }
 
+    // Replay tabs live until "Close replay", like desktop's replay TabGames.
+    for (const replay of openedReplays) {
+      list.push({
+        key: `replay:${replay.key}`,
+        type: 'replay',
+        title: replay.title,
+        route: generatePath(RouteEnum.REPLAY, { replayKey: replay.key }),
+        closeable: true,
+        onClose: () => closeReplay(replay.key),
+      });
+    }
+
     // Sticky tabs (Decks list + open deck editor). Enrich the deck
     // editor's title with its actual name if backendDecks has loaded.
     for (const sticky of stickyTabs) {
@@ -300,7 +313,7 @@ export default function TopBar() {
     }
 
     return list;
-  }, [joinedRooms, activeGames, location.pathname, webClient, leaveGameRequest, stickyTabs, deckIdToName]);
+  }, [joinedRooms, activeGames, openedReplays, location.pathname, webClient, leaveGameRequest, stickyTabs, deckIdToName]);
 
   const activeKey = useMemo(() => {
     const match = tabs.find((t) => routeMatches(location.pathname, t.route));
@@ -668,18 +681,12 @@ function detectTransientTab(pathname: string): Tab | null {
   if (matchPath({ path: RouteEnum.REPLAYS, end: true }, pathname)) {
     return { key: 'replays', type: 'replays', title: 'Replays', route: pathname, closeable: true };
   }
+  // An open replay already has its own tab; this only covers a replay key that
+  // no longer resolves (e.g. after a reload), whose view explains it is gone.
   const replayMatch = matchPath({ path: RouteEnum.REPLAY, end: true }, pathname);
   if (replayMatch) {
     const replayKey = replayMatch.params.replayKey ?? '';
-    const title = getOpenedReplay(replayKey)?.title ?? 'Replay';
-    return {
-      key: `replay:${replayKey}`,
-      type: 'replay',
-      title,
-      route: pathname,
-      closeable: true,
-      onClose: () => closeReplay(replayKey),
-    };
+    return { key: `replay:${replayKey}`, type: 'replay', title: 'Replay', route: pathname, closeable: true };
   }
   return null;
 }

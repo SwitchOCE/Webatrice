@@ -1,9 +1,10 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { generatePath, Link, useNavigate, useParams } from 'react-router-dom';
 
 import { Layout } from '@app/feature-wrappers/layout';
-import { closeReplay, getOpenedReplay } from '@app/services';
+import { useOpenedReplays } from '@app/hooks';
+import { closeReplay, type OpenedReplay } from '@app/services';
 import { RouteEnum } from '@app/types';
 
 import { GameBoard } from '../Game';
@@ -13,22 +14,13 @@ import { useReplayPlayback } from './useReplayPlayback';
 
 /**
  * Replay route: desktop's TabGame in replay mode. Renders the regular game board
- * read-only over the replay's local game, with the replay dock underneath.
+ * read-only over the replay's local game, with the replay dock underneath. The
+ * replay stays open (and its tab in the top bar) until the user closes it.
  */
 function GameReplay() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { replayKey } = useParams<{ replayKey: string }>();
-  const opened = useMemo(() => getOpenedReplay(replayKey), [replayKey]);
-  const playback = useReplayPlayback(opened);
-
-  // Desktop relabels "Leave game" to "Close replay" in replay mode.
-  const closeReplayTab = useCallback(() => {
-    if (opened) {
-      closeReplay(opened.key);
-    }
-    navigate(generatePath(RouteEnum.REPLAYS));
-  }, [opened, navigate]);
+  const opened = useOpenedReplays().find((replay) => replay.key === replayKey);
 
   if (!opened) {
     return (
@@ -40,6 +32,20 @@ function GameReplay() {
       </Layout>
     );
   }
+
+  // Keyed so switching between two replay tabs starts from the other replay's own state.
+  return <ReplayView key={opened.key} opened={opened} />;
+}
+
+function ReplayView({ opened }: { opened: OpenedReplay }) {
+  const navigate = useNavigate();
+  const playback = useReplayPlayback(opened);
+
+  // Desktop relabels "Leave game" to "Close replay" in replay mode.
+  const closeReplayTab = useCallback(() => {
+    navigate(generatePath(RouteEnum.REPLAYS));
+    closeReplay(opened.key);
+  }, [opened, navigate]);
 
   return (
     <GameReadOnlyProvider value>

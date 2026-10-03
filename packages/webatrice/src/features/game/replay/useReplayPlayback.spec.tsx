@@ -7,63 +7,62 @@ import { games, type GamesState } from '@cockatrice/datatrice';
 import { WebClientContext } from '@cockatrice/datatrice/react';
 import type { WebClient } from '@cockatrice/sockatrice';
 import { createMockWebClient } from '../../../__test-utils__';
-import type { OpenedReplay } from '@app/services';
+import { closeReplay, getOpenedReplay, getOpenedReplays, openReplay, type OpenedReplay } from '@app/services';
 import { buildReplay, sayContainer } from '../../../services/replay/__mocks__/fixtures';
 
 import { useReplayPlayback } from './useReplayPlayback';
-
-const GAME_ID = -1001;
 
 function setup(opened: OpenedReplay | undefined) {
   const store = configureStore({
     reducer: { games: games.gamesReducer },
     preloadedState: { games: { games: {}, pings: {} } as GamesState },
   });
-  const webClient = createMockWebClient();
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <Provider store={store}>
-        <WebClientContext.Provider value={webClient as WebClient}>{children}</WebClientContext.Provider>
+        <WebClientContext.Provider value={createMockWebClient() as WebClient}>{children}</WebClientContext.Provider>
       </Provider>
     );
   }
   const hook = renderHook(() => useReplayPlayback(opened), { wrapper: Wrapper });
-  return { ...hook, store, webClient };
+  return { ...hook, store };
 }
 
-function opened(): OpenedReplay {
-  return {
-    key: '1',
-    gameId: GAME_ID,
-    title: 'fixture.cor',
-    replay: buildReplay([sayContainer(0, 'first'), sayContainer(1, 'second'), sayContainer(3, 'third')]),
-  };
+function open() {
+  const webClient = createMockWebClient();
+  const replay = buildReplay([sayContainer(0, 'first'), sayContainer(1, 'second'), sayContainer(3, 'third')]);
+  const opened = getOpenedReplay(openReplay(replay, 'fixture.cor', webClient))!;
+  return { opened, webClient };
 }
 
 beforeEach(() => {
   vi.useFakeTimers();
 });
 
+afterEach(() => {
+  getOpenedReplays().forEach(({ key }) => closeReplay(key));
+  vi.useRealTimers();
+});
+
 describe('useReplayPlayback', () => {
-  it('loads the replay game through the web client and unloads it on unmount', () => {
-    const replay = opened();
-    const { webClient, unmount, result } = setup(replay);
+  it('shows the opened replay at its start', () => {
+    const { opened } = open();
+    const { result } = setup(opened);
 
-    expect(webClient.loadReplayGame).toHaveBeenCalledWith(GAME_ID, replay.replay.gameInfo);
     expect(result.current.state).toMatchObject({ currentTime: 0, maxTime: 3000, totalEvents: 3 });
-
-    unmount();
-    expect(webClient.unloadReplayGame).toHaveBeenCalledWith(GAME_ID);
+    expect(result.current.timeline).toBe(opened.engine.timeline);
   });
 
-  it('never dispatches into the games slice itself', () => {
-    const { store } = setup(opened());
+  it('never writes into the games slice itself', () => {
+    const { opened } = open();
+    const { store } = setup(opened);
     // Only Datatrice's GameResponseImpl creates the game, behind the web client.
     expect(store.getState().games.games).toEqual({});
   });
 
   it('feeds recorded containers to the replay game through the web client while playing', () => {
-    const { result, webClient } = setup(opened());
+    const { opened, webClient } = open();
+    const { result } = setup(opened);
 
     act(() => result.current.togglePlay());
     act(() => {
@@ -71,16 +70,31 @@ describe('useReplayPlayback', () => {
     });
 
     const feed = vi.mocked(webClient.replayGameEventContainer);
-    expect(feed).toHaveBeenCalledTimes(2);
     expect(feed.mock.calls.map(([container, gameId]) => [container.secondsElapsed, gameId])).toEqual([
-      [0, GAME_ID],
-      [1, GAME_ID],
+      [0, opened.gameId],
+      [1, opened.gameId],
     ]);
     expect(result.current.state.playing).toBe(true);
   });
 
+  it('keeps the replay and its position when the view unmounts, and resumes there', () => {
+    const { opened, webClient } = open();
+    const first = setup(opened);
+    act(() => first.result.current.seek(1000));
+    act(() => first.result.current.toggleFastForward());
+
+    first.unmount();
+    expect(webClient.unloadReplayGame).not.toHaveBeenCalled();
+
+    const second = setup(opened);
+    expect(second.result.current.state.currentTime).toBe(1000);
+    expect(second.result.current.fastForward).toBe(true);
+    expect(second.result.current.state.timeScaleFactor).toBe(10);
+  });
+
   it('seeking backwards reloads the game before replaying up to the target', () => {
-    const { result, webClient } = setup(opened());
+    const { opened, webClient } = open();
+    const { result } = setup(opened);
     act(() => result.current.seek(3000));
     expect(webClient.loadReplayGame).toHaveBeenCalledTimes(1);
 
@@ -91,7 +105,7 @@ describe('useReplayPlayback', () => {
   });
 
   it('fast forward speeds the clock up by the configured factor', () => {
-    const { result } = setup(opened());
+    const { result } = setup(open().opened);
 
     act(() => result.current.toggleFastForward());
 
@@ -100,10 +114,9 @@ describe('useReplayPlayback', () => {
   });
 
   it('is idle without an opened replay', () => {
-    const { result, webClient } = setup(undefined);
+    const { result } = setup(undefined);
 
     expect(result.current.state).toMatchObject({ maxTime: 0, playing: false });
     expect(result.current.timeline).toEqual([]);
-    expect(webClient.loadReplayGame).not.toHaveBeenCalled();
   });
 });
