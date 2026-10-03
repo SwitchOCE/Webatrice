@@ -12,7 +12,7 @@ export enum Stores {
   // dedicated table (rather than folded into `cards`) because the
   // `cards` table is Cockatrice-XML-shaped and squeezing Scryfall
   // records in is lossy — see the note in
-  // services/cards/cardCatalog.ts (header comment). This is the "dedicated
+  // services/cards/catalog/lookup.ts (header comment). This is the "dedicated
   // deckCardCache table" that same note anticipated. Also stores
   // related-card/token refs (from Scryfall `all_parts`) that back
   // the card context menu's "Token: …" items.

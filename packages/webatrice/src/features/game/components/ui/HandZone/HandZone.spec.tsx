@@ -2,11 +2,11 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
-import { lookupCard } from '../../../../../services/cards/cardCatalog';
+import { lookupCard } from '../../../../../services/cards/catalog/lookup';
 import { cardEl, menuLabels, openContextMenu, renderSeatCell, type SeatGameSpec } from '../../../__test-utils__/seatFixtures';
 import { CARD_BACK_URL } from '../SeatCard/cardSize';
 
-vi.mock('../../../../../services/cards/cardCatalog', async () =>
+vi.mock('../../../../../services/cards/catalog/lookup', async () =>
   (await import('../../../__test-utils__/unknownCardCatalog')).unknownCardCatalog());
 
 const FOREST = makeCard({ id: 30, name: 'Forest' });

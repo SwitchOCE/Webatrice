@@ -19,11 +19,11 @@ import {
   pileEl,
 } from './__test-utils__/seatFixtures';
 import Game from './Game';
-import { lookupCardsCached } from '../../services/cards/cardCatalog';
+import { lookupCardsCached } from '../../services/cards/catalog/lookup';
 
 vi.mock('../../hooks/useSettings');
 
-vi.mock('../../services/cards/cardCatalog', () => {
+vi.mock('../../services/cards/catalog/lookup', () => {
   const unknown = (name: string) => ({ found: false, source: 'unknown', name, printings: [] });
   return {
     lookupCard: vi.fn(async (name: string) => unknown(name)),

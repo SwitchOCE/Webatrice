@@ -1,9 +1,9 @@
 import type { Mock } from 'vitest';
 
-import { dexieService } from '../dexie';
-import { fetchAllPrintings, lookupCard, lookupCards, lookupCardsCached } from './cardCatalog';
+import { dexieService } from '../../dexie';
+import { fetchAllPrintings, lookupCard, lookupCards, lookupCardsCached } from './lookup';
 
-vi.mock('../dexie', () => ({
+vi.mock('../../dexie', () => ({
   dexieService: {
     cards: { get: vi.fn(), bulkGet: vi.fn() },
     scryfallCache: { get: vi.fn(), bulkGet: vi.fn(), put: vi.fn(), bulkPut: vi.fn() },

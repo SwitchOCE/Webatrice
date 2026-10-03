@@ -12,7 +12,7 @@ import {
   type SeatGameSpec,
 } from '../../../__test-utils__/seatFixtures';
 
-vi.mock('../../../../../services/cards/cardCatalog', async () =>
+vi.mock('../../../../../services/cards/catalog/lookup', async () =>
   (await import('../../../__test-utils__/unknownCardCatalog')).unknownCardCatalog());
 
 const BOLT = makeCard({ id: 10, name: 'Bolt', x: 3, y: 1 });

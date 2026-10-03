@@ -14,7 +14,7 @@ import { GameSelectionProvider } from '../../components/ui/GameSelectionContext'
 import type { ZoneViewTarget } from '../../hooks/dialogs/gameDialogs.types';
 import ZoneViewDialog from './ZoneViewDialog';
 
-vi.mock('../../../../services/cards/cardCatalog', () => ({
+vi.mock('../../../../services/cards/catalog/lookup', () => ({
   lookupCardsCached: vi.fn(async (names: string[]) =>
     new Map(names.map((name) => [name, { found: false, source: 'unknown', name, printings: [] }]))),
 }));

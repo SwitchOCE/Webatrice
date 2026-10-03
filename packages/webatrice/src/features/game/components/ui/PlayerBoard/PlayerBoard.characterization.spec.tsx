@@ -36,7 +36,7 @@ vi.mock('../../../../../hooks/useSettings');
 
 // Card metadata is looked up from Dexie/Scryfall; keep it off the network and
 // deterministic (every card resolves as unknown, which is the render fallback).
-vi.mock('../../../../../services/cards/cardCatalog', () => {
+vi.mock('../../../../../services/cards/catalog/lookup', () => {
   const unknown = (name: string) => ({ found: false, source: 'unknown', name, printings: [] });
   return {
     lookupCard: vi.fn(async (name: string) => unknown(name)),

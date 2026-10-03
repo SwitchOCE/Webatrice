@@ -2,7 +2,7 @@ import { fireEvent, screen } from '@testing-library/react';
 
 import { LIFE_COUNTER_ID, MANA_COUNTER_IDS, renderSeatCell, type SeatGameSpec } from '../../../__test-utils__/seatFixtures';
 
-vi.mock('../../../../../services/cards/cardCatalog', async () =>
+vi.mock('../../../../../services/cards/catalog/lookup', async () =>
   (await import('../../../__test-utils__/unknownCardCatalog')).unknownCardCatalog());
 
 const SPEC: SeatGameSpec = {
