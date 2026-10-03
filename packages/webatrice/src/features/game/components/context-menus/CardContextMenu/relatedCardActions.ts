@@ -112,7 +112,8 @@ export function buildTransformItems(
   parentName: string,
   onCreateToken: CreateTokenHandler | undefined,
 ): CardMenuItem[] {
-  if (!parentMeta || !sourceCardId || !onCreateToken) {
+  // Servatrice numbers cards from 0 (server_player.cpp newCardId), so 0 is a real id.
+  if (!parentMeta || sourceCardId == null || !onCreateToken) {
     return [];
   }
   if (!parentMeta.layout || !TRANSFORMABLE_LAYOUTS.has(parentMeta.layout)) {
