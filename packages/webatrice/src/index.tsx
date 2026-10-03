@@ -8,13 +8,23 @@ import { StyledEngineProvider } from '@mui/material';
 import { DatatriceProvider, WebClientProvider } from '@cockatrice/datatrice/react';
 import { extensions } from '@app/store';
 import { AppThemeProvider } from '@app/components';
-import { bootColorScheme, initAnalytics } from '@app/services';
+import { bootColorScheme, debugLog, initAnalytics, installConsoleCapture } from '@app/services';
 import { CLIENT_CONFIG, CLIENT_OPTIONS } from './clientConfig';
 import AppShell from './AppShell';
 import CardPreviewPopupPage from './features/game/components/CardPreviewPopup/CardPreviewPopupPage';
 
 import './i18n';
 import './index.css';
+
+// Keep the client log for "View debug log" from here on. The console still prints everything.
+installConsoleCapture();
+// Desktop's Logger opens with the client version, system and locale (logger.cpp).
+debugLog.setHeader([
+  `Client: ${CLIENT_CONFIG.clientid} ${CLIENT_CONFIG.clientver}`,
+  `Browser: ${navigator.userAgent}`,
+  `Locale: ${navigator.language}`,
+  '-'.repeat(75),
+]);
 
 // CssBaseline is gone, so MUI no longer dictates global CSS. MUI's
 // ThemeProvider is back only inside AppThemeProvider, to keep the colours
