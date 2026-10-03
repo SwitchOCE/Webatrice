@@ -3,9 +3,7 @@ import { memo, useMemo } from 'react';
 import { cx } from '@app/utils';
 
 import { BoardCell } from '../../../hooks/useGameBoardLayout';
-import { getPickedMockDeck } from '../../../mockDeckStore';
 import PlayerBox from '../../PlayerBox/PlayerBox';
-import type { DeckCard } from '../../PlayerBox/mockTypes';
 import { BoardCellProvider } from '../BoardCellContext';
 import { useOpenDeckInEditor } from './useOpenDeckInEditor';
 import { usePlayerBoxCommandProps, usePlayerBoxSeatProps } from './usePlayerBoxProps';
@@ -26,88 +24,6 @@ export interface GameBoardCellProps {
    *  off). */
   totalPlayers: number;
 }
-
-// Mock deck — enough cards to fill a Commander library so the
-// PlayerBox's zone counts / draw animation / library search look
-// real. Every entry uses a Scryfall id we know resolves.
-const MOCK_DECK: DeckCard[] = [
-  // Commander
-  {
-    id: 'cmd-1',
-    card_scryfall_id: '89ef7247-9c56-4ce0-a3f9-9e7a5b0e6e97',
-    name: 'Animar, Soul of Elements',
-    mana_cost: '{U}{B}{G}{R}',
-    type_line: 'Legendary Creature — Elemental',
-    cmc: 4,
-    colors: ['U', 'R', 'G'],
-    set: null,
-    collector_number: null,
-    power: '1',
-    toughness: '1',
-    quantity: 1,
-    category: 'main',
-  },
-  // Main deck fillers — Scryfall resolves all these by name too, so
-  // even bad/missing ids fall back gracefully.
-  ...[
-    'Sol Ring',
-    'Arcane Signet',
-    'Command Tower',
-    'Cultivate',
-    'Kodama\'s Reach',
-    'Rhystic Study',
-    'Mystic Remora',
-    'Counterspell',
-    'Swords to Plowshares',
-    'Lightning Bolt',
-    'Brainstorm',
-    'Ponder',
-    'Sensei\'s Divining Top',
-    'Path to Exile',
-    'Cyclonic Rift',
-    'Beast Whisperer',
-    'Eternal Witness',
-    'Birds of Paradise',
-    'Elvish Mystic',
-    'Llanowar Elves',
-    'Forest',
-    'Island',
-    'Mountain',
-    'Steam Vents',
-    'Stomping Ground',
-    'Breeding Pool',
-    'Wooded Foothills',
-    'Scalding Tarn',
-    'Misty Rainforest',
-    'Yavimaya Coast',
-    'Sulfur Falls',
-    'Rootbound Crag',
-    'Shivan Reef',
-    'Prismatic Vista',
-    'Chromatic Orrery',
-    'Panharmonicon',
-    'Deadeye Navigator',
-    'Peregrine Drake',
-    'Cloud of Faeries',
-    'Fblthp, the Lost',
-  ].map(
-    (name, i): DeckCard => ({
-      id: `main-${i}`,
-      card_scryfall_id: `mock-${i}`,
-      name,
-      mana_cost: null,
-      type_line: null,
-      cmc: null,
-      colors: [],
-      set: null,
-      collector_number: null,
-      power: null,
-      toughness: null,
-      quantity: 1,
-      category: 'main',
-    }),
-  ),
-];
 
 /**
  * One seat in the adaptive board grid: composes the seat model
@@ -131,11 +47,6 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
   const seatProps = usePlayerBoxSeatProps(model);
   const commandProps = usePlayerBoxCommandProps({ zone, card, counter, target }, model.counters.life);
 
-  // Card metadata for PlayerBox's library search and play heuristics still
-  // comes from the lobby-picked deck (dev tool) or MOCK_DECK; Phase 8 replaces
-  // it with the card catalog.
-  const cards = useMemo<DeckCard[]>(() => getPickedMockDeck() ?? MOCK_DECK, []);
-
   return (
     <div
       className={cx('game__board-cell', { 'game__board-cell--mirrored': cell.mirrored })}
@@ -145,7 +56,6 @@ function GameBoardCell({ cell, totalPlayers }: GameBoardCellProps) {
         <PlayerBox
           {...seatProps}
           {...commandProps}
-          cards={cards}
           onOpenDeckInEditor={onOpenDeckInEditor}
         />
       </BoardCellProvider>

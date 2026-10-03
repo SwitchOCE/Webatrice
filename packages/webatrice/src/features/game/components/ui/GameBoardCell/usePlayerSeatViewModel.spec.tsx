@@ -171,6 +171,23 @@ describe('usePlayerSeatViewModel', () => {
     });
   });
 
+  it('projects the loaded deck list, sideboard included, and nothing when it does not parse', () => {
+    const deckList = '<?xml version="1.0"?><cockatrice_deck version="1"><deckname>Burn</deckname>'
+      + '<zone name="main"><card number="4" name="Lightning Bolt" uuid="bolt-uuid"/><card number="20" name="Mountain"/></zone>'
+      + '<zone name="side"><card number="2" name="Smash to Smithereens"/></zone></cockatrice_deck>';
+    const withDeck = (list: string) => (state: ReturnType<typeof buildSeatGameState>) => {
+      state.games.games[1].players[1].deckList = list;
+    };
+    expect(renderModel(OWN, { mutate: withDeck(deckList) }).model().deck).toEqual([
+      { name: 'Lightning Bolt', scryfallId: 'bolt-uuid', sideboard: false },
+      { name: 'Mountain', scryfallId: '', sideboard: false },
+      { name: 'Smash to Smithereens', scryfallId: '', sideboard: true },
+    ]);
+    expect(renderModel(OWN, { mutate: withDeck('not a deck') }).model().deck).toEqual([]);
+    // Servatrice sends the list to its owner only; other seats hold none.
+    expect(renderModel(OPP).model().deck).toEqual([]);
+  });
+
   it('is empty without an active game', () => {
     const { seat, zones } = renderModel(OWN, { gameId: undefined }).model();
     expect(seat).toMatchObject({ hydrated: false, displayName: 'You', revealTargets: [] });

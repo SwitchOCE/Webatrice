@@ -67,6 +67,7 @@ export function usePlayerBoxSeatProps(model: PlayerBoardModel) {
     manaCounters: counters.mana,
     drawSeq: seat.drawSeq,
     lastDrawCount: seat.lastDrawCount,
+    deckCards: model.deck,
   } satisfies Partial<PlayerBoxProps>;
 }
 

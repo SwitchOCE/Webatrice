@@ -2,12 +2,12 @@ import { deckCardImageUrl } from './deckCardImageUrl';
 
 describe('deckCardImageUrl', () => {
   it('uses the Scryfall id when the deck row has one', () => {
-    expect(deckCardImageUrl({ card_scryfall_id: 'a1b2', name: 'Forest' }))
+    expect(deckCardImageUrl({ scryfallId: 'a1b2', name: 'Forest' }))
       .toBe('https://api.scryfall.com/cards/a1b2?format=image&version=large');
   });
 
   it('falls back to the exact name instead of requesting /cards/ with no id', () => {
-    expect(deckCardImageUrl({ card_scryfall_id: '', name: 'Llanowar Elves' }))
+    expect(deckCardImageUrl({ scryfallId: '', name: 'Llanowar Elves' }))
       .toBe('https://api.scryfall.com/cards/named?exact=Llanowar%20Elves&format=image&version=large');
   });
 });
