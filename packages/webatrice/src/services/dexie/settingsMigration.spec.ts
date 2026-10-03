@@ -45,7 +45,7 @@ describe('migrateSetting', () => {
     const a = migrateSetting({ user: 'a' });
     const b = migrateSetting({ user: 'b' });
 
-    a.messageMacros.push('hello');
+    (a.messageMacros as string[]).push('hello');
 
     expect(b.messageMacros).toEqual([]);
     expect(PREFERENCE_DEFAULTS.messageMacros).toEqual([]);
@@ -57,5 +57,16 @@ describe('fillPreferenceDefaults', () => {
     const row: Record<string, unknown> = {};
     fillPreferenceDefaults(row);
     expect(Object.keys(row).sort()).toEqual(Object.keys(PREFERENCE_DEFAULTS).sort());
+  });
+
+  it('replaces null and wrongly typed values with the default, keeping well-typed ones', () => {
+    const row: Record<string, unknown> = { messageMacros: null, masterVolume: '50', soundTheme: 'Legacy', chatMention: 0 };
+    fillPreferenceDefaults(row);
+    expect(row).toMatchObject({
+      messageMacros: [],
+      masterVolume: PREFERENCE_DEFAULTS.masterVolume,
+      soundTheme: 'Legacy',
+      chatMention: PREFERENCE_DEFAULTS.chatMention,
+    });
   });
 });
