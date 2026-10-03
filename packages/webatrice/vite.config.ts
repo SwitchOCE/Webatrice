@@ -114,6 +114,13 @@ export default defineConfig({
         // deploys. Order matters: more specific matches come first (e.g.
         // react-i18next is matched by i18n before the generic react bucket).
         manualChunks(id) {
+          // The entry (src/index.tsx) imports only this helper for its dynamic
+          // import of ./boot. Left to the bundler it lands in a vendor chunk,
+          // and the entry would then fetch vendor code before the preflight
+          // result is even read.
+          if (id.includes('vite/preload-helper')) {
+            return 'preload-helper';
+          }
           if (!id.includes('node_modules')) {
             return undefined;
           }
