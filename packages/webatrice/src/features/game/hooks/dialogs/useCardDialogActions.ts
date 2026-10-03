@@ -5,13 +5,14 @@ import { useCallback, useMemo } from 'react';
 import { COUNTER_TYPE_LABELS } from '../../components/ui/CardSlot/counterColors';
 import { effectiveTargets, type SelectedCard } from '../../utils/selection';
 import { playCardViaTableRow } from '../playCard';
-import type { CardMenuState, GameDialogsActions, StartPendingSource } from './gameDialogs.types';
+import type { CardMenuState, GameDialogsActions, SeatCardMenuState, StartPendingSource } from './gameDialogs.types';
 import type { GameDialogEnv } from './gameDialogEnv';
 import type { GameDialogSetters } from './useGameDialogState';
 
 export type CardDialogActions = Pick<
   GameDialogsActions,
   | 'handleCardContextMenu'
+  | 'openSeatCardMenu'
   | 'handleRequestSetPT'
   | 'handleRequestSetAnnotation'
   | 'handleRequestSetCardCounter'
@@ -24,7 +25,7 @@ export type CardDialogActions = Pick<
 export interface UseCardDialogActionsArgs {
   env: GameDialogEnv;
   cardMenu: CardMenuState | null;
-  set: Pick<GameDialogSetters, 'setCardMenu' | 'setPrompt'>;
+  set: Pick<GameDialogSetters, 'setCardMenu' | 'setSeatCardMenu' | 'setPrompt'>;
   closeAllContextMenus: () => void;
   invertVerticalCoordinate: boolean;
   startPendingArrow: (source: StartPendingSource) => void;
@@ -50,7 +51,7 @@ export function useCardDialogActions({
   getSelectedCards,
 }: UseCardDialogActionsArgs): CardDialogActions {
   const { gameId, webClient, readGame, judgeTarget } = env;
-  const { setCardMenu, setPrompt } = set;
+  const { setCardMenu, setSeatCardMenu, setPrompt } = set;
 
   const handleCardContextMenu = useCallback(
     (
@@ -75,6 +76,11 @@ export function useCardDialogActions({
     },
     [closeAllContextMenus, collapseUnlessSelected, setCardMenu],
   );
+
+  const openSeatCardMenu = useCallback((menu: SeatCardMenuState) => {
+    closeAllContextMenus();
+    setSeatCardMenu(menu);
+  }, [closeAllContextMenus, setSeatCardMenu]);
 
   // The cards a card-menu bulk action targets: the whole selection when the
   // menu's card is part of a ≥2 selection, else just that card (n=1 = today's
@@ -223,6 +229,7 @@ export function useCardDialogActions({
   return useMemo(
     () => ({
       handleCardContextMenu,
+      openSeatCardMenu,
       handleRequestSetPT,
       handleRequestSetAnnotation,
       handleRequestSetCardCounter,
@@ -233,6 +240,7 @@ export function useCardDialogActions({
     }),
     [
       handleCardContextMenu,
+      openSeatCardMenu,
       handleRequestSetPT,
       handleRequestSetAnnotation,
       handleRequestSetCardCounter,

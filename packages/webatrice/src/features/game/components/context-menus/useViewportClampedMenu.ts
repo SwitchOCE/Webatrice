@@ -1,18 +1,18 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 
 /**
- * Anchors a popup at `(anchorX, anchorY)` and, once mounted, shifts it
+ * Anchors a game menu at `(anchorX, anchorY)` and, once mounted, shifts it
  * back into the viewport if it would spill off the right/bottom/top/
  * left edges. Runs in `useLayoutEffect` so the correction applies
  * before paint — no visible flicker.
  *
- * Used by both the card context menu and the zone (library/graveyard/
- * exile) context menus so a right-click near the screen edge doesn't
- * clip the popup or its submenus.
+ * Used by the card menu renderer (CardContextMenu) and the seat's zone
+ * (library/graveyard/exile) menus so a right-click near the screen edge
+ * doesn't clip the popup or its submenus.
  */
-export function useViewportClampedPopup(anchorX: number, anchorY: number) {
+export function useViewportClampedMenu(anchorX: number, anchorY: number) {
   const ref = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState({ x: anchorX, y: anchorY });
+  const [position, setPosition] = useState({ x: anchorX, y: anchorY });
   useLayoutEffect(() => {
     const el = ref.current;
     if (!el) {
@@ -39,7 +39,7 @@ export function useViewportClampedPopup(anchorX: number, anchorY: number) {
     if (x < margin) {
       x = margin;
     }
-    setPos({ x, y });
+    setPosition({ x, y });
   }, [anchorX, anchorY]);
-  return { ref, pos };
+  return { ref, position };
 }
