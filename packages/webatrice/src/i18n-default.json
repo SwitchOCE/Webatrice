@@ -1683,12 +1683,12 @@
   "RoomUsers": {
     "buddies": {
       "title": "Buddies",
-      "count": "{count} online",
+      "count": "{count, plural, other {# online}}",
       "empty": "No buddies online right now."
     },
     "online": {
       "title": "Players Online",
-      "count": "{count} connected",
+      "count": "{count, plural, other {# connected}}",
       "empty": "No one else online."
     }
   },
@@ -1760,7 +1760,7 @@
       "unknown": "Failed to join the server room due to an unknown error: {code}."
     },
     "title": "Rooms",
-    "available": "{count} available",
+    "available": "{count, plural, other {# available}}",
     "column": {
       "name": "Name",
       "description": "Description",
@@ -1776,7 +1776,7 @@
   },
   "ServerUsers": {
     "title": "Players Online",
-    "count": "{count} connected",
+    "count": "{count, plural, other {# connected}}",
     "empty": "No one connected."
   },
   "Settings": {
