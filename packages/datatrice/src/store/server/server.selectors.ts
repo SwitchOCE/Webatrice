@@ -1,6 +1,7 @@
 import { createSelector } from '@reduxjs/toolkit';
 import {
   Event_UserMessage,
+  Response_WarnList,
   ServerInfo_ReplayMatch,
   ServerInfo_User,
   ServerInfo_User_UserLevelFlag,
@@ -118,6 +119,10 @@ export const Selectors = {
     server.warnHistory[userName],
   getAdminNotesByUser: ({ server }: State, userName: string) =>
     server.adminNotes[userName],
+  // Official warning reasons the server offered for a warn dialog, keyed by the
+  // user the moderator asked about (Response_WarnList echoes user_name back).
+  getWarnListForUser: ({ server }: State, userName: string): Response_WarnList | undefined =>
+    server.warnListOptions.find((list) => list.userName === userName),
   getLogs: ({ server }: State) => server.logs,
   getBackendDecks: ({ server }: State) => server.backendDecks,
   getDownloadedDeck: ({ server }: State) => server.downloadedDeck,

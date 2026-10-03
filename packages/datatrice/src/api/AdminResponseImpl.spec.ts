@@ -17,6 +17,14 @@ describe('AdminResponseImpl', () => {
     );
   });
 
+  it('commandFailed dispatches adminCommandFailed with the command, code and target', () => {
+    const { impl, dispatch } = setup();
+    impl.commandFailed('adjustMod', 18, 'alice');
+    expect(dispatch).toHaveBeenCalledWith(
+      ServerActions.adminCommandFailed({ command: 'adjustMod', responseCode: 18, target: 'alice' }),
+    );
+  });
+
   it('reloadConfig dispatches the reloadConfig action', () => {
     const { impl, dispatch } = setup();
     impl.reloadConfig();

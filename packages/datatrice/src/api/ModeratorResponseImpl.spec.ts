@@ -85,9 +85,9 @@ describe('ModeratorResponseImpl', () => {
 
   it('commandFailed dispatches moderatorCommandFailed with the command, code and target', () => {
     const { impl, dispatch } = setup();
-    impl.commandFailed('reportUserInfo', 13, 'alice');
+    impl.commandFailed('grantReplayAccess', 13, '42');
     expect(dispatch).toHaveBeenCalledWith(
-      ServerActions.moderatorCommandFailed({ command: 'reportUserInfo', responseCode: 13, target: 'alice' }),
+      ServerActions.moderatorCommandFailed({ command: 'grantReplayAccess', responseCode: 13, target: '42' }),
     );
   });
 });

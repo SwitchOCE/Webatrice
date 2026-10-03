@@ -32,6 +32,9 @@ const SignalActions = {
   sessionCommandFailed: createAction<{ command: WebsocketTypes.SessionCommandName; responseCode: number; target: string }>(
     'server/sessionCommandFailed'
   ),
+  adminCommandFailed: createAction<{ command: WebsocketTypes.AdminCommandName; responseCode: number; target: string }>(
+    'server/adminCommandFailed'
+  ),
 };
 
 export const Actions = { ...serverSlice.actions, ...SignalActions };
