@@ -23,6 +23,7 @@ const ModerationMenuItems = ({ userName, userLevel, onClose }: UserMenuSlotProps
             <MenuItem
               key={action}
               disabled={disabled}
+              disabledReason={t('Moderation.menu.self')}
               onSelect={() => {
                 open(action);
                 onClose();

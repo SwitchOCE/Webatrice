@@ -25,6 +25,7 @@ const UserGamesMenuItem = ({ userName, onClose }: UserMenuSlotProps) => {
       <MenuSeparator />
       <MenuItem
         disabled={!isOnline}
+        disabledReason={t('UserGamesDialog.menu.offline')}
         icon={<Gamepad2 size={14} />}
         onSelect={() => {
           userGames.open(userName);

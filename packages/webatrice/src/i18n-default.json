@@ -343,6 +343,7 @@
     "label": "Actions for {name}",
     "privateChat": "Private chat",
     "viewPublicDecks": "View this user's public decks",
+    "viewPublicDecksSelf": "Your own decks are in My Decks.",
     "addBuddy": "Add to Buddy List",
     "removeBuddy": "Remove from Buddy List",
     "addIgnore": "Add to Ignore List",
@@ -411,7 +412,8 @@
       "spam": "Repeated unwanted messages or advertisements",
       "other": "Any behavior not covered by the above categories"
     },
-    "menuItem": "Report user"
+    "menuItem": "Report user",
+    "menuItemSelf": "You can't report yourself."
   },
   "CardDatabaseOverview": {
     "summary": "{cards} cards, {sets} sets, {tokens} tokens, {formats} formats loaded.",
@@ -651,7 +653,8 @@
       "promoteJudge": "Promote user to judge",
       "demoteJudge": "Demote user from judge",
       "promoteDeveloper": "Promote user to developer",
-      "demoteDeveloper": "Demote user from developer"
+      "demoteDeveloper": "Demote user from developer",
+      "self": "You can't use moderator actions on yourself."
     },
     "common": {
       "ok": "OK",
@@ -848,7 +851,8 @@
   },
   "UserGamesDialog": {
     "menu": {
-      "showGames": "Show this user's games"
+      "showGames": "Show this user's games",
+      "offline": "This user is offline."
     },
     "title": "{name}'s games",
     "loading": "Loading games…",

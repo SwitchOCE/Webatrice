@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+import { Menu, MenuItem } from '@app/components';
 import { DialogReturnFocusContext, closestList } from '@app/hooks';
 
 import { renderWithProviders } from '../../__test-utils__';
@@ -155,5 +156,36 @@ describe('DialogShell', () => {
     await user.keyboard('{Escape}');
 
     expect(screen.getByRole('list', { name: 'Players' })).toHaveFocus();
+  });
+
+  it('returns focus to a menu trigger when a menu item opens a dialog with an autoFocus field', async () => {
+    const user = userEvent.setup();
+    function MenuThenDialog() {
+      const [menuOpen, setMenuOpen] = useState(false);
+      const [dialogOpen, setDialogOpen] = useState(false);
+      const trigger = useRef<HTMLButtonElement>(null);
+      return (
+        <>
+          <button ref={trigger} type="button" onClick={() => setMenuOpen(true)}>Actions</button>
+          {menuOpen && (
+            <Menu anchor={{ x: 0, y: 0 }} label="Actions" onClose={() => setMenuOpen(false)} triggerRef={trigger}>
+              <MenuItem onSelect={() => setDialogOpen(true)}>Filter</MenuItem>
+            </Menu>
+          )}
+          <DialogShell isOpen={dialogOpen} handleClose={() => setDialogOpen(false)} title="Filter games">
+            <input aria-label="Description" autoFocus />
+          </DialogShell>
+        </>
+      );
+    }
+    renderWithProviders(<MenuThenDialog />);
+    screen.getByRole('button', { name: 'Actions' }).focus();
+    await user.keyboard('{Enter}');
+    await user.keyboard('{Enter}');
+    expect(screen.getByRole('textbox', { name: 'Description' })).toHaveFocus();
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByRole('button', { name: 'Actions' })).toHaveFocus();
   });
 });
