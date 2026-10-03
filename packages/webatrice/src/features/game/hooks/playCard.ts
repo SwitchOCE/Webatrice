@@ -91,10 +91,12 @@ export async function playCardViaTableRow({
 // Double-click auto-play chain (hand → stack → grave/table). Distinct from
 // `playCardViaTableRow`, which is the direct "play now" action from the card
 // context menu — that keeps its old routing so an explicit Play still resolves
-// in one step. The chain here always inserts a stack stop for non-lands so
-// spells resolve visibly, mirroring the physical MTG flow:
+// in one step. The chain here inserts a stack stop for non-lands so spells
+// resolve visibly, mirroring the physical MTG flow and desktop's
+// PlayerActions::playCard with "Play all nonlands onto the stack":
 //   hand + land           → table (bottom row) — matches the direct-play path
-//   hand + non-land       → stack
+//   hand + instant/sorc   → stack
+//   hand + other non-land → stack, or table when `playToStack` is off
 //   stack + instant/sorc  → graveyard
 //   stack + other         → table at the appropriate row (fall back to `playCardViaTableRow`)
 //   any other source      → delegate to `playCardViaTableRow` (unchanged behavior)
@@ -108,12 +110,14 @@ export async function autoPlayCard(args: {
   isInverted: boolean;
   tableZone: ZoneEntry | undefined;
   judgeTargetId?: number;
+  /** The "Play all nonlands onto the stack" preference; desktop's default is on. */
+  playToStack?: boolean;
 }): Promise<string> {
-  const { webClient, gameId, sourcePlayerId, sourceZone, card, faceDown, judgeTargetId } = args;
+  const { webClient, gameId, sourcePlayerId, sourceZone, card, faceDown, judgeTargetId, playToStack = true } = args;
 
   if (sourceZone === ZoneName.HAND) {
     const tablerow = await readTablerow(card.name);
-    if (tablerow === TABLEROW_LAND) {
+    if (tablerow === TABLEROW_LAND || (!playToStack && tablerow !== TABLEROW_INSTANT_SORCERY)) {
       return playCardViaTableRow(args);
     }
     webClient.request.game.moveCard(gameId, {
