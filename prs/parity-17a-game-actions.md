@@ -1,0 +1,79 @@
+# feat(game): game menu with reverse turn, next phase with action and view rotation, plus three pinned fixes
+
+## Summary
+
+Part A of PR 17 (spec `specs/w17.md` §0–3, §12). Six commits plus a changeset, oldest first. Each commit passes on its own.
+
+1. `fix(game): offer Transform into on card id 0`. `buildTransformItems` treated a falsy id as "no server id". Servatrice numbers cards from 0, so the first card of every game had no Transform item. The guard is now `sourceCardId == null`, and the pinned spec row is flipped.
+2. `fix(game): sort non-creatures by name under the P/T zone sort`. `Infinity − Infinity` is NaN, so two non-creatures never fell through to the name tie-break. Equal keys now compare as 0, and ties break by name and then set.
+3. `fix(game): omit player_id when revealing to all players`. This was confirmed on the wire. protobuf-es serialises an explicitly set `-1` for the proto2 `optional sint32 player_id [default = -1]`, and Servatrice answers any present `player_id` naming no player with `RespNameNotFound`. Every legacy "to all players" reveal was affected: the hand, zone and library reveal dialogs, plus "Reveal top card to all". They now go through one `revealRecipient` helper. The seat port was already correct.
+4. `fix(sockatrice,datatrice): carry the actor on Event_ReverseTurn`. `turnReversed(gameId, reversed, playerId?)` gains an additive optional argument. The log line now names whoever reversed the order, not the active player. It falls back to the active player when the actor is absent or `-1`. Patch changesets are included.
+5. `feat(game): add a game menu with reverse turn and next phase with action` (GAME-028, GAME-029).
+   - A "Game" button sits in the BattlefieldSidebar header, next to Leave. It is a MUI Menu in `TabGame::createMenuItems` order.
+   - The items come from a pure model, `gameMenu.model.ts`, and are disabled where the server would refuse them.
+   - `phaseActions.ts` is a pure port of `actNextPhaseAction` / `triggerPhaseAction`. `useNextPhaseAction` runs it through the phase bar's handlers.
+   - The `game.nextPhase` / `game.prevPhase` shortcuts now use the phase bar's handler instead of a duplicate optimistic update.
+6. `feat(game): rotate the board view clockwise and counterclockwise` (GAME-030).
+   - `useGameBoardLayout(game, rotation)` mirrors `GameScene::rotatePlayers`.
+   - The rotation is per-game state in `useGame`, never persisted.
+   - Menu items and unbound shortcuts are added, and spectators can use them.
+   - The arrow overlay now re-measures after a layout commit, because a rotation moves seats without resizing the board or touching the card registry.
+7. `chore(changeset)`: a webatrice minor.
+
+## Parity rows closed
+
+- GAME-028 Next phase with action
+- GAME-029 Reverse turn order
+- GAME-030 Rotate view CW/CCW
+
+## Desktop reference
+
+- `tab_game.cpp:665-707` (actNextPhase, actNextPhaseAction, actRotateViewCW/CCW) and `:1042-1119` (menu order)
+- `phases_toolbar.cpp:245-250`
+- `game_scene.cpp:246-361` (adjustPlayerRotation, rotatePlayers, row mirroring)
+- `server_game.cpp:690-711` (game starts in Untap)
+- `server_abstract_player.cpp` cmdRevealCards (`has_player_id()`)
+- `card_list.cpp:42-62` (P/T string sort)
+- `message_log_widget.cpp:577-582`
+
+## Testing
+
+All on the final tip:
+- `npx turbo run typecheck`: 5/5 tasks pass. `npm run lint`: 3/3 pass.
+- Unit tests:
+  - sockatrice: 775/775
+  - datatrice: 1199/1199
+  - webatrice: 2076/2076 across 250 files
+- Integration tests:
+  - sockatrice: 166/166
+  - datatrice: 136/136
+  - webatrice: 163 passed, 2 skipped. The skips are pre-existing placeholder files.
+- New specs:
+  - `phaseActions.spec`: the full 0..10 table.
+  - `useNextPhaseAction.spec`: wire order and gating.
+  - `GameMenu.spec` / `gameMenu.model.spec`.
+  - `useGameBoardLayout`: the n=2..6 × rotation −2..+2 table for a seated player and a spectator, checked against a literal port of `rotatePlayers`.
+  - `Game.rotateView.spec`: seats move and no request is sent.
+  - `revealRecipient.spec`.
+  - Integration `reveal-wire.spec`: checks the encoded bytes.
+  - Integration `websocket/game.spec`: the reverse-turn log line names the actor.
+  - Overlay re-measure, and datatrice listener log lines.
+- e2e: new two-client `game-menu.spec.ts`. The player off turn reverses the order and both logs name them. The active player then steps Untap → Upkeep → Draw, and both clients see the library drop by one. It passes on chromium, firefox and webkit (Playwright 1.60 container against Servatrice 3.0.0). Full webatrice e2e suite: 39/39 (13 specs × 3 browsers). In the first pass, 36 passed and `staff-tools` failed 3/3 with `spawnSync docker ENOENT`: the Playwright container has no docker CLI, and that spec seeds MySQL through `docker compose exec`. Re-run with the host docker CLI and socket mounted, it passed 6/6. Sockatrice e2e: 5/5.
+
+## Notes for reviewers
+
+- **Deliberate divergences:**
+  - Next phase with action is gated on `canAdvancePhase`, plus `canPassTurn` on the wrap. Desktop does not gate it; there the server rejects the phase change while the draw or untap still lands.
+  - Game menu items are disabled where the server would refuse them; desktop leaves them enabled.
+  - P/T sort stays numeric with non-creatures last (Q4 accepted). Desktop's zero-padded string order puts "2/10" after "3/3".
+- **Shortcuts:**
+  - `game.nextPhaseAction` takes desktop's Shift+Tab, so the Webatrice-only `game.prevPhase` is now unbound (still rebindable). The changeset says so.
+  - `game.reverseTurn`, `game.rotateViewCW` and `game.rotateViewCCW` are listed unbound, like desktop. Reverse turn is a small extension: desktop never registers its shortcut.
+- **Placement:** the Game button sits in the Players header rather than the Concede row, because that row is hidden for spectators and rotation is open to them.
+- **Rotation wiring:** `onRotateView` rides on `GameDialogActions`, which is already the sidebar's action context. That avoided a new provider, which would have meant re-indenting about 140 lines of `Game.tsx` and risked colliding with refactor stage 5.
+- **Mirroring:** a rotated local seat away from the bottom row renders mirrored, because mirroring is by row (same as desktop). The e2e page object's "unmirrored = local" assumption only holds without rotation.
+- **Refactor stage 5:** no PlayerBox JSX was touched. `Game.tsx` changes are one prop each (`layoutVersion`, `onRotateView`).
+- **Follow-ups (out of scope):**
+  - A single click on the active Untap button always untaps (`PhaseTrack.tsx`); desktop only does this on an already-active button.
+  - PhaseTrack labels and BattlefieldSidebar strings are hard-coded English.
+  - The P/T sort has no printing id in `ZoneViewCardMetadata`, so set is the last tie-break.

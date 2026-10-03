@@ -4,3 +4,4 @@
 - 16:09Z commit 4 pushed (8124d55, lint+typecheck green) → commit 5 game menu
 - 16:20Z commit 5 pushed (aba4600; unit green, e2e written not yet run) → commit 6 rotate view
 - 16:29Z commits 6 + changeset pushed (397c37a) → full gate + e2e
+- 16:51Z DONE: tip 9ee37d1; gate green (typecheck, lint, unit 775/1199/2076, integration 166/136/163+2skip, e2e webatrice 39/39 incl. docker-mounted staff-tools rerun, sockatrice e2e 5/5); PR file written
