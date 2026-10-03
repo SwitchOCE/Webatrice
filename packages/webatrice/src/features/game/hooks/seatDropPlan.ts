@@ -24,6 +24,10 @@ export interface SeatSlot {
 export interface SeatDragCard {
   id: string;
   slot?: SeatSlot;
+  /** The card's owner, whose zone it lives in, when that is not the seat's
+   *  player: a card attached to one of this seat's battlefield cards. A
+   *  drag never mixes owners. */
+  ownerPlayerId?: number;
 }
 
 export interface SeatDragSource extends PointerGestureData {
@@ -91,8 +95,15 @@ export function isSeatDropZone(data: unknown): data is SeatDropZone {
   return (data as SeatDropZone | undefined)?.kind === 'seat-drop';
 }
 
+/** The player whose zone the dragged cards leave: their owner, which for a
+ *  card attached across seats is not the seat that shows it. (A lent zone's
+ *  cards leave the lender's zone; see planSeatMove.) */
+export function seatDragOwner(source: SeatDragSource): number {
+  return source.cards[0]?.ownerPlayerId ?? source.seatPlayerId;
+}
+
 export function seatDropAccepts(zone: SeatDropZone, source: SeatDragSource): boolean {
-  return zone.acceptsOtherSeats === true || zone.seatPlayerId === source.seatPlayerId;
+  return zone.acceptsOtherSeats === true || zone.seatPlayerId === seatDragOwner(source);
 }
 
 const WIRE_ZONE: Record<SeatZone, string> = {
@@ -155,6 +166,10 @@ export function intendedBattlefieldSlots(
  */
 export function planSeatMove(source: SeatDragSource, target: SeatDropTarget): MoveCardParams[] {
   const seat = source.seatPlayerId;
+  // Desktop moves a card out of its own zone (TableZone::handleDropEventByGrid
+  // takes the start player from the card's zone), so a card attached across
+  // seats starts in its owner's TABLE.
+  const owner = seatDragOwner(source);
   if (source.cards.length === 0) {
     return [];
   }
@@ -163,7 +178,7 @@ export function planSeatMove(source: SeatDragSource, target: SeatDropTarget): Mo
     return [];
   }
 
-  if (target.zone === 'battlefield' && source.zone === 'battlefield' && target.playerId === seat) {
+  if (target.zone === 'battlefield' && source.zone === 'battlefield' && target.playerId === seat && owner === seat) {
     const slots = intendedBattlefieldSlots(source.cards, target.slot, target.grid);
     return source.cards.flatMap((card, i) => {
       const cardId = Number(card.id);
@@ -237,10 +252,10 @@ export function planSeatMove(source: SeatDragSource, target: SeatDropTarget): Mo
   })();
 
   return [{
-    startPlayerId: source.lenderPlayerId ?? seat,
+    startPlayerId: source.lenderPlayerId ?? owner,
     startZone: WIRE_ZONE[source.zone],
     cardsToMove: { card: cardIds.map((cardId) => ({ cardId: cardId as number })) },
-    targetPlayerId: target.zone === 'battlefield' ? target.playerId : seat,
+    targetPlayerId: target.zone === 'battlefield' ? target.playerId : owner,
     targetZone: WIRE_ZONE[target.zone],
     x,
     y: target.zone === 'battlefield' ? target.slot.row : 0,

@@ -6,10 +6,11 @@ import type { SeatSelection, SeatSelectionApi } from '../../../hooks/useSeatSele
 import { layoutStackPile } from '../../battlefield/Battlefield/battlefieldLayout';
 import { useCanActFor } from '../CardVisualStateContext';
 import { useActiveSeatDrag, useSeatDragSource, useSeatDropZone, type SeatDragStart } from '../SeatDragContext';
-import type { PlayerCardViewModel, PlayerTargetCommands } from './playerBoard.types';
+import type { BattlefieldCardViewModel, PlayerCardViewModel, PlayerTargetCommands } from './playerBoard.types';
 import type { usePendingArrows } from './usePendingArrows';
 
-type HandCard = PlayerCardViewModel;
+/** A card in any seat zone; battlefield cards also carry their owner. */
+type HandCard = PlayerCardViewModel & Pick<BattlefieldCardViewModel, 'ownerPlayerId'>;
 /** Which zone a drag was initiated from. */
 type DragSourceZone = SeatZone;
 /** A marquee selection is always within a single zone. */
@@ -165,32 +166,33 @@ export function useSeatDnd({
   // the zone's layout).
 
   // Desktop starts a card drag only for the local player's cards, or any
-  // card for a judge (CardItem::mouseMoveEvent, getLocalOrJudge). On any
-  // other seat a press still selects but never drags.
-  const canMoveSeatCards = useCanActFor()(seatId);
+  // card for a judge (CardItem::mouseMoveEvent, getLocalOrJudge), by the
+  // card's owner rather than the board it shows on. On another player's card
+  // a press still selects but never drags.
+  const canActFor = useCanActFor();
   const handDragSource = useSeatDragSource(`seat-${seatId}-hand`, {
     seatPlayerId: seatId,
     zone: 'hand',
-    canDrag: canMoveSeatCards,
+    canMoveFor: canActFor,
   });
   const stackDragSource = useSeatDragSource(`seat-${seatId}-stack`, {
     seatPlayerId: seatId,
     zone: 'stack',
-    canDrag: canMoveSeatCards,
+    canMoveFor: canActFor,
   });
   const graveyardDragSource = useSeatDragSource(`seat-${seatId}-graveyard`, {
     seatPlayerId: seatId,
     zone: 'graveyard',
-    canDrag: canMoveSeatCards,
+    canMoveFor: canActFor,
   });
   const exileDragSource = useSeatDragSource(`seat-${seatId}-exile`, {
     seatPlayerId: seatId,
     zone: 'exile',
-    canDrag: canMoveSeatCards,
+    canMoveFor: canActFor,
   });
   const battlefieldDragSource = useSeatDragSource(`seat-${seatId}-battlefield`, {
     seatPlayerId: seatId,
-    canDrag: canMoveSeatCards,
+    canMoveFor: canActFor,
     zone: 'battlefield',
   });
   // Hidden zones: the library pile drags its top card (position 0). The
@@ -198,7 +200,7 @@ export function useSeatDnd({
   const libraryDragSource = useSeatDragSource(`seat-${seatId}-library`, {
     seatPlayerId: seatId,
     zone: 'library',
-    canDrag: canMoveSeatCards,
+    canMoveFor: canActFor,
   });
   const seatDragSources: Partial<Record<DragSourceZone, SeatDragStart>> = {
     battlefield: battlefieldDragSource,
@@ -224,7 +226,11 @@ export function useSeatDnd({
       return;
     }
     if (selection && selection.zone === zone && selection.ids.has(card.id)) {
-      const group = zoneCards.filter((c) => selection.ids.has(c.id));
+      // Only the selected cards in the pressed card's own zone come along
+      // (desktop CardItem::mouseMoveEvent): a card attached across seats
+      // lives in its owner's TABLE, not this seat's.
+      const ownerOf = (c: HandCard) => c.ownerPlayerId ?? seatId;
+      const group = zoneCards.filter((c) => selection.ids.has(c.id) && ownerOf(c) === ownerOf(card));
       start(e, group, group.length === 1 ? (up) => releaseCardPress(zone, card.id, up) : undefined);
     } else {
       start(e, [card], (up) => releaseCardPress(zone, card.id, up));

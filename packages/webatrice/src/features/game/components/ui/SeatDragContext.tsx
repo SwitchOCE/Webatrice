@@ -45,10 +45,12 @@ export interface SeatDragSourceOptions {
   zone: SeatZone;
   /** Owner of a lent zone; see SeatDragSource. */
   lenderPlayerId?: number;
-  /** False when the local user may not move these cards (another player's,
-   *  unless they judge; desktop CardItem::mouseMoveEvent). A press then
-   *  still clicks (selection) but never becomes a drag. */
-  canDrag?: boolean;
+  /** Whether the local user may move a card of this owner: their own, or any
+   *  as a judge (desktop CardItem::mouseMoveEvent, getLocalOrJudge). A press
+   *  on a card they may not move still clicks (selection) but never becomes a
+   *  drag. Each card's owner is its `ownerPlayerId`, else the seat's player.
+   *  Without it every card drags. */
+  canMoveFor?: (ownerPlayerId: number) => boolean;
   disabled?: boolean;
 }
 
@@ -76,13 +78,14 @@ export function useSeatDragSource(id: string, options: SeatDragSourceOptions): S
     activationDistance: SEAT_DRAG_THRESHOLD_PX,
   }).current;
   const { setNodeRef, listeners } = useDraggable({ id, data, disabled: options.disabled });
-  const { seatPlayerId, zone, lenderPlayerId, canDrag = true } = options;
+  const { seatPlayerId, zone, lenderPlayerId, canMoveFor } = options;
 
   return useCallback<SeatDragStart>(
     (event, cards, onRelease) => {
       if (event.button !== 0 || cards.length === 0 || !listeners) {
         return;
       }
+      const canDrag = !canMoveFor || cards.every((card) => canMoveFor(card.ownerPlayerId ?? seatPlayerId));
       Object.assign(data, {
         seatPlayerId,
         zone,
@@ -97,7 +100,7 @@ export function useSeatDragSource(id: string, options: SeatDragSourceOptions): S
       // text selection and no native HTML5 drag of the card art.
       event.preventDefault();
     },
-    [data, listeners, setNodeRef, seatPlayerId, zone, lenderPlayerId, canDrag],
+    [data, listeners, setNodeRef, seatPlayerId, zone, lenderPlayerId, canMoveFor],
   );
 }
 
