@@ -5,13 +5,13 @@ import { AuthGuard } from '@app/components';
 import { Layout } from '@app/feature-wrappers/layout';
 import { isCommanderFormat, isMtgFormat } from '@app/types';
 
-import CardDetailModal from './CardDetailModal';
 import { DeckEditorSkeleton, DeckNotFound } from './components/editor/DeckEditorShells';
 import { DeckMainPane } from './components/editor/DeckMainPane';
 import { DeckSidebar } from './components/editor/DeckSidebar';
 import { groupDeckCards } from './deckGrouping';
+import { CardDetailDialog } from './dialogs/CardDetailDialog';
+import { ExportDeckDialog } from './dialogs/ExportDeckDialog';
 import { PrintingPickerDialog, type PrintingRequest } from './dialogs/PrintingPickerDialog';
-import ExportDeckModal from './ExportDeckModal';
 import { useDeckEditor } from './hooks/useDeckEditor';
 import { useDeckImagePreload } from './hooks/useDeckImagePreload';
 import { useDeckPricing } from './hooks/useDeckPricing';
@@ -125,7 +125,7 @@ const DeckEditor = () => {
       />
 
       {isMtg && (
-        <CardDetailModal
+        <CardDetailDialog
           snapshot={detailSnapshot}
           deckCards={editor.deck.cards}
           isCommanderDeck={isCommander}
@@ -147,7 +147,7 @@ const DeckEditor = () => {
         />
       )}
 
-      <ExportDeckModal
+      <ExportDeckDialog
         open={exportOpen}
         onClose={() => setExportOpen(false)}
         deck={editor.deck}
