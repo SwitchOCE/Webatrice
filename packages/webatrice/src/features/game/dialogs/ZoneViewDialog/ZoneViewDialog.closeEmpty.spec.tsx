@@ -14,15 +14,12 @@ const withCards = (cards: ReturnType<typeof makeCard>[]) => {
     cards,
     count: cards.length,
     title: 'Graveyard',
-    position: { x: 0, y: 0 },
-    handlePointerDown: vi.fn(),
-    handlePointerMove: vi.fn(),
-    handlePointerUp: vi.fn(),
+    isLocal: true,
   } as unknown as ReturnType<typeof useZoneViewDialog>);
 };
 
 const renderDialog = (handleClose: (shuffle?: boolean) => void, zoneName: string = ZoneName.GRAVE) =>
-  renderWithProviders(<ZoneViewDialog isOpen playerId={1} zoneName={zoneName} handleClose={handleClose} />);
+  renderWithProviders(<ZoneViewDialog view={{ playerId: 1, zoneName }} handleClose={handleClose} />);
 
 describe('ZoneViewDialog — close when the last card is removed', () => {
   it('closes once the last shown card leaves', () => {
@@ -31,7 +28,7 @@ describe('ZoneViewDialog — close when the last card is removed', () => {
     const { rerender } = renderDialog(handleClose);
 
     withCards([]);
-    rerender(<ZoneViewDialog isOpen playerId={1} zoneName={ZoneName.GRAVE} handleClose={handleClose} />);
+    rerender(<ZoneViewDialog view={{ playerId: 1, zoneName: ZoneName.GRAVE }} handleClose={handleClose} />);
 
     expect(handleClose).toHaveBeenCalledTimes(1);
     expect(handleClose).toHaveBeenCalledWith(false);
@@ -43,7 +40,7 @@ describe('ZoneViewDialog — close when the last card is removed', () => {
     const { rerender } = renderDialog(handleClose, ZoneName.DECK);
 
     withCards([]);
-    rerender(<ZoneViewDialog isOpen playerId={1} zoneName={ZoneName.DECK} handleClose={handleClose} />);
+    rerender(<ZoneViewDialog view={{ playerId: 1, zoneName: ZoneName.DECK }} handleClose={handleClose} />);
 
     expect(handleClose).toHaveBeenCalledWith(true);
   });
@@ -52,7 +49,7 @@ describe('ZoneViewDialog — close when the last card is removed', () => {
     const handleClose = vi.fn();
     withCards([]);
     const { rerender } = renderDialog(handleClose);
-    rerender(<ZoneViewDialog isOpen playerId={1} zoneName={ZoneName.GRAVE} handleClose={handleClose} />);
+    rerender(<ZoneViewDialog view={{ playerId: 1, zoneName: ZoneName.GRAVE }} handleClose={handleClose} />);
 
     expect(handleClose).not.toHaveBeenCalled();
   });
@@ -64,7 +61,7 @@ describe('ZoneViewDialog — close when the last card is removed', () => {
     const { rerender } = renderDialog(handleClose);
 
     withCards([]);
-    rerender(<ZoneViewDialog isOpen playerId={1} zoneName={ZoneName.GRAVE} handleClose={handleClose} />);
+    rerender(<ZoneViewDialog view={{ playerId: 1, zoneName: ZoneName.GRAVE }} handleClose={handleClose} />);
 
     expect(handleClose).not.toHaveBeenCalled();
   });
