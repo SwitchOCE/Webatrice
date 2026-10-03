@@ -149,6 +149,26 @@ describe('seat drags on the game DnD coordinator', () => {
     expect(document.body.style.cursor).toBe('');
   });
 
+  it('library pile → hand moves the hidden top card by position', () => {
+    const game = renderLaidOut();
+    const live = trackWindowListeners();
+
+    dragThrough(pileEl('Library', 0), { x: 5, y: 5 }, { x: 200, y: 550 }, () => {
+      expect(live('pointermove')).toBe(1);
+      // A library drag shows a card back: the server decides which card it is.
+      expect(ghosts()).toHaveLength(1);
+      expect(ghosts()[0].querySelector('img')).not.toBeNull();
+    });
+
+    expect(game.moveCard).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
+      startZone: ZoneName.DECK,
+      cardsToMove: { card: [{ cardId: 0 }] },
+      targetZone: ZoneName.HAND,
+      x: 2,
+    });
+  });
+
   it('graveyard pile → hand moves the top card to the insertion index', () => {
     const game = renderLaidOut();
     const live = trackWindowListeners();
