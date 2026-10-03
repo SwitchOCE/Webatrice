@@ -1,3 +1,4 @@
 - 17:36Z started f0918; read brief/template/rv9 → fix 09
 - 17:44Z 09: adapter malformed paths + bracket i18n/focus pushed → 09 remaining minors
 - 18:01Z 09 done (gate green), tip a3073b8; 18 rebased onto it, pushed 7f617d7 → 18 fixes (move/upload matching first)
+- 18:13Z 18: move/upload, download-fail, color identity, bracket key, playmat committed+pushed → changeset, full gate, PR files
