@@ -1,5 +1,7 @@
 import { act, fireEvent, waitFor } from '@testing-library/react';
 
+import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
+
 import { renderWithProviders, createMockWebClient, disconnectedState } from '../../__test-utils__';
 
 const flushEffects = async (): Promise<void> => {
@@ -287,5 +289,42 @@ describe('Login — LOGIN_SUCCESSFUL → knownHosts persistence', () => {
       userName: null,
       hashedPassword: null,
     });
+  });
+});
+
+describe('Login — password change required', () => {
+  test('points the user to the password reset, since the server refuses the login until it is done', async () => {
+    const { getByRole, findByText } = renderWithProviders(<Login />, {
+      preloadedState: {
+        ...disconnectedState,
+        server: {
+          ...(disconnectedState.server as any),
+          connectionAttemptMade: true,
+          loginFailureCode: Response_ResponseCode.RespPasswordChangeRequired,
+        },
+      },
+    });
+    await flushEffects();
+
+    await findByText('Login.status.passwordChangeRequired');
+    fireEvent.click(getByRole('button', { name: 'Login.status.passwordChangeRequiredAction' }));
+
+    expect(await findByText('RequestPasswordResetDialog.title')).toBeTruthy();
+  });
+
+  test('shows no reset action for other login rejections', async () => {
+    const { queryByRole } = renderWithProviders(<Login />, {
+      preloadedState: {
+        ...disconnectedState,
+        server: {
+          ...(disconnectedState.server as any),
+          connectionAttemptMade: true,
+          loginFailureCode: Response_ResponseCode.RespServerFull,
+        },
+      },
+    });
+    await flushEffects();
+
+    expect(queryByRole('button', { name: 'Login.status.passwordChangeRequiredAction' })).toBeNull();
   });
 });

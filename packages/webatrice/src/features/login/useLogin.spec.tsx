@@ -237,6 +237,28 @@ describe('useLogin', () => {
     expect(result.current.showDescription()).toBe(true);
   });
 
+  it('offers the password reset only for a password-change-required rejection', () => {
+    const rejectedWith = (loginFailureCode: number) => setup({
+      ...disconnectedState,
+      server: { ...(disconnectedState.server as any), loginFailureCode },
+    }).result.current.passwordChangeRequired;
+
+    expect(rejectedWith(Response_ResponseCode.RespPasswordChangeRequired)).toBe(true);
+    expect(rejectedWith(Response_ResponseCode.RespServerFull)).toBe(false);
+  });
+
+  it('does not offer the password reset once connected', () => {
+    const { result } = setup({
+      ...connectedState,
+      server: {
+        ...(connectedState.server as any),
+        loginFailureCode: Response_ResponseCode.RespPasswordChangeRequired,
+      },
+    });
+
+    expect(result.current.passwordChangeRequired).toBe(false);
+  });
+
   it('keeps the status line for a login rejection without a localized message', () => {
     const { result } = setup({
       ...disconnectedState,
