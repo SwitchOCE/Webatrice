@@ -1,0 +1,3 @@
+# Inbox
+
+One file per task id (`<task-id>.md`), written only by the orchestrator. Messages are numbered `## M1`, `## M2`, ...

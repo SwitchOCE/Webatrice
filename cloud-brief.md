@@ -32,6 +32,21 @@ during the run, so make decisions yourself and record them.
   A run that dies after a push loses nothing.
 - Read narrowly: grep first, read excerpts. Never read `PlayerBox.tsx` whole.
 
+## Mailbox (talking to the orchestrator)
+
+The orchestrator cannot message your session directly. You talk through git, with a lag of a few minutes:
+
+- **Inbox (orchestrator → you):** `origin/parity-notes:inbox/<task-id>.md`. Check it at every checkpoint (before
+  each commit, before starting a long command, and when you get stuck):
+  `git fetch -q origin parity-notes && git show origin/parity-notes:inbox/<task-id>.md 2>/dev/null`.
+  Messages are numbered `## M1`, `## M2`, … Act on each new one; an orchestrator message overrides your task text.
+- **Outbox (you → orchestrator):** `status.md` on your notes branch `claude/notes-<task-id>` (in `/tmp/notes`,
+  `git -C /tmp/notes checkout -B claude/notes-<task-id>` at the start of your run). Append one line per checkpoint and
+  push it: `- <UTC time> <step done> → <next step>`. Acknowledge each inbox message as `- ACK M<n>: <what you did>`.
+- **Questions:** append `- QUESTION Q<n>: <question> | default: <what you will do>` and push. If you can keep going
+  on other work, do that and check the inbox at each checkpoint. If the question blocks you, check the inbox every 2
+  minutes for up to 20 minutes (`sleep 120` in a loop), then take your default and record that you did.
+
 ## Standards
 
 1. Read the instruction files in `.github/instructions/` that apply to what you touch (layering, `@critical`
@@ -61,6 +76,11 @@ npm run test:integration -- -- --maxWorkers=2
 npm run test:e2e -w @cockatrice/sockatrice      # when sockatrice/server flows change
 npm run test:e2e -w @cockatrice/webatrice       # when user-visible server flows change (chromium+firefox+webkit, ~7 min)
 ```
+
+**Browsers:** the machine's own Playwright browsers do not match 1.60 and will not launch. Run the browser part of e2e
+inside the pre-pulled image: `npm run build -w @cockatrice/webatrice && npm run test:e2e:up -w @cockatrice/webatrice`, then
+`docker run --rm --network host --ipc=host -v "$PWD":"$PWD" -w "$PWD/packages/webatrice" mcr.microsoft.com/playwright:v1.60.0-noble npx playwright test`,
+then `npm run test:e2e:down -w @cockatrice/webatrice`. (Start Docker first with `sudo dockerd >/tmp/dockerd.log 2>&1 &` if `docker info` fails.)
 
 The machine is yours alone: no e2e lock needed. Docker and the 3.0.0 Servatrice/MySQL/Playwright images are
 pre-pulled. For 3.1-only e2e (reports, staff tools): build the master image once —
