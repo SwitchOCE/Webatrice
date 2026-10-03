@@ -1,3 +1,4 @@
 - 15:42Z started f15 → checkout + install
 - 15:48Z layering fix committed (WebClient.loadReplayGame → GameResponseImpl) → replay tab persistence
 - 15:52Z replay tabs persist until closed (engine owned by opened replay; useWatchReplay moved to @app/hooks, same signature) → keyboard lists
+- 15:55Z keyboard grids done (useGridRows in @app/hooks) → minors
