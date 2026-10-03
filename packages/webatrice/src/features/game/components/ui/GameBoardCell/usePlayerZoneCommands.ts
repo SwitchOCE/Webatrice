@@ -5,7 +5,13 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import { useAppDispatch } from '@app/store';
 
 import { useGameId } from '../GameIdContext';
-import type { PlayerZoneCommands, RevealRecipient, RevealSelection } from '../PlayerBoard/playerBoard.types';
+import type {
+  PlayerZoneCommands,
+  RevealRecipient,
+  RevealSelection,
+  SeatMoveCard,
+  SeatMoveDestination,
+} from '../PlayerBoard/playerBoard.types';
 import { useMoveCard } from './useMoveCard';
 
 // Desktop's random-card sentinel for Command_RevealCards.card_id (player_actions.h:42).
@@ -53,8 +59,27 @@ export function usePlayerZoneCommands(playerId: number): PlayerZoneCommands | un
       dispatch(games.Actions.zoneViewCleared({ gameId, playerId, zoneName }));
     };
 
+    // Command_MoveCard between two of this player's zones. `x = -1` appends
+    // (desktop's "bottom" / "any free column"); is_reversed is sent only when
+    // the caller asks, as the menus always have.
+    const moveCards = (from: string, cards: readonly SeatMoveCard[], to: SeatMoveDestination) => {
+      moveCard({
+        startPlayerId: playerId,
+        startZone: from,
+        cardsToMove: {
+          card: cards.map((c) => (typeof c === 'number' ? { cardId: c } : { cardId: c.id, faceDown: true })),
+        },
+        targetPlayerId: playerId,
+        targetZone: to.zone,
+        x: to.index === 'end' ? -1 : (to.index ?? 0),
+        y: to.row ?? 0,
+        ...(to.reversed !== undefined && { isReversed: to.reversed }),
+      });
+    };
+
     return {
       move: moveCard,
+      moveCards,
       draw: (count) => game.drawCards(gameId, { number: count }),
       // Command_UndoDraw has no payload (player_actions.cpp:371-374).
       undoDraw: () => game.undoDraw(gameId),

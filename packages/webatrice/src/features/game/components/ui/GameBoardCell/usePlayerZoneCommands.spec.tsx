@@ -101,6 +101,58 @@ describe('usePlayerZoneCommands — move', () => {
   });
 });
 
+describe('usePlayerZoneCommands — moveCards', () => {
+  it('builds one Command_MoveCard between two of the seat zones', () => {
+    const { commands, game } = renderZone();
+    act(() => {
+      commands().moveCards(ZoneName.DECK, [1, { id: 0, faceDown: true }], { zone: ZoneName.GRAVE });
+      commands().moveCards(ZoneName.DECK, [0], { zone: ZoneName.TABLE, index: 'end', row: 2 });
+      commands().moveCards(ZoneName.TABLE, [61], { zone: ZoneName.DECK, reversed: true });
+    });
+
+    expect(vi.mocked(game.moveCard).mock.calls.map(([, p]) => p)).toEqual([
+      {
+        startPlayerId: 1,
+        startZone: ZoneName.DECK,
+        cardsToMove: { card: [{ cardId: 1 }, { cardId: 0, faceDown: true }] },
+        targetPlayerId: 1,
+        targetZone: ZoneName.GRAVE,
+        x: 0,
+        y: 0,
+      },
+      // 'end' is x = -1 before the battlefield sub-slot resolution, which
+      // leaves the pre-existing x = -3 (see Game.menuMoves.spec).
+      expect.objectContaining({ targetZone: ZoneName.TABLE, x: -3, y: 2 }),
+      expect.objectContaining({ startZone: ZoneName.TABLE, targetZone: ZoneName.DECK, x: 0, y: 0, isReversed: true }),
+    ]);
+  });
+
+  it('sends is_reversed only when the caller gives it', () => {
+    const { commands, game } = renderZone();
+    act(() => commands().moveCards(ZoneName.HAND, [30, 31], { zone: ZoneName.DECK, index: 'end' }));
+    expect(vi.mocked(game.moveCard).mock.calls[0][1]).not.toHaveProperty('isReversed');
+    expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({ x: -1 });
+  });
+});
+
+describe('usePlayerZoneCommands — gifts', () => {
+  it('resolves a gift onto another player table against that board', () => {
+    const giftSpec: SeatGameSpec = {
+      ...SPEC,
+      seats: [SPEC.seats[0], { playerId: 2, handCount: 7, table: [makeCard({ id: 20, name: 'Bear', x: 0, y: 0 })] }],
+    };
+    const utils = renderSeatHook(() => usePlayerZoneCommands(1), giftSpec);
+    act(() => utils.result()!.move(move({
+      startZone: ZoneName.DECK,
+      cardsToMove: { card: [{ cardId: 0 }] },
+      targetPlayerId: 2,
+      targetZone: ZoneName.TABLE,
+    })));
+    // Bear holds P2's column 0 sub-slot 0.
+    expect(vi.mocked(utils.game.moveCard).mock.calls[0][1]).toMatchObject({ targetPlayerId: 2, x: 1, y: 0 });
+  });
+});
+
 describe('usePlayerZoneCommands — library and reveals', () => {
   it('maps recipients and selections onto the reveal sentinels', () => {
     const { commands, game } = renderZone();
