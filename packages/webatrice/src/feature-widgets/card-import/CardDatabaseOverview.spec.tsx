@@ -66,6 +66,15 @@ describe('CardDatabaseOverview', () => {
     expect(hook.removeSource).toHaveBeenCalledWith('custom:01:cube.xml');
   });
 
+  it('lets an earlier import be removed', () => {
+    const hook = makeHook({ sources: [source({ id: 'legacy', kind: 'legacy', origin: 'migration' })] });
+    hoisted.useCardDatabaseOverview.mockReturnValue(hook);
+    renderWithProviders(<CardDatabaseOverview />);
+
+    fireEvent.click(screen.getByRole('button', { name: /CardDatabaseOverview.button.remove/ }));
+    expect(hook.removeSource).toHaveBeenCalledWith('legacy');
+  });
+
   it('runs the database actions', () => {
     const hook = makeHook();
     hoisted.useCardDatabaseOverview.mockReturnValue(hook);

@@ -2,7 +2,6 @@ import { dexieService, Stores } from '../dexie';
 import {
   ALL_STORES,
   CARD_DATA_STORES,
-  clearCardData,
   clearScryfallCache,
   countStoredRecords,
   estimateStorage,
@@ -73,15 +72,17 @@ describe('StorageService', () => {
     expect(clear).toHaveBeenCalledWith([Stores.SCRYFALL_CACHE]);
   });
 
-  test('clears every imported card table and the files they were built from, and never preferences, settings or hosts', async () => {
-    const clear = vi.spyOn(dexieService, 'clear').mockResolvedValue();
-
-    await clearCardData();
-
-    expect(clear).toHaveBeenCalledWith(CARD_DATA_STORES);
-    expect(CARD_DATA_STORES).toEqual(
-      expect.arrayContaining([Stores.CARDS, Stores.SETS, Stores.TOKENS, Stores.FORMATS, Stores.INFO, Stores.CARD_SOURCES]),
-    );
+  // clearCardData itself runs against real IndexedDB in integration/src/services/dexie/storage.spec.ts.
+  test('groups every imported card table and the files they were built from, and never preferences, settings or hosts', () => {
+    expect(CARD_DATA_STORES).toEqual(expect.arrayContaining([
+      Stores.CARDS,
+      Stores.SETS,
+      Stores.TOKENS,
+      Stores.FORMATS,
+      Stores.INFO,
+      Stores.CARD_SOURCES,
+      Stores.CARD_SOURCE_PAYLOADS,
+    ]));
     expect(CARD_DATA_STORES).not.toContain(Stores.SET_PREFERENCES);
     expect(CARD_DATA_STORES).not.toContain(Stores.CARD_DATA_SETTINGS);
     expect(CARD_DATA_STORES).not.toContain(Stores.SETTINGS);

@@ -8,7 +8,8 @@ const hoisted = vi.hoisted(() => ({
   testConnection: vi.fn(),
 }));
 
-vi.mock('@app/services', () => ({
+vi.mock('@app/services', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@app/services')>(),
   dexieService: { testConnection: hoisted.testConnection },
 }));
 
