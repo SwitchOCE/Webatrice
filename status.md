@@ -3,3 +3,4 @@
 - 15:37Z 13: guards, admin lock (kick + spectator chat), optional provider, keyboard rows committed; pushed 0d2e92b → full gate on 13
 - 15:46Z 13 gate green (typecheck, lint, unit 775/1196/1491, int 166/136/160); 06 rebased, auto-join fixed at source, tolerance dropped, pushed c282a21; WS/Scryfall loud-failure in progress → webatrice e2e in playwright container
 - ACK M1: 13's commandFailed design left unchanged; noted under Review response in 13's PR file
+- 16:01Z 06: loud-failure for WS+Scryfall committed; strict Scryfall check surfaced app requests to /cards/?format=image (empty scryfall id prefetch) → fixed in game prefetch; pushed 19a7954; e2e rerun in progress
