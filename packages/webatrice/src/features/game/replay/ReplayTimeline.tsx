@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { createTimelineHistogram } from '@app/services';
+import { BIG_SKIP_MS, SMALL_SKIP_MS, createTimelineHistogram } from '@app/services';
 
 import { formatReplayTime } from './formatReplayTime';
 
@@ -14,7 +14,9 @@ export interface ReplayTimelineProps {
 
 /**
  * Port of desktop's ReplayTimelineWidget: an event-density silhouette (events
- * per 5 s bin) under a progress fill; clicking jumps to that point.
+ * per 5 s bin) under a progress fill; clicking jumps to that point. As a
+ * slider it also seeks from the keyboard: ←/→ by the small skip, PageDown/PageUp
+ * by the big skip, Home/End to either end.
  */
 function ReplayTimeline({ timeline, currentTime, maxTime, onSeek }: ReplayTimelineProps) {
   const { t } = useTranslation();
@@ -37,11 +39,31 @@ function ReplayTimeline({ timeline, currentTime, maxTime, onSeek }: ReplayTimeli
     onSeek(Math.round(maxTime * fraction));
   };
 
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const target = {
+      ArrowLeft: currentTime - SMALL_SKIP_MS,
+      ArrowDown: currentTime - SMALL_SKIP_MS,
+      ArrowRight: currentTime + SMALL_SKIP_MS,
+      ArrowUp: currentTime + SMALL_SKIP_MS,
+      PageDown: currentTime - BIG_SKIP_MS,
+      PageUp: currentTime + BIG_SKIP_MS,
+      Home: 0,
+      End: maxTime,
+    }[event.key];
+    if (target === undefined || event.altKey || event.ctrlKey || event.metaKey) {
+      return;
+    }
+    // Handled here, so the replay's own ←/→ skip shortcuts must not fire as well.
+    event.preventDefault();
+    event.stopPropagation();
+    onSeek(Math.min(maxTime, Math.max(0, target)));
+  };
+
   return (
     <div
       className="replay-timeline"
       role="slider"
-      tabIndex={-1}
+      tabIndex={0}
       aria-label={t('GameReplay.timeline.label')}
       aria-valuemin={0}
       aria-valuemax={maxTime}
@@ -49,6 +71,7 @@ function ReplayTimeline({ timeline, currentTime, maxTime, onSeek }: ReplayTimeli
       aria-valuetext={`${formatReplayTime(currentTime)} / ${formatReplayTime(maxTime)}`}
       data-testid="replay-timeline"
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
     >
       <svg
         className="replay-timeline__histogram"
