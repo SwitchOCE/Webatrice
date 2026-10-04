@@ -51,6 +51,8 @@ export interface UseBattlefieldCardOpsArgs {
     SeatPrompts,
     'openAnnotationPrompt' | 'openPTPrompt' | 'openCardCounterPrompt' | 'openMoveXFromTopPrompt' | 'openTokenCountPrompt'
   >;
+  /** Remember the token "Create another token" repeats. */
+  setLastToken: SeatPrompts['setLastToken'];
   /** Start an attach pick for these TABLE cards; the first is the arrow's anchor. */
   startAttach: (sourceCardIds: readonly number[], anchorName: string) => void;
   /** Start a draw-arrow pick from this TABLE card. */
@@ -115,6 +117,7 @@ export function useBattlefieldCardOps({
   targetCommands,
   zoneCommands,
   prompts,
+  setLastToken,
   startAttach,
   startArrow,
 }: UseBattlefieldCardOpsArgs): BattlefieldCardActions {
@@ -227,7 +230,7 @@ export function useBattlefieldCardOps({
         // Desktop acts on the active card only, the anchor here.
         createRelatedTokens: () => {
           const meta = cardMetaByName.get(anchor.name);
-          const { requests, prompt: countPrompt } = createAllRelated({
+          const { requests, prompt: countPrompt, lastToken } = createAllRelated({
             related: meta?.related ?? [],
             tokenMeta: tokenMetaByName,
             parentMeta: meta,
@@ -236,6 +239,10 @@ export function useBattlefieldCardOps({
             annotate: annotateTokens,
           });
           requests.forEach((request) => cardCommands.createToken(request));
+          // Desktop remembers it even when the count prompt is cancelled.
+          if (lastToken) {
+            setLastToken(lastToken);
+          }
           if (countPrompt) {
             openTokenCountPrompt({ request: countPrompt.request, initial: countPrompt.defaultCount });
           }
@@ -252,6 +259,6 @@ export function useBattlefieldCardOps({
   }, [
     cards, selection, setSelection, cardMetaByName, tokenMetaByName, deckCount, lifeControl, cardCommands, counterCommands,
     targetCommands, zoneCommands, openAnnotationPrompt, openPTPrompt, openCardCounterPrompt, openMoveXFromTopPrompt,
-    openTokenCountPrompt, startAttach, startArrow, annotateTokens,
+    openTokenCountPrompt, setLastToken, startAttach, startArrow, annotateTokens,
   ]);
 }

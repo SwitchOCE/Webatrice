@@ -274,6 +274,7 @@ export function useSeatPrompts({
     openCardCounterPrompt,
     openTokenCountPrompt,
     lastToken,
+    setLastToken,
     openCreateTokenDialog,
   };
 }
