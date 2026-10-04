@@ -1,14 +1,28 @@
 ﻿import { create } from '@bufbuild/protobuf';
-import { ServerInfo_CardCounterSchema, ServerInfo_PlayerSchema } from '@cockatrice/sockatrice/generated';
 import {
+  CardAttribute,
+  Event_AttachCardSchema,
+  Event_CreateTokenSchema,
+  Event_GameStateChangedSchema,
+  ServerInfo_CardCounterSchema,
+  ServerInfo_PlayerSchema,
+  ServerInfo_UserSchema,
+} from '@cockatrice/sockatrice/generated';
+import {
+  buildTokenCard,
+  cardAttachFields,
+  cardAttrFields,
+  carryForwardResyncState,
   formatLeaveMessage,
+  gameInfoUpdateFrom,
   gameSecondsNow,
   MAX_GAME_MESSAGES,
+  mergeCardCounter,
   normalizePlayers,
   pushEventMessage,
   resetCardState,
 } from './game.reducer.helpers';
-import { makeCard, makeGameEntry, makePlayerProperties } from '../../testing/fixtures/games';
+import { makeCard, makeGameEntry, makePlayerEntry, makePlayerProperties, makeZoneEntry } from '../../testing/fixtures/games';
 
 describe('formatLeaveMessage', () => {
   it('maps a known leave reason to its message', () => {
@@ -233,5 +247,115 @@ describe('resetCardState', () => {
     expect(result.y).toBe(2);
     expect(result.faceDown).toBe(true);
     expect(result.providerId).toBe('abc');
+  });
+});
+
+describe('cardAttrFields', () => {
+  it.each([
+    [CardAttribute.AttrTapped, '1', { tapped: true }],
+    [CardAttribute.AttrTapped, '0', { tapped: false }],
+    [CardAttribute.AttrAttacking, '1', { attacking: true }],
+    [CardAttribute.AttrFaceDown, '1', { faceDown: true }],
+    [CardAttribute.AttrColor, 'r', { color: 'r' }],
+    [CardAttribute.AttrPT, '3/3', { pt: '3/3' }],
+    [CardAttribute.AttrAnnotation, 'note', { annotation: 'note' }],
+    [CardAttribute.AttrDoesntUntap, '1', { doesntUntap: true }],
+    [CardAttribute.AttrNone, '1', undefined],
+  ])('maps attribute %s = %j to %o', (attribute, value, fields) => {
+    expect(cardAttrFields(attribute, value)).toEqual(fields);
+  });
+});
+
+describe('mergeCardCounter', () => {
+  const counter = (id: number, value: number) => create(ServerInfo_CardCounterSchema, { id, value });
+  const list = [counter(1, 2), counter(3, 1)];
+
+  it.each([
+    ['updates an existing counter in place', 1, 5, [[1, 5], [3, 1]]],
+    ['appends a new counter', 2, 4, [[1, 2], [3, 1], [2, 4]]],
+    ['removes a counter set to zero', 1, 0, [[3, 1]]],
+    ['removes a counter set below zero', 3, -1, [[1, 2]]],
+    ['ignores the removal of an absent counter', 2, 0, [[1, 2], [3, 1]]],
+  ])('%s', (_label, counterId, value, expected) => {
+    expect(mergeCardCounter(list, counterId, value).map((c) => [c.id, c.value])).toEqual(expected);
+  });
+
+  it('leaves the input list untouched', () => {
+    mergeCardCounter(list, 1, 9);
+    expect(list.map((c) => c.value)).toEqual([2, 1]);
+  });
+});
+
+describe('cardAttachFields', () => {
+  it.each([
+    ['an attach', { targetPlayerId: 2, targetZone: 'table', targetCardId: 30 },
+      { attachPlayerId: 2, attachZone: 'table', attachCardId: 30 }],
+    ['an unattach (empty target zone)', { targetPlayerId: 0, targetCardId: 0 },
+      { attachPlayerId: -1, attachZone: '', attachCardId: -1 }],
+  ])('writes %s', (_label, init, fields) => {
+    expect(cardAttachFields(create(Event_AttachCardSchema, { startZone: 'table', cardId: 11, ...init }))).toEqual(fields);
+  });
+});
+
+describe('buildTokenCard', () => {
+  it('builds a detached, untapped token from the event', () => {
+    const token = buildTokenCard(create(Event_CreateTokenSchema, {
+      zoneName: 'table', cardId: 60, cardName: 'Soldier', color: 'w', pt: '1/1', annotation: 'note',
+      destroyOnZoneChange: true, x: 9, y: 1, cardProviderId: 'soldier-1', faceDown: false,
+    }));
+    expect(token).toMatchObject({
+      id: 60, name: 'Soldier', color: 'w', pt: '1/1', annotation: 'note', destroyOnZoneChange: true,
+      x: 9, y: 1, providerId: 'soldier-1', tapped: false, attacking: false, doesntUntap: false,
+      counterList: [], attachPlayerId: -1, attachZone: '', attachCardId: -1,
+    });
+  });
+});
+
+describe('carryForwardResyncState', () => {
+  const alice = create(ServerInfo_UserSchema, { name: 'Alice' });
+  const opt = makeCard({ id: 100, name: 'Opt' });
+
+  function previous() {
+    return {
+      1: makePlayerEntry({
+        properties: makePlayerProperties({ playerId: 1, userInfo: alice }),
+        zones: { deck: makeZoneEntry({ name: 'deck', revealedCards: [opt] }), hand: makeZoneEntry({ name: 'hand' }) },
+      }),
+    };
+  }
+
+  it('keeps the known userInfo and open zone views of a resynced player', () => {
+    const next = { 1: makePlayerEntry({ properties: makePlayerProperties({ playerId: 1 }) }) };
+    carryForwardResyncState(previous(), next);
+    expect(next[1].properties.userInfo).toBe(alice);
+    expect(next[1].zones.deck.revealedCards).toEqual([opt]);
+    expect(next[1].zones.hand.revealedCards).toBeUndefined();
+  });
+
+  it('keeps userInfo the resync does carry', () => {
+    const bob = create(ServerInfo_UserSchema, { name: 'Bob' });
+    const next = { 1: makePlayerEntry({ properties: makePlayerProperties({ playerId: 1, userInfo: bob }) }) };
+    carryForwardResyncState(previous(), next);
+    expect(next[1].properties.userInfo).toBe(bob);
+  });
+
+  it('leaves a newly seen player as the wire sent it', () => {
+    const next = { 2: makePlayerEntry({ properties: makePlayerProperties({ playerId: 2 }) }) };
+    carryForwardResyncState(previous(), next);
+    expect(next[2].properties.userInfo).toBeUndefined();
+    expect(next[2].zones.deck.revealedCards).toBeUndefined();
+  });
+});
+
+describe('gameInfoUpdateFrom', () => {
+  it.each([
+    ['nothing set', {}, null],
+    ['a game start', { gameStarted: true }, { gameStarted: true }],
+    ['a game stop (false is set, not default)', { gameStarted: false }, { gameStarted: false }],
+    ['player 0 becoming active', { activePlayerId: 0 }, { activePlayerId: 0 }],
+    ['every field', { gameStarted: true, activePlayerId: 2, activePhase: 3, secondsElapsed: 90 },
+      { gameStarted: true, activePlayerId: 2, activePhase: 3, secondsElapsed: 90 }],
+  ])('reads %s', (_label, init, update) => {
+    expect(gameInfoUpdateFrom(create(Event_GameStateChangedSchema, init))).toEqual(update);
   });
 });
