@@ -987,6 +987,13 @@
       "tooLong": "At most {max} characters"
     }
   },
+  "CommanderSpellbookConsent": {
+    "title": "CommanderSpellbook integration",
+    "message": "CommanderSpellbook can analyze your deck and estimate its Commander bracket.\n\nThis sends your deck list to an external service.",
+    "enable": "Enable",
+    "automatic": "Automatic",
+    "disable": "Disable"
+  },
   "DeckEditor": {
     "downloadFailed": "Failed to download this deck from the server.",
     "loadFailedTitle": "Deck could not be loaded",
@@ -1902,6 +1909,14 @@
     "openDeckInNewTab": {
       "label": "Open deck in new tab by default",
       "description": "Applies to Open deck in the deck editor. On, the deck opens in a new tab; off, it replaces the deck you are editing, asking first if that deck has unsaved changes. Decks opened from My Decks always get their own tab."
+    },
+    "commanderSpellbookIntegration": {
+      "label": "CommanderSpellbook integration",
+      "description": "The Commander bracket estimate sends your deck list to Commander Spellbook, an external service. Enabled estimates when you ask; Automatic whenever a Commander deck changes.",
+      "unprompted": "Ask before first use",
+      "disabled": "Disabled",
+      "enabled": "Enabled",
+      "automatic": "Automatic"
     },
     "replayRewindBufferingMs": {
       "label": "Buffer time for backwards skip via shortcut",

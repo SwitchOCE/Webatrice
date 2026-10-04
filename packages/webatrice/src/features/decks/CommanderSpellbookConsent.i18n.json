@@ -1,0 +1,9 @@
+{
+  "CommanderSpellbookConsent": {
+    "title": "CommanderSpellbook integration",
+    "message": "CommanderSpellbook can analyze your deck and estimate its Commander bracket.\n\nThis sends your deck list to an external service.",
+    "enable": "Enable",
+    "automatic": "Automatic",
+    "disable": "Disable"
+  }
+}

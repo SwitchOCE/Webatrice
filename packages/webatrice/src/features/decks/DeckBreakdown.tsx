@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Loader2 } from 'lucide-react';
 
+import { usePreference, useSettings } from '@app/hooks';
+import { CommanderSpellbookIntegration } from '@app/types';
+
 import {
   analyzeBracket,
   deckFingerprint,
@@ -10,6 +13,7 @@ import {
   type BracketReport,
 } from './bracket';
 import { BRACKET_LABEL } from './bracketData';
+import CommanderSpellbookConsent from './CommanderSpellbookConsent';
 import {
   isCommanderFormat,
   primaryType,
@@ -432,11 +436,7 @@ function SignalBadge({
   );
 }
 
-function BracketSection({
-  cards,
-  cachedAssessment,
-  onAssessmentComputed,
-}: {
+interface BracketSectionProps {
   cards: DeckCard[];
   /** Previously-persisted assessment from the .cod's `<bracketAssessment>`
    *  element. When its fingerprint matches the current deck we skip
@@ -449,11 +449,54 @@ function BracketSection({
    *  fingerprint). Passes `undefined` when the deck is empty or the
    *  assessment failed. */
   onAssessmentComputed?: (assessment: BracketAssessment | undefined) => void;
-}) {
+}
+
+/**
+ * The bracket estimate behind desktop's Commander Spellbook consent (commander_bracket_widget.cpp
+ * `maybeAutoEstimateBracket`): hidden when Disabled, the first-use prompt while Unprompted, an
+ * estimate on request when Enabled, and on every deck change when Automatic.
+ *
+ * @critical `analyzeBracket` sends the deck list to Commander Spellbook (and card names to
+ * Scryfall); it must not run before the user has chosen Enabled or Automatic.
+ */
+function BracketEstimate(props: BracketSectionProps) {
+  const mode = usePreference('commanderSpellbookIntegration');
+  const settings = useSettings();
+  // Dismissing the prompt hides the estimate and asks again next time, as desktop does.
+  const [dismissed, setDismissed] = useState(false);
+
+  if (mode === CommanderSpellbookIntegration.Disabled || dismissed) {
+    return null;
+  }
+  if (mode === CommanderSpellbookIntegration.Unprompted) {
+    return (
+      <CommanderSpellbookConsent
+        onChoose={(choice) =>
+          choice ? void settings.update({ commanderSpellbookIntegration: choice }) : setDismissed(true)}
+      />
+    );
+  }
+  return (
+    <section>
+      <SectionHeader>Bracket estimate</SectionHeader>
+      <BracketSection {...props} automatic={mode === CommanderSpellbookIntegration.Automatic} />
+    </section>
+  );
+}
+
+function BracketSection({
+  cards,
+  cachedAssessment,
+  onAssessmentComputed,
+  automatic,
+}: BracketSectionProps & { automatic: boolean }) {
   const fingerprint = useMemo(() => deckFingerprint(cards), [cards]);
   const [report, setReport] = useState<BracketReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Enabled (not Automatic): the deck shape the user asked to estimate.
+  const [requested, setRequested] = useState<string | null>(null);
+  const shouldEstimate = automatic || requested === fingerprint;
 
   useEffect(() => {
     let cancelled = false;
@@ -465,6 +508,15 @@ function BracketSection({
     // to persist since the value already matches the .cod on disk.
     if (cachedAssessment && cachedAssessment.fingerprint === fingerprint) {
       setReport(fromBracketAssessment(cachedAssessment));
+      setLoading(false);
+      setError(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (!shouldEstimate) {
+      setReport(null);
       setLoading(false);
       setError(null);
       return () => {
@@ -497,7 +549,7 @@ function BracketSection({
     // Fingerprint captures the meaningful shape of `cards` — printing
     // swaps and category toggles don't invalidate the assessment.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on `fingerprint` (see above)
-  }, [fingerprint]);
+  }, [fingerprint, shouldEstimate]);
 
   if (loading) {
     return (
@@ -512,7 +564,18 @@ function BracketSection({
   }
 
   if (!report) {
-    return null;
+    return shouldEstimate ? null : (
+      <button
+        type="button"
+        onClick={() => setRequested(fingerprint)}
+        className={[
+          'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border-strong',
+          'bg-bg-elevated hover:bg-border-subtle text-text-primary text-sm font-medium transition-colors',
+        ].join(' ')}
+      >
+        Estimate bracket
+      </button>
+    );
   }
   const tone = BRACKET_TONE[report.level];
   const { signals } = report;
@@ -646,14 +709,11 @@ export default function DeckBreakdown({
       </section>
 
       {showBracket && (
-        <section>
-          <SectionHeader>Bracket estimate</SectionHeader>
-          <BracketSection
-            cards={cards}
-            cachedAssessment={cachedAssessment}
-            onAssessmentComputed={onAssessmentComputed}
-          />
-        </section>
+        <BracketEstimate
+          cards={cards}
+          cachedAssessment={cachedAssessment}
+          onAssessmentComputed={onAssessmentComputed}
+        />
       )}
 
       <section>

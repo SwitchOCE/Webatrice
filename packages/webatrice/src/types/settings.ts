@@ -45,8 +45,10 @@ export class Setting {
   closeEmptyCardView: boolean;
   tapAnimation: boolean;
 
-  // User interface — deck editor/storage (desktop deck_editor_settings `openDeckInNewTab`)
+  // User interface — deck editor/storage (desktop deck_editor_settings `openDeckInNewTab`,
+  // `commanderspellbookintegrationenabled`)
   openDeckInNewTab: boolean;
+  commanderSpellbookIntegration: CommanderSpellbookIntegration;
 
   // User interface — replay (desktop interface_settings `replay/rewindBufferingMs`)
   replayRewindBufferingMs: number;
@@ -101,6 +103,19 @@ export enum StartupTab {
   Replays = 'replays',
 }
 
+/**
+ * Desktop's Commander Spellbook integration modes (deck_editor_settings.h
+ * `commanderSpellbookIntegrationEnabledIndex`). The bracket estimate sends the deck list to
+ * Commander Spellbook, so nothing is sent until the user picks Enabled (estimate on request) or
+ * Automatic; Unprompted, the default, asks on first use.
+ */
+export enum CommanderSpellbookIntegration {
+  Disabled = 'disabled',
+  Enabled = 'enabled',
+  Automatic = 'automatic',
+  Unprompted = 'unprompted',
+}
+
 /** Every user-editable preference on the settings row. */
 export type Preferences = Omit<Setting, 'user' | 'version' | 'shortcuts'>;
 export type PreferenceKey = keyof Preferences;
@@ -137,6 +152,7 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   tapAnimation: true,
 
   openDeckInNewTab: false,
+  commanderSpellbookIntegration: CommanderSpellbookIntegration.Unprompted,
 
   replayRewindBufferingMs: 200,
 
