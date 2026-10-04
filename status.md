@@ -8,3 +8,4 @@
 - 01:19Z ZoneRevealPanel + useMarquee pushed (015628c) → D8 zone label map with i18n keys
 - 01:30Z D8 labels + changeset pushed (3852150) → full gate (typecheck/lint/unit/integration/e2e)
 - 01:40Z gate green on 3242ea4 (unit 896/1316/3615, integ 175/144/266) → webatrice e2e in playwright container
+- 01:56Z e2e 66 passed/12 skipped (staff-tools re-run with docker CLI mounted); PR file written → done
