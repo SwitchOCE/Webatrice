@@ -358,7 +358,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     openLifePrompt,
     openCounterPrompt,
     manaCounters,
-    selection,
+    incrementAllCardCounters: cardOps.incrementAllCounters,
     battlefieldDisplayList,
     lastToken,
     openCreateTokenDialog,

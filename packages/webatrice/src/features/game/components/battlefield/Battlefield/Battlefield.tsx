@@ -133,8 +133,8 @@ export default function Battlefield() {
     attachPending,
     battlefieldDisplayList,
     battlefieldMenuItems,
-    cardCommands,
     cardMetaByName,
+    cardOps,
     handOnTop,
     isDragging,
     isSelf,
@@ -373,32 +373,10 @@ export default function Battlefield() {
                   }
                   onDoubleClick={
                     isSelf
-                      ? () => {
-                      // If the double-clicked card belongs to the
-                      // current marquee selection on THIS battlefield,
-                      // tap/untap every selected card together.
-                        const groupTap =
-                        selection?.zone === 'battlefield' &&
-                        selection.ids.has(c.id);
-                        const targetIds = groupTap
-                          ? selection.ids
-                          : new Set([c.id]);
-                        const nextTapped = !c.tapped;
-                        // Wire dispatch: one Command_SetCardAttr per
-                        // card. Server broadcasts Event_SetCardAttr
-                        // back and Redux flips `tapped` — no local
-                        // mutation needed.
-                        const wireIds: number[] = [];
-                        targetIds.forEach((id) => {
-                          const n = Number(id);
-                          if (Number.isFinite(n)) {
-                            wireIds.push(n);
-                          }
-                        });
-                        if (wireIds.length > 0) {
-                          cardCommands.setTapped(wireIds, nextTapped);
-                        }
-                      }
+                      // A double-click taps or untaps like the card
+                      // menu's Tap / Untap: the whole selection when the
+                      // card is part of it, toggled from this card.
+                      ? () => cardOps.forCard(c.id)?.toggleTapped()
                       : undefined
                   }
                   style={{
