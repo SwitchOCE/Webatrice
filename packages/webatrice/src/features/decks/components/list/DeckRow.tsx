@@ -216,7 +216,7 @@ function DeckRowCard({ deck, summary, onOpen, onDelete, onMove, onDownload, onSh
           onTogglePublic={onTogglePublic}
           className={[
             'p-2 rounded-md bg-bg-surface/80 backdrop-blur-sm border border-border-subtle text-text-muted',
-            'opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all',
+            'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-all',
           ].join(' ')}
         />
         <button
@@ -228,7 +228,7 @@ function DeckRowCard({ deck, summary, onOpen, onDelete, onMove, onDownload, onSh
           className={[
             'p-2 rounded-md bg-bg-surface/80 backdrop-blur-sm border',
             'border-border-subtle text-text-muted hover:text-danger',
-            'hover:bg-red-500/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all',
+            'hover:bg-red-500/10 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-all',
           ].join(' ')}
           title={t('Decks.list.deleteDeck')}
           aria-label={t('Decks.list.deleteDeckNamed', { name: deck.name })}
@@ -304,14 +304,17 @@ function DeckRowCompact({ deck, summary, onOpen, onDelete, onMove, onDownload, o
         onDownload={onDownload}
         onShare={onShare}
         onTogglePublic={onTogglePublic}
-        className="p-2 rounded-md text-text-muted opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all shrink-0"
+        className={[
+          'p-2 rounded-md text-text-muted transition-all shrink-0',
+          'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100',
+        ].join(' ')}
       />
       <button
         type="button"
         onClick={onDelete}
         className={[
           'mr-2 p-2 rounded-md text-text-muted hover:text-danger hover:bg-red-500/10',
-          'opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all shrink-0',
+          'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-all shrink-0',
         ].join(' ')}
         title={t('Decks.list.deleteDeck')}
         aria-label={t('Decks.list.deleteDeckNamed', { name: deck.name })}

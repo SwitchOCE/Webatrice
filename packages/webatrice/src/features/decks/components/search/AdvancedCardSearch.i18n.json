@@ -54,6 +54,7 @@
       "uncommon": { "name": "Uncommon", "short": "U" },
       "rare": { "name": "Rare", "short": "R" },
       "mythic": { "name": "Mythic", "short": "M" }
-    }
+    },
+    "added": "Added {name} to the deck"
   }
 }

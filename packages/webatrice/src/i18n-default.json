@@ -1611,7 +1611,8 @@
         "name": "Mythic",
         "short": "M"
       }
-    }
+    },
+    "added": "Added {name} to the deck"
   },
   "DeckImport": {
     "defaultName": "Imported deck",
