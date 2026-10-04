@@ -2,3 +2,4 @@
 - 23:39Z Home/End fix + per-site image URL specs pushed → barrel narrowing
 - 23:46Z barrel narrowed + eslint rule; bracketTone → utils; pushed → nits
 - 23:47Z all rv15 findings committed+pushed (eca62b5) → full gate
+- 00:01Z gate: typecheck/lint/unit green; integration 264/265, invite-link.spec:174 flaky on base d2e516c too (4/5) → e2e
