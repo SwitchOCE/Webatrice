@@ -4,3 +4,4 @@
 - 03:21Z commit 3 (counters/P-T/phases) pushed 5617697 → per-commit typecheck, changeset, gate
 - 04:27Z gate done (see PR file), PR file written; branch tip 82cb676 → final message
 - 04:27Z ACK M1: rebasing onto R1 fr1 (178bf758) and adapting
+- 04:37Z M1 done: rebased onto 178bf75, tip 3a78d2f; typecheck/lint/unit green, integration only the known invite-link → e2e running
