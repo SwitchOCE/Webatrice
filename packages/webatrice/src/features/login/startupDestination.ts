@@ -11,13 +11,39 @@ export interface StartupDestination {
   state?: ServerRouteState;
 }
 
-/** Whether this page load came from the browser's reload, read once at boot. */
-function isReloadNavigation(): boolean {
+const PAGE_SESSION_KEY = 'webatrice.pageSession';
+
+function navigationType(): string | undefined {
   if (typeof performance === 'undefined' || typeof performance.getEntriesByType !== 'function') {
-    return false;
+    return undefined;
   }
   const [navigation] = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
-  return navigation?.type === 'reload';
+  return navigation?.type;
+}
+
+/**
+ * Whether this page load reloads a page already open in this tab, read once at boot. The tab's
+ * `sessionStorage` survives a reload but not a new tab, window or browser restart, which are
+ * launches; Navigation Timing's `type` is checked too, though not every browser reports a
+ * scripted reload as `'reload'`.
+ */
+export function detectPageReload(storage: Pick<Storage, 'getItem' | 'setItem'> | undefined, type: string | undefined): boolean {
+  let seenThisTab = false;
+  try {
+    seenThisTab = (storage?.getItem(PAGE_SESSION_KEY) ?? null) !== null;
+    storage?.setItem(PAGE_SESSION_KEY, '1');
+  } catch {
+    /* storage blocked: fall back to the navigation type */
+  }
+  return seenThisTab || type === 'reload';
+}
+
+function sessionStorageOrUndefined(): Storage | undefined {
+  try {
+    return typeof window === 'undefined' ? undefined : window.sessionStorage;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -25,13 +51,13 @@ function isReloadNavigation(): boolean {
  * reload (`reload`), which keeps the page the user was on instead of opening the startup tab.
  * Mutable for tests, like `autoLoginGate`.
  */
-export const pageLoadLoginGate = { done: false, reload: isReloadNavigation() };
+export const pageLoadLoginGate = { done: false, reload: detectPageReload(sessionStorageOrUndefined(), navigationType()) };
 
 /**
  * Where a login lands, following desktop's startup tab (window_main.cpp `startupDestination`,
  * tab_supervisor.cpp `initStartupTabs`), which applies once per launch:
  *
- * - The first login of a page load that is not a reload opens the startup tab (`applyStartupTab`),
+ * - The first login of a page load that is not a reload (`detectPageReload`) opens the startup tab,
  *   whatever page the last session was on. Server Room opens its room only on a login to the
  *   startup server (any server when none is chosen), since room names belong to a server; a login
  *   elsewhere, or with no room name, opens the lobby. Desktop's startup server also picks what to
