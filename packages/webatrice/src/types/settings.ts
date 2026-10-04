@@ -169,6 +169,16 @@ export const DEFAULT_SOUND_THEME = 'Default';
 export const DEFAULT_CHAT_COLOR = 'A6120D';
 
 /** Desktop defaults, so a fresh browser behaves like a fresh desktop install. */
+/** The card counter colours (Appearance › Card counters), counter 0 to 5. */
+export const CARD_COUNTER_COLOR_KEYS = [
+  'cardCounterColorA',
+  'cardCounterColorB',
+  'cardCounterColorC',
+  'cardCounterColorD',
+  'cardCounterColorE',
+  'cardCounterColorF',
+] as const;
+
 export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   autoConnect: false,
 
