@@ -9,7 +9,12 @@ import type { ActionId } from '@app/feature-widgets/shortcuts';
 import type { SeatCardMenuState } from '../../../hooks/dialogs/gameDialogs.types';
 import type { SeatSelection } from '../../../hooks/useSeatSelection';
 import { makeCardKey, parseCardKey } from '../../../utils/CardRegistry/CardRegistryContext';
-import { legacyTableRowFromTypeLine, tableRowToGridY } from '../../battlefield/Battlefield/cardPlacement';
+import {
+  legacyTableRowFromTypeLine,
+  playedCardFields,
+  tableRowToGridY,
+  type PlayedCardMeta,
+} from '../../battlefield/Battlefield/cardPlacement';
 import type {
   PlayerCardViewModel,
   SeatMoveCard,
@@ -19,12 +24,8 @@ import type { CardMenuItem } from './cardContextMenu.model';
 import { buildHandOrZoneCardMenu } from './handCardMenu.model';
 
 /** What playing a card needs from its catalog entry. */
-export interface PlayCardMeta {
+export interface PlayCardMeta extends PlayedCardMeta {
   typeLine: string;
-  /** Printed P/T; the card lands on the battlefield with it. */
-  pt?: string;
-  /** cards.xml `<cipt>`: the card comes into play tapped. */
-  cipt?: boolean;
 }
 
 /**
@@ -54,12 +55,10 @@ export function playCardMove(
   if (!faceDown && !fromStack && (playToStack ? tableRow !== 0 : tableRow === 3)) {
     return { card: cardId, to: { zone: ZoneName.STACK, index: 'end' } };
   }
-  let card: SeatMoveCard = cardId;
-  if (faceDown) {
-    card = { id: cardId, faceDown: true };
-  } else if (meta?.pt || meta?.cipt) {
-    card = { id: cardId, ...(meta.pt && { pt: meta.pt }), ...(meta.cipt && { tapped: true as const }) };
-  }
+  const fields = playedCardFields(meta, faceDown);
+  const card: SeatMoveCard = faceDown
+    ? { id: cardId, faceDown: true }
+    : fields.pt || fields.tapped ? { id: cardId, ...fields } : cardId;
   return { card, to: { zone: ZoneName.TABLE, index: 'end', row: tableRowToGridY(faceDown ? 2 : tableRow) } };
 }
 

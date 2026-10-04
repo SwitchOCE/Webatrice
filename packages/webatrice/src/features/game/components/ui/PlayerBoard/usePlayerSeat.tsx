@@ -410,6 +410,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     selection,
     setSelection,
     resolveAttachPress,
+    printedPT: (cardName) => cardMetaByName.get(cardName)?.pt,
     stackDisplayList,
     handDisplayList,
     boxRef,

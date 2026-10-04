@@ -35,6 +35,27 @@ export function tableRowToGridY(tableRow: number): number {
 
 export type CardPlacement = { zone: 'stack' } | { zone: 'table'; visualY: number };
 
+/** What a card's catalog entry says about how it enters the battlefield. */
+export interface PlayedCardMeta {
+  /** Printed P/T. */
+  pt?: string;
+  /** cards.xml `<cipt>`: the card comes into play tapped. */
+  cipt?: boolean;
+}
+
+/**
+ * The fields of a card played face up onto the battlefield (desktop
+ * PlayerActions::playCard, player_actions.cpp:120-130): its printed P/T, and
+ * tapped when it comes into play tapped. A face-down card carries neither.
+ * Every play sends these, whatever row policy placed it.
+ */
+export function playedCardFields(meta: PlayedCardMeta | undefined, faceDown: boolean): { pt?: string; tapped?: true } {
+  if (faceDown || !meta) {
+    return {};
+  }
+  return { ...(meta.pt && { pt: meta.pt }), ...(meta.cipt && { tapped: true as const }) };
+}
+
 /** Card-database policy for playing a card: row 3 goes to the stack, rows 0-2
  *  to visual row 2 - row, and an unknown or out-of-range row to the top row. */
 export function placementFromCardDatabaseRow(tablerow: number | null): CardPlacement {

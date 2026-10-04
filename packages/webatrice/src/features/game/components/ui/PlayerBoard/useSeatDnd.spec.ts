@@ -56,6 +56,7 @@ function setup(args: Partial<UseSeatDndArgs> = {}) {
     selection: null,
     setSelection: vi.fn(),
     resolveAttachPress: vi.fn(() => false),
+    printedPT: () => undefined,
     stackDisplayList: [card(50), card(51)],
     handDisplayList: [card(30), card(31), card(32)],
     boxRef: { current: box },
@@ -128,6 +129,16 @@ describe('useSeatDnd', () => {
     const { result } = setup();
     result.current.startPileDrag(press, card(41), 'graveyard');
     expect(dnd.starts.get('seat-1-graveyard')).toHaveBeenCalledWith(press, [card(41)]);
+  });
+
+  it('gives a card dragged from outside the battlefield its printed P/T, for a battlefield drop', () => {
+    const { result } = setup({ printedPT: (cardName) => (cardName === 'Card 30' ? '2/2' : undefined) });
+    result.current.startSeatCardDrag(press, card(30), 'hand', [card(30)]);
+    result.current.startPileDrag(press, card(30), 'graveyard');
+    result.current.startSeatCardDrag(press, card(30), 'battlefield', [card(30)]);
+    expect(dnd.starts.get('seat-1-hand')!.mock.calls[0][1]).toEqual([{ ...card(30), printedPT: '2/2' }]);
+    expect(dnd.starts.get('seat-1-graveyard')!.mock.calls[0][1]).toEqual([{ ...card(30), printedPT: '2/2' }]);
+    expect(dnd.starts.get('seat-1-battlefield')!.mock.calls[0][1]).toEqual([card(30)]);
   });
 
   it('resolves a hand drop to the cards left of the pointer, not counting the dragged ones', () => {
