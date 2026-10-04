@@ -3,3 +3,4 @@
 - 03:07Z commit 2 (move top/bottom/gameplay + useLibraryOps) pushed 4f7195b → commit 3 (card/player counters, P/T, phases)
 - 03:21Z commit 3 (counters/P-T/phases) pushed 5617697 → per-commit typecheck, changeset, gate
 - 04:27Z gate done (see PR file), PR file written; branch tip 82cb676 → final message
+- 04:27Z ACK M1: rebasing onto R1 fr1 (178bf758) and adapting
