@@ -86,7 +86,7 @@ export function ZoneCardCell({
 
   return (
     <div
-      {...(marked ? { 'data-card': true, 'data-card-id': card.id } : null)}
+      {...(marked ? { 'data-card': '', 'data-card-id': card.id } : null)}
       {...(cardOwner ? { 'data-card-owner': cardOwner.playerId, 'data-card-zone': cardOwner.zone } : null)}
       className={pile ? 'absolute left-0 hover:z-10 group' : className}
       onPointerDown={onPointerDown && ((e) => {
