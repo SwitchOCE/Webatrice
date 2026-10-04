@@ -88,7 +88,7 @@ describe('useShortcut', () => {
 describe('useShortcutGroup', () => {
   const GROUP = ['game.incP', 'game.decP'] as const;
 
-  it('registers every action once and passes the action id to the latest handler', () => {
+  it('registers every action once and passes the action id and its index to the latest handler', () => {
     const unregister = vi.fn();
     const register = vi.fn<ShortcutContextValue['register']>(() => unregister);
     const first = vi.fn();
@@ -96,7 +96,7 @@ describe('useShortcutGroup', () => {
     const wrapper = makeWrapper(register);
 
     const { rerender, unmount } = renderHook(
-      ({ handler }: { handler: (actionId: string, event: KeyboardEvent) => void }) =>
+      ({ handler }: { handler: (actionId: string, event: KeyboardEvent, index: number) => void }) =>
         useShortcutGroup(GROUP, handler, { scope: ShortcutScope.GAME, preventDefault: false }),
       { wrapper, initialProps: { handler: first } },
     );
@@ -109,7 +109,7 @@ describe('useShortcutGroup', () => {
     const event = new KeyboardEvent('keydown');
     register.mock.calls[1][0].handler(event);
     expect(first).not.toHaveBeenCalled();
-    expect(second).toHaveBeenCalledWith('game.decP', event);
+    expect(second).toHaveBeenCalledWith('game.decP', event, 1);
 
     unmount();
     expect(unregister).toHaveBeenCalledTimes(2);

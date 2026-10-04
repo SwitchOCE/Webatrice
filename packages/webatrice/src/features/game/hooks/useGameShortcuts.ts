@@ -157,10 +157,11 @@ export function useGameShortcuts({
 
   useShortcut('game.nextPhaseAction', nextPhaseAction.run, { scope: ShortcutScope.GAME, enabled: inGame });
 
-  // Desktop's phase buttons as keys (TabGame's phase actions): set that phase.
+  // Desktop's phase buttons as keys (TabGame's phase actions): set that
+  // phase. The list is in phase order, so an action's index is its phase.
   useShortcutGroup(
     PHASE_SHORTCUT_ACTIONS,
-    (actionId) => handlePhaseClick(PHASE_SHORTCUT_ACTIONS.indexOf(actionId as (typeof PHASE_SHORTCUT_ACTIONS)[number])),
+    (_actionId, _event, phase) => handlePhaseClick(phase),
     { scope: ShortcutScope.GAME, enabled: inGame },
   );
 
