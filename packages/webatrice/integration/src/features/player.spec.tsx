@@ -51,7 +51,7 @@ describe('Player (integration)', () => {
     );
     expect(screen.getByTestId('private-chat-presence')).toHaveTextContent('PrivateChat.presence.online');
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('combobox');
     fireEvent.change(input, { target: { value: 'you there?' } });
     fireEvent.click(screen.getByRole('button', { name: 'Common.action.send' }));
     expect(input).toHaveValue('');
