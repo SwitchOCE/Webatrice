@@ -18,6 +18,7 @@ import type {
 } from './playerBoard.types';
 import { useBattlefieldCardOps } from './useBattlefieldCardOps';
 import { useHandCardOps } from './useHandCardOps';
+import { useLibraryOps } from './useLibraryOps';
 import { useSeatShortcutOperations } from './useSeatShortcutOperations';
 import type { LifeControl } from './useSeatPrompts';
 
@@ -103,6 +104,7 @@ function setup({
     openViewLibraryCountPrompt: vi.fn(),
     openCreateTokenDialog: vi.fn(),
     openMoveTopUntilDialog: vi.fn(),
+    openCountPrompt: vi.fn(),
     openPTPrompt: vi.fn(),
     startAttach: vi.fn(),
     startArrow: vi.fn(),
@@ -135,6 +137,7 @@ function setup({
       startArrow: props.startArrow,
     });
     const handOps = useHandCardOps({ cards: HAND, selection, cardMetaByName: CARD_META, zoneCommands });
+    const libraryOps = useLibraryOps({ deckCount, openCountPrompt: props.openCountPrompt, zoneCommands });
     useSeatShortcutOperations({
       seatId: 1,
       isSelf,
@@ -153,6 +156,7 @@ function setup({
       openMoveTopUntilDialog: props.openMoveTopUntilDialog,
       cardOps,
       handOps,
+      libraryOps,
       zoneCommands,
       cardCommands,
       counterCommands,
@@ -338,5 +342,28 @@ describe('useSeatShortcutOperations', () => {
     const { run, props } = setup({ selection: selected(12, 10) });
     run('game.setCardPT');
     expect(props.openPTPrompt).toHaveBeenCalledWith({ targetIds: [10, 12], cardName: 'Card 10', current: '3/3' });
+  });
+
+  it('runs the top and bottom card actions through the library ops, and nothing on an empty library', () => {
+    const { run, props, zoneCommands } = setup({ deckCount: 30 });
+    run('game.moveTopToPlayFaceDown');
+    run('game.moveBottomToTop');
+    run('game.drawBottomCard');
+    expect(vi.mocked(zoneCommands.moveCards).mock.calls).toEqual([
+      [ZoneName.DECK, [{ id: 0, faceDown: true }], { zone: ZoneName.TABLE, index: 'end' }],
+      [ZoneName.DECK, [29], { zone: ZoneName.DECK, index: 0 }],
+      [ZoneName.DECK, [29], { zone: ZoneName.HAND, index: 0 }],
+    ]);
+    run('game.moveBottomNToExileFaceDown');
+    run('game.shuffleTopCards');
+    expect(props.openCountPrompt.mock.calls.map(([p]) => [p.title, p.submitLabel])).toEqual([
+      ['Move bottom cards to exile face down', 'Move'],
+      ['Shuffle top cards', 'Shuffle'],
+    ]);
+
+    const empty = setup({ deckCount: 0 });
+    (['game.moveTopToExile', 'game.drawBottomCards', 'game.shuffleBottomCards'] as const).forEach((id) => empty.run(id));
+    expect(empty.zoneCommands.moveCards).not.toHaveBeenCalled();
+    expect(empty.props.openCountPrompt).not.toHaveBeenCalled();
   });
 });

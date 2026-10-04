@@ -28,6 +28,7 @@ import type {
 } from './playerBoard.types';
 import { useBattlefieldCardOps } from './useBattlefieldCardOps';
 import { useHandCardOps } from './useHandCardOps';
+import { useLibraryOps } from './useLibraryOps';
 import { useDrawFlights } from './useDrawFlights';
 import { useSeatCardMetadata } from './useSeatCardMetadata';
 import { useSeatDnd } from './useSeatDnd';
@@ -329,8 +330,13 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     shortcutHints,
     zoneCommands,
   });
+  // The library actions the library menus and the top / bottom card
+  // shortcuts share.
+  const libraryOps = useLibraryOps({ deckCount, openCountPrompt, zoneCommands });
   const {
     libraryMenuItems,
+    topLibraryItems,
+    bottomLibraryItems,
   } = useLibraryMenuItems({
     seatId,
     deckCount,
@@ -338,7 +344,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     alwaysRevealTopCard,
     alwaysLookAtTopCard,
     draw,
-    openCountPrompt,
+    libraryOps,
     openDrawCardsPrompt,
     openViewLibraryCountPrompt,
     openRevealTopCardsPrompt,
@@ -394,6 +400,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     openMoveTopUntilDialog,
     cardOps,
     handOps,
+    libraryOps,
     zoneCommands,
     cardCommands,
     counterCommands,
@@ -440,6 +447,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     attachPending,
     battlefieldDisplayList,
     battlefieldMenuItems,
+    bottomLibraryItems,
     boxRef,
     cardCommands,
     cardContextMenu,
@@ -518,6 +526,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     startSeatCardDrag,
     targetCommands,
     tokenMetaByName,
+    topLibraryItems,
     zoneCommands,
     zoneViewCardMenu,
     zones,
