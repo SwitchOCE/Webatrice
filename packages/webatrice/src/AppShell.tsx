@@ -16,7 +16,7 @@ import { DeckShareLinkRedirect } from '@app/features/decks';
 import { LobbyDeckStateProvider } from '@app/features/game';
 import { PrivateMessageNotifier } from '@app/features/player';
 import { ReportNotifier } from '@app/features/reports';
-import { AppAlerts, CommandFailureNotices, FeatureDetection, ServerNotices } from '@app/features/shell';
+import { AppAlerts, CommandFailureNotices, FeatureDetection, MissingFeaturesNotice, ServerNotices } from '@app/features/shell';
 import { usePlaymatSync } from './features/game/hooks/usePlaymatSync';
 import { SessionScope } from './SessionScope';
 
@@ -57,6 +57,9 @@ function AppShell() {
             {/* Final outcomes must survive session teardown until dismissed. */}
             <CommandFailureNotices />
             <ServerNotices />
+            {/* Desktop's "server supports features your client lacks" box, after a login. Outside
+             *  SessionScope: the login that raises it also starts the new session. */}
+            <MissingFeaturesNotice />
             <SessionScope>
               {/* Global listener for incoming private-chat messages —
                *  renders nothing, dispatches Toast pills whose

@@ -55,6 +55,10 @@ export type SettingControl =
     /** Runs once the user lets go, with the preferences as saved. */
     onCommit?: (preferences: Preferences) => void;
   }
+  /** A line of text, saved trimmed once the user commits it (Enter or leaving the field). */
+  | { kind: 'text'; key: StringPreferenceKey; placeholderKey?: string }
+  /** A whole number typed in, like desktop's spin boxes; `unitKey` labels it (e.g. "ms"). */
+  | { kind: 'number'; key: NumberPreferenceKey; min: number; max: number; unitKey?: string }
   | { kind: 'color'; key: StringPreferenceKey }
   /**
    * Anything else. `keys` lists the preferences it edits so "Restore defaults" covers them;
@@ -84,6 +88,8 @@ export interface SettingEntry {
   control: SettingControl;
   /** Disabled (but still shown) while this preference is off, e.g. volume while sound is off. */
   dependsOn?: BooleanPreferenceKey;
+  /** Shown only while this holds, as desktop hides a control that does not apply (the startup room). */
+  visibleWhen?: (preferences: Preferences) => boolean;
 }
 
 /** A desktop group box: a titled run of related settings. */

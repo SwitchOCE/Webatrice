@@ -3,8 +3,9 @@ import { DEFAULT_PLAYMAT_SETTINGS, type PlaymatSettings } from './playmats';
 /**
  * The persisted settings row (Dexie `settings` table, one row per `user`; the app-wide row is
  * `APP_USER`). Preference fields mirror desktop's `libcockatrice_settings` and keep its defaults
- * (see PREFERENCE_DEFAULTS). Adding a preference: declare it here, give it a default below, and
- * bump SETTINGS_VERSION with a migration step in `services/dexie/settingsMigration.ts`.
+ * (see PREFERENCE_DEFAULTS). Adding a preference: declare it here and give it a default below;
+ * every load fills a missing preference with its default. Bump SETTINGS_VERSION with a migration
+ * step in `services/dexie/settingsMigration.ts` only when stored values must change.
  */
 export class Setting {
   user: string;
@@ -20,6 +21,14 @@ export class Setting {
 
   // General — startup
   autoConnect: boolean;
+  // Where a fresh login lands (desktop tabs_settings `startupTab`, `startupServer*`,
+  // `startupRoomName`). `startupServer` is a known host's `host:port`, '' for any server.
+  startupTab: StartupTab;
+  startupServer: string;
+  startupRoom: string;
+
+  // General — version (desktop updates_settings `updateNotification`)
+  notifyAboutMissingFeatures: boolean;
 
   // General — language. A `Language` code, or '' to follow the browser's language.
   language: string;
@@ -39,6 +48,9 @@ export class Setting {
   closeEmptyCardView: boolean;
   tapAnimation: boolean;
 
+  // User interface — replay (desktop interface_settings `replay/rewindBufferingMs`)
+  replayRewindBufferingMs: number;
+
   // User interface — notifications ("taskbar" alerts on desktop)
   notificationsEnabled: boolean;
   spectatorNotificationsEnabled: boolean;
@@ -48,6 +60,7 @@ export class Setting {
   chatMention: boolean;
   chatMentionColor: string;
   chatMentionForeground: boolean;
+  chatMentionCompleter: boolean;
   chatHighlightWords: string;
   chatHighlightColor: string;
   chatHighlightForeground: boolean;
@@ -77,6 +90,17 @@ export enum ThemeMode {
   Dark = 'dark',
 }
 
+/**
+ * Desktop's startup tabs (tabs_settings.h `StartupTab`) that have a Webatrice page. Home, the
+ * visual deck pages and a blank deck editor have none; see the General section.
+ */
+export enum StartupTab {
+  Server = 'server',
+  ServerRoom = 'serverRoom',
+  DeckStorage = 'deckStorage',
+  Replays = 'replays',
+}
+
 /** Every user-editable preference on the settings row. */
 export type Preferences = Omit<Setting, 'user' | 'version' | 'shortcuts'>;
 export type PreferenceKey = keyof Preferences;
@@ -93,6 +117,12 @@ export const DEFAULT_CHAT_COLOR = 'A6120D';
 export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   autoConnect: false,
   playmatSettings: DEFAULT_PLAYMAT_SETTINGS,
+  // Desktop starts on its Home tab; Webatrice has none, and has always landed on the lobby.
+  startupTab: StartupTab.Server,
+  startupServer: '',
+  startupRoom: '',
+
+  notifyAboutMissingFeatures: true,
 
   language: '',
 
@@ -107,6 +137,8 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   closeEmptyCardView: true,
   tapAnimation: true,
 
+  replayRewindBufferingMs: 200,
+
   notificationsEnabled: true,
   spectatorNotificationsEnabled: false,
   buddyConnectNotificationsEnabled: true,
@@ -114,6 +146,7 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   chatMention: true,
   chatMentionColor: DEFAULT_CHAT_COLOR,
   chatMentionForeground: true,
+  chatMentionCompleter: true,
   chatHighlightWords: '',
   chatHighlightColor: DEFAULT_CHAT_COLOR,
   chatHighlightForeground: true,

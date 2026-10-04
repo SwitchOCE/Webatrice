@@ -17,6 +17,7 @@ import ResetPasswordDialog from './dialogs/ResetPasswordDialog/ResetPasswordDial
 import AccountActivationDialog from './dialogs/AccountActivationDialog/AccountActivationDialog';
 import LoginForm from './forms/LoginForm/LoginForm';
 import { useLogin } from './useLogin';
+import { useStartupDestination } from './startupDestination';
 
 import './Login.css';
 
@@ -54,6 +55,7 @@ const Login = () => {
     openRegistrationDialog,
     closeActivateAccountDialog,
   } = useLogin();
+  const destination = useStartupDestination(isConnected);
   const version = useVersion();
   // Desktop's Help › View debug log works while disconnected, which is when connection
   // and login failures need it; the signed-in menus are not reachable from here.
@@ -62,7 +64,7 @@ const Login = () => {
   return (
     <Layout showNav={false} noHeightLimit={true}>
       <div className="login scrollable">
-        {isConnected && <Navigate to={RouteEnum.SERVER} />}
+        {isConnected && <Navigate to={destination.to} state={destination.state} />}
 
         <div className="login__wrapper">
           <Paper className="login-content">

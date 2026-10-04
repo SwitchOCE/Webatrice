@@ -9,6 +9,7 @@ import type { WebClient } from '@cockatrice/sockatrice';
 import { createMockWebClient } from '../../../__test-utils__';
 import { closeReplay, getOpenedReplay, getOpenedReplays, openReplay, type OpenedReplay } from '@app/services';
 import { buildReplay, sayContainer } from '../../../services/replay/__mocks__/fixtures';
+import { getSettings, settingsStore } from '../../../hooks/useSettings';
 
 import { useReplayPlayback } from './useReplayPlayback';
 
@@ -41,6 +42,7 @@ beforeEach(() => {
 
 afterEach(() => {
   getOpenedReplays().forEach(({ key }) => closeReplay(key));
+  settingsStore.reset();
   vi.useRealTimers();
 });
 
@@ -111,6 +113,28 @@ describe('useReplayPlayback', () => {
 
     expect(result.current.fastForward).toBe(true);
     expect(result.current.state.timeScaleFactor).toBe(10);
+  });
+
+  it('buffers backward skips for the time set in User Interface › Replay', async () => {
+    const { opened, webClient } = open();
+    const { result } = setup(opened);
+    act(() => result.current.seek(3000));
+
+    act(() => result.current.skipBy(-1000));
+    expect(webClient.loadReplayGame).toHaveBeenCalledTimes(1);
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(webClient.loadReplayGame).toHaveBeenCalledTimes(2);
+
+    await act(async () => {
+      const settings = await getSettings();
+      settings.replayRewindBufferingMs = 0;
+      settingsStore.setValue(settings);
+    });
+    act(() => result.current.skipBy(-1000));
+
+    expect(webClient.loadReplayGame).toHaveBeenCalledTimes(3);
   });
 
   it('is idle without an opened replay', () => {

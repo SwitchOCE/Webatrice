@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 
 import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
-import { useSettings } from '@app/hooks';
+import { usePreference, useSettings } from '@app/hooks';
 import {
   BIG_SKIP_MS,
   DEFAULT_FAST_FORWARD_SPEED,
@@ -56,6 +56,7 @@ export function useReplayPlayback(opened: OpenedReplay | undefined): ReplayPlayb
 
   const fastForwardSpeed = settings.value?.replayFastForwardSpeed ?? DEFAULT_FAST_FORWARD_SPEED;
   const skipEmptySetting = settings.value?.replaySkipEmptySections ?? false;
+  const rewindBufferingMs = usePreference('replayRewindBufferingMs');
 
   useEffect(() => {
     engine?.setTimeScaleFactor(fastForward ? fastForwardSpeed : 1);
@@ -64,6 +65,10 @@ export function useReplayPlayback(opened: OpenedReplay | undefined): ReplayPlayb
   useEffect(() => {
     engine?.setSkipEmptySections(skipEmptySetting);
   }, [engine, skipEmptySetting]);
+
+  useEffect(() => {
+    engine?.setRewindBufferingMs(rewindBufferingMs);
+  }, [engine, rewindBufferingMs]);
 
   const togglePlay = useCallback(() => engine?.togglePlay(), [engine]);
   const toggleFastForward = useCallback(() => setFastForward((on) => !on), []);

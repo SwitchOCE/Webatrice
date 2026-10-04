@@ -16,6 +16,7 @@ vi.mock('react-i18next', async (importOriginal) => ({
 }));
 vi.mock('./features/shell', () => ({
   AppAlerts: () => null, FeatureDetection: () => null, CommandFailureNotices: () => null, ServerNotices: () => null,
+  MissingFeaturesNotice: () => null,
 }));
 vi.mock('./features/player', () => ({ PrivateMessageNotifier: () => null }));
 vi.mock('./feature-widgets/shortcuts/useShortcutsHydration', () => ({ useShortcutsHydration: () => {} }));
