@@ -1,13 +1,11 @@
 import type { useShortcutHints } from '@app/feature-widgets/shortcuts';
 
-import type { SeatSelection } from '../../../hooks/useSeatSelection';
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import { MANA_COLORS } from '../../right-sidebar/PlayerInfoPanel/manaColors';
 import { useMessageMacros } from '../../../hooks/useMessageMacros';
 import { useTallyType } from '../../../hooks/useTallyType';
 import { useGameDialogActions } from '../../ui/GameDialogActionsContext';
 import { useGameDialogsContext } from '../../ui/GameDialogsContext';
-import { MAX_COUNTER_VALUE } from '../../ui/PlayerBoard/counterLimits';
 import type {
   BattlefieldCardViewModel,
   PlayerCardCommands,
@@ -38,8 +36,8 @@ export interface UseBattlefieldMenuItemsArgs {
   openLifePrompt: () => void;
   openCounterPrompt: SeatPrompts['openCounterPrompt'];
   manaCounters: PlayerCounterViewModel['mana'];
-  /** The seat's selection: "Increment all card counters" targets it when it is on the battlefield. */
-  selection: SeatSelection | null;
+  /** "Increment all card counters": the seat's card op (useBattlefieldCardOps). */
+  incrementAllCardCounters: () => void;
   battlefieldDisplayList: readonly BattlefieldCardViewModel[];
   lastToken: SeatPrompts['lastToken'];
   openCreateTokenDialog: () => void;
@@ -70,7 +68,7 @@ export function useBattlefieldMenuItems({
   openLifePrompt,
   openCounterPrompt,
   manaCounters,
-  selection,
+  incrementAllCardCounters,
   battlefieldDisplayList,
   lastToken,
   openCreateTokenDialog,
@@ -218,55 +216,12 @@ export function useBattlefieldMenuItems({
       submenu: countersMenuItems,
     },
     {
-      // "Increment all card counters" — port of Cockatrice's
-      // actIncrementAllCardCounters (player_actions.cpp:1588-1621).
-      // Target set: current battlefield selection if any, else every
-      // card on this player's battlefield. For each targeted card,
-      // iterate its EXISTING counters and bump each by +1, skipping
-      // any already at MAX_COUNTER_VALUE (999). Cards with no counters
-      // are silently no-ops — matches desktop, which only touches
-      // counters that already exist rather than adding new ones.
-      // Disabled when no callback is wired (pre-hydration transient)
-      // or when there's simply nothing on the board with counters.
+      // "Increment all card counters" — desktop actIncrementAllCardCounters
+      // (player_actions.cpp:1588-1621), on the selection or the whole
+      // battlefield. Disabled while the battlefield is empty.
       label: 'Increment all card counters',
       shortcut: shortcutHints['game.incrementAllCardCounters'],
-      onClick: () => {
-        const targets =
-          selection?.zone === 'battlefield' && selection.ids.size > 0
-            ? battlefieldDisplayList.filter((c) =>
-              selection.ids.has(c.id),
-            )
-            : battlefieldDisplayList;
-        // Collect every (cardId, counterId, currentValue+1) into one
-        // list; the batching helper packs them into a single
-        // CommandContainer so the whole increment lands atomically
-        // (mirrors Cockatrice's prepareGameCommand(commandList) in
-        // actIncrementAllCardCounters, player_actions.cpp:1618-1620).
-        const entries: {
-          cardId: number;
-          counterId: number;
-          value: number;
-        }[] = [];
-        for (const card of targets) {
-          const cardIdNum = Number(card.id);
-          if (!Number.isFinite(cardIdNum)) {
-            continue;
-          }
-          for (const counter of card.counters ?? []) {
-            if (counter.value >= MAX_COUNTER_VALUE) {
-              continue;
-            }
-            entries.push({
-              cardId: cardIdNum,
-              counterId: counter.id,
-              value: counter.value + 1,
-            });
-          }
-        }
-        if (entries.length > 0) {
-          counterCommands.setCardCounters(entries);
-        }
-      },
+      onClick: incrementAllCardCounters,
       disabled:
         battlefieldDisplayList.length === 0,
     },
