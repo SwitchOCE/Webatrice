@@ -25,6 +25,10 @@ import GameReplay from './GameReplay';
 
 // Block the Dexie-backed settings store from settling after mount.
 vi.mock('../../../hooks/useSettings');
+// A double-clicked hand card looks its type up before it moves; the real
+// catalog settles after the file ends and dispatches into a torn-down store.
+vi.mock('../../../services/cards/cardCatalog', async () =>
+  (await import('../__test-utils__/unknownCardCatalog')).unknownCardCatalog());
 
 function renderReplayRoute(replayKey: string, webClient: WebClient = createMockWebClient(), store = makeStore()) {
   return renderWithProviders(
@@ -155,7 +159,7 @@ describe('GameBoard in read-only mode', () => {
     });
   }
 
-  function hammerBoard(readOnly: boolean) {
+  async function hammerBoard(readOnly: boolean) {
     const webClient = createMockWebClient();
     renderWithProviders(
       <GameReadOnlyProvider value={readOnly}>
@@ -173,11 +177,13 @@ describe('GameBoard in read-only mode', () => {
       fireEvent.doubleClick(element);
       fireEvent.contextMenu(element);
     }
+    // Let the double-click card lookups settle and send their moves.
+    await act(async () => {});
     return allRequestSpies(webClient).filter((spy) => spy.mock.calls.length > 0);
   }
 
-  it('lets no press, click or menu on the board reach a game command', () => {
-    expect(hammerBoard(true)).toEqual([]);
+  it('lets no press, click or menu on the board reach a game command', async () => {
+    expect(await hammerBoard(true)).toEqual([]);
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
@@ -198,8 +204,8 @@ describe('GameBoard in read-only mode', () => {
     expect(allRequestSpies(webClient).filter((spy) => spy.mock.calls.length > 0)).toEqual([]);
   });
 
-  it('the same input on a live board does reach the server (control)', () => {
-    expect(hammerBoard(false).length).toBeGreaterThan(0);
+  it('the same input on a live board does reach the server (control)', async () => {
+    expect((await hammerBoard(false)).length).toBeGreaterThan(0);
   });
 
   it('marks the board read-only and drops the live-game confirmations', () => {
