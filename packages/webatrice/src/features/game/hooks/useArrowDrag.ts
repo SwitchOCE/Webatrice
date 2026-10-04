@@ -71,7 +71,8 @@ export interface ArrowDragPreview {
 export interface UseArrowDragArgs {
   containerRef: RefObject<HTMLDivElement>;
   cardRegistry: CardRegistry;
-  /** A drag released over a target; the colour follows the held modifier. */
+  /** A drag released over a target, in the colour of the modifier held when
+   *  the drag started. */
   onDrop: (source: ArrowSource, target: ArrowTarget, color: ColorRGBA) => void;
 }
 
@@ -155,17 +156,11 @@ export function useArrowDrag({ containerRef, cardRegistry, onDrop }: UseArrowDra
           const sourceKey = makeCardKey(prev.source.playerId, prev.source.zone, prev.source.cardId);
           setTargetKey(key === sourceKey ? null : key);
         }
-        // The modifiers are refreshed on every move, so pressing one mid-drag
-        // recolours the preview at once.
-        return {
-          ...prev,
-          currentX: e.clientX,
-          currentY: e.clientY,
-          moved,
-          ctrlKey: e.ctrlKey,
-          altKey: e.altKey,
-          shiftKey: e.shiftKey,
-        };
+        // Desktop CardItem::mouseMoveEvent (card_item.cpp:332-347) picks the
+        // colour from the modifiers held on the move that starts the drag;
+        // the arrow keeps it until release.
+        const modifiers = prev.moved ? {} : { ctrlKey: e.ctrlKey, altKey: e.altKey, shiftKey: e.shiftKey };
+        return { ...prev, currentX: e.clientX, currentY: e.clientY, moved, ...modifiers };
       });
     };
 
@@ -192,8 +187,7 @@ export function useArrowDrag({ containerRef, cardRegistry, onDrop }: UseArrowDra
       );
       const target = arrowTargetAt(document.elementFromPoint(e.clientX, e.clientY));
       if (target) {
-        // The colour comes from the modifiers held at release.
-        onDrop(drag.source, target, arrowColorForModifiers(e));
+        onDrop(drag.source, target, arrowColorForModifiers(drag));
       }
     };
 
