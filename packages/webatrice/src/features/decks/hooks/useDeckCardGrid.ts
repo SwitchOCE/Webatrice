@@ -17,6 +17,8 @@ export interface DeckCardGridOptions {
   onDelete: (index: number) => void;
   /** Moves a row between main and sideboard (Shift+S). Omitted where rows have no sideboard. */
   onSetCategory?: (index: number, category: DeckCategory) => void;
+  /** Takes focus when the last row is removed, so it doesn't fall back to the page. */
+  onLastRowRemoved?: () => void;
 }
 
 export interface DeckCardRowProps extends GridRowProps {
@@ -45,9 +47,10 @@ function swappedCategory(card: DeckCard): DeckCategory | null {
  * one, Delete removes the row, Shift+S swaps it between main and sideboard.
  * The rebindable `deck.addCard` / `deck.removeCard` shortcuts (+ / −) act on
  * the focused row too. Focus follows the row through edits that move or
- * remove it, so the keyboard never drops back to the page.
+ * remove it, and leaves the emptied list through `onLastRowRemoved`, so the
+ * keyboard never drops back to the page.
  */
-export function useDeckCardGrid({ cards, order, onInc, onDelete, onSetCategory }: DeckCardGridOptions) {
+export function useDeckCardGrid({ cards, order, onInc, onDelete, onSetCategory, onLastRowRemoved }: DeckCardGridOptions) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   const { keys, indexByKey } = useMemo(() => {
@@ -76,7 +79,8 @@ export function useDeckCardGrid({ cards, order, onInc, onDelete, onSetCategory }
     onActivate: (key) => adjust(key, 1),
   });
 
-  // The row about to disappear hands focus to its neighbour (the next row, else the previous).
+  // The row about to disappear hands focus to its neighbour (the next row, else the
+  // previous); the last row hands it to `onLastRowRemoved`.
   const remove = (key: string) => {
     const index = indexByKey.get(key);
     if (index == null) {
@@ -87,6 +91,8 @@ export function useDeckCardGrid({ cards, order, onInc, onDelete, onSetCategory }
     onDelete(index);
     if (neighbour != null) {
       focusRow(neighbour);
+    } else {
+      onLastRowRemoved?.();
     }
   };
 

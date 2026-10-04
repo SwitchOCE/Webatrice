@@ -13,7 +13,7 @@ const card = (name: string, quantity = 1, extra: Partial<DeckCard> = {}): DeckCa
   ({ name, quantity, category: 'main', lookupSource: 'scryfall', ...extra });
 
 /** A deck list drawn main first, then sideboard, with the editor's edits applied to local state. */
-function DeckList({ initial }: { initial: DeckCard[] }) {
+function DeckList({ initial, onLastRowRemoved }: { initial: DeckCard[]; onLastRowRemoved?: () => void }) {
   const [cards, setCards] = useState(initial);
   const order = [
     ...cards.map((c, i) => (c.category === 'main' ? i : -1)),
@@ -28,6 +28,7 @@ function DeckList({ initial }: { initial: DeckCard[] }) {
     onDelete: (index) => setCards((prev) => prev.filter((_, i) => i !== index)),
     onSetCategory: (index: number, category: DeckCategory) =>
       setCards((prev) => prev.map((c, i) => (i === index ? { ...c, category } : c))),
+    onLastRowRemoved,
   });
   return (
     <>
@@ -43,8 +44,11 @@ function DeckList({ initial }: { initial: DeckCard[] }) {
   );
 }
 
-function renderList(cards: DeckCard[]) {
-  renderWithProviders(<ShortcutProvider><DeckList initial={cards} /></ShortcutProvider>, { route: '/deck/1' });
+function renderList(cards: DeckCard[], onLastRowRemoved?: () => void) {
+  renderWithProviders(
+    <ShortcutProvider><DeckList initial={cards} onLastRowRemoved={onLastRowRemoved} /></ShortcutProvider>,
+    { route: '/deck/1' },
+  );
   return {
     user: userEvent.setup(),
     row: (name: string) => screen.getByRole('row', { name }),
@@ -111,6 +115,15 @@ describe('useDeckCardGrid', () => {
 
     await user.keyboard('{Delete}');
     expect(row('Bolt')).toHaveFocus();
+  });
+
+  it('hands focus out of the list when its last row is removed', async () => {
+    const onLastRowRemoved = vi.fn(() => screen.getByRole('textbox', { name: 'Search' }).focus());
+    const { user, row } = renderList([card('Bolt')], onLastRowRemoved);
+    row('Bolt').focus();
+    await user.keyboard('{Delete}');
+    expect(onLastRowRemoved).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('textbox', { name: 'Search' })).toHaveFocus();
   });
 
   it('hands focus on when the last copy is removed with −', async () => {
