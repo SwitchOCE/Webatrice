@@ -18,6 +18,7 @@ import { DeckLegalitySummary } from './components/editor/DeckLegalitySummary';
 import { DeckOnlineServices } from './components/editor/DeckOnlineServices';
 import { DeckMainPane } from './components/editor/DeckMainPane';
 import { DeckSidebar } from './components/editor/DeckSidebar';
+import { OpenDeckButton } from './components/editor/OpenDeckButton';
 import { DeckTagsEditor } from './components/editor/DeckTagsEditor';
 import { groupDeckCards } from './deckGrouping';
 import { serializeDeckForSave } from './deckPersistence';
@@ -147,6 +148,15 @@ const DeckEditor = () => {
           onNameChange={editor.setName}
           onFormatChange={editor.setFormat}
           onExport={() => setExportOpen(true)}
+          openDeck={deckId != null && (
+            <OpenDeckButton
+              deckId={deckId}
+              isModified={editor.isModified}
+              isBlank={!editor.isModified && isBlankDeck(editor.deck)}
+              saveNow={editor.saveNow}
+              discardChanges={editor.discardChanges}
+            />
+          )}
           onShare={sharingSupported ? startShare : undefined}
           previewCard={previewCard}
           prices={pricing.prices}

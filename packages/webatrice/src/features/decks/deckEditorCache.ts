@@ -72,6 +72,11 @@ export function setCachedDraft(token: string, deck: HydratedDeck): void {
   draftCache.set(token, deck);
 }
 
+/** Discard edits while retaining the source document for a later draft reopen. */
+export function deleteCachedDraft(token: string): void {
+  draftCache.delete(token);
+}
+
 /** Forget a draft once it is stored as a deck. */
 export function deleteDraft(token: string): void {
   draftDocuments.delete(token);

@@ -28,6 +28,68 @@ function setup() {
 beforeEach(() => clearDeckEditorCache());
 
 describe('deckSaveRegistry', () => {
+  it('keeps saveNow waiters with each deck and waits for all of its requests', async () => {
+    const { registry, response } = setup();
+    const settledA = vi.fn();
+    const savedA = registry.saveNow(7, first).then(settledA);
+    registry.save(7, second);
+    const savedB = registry.saveNow(8, first);
+    response(2)({ responseCode: 1 });
+    await expect(savedB).resolves.toBe(false);
+    response(1)(null);
+    await Promise.resolve();
+    expect(settledA).not.toHaveBeenCalled();
+    response(0)({ responseCode: 1 });
+    await savedA;
+    expect(settledA).toHaveBeenCalledExactlyOnceWith(true);
+    expect(registry.getSnapshot(7).isModified).toBe(false);
+    expect(registry.getSnapshot(8).isModified).toBe(true);
+  });
+
+  it('keeps a saveNow waiter pending for newer debounced edits', async () => {
+    const { registry, response } = setup();
+    const settled = vi.fn();
+    const saved = registry.saveNow(7, first).then(settled);
+    registry.markDirty(7);
+    response(0)(null);
+    await Promise.resolve();
+    expect(settled).not.toHaveBeenCalled();
+    expect(registry.getSnapshot(7).isModified).toBe(true);
+    registry.save(7, second);
+    response(1)(null);
+    await saved;
+    expect(settled).toHaveBeenCalledExactlyOnceWith(true);
+  });
+
+  it('discards unsent edits and cancels waiters without losing in-flight settlement', async () => {
+    const { registry, response, client } = setup();
+    setCachedDeck(7, { deck: second, savedSignature: deckSaveSignature(original) });
+    const saved = registry.saveNow(7, first);
+    registry.markDirty(7);
+    registry.discardChanges(7);
+    await expect(saved).resolves.toBe(false);
+    expect(registry.getSnapshot(7).isModified).toBe(false);
+    expect(getCachedDeck(7)).toBeUndefined();
+    expect(client.request.session.deckUpdate).toHaveBeenCalledTimes(1);
+    expect(registry.getSnapshot(7).pending.size).toBe(1);
+    response(0)(null);
+    expect(registry.getSnapshot(7).savedSignature).toBe(deckSaveSignature(first));
+    expect(getCachedDeck(7)).toBeUndefined();
+  });
+
+  it.each(['disconnect', 'dispose'] as const)('resolves outstanding saveNow waiters on %s', async (change) => {
+    const { registry, store, response } = setup();
+    const saved = registry.saveNow(7, first);
+    if (change === 'dispose') {
+      registry.dispose();
+    } else {
+      store.dispatch(server.Actions.updateStatus({ status: { state: WebsocketTypes.StatusEnum.DISCONNECTED, description: null } }));
+    }
+    await expect(saved).resolves.toBe(false);
+    response(0)(null);
+    expect(registry.getSnapshot(7).savedSignature).toBeNull();
+  });
+
   it('owns identical pending signatures independently for each deck', () => {
     const { registry, response } = setup();
     registry.save(7, first);
