@@ -62,6 +62,7 @@ function setup(args: Partial<UseBattlefieldCardOpsArgs> = {}) {
       openMoveXFromTopPrompt: vi.fn(),
       openTokenCountPrompt: vi.fn(),
     },
+    setLastToken: vi.fn(),
     startAttach: vi.fn(),
     startArrow: vi.fn(),
     ...args,
@@ -210,6 +211,8 @@ describe('useBattlefieldCardOps', () => {
     ops.forSelection()!.createRelatedTokens();
     expect(vi.mocked(props.cardCommands.createToken).mock.calls.map(([r]) => r.name)).toEqual(['Soldier', 'Soldier']);
     expect(props.prompts.openTokenCountPrompt).not.toHaveBeenCalled();
+    // player_actions.cpp:1053-1061: Ctrl+G then repeats the first one created.
+    expect(props.setLastToken).toHaveBeenCalledWith(expect.objectContaining({ name: 'Soldier' }));
   });
 
   // player_actions.cpp:1007-1014: the one relation left after the excluded
@@ -230,5 +233,14 @@ describe('useBattlefieldCardOps', () => {
       request: expect.objectContaining({ name: 'Treasure' }),
       initial: 2,
     });
+    expect(props.setLastToken).toHaveBeenCalledWith(expect.objectContaining({ name: 'Treasure' }));
+  });
+
+  it('remembers no token after create-all runs only a transform', () => {
+    const faces = [{ name: 'Card 10' }, { name: 'Back' }];
+    const { ops, props } = setup({ cardMetaByName: new Map([['Card 10', { typeLine: 'Creature', layout: 'transform', faces }]]) });
+    ops.forSelection()!.createRelatedTokens();
+    expect(props.cardCommands.createToken).toHaveBeenCalledWith(expect.objectContaining({ name: 'Back', targetMode: 'transform_into' }));
+    expect(props.setLastToken).not.toHaveBeenCalled();
   });
 });

@@ -192,9 +192,14 @@ describe('create all related tokens', () => {
     expect(createAllRelated(source({ related: [ref('Treasure', { count: 'x=3', exclude: 'exclude' })] }))).toEqual({
       requests: [],
       prompt: { request: expect.objectContaining({ name: 'Treasure' }), defaultCount: 3 },
+      lastToken: expect.objectContaining({ name: 'Treasure' }),
     });
-    expect(createAllRelated(source({ parentMeta: { layout: 'transform', faces } })).requests)
+    const transform = createAllRelated(source({ parentMeta: { layout: 'transform', faces } }));
+    expect(transform.requests)
       .toEqual([expect.objectContaining({ name: 'Insectile Aberration', targetCardId: 7, targetMode: 'transform_into' })]);
+    // A relation that attaches cannot be created again (card_relation.h:111-114).
+    expect(transform.lastToken).toBeUndefined();
+    expect(createAllRelated(source({ related: [ref('Aura', { attach: 'attach' })] })).lastToken).toBeUndefined();
   });
 
   // player_actions.cpp:1000-1015: one relation left after dropping the
@@ -204,6 +209,7 @@ describe('create all related tokens', () => {
     expect(createAllRelated(source({ related }))).toEqual({
       requests: [],
       prompt: { request: expect.objectContaining({ name: 'Treasure' }), defaultCount: 1 },
+      lastToken: expect.objectContaining({ name: 'Treasure' }),
     });
     expect(names(createAllRelated(source({ related: [ref('Soldier', { exclude: 'exclude' }), ref('Clue', { count: '2' })] }))))
       .toEqual(['Clue', 'Clue']);
@@ -220,6 +226,7 @@ describe('create all related tokens', () => {
     ];
     expect(createAllRelated(source({ related, parentMeta: { layout: 'transform', faces } }))).toEqual({
       requests: ['Soldier', 'Soldier', 'Clue'].map((name) => expect.objectContaining({ name })),
+      lastToken: expect.objectContaining({ name: 'Soldier' }),
     });
   });
 
@@ -238,6 +245,7 @@ describe('create all related tokens', () => {
     }));
     expect(plan.prompt).toBeUndefined();
     expect(names(plan)).toEqual(['Soldier', 'Soldier', 'Clue']);
+    expect(plan.lastToken).toMatchObject({ name: 'Soldier' });
   });
 
   it('reads counts as the cards.xml parser does', () => {
