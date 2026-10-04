@@ -295,6 +295,23 @@ describe('ZoneViewPanel', () => {
       expect(cell()).not.toHaveClass('absolute');
     });
 
+    it('lays an ungrouped view out as a grid, pile view on or not, as desktop does', async () => {
+      window.localStorage.setItem('webatrice.searchLibraryGroupBy', 'none');
+      window.localStorage.setItem('webatrice.searchLibraryPileView', '1');
+      await renderPanel();
+      expect(pileBox()).toBeDisabled();
+      for (const id of ['1', '2', '3']) {
+        const cell = dialog().querySelector<HTMLElement>(`[data-card-id="${id}"]`)!;
+        expect(cell).toHaveClass('shrink-0');
+        expect(cell).not.toHaveClass('absolute');
+        expect(cell.parentElement).toHaveClass('flex-wrap');
+      }
+
+      // The stored pile view was on all along: grouping fans the cards again.
+      fireEvent.change(groupSelect(), { target: { value: 'type' } });
+      expect(dialog().querySelector<HTMLElement>('[data-card-id="1"]')).toHaveClass('absolute');
+    });
+
     it('hides the cards being dragged and rings the selected ones', async () => {
       await renderPanel({ draggingCardIds: new Set(['2']), selectedIds: new Set(['3']), onSelectedIdsChange: () => undefined });
       expect(dialog().querySelector<HTMLElement>('[data-card-id="2"]')!.style.opacity).toBe('0');
