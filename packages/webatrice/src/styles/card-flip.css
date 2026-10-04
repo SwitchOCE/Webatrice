@@ -72,10 +72,3 @@
   inset: 0;
   transform: rotateY(180deg);
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .cardflip--animate-to-front,
-  .cardflip--animate-to-back {
-    animation: none;
-  }
-}

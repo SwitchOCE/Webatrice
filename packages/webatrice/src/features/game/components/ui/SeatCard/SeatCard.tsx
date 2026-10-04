@@ -110,7 +110,7 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
     <div
       // "Scale cards on mouse over" (desktop's 1.1) through --card-hover-scale.
       className={
-        'relative shadow-md select-none overflow-hidden transition-transform duration-150 ease-out '
+        'seat-card relative shadow-md select-none overflow-hidden transition-transform duration-150 ease-out '
         + 'hover:scale-[var(--card-hover-scale,1.1)]'
       }
       style={{

@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react';
 import { useShortcutHints } from '@app/feature-widgets/shortcuts';
-import { usePreference } from '@app/hooks';
+import { useBoardAnimations, usePreference } from '@app/hooks';
 
 import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
 import { useMoveTopUntil } from '../../../hooks/useMoveTopUntil';
@@ -129,7 +129,13 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
   const libraryRef = useRef<HTMLDivElement>(null);
   const handRef = useRef<HTMLDivElement>(null);
 
-  const { flights, DRAW_ANIMATION_MS } = useDrawFlights({ drawSeq, lastDrawCount, libraryRef, handRef });
+  const { flights, DRAW_ANIMATION_MS } = useDrawFlights({
+    drawSeq,
+    lastDrawCount,
+    libraryRef,
+    handRef,
+    enabled: useBoardAnimations(),
+  });
 
   const draw = (n: number) => {
     // Server pops N off the top of the deck and broadcasts
