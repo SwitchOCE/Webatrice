@@ -349,7 +349,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor }: PlayerSea
   });
 
   const { onCardClick, onCardDoubleClick } = useSeatClickToPlay({
-    isSelf,
+    canAct: model.permissions.canAct,
     selection,
     handDisplayList,
     stackDisplayList,

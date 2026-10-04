@@ -58,4 +58,17 @@ describe('StackColumn', () => {
     fireEvent.doubleClick(cardEl(60, 'stack'));
     expect(game.moveCard).not.toHaveBeenCalled();
   });
+
+  it('lets a judge play from another player\'s stack, as desktop\'s getLocalOrJudge does', async () => {
+    const { game } = renderSeatCell({ ...SPEC, judge: true }, 2);
+    vi.mocked(lookupCard).mockResolvedValueOnce(found('Counterspell', 'Instant'));
+    fireEvent.doubleClick(cardEl(60, 'stack'));
+    await waitFor(() => expect(game.moveCard).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
+      startPlayerId: 2,
+      startZone: ZoneName.STACK,
+      cardsToMove: { card: [{ cardId: 60 }] },
+      targetZone: ZoneName.GRAVE,
+    });
+  });
 });

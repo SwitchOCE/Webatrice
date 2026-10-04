@@ -42,9 +42,9 @@ export interface UseSeatDndArgs {
   libraryRef: RefObject<HTMLDivElement | null>;
   graveyardRef: RefObject<HTMLDivElement | null>;
   exileRef: RefObject<HTMLDivElement | null>;
-  /** A press released on a card without dragging, once the selection has been updated
-   *  (desktop's single-click play reads the selection as it was before the click). */
-  onCardClick?: (zone: Selection['zone'], card: HandCard, e: PointerEvent) => void;
+  /** A press released on a card without dragging, once the selection has been updated. It is
+   *  handed the selection as it was before the click, which desktop's single-click play reads. */
+  onCardClick?: (zone: Selection['zone'], card: HandCard, e: PointerEvent, selectionBefore: Selection | null) => void;
   /** Card size at the current card scale, and how the stack lays out, for the stack drop. */
   CARD_W_PX: number;
   CARD_H_PX: number;
@@ -166,7 +166,7 @@ export function useSeatDnd({
           ids: new Set([clickedCardId]),
         });
       }
-      onCardClick?.(zone, card, e);
+      onCardClick?.(zone, card, e, selection);
     }
   };
 
@@ -245,7 +245,7 @@ export function useSeatDnd({
       // A click on one card of a group keeps the group selected.
       start(e, group, group.length === 1
         ? (up) => releaseCardPress(zone, card, up)
-        : (up) => onCardClick?.(zone, card, up));
+        : (up) => onCardClick?.(zone, card, up, selection));
     } else {
       start(e, [card], (up) => releaseCardPress(zone, card, up));
     }

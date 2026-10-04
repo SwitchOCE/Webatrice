@@ -20,6 +20,13 @@ export type ClickToPlayZone = 'hand' | 'stack' | 'battlefield';
 export interface ClickModifiers {
   shiftKey: boolean;
   altKey: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+}
+
+/** Desktop skips the play only when Alt is the one modifier held (`modifiers() != AltModifier`). */
+function isAltOnly({ shiftKey, altKey, ctrlKey, metaKey }: ClickModifiers): boolean {
+  return altKey && !shiftKey && !ctrlKey && !metaKey;
 }
 
 // Desktop's tablerows (see legacyTableRowFromTypeLine): 0 lands, 3 instants and sorceries.
@@ -29,8 +36,9 @@ const SPELL_ROW = 3;
 const FACE_DOWN_ROW = 2;
 
 interface UseSeatClickToPlayArgs {
-  /** Only the seat's own player (or a judge acting for them) plays its cards. */
-  isSelf: boolean;
+  /** Whether the local client may act for the seat's player: its own seat, or any seat for a
+   *  judge (desktop's CardItem::playCard, getLocalOrJudge). */
+  canAct: boolean;
   selection: SeatSelection | null;
   handDisplayList: readonly PlayerCardViewModel[];
   stackDisplayList: readonly PlayerCardViewModel[];
@@ -46,7 +54,8 @@ interface UseSeatClickToPlayArgs {
  * and PlayerActions::playCard.
  *
  * - "Double-click cards to play them" (on by default) picks the gesture: a double-click, or a
- *   single click (a press released without dragging). Alt never plays, as on desktop.
+ *   single click (a press released without dragging). Alt on its own never plays, as on desktop;
+ *   only the seat's player or a judge plays.
  * - On the battlefield it taps or untaps the clicked card, or the whole selection when the card is
  *   in it (TableZone::toggleTapped: tap all unless every one is already tapped).
  * - Anywhere else it plays the card: from the hand, a land goes to the battlefield, an instant or
@@ -57,7 +66,7 @@ interface UseSeatClickToPlayArgs {
  *   the clicked card is among them, in desktop's order (highest card id first).
  */
 export function useSeatClickToPlay({
-  isSelf,
+  canAct,
   selection,
   handDisplayList,
   stackDisplayList,
@@ -121,14 +130,14 @@ export function useSeatClickToPlay({
     zone: ClickToPlayZone,
     card: T,
     zoneCards: readonly T[],
-    withSelection: boolean,
+    selected: SeatSelection | null,
   ): T[] =>
-      withSelection && selection?.zone === zone && selection.ids.has(card.id)
-        ? zoneCards.filter((c) => selection.ids.has(c.id))
+      selected?.zone === zone && selected.ids.has(card.id)
+        ? zoneCards.filter((c) => selected.ids.has(c.id))
         : [card];
 
-  const toggleTapped = (card: BattlefieldCardViewModel) => {
-    const targets = targetsOf('battlefield', card, battlefieldDisplayList, true);
+  const toggleTapped = (card: BattlefieldCardViewModel, selected: SeatSelection | null) => {
+    const targets = targetsOf('battlefield', card, battlefieldDisplayList, selected);
     const tapAll = targets.some((c) => !c.tapped);
     const ids = targets
       .filter((c) => c.tapped !== tapAll)
@@ -139,22 +148,28 @@ export function useSeatClickToPlay({
     }
   };
 
-  const clickToPlay = async (zone: ClickToPlayZone, card: PlayerCardViewModel, { shiftKey, altKey }: ClickModifiers) => {
-    if (!isSelf || altKey) {
+  // `selected` is the selection the click acts on: as it was before the click, for a single click.
+  const clickToPlay = async (
+    zone: ClickToPlayZone,
+    card: PlayerCardViewModel,
+    modifiers: ClickModifiers,
+    selected: SeatSelection | null,
+  ) => {
+    if (!canAct || isAltOnly(modifiers)) {
       return;
     }
     if (zone === 'battlefield') {
       const onTable = battlefieldDisplayList.find((c) => c.id === card.id);
       if (onTable) {
-        toggleTapped(onTable);
+        toggleTapped(onTable, selected);
       }
       return;
     }
     const zoneCards = zone === 'hand' ? handDisplayList : stackDisplayList;
-    const targets = targetsOf(zone, card, zoneCards, clickPlaysAllSelected)
+    const targets = targetsOf(zone, card, zoneCards, clickPlaysAllSelected ? selected : null)
       .sort((a, b) => Number(b.id) - Number(a.id));
     for (const target of targets) {
-      await playCard(zone, target, shiftKey);
+      await playCard(zone, target, modifiers.shiftKey);
     }
   };
 
@@ -163,13 +178,22 @@ export function useSeatClickToPlay({
     /** A card's double-click: plays it when double-click is the gesture. */
     onCardDoubleClick: (zone: ClickToPlayZone, card: PlayerCardViewModel, e: ClickModifiers) => {
       if (doubleClickToPlay) {
-        void clickToPlay(zone, card, e);
+        void clickToPlay(zone, card, e, selection);
       }
     },
-    /** A press released on a card without dragging: plays it when single-click is the gesture. */
-    onCardClick: (zone: ClickToPlayZone, card: PlayerCardViewModel, e: ClickModifiers) => {
+    /**
+     * A press released on a card without dragging: plays it when single-click is the gesture.
+     * The release has already updated the selection, so the caller hands over the one from
+     * before the click (what desktop's playSelected reads).
+     */
+    onCardClick: (
+      zone: ClickToPlayZone,
+      card: PlayerCardViewModel,
+      e: ClickModifiers,
+      selectionBefore: SeatSelection | null,
+    ) => {
       if (!doubleClickToPlay) {
-        void clickToPlay(zone, card, e);
+        void clickToPlay(zone, card, e, selectionBefore);
       }
     },
   };
