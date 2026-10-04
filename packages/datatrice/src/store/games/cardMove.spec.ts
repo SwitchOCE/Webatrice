@@ -1,6 +1,7 @@
 import { create, type MessageInitShape } from '@bufbuild/protobuf';
 import { Event_MoveCardSchema } from '@cockatrice/sockatrice/generated';
 import {
+  arrowsTouchingCard,
   buildMovedCard,
   cardMovedLogEntry,
   planAttachmentReparent,
@@ -11,10 +12,12 @@ import {
   sweepsArrows,
 } from './cardMove';
 import {
+  makeArrow,
   makeCard,
   makeGameEntry,
   makePlayerEntry,
   makePlayerProperties,
+  makeState,
   makeZoneEntry,
 } from '../../testing/fixtures/games';
 
@@ -190,6 +193,44 @@ describe('sweepsArrows', () => {
     ['a hidden card', { targetZone: 'grave' }, false],
   ])('%s → %s', (_label, init, expected) => {
     expect(sweepsArrows(resolveMoveIdentity(hand, move(init)))).toBe(expected);
+  });
+});
+
+describe('arrowsTouchingCard', () => {
+  // Card 10 on player 1's table; arrows live on whichever player drew them.
+  const state = makeState({
+    games: {
+      1: makeGameEntry({
+        players: {
+          1: makePlayerEntry({
+            arrows: {
+              1: makeArrow({ id: 1, startPlayerId: 1, startZone: 'table', startCardId: 10, targetPlayerId: 2, targetCardId: 30 }),
+              2: makeArrow({ id: 2, startPlayerId: 1, startZone: 'table', startCardId: 11, targetPlayerId: 2, targetCardId: 30 }),
+            },
+          }),
+          2: makePlayerEntry({
+            arrows: {
+              3: makeArrow({ id: 3, startPlayerId: 2, startZone: 'table', startCardId: 30, targetPlayerId: 1, targetCardId: 10 }),
+              4: makeArrow({ id: 4, startPlayerId: 2, startZone: 'table', startCardId: 30, targetPlayerId: 1, targetZone: 'hand',
+                targetCardId: 10 }),
+            },
+          }),
+        },
+      }),
+    },
+  });
+
+  it.each([
+    ['both endpoints across players', 1, 'table', 10, [{ ownerPlayerId: 1, arrowId: 1 }, { ownerPlayerId: 2, arrowId: 3 }]],
+    ['the zone, not just the id', 1, 'hand', 10, [{ ownerPlayerId: 2, arrowId: 4 }]],
+    ['the owning player', 2, 'table', 10, []],
+    ['a card with no arrows', 1, 'table', 12, []],
+  ])('matches %s', (_label, playerId, zoneName, cardId, expected) => {
+    expect(arrowsTouchingCard(state, 1, playerId, zoneName, cardId)).toEqual(expected);
+  });
+
+  it('returns nothing for an unknown game', () => {
+    expect(arrowsTouchingCard(state, 999, 1, 'table', 10)).toEqual([]);
   });
 });
 
