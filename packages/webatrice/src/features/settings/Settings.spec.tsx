@@ -187,6 +187,29 @@ describe('Settings', () => {
     expect(box).toHaveValue(2);
   });
 
+  it('keeps the card view\'s initial rows at most its expanded rows, as desktop\'s coupled boxes do', async () => {
+    await renderSettings();
+    openSection(/Settings\.section\.appearance/);
+    const initial = screen.getByLabelText(/SettingsAppearance\.cardViewInitialRowsMax\.label/);
+    const expanded = screen.getByLabelText(/SettingsAppearance\.cardViewExpandedRowsMax\.label/);
+    const commit = async (box: HTMLElement, value: string) => {
+      fireEvent.input(box, { target: { value } });
+      await act(async () => {
+        fireEvent.change(box);
+      });
+    };
+
+    await commit(initial, '30');
+    expect(getPreferencesSnapshot()).toMatchObject({ cardViewInitialRowsMax: 30, cardViewExpandedRowsMax: 30 });
+    expect(expanded).toHaveValue(30);
+
+    await commit(expanded, '10');
+    expect(getPreferencesSnapshot()).toMatchObject({ cardViewInitialRowsMax: 10, cardViewExpandedRowsMax: 10 });
+
+    await commit(expanded, '25');
+    expect(getPreferencesSnapshot()).toMatchObject({ cardViewInitialRowsMax: 10, cardViewExpandedRowsMax: 25 });
+  });
+
   it('stores colors as desktop does, as hex without the hash', async () => {
     await renderSettings();
     openSection(/Settings\.section\.chat/);
