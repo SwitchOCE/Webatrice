@@ -1,11 +1,15 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
+import { PREFERENCE_DEFAULTS } from '@app/types';
+
+import { usePreference } from '../../../../../hooks/useSettings';
 import { lookupCard } from '../../../../../services/cards/cardCatalog';
 import { cardEl, menuLabels, openContextMenu, renderSeatCell, type SeatGameSpec } from '../../../__test-utils__/seatFixtures';
 import { CARD_BACK_URL } from '../SeatCard/cardSize';
 
+vi.mock('../../../../../hooks/useSettings');
 vi.mock('../../../../../services/cards/cardCatalog', async () =>
   (await import('../../../__test-utils__/unknownCardCatalog')).unknownCardCatalog());
 
@@ -23,9 +27,19 @@ const SPEC: SeatGameSpec = {
 const found = (name: string, typeLine: string) =>
   ({ found: true, source: 'scryfall', name, typeLine, printings: [] }) as Awaited<ReturnType<typeof lookupCard>>;
 
+/** A 2/2 creature that comes into play tapped (cards.xml cipt). */
+const tappedBear = (name: string) =>
+  ({ ...found(name, 'Creature — Bear'), power: '2', toughness: '2', cipt: true }) as Awaited<ReturnType<typeof lookupCard>>;
+
 const handButton = () => screen.getByTitle(/^Hand — /);
 // The hand row is the element the hand button sits in.
 const handBacks = () => handButton().parentElement!.querySelectorAll(`img[src="${CARD_BACK_URL}"]`);
+
+afterEach(() => {
+  vi.mocked(lookupCard).mockImplementation(async (name: string) =>
+    ({ found: false, source: 'unknown', name, printings: [] }) as Awaited<ReturnType<typeof lookupCard>>);
+  vi.mocked(usePreference).mockImplementation(((key: keyof typeof PREFERENCE_DEFAULTS) => PREFERENCE_DEFAULTS[key]) as never);
+});
 
 describe('HandZone', () => {
   it('shows the owner their hand faces and its count', () => {
@@ -59,5 +73,26 @@ describe('HandZone', () => {
     fireEvent.doubleClick(cardEl(SHOCK.id, 'hand'));
     await waitFor(() => expect(game.moveCard).toHaveBeenCalledTimes(2));
     expect(vi.mocked(game.moveCard).mock.calls[1][1]).toMatchObject({ startZone: ZoneName.HAND, targetZone: ZoneName.STACK });
+  });
+
+  it('with "Play all nonlands onto the stack" off, plays a creature to the battlefield with its seat metadata P/T and cipt', async () => {
+    vi.mocked(usePreference).mockImplementation(((key: string) => key !== 'playToStack') as never);
+    vi.mocked(lookupCard).mockImplementation(async (name: string) => tappedBear(name));
+    const deckList = '<?xml version="1.0"?><cockatrice_deck version="1"><zone name="main">'
+      + '<card number="1" name="Shock"/></zone></cockatrice_deck>';
+    const { game } = renderSeatCell({ ...SPEC, seats: [{ ...SPEC.seats[0], deckList }, SPEC.seats[1]] });
+    // The seat's deck prefetch fills cardMetaByName before the double-click.
+    await waitFor(() => expect(lookupCard).toHaveBeenCalledWith('Shock'));
+    await act(async () => {});
+    vi.mocked(lookupCard).mockClear();
+
+    fireEvent.doubleClick(cardEl(SHOCK.id, 'hand'));
+    await waitFor(() => expect(game.moveCard).toHaveBeenCalledTimes(1));
+    expect(lookupCard).not.toHaveBeenCalled();
+    expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
+      startZone: ZoneName.HAND,
+      targetZone: ZoneName.TABLE,
+      cardsToMove: { card: [{ cardId: SHOCK.id, pt: '2/2', tapped: true }] },
+    });
   });
 });
