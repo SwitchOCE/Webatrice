@@ -10,6 +10,9 @@ export interface GameSelectionState {
   setSelectedCardKeys: Dispatch<SetStateAction<ReadonlySet<string>>>;
 }
 
+/** The selection a seat reads outside a game: nothing selected. */
+export const EMPTY_CARD_KEYS: ReadonlySet<string> = new Set();
+
 const GameSelectionContext = createContext<GameSelectionState | null>(null);
 
 export function GameSelectionProvider({
