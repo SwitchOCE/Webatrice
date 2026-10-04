@@ -1468,7 +1468,7 @@
   },
   "TallyOverlay": {
     "tally": "Tally",
-    "selectedCount": "{{count}} cards selected"
+    "selectedCount": "{count, plural, one {# card selected} other {# cards selected}}"
   },
   "GameErrorBoundary": {
     "title": "The game board hit an unexpected error",
