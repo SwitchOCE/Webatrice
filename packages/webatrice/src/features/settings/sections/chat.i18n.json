@@ -9,6 +9,10 @@
       "label": "Enable chat mentions",
       "description": "Highlights @yourname in room chat and alerts you when someone mentions you."
     },
+    "chatMentionCompleter": {
+      "label": "Enable mention completer",
+      "description": "Typing @ in a chat suggests the names in the room, game or conversation. Use the arrow keys to choose, Enter or Tab to insert, Escape to close."
+    },
     "chatMentionColor": {
       "label": "Mention highlight color"
     },
