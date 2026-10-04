@@ -1,4 +1,4 @@
-# refactor(cards): Scryfall client and card-catalog layers
+# refactor(cards): Scryfall client and card-catalog layers + fix(decks): keep sideboard plans
 
 ## Summary
 
@@ -19,6 +19,10 @@ chunk sizes, init objects and headers), and specs that mock `fetch` pin it.
   - `client.ts`: endpoint URLs, `SCRYFALL_COLLECTION_LIMIT` (75), `chunkForCollection`, `postCollection`,
     `fetchNamedCard`, `fetchCollection` (batch + hint matching), `fetchPrintings`, and
     `SCRYFALL_NAMED_RETRY_CAP` (50). Callers keep their own caching, sequencing and error policy.
+  - **The raw client is internal.** `@app/services` exports only the image-URL builders (with
+    `cleanScryfallName`) and the card-detail fetch. An eslint `no-restricted-imports` pattern lets only
+    `services/cards/catalog/*`, `features/decks/pricing.ts` and `features/decks/bracketSources.ts` import
+    `scryfall/client`, so nothing else can call Scryfall around the catalog's cache, session memo and retry cap.
   - `imageUrls.ts` (was `services/ScryfallService.ts`): `getScryfallUrl*`, plus `getScryfallUrlByExactName`,
     `getScryfallUrlByIdOrExactName` and `getScryfallSymbolUrl`.
   - `cardDetail.ts` (D4): the detail fetch, `ScryfallDetail`, `detailTargetKey` and `selectCardFace`.
@@ -44,8 +48,11 @@ chunk sizes, init objects and headers), and specs that mock `fetch` pin it.
   - `hydrate`, `deckSummary`;
   - the catalog's printing fallback.
 
-  A characterization table pins each site's old template against its builder. `decks/search.ts` is untouched
-  (PR 31).
+  Each site has a spec that renders it (`SeatCard`, `ZoneStack`, `BigCardPreview`, `BattlefieldSidebar`,
+  `CardPreviewPopupPage`) or calls it (`deckCardImageUrl`, `assembleDeckCard`, `deckArtUrl`, `dexieToLookup`) and
+  asserts the literal URL it produces, by id and by a name with a comma and a Token suffix. All of them also pass
+  against the pre-R4 site code (see Testing). `decks/search.ts` is untouched (PR 31) and is the one remaining
+  place that builds Scryfall API URLs.
 - **D7.** The deck `ManaSymbols` / `SymbolText` pair moves to `@app/components` and the game copy is deleted.
   The symbol URL becomes `getScryfallSymbolUrl`, and the colour vocabulary stays in
   `features/decks/manaSymbols.ts`. The game's two callers that relied on the 16px default now pass it.
@@ -55,7 +62,7 @@ chunk sizes, init objects and headers), and specs that mock `fetch` pin it.
 - **D13.** The small duplicates:
   - `deckColorIdentity`: the `deckPersistence` copy wins;
   - `DECK_ZONE_MAIN/SIDE`: the lobby uses `@app/types`;
-  - bracket tone: moves to `services/decks/bracketTone.ts` for the lobby and the deck editor;
+  - bracket tone: moves to `utils/bracketTone.ts` for the lobby and the deck editor;
   - `formatLeaveMessage` (datatrice): the live implementation moves into `messageLog.ts` and replaces the dead
     copy;
   - `yyyy-MM-dd HH:mm`: becomes `utils/formatLocalDateTime`;
@@ -89,7 +96,8 @@ for `.cod` round-trips (`deck_list.cpp` `DeckList::write` / `readElement`).
 
 ## Testing
 
-Base `origin/claude/restack-16-game-lobby` @ `d2e516c`, tip `52f549b`. Every commit typechecks.
+Base `origin/claude/restack-16-game-lobby` @ `d2e516c`. Tip `eca62b5` (the rv15 fixes are new commits on top of
+`52f549b`, with no history rewrite).
 
 - `npx turbo run typecheck --concurrency=1`: 5/5 tasks pass.
 - `npm run lint`: clean.
@@ -99,28 +107,39 @@ Base `origin/claude/restack-16-game-lobby` @ `d2e516c`, tip `52f549b`. Every com
   |---|---:|---:|
   | sockatrice | 42 | 895 |
   | datatrice | 35 | 1310 |
-  | webatrice | 447 | 3470 |
-- `npm run test:integration`: all green.
+  | webatrice | 452 | 3478 |
+- `npm run test:integration`:
 
   | Package | Spec files | Tests |
   |---|---:|---:|
   | sockatrice | 20 | 175 |
   | datatrice | 10 | 144 |
-  | webatrice | 49 | 265 |
-- Webatrice e2e on chromium, firefox and webkit: **69 passed and 12 skipped**. The Playwright image was
-  v1.60.0-noble, running against Servatrice 3.0.0.
-  - The first full run had 63 passed and 3 failed. The failures were `staff-tools.spec.ts:38` on all three
-    browsers, an environment issue: the spec shells out to `docker compose exec mysql`, and the Playwright
-    container has no docker CLI (`spawnSync docker ENOENT`).
-  - Rerunning `staff-tools.spec.ts` with the docker CLI, the compose plugin and the socket mounted passed 6/6.
-  - The 12 skips are the spec's own conditional skips. sockatrice e2e was not run because no sockatrice or
-    server flow changed.
+  | webatrice | 49 | 264 passed, 1 failed |
+
+  The one failure is `integration/src/features/game/invite-link.spec.tsx:174` ("a link clicked in a room's chat
+  opens the game with one navigation"), and it is intermittent. It also fails on the base `d2e516c` (4 of 5
+  isolated runs) and on the pre-review tip `52f549b` (4 of 5), so this branch did not cause it. The likely cause:
+  a synchronous `getByRole('button', { name: 'back' })` runs right after the location `waitFor`, which races the
+  game page's render. Proposed fix, on the base branch: `fireEvent.click(await screen.findByRole('button', { name: 'back' }))`.
+- Webatrice e2e on chromium, firefox and webkit: **66 passed and 12 skipped**, with 26 tests per browser. It ran
+  in the Playwright image v1.60.0-noble against Servatrice 3.0.0, with the docker CLI, the compose plugin and the
+  socket mounted so that `staff-tools.spec.ts` can reach MySQL. The 12 skips are the specs' own conditional skips.
+- **Image-URL call-site specs against the pre-R4 code.** I restored each site's `d2e516c` source in place and ran
+  the new specs against it: `SeatCard`, `ZoneStack`, `deckCardImageUrl`, `hydrate`, `deckSummary`,
+  `BattlefieldSidebar`, `CardPreviewPopupPage` and `BigCardPreview`. The last three also needed the deleted game
+  `ManaSymbols`. The result was 8 files and 27 tests passed. `dexieCardMapper.spec.ts` (4 tests) passed against
+  the old private `dexieToLookup` in `cardCatalog.ts` once it was exported for the run. So the URLs are
+  unchanged at every site.
 - New or changed specs:
   - characterization: catalog request shapes (7), pricing chunking (1), bracket sources (2), detail fetch
-    signal (1), image-URL legacy table (7);
+    signal (1);
+  - per-site image URLs: `SeatCard` (3), `ZoneStack` (1), `BigCardPreview` (2), `BattlefieldSidebar` (2),
+    `CardPreviewPopupPage` (2), `assembleDeckCard` (2), `deckCardImageUrl` (+1). `deckArtUrl` and the catalog's
+    printing fallback were already pinned with literal URLs;
   - client (11), the catalog layers (dexie 4, cache 3, Scryfall mapper 4), `getScryfallSymbolUrl`,
-    `formatLocalDateTime`;
-  - `useGridRows` PageUp/PageDown;
+    `getScryfallUrlByExactName`, `formatLocalDateTime`;
+  - `useGridRows`: PageUp/PageDown, and Home/End on the row that is already the target. The latter fails before
+    the fix;
   - `<sideboard_plan>` round-trip (2). This spec fails on the pre-fix codec, which I checked.
 
 ## Notes for reviewers
@@ -130,10 +149,43 @@ Base `origin/claude/restack-16-game-lobby` @ `d2e516c`, tip `52f549b`. Every com
   URLs (and browser-cache hits) are byte-equal. The characterization table uses a UUID.
 - **What stays where.** `pictureUrlTemplates.ts` (desktop's user-configurable picture-URL defaults),
   `scryfallImage.ts` (URL size rewriting, not building), `CARD_BACK_URL` (a constant) and `decks/search.ts`
-  (PR 31) still contain Scryfall hosts. Its header comment still points at `services/cards/cardCatalog.ts`.
-  PR 31 should repoint it when it moves `search.ts` onto the client.
+  (PR 31) still contain Scryfall hosts. `search.ts`'s header now points at `catalog/lookup.ts`.
 - **The game face pick.** `BigCardPreview` and `BattlefieldSidebar` keep their exact-name face pick rather than
   `selectCardFace`, because switching would change which face a token shows. A follow-up could unify them.
+- **Sideboard plan order.** The codec keeps plans in file order, duplicates included. Desktop reads them into a
+  name-keyed map (a later duplicate wins) and writes them sorted by name, so a desktop re-save can differ byte-wise
+  from a web save; both load the same plans.
+- **Follow-up for R2: `HandZone` / `StackColumn` call `lookupCard` straight from components**
+  (`HandZone.tsx:280`, `StackColumn.tsx:132`), which the aud2 cardCatalog row names. This PR leaves them alone; they
+  should move behind a `useCardCatalogMeta`-style hook, as planned for the ZoneViewPanel split.
 - **`deckViewModel`'s own `<sideboard_plan>` parser** is left alone (the audit's optional `readSideboardPlans()`
   belongs with R3 / the lobby split).
 - **Changesets.** webatrice (patch) and datatrice (patch, internal `formatLeaveMessage` move).
+
+## Review response (rv15)
+
+- **`useGridRows` Home/End (minor)**: fixed in `29edc46`. Home and End always select again, as they did before
+  the refactor, even when the focused row is already the target. The arrows and PageUp/PageDown still stop at
+  either end. The new spec ("selects on Home and End even when the focused row is already the target") failed
+  before the fix.
+- **Image-URL characterization (minor)**: fixed in `b5e34ab`. The retyped-template table is gone. Every call site
+  now has a spec that renders or calls it and asserts the literal URL, including `SeatCard`'s
+  `cleanScryfallName(name) || name` path (a name that is only "Token"). All of them pass against the pre-R4 code
+  too (see Testing).
+- **Barrel (minor)**: fixed in `abdc415`. `services/scryfall` exports only the image-URL builders, with
+  `cleanScryfallName`, and the card-detail fetch. `fetchCollection`, `fetchNamedCard`, `fetchPrintings` and the
+  rest of `client.ts` are internal. An eslint `no-restricted-imports` pattern (`**/scryfall/client`) allows only
+  `src/services/cards/catalog/**`, `features/decks/pricing.ts` and `features/decks/bracketSources.ts`. The
+  existing WebClient restriction moved into a shared constant, so both rules apply together. The instructions
+  file documents the rule.
+- **bracketTone (minor)**: fixed in `33fed80`. It moved to `utils/bracketTone.ts` with its spec, next to `cx()`,
+  because it is a pure class-string helper rather than a component.
+- **Nits** (`eca62b5`):
+  - the one-client claim in the instructions, the `client.ts` header and the changeset now names the
+    `features/decks/search.ts` exception (PR 31);
+  - `search.ts`'s header points at `catalog/lookup.ts`;
+  - the game hook's type is now `ScryfallCardUrls`;
+  - the `sideboardPlansXml` doc notes the desktop dedupe/sort difference;
+  - the PR is retitled;
+  - the `HandZone`/`StackColumn` follow-up is listed under Notes.
+
