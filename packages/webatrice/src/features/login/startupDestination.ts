@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, type To } from 'react-router-dom';
 
 import { useKnownHosts } from '@app/feature-widgets/known-hosts';
@@ -11,31 +11,42 @@ export interface StartupDestination {
   state?: ServerRouteState;
 }
 
-/**
- * Whether this page load has had its first login. A reload sends the user through the login page
- * (AuthGuard) with the page they were on; only the login that page load starts with returns
- * there. Mutable for tests, like `autoLoginGate`.
- */
-export const pageLoadLoginGate = { done: false };
+/** Whether this page load came from the browser's reload, read once at boot. */
+function isReloadNavigation(): boolean {
+  if (typeof performance === 'undefined' || typeof performance.getEntriesByType !== 'function') {
+    return false;
+  }
+  const [navigation] = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
+  return navigation?.type === 'reload';
+}
 
 /**
- * Where a login lands, reconciling desktop's startup tab (window_main.cpp
- * `startupDestination`, tab_supervisor.cpp `initStartupTabs`) with a browser page:
+ * The page load's login state: whether it has had its first login (`done`), and whether it is a
+ * reload (`reload`), which keeps the page the user was on instead of opening the startup tab.
+ * Mutable for tests, like `autoLoginGate`.
+ */
+export const pageLoadLoginGate = { done: false, reload: isReloadNavigation() };
+
+/**
+ * Where a login lands, following desktop's startup tab (window_main.cpp `startupDestination`,
+ * tab_supervisor.cpp `initStartupTabs`), which applies once per launch:
  *
- * - The first login of a page load returns to the page the user was on (`from`), so a reload
- *   keeps the current route. A page load that started on the login page has no `from`.
- * - Any other login goes to the startup tab. Server Room opens its room only on a login to the
+ * - The first login of a page load that is not a reload opens the startup tab (`applyStartupTab`),
+ *   whatever page the last session was on. Server Room opens its room only on a login to the
  *   startup server (any server when none is chosen), since room names belong to a server; a login
  *   elsewhere, or with no room name, opens the lobby. Desktop's startup server also picks what to
  *   connect to at launch; here the login form's Auto Connect does that, so it is not repeated.
+ * - Every other login (a reload's, a reconnect, signing in again) returns to the page the user was
+ *   sent away from (`from`), or the lobby.
  */
 export function resolveStartupDestination(
   preferences: Pick<Preferences, 'startupTab' | 'startupServer' | 'startupRoom'>,
   loginServer: string | undefined,
   from: string | undefined,
+  applyStartupTab: boolean,
 ): StartupDestination {
-  if (from) {
-    return { to: from };
+  if (!applyStartupTab) {
+    return { to: from ?? RouteEnum.SERVER };
   }
   switch (preferences.startupTab) {
     case StartupTab.DeckStorage:
@@ -56,10 +67,12 @@ export function resolveStartupDestination(
 /**
  * The login page's destination once connected. See `resolveStartupDestination`.
  *
- * @critical Decided once per login and then kept. The login page stays mounted while the first
- * post-login events arrive (user info, rooms), and each of those re-renders it; recomputing would
- * hand `Navigate` a second `to` — the gate below having latched meanwhile — and that second
- * navigation would override the first, landing on the startup tab instead of `from`.
+ * @critical Whether this login opens the startup tab, and the page it would otherwise return to,
+ * are captured when the login page mounts, and the gate latches in an effect. The login page stays
+ * mounted while the first post-login events arrive (user info, rooms), and each re-renders it; a
+ * destination read from the latched gate would hand `Navigate` a second `to`, and that second
+ * navigation would override the first. Latching in render would also let a render React discards
+ * (StrictMode, concurrent rendering) spend the page load's first login.
  */
 export function useStartupDestination(isConnected: boolean): StartupDestination {
   const location = useLocation();
@@ -70,14 +83,23 @@ export function useStartupDestination(isConnected: boolean): StartupDestination 
   };
   const knownHosts = useKnownHosts();
   const selectedHost = knownHosts.status === LoadingState.READY ? knownHosts.value?.selectedHost : undefined;
-  const decided = useRef<StartupDestination | null>(null);
+  const [eligibility] = useState(() => ({
+    applyStartupTab: !pageLoadLoginGate.done && !pageLoadLoginGate.reload,
+    from: (location.state as LoginRouteState | null)?.from,
+  }));
 
-  if (isConnected && !decided.current) {
-    const from = pageLoadLoginGate.done ? undefined : (location.state as LoginRouteState | null)?.from;
-    decided.current = resolveStartupDestination(preferences, selectedHost && getHostKey(selectedHost), from);
-    // Latched with the decision, not in an effect: a later render must not decide differently.
-    pageLoadLoginGate.done = true;
-  }
+  useEffect(() => {
+    if (isConnected) {
+      pageLoadLoginGate.done = true;
+    }
+  }, [isConnected]);
 
-  return decided.current ?? { to: RouteEnum.SERVER };
+  return isConnected
+    ? resolveStartupDestination(
+      preferences,
+      selectedHost && getHostKey(selectedHost),
+      eligibility.from,
+      eligibility.applyStartupTab,
+    )
+    : { to: RouteEnum.SERVER };
 }
