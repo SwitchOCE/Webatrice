@@ -24,7 +24,7 @@ import {
   type GroupMode,
   type SortMode,
   type ZoneViewCardMetadata,
-} from '../ZoneViewDialog/zoneViewSort';
+} from '../shared/zoneViewSort';
 import { lookupCardsCached, type RelatedCardRef } from '@app/services';
 
 const TOOLBAR_SELECT_CLASS =
