@@ -1,3 +1,5 @@
 - 05:10Z started f17c, read brief/rv23 → setup + gate baseline
 - 05:17Z pushed 33a269d create-all exclusion → lastToken, hand→table, library shuffle
 - 05:30Z pushed 0648f10 (lastToken, hand→table, library shuffle, shared move helper) → reserved chords, minors/nits
+- 05:31Z pushed reserved chords (deck.new kept as a named PENDING_REMAP exception in defaults.spec) → remaining minors/nits
+- QUESTION Q1: 'all scopes' check vs 'keep deck.new out' conflict: deck.new=Ctrl+N would fail. | default: defaults.spec names deck.new in PENDING_REMAP (excluded + asserted still reserved); 31's restack deletes that entry.
