@@ -8,6 +8,7 @@ import {
   readStoredSize,
   useFloatingPanelGeometry,
   type FloatingPanelGeometryOptions,
+  type PanelSize,
 } from './useFloatingPanelGeometry';
 
 const KEY = 'webatrice.testPanel';
@@ -133,6 +134,70 @@ describe('useFloatingPanelGeometry', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  describe('stored size', () => {
+    // setupTests' ResizeObserver never calls back; this one hands its callback to the spec.
+    let observe: (size: PanelSize) => void;
+    let disconnect: ReturnType<typeof vi.fn>;
+    beforeEach(() => {
+      disconnect = vi.fn();
+      vi.stubGlobal('ResizeObserver', class {
+        constructor(callback: ResizeObserverCallback) {
+          observe = ({ w, h }) => callback(
+            [{ contentRect: new DOMRect(0, 0, w, h) } as ResizeObserverEntry],
+            this as unknown as ResizeObserver,
+          );
+        }
+        observe() {}
+        unobserve() {}
+        disconnect = disconnect;
+      });
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    });
+
+    it('does not store the size it opens at', () => {
+      setup();
+      act(() => {
+        observe({ w: 900, h: 480 });
+        vi.advanceTimersByTime(1000);
+      });
+      expect(readStoredSize(KEY)).toBeNull();
+    });
+
+    it('stores a resize half a second after the last one', () => {
+      setup();
+      act(() => {
+        observe({ w: 900, h: 480 });
+        observe({ w: 700, h: 400 });
+        vi.advanceTimersByTime(400);
+        observe({ w: 650, h: 380 });
+        vi.advanceTimersByTime(499);
+      });
+      expect(readStoredSize(KEY)).toBeNull();
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(readStoredSize(KEY)).toEqual({ w: 650, h: 380 });
+    });
+
+    it('drops a pending write when it closes', () => {
+      const { unmount } = setup();
+      act(() => {
+        observe({ w: 900, h: 480 });
+        observe({ w: 700, h: 400 });
+      });
+      unmount();
+      expect(disconnect).toHaveBeenCalled();
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(readStoredSize(KEY)).toBeNull();
+    });
   });
 
   it('opens again when its open key changes', () => {
