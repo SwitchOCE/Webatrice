@@ -77,7 +77,7 @@ describe('Game seat composition', () => {
     openContextMenu(cardEl(BOLT.id, 'battlefield'));
     chooseMenuPath('Draw arrow...');
     act(() => {
-      fireEvent.click(screen.getByLabelText('P2 — life total'));
+      fireEvent.click(screen.getByLabelText('P2\'s life'));
     });
 
     expect(game.createArrow).toHaveBeenCalledTimes(1);
