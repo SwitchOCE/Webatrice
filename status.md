@@ -1,2 +1,3 @@
 - 05:10Z started f17c, read brief/rv23 → setup + gate baseline
 - 05:17Z pushed 33a269d create-all exclusion → lastToken, hand→table, library shuffle
+- 05:30Z pushed 0648f10 (lastToken, hand→table, library shuffle, shared move helper) → reserved chords, minors/nits
