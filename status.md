@@ -8,3 +8,4 @@
 - 05:44Z pushed b2d2d09 (all findings applied) → full gate + e2e, PR file
 - 05:59Z gate: typecheck 5/5, lint 3/3, unit+integ green except known OOM (split run green) and pre-existing invite-link (fails on 3a78d2f too) → e2e running
 - 06:16Z e2e 78 passed/12 skipped/0 failed; PR file updated → done
+- ACK M2 / FINAL: claude/parity-17c-shortcuts @ 87daaeb; typecheck 5/5, lint 3/3, unit all green (webatrice split run 474/3992; single run OOM as before), integration green except pre-existing invite-link (fails on 3a78d2f too), webatrice e2e 78 passed/12 skipped/0 failed on 3 browsers. All rv23 findings applied. Left: follow-ups listed in prs/parity-17c-shortcuts.md; 31's replay must drop PENDING_REMAP deck.new.
