@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 
 import {
@@ -123,7 +123,9 @@ export function useSeatPrompts({
   // atomic cardCommands.setPT batch, like desktop's actSetPT loop).
   const ptBaseRef = useRef({ battlefieldDisplayList, cardMetaByName });
   ptBaseRef.current = { battlefieldDisplayList, cardMetaByName };
-  const openAnnotationPrompt = ({ targetIds, cardName, current }: PromptTargets) =>
+  // The card-op prompt openers keep their identity across renders, so the
+  // seat's card ops (useBattlefieldCardOps) stay memoised.
+  const openAnnotationPrompt = useCallback(({ targetIds, cardName, current }: PromptTargets) =>
     openPrompt(annotationPrompt({
       cardName,
       current,
@@ -134,8 +136,8 @@ export function useSeatPrompts({
           cardCommands.setAnnotation(id, value);
         }
       },
-    }));
-  const openPTPrompt = ({ targetIds, cardName, current }: PromptTargets) =>
+    })), [openPrompt, cardCommands]);
+  const openPTPrompt = useCallback(({ targetIds, cardName, current }: PromptTargets) =>
     openPrompt(powerToughnessPrompt({
       cardName,
       current,
@@ -150,11 +152,11 @@ export function useSeatPrompts({
           cardCommands.setPT(entries);
         }
       },
-    }));
+    })), [openPrompt, cardCommands]);
   // "X cards from the top of library..." prompt: Command_MoveCard with x = N
   // puts the card at position N of the library. The library size is
   // snapshotted when it opens, so a draw meanwhile doesn't move the clamp.
-  const openMoveXFromTopPrompt = ({ cardIds, cardName, deckSize, fromZone = ZoneName.TABLE }: {
+  const openMoveXFromTopPrompt = useCallback(({ cardIds, cardName, deckSize, fromZone = ZoneName.TABLE }: {
     cardIds: number[];
     cardName: string;
     deckSize: number;
@@ -165,7 +167,7 @@ export function useSeatPrompts({
       deckSize,
       initial: Math.min(3, Math.max(0, deckSize)),
       onSubmit: (position) => zoneCommands.moveCards(fromZone, cardIds, { zone: ZoneName.DECK, index: position, reversed: false }),
-    }));
+    })), [openPrompt, zoneCommands]);
   // Library count prompts: Draw cards..., View top / bottom cards..., Reveal
   // top cards to..., and the Top / Bottom of library "N cards" items. Each
   // snapshots the library size when it opens and clamps the answer to it, so
@@ -206,7 +208,7 @@ export function useSeatPrompts({
   // selected) card's value. The target ids are snapshotted when it opens;
   // the answer goes to every one of them in one atomic CommandContainer, as
   // desktop's actSetCardCounter batches per-card SetCardCounter.
-  const openCardCounterPrompt = ({ targetIds, cardName, counterId, currentValue }: {
+  const openCardCounterPrompt = useCallback(({ targetIds, cardName, counterId, currentValue }: {
     targetIds: number[];
     cardName: string;
     counterId: number;
@@ -218,7 +220,7 @@ export function useSeatPrompts({
     onSubmit: (value) => {
       counterCommands.setCardCounters(targetIds.map((id) => ({ cardId: id, counterId, value: Math.max(0, value) })));
     },
-  }));
+  })), [openPrompt, counterCommands]);
   // Last successfully-submitted token — powers "Create another token"
   // (Cockatrice's actCreateAnotherToken, player_actions.cpp:894-916).
   // Persisted across the dialog's open/close cycle so a subsequent
