@@ -238,6 +238,12 @@ export interface CreateAllRelated {
    * that many times.
    */
   prompt?: { request: CreateTokenRequest; defaultCount: number };
+  /**
+   * What "Create another token" repeats afterwards: the first relation run,
+   * unless it attaches (desktop setLastToken when getCanCreateAnother,
+   * player_actions.cpp:1053-1061).
+   */
+  lastToken?: CreateTokenRequest;
 }
 
 /**
@@ -256,13 +262,17 @@ export function createAllRelated(source: RelatedCardSource): CreateAllRelated {
   const runOne = (ref: RelatedCardRef): CreateAllRelated => {
     const { requests } = relatedTokenAction(ref, source.tokenMeta.get(ref.name));
     const { variable, count } = relationCount(ref);
-    return variable ? { requests: [], prompt: { request: requests[0], defaultCount: count } } : { requests };
+    const lastToken = ref.attach ? undefined : requests[0];
+    return variable
+      ? { requests: [], prompt: { request: requests[0], defaultCount: count }, lastToken }
+      : { requests, lastToken };
   };
-  const createEach = (refs: readonly RelatedCardRef[]): CreateAllRelated => ({
-    requests: refs
+  const createEach = (refs: readonly RelatedCardRef[]): CreateAllRelated => {
+    const perRef = refs
       .filter((ref) => !ref.attach && !relationCount(ref).variable)
-      .flatMap((ref) => relatedTokenAction(ref, source.tokenMeta.get(ref.name)).requests),
-  });
+      .map((ref) => relatedTokenAction(ref, source.tokenMeta.get(ref.name)).requests);
+    return { requests: perRef.flat(), lastToken: perRef[0]?.[0] };
+  };
 
   const transform = transformAction(source.parentMeta, source.sourceCardId, source.parentName);
   if (source.related.length + (transform ? 1 : 0) === 1) {
