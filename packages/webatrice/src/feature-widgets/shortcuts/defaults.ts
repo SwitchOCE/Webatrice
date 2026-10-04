@@ -8,57 +8,7 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // shortcut groups; a browser-reserved desktop key is remapped where it
   // is defined, with the reason.
 
-  // Game Phases (desktop ShortcutGroup::Game_Phases).
-  // Cockatrice's `aNextTurn` accepts either Ctrl+Return or Ctrl+Enter
-  // (numpad); browser event.code names them Enter and NumpadEnter.
-  'game.endTurn': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: ['Ctrl+Enter', 'Ctrl+NumpadEnter'] },
-  // Cockatrice's `aNextPhase` accepts Ctrl+Space OR Tab; keep both.
-  'game.nextPhase': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: ['Tab', 'Ctrl+Space'] },
-  // Webatrice-only, so it yields Shift+Tab to desktop's `aNextPhaseAction`; still rebindable.
-  'game.prevPhase': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
-  'game.nextPhaseAction': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: ['Shift+Tab'] },
-  // Desktop reads `Player/aReverseTurn` but never registers a default, so it has no key there.
-  // Listed here (unbound) so it can be bound.
-  'game.reverseTurn': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
-  // Desktop's Say menu binds its first ten message macros to fixed
-  // Ctrl+1 … Ctrl+9, Ctrl+0 (say_menu.cpp:21-29). Browsers keep
-  // Ctrl+digit for switching tabs, so the web client defaults to
-  // Alt+digit (as it remaps other browser-reserved desktop keys), and
-  // like every web shortcut they can be rebound.
-  'game.sayMacro1': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit1'] },
-  'game.sayMacro2': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit2'] },
-  'game.sayMacro3': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit3'] },
-  'game.sayMacro4': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit4'] },
-  'game.sayMacro5': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit5'] },
-  'game.sayMacro6': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit6'] },
-  'game.sayMacro7': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit7'] },
-  'game.sayMacro8': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit8'] },
-  'game.sayMacro9': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit9'] },
-  'game.sayMacro10': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit0'] },
-  // Cockatrice's `aSetPT` (Ctrl+P) — opens the "Set Power/Toughness"
-  // modal against the selection. First-selected card drives the
-  // modal's label / prefill (same as the menu path but without a
-  // right-clicked card).
-  'game.setCardPT': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyP'] },
-  // Cockatrice P/T deltas. Each ships with both the "type-a-symbol"
-  // and the "same-key-without-shift" binding (parity with desktop's
-  // `Ctrl++;Ctrl+=` dual-sequence idiom for keyboards where `+`
-  // needs Shift). NumpadAdd/Subtract for numpad users.
-  //   aIncP:  Ctrl++       → +1/+0
-  //   aDecP:  Ctrl+-       → -1/-0
-  //   aIncT:  Alt++        → +0/+1
-  //   aDecT:  Alt+-        → -0/-1
-  //   aIncPT: Ctrl+Alt++   → +1/+1
-  //   aDecPT: Ctrl+Alt+-   → -1/-1
-  // Note: Ctrl+= / Ctrl+- also drive browser zoom. Modern Chromium
-  // lets keydown preventDefault them; if a user reports zoom firing
-  // alongside, rebinding in the shortcuts settings is the workaround.
-  'game.incP': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Equal', 'Ctrl+Shift+Equal', 'Ctrl+NumpadAdd'] },
-  'game.decP': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Minus', 'Ctrl+NumpadSubtract'] },
-  'game.incT': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Equal', 'Alt+Shift+Equal', 'Alt+NumpadAdd'] },
-  'game.decT': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Minus', 'Alt+NumpadSubtract'] },
-  'game.incPT': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Alt+Equal', 'Ctrl+Alt+Shift+Equal', 'Ctrl+Alt+NumpadAdd'] },
-  'game.decPT': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Alt+Minus', 'Ctrl+Alt+NumpadSubtract'] },
+  // Card Counters (desktop ShortcutGroup::Card_Counters).
   // Card-counter shortcuts. Cockatrice ships three default counter
   // colors (A red / B yellow / C green) with Add / Remove / Set-value
   // bindings each. counterId matches Card.tsx's COUNTER_COLORS index
@@ -72,28 +22,126 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   //   aCCRed (Add A)     = Alt+.    → Alt+Period
   //   aRCRed (Rem A)     = Alt+,    → Alt+Comma
   //   aSCRed (Set A…)    = Alt+/    → Alt+Slash
-  'game.addCounterA': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Period'] },
-  'game.removeCounterA': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Comma'] },
-  'game.setCounterA': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Slash'] },
-  'game.addCounterB': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Period'] },
-  'game.removeCounterB': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Comma'] },
-  'game.setCounterB': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Slash'] },
-  'game.addCounterC': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+Period'] },
-  'game.removeCounterC': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+Comma'] },
-  'game.setCounterC': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+Slash'] },
+  'game.addCounterA': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: ['Alt+Period'] },
+  'game.removeCounterA': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: ['Alt+Comma'] },
+  'game.setCounterA': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: ['Alt+Slash'] },
+  'game.addCounterB': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: ['Ctrl+Period'] },
+  'game.removeCounterB': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: ['Ctrl+Comma'] },
+  'game.setCounterB': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: ['Ctrl+Slash'] },
+  'game.addCounterC': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: ['Ctrl+Shift+Period'] },
+  'game.removeCounterC': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: ['Ctrl+Shift+Comma'] },
+  'game.setCounterC': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: ['Ctrl+Shift+Slash'] },
+  // Desktop's D / E / F card counters (aCCCyan / aCCPurple / aCCMagenta and their
+  // remove / set actions, counter ids 3-5) have no default.
+  'game.addCounterD': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: [] },
+  'game.removeCounterD': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: [] },
+  'game.setCounterD': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: [] },
+  'game.addCounterE': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: [] },
+  'game.removeCounterE': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: [] },
+  'game.setCounterE': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: [] },
+  'game.addCounterF': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: [] },
+  'game.removeCounterF': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: [] },
+  'game.setCounterF': { scope: ShortcutScope.GAME, group: 'gameCardCounters', sequences: [] },
+
+  // Player Counters (desktop ShortcutGroup::Player_Counters).
+  // Desktop's `aInc` / `aDec` (life) are F12 / F11, which open the devtools and
+  // toggle fullscreen in browsers. Shift keeps the desktop key in reach; Alt+= /
+  // Alt+- would collide with Add / Remove toughness.
+  'game.incLife': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: ['Shift+F12'] },
+  'game.decLife': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: ['Shift+F11'] },
+  // Cockatrice's `aSet` (Ctrl+L) opens the set-life prompt.
+  'game.setLife': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: ['Ctrl+KeyL'] },
+  // Desktop's mana-pool counters (aIncCounter_w … aSetCounter_x) have no default.
+  'game.incManaCounterW': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
+  'game.decManaCounterW': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
+  'game.setManaCounterW': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
+  'game.incManaCounterU': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
+  'game.decManaCounterU': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
+  'game.setManaCounterU': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
+  'game.incManaCounterB': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
+  'game.decManaCounterB': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
+  'game.setManaCounterB': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
+  'game.incManaCounterR': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
+  'game.decManaCounterR': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
+  'game.setManaCounterR': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
+  'game.incManaCounterG': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
+  'game.decManaCounterG': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
+  'game.setManaCounterG': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
+  'game.incManaCounterX': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
+  'game.decManaCounterX': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
+  'game.setManaCounterX': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: [] },
   // Cockatrice's `aIncCounter_storm` / `aDecCounter_storm` /
   // `aSetCounter_storm` (Ctrl+] / Ctrl+[ / Ctrl+\) — Add / Remove /
   // Set the local player's "Other" (storm) counter. Uses
   // onModifyCounter / setSetManaCounterModal (player-scoped, distinct
   // from the per-card counter shortcuts above). Storm is Servatrice's
   // seventh pre-created player counter (server_player.cpp:102).
-  'game.addStormCounter': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+BracketRight'] },
-  'game.removeStormCounter': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+BracketLeft'] },
-  'game.setStormCounter': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Backslash'] },
+  'game.addStormCounter': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: ['Ctrl+BracketRight'] },
+  'game.removeStormCounter': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: ['Ctrl+BracketLeft'] },
+  'game.setStormCounter': { scope: ShortcutScope.GAME, group: 'gamePlayerCounters', sequences: ['Ctrl+Backslash'] },
+
+  // Power and Toughness (desktop ShortcutGroup::Power_Toughness).
+  // Cockatrice P/T deltas. Each ships with both the "type-a-symbol"
+  // and the "same-key-without-shift" binding (parity with desktop's
+  // `Ctrl++;Ctrl+=` dual-sequence idiom for keyboards where `+`
+  // needs Shift). NumpadAdd/Subtract for numpad users.
+  //   aIncP:  Ctrl++       → +1/+0
+  //   aDecP:  Ctrl+-       → -1/-0
+  //   aIncT:  Alt++        → +0/+1
+  //   aDecT:  Alt+-        → -0/-1
+  //   aIncPT: Ctrl+Alt++   → +1/+1
+  //   aDecPT: Ctrl+Alt+-   → -1/-1
+  // Note: Ctrl+= / Ctrl+- also drive browser zoom. Modern Chromium
+  // lets keydown preventDefault them; if a user reports zoom firing
+  // alongside, rebinding in the shortcuts settings is the workaround.
+  'game.incP': { scope: ShortcutScope.GAME, group: 'gamePowerToughness', sequences: ['Ctrl+Equal', 'Ctrl+Shift+Equal', 'Ctrl+NumpadAdd'] },
+  'game.decP': { scope: ShortcutScope.GAME, group: 'gamePowerToughness', sequences: ['Ctrl+Minus', 'Ctrl+NumpadSubtract'] },
+  // Desktop's `aFlowP` / `aFlowT` have no default.
+  'game.flowP': { scope: ShortcutScope.GAME, group: 'gamePowerToughness', sequences: [] },
+  'game.incT': { scope: ShortcutScope.GAME, group: 'gamePowerToughness', sequences: ['Alt+Equal', 'Alt+Shift+Equal', 'Alt+NumpadAdd'] },
+  'game.decT': { scope: ShortcutScope.GAME, group: 'gamePowerToughness', sequences: ['Alt+Minus', 'Alt+NumpadSubtract'] },
+  'game.flowT': { scope: ShortcutScope.GAME, group: 'gamePowerToughness', sequences: [] },
+  'game.incPT': {
+    scope: ShortcutScope.GAME,
+    group: 'gamePowerToughness',
+    sequences: ['Ctrl+Alt+Equal', 'Ctrl+Alt+Shift+Equal', 'Ctrl+Alt+NumpadAdd'],
+  },
+  'game.decPT': { scope: ShortcutScope.GAME, group: 'gamePowerToughness', sequences: ['Ctrl+Alt+Minus', 'Ctrl+Alt+NumpadSubtract'] },
+  // Cockatrice's `aSetPT` (Ctrl+P) — opens the "Set Power/Toughness"
+  // modal against the selection. First-selected card drives the
+  // modal's label / prefill (same as the menu path but without a
+  // right-clicked card).
+  'game.setCardPT': { scope: ShortcutScope.GAME, group: 'gamePowerToughness', sequences: ['Ctrl+KeyP'] },
   // Cockatrice's `aResetPT` (Ctrl+Alt+0) — resets selection PT to base.
-  'game.resetPT': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Alt+Digit0'] },
-  // Cockatrice's `aSet` (Ctrl+L) opens the set-life prompt.
-  'game.setLife': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyL'] },
+  'game.resetPT': { scope: ShortcutScope.GAME, group: 'gamePowerToughness', sequences: ['Ctrl+Alt+Digit0'] },
+
+  // Game Phases (desktop ShortcutGroup::Game_Phases).
+  // Desktop's direct phase actions (Player/phase0 … phase10). Desktop binds
+  // Untap, Draw, First Main, Start Combat, Second Main and End to F5-F10;
+  // the browser keeps F5 (reload), F6 (address bar), F7 (caret browsing) and
+  // F10 (menu bar), so the web client leaves all eleven unbound.
+  'game.setPhase0': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
+  'game.setPhase1': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
+  'game.setPhase2': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
+  'game.setPhase3': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
+  'game.setPhase4': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
+  'game.setPhase5': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
+  'game.setPhase6': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
+  'game.setPhase7': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
+  'game.setPhase8': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
+  'game.setPhase9': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
+  'game.setPhase10': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
+  // Cockatrice's `aNextTurn` accepts either Ctrl+Return or Ctrl+Enter
+  // (numpad); browser event.code names them Enter and NumpadEnter.
+  'game.endTurn': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: ['Ctrl+Enter', 'Ctrl+NumpadEnter'] },
+  // Cockatrice's `aNextPhase` accepts Ctrl+Space OR Tab; keep both.
+  'game.nextPhase': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: ['Tab', 'Ctrl+Space'] },
+  // Webatrice-only, so it yields Shift+Tab to desktop's `aNextPhaseAction`; still rebindable.
+  'game.prevPhase': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
+  'game.nextPhaseAction': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: ['Shift+Tab'] },
+  // Desktop reads `Player/aReverseTurn` but never registers a default, so it has no key there.
+  // Listed here (unbound) so it can be bound.
+  'game.reverseTurn': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
 
   // Playing Area (desktop ShortcutGroup::Playing_Area).
   // Cockatrice's `aIncrementAllCardCounters` (Ctrl+Shift+A) — for
@@ -275,6 +323,22 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'game.revealHandToAll': { scope: ShortcutScope.GAME, group: 'gameHand', sequences: [] },
   'game.revealRandomHandCardToAll': { scope: ShortcutScope.GAME, group: 'gameHand', sequences: [] },
 
+  // Game: the Say menu's message macros and Focus chat.
+  // Desktop's Say menu binds its first ten message macros to fixed
+  // Ctrl+1 … Ctrl+9, Ctrl+0 (say_menu.cpp:21-29). Browsers keep
+  // Ctrl+digit for switching tabs, so the web client defaults to
+  // Alt+digit (as it remaps other browser-reserved desktop keys), and
+  // like every web shortcut they can be rebound.
+  'game.sayMacro1': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit1'] },
+  'game.sayMacro2': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit2'] },
+  'game.sayMacro3': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit3'] },
+  'game.sayMacro4': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit4'] },
+  'game.sayMacro5': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit5'] },
+  'game.sayMacro6': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit6'] },
+  'game.sayMacro7': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit7'] },
+  'game.sayMacro8': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit8'] },
+  'game.sayMacro9': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit9'] },
+  'game.sayMacro10': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit0'] },
   // Matches Cockatrice desktop's `aFocusChat` (Shift+Return). Fires in
   // text inputs too so the user can jump to chat from search boxes, etc.
   // Ordered last in the game group so it sits at the bottom of the

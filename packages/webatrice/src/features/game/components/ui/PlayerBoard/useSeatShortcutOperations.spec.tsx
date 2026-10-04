@@ -106,6 +106,7 @@ function setup({
     openMoveTopUntilDialog: vi.fn(),
     openCountPrompt: vi.fn(),
     openPTPrompt: vi.fn(),
+    openCardCounterPrompt: vi.fn(),
     startAttach: vi.fn(),
     startArrow: vi.fn(),
   };
@@ -130,7 +131,7 @@ function setup({
       prompts: {
         openAnnotationPrompt: vi.fn(),
         openPTPrompt: props.openPTPrompt,
-        openCardCounterPrompt: vi.fn(),
+        openCardCounterPrompt: props.openCardCounterPrompt,
         openMoveXFromTopPrompt: vi.fn(),
       },
       startAttach: props.startAttach,
@@ -148,6 +149,7 @@ function setup({
       alwaysRevealTopCard: false,
       alwaysLookAtTopCard: false,
       manaCounters,
+      lifeControl,
       lastToken,
       openLifePrompt: props.openLifePrompt,
       openCounterPrompt: props.openCounterPrompt,
@@ -365,5 +367,37 @@ describe('useSeatShortcutOperations', () => {
     (['game.moveTopToExile', 'game.drawBottomCards', 'game.shuffleBottomCards'] as const).forEach((id) => empty.run(id));
     expect(empty.zoneCommands.moveCards).not.toHaveBeenCalled();
     expect(empty.props.openCountPrompt).not.toHaveBeenCalled();
+  });
+
+  it('steps and sets the life and mana-pool counters, once the seat has them', () => {
+    const { run, props, counterCommands } = setup({ manaCounters: { W: { id: 2, count: 4 }, C: { id: 6, count: 0 } } });
+    run('game.incLife');
+    run('game.decLife');
+    expect(vi.mocked(props.lifeControl.onDelta).mock.calls).toEqual([[1], [-1]]);
+    run('game.incManaCounterW');
+    run('game.decManaCounterX');
+    run('game.incManaCounterU');
+    expect(vi.mocked(counterCommands.increment).mock.calls).toEqual([[2, 1], [6, -1]]);
+    run('game.setManaCounterW');
+    run('game.setManaCounterX');
+    expect(vi.mocked(props.openCounterPrompt).mock.calls).toEqual([
+      [{ counterId: 2, label: 'White', currentValue: 4 }],
+      [{ counterId: 6, label: 'Colorless', currentValue: 0 }],
+    ]);
+  });
+
+  it('runs the D / E / F card counters and the P/T flows on the battlefield selection', () => {
+    const { run, counterCommands, cardCommands, props } = setup({ selection: selected(10, 12) });
+    run('game.addCounterD');
+    expect(counterCommands.setCardCounters).toHaveBeenLastCalledWith([
+      { cardId: 10, counterId: 3, value: 1 },
+      { cardId: 12, counterId: 3, value: 1 },
+    ]);
+    run('game.setCounterF');
+    expect(props.openCardCounterPrompt).toHaveBeenCalledWith(expect.objectContaining({ counterId: 5, targetIds: [10, 12] }));
+    run('game.flowP');
+    expect(cardCommands.setPT).toHaveBeenLastCalledWith([{ cardId: 10, pt: '4/2' }, { cardId: 12, pt: '2/0' }]);
+    run('game.flowT');
+    expect(cardCommands.setPT).toHaveBeenLastCalledWith([{ cardId: 10, pt: '2/4' }, { cardId: 12, pt: '0/2' }]);
   });
 });

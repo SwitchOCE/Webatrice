@@ -109,11 +109,11 @@ describe('buildCardContextMenu', () => {
       'Power / toughness',
       '  Increase power [<game.incP>]',
       '  Decrease power [<game.decP>]',
-      '  Increase power and decrease toughness',
+      '  Increase power and decrease toughness [<game.flowP>]',
       '  ---',
       '  Increase toughness [<game.incT>]',
       '  Decrease toughness [<game.decT>]',
-      '  Decrease power and increase toughness',
+      '  Decrease power and increase toughness [<game.flowT>]',
       '  ---',
       '  Increase power and toughness [<game.incPT>]',
       '  Decrease power and toughness [<game.decPT>]',
@@ -130,8 +130,8 @@ describe('buildCardContextMenu', () => {
       'Card counters',
       ...['A', 'B', 'C', 'D', 'E', 'F'].flatMap((letter, i) => [
         ...(i > 0 ? ['  ---'] : []),
-        `  Add counter (${letter})${i < 3 ? ` [<game.addCounter${letter}>]` : ''} (${counterColorForId(i)})`,
-        `  Set counters (${letter})...${i < 3 ? ` [<game.setCounter${letter}>]` : ''} (${counterColorForId(i)})`,
+        `  Add counter (${letter}) [<game.addCounter${letter}>] (${counterColorForId(i)})`,
+        `  Set counters (${letter})... [<game.setCounter${letter}>] (${counterColorForId(i)})`,
       ]),
     ]);
   });

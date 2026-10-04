@@ -123,6 +123,17 @@ describe('useBattlefieldMenuItems', () => {
     expect(find(battlefieldMenuItems, 'Counters', 'White').disabled).toBe(true);
   });
 
+  it('shows each counter\'s set, +1 and -1 shortcuts', () => {
+    const hints = new Proxy({}, { get: (_target, key) => `<${String(key)}>` }) as UseBattlefieldMenuItemsArgs['shortcutHints'];
+    const { battlefieldMenuItems } = setup({ shortcutHints: hints });
+    const hinted = (counter: string) =>
+      ['Set counter...', '+1', '-1', '+2'].map((label) => find(battlefieldMenuItems, 'Counters', counter, label).shortcut);
+    expect(hinted('Life')).toEqual(['<game.setLife>', '<game.incLife>', '<game.decLife>', undefined]);
+    expect(hinted('Green')).toEqual(['<game.setManaCounterG>', '<game.incManaCounterG>', '<game.decManaCounterG>', undefined]);
+    expect(hinted('Colorless')).toEqual(['<game.setManaCounterX>', '<game.incManaCounterX>', '<game.decManaCounterX>', undefined]);
+    expect(hinted('Other')).toEqual(['<game.setStormCounter>', '<game.addStormCounter>', '<game.removeStormCounter>', undefined]);
+  });
+
   it('increments all card counters through the seat\'s card op, disabled on an empty battlefield', () => {
     const board = setup();
     find(board.battlefieldMenuItems, 'Increment all card counters').onClick!();

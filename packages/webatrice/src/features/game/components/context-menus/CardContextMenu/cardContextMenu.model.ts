@@ -117,26 +117,15 @@ export interface BuildCardContextMenuArgs {
 
 export function buildCardContextMenu(args: BuildCardContextMenuArgs): CardMenuItem[] {
   const counterItems: CardMenuItem[] = [];
-  const letters: [string, string, string, string, string, string] = [
-    'A',
-    'B',
-    'C',
-    'D',
-    'E',
-    'F',
-  ];
+  const letters = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
   // [Add, Set] shortcut hints per counter slot — pulled from the
   // reactive hints map so rebinds update the menu chip immediately.
   // A/B/C ship Cockatrice defaults (Alt+. / Ctrl+. / Ctrl+>);
-  // D/E/F have no default binding.
-  const counterShortcuts: [string, string][] = [
-    [args.shortcutHints['game.addCounterA'], args.shortcutHints['game.setCounterA']],
-    [args.shortcutHints['game.addCounterB'], args.shortcutHints['game.setCounterB']],
-    [args.shortcutHints['game.addCounterC'], args.shortcutHints['game.setCounterC']],
-    ['', ''],
-    ['', ''],
-    ['', ''],
-  ];
+  // D/E/F have no default binding but can be bound.
+  const counterShortcuts: [string, string][] = letters.map((letter) => [
+    args.shortcutHints[`game.addCounter${letter}`],
+    args.shortcutHints[`game.setCounter${letter}`],
+  ]);
   letters.forEach((letter, i) => {
     if (i > 0) {
       counterItems.push({ divider: true });
@@ -223,11 +212,19 @@ export function buildCardContextMenu(args: BuildCardContextMenuArgs): CardMenuIt
       submenu: [
         { label: 'Increase power', shortcut: args.shortcutHints['game.incP'], onClick: args.onIncP },
         { label: 'Decrease power', shortcut: args.shortcutHints['game.decP'], onClick: args.onDecP },
-        { label: 'Increase power and decrease toughness', onClick: args.onFlowP },
+        {
+          label: 'Increase power and decrease toughness',
+          shortcut: args.shortcutHints['game.flowP'],
+          onClick: args.onFlowP,
+        },
         { divider: true },
         { label: 'Increase toughness', shortcut: args.shortcutHints['game.incT'], onClick: args.onIncT },
         { label: 'Decrease toughness', shortcut: args.shortcutHints['game.decT'], onClick: args.onDecT },
-        { label: 'Decrease power and increase toughness', onClick: args.onFlowT },
+        {
+          label: 'Decrease power and increase toughness',
+          shortcut: args.shortcutHints['game.flowT'],
+          onClick: args.onFlowT,
+        },
         { divider: true },
         { label: 'Increase power and toughness', shortcut: args.shortcutHints['game.incPT'], onClick: args.onIncPT },
         { label: 'Decrease power and toughness', shortcut: args.shortcutHints['game.decPT'], onClick: args.onDecPT },

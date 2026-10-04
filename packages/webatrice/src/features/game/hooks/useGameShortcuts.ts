@@ -8,7 +8,7 @@ import {
   type SeatShortcutActionId,
   type SeatShortcutRegistry,
 } from '../components/ui/SeatShortcutsContext';
-import { nextPhase, previousPhase } from '../components/PhaseTrack/phaseActions';
+import { nextPhase, PHASE_SHORTCUT_ACTIONS, previousPhase } from '../components/PhaseTrack/phaseActions';
 import { useNextPhaseAction } from '../components/PhaseTrack/useNextPhaseAction';
 import { usePhaseBar } from '../components/PhaseTrack/usePhaseBar';
 import { useCurrentGame } from './useCurrentGame';
@@ -156,6 +156,13 @@ export function useGameShortcuts({
   );
 
   useShortcut('game.nextPhaseAction', nextPhaseAction.run, { scope: ShortcutScope.GAME, enabled: inGame });
+
+  // Desktop's phase buttons as keys (TabGame's phase actions): set that phase.
+  useShortcutGroup(
+    PHASE_SHORTCUT_ACTIONS,
+    (actionId) => handlePhaseClick(PHASE_SHORTCUT_ACTIONS.indexOf(actionId as (typeof PHASE_SHORTCUT_ACTIONS)[number])),
+    { scope: ShortcutScope.GAME, enabled: inGame },
+  );
 
   // Local view only, so spectators get them too (hasLiveGame, not inGame).
   useShortcut('game.rotateViewCW', () => onRotateView(ROTATE_CLOCKWISE), { scope: ShortcutScope.GAME, enabled: hasLiveGame });

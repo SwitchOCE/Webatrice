@@ -1,4 +1,4 @@
-import type { useShortcutHints } from '@app/feature-widgets/shortcuts';
+import type { ActionId, useShortcutHints } from '@app/feature-widgets/shortcuts';
 import { useMessageMacros } from '@app/hooks';
 
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
@@ -93,29 +93,49 @@ export function useBattlefieldMenuItems({
   // each counter's submenu. "Set counter..." on Life reuses the
   // existing Ctrl+L modal; mana counters don't have a set-modal yet
   // so their Set row is disabled.
+  // The +1 / -1 rows show the counter's add / remove shortcut.
   const buildDeltaItems = (
     apply: (delta: number) => void,
+    hints: { inc: string; dec: string },
   ): ContextMenuItem[] => {
     const items: ContextMenuItem[] = [];
     // +10 down to +1
     for (let i = 10; i >= 1; i--) {
-      items.push({ label: `+${i}`, onClick: () => apply(i) });
+      items.push({ label: `+${i}`, onClick: () => apply(i), shortcut: i === 1 ? hints.inc : undefined });
     }
     items.push({ divider: true });
     // -1 down to -10
     for (let i = 1; i <= 10; i++) {
-      items.push({ label: `-${i}`, onClick: () => apply(-i) });
+      items.push({ label: `-${i}`, onClick: () => apply(-i), shortcut: i === 1 ? hints.dec : undefined });
     }
     return items;
   };
+  // Each counter's [add, remove, set] shortcuts: desktop's aInc / aDec / aSet
+  // for life, aIncCounter_* / aDecCounter_* / aSetCounter_* for the pool.
+  const counterHints = (inc: ActionId, dec: ActionId, set: ActionId) => ({
+    inc: shortcutHints[inc],
+    dec: shortcutHints[dec],
+    set: shortcutHints[set],
+  });
+  const manaHints: Record<(typeof MANA_COLORS)[number]['symbol'], ReturnType<typeof counterHints>> = {
+    W: counterHints('game.incManaCounterW', 'game.decManaCounterW', 'game.setManaCounterW'),
+    U: counterHints('game.incManaCounterU', 'game.decManaCounterU', 'game.setManaCounterU'),
+    B: counterHints('game.incManaCounterB', 'game.decManaCounterB', 'game.setManaCounterB'),
+    R: counterHints('game.incManaCounterR', 'game.decManaCounterR', 'game.setManaCounterR'),
+    G: counterHints('game.incManaCounterG', 'game.decManaCounterG', 'game.setManaCounterG'),
+    C: counterHints('game.incManaCounterX', 'game.decManaCounterX', 'game.setManaCounterX'),
+    O: counterHints('game.addStormCounter', 'game.removeStormCounter', 'game.setStormCounter'),
+  };
+  const lifeHints = counterHints('game.incLife', 'game.decLife', 'game.setLife');
   const lifeCounterItems: ContextMenuItem[] = [
     {
       label: 'Set counter...',
       onClick: () => openLifePrompt(),
       disabled: !lifeControl,
+      shortcut: lifeHints.set,
     },
     { divider: true },
-    ...buildDeltaItems((d) => lifeControl?.onDelta(d)),
+    ...buildDeltaItems((d) => lifeControl?.onDelta(d), lifeHints),
   ];
   const manaCounterSubmenus: ContextMenuItem[] = MANA_COLORS.map((m) => {
     const counter = manaCounters?.[m.symbol];
@@ -143,13 +163,14 @@ export function useBattlefieldMenuItems({
             }
           },
           disabled: !canSet,
+          shortcut: manaHints[m.symbol].set,
         },
         { divider: true },
         ...buildDeltaItems((d) => {
           if (canModify) {
             counterCommands.increment(counter.id, d);
           }
-        }),
+        }, manaHints[m.symbol]),
       ],
     };
   });

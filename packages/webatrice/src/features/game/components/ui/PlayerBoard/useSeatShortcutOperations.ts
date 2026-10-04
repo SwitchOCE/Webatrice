@@ -4,6 +4,7 @@ import type { GameDialogsActions } from '../../../hooks/dialogs/gameDialogs.type
 
 import type { SeatSelection } from '../../../hooks/useSeatSelection';
 import { selectedHiddenZoneCards } from '../../context-menus/CardContextMenu/handCardMenu.actions';
+import { MANA_COLORS } from '../../right-sidebar/PlayerInfoPanel/manaColors';
 import { useGameDialogsContext } from '../GameDialogsContext';
 import {
   SEAT_SHORTCUT_ACTIONS,
@@ -12,6 +13,7 @@ import {
   type SeatShortcutOperations,
 } from '../SeatShortcutsContext';
 import type {
+  ManaSymbol,
   PlayerCardCommands,
   PlayerCounterCommands,
   PlayerCounterViewModel,
@@ -23,7 +25,7 @@ import { toRecipient } from './revealRecipient';
 import type { BattlefieldCardActions, BattlefieldCardOps } from './useBattlefieldCardOps';
 import type { HandCardActions } from './useHandCardOps';
 import type { LibraryOps } from './useLibraryOps';
-import type { useSeatPrompts } from './useSeatPrompts';
+import type { LifeControl, useSeatPrompts } from './useSeatPrompts';
 
 type SeatPrompts = ReturnType<typeof useSeatPrompts>;
 
@@ -39,6 +41,8 @@ export interface SeatShortcutSeat {
   alwaysRevealTopCard: boolean;
   alwaysLookAtTopCard: boolean;
   manaCounters: PlayerCounterViewModel['mana'];
+  /** The life counter; undefined until the seat has it. */
+  lifeControl: LifeControl | undefined;
   lastToken: SeatPrompts['lastToken'];
   openLifePrompt: SeatPrompts['openLifePrompt'];
   openCounterPrompt: SeatPrompts['openCounterPrompt'];
@@ -68,12 +72,28 @@ const onSelection = (op: (ops: BattlefieldCardOps) => void): SeatShortcut => ({ 
   }
 };
 
-/** The Storm ("Other") player counter, once the seat has it. */
-const onStorm = (op: (seat: SeatShortcutSeat, storm: { id: number; count: number }) => void): SeatShortcut => (seat) => {
-  if (seat.manaCounters?.O) {
-    op(seat, seat.manaCounters.O);
+/** A mana-pool player counter (desktop's w/u/b/r/g/x and storm), once the seat has it. */
+const onPlayerCounter = (
+  symbol: ManaSymbol,
+  op: (seat: SeatShortcutSeat, counter: { id: number; count: number }) => void,
+): SeatShortcut => (seat) => {
+  const counter = seat.manaCounters?.[symbol];
+  if (counter) {
+    op(seat, counter);
   }
 };
+
+/** Add or remove one on a player counter (desktop aIncCounter_* / aDecCounter_*). */
+const stepPlayerCounter = (symbol: ManaSymbol, step: 1 | -1) =>
+  onPlayerCounter(symbol, (seat, counter) => seat.counterCommands.increment(counter.id, step));
+
+/** Open a player counter's set prompt, titled with its name (desktop aSetCounter_*). */
+const promptPlayerCounter = (symbol: ManaSymbol) =>
+  onPlayerCounter(symbol, (seat, counter) => seat.openCounterPrompt({
+    counterId: counter.id,
+    label: MANA_COLORS.find((m) => m.symbol === symbol)?.label ?? symbol,
+    currentValue: counter.count,
+  }));
 
 /** A move of the selected cards: desktop moves the scene's selection from any
  *  zone, here the battlefield or the hand selection. */
@@ -123,10 +143,9 @@ const SEAT_SHORTCUTS: Record<SeatShortcutActionId, SeatShortcut> = {
   'game.drawArrow': onSelection((ops) => ops.drawArrow()),
   'game.resetPT': onSelection((ops) => ops.resetPT()),
   'game.reduceLifeByPower': onSelection((ops) => ops.reduceLifeByPower()),
-  'game.addStormCounter': onStorm((seat, storm) => seat.counterCommands.increment(storm.id, 1)),
-  'game.removeStormCounter': onStorm((seat, storm) => seat.counterCommands.increment(storm.id, -1)),
-  'game.setStormCounter': onStorm((seat, storm) =>
-    seat.openCounterPrompt({ counterId: storm.id, label: 'Other', currentValue: storm.count })),
+  'game.addStormCounter': stepPlayerCounter('O', 1),
+  'game.removeStormCounter': stepPlayerCounter('O', -1),
+  'game.setStormCounter': promptPlayerCounter('O'),
   'game.attachCard': onSelection((ops) => ops.attach()),
   'game.peekCard': onSelection((ops) => ops.peek()),
   'game.flipCard': onSelection((ops) => ops.toggleFaceDown()),
@@ -207,6 +226,39 @@ const SEAT_SHORTCUTS: Record<SeatShortcutActionId, SeatShortcut> = {
   'game.drawBottomCards': ({ libraryOps }) => libraryOps.promptMoveBottomCards('Draw bottom cards', 'Draw', ZoneName.HAND),
   'game.shuffleTopCards': ({ libraryOps }) => libraryOps.promptShuffleTopCards(),
   'game.shuffleBottomCards': ({ libraryOps }) => libraryOps.promptShuffleBottomCards(),
+  // Desktop's D / E / F card counters: cyan (3), purple (4), magenta (5).
+  'game.addCounterD': onSelection((ops) => ops.stepCounter(3, 1)),
+  'game.removeCounterD': onSelection((ops) => ops.stepCounter(3, -1)),
+  'game.setCounterD': onSelection((ops) => ops.promptCounter(3)),
+  'game.addCounterE': onSelection((ops) => ops.stepCounter(4, 1)),
+  'game.removeCounterE': onSelection((ops) => ops.stepCounter(4, -1)),
+  'game.setCounterE': onSelection((ops) => ops.promptCounter(4)),
+  'game.addCounterF': onSelection((ops) => ops.stepCounter(5, 1)),
+  'game.removeCounterF': onSelection((ops) => ops.stepCounter(5, -1)),
+  'game.setCounterF': onSelection((ops) => ops.promptCounter(5)),
+  'game.incLife': (seat) => seat.lifeControl?.onDelta(1),
+  'game.decLife': (seat) => seat.lifeControl?.onDelta(-1),
+  // The mana pool; desktop's x counter is the colorless (C) pip.
+  'game.incManaCounterW': stepPlayerCounter('W', 1),
+  'game.decManaCounterW': stepPlayerCounter('W', -1),
+  'game.setManaCounterW': promptPlayerCounter('W'),
+  'game.incManaCounterU': stepPlayerCounter('U', 1),
+  'game.decManaCounterU': stepPlayerCounter('U', -1),
+  'game.setManaCounterU': promptPlayerCounter('U'),
+  'game.incManaCounterB': stepPlayerCounter('B', 1),
+  'game.decManaCounterB': stepPlayerCounter('B', -1),
+  'game.setManaCounterB': promptPlayerCounter('B'),
+  'game.incManaCounterR': stepPlayerCounter('R', 1),
+  'game.decManaCounterR': stepPlayerCounter('R', -1),
+  'game.setManaCounterR': promptPlayerCounter('R'),
+  'game.incManaCounterG': stepPlayerCounter('G', 1),
+  'game.decManaCounterG': stepPlayerCounter('G', -1),
+  'game.setManaCounterG': promptPlayerCounter('G'),
+  'game.incManaCounterX': stepPlayerCounter('C', 1),
+  'game.decManaCounterX': stepPlayerCounter('C', -1),
+  'game.setManaCounterX': promptPlayerCounter('C'),
+  'game.flowP': onSelection((ops) => ops.changePT(1, -1)),
+  'game.flowT': onSelection((ops) => ops.changePT(-1, 1)),
 };
 
 /**
