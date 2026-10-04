@@ -2,25 +2,31 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import { create, isFieldSet } from '@bufbuild/protobuf';
 import type { ListenerMiddlewareInstance } from '@reduxjs/toolkit';
 
-import {
-  CardAttribute,
-  Event_DeleteArrowSchema,
-  Event_GameStateChangedSchema,
-  Event_SetCardAttrSchema,
-  ServerInfo_Card,
-  ServerInfo_CardCounter,
-  ServerInfo_CardCounterSchema,
-  ServerInfo_CardSchema,
-} from '@cockatrice/sockatrice/generated';
+import { Event_DeleteArrowSchema, Event_SetCardAttrSchema } from '@cockatrice/sockatrice/generated';
 import { GamesState } from './game.interfaces';
 import { Actions } from './game.actions';
+import { Selectors } from './game.selectors';
 import {
-  attrOpKey,
-  consumeOptimistic,
-  moveOpKey,
-} from './optimistic';
-import { cloneWith } from '../../common';
-import { buildEmptyCard, formatLeaveMessage, normalizePlayers, resetCardState } from './game.reducer.helpers';
+  buildMovedCard,
+  cardMovedLogEntry,
+  planAttachmentReparent,
+  planMovePlacement,
+  planOptimisticReconcile,
+  planZoneViewSync,
+  resolveMoveIdentity,
+  sweepsArrows,
+} from './cardMove';
+import { attrOpKey, consumeOptimistic, moveOpKey } from './optimistic';
+import {
+  buildTokenCard,
+  cardAttachFields,
+  cardAttrFields,
+  carryForwardResyncState,
+  formatLeaveMessage,
+  gameInfoUpdateFrom,
+  mergeCardCounter,
+  normalizePlayers,
+} from './game.reducer.helpers';
 import {
   EVENT_PLAYER_ID_SYSTEM,
   diffPlayerProperties,
@@ -35,8 +41,6 @@ import {
   formatCardCounterChanged,
   formatCardDestroyed,
   formatCardFlipped,
-  formatCardMoved,
-  formatCardUndoneDraw,
   formatCardsDrawn,
   formatCounterSet,
   formatGameStart,
@@ -50,383 +54,128 @@ export function registerGameListeners(mw: ListenerMiddlewareInstance<unknown>): 
   mw.startListening({
     actionCreator: Actions.cardMoved,
     effect: (action, api) => {
-      const { gameId, playerId, data, isUndoDraw } = action.payload;
-      const {
-        cardId, cardName, startPlayerId, startZone, position,
-        targetPlayerId, targetZone, x, y, newCardId, faceDown, newCardProviderId,
-      } = data;
-
-      const effectiveTargetZone = targetZone || startZone;
+      const { gameId, playerId, data, isUndoDraw = false } = action.payload;
+      const { startPlayerId, startZone, targetPlayerId, position, x } = data;
 
       const state = api.getState() as { games: GamesState };
       const game = state.games.games[gameId];
       const sourceZone = game?.players[startPlayerId]?.zones[startZone];
-      const targetZoneEntry = game?.players[targetPlayerId]?.zones[effectiveTargetZone];
+      const targetZoneEntry = game?.players[targetPlayerId]?.zones[data.targetZone || startZone];
       if (!game || !sourceZone || !targetZoneEntry) {
         return;
       }
 
-      // Whether this event actually relocates the card to a different (player, zone).
-      // Drives the hidden-move count transfer, the same-zone reorder branch, and the
-      // open-zone-view prune below — keep it single-sourced so they can't disagree.
-      const movedAcrossZones =
-        startPlayerId !== targetPlayerId || startZone !== effectiveTargetZone;
+      const move = resolveMoveIdentity(sourceZone, data);
+      const { targetZone } = move;
+      const placement = planMovePlacement(move, sourceZone, data);
 
-      let resolvedCardId = -1;
-      if (cardId >= 0) {
-        resolvedCardId = cardId;
-      } else if (position >= 0 && position < sourceZone.order.length) {
-        resolvedCardId = sourceZone.order[position];
-      }
-
-      if (resolvedCardId < 0 && newCardId < 0) {
-        // Fully hidden card (e.g. an opponent's hand card returning to library during a
-        // mulligan): identity is unknown, but a cross-zone move still shifts zone totals.
-        // Adjust cardCount on both ends so hidden hand/library counts stay in sync. A
-        // same-zone "move" of a hidden card is unrepresentable, so it's a no-op EXCEPT
-        // when the client has a reveal snapshot on the source zone: Servatrice hides
-        // card_id for a bottom-view drag because `sourceBeingLookedAt` only checks
-        // positions 0..cardsBeingLookedAt-1 (server_cardzone.cpp:187-190), so a card
-        // at deck position N (where N >= cardsBeingLookedAt) comes back with card_id=-1
-        // even though we could see it in the reveal. `position` and `x` are still
-        // valid, and the reveal snapshot already knows the card's identity — fall
-        // through so zoneViewCardReordered can splice within the snapshot.
-        // See datatrice-game.instructions.md#servatrice-game-event-quirks.
-        const canReorderInReveal =
-          !movedAcrossZones &&
-          !!sourceZone.revealedCards &&
-          position >= 0;
-        if (!canReorderInReveal) {
-          if (movedAcrossZones) {
-            api.dispatch(Actions.zoneCardCountAdjusted({
-              gameId, playerId: startPlayerId, zoneName: startZone, delta: -1,
-            }));
-            api.dispatch(Actions.zoneCardCountAdjusted({
-              gameId, playerId: targetPlayerId, zoneName: effectiveTargetZone, delta: 1,
-            }));
-          }
-          // Undo-draw fires even when we can't see the card (opponent's
-          // hand → deck is hidden on both ends). The log line doesn't
-          // need the card name — "X undoes their last draw" is the
-          // Cockatrice-parity output — so dispatch it here before the
-          // hidden-card early return, otherwise opponent undo-draws
-          // are silently swallowed for the recipient.
-          if (isUndoDraw) {
-            api.dispatch(Actions.gameMessageAppended({
-              gameId, playerId,
-              message: formatCardUndoneDraw(game, playerId, cardName ?? ''),
-            }));
-          }
-          return;
-        }
-        // Hidden-card reveal-reorder path: dispatch the snapshot splice directly.
-        // We don't have the card's Server_Card object, so we can't emit a chat-log
-        // line here — the log formatter would render "moves a card" anyway
-        // (name missing on the event). Skip the log and let the visual update
-        // stand on its own.
+      if (placement === 'view-reorder') {
         api.dispatch(Actions.zoneViewCardReordered({
-          gameId,
-          playerId: startPlayerId,
-          zoneName: startZone,
-          fromPosition: position,
-          toPosition: x,
+          gameId, playerId: startPlayerId, zoneName: startZone, fromPosition: position, toPosition: x,
         }));
+      }
+      if (move.hidden) {
+        // A hidden card has no Server_Card to log by name, so only the counts (or the
+        // open view) change. Undo-draw still logs: "X undoes their last draw" needs no
+        // name, and an opponent's hand → deck is hidden on both ends. A reorder inside an
+        // open view stays unlogged ("moves a card" would add nothing).
+        // See datatrice-game.instructions.md#servatrice-game-event-quirks.
+        if (placement === 'count-transfer') {
+          api.dispatch(Actions.zoneCardCountAdjusted({ gameId, playerId: startPlayerId, zoneName: startZone, delta: -1 }));
+          api.dispatch(Actions.zoneCardCountAdjusted({ gameId, playerId: targetPlayerId, zoneName: targetZone, delta: 1 }));
+        }
+        const message = isUndoDraw && placement !== 'view-reorder'
+          ? cardMovedLogEntry(game, playerId, data, move, true)
+          : null;
+        if (message) {
+          api.dispatch(Actions.gameMessageAppended({ gameId, playerId, message }));
+        }
         return;
       }
 
-      const removedCard: ServerInfo_Card | undefined =
-      resolvedCardId >= 0 ? sourceZone.byId[resolvedCardId] : undefined;
-      const effectiveNewId =
-      newCardId >= 0 ? newCardId : (removedCard?.id ?? resolvedCardId);
+      const movedCard = buildMovedCard(move, data);
+      // Planned from the pre-move zones: the move dispatch below changes them.
+      const viewSync = planZoneViewSync(move, sourceZone, targetZoneEntry, data);
+      const optimisticKey = moveOpKey(startPlayerId, move.cardId);
 
-      const isLeavingBattlefield =
-      startZone === ZoneName.TABLE && effectiveTargetZone !== ZoneName.TABLE;
-
-      const baseCard: ServerInfo_Card = removedCard
-        ? cloneWith(ServerInfo_CardSchema, removedCard, {
-          id: effectiveNewId,
-          name: cardName || removedCard.name,
-          x, y, faceDown,
-          providerId: newCardProviderId || removedCard.providerId,
-          counterList: [...removedCard.counterList],
-        })
-        : buildEmptyCard(effectiveNewId, cardName, x, y, faceDown, newCardProviderId ?? '');
-
-      // Leaving the battlefield wipes transient card state (tapped, counters, etc.) to
-      // mirror desktop Cockatrice's CardItem::resetState(); see resetCardState. STACK
-      // is the one target that KEEPS annotations (server_abstract_player.cpp:429 passes
-      // `keepAnnotations = (targetzone == STACK)` — matches Cockatrice's own carve-out).
-      const movedCard = isLeavingBattlefield
-        ? resetCardState(baseCard, effectiveTargetZone === ZoneName.STACK)
-        : baseCard;
-
-      // Capture before the move dispatch: if an open zone-view (deck) snapshot
-      // holds this zone, the moved card must be pruned from it (see below).
-      const hadRevealedSnapshot = !!sourceZone.revealedCards;
-      // Capture the target-side reveal state too — a cross-zone move INTO a
-      // zone that's being viewed needs to splice the arriving card into
-      // the snapshot at position `x`, so the dialog shows the new card
-      // at the same slot the user dropped it into.
-      const hadTargetRevealedSnapshot = !!targetZoneEntry.revealedCards;
-
-      const isPositionalReorderZone =
-        effectiveTargetZone === ZoneName.HAND ||
-        effectiveTargetZone === ZoneName.STACK ||
-        effectiveTargetZone === ZoneName.GRAVE ||
-        effectiveTargetZone === ZoneName.EXILE;
-
-      if (!movedAcrossZones && hadRevealedSnapshot && position >= 0) {
-        api.dispatch(Actions.zoneViewCardReordered({
-          gameId,
-          playerId: startPlayerId,
-          zoneName: startZone,
-          fromPosition: position,
-          toPosition: x,
-        }));
-      } else if (!movedAcrossZones && isPositionalReorderZone && resolvedCardId >= 0) {
-        // Same-zone reorder is idempotent — re-splicing the card at
-        // the same index no-ops — so an optimistic pre-dispatch is
-        // safe to re-apply here. We still consume any pending marker
-        // so the rollback bookkeeping stays tidy.
-        consumeOptimistic(moveOpKey(startPlayerId, resolvedCardId));
+      if (placement === 'same-zone') {
+        // Re-splicing at the same index no-ops, so re-applying over an optimistic
+        // pre-dispatch is safe; the marker is consumed to keep the rollback map tidy.
+        consumeOptimistic(optimisticKey);
         api.dispatch(Actions.cardMovedInSameZone({
-          gameId,
-          playerId: startPlayerId,
-          zoneName: startZone,
-          cardId: resolvedCardId,
-          toIndex: x,
-          card: movedCard,
+          gameId, playerId: startPlayerId, zoneName: startZone, cardId: move.cardId, toIndex: x, card: movedCard,
         }));
-      } else {
-        // Cross-zone moves are NOT idempotent (cardCount drift +
-        // duplicate order entries if re-applied). Skip the dispatch
-        // when a matching optimistic op is pending — the client
-        // already moved the card locally, and this event is just the
-        // server confirming that move. `consumeOptimistic` returns
-        // true when it removed a matching entry, which is our signal.
-        const optimisticKey = moveOpKey(startPlayerId, resolvedCardId);
-        const skipDispatch =
-          resolvedCardId >= 0 && consumeOptimistic(optimisticKey);
-        if (!skipDispatch) {
+      } else if (placement === 'between-zones') {
+        // Cross-zone moves are not idempotent (cardCount drift, duplicate order entries),
+        // so the server's confirmation of an optimistic move only reconciles the target.
+        const confirmsOptimistic = move.cardId >= 0 && consumeOptimistic(optimisticKey);
+        if (!confirmsOptimistic) {
           api.dispatch(Actions.cardMovedBetweenZones({
             gameId,
             fromPlayerId: startPlayerId,
             fromZone: startZone,
-            fromCardId: resolvedCardId,
+            fromCardId: move.cardId,
             toPlayerId: targetPlayerId,
-            toZone: effectiveTargetZone,
+            toZone: targetZone,
             card: movedCard,
           }));
         } else {
-          // The card is already in the target zone (client did it
-          // optimistically under the SOURCE card id), but the server
-          // may have:
-          //   (a) corrected the position — Servatrice bumps `x` to
-          //       the next free stack sub-slot (`col*3 + 1`, `+2`)
-          //       when a column already has a card at sub-slot 0;
-          //   (b) reassigned the id — cross-player TABLE→TABLE moves
-          //       give the card a fresh id under the new owner.
-          //
-          // (a) → patch `{ x, y, faceDown }` in place. cardCount +
-          // order don't need touching.
-          //
-          // (b) → migrate the entry from the optimistic (old) id to
-          // the server's (new) id via remove-then-insert. Without
-          // this, the stale entry keeps the OLD id in `data-card-id`,
-          // and later `Command_CreateArrow` calls that target the
-          // card send the stale id → server responds
-          // `RespNameNotFound` and the arrow silently fails.
-          const effectiveId = movedCard.id;
-          // Re-read state fresh; the outer `state` snapshot was
-          // captured at the top of the effect and predates the
-          // optimistic pre-dispatch on the target zone.
-          const postDispatchState = api.getState() as { games: GamesState };
-          const targetZoneState =
-            postDispatchState.games.games[gameId]?.players[targetPlayerId]?.zones[effectiveTargetZone];
-          if (targetZoneState) {
-            const optimisticStillAtOldId =
-              effectiveId !== resolvedCardId
-              && targetZoneState.byId[resolvedCardId] !== undefined
-              && targetZoneState.byId[effectiveId] === undefined;
-            if (optimisticStillAtOldId) {
-              // remove-then-insert net-zeroes cardCount (each side
-              // -1/+1) and leaves the target zone with only the
-              // server-authoritative entry keyed by the new id.
-              //
-              // Rebase off the optimistically-inserted card, not the
-              // freshly-built `movedCard`: the optimistic path
-              // already removed the source entry, so `removedCard`
-              // above is undefined and `movedCard` fell back to
-              // `buildEmptyCard` — which wipes annotation, counters,
-              // PT, etc. The optimistic card in `targetZoneState`
-              // still carries the source's full state (it was
-              // dispatched via `{ ...sourceCard, x, y }`), so use it
-              // as the base and just re-key to the server id + apply
-              // the fields the wire actually updated.
-              //
-              // Matters most for the "Owner: <name>" annotation on
-              // reverse cross-player moves (server only re-sets it
-              // when the annotation doesn't already contain "Owner:",
-              // so a return trip to the original owner never
-              // re-broadcasts it — the client is the only line of
-              // defense). Same principle for other client-tracked
-              // fields the wire omits.
-              const optimisticCard = targetZoneState.byId[resolvedCardId];
-              const migratedCard = optimisticCard
-                ? cloneWith(ServerInfo_CardSchema, optimisticCard, {
-                  id: effectiveId,
-                  x: movedCard.x,
-                  y: movedCard.y,
-                  faceDown: movedCard.faceDown,
-                  name: movedCard.name || optimisticCard.name,
-                  providerId: movedCard.providerId || optimisticCard.providerId,
-                })
-                : movedCard;
-              api.dispatch(Actions.cardRemovedFromZone({
-                gameId,
-                playerId: targetPlayerId,
-                zoneName: effectiveTargetZone,
-                cardId: resolvedCardId,
-              }));
-              api.dispatch(Actions.cardInsertedIntoZone({
-                gameId,
-                playerId: targetPlayerId,
-                zoneName: effectiveTargetZone,
-                card: migratedCard,
-              }));
-            } else if (targetZoneState.byId[effectiveId]) {
-              api.dispatch(Actions.cardFieldsUpdated({
-                gameId,
-                playerId: targetPlayerId,
-                zoneName: effectiveTargetZone,
-                cardId: effectiveId,
-                fields: { x: movedCard.x, y: movedCard.y, faceDown: movedCard.faceDown },
-              }));
-            }
+          // Read fresh: the optimistic insert postdates the snapshot above.
+          const postDispatch = api.getState() as { games: GamesState };
+          const reconcile = planOptimisticReconcile(
+            postDispatch.games.games[gameId]?.players[targetPlayerId]?.zones[targetZone],
+            move.cardId,
+            movedCard,
+          );
+          if (reconcile?.kind === 'migrate') {
+            // Remove-then-insert net-zeroes cardCount and leaves only the server id.
+            api.dispatch(Actions.cardRemovedFromZone({
+              gameId, playerId: targetPlayerId, zoneName: targetZone, cardId: move.cardId,
+            }));
+            api.dispatch(Actions.cardInsertedIntoZone({
+              gameId, playerId: targetPlayerId, zoneName: targetZone, card: reconcile.card,
+            }));
+          } else if (reconcile?.kind === 'patch') {
+            api.dispatch(Actions.cardFieldsUpdated({
+              gameId, playerId: targetPlayerId, zoneName: targetZone, cardId: movedCard.id, fields: reconcile.fields,
+            }));
           }
         }
       }
 
-      // Keep an open "View library" snapshot in sync: when a card leaves a zone
-      // that's being viewed, drop it from revealedCards and re-index the rest,
-      // mirroring Cockatrice's live view (ZoneViewZoneLogic::removeCard). The
-      // snapshot is deck-only (HiddenZone), so the event's `position` is the
-      // index to prune. Same-zone reorders don't move the card out, so skip.
-      if (hadRevealedSnapshot && movedAcrossZones && position >= 0) {
+      if (viewSync.removeAt !== undefined) {
         api.dispatch(Actions.zoneViewCardRemoved({
-          gameId,
-          playerId: startPlayerId,
-          zoneName: startZone,
-          position,
+          gameId, playerId: startPlayerId, zoneName: startZone, position: viewSync.removeAt,
         }));
       }
-
-      // Clear the pile's persistent top-card face when position 0 might have
-      // changed on the source zone. Only clears when the moved card was
-      // AT the top (position === 0) — moves from elsewhere in the deck
-      // don't affect what shows on the pile. If auto-reveal is still on,
-      // Servatrice's revealTopCardIfNeeded re-emits Event_RevealCards
-      // right after this event (server_abstract_player.cpp:329-333) and
-      // the cardsRevealed reducer re-populates topRevealedCard with the
-      // new top; if it's off, the pile stays cleared.
-      if (position === 0 && startZone === ZoneName.DECK) {
-        api.dispatch(Actions.topRevealedCardCleared({
-          gameId,
-          playerId: startPlayerId,
-          zoneName: startZone,
-        }));
+      if (viewSync.clearTop) {
+        api.dispatch(Actions.topRevealedCardCleared({ gameId, playerId: startPlayerId, zoneName: startZone }));
       }
-
-      // Mirror: a cross-zone move INTO a zone that's being viewed
-      // splices the arriving card into the snapshot at position `x` so
-      // the dialog immediately shows it at the slot the user dropped
-      // it into. The card payload is `movedCard`, which already has the
-      // effective new id + face-down flag applied. Same-zone reorders
-      // are handled by the zoneViewCardReordered branch above.
-      if (hadTargetRevealedSnapshot && movedAcrossZones) {
+      if (viewSync.insertAt !== undefined) {
         api.dispatch(Actions.zoneViewCardInserted({
-          gameId,
-          playerId: targetPlayerId,
-          zoneName: effectiveTargetZone,
-          position: x,
-          card: movedCard,
+          gameId, playerId: targetPlayerId, zoneName: targetZone, position: viewSync.insertAt, card: movedCard,
         }));
       }
 
-      // Servatrice discards arrows server-side when a card changes zones but
-      // does not emit Event_DeleteArrow, so client-side state would otherwise
-      // retain orphans that re-render if the card returns. Mirror the server
-      // semantics by sweeping every player's arrows (arrows can cross players)
-      // for any endpoint matching the pre-move (startPlayerId, startZone,
-      // resolvedCardId). Intra-zone SAME-PLAYER repositions (e.g. sliding a
-      // card around your own battlefield) keep their arrows server-side, so
-      // skip the sweep there. Cross-PLAYER TABLE→TABLE moves also count as
-      // "changed zones" server-side because the card gets a fresh id under
-      // the new owner — without extending the guard to include that case,
-      // the orphaned arrow blocks a later attempt to draw a new arrow to or
-      // from the moved card (Servatrice's duplicate-arrow check fails
-      // against the stale client state).
-      if (
-        resolvedCardId >= 0
-        && (startZone !== effectiveTargetZone || startPlayerId !== targetPlayerId)
-      ) {
-        const postState = api.getState() as { games: GamesState };
-        const postGame = postState.games.games[gameId];
-        if (postGame) {
-          for (const [ownerIdStr, owner] of Object.entries(postGame.players)) {
-            const ownerId = Number(ownerIdStr);
-            for (const arrow of Object.values(owner.arrows)) {
-              const startMatch =
-                arrow.startPlayerId === startPlayerId &&
-                arrow.startZone === startZone &&
-                arrow.startCardId === resolvedCardId;
-              const targetMatch =
-                arrow.targetPlayerId === startPlayerId &&
-                arrow.targetZone === startZone &&
-                arrow.targetCardId === resolvedCardId;
-              if (startMatch || targetMatch) {
-                api.dispatch(Actions.arrowDeleted({
-                  gameId,
-                  playerId: ownerId,
-                  data: create(Event_DeleteArrowSchema, { arrowId: arrow.id }),
-                }));
-              }
-            }
-          }
+      if (sweepsArrows(move)) {
+        const postMove = api.getState() as { games: GamesState };
+        for (const { ownerPlayerId, arrowId } of Selectors.getArrowsTouchingCard(
+          postMove, gameId, startPlayerId, startZone, move.cardId,
+        )) {
+          api.dispatch(Actions.arrowDeleted({
+            gameId, playerId: ownerPlayerId, data: create(Event_DeleteArrowSchema, { arrowId }),
+          }));
         }
       }
 
-      if (
-        resolvedCardId >= 0 &&
-      startZone === ZoneName.TABLE &&
-      effectiveTargetZone === ZoneName.TABLE
-      ) {
-        api.dispatch(Actions.cardAttachmentReparented({
-          gameId,
-          fromPlayerId: startPlayerId,
-          fromCardId: resolvedCardId,
-          toPlayerId: targetPlayerId,
-          toCardId: effectiveNewId,
-        }));
+      const reparent = planAttachmentReparent(move, data);
+      if (reparent) {
+        api.dispatch(Actions.cardAttachmentReparented({ gameId, ...reparent }));
       }
 
-      if (isUndoDraw) {
-        // Cockatrice-parity: undo-draw suppresses the generic move log
-        // in favour of "X undoes their last draw" (optionally with the
-        // returned card name in parens when known).
-        const message = formatCardUndoneDraw(
-          game, playerId, removedCard?.name ?? cardName ?? '',
-        );
+      const message = cardMovedLogEntry(game, playerId, data, move, isUndoDraw);
+      if (message) {
         api.dispatch(Actions.gameMessageAppended({ gameId, playerId, message }));
-      } else {
-        const message = formatCardMoved(
-          game, playerId,
-          { ...data, targetZone: effectiveTargetZone },
-          { resolvedCardName: removedCard?.name ?? '' },
-        );
-        if (message) {
-          api.dispatch(Actions.gameMessageAppended({ gameId, playerId, message }));
-        }
       }
     },
   });
@@ -443,64 +192,17 @@ export function registerGameListeners(mw: ListenerMiddlewareInstance<unknown>): 
       const wasStarted = game.started;
 
       if (data.playerList?.length > 0) {
-      // gameStateChanged resync: carry prior userInfo forward.
-      // See .github/instructions/datatrice-game.instructions.md#servatrice-game-event-quirks.
-        const previous = game.players;
-        const next = normalizePlayers(data.playerList);
-        for (const idStr of Object.keys(next)) {
-          const id = Number(idStr);
-          const prevPlayer = previous[id];
-          const prevUserInfo = prevPlayer?.properties.userInfo;
-          if (prevUserInfo && !next[id].properties.userInfo) {
-            next[id].properties.userInfo = prevUserInfo;
-          }
-          // Carry forward any open "View library" snapshot. revealedCards is a
-          // transient, local-only overlay (the resync wire data never includes it),
-          // so without this a mid-game resync — e.g. a spectator joining — would
-          // collapse an open zone-view popup. Same spirit as the userInfo carry above.
-          if (prevPlayer) {
-            for (const zoneName of Object.keys(next[id].zones)) {
-              const prevRevealed = prevPlayer.zones[zoneName]?.revealedCards;
-              if (prevRevealed) {
-                next[id].zones[zoneName].revealedCards = prevRevealed;
-              }
-            }
-          }
-        }
+        const players = normalizePlayers(data.playerList);
+        carryForwardResyncState(game.players, players);
         const order = data.playerList.map((p) => p.properties.playerId);
-        api.dispatch(Actions.gamePlayersReplaced({ gameId, players: next, order }));
+        api.dispatch(Actions.gamePlayersReplaced({ gameId, players, order }));
       }
 
-      // isFieldSet distinguishes "set" from "default"; see .github/instructions/datatrice-store.instructions.md#reducer-author-hazards.
-      let nextStarted = wasStarted;
-      const update: {
-      gameId: number;
-      gameStarted?: boolean;
-      activePlayerId?: number;
-      activePhase?: number;
-      secondsElapsed?: number;
-    } = { gameId };
-      let hasUpdate = false;
-      if (isFieldSet(data, Event_GameStateChangedSchema.field.gameStarted)) {
-        update.gameStarted = data.gameStarted;
-        nextStarted = data.gameStarted;
-        hasUpdate = true;
+      const update = gameInfoUpdateFrom(data);
+      if (update) {
+        api.dispatch(Actions.gameInfoUpdated({ gameId, ...update }));
       }
-      if (isFieldSet(data, Event_GameStateChangedSchema.field.activePlayerId)) {
-        update.activePlayerId = data.activePlayerId;
-        hasUpdate = true;
-      }
-      if (isFieldSet(data, Event_GameStateChangedSchema.field.activePhase)) {
-        update.activePhase = data.activePhase;
-        hasUpdate = true;
-      }
-      if (isFieldSet(data, Event_GameStateChangedSchema.field.secondsElapsed)) {
-        update.secondsElapsed = data.secondsElapsed;
-        hasUpdate = true;
-      }
-      if (hasUpdate) {
-        api.dispatch(Actions.gameInfoUpdated(update));
-      }
+      const nextStarted = update?.gameStarted ?? wasStarted;
 
       // Pre-mutation read for the wasStarted→started log edge. See .github/instructions/datatrice-game.instructions.md#listener-patterns.
       if (!wasStarted && nextStarted) {
@@ -524,23 +226,7 @@ export function registerGameListeners(mw: ListenerMiddlewareInstance<unknown>): 
         return;
       }
 
-      let fields: Partial<ServerInfo_Card> | undefined;
-      switch (attribute as CardAttribute) {
-        case CardAttribute.AttrTapped:
-          fields = { tapped: attrValue === '1' }; break;
-        case CardAttribute.AttrAttacking:
-          fields = { attacking: attrValue === '1' }; break;
-        case CardAttribute.AttrFaceDown:
-          fields = { faceDown: attrValue === '1' }; break;
-        case CardAttribute.AttrColor:
-          fields = { color: attrValue }; break;
-        case CardAttribute.AttrPT:
-          fields = { pt: attrValue }; break;
-        case CardAttribute.AttrAnnotation:
-          fields = { annotation: attrValue }; break;
-        case CardAttribute.AttrDoesntUntap:
-          fields = { doesntUntap: attrValue === '1' }; break;
-      }
+      const fields = cardAttrFields(attribute, attrValue);
 
       if (!isFieldSet(data, Event_SetCardAttrSchema.field.cardId)) {
         // Cockatrice bulk sentinel: server omits card_id when applying to every card in the zone.
@@ -594,22 +280,7 @@ export function registerGameListeners(mw: ListenerMiddlewareInstance<unknown>): 
       const cardName = card.name;
       const previousValue = card.counterList.find(c => c.id === counterId)?.value ?? 0;
 
-      let nextCounterList: ServerInfo_CardCounter[];
-      if (counterValue <= 0) {
-        nextCounterList = card.counterList.filter(c => c.id !== counterId);
-      } else {
-        const idx = card.counterList.findIndex(c => c.id === counterId);
-        if (idx >= 0) {
-          nextCounterList = card.counterList.map((c, i) =>
-            i === idx ? { ...c, value: counterValue } : c,
-          );
-        } else {
-          nextCounterList = [
-            ...card.counterList,
-            create(ServerInfo_CardCounterSchema, { id: counterId, value: counterValue }),
-          ];
-        }
-      }
+      const nextCounterList = mergeCardCounter(card.counterList, counterId, counterValue);
       api.dispatch(Actions.cardFieldsUpdated({
         gameId, playerId, zoneName, cardId, fields: { counterList: nextCounterList },
       }));
@@ -725,7 +396,7 @@ export function registerGameListeners(mw: ListenerMiddlewareInstance<unknown>): 
     actionCreator: Actions.cardAttached,
     effect: (action, api) => {
       const { gameId, playerId, data } = action.payload;
-      const { startZone, cardId, targetPlayerId, targetZone, targetCardId } = data;
+      const { startZone, cardId } = data;
       const state = api.getState() as { games: GamesState };
       const game = state.games.games[gameId];
       const card = game?.players[playerId]?.zones[startZone]?.byId[cardId];
@@ -734,12 +405,7 @@ export function registerGameListeners(mw: ListenerMiddlewareInstance<unknown>): 
       }
       const sourceCardName = card.name;
 
-      // Unattach detected via empty targetZone; explicit sentinels.
-      // See .github/instructions/datatrice-game.instructions.md#servatrice-game-event-quirks.
-      const isUnattach = !targetZone;
-      const fields: Partial<ServerInfo_Card> = isUnattach
-        ? { attachPlayerId: -1, attachZone: '', attachCardId: -1 }
-        : { attachPlayerId: targetPlayerId, attachZone: targetZone, attachCardId: targetCardId };
+      const fields = cardAttachFields(data);
       api.dispatch(Actions.cardFieldsUpdated({
         gameId, playerId, zoneName: startZone, cardId, fields,
       }));
@@ -859,28 +525,14 @@ export function registerGameListeners(mw: ListenerMiddlewareInstance<unknown>): 
     actionCreator: Actions.tokenCreated,
     effect: (action, api) => {
       const { gameId, playerId, data } = action.payload;
-      const {
-        zoneName, cardId, cardName, color, pt, annotation,
-        destroyOnZoneChange, x, y, cardProviderId, faceDown,
-      } = data;
+      const { zoneName } = data;
       const state = api.getState() as { games: GamesState };
       const game = state.games.games[gameId];
       const zone = game?.players[playerId]?.zones[zoneName];
       if (!game || !zone) {
         return;
       }
-      // Construct the token via the protobuf-es schema constructor so any
-      // fields the wire payload omitted (tapped / attacking / doesntUntap /
-      // counterList / attach*) start at the protocol's documented defaults
-      // rather than proto3's zero/empty surfacing. The attach* fields are
-      // written as -1 / '' / -1 so downstream `isAttachedChild` recognises
-      // the token as detached the moment it lands on the table.
-      const newCard = create(ServerInfo_CardSchema, {
-        id: cardId, name: cardName, x, y, faceDown,
-        tapped: false, attacking: false, color, pt, annotation, destroyOnZoneChange,
-        doesntUntap: false, counterList: [],
-        attachPlayerId: -1, attachZone: '', attachCardId: -1, providerId: cardProviderId,
-      });
+      const newCard = buildTokenCard(data);
       api.dispatch(Actions.cardInsertedIntoZone({ gameId, playerId, zoneName, card: newCard }));
 
       const message = formatTokenCreated(game, playerId, data);
