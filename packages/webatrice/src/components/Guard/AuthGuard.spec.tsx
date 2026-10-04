@@ -61,6 +61,14 @@ describe('AuthGuard', () => {
     expect(screen.queryByText('protected-page')).not.toBeInTheDocument();
   });
 
+  it('stops once the login route is reached, rather than navigating forever', () => {
+    // A page that renders the guard without its own Routes keeps it mounted on /login; a fresh
+    // `state` object each render would otherwise count as a new location every time.
+    renderWithProviders(<AuthGuard />, { preloadedState: disconnectedState, route: '/login' });
+
+    expect(screen.queryByText(/^login-page/)).not.toBeInTheDocument();
+  });
+
   it('tells the login page which page the user was sent away from', () => {
     renderWithProviders(<AuthShell />, {
       preloadedState: disconnectedState,
