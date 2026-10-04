@@ -152,16 +152,18 @@ describe('usePendingTarget', () => {
     expect(game.attachCard).not.toHaveBeenCalled();
   });
 
-  it('follows the pointer only while a pick is pending', () => {
+  it('follows the pointer only while a pick is pending, without changing the picker', () => {
     const { picker } = renderPicker();
     fireEvent.mouseMove(window, { clientX: 5, clientY: 6 });
-    expect(picker().pointer).toBeNull();
+    expect(picker().pointer.get()).toBeNull();
 
     act(() => picker().startArrow(BOLT));
+    const during = picker();
     fireEvent.mouseMove(window, { clientX: 50, clientY: 60 });
-    expect(picker().pointer).toEqual({ x: 50, y: 60 });
+    expect(picker().pointer.get()).toEqual({ x: 50, y: 60 });
+    expect(picker()).toBe(during);
 
     act(() => picker().cancel());
-    expect(picker().pointer).toBeNull();
+    expect(picker().pointer.get()).toBeNull();
   });
 });
