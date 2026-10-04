@@ -199,6 +199,7 @@ export function DeckMainPane({
                 onInc={onInc}
                 onDelete={onDelete}
                 grid={grid}
+                order={rowOrder}
               />
               <SampleHandPanel cards={deck.cards} showImages={false} />
             </div>
