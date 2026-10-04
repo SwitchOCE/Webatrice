@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import type React from 'react';
 
 import type { SeatDropPoint } from '../../../hooks/seatDropPlan';
-import type { PlayerCardViewModel, PlayerTargetCommands } from './playerBoard.types';
+import type { PlayerCardViewModel } from './playerBoard.types';
 import { useSeatDnd, type UseSeatDndArgs } from './useSeatDnd';
 
 // The game's DnD coordinator is replaced by spies: each drag source records how
@@ -50,18 +50,12 @@ function setup(args: Partial<UseSeatDndArgs> = {}) {
     handCard.setAttribute('data-card-id', String(30 + i));
     box.append(handCard);
   });
-  const targetCommands = { attach: vi.fn() } as unknown as PlayerTargetCommands;
   const props: UseSeatDndArgs = {
     seatId: 1,
-    playerId: 1,
     seatDrag: null,
     selection: null,
     setSelection: vi.fn(),
-    attachPendingRef: { current: null },
-    attachExtraSourceIdsRef: { current: [] },
-    setAttachPending: vi.fn(),
-    setAttachExtraSourceIds: vi.fn(),
-    targetCommands,
+    resolveAttachPress: vi.fn(() => false),
     stackDisplayList: [card(50), card(51)],
     handDisplayList: [card(30), card(31), card(32)],
     boxRef: { current: box },
@@ -76,7 +70,7 @@ function setup(args: Partial<UseSeatDndArgs> = {}) {
     ...args,
   };
   const { result } = renderHook(() => useSeatDnd(props));
-  return { result, props, targetCommands };
+  return { result, props };
 }
 
 beforeEach(() => {
@@ -114,19 +108,20 @@ describe('useSeatDnd', () => {
     expect(props.setSelection).toHaveBeenLastCalledWith(null);
   });
 
-  it('resolves a pending attach on the next battlefield click, from every source', () => {
-    const { result, props, targetCommands } = setup({
-      attachPendingRef: { current: { sourceCardId: 10, sourceCardName: 'Aura' } },
-      attachExtraSourceIdsRef: { current: [11] },
-    });
+  it('hands a battlefield click to a pending attach pick first, and selects only when none took it', () => {
+    const { result, props } = setup({ resolveAttachPress: vi.fn((cardId: number) => cardId === 20) });
     result.current.startSeatCardDrag(press, card(20), 'battlefield', [card(20)]);
     act(() => dnd.starts.get('seat-1-battlefield')!.mock.calls[0][2](release()));
-    expect(vi.mocked(targetCommands.attach).mock.calls).toEqual([
-      [10, { playerId: 1, cardId: 20 }],
-      [11, { playerId: 1, cardId: 20 }],
-    ]);
-    expect(props.setAttachPending).toHaveBeenCalledWith(null);
+    expect(props.resolveAttachPress).toHaveBeenCalledWith(20);
     expect(props.setSelection).not.toHaveBeenCalled();
+
+    result.current.startSeatCardDrag(press, card(21), 'battlefield', [card(21)]);
+    act(() => dnd.starts.get('seat-1-battlefield')!.mock.calls[1][2](release()));
+    expect(props.setSelection).toHaveBeenCalledWith({ zone: 'battlefield', ids: new Set(['21']) });
+
+    result.current.startSeatCardDrag(press, card(50), 'stack', [card(50)]);
+    act(() => dnd.starts.get('seat-1-stack')!.mock.calls[0][2](release()));
+    expect(props.resolveAttachPress).toHaveBeenCalledTimes(2);
   });
 
   it('drags the top card of a pile', () => {

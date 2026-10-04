@@ -36,11 +36,19 @@ import { ShellLifecycleProvider, type ShellLifecycle } from '../feature-wrappers
 import { GameInteractionProvider, type GameInteractionHandlers } from '../features/game/components/ui/GameInteractionContext';
 import { CardVisualStateProvider, type CanActFor } from '../features/game/components/ui/CardVisualStateContext';
 import { GameDialogActionsProvider, type GameDialogActions } from '../features/game/components/ui/GameDialogActionsContext';
-import { GameIdProvider } from '../features/game/components/ui/GameIdContext';
+import { GameIdProvider, useGameId } from '../features/game/components/ui/GameIdContext';
+import { PendingTargetProvider } from '../features/game/components/ui/PendingTargetContext';
+import { usePendingTarget } from '../features/game/hooks/usePendingTarget';
 import { CardPreviewProvider, createCardPreviewStore, type CardPreviewStore } from '../features/game/components/ui/CardPreviewContext';
 import { GameDialogsProvider } from '../features/game/components/ui/GameDialogsContext';
 import { NOOP_GAME_DIALOGS_ACTIONS, type GameDialogs } from '../features/game/hooks/useGameDialogs';
 import { createMockWebClient } from './mockWebClient';
+
+// The game's pending target pick, as Game provides it, for seats rendered
+// without Game.
+function GamePendingTarget({ children }: { children: React.ReactNode }) {
+  return <PendingTargetProvider value={usePendingTarget(useGameId())}>{children}</PendingTargetProvider>;
+}
 
 const NOOP_GAME_INTERACTION: GameInteractionHandlers = {
   onCardHover: () => undefined,
@@ -219,26 +227,28 @@ export function renderWithProviders(
                     }}
                   >
                     <GameIdProvider value={gameId}>
-                      <GameInteractionProvider value={interactionHandlers}>
-                        <CardVisualStateProvider
-                          arrowSourceKey={visualState.arrowSourceKey}
-                          arrowTargetKey={visualState.arrowTargetKey}
-                          selectedCardKeys={visualState.selectedCardKeys}
-                          canActFor={visualState.canActFor}
-                        >
-                          <GameDialogActionsProvider value={dialogActions}>
-                            <CardPreviewProvider store={previewStore}>
-                              <GameDialogsProvider value={dialogs}>
-                                {shellLifecycle ? (
-                                  <ShellLifecycleProvider value={shellLifecycle}>{children}</ShellLifecycleProvider>
-                                ) : (
-                                  children
-                                )}
-                              </GameDialogsProvider>
-                            </CardPreviewProvider>
-                          </GameDialogActionsProvider>
-                        </CardVisualStateProvider>
-                      </GameInteractionProvider>
+                      <GamePendingTarget>
+                        <GameInteractionProvider value={interactionHandlers}>
+                          <CardVisualStateProvider
+                            arrowSourceKey={visualState.arrowSourceKey}
+                            arrowTargetKey={visualState.arrowTargetKey}
+                            selectedCardKeys={visualState.selectedCardKeys}
+                            canActFor={visualState.canActFor}
+                          >
+                            <GameDialogActionsProvider value={dialogActions}>
+                              <CardPreviewProvider store={previewStore}>
+                                <GameDialogsProvider value={dialogs}>
+                                  {shellLifecycle ? (
+                                    <ShellLifecycleProvider value={shellLifecycle}>{children}</ShellLifecycleProvider>
+                                  ) : (
+                                    children
+                                  )}
+                                </GameDialogsProvider>
+                              </CardPreviewProvider>
+                            </GameDialogActionsProvider>
+                          </CardVisualStateProvider>
+                        </GameInteractionProvider>
+                      </GamePendingTarget>
                     </GameIdProvider>
                   </DndContext>
                 </MemoryRouter>

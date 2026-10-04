@@ -5,8 +5,16 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import { makeArrow } from '@cockatrice/datatrice/testing';
 import { games } from '@cockatrice/datatrice';
 import { ArrowColor } from '@app/types';
+import { makeCard } from '@cockatrice/datatrice/testing';
 import { renderSeatHook, type SeatGameSpec } from '../../../__test-utils__/seatFixtures';
-import { usePlayerTargetCommands } from './usePlayerTargetCommands';
+import { usePlayerTargetCommands, useTargetCommandsFor } from './usePlayerTargetCommands';
+
+vi.mock('../../../../../hooks/useSettings');
+
+// playCardViaTableRow reads the card's tablerow; 1 = creature, played to the battlefield.
+vi.mock('../../../../../services/dexie/DexieDTOs/CardDTO', () => ({
+  CardDTO: { get: vi.fn(async () => ({ tablerow: { value: '1' } })) },
+}));
 
 const SPEC: SeatGameSpec = { localPlayerId: 1, seats: [{ playerId: 1 }, { playerId: 2 }] };
 
@@ -44,6 +52,62 @@ describe('usePlayerTargetCommands', () => {
       }));
     });
     commands().clearOwnArrows();
-    expect(vi.mocked(game.deleteArrow).mock.calls.map(([, p]) => p)).toEqual([{ arrowId: 5 }, { arrowId: 6 }]);
+    expect(vi.mocked(game.deleteArrow).mock.calls).toEqual([[1, { arrowId: 5 }], [1, { arrowId: 6 }]]);
+  });
+});
+
+describe('target commands', () => {
+  const card = (cardId: number) => ({ kind: 'card' as const, playerId: 2, zone: ZoneName.STACK, cardId });
+
+  it('sends a card target\'s own zone, and the given arrow colour', () => {
+    const { commands, game } = renderTargets();
+    commands().createArrow(10, ZoneName.TABLE, card(21), ArrowColor.GREEN);
+    expect(game.createArrow).toHaveBeenCalledWith(1, {
+      startPlayerId: 1,
+      startZone: ZoneName.TABLE,
+      startCardId: 10,
+      targetPlayerId: 2,
+      targetZone: ZoneName.STACK,
+      targetCardId: 21,
+      arrowColor: ArrowColor.GREEN,
+    });
+  });
+
+  it('wraps a judge\'s attach of another player\'s card as its owner, but never an arrow', () => {
+    const { result, game } = renderSeatHook(() => useTargetCommandsFor(1), { ...SPEC, localPlayerId: 3, judge: true });
+    const foreign = result()!(2);
+    foreign.attach(20, { playerId: 1, cardId: 10 });
+    foreign.unattach(20);
+    foreign.createArrow(20, ZoneName.TABLE, { kind: 'player', playerId: 1 });
+    expect(vi.mocked(game.attachCard).mock.calls.map(([, , judgeTargetId]) => judgeTargetId)).toEqual([2, 2]);
+    expect(vi.mocked(game.createArrow).mock.calls[0]).toHaveLength(2);
+
+    const own = renderSeatHook(() => useTargetCommandsFor(1), SPEC);
+    own.result()!(1).attach(10, { playerId: 1, cardId: 11 });
+    expect(vi.mocked(own.game.attachCard).mock.calls[0][2]).toBeUndefined();
+  });
+
+  it('plays a hand card, then draws the arrow from where it landed with the hand-side id', async () => {
+    const { result, game } = renderSeatHook(
+      () => useTargetCommandsFor(1),
+      { localPlayerId: 1, seats: [{ playerId: 1, hand: [makeCard({ id: 30, name: 'Bear' })] }, { playerId: 2 }] },
+    );
+    result()!(1).playAndCreateArrow(30, { kind: 'player', playerId: 2 }, ArrowColor.YELLOW);
+    result()!(1).playAndCreateArrow(99, { kind: 'player', playerId: 2 });
+    await vi.waitFor(() => expect(game.createArrow).toHaveBeenCalled());
+
+    expect(vi.mocked(game.moveCard).mock.calls).toEqual([[1, expect.objectContaining({
+      startZone: ZoneName.HAND,
+      cardsToMove: { card: [{ cardId: 30, faceDown: false }] },
+      targetZone: ZoneName.TABLE,
+    }), undefined]]);
+    expect(vi.mocked(game.createArrow).mock.calls).toEqual([[1, {
+      startPlayerId: 1, startZone: ZoneName.TABLE, startCardId: 30, targetPlayerId: 2, arrowColor: ArrowColor.YELLOW,
+    }]]);
+  });
+
+  it('is undefined until the game id is known', () => {
+    const { result } = renderSeatHook(() => useTargetCommandsFor(undefined), SPEC);
+    expect(result()).toBeUndefined();
   });
 });

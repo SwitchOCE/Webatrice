@@ -118,7 +118,6 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
 
   const arrows = useGameArrowInteractions({
     gameId,
-    game,
     containerRef: gameRef,
     cardRegistry,
     selectedCards,

@@ -22,7 +22,7 @@ export default function PileCardMenu() {
     menuOwnerId,
     pileCardMenu,
     relatedViewItemsFor,
-    setDrawArrowPending,
+    startDrawArrow,
     shortcutHints,
   } = usePlayerSeatContext();
 
@@ -65,7 +65,7 @@ export default function PileCardMenu() {
             shortcut: shortcutHints['game.drawArrow'],
             onClick: () => {
               if (numeric) {
-                setDrawArrowPending({
+                startDrawArrow({
                   sourceCardId: cardIdNum,
                   sourceCardName: pileCardMenu.cardName,
                   sourceZone: pileCardMenu.zone as ZoneNameValue,

@@ -6,8 +6,7 @@ import type { SeatSelection, SeatSelectionApi } from '../../../hooks/useSeatSele
 import { layoutStackPile } from '../../battlefield/Battlefield/battlefieldLayout';
 import { useCanActFor } from '../CardVisualStateContext';
 import { useActiveSeatDrag, useSeatDragSource, useSeatDropZone, type SeatDragStart } from '../SeatDragContext';
-import type { BattlefieldCardViewModel, PlayerCardViewModel, PlayerTargetCommands } from './playerBoard.types';
-import type { usePendingArrows } from './usePendingArrows';
+import type { BattlefieldCardViewModel, PlayerCardViewModel } from './playerBoard.types';
 
 /** A card in any seat zone; battlefield cards also carry their owner. */
 type HandCard = PlayerCardViewModel & Pick<BattlefieldCardViewModel, 'ownerPlayerId'>;
@@ -16,20 +15,16 @@ type DragSourceZone = SeatZone;
 /** A marquee selection is always within a single zone. */
 type Selection = SeatSelection;
 type ActiveSeatDrag = NonNullable<ReturnType<typeof useActiveSeatDrag>>;
-type PendingArrows = ReturnType<typeof usePendingArrows>;
 
 export interface UseSeatDndArgs {
   seatId: number;
-  playerId: number;
   /** The drag in progress from this seat, if any. */
   seatDrag: ActiveSeatDrag | null;
   selection: SeatSelection | null;
   setSelection: SeatSelectionApi['setSelection'];
-  attachPendingRef: PendingArrows['attachPendingRef'];
-  attachExtraSourceIdsRef: PendingArrows['attachExtraSourceIdsRef'];
-  setAttachPending: PendingArrows['setAttachPending'];
-  setAttachExtraSourceIds: PendingArrows['setAttachExtraSourceIds'];
-  targetCommands: PlayerTargetCommands;
+  /** Resolve the seat's pending attach pick against a press on one of its
+   *  battlefield cards; false when no attach pick is pending. */
+  resolveAttachPress: (cardId: number) => boolean;
   stackDisplayList: readonly PlayerCardViewModel[];
   /** The hand strip in display order, which a hand reorder replays. */
   handDisplayList: readonly PlayerCardViewModel[];
@@ -55,15 +50,10 @@ export interface UseSeatDndArgs {
  */
 export function useSeatDnd({
   seatId,
-  playerId,
   seatDrag,
   selection,
   setSelection,
-  attachPendingRef,
-  attachExtraSourceIdsRef,
-  setAttachPending,
-  setAttachExtraSourceIds,
-  targetCommands,
+  resolveAttachPress,
   stackDisplayList,
   handDisplayList,
   boxRef,
@@ -91,38 +81,18 @@ export function useSeatDnd({
     seatDrag?.zone === zone && seatDrag.cards.some((c) => c.id === id);
 
   // A press released before the drag threshold (a click). Two readings:
-  //   1. Pending-attach mode: the previous "Attach to card..." menu choice
-  //      set `attachPending`; this click on a battlefield card resolves the
-  //      attach (or cancels if the user clicked the source card again).
+  //   1. Pending-attach mode: an "Attach to card..." pick from this seat is
+  //      pending; this click on a battlefield card resolves it.
   //   2. Normal click: replace the selection with the clicked card.
   const releaseCardPress = (zone: DragSourceZone, clickedCardId: string, e: PointerEvent) => {
     const clickedCardIdNum = Number(clickedCardId);
-    const pending = attachPendingRef.current;
+    // A press on a source card cancels the pick, as desktop's
+    // ArrowAttachItem does when it lands on its start item; a press on any
+    // other battlefield card attaches every source card to it.
+    if (zone === 'battlefield' && Number.isFinite(clickedCardIdNum) && resolveAttachPress(clickedCardIdNum)) {
+      return;
+    }
     if (
-      pending &&
-      zone === 'battlefield' &&
-      Number.isFinite(clickedCardIdNum) &&
-      playerId != null
-    ) {
-      const extras = attachExtraSourceIdsRef.current;
-      const allSources = [pending.sourceCardId, ...extras];
-      if (allSources.includes(clickedCardIdNum)) {
-        // Clicked a source card = cancel. Cockatrice's
-        // ArrowAttachItem does the same via `targetItem == startItem`
-        // short-circuit; we extend to any source in a multi-attach.
-        setAttachPending(null);
-        setAttachExtraSourceIds([]);
-      } else {
-        // Attach every source card to the clicked target. Server
-        // treats each attach independently (no batch wire), so we
-        // loop.
-        for (const sourceCardId of allSources) {
-          targetCommands.attach(sourceCardId, { playerId, cardId: clickedCardIdNum });
-        }
-        setAttachPending(null);
-        setAttachExtraSourceIds([]);
-      }
-    } else if (
       zone === 'hand' ||
       zone === 'battlefield' ||
       zone === 'stack'
