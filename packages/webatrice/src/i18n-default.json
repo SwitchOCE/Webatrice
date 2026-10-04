@@ -1284,20 +1284,22 @@
     },
     "row": {
       "details": "Click for details",
-      "unknown": "Not in your card DB and Scryfall couldn''t find it. The card is saved but details/images can''t be shown."
+      "unknown": "Not in your card DB and Scryfall couldn''t find it. The card is saved but details/images can''t be shown.",
+      "label": "{count} × {card}"
     },
     "rowActions": {
       "trigger": "Actions for {card}",
       "quantity": "Quantity",
       "removeOne": "Remove one",
-      "decrease": "Decrease quantity",
       "addOne": "Add one",
-      "increase": "Increase quantity",
       "changePrinting": "Change printing",
       "markCommander": "Mark as commander",
       "unmarkCommander": "Unmark as commander",
       "moveToMain": "Move to main",
-      "moveToSideboard": "Move to sideboard"
+      "moveToSideboard": "Move to sideboard",
+      "details": "Card details",
+      "commanderStaysMain": "The commander stays in the main deck",
+      "quantityNow": "Quantity {count}"
     },
     "list": {
       "addPlaceholder": "Add a card by name",
@@ -1305,7 +1307,8 @@
       "decreaseCard": "Decrease {card}",
       "increase": "Increase",
       "increaseCard": "Increase {card}",
-      "removeCard": "Remove {card}"
+      "removeCard": "Remove {card}",
+      "label": "Cards"
     },
     "quickAdd": {
       "placeholder": "Quick add — type a card name",

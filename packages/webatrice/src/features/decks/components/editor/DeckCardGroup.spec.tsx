@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 
+import { renderWithProviders } from '../../../../__test-utils__';
 import type { DeckCard } from '../../types';
 import { DeckCardGroup, type DeckCardGroupProps } from './DeckCardGroup';
 
@@ -25,7 +26,7 @@ function renderGroup(overrides: Partial<DeckCardGroupProps> = {}) {
     isCommander: false,
     ...overrides,
   };
-  render(<DeckCardGroup {...props} />);
+  renderWithProviders(<DeckCardGroup {...props} />);
   return props;
 }
 

@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 
+import { renderWithProviders } from '../../../../__test-utils__';
 import { groupDeckCards } from '../../deckGrouping';
 import type { HydratedDeck } from '../../types';
 import { DeckMainPane, type DeckMainPaneProps } from './DeckMainPane';
@@ -42,7 +43,7 @@ function renderPane(overrides: Partial<DeckMainPaneProps> = {}) {
     isCommander: false,
     ...overrides,
   };
-  render(<DeckMainPane {...props} />);
+  renderWithProviders(<DeckMainPane {...props} />);
   return props;
 }
 

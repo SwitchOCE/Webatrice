@@ -67,7 +67,10 @@ const COMMANDER_DECK = codXml({
   side: [{ name: 'Llanowar Elves', quantity: 1 }],
 });
 
-const GROUP_LABELS = /^(Commander|Creature|Planeswalker|Battle|Instant|Sorcery|Enchantment|Artifact|Land|Other|Sideboard)\d+$/;
+const GROUP_LABELS = new RegExp(
+  '^DeckEditor\\.section\\.'
+  + '(commander|creature|planeswalker|battle|instant|sorcery|enchantment|artifact|land|other|sideboard)\\d+$',
+);
 
 let fetchMock: ReturnType<typeof stubThirdPartyFetch>;
 
@@ -102,7 +105,7 @@ async function openDeck(xml: string) {
   act(() => {
     respondToDeckDownload(DECK_ID, xml);
   });
-  await screen.findByPlaceholderText('Quick add — type a card name', {}, { timeout: 5000 });
+  await screen.findByRole('combobox', { name: 'DeckEditor.quickAdd.label' }, { timeout: 5000 });
 }
 
 function groupHeadings(): string[] {
@@ -130,9 +133,23 @@ function card(deck: ParsedDeck, name: string) {
   return deck.cards.find((c) => c.name === name);
 }
 
+/** The deck-list row (`role="row"`) holding the card's name button. */
+function cardRow(cardName: string): HTMLElement {
+  return screen.getByRole('button', { name: cardName }).closest<HTMLElement>('[role="row"]')!;
+}
+
 function rowActions(cardName: string) {
-  const nameButton = screen.getByRole('button', { name: cardName });
-  return within(nameButton.parentElement!).getByRole('button', { name: 'Card actions' });
+  return within(cardRow(cardName)).getByRole('button', { name: 'DeckEditor.rowActions.trigger' });
+}
+
+/** The quick-add suggestions listbox, once suggestions have loaded. */
+function suggestionList(): Promise<HTMLElement> {
+  return screen.findByRole('listbox', { name: 'DeckEditor.quickAdd.listLabel' });
+}
+
+/** Section heading text as rendered: the section key followed by its card total. */
+function sections(...entries: [string, number][]): string[] {
+  return entries.map(([section, total]) => `DeckEditor.section.${section}${total}`);
 }
 
 describe('DeckEditor (integration)', () => {
@@ -140,17 +157,19 @@ describe('DeckEditor (integration)', () => {
     await openDeck(MODERN_DECK);
 
     expect(screen.getByDisplayValue('Burn')).toBeInTheDocument();
-    expect(screen.getByText('12 cards · 1 sideboard')).toBeInTheDocument();
-    expect(groupHeadings()).toEqual(['Instant1', 'Artifact1', 'Land10', 'Sideboard1']);
-    expect(screen.getByRole('combobox', { name: 'Format' })).toHaveValue('modern');
-    expect(screen.queryByText('Bracket estimate')).toBeNull();
-    expect(screen.getByRole('heading', { name: 'Mana curve' })).toBeInTheDocument();
+    expect(screen.getByText('DeckSidebar.cardCount · DeckSidebar.sideboardCount')).toBeInTheDocument();
+    expect(groupHeadings()).toEqual(sections(['instant', 1], ['artifact', 1], ['land', 10], ['sideboard', 1]));
+    expect(screen.getByRole('combobox', { name: 'FormatPicker.label' })).toHaveValue('modern');
+    expect(screen.queryByText('DeckBreakdown.bracketEstimate')).toBeNull();
+    expect(screen.getByRole('heading', { name: 'DeckBreakdown.manaCurve' })).toBeInTheDocument();
   });
 
   it('shows the commander section and persists a computed bracket and price for commander decks', async () => {
     await openDeck(COMMANDER_DECK);
 
-    expect(groupHeadings()).toEqual(['Commander1', 'Instant1', 'Artifact1', 'Land10', 'Sideboard1']);
+    expect(groupHeadings()).toEqual(
+      sections(['commander', 1], ['instant', 1], ['artifact', 1], ['land', 10], ['sideboard', 1]),
+    );
     expect(await screen.findByText('DeckBracket.title', {}, { timeout: 3000 })).toBeInTheDocument();
 
     // Spellbook gets the main deck and the commander, never the sideboard.
@@ -265,7 +284,7 @@ describe('DeckEditor (integration)', () => {
     await openDeck(MODERN_DECK);
 
     fireEvent.change(screen.getByDisplayValue('Burn'), { target: { value: 'Burn v2' } });
-    expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+    expect(screen.getByText('DeckSidebar.dirty')).toBeInTheDocument();
 
     await autosaved((d) => d.name === 'Burn v2');
     const upload = findAllSessionCommands(Command_DeckUpload_ext)
@@ -283,7 +302,7 @@ describe('DeckEditor (integration)', () => {
         }),
       })));
     });
-    expect(await screen.findByText('Saved')).toBeInTheDocument();
+    expect(await screen.findByText('DeckSidebar.saved')).toBeInTheDocument();
     // The ack's tree item updates the deck tree in place; no list refetch.
     expect(findAllSessionCommands(Command_DeckList_ext).length).toBe(listRequestsBefore);
   });
@@ -312,21 +331,22 @@ describe('DeckEditor (integration)', () => {
   it('quick add looks the card up, appends a mainboard row, and increments an existing one', async () => {
     await openDeck(MODERN_DECK);
 
-    const quickAdd = screen.getByPlaceholderText('Quick add — type a card name');
+    const quickAdd = screen.getByRole('combobox', { name: 'DeckEditor.quickAdd.label' });
+    expect(quickAdd).toHaveAttribute('placeholder', 'DeckEditor.quickAdd.placeholder');
     fireEvent.change(quickAdd, { target: { value: 'Atra' } });
-    fireEvent.click(await screen.findByRole('button', { name: 'Atraxa, Grand Unifier' }));
+    fireEvent.click(await within(await suggestionList()).findByRole('option', { name: 'Atraxa, Grand Unifier' }));
 
-    await waitFor(() => expect(groupHeadings()).toContain('Creature1'));
+    await waitFor(() => expect(groupHeadings()).toContain('DeckEditor.section.creature1'));
     const added = await autosaved((d) => card(d, 'Atraxa, Grand Unifier')?.category === 'main');
     expect(card(added, 'Atraxa, Grand Unifier')?.quantity).toBe(1);
     expect(quickAdd).toHaveValue('');
 
     fireEvent.change(quickAdd, { target: { value: 'Sol' } });
-    // Enter adds the highlighted suggestion once it has loaded (the row's
-    // own "Sol Ring" name button is the other match).
-    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Sol Ring' })).toHaveLength(2));
+    // Enter adds the highlighted (first) suggestion once it has loaded.
+    const solRing = await within(await suggestionList()).findByRole('option', { name: 'Sol Ring' });
+    expect(solRing).toHaveAttribute('aria-selected', 'true');
     fireEvent.keyDown(quickAdd, { key: 'Enter' });
-    await waitFor(() => expect(groupHeadings()).toContain('Artifact2'));
+    await waitFor(() => expect(groupHeadings()).toContain('DeckEditor.section.artifact2'));
     const incremented = await autosaved((d) => card(d, 'Sol Ring')?.quantity === 2);
     expect(incremented.cards.filter((c) => c.name === 'Sol Ring')).toHaveLength(1);
   });
@@ -335,19 +355,21 @@ describe('DeckEditor (integration)', () => {
     await openDeck(MODERN_DECK);
 
     fireEvent.click(rowActions('Sol Ring'));
-    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Move to sideboard' }));
-    await waitFor(() => expect(groupHeadings()).toEqual(['Instant1', 'Land10', 'Sideboard2']));
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'DeckEditor.rowActions.moveToSideboard' }));
+    await waitFor(() => expect(groupHeadings()).toEqual(sections(['instant', 1], ['land', 10], ['sideboard', 2])));
     await autosaved((d) => card(d, 'Sol Ring')?.category === 'sideboard');
 
     fireEvent.click(rowActions('Sol Ring'));
-    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Move to main' }));
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'DeckEditor.rowActions.moveToMain' }));
     await autosaved((d) => card(d, 'Sol Ring')?.category === 'main');
 
     fireEvent.click(rowActions('Sol Ring'));
-    fireEvent.click(within(screen.getByRole('menu')).getByRole('button', { name: 'Increase quantity' }));
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'DeckEditor.rowActions.addOne' }));
     await autosaved((d) => card(d, 'Sol Ring')?.quantity === 2);
+    // Adding a copy keeps the menu open.
+    expect(screen.getByRole('menu')).toBeInTheDocument();
 
-    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Remove' }));
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Common.action.remove' }));
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Sol Ring' })).toBeNull());
     await autosaved((d) => !card(d, 'Sol Ring'));
   });
@@ -356,11 +378,11 @@ describe('DeckEditor (integration)', () => {
     await openDeck(MODERN_DECK);
 
     fireEvent.click(rowActions('Lightning Bolt'));
-    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Change printing' }));
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'DeckEditor.rowActions.changePrinting' }));
 
-    expect(screen.getByRole('heading', { name: 'Choose printing' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'PrintingPicker.title' })).toBeInTheDocument();
     fireEvent.click(await screen.findByTitle('LEA · Lightning Bolt'));
-    expect(screen.queryByRole('heading', { name: 'Choose printing' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'PrintingPicker.title' })).toBeNull();
 
     const saved = await autosaved((d) => card(d, 'Lightning Bolt')?.set === 'lea');
     expect(card(saved, 'Lightning Bolt')).toEqual(expect.objectContaining({
@@ -372,24 +394,27 @@ describe('DeckEditor (integration)', () => {
   it('persists a format change from the sidebar picker', async () => {
     await openDeck(MODERN_DECK);
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), { target: { value: 'legacy' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'FormatPicker.label' }), { target: { value: 'legacy' } });
     await autosaved((d) => d.format === 'legacy');
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), { target: { value: 'other' } });
-    fireEvent.change(screen.getByPlaceholderText('e.g. Netrunner, Playtest'), { target: { value: 'Cube' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'FormatPicker.label' }), { target: { value: 'other' } });
+    fireEvent.change(screen.getByPlaceholderText('FormatPicker.placeholder.sidebar'), { target: { value: 'Cube' } });
     await autosaved((d) => d.format === 'Cube');
   });
 
   it('advanced search composes filters into a Scryfall query and adds the clicked result', async () => {
     await openDeck(MODERN_DECK);
 
-    fireEvent.change(screen.getByPlaceholderText('Quick add — type a card name'), { target: { value: 'bolt' } });
-    fireEvent.click(screen.getByRole('button', { name: /Advanced search/ }));
-    const search = screen.getByPlaceholderText('Search cards — Scryfall syntax works here too');
+    fireEvent.change(
+      screen.getByRole('combobox', { name: 'DeckEditor.quickAdd.label' }),
+      { target: { value: 'bolt' } },
+    );
+    fireEvent.click(screen.getByRole('button', { name: /DeckEditor\.main\.advancedSearch/ }));
+    const search = screen.getByPlaceholderText('CardSearch.placeholder');
     expect(search).toHaveValue('bolt');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Red' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Instant' }));
+    fireEvent.click(screen.getByRole('button', { name: 'CardSearch.color.R' }));
+    fireEvent.click(screen.getByRole('button', { name: 'CardSearch.cardType.Instant' }));
     expect(await screen.findByText('bolt c:r t:instant')).toBeInTheDocument();
     await waitFor(() => {
       const queries = fetchCalls(fetchMock, 'https://api.scryfall.com/cards/search?')
@@ -397,11 +422,11 @@ describe('DeckEditor (integration)', () => {
       expect(queries).toContain('bolt c:r t:instant');
     });
 
-    fireEvent.click(await screen.findByTitle('Add Lightning Bolt to deck'));
+    fireEvent.click(await screen.findByTitle('CardSearch.addCardTitle'));
     await autosaved((d) => card(d, 'Lightning Bolt')?.quantity === 2);
 
-    fireEvent.click(screen.getByRole('button', { name: /Back to deck/ }));
-    expect(groupHeadings()).toContain('Instant2');
+    fireEvent.click(screen.getByRole('button', { name: /DeckEditor\.main\.backToDeck/ }));
+    expect(groupHeadings()).toContain('DeckEditor.section.instant2');
   });
 
   it('opens the card detail dialog and edits quantity without closing it', async () => {
@@ -411,11 +436,11 @@ describe('DeckEditor (integration)', () => {
     expect(await screen.findByText('Lightning Bolt deals 3 damage to any target.')).toBeInTheDocument();
     expect(screen.getByText('M11 · #149')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Increase quantity' }));
+    fireEvent.click(screen.getByRole('button', { name: 'CardDetailDialog.increase' }));
     await autosaved((d) => card(d, 'Lightning Bolt')?.quantity === 2);
     expect(screen.getByText('Lightning Bolt deals 3 damage to any target.')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Move to sideboard' }));
+    fireEvent.click(screen.getByRole('button', { name: 'CardDetailDialog.moveToSideboard' }));
     await autosaved((d) => card(d, 'Lightning Bolt')?.category === 'sideboard');
     expect(screen.queryByText('Lightning Bolt deals 3 damage to any target.')).toBeNull();
   });
@@ -423,11 +448,11 @@ describe('DeckEditor (integration)', () => {
   it('exports the deck as plain text and as a Cockatrice .cod', async () => {
     await openDeck(MODERN_DECK);
 
-    fireEvent.click(screen.getByRole('button', { name: /Export deck/ }));
+    fireEvent.click(screen.getByRole('button', { name: /DeckSidebar\.export/ }));
     expect(screen.getAllByRole('textbox').some((el) => (el as HTMLTextAreaElement).value
       === '// Deck\n1 Lightning Bolt\n1 Sol Ring\n10 Forest\n\n// Sideboard\nSB: 1 Llanowar Elves')).toBe(true);
 
-    fireEvent.click(screen.getByRole('button', { name: /Cockatrice \(\.cod\)/ }));
+    fireEvent.click(screen.getByRole('button', { name: /ExportDeckDialog\.format\.cockatrice\.label/ }));
     const cod = screen.getAllByRole('textbox')
       .map((el) => (el as HTMLTextAreaElement).value)
       .find((v) => v.startsWith('<?xml'))!;
@@ -441,9 +466,9 @@ describe('DeckEditor (integration)', () => {
     // Let the opening price cache land so later uploads are the edits'.
     await autosaved((d) => d.meta.priceUsd !== undefined);
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), { target: { value: 'legacy' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'FormatPicker.label' }), { target: { value: 'legacy' } });
     fireEvent.click(rowActions('Sol Ring'));
-    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Remove' }));
+    fireEvent.click(within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Common.action.remove' }));
     await autosaved((d) => d.format === 'legacy' && !card(d, 'Sol Ring'));
 
     fireEvent.click(screen.getByRole('button', { name: 'DeckHistory.undo' }));
@@ -452,11 +477,11 @@ describe('DeckEditor (integration)', () => {
 
     // Ctrl+Z on the page (not in a text field) undoes the format change.
     fireEvent.keyDown(document.body, { key: 'z', code: 'KeyZ', ctrlKey: true });
-    expect((screen.getByRole('combobox', { name: 'Format' }) as HTMLSelectElement).value).toBe('modern');
+    expect((screen.getByRole('combobox', { name: 'FormatPicker.label' }) as HTMLSelectElement).value).toBe('modern');
 
     // Ctrl+Y redoes it; the history list then jumps straight to the end.
     fireEvent.keyDown(document.body, { key: 'y', code: 'KeyY', ctrlKey: true });
-    expect((screen.getByRole('combobox', { name: 'Format' }) as HTMLSelectElement).value).toBe('legacy');
+    expect((screen.getByRole('combobox', { name: 'FormatPicker.label' }) as HTMLSelectElement).value).toBe('legacy');
     fireEvent.click(screen.getByRole('button', { name: 'DeckHistory.history' }));
     const list = screen.getByRole('list', { name: 'DeckHistory.history' });
     fireEvent.click(within(list).getAllByRole('button')[0]);
@@ -494,19 +519,19 @@ describe('DeckEditor (integration)', () => {
     await openDeck(MODERN_DECK);
 
     expect(await screen.findByText('DeckLegality.illegal')).toBeInTheDocument();
-    const solRing = screen.getByRole('button', { name: 'Sol Ring' }).parentElement!;
+    const solRing = cardRow('Sol Ring');
     expect(within(solRing).getByRole('img', { name: 'DeckLegality.reason.notLegal' })).toBeInTheDocument();
-    const bolt = screen.getByRole('button', { name: 'Lightning Bolt' }).parentElement!;
+    const bolt = cardRow('Lightning Bolt');
     expect(within(bolt).queryByRole('img', { name: /DeckLegality/ })).toBeNull();
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), { target: { value: 'legacy' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'FormatPicker.label' }), { target: { value: 'legacy' } });
     expect(await within(solRing).findByRole('img', { name: 'DeckLegality.reason.banned' })).toBeInTheDocument();
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), { target: { value: 'commander' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'FormatPicker.label' }), { target: { value: 'commander' } });
     expect(await screen.findByText('DeckLegality.legal')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), { target: { value: 'other' } });
-    fireEvent.change(screen.getByPlaceholderText('e.g. Netrunner, Playtest'), { target: { value: 'Cube' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'FormatPicker.label' }), { target: { value: 'other' } });
+    fireEvent.change(screen.getByPlaceholderText('FormatPicker.placeholder.sidebar'), { target: { value: 'Cube' } });
     expect(await screen.findByText('DeckLegality.unavailable')).toBeInTheDocument();
   });
 
@@ -544,8 +569,8 @@ describe('DeckEditor (integration)', () => {
       respondToDeckDownload(DECK_ID, 'not xml');
     });
 
-    expect(await screen.findByText('Deck not found')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Back to My Decks/ }));
+    expect(await screen.findByText('DeckEditor.shell.notFoundTitle')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /DeckEditor\.shell\.backToDecks/ }));
     expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.DECKS);
   });
 });

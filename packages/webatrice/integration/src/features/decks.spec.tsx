@@ -93,25 +93,25 @@ function acknowledge(cmdId: number) {
 describe('Decks (integration)', () => {
   it('renders the My Decks heading when the user is connected', () => {
     renderDecks();
-    expect(screen.getByRole('heading', { level: 1, name: 'My Decks' })).toBeInTheDocument();
-    expect(screen.getByText('Loading decks…')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Decks.list.title' })).toBeInTheDocument();
+    expect(screen.getByText('Decks.list.loading')).toBeInTheDocument();
   });
 
   it('requests the deck tree and lists the decks at the root, newest first', async () => {
     await loadTree();
 
-    expect(await screen.findByText('2 decks on this server')).toBeInTheDocument();
+    expect(await screen.findByText('Decks.list.deckCount')).toBeInTheDocument();
     const names = screen.getAllByText(/^(Older|Newer) Deck$/).map((el) => el.textContent);
     expect(names).toEqual(['Newer Deck', 'Older Deck']);
-    expect(screen.getByText('Created 1m ago')).toBeInTheDocument();
-    expect(screen.getByText('Created 2h ago')).toBeInTheDocument();
+    // One "created" line per deck (the age is a param the key-only test i18n drops).
+    expect(screen.getAllByText('Decks.list.created')).toHaveLength(2);
   });
 
   describe('folders (desktop TabDeckStorage remote tree)', () => {
     it('keeps the hierarchy: folder rows open a folder, the breadcrumb goes back up', async () => {
       await loadTree(NESTED_TREE);
 
-      expect(await screen.findByText('3 decks on this server')).toBeInTheDocument();
+      expect(await screen.findByText('Decks.list.deckCount')).toBeInTheDocument();
       expect(screen.getByText('Older Deck')).toBeInTheDocument();
       expect(screen.queryByText('Newer Deck')).toBeNull();
       expect(sentDeckDownloadIds()).toEqual([1]);
@@ -153,16 +153,17 @@ describe('Decks (integration)', () => {
       expect(value.path).toBe('Tournament');
       acknowledge(cmdId);
       await waitFor(() => expect(screen.queryByText('Tournament')).toBeNull());
-      expect(screen.getByText('1 deck on this server')).toBeInTheDocument();
+      expect(screen.getByText('Decks.list.deckCount')).toBeInTheDocument();
+      expect(screen.getByText('Older Deck')).toBeInTheDocument();
     });
 
     it('creates a deck inside the shown folder', async () => {
       await loadTree(NESTED_TREE);
       fireEvent.click(await screen.findByText('Tournament'));
 
-      fireEvent.click(screen.getAllByRole('button', { name: /New deck/ })[0]);
-      fireEvent.change(screen.getByPlaceholderText('Untitled Deck'), { target: { value: 'Side Brew' } });
-      fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+      fireEvent.click(screen.getAllByRole('button', { name: /Decks\.list\.newDeck/ })[0]);
+      fireEvent.change(screen.getByPlaceholderText('CreateDeckDialog.namePlaceholder'), { target: { value: 'Side Brew' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Common.action.create' }));
 
       const { cmdId, value } = findLastSessionCommand(Command_DeckUpload_ext);
       expect(value.path).toBe('Tournament');
@@ -222,7 +223,7 @@ describe('Decks (integration)', () => {
       acknowledge(del.cmdId);
       await waitFor(() => expect(screen.queryByText('Older Deck')).toBeNull());
       expect(screen.queryByTestId('location')).toBeNull();
-      expect(screen.getByText('3 decks on this server')).toBeInTheDocument();
+      expect(screen.getByText('Decks.list.deckCount')).toBeInTheDocument();
     });
   });
 
@@ -231,7 +232,7 @@ describe('Decks (integration)', () => {
 
     await waitFor(() => expect(sentDeckDownloadIds().sort()).toEqual([1, 2]));
     // Rows wait under "Loading…" until their XML lands.
-    expect(screen.getByRole('heading', { level: 2, name: /Loading…/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: /Common\.status\.loading/ })).toBeInTheDocument();
 
     act(() => {
       respondToDeckDownload(1, codXml({ name: 'Older Deck', format: 'modern', comments: { priceUsd: 12.5 } }));
@@ -245,7 +246,7 @@ describe('Decks (integration)', () => {
 
     const sections = await screen.findAllByRole('heading', { level: 2 });
     expect(sections.map((h) => h.textContent)).toEqual(['Commander1', 'Modern1']);
-    expect(screen.getByText('B3')).toHaveAttribute('title', 'Commander Bracket 3');
+    expect(screen.getByText('Decks.badge.bracketShort')).toHaveAttribute('title', 'Decks.badge.bracket');
     expect(screen.getByText('$12.50')).toBeInTheDocument();
     expect(screen.getByText('$40.00+')).toBeInTheDocument();
     expect(sentDeckDownloadIds()).toHaveLength(2);
@@ -260,7 +261,7 @@ describe('Decks (integration)', () => {
     });
 
     const sections = await screen.findAllByRole('heading', { level: 2 });
-    expect(sections.map((h) => h.textContent)).toEqual(['Other1', 'Unknown format1']);
+    expect(sections.map((h) => h.textContent)).toEqual(['DeckSummary.section.other1', 'DeckSummary.section.unknown1']);
     expect(screen.getByText('Netrunner')).toBeInTheDocument();
   });
 
@@ -273,14 +274,16 @@ describe('Decks (integration)', () => {
   it('asks for confirmation, then deletes the deck through Command_DeckDel', async () => {
     await loadTree();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Delete Older Deck' }));
-    const dialog = screen.getByRole('dialog', { name: 'Delete deck?' });
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
-    expect(screen.queryByRole('dialog')).toBeNull();
+    const deleteOlder = async () => within((await screen.findByText('Older Deck')).closest('li')!)
+      .getByRole('button', { name: 'Decks.list.deleteDeckNamed' });
+    fireEvent.click(await deleteOlder());
+    const dialog = screen.getByRole('alertdialog', { name: 'DeleteDeckDialog.title' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Common.action.cancel' }));
+    expect(screen.queryByRole('alertdialog')).toBeNull();
     expect(findAllSessionCommands(Command_DeckDel_ext)).toHaveLength(0);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Older Deck' }));
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
+    fireEvent.click(await deleteOlder());
+    fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Common.action.delete' }));
 
     const { cmdId, value } = findLastSessionCommand(Command_DeckDel_ext);
     expect(value.deckId).toBe(1);
@@ -288,16 +291,17 @@ describe('Decks (integration)', () => {
       deliverMessage(buildResponseMessage(buildResponse({ cmdId })));
     });
     await waitFor(() => expect(screen.queryByText('Older Deck')).toBeNull());
-    expect(screen.getByText('1 deck on this server')).toBeInTheDocument();
+    expect(screen.getByText('Decks.list.deckCount')).toBeInTheDocument();
+    expect(screen.getByText('Newer Deck')).toBeInTheDocument();
   });
 
   it('creates a named deck in the chosen format at the storage root and opens it', async () => {
     await loadTree();
 
-    fireEvent.click(screen.getAllByRole('button', { name: /New deck/ })[0]);
-    fireEvent.change(screen.getByPlaceholderText('Untitled Deck'), { target: { value: '  Fresh Brew  ' } });
+    fireEvent.click(screen.getAllByRole('button', { name: /Decks\.list\.newDeck/ })[0]);
+    fireEvent.change(screen.getByPlaceholderText('CreateDeckDialog.namePlaceholder'), { target: { value: '  Fresh Brew  ' } });
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'modern' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Common.action.create' }));
 
     const { cmdId, value } = findLastSessionCommand(Command_DeckUpload_ext);
     expect(value.path).toBe('');
@@ -323,18 +327,19 @@ describe('Decks (integration)', () => {
   it('imports a pasted decklist after resolving its cards, keeping unknown cards', async () => {
     await loadTree();
 
-    fireEvent.click(screen.getByRole('button', { name: /Import/ }));
-    expect(screen.getByRole('heading', { name: 'Import a deck' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Decks\.list\.import/ }));
+    expect(screen.getByRole('heading', { name: 'ImportDeckDialog.title' })).toBeInTheDocument();
     const nameInput = screen.getAllByRole('textbox')[0];
     fireEvent.change(nameInput, { target: { value: 'Pasted' } });
-    fireEvent.change(screen.getByPlaceholderText(/Paste your deck list/), {
+    fireEvent.change(screen.getByPlaceholderText('ImportDeckDialog.placeholder'), {
       target: { value: 'Deck\n2 Sol Ring\n1 Mystery Card\n\nSideboard\n1 Lightning Bolt\nnot a card line' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Next: check cards' }));
+    fireEvent.click(screen.getByRole('button', { name: 'ImportDeckDialog.next' }));
 
-    expect(await screen.findByText(/3 matched/)).toBeInTheDocument();
-    expect(screen.getByText(/1 unknown \(imported with warning\)/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Import 3 cards/ }));
+    expect(await screen.findByText('ImportDeckDialog.review.matched')).toBeInTheDocument();
+    expect(screen.getByText('ImportDeckDialog.review.missing')).toBeInTheDocument();
+    expect(screen.getAllByText('ImportDeckDialog.review.unknown')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('button', { name: 'ImportDeckDialog.importCards' }));
 
     const { value } = findLastSessionCommand(Command_DeckUpload_ext);
     expect(value.deckId).toBe(0);
@@ -351,7 +356,7 @@ describe('Decks (integration)', () => {
   it('imports a .cod file as-is, preserving its metadata and format', async () => {
     await loadTree();
 
-    fireEvent.click(screen.getByRole('button', { name: /Import/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Decks\.list\.import/ }));
     const file = new File(
       [codXml({
         name: 'From Desktop',
@@ -366,8 +371,8 @@ describe('Decks (integration)', () => {
     fireEvent.change(input, { target: { files: [file] } });
 
     expect(await screen.findByText('desktop.cod')).toBeInTheDocument();
-    expect(screen.getByText('$99.00 cached from source')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Import file/ }));
+    expect(screen.getByText('ImportDeckDialog.file.cachedPrice')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'ImportDeckDialog.importFile' }));
 
     await waitFor(() => expect(findAllSessionCommands(Command_DeckUpload_ext)).toHaveLength(1));
     const { value } = findLastSessionCommand(Command_DeckUpload_ext);
@@ -390,7 +395,7 @@ describe('Decks (integration)', () => {
     });
 
     const listRequestsBefore = findAllSessionCommands(Command_DeckList_ext).length;
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh deck list' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Decks.list.refreshLabel' }));
     expect(findAllSessionCommands(Command_DeckList_ext)).toHaveLength(listRequestsBefore + 1);
     act(() => {
       respondToDeckList([deckFile(1, 'Older Deck'), deckFile(2, 'Newer Deck')]);
@@ -401,7 +406,7 @@ describe('Decks (integration)', () => {
   it('switches between card and compact rows and remembers the choice', async () => {
     await loadTree();
 
-    const compact = screen.getByRole('button', { name: 'Compact view' });
+    const compact = screen.getByRole('button', { name: 'Decks.list.view.compact' });
     expect(compact).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(compact);
     expect(compact).toHaveAttribute('aria-pressed', 'true');

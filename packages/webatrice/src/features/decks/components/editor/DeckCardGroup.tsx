@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import {
   Archive,
   Crown,
@@ -19,6 +20,7 @@ import type { DeckCategory } from '@app/types';
 import type { DeckSection } from '../../deckGrouping';
 import type { CardLegality } from '../../deckLegality';
 import type { DeckCard } from '../../types';
+import { deckRowKey, type DeckCardGrid } from '../../hooks/useDeckCardGrid';
 import { DeckCardRow } from './DeckCardRow';
 
 export interface DeckCardGroupProps {
@@ -36,6 +38,8 @@ export interface DeckCardGroupProps {
   isCommander: boolean;
   /** Legality by card index into `deck`. */
   legality?: readonly CardLegality[];
+  /** The deck list's keyboard grid, shared by every section so ↑/↓ cross between them. */
+  grid?: DeckCardGrid;
 }
 
 const SECTION_ICON: Record<DeckSection, LucideIcon> = {
@@ -66,38 +70,41 @@ export function DeckCardGroup({
   isMtg,
   isCommander,
   legality,
+  grid,
 }: DeckCardGroupProps) {
   const { t } = useTranslation();
+  const headingId = useId();
   const totalQty = indices.reduce((sum, i) => sum + deck[i].quantity, 0);
   const Icon = SECTION_ICON[label] ?? MoreHorizontal;
   return (
     <section className="min-w-0 mb-6 break-inside-avoid">
-      <h3 className="flex items-center gap-2 mb-2 pb-1.5 border-b border-border-subtle">
+      <h3 id={headingId} className="flex items-center gap-2 mb-2 pb-1.5 border-b border-border-subtle">
         <Icon size={14} className="text-text-secondary shrink-0" />
         <span className="text-sm font-semibold uppercase tracking-wider text-text-secondary">
           {t(`DeckEditor.section.${label.toLowerCase()}`)}
         </span>
         <span className="text-sm tabular-nums text-text-muted">{totalQty}</span>
       </h3>
-      <ul>
+      {/* One grid per section, named by its heading; the rows of all sections share one tab stop. */}
+      <div role="grid" aria-labelledby={headingId}>
         {indices.map((i) => (
-          <li key={`${deck[i].category}:${deck[i].name}:${i}`}>
-            <DeckCardRow
-              card={deck[i]}
-              onInc={(delta) => onInc(i, delta)}
-              onDelete={() => onDelete(i)}
-              onSetCategory={(c) => onSetCategory(i, c)}
-              onSetCommander={(v) => onSetCommander(i, v)}
-              onHover={() => onPreview(deck[i])}
-              onChangePrinting={() => onChangePrinting(i, deck[i])}
-              onCardClick={onCardClick ? () => onCardClick(deck[i]) : undefined}
-              isMtg={isMtg}
-              isCommander={isCommander}
-              legality={legality?.[i]}
-            />
-          </li>
+          <DeckCardRow
+            key={deckRowKey(deck[i])}
+            card={deck[i]}
+            rowProps={grid?.getDeckRowProps(i)}
+            onInc={(delta) => (delta < 0 && grid ? grid.decrementRow(i) : onInc(i, delta))}
+            onDelete={() => (grid ? grid.removeRow(i) : onDelete(i))}
+            onSetCategory={(c) => (grid ? grid.moveRow(i, c) : onSetCategory(i, c))}
+            onSetCommander={(v) => onSetCommander(i, v)}
+            onHover={() => onPreview(deck[i])}
+            onChangePrinting={() => onChangePrinting(i, deck[i])}
+            onCardClick={onCardClick ? () => onCardClick(deck[i]) : undefined}
+            isMtg={isMtg}
+            isCommander={isCommander}
+            legality={legality?.[i]}
+          />
         ))}
-      </ul>
+      </div>
     </section>
   );
 }

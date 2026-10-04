@@ -1,9 +1,12 @@
+import { useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Ban, CircleAlert } from 'lucide-react';
+import { Ban, ChevronDown, CircleAlert } from 'lucide-react';
 
+import { isContextMenuKey, type MenuAnchor } from '@app/components';
 import type { DeckCategory } from '@app/types';
 
 import type { CardLegality } from '../../deckLegality';
+import type { DeckCardRowProps as GridRowProps } from '../../hooks/useDeckCardGrid';
 import type { DeckCard } from '../../types';
 import { ManaSymbols } from '@app/components';
 import { DeckRowActionsMenu } from './DeckRowActionsMenu';
@@ -24,8 +27,18 @@ export interface DeckCardRowProps {
   /** The row's legality in the deck's format; illegal rows are painted red
    *  (desktop `DeckListStyleProxy`). */
   legality?: CardLegality;
+  /** Roving-focus props from the deck list's grid (`useDeckCardGrid`). */
+  rowProps?: GridRowProps;
 }
 
+/**
+ * One card of the deck list, a `row` of its section's grid. The row itself
+ * is the tab stop and takes the list's keys (`useDeckCardGrid`); the name and
+ * chevron stay clickable but out of the tab order. Its actions menu opens
+ * from the chevron, a right-click, Shift+F10 or the Menu key, like desktop's
+ * deck-view context menu. Hover, keyboard focus and an open menu all reveal
+ * the chevron and preview the card.
+ */
 export function DeckCardRow({
   card,
   onInc,
@@ -38,64 +51,146 @@ export function DeckCardRow({
   isMtg,
   isCommander,
   legality,
+  rowProps,
 }: DeckCardRowProps) {
   const { t } = useTranslation();
+  const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
+  const menuTriggerRef = useRef<HTMLElement | null>(null);
+  // The quantity when the menu opened: its +/− keep the menu open, so a
+  // change is announced from the row rather than lost.
+  const [quantityAtOpen, setQuantityAtOpen] = useState(card.quantity);
   const illegal = legality?.status === 'illegal' ? legality : undefined;
   const illegalText = illegal && t(`DeckLegality.reason.${illegal.reason}`, { max: illegal.max });
+
+  const openMenu = (trigger: HTMLElement, anchor: MenuAnchor) => {
+    menuTriggerRef.current = trigger;
+    setQuantityAtOpen(card.quantity);
+    setMenuAnchor(anchor);
+  };
+  const openBelow = (trigger: HTMLElement) => {
+    const rect = trigger.getBoundingClientRect();
+    openMenu(trigger, { rect, placement: 'below', align: 'end' });
+  };
+
+  const onContextMenu = (event: MouseEvent<HTMLElement>) => {
+    // The menu is portalled, but its events still bubble here through React.
+    if (!event.currentTarget.contains(event.target as Node)) {
+      return;
+    }
+    event.preventDefault();
+    // A keyboard-raised contextmenu event carries no pointer position.
+    if (event.clientX === 0 && event.clientY === 0) {
+      openBelow(event.currentTarget);
+    } else {
+      openMenu(event.currentTarget, { x: event.clientX, y: event.clientY });
+    }
+  };
+
+  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.target === event.currentTarget && isContextMenuKey(event)) {
+      event.preventDefault();
+      openBelow(event.currentTarget);
+      return;
+    }
+    rowProps?.onKeyDown(event);
+  };
+
   return (
     <div
+      {...rowProps}
+      role="row"
+      aria-label={t('DeckEditor.row.label', { count: card.quantity, card: card.name })}
+      aria-description={illegalText || undefined}
       className={[
         'group flex items-center gap-1.5 px-1 py-0.5 rounded transition-colors',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent',
         illegal ? 'bg-red-500/15 hover:bg-red-500/25' : 'hover:bg-bg-elevated',
       ].join(' ')}
       onMouseEnter={onHover}
       onFocus={onHover}
+      onKeyDown={onKeyDown}
+      onContextMenu={onContextMenu}
       title={illegalText}
     >
-      <span className="text-xs tabular-nums text-text-muted w-5 text-right shrink-0">
+      <span role="gridcell" className="text-xs tabular-nums text-text-muted w-5 text-right shrink-0">
         {card.quantity}
       </span>
-      {onCardClick ? (
+      <span role="gridcell" className="flex-1 min-w-0 flex">
+        {onCardClick ? (
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={onCardClick}
+            className="flex-1 min-w-0 truncate text-sm text-text-primary text-left hover:text-accent transition-colors cursor-pointer"
+            title={t('DeckEditor.row.details')}
+          >
+            {card.name}
+          </button>
+        ) : (
+          <span className="flex-1 min-w-0 truncate text-sm text-text-primary">
+            {card.name}
+          </span>
+        )}
+      </span>
+      <span role="gridcell" className="shrink-0 flex items-center gap-1.5">
+        {card.lookupSource === 'unknown' && (
+          <span
+            className="shrink-0 text-warning"
+            title={t('DeckEditor.row.unknown')}
+          >
+            <CircleAlert size={10} />
+          </span>
+        )}
+        {illegalText && (
+          <span className="shrink-0 text-danger" role="img" aria-label={illegalText}>
+            <Ban size={10} />
+          </span>
+        )}
+        <ManaSymbols cost={card.manaCost ?? ''} size={11} className="shrink-0 opacity-90" />
+      </span>
+      <span role="gridcell" className="shrink-0">
         <button
           type="button"
-          onClick={onCardClick}
-          className="flex-1 min-w-0 truncate text-sm text-text-primary text-left hover:text-accent transition-colors cursor-pointer"
-          title={t('DeckEditor.row.details')}
+          tabIndex={-1}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (menuAnchor) {
+              setMenuAnchor(null);
+            } else {
+              openBelow(e.currentTarget);
+            }
+          }}
+          className="p-1 rounded hover:bg-bg-base text-text-muted hover:text-text-primary transition-colors"
+          aria-label={t('DeckEditor.rowActions.trigger', { card: card.name })}
+          title={t('DeckEditor.rowActions.trigger', { card: card.name })}
+          aria-haspopup="menu"
+          aria-expanded={menuAnchor != null}
         >
-          {card.name}
+          <ChevronDown size={14} />
         </button>
-      ) : (
-        <span className="flex-1 min-w-0 truncate text-sm text-text-primary">
-          {card.name}
-        </span>
-      )}
-      {card.lookupSource === 'unknown' && (
-        <span
-          className="shrink-0 text-warning"
-          title={t('DeckEditor.row.unknown')}
-        >
-          <CircleAlert size={10} />
-        </span>
-      )}
-      {illegalText && (
-        <span className="shrink-0 text-danger" role="img" aria-label={illegalText}>
-          <Ban size={10} />
-        </span>
-      )}
-      <ManaSymbols cost={card.manaCost ?? ''} size={11} className="shrink-0 opacity-90" />
-      <div className="shrink-0">
+        {menuAnchor && (
+          <span role="status" className="sr-only">
+            {card.quantity !== quantityAtOpen ? t('DeckEditor.rowActions.quantityNow', { count: card.quantity }) : ''}
+          </span>
+        )}
+      </span>
+      {menuAnchor && (
         <DeckRowActionsMenu
           card={card}
+          anchor={menuAnchor}
+          triggerRef={menuTriggerRef}
+          onClose={() => setMenuAnchor(null)}
           onInc={() => onInc(1)}
           onDec={() => onInc(-1)}
           onDelete={onDelete}
           onSetCategory={onSetCategory}
           onSetCommander={onSetCommander}
           onChangePrinting={onChangePrinting}
+          onShowDetails={onCardClick}
           isMtg={isMtg}
           isCommander={isCommander}
         />
-      </div>
+      )}
     </div>
   );
 }
