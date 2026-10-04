@@ -225,7 +225,7 @@ export function mergeCardCounter(
   if (idx < 0) {
     return [...counterList, create(ServerInfo_CardCounterSchema, { id: counterId, value: counterValue })];
   }
-  return counterList.map((c, i) => (i === idx ? { ...c, value: counterValue } : c));
+  return counterList.map((c, i) => (i === idx ? cloneWith(ServerInfo_CardCounterSchema, c, { value: counterValue }) : c));
 }
 
 // Unattach is an Event_AttachCard with an empty targetZone (proto3 can't tell the
@@ -255,7 +255,8 @@ export function buildTokenCard(data: Event_CreateToken): ServerInfo_Card {
 // things the client already holds: `userInfo` (Servatrice resyncs with
 // withUserInfo=false, server_game.cpp:280) and any open "View library" snapshot
 // (`revealedCards` is local-only). Copies both from `previous` into the freshly
-// normalized `next`, so names and open zone views survive a mid-game resync.
+// normalized `next` in place (it is fresh from normalizePlayers, so nothing else holds
+// it), so names and open zone views survive a mid-game resync.
 // See .github/instructions/datatrice-game.instructions.md#servatrice-game-event-quirks.
 export function carryForwardResyncState(
   previous: { [playerId: number]: Enriched.PlayerEntry },
