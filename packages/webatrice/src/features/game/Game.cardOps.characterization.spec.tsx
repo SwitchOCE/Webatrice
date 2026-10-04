@@ -9,11 +9,12 @@
 // spec needs updating. Assertions are on the wire (`webClient.request.game.*`).
 
 import { act, fireEvent, screen } from '@testing-library/react';
-import { makeCard } from '@cockatrice/datatrice/testing';
+import { makeArrow, makeCard } from '@cockatrice/datatrice/testing';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { CardAttribute } from '@cockatrice/sockatrice/generated';
 
-import { ArrowColor } from '@app/types';
+import { ArrowColor, PREFERENCE_DEFAULTS } from '@app/types';
+import { usePreference } from '../../hooks/useSettings';
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
 import {
   buildSeatGameState,
@@ -59,14 +60,16 @@ vi.mock('../../services/cards/cardCatalog', () => {
   };
 });
 
-// The play-then-arrow path reads the card's tablerow from the card database.
+// The play-then-arrow path reads the card's tablerow and printed P/T from the
+// card database.
 vi.mock('../../services/dexie/DexieDTOs/CardDTO', () => ({
-  CardDTO: { get: vi.fn(async () => ({ tablerow: { value: '1' } })) },
+  CardDTO: { get: vi.fn(async () => ({ tablerow: { value: '1' }, prop: { value: { pt: { value: '2/2' } } } })) },
 }));
 
-// Local seat 1: Ogre (3/3, two A counters), a face-down Morph and a Wall on
-// the back row; a Shock in hand. Opponent seat 2: a Bear.
-const OGRE = makeCard({ id: 10, name: 'Ogre', x: 0, y: 0, pt: '3/3', counterList: [{ id: 0, value: 2 }] });
+// Local seat 1: Ogre (3/3, two A counters and a B counter), a face-down
+// Morph and a Wall on the back row; a Shock in hand; an arrow from Ogre to
+// the Bear. Opponent seat 2: a Bear.
+const OGRE = makeCard({ id: 10, name: 'Ogre', x: 0, y: 0, pt: '3/3', counterList: [{ id: 0, value: 2 }, { id: 1, value: 1 }] });
 const MORPH = makeCard({ id: 11, name: 'Morph', x: 3, y: 0, faceDown: true });
 const WALL = makeCard({ id: 12, name: 'Wall', x: 0, y: 2, pt: '0/4', annotation: 'note', doesntUntap: true });
 const SHOCK = makeCard({ id: 30, name: 'Shock' });
@@ -80,9 +83,13 @@ const SPEC: SeatGameSpec = {
   ],
 };
 
+const OWN_ARROW = makeArrow({ id: 7, startPlayerId: 1, startCardId: 10, targetPlayerId: 2, targetCardId: 20 });
+
 function renderGame(spec: SeatGameSpec = SPEC) {
   const webClient = createMockWebClient();
-  const utils = renderWithProviders(<Game />, { preloadedState: buildSeatGameState(spec), webClient });
+  const preloadedState = buildSeatGameState(spec);
+  preloadedState.games!.games![1]!.players![1]!.arrows = { [OWN_ARROW.id]: OWN_ARROW };
+  const utils = renderWithProviders(<Game />, { preloadedState, webClient });
   return { ...utils, game: webClient.request.game };
 }
 
@@ -141,6 +148,10 @@ const attr = (cardId: number, attribute: CardAttribute, attrValue: string) =>
 afterEach(() => {
   captured.registry = null;
   vi.restoreAllMocks();
+  // clearAllMocks keeps implementations: restore the preference defaults.
+  vi.mocked(usePreference).mockImplementation(
+    ((key: keyof typeof PREFERENCE_DEFAULTS) => PREFERENCE_DEFAULTS[key]) as typeof usePreference,
+  );
 });
 
 describe('seat shortcut actions, with Ogre and the face-down Morph selected', () => {
@@ -149,7 +160,7 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
   const EXPECTED: Record<SeatShortcutActionId, { wire?: unknown[]; dialogs?: unknown[]; selected?: string[] }> = {
     'game.mulligan': { dialogs: ['Take mulligan'] },
     'game.setLife': { dialogs: ['Set life total'] },
-    'game.removeLocalArrows': {},
+    'game.removeLocalArrows': { wire: [['deleteArrow', { arrowId: 7 }]] },
     'game.doesntUntap': {
       wire: [attr(10, CardAttribute.AttrDoesntUntap, '1'), attr(11, CardAttribute.AttrDoesntUntap, '1')],
     },
@@ -194,13 +205,13 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     'game.addCounterA': { wire: [['bulkSetCardCounterEntries', counters([10, 0, 3], [11, 0, 1])]] },
     'game.removeCounterA': { wire: [['bulkSetCardCounterEntries', counters([10, 0, 1])]] },
     'game.setCounterA': { dialogs: ['Set counter A'] },
-    'game.addCounterB': { wire: [['bulkSetCardCounterEntries', counters([10, 1, 1], [11, 1, 1])]] },
-    'game.removeCounterB': {},
+    'game.addCounterB': { wire: [['bulkSetCardCounterEntries', counters([10, 1, 2], [11, 1, 1])]] },
+    'game.removeCounterB': { wire: [['bulkSetCardCounterEntries', counters([10, 1, 0])]] },
     'game.setCounterB': { dialogs: ['Set counter B'] },
     'game.addCounterC': { wire: [['bulkSetCardCounterEntries', counters([10, 2, 1], [11, 2, 1])]] },
     'game.removeCounterC': {},
     'game.setCounterC': { dialogs: ['Set counter C'] },
-    'game.incrementAllCardCounters': { wire: [['bulkSetCardCounterEntries', counters([10, 0, 3])]] },
+    'game.incrementAllCardCounters': { wire: [['bulkSetCardCounterEntries', counters([10, 0, 3], [10, 1, 2])]] },
     'game.setAnnotation': { dialogs: ['Set annotation'] },
     'game.moveSelectedToLibraryBottom': { wire: [['moveCard', moveFromTable([10, 11], ZoneName.DECK, 0, true)]] },
     'game.cloneCard': {
@@ -245,7 +256,7 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
   it('increments every existing counter on the whole battlefield without a selection', () => {
     const { game } = renderGame();
     runShortcut('game.incrementAllCardCounters');
-    expect(wire(game)).toEqual([['bulkSetCardCounterEntries', counters([10, 0, 3])]]);
+    expect(wire(game)).toEqual([['bulkSetCardCounterEntries', counters([10, 0, 3], [10, 1, 2])]]);
   });
 });
 
@@ -327,6 +338,21 @@ describe('battlefield card menu actions', () => {
       dialogs: expected.dialogs ?? [],
       selected: expected.selected ?? ['battlefield:10', 'battlefield:11'],
     });
+  });
+
+  it('turns the selection face up from a face-down clicked card', () => {
+    const { game } = renderGame();
+    selectOgreAndMorph();
+    openContextMenu(cardEl(MORPH.id, 'battlefield'));
+    chooseMenuPath('Turn Over (face up)');
+    expect(wire(game)).toEqual([['flipCard', { ...table(10), faceDown: false }], ['flipCard', { ...table(11), faceDown: false }]]);
+  });
+
+  it('clones a back-row card onto its own row', () => {
+    const { game } = renderGame();
+    openContextMenu(cardEl(WALL.id, 'battlefield'));
+    chooseMenuPath('Clone');
+    expect(wire(game)).toEqual([['createToken', { ...clone('Wall', '0/4', 2), annotation: 'note' }]]);
   });
 
   it('untaps the selection from a tapped clicked card', () => {
@@ -490,6 +516,34 @@ describe('arrows and attachments', () => {
         fireEvent.click(document.querySelector(`[data-card-zone="${ZoneName.GRAVE}"][data-card-id="${ECHO.id}"]`)!);
       });
       expect(wire(game)).toEqual([arrowTo(10, { targetPlayerId: 1, targetZone: ZoneName.GRAVE, targetCardId: 10 })]);
+    });
+
+    it('with playToStack off, plays a hand card onto the battlefield with its printed P/T', async () => {
+      vi.mocked(usePreference).mockImplementation(
+        ((key: keyof typeof PREFERENCE_DEFAULTS) => (key === 'playToStack' ? false : PREFERENCE_DEFAULTS[key])) as typeof usePreference,
+      );
+      const { game } = renderGame();
+      openContextMenu(cardEl(SHOCK.id, 'hand'));
+      chooseMenuPath('Draw arrow...');
+      act(() => {
+        fireEvent.click(cardEl(BEAR.id, 'battlefield'));
+      });
+      await vi.waitFor(() => expect(game.createArrow).toHaveBeenCalled());
+      expect(wire(game)).toEqual([
+        ['moveCard', {
+          startPlayerId: 1,
+          startZone: ZoneName.HAND,
+          // The card database's printed P/T rides on the play (desktop playCard).
+          cardsToMove: { card: [{ cardId: 30, faceDown: false, pt: '2/2' }] },
+          targetPlayerId: 1,
+          // A creature (tablerow 1) lands in the first free column of the middle row.
+          targetZone: ZoneName.TABLE,
+          x: 0,
+          y: 1,
+          isReversed: false,
+        }],
+        arrowTo(30, { targetPlayerId: 2, targetZone: ZoneName.TABLE, targetCardId: 20 }),
+      ]);
     });
 
     it('targets a card in an open graveyard view', () => {
