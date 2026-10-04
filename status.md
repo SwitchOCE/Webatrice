@@ -6,3 +6,4 @@
 - 01:46Z pushed a11y (selection count, zone bg names, expand button) → contrast spec, changeset, nits
 - 01:52Z all code findings pushed (tip 0a67ce1); commit-hygiene nit not applied (task forbids history rewrite) → full gate
 - 02:12Z gate: typecheck 5/5, lint 3/3, unit 898/1317/3576, integration 175/144/266, sockatrice e2e 5/5 → webatrice e2e (3 browsers) running
+- 02:14Z gate green (web e2e 66 passed/12 skipped/0 failed); PR file updated; tip 0a67ce1 → done
