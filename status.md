@@ -8,3 +8,4 @@
 - 03:17Z eslint narrowing, drag colour freeze, prompts memo pushed → pending-target consequence tests, characterization gaps, P/T note, nits
 - 03:22Z pending-consequence + characterization gap tests pushed → P/T source note, nits
 - 03:28Z all findings applied & pushed → full gate + webatrice e2e
+- 04:04Z gate done (unit sharded green; integ 270/271 pre-existing; e2e 75/12/3 staff-tools docker ENOENT). PR file updated. DONE. API changes listed in PR Review response.
