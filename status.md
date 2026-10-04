@@ -1,2 +1,3 @@
 - 03:25Z started f25a; read brief/template/rv21 → checkout PR branch
 - 03:27Z deps installed, desktop cloned, plan made → startup-tab rule fix
+- 03:31Z startup-tab rule fixed (3ad4660) → open-deck-in-new-tab semantics
