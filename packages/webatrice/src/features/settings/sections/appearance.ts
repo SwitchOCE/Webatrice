@@ -92,13 +92,29 @@ export const appearanceSection: SettingsSection = {
         {
           id: 'cardViewInitialRowsMax',
           labelKey: 'SettingsAppearance.cardViewInitialRowsMax.label',
-          control: { kind: 'number', key: 'cardViewInitialRowsMax', min: 1, max: 999, suffixKey: 'SettingsAppearance.rowsSuffix' },
+          // Desktop keeps initial <= expanded by moving the other box
+          // (AppearanceSettingsPage::cardViewInitialRowsMaxChanged / ExpandedRowsMaxChanged).
+          control: {
+            kind: 'number',
+            key: 'cardViewInitialRowsMax',
+            min: 1,
+            max: 999,
+            suffixKey: 'SettingsAppearance.rowsSuffix',
+            pushes: { key: 'cardViewExpandedRowsMax', keep: 'atLeast' },
+          },
         },
         {
           id: 'cardViewExpandedRowsMax',
           labelKey: 'SettingsAppearance.cardViewExpandedRowsMax.label',
           descriptionKey: 'SettingsAppearance.cardViewExpandedRowsMax.description',
-          control: { kind: 'number', key: 'cardViewExpandedRowsMax', min: 1, max: 999, suffixKey: 'SettingsAppearance.rowsSuffix' },
+          control: {
+            kind: 'number',
+            key: 'cardViewExpandedRowsMax',
+            min: 1,
+            max: 999,
+            suffixKey: 'SettingsAppearance.rowsSuffix',
+            pushes: { key: 'cardViewInitialRowsMax', keep: 'atMost' },
+          },
         },
       ],
     },

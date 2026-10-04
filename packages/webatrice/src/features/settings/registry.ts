@@ -63,6 +63,11 @@ export type SettingControl =
     max: number;
     /** Translation key for a unit shown after the box (desktop's spin-box suffix). */
     suffixKey?: string;
+    /**
+     * Desktop's coupled spin boxes: writing this value also moves `key` so that it stays at least
+     * (`'atLeast'`) or at most (`'atMost'`) this one.
+     */
+    pushes?: { key: NumberPreferenceKey; keep: 'atLeast' | 'atMost' };
   }
   | { kind: 'color'; key: StringPreferenceKey }
   /**
