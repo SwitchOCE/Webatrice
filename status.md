@@ -16,3 +16,4 @@
 - 23:52Z counter colours + menu shortcuts pushed → printings bump-sets, then zone backgrounds
 - 23:54Z printings bump pushed → zone backgrounds (playmat infra) next
 - 00:02Z zone backgrounds pushed → appearance ordering check, changeset, full gate, e2e
+- 00:16Z gate: typecheck 5/5, lint 3/3, unit 896/1316/3542, integration 175/144/266 (fixed pre-existing race in invite-link spec, reproduced on base) → e2e sockatrice + webatrice
