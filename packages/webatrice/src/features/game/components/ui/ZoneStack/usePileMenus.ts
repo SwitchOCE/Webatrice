@@ -152,6 +152,7 @@ export function usePileMenus({
     {
       label: 'View exile',
       onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.EXILE }),
+      shortcut: shortcutHints['game.viewExile'],
     },
     { divider: true },
     {

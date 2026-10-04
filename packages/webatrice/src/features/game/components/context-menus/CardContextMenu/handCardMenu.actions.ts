@@ -63,6 +63,18 @@ export function playCardMove(
 }
 
 /**
+ * The moves that play these cards, one Command_MoveCard each (desktop
+ * actPlay / actPlayFacedown over the selected cards).
+ */
+export function playCardMoves(
+  cards: readonly { id: string; name: string }[],
+  cardMeta: (name: string) => PlayCardMeta | undefined,
+  faceDown: boolean,
+): { card: SeatMoveCard; to: SeatMoveDestination }[] {
+  return cards.map((c) => playCardMove(Number(c.id), cardMeta(c.name), { faceDown }));
+}
+
+/**
  * The selected cards of one of the seat's hidden zones that "Reveal selected
  * cards to all players" sends: the hand selection, or the selected cards of
  * one open library / sideboard view. Null when the selection is elsewhere.
@@ -178,8 +190,7 @@ export function resolveHandOrZoneCardMenu(deps: HandOrZoneCardMenuDeps): CardMen
   const selectInView = (ids: readonly string[]) => deps.setSelectedCardKeys(new Set(ids.map(viewKey)));
   // One Command_MoveCard per card, as desktop's playCard sends.
   const play = (faceDown: boolean) => run(() => {
-    for (const c of targets) {
-      const { card, to } = playCardMove(Number(c.id), deps.cardMeta(c.name), { faceDown });
+    for (const { card, to } of playCardMoves(targets, deps.cardMeta, faceDown)) {
       deps.moveCards?.(zone, [card], to);
     }
   });

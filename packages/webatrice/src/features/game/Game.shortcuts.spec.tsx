@@ -156,6 +156,48 @@ describe('Game seat shortcuts', () => {
     expect(game.revealCards).toHaveBeenCalledWith(1, { zoneName: 'hand', cardId: [60, 61] });
   });
 
+  // One action per desktop group, from its key to the request it sends.
+  describe('the desktop shortcut groups', () => {
+    const handSeats = {
+      seats: [
+        { playerId: 1, deckCount: 40, hand: [makeCard({ id: 60, name: 'Opt' }), makeCard({ id: 61, name: 'Ponder' })] },
+        { playerId: 2, deckCount: 40 },
+      ],
+    };
+
+    it('Move selected card: Ctrl+Delete moves the hand selection to the graveyard in one command', () => {
+      const { game } = renderGame(handSeats);
+      openContextMenu(cardEl(60, 'hand'));
+      chooseMenuPath('Select All');
+
+      const event = press('Delete', { ctrlKey: true });
+
+      expect(event.defaultPrevented).toBe(true);
+      expect(vi.mocked(game.moveCard).mock.calls).toEqual([[1, expect.objectContaining({
+        startZone: 'hand',
+        cardsToMove: { card: [{ cardId: 60 }, { cardId: 61 }] },
+        targetZone: 'grave',
+      })]]);
+    });
+
+    it('Hand: a bound "Reveal hand to all players" reveals the whole hand once; a spectator reveals nothing', () => {
+      const bind = (store: ReturnType<typeof renderGame>['store']) => act(() => {
+        store.dispatch(shortcuts.Actions.setOverride({ actionId: 'game.revealHandToAll', sequences: ['Alt+KeyV'] }));
+      });
+      const seated = renderGame(handSeats);
+      bind(seated.store);
+      press('KeyV', { altKey: true });
+      expect(vi.mocked(seated.game.revealCards).mock.calls).toEqual([[1, { zoneName: 'hand' }]]);
+      seated.unmount();
+
+      const spectator = renderGame({ ...handSeats, localPlayerId: 3, spectator: true });
+      bind(spectator.store);
+      const event = press('KeyV', { altKey: true });
+      expect(event.defaultPrevented).toBe(false);
+      expect(spectator.game.revealCards).not.toHaveBeenCalled();
+    });
+  });
+
   // The macros come from the settings store (Settings > Chat).
   const withMacros = (messageMacros: readonly string[]) =>
     vi.mocked(usePreferences).mockReturnValue({ ...PREFERENCE_DEFAULTS, messageMacros });

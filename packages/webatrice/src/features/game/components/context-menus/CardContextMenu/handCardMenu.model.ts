@@ -60,8 +60,8 @@ export function buildHandOrZoneCardMenu(args: BuildHandOrZoneCardMenuArgs): Card
   }
 
   return [
-    { label: 'Play', onClick: args.onPlay },
-    { label: 'Play Face Down', onClick: args.onPlayFaceDown },
+    { label: 'Play', shortcut: hints['game.playCard'], onClick: args.onPlay },
+    { label: 'Play Face Down', shortcut: hints['game.playCardFaceDown'], onClick: args.onPlayFaceDown },
     {
       label: 'Reveal to...',
       submenu: [
@@ -75,7 +75,11 @@ export function buildHandOrZoneCardMenu(args: BuildHandOrZoneCardMenuArgs): Card
     {
       label: 'Move to',
       submenu: [
-        { label: 'Top of library in random order', onClick: () => args.onMove('libraryTop') },
+        {
+          label: 'Top of library in random order',
+          shortcut: hints['game.moveSelectedToLibraryTop'],
+          onClick: () => args.onMove('libraryTop'),
+        },
         { label: 'X cards from the top of library...', onClick: () => args.onMove('libraryXFromTop') },
         {
           label: 'Bottom of library in random order',
@@ -83,13 +87,13 @@ export function buildHandOrZoneCardMenu(args: BuildHandOrZoneCardMenuArgs): Card
           onClick: () => args.onMove('libraryBottom'),
         },
         { divider: true },
-        { label: 'Table', onClick: () => args.onMove('table') },
+        { label: 'Table', shortcut: hints['game.moveSelectedToBattlefield'], onClick: () => args.onMove('table') },
         { divider: true },
-        { label: 'Hand', onClick: () => args.onMove('hand') },
+        { label: 'Hand', shortcut: hints['game.moveSelectedToHand'], onClick: () => args.onMove('hand') },
         { divider: true },
         { label: 'Graveyard', shortcut: hints['game.moveSelectedToGrave'], onClick: () => args.onMove('grave') },
         { divider: true },
-        { label: 'Exile', onClick: () => args.onMove('exile') },
+        { label: 'Exile', shortcut: hints['game.moveSelectedToExile'], onClick: () => args.onMove('exile') },
       ],
     },
     // Desktop drops Attach / Draw arrow for library and sideboard cards,
