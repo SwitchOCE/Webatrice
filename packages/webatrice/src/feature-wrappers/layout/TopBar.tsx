@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { Link, useLocation, useNavigate, generatePath, matchPath } from 'react-router-dom';
+import { Link, useLocation, useNavigate, generatePath } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   User, LogOut, Home as HomeIcon, Swords, Library, LibraryBig,
@@ -8,7 +8,6 @@ import {
   Film,
   type LucideIcon,
 } from 'lucide-react';
-import type { TFunction } from 'i18next';
 
 import { server, rooms, games, ServerCapability } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
@@ -25,39 +24,11 @@ import { RouteEnum, type DeckRouteState } from '@app/types';
 import { CardImportDialog } from '@app/feature-widgets/card-import';
 
 import LatencyStatus from './LatencyStatus';
+import {
+  addStickyTab, detectTransientTab, isStickyTabType, routeMatches, tabTitle, withDeckNames,
+  type Tab, type TabType,
+} from './topBarTabs';
 import { UserMenuDialog, visibleUserMenuEntries, type CapabilityCheck } from './userMenuEntries';
-
-type TabType =
-  | 'server'
-  | 'room'
-  | 'game'
-  | 'decks' // /decks — My Decks list
-  | 'deck' // /deck/:id — deck editor
-  | 'my-decks'
-  | 'settings'
-  | 'shortcuts'
-  | 'account'
-  | 'logs'
-  | 'player'
-  | 'staff' // Administration / Moderation / Card Art Rules / Developer / Report Queue
-  | 'replays' // /replays — server + local replay lists
-  | 'replay' // /replay/:replayKey — replay playback
-  | 'my-reports'
-  | 'unknown';
-
-interface Tab {
-  key: string;
-  type: TabType;
-  /** Text shown as-is: a server- or user-supplied name (room, game, deck, player). */
-  title?: string;
-  /** Catalogue key for tabs without a name of their own. It is translated at
-   *  render time, so a sticky or persisted tab follows a language switch. */
-  titleKey?: string;
-  titleParams?: Record<string, string>;
-  route: string;
-  closeable: boolean;
-  onClose?: () => void;
-}
 
 const TYPE_ICON: Record<TabType, LucideIcon> = {
   server: HomeIcon,
@@ -105,53 +76,21 @@ export default function TopBar() {
   const [phaseTrackPinned, setPhaseTrackPinned] = usePhaseTrackPinnedSetting();
   const [openDialog, setOpenDialog] = useState<UserMenuDialog | null>(null);
 
-  // Sticky tabs = the deck-related routes the user has visited and not
-  // explicitly closed. Keeps My Decks pinned alongside the currently-
-  // edited deck so switching to Lobby / a room / a game doesn't drop
-  // the deck editing context.
-  //   • decks: one entry, always keyed 'decks'
-  //   • deck : one entry per open deck, as desktop's Deck Storage opens
-  //            each deck in a tab of its own; a deck the editor loads
-  //            into its own tab replaces that tab (DeckRouteState).
-  //
-  // Backed by a MODULE-LEVEL singleton (see bottom of this file) —
-  // TopBar is rendered inside each page's Layout so it remounts on
-  // every navigation, which would wipe a normal useState. The
-  // singleton + useSyncExternalStore pair survives remounts.
+  // Sticky tabs (see `isStickyTabType`) are backed by a MODULE-LEVEL
+  // singleton (see bottom of this file) — TopBar is rendered inside each
+  // page's Layout so it remounts on every navigation, which would wipe a
+  // normal useState. The singleton + useSyncExternalStore pair survives
+  // remounts.
   const [stickyTabs, setStickyTabs] = useStickyTabs();
   useEffect(() => {
     const transient = detectTransientTab(location.pathname);
-    if (!transient) {
-      return;
-    }
-    const shouldStick =
-      transient.type === 'decks' ||
-      transient.type === 'deck' ||
-      transient.type === 'shortcuts' ||
-      // Player tabs (private-chat surface) stick so a right-click →
-      // Private chat → wander-off → come-back-later flow doesn't lose
-      // the tab, and so incoming-message toasts have somewhere to
-      // navigate to that already exists. Each `player:<name>` key is
-      // unique so multiple concurrent conversations coexist.
-      transient.type === 'player';
-    if (!shouldStick) {
+    if (!transient || !isStickyTabType(transient.type)) {
       return;
     }
     const replacesDeckId = transient.type === 'deck'
       ? (location.state as DeckRouteState | null)?.replacesDeckId
       : undefined;
-    setStickyTabs((prev) => {
-      // A deck the editor loaded into its own tab takes that tab's place (or, when the deck
-      // already has a tab, the replaced tab just closes).
-      const replaced = replacesDeckId != null ? prev.findIndex((tab) => tab.key === `deck:${replacesDeckId}`) : -1;
-      if (replaced >= 0 && prev[replaced].key !== transient.key) {
-        return prev.some((tab) => tab.key === transient.key)
-          ? prev.filter((_, i) => i !== replaced)
-          : prev.map((tab, i) => (i === replaced ? transient : tab));
-      }
-      // Decks list / deck editor / Shortcuts / Player: additive, no-op if already present.
-      return prev.some((t) => t.key === transient.key) ? prev : [...prev, transient];
-    });
+    setStickyTabs((prev) => addStickyTab(prev, transient, replacesDeckId));
   }, [location.pathname, location.state, setStickyTabs]);
 
   // Mirror the current pathname to localStorage so an F5 refresh drops
@@ -211,26 +150,7 @@ export default function TopBar() {
     if (deckIdToName.size === 0) {
       return;
     }
-    setStickyTabs((prev) => {
-      let changed = false;
-      const next = prev.map((tab) => {
-        if (tab.type !== 'deck') {
-          return tab;
-        }
-        const match = tab.key.match(/^deck:(\d+)$/);
-        const id = match ? Number(match[1]) : null;
-        if (id == null) {
-          return tab;
-        }
-        const name = deckIdToName.get(id);
-        if (!name || name === tab.title) {
-          return tab;
-        }
-        changed = true;
-        return { ...tab, title: name };
-      });
-      return changed ? next : prev;
-    });
+    setStickyTabs((prev) => withDeckNames(prev, deckIdToName));
   }, [deckIdToName, setStickyTabs]);
 
   const tabs: Tab[] = useMemo(() => {
@@ -285,16 +205,7 @@ export default function TopBar() {
 
     // Sticky tabs (Decks list + open deck editor). Enrich the deck
     // editor's title with its actual name if backendDecks has loaded.
-    for (const sticky of stickyTabs) {
-      if (sticky.type === 'deck') {
-        const match = sticky.key.match(/^deck:(\d+)$/);
-        const deckId = match ? Number(match[1]) : null;
-        const name = deckId != null ? deckIdToName.get(deckId) : undefined;
-        list.push({ ...sticky, title: name ?? sticky.title });
-      } else {
-        list.push(sticky);
-      }
-    }
+    list.push(...withDeckNames(stickyTabs, deckIdToName));
 
     // Transient tab for other non-primary routes (Settings, Account,
     // Logs, Player). Appears only while active — non-sticky.
@@ -325,12 +236,7 @@ export default function TopBar() {
     // Sticky (decks / deck editor / shortcuts / player) tabs need to be
     // removed from the sticky list too — otherwise the effect above
     // would leave them pinned even after the user navigates away.
-    if (
-      tab.type === 'decks'
-      || tab.type === 'deck'
-      || tab.type === 'shortcuts'
-      || tab.type === 'player'
-    ) {
+    if (isStickyTabType(tab.type)) {
       setStickyTabs((prev) => prev.filter((t) => t.key !== tab.key));
     }
     if (activeKey === tab.key) {
@@ -635,114 +541,6 @@ function UserMenu({
     </div>
   );
 }
-
-/** True when `pathname` is served by `route` (route may contain
- *  :params). Handles the wildcard `*` fallback used for the initialize
- *  route by never matching it here. */
-function routeMatches(pathname: string, route: string): boolean {
-  if (route === '*') {
-    return false;
-  }
-  return matchPath({ path: route, end: true }, pathname) !== null;
-}
-
-const STAFF_TABS: { key: string; titleKey: string; route: RouteEnum }[] = [
-  { key: 'administration', titleKey: 'UserMenu.administration', route: RouteEnum.ADMINISTRATION },
-  { key: 'moderation', titleKey: 'UserMenu.moderation', route: RouteEnum.MODERATION },
-  { key: 'card-art-rules', titleKey: 'UserMenu.cardArtRules', route: RouteEnum.CARD_ART_RULES },
-  { key: 'developer', titleKey: 'UserMenu.developer', route: RouteEnum.DEVELOPER },
-  { key: 'report-queue', titleKey: 'UserMenu.reportQueue', route: RouteEnum.REPORT_QUEUE },
-];
-
-/** Build a transient tab for the current route if it's one of the
- *  non-primary pages (Decks, Settings, Account, Logs, Player). Returns
- *  null for routes that are already covered by the primary strip
- *  (Server, Room, Game). */
-function detectTransientTab(pathname: string): Tab | null {
-  if (matchPath({ path: RouteEnum.DECKS, end: true }, pathname)) {
-    return { key: 'decks', type: 'decks', titleKey: 'TopBar.tab.myDecks', route: pathname, closeable: true };
-  }
-  const deckMatch = matchPath({ path: RouteEnum.DECK, end: true }, pathname);
-  if (deckMatch) {
-    const id = deckMatch.params.deckId ?? '?';
-    return {
-      key: `deck:${id}`,
-      type: 'deck',
-      titleKey: 'TopBar.tab.deck', // TopBar titles this with the deck name from backendDecks once loaded
-      titleParams: { id },
-      route: pathname,
-      closeable: true,
-    };
-  }
-  // An unsaved draft (the game's "Open deck in deck editor") takes the same
-  // single editor slot, as desktop opens it in an editor tab
-  // (tab_supervisor.cpp:989-999); its first save moves it to /deck/:id.
-  const draftMatch = matchPath({ path: RouteEnum.DECK_DRAFT, end: true }, pathname);
-  if (draftMatch) {
-    return {
-      key: `deck-draft:${draftMatch.params.token ?? '?'}`,
-      type: 'deck',
-      titleKey: 'TopBar.tab.unsavedDeck',
-      route: pathname,
-      closeable: true,
-    };
-  }
-  if (matchPath({ path: RouteEnum.SETTINGS, end: true }, pathname)) {
-    return { key: 'settings', type: 'settings', titleKey: 'UserMenu.settings', route: pathname, closeable: true };
-  }
-  if (matchPath({ path: RouteEnum.SHORTCUTS, end: true }, pathname)) {
-    return { key: 'shortcuts', type: 'shortcuts', titleKey: 'UserMenu.shortcuts', route: pathname, closeable: true };
-  }
-  if (matchPath({ path: RouteEnum.ACCOUNT, end: true }, pathname)) {
-    return { key: 'account', type: 'account', titleKey: 'UserMenu.account', route: pathname, closeable: true };
-  }
-  if (matchPath({ path: RouteEnum.LOGS, end: true }, pathname)) {
-    return { key: 'logs', type: 'logs', titleKey: 'UserMenu.logs', route: pathname, closeable: true };
-  }
-  const staffTab = STAFF_TABS.find(({ route }) => matchPath({ path: route, end: true }, pathname));
-  if (staffTab) {
-    return { key: staffTab.key, type: 'staff', titleKey: staffTab.titleKey, route: pathname, closeable: true };
-  }
-  if (matchPath({ path: RouteEnum.MY_REPORTS, end: true }, pathname)) {
-    return { key: 'my-reports', type: 'my-reports', titleKey: 'UserMenu.myReports', route: pathname, closeable: true };
-  }
-  const publicDecksMatch = matchPath({ path: RouteEnum.PUBLIC_DECKS, end: true }, pathname);
-  if (publicDecksMatch) {
-    const name = publicDecksMatch.params.userName ?? '';
-    return {
-      key: `public-decks:${name}`,
-      type: 'decks',
-      titleKey: 'TopBar.tab.publicDecks',
-      titleParams: { name },
-      route: pathname,
-      closeable: true,
-    };
-  }
-  const playerMatch = matchPath({ path: RouteEnum.PLAYER, end: true }, pathname);
-  if (playerMatch) {
-    const name = playerMatch.params.name;
-    return name
-      ? { key: `player:${name}`, type: 'player', title: name, route: pathname, closeable: true }
-      : { key: 'player:', type: 'player', titleKey: 'TopBar.tab.player', route: pathname, closeable: true };
-  }
-  if (matchPath({ path: RouteEnum.REPLAYS, end: true }, pathname)) {
-    return { key: 'replays', type: 'replays', titleKey: 'TopBar.replays.tab', route: pathname, closeable: true };
-  }
-  // An open replay already has its own tab; this only covers a replay key that
-  // no longer resolves (e.g. after a reload), whose view explains it is gone.
-  const replayMatch = matchPath({ path: RouteEnum.REPLAY, end: true }, pathname);
-  if (replayMatch) {
-    const replayKey = replayMatch.params.replayKey ?? '';
-    return { key: `replay:${replayKey}`, type: 'replay', titleKey: 'TopBar.replayTab', route: pathname, closeable: true };
-  }
-  return null;
-}
-
-/** A tab's display text: its own name, else its catalogue title in the current language. */
-function tabTitle(tab: Tab, t: TFunction): string {
-  return tab.title ?? (tab.titleKey ? t(tab.titleKey, tab.titleParams) : '');
-}
-
 
 // ---------- Sticky-tab singleton ----------
 // TopBar remounts on every route change (it's inside per-page Layout),
