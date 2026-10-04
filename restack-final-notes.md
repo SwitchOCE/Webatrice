@@ -8,3 +8,8 @@
 - 25a red commits (rv21): squash f70f45a, 734ecf0, de1dd81 into 4cbea4b; move CommittedInput hunk from 8701aae into 4cbea4b; fold f437ae5's e2e tweak into its owning commit.
 - T1 (test memory) slots after 32, before R5.
 - 17c f17c creates feature-widgets/shortcuts/browserReserved.ts (canonical = 31's d7084c5 content). At 31's replay, drop 31's creation of the file and keep only its deck.new remap + any additions.
+
+## 31 (f31 tip b85d1f5)
+- Fold spec-only follow-ups into their owners while replaying: 87a20ef → 60c6797 + 3d081d8 (split by file); efe569d → 3c63b11; d7084c5 → 587892a; 2a4e842 (lint) → 0a553b8. Every commit of the row must typecheck, lint, and pass integration.
+- 25a lands before 31, so at 31's replay extract a shared `useListboxCombobox` into `@app/hooks` (ids, ARIA props, highlight cycling, Escape). Move both 31's quick add and 25a's `useMentionCompleter` onto it. Escape stays two-step (close list, then clear), matching quick add. Add it as its own `refactor:` commit with unit specs.
+- browserReserved.ts: 17c (f17c) now creates it. Drop 31's creation hunk and keep 31's every-scope assertion. Delete deck.new from 17c's PENDING_REMAP (31 remaps it).
