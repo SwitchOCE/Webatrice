@@ -30,7 +30,9 @@ export interface PlayCardMeta {
 /**
  * The Command_MoveCard a play sends; desktop PlayerActions::playCard
  * (player_actions.cpp:51-98). The hand menu's Play sends only row 3 to the
- * stack; a double-click (`playToStack`) sends everything but a land there.
+ * stack. With `playToStack`, everything but a land goes there: the HandZone
+ * double-click passes the "Play all nonlands onto the stack" preference as
+ * `playToStack`.
  * From the stack (`fromStack`), an instant or sorcery goes to the graveyard
  * and anything else to the battlefield. Face down always lands in row 2. A
  * card that reaches the battlefield face up carries its printed P/T, and
