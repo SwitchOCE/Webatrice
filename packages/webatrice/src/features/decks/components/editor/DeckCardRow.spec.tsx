@@ -1,5 +1,7 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
+import { renderWithProviders } from '../../../../__test-utils__';
 import type { DeckCard } from '../../types';
 import { DeckCardRow, type DeckCardRowProps } from './DeckCardRow';
 
@@ -19,7 +21,7 @@ function renderRow(overrides: Partial<DeckCardRowProps> = {}) {
     isCommander: false,
     ...overrides,
   };
-  render(<DeckCardRow {...props} />);
+  renderWithProviders(<DeckCardRow {...props} />);
   return props;
 }
 
@@ -43,10 +45,51 @@ describe('DeckCardRow', () => {
   it('routes the row menu to the row callbacks', () => {
     const props = renderRow();
     fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.rowActions.trigger' }));
-    fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.rowActions.decrease' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /DeckEditor.rowActions.removeOne/ }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'DeckEditor.rowActions.moveToSideboard' }));
     expect(props.onInc).toHaveBeenCalledWith(-1);
     expect(props.onSetCategory).toHaveBeenCalledWith('sideboard');
+  });
+
+  it('is a named grid row that opens its menu from Shift+F10 and returns focus on Escape', async () => {
+    const user = userEvent.setup();
+    renderRow();
+    const row = screen.getByRole('row', { name: 'DeckEditor.row.label' });
+    row.tabIndex = 0;
+    row.focus();
+
+    await user.keyboard('{Shift>}{F10}{/Shift}');
+    expect(screen.getByRole('menu', { name: 'DeckEditor.rowActions.trigger' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /DeckEditor.rowActions.addOne/ })).toHaveFocus();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(row).toHaveFocus();
+  });
+
+  it('opens the menu at the pointer on right-click, with the detail view in it', async () => {
+    const user = userEvent.setup();
+    const props = renderRow();
+    fireEvent.contextMenu(screen.getByRole('row'), { clientX: 40, clientY: 50 });
+    await user.click(screen.getByRole('menuitem', { name: 'DeckEditor.rowActions.details' }));
+    expect(props.onCardClick).toHaveBeenCalled();
+  });
+
+  it('announces a quantity change made from the open menu', () => {
+    const props: DeckCardRowProps = {
+      card: bolt, onInc: vi.fn(), onDelete: vi.fn(), onSetCategory: vi.fn(), onSetCommander: vi.fn(),
+      onChangePrinting: vi.fn(), onHover: vi.fn(), isMtg: true, isCommander: false,
+    };
+    const { rerender } = renderWithProviders(<DeckCardRow {...props} />);
+    fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.rowActions.trigger' }));
+    const status = within(screen.getByRole('row')).getByRole('status');
+    expect(status).toBeEmptyDOMElement();
+
+    fireEvent.click(screen.getByRole('menuitem', { name: /DeckEditor.rowActions.addOne/ }));
+    expect(props.onInc).toHaveBeenCalledWith(1);
+    rerender(<DeckCardRow {...props} card={{ ...bolt, quantity: 5 }} />);
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+    expect(status).toHaveTextContent('DeckEditor.rowActions.quantityNow');
   });
 
   it('paints an illegal row red and names the reason', () => {

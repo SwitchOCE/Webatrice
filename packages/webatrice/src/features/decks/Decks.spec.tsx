@@ -10,9 +10,14 @@ import {
   ServerInfo_DeckStorage_TreeItemSchema,
 } from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
+import userEvent from '@testing-library/user-event';
+import { useNavigate } from 'react-router-dom';
+
+import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 
 import { renderWithProviders, connected31State, connectedState, disconnectedState } from '../../__test-utils__';
 import Decks from './Decks';
+import type { DecksLocationState } from './deckShortcuts';
 
 // Share links name the server this session logged into: the selected known host.
 vi.mock('@app/feature-widgets/known-hosts', async (importOriginal) => ({
@@ -162,3 +167,29 @@ describe('Decks sharing (Servatrice 3.1)', () => {
   });
 });
 
+describe('Decks shortcuts', () => {
+  it('opens the create dialog on New Deck (Ctrl+N) and the import dialog on Load Deck (Ctrl+O)', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<ShortcutProvider><Decks /></ShortcutProvider>, { preloadedState: connectedState, route: '/decks' });
+
+    await user.keyboard('{Control>}n{/Control}');
+    expect(screen.getByRole('dialog', { name: 'CreateDeckDialog.title' })).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+
+    await user.keyboard('{Control>}o{/Control}');
+    expect(screen.getByRole('dialog', { name: 'ImportDeckDialog.title' })).toBeInTheDocument();
+  });
+
+  it('opens the dialog the editor asked for on arrival', async () => {
+    function EditorShortcut() {
+      const navigate = useNavigate();
+      const state: DecksLocationState = { open: 'import' };
+      return <button type="button" onClick={() => navigate('/decks', { state })}>Load deck</button>;
+    }
+    renderWithProviders(<><EditorShortcut /><Decks /></>, { preloadedState: connectedState, route: '/decks' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load deck' }));
+    expect(await screen.findByRole('dialog', { name: 'ImportDeckDialog.title' })).toBeInTheDocument();
+  });
+});

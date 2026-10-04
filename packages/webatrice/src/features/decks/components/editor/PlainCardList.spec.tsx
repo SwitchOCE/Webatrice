@@ -1,5 +1,6 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 
+import { renderWithProviders } from '../../../../__test-utils__';
 import type { DeckCard } from '../../types';
 import { PlainAddCard, PlainCardList } from './PlainCardList';
 
@@ -10,7 +11,7 @@ function card(name: string, quantity = 1): DeckCard {
 describe('PlainAddCard', () => {
   it('adds the trimmed name on Enter and clears the field', () => {
     const onAdd = vi.fn();
-    render(<PlainAddCard onAdd={onAdd} />);
+    renderWithProviders(<PlainAddCard onAdd={onAdd} />);
     const input = screen.getByPlaceholderText('DeckEditor.list.addPlaceholder');
 
     fireEvent.keyDown(input, { key: 'Enter' });
@@ -27,10 +28,11 @@ describe('PlainCardList', () => {
   it('lists cards alphabetically and edits them by their deck index', () => {
     const onInc = vi.fn();
     const onDelete = vi.fn();
-    render(<PlainCardList cards={[card('zebra', 2), card('Apple')]} onInc={onInc} onDelete={onDelete} />);
+    renderWithProviders(<PlainCardList cards={[card('zebra', 2), card('Apple')]} onInc={onInc} onDelete={onDelete} />);
 
-    expect(screen.getAllByRole('listitem').map((li) => li.textContent)).toEqual(['1Apple', '2zebra']);
-    const [apple, zebra] = screen.getAllByRole('listitem');
+    expect(screen.getByRole('grid', { name: 'DeckEditor.list.label' })).toBeInTheDocument();
+    expect(screen.getAllByRole('row').map((row) => row.textContent)).toEqual(['1Apple', '2zebra']);
+    const [apple, zebra] = screen.getAllByRole('row');
     fireEvent.click(within(zebra).getByRole('button', { name: 'DeckEditor.list.increaseCard' }));
     fireEvent.click(within(apple).getByRole('button', { name: 'DeckEditor.list.decreaseCard' }));
     fireEvent.click(within(zebra).getByRole('button', { name: 'DeckEditor.list.removeCard' }));

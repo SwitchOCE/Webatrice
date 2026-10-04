@@ -1,0 +1,135 @@
+import { useState } from 'react';
+import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
+import type { DeckCategory } from '@app/types';
+
+import { renderWithProviders } from '../../../__test-utils__';
+import type { DeckCard } from '../types';
+import { useDeckCardGrid } from './useDeckCardGrid';
+
+const card = (name: string, quantity = 1, extra: Partial<DeckCard> = {}): DeckCard =>
+  ({ name, quantity, category: 'main', lookupSource: 'scryfall', ...extra });
+
+/** A deck list drawn main first, then sideboard, with the editor's edits applied to local state. */
+function DeckList({ initial }: { initial: DeckCard[] }) {
+  const [cards, setCards] = useState(initial);
+  const order = [
+    ...cards.map((c, i) => (c.category === 'main' ? i : -1)),
+    ...cards.map((c, i) => (c.category === 'sideboard' ? i : -1)),
+  ].filter((i) => i >= 0);
+  const grid = useDeckCardGrid({
+    cards,
+    order,
+    onInc: (index, delta) => setCards((prev) => prev
+      .map((c, i) => (i === index ? { ...c, quantity: c.quantity + delta } : c))
+      .filter((c) => c.quantity > 0)),
+    onDelete: (index) => setCards((prev) => prev.filter((_, i) => i !== index)),
+    onSetCategory: (index: number, category: DeckCategory) =>
+      setCards((prev) => prev.map((c, i) => (i === index ? { ...c, category } : c))),
+  });
+  return (
+    <>
+      <input aria-label="Search" />
+      <div role="grid" aria-label="Deck">
+        {order.map((i) => (
+          <div key={`${cards[i].category}:${cards[i].name}`} role="row" aria-label={cards[i].name} {...grid.getDeckRowProps(i)}>
+            <span role="gridcell">{`${cards[i].quantity} ${cards[i].category}`}</span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+function renderList(cards: DeckCard[]) {
+  renderWithProviders(<ShortcutProvider><DeckList initial={cards} /></ShortcutProvider>, { route: '/deck/1' });
+  return {
+    user: userEvent.setup(),
+    row: (name: string) => screen.getByRole('row', { name }),
+  };
+}
+
+describe('useDeckCardGrid', () => {
+  it('keeps one tab stop and moves it with the arrows', async () => {
+    const { user, row } = renderList([card('Bolt'), card('Shock'), card('Duress', 1, { category: 'sideboard' })]);
+    await user.click(screen.getByRole('textbox', { name: 'Search' }));
+    await user.tab();
+    expect(row('Bolt')).toHaveFocus();
+    expect(row('Shock')).toHaveAttribute('tabindex', '-1');
+
+    await user.keyboard('{ArrowDown}{ArrowDown}');
+    expect(row('Duress')).toHaveFocus();
+    expect(row('Duress')).toHaveAttribute('aria-selected', 'true');
+    await user.keyboard('{Home}');
+    expect(row('Bolt')).toHaveFocus();
+  });
+
+  it('adds a copy with Enter, Shift+→ and Ctrl+Alt+=, and removes one with Shift+← and Ctrl+Alt+−, like desktop', async () => {
+    const { user, row } = renderList([card('Bolt', 2)]);
+    row('Bolt').focus();
+
+    await user.keyboard('{Enter}');
+    await user.keyboard('{Shift>}{ArrowRight}{/Shift}');
+    await user.keyboard('{Control>}{Alt>}[Equal]{/Alt}{/Control}');
+    expect(row('Bolt')).toHaveTextContent('5 main');
+
+    await user.keyboard('{Shift>}{ArrowLeft}{/Shift}');
+    await user.keyboard('{Control>}{Alt>}[Minus]{/Alt}{/Control}');
+    expect(row('Bolt')).toHaveTextContent('3 main');
+  });
+
+  it('runs the rebindable + and − shortcuts on the focused row only', async () => {
+    const { user, row } = renderList([card('Bolt', 2), card('Shock', 2)]);
+    await user.click(screen.getByRole('textbox', { name: 'Search' }));
+    await user.keyboard('[Equal]');
+    expect(row('Bolt')).toHaveTextContent('2 main');
+
+    row('Shock').focus();
+    await user.keyboard('[Equal]');
+    expect(row('Shock')).toHaveTextContent('3 main');
+    await user.keyboard('[Minus]');
+    await user.keyboard('[Minus]');
+    expect(row('Shock')).toHaveTextContent('1 main');
+    expect(row('Bolt')).toHaveTextContent('2 main');
+  });
+
+  it('removes the row with Delete and hands focus to the next one', async () => {
+    const { user, row } = renderList([card('Bolt'), card('Shock'), card('Opt')]);
+    row('Shock').focus();
+    await user.keyboard('{Delete}');
+    expect(screen.queryByRole('row', { name: 'Shock' })).toBeNull();
+    expect(row('Opt')).toHaveFocus();
+
+    await user.keyboard('{Delete}');
+    expect(row('Bolt')).toHaveFocus();
+  });
+
+  it('hands focus on when the last copy is removed with −', async () => {
+    const { user, row } = renderList([card('Bolt'), card('Shock')]);
+    row('Bolt').focus();
+    await user.keyboard('[Minus]');
+    expect(screen.queryByRole('row', { name: 'Bolt' })).toBeNull();
+    expect(row('Shock')).toHaveFocus();
+  });
+
+  it('swaps a row between main and sideboard with Shift+S, keeping focus on it', async () => {
+    const { user, row } = renderList([card('Bolt'), card('Shock')]);
+    row('Bolt').focus();
+    await user.keyboard('{Shift>}S{/Shift}');
+    expect(row('Bolt')).toHaveTextContent('1 sideboard');
+    expect(row('Bolt')).toHaveFocus();
+
+    await user.keyboard('{Shift>}S{/Shift}');
+    expect(row('Bolt')).toHaveTextContent('1 main');
+    expect(row('Bolt')).toHaveFocus();
+  });
+
+  it('never sideboards the commander', async () => {
+    const { user, row } = renderList([card('Atraxa', 1, { isCommander: true })]);
+    row('Atraxa').focus();
+    await user.keyboard('{Shift>}S{/Shift}');
+    expect(row('Atraxa')).toHaveTextContent('1 main');
+  });
+});

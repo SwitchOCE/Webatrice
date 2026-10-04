@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ArrowLeft, SlidersHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -6,8 +6,9 @@ import type { BracketAssessment, DeckCategory } from '@app/types';
 
 import { EMPTY_FILTERS, type SearchFiltersState } from '../../cardSearchQuery';
 import { DeckBreakdown } from '../breakdown/DeckBreakdown';
-import type { DeckCardGroup as DeckCardGroupData } from '../../deckGrouping';
+import { sortIndicesByName, type DeckCardGroup as DeckCardGroupData } from '../../deckGrouping';
 import type { CardLegality } from '../../deckLegality';
+import { useDeckCardGrid } from '../../hooks/useDeckCardGrid';
 import type { DeckCard, HydratedDeck } from '../../types';
 import { AdvancedCardSearch } from '../search/AdvancedCardSearch';
 import { DeckCardGroup } from './DeckCardGroup';
@@ -92,6 +93,16 @@ export function DeckMainPane({
   // decks force the deckList view (no search view exists for them).
   const activeView = isMtg ? rightView : 'deckList';
 
+  // Rows in the order they are drawn: the MTG sections one after another
+  // (the CSS columns flow in DOM order), or the non-MTG list by name.
+  const rowOrder = useMemo(
+    () => (isMtg
+      ? groups.flatMap(({ indices }) => indices)
+      : sortIndicesByName(deck.cards, deck.cards.map((_, i) => i))),
+    [isMtg, groups, deck.cards],
+  );
+  const grid = useDeckCardGrid({ cards: deck.cards, order: rowOrder, onInc, onDelete, onSetCategory });
+
   return (
     <section className="min-h-0 flex flex-col">
       <div className="shrink-0 flex items-center justify-end gap-2 px-4 py-2 border-b border-border-subtle bg-bg-surface/50">
@@ -156,6 +167,7 @@ export function DeckMainPane({
                     isMtg={isMtg}
                     isCommander={isCommander}
                     legality={legality}
+                    grid={grid}
                   />
                 ))}
               </div>
@@ -176,6 +188,7 @@ export function DeckMainPane({
                 cards={deck.cards}
                 onInc={onInc}
                 onDelete={onDelete}
+                grid={grid}
               />
               <SampleHandPanel cards={deck.cards} showImages={false} />
             </div>

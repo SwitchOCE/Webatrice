@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import { server } from '@cockatrice/datatrice';
@@ -9,7 +9,7 @@ import { AlertDialog } from '@app/dialogs';
 import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 import { Layout } from '@app/feature-wrappers/layout';
 import { useAppSelector } from '@app/store';
-import { isCommanderFormat, isMtgFormat } from '@app/types';
+import { isCommanderFormat, isMtgFormat, RouteEnum } from '@app/types';
 
 import { DeckBannerPicker } from './components/editor/DeckBannerPicker';
 import { DeckEditorSkeleton, DeckNotFound } from './components/editor/DeckEditorShells';
@@ -22,6 +22,7 @@ import { DeckTagsEditor } from './components/editor/DeckTagsEditor';
 import { groupDeckCards } from './deckGrouping';
 import { serializeDeckForSave } from './deckPersistence';
 import { deckColorIdentity, isBlankDeck } from './deckSharing';
+import type { DecksLocationState } from './deckShortcuts';
 import { readDeckTags } from './deckTags';
 import { CardDetailDialog } from './dialogs/CardDetailDialog';
 import { ExportDeckDialog } from './dialogs/ExportDeckDialog';
@@ -66,6 +67,7 @@ const DeckEditor = () => {
   const [detailSnapshot, setDetailSnapshot] = useState<DeckCard | null>(null);
   const [exportOpen, setExportOpen] = useState(false);
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
   const sharingSupported = useDeckSharingSupported();
   const share = useDeckShareCreate();
@@ -79,6 +81,19 @@ const DeckEditor = () => {
   const editing = !editor.loading && editor.deck != null;
   useShortcut('deck.undo', () => editor.undo(), { scope: ShortcutScope.DECK_EDITOR, enabled: editing });
   useShortcut('deck.redo', () => editor.redo(), { scope: ShortcutScope.DECK_EDITOR, enabled: editing });
+  // Desktop's Save Deck (Ctrl+S): the editor autosaves, so this sends a
+  // pending change now, or retries a save that failed.
+  useShortcut(
+    'deck.save',
+    () => (editor.saveState === 'failed' ? editor.retrySave() : editor.flushSave()),
+    { scope: ShortcutScope.DECK_EDITOR, enabled: editing },
+  );
+  // New Deck and Load Deck live on My Decks (create / import), as desktop's
+  // open a fresh editor tab or a file picker.
+  const openDecksDialog = (open: DecksLocationState['open']) =>
+    navigate(RouteEnum.DECKS, { state: { open } satisfies DecksLocationState });
+  useShortcut('deck.new', () => openDecksDialog('create'), { scope: ShortcutScope.DECK_EDITOR });
+  useShortcut('deck.load', () => openDecksDialog('import'), { scope: ShortcutScope.DECK_EDITOR });
 
   // `isMtg` gates the whole MTG feature set (Scryfall search, printings,
   // pricing, previews, type grouping); `isCommander` adds the

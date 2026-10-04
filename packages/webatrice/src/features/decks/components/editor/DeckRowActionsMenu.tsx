@@ -1,233 +1,130 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import type { RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Archive, ChevronDown, Crown, Layers, Minus, PackageOpen, Plus, Trash2 } from 'lucide-react';
+import { Archive, Crown, Info, Layers, Minus, PackageOpen, Plus, Trash2 } from 'lucide-react';
 
+import { Menu, MenuItem, MenuSeparator, type MenuAnchor } from '@app/components';
+import { useMenuShortcut } from '@app/feature-widgets/shortcuts';
 import type { DeckCategory } from '@app/types';
 
 import type { DeckCard } from '../../types';
 
-/** Kebab-menu of per-row actions — collapses what used to be a
- *  hover-reveal icon strip into a single ChevronDown trigger + a
- *  portal-rendered dropdown, matching fancy webatrice's DeckRowActionsMenu.
- *  Portal so the menu can escape the multi-column `break-inside-avoid`
- *  container without getting clipped. */
-export function DeckRowActionsMenu({
-  card,
-  onInc,
-  onDec,
-  onDelete,
-  onSetCategory,
-  onSetCommander,
-  onChangePrinting,
-  isMtg,
-  isCommander,
-}: {
+export interface DeckRowActionsMenuProps {
   card: DeckCard;
+  anchor: MenuAnchor;
+  /** The control that opened the menu (the row or its chevron); focus returns to it. */
+  triggerRef: RefObject<HTMLElement | null>;
+  onClose: () => void;
   onInc: () => void;
   onDec: () => void;
   onDelete: () => void;
   onSetCategory: (category: DeckCategory) => void;
   onSetCommander: (isCommander: boolean) => void;
   onChangePrinting: () => void;
+  /** Opens the card's detail view; MTG decks only. */
+  onShowDetails?: () => void;
   /** Deck-level format flag. Non-MTG decks drop the printings-picker
    *  menu item since Scryfall has nothing to show. */
   isMtg: boolean;
   /** Deck-level format flag. Non-commander decks drop the
    *  "Mark as commander" toggle. */
   isCommander: boolean;
-}) {
+}
+
+/**
+ * Per-row actions of the deck list, desktop's deck-view context menu
+ * (`DeckEditorDeckDockWidget::decklistCustomMenu`) on the shared `Menu`:
+ * focus moves in, arrows and type-ahead move between entries, and closing
+ * returns focus to the row. Opened from the row's chevron, a right-click,
+ * Shift+F10 or the Menu key. Adding or removing a copy keeps it open, as the
+ * old inline +/− did; removing the last copy removes the row and closes it.
+ */
+export function DeckRowActionsMenu({
+  card,
+  anchor,
+  triggerRef,
+  onClose,
+  onInc,
+  onDec,
+  onDelete,
+  onSetCategory,
+  onSetCommander,
+  onChangePrinting,
+  onShowDetails,
+  isMtg,
+  isCommander,
+}: DeckRowActionsMenuProps) {
   const { t } = useTranslation();
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
-
-  useLayoutEffect(() => {
-    if (!open || !triggerRef.current) {
-      return;
-    }
-    const rect = triggerRef.current.getBoundingClientRect();
-    const MENU_WIDTH = 220;
-    const MENU_ESTIMATED_HEIGHT = 220;
-    const EDGE = 8;
-
-    let left = rect.right - MENU_WIDTH;
-    if (left < EDGE) {
-      left = Math.min(rect.left, window.innerWidth - MENU_WIDTH - EDGE);
-    }
-
-    let top = rect.bottom + 4;
-    if (top + MENU_ESTIMATED_HEIGHT > window.innerHeight) {
-      top = Math.max(EDGE, rect.top - MENU_ESTIMATED_HEIGHT - 4);
-    }
-    setPos({ left, top });
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-    const onClick = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (menuRef.current?.contains(target)) {
-        return;
-      }
-      if (triggerRef.current?.contains(target)) {
-        return;
-      }
-      setOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onClick);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onClick);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [open]);
-
+  const menuShortcut = useMenuShortcut();
   // Renamed from `isCommander` to avoid shadowing the deck-level
   // `isCommander` prop (deck format = Commander) with a card-level
   // check (this row is flagged as the commander).
   const cardIsCommander = !!card.isCommander;
   const isSideboard = card.category === 'sideboard';
-
-  const runAndClose = (fn: () => void) => () => {
-    fn();
-    setOpen(false);
-  };
+  const addShortcut = menuShortcut('deck.addCard');
+  const removeShortcut = menuShortcut('deck.removeCard');
 
   return (
-    <>
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen((v) => !v);
-        }}
-        className="p-1 rounded hover:bg-bg-base text-text-muted hover:text-text-primary transition-colors"
-        title={t('DeckEditor.rowActions.trigger', { card: card.name })}
-        aria-haspopup="menu"
-        aria-expanded={open}
-      >
-        <ChevronDown size={14} />
-      </button>
-      {open && pos &&
-        createPortal(
-          <div
-            ref={menuRef}
-            role="menu"
-            className="fixed z-50 w-[220px] rounded-lg bg-bg-surface border border-border-subtle shadow-glow py-1"
-            style={{ left: pos.left, top: pos.top }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-3 py-1.5 flex items-center justify-between text-xs">
-              <span className="text-text-secondary">{t('DeckEditor.rowActions.quantity')}</span>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={onDec}
-                  className="p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary"
-                  title={t('DeckEditor.rowActions.removeOne')}
-                  aria-label={t('DeckEditor.rowActions.decrease')}
-                >
-                  <Minus size={12} />
-                </button>
-                <span className="w-6 text-center tabular-nums text-text-primary font-semibold text-sm">
-                  {card.quantity}
-                </span>
-                <button
-                  type="button"
-                  onClick={onInc}
-                  className="p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary"
-                  title={t('DeckEditor.rowActions.addOne')}
-                  aria-label={t('DeckEditor.rowActions.increase')}
-                >
-                  <Plus size={12} />
-                </button>
-              </div>
-            </div>
-            <div className="border-t border-border-subtle my-1" />
-
-            {isMtg && (
-              <MenuItem
-                icon={<Layers size={13} />}
-                label={t('DeckEditor.rowActions.changePrinting')}
-                onClick={runAndClose(onChangePrinting)}
-              />
-            )}
-            {isCommander && (
-              <MenuItem
-                icon={<Crown size={13} className={cardIsCommander ? 'text-warning' : ''} />}
-                label={t(cardIsCommander ? 'DeckEditor.rowActions.unmarkCommander' : 'DeckEditor.rowActions.markCommander')}
-                onClick={runAndClose(() => onSetCommander(!cardIsCommander))}
-              />
-            )}
-            {isSideboard ? (
-              <MenuItem
-                icon={<PackageOpen size={13} />}
-                label={t('DeckEditor.rowActions.moveToMain')}
-                onClick={runAndClose(() => onSetCategory('main'))}
-              />
-            ) : (
-              <MenuItem
-                icon={<Archive size={13} />}
-                label={t('DeckEditor.rowActions.moveToSideboard')}
-                onClick={runAndClose(() => onSetCategory('sideboard'))}
-                disabled={cardIsCommander}
-              />
-            )}
-
-            <div className="border-t border-border-subtle my-1" />
-            <MenuItem
-              icon={<Trash2 size={13} />}
-              label={t('Common.action.remove')}
-              danger
-              onClick={runAndClose(onDelete)}
-            />
-          </div>,
-          document.body,
-        )}
-    </>
-  );
-}
-
-function MenuItem({
-  icon,
-  label,
-  onClick,
-  danger,
-  disabled,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  danger?: boolean;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      role="menuitem"
-      className={[
-        'w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left transition-colors',
-        disabled
-          ? 'text-text-muted opacity-40 cursor-not-allowed'
-          : danger
-            ? 'text-danger hover:bg-red-500/10'
-            : 'text-text-secondary hover:text-text-primary hover:bg-bg-elevated',
-      ].join(' ')}
+    <Menu
+      anchor={anchor}
+      label={t('DeckEditor.rowActions.trigger', { card: card.name })}
+      onClose={onClose}
+      triggerRef={triggerRef}
+      className="w-[220px]"
     >
-      <span className="shrink-0">{icon}</span>
-      <span className="truncate">{label}</span>
-    </button>
+      <div className="px-3 py-1.5 flex items-center justify-between text-xs" aria-hidden>
+        <span className="text-text-secondary">{t('DeckEditor.rowActions.quantity')}</span>
+        <span className="tabular-nums text-text-primary font-semibold text-sm">{card.quantity}</span>
+      </div>
+      <MenuItem icon={<Plus size={13} />} onSelect={onInc} closeOnSelect={false} {...addShortcut}>
+        {t('DeckEditor.rowActions.addOne')}
+      </MenuItem>
+      <MenuItem
+        icon={<Minus size={13} />}
+        onSelect={onDec}
+        closeOnSelect={card.quantity <= 1}
+        {...removeShortcut}
+      >
+        {t('DeckEditor.rowActions.removeOne')}
+      </MenuItem>
+      <MenuSeparator />
+
+      {onShowDetails && (
+        <MenuItem icon={<Info size={13} />} onSelect={onShowDetails}>
+          {t('DeckEditor.rowActions.details')}
+        </MenuItem>
+      )}
+      {isMtg && (
+        <MenuItem icon={<Layers size={13} />} onSelect={onChangePrinting}>
+          {t('DeckEditor.rowActions.changePrinting')}
+        </MenuItem>
+      )}
+      {isCommander && (
+        <MenuItem
+          icon={<Crown size={13} className={cardIsCommander ? 'text-warning' : ''} />}
+          onSelect={() => onSetCommander(!cardIsCommander)}
+        >
+          {t(cardIsCommander ? 'DeckEditor.rowActions.unmarkCommander' : 'DeckEditor.rowActions.markCommander')}
+        </MenuItem>
+      )}
+      {isSideboard ? (
+        <MenuItem icon={<PackageOpen size={13} />} onSelect={() => onSetCategory('main')}>
+          {t('DeckEditor.rowActions.moveToMain')}
+        </MenuItem>
+      ) : (
+        <MenuItem
+          icon={<Archive size={13} />}
+          onSelect={() => onSetCategory('sideboard')}
+          disabled={cardIsCommander}
+          disabledReason={t('DeckEditor.rowActions.commanderStaysMain')}
+        >
+          {t('DeckEditor.rowActions.moveToSideboard')}
+        </MenuItem>
+      )}
+
+      <MenuSeparator />
+      <MenuItem icon={<Trash2 size={13} className="text-danger" />} onSelect={onDelete}>
+        {t('Common.action.remove')}
+      </MenuItem>
+    </Menu>
   );
 }

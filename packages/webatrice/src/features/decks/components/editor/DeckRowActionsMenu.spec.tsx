@@ -1,67 +1,110 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { createRef } from 'react';
+import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
+import { renderWithProviders } from '../../../../__test-utils__';
 import type { DeckCard } from '../../types';
 import { DeckRowActionsMenu } from './DeckRowActionsMenu';
 
-const atraxa: DeckCard = { name: 'Atraxa', quantity: 1, category: 'main', lookupSource: 'scryfall' };
+const atraxa: DeckCard = { name: 'Atraxa', quantity: 2, category: 'main', lookupSource: 'scryfall' };
 
-function renderMenu(card: DeckCard = atraxa, flags = { isMtg: true, isCommander: true }) {
+function renderMenu(card: DeckCard = atraxa, flags = { isMtg: true, isCommander: true }, extra = {}) {
   const handlers = {
+    onClose: vi.fn(),
     onInc: vi.fn(),
     onDec: vi.fn(),
     onDelete: vi.fn(),
     onSetCategory: vi.fn(),
     onSetCommander: vi.fn(),
     onChangePrinting: vi.fn(),
+    ...extra,
   };
-  render(<DeckRowActionsMenu card={card} {...handlers} {...flags} />);
-  fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.rowActions.trigger' }));
-  return { handlers, menu: () => within(screen.getByRole('menu')) };
+  renderWithProviders(
+    <DeckRowActionsMenu
+      card={card}
+      anchor={{ x: 10, y: 10 }}
+      triggerRef={createRef<HTMLElement>()}
+      {...handlers}
+      {...flags}
+    />,
+  );
+  return handlers;
 }
 
 describe('DeckRowActionsMenu', () => {
-  it('opens a menu with quantity controls that stay open', () => {
-    const { handlers, menu } = renderMenu();
-    fireEvent.click(menu().getByRole('button', { name: 'DeckEditor.rowActions.increase' }));
-    fireEvent.click(menu().getByRole('button', { name: 'DeckEditor.rowActions.decrease' }));
-    expect(handlers.onInc).toHaveBeenCalled();
-    expect(handlers.onDec).toHaveBeenCalled();
-    expect(screen.getByRole('menu')).toBeInTheDocument();
-  });
-
-  it('runs an action and closes', () => {
-    const { handlers, menu } = renderMenu();
-    fireEvent.click(menu().getByRole('menuitem', { name: 'DeckEditor.rowActions.markCommander' }));
-    expect(handlers.onSetCommander).toHaveBeenCalledWith(true);
-    expect(screen.queryByRole('menu')).toBeNull();
-  });
-
-  it('offers moving a sideboard card to main, and blocks sideboarding the commander', () => {
-    const side = renderMenu({ ...atraxa, category: 'sideboard' });
-    fireEvent.click(side.menu().getByRole('menuitem', { name: 'DeckEditor.rowActions.moveToMain' }));
-    expect(side.handlers.onSetCategory).toHaveBeenCalledWith('main');
-  });
-
-  it('disables sideboarding a commander', () => {
-    const { menu } = renderMenu({ ...atraxa, isCommander: true });
-    expect(menu().getByRole('menuitem', { name: 'DeckEditor.rowActions.moveToSideboard' })).toBeDisabled();
-    expect(menu().getByRole('menuitem', { name: 'DeckEditor.rowActions.unmarkCommander' })).toBeInTheDocument();
-  });
-
-  it('drops the printing and commander items for decks that cannot use them', () => {
-    const { menu } = renderMenu(atraxa, { isMtg: false, isCommander: false });
-    expect(menu().queryByRole('menuitem', { name: 'DeckEditor.rowActions.changePrinting' })).toBeNull();
-    expect(menu().queryByRole('menuitem', { name: /Commander/ })).toBeNull();
-    expect(menu().getByRole('menuitem', { name: 'Common.action.remove' })).toBeInTheDocument();
-  });
-
-  it('closes on Escape and on an outside click', () => {
+  it('is a menu named for the card that takes focus on its first entry', () => {
     renderMenu();
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.queryByRole('menu')).toBeNull();
+    expect(screen.getByRole('menu', { name: 'DeckEditor.rowActions.trigger' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /DeckEditor.rowActions.addOne/ })).toHaveFocus();
+  });
 
-    fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.rowActions.trigger' }));
-    fireEvent.mouseDown(document.body);
-    expect(screen.queryByRole('menu')).toBeNull();
+  it('adds and removes copies without closing, and hints the rebindable shortcuts', async () => {
+    const user = userEvent.setup();
+    const handlers = renderMenu();
+    const add = screen.getByRole('menuitem', { name: /DeckEditor.rowActions.addOne/ });
+    expect(add).toHaveAttribute('aria-keyshortcuts');
+
+    await user.keyboard('{Enter}');
+    await user.keyboard('{ArrowDown}{Enter}');
+    expect(handlers.onInc).toHaveBeenCalledTimes(1);
+    expect(handlers.onDec).toHaveBeenCalledTimes(1);
+    expect(handlers.onClose).not.toHaveBeenCalled();
+  });
+
+  it('closes after removing the last copy, which removes the row', async () => {
+    const user = userEvent.setup();
+    const handlers = renderMenu({ ...atraxa, quantity: 1 });
+    await user.click(screen.getByRole('menuitem', { name: /DeckEditor.rowActions.removeOne/ }));
+    expect(handlers.onDec).toHaveBeenCalled();
+    expect(handlers.onClose).toHaveBeenCalled();
+  });
+
+  it('runs an action and closes', async () => {
+    const user = userEvent.setup();
+    const handlers = renderMenu();
+    await user.click(screen.getByRole('menuitem', { name: 'DeckEditor.rowActions.markCommander' }));
+    expect(handlers.onSetCommander).toHaveBeenCalledWith(true);
+    expect(handlers.onClose).toHaveBeenCalled();
+  });
+
+  it('offers the detail view when the deck has one', async () => {
+    const user = userEvent.setup();
+    const onShowDetails = vi.fn();
+    renderMenu(atraxa, { isMtg: true, isCommander: false }, { onShowDetails });
+    await user.click(screen.getByRole('menuitem', { name: 'DeckEditor.rowActions.details' }));
+    expect(onShowDetails).toHaveBeenCalled();
+  });
+
+  it('offers moving a sideboard card to main', async () => {
+    const user = userEvent.setup();
+    const handlers = renderMenu({ ...atraxa, category: 'sideboard' });
+    await user.click(screen.getByRole('menuitem', { name: 'DeckEditor.rowActions.moveToMain' }));
+    expect(handlers.onSetCategory).toHaveBeenCalledWith('main');
+  });
+
+  it('keeps sideboarding a commander reachable but off, and says why', async () => {
+    const user = userEvent.setup();
+    const handlers = renderMenu({ ...atraxa, isCommander: true });
+    const item = screen.getByRole('menuitem', { name: 'DeckEditor.rowActions.moveToSideboard' });
+    expect(item).toHaveAttribute('aria-disabled', 'true');
+    expect(item).toHaveAccessibleDescription('DeckEditor.rowActions.commanderStaysMain');
+    await user.click(item);
+    expect(handlers.onSetCategory).not.toHaveBeenCalled();
+    expect(screen.getByRole('menuitem', { name: 'DeckEditor.rowActions.unmarkCommander' })).toBeInTheDocument();
+  });
+
+  it('drops the detail, printing and commander items for decks that cannot use them', () => {
+    renderMenu(atraxa, { isMtg: false, isCommander: false });
+    expect(screen.queryByRole('menuitem', { name: 'DeckEditor.rowActions.details' })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: 'DeckEditor.rowActions.changePrinting' })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: /Commander/ })).toBeNull();
+    expect(screen.getByRole('menuitem', { name: 'Common.action.remove' })).toBeInTheDocument();
+  });
+
+  it('closes on Escape', async () => {
+    const user = userEvent.setup();
+    const handlers = renderMenu();
+    await user.keyboard('{Escape}');
+    expect(handlers.onClose).toHaveBeenCalled();
   });
 });

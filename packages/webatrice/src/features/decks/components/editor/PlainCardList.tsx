@@ -3,6 +3,7 @@ import { Minus, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { sortIndicesByName } from '../../deckGrouping';
+import { deckRowKey, type DeckCardGrid, type DeckCardRowProps } from '../../hooks/useDeckCardGrid';
 import type { DeckCard } from '../../types';
 
 /** Bare "type a card name and press Enter to add" input shown in the
@@ -36,6 +37,7 @@ export function PlainAddCard({ onAdd }: { onAdd: (name: string) => void }) {
           }
         }}
         placeholder={t('DeckEditor.list.addPlaceholder')}
+        aria-label={t('DeckEditor.list.addPlaceholder')}
         className={[
           'w-full pl-7 pr-3 py-1.5 rounded-md bg-bg-base border',
           'border-border-subtle text-xs text-text-primary',
@@ -55,53 +57,76 @@ export function PlainCardList({
   cards,
   onInc,
   onDelete,
+  grid,
 }: {
   cards: DeckCard[];
   onInc: (index: number, delta: number) => void;
   onDelete: (index: number) => void;
+  /** The deck list's keyboard grid (`useDeckCardGrid`); its rows take the list's keys. */
+  grid?: DeckCardGrid;
 }) {
+  const { t } = useTranslation();
   const sortedIndices = useMemo(() => sortIndicesByName(cards, cards.map((_, i) => i)), [cards]);
 
   return (
-    <ul>
+    <div role="grid" aria-label={t('DeckEditor.list.label')}>
       {sortedIndices.map((i) => (
-        <li key={i}>
-          <PlainCardRow
-            card={cards[i]}
-            onInc={(delta) => onInc(i, delta)}
-            onDelete={() => onDelete(i)}
-          />
-        </li>
+        <PlainCardRow
+          key={deckRowKey(cards[i])}
+          card={cards[i]}
+          rowProps={grid?.getDeckRowProps(i)}
+          onInc={(delta) => (delta < 0 && grid ? grid.decrementRow(i) : onInc(i, delta))}
+          onDelete={() => (grid ? grid.removeRow(i) : onDelete(i))}
+        />
       ))}
-    </ul>
+    </div>
   );
 }
 
-/** Row used inside `FlatCardList`. Deliberately simpler than
- *  `CardRow` — no hover preview, no chevron menu, no printings /
+/** Row used inside `PlainCardList`. Deliberately simpler than
+ *  `DeckCardRow` — no hover preview, no chevron menu, no printings /
  *  commander / sideboard toggles. Just quantity +/-, name, and a
- *  delete button. */
+ *  delete button, shown on hover and while the row has focus. In the
+ *  grid the row is the tab stop and its keys do what the buttons do. */
 function PlainCardRow({
   card,
+  rowProps,
   onInc,
   onDelete,
 }: {
   card: DeckCard;
+  rowProps?: DeckCardRowProps;
   onInc: (delta: number) => void;
   onDelete: () => void;
 }) {
   const { t } = useTranslation();
+  const buttonTabIndex = rowProps ? -1 : undefined;
   return (
-    <div className="group flex items-center gap-2 px-2 py-1 rounded hover:bg-bg-elevated transition-colors">
-      <span className="text-xs tabular-nums text-text-muted w-6 text-right shrink-0">
+    <div
+      {...rowProps}
+      role="row"
+      aria-label={t('DeckEditor.row.label', { count: card.quantity, card: card.name })}
+      className={[
+        'group flex items-center gap-2 px-2 py-1 rounded hover:bg-bg-elevated transition-colors',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+      ].join(' ')}
+    >
+      <span role="gridcell" className="text-xs tabular-nums text-text-muted w-6 text-right shrink-0">
         {card.quantity}
       </span>
-      <span className="flex-1 min-w-0 truncate text-sm text-text-primary">
+      <span role="gridcell" className="flex-1 min-w-0 truncate text-sm text-text-primary">
         {card.name}
       </span>
-      <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div
+        role="gridcell"
+        className={[
+          'shrink-0 flex items-center gap-0.5 opacity-0 transition-opacity',
+          'group-hover:opacity-100 group-focus-within:opacity-100',
+        ].join(' ')}
+      >
         <button
           type="button"
+          tabIndex={buttonTabIndex}
           onClick={() => onInc(-1)}
           className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-base transition-colors"
           title={t('DeckEditor.list.decrease')}
@@ -111,6 +136,7 @@ function PlainCardRow({
         </button>
         <button
           type="button"
+          tabIndex={buttonTabIndex}
           onClick={() => onInc(1)}
           className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-base transition-colors"
           title={t('DeckEditor.list.increase')}
@@ -120,6 +146,7 @@ function PlainCardRow({
         </button>
         <button
           type="button"
+          tabIndex={buttonTabIndex}
           onClick={onDelete}
           className="p-1 rounded text-text-muted hover:text-danger hover:bg-red-500/10 transition-colors"
           title={t('Common.action.remove')}

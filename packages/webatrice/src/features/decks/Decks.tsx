@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
-import { generatePath, useNavigate, useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { generatePath, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
 import { AuthGuard } from '@app/components';
 import { AlertDialog } from '@app/dialogs';
+import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 import { Layout } from '@app/feature-wrappers/layout';
 import { RouteEnum } from '@app/types';
 
@@ -14,6 +15,7 @@ import { DeckListSections } from './components/list/DeckListSections';
 import { DeckListEmpty, DeckListError, DeckListLoading, DeckStorageError } from './components/list/DeckListStates';
 import type { DeckFolderEntry } from './deckFolders';
 import { deckShareQuery, type DeckShareLink } from './deckSharing';
+import type { DecksLocationState } from './deckShortcuts';
 import type { FlatDeck } from './deckTree';
 import { CreateDeckDialog } from './dialogs/CreateDeckDialog';
 import { CreateFolderDialog } from './dialogs/CreateFolderDialog';
@@ -76,6 +78,21 @@ function Decks() {
   const [shareTarget, setShareTarget] = useState<{ deckId: number } | { folderPath: string } | null>(null);
   const [shareLinksOpen, setShareLinksOpen] = useState(false);
   const [openLinkOpen, setOpenLinkOpen] = useState(false);
+
+  // Desktop's New Deck (Ctrl+N) and Load Deck (Ctrl+O): here they open the
+  // create and import dialogs; the editor sends them here with the dialog to open.
+  const location = useLocation();
+  useEffect(() => {
+    const open = (location.state as DecksLocationState | null)?.open;
+    if (open === 'create') {
+      setCreateOpen(true);
+    } else if (open === 'import') {
+      setImportOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per navigation, not on every state read
+  }, [location.key]);
+  useShortcut('deck.new', () => setCreateOpen(true), { scope: ShortcutScope.DECK_EDITOR, enabled: list.isConnected });
+  useShortcut('deck.load', () => setImportOpen(true), { scope: ShortcutScope.DECK_EDITOR, enabled: list.isConnected });
   const shareLinks = useDeckShareLinks(shareLinksOpen);
 
   const startShare = (target: { deckId: number } | { folderPath: string }) => {
