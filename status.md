@@ -5,3 +5,4 @@
 - QUESTION Q1: 'all scopes' check vs 'keep deck.new out' conflict: deck.new=Ctrl+N would fail. | default: defaults.spec names deck.new in PENDING_REMAP (excluded + asserted still reserved); 31's restack deletes that entry.
 - ACK M1: kept deck.new in PENDING_REMAP; will note it in the PR file for 31's replay
 - 05:40Z pushed f81008c (library prompts, per-card tap + desktop double-click) → Game.shortcuts.spec cases, nits
+- 05:44Z pushed b2d2d09 (all findings applied) → full gate + e2e, PR file
