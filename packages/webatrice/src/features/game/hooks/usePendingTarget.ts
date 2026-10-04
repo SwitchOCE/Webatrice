@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import type { ArrowTarget } from '../components/ui/PlayerBoard/playerBoard.types';
 import { useTargetCommandsFor } from '../components/ui/GameBoardCell/usePlayerTargetCommands';
+import { createPendingPointerStore, type PendingPointer, type PendingPointerStore } from './pendingPointerStore';
 import { planArrow, planAttach, sendArrowPlan, type ArrowPlan, type ArrowSource } from './arrowResolution';
 import { arrowTargetAt } from './useArrowDrag';
 import { useGameAccess } from './useGameAccess';
@@ -20,8 +21,9 @@ export type PendingTarget =
 
 export interface PendingTargetPicker {
   pending: PendingTarget | null;
-  /** The pointer while a pick is pending, for the live arrow. */
-  pointer: { x: number; y: number } | null;
+  /** The pointer while a pick is pending, for the live arrow. Read it with
+   *  `usePendingPointer`; it is not part of this value's identity. */
+  pointer: PendingPointerStore;
   startArrow(source: PendingTargetSource): void;
   /** Attach `source` and `extraSourceIds` (battlefield cards of one player). */
   startAttach(source: PendingTargetSource, extraSourceIds?: readonly number[]): void;
@@ -45,7 +47,7 @@ export function usePendingTarget(gameId: number | undefined): PendingTargetPicke
   const { localPlayerId } = useGameAccess(gameId);
   const targetCommandsFor = useTargetCommandsFor(gameId);
   const [pending, setPending] = useState<PendingTarget | null>(null);
-  const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
+  const [pointer] = useState(createPendingPointerStore);
   // The press-release and click resolvers run from listeners registered
   // earlier; they read the pick as it is now.
   const pendingRef = useRef(pending);
@@ -98,7 +100,7 @@ export function usePendingTarget(gameId: number | undefined): PendingTargetPicke
   const active = pending != null;
   useEffect(() => {
     if (!active) {
-      setPointer(null);
+      pointer.set(null);
       return undefined;
     }
     const onKey = (e: KeyboardEvent) => {
@@ -107,14 +109,14 @@ export function usePendingTarget(gameId: number | undefined): PendingTargetPicke
         setPending(null);
       }
     };
-    const onMove = (e: MouseEvent) => setPointer({ x: e.clientX, y: e.clientY });
+    const onMove = (e: MouseEvent) => pointer.set({ x: e.clientX, y: e.clientY });
     window.addEventListener('keydown', onKey);
     window.addEventListener('mousemove', onMove);
     return () => {
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('mousemove', onMove);
     };
-  }, [active]);
+  }, [active, pointer]);
 
   const actions = useMemo(() => ({
     startArrow: (source: PendingTargetSource) => setPending({ kind: 'arrow', source }),
@@ -126,4 +128,9 @@ export function usePendingTarget(gameId: number | undefined): PendingTargetPicke
   }), [resolve]);
 
   return useMemo(() => ({ pending, pointer, ...actions }), [pending, pointer, actions]);
+}
+
+/** The pending pick's pointer; re-renders the caller on every mouse move. */
+export function usePendingPointer(store: PendingPointerStore): PendingPointer | null {
+  return useSyncExternalStore(store.subscribe, store.get);
 }

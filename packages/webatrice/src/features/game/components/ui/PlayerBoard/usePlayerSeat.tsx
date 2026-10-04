@@ -240,13 +240,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     [seatPending],
   );
   const attachExtraSourceIds = seatPending?.kind === 'attach' ? seatPending.extraSourceIds : NO_CARD_IDS;
-  const drawArrowPending = useMemo(
-    () => (seatPending?.kind === 'arrow'
-      ? { sourceCardId: seatPending.source.cardId, sourceCardName: seatPending.source.name, sourceZone: seatPending.source.zone }
-      : null),
-    [seatPending],
-  );
-  const pendingArrowPointer = seatPending ? pendingTarget.pointer : null;
   const { startArrow: startPendingArrow, startAttach: startPendingAttach, pickAttachTarget } = pendingTarget;
   /** "Draw arrow..." from one of this seat's cards in any public zone. */
   const startDrawArrow = useCallback(
@@ -449,7 +442,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     displayedExileCount,
     displayedGraveyardCount,
     draw,
-    drawArrowPending,
     exileDisplayList,
     exileMenuItemsOpponent,
     exileMenuItemsSelf,
@@ -492,7 +484,6 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     openViewLibraryCountPrompt,
     openZoneView,
     opponentBattlefieldMenuItems,
-    pendingArrowPointer,
     pileCardMenu,
     playerId,
     relatedViewItemsFor,
@@ -501,6 +492,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     seat,
     seatDrag,
     seatId,
+    seatPending,
     selection,
     setCardMetaByName,
     setLife,
