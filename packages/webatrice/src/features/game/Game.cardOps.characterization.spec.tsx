@@ -97,17 +97,30 @@ function renderGame(spec: SeatGameSpec = SPEC) {
 type GameRequests = ReturnType<typeof createMockWebClient>['request']['game'];
 
 /** Every game request sent so far, as `[method, params]` (plus the judge
- *  target, or the command options, when one was passed). */
+ *  target, or the command options, when one was passed; moveCardAndShuffle
+ *  keeps its shuffle params). */
 function wire(game: GameRequests) {
   return Object.entries(game).flatMap(([method, fn]) =>
     vi.isMockFunction(fn)
       ? fn.mock.calls.map(([, params, ...rest]) => {
+        if (method === 'moveCardAndShuffle') {
+          return [method, params, ...rest];
+        }
         const extra = rest.filter((arg) => arg !== undefined);
         return extra.length ? [method, params, ...extra.map((arg) => (typeof arg === 'object' ? 'options' : arg))] : [method, params];
       })
       : [],
   );
 }
+
+// Two battlefield cards to the top / bottom of the library: desktop shuffles
+// the moved block in the same container (player_actions.cpp:1853-1888).
+const TO_LIBRARY_TOP = [
+  'moveCardAndShuffle', moveFromTable([10, 11], ZoneName.DECK, 0, false), { zoneName: ZoneName.DECK, start: 0, end: 1 },
+];
+const TO_LIBRARY_BOTTOM = [
+  'moveCardAndShuffle', moveFromTable([10, 11], ZoneName.DECK, 0, true), { zoneName: ZoneName.DECK, start: -2, end: -1 },
+];
 
 function click(el: Element, init: { ctrlKey?: boolean } = {}) {
   act(() => {
@@ -214,7 +227,7 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     'game.setCounterC': { dialogs: ['Set counter C'] },
     'game.incrementAllCardCounters': { wire: [['bulkSetCardCounterEntries', counters([10, 0, 3], [10, 1, 2])]] },
     'game.setAnnotation': { dialogs: ['Set annotation'] },
-    'game.moveSelectedToLibraryBottom': { wire: [['moveCard', moveFromTable([10, 11], ZoneName.DECK, 0, true)]] },
+    'game.moveSelectedToLibraryBottom': { wire: [TO_LIBRARY_BOTTOM] },
     'game.cloneCard': {
       wire: [
         ['createToken', clone('Ogre', '3/3')],
@@ -234,7 +247,7 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     'game.createRelatedTokens': {},
     'game.moveSelectedToExile': { wire: [['moveCard', moveFromTable([10, 11], ZoneName.EXILE, 0, false)]] },
     'game.moveSelectedToHand': { wire: [['moveCard', moveFromTable([10, 11], ZoneName.HAND, 0, false)]] },
-    'game.moveSelectedToLibraryTop': { wire: [['moveCard', moveFromTable([10, 11], ZoneName.DECK, 0, false)]] },
+    'game.moveSelectedToLibraryTop': { wire: [TO_LIBRARY_TOP] },
     'game.moveSelectedToBattlefield': { wire: [['moveCard', moveFromTable([10, 11], ZoneName.TABLE, 0, false)]] },
     // The zone views open as non-modal dialogs titled by zone and owner.
     'game.viewHand': { dialogs: ['ZoneLabel.title.hand — P1'] },
@@ -389,9 +402,9 @@ describe('battlefield card menu actions', () => {
     }],
     [['Turn Over'], { wire: [['flipCard', { ...table(10), faceDown: true }], ['flipCard', { ...table(11), faceDown: true }]] }],
     [['Clone'], { wire: [['createToken', clone('Ogre', '3/3')], ['createToken', clone('Morph', '')]] }],
-    [['Move to', 'Top of library in random order'], { wire: [['moveCard', moveFromTable([10, 11], ZoneName.DECK, 0, false)]] }],
+    [['Move to', 'Top of library in random order'], { wire: [TO_LIBRARY_TOP] }],
     [['Move to', 'X cards from the top of library...'], { dialogs: ['Move X cards from the top of library'] }],
-    [['Move to', 'Bottom of library in random order'], { wire: [['moveCard', moveFromTable([10, 11], ZoneName.DECK, 0, true)]] }],
+    [['Move to', 'Bottom of library in random order'], { wire: [TO_LIBRARY_BOTTOM] }],
     [['Move to', 'Table'], { wire: [['moveCard', moveFromTable([10, 11], ZoneName.TABLE, 0, false)]] }],
     [['Move to', 'Hand'], { wire: [['moveCard', moveFromTable([10, 11], ZoneName.HAND, 0, false)]] }],
     [['Move to', 'Graveyard'], { wire: [['moveCard', moveFromTable([10, 11], ZoneName.GRAVE, 0, false)]] }],

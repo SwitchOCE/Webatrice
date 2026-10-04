@@ -4,6 +4,7 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import type { SeatSelection } from '../../../hooks/useSeatSelection';
 import { playCardMoves } from '../../context-menus/CardContextMenu/handCardMenu.actions';
 import type { PlayerCardViewModel, PlayerZoneCommands, SeatMoveDestination } from './playerBoard.types';
+import { moveSelectedCards } from './selectionMoves';
 import type { SeatCardMeta } from './useSeatCardMetadata';
 
 export interface UseHandCardOpsArgs {
@@ -18,7 +19,7 @@ export interface UseHandCardOpsArgs {
 export interface HandCardOps {
   /** Play each card (desktop actPlay / actPlayFacedown). */
   play(faceDown: boolean): void;
-  /** One Command_MoveCard for every card. */
+  /** Desktop's "Move to" on the cards (moveSelectedCards). */
   move(to: SeatMoveDestination): void;
 }
 
@@ -50,7 +51,7 @@ export function useHandCardOps({ cards, selection, cardMetaByName, zoneCommands 
             zoneCommands.moveCards(ZoneName.HAND, [card], to);
           }
         },
-        move: (to) => zoneCommands.moveCards(ZoneName.HAND, targets.map((c) => Number(c.id)), { reversed: false, ...to }),
+        move: (to) => moveSelectedCards(zoneCommands.moveCards, ZoneName.HAND, targets, to, (name) => cardMetaByName.get(name)),
       };
     },
   }), [cards, selection, cardMetaByName, zoneCommands]);
