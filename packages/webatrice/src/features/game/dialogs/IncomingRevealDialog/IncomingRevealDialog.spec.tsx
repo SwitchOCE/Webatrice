@@ -33,7 +33,8 @@ const REVEALED = [makeCard({ id: 0, name: 'Island' }), makeCard({ id: 1, name: '
 function renderReveal({
   grantWriteAccess = false,
   zoneName = ZoneName.DECK as string,
-  snapshot = REVEALED as typeof REVEALED | undefined,
+  // null: no snapshot was seeded.
+  snapshot = REVEALED as typeof REVEALED | null,
 } = {}) {
   const preloadedState = buildSeatGameState({
     localPlayerId: 1,
@@ -46,7 +47,7 @@ function renderReveal({
     ...preloadedState.games!,
     incomingReveal: { gameId: 1, sourceOwnerId: 2, zoneName, cards: REVEALED, grantWriteAccess },
   } as typeof preloadedState.games;
-  preloadedState.games!.games![1]!.players![2]!.zones![zoneName]!.revealedCards = snapshot;
+  preloadedState.games!.games![1]!.players![2]!.zones![zoneName]!.revealedCards = snapshot ?? undefined;
   const webClient = createMockWebClient();
   const utils = renderWithProviders(<ShortcutProvider><Game /></ShortcutProvider>, { preloadedState, webClient, route: '/game/1' });
   const reveal = () => utils.store.getState().games;
@@ -176,13 +177,12 @@ describe('IncomingRevealDialog', () => {
     expect(within(popup()).queryByTitle('Forest')).not.toBeInTheDocument();
   });
 
-  it('falls back to the first payload when no snapshot was seeded, and shows an emptied one as empty', () => {
-    const { unmount } = renderReveal({ snapshot: undefined });
-    expect(within(popup()).getByTitle('Island')).toBeInTheDocument();
-    expect(within(popup()).getByTitle('Forest')).toBeInTheDocument();
+  it('shows no cards when the snapshot was emptied or never seeded', () => {
+    const { unmount } = renderReveal({ snapshot: [] });
+    expect(within(popup()).getByText('No cards to show.')).toBeInTheDocument();
     unmount();
 
-    renderReveal({ snapshot: [] });
+    renderReveal({ snapshot: null });
     expect(within(popup()).getByText('No cards to show.')).toBeInTheDocument();
   });
 
@@ -223,11 +223,17 @@ describe('IncomingRevealDialog', () => {
       expect(popup().style.height).toBe('480px');
     });
 
-    it('restores a stored position, kept on screen', () => {
+    it('restores a stored size, clamped between its minimum and the viewport', () => {
+      window.localStorage.setItem('webatrice.incomingRevealSize', JSON.stringify({ w: 5000, h: 100 }));
+      renderReveal();
+      expect(popup().style.width).toBe(`${window.innerWidth}px`);
+      expect(popup().style.height).toBe('300px');
+    });
+
+    it('restores a stored position, keeping 60px of its header on screen', () => {
       window.localStorage.setItem('webatrice.incomingRevealPosition', JSON.stringify({ x: 5000, y: -40 }));
       renderReveal();
-      // jsdom lays nothing out, so the dialog measures 0×0.
-      expect(popup().style.left).toBe(`${window.innerWidth}px`);
+      expect(popup().style.left).toBe(`${window.innerWidth - 60}px`);
       expect(popup().style.top).toBe('0px');
     });
   });
