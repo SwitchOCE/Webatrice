@@ -14,7 +14,7 @@ vi.mock('@cockatrice/datatrice/react', async (importOriginal) => {
   return { ...actual, useWebClient: () => hoisted.mockWebClient };
 });
 
-import { useStartupRoom } from './useStartupRoom';
+import { STARTUP_ROOM_TIMEOUT_MS, useStartupRoom } from './useStartupRoom';
 
 const sideRoom = create(ServerInfo_RoomSchema, { roomId: 2, name: 'Side Room', autoJoin: false });
 const autoRoom = create(ServerInfo_RoomSchema, { roomId: 3, name: 'Auto Room', autoJoin: true });
@@ -103,5 +103,39 @@ describe('useStartupRoom', () => {
 
     expect(screen.getByText('lobby {"startupRoom":"Side Room"}')).toBeInTheDocument();
     expect(hoisted.mockWebClient.request.session.joinRoom).not.toHaveBeenCalled();
+  });
+
+  describe('when the room never opens', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('gives up after 20 seconds, as desktop does, leaving the user in the lobby', () => {
+      renderLobby('Auto Room');
+      act(() => {
+        vi.advanceTimersByTime(STARTUP_ROOM_TIMEOUT_MS - 1);
+      });
+      expect(screen.getByText('lobby {"startupRoom":"Auto Room"}')).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+
+      expect(screen.getByText('lobby null')).toBeInTheDocument();
+    });
+
+    it('gives up on a join the server never answers', () => {
+      renderLobby('Side Room');
+
+      act(() => {
+        vi.advanceTimersByTime(STARTUP_ROOM_TIMEOUT_MS);
+      });
+
+      expect(screen.getByText('lobby null')).toBeInTheDocument();
+    });
   });
 });
