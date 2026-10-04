@@ -1,3 +1,4 @@
 - 00:54Z started; base af3cfc1, branch claude/parity-r6-game-listeners → npm ci + read game.listeners.ts
 - 00:59Z characterization spec pushed (db9b1cd, 18 tests) → extract pure planners + cardMoved helpers
 - 01:06Z planners (fd7d082) + domain split pushed → full gate + webatrice e2e
+- 01:15Z gate green (typecheck, lint, unit 896/1418/3542, integration 175/144/266) → webatrice e2e
