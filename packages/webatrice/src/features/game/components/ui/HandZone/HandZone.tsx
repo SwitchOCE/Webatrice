@@ -11,6 +11,7 @@ import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../S
 import Card from '../SeatCard/SeatCard';
 import type { PlayerCardViewModel } from '../PlayerBoard/playerBoard.types';
 import { layoutVerticalPile, type VerticalPileOptions } from '../VerticalPile/verticalPile';
+import ZoneBackground from '../ZoneBackground/ZoneBackground';
 import { OVER_ART_SHADOW_SMALL, SELECTED_RING } from '../seatColors/seatColors';
 
 /**
@@ -289,6 +290,7 @@ export default function HandZone() {
         zIndex: 30,
       }}
     >
+      <ZoneBackground zone="hand" />
       {countBadge}
       {/* Inner row — full card height so cards render at their true
         size; the outer wrapper clips the half we don't want to see
@@ -424,6 +426,7 @@ function VerticalHand({
       className="relative min-h-0 border-r border-border-subtle bg-bg-surface/40"
       style={{ ...placement, zIndex: 30 }}
     >
+      <ZoneBackground zone="hand" />
       {badge}
       {/* The cards start under the count badge. */}
       <div ref={ref} data-testid={testId} className="absolute inset-x-0 bottom-0 top-16">
