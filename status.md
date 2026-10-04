@@ -2,3 +2,4 @@
 - 01:23Z major (motion policy) pushed a10b87d → migration v3
 - 01:30Z pushed migration, click-to-play (judge/Alt/closure), flash loss-only+rewind+wash spec → arrows draw-in, sockatrice/datatrice time
 - 01:35Z pushed arrows draw-in, sockatrice presence/rename, datatrice time base → card font/zone view/settings
+- 01:42Z pushed font px, zone view cap, rows coupling, playmat/table, hand hover → a11y (selection count, zone bg editor, expand button)
