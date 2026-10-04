@@ -36,8 +36,8 @@ export interface DeckCardRowProps {
  * is the tab stop and takes the list's keys (`useDeckCardGrid`); the name and
  * chevron stay clickable but out of the tab order. Its actions menu opens
  * from the chevron, a right-click, Shift+F10 or the Menu key, like desktop's
- * deck-view context menu. Hover, keyboard focus and an open menu all reveal
- * the chevron and preview the card.
+ * deck-view context menu. The chevron is always shown; hover and keyboard
+ * focus preview the card.
  */
 export function DeckCardRow({
   card,
