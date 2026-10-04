@@ -145,3 +145,18 @@ No commit in this round adds or changes an i18n key, so `src/i18n-default.json` 
 - Fold `542cf5d`'s spec fix (`browser-support.spec.ts` looks in the Notifications region) into `f6ac60e`, so e2e is green at every commit.
 - Split `36cd584` into `fix(a11y): hand the opener across swapped dialogs` (hook + unit spec) and `test(a11y): keyboard-only moderator action e2e`.
 - Split `08393d9`: fold its `ToastContext` hunk (the lint-only class-string wrap) into `5e81593`, which it makes lint-clean, and its `src/i18n-default.json` hunk into `ef177d5`, which added those three keys.
+
+## Restack notes (wR3)
+
+Restacked onto `claude/restack-17b-game-menus` (`41f0d47`) as `claude/restack-26-a11y-primitives` (tip `35919ab`, 30 commits). The "Deferred to restack" list above is done:
+- `0a0ab4d`'s player integration spec and `542cf5d`'s browser-support e2e fix are folded into `f6ac60e`'s replacement, which passes the full webatrice integration suite. The rest of `0a0ab4d` is now `chore(changeset): add the a11y primitives changeset`.
+- `36cd584` is split into `fix(a11y): hand the opener across swapped dialogs` (hook + unit spec) and `test(a11y): keyboard-only moderator action e2e`.
+- `08393d9` is gone: its ToastContext wrap is in `5e81593`, and its rollup keys arrive with `ef177d5`.
+
+Conflicts with the game chain:
+- **UserActionsMenu.** 23d's "View this user's public decks" is now a `Menu` entry. For yourself it is a disabled `MenuItem` with `disabledReason` `UserActionsMenu.viewPublicDecksSelf`.
+- **PrivateChat.** The sender `sr-only` text sits before `renderGameLinks(message)`.
+- **e2e.** The Menu commit also switches the game chain's `card-menus.spec.ts` Settings click from `button` to `menuitem`. The spec now passes 9/9 across chromium, firefox and webkit.
+- **menuShortcut.** It uses 05's `shortcutSequence.isMacPlatform`. The duplicate `isMacUA` is removed.
+
+Every commit typechecks, lints, and keeps the rollup consistent.
