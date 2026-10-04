@@ -16,7 +16,8 @@ export interface DeckFolderRowProps {
 }
 
 const ACTION_CLASS = [
-  'p-2 rounded-md text-text-muted opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all shrink-0',
+  'p-2 rounded-md text-text-muted transition-all shrink-0',
+  'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100',
 ].join(' ');
 
 /** A subfolder in the list: opens on click; share, publish, download and delete on hover. */

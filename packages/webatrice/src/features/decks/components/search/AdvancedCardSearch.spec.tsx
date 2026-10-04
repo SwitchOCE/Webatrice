@@ -47,6 +47,20 @@ describe('AdvancedCardSearch', () => {
     expect(handlers.onAddByName).toHaveBeenCalledWith('Lightning Bolt');
   });
 
+  it('previews on keyboard focus, names the tile and announces the count and each add', () => {
+    vi.mocked(useScryfallCardSearch).mockReturnValue({ results: [bolt], loading: false, error: null });
+    const handlers = renderSearch();
+    const [count, added] = screen.getAllByRole('status');
+    expect(count).toHaveTextContent('CardSearch.resultCount');
+    expect(added).toBeEmptyDOMElement();
+
+    const tile = screen.getByRole('button', { name: 'CardSearch.addCardTitle' });
+    fireEvent.focus(tile);
+    expect(handlers.onPreviewCard).toHaveBeenCalledWith(expect.objectContaining({ name: 'Lightning Bolt' }));
+    fireEvent.click(tile);
+    expect(added).toHaveTextContent('CardSearch.added');
+  });
+
   it('shows progress, errors and the empty prompt', () => {
     vi.mocked(useScryfallCardSearch).mockReturnValue({ results: [], loading: true, error: null });
     const { unmount } = render(

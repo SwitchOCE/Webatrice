@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { Plus, Search } from 'lucide-react';
 
@@ -34,6 +34,8 @@ export function AdvancedCardSearch({
   onPreviewCard: (card: DeckCard | null) => void;
 }) {
   const { t } = useTranslation();
+  // The last card added from the results, announced since the deck list is out of view.
+  const [added, setAdded] = useState<string | null>(null);
   const composedQuery = useMemo(() => buildScryfallQuery(query, filters), [query, filters]);
   const { results, loading, error } = useScryfallCardSearch(composedQuery);
 
@@ -62,7 +64,8 @@ export function AdvancedCardSearch({
           onReset={() => onFiltersChange(EMPTY_FILTERS)}
         />
 
-        <div className="text-xs text-text-muted h-4">
+        {/* Mounted with the search, so screen readers hear each new count or failure. */}
+        <div role="status" className="text-xs text-text-muted h-4">
           {loading && t('CardSearch.searching')}
           {error !== null && <span className="text-danger">{error || t('CardSearch.searchFailed')}</span>}
           {!loading && error === null && composedQuery && (
@@ -104,13 +107,20 @@ export function AdvancedCardSearch({
               <button
                 key={card.id}
                 type="button"
-                onClick={() => onAddByName(card.name)}
-                // Previewed in the sidebar, not added to the deck.
+                onClick={() => {
+                  onAddByName(card.name);
+                  setAdded(card.name);
+                }}
+                // Previewed in the sidebar, not added to the deck: on hover
+                // and on keyboard focus alike.
                 onMouseEnter={() => onPreviewCard(searchCardAsPreview(card))}
+                onFocus={() => onPreviewCard(searchCardAsPreview(card))}
+                aria-label={t('CardSearch.addCardTitle', { name: card.name })}
                 className={[
                   'aspect-[5/7] w-full rounded-lg overflow-hidden bg-bg-surface border',
                   'border-border-subtle hover:border-accent hover:shadow-glow',
                   'transition-all group relative cursor-pointer focus:outline-none focus:border-accent',
+                  'focus-visible:ring-2 focus-visible:ring-accent',
                 ].join(' ')}
                 title={t('CardSearch.addCardTitle', { name: card.name })}
               >
@@ -128,12 +138,14 @@ export function AdvancedCardSearch({
                     <div className="mt-auto text-xs text-text-muted">{card.type_line ?? ''}</div>
                   </div>
                 )}
-                {/* Overlay Add affordance on hover. */}
+                {/* Overlay Add affordance on hover and keyboard focus. */}
                 <div
                   className={[
-                    'absolute inset-0 bg-black/0 group-hover:bg-black/60',
-                    'transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100',
+                    'absolute inset-0 bg-black/0 group-hover:bg-black/60 group-focus-visible:bg-black/60',
+                    'transition-colors flex items-center justify-center',
+                    'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100',
                   ].join(' ')}
+                  aria-hidden
                 >
                   <span
                     className={[
@@ -148,6 +160,7 @@ export function AdvancedCardSearch({
             );
           })}
         </div>
+        <p role="status" className="sr-only">{added ? t('CardSearch.added', { name: added }) : ''}</p>
       </div>
     </>
   );
