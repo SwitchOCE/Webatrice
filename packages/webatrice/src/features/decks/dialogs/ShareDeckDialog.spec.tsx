@@ -35,7 +35,7 @@ describe('ShareDeckDialog', () => {
 
   it('shows the created link, its expiry and whether it was copied', () => {
     renderDialog({ status: 'created', link: 'https://x/#share=t', expiresAt: 1800000000n, itemCount: 1, copied: true });
-    expect(screen.getByText('DeckSharing.createdCopied')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('DeckSharing.createdCopied');
     expect(screen.getByRole('textbox', { name: 'DeckSharing.linkLabel' })).toHaveValue('https://x/#share=t');
     expect(screen.getByText('DeckSharing.expires')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /DeckSharing.create/ })).toBeNull();
@@ -46,10 +46,30 @@ describe('ShareDeckDialog', () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     renderDialog({ status: 'created', link: 'https://x/#share=t', expiresAt: 1n, itemCount: 1, copied: false });
-    expect(screen.getByText('DeckSharing.created')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('DeckSharing.created');
     fireEvent.click(screen.getByRole('button', { name: /DeckSharing.copy/ }));
     expect(writeText).toHaveBeenCalledWith('https://x/#share=t');
     expect(await screen.findByRole('button', { name: /DeckSharing.copied/ })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('DeckSharing.copied');
+  });
+
+  it('moves focus to the new link when the name step goes away, and announces it from the same region', () => {
+    const props = { open: true, defaultName: 'Shared decks', onClose: vi.fn(), onCreate: vi.fn() };
+    const { rerender } = render(<ShareDeckDialog {...props} state={{ status: 'idle' }} />);
+    expect(nameField()).toHaveFocus();
+    const status = screen.getByRole('status');
+
+    rerender(<ShareDeckDialog {...props} state={{ status: 'pending' }} />);
+    expect(status).toHaveTextContent('DeckSharing.creating');
+    rerender(
+      <ShareDeckDialog
+        {...props}
+        state={{ status: 'created', link: 'https://x/#share=t', expiresAt: 1n, itemCount: 1, copied: true }}
+      />,
+    );
+    expect(screen.getByRole('textbox', { name: 'DeckSharing.linkLabel' })).toHaveFocus();
+    expect(screen.getByRole('status')).toBe(status);
+    expect(status).toHaveTextContent('DeckSharing.createdCopied');
   });
 
   it('shows a failure and lets the user try again', () => {

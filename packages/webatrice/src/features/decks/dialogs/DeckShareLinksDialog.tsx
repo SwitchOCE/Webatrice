@@ -5,7 +5,6 @@ import { Trash2 } from 'lucide-react';
 import type { ServerInfo_DeckShareSummary } from '@cockatrice/sockatrice/generated';
 
 import { formatShareExpiry } from '../deckSharing';
-import { useEscapeKey } from '../hooks/useEscapeKey';
 import { DeckDialogFrame } from './DeckDialogFrame';
 
 export interface DeckShareLinksDialogProps {
@@ -31,7 +30,6 @@ export function DeckShareLinksDialog({ shares, error, pending = false, onRevoke,
       onClose();
     }
   };
-  useEscapeKey(true, confirming ? () => setConfirming(null) : close);
   const confirmRef = useRef<HTMLButtonElement>(null);
 
   // The confirmation sits below a scrolling list: bring it into view and
@@ -43,7 +41,7 @@ export function DeckShareLinksDialog({ shares, error, pending = false, onRevoke,
   }, [confirming]);
 
   return (
-    <DeckDialogFrame onClose={close} titleId={titleId}>
+    <DeckDialogFrame onClose={close} titleId={titleId} onEscape={confirming ? () => setConfirming(null) : close}>
       <div
         className="relative w-full max-w-lg rounded-xl bg-bg-surface border border-border-subtle shadow-glow overflow-hidden"
       >

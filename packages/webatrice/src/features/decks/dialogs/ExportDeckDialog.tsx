@@ -4,7 +4,6 @@ import { X, Copy, Check, Download, FileText, Swords, Package } from 'lucide-reac
 
 import { saveTextFile } from '../browserHandoff';
 import { exportDeck, exportFileName, type DeckExportFormat } from '../deckExport';
-import { useEscapeKey } from '../hooks/useEscapeKey';
 import type { HydratedDeck } from '../types';
 import { DeckDialogFrame } from './DeckDialogFrame';
 
@@ -59,7 +58,6 @@ export function ExportDeckDialog({
       setCopied(false);
     }
   }, [open]);
-  useEscapeKey(open, onClose);
   const titleId = useId();
 
   const content = useMemo(() => exportDeck(deck, exportFormat), [deck, exportFormat]);
@@ -107,7 +105,7 @@ export function ExportDeckDialog({
           <p className="text-xs text-text-muted mt-1 truncate">{deck.name}</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 mb-4">
+        <div data-dialog-content className="grid grid-cols-3 gap-2 mb-4">
           {FORMATS.map((f) => {
             const Icon = f.icon;
             const active = f.id === exportFormat;

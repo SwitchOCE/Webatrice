@@ -7,7 +7,6 @@ import { Check, Copy, Link2 } from 'lucide-react';
 
 import { formatShareExpiry } from '../deckSharing';
 import { copyShareLink, type DeckShareCreateState } from '../hooks/useDeckSharing';
-import { useEscapeKey } from '../hooks/useEscapeKey';
 import { DeckDialogFrame } from './DeckDialogFrame';
 
 /** Servatrice keeps a share's name in a 64-character column (`cockatrice_deck_share.name`). */
@@ -48,7 +47,6 @@ export function ShareDeckDialog({ open, defaultName, state, onClose, onCreate }:
       setCopiedAgain(false);
     }
   }, [open, defaultName, reset]);
-  useEscapeKey(open, onClose);
 
   if (!open) {
     return null;
@@ -56,6 +54,13 @@ export function ShareDeckDialog({ open, defaultName, state, onClose, onCreate }:
 
   const submit = handleSubmit(({ name }) => onCreate(name.trim() || defaultName));
   const created = state.status === 'created' ? state : null;
+  // One region, mounted with the dialog, announces each step: screen readers
+  // read a live region reliably only when it was there before its text.
+  const announcement = state.status === 'pending'
+    ? t('DeckSharing.creating')
+    : created
+      ? (copiedAgain ? t('DeckSharing.copied') : t(created.copied ? 'DeckSharing.createdCopied' : 'DeckSharing.created'))
+      : '';
 
   return (
     <DeckDialogFrame onClose={onClose} titleId={titleId}>
@@ -71,9 +76,12 @@ export function ShareDeckDialog({ open, defaultName, state, onClose, onCreate }:
             <>
               <p>{t(created.copied ? 'DeckSharing.createdCopied' : 'DeckSharing.created')}</p>
               <div className="flex items-center gap-2">
+                {/* The name field unmounts with the form step, so the link takes focus
+                    (selected, ready to copy) instead of focus falling to the page. */}
                 <input
                   type="text"
                   readOnly
+                  autoFocus
                   value={created.link}
                   aria-label={t('DeckSharing.linkLabel')}
                   onFocus={(e) => e.currentTarget.select()}
@@ -120,7 +128,8 @@ export function ShareDeckDialog({ open, defaultName, state, onClose, onCreate }:
               )}
             />
           )}
-          {state.status === 'pending' && <p role="status">{t('DeckSharing.creating')}</p>}
+          {state.status === 'pending' && <p>{t('DeckSharing.creating')}</p>}
+          <p role="status" className="sr-only">{announcement}</p>
           {state.status === 'failed' && <p role="alert" className="text-danger">{state.message}</p>}
         </div>
         <div className="px-5 py-3 border-t border-border-subtle flex items-center justify-end gap-2">

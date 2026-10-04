@@ -2,7 +2,6 @@ import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { DeckFolderEntry } from '../deckFolders';
-import { useEscapeKey } from '../hooks/useEscapeKey';
 import { DeckDialogFrame } from './DeckDialogFrame';
 
 export interface DeleteFolderDialogProps {
@@ -17,7 +16,6 @@ export interface DeleteFolderDialogProps {
  */
 export function DeleteFolderDialog({ folder, onCancel, onConfirm }: DeleteFolderDialogProps) {
   const { t } = useTranslation();
-  useEscapeKey(true, onCancel);
   const titleId = useId();
 
   return (

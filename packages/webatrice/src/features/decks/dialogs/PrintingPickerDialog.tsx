@@ -6,7 +6,6 @@ import { usePreference } from '@app/hooks';
 import type { PrintingSummary } from '@app/services';
 
 import { useCardPrintings } from '../hooks/useCardPrintings';
-import { useEscapeKey } from '../hooks/useEscapeKey';
 import { bumpPrintingsInDeck } from '../printingOrder';
 import { upgradeScryfallImageSize } from '../scryfallImage';
 import type { DeckCard } from '../types';
@@ -46,7 +45,6 @@ export function PrintingPickerDialog({
   const printings = bumpSetsInDeck && request
     ? bumpPrintingsInDeck(allPrintings, request.card.name, deckCards)
     : allPrintings;
-  useEscapeKey(request != null, onClose);
   const titleId = useId();
 
   if (!request) {
@@ -105,7 +103,7 @@ export function PrintingPickerDialog({
         )}
 
         {!loading && !error && printings.length > 0 && (
-          <div className="mt-4 flex-1 overflow-y-auto pr-1">
+          <div data-dialog-content className="mt-4 flex-1 overflow-y-auto pr-1">
             <div
               className="grid gap-3"
               style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}

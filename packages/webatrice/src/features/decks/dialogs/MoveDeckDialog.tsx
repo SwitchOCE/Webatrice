@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { FolderInput } from 'lucide-react';
 
 import type { FlatDeck } from '../deckTree';
-import { useEscapeKey } from '../hooks/useEscapeKey';
 import { DeckDialogFrame } from './DeckDialogFrame';
 
 export interface MoveDeckDialogProps {
@@ -19,7 +18,6 @@ export function MoveDeckDialog({ deck, folderPaths, onCancel, onMove }: MoveDeck
   const { t } = useTranslation();
   const targets = folderPaths.filter((p) => p !== deck.path);
   const [target, setTarget] = useState(targets[0] ?? '');
-  useEscapeKey(true, onCancel);
   const titleId = useId();
 
   return (

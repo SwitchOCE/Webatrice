@@ -7,7 +7,6 @@ import { z } from 'zod';
 import { Link2 } from 'lucide-react';
 
 import { parseDeckShareLink, type DeckShareLink } from '../deckSharing';
-import { useEscapeKey } from '../hooks/useEscapeKey';
 import { DeckDialogFrame } from './DeckDialogFrame';
 
 export function buildOpenShareLinkSchema(t: TFunction) {
@@ -48,7 +47,6 @@ export function OpenShareLinkDialog({ open, onClose, onOpen }: OpenShareLinkDial
       reset({ link: '' });
     }
   }, [open, reset]);
-  useEscapeKey(open, onClose);
 
   if (!open) {
     return null;

@@ -41,7 +41,7 @@ describe('CreateDeckDialog', () => {
   it('closes on Escape, the backdrop, and Cancel', () => {
     const onClose = vi.fn();
     render(<CreateDeckDialog open onClose={onClose} onCreate={() => {}} />);
-    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent.keyDown(document.activeElement as Element, { key: 'Escape' });
     fireEvent.click(screen.getByRole('button', { name: 'Common.action.cancel' }));
     fireEvent.click(document.querySelector('[aria-hidden="true"]')!);
     expect(onClose).toHaveBeenCalledTimes(3);

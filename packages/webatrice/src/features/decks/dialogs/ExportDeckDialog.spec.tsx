@@ -83,7 +83,7 @@ describe('ExportDeckDialog', () => {
     const onClose = vi.fn();
     render(<ExportDeckDialog open onClose={onClose} deck={deck} />);
     fireEvent.click(screen.getByRole('button', { name: 'Common.action.close' }));
-    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent.keyDown(document.activeElement as Element, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 });

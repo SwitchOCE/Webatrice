@@ -7,7 +7,6 @@ import { z } from 'zod';
 import { FolderPlus } from 'lucide-react';
 
 import { checkNewFolderName } from '../deckFolders';
-import { useEscapeKey } from '../hooks/useEscapeKey';
 import { DeckDialogFrame } from './DeckDialogFrame';
 
 export interface CreateFolderDialogProps {
@@ -48,7 +47,6 @@ export function CreateFolderDialog({ open, parentPath, siblings, onClose, onCrea
       reset({ name: '' });
     }
   }, [open, reset]);
-  useEscapeKey(open, onClose);
   const titleId = useId();
 
   if (!open) {
