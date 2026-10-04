@@ -307,7 +307,7 @@ function mergeLookup(
   const overlaid: RelatedCardRef[] = scryfallRelated.map((s) => {
     const x = xmlByName.get(s.name);
     return x
-      ? { ...s, count: x.count ?? s.count, persistent: x.persistent ?? s.persistent, attach: x.attach ?? s.attach }
+      ? { ...s, count: x.count ?? s.count, persistent: x.persistent ?? s.persistent, attach: x.attach ?? s.attach, exclude: x.exclude }
       : s;
   });
   // Any cards.xml relations Scryfall didn't surface (rare — usually

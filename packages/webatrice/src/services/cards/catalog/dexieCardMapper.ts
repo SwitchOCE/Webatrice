@@ -67,6 +67,7 @@ export function dexieToLookup(card: Card, preferences?: CardDataPreferences): Lo
       count: entry.count,
       attach: entry.attach,
       persistent: entry.persistent,
+      exclude: entry.exclude,
       origin: 'related',
     });
   }
@@ -80,6 +81,7 @@ export function dexieToLookup(card: Card, preferences?: CardDataPreferences): Lo
       count: entry.count,
       attach: entry.attach,
       persistent: entry.persistent,
+      exclude: entry.exclude,
       origin: 'reverse-related',
     });
   }

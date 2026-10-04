@@ -171,3 +171,35 @@ export function moveXFromTopPrompt({ cardName, deckSize, initial, onSubmit }: Mo
     onSubmit: (value) => onSubmit(Math.min(parseWhole(value)!, size)),
   };
 }
+
+/** Desktop MAX_TOKENS_PER_DIALOG (player_logic.h:62). */
+export const MAX_TOKENS_PER_PROMPT = 99;
+
+export interface TokenCountPromptArgs {
+  tokenName: string;
+  initial: number;
+  onSubmit: (count: number) => void;
+}
+
+/**
+ * How many of a variable-count ("x") related token to create: desktop
+ * PlayerDialogs::onCreateRelatedFromRelationDialogRequested
+ * (player_dialogs.cpp:198-213) asks "Create tokens / Number:" from 1 to 99,
+ * seeded with the relation's default count.
+ */
+export function tokenCountPrompt({ tokenName, initial, onSubmit }: TokenCountPromptArgs): PromptState {
+  return {
+    title: 'Create tokens',
+    label: 'Number',
+    description: tokenName,
+    initialValue: String(initial),
+    submitLabel: 'Create',
+    type: 'number',
+    selectOnFocus: true,
+    validate: (value) => {
+      const n = parseWhole(value);
+      return n == null || n < 1 || n > MAX_TOKENS_PER_PROMPT ? `Enter 1 to ${MAX_TOKENS_PER_PROMPT}` : null;
+    },
+    onSubmit: (value) => onSubmit(parseWhole(value)!),
+  };
+}

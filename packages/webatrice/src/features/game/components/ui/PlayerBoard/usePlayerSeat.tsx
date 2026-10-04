@@ -246,6 +246,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     openViewLibraryCountPrompt,
     openRevealTopCardsPrompt,
     openCardCounterPrompt,
+    openTokenCountPrompt,
     lastToken,
     openCreateTokenDialog,
   } = useSeatPrompts({
@@ -306,7 +307,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     counterCommands,
     targetCommands,
     zoneCommands,
-    prompts: { openAnnotationPrompt, openPTPrompt, openCardCounterPrompt, openMoveXFromTopPrompt },
+    prompts: { openAnnotationPrompt, openPTPrompt, openCardCounterPrompt, openMoveXFromTopPrompt, openTokenCountPrompt },
     startAttach,
     startArrow: startTableArrow,
   });

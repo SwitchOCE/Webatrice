@@ -86,6 +86,9 @@ export interface RelatedCardRef {
   count?: string;
   attach?: string;
   persistent?: string;
+  /** cards.xml `exclude`: present when "Create all related tokens" skips
+   *  this relation (desktop CardRelation::getIsCreateAllExclusion). */
+  exclude?: string;
   component?: 'token' | 'combo_piece' | 'meld_part' | 'meld_result';
   /** Provenance of the relation. `'scryfall'` means the ref came
    *  from Scryfall `all_parts`; `'related'` / `'reverse-related'`
