@@ -1,11 +1,15 @@
-import { fireEvent } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
+import { create } from '@bufbuild/protobuf';
+import { games } from '@cockatrice/datatrice';
 import { ZoneName } from '@cockatrice/sockatrice';
-import { CardAttribute } from '@cockatrice/sockatrice/generated';
+import { CardAttribute, Event_SetCounterSchema } from '@cockatrice/sockatrice/generated';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
+import { getSettings, settingsStore } from '../../../../../hooks/useSettings';
 import {
   battlefieldEl,
   cardEl,
+  LIFE_COUNTER_ID,
   menuLabels,
   openContextMenu,
   renderSeatCell,
@@ -66,5 +70,60 @@ describe('Battlefield', () => {
     const { game } = renderSeatCell(SPEC, 2);
     fireEvent.doubleClick(cardEl(BEAR.id, 'battlefield'));
     expect(game.setCardAttr).not.toHaveBeenCalled();
+  });
+
+  describe('damage wash', () => {
+    type Store = ReturnType<typeof renderSeatCell>['store'];
+    const setLife = (store: Store, value: number) => act(() => {
+      store.dispatch(games.Actions.counterSet({
+        gameId: 1,
+        playerId: 1,
+        data: create(Event_SetCounterSchema, { counterId: LIFE_COUNTER_ID, value }),
+      }));
+    });
+    const wash = () => screen.queryByTestId('value-flash-damage');
+
+    afterEach(() => {
+      settingsStore.reset();
+    });
+
+    it('washes the table on a loss and not on a gain', () => {
+      const { store } = renderSeatCell(SPEC);
+      setLife(store, 25);
+      expect(wash()).not.toBeInTheDocument();
+      setLife(store, 22);
+      expect(wash()).toBeInTheDocument();
+    });
+
+    it('keeps a running wash through a gain, as desktop\'s shimmer keeps decaying', () => {
+      const { store } = renderSeatCell(SPEC);
+      setLife(store, 15);
+      const running = wash();
+      setLife(store, 16);
+      expect(wash()).toBe(running);
+    });
+
+    it('stays still with "Battlefield flash on damage" off', async () => {
+      const settings = await getSettings();
+      settingsStore.setValue(Object.assign(settings, { animationsChosen: true, battlefieldFlash: false }));
+      const { store } = renderSeatCell(SPEC);
+      setLife(store, 12);
+      expect(wash()).not.toBeInTheDocument();
+    });
+
+    it('skips the wash and the tap animation for a replay rewind', () => {
+      let rewinds = 0;
+      const { store } = renderSeatCell(SPEC, 1, { rewindCount: () => rewinds });
+      expect(cardEl(OGRE.id, 'battlefield').style.transition).toBe('transform 150ms ease-out');
+
+      rewinds++;
+      setLife(store, 12);
+      expect(wash()).not.toBeInTheDocument();
+      expect(cardEl(OGRE.id, 'battlefield').style.transition).toBe('');
+
+      setLife(store, 10);
+      expect(wash()).toBeInTheDocument();
+      expect(cardEl(OGRE.id, 'battlefield').style.transition).toBe('transform 150ms ease-out');
+    });
   });
 });

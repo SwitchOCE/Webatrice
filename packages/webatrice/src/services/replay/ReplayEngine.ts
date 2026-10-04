@@ -78,6 +78,7 @@ export class ReplayEngine {
   private lastTickAt = 0;
   private pendingReplayMs = 0;
   private rewindTimer: ReturnType<typeof setTimeout> | null = null;
+  private rewinds = 0;
   private snapshot: ReplayPlaybackState;
 
   constructor(replay: GameReplay, private readonly sink: ReplaySink, options: ReplayEngineOptions = {}) {
@@ -98,6 +99,14 @@ export class ReplayEngine {
   }
 
   getState = (): ReplayPlaybackState => this.snapshot;
+
+  /**
+   * How many times the game has been rewound. It goes up before the rewind touches the game, so
+   * a render that sees the rewound game sees the new count: the board skips the life flash, the
+   * damage wash and the tap animation for that render, as desktop's backward skip does
+   * (ReplayManager::processNewEvents, SKIP_DAMAGE_ANIMATION and SKIP_TAP_ANIMATION).
+   */
+  getRewindCount = (): number => this.rewinds;
 
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener);
@@ -197,6 +206,7 @@ export class ReplayEngine {
 
   private processRewind(): void {
     this.clearRewindTimer();
+    ++this.rewinds;
     this.currentEvent = 0;
     this.finished = false;
     this.sink.rewind();

@@ -144,6 +144,22 @@ describe('ReplayEngine seeking', () => {
     expect(engine.getState().processedEvents).toBe(2);
   });
 
+  it('counts its rewinds, the new count readable before the sink is rewound', () => {
+    const { engine, sink } = makeEngine([sayContainer(0), sayContainer(4)]);
+    const seenBySink: number[] = [];
+    const rewind = sink.rewind;
+    sink.rewind = () => {
+      seenBySink.push(engine.getRewindCount());
+      rewind();
+    };
+    expect(engine.getRewindCount()).toBe(1);
+    engine.seek(5000);
+    expect(engine.getRewindCount()).toBe(1);
+    engine.seek(1000);
+    expect(engine.getRewindCount()).toBe(2);
+    expect(seenBySink).toEqual([2]);
+  });
+
   it('reaches the same state by seeking as by playing to the same time', () => {
     const containers = [sayContainer(0), sayContainer(1), sayContainer(1), sayContainer(3), sayContainer(6)];
     const played = makeEngine(containers);

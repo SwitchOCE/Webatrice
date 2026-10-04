@@ -21,6 +21,7 @@ import {
 import { connectedState, createMockWebClient, makeStoreState, makeUser, renderWithProviders } from '../../../__test-utils__';
 import GameBoardCell from '../components/ui/GameBoardCell/GameBoardCell';
 import type { BoardCell } from '../hooks/useGameBoardLayout';
+import { ReplayRewindProvider } from '../components/ui/ReplayRewindContext';
 
 export const LIFE_COUNTER_ID = 1;
 
@@ -157,11 +158,15 @@ export function renderSeatHook<T>(
 
 /** Render one seat (GameBoardCell → PlayerBoard, with the real seat model and
  *  command ports) on its own: the given player's cell, local when it is the
- *  spec's local player and mirrored otherwise. Exposes the game request spies. */
+ *  spec's local player and mirrored otherwise. `rewindCount` plays it as a
+ *  replay with that rewind count. Exposes the game request spies. */
 export function renderSeatCell(
   spec: SeatGameSpec,
   playerId: number = spec.localPlayerId,
-  options: Omit<Parameters<typeof renderWithProviders>[1], 'preloadedState' | 'webClient'> = {},
+  {
+    rewindCount,
+    ...options
+  }: Omit<Parameters<typeof renderWithProviders>[1], 'preloadedState' | 'webClient'> & { rewindCount?: () => number } = {},
 ) {
   const preloadedState = buildSeatGameState(spec);
   const webClient = createMockWebClient();
@@ -169,8 +174,9 @@ export function renderSeatCell(
   // computeCanAct: a judge may act on every seat.
   const canAct = isLocal || !!spec.judge;
   const cell: BoardCell = { playerId, isLocal, mirrored: !isLocal, canAct, showHand: isLocal, row: 0, col: 0 };
+  const board = createElement(GameBoardCell, { cell, totalPlayers: spec.seats.length });
   const utils = renderWithProviders(
-    createElement(GameBoardCell, { cell, totalPlayers: spec.seats.length }),
+    rewindCount ? createElement(ReplayRewindProvider, { value: rewindCount }, board) : board,
     { ...options, preloadedState, webClient },
   );
   return { ...utils, game: webClient.request.game };
