@@ -33,7 +33,7 @@ Gate on the tip (`npx turbo run typecheck --concurrency=1`, `npm run lint`, `npm
 - unit: sockatrice 43 files / 896 tests, datatrice 35 / 1,316, webatrice 468 / 3,789: all pass.
 - integration: sockatrice 20 / 175, datatrice 10 / 145, webatrice 52 / 270: all pass.
 - Order independence, webatrice: `--sequence.shuffle` seeds 1, 2 (threads, before the fixes: only the DTO specs failed) and seed 7 (final config): 3,789 pass. `--maxWorkers=1` on the final config: 3,789 pass in 464 s.
-- e2e: see Notes for reviewers.
+- e2e (`npm run test:e2e -w @cockatrice/webatrice`, Servatrice 3.0.0; run because two components and `boot.tsx` changed their MUI import paths): the production build passes. Chromium + Firefox: **60 passed, 10 skipped, 0 failed** (10.0 min). All 32 WebKit tests failed in 3–5 ms at `browserType.launch` ("Host system is missing dependencies to run browsers"), a container limitation, not a test result. WebKit was not re-run.
 
 **Order-dependent and leaking specs, and their causes:**
 - `services/dexie/DexieDTOs/{Card,Format,Host,Info,Set,Setting,Token}DTO.spec.ts` (7 files): the "registers itself with the table on import" test asserted `mapToClass` was called. That call happens once, at load, and the global `afterEach(vi.clearAllMocks)` clears it, so the test only passed when it ran first (shuffle failed 6 of 7; HostDTO happened to run first). The specs now copy `mock.calls` at module load.
