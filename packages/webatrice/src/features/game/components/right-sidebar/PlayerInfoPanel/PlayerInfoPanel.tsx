@@ -1,3 +1,5 @@
+import { useState, type KeyboardEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Heart } from 'lucide-react';
 import { useAnimationPreference } from '@app/hooks';
 
@@ -10,8 +12,17 @@ import ZoneStack from '../../ui/ZoneStack/ZoneStack';
 import { MANA_COLORS } from './manaColors';
 import { OVER_ART_ICON_SHADOW, OVER_ART_SHADOW_LIFE, OVER_ART_SHADOW_NAME, OVER_ART_SHADOW_PIP } from '../../ui/seatColors/seatColors';
 
+/** The step an arrow key asks a counter for: ↑ adds one and ↓ removes one, as a spin box does. */
+function counterStep(event: KeyboardEvent): 1 | -1 | 0 {
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+    return 0;
+  }
+  return event.key === 'ArrowUp' ? 1 : event.key === 'ArrowDown' ? -1 : 0;
+}
+
 /** One mana-pool counter: the symbol with its count. The owner clicks to add
- *  one and right-clicks to remove one (desktop's counter +1 / -1). */
+ *  one and right-clicks to remove one (desktop's counter +1 / -1); from the
+ *  keyboard it is a spin button, ↑ and ↓. */
 function ManaPip({
   symbol,
   label,
@@ -19,6 +30,8 @@ function ManaPip({
   tint,
   onIncrement,
   onDecrement,
+  tabIndex,
+  onFocus,
 }: {
   symbol: string;
   label: string;
@@ -29,6 +42,9 @@ function ManaPip({
   onIncrement?: () => void;
   /** Right-click handler; suppresses the browser context menu. */
   onDecrement?: () => void;
+  /** The pool is one tab stop: the pip that has it is 0, the others -1. */
+  tabIndex?: number;
+  onFocus?: () => void;
 }) {
   const clickable = !!onIncrement || !!onDecrement;
   // Standard MTG mana symbols Scryfall has SVGs for at
@@ -48,7 +64,19 @@ function ManaPip({
         cursor: clickable ? 'pointer' : undefined,
       }}
       title={label}
-      role={clickable ? 'button' : undefined}
+      role={clickable ? 'spinbutton' : undefined}
+      tabIndex={clickable ? tabIndex : undefined}
+      aria-label={clickable ? label : undefined}
+      aria-valuenow={clickable ? count : undefined}
+      aria-valuemin={clickable ? 0 : undefined}
+      onFocus={onFocus}
+      onKeyDown={clickable ? (e) => {
+        const step = counterStep(e);
+        if (step !== 0) {
+          e.preventDefault();
+          (step > 0 ? onIncrement : onDecrement)?.();
+        }
+      } : undefined}
       onClick={onIncrement}
       onContextMenu={
         onDecrement
@@ -80,12 +108,15 @@ function ManaPip({
           style={{ backgroundColor: tint, opacity: 0.5 }}
         />
       )}
+      {/* An opponent's pip is text: its colour, read before the count. */}
+      {!clickable && <span className="sr-only">{label}</span>}
       <span
         className={
           'absolute inset-0 flex items-center justify-center text-over-art-text font-bold text-[0.75em] '
           + 'tabular-nums pointer-events-none'
         }
         style={{ textShadow: OVER_ART_SHADOW_PIP }}
+        aria-hidden={clickable || undefined}
       >
         {count}
       </span>
@@ -105,11 +136,15 @@ export default function PlayerInfoPanel() {
     lifeControl,
     manaCounters,
     name,
+    openLifePrompt,
     playerId,
     seat,
     seatGrid,
     setLife,
   } = usePlayerSeatContext();
+  const { t } = useTranslation();
+  // The mana pool is one tab stop; ← and → move between its pips (a roving tab index).
+  const [manaFocus, setManaFocus] = useState(0);
   // Desktop's "Life counter flash": green on a gain, red on a loss, from the
   // server's life counter (the fallback before it exists never flashes).
   const lifeFlash = useValueFlash(lifeControl?.value, useAnimationPreference('lifeCounterAnimations'));
@@ -144,15 +179,34 @@ export default function PlayerInfoPanel() {
            • left click  → +1 life (delta)
            • right click → -1 life (delta) — browser context menu
              is suppressed via preventDefault
-           • Ctrl / Cmd + L → opens the set-life modal (registered
-             in a useEffect below on window keydown; only fires for
-             the local player's box)
+           • Ctrl / Cmd + L → opens the set-life modal (the
+             game.setLife shortcut; only fires for the local
+             player's box)
+         From the keyboard the owner's block is a spin button: ↑ / ↓
+         change life by one and Enter opens the set-life prompt
+         (desktop's "Set counter..."). It is named "Alice's life" and
+         carries the total as its value. Changes, the owner's and
+         everyone else's, are announced once, by the game log's live
+         region; the block itself is not a live region.
          Non-owner boxes render read-only (no cursor change, no
-         click handlers). */}
+         click handlers): a group, named the same, around the name
+         and the number. */}
       <div
-        role={isSelf ? 'button' : undefined}
+        role={isSelf ? 'spinbutton' : 'group'}
         tabIndex={isSelf ? 0 : undefined}
-        aria-label={isSelf ? `${name} — life total. Left click +1, right click -1, Ctrl/Cmd+L to set` : `${name} — life total`}
+        aria-label={t('PlayerInfoPanel.life', { name })}
+        aria-valuenow={isSelf ? life : undefined}
+        title={isSelf ? t('PlayerInfoPanel.lifeHint') : undefined}
+        onKeyDown={isSelf ? (e) => {
+          const step = counterStep(e);
+          if (step !== 0) {
+            e.preventDefault();
+            setLife((l) => l + step);
+          } else if (e.key === 'Enter' && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+            e.preventDefault();
+            openLifePrompt();
+          }
+        } : undefined}
         // Arrow target for right-click-drag arrows aimed at a player's
         // life total. The interactions hook hit-tests by looking for
         // `[data-arrow-target-kind="player"]` under the pointer; the
@@ -217,6 +271,7 @@ export default function PlayerInfoPanel() {
             size="2.5em"
             className="text-over-art-life"
             style={{ filter: OVER_ART_ICON_SHADOW }}
+            aria-hidden
           />
           <span
             className="text-[3em] font-modern font-bold tabular-nums text-over-art-text leading-none"
@@ -235,7 +290,20 @@ export default function PlayerInfoPanel() {
       <div className="flex-1 min-w-0 flex flex-col justify-evenly min-h-0">
         {/* Mana pool — 3 × 2 grid of pips (WUB / RGC). Grid keeps
           the block compact so the info column stays narrow. */}
-        <div className="shrink-0 grid grid-cols-3 gap-1 justify-items-center">
+        <div
+          role="group"
+          aria-label={t('PlayerInfoPanel.manaPool')}
+          className="shrink-0 grid grid-cols-3 gap-1 justify-items-center"
+          onKeyDown={(e) => {
+            if (!isSelf || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) {
+              return;
+            }
+            e.preventDefault();
+            const next = (manaFocus + (e.key === 'ArrowRight' ? 1 : -1) + MANA_COLORS.length) % MANA_COLORS.length;
+            setManaFocus(next);
+            e.currentTarget.querySelectorAll<HTMLElement>('[role="spinbutton"]')[next]?.focus();
+          }}
+        >
           {MANA_COLORS.map((m, i) => {
             const counter = manaCounters?.[m.symbol];
             const canModify =
@@ -243,7 +311,9 @@ export default function PlayerInfoPanel() {
             const pip = (
               <ManaPip
                 symbol={m.symbol}
-                label={m.label}
+                label={t(`PlayerInfoPanel.mana.${m.symbol}`)}
+                tabIndex={i === manaFocus ? 0 : -1}
+                onFocus={() => setManaFocus(i)}
                 tint={m.tint}
                 count={manaPool[m.symbol]}
                 onIncrement={

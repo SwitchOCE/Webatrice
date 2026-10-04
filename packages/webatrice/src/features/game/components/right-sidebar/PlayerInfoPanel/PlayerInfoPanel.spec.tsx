@@ -1,4 +1,5 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { create } from '@bufbuild/protobuf';
 import { games } from '@cockatrice/datatrice';
 import { Event_SetCounterSchema } from '@cockatrice/sockatrice/generated';
@@ -17,7 +18,7 @@ const SPEC: SeatGameSpec = {
   ],
 };
 
-const lifePill = (name: string) => screen.getByLabelText(new RegExp(`^${name} — life total`));
+const lifePill = (name: string) => screen.getByLabelText(`${name}'s life`);
 
 describe('PlayerInfoPanel', () => {
   it('shows the player, the life total and the seven mana pool counters', () => {
@@ -53,7 +54,79 @@ describe('PlayerInfoPanel', () => {
     fireEvent.click(lifePill('Bob'));
     fireEvent.click(screen.getByTitle('Green'));
     expect(game.incCounter).not.toHaveBeenCalled();
-    expect(lifePill('Bob')).not.toHaveAttribute('role');
+    expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
+  });
+
+  describe('from the keyboard', () => {
+    it('makes the owner\'s life total a spin button that reads out the total', () => {
+      renderSeatCell(SPEC);
+      const life = screen.getByRole('spinbutton', { name: 'Alice\'s life' });
+      expect(life).toHaveAttribute('aria-valuenow', '18');
+      expect(life).toHaveAttribute('tabindex', '0');
+    });
+
+    it('changes life by one with the up and down arrows', async () => {
+      const user = userEvent.setup();
+      const { game } = renderSeatCell(SPEC);
+      screen.getByRole('spinbutton', { name: 'Alice\'s life' }).focus();
+      await user.keyboard('{ArrowUp}{ArrowDown}{ArrowDown}');
+      expect(vi.mocked(game.incCounter).mock.calls.map(([, params]) => params)).toEqual([
+        { counterId: LIFE_COUNTER_ID, delta: 1 },
+        { counterId: LIFE_COUNTER_ID, delta: -1 },
+        { counterId: LIFE_COUNTER_ID, delta: -1 },
+      ]);
+    });
+
+    it('opens the set-life prompt with Enter, as desktop\'s "Set counter..."', async () => {
+      const user = userEvent.setup();
+      const openPrompt = vi.fn();
+      renderSeatCell(SPEC, 1, { gameDialogs: { openPrompt } });
+      screen.getByRole('spinbutton', { name: 'Alice\'s life' }).focus();
+      await user.keyboard('{Enter}');
+      expect(openPrompt).toHaveBeenCalledWith(expect.objectContaining({ title: 'Set life total', initialValue: '18' }));
+    });
+
+    it('reads another player\'s life total as a named group with the number in it', () => {
+      renderSeatCell(SPEC, 2);
+      const life = screen.getByRole('group', { name: 'Bob\'s life' });
+      expect(life).not.toHaveAttribute('tabindex');
+      expect(life).toHaveTextContent('Bob');
+    });
+
+    it('makes the mana pool one tab stop, moving between counters with the side arrows', async () => {
+      const user = userEvent.setup();
+      renderSeatCell(SPEC);
+      const pool = screen.getByRole('group', { name: 'Mana pool' });
+      const pips = within(pool).getAllByRole('spinbutton');
+      expect(pips.map((pip) => pip.getAttribute('aria-label')))
+        .toEqual(['White', 'Blue', 'Black', 'Red', 'Green', 'Colorless', 'Other']);
+      expect(pips.map((pip) => pip.tabIndex)).toEqual([0, -1, -1, -1, -1, -1, -1]);
+
+      pips[0].focus();
+      await user.keyboard('{ArrowRight}{ArrowRight}');
+      expect(pips[2]).toHaveFocus();
+      await user.keyboard('{ArrowLeft}{ArrowLeft}{ArrowLeft}');
+      expect(pips[6]).toHaveFocus();
+      expect(pips.map((pip) => pip.tabIndex)).toEqual([-1, -1, -1, -1, -1, -1, 0]);
+    });
+
+    it('adds and removes mana with the up and down arrows', async () => {
+      const user = userEvent.setup();
+      const { game } = renderSeatCell(SPEC);
+      const green = screen.getByRole('spinbutton', { name: 'Green' });
+      expect(green).toHaveAttribute('aria-valuenow', '0');
+      green.focus();
+      await user.keyboard('{ArrowUp}{ArrowDown}');
+      expect(vi.mocked(game.incCounter).mock.calls.map(([, params]) => params)).toEqual([
+        { counterId: MANA_COUNTER_IDS.g, delta: 1 },
+        { counterId: MANA_COUNTER_IDS.g, delta: -1 },
+      ]);
+    });
+
+    it('reads an opponent\'s mana counters as their colour and count', () => {
+      renderSeatCell(SPEC, 2);
+      expect(within(screen.getByRole('group', { name: 'Mana pool' })).getByTitle('Green')).toHaveTextContent('Green0');
+    });
   });
 
   describe('life counter flash', () => {

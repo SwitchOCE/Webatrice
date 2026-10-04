@@ -46,6 +46,7 @@ import { NOOP_GAME_DIALOGS_ACTIONS, type GameDialogs } from '../features/game/ho
 import { createMockWebClient } from './mockWebClient';
 import zoneViewTitles from '../features/game/dialogs/ZoneViewDialog/useZoneViewDialog.i18n.json';
 import incomingRevealTitles from '../features/game/dialogs/IncomingRevealDialog/IncomingRevealDialog.i18n.json';
+import playerInfoLabels from '../features/game/components/right-sidebar/PlayerInfoPanel/PlayerInfoPanel.i18n.json';
 
 // The game's pending target pick, as Game provides it, for seats rendered
 // without Game.
@@ -116,13 +117,13 @@ function getDefaultWebClient(): WebClient {
   return defaultWebClient;
 }
 
-// Every other key renders as itself. The zone views' and the reveal's titles name the player
-// through interpolation, and the specs tell those views apart by player, so their English is
-// loaded, formatted by ICU as in the app.
+// Every other key renders as itself. The zone views' and the reveal's titles, and the seats' life
+// totals, name the player through interpolation, and the specs tell them apart by player, so
+// their English is loaded, formatted by ICU as in the app.
 const testI18n = i18n.createInstance();
 testI18n.use(ICU).use(initReactI18next).init({
   lng: 'en-US',
-  resources: { 'en-US': { translation: { ...zoneViewTitles, ...incomingRevealTitles } } },
+  resources: { 'en-US': { translation: { ...zoneViewTitles, ...incomingRevealTitles, ...playerInfoLabels } } },
   fallbackLng: 'en-US',
   interpolation: { escapeValue: false },
 });

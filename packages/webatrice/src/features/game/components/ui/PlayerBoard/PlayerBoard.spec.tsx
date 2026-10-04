@@ -29,7 +29,7 @@ const seatRoot = () => battlefieldEl(1).closest<HTMLElement>('.rounded-lg')!;
 describe('PlayerBoard', () => {
   it('composes the info column, the stack, the battlefield and the hand', () => {
     renderSeatCell(SPEC);
-    expect(screen.getByLabelText(/^Alice — life total/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Alice\'s life')).toBeInTheDocument();
     expect(pileEl('Library')).toHaveAttribute('title', 'Library — 9');
     expect(cardEl(50, 'stack')).toBeInTheDocument();
     expect(cardEl(10, 'battlefield')).toBeInTheDocument();
@@ -64,7 +64,7 @@ describe('PlayerBoard', () => {
     expect(region('hand')).toContainElement(cardEl(30, 'hand'));
     expect(region('stack')).toContainElement(cardEl(50, 'stack'));
     expect(region('table')).toContainElement(battlefieldEl(1));
-    expect(region('playerInfo')).toContainElement(screen.getByLabelText(/^Alice — life total/));
+    expect(region('playerInfo')).toContainElement(screen.getByLabelText('Alice\'s life'));
     for (const zone of ['hand', 'stack', 'table', 'playerInfo']) {
       // Isolated, so the art sits under the region's own content only.
       expect(region(zone).className + region(zone).style.zIndex).toMatch(/isolate|30/);
