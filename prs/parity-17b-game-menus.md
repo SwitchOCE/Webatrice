@@ -131,10 +131,35 @@ Branch `claude/restack-17b-game-menus`, tip `41f0d47`, on `claude/restack-17a-ga
 - Webatrice e2e, run on the host build against Servatrice 3.0.0 in `mcr.microsoft.com/playwright:v1.60.0-noble`, on chromium, firefox and webkit, with the host docker CLI and socket mounted for `staff-tools`:
   - At `65687b0`: 75 passed, 3 failed, 12 skipped (the 3.1-only specs on a 3.0.0 server), in 19.1 min. All three failures are the related-cards test, from the missing collection stub above.
   - At `41f0d47`: `card-menus.spec` 9/9 (3 tests × 3 browsers), including Alt+1 with the macro set up in Settings > Chat. `game-menu.spec` (17a) passed on all three browsers in the full run.
-  - The full suite was not re-run after the fixture-only commit.
+  - The full suite was not re-run after the fixture-only commit. It was re-run at the f17 tip; see "Review response (rv16, f17)" below.
 - Sockatrice e2e: not run. No sockatrice flow changed; `isBuiltinZone` is a pure helper.
 
 **Follow-ups:**
 - `useTallyType` still uses its localStorage singleton. Branch 19 has no `tallyType` preference to swap to, and adding one is outside this task.
 - `usePileMenus`' "Reveal random card to..." still shows "(no players)" when alone. 17b never changed the pile menus.
 - Stage 5's two library menus (ZoneStack's inline one and `useLibraryMenuItems`) both carry the reveal-to fix. Folding them into one is still the stage-5 follow-up.
+
+## Review response (rv16, f17)
+
+Tip `5023cfa` on `claude/restack-17b-game-menus`. 17b's own 27 commits were rebased with a plain `git rebase --onto` (no conflicts) onto the new 17a tip `fc80478`, which carries the rv16 M1 / M2 fixes. Four commits sit on top.
+
+- **M3: inexact e2e count.** The full suite was re-run at this tip (exact counts under Testing below), and the "Testing at `65687b0`" note now points there.
+- **HandZone / StackColumn wiring specs** (`test(game): pin the hand and stack double-click play payloads`):
+  - `HandZone.spec`: with "Play all nonlands onto the stack" off, a creature in the seat's deck goes to TABLE with `{cardId, pt: '2/2', tapped: true}`. The seat's deck prefetch fills `cardMetaByName` with a 2/2 cipt creature, and the double-click does no fresh lookup.
+  - `StackColumn.spec`: the same 2/2 cipt creature resolves from the stack to TABLE with `{pt: '2/2', tapped: true}`. Here the visible-card prefetch fills the metadata.
+  - Both fail when the components stop passing the `cardMetaByName` entry to `playCardMove`.
+- **Nits:**
+  - `useGameShortcuts`: the seat-scoped comment moved back above `SEAT_SHORTCUT_ACTIONS`. The Say comment now says desktop binds Ctrl+digit and the browser defaults are Alt+digit.
+  - `playCardMove` doc: it now says the HandZone double-click passes the preference as `playToStack`.
+  - `EMPTY_CARD_KEYS` is declared once, in `ui/GameSelectionContext.tsx`, beside the selection it stands in for. `HandCardMenu` passes `keys` straight through.
+  - `features/game/hooks/useMessageMacros.ts` is deleted. Both readers import `useMessageMacros` from `@app/hooks`, as `MessageMacrosEditor` does.
+- **Not applied here:** the `autoPlayCard` pt / tapped minor. It belongs to R1, which rewrites that path.
+- **Testing at `5023cfa`:**
+  - `turbo typecheck` passes. Lint: 3/3.
+  - Unit: sockatrice 43 files / 896 tests, datatrice 35 / 1316, webatrice 461 / 3655. All pass. That is 3647 + 8: the 6 new 17a specs and the 2 wiring specs.
+  - Integration: sockatrice 20 / 175 and datatrice 10 / 145 pass. Webatrice: 52 files, 270 / 271. The one failure is the known `invite-link.spec` "a link clicked in a room's chat opens the game with one navigation". rv16 reproduced it on the base `d2e516c`.
+  - Webatrice e2e: the full suite on chromium, firefox and webkit.
+    - Setup: host build, `test:e2e:up` against Servatrice 3.0.0, Playwright run in `mcr.microsoft.com/playwright:v1.60.0-noble`, with the docker CLI, the compose plugin and the socket mounted for `staff-tools`.
+    - Result: **78 passed, 0 failed, 12 skipped (the 3.1-only specs), 15.5 min.**
+    - The run was at `a065b30`. `5023cfa` differs from it only in `.github/instructions/webatrice.instructions.md` (17a's doc commit `fc80478`, rebased under).
+  - Sockatrice e2e: 4 files / 5 tests pass.
