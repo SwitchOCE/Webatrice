@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 
-import { isCommanderFormat, type BracketAssessment } from '@app/types';
+import { CommanderSpellbookIntegration, isCommanderFormat, type BracketAssessment } from '@app/types';
 
+import { useBracketLookupsMode } from '../../bracketConsent';
 import { computeDeckStats } from '../../deckStats';
 import type { DeckCard } from '../../types';
 import { BracketSection } from './BracketSection';
@@ -40,7 +41,10 @@ export function DeckBreakdown({
   // Brackets are a Commander concept. Include Pauper Commander since
   // it shares commander-designation UX; if it turns out brackets read
   // weirdly for pauper we can tighten to `format === 'commander'` only.
-  const showBracket = isCommanderFormat(format) && stats.totalCards > 0;
+  // Desktop's Commander Spellbook integration set to Disabled leaves the estimate out.
+  const [bracketMode] = useBracketLookupsMode();
+  const showBracket = isCommanderFormat(format) && stats.totalCards > 0
+    && bracketMode !== CommanderSpellbookIntegration.Disabled;
 
   if (stats.totalCards === 0) {
     return null;

@@ -1279,10 +1279,13 @@
     "methodology": "Minimum bracket per <0>edhpowerlevel</0>’s algorithm: Game Changers, MLD, extra turns, and early game-defining combos.",
     "provenance": "Card data from Scryfall; combos from Commander Spellbook, which receives the main deck’s card names and quantities.",
     "consent": {
-      "prompt": "Estimating the bracket sends this deck’s card names to Scryfall (Game Changers list and card text), and the main deck’s card names and quantities to Commander Spellbook (combos). Nothing is sent until you allow it.",
-      "allow": "Allow online lookups",
+      "prompt": "Estimating the bracket sends this deck’s card names to Scryfall (Game Changers list and card text), and the main deck’s card names and quantities to Commander Spellbook (combos). Nothing is sent until you choose: Enable estimates when you ask, Automatic whenever the deck changes.",
+      "enable": "Enable",
+      "automatic": "Automatic",
+      "disable": "Disable",
       "revoke": "Turn off online lookups"
     },
+    "estimate": "Estimate bracket",
     "partialNotice": "Partial estimate: this deck may sit in a higher bracket. It isn’t saved with the deck until every source answers.",
     "sourceUnavailable": "{source} unavailable ({reason})",
     "sourcePartial": "{source}: {missing} of {total} cards missing ({reason})",
@@ -2539,6 +2542,14 @@
     "openDeckInNewTab": {
       "label": "Open deck in new tab by default",
       "description": "Applies to Open deck in the deck editor. On, the deck opens in a new tab; off, it replaces the deck you are editing, asking first if that deck has unsaved changes. Decks opened from My Decks always get their own tab."
+    },
+    "commanderSpellbookIntegration": {
+      "label": "CommanderSpellbook integration",
+      "description": "The Commander bracket estimate sends your deck's card names to Scryfall and Commander Spellbook, external services. Enabled estimates when you ask; Automatic whenever a Commander deck changes.",
+      "unprompted": "Ask before first use",
+      "disabled": "Disabled",
+      "enabled": "Enabled",
+      "automatic": "Automatic"
     },
     "replayRewindBufferingMs": {
       "label": "Buffer time for backwards skip via shortcut",

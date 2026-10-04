@@ -1,12 +1,12 @@
-import { useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { CircleAlert, Globe, Loader2, RefreshCw } from 'lucide-react';
 
-import type { BracketAssessment } from '@app/types';
+import { CommanderSpellbookIntegration, type BracketAssessment } from '@app/types';
 
-import type { UnavailableSource } from '../../bracket';
+import { deckFingerprint, type UnavailableSource } from '../../bracket';
 import { bracketSignalBadges } from '../../bracketBadges';
-import { useBracketLookupsConsent } from '../../bracketConsent';
+import { lookupsAllowedFor, useBracketLookupsMode } from '../../bracketConsent';
 import type { SourceFailure } from '../../bracketSources';
 import { BRACKET_TONE } from '../../bracketTone';
 import { useBracketAssessment, type BracketAssessmentState } from '../../hooks/useBracketAssessment';
@@ -23,9 +23,19 @@ export interface BracketSectionProps {
   onAssessmentComputed?: (assessment: BracketAssessment | undefined) => void;
 }
 
+/**
+ * The bracket estimate behind desktop's Commander Spellbook consent (commander_bracket_widget.cpp
+ * `maybeAutoEstimateBracket`): the first-use prompt while the user has not chosen, an estimate on
+ * request when Enabled, and on every deck change when Automatic. DeckBreakdown leaves the section
+ * out when Disabled.
+ */
 export function BracketSection({ cards, cachedAssessment, onAssessmentComputed }: BracketSectionProps) {
   const { t } = useTranslation();
-  const [lookupsAllowed, setLookupsAllowed] = useBracketLookupsConsent();
+  const [mode, setMode] = useBracketLookupsMode();
+  const fingerprint = useMemo(() => deckFingerprint(cards), [cards]);
+  // Enabled (not Automatic): the deck shape the user asked to estimate.
+  const [requested, setRequested] = useState<string | null>(null);
+  const lookupsAllowed = lookupsAllowedFor(mode, requested === fingerprint);
   const assessment = useBracketAssessment(cards, cachedAssessment, onAssessmentComputed, lookupsAllowed);
   // The section stays mounted across states, so Retry can hand it focus
   // before the notice (and the focused button) unmounts.
@@ -34,7 +44,9 @@ export function BracketSection({ cards, cachedAssessment, onAssessmentComputed }
   return (
     <div ref={sectionRef} tabIndex={-1} aria-busy={assessment.status === 'loading'} className="outline-none">
       {assessment.status === 'consentRequired' ? (
-        <BracketConsentPrompt onAllow={() => setLookupsAllowed(true)} />
+        mode === CommanderSpellbookIntegration.Enabled
+          ? <EstimateBracketButton onClick={() => setRequested(fingerprint)} />
+          : <BracketConsentPrompt onChoose={setMode} />
       ) : assessment.status === 'loading' ? (
         <div className="flex items-center gap-2 text-sm text-text-muted">
           <Loader2 size={14} className="animate-spin" /> {t('DeckBracket.assessing')}
@@ -44,7 +56,9 @@ export function BracketSection({ cards, cachedAssessment, onAssessmentComputed }
       ) : (
         <BracketResult
           assessment={assessment}
-          onRevokeLookups={lookupsAllowed ? () => setLookupsAllowed(false) : undefined}
+          onRevokeLookups={mode === CommanderSpellbookIntegration.Enabled || mode === CommanderSpellbookIntegration.Automatic
+            ? () => setMode(CommanderSpellbookIntegration.Unprompted)
+            : undefined}
           onRetry={() => {
             sectionRef.current?.focus();
             assessment.retry();
@@ -58,7 +72,7 @@ export function BracketSection({ cards, cachedAssessment, onAssessmentComputed }
 function BracketResult({ assessment, onRetry, onRevokeLookups }: {
   assessment: Extract<BracketAssessmentState, { report: unknown }>;
   onRetry: () => void;
-  /** Set while lookups are allowed: turns them off again. */
+  /** Set while lookups are allowed: turns them off again, back to asking first. */
   onRevokeLookups?: () => void;
 }) {
   const { t } = useTranslation();
@@ -135,26 +149,44 @@ function BracketResult({ assessment, onRetry, onRevokeLookups }: {
   );
 }
 
+const ACTION_BUTTON_CLASS = [
+  'inline-flex items-center gap-1.5 px-3 py-1 rounded-md border border-border-strong bg-bg-elevated',
+  'text-sm text-text-primary hover:bg-border-subtle',
+].join(' ');
+
 /**
  * First use: nothing goes to Scryfall or Commander Spellbook until the
- * user allows it. The choice is remembered for every deck.
+ * user chooses, with desktop's three answers
+ * (commander_bracket_widget.cpp `promptCommanderSpellbookIntegration`).
+ * The choice is remembered for every deck and can be changed in Settings.
  */
-function BracketConsentPrompt({ onAllow }: { onAllow: () => void }) {
+function BracketConsentPrompt({ onChoose }: { onChoose: (mode: CommanderSpellbookIntegration) => void }) {
   const { t } = useTranslation();
   return (
     <div className="space-y-2">
       <p className="text-sm text-text-muted">{t('DeckBracket.consent.prompt')}</p>
-      <button
-        type="button"
-        onClick={onAllow}
-        className={[
-          'inline-flex items-center gap-1.5 px-3 py-1 rounded-md border border-border-strong bg-bg-elevated',
-          'text-sm text-text-primary hover:bg-border-subtle',
-        ].join(' ')}
-      >
-        <Globe size={13} /> {t('DeckBracket.consent.allow')}
-      </button>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => onChoose(CommanderSpellbookIntegration.Enabled)} className={ACTION_BUTTON_CLASS}>
+          <Globe size={13} /> {t('DeckBracket.consent.enable')}
+        </button>
+        <button type="button" onClick={() => onChoose(CommanderSpellbookIntegration.Automatic)} className={ACTION_BUTTON_CLASS}>
+          {t('DeckBracket.consent.automatic')}
+        </button>
+        <button type="button" onClick={() => onChoose(CommanderSpellbookIntegration.Disabled)} className={ACTION_BUTTON_CLASS}>
+          {t('DeckBracket.consent.disable')}
+        </button>
+      </div>
     </div>
+  );
+}
+
+/** Enabled: the estimate runs when the user asks, for the deck as it is then. */
+function EstimateBracketButton({ onClick }: { onClick: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <button type="button" onClick={onClick} className={ACTION_BUTTON_CLASS}>
+      <Globe size={13} /> {t('DeckBracket.estimate')}
+    </button>
   );
 }
 
