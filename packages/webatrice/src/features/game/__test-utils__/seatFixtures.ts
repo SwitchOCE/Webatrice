@@ -166,7 +166,9 @@ export function renderSeatCell(
   const preloadedState = buildSeatGameState(spec);
   const webClient = createMockWebClient();
   const isLocal = playerId === spec.localPlayerId;
-  const cell: BoardCell = { playerId, isLocal, mirrored: !isLocal, canAct: isLocal, showHand: isLocal, row: 0, col: 0 };
+  // computeCanAct: a judge may act on every seat.
+  const canAct = isLocal || !!spec.judge;
+  const cell: BoardCell = { playerId, isLocal, mirrored: !isLocal, canAct, showHand: isLocal, row: 0, col: 0 };
   const utils = renderWithProviders(
     createElement(GameBoardCell, { cell, totalPlayers: spec.seats.length }),
     { ...options, preloadedState, webClient },
