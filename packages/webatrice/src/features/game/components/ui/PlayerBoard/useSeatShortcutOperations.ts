@@ -22,6 +22,7 @@ import type {
 import { toRecipient } from './revealRecipient';
 import type { BattlefieldCardActions, BattlefieldCardOps } from './useBattlefieldCardOps';
 import type { HandCardActions } from './useHandCardOps';
+import type { LibraryOps } from './useLibraryOps';
 import type { useSeatPrompts } from './useSeatPrompts';
 
 type SeatPrompts = ReturnType<typeof useSeatPrompts>;
@@ -46,6 +47,7 @@ export interface SeatShortcutSeat {
   openMoveTopUntilDialog: () => void;
   cardOps: BattlefieldCardActions;
   handOps: HandCardActions;
+  libraryOps: LibraryOps;
   zoneCommands: PlayerZoneCommands;
   cardCommands: PlayerCardCommands;
   counterCommands: PlayerCounterCommands;
@@ -178,6 +180,33 @@ const SEAT_SHORTCUTS: Record<SeatShortcutActionId, SeatShortcut> = {
   'game.sortHandByManaValue': onHand((seat) => seat.handleRequestSortHandBy('manacost')),
   'game.revealHandToAll': onHand((seat) => seat.zoneCommands.reveal(ZoneName.HAND, 'all')),
   'game.revealRandomHandCardToAll': onHand((seat) => seat.zoneCommands.reveal(ZoneName.HAND, 'all', 'random')),
+  // The library menu's Top of library / Bottom of library items; each does
+  // nothing on an empty library.
+  'game.moveTopToPlayFaceDown': ({ libraryOps }) => libraryOps.moveTopCard(ZoneName.TABLE, 'end', true),
+  'game.moveTopNToGraveFaceDown': ({ libraryOps }) =>
+    libraryOps.promptMoveTopCards('Move top cards to graveyard face down', ZoneName.GRAVE, true),
+  'game.moveTopToExile': ({ libraryOps }) => libraryOps.moveTopCard(ZoneName.EXILE, 0),
+  'game.moveTopNToExile': ({ libraryOps }) => libraryOps.promptMoveTopCards('Move top cards to exile', ZoneName.EXILE),
+  'game.moveTopNToExileFaceDown': ({ libraryOps }) =>
+    libraryOps.promptMoveTopCards('Move top cards to exile face down', ZoneName.EXILE, true),
+  'game.moveTopToBottom': ({ libraryOps }) => libraryOps.moveTopCard(ZoneName.DECK, 'end'),
+  'game.moveBottomToPlay': ({ libraryOps }) => libraryOps.moveBottomCard(ZoneName.STACK, 'end'),
+  'game.moveBottomToPlayFaceDown': ({ libraryOps }) => libraryOps.moveBottomCard(ZoneName.TABLE, 'end', true),
+  'game.moveBottomToGrave': ({ libraryOps }) => libraryOps.moveBottomCard(ZoneName.GRAVE, 0),
+  'game.moveBottomNToGrave': ({ libraryOps }) =>
+    libraryOps.promptMoveBottomCards('Move bottom cards to graveyard', 'Move', ZoneName.GRAVE),
+  'game.moveBottomNToGraveFaceDown': ({ libraryOps }) =>
+    libraryOps.promptMoveBottomCards('Move bottom cards to graveyard face down', 'Move', ZoneName.GRAVE, true),
+  'game.moveBottomToExile': ({ libraryOps }) => libraryOps.moveBottomCard(ZoneName.EXILE, 0),
+  'game.moveBottomNToExile': ({ libraryOps }) =>
+    libraryOps.promptMoveBottomCards('Move bottom cards to exile', 'Move', ZoneName.EXILE),
+  'game.moveBottomNToExileFaceDown': ({ libraryOps }) =>
+    libraryOps.promptMoveBottomCards('Move bottom cards to exile face down', 'Move', ZoneName.EXILE, true),
+  'game.moveBottomToTop': ({ libraryOps }) => libraryOps.moveBottomCard(ZoneName.DECK, 0),
+  'game.drawBottomCard': ({ libraryOps }) => libraryOps.moveBottomCard(ZoneName.HAND, 0),
+  'game.drawBottomCards': ({ libraryOps }) => libraryOps.promptMoveBottomCards('Draw bottom cards', 'Draw', ZoneName.HAND),
+  'game.shuffleTopCards': ({ libraryOps }) => libraryOps.promptShuffleTopCards(),
+  'game.shuffleBottomCards': ({ libraryOps }) => libraryOps.promptShuffleBottomCards(),
 };
 
 /**

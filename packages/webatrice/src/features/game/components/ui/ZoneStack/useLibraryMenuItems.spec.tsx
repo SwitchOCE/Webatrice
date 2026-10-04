@@ -6,6 +6,7 @@ import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMen
 import { NOOP_GAME_DIALOGS_ACTIONS, type GameDialogs } from '../../../hooks/dialogs/gameDialogs.types';
 import { GameDialogsProvider } from '../GameDialogsContext';
 import type { PlayerZoneCommands } from '../PlayerBoard/playerBoard.types';
+import { useLibraryOps } from '../PlayerBoard/useLibraryOps';
 import { useLibraryMenuItems, type UseLibraryMenuItemsArgs } from './useLibraryMenuItems';
 
 type Item = Extract<ContextMenuItem, { label: string }>;
@@ -18,7 +19,10 @@ const find = (items: ContextMenuItem[], ...path: string[]): Item => {
   return item;
 };
 
-function setup(args: Partial<UseLibraryMenuItemsArgs> = {}) {
+type SetupArgs = Partial<Omit<UseLibraryMenuItemsArgs, 'libraryOps'>> & { openCountPrompt?: () => void };
+
+/** The menu over the real library ops (useLibraryOps) and spy ports. */
+function setup(args: SetupArgs = {}) {
   const openZoneView = vi.fn();
   const zoneCommands = {
     moveCards: vi.fn(),
@@ -49,8 +53,12 @@ function setup(args: Partial<UseLibraryMenuItemsArgs> = {}) {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <GameDialogsProvider value={{ ...NOOP_GAME_DIALOGS_ACTIONS, openZoneView } as unknown as GameDialogs}>{children}</GameDialogsProvider>
   );
-  const { result } = renderHook(() => useLibraryMenuItems(props), { wrapper });
-  return { items: result.current.libraryMenuItems, props, openZoneView, zoneCommands };
+  const { result } = renderHook(() => {
+    const { openCountPrompt, ...menuProps } = props;
+    const libraryOps = useLibraryOps({ deckCount: props.deckCount, openCountPrompt, zoneCommands });
+    return useLibraryMenuItems({ ...menuProps, libraryOps });
+  }, { wrapper });
+  return { items: result.current.libraryMenuItems, menus: result.current, props, openZoneView, zoneCommands };
 }
 
 describe('useLibraryMenuItems', () => {
@@ -128,5 +136,28 @@ describe('useLibraryMenuItems', () => {
     expect(find(items, 'Undo last draw').disabled).toBeUndefined();
     expect(find(items, 'Open deck in deck editor').disabled).toBe(true);
     expect(find(setup({ onOpenDeckInEditor: vi.fn() }).items, 'Open deck in deck editor').disabled).toBe(false);
+  });
+
+  it('shows the shortcut hint of every top and bottom card item', () => {
+    const hints = new Proxy({}, { get: (_target, key) => `<${String(key)}>` }) as UseLibraryMenuItemsArgs['shortcutHints'];
+    const { items } = setup({ shortcutHints: hints });
+    const hinted = (path: string) =>
+      find(items, path).submenu!.filter((i): i is Item => 'label' in i).map((i) => i.shortcut);
+    expect(hinted('Top of library...')).toEqual([
+      '<game.playTop>', '<game.moveTopToPlayFaceDown>', '<game.moveTopToBottom>', '<game.moveTopToGrave>',
+      '<game.moveTopNToGrave>', '<game.moveTopNToGraveFaceDown>', '<game.moveTopToExile>', '<game.moveTopNToExile>',
+      '<game.moveTopNToExileFaceDown>', '<game.moveTopUntil>', '<game.shuffleTopCards>',
+    ]);
+    expect(hinted('Bottom of library...')).toEqual([
+      '<game.drawBottomCard>', '<game.drawBottomCards>', '<game.moveBottomToPlay>', '<game.moveBottomToPlayFaceDown>',
+      '<game.moveBottomToTop>', '<game.moveBottomToGrave>', '<game.moveBottomNToGrave>', '<game.moveBottomNToGraveFaceDown>',
+      '<game.moveBottomToExile>', '<game.moveBottomNToExile>', '<game.moveBottomNToExileFaceDown>', '<game.shuffleBottomCards>',
+    ]);
+  });
+
+  it('returns the top and bottom submenus for the library pile\'s menu', () => {
+    const { items, menus } = setup();
+    expect(find(items, 'Top of library...').submenu).toBe(menus.topLibraryItems);
+    expect(find(items, 'Bottom of library...').submenu).toBe(menus.bottomLibraryItems);
   });
 });

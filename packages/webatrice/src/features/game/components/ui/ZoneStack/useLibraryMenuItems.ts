@@ -1,10 +1,11 @@
-import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
+import { ZoneName } from '@cockatrice/sockatrice';
 import type { useShortcutHints } from '@app/feature-widgets/shortcuts';
 
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import { useGameDialogsContext } from '../GameDialogsContext';
-import type { SeatMoveCard, SeatMoveDestination, PlayerZoneCommands } from '../PlayerBoard/playerBoard.types';
+import type { PlayerZoneCommands } from '../PlayerBoard/playerBoard.types';
 import { buildRevealToSubmenu, toRecipient } from '../PlayerBoard/revealRecipient';
+import type { LibraryOps } from '../PlayerBoard/useLibraryOps';
 import type { useSeatPrompts } from '../PlayerBoard/useSeatPrompts';
 
 type ShortcutHints = ReturnType<typeof useShortcutHints>;
@@ -19,7 +20,7 @@ export interface UseLibraryMenuItemsArgs {
   alwaysRevealTopCard: boolean;
   alwaysLookAtTopCard: boolean;
   draw: (n: number) => void;
-  openCountPrompt: SeatPrompts['openCountPrompt'];
+  libraryOps: LibraryOps;
   openDrawCardsPrompt: SeatPrompts['openDrawCardsPrompt'];
   openViewLibraryCountPrompt: SeatPrompts['openViewLibraryCountPrompt'];
   openRevealTopCardsPrompt: SeatPrompts['openRevealTopCardsPrompt'];
@@ -42,7 +43,7 @@ export function useLibraryMenuItems({
   alwaysRevealTopCard,
   alwaysLookAtTopCard,
   draw,
-  openCountPrompt,
+  libraryOps,
   openDrawCardsPrompt,
   openViewLibraryCountPrompt,
   openRevealTopCardsPrompt,
@@ -56,91 +57,8 @@ export function useLibraryMenuItems({
   // Library menu items — ported 1:1 from Cockatrice's LibraryMenu.
   // Cockatrice attaches the SAME LibraryMenu instance to both the
   // library pile and the battlefield PlayerMenu (player_menu.cpp:23,67),
-  // so the two entry points share this const.
-  //
-  // Helper: single-card "Top of library..." → target move click. Wire
-  // uses cardId=0 (cmdSetTopCard, player_actions.cpp:376).
-  const buildMoveTopCardTo = (
-    targetZone: ZoneNameValue,
-    index: SeatMoveDestination['index'],
-    faceDown?: boolean,
-  ): (() => void) => () => {
-    if (deckCount <= 0) {
-      return;
-    }
-    zoneCommands.moveCards(ZoneName.DECK, [faceDown ? { id: 0, faceDown: true } : 0], { zone: targetZone, index });
-  };
-  // Single-card "Bottom of library..." → target move click. Wire uses
-  // cardId=deckCount-1 (cmdSetBottomCard, player_actions.cpp:384).
-  const buildMoveBottomCardTo = (
-    targetZone: ZoneNameValue,
-    index: SeatMoveDestination['index'],
-    faceDown?: boolean,
-  ): (() => void) => () => {
-    if (deckCount <= 0) {
-      return;
-    }
-    const id = deckCount - 1;
-    zoneCommands.moveCards(ZoneName.DECK, [faceDown ? { id, faceDown: true } : id], { zone: targetZone, index });
-  };
-  // Multi-card "Move top N to <target>" prompt. Iterates i in
-  // [N-1..0] to match moveTopCardsTo iteration order (player_actions.cpp:475).
-  const promptMoveTopNTo = (
-    title: string,
-    targetZone: ZoneNameValue,
-    faceDown?: boolean,
-  ): (() => void) => () => {
-    const size = deckCount;
-    if (size <= 0) {
-      return;
-    }
-    openCountPrompt({
-      title,
-      submitLabel: 'Move',
-      deckSize: size,
-      onSubmit: (n) => {
-        const count = Math.min(n, size);
-        if (count <= 0) {
-          return;
-        }
-        const cards: SeatMoveCard[] = [];
-        for (let i = count - 1; i >= 0; i--) {
-          cards.push(faceDown ? { id: i, faceDown: true } : i);
-        }
-        zoneCommands.moveCards(ZoneName.DECK, cards, { zone: targetZone });
-      },
-    });
-  };
-  // Multi-card "Move bottom N to <target>" prompt. Iterates i in
-  // [maxCards-N..maxCards-1] to match moveBottomCardsTo iteration
-  // order (player_actions.cpp:673) and actDrawBottomCards (:798).
-  const promptMoveBottomNTo = (
-    title: string,
-    submitLabel: string,
-    targetZone: ZoneNameValue,
-    faceDown?: boolean,
-  ): (() => void) => () => {
-    const size = deckCount;
-    if (size <= 0) {
-      return;
-    }
-    openCountPrompt({
-      title,
-      submitLabel,
-      deckSize: size,
-      onSubmit: (n) => {
-        const count = Math.min(n, size);
-        if (count <= 0) {
-          return;
-        }
-        const cards: SeatMoveCard[] = [];
-        for (let i = size - count; i < size; i++) {
-          cards.push(faceDown ? { id: i, faceDown: true } : i);
-        }
-        zoneCommands.moveCards(ZoneName.DECK, cards, { zone: targetZone });
-      },
-    });
-  };
+  // so the two entry points share this const. The top / bottom card
+  // actions are the seat's library ops, which the shortcuts share.
   // "Reveal library to..." and "Reveal top cards to..." always list "All
   // players" first, even when playing alone (library_menu.cpp:259-267,
   // 295-303); the reveal-top-N variant opens a count prompt per pick. Lend
@@ -162,6 +80,158 @@ export function useLibraryMenuItems({
       targetName: revealTargets.find((t) => t.playerId === targetPlayerId)?.name ?? 'all players',
       deckSize: deckCount,
     }));
+  // Desktop's topLibraryMenu (library_menu.cpp:50-62); the library pile's
+  // menu shows the same submenu.
+  const topLibraryItems: ContextMenuItem[] = [
+    {
+      label: 'Play top card',
+      onClick: () => libraryOps.moveTopCard(ZoneName.STACK, 'end'),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.playTop'],
+    },
+    {
+      label: 'Play top card face down',
+      onClick: () => libraryOps.moveTopCard(ZoneName.TABLE, 'end', true),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.moveTopToPlayFaceDown'],
+    },
+    {
+      label: 'Put top card on bottom',
+      onClick: () => libraryOps.moveTopCard(ZoneName.DECK, 'end'),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.moveTopToBottom'],
+    },
+    { divider: true },
+    {
+      label: 'Move top card to graveyard',
+      onClick: () => libraryOps.moveTopCard(ZoneName.GRAVE, 0),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.moveTopToGrave'],
+    },
+    {
+      label: 'Move top cards to graveyard...',
+      onClick: () => libraryOps.promptMoveTopCards('Move top cards to graveyard', ZoneName.GRAVE),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.moveTopNToGrave'],
+    },
+    {
+      label: 'Move top cards to graveyard face down...',
+      onClick: () => libraryOps.promptMoveTopCards('Move top cards to graveyard face down', ZoneName.GRAVE, true),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.moveTopNToGraveFaceDown'],
+    },
+    {
+      label: 'Move top card to exile',
+      onClick: () => libraryOps.moveTopCard(ZoneName.EXILE, 0),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.moveTopToExile'],
+    },
+    {
+      label: 'Move top cards to exile...',
+      onClick: () => libraryOps.promptMoveTopCards('Move top cards to exile', ZoneName.EXILE),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.moveTopNToExile'],
+    },
+    {
+      label: 'Move top cards to exile face down...',
+      onClick: () => libraryOps.promptMoveTopCards('Move top cards to exile face down', ZoneName.EXILE, true),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.moveTopNToExileFaceDown'],
+    },
+    {
+      label: 'Put top cards on stack until…',
+      onClick: openMoveTopUntilDialog,
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.moveTopUntil'],
+    },
+    { divider: true },
+    {
+      label: 'Shuffle top cards...',
+      onClick: libraryOps.promptShuffleTopCards,
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.shuffleTopCards'],
+    },
+  ];
+  // Desktop's bottomLibraryMenu (library_menu.cpp:64-78).
+  const bottomLibraryItems: ContextMenuItem[] = [
+    {
+      label: 'Draw bottom card',
+      onClick: () => libraryOps.moveBottomCard(ZoneName.HAND, 0),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.drawBottomCard'],
+    },
+    {
+      label: 'Draw bottom cards...',
+      onClick: () => libraryOps.promptMoveBottomCards('Draw bottom cards', 'Draw', ZoneName.HAND),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.drawBottomCards'],
+    },
+    { divider: true },
+    {
+      label: 'Play bottom card',
+      onClick: () => libraryOps.moveBottomCard(ZoneName.STACK, 'end'),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.moveBottomToPlay'],
+    },
+    {
+      label: 'Play bottom card face down',
+      onClick: () => libraryOps.moveBottomCard(ZoneName.TABLE, 'end', true),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.moveBottomToPlayFaceDown'],
+    },
+    {
+      label: 'Put bottom card on top',
+      onClick: () => libraryOps.moveBottomCard(ZoneName.DECK, 0),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.moveBottomToTop'],
+    },
+    { divider: true },
+    {
+      label: 'Move bottom card to graveyard',
+      onClick: () => libraryOps.moveBottomCard(ZoneName.GRAVE, 0),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.moveBottomToGrave'],
+    },
+    {
+      label: 'Move bottom cards to graveyard...',
+      onClick: () => libraryOps.promptMoveBottomCards('Move bottom cards to graveyard', 'Move', ZoneName.GRAVE),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.moveBottomNToGrave'],
+    },
+    {
+      label: 'Move bottom cards to graveyard face down...',
+      onClick: () =>
+        libraryOps.promptMoveBottomCards('Move bottom cards to graveyard face down', 'Move', ZoneName.GRAVE, true),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.moveBottomNToGraveFaceDown'],
+    },
+    {
+      label: 'Move bottom card to exile',
+      onClick: () => libraryOps.moveBottomCard(ZoneName.EXILE, 0),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.moveBottomToExile'],
+    },
+    {
+      label: 'Move bottom cards to exile...',
+      onClick: () => libraryOps.promptMoveBottomCards('Move bottom cards to exile', 'Move', ZoneName.EXILE),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.moveBottomNToExile'],
+    },
+    {
+      label: 'Move bottom cards to exile face down...',
+      onClick: () =>
+        libraryOps.promptMoveBottomCards('Move bottom cards to exile face down', 'Move', ZoneName.EXILE, true),
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.moveBottomNToExileFaceDown'],
+    },
+    { divider: true },
+    {
+      label: 'Shuffle bottom cards...',
+      onClick: libraryOps.promptShuffleBottomCards,
+      disabled: deckCount <= 0,
+      shortcut: shortcutHints['game.shuffleBottomCards'],
+    },
+  ];
   const libraryMenuItems: ContextMenuItem[] = [
     {
       label: 'Draw card',
@@ -230,207 +300,12 @@ export function useLibraryMenuItems({
     {
       label: 'Top of library...',
       disabled: deckCount <= 0,
-      submenu: [
-        {
-          label: 'Play top card',
-          onClick: buildMoveTopCardTo(ZoneName.STACK, 'end'),
-          disabled: deckCount <= 0,
-          shortcut: shortcutHints['game.playTop'],
-        },
-        {
-          label: 'Play top card face down',
-          onClick: buildMoveTopCardTo(ZoneName.TABLE, 'end', true),
-          disabled: deckCount <= 0,
-        },
-        {
-          label: 'Put top card on bottom',
-          onClick: buildMoveTopCardTo(ZoneName.DECK, 'end'),
-          disabled: deckCount <= 0,
-        },
-        { divider: true },
-        {
-          label: 'Move top card to graveyard',
-          onClick: buildMoveTopCardTo(ZoneName.GRAVE, 0),
-          disabled: deckCount <= 0,
-          shortcut: shortcutHints['game.moveTopToGrave'],
-        },
-        {
-          label: 'Move top cards to graveyard...',
-          onClick: promptMoveTopNTo('Move top cards to graveyard', ZoneName.GRAVE),
-          disabled: deckCount <= 0,
-          shortcut: shortcutHints['game.moveTopNToGrave'],
-        },
-        {
-          label: 'Move top cards to graveyard face down...',
-          onClick: promptMoveTopNTo(
-            'Move top cards to graveyard face down',
-            ZoneName.GRAVE,
-            true,
-          ),
-          disabled: deckCount <= 0,
-        },
-        {
-          label: 'Move top card to exile',
-          onClick: buildMoveTopCardTo(ZoneName.EXILE, 0),
-          disabled: deckCount <= 0,
-        },
-        {
-          label: 'Move top cards to exile...',
-          onClick: promptMoveTopNTo('Move top cards to exile', ZoneName.EXILE),
-          disabled: deckCount <= 0,
-        },
-        {
-          label: 'Move top cards to exile face down...',
-          onClick: promptMoveTopNTo(
-            'Move top cards to exile face down',
-            ZoneName.EXILE,
-            true,
-          ),
-          disabled: deckCount <= 0,
-        },
-        {
-          label: 'Put top cards on stack until…',
-          onClick: openMoveTopUntilDialog,
-          disabled: deckCount <= 0,
-          shortcut: shortcutHints['game.moveTopUntil'],
-        },
-        { divider: true },
-        {
-          label: 'Shuffle top cards...',
-          onClick: () => {
-            const size = deckCount;
-            if (size <= 0) {
-              return;
-            }
-            openCountPrompt({
-              title: 'Shuffle top cards',
-              submitLabel: 'Shuffle',
-              deckSize: size,
-              onSubmit: (n) => {
-                const count = Math.min(n, size);
-                if (count <= 0) {
-                  return;
-                }
-                // Command_Shuffle range is inclusive: [0, N-1] shuffles
-                // positions 0..N-1 (player_actions.cpp:267-268).
-                zoneCommands.shuffleLibrary({ start: 0, end: count - 1 });
-              },
-            });
-          },
-          disabled: deckCount <= 0,
-        },
-      ],
+      submenu: topLibraryItems,
     },
     {
       label: 'Bottom of library...',
       disabled: deckCount <= 0,
-      submenu: [
-        {
-          label: 'Draw bottom card',
-          onClick: buildMoveBottomCardTo(ZoneName.HAND, 0),
-          disabled: deckCount <= 0,
-        },
-        {
-          label: 'Draw bottom cards...',
-          onClick: promptMoveBottomNTo(
-            'Draw bottom cards',
-            'Draw',
-            ZoneName.HAND,
-          ),
-          disabled: deckCount <= 0,
-        },
-        { divider: true },
-        {
-          label: 'Play bottom card',
-          onClick: buildMoveBottomCardTo(ZoneName.STACK, 'end'),
-          disabled: deckCount <= 0,
-        },
-        {
-          label: 'Play bottom card face down',
-          onClick: buildMoveBottomCardTo(ZoneName.TABLE, 'end', true),
-          disabled: deckCount <= 0,
-        },
-        {
-          label: 'Put bottom card on top',
-          onClick: buildMoveBottomCardTo(ZoneName.DECK, 0),
-          disabled: deckCount <= 0,
-        },
-        { divider: true },
-        {
-          label: 'Move bottom card to graveyard',
-          onClick: buildMoveBottomCardTo(ZoneName.GRAVE, 0),
-          disabled: deckCount <= 0,
-        },
-        {
-          label: 'Move bottom cards to graveyard...',
-          onClick: promptMoveBottomNTo(
-            'Move bottom cards to graveyard',
-            'Move',
-            ZoneName.GRAVE,
-          ),
-          disabled: deckCount <= 0,
-        },
-        {
-          label: 'Move bottom cards to graveyard face down...',
-          onClick: promptMoveBottomNTo(
-            'Move bottom cards to graveyard face down',
-            'Move',
-            ZoneName.GRAVE,
-            true,
-          ),
-          disabled: deckCount <= 0,
-        },
-        {
-          label: 'Move bottom card to exile',
-          onClick: buildMoveBottomCardTo(ZoneName.EXILE, 0),
-          disabled: deckCount <= 0,
-        },
-        {
-          label: 'Move bottom cards to exile...',
-          onClick: promptMoveBottomNTo(
-            'Move bottom cards to exile',
-            'Move',
-            ZoneName.EXILE,
-          ),
-          disabled: deckCount <= 0,
-        },
-        {
-          label: 'Move bottom cards to exile face down...',
-          onClick: promptMoveBottomNTo(
-            'Move bottom cards to exile face down',
-            'Move',
-            ZoneName.EXILE,
-            true,
-          ),
-          disabled: deckCount <= 0,
-        },
-        { divider: true },
-        {
-          label: 'Shuffle bottom cards...',
-          onClick: () => {
-            const size = deckCount;
-            if (size <= 0) {
-              return;
-            }
-            openCountPrompt({
-              title: 'Shuffle bottom cards',
-              submitLabel: 'Shuffle',
-              deckSize: size,
-              onSubmit: (n) => {
-                const count = Math.min(n, size);
-                if (count <= 0) {
-                  return;
-                }
-                // `[-N, -1]` — negative indices count from the end
-                // (server accepts either sign; Cockatrice desktop
-                // always sends negative for bottom, :298-299).
-                zoneCommands.shuffleLibrary({ start: -count, end: -1 });
-              },
-            });
-          },
-          disabled: deckCount <= 0,
-        },
-      ],
+      submenu: bottomLibraryItems,
     },
     { divider: true },
     {
@@ -445,5 +320,7 @@ export function useLibraryMenuItems({
 
   return {
     libraryMenuItems,
+    topLibraryItems,
+    bottomLibraryItems,
   };
 }

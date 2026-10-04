@@ -249,6 +249,27 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     'game.sortHandByManaValue': {},
     'game.revealHandToAll': { wire: [['revealCards', { zoneName: ZoneName.HAND }]] },
     'game.revealRandomHandCardToAll': { wire: [['revealCards', { zoneName: ZoneName.HAND, cardId: [-2] }]] },
+    // The library holds 40 cards: the top one is 0, the bottom one 39.
+    // A battlefield "end" placement goes out as x = -3, as from the library menu.
+    'game.moveTopToPlayFaceDown': { wire: [['moveCard', moveFromDeck({ cardId: 0, faceDown: true }, ZoneName.TABLE, -3)]] },
+    'game.moveTopNToGraveFaceDown': { dialogs: ['Move top cards to graveyard face down'] },
+    'game.moveTopToExile': { wire: [['moveCard', moveFromDeck({ cardId: 0 }, ZoneName.EXILE, 0)]] },
+    'game.moveTopNToExile': { dialogs: ['Move top cards to exile'] },
+    'game.moveTopNToExileFaceDown': { dialogs: ['Move top cards to exile face down'] },
+    'game.moveTopToBottom': { wire: [['moveCard', moveFromDeck({ cardId: 0 }, ZoneName.DECK, -1)]] },
+    'game.moveBottomToPlay': { wire: [['moveCard', moveFromDeck({ cardId: 39 }, ZoneName.STACK, -1)]] },
+    'game.moveBottomToPlayFaceDown': { wire: [['moveCard', moveFromDeck({ cardId: 39, faceDown: true }, ZoneName.TABLE, -3)]] },
+    'game.moveBottomToGrave': { wire: [['moveCard', moveFromDeck({ cardId: 39 }, ZoneName.GRAVE, 0)]] },
+    'game.moveBottomNToGrave': { dialogs: ['Move bottom cards to graveyard'] },
+    'game.moveBottomNToGraveFaceDown': { dialogs: ['Move bottom cards to graveyard face down'] },
+    'game.moveBottomToExile': { wire: [['moveCard', moveFromDeck({ cardId: 39 }, ZoneName.EXILE, 0)]] },
+    'game.moveBottomNToExile': { dialogs: ['Move bottom cards to exile'] },
+    'game.moveBottomNToExileFaceDown': { dialogs: ['Move bottom cards to exile face down'] },
+    'game.moveBottomToTop': { wire: [['moveCard', moveFromDeck({ cardId: 39 }, ZoneName.DECK, 0)]] },
+    'game.drawBottomCard': { wire: [['moveCard', moveFromDeck({ cardId: 39 }, ZoneName.HAND, 0)]] },
+    'game.drawBottomCards': { dialogs: ['Draw bottom cards'] },
+    'game.shuffleTopCards': { dialogs: ['Shuffle top cards'] },
+    'game.shuffleBottomCards': { dialogs: ['Shuffle bottom cards'] },
   };
 
   it.each(SEAT_SHORTCUT_ACTIONS.map((id) => [id]))('%s', async (id) => {
@@ -315,6 +336,19 @@ function moveFromTable(cardIds: number[], targetZone: string, x: number, isRever
     x,
     y: 0,
     isReversed,
+  };
+}
+
+/** A Command_MoveCard of one library card, addressed by position. */
+function moveFromDeck(card: { cardId: number; faceDown?: boolean }, targetZone: string, x: number) {
+  return {
+    startPlayerId: 1,
+    startZone: ZoneName.DECK,
+    cardsToMove: { card: [card] },
+    targetPlayerId: 1,
+    targetZone,
+    x,
+    y: 0,
   };
 }
 
