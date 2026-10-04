@@ -1,9 +1,12 @@
 import { useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Loader2, X } from 'lucide-react';
 
 import { useSeatDragSource } from '../../components/ui/SeatDragContext';
 import { useCardCatalogMeta } from '../shared/useCardCatalogMeta';
+import { zoneLabel } from '../shared/zoneLabels';
 import { useFloatingPanelGeometry } from '../shared/useFloatingPanelGeometry';
 import { useZoneViewPreferences } from '../shared/useZoneViewPreferences';
 import { ZoneCardCell } from '../shared/ZoneCardCell';
@@ -17,25 +20,9 @@ const STORAGE_KEY = 'webatrice.incomingReveal';
 const MIN_SIZE = { w: 400, h: 300 };
 const DEFAULT_SIZE = { w: 900, h: 520 };
 
-function zoneLabel(zoneName: string): string {
-  switch (zoneName) {
-    case 'deck':
-      return 'library';
-    case 'grave':
-      return 'graveyard';
-    case 'rfg':
-      return 'exile';
-    case 'hand':
-      return 'hand';
-    case 'sb':
-      return 'sideboard';
-    case 'stack':
-      return 'stack';
-    case 'table':
-      return 'battlefield';
-    default:
-      return zoneName;
-  }
+/** "P2 reveals their library", or "A player reveals …" when the sender is unknown. */
+export function incomingRevealTitle(t: TFunction, sourceName: string | undefined, zoneName: string): string {
+  return `${sourceName ?? 'A player'} reveals their ${zoneLabel(t, zoneName, 'inline')}`;
 }
 
 /**
@@ -59,6 +46,7 @@ function IncomingRevealPanel({
   canDragLent,
   close,
 }: IncomingReveal & { reveal: NonNullable<IncomingReveal['reveal']> }) {
+  const { t } = useTranslation();
   const { groupBy, setGroupBy, sortBy, setSortBy, pileView, setPileView } = useZoneViewPreferences(STORAGE_KEY);
   // A new reveal arriving while one is open opens the panel again.
   const { panelRef, panelStyle, dragging, onHeaderPointerDown } = useFloatingPanelGeometry({
@@ -101,9 +89,7 @@ function IncomingRevealPanel({
     [cards, metaByName, effectiveSortBy, effectiveGroupBy],
   );
 
-  const title = sourceName
-    ? `${sourceName} reveals their ${zoneLabel(reveal.zoneName)}`
-    : `A player reveals their ${zoneLabel(reveal.zoneName)}`;
+  const title = incomingRevealTitle(t, sourceName, reveal.zoneName);
 
   return createPortal(
     <div
