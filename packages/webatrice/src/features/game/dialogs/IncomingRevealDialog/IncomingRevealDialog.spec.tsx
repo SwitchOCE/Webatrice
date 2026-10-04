@@ -13,6 +13,7 @@ import { catalogT } from '../../__test-utils__/catalogT';
 import { buildSeatGameState, chooseMenuPath, openMenus } from '../../__test-utils__/seatFixtures';
 import Game from '../../Game';
 import zoneLabels from '../shared/zoneLabels.i18n.json';
+import incomingRevealTitles from './IncomingRevealDialog.i18n.json';
 import { incomingRevealTitle } from './IncomingRevealDialog';
 
 vi.mock('../../../../hooks/useSettings');
@@ -57,8 +58,8 @@ function renderReveal({
   return { ...utils, reveal, game: webClient.request.game };
 }
 
-// The test i18n has no catalogue, so the zone reads as its key; incomingRevealTitle's spec pins
-// the English.
+// The test i18n has the title's English but not the zones', so the zone reads as its key;
+// incomingRevealTitle's spec pins the whole English title.
 const TITLE = /reveals their/;
 
 function popup() {
@@ -287,12 +288,21 @@ describe('IncomingRevealDialog', () => {
 });
 
 describe('incomingRevealTitle', () => {
-  const englishT = catalogT(zoneLabels);
+  const englishT = catalogT(zoneLabels, incomingRevealTitles);
 
   it('names the sender and the zone, in lower case', () => {
     expect(incomingRevealTitle(englishT, 'P2', ZoneName.DECK)).toBe('P2 reveals their library');
     expect(incomingRevealTitle(englishT, 'P2', ZoneName.HAND)).toBe('P2 reveals their hand');
     expect(incomingRevealTitle(englishT, 'P2', ZoneName.EXILE)).toBe('P2 reveals their exile');
     expect(incomingRevealTitle(englishT, undefined, ZoneName.GRAVE)).toBe('A player reveals their graveyard');
+  });
+
+  it('translates the title as one message, so a language can reorder it', () => {
+    const germanT = catalogT({
+      ZoneLabel: { inline: { deck: 'Bibliothek' } },
+      IncomingRevealDialog: { title: '{player} zeigt die {zone}', titleUnknownSender: 'Jemand zeigt die {zone}' },
+    });
+    expect(incomingRevealTitle(germanT, 'P2', ZoneName.DECK)).toBe('P2 zeigt die Bibliothek');
+    expect(incomingRevealTitle(germanT, undefined, ZoneName.DECK)).toBe('Jemand zeigt die Bibliothek');
   });
 });
