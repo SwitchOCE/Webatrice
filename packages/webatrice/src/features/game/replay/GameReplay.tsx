@@ -9,6 +9,7 @@ import { RouteEnum } from '@app/types';
 
 import { GameBoard } from '../Game';
 import { GameReadOnlyProvider } from '../components/ui/GameReadOnlyContext';
+import { ReplayRewindProvider } from '../components/ui/ReplayRewindContext';
 import ReplayControls from './ReplayControls';
 import { useReplayPlayback } from './useReplayPlayback';
 
@@ -49,11 +50,13 @@ function ReplayView({ opened }: { opened: OpenedReplay }) {
 
   return (
     <GameReadOnlyProvider value>
-      <GameBoard
-        gameId={opened.gameId}
-        onLeave={closeReplayTab}
-        footer={<ReplayControls playback={playback} />}
-      />
+      <ReplayRewindProvider value={opened.engine.getRewindCount}>
+        <GameBoard
+          gameId={opened.gameId}
+          onLeave={closeReplayTab}
+          footer={<ReplayControls playback={playback} />}
+        />
+      </ReplayRewindProvider>
     </GameReadOnlyProvider>
   );
 }
