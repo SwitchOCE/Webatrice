@@ -2,3 +2,4 @@
 - 03:49Z majors fixed+pushed (c0708a5, a3d7c67) → minors
 - 03:57Z minors: +, row menu keys, last-row focus, deck delete focus, copy feedback done → quick-add searching Escape (done in c0708a5), unknown warning, adv search label, changeset
 - 04:04Z all majors/minors/nits committed+pushed (tip 0a553b8); red-commit fold skipped (task: no history rewrite) → full gate
+- 04:55Z gate: typecheck/lint/unit/integration green → webatrice e2e (3.0 + 3.1)
