@@ -22,7 +22,7 @@ import { EMPTY_SELECTION } from '../../utils/selection';
 import ZoneRevealPanel from './ZoneRevealPanel';
 import ZoneViewPanel, { type ZoneViewCardScope } from './ZoneViewPanel';
 import { useZoneViewDialog } from './useZoneViewDialog';
-import { readShuffleOnClose } from './zoneViewPreferences';
+import { readShuffleOnClose } from '../shared/zoneViewPreferences';
 import { isOrderedView, offersShuffleOnClose } from './zoneViewTarget';
 
 export interface ZoneViewDialogProps {

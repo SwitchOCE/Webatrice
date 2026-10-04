@@ -1,4 +1,12 @@
-import { compareCards, groupCards, matchesQuery, type SortMode, type ZoneViewCardMetadata } from './zoneViewSort';
+import {
+  buildCardGroups,
+  compareCards,
+  groupCards,
+  matchesQuery,
+  placeholderMeta,
+  type SortMode,
+  type ZoneViewCardMetadata,
+} from './zoneViewSort';
 
 const card = (name: string, overrides: Partial<ZoneViewCardMetadata> = {}): ZoneViewCardMetadata => ({
   name,
@@ -104,5 +112,22 @@ describe('zoneViewSort', () => {
         ['Colorless', ['Forest', 'Mystery']],
       ]);
     });
+  });
+});
+
+describe('buildCardGroups', () => {
+  const hand = (id: string, name: string) => ({ id, name, scryfallId: '' });
+  const meta = new Map<string, ZoneViewCardMetadata>([
+    ['Bears', { ...placeholderMeta('Bears'), type_line: 'Creature — Bear', cmc: 2 }],
+    ['Forest', { ...placeholderMeta('Forest'), type_line: 'Basic Land — Forest', cmc: 0 }],
+  ]);
+  const cards = [hand('1', 'Forest'), hand('2', 'Bears'), hand('3', 'Mystery')];
+
+  it('filters by the query, sorts, then groups, treating an unanswered name as unknown', () => {
+    expect(buildCardGroups(cards, meta, { sortBy: 'name', groupBy: 'type' }).map((g) => [g.label, g.cards.map((c) => c.handCard.id)]))
+      .toEqual([['Creature', ['2']], ['Land', ['1']], ['Other', ['3']]]);
+    expect(buildCardGroups(cards, meta, { query: 't:land', sortBy: 'none', groupBy: 'none' }).map((g) => g.cards.map((c) => c.handCard.id)))
+      .toEqual([['1']]);
+    expect(buildCardGroups(cards, meta, { query: 'nothing', sortBy: 'none', groupBy: 'type' })).toEqual([]);
   });
 });
