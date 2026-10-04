@@ -44,7 +44,7 @@ export function resolveMoveIdentity(sourceZone: Enriched.ZoneEntry, data: Event_
     targetZone,
     crossesZones: startPlayerId !== targetPlayerId || startZone !== targetZone,
     cardId: resolvedCardId,
-    newCardId: newCardId >= 0 ? newCardId : (sourceCard?.id ?? resolvedCardId),
+    newCardId: newCardId >= 0 ? newCardId : resolvedCardId,
     sourceCard,
     hidden: resolvedCardId < 0 && newCardId < 0,
   };
