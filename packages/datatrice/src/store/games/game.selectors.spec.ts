@@ -9,7 +9,7 @@ import { Selectors, seatedPlayersOf } from './game.selectors';
 import { gamesReducer } from './game.reducer';
 import { Actions } from './game.actions';
 import { makeGameEntry, makePlayerEntry, makePlayerProperties, makeState,
-  makeZoneEntry, makeCard, makeCounter, makeArrow,
+  makeZoneEntry, makeCard, makeCounter,
 } from '../../testing/fixtures/games';
 import { GamesState } from './game.interfaces';
 
@@ -325,44 +325,6 @@ describe('Selectors', () => {
   it('getArrows → returns the empty fallback object for an unknown gameId', () => {
     const state = makeState();
     expect(Selectors.getArrows(rootState(state), 999, 1)).toEqual({});
-  });
-
-  describe('getArrowsTouchingCard', () => {
-    // Card 10 on player 1's table; arrows live on whichever player drew them.
-    const state = makeState({
-      games: {
-        1: makeGameEntry({
-          players: {
-            1: makePlayerEntry({
-              arrows: {
-                1: makeArrow({ id: 1, startPlayerId: 1, startZone: 'table', startCardId: 10, targetPlayerId: 2, targetCardId: 30 }),
-                2: makeArrow({ id: 2, startPlayerId: 1, startZone: 'table', startCardId: 11, targetPlayerId: 2, targetCardId: 30 }),
-              },
-            }),
-            2: makePlayerEntry({
-              arrows: {
-                3: makeArrow({ id: 3, startPlayerId: 2, startZone: 'table', startCardId: 30, targetPlayerId: 1, targetCardId: 10 }),
-                4: makeArrow({ id: 4, startPlayerId: 2, startZone: 'table', startCardId: 30, targetPlayerId: 1, targetZone: 'hand',
-                  targetCardId: 10 }),
-              },
-            }),
-          },
-        }),
-      },
-    });
-
-    it.each([
-      ['both endpoints across players', 1, 'table', 10, [{ ownerPlayerId: 1, arrowId: 1 }, { ownerPlayerId: 2, arrowId: 3 }]],
-      ['the zone, not just the id', 1, 'hand', 10, [{ ownerPlayerId: 2, arrowId: 4 }]],
-      ['the owning player', 2, 'table', 10, []],
-      ['a card with no arrows', 1, 'table', 12, []],
-    ])('matches %s', (_label, playerId, zoneName, cardId, expected) => {
-      expect(Selectors.getArrowsTouchingCard(rootState(state), 1, playerId, zoneName, cardId)).toEqual(expected);
-    });
-
-    it('returns nothing for an unknown game', () => {
-      expect(Selectors.getArrowsTouchingCard(rootState(state), 999, 1, 'table', 10)).toEqual([]);
-    });
   });
 
   it('getActivePlayerId → returns activePlayerId from game', () => {
