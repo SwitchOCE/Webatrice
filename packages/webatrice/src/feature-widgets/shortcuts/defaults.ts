@@ -354,7 +354,8 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'deck.new': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Ctrl+Alt+KeyN'] },
   'deck.save': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Ctrl+KeyS'] },
   'deck.load': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Ctrl+KeyO'] },
-  'deck.addCard': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Equal', 'NumpadAdd'] },
+  // Desktop's `aIncrement` is "+", which is Shift+= on US layouts.
+  'deck.addCard': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Equal', 'Shift+Equal', 'NumpadAdd'] },
   'deck.removeCard': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Minus', 'NumpadSubtract'] },
   // Desktop's DeckListHistoryManagerWidget binds QKeySequence::Undo / ::Redo
   // (Ctrl+Z; Ctrl+Y or Ctrl+Shift+Z). Text inputs keep their own undo.
