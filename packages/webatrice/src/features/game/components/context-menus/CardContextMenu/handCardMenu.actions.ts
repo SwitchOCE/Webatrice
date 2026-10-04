@@ -61,6 +61,21 @@ export function playCardMove(
 }
 
 /**
+ * The moves that play these cards, one Command_MoveCard each (desktop
+ * actPlay / actPlayFacedown over the selected cards).
+ */
+export function playCardMoves(
+  cards: readonly { id: string; name: string }[],
+  cardMeta: (name: string) => PlayCardMeta | undefined,
+  options: { faceDown: boolean; playToStack?: boolean },
+): { card: SeatMoveCard; to: SeatMoveDestination }[] {
+  // Highest id first: positional ids shift as cards leave hidden zones (player_actions.cpp:1633-1644).
+  return [...cards]
+    .sort((a, b) => Number(b.id) - Number(a.id))
+    .map((c) => playCardMove(Number(c.id), cardMeta(c.name), options));
+}
+
+/**
  * The selected cards of one of the seat's hidden zones that "Reveal selected
  * cards to all players" sends: the hand selection, or the selected cards of
  * one open library / sideboard view. Null when the selection is elsewhere.
@@ -177,9 +192,7 @@ export function resolveHandOrZoneCardMenu(deps: HandOrZoneCardMenuDeps): CardMen
   const selectInView = (ids: readonly string[]) => deps.setSelectedCardKeys(new Set(ids.map(viewKey)));
   // One Command_MoveCard per card, as desktop's playCard sends.
   const play = (faceDown: boolean) => run(() => {
-    // Positional ids shift as cards leave hidden zones (player_actions.cpp:1633-1644).
-    for (const c of [...targets].sort((a, b) => Number(b.id) - Number(a.id))) {
-      const { card, to } = playCardMove(Number(c.id), deps.cardMeta(c.name), { faceDown, playToStack: deps.playToStack });
+    for (const { card, to } of playCardMoves(targets, deps.cardMeta, { faceDown, playToStack: deps.playToStack })) {
       deps.moveCards?.(zone, [card], to);
     }
   });

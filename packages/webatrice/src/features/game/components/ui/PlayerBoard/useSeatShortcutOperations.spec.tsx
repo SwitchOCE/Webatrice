@@ -17,6 +17,7 @@ import type {
   PlayerZoneCommands,
 } from './playerBoard.types';
 import { useBattlefieldCardOps } from './useBattlefieldCardOps';
+import { useHandCardOps } from './useHandCardOps';
 import { useSeatShortcutOperations } from './useSeatShortcutOperations';
 import type { LifeControl } from './useSeatPrompts';
 
@@ -49,6 +50,17 @@ function ports<T extends object>(): T {
   });
 }
 
+// The hand: an Ogre and a Shock.
+const HAND = [
+  { id: '4', name: 'Ogre', scryfallId: 'p4' },
+  { id: '9', name: 'Shock', scryfallId: 'p9' },
+];
+const CARD_META = new Map([
+  ['Card 12', { typeLine: 'Creature', pt: '1/1' }],
+  ['Ogre', { typeLine: 'Creature — Ogre', pt: '3/3' }],
+  ['Shock', { typeLine: 'Instant' }],
+]);
+
 const selected = (...ids: number[]): SeatSelection => ({ zone: 'battlefield', ids: new Set(ids.map(String)) });
 
 interface SetupArgs {
@@ -56,6 +68,7 @@ interface SetupArgs {
   selection?: SeatSelection | null;
   selectedCardKeys?: ReadonlySet<string>;
   deckCount?: number;
+  handCount?: number;
   manaCounters?: PlayerCounterViewModel['mana'];
   lastToken?: CreateTokenRequest | null;
 }
@@ -66,11 +79,17 @@ function setup({
   selection = null,
   selectedCardKeys = new Set(),
   deckCount = 30,
+  handCount = 2,
   manaCounters = { O: { id: 7, count: 0 } },
   lastToken = null,
 }: SetupArgs = {}) {
   const registry = createSeatShortcutRegistry();
-  const dialogs = { ...NOOP_GAME_DIALOGS_ACTIONS, handleRequestChooseMulligan: vi.fn() };
+  const dialogs = {
+    ...NOOP_GAME_DIALOGS_ACTIONS,
+    handleRequestChooseMulligan: vi.fn(),
+    handleRequestSortHandBy: vi.fn(),
+    openZoneView: vi.fn(),
+  };
   const zoneCommands = ports<PlayerZoneCommands>();
   const cardCommands = ports<PlayerCardCommands>();
   const counterCommands = ports<PlayerCounterCommands>();
@@ -98,7 +117,8 @@ function setup({
       cards: BOARD,
       selection,
       setSelection: props.setSelection,
-      cardMetaByName: new Map([['Card 12', { typeLine: 'Creature', pt: '1/1' }]]),
+      cardMetaByName: CARD_META,
+      tokenMetaByName: new Map(),
       deckCount,
       lifeControl,
       cardCommands,
@@ -114,12 +134,14 @@ function setup({
       startAttach: props.startAttach,
       startArrow: props.startArrow,
     });
+    const handOps = useHandCardOps({ cards: HAND, selection, cardMetaByName: CARD_META, zoneCommands });
     useSeatShortcutOperations({
       seatId: 1,
       isSelf,
       selection,
       selectedCardKeys,
       deckCount,
+      handCount,
       alwaysRevealTopCard: false,
       alwaysLookAtTopCard: false,
       manaCounters,
@@ -130,6 +152,7 @@ function setup({
       openCreateTokenDialog: props.openCreateTokenDialog,
       openMoveTopUntilDialog: props.openMoveTopUntilDialog,
       cardOps,
+      handOps,
       zoneCommands,
       cardCommands,
       counterCommands,
@@ -181,12 +204,70 @@ describe('useSeatShortcutOperations', () => {
     expect(props.openViewLibraryCountPrompt).toHaveBeenCalledWith({ isReversed: true, deckSize: 30 });
   });
 
-  it('does nothing selection-scoped without a battlefield selection', () => {
-    const { run, cardCommands, zoneCommands } = setup({ selection: { zone: 'hand', ids: new Set(['10']) } });
+  it('does nothing battlefield-scoped without a battlefield selection', () => {
+    const { run, cardCommands } = setup({ selection: { zone: 'hand', ids: new Set(['4']) } });
     run('game.flipCard');
-    run('game.moveSelectedToGrave');
+    run('game.tapCard');
+    run('game.createRelatedTokens');
     expect(cardCommands.flip).not.toHaveBeenCalled();
-    expect(zoneCommands.moveCards).not.toHaveBeenCalled();
+    expect(cardCommands.setTapped).not.toHaveBeenCalled();
+    expect(cardCommands.createToken).not.toHaveBeenCalled();
+  });
+
+  it('moves the battlefield or the hand selection, and nothing without one', () => {
+    const battlefield = setup({ selection: selected(10, 11) });
+    battlefield.run('game.moveSelectedToExile');
+    battlefield.run('game.moveSelectedToLibraryTop');
+    expect(vi.mocked(battlefield.zoneCommands.moveCards).mock.calls).toEqual([
+      [ZoneName.TABLE, [10, 11], { zone: ZoneName.EXILE, reversed: false }],
+      [ZoneName.TABLE, [10, 11], { zone: ZoneName.DECK, reversed: false }],
+    ]);
+
+    const hand = setup({ selection: { zone: 'hand', ids: new Set(['4', '9']) } });
+    hand.run('game.moveSelectedToBattlefield');
+    hand.run('game.moveSelectedToGrave');
+    expect(vi.mocked(hand.zoneCommands.moveCards).mock.calls).toEqual([
+      [ZoneName.HAND, [4, 9], { zone: ZoneName.TABLE, reversed: false }],
+      [ZoneName.HAND, [4, 9], { zone: ZoneName.GRAVE, reversed: false }],
+    ]);
+
+    const none = setup();
+    none.run('game.moveSelectedToHand');
+    expect(none.zoneCommands.moveCards).not.toHaveBeenCalled();
+  });
+
+  it('plays the selected hand cards as the hand menu does, face up or face down', () => {
+    const { run, zoneCommands } = setup({ selection: { zone: 'hand', ids: new Set(['4', '9']) } });
+    run('game.playCard');
+    run('game.playCardFaceDown');
+    // Highest id first; "Play to stack" (on by default) stacks the creature as well as the instant.
+    expect(vi.mocked(zoneCommands.moveCards).mock.calls.map(([, cards, to]) => [cards, to.zone])).toEqual([
+      [[9], ZoneName.STACK],
+      [[4], ZoneName.STACK],
+      [[{ id: 9, faceDown: true }], ZoneName.TABLE],
+      [[{ id: 4, faceDown: true }], ZoneName.TABLE],
+    ]);
+  });
+
+  it('views, sorts and reveals the hand, and opens the exile view', () => {
+    const { run, dialogs, zoneCommands } = setup();
+    run('game.viewHand');
+    run('game.viewExile');
+    run('game.sortHandByName');
+    run('game.sortHandByManaValue');
+    run('game.revealHandToAll');
+    run('game.revealRandomHandCardToAll');
+    expect(dialogs.openZoneView.mock.calls).toEqual([
+      [{ playerId: 1, zoneName: ZoneName.HAND }],
+      [{ playerId: 1, zoneName: ZoneName.EXILE }],
+    ]);
+    expect(dialogs.handleRequestSortHandBy.mock.calls).toEqual([['name'], ['manacost']]);
+    expect(vi.mocked(zoneCommands.reveal).mock.calls).toEqual([[ZoneName.HAND, 'all'], [ZoneName.HAND, 'all', 'random']]);
+
+    const empty = setup({ handCount: 0 });
+    (['game.sortHandByName', 'game.revealHandToAll', 'game.revealRandomHandCardToAll'] as const).forEach((id) => empty.run(id));
+    expect(empty.dialogs.handleRequestSortHandBy).not.toHaveBeenCalled();
+    expect(empty.zoneCommands.reveal).not.toHaveBeenCalled();
   });
 
   it('acts on the battlefield selection, driving toggles from the first selected card', () => {

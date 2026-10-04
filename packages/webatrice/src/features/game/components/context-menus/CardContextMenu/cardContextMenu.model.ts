@@ -156,7 +156,7 @@ export function buildCardContextMenu(args: BuildCardContextMenuArgs): CardMenuIt
   });
 
   return [
-    { label: 'Tap / Untap', onClick: args.onTapUntap },
+    { label: 'Tap / Untap', shortcut: args.shortcutHints['game.tapCard'], onClick: args.onTapUntap },
     {
       label: 'Skip untapping',
       shortcut: args.shortcutHints['game.doesntUntap'],
@@ -180,6 +180,7 @@ export function buildCardContextMenu(args: BuildCardContextMenuArgs): CardMenuIt
       submenu: [
         {
           label: 'Top of library in random order',
+          shortcut: args.shortcutHints['game.moveSelectedToLibraryTop'],
           onClick: args.onMoveToTop,
         },
         { label: 'X cards from the top of library...', onClick: args.onMoveToXCardsFromTop },
@@ -189,15 +190,15 @@ export function buildCardContextMenu(args: BuildCardContextMenuArgs): CardMenuIt
           onClick: args.onMoveToBottom,
         },
         { divider: true },
-        { label: 'Table', onClick: args.onMoveToTable },
-        { label: 'Hand', onClick: args.onMoveToHand },
+        { label: 'Table', shortcut: args.shortcutHints['game.moveSelectedToBattlefield'], onClick: args.onMoveToTable },
+        { label: 'Hand', shortcut: args.shortcutHints['game.moveSelectedToHand'], onClick: args.onMoveToHand },
         { divider: true },
         {
           label: 'Graveyard',
           shortcut: args.shortcutHints['game.moveSelectedToGrave'],
           onClick: args.onMoveToGrave,
         },
-        { label: 'Exile', onClick: args.onMoveToExile },
+        { label: 'Exile', shortcut: args.shortcutHints['game.moveSelectedToExile'], onClick: args.onMoveToExile },
       ],
     },
     { divider: true },

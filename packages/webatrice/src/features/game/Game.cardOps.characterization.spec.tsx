@@ -159,7 +159,7 @@ afterEach(() => {
 });
 
 describe('seat shortcut actions, with Ogre and the face-down Morph selected', () => {
-  // What each of the 46 seat actions does from that selection: the requests
+  // What each seat action does from that selection: the requests
   // it sends, the dialog it opens, or the selection it leaves.
   const EXPECTED: Record<SeatShortcutActionId, { wire?: unknown[]; dialogs?: unknown[]; selected?: string[] }> = {
     'game.mulligan': { dialogs: ['Take mulligan'] },
@@ -228,6 +228,27 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
       ],
     },
     'game.revealSelectedToAll': {},
+    'game.tapCard': {
+      wire: [
+        [...attr(10, CardAttribute.AttrTapped, '1'), 'options'],
+        [...attr(11, CardAttribute.AttrTapped, '1'), 'options'],
+      ],
+    },
+    // Play acts on the hand selection; Ogre has no related tokens.
+    'game.playCard': {},
+    'game.playCardFaceDown': {},
+    'game.createRelatedTokens': {},
+    'game.moveSelectedToExile': { wire: [['moveCard', moveFromTable([10, 11], ZoneName.EXILE, 0, false)]] },
+    'game.moveSelectedToHand': { wire: [['moveCard', moveFromTable([10, 11], ZoneName.HAND, 0, false)]] },
+    'game.moveSelectedToLibraryTop': { wire: [['moveCard', moveFromTable([10, 11], ZoneName.DECK, 0, false)]] },
+    'game.moveSelectedToBattlefield': { wire: [['moveCard', moveFromTable([10, 11], ZoneName.TABLE, 0, false)]] },
+    // The zone views open as non-modal dialogs titled by zone and owner.
+    'game.viewHand': { dialogs: ['ZoneLabel.title.hand — P1'] },
+    'game.viewExile': { dialogs: ['ZoneLabel.title.rfg — P1'] },
+    'game.sortHandByName': {},
+    'game.sortHandByManaValue': {},
+    'game.revealHandToAll': { wire: [['revealCards', { zoneName: ZoneName.HAND }]] },
+    'game.revealRandomHandCardToAll': { wire: [['revealCards', { zoneName: ZoneName.HAND, cardId: [-2] }]] },
   };
 
   it.each(SEAT_SHORTCUT_ACTIONS.map((id) => [id]))('%s', async (id) => {
