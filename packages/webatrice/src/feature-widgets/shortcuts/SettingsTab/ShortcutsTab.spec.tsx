@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 
 import { renderWithProviders } from '../../../__test-utils__';
 import ShortcutsTab from './ShortcutsTab';
@@ -47,15 +47,22 @@ describe('ShortcutsTab', () => {
     expect(within(tapRow).getByText('ShortcutsTab.noBinding')).toBeInTheDocument();
   });
 
-  it('collapses a group from its header button, and every row edits from a button', () => {
+  // jsdom does not turn Enter / Space on a button into a click, so this checks
+  // what keyboard use rests on: native, focusable buttons in the tab order.
+  it('collapses a group from its focusable header button, and every row edits from a focusable button', () => {
     renderWithProviders(<ShortcutsTab />);
     const header = screen.getByRole('button', { name: /ShortcutsTab\.group\.gameHand\d/ });
+    expect(header.tagName).toBe('BUTTON');
+    act(() => header.focus());
+    expect(header).toHaveFocus();
     expect(header).toHaveAttribute('aria-expanded', 'true');
     fireEvent.click(header);
     expect(header).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByText('ShortcutsTab.action.game.sortHandByName')).not.toBeInTheDocument();
     // One focusable edit button per visible row.
     const rows = screen.getAllByText(/^ShortcutsTab\.action\./);
-    expect(screen.getAllByRole('button', { name: 'ShortcutsTab.editAction' })).toHaveLength(rows.length);
+    const edits = screen.getAllByRole('button', { name: 'ShortcutsTab.editAction' });
+    expect(edits).toHaveLength(rows.length);
+    expect(edits.filter((b) => b.tagName !== 'BUTTON' || b.tabIndex < 0)).toEqual([]);
   });
 });
