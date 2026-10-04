@@ -3,7 +3,7 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import { useAnimationPreference, useSnapGridVisible } from '@app/hooks';
 
 import ContextMenu from '../../context-menus/ContextMenu/ContextMenu';
-import { PlayerPlaymat } from '../../PlayerPlaymat';
+import { PlaymatArt, usePlayerPlaymat } from '../../PlayerPlaymat';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import { CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../../ui/SeatCard/cardSize';
 import Card from '../../ui/SeatCard/SeatCard';
@@ -154,6 +154,7 @@ export default function Battlefield() {
     selection,
     startSeatCardDrag,
   } = usePlayerSeatContext();
+  const playmat = usePlayerPlaymat(playerId, isSelf);
   // A replay's backward skip taps and untaps without the animation (SKIP_TAP_ANIMATION).
   const justRewound = useJustRewound();
   const tapAnimation = useAnimationPreference('tapAnimation') && !justRewound;
@@ -208,10 +209,9 @@ export default function Battlefield() {
       wrapperClassName="min-h-0 relative isolate"
       wrapperStyle={seatGrid.battlefield}
     >
-      {/* Desktop paints the table's background only without a playmat; the
-        playmat, cover-fitted over the same area, hides it. */}
-      <ZoneBackground zone="table" />
-      {playerId != null && <PlayerPlaymat playerId={playerId} isSelf={isSelf} />}
+      {/* Desktop paints the table's background only without a playmat
+        (PlayerGraphicsItem::paint). */}
+      {playmat ? <PlaymatArt art={playmat} testId="player-playmat" /> : <ZoneBackground zone="table" />}
       <ValueFlashOverlay flash={damageFlash} kind="damage" />
       {/* Lands divider — spans the full width of the play area,
         ignoring the padding around the scrollable battlefield content
