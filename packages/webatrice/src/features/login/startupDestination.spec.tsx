@@ -16,13 +16,51 @@ vi.mock('@app/hooks', async (importOriginal) => ({
 vi.mock('@app/feature-widgets/known-hosts', () => ({ useKnownHosts: hoisted.useKnownHosts }));
 
 import { makeHost, makeKnownHostsHook } from '../../feature-widgets/known-hosts/__mocks__/useKnownHosts';
-import { pageLoadLoginGate, resolveStartupDestination, useStartupDestination } from './startupDestination';
+import { detectPageReload, pageLoadLoginGate, resolveStartupDestination, useStartupDestination } from './startupDestination';
 
 const prefs = (overrides: Partial<Preferences> = {}) => ({
   startupTab: PREFERENCE_DEFAULTS.startupTab,
   startupServer: '',
   startupRoom: '',
   ...overrides,
+});
+
+describe('detectPageReload', () => {
+  const memoryStorage = () => {
+    const items = new Map<string, string>();
+    return { getItem: (key: string) => items.get(key) ?? null, setItem: (key: string, value: string) => void items.set(key, value) };
+  };
+
+  it('treats the first load of a tab as a launch, and a later load of that tab as a reload', () => {
+    const tab = memoryStorage();
+
+    expect(detectPageReload(tab, 'navigate')).toBe(false);
+    // Not every browser reports a scripted reload as 'reload'; the tab's storage still knows.
+    expect(detectPageReload(tab, 'navigate')).toBe(true);
+  });
+
+  it('treats a new tab as a launch', () => {
+    detectPageReload(memoryStorage(), 'navigate');
+
+    expect(detectPageReload(memoryStorage(), 'navigate')).toBe(false);
+  });
+
+  it('falls back to the navigation type without storage', () => {
+    expect(detectPageReload(undefined, 'reload')).toBe(true);
+    expect(detectPageReload(undefined, 'navigate')).toBe(false);
+  });
+
+  it('falls back to the navigation type when storage throws', () => {
+    const blocked = {
+      getItem: (): string | null => {
+        throw new Error('blocked');
+      },
+      setItem: () => undefined,
+    };
+
+    expect(detectPageReload(blocked, 'reload')).toBe(true);
+    expect(detectPageReload(blocked, 'navigate')).toBe(false);
+  });
 });
 
 describe('resolveStartupDestination', () => {
