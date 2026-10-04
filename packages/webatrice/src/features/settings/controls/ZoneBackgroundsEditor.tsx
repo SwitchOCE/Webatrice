@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
@@ -37,6 +37,7 @@ function ZoneRow({ zone, background, disabled, onChange }: ZoneRowProps) {
   const resolver = useMemo(() => zodResolver(buildSchema(t)), [t]);
   const { control, handleSubmit, reset } = useForm<FormValues>({ defaultValues: { cardName: '' }, resolver });
   const zoneLabel = t(`SettingsAppearance.zoneBackgrounds.zone.${zone}`);
+  const editorId = useId();
 
   const set = ({ cardName }: FormValues) => {
     onChange({ cardName: cardName.trim(), cardProviderId: '', params: games.DEFAULT_PLAYMAT_PARAMS });
@@ -54,12 +55,20 @@ function ZoneRow({ zone, background, disabled, onChange }: ZoneRowProps) {
         </span>
         {background && (
           <>
-            <Button size="small" disabled={disabled} onClick={() => setEditing(!editing)}>
+            <Button
+              size="small"
+              disabled={disabled}
+              aria-label={t('SettingsAppearance.zoneBackgrounds.editLabel', { zone: zoneLabel })}
+              aria-expanded={editing}
+              aria-controls={editing ? editorId : undefined}
+              onClick={() => setEditing(!editing)}
+            >
               {editing ? t('PlaymatSettings.collection.done') : t('PlaymatSettings.collection.edit')}
             </Button>
             <Button
               size="small"
               disabled={disabled}
+              aria-label={t('SettingsAppearance.zoneBackgrounds.clearLabel', { zone: zoneLabel })}
               onClick={() => {
                 onChange(undefined);
                 setEditing(false);
@@ -71,7 +80,9 @@ function ZoneRow({ zone, background, disabled, onChange }: ZoneRowProps) {
         )}
       </div>
       {background && editing && (
-        <PlaymatCropEditor playmat={background} onChange={(params) => onChange({ ...background, params })} />
+        <div id={editorId}>
+          <PlaymatCropEditor playmat={background} onChange={(params) => onChange({ ...background, params })} />
+        </div>
       )}
       <form className="playmat-settings__add" onSubmit={handleSubmit(set)} noValidate>
         <Controller
@@ -89,7 +100,12 @@ function ZoneRow({ zone, background, disabled, onChange }: ZoneRowProps) {
             />
           )}
         />
-        <Button type="submit" variant="outlined" disabled={disabled}>
+        <Button
+          type="submit"
+          variant="outlined"
+          disabled={disabled}
+          aria-label={t('SettingsAppearance.zoneBackgrounds.setLabel', { zone: zoneLabel })}
+        >
           {t('SettingsAppearance.zoneBackgrounds.set')}
         </Button>
       </form>
