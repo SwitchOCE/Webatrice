@@ -115,12 +115,24 @@ describe('v2: theme palette and language', () => {
   });
 
   describe('v3: animations', () => {
-    it('counts a tap animation already turned off as an animation choice', () => {
-      expect(migrateSetting({ user: '*app', version: 2, tapAnimation: false }).animationsChosen).toBe(true);
+    it('keeps animation off for a user who had turned the tap animation off, new animations included', () => {
+      expect(migrateSetting({ user: '*app', version: 2, tapAnimation: false })).toMatchObject({
+        animationsChosen: true,
+        tapAnimation: false,
+        arrowDrawAnimation: false,
+        lifeCounterAnimations: false,
+        battlefieldFlash: false,
+      });
     });
 
-    it('lets the system\'s reduced-motion setting decide for everyone else', () => {
-      expect(migrateSetting({ user: '*app', version: 2, tapAnimation: true }).animationsChosen).toBe(false);
+    it('lets the system\'s reduced-motion setting decide for a user who had the tap animation on', () => {
+      expect(migrateSetting({ user: '*app', version: 2, tapAnimation: true })).toMatchObject({
+        animationsChosen: false,
+        tapAnimation: true,
+        arrowDrawAnimation: true,
+        lifeCounterAnimations: true,
+        battlefieldFlash: true,
+      });
       expect(migrateSetting({ user: '*app' }).animationsChosen).toBe(false);
     });
 
