@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
@@ -144,6 +144,15 @@ describe('useDeckCardGrid', () => {
     await user.keyboard('{Shift>}S{/Shift}');
     expect(row('Bolt')).toHaveTextContent('1 main');
     expect(row('Bolt')).toHaveFocus();
+  });
+
+  it('matches Shift+S by the typed letter, so other layouts swap on their own S key', () => {
+    const { row } = renderList([card('Bolt')]);
+    // Dvorak: the key labelled S sits where QWERTY has ;, and QWERTY's S types O.
+    fireEvent.keyDown(row('Bolt'), { key: 'O', code: 'KeyS', shiftKey: true });
+    expect(row('Bolt')).toHaveTextContent('1 main');
+    fireEvent.keyDown(row('Bolt'), { key: 'S', code: 'Semicolon', shiftKey: true });
+    expect(row('Bolt')).toHaveTextContent('1 sideboard');
   });
 
   it('never sideboards the commander', async () => {

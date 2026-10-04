@@ -157,7 +157,7 @@ export function useDeckCardGrid({ cards, order, onInc, onDelete, onSetCategory, 
           adjust(key, 1);
         } else if ((plain && event.shiftKey && event.key === 'ArrowLeft') || (ctrlAlt && event.code === 'Minus')) {
           decrement(key);
-        } else if (plain && event.shiftKey && event.code === 'KeyS') {
+        } else if (plain && event.shiftKey && event.key.toLowerCase() === 's') {
           swap(key);
         } else {
           row.onKeyDown(event);
