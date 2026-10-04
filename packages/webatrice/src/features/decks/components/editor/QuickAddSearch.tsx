@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Loader2, Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -12,6 +12,13 @@ export interface QuickAddSearchProps {
   onAdd: (name: string) => void;
 }
 
+/**
+ * Card-name autocomplete for the MTG toolbar, as an ARIA 1.2 combobox: the
+ * input keeps focus while ↑/↓ move the highlighted option (announced through
+ * `aria-activedescendant`), Enter adds it (or the typed name), and Escape
+ * closes the list, then clears the field. A polite status reports searching,
+ * the number of suggestions and no matches.
+ */
 export function QuickAddSearch({ query, onQueryChange, onAdd }: QuickAddSearchProps) {
   const { t } = useTranslation();
   const setQuery = onQueryChange;
@@ -19,6 +26,19 @@ export function QuickAddSearch({ query, onQueryChange, onAdd }: QuickAddSearchPr
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const listboxId = useId();
+  const optionId = (index: number) => `${listboxId}-option-${index}`;
+
+  const searching = open && query.trim().length >= 2;
+  const expanded = searching && !loading && suggestions.length > 0;
+  const activeOption = expanded && highlight >= 0 && highlight < suggestions.length ? optionId(highlight) : undefined;
+  const status = !searching
+    ? ''
+    : loading
+      ? t('DeckEditor.quickAdd.searching')
+      : suggestions.length === 0
+        ? t('DeckEditor.quickAdd.noMatches')
+        : t('DeckEditor.quickAdd.suggestions', { count: suggestions.length });
 
   // Close dropdown on click outside.
   useEffect(() => {
@@ -61,8 +81,12 @@ export function QuickAddSearch({ query, onQueryChange, onAdd }: QuickAddSearchPr
         handleAdd(query.trim());
       }
     } else if (e.key === 'Escape') {
-      setOpen(false);
-      setQuery('');
+      // APG combobox: the first Escape closes the list, the next clears the field.
+      if (expanded) {
+        setOpen(false);
+      } else {
+        setQuery('');
+      }
     }
   };
 
@@ -79,6 +103,13 @@ export function QuickAddSearch({ query, onQueryChange, onAdd }: QuickAddSearchPr
         <input
           ref={inputRef}
           type="text"
+          role="combobox"
+          aria-label={t('DeckEditor.quickAdd.label')}
+          aria-autocomplete="list"
+          aria-expanded={expanded}
+          aria-controls={expanded ? listboxId : undefined}
+          aria-activedescendant={activeOption}
+          autoComplete="off"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -109,7 +140,9 @@ export function QuickAddSearch({ query, onQueryChange, onAdd }: QuickAddSearchPr
         )}
       </label>
 
-      {open && query.trim().length >= 2 && (
+      <p role="status" className="sr-only">{status}</p>
+
+      {searching && (
         <div
           className={[
             'absolute right-0 left-0 top-full mt-1 z-20 rounded-md',
@@ -124,23 +157,28 @@ export function QuickAddSearch({ query, onQueryChange, onAdd }: QuickAddSearchPr
           {!loading && suggestions.length === 0 && (
             <div className="px-3 py-2 text-xs text-text-muted italic">{t('DeckEditor.quickAdd.noMatches')}</div>
           )}
-          {!loading &&
-            suggestions.map((s, i) => {
-              return (
-                <button
+          {expanded && (
+            <ul id={listboxId} role="listbox" aria-label={t('DeckEditor.quickAdd.listLabel')}>
+              {suggestions.map((s, i) => (
+                <li
                   key={s.name}
-                  type="button"
+                  id={optionId(i)}
+                  role="option"
+                  aria-selected={i === highlight}
                   onMouseEnter={() => setHighlight(i)}
+                  // Keep focus in the input, which owns the combobox.
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => handleAdd(s.name)}
                   className={[
-                    'w-full block px-3 py-1.5 text-left text-sm text-text-primary truncate transition-colors',
+                    'px-3 py-1.5 text-sm text-text-primary truncate cursor-pointer transition-colors',
                     i === highlight ? 'bg-bg-elevated' : 'hover:bg-bg-elevated',
                   ].join(' ')}
                 >
                   {s.name}
-                </button>
-              );
-            })}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </div>
