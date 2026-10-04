@@ -269,7 +269,7 @@ export function CardDetailDialog({
                       'rounded-md border bg-accent-secondary/30 border-accent/30 text-text-primary',
                     ].join(' ')}
                   >
-                    <span className="text-sm font-medium">{t('CardDetailDialog.priceUsd')}</span>
+                    <span className="text-sm font-medium">{t('PrintingPicker.priceUsd')}</span>
                     <span className="tabular-nums text-sm font-semibold">
                       ${priceInfo.usd.toFixed(2)}
                     </span>
@@ -361,14 +361,14 @@ function CardDetailActions({
 
       <ActionButton
         icon={<Layers size={14} />}
-        label={t('CardDetailDialog.changePrinting')}
+        label={t('DeckEditor.rowActions.changePrinting')}
         disabled={removed}
         onClick={closeAfter(onChangePrinting)}
       />
       {isCommanderDeck && (
         <ActionButton
           icon={<Crown size={14} className={cardIsCommander ? 'text-warning' : ''} />}
-          label={cardIsCommander ? t('CardDetailDialog.unmarkCommander') : t('CardDetailDialog.markCommander')}
+          label={cardIsCommander ? t('DeckEditor.rowActions.unmarkCommander') : t('DeckEditor.rowActions.markCommander')}
           disabled={removed}
           onClick={closeAfter(onToggleCommander)}
         />
@@ -376,14 +376,14 @@ function CardDetailActions({
       {cardIsSideboard ? (
         <ActionButton
           icon={<PackageOpen size={14} />}
-          label={t('CardDetailDialog.moveToMain')}
+          label={t('DeckEditor.rowActions.moveToMain')}
           disabled={removed}
           onClick={closeAfter(() => onMove('main'))}
         />
       ) : (
         <ActionButton
           icon={<Archive size={14} />}
-          label={t('CardDetailDialog.moveToSideboard')}
+          label={t('DeckEditor.rowActions.moveToSideboard')}
           disabled={removed || cardIsCommander}
           onClick={closeAfter(() => onMove('sideboard'))}
         />

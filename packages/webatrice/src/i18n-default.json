@@ -1639,16 +1639,10 @@
     "actions": "Actions",
     "addToDeck": "Add to deck",
     "buy": "Buy @ TCGplayer",
-    "priceUsd": "TCGplayer USD",
     "quantity": "Quantity",
     "removed": "· removed from deck",
     "decrease": "Decrease quantity",
     "increase": "Increase quantity",
-    "changePrinting": "Change printing",
-    "markCommander": "Mark as commander",
-    "unmarkCommander": "Unmark as commander",
-    "moveToMain": "Move to main",
-    "moveToSideboard": "Move to sideboard",
     "removeFromDeck": "Remove from deck"
   },
   "CreateDeckDialog": {
