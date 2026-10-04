@@ -75,3 +75,66 @@ Tip `5a8feae` (after the rv10 review fixes), from the repo root:
 - **nit: card-info request replays on remount.** Fixed (`6ce5b77`): `useCardInfoRequest(onRequest)` consumes each request after handling it.
 - **nit: loose e2e image assertion.** Now asserts the exact token id only (`5a8feae`).
 
+
+## Rebase onto stage 5 (w17r)
+
+Branch `claude/restack-17b-game-menus`, tip `41f0d47`, on `claude/restack-17a-game-actions` (`57a3449`). 27 commits: 24 of the 25 above, ported, plus two new commits.
+
+**Dropped: commit 0 (`157c0a5`, extract the PlayerBox menu arrays into `playerMenu.model`).** Stage 5 already moved those arrays into per-region hooks: `useLibraryMenuItems`, `useHandMenuItems`, `useBattlefieldMenuItems` and `usePileMenus`, each with a spec. The orchestrator confirmed the drop (M1).
+
+**No central `playerMenu.model.ts` (M1).** Each new pure builder sits beside the hook that owns its region, with its own spec:
+
+| builder | file | used by |
+|---|---|---|
+| `buildRevealToSubmenu` | `ui/PlayerBoard/revealRecipient.ts`, the module that already owns `toRecipient` | `useHandMenuItems`, `useLibraryMenuItems` and ZoneStack's library pile menu. The hand / zone-view card menu reaches it through `handCardMenu.model` |
+| `buildTallyMenu` | `battlefield/Battlefield/tallyMenu.ts` | `useBattlefieldMenuItems`, own and opponent menus (desktop `player_menu.cpp:48`) |
+| `buildCustomZonesMenu` | `battlefield/Battlefield/customZonesMenu.ts` | `useBattlefieldMenuItems`, after Sideboard (desktop puts Custom Zones in the player menu, not on a pile) |
+| `buildSayMenu`, `SAY_MACRO_ACTIONS` | `battlefield/Battlefield/sayMenu.ts` | `useBattlefieldMenuItems` (own seat with `onSay`) and `useGameShortcuts` |
+
+**Where each PlayerBox hunk went:**
+- Related cards: `usePlayerSeat.relatedViewItemsFor` → `SeatCardMenus/{Battlefield,Stack,Pile}CardMenu`. The lookup widening (`746f56c`) is in `useSeatCardMetadata`, through a new `otherVisibleCards` argument.
+- Hand / zone-view card menu:
+  - It is the new `SeatCardMenus/HandCardMenu`, mounted in `PlayerBoard` beside the other three card menus.
+  - The hand card's `onContextMenu` is in `HandZone`.
+  - `usePlayerSeat` exposes `handCardMenu` / `zoneViewCardMenu`.
+  - The `84f009a` refactor turns HandCardMenu into a call to `resolveHandOrZoneCardMenu`, so it has no logic of its own.
+- Shortcuts and prompts:
+  - `game.revealSelectedToAll` → `useSeatShortcutOperations`, which gains `seatId` and `selectedCardKeys`.
+  - The `fromZone` / `cardIds` move-X prompt → `useSeatPrompts`.
+- Play routing (`599821f`):
+  - `playCardMove` routes the HandZone double-click with the settings preference "Play all nonlands onto the stack" (branch 19), and the StackColumn double-click with `fromStack`.
+  - `cipt` joins `SeatCardMeta` and `seatCardMetaFromLookup`.
+- `onSay` is a new `PlayerBoard` prop that `GameBoardCell` passes. Custom zones come from `zones.customZones` in `usePlayerSeat`.
+- Deck draft (`3e1ff7b`, `e8e476d`, `48b1317`): branch 09 split the deck editor, so the port goes into the split hooks.
+  - `useDeckAutosave` takes an optional `draft` option. A draft's first save is a root `deckUpload`, matched by root path and name ("Unnamed deck" fallback). Edits made while it is in flight, or waiting on the debounce, are saved to the new id with `deckUpdate`. Later saves go to that id.
+  - `useDeckEditor(deckId, draftToken)` loads the draft and moves to `/deck/:id` once it is stored.
+  - Draft documents and states live in `deckEditorCache.ts` (cap 4).
+  - Specs: `hooks/useDeckEditor.draft.spec.tsx` has 6 tests. The two in-flight tests fail against the pre-fix autosave. `useDeckEditor.deckSwitch.spec` now wraps the hook in a router.
+
+**New commit 26, `feat(game): read Say macros from the settings store`.** Branch 19 is below, so:
+- `features/game/hooks/useMessageMacros.ts` is now the one-line seam `export { useMessageMacros } from '@app/hooks'`. The localStorage fallback and its spec are deleted.
+- `Game.shortcuts` seeds the macros through the mocked preference store.
+- The e2e Alt+1 test adds its macro in Settings > Chat (user menu → Settings → Chat → "New message" → "Add New Message") before it joins the room. `flows.ts` exports `joinFirstRoom` for that.
+- The Say items, the Alt+digit defaults and the `Command_GameSay` payloads are unchanged.
+
+**Other pin edits:**
+- The opponent battlefield menu now ends with Tally in `Battlefield.spec` and `useBattlefieldMenuItems.spec`. The latter also gains Say / custom-zone cases.
+- `GameBoardCell.spec`'s reveal case asserts `{ cardIds }` through the port.
+- `useSeatPrompts.spec` passes `cardIds`.
+
+**New commit 27, `test(e2e): answer Scryfall's batch card lookup in the hermetic network fixture`.** The hermetic network fixture comes from the e2e-hardening branch below. It had no stand-in for `POST /cards/collection`, which the seat's metadata lookup reaches through `lookupCards`, so the related-cards e2e failed on all three browsers. The fixture now answers the endpoint and its CORS preflight from the Scryfall fixtures.
+
+**Testing at `65687b0` (`41f0d47` changes only the e2e fixture):**
+- `turbo typecheck` passes at every one of the first 26 commits. At `41f0d47`, `tsc -p e2e` and eslint on `e2e` pass. Lint: 3/3, 0 errors.
+- Unit: sockatrice 43 files / 896 tests, datatrice 35 / 1316, webatrice 461 / 3647. All pass.
+- Integration: sockatrice 20 / 175 and datatrice 10 / 145 pass. Webatrice: 52 files, 270 / 271 tests pass. The one failure is `invite-link.spec` "a link clicked in a room's chat opens the game with one navigation (Back returns to the room)". It fails the same way on the base `claude/restack-16-game-lobby` and at the 17a tip, so it is not caused by this branch.
+- Webatrice e2e, run on the host build against Servatrice 3.0.0 in `mcr.microsoft.com/playwright:v1.60.0-noble`, on chromium, firefox and webkit, with the host docker CLI and socket mounted for `staff-tools`:
+  - At `65687b0`: 75 passed, 3 failed, 12 skipped (the 3.1-only specs on a 3.0.0 server), in 19.1 min. All three failures are the related-cards test, from the missing collection stub above.
+  - At `41f0d47`: `card-menus.spec` 9/9 (3 tests × 3 browsers), including Alt+1 with the macro set up in Settings > Chat. `game-menu.spec` (17a) passed on all three browsers in the full run.
+  - The full suite was not re-run after the fixture-only commit.
+- Sockatrice e2e: not run. No sockatrice flow changed; `isBuiltinZone` is a pure helper.
+
+**Follow-ups:**
+- `useTallyType` still uses its localStorage singleton. Branch 19 has no `tallyType` preference to swap to, and adding one is outside this task.
+- `usePileMenus`' "Reveal random card to..." still shows "(no players)" when alone. 17b never changed the pile menus.
+- Stage 5's two library menus (ZoneStack's inline one and `useLibraryMenuItems`) both carry the reveal-to fix. Folding them into one is still the stage-5 follow-up.

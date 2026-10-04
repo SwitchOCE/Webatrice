@@ -7,3 +7,4 @@
 - 23:17Z 17b: all 25 commits ported + macro seam swap commit (tip 65687b0), pushed → per-commit typecheck + full gate at 17b tip, 17a unit rerun (first run OOM-killed by parallel vitest)
 - 23:44Z 17a tip unit 895/1316/3554 green; 17b per-commit typecheck 26/26; 17b unit 896/1316/3647, lint 3/3 → integration + webatrice e2e at 17b tip
 - 23:47Z integration at 17b tip: sockatrice 175/175, datatrice 145/145, webatrice 270/271 — the 1 failure (invite-link 'Back returns to the room') also fails on base restack-16 and at 17a tip → e2e next
+- 00:13Z DONE: 17a tip 57a3449, 17b tip 41f0d47 pushed; e2e 75/90 (+3 fixed by stub, card-menus 9/9 rerun, 12 skipped 3.1-only); PR files updated with 'Rebase onto stage 5'
