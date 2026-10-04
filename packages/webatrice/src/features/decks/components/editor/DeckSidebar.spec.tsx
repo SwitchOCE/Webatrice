@@ -35,8 +35,8 @@ describe('DeckSidebar', () => {
   it('edits the name and format, and opens the exporter', () => {
     const props = renderSidebar();
     fireEvent.change(screen.getByDisplayValue('Burn'), { target: { value: 'Burn 2' } });
-    fireEvent.change(screen.getByRole('combobox', { name: 'Format' }), { target: { value: 'legacy' } });
-    fireEvent.click(screen.getByRole('button', { name: /Export deck/ }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'FormatPicker.label' }), { target: { value: 'legacy' } });
+    fireEvent.click(screen.getByRole('button', { name: /DeckSidebar.export/ }));
     expect(props.onNameChange).toHaveBeenCalledWith('Burn 2');
     expect(props.onFormatChange).toHaveBeenCalledWith('legacy');
     expect(props.onExport).toHaveBeenCalled();
@@ -56,13 +56,13 @@ describe('DeckSidebar', () => {
 
   it('shows the totals and the save state', () => {
     renderSidebar({ totalSideboardCount: 2, saveState: 'dirty' });
-    expect(screen.getByText('4 cards · 2 sideboard')).toBeInTheDocument();
-    expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+    expect(screen.getByText('DeckSidebar.cardCount · DeckSidebar.sideboardCount')).toBeInTheDocument();
+    expect(screen.getByText('DeckSidebar.dirty')).toBeInTheDocument();
   });
 
   it.each([
-    ['saving', 'Saving…'],
-    ['saved', 'Saved'],
+    ['saving', 'DeckSidebar.saving'],
+    ['saved', 'DeckSidebar.saved'],
   ] as const)('shows %s', (saveState, label) => {
     renderSidebar({ saveState });
     expect(screen.getByText(label)).toBeInTheDocument();
@@ -77,13 +77,13 @@ describe('DeckSidebar', () => {
 
   it('shows the buy pill and preview only for MTG decks', () => {
     renderSidebar();
-    expect(screen.getByText('Buy deck @ TCGplayer')).toBeInTheDocument();
-    expect(screen.getByText('Hover a card to preview')).toBeInTheDocument();
+    expect(screen.getByText('DeckEditor.buy.deck')).toBeInTheDocument();
+    expect(screen.getByText('DeckEditor.preview.hover')).toBeInTheDocument();
   });
 
   it('hides MTG-only features for other decks', () => {
     renderSidebar({ isMtg: false });
-    expect(screen.queryByText('Buy deck @ TCGplayer')).toBeNull();
-    expect(screen.queryByText('Hover a card to preview')).toBeNull();
+    expect(screen.queryByText('DeckEditor.buy.deck')).toBeNull();
+    expect(screen.queryByText('DeckEditor.preview.hover')).toBeNull();
   });
 });

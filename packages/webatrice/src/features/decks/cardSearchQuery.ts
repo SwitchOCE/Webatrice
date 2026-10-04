@@ -45,12 +45,8 @@ export const FILTER_TYPES: FilterCardType[] = [
   'Creature', 'Instant', 'Sorcery', 'Enchantment', 'Artifact', 'Planeswalker', 'Land',
 ];
 
-export const FILTER_RARITIES: Array<{ id: FilterRarity; label: string }> = [
-  { id: 'common', label: 'C' },
-  { id: 'uncommon', label: 'U' },
-  { id: 'rare', label: 'R' },
-  { id: 'mythic', label: 'M' },
-];
+/** Rarity filter buttons in display order; the UI labels them `CardSearch.rarity.<id>`. */
+export const FILTER_RARITIES: FilterRarity[] = ['common', 'uncommon', 'rare', 'mythic'];
 
 /**
  * Combine the typed query with the filter state into one Scryfall query.

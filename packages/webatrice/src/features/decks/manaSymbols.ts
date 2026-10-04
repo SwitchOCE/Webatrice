@@ -8,6 +8,3 @@ export type ManaColor = 'W' | 'U' | 'B' | 'R' | 'G' | 'C';
 /** WUBRG order plus colorless. */
 export const MANA_COLORS: ManaColor[] = ['W', 'U', 'B', 'R', 'G', 'C'];
 
-export const MANA_COLOR_LABEL: Record<ManaColor, string> = {
-  W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green', C: 'Colorless',
-};

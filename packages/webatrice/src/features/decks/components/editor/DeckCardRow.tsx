@@ -60,7 +60,7 @@ export function DeckCardRow({
           type="button"
           onClick={onCardClick}
           className="flex-1 min-w-0 truncate text-sm text-text-primary text-left hover:text-accent transition-colors cursor-pointer"
-          title="Click for details"
+          title={t('DeckEditor.row.details')}
         >
           {card.name}
         </button>
@@ -72,7 +72,7 @@ export function DeckCardRow({
       {card.lookupSource === 'unknown' && (
         <span
           className="shrink-0 text-warning"
-          title="Not in your card DB and Scryfall couldn't find it. The card is saved but details/images can't be shown."
+          title={t('DeckEditor.row.unknown')}
         >
           <CircleAlert size={10} />
         </span>

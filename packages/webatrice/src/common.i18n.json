@@ -301,7 +301,15 @@
       "apply": "Apply",
       "reset": "Reset",
       "join": "Join",
-      "dismiss": "Dismiss"
+      "dismiss": "Dismiss",
+      "delete": "Delete",
+      "remove": "Remove",
+      "copy": "Copy",
+      "back": "Back"
+    },
+    "status": {
+      "loading": "Loading…",
+      "copied": "Copied"
     }
   }
 }

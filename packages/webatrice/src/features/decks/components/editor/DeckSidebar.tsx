@@ -62,7 +62,7 @@ export function DeckSidebar({
           type="text"
           value={deck.name}
           onChange={(e) => onNameChange(e.target.value)}
-          placeholder="Untitled Deck"
+          placeholder={t('DeckSidebar.namePlaceholder')}
           className={[
             'w-full bg-transparent border-none outline-none font-modern text-xl',
             'font-semibold text-text-primary placeholder:text-text-muted',
@@ -70,8 +70,8 @@ export function DeckSidebar({
           ].join(' ')}
         />
         <div className="text-xs text-text-muted mt-1 tabular-nums">
-          {totalMainboardCount} card{totalMainboardCount === 1 ? '' : 's'}
-          {totalSideboardCount > 0 && <> · {totalSideboardCount} sideboard</>}
+          {t('DeckSidebar.cardCount', { count: totalMainboardCount })}
+          {totalSideboardCount > 0 && <> · {t('DeckSidebar.sideboardCount', { count: totalSideboardCount })}</>}
         </div>
         <div className="text-xs mt-1">
           <SaveIndicator state={saveState} onRetry={onRetrySave} />
@@ -80,7 +80,7 @@ export function DeckSidebar({
 
         <div className="mt-3">
           <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
-            Format
+            {t('DeckSidebar.format')}
           </span>
           <FormatPicker value={deck.format} onChange={onFormatChange} variant="sidebar" />
         </div>
@@ -90,14 +90,14 @@ export function DeckSidebar({
           <button
             type="button"
             onClick={onExport}
-            title="Export deck (plain text, Arena, Cockatrice)"
+            title={t('DeckSidebar.exportHint')}
             className={[
               'w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5',
               'rounded-md border border-border-strong bg-bg-elevated',
               'hover:bg-border-subtle text-text-primary text-sm font-medium transition-colors',
             ].join(' ')}
           >
-            <Upload size={13} /> Export deck
+            <Upload size={13} /> {t('DeckSidebar.export')}
           </button>
           {openDeck}
           {onShare && (
@@ -140,15 +140,15 @@ function SaveIndicator({ state, onRetry }: { state: SaveState; onRetry: () => vo
     case 'saving':
       return (
         <span className="inline-flex items-center gap-1 text-text-muted">
-          <Loader2 size={10} className="animate-spin" /> Saving…
+          <Loader2 size={10} className="animate-spin" /> {t('DeckSidebar.saving')}
         </span>
       );
     case 'dirty':
-      return <span className="text-warning">Unsaved changes</span>;
+      return <span className="text-warning">{t('DeckSidebar.dirty')}</span>;
     case 'saved':
       return (
         <span className="inline-flex items-center gap-1 text-success">
-          <Check size={10} /> Saved
+          <Check size={10} /> {t('DeckSidebar.saved')}
         </span>
       );
     case 'failed':

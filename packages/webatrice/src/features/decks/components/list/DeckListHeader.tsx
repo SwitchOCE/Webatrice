@@ -26,9 +26,9 @@ const SECONDARY_BUTTON_CLASS = [
   'hover:bg-border-subtle disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
 ].join(' ');
 
-const VIEW_MODES: Array<{ mode: DeckListViewMode; label: string; Icon: typeof LayoutGrid }> = [
-  { mode: 'card', label: 'Card view', Icon: LayoutGrid },
-  { mode: 'compact', label: 'Compact view', Icon: Rows3 },
+const VIEW_MODES: Array<{ mode: DeckListViewMode; Icon: typeof LayoutGrid }> = [
+  { mode: 'card', Icon: LayoutGrid },
+  { mode: 'compact', Icon: Rows3 },
 ];
 
 /** MyDecks title, deck count, view-mode toggle and the list actions. */
@@ -48,28 +48,28 @@ export function DeckListHeader({
   return (
     <div className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-border-subtle">
       <div>
-        <h1 className="font-modern text-2xl font-semibold text-text-primary">My Decks</h1>
+        <h1 className="font-modern text-2xl font-semibold text-text-primary">{t('Decks.list.title')}</h1>
         <p className="text-sm text-text-muted mt-0.5">
           {loading
-            ? 'Loading…'
-            : `${deckCount} ${deckCount === 1 ? 'deck' : 'decks'} on this server`}
+            ? t('Common.status.loading')
+            : t('Decks.list.deckCount', { count: deckCount })}
         </p>
       </div>
       <div className="flex items-center gap-2">
         {/* Segmented control: the active option carries the accent tint. */}
         <div
           role="group"
-          aria-label="View mode"
+          aria-label={t('Decks.list.viewMode')}
           className="flex items-center gap-0.5 p-0.5 rounded-md bg-bg-elevated border border-border-subtle"
         >
-          {VIEW_MODES.map(({ mode, label, Icon }) => (
+          {VIEW_MODES.map(({ mode, Icon }) => (
             <button
               key={mode}
               type="button"
               onClick={() => onViewModeChange(mode)}
               aria-pressed={viewMode === mode}
-              title={label}
-              aria-label={label}
+              title={t(`Decks.list.view.${mode}`)}
+              aria-label={t(`Decks.list.view.${mode}`)}
               className={[
                 'p-1.5 rounded transition-colors',
                 viewMode === mode
@@ -89,8 +89,8 @@ export function DeckListHeader({
             'p-2 rounded-md text-text-secondary hover:text-text-primary',
             'hover:bg-bg-elevated disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
           ].join(' ')}
-          title="Refresh"
-          aria-label="Refresh deck list"
+          title={t('Decks.list.refresh')}
+          aria-label={t('Decks.list.refreshLabel')}
         >
           <RefreshCw size={16} />
         </button>
@@ -105,7 +105,7 @@ export function DeckListHeader({
           </button>
         )}
         <button type="button" onClick={onImport} disabled={!isConnected} className={SECONDARY_BUTTON_CLASS}>
-          <Upload size={14} /> Import
+          <Upload size={14} /> {t('Decks.list.import')}
         </button>
         <NewDeckButton onClick={onCreate} disabled={!isConnected} />
       </div>

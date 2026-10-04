@@ -32,7 +32,7 @@ function renderGroup(overrides: Partial<DeckCardGroupProps> = {}) {
 describe('DeckCardGroup', () => {
   it('heads the section with its total quantity and lists rows in the given order', () => {
     renderGroup();
-    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('Land12');
+    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('DeckEditor.section.land12');
     expect(screen.getAllByRole('button', { name: /Bayou|Forest/ }).map((b) => b.textContent)).toEqual(['Bayou', 'Forest']);
   });
 
@@ -46,7 +46,7 @@ describe('DeckCardGroup', () => {
 
   it('flags cards the catalog could not find and draws mana costs', () => {
     renderGroup({ label: 'Other', indices: [1] });
-    expect(screen.getByTitle(/Not in your card DB/)).toBeInTheDocument();
+    expect(screen.getByTitle('DeckEditor.row.unknown')).toBeInTheDocument();
     expect(screen.getAllByRole('img').map((img) => img.getAttribute('alt'))).toEqual(['{2}', '{G}']);
   });
 

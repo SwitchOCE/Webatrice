@@ -31,7 +31,7 @@ describe('QuickAddSearch', () => {
     vi.mocked(useQuickAddSuggestions).mockReturnValue(state);
     const onAdd = vi.fn();
     render(<Harness onAdd={onAdd} />);
-    const input = screen.getByPlaceholderText('Quick add — type a card name');
+    const input = screen.getByPlaceholderText('DeckEditor.quickAdd.placeholder');
 
     fireEvent.change(input, { target: { value: 's' } });
     expect(screen.queryByRole('button', { name: 'Sol Ring' })).toBeNull();
@@ -75,11 +75,11 @@ describe('QuickAddSearch', () => {
     const { rerender } = render(<Harness onAdd={vi.fn()} />);
     const input = screen.getByRole('textbox');
     fireEvent.change(input, { target: { value: 'zzz' } });
-    expect(screen.getByText('Searching…')).toBeInTheDocument();
+    expect(screen.getByText('DeckEditor.quickAdd.searching')).toBeInTheDocument();
 
     vi.mocked(useQuickAddSuggestions).mockReturnValue(suggestions({ suggestions: [] }));
     rerender(<Harness onAdd={vi.fn()} />);
-    expect(screen.getByText('No matches')).toBeInTheDocument();
+    expect(screen.getByText('DeckEditor.quickAdd.noMatches')).toBeInTheDocument();
 
     fireEvent.keyDown(input, { key: 'Escape' });
     expect(input).toHaveValue('');

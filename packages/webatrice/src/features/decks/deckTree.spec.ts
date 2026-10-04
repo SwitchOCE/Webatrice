@@ -109,16 +109,30 @@ describe('formatDeckAge', () => {
   const secondsAgo = (s: number) => now / 1000 - s;
 
   it.each([
-    [30, 'just now'],
     [125, '2m ago'],
     [3 * 3600 + 5, '3h ago'],
     [2 * 86400 + 5, '2d ago'],
   ])('formats %ss as %s', (age, expected) => {
-    expect(formatDeckAge(secondsAgo(age), now)).toBe(expected);
+    expect(formatDeckAge(secondsAgo(age), 'en', now)).toEqual({ text: expected });
   });
 
-  it('falls back to a date after a week, and "unknown" without a timestamp', () => {
-    expect(formatDeckAge(secondsAgo(8 * 86400), now)).toBe(new Date(now - 8 * 86400 * 1000).toLocaleDateString());
-    expect(formatDeckAge(0, now)).toBe('unknown');
+  it('formats in the given language', () => {
+    expect(formatDeckAge(secondsAgo(125), 'de', now)).toEqual({
+      text: new Intl.RelativeTimeFormat('de', { style: 'narrow' }).format(-2, 'minute'),
+    });
+  });
+
+  it('returns keys for "just now" and a missing timestamp', () => {
+    expect(formatDeckAge(secondsAgo(30), 'en', now)).toEqual({ key: 'justNow' });
+    expect(formatDeckAge(0, 'en', now)).toEqual({ key: 'unknown' });
+  });
+
+  it('falls back to a localized date after a week', () => {
+    expect(formatDeckAge(secondsAgo(8 * 86400), 'en', now)).toEqual({
+      text: new Date(now - 8 * 86400 * 1000).toLocaleDateString('en'),
+    });
+    expect(formatDeckAge(secondsAgo(8 * 86400), '', now)).toEqual({
+      text: new Date(now - 8 * 86400 * 1000).toLocaleDateString(),
+    });
   });
 });

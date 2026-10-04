@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Loader2, ShoppingCart } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import {
   buildTcgMassEntryUrl,
@@ -23,6 +24,7 @@ export function DeckBuyButton({
   prices: PriceLookup;
   loading: boolean;
 }) {
+  const { t } = useTranslation();
   const { total, missing } = useMemo(
     () => computeDeckPrice(cards, prices),
     [cards, prices],
@@ -45,7 +47,7 @@ export function DeckBuyButton({
     <>
       <span className="flex items-center gap-1.5 text-sm font-medium">
         <ShoppingCart size={13} />
-        Buy deck @ TCGplayer
+        {t('DeckEditor.buy.deck')}
       </span>
       <span className="tabular-nums text-sm font-semibold flex items-center gap-1">
         {loading && <Loader2 size={11} className="animate-spin" />}
@@ -61,7 +63,7 @@ export function DeckBuyButton({
     return (
       <div
         className={`${shared} bg-accent-secondary/20 border-accent/20 text-text-muted cursor-not-allowed`}
-        title="Add cards to enable"
+        title={t('DeckEditor.buy.disabled')}
       >
         {inner}
       </div>
@@ -74,7 +76,7 @@ export function DeckBuyButton({
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        title="Open the full deck in TCGplayer's mass-entry cart (opens in a new tab)"
+        title={t('DeckEditor.buy.openDeck')}
         className={`${shared} bg-accent-secondary hover:bg-accent-secondary/90 border-accent/40 hover:border-accent text-white shadow-glow`}
       >
         {inner}
@@ -83,7 +85,7 @@ export function DeckBuyButton({
         <div className="text-[10px] text-text-muted italic px-1 flex items-center gap-1.5">
           <Loader2 size={10} className="animate-spin shrink-0" />
           <span>
-            Pricing {pendingUnique} card{pendingUnique === 1 ? '' : 's'}… ({pricedUnique}/{totalUnique})
+            {t('DeckEditor.buy.pricing', { count: pendingUnique, priced: String(pricedUnique), total: String(totalUnique) })}
           </span>
         </div>
       )}
@@ -93,9 +95,9 @@ export function DeckBuyButton({
             type="button"
             onClick={() => setShowMissing((v) => !v)}
             className="w-full text-left text-[10px] text-text-muted italic px-1 hover:text-text-primary transition-colors"
-            title="Click to see which cards Scryfall couldn't price"
+            title={t('DeckEditor.buy.missingHint')}
           >
-            Price missing for {missing} card{missing === 1 ? '' : 's'} — {showMissing ? 'hide' : 'show'}
+            {t(showMissing ? 'DeckEditor.buy.missingHide' : 'DeckEditor.buy.missingShow', { count: missing })}
           </button>
           {showMissing && (
             <ul

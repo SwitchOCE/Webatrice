@@ -1,6 +1,80 @@
 {
   "DeckEditor": {
     "downloadFailed": "Failed to download this deck from the server.",
-    "loadFailedTitle": "Deck could not be loaded"
+    "loadFailedTitle": "Deck could not be loaded",
+    "shell": {
+      "preloading": "Preloading {loaded}/{total} cards…",
+      "loadingDeck": "Loading deck…",
+      "notFoundTitle": "Deck not found",
+      "notFoundBody": "Servatrice didn''t return this deck. Might have been deleted.",
+      "backToDecks": "Back to My Decks",
+      "emptyMtg": "Empty deck. Use <hl>Quick add</hl> above to start adding, or import a list from My Decks.",
+      "emptyPlain": "Empty deck. Type a card name in <hl>Add a card</hl> above to start.",
+      "noCards": "No cards in this deck yet."
+    },
+    "main": {
+      "advancedSearch": "Advanced search",
+      "backToList": "Back to deck list",
+      "backToDeck": "Back to deck"
+    },
+    "section": {
+      "commander": "Commander",
+      "creature": "Creature",
+      "planeswalker": "Planeswalker",
+      "battle": "Battle",
+      "instant": "Instant",
+      "sorcery": "Sorcery",
+      "enchantment": "Enchantment",
+      "artifact": "Artifact",
+      "land": "Land",
+      "other": "Other",
+      "sideboard": "Sideboard"
+    },
+    "row": {
+      "details": "Click for details",
+      "unknown": "Not in your card DB and Scryfall couldn''t find it. The card is saved but details/images can''t be shown."
+    },
+    "rowActions": {
+      "trigger": "Actions for {card}",
+      "quantity": "Quantity",
+      "removeOne": "Remove one",
+      "decrease": "Decrease quantity",
+      "addOne": "Add one",
+      "increase": "Increase quantity",
+      "changePrinting": "Change printing",
+      "markCommander": "Mark as commander",
+      "unmarkCommander": "Unmark as commander",
+      "moveToMain": "Move to main",
+      "moveToSideboard": "Move to sideboard"
+    },
+    "list": {
+      "addPlaceholder": "Add a card by name",
+      "decrease": "Decrease",
+      "decreaseCard": "Decrease {card}",
+      "increase": "Increase",
+      "increaseCard": "Increase {card}",
+      "removeCard": "Remove {card}"
+    },
+    "quickAdd": {
+      "placeholder": "Quick add — type a card name",
+      "clear": "Clear",
+      "searching": "Searching…",
+      "noMatches": "No matches"
+    },
+    "buy": {
+      "deck": "Buy deck @ TCGplayer",
+      "card": "Buy @ TCGplayer",
+      "disabled": "Add cards to enable",
+      "openDeck": "Open the full deck in TCGplayer''s mass-entry cart (opens in a new tab)",
+      "openCard": "Buy on TCGplayer (opens in a new tab)",
+      "pricing": "Pricing {count, plural, one {# card} other {# cards}}… ({priced}/{total})",
+      "missingHint": "Click to see which cards Scryfall couldn''t price",
+      "missingShow": "Price missing for {count, plural, one {# card} other {# cards}} — show",
+      "missingHide": "Price missing for {count, plural, one {# card} other {# cards}} — hide"
+    },
+    "preview": {
+      "noImage": "No image available",
+      "hover": "Hover a card to preview"
+    }
   }
 }

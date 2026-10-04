@@ -4,6 +4,38 @@
     "retry": "Retry",
     "moveFailed": "Couldn’t move {name}. The original deck is unchanged.",
     "uploadFailed": "Couldn’t save {name} to the server.",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "list": {
+      "title": "My Decks",
+      "deckCount": "{count, plural, one {# deck} other {# decks}} on this server",
+      "viewMode": "View mode",
+      "view": {
+        "card": "Card view",
+        "compact": "Compact view"
+      },
+      "refresh": "Refresh",
+      "refreshLabel": "Refresh deck list",
+      "import": "Import",
+      "newDeck": "New deck",
+      "defaultDeckName": "New Deck",
+      "loading": "Loading decks…",
+      "emptyTitle": "No decks yet",
+      "emptyBody": "Decks live on the Servatrice server tied to your account. Create your first one to get started.",
+      "deleteDeck": "Delete deck",
+      "deleteDeckNamed": "Delete {name}",
+      "created": "Created {age}",
+      "age": {
+        "unknown": "unknown",
+        "justNow": "just now"
+      }
+    },
+    "badge": {
+      "bracket": "Commander Bracket {level}",
+      "bracketShort": "B{level}",
+      "priceLoading": "Loading price…",
+      "priceNone": "No cached price — open the deck to compute it",
+      "priceTotal": "TCGplayer USD total",
+      "priceTotalMissing": "TCGplayer USD total. {count, plural, one {# card} other {# cards}} had no price on file — actual total is higher."
+    }
   }
 }

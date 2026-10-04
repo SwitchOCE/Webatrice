@@ -16,9 +16,9 @@ const COD = '<cockatrice_deck version="1"><deckname>From File</deckname><format>
 describe('ImportDeckDialog', () => {
   it('rejects a paste with no recognisable cards', () => {
     render(<ImportDeckDialog open onClose={() => {}} onImport={() => {}} />);
-    fireEvent.change(screen.getByPlaceholderText(/Paste your deck list/), { target: { value: 'hello' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Next: check cards' }));
-    expect(screen.getByText(/No cards recognised/)).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText('ImportDeckDialog.placeholder'), { target: { value: 'hello' } });
+    fireEvent.click(screen.getByRole('button', { name: 'ImportDeckDialog.next' }));
+    expect(screen.getByText('DeckImport.error.noCards')).toBeInTheDocument();
     expect(lookupCards).not.toHaveBeenCalled();
   });
 
@@ -29,21 +29,21 @@ describe('ImportDeckDialog', () => {
     const onImport = vi.fn();
     render(<ImportDeckDialog open onClose={() => {}} onImport={onImport} />);
 
-    fireEvent.change(screen.getByPlaceholderText(/Paste your deck list/), {
+    fireEvent.change(screen.getByPlaceholderText('ImportDeckDialog.placeholder'), {
       target: { value: '1 Sol Ring\n2 Nope\n???' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Next: check cards' }));
+    fireEvent.click(screen.getByRole('button', { name: 'ImportDeckDialog.next' }));
 
-    expect(await screen.findByText(/1 matched/)).toBeInTheDocument();
-    expect(screen.getByText(/2 unknown/)).toBeInTheDocument();
-    expect(screen.getByText(/1 unrecognised line/)).toBeInTheDocument();
+    expect(await screen.findByText('ImportDeckDialog.review.matched')).toBeInTheDocument();
+    expect(screen.getByText('ImportDeckDialog.review.missing')).toBeInTheDocument();
+    expect(screen.getByText(/ImportDeckDialog.review.ignored/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
-    expect(screen.getByPlaceholderText(/Paste your deck list/)).toHaveValue('1 Sol Ring\n2 Nope\n???');
-    fireEvent.click(screen.getByRole('button', { name: 'Next: check cards' }));
-    fireEvent.click(await screen.findByRole('button', { name: /Import 2 cards/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Common.action.back' }));
+    expect(screen.getByPlaceholderText('ImportDeckDialog.placeholder')).toHaveValue('1 Sol Ring\n2 Nope\n???');
+    fireEvent.click(screen.getByRole('button', { name: 'ImportDeckDialog.next' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'ImportDeckDialog.importCards' }));
 
-    expect(screen.getByText('Creating deck…')).toBeInTheDocument();
+    expect(screen.getByText('ImportDeckDialog.importing')).toBeInTheDocument();
     const deck = parseCod(onImport.mock.calls[0][0]);
     expect(deck.cards.map((c) => [c.name, c.quantity])).toEqual([['Sol Ring', 1], ['Nope', 2]]);
   });
@@ -57,9 +57,9 @@ describe('ImportDeckDialog', () => {
     fireEvent.change(input, { target: { files: [new File([COD], 'bolt.cod')] } });
 
     expect(await screen.findByText('bolt.cod')).toBeInTheDocument();
-    expect(screen.getByText('4 cards · 4 main')).toBeInTheDocument();
+    expect(screen.getByText('ImportDeckDialog.file.cards · ImportDeckDialog.file.main')).toBeInTheDocument();
     expect(screen.getAllByRole('textbox')[0]).toHaveValue('From File');
-    fireEvent.click(screen.getByRole('button', { name: /Import file/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'ImportDeckDialog.importFile' }));
     await waitFor(() => expect(onImport).toHaveBeenCalledOnce());
 
     const deck = parseCod(onImport.mock.calls[0][0]);
@@ -73,11 +73,11 @@ describe('ImportDeckDialog', () => {
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
 
     fireEvent.change(input, { target: { files: [new File(['<nope/>'], 'x.cod')] } });
-    expect(await screen.findByText(/Not a valid Cockatrice .cod/)).toBeInTheDocument();
+    expect(await screen.findByText('DeckImport.error.invalidCodReason')).toBeInTheDocument();
 
     fireEvent.change(input, { target: { files: [new File([COD], 'bolt.cod')] } });
-    fireEvent.click(await screen.findByRole('button', { name: /Clear file/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'ImportDeckDialog.clearFile' }));
     await waitFor(() => expect(screen.queryByText('bolt.cod')).toBeNull());
-    expect(screen.getByPlaceholderText(/Paste your deck list/)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('ImportDeckDialog.placeholder')).toBeInTheDocument();
   });
 });

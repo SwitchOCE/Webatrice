@@ -1,6 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { Download, FileText, FolderInput, Globe, Share2, Trash2 } from 'lucide-react';
 
+import { toBcp47 } from '@app/utils';
+
 import { deckArtUrl, formatDisplayLabel, type DeckSummary } from '../../deckSummary';
 import { formatDeckAge, type FlatDeck } from '../../deckTree';
 import type { DeckListViewMode } from '../../hooks/useDeckListViewMode';
@@ -35,7 +37,10 @@ function DeckRowMeta({ deck, summary, className }: {
   summary: DeckSummary | undefined;
   className: string;
 }) {
+  const { t, i18n } = useTranslation();
   const formatLabel = summary?.format ? formatDisplayLabel(summary.format) : null;
+  const age = formatDeckAge(deck.creationTime, toBcp47(i18n.language));
+  const ageText = 'key' in age ? t(`Decks.list.age.${age.key}`) : age.text;
   return (
     <div className={className}>
       {formatLabel && (
@@ -44,7 +49,7 @@ function DeckRowMeta({ deck, summary, className }: {
           <span>·</span>
         </>
       )}
-      <span>Created {formatDeckAge(deck.creationTime)}</span>
+      <span>{t('Decks.list.created', { age: ageText })}</span>
       <span>·</span>
       <DeckPriceBadge price={summary && { usd: summary.usd, missing: summary.missing }} />
       {summary?.tags?.map((tag) => (
@@ -134,6 +139,7 @@ function DeckRowStorageActions({ deck, onMove, onDownload, onShare, onTogglePubl
 }
 
 function DeckRowCard({ deck, summary, onOpen, onDelete, onMove, onDownload, onShare, onTogglePublic }: DeckRowProps) {
+  const { t } = useTranslation();
   const artUrl = deckArtUrl(summary);
   const bracket = summary?.bracketLevel;
 
@@ -224,8 +230,8 @@ function DeckRowCard({ deck, summary, onOpen, onDelete, onMove, onDownload, onSh
             'border-border-subtle text-text-muted hover:text-danger',
             'hover:bg-red-500/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all',
           ].join(' ')}
-          title="Delete deck"
-          aria-label={`Delete ${deck.name}`}
+          title={t('Decks.list.deleteDeck')}
+          aria-label={t('Decks.list.deleteDeckNamed', { name: deck.name })}
         >
           <Trash2 size={14} />
         </button>
@@ -239,6 +245,7 @@ function DeckRowCard({ deck, summary, onOpen, onDelete, onMove, onDownload, onSh
  * name + bracket + meta, delete on the right.
  */
 function DeckRowCompact({ deck, summary, onOpen, onDelete, onMove, onDownload, onShare, onTogglePublic }: DeckRowProps) {
+  const { t } = useTranslation();
   const artUrl = deckArtUrl(summary);
   const bracket = summary?.bracketLevel;
 
@@ -306,8 +313,8 @@ function DeckRowCompact({ deck, summary, onOpen, onDelete, onMove, onDownload, o
           'mr-2 p-2 rounded-md text-text-muted hover:text-danger hover:bg-red-500/10',
           'opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all shrink-0',
         ].join(' ')}
-        title="Delete deck"
-        aria-label={`Delete ${deck.name}`}
+        title={t('Decks.list.deleteDeck')}
+        aria-label={t('Decks.list.deleteDeckNamed', { name: deck.name })}
       >
         <Trash2 size={14} />
       </button>

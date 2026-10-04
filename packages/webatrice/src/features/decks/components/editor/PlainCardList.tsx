@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Minus, Plus, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { sortIndicesByName } from '../../deckGrouping';
 import type { DeckCard } from '../../types';
@@ -8,6 +9,7 @@ import type { DeckCard } from '../../types';
  *  non-MTG toolbar. No autocomplete, no lookup — the whole point of a
  *  non-MTG deck is that we don't know what the cards are. */
 export function PlainAddCard({ onAdd }: { onAdd: (name: string) => void }) {
+  const { t } = useTranslation();
   const [value, setValue] = useState('');
   const handleAdd = () => {
     const trimmed = value.trim();
@@ -33,7 +35,7 @@ export function PlainAddCard({ onAdd }: { onAdd: (name: string) => void }) {
             handleAdd();
           }
         }}
-        placeholder="Add a card by name"
+        placeholder={t('DeckEditor.list.addPlaceholder')}
         className={[
           'w-full pl-7 pr-3 py-1.5 rounded-md bg-bg-base border',
           'border-border-subtle text-xs text-text-primary',
@@ -88,6 +90,7 @@ function PlainCardRow({
   onInc: (delta: number) => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="group flex items-center gap-2 px-2 py-1 rounded hover:bg-bg-elevated transition-colors">
       <span className="text-xs tabular-nums text-text-muted w-6 text-right shrink-0">
@@ -101,8 +104,8 @@ function PlainCardRow({
           type="button"
           onClick={() => onInc(-1)}
           className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-base transition-colors"
-          title="Decrease"
-          aria-label={`Decrease ${card.name}`}
+          title={t('DeckEditor.list.decrease')}
+          aria-label={t('DeckEditor.list.decreaseCard', { card: card.name })}
         >
           <Minus size={12} />
         </button>
@@ -110,8 +113,8 @@ function PlainCardRow({
           type="button"
           onClick={() => onInc(1)}
           className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-base transition-colors"
-          title="Increase"
-          aria-label={`Increase ${card.name}`}
+          title={t('DeckEditor.list.increase')}
+          aria-label={t('DeckEditor.list.increaseCard', { card: card.name })}
         >
           <Plus size={12} />
         </button>
@@ -119,8 +122,8 @@ function PlainCardRow({
           type="button"
           onClick={onDelete}
           className="p-1 rounded text-text-muted hover:text-danger hover:bg-red-500/10 transition-colors"
-          title="Remove"
-          aria-label={`Remove ${card.name}`}
+          title={t('Common.action.remove')}
+          aria-label={t('DeckEditor.list.removeCard', { card: card.name })}
         >
           <Trash2 size={12} />
         </button>

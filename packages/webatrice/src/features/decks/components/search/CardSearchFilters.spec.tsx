@@ -23,27 +23,27 @@ describe('CardSearchFilters', () => {
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Red' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Instant' }));
-    fireEvent.change(screen.getByTitle('Color match mode'), { target: { value: 'exactly' } });
+    fireEvent.click(screen.getByRole('button', { name: 'CardSearch.color.R' }));
+    fireEvent.click(screen.getByRole('button', { name: 'CardSearch.cardType.Instant' }));
+    fireEvent.change(screen.getByTitle('CardSearch.filter.colorMode'), { target: { value: 'exactly' } });
 
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({
       colors: ['R'], types: ['Instant'], colorMode: 'exactly',
     }));
-    expect(screen.getByRole('button', { name: 'Red' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'CardSearch.color.R' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('reveals the advanced filters', () => {
     const onChange = vi.fn();
     render(<Harness onChange={onChange} />);
-    expect(screen.queryByPlaceholderText('min')).toBeNull();
+    expect(screen.queryByPlaceholderText('CardSearch.filter.min')).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: /Advanced filters/ }));
-    fireEvent.change(screen.getByPlaceholderText('min'), { target: { value: '2' } });
-    fireEvent.change(screen.getByPlaceholderText('max'), { target: { value: '4' } });
-    fireEvent.click(screen.getByRole('button', { name: 'R' }));
-    fireEvent.change(screen.getByPlaceholderText('e.g. Elemental, or "Human Warrior" for both'), { target: { value: 'Elf' } });
-    fireEvent.change(screen.getByPlaceholderText('e.g. "draw a card"'), { target: { value: 'draw' } });
+    fireEvent.click(screen.getByRole('button', { name: /CardSearch\.filter\.advanced/ }));
+    fireEvent.change(screen.getByPlaceholderText('CardSearch.filter.min'), { target: { value: '2' } });
+    fireEvent.change(screen.getByPlaceholderText('CardSearch.filter.max'), { target: { value: '4' } });
+    fireEvent.click(screen.getByRole('button', { name: 'CardSearch.rarity.rare.short' }));
+    fireEvent.change(screen.getByPlaceholderText('CardSearch.filter.subtypePlaceholder'), { target: { value: 'Elf' } });
+    fireEvent.change(screen.getByPlaceholderText('CardSearch.filter.oraclePlaceholder'), { target: { value: 'draw' } });
 
     expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({
       showAdvanced: true, cmcMin: '2', cmcMax: '4', rarities: ['rare'], subtype: 'Elf', oracle: 'draw',
@@ -52,9 +52,9 @@ describe('CardSearchFilters', () => {
 
   it('offers Clear filters only once something narrows the search', () => {
     render(<Harness onChange={vi.fn()} />);
-    expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Green' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
-    expect(screen.getByRole('button', { name: 'Green' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByRole('button', { name: 'CardSearch.filter.clear' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'CardSearch.color.G' }));
+    fireEvent.click(screen.getByRole('button', { name: 'CardSearch.filter.clear' }));
+    expect(screen.getByRole('button', { name: 'CardSearch.color.G' })).toHaveAttribute('aria-pressed', 'false');
   });
 });

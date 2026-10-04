@@ -1,15 +1,18 @@
+import { useTranslation } from 'react-i18next';
+
 import { bracketToneClass } from '@app/utils';
 
 export function BracketBadge({ level }: { level: number }) {
+  const { t } = useTranslation();
   return (
     <span
       className={[
         'inline-flex items-center gap-0.5 px-2 py-0.5 rounded border text-xs font-bold tabular-nums shrink-0',
         bracketToneClass(level),
       ].join(' ')}
-      title={`Commander Bracket ${level}`}
+      title={t('Decks.badge.bracket', { level })}
     >
-      B{level}
+      {t('Decks.badge.bracketShort', { level })}
     </span>
   );
 }
@@ -24,11 +27,12 @@ export function DeckPriceBadge({
 }: {
   price: { usd?: number; missing?: number } | undefined;
 }) {
+  const { t } = useTranslation();
   if (price === undefined) {
     return (
       <span
         className="text-xs tabular-nums text-text-muted opacity-50"
-        title="Loading price…"
+        title={t('Decks.badge.priceLoading')}
       >
         · · ·
       </span>
@@ -38,7 +42,7 @@ export function DeckPriceBadge({
     return (
       <span
         className="text-xs tabular-nums text-text-muted"
-        title="No cached price — open the deck to compute it"
+        title={t('Decks.badge.priceNone')}
       >
         —
       </span>
@@ -47,8 +51,8 @@ export function DeckPriceBadge({
   const suffix = price.missing && price.missing > 0 ? '+' : '';
   const title =
     price.missing && price.missing > 0
-      ? `TCGplayer USD total. ${price.missing} card${price.missing === 1 ? '' : 's'} had no price on file — actual total is higher.`
-      : 'TCGplayer USD total';
+      ? t('Decks.badge.priceTotalMissing', { count: price.missing })
+      : t('Decks.badge.priceTotal');
   return (
     <span
       className="text-xs tabular-nums text-success font-medium"

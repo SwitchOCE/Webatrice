@@ -18,7 +18,7 @@ describe('DeckBuyButton', () => {
   it('is disabled for an empty deck', () => {
     render(<DeckBuyButton cards={[]} prices={emptyPriceLookup()} loading={false} />);
     expect(screen.queryByRole('link')).toBeNull();
-    expect(screen.getByTitle('Add cards to enable')).toHaveTextContent('$0.00');
+    expect(screen.getByTitle('DeckEditor.buy.disabled')).toHaveTextContent('$0.00');
   });
 
   it('links the whole deck to TCGplayer mass entry with its total', () => {
@@ -30,12 +30,12 @@ describe('DeckBuyButton', () => {
 
   it('shows pricing progress while loading', () => {
     render(<DeckBuyButton cards={[card('Lightning Bolt'), card('Mystery')]} prices={prices()} loading />);
-    expect(screen.getByText('Pricing 1 card… (1/2)')).toBeInTheDocument();
+    expect(screen.getByText('DeckEditor.buy.pricing')).toBeInTheDocument();
   });
 
   it('lists the cards that have no price once loaded', () => {
     render(<DeckBuyButton cards={[card('Lightning Bolt'), card('Mystery', 2)]} prices={prices()} loading={false} />);
-    fireEvent.click(screen.getByRole('button', { name: /Price missing for 2 cards — show/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.buy.missingShow' }));
     expect(screen.getByText('Mystery')).toBeInTheDocument();
     expect(screen.getByText('2×')).toBeInTheDocument();
   });

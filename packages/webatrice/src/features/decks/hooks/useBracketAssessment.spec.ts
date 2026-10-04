@@ -90,6 +90,13 @@ describe('useBracketAssessment', () => {
     expect(persist).toHaveBeenCalledWith(undefined);
   });
 
+  it('leaves the message empty for a failure without one, for the UI to word', async () => {
+    vi.mocked(analyzeBracket).mockRejectedValue('boom');
+    const { result } = renderHook(() => useBracketAssessment(cards, undefined, undefined, true));
+
+    await waitFor(() => expect(result.current).toEqual(expect.objectContaining({ status: 'error', message: '' })));
+  });
+
   describe('without consent for the third-party lookups', () => {
     const cachedFor = (deck: DeckCard[]): BracketAssessment => ({
       level: 3, fingerprint: deckFingerprint(deck), gameChangers: [], turns: [], turnsRestricted: [],

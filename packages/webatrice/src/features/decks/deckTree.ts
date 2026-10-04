@@ -67,26 +67,34 @@ export function flattenFolder(
 }
 
 /**
- * Loose "3 hours ago" formatter for Unix seconds. Good enough for the
- * list view; the editor can show absolute timestamps.
+ * A deck's age for the list view: a key (`Decks.list.age.*`) for the two
+ * worded cases, else text already formatted for `locale`.
  */
-export function formatDeckAge(unixSeconds: number, now = Date.now()): string {
+export type DeckAge = { key: 'unknown' | 'justNow' } | { text: string };
+
+/**
+ * Loose "3h ago" formatter for Unix seconds. Good enough for the list view;
+ * the editor can show absolute timestamps. `locale` is a BCP 47 tag (the UI
+ * language); empty falls back to the runtime default.
+ */
+export function formatDeckAge(unixSeconds: number, locale: string, now = Date.now()): DeckAge {
   if (!unixSeconds) {
-    return 'unknown';
+    return { key: 'unknown' };
   }
   const then = new Date(unixSeconds * 1000);
   const diffSec = (now - then.getTime()) / 1000;
   if (diffSec < 60) {
-    return 'just now';
+    return { key: 'justNow' };
   }
+  const relative = new Intl.RelativeTimeFormat(locale || undefined, { style: 'narrow' });
   if (diffSec < 3600) {
-    return `${Math.floor(diffSec / 60)}m ago`;
+    return { text: relative.format(-Math.floor(diffSec / 60), 'minute') };
   }
   if (diffSec < 86400) {
-    return `${Math.floor(diffSec / 3600)}h ago`;
+    return { text: relative.format(-Math.floor(diffSec / 3600), 'hour') };
   }
   if (diffSec < 604800) {
-    return `${Math.floor(diffSec / 86400)}d ago`;
+    return { text: relative.format(-Math.floor(diffSec / 86400), 'day') };
   }
-  return then.toLocaleDateString();
+  return { text: then.toLocaleDateString(locale || undefined) };
 }

@@ -1,4 +1,5 @@
 import { ImageOff, ShoppingCart } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { priceForCard, type PriceLookup } from '../../pricing';
 import { upgradeScryfallImageSize } from '../../scryfallImage';
@@ -11,6 +12,7 @@ export function DeckCardPreview({
   card: DeckCard | null;
   prices: PriceLookup;
 }) {
+  const { t } = useTranslation();
   const imageUri = card ? upgradeScryfallImageSize(card.imageUri) : null;
 
   // Shared frame: `aspect-[5/7]` + `rounded-xl` + `shadow-glow` matches
@@ -39,11 +41,11 @@ export function DeckCardPreview({
         ) : card ? (
           <div className="text-xs text-text-muted text-center px-4 flex flex-col items-center gap-2">
             <ImageOff size={20} />
-            No image available
+            {t('DeckEditor.preview.noImage')}
           </div>
         ) : (
           <div className="text-xs text-text-muted italic text-center px-4">
-            Hover a card to preview
+            {t('DeckEditor.preview.hover')}
           </div>
         )}
       </div>
@@ -72,6 +74,7 @@ function CardPricePill({
   card: DeckCard;
   prices: PriceLookup;
 }) {
+  const { t } = useTranslation();
   const info = priceForCard(prices, card);
   const usd = info?.usd;
   const href = info?.tcgplayer ?? null;
@@ -80,7 +83,7 @@ function CardPricePill({
     <>
       <span className="flex items-center gap-1.5 text-sm font-medium">
         <ShoppingCart size={13} />
-        Buy @ TCGplayer
+        {t('DeckEditor.buy.card')}
       </span>
       <span className="tabular-nums text-sm font-semibold">
         {usd != null ? `$${usd.toFixed(2)}` : '—'}
@@ -103,7 +106,7 @@ function CardPricePill({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      title="Buy on TCGplayer (opens in a new tab)"
+      title={t('DeckEditor.buy.openCard')}
       className={`${shared} bg-accent-secondary hover:bg-accent-secondary/90 border-accent/40 hover:border-accent text-white shadow-glow`}
     >
       {inner}

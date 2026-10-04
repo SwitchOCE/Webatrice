@@ -1,7 +1,9 @@
+import { useTranslation } from 'react-i18next';
+
 import { getScryfallSymbolUrl } from '@app/services';
 
 import { colorPieSlices } from '../../deckStats';
-import { MANA_COLORS, MANA_COLOR_LABEL, type ManaColor } from '../../manaSymbols';
+import { MANA_COLORS, type ManaColor } from '../../manaSymbols';
 
 // Traditional MTG colors, tuned to read on the dark theme.
 // (Black gets a lighter tone so it doesn't blend into the background.)
@@ -19,6 +21,7 @@ const PIE_SIZE = 240;
 const PIE_RADIUS = PIE_SIZE / 2;
 
 export function ColorPie({ pips }: { pips: Record<ManaColor, number> }) {
+  const { t } = useTranslation();
   const total = MANA_COLORS.reduce((s, c) => s + pips[c], 0);
 
   if (total === 0) {
@@ -44,7 +47,7 @@ export function ColorPie({ pips }: { pips: Record<ManaColor, number> }) {
         viewBox={`0 0 ${PIE_SIZE} ${PIE_SIZE}`}
         className="shadow-glow rounded-full"
         role="img"
-        aria-label="Color distribution pie"
+        aria-label={t('DeckBreakdown.pieLabel')}
       >
         {slices.map((s) => (
           <path
@@ -62,14 +65,14 @@ export function ColorPie({ pips }: { pips: Record<ManaColor, number> }) {
           const n = pips[c];
           const pct = (n / total) * 100;
           return (
-            <div key={c} className="flex items-center gap-2 text-sm" title={MANA_COLOR_LABEL[c]}>
+            <div key={c} className="flex items-center gap-2 text-sm" title={t(`CardSearch.color.${c}`)}>
               <span
                 className="h-3 w-3 rounded-sm border border-border-subtle shrink-0"
                 style={{ backgroundColor: PIE_HEX[c] }}
               />
               <img
                 src={getScryfallSymbolUrl(c)}
-                alt={MANA_COLOR_LABEL[c]}
+                alt={t(`CardSearch.color.${c}`)}
                 className="w-5 h-5 shrink-0"
                 draggable={false}
               />

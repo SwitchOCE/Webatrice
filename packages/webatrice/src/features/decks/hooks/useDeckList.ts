@@ -222,7 +222,7 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
     if (!isConnected) {
       return false;
     }
-    const deckName = name || 'New Deck';
+    const deckName = name || t('Decks.list.defaultDeckName');
     // deckId 0 asks Servatrice for a new id.
     upload({ kind: 'create', path: folder.path, name: deckName }, emptyCod(deckName, format));
     return true;

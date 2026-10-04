@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 import type { ParsedDeck } from '@app/types';
 
 import {
@@ -11,6 +13,8 @@ import {
   type DeckSummary,
 } from './deckSummary';
 import type { FlatDeck } from './deckTree';
+
+const t = ((key: string) => key) as unknown as TFunction;
 
 function parsed(overrides: Partial<ParsedDeck>): ParsedDeck {
   return {
@@ -129,8 +133,8 @@ describe('format sections', () => {
       ['loading', [4]],
       ['unknown', [5]],
     ]);
-    expect(sections.map((s) => deckSectionLabel(s.section))).toEqual([
-      'Commander', 'Modern', 'Other', 'Loading…', 'Unknown format',
+    expect(sections.map((s) => deckSectionLabel(s.section, t))).toEqual([
+      'Commander', 'Modern', 'DeckSummary.section.other', 'Common.status.loading', 'DeckSummary.section.unknown',
     ]);
   });
 });

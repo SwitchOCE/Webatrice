@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, X } from 'lucide-react';
 
 import { FormatPicker } from '../components/FormatPicker';
@@ -13,6 +14,7 @@ export interface CreateDeckDialogProps {
 }
 
 export function CreateDeckDialog({ open, onClose, onCreate }: CreateDeckDialogProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [format, setFormat] = useState('commander');
 
@@ -52,12 +54,12 @@ export function CreateDeckDialog({ open, onClose, onCreate }: CreateDeckDialogPr
         ].join(' ')}
       >
         <div className="px-5 py-4 border-b border-border-subtle flex items-center justify-between">
-          <h2 id={titleId} className="font-modern text-lg font-semibold text-text-primary">Create a deck</h2>
+          <h2 id={titleId} className="font-modern text-lg font-semibold text-text-primary">{t('CreateDeckDialog.title')}</h2>
           <button
             type="button"
             onClick={onClose}
             className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"
-            aria-label="Close"
+            aria-label={t('Common.action.close')}
           >
             <X size={16} />
           </button>
@@ -65,7 +67,7 @@ export function CreateDeckDialog({ open, onClose, onCreate }: CreateDeckDialogPr
         <div className="px-5 py-4 space-y-4">
           <label className="block">
             <span className="text-xs font-medium text-text-secondary uppercase tracking-wider">
-              Deck name
+              {t('CreateDeckDialog.deckName')}
             </span>
             <input
               type="text"
@@ -77,7 +79,7 @@ export function CreateDeckDialog({ open, onClose, onCreate }: CreateDeckDialogPr
                 }
               }}
               maxLength={80}
-              placeholder="Untitled Deck"
+              placeholder={t('CreateDeckDialog.namePlaceholder')}
               autoFocus
               className={[
                 'mt-1 w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2',
@@ -88,7 +90,7 @@ export function CreateDeckDialog({ open, onClose, onCreate }: CreateDeckDialogPr
           </label>
           <div>
             <span className="text-xs font-medium text-text-secondary uppercase tracking-wider block mb-1">
-              Format
+              {t('CreateDeckDialog.format')}
             </span>
             <FormatPicker value={format} onChange={setFormat} variant="dialog" />
           </div>
@@ -102,7 +104,7 @@ export function CreateDeckDialog({ open, onClose, onCreate }: CreateDeckDialogPr
               'hover:text-text-primary hover:bg-bg-elevated transition-colors',
             ].join(' ')}
           >
-            Cancel
+            {t('Common.action.cancel')}
           </button>
           <button
             type="button"
@@ -113,7 +115,7 @@ export function CreateDeckDialog({ open, onClose, onCreate }: CreateDeckDialogPr
               'hover:bg-accent-hover shadow-glow disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
             ].join(' ')}
           >
-            <Plus size={13} /> Create
+            <Plus size={13} /> {t('Common.action.create')}
           </button>
         </div>
       </div>

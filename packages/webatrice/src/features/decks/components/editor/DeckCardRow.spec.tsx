@@ -42,9 +42,9 @@ describe('DeckCardRow', () => {
 
   it('routes the row menu to the row callbacks', () => {
     const props = renderRow();
-    fireEvent.click(screen.getByRole('button', { name: 'Card actions' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Decrease quantity' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Move to sideboard' }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.rowActions.trigger' }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.rowActions.decrease' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'DeckEditor.rowActions.moveToSideboard' }));
     expect(props.onInc).toHaveBeenCalledWith(-1);
     expect(props.onSetCategory).toHaveBeenCalledWith('sideboard');
   });

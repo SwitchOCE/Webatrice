@@ -49,31 +49,32 @@ function renderPane(overrides: Partial<DeckMainPaneProps> = {}) {
 describe('DeckMainPane', () => {
   it('lays an MTG deck out in type sections above the breakdown', () => {
     renderPane();
-    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(['Instant4', 'Land16']);
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent))
+      .toEqual(['DeckEditor.section.instant4', 'DeckEditor.section.land16']);
     expect(screen.getByText('breakdown')).toBeInTheDocument();
   });
 
   it('hands the quick-add text over to advanced search, and comes back to the deck', () => {
     renderPane();
     fireEvent.change(screen.getByLabelText('quick add'), { target: { value: 'bolt' } });
-    fireEvent.click(screen.getByRole('button', { name: /Advanced search/ }));
+    fireEvent.click(screen.getByRole('button', { name: /DeckEditor.main.advancedSearch/ }));
     expect(screen.getByText('advanced search for “bolt”')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /Back to deck/ }));
+    fireEvent.click(screen.getByRole('button', { name: /DeckEditor.main.backToDeck/ }));
     expect(screen.getByLabelText('quick add')).toHaveValue('');
   });
 
   it('shows a plain list with name entry for non-MTG decks', () => {
     const props = renderPane({ isMtg: false });
-    expect(screen.queryByRole('button', { name: /Advanced search/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /DeckEditor.main.advancedSearch/ })).toBeNull();
     expect(screen.queryByText('breakdown')).toBeNull();
-    fireEvent.change(screen.getByPlaceholderText('Add a card by name'), { target: { value: 'Hedge Wizard' } });
-    fireEvent.keyDown(screen.getByPlaceholderText('Add a card by name'), { key: 'Enter' });
+    fireEvent.change(screen.getByPlaceholderText('DeckEditor.list.addPlaceholder'), { target: { value: 'Hedge Wizard' } });
+    fireEvent.keyDown(screen.getByPlaceholderText('DeckEditor.list.addPlaceholder'), { key: 'Enter' });
     expect(props.onAddByName).toHaveBeenCalledWith('Hedge Wizard');
   });
 
   it('explains how to start an empty deck', () => {
     renderPane({ deck: { ...deck, cards: [] }, groups: [] });
-    expect(screen.getByText('No cards in this deck yet.')).toBeInTheDocument();
+    expect(screen.getByText('DeckEditor.shell.noCards')).toBeInTheDocument();
   });
 });

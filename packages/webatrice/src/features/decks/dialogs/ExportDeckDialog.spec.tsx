@@ -20,20 +20,26 @@ afterEach(() => {
 describe('ExportDeckDialog', () => {
   it('renders nothing while closed', () => {
     render(<ExportDeckDialog open={false} onClose={vi.fn()} deck={deck} />);
-    expect(screen.queryByText('Export deck')).toBeNull();
+    expect(screen.queryByText('ExportDeckDialog.title')).toBeNull();
   });
 
   it('previews each format', () => {
+    Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:x'), revokeObjectURL: vi.fn() });
+    const downloaded: string[] = [];
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function record(this: HTMLAnchorElement) {
+      downloaded.push(this.download);
+    });
     render(<ExportDeckDialog open onClose={vi.fn()} deck={deck} />);
     const preview = screen.getByRole('textbox');
     expect(preview).toHaveValue('// Deck\n4 Lightning Bolt');
 
-    fireEvent.click(screen.getByRole('button', { name: /MTG Arena/ }));
+    fireEvent.click(screen.getByRole('button', { name: /ExportDeckDialog.format.arena.label/ }));
     expect(preview).toHaveValue('Deck\n4 Lightning Bolt (M11) 149');
 
-    fireEvent.click(screen.getByRole('button', { name: /Cockatrice \(\.cod\)/ }));
+    fireEvent.click(screen.getByRole('button', { name: /ExportDeckDialog.format.cockatrice.label/ }));
     expect((preview as HTMLTextAreaElement).value).toContain('<cockatrice_deck');
-    expect(screen.getByRole('button', { name: /Download \.cod/ })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'ExportDeckDialog.download' }));
+    expect(downloaded).toEqual(['mono-red-burn.cod']);
   });
 
   it('copies the preview to the clipboard', async () => {
@@ -42,22 +48,22 @@ describe('ExportDeckDialog', () => {
     render(<ExportDeckDialog open onClose={vi.fn()} deck={deck} />);
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Common.action.copy' }));
     });
     expect(writeText).toHaveBeenCalledWith('// Deck\n4 Lightning Bolt');
-    expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Common.status.copied' })).toBeInTheDocument();
   });
 
   it('keeps the copied feedback when the parent re-renders with a new onClose', async () => {
     Object.defineProperty(navigator, 'clipboard', { value: { writeText: vi.fn().mockResolvedValue(undefined) }, configurable: true });
     const { rerender } = render(<ExportDeckDialog open onClose={() => {}} deck={deck} />);
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Common.action.copy' }));
     });
 
     rerender(<ExportDeckDialog open onClose={() => {}} deck={deck} />);
 
-    expect(screen.getByRole('button', { name: 'Copied' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Common.status.copied' })).toBeInTheDocument();
   });
 
   it('downloads the preview under a slugged file name', () => {
@@ -68,7 +74,7 @@ describe('ExportDeckDialog', () => {
     });
     render(<ExportDeckDialog open onClose={vi.fn()} deck={deck} />);
 
-    fireEvent.click(screen.getByRole('button', { name: /Download \.txt/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'ExportDeckDialog.download' }));
     expect(click).toHaveBeenCalledTimes(1);
     expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob));
   });
@@ -76,7 +82,7 @@ describe('ExportDeckDialog', () => {
   it('closes from the button and from Escape', () => {
     const onClose = vi.fn();
     render(<ExportDeckDialog open onClose={onClose} deck={deck} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Common.action.close' }));
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(2);
   });

@@ -40,21 +40,21 @@ describe('DeckListHeader', () => {
 
   it('shows the deck count once loaded', () => {
     renderHeader({ deckCount: 1 });
-    expect(screen.getByText('1 deck on this server')).toBeInTheDocument();
+    expect(screen.getByText('Decks.list.deckCount')).toBeInTheDocument();
   });
 
   it('shows a loading caption until the tree arrives', () => {
     renderHeader({ loading: true });
-    expect(screen.getByText('Loading…')).toBeInTheDocument();
+    expect(screen.getByText('Common.status.loading')).toBeInTheDocument();
   });
 
   it('wires the view toggle and the list actions', () => {
     const props = renderHeader();
-    expect(screen.getByRole('button', { name: 'Card view' })).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(screen.getByRole('button', { name: 'Compact view' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh deck list' }));
-    fireEvent.click(screen.getByRole('button', { name: /Import/ }));
-    fireEvent.click(screen.getByRole('button', { name: /New deck/ }));
+    expect(screen.getByRole('button', { name: 'Decks.list.view.card' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Decks.list.view.compact' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Decks.list.refreshLabel' }));
+    fireEvent.click(screen.getByRole('button', { name: /Decks.list.import/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Decks.list.newDeck/ }));
     expect(props.onViewModeChange).toHaveBeenCalledWith('compact');
     expect(props.onRefresh).toHaveBeenCalled();
     expect(props.onImport).toHaveBeenCalled();
@@ -63,8 +63,8 @@ describe('DeckListHeader', () => {
 
   it('disables the server actions while disconnected', () => {
     renderHeader({ isConnected: false });
-    expect(screen.getByRole('button', { name: 'Refresh deck list' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /Import/ })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /New deck/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Decks.list.refreshLabel' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Decks.list.import/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Decks.list.newDeck/ })).toBeDisabled();
   });
 });

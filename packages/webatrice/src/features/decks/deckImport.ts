@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 import { defaultMeta, lookupCards, serializeCod, type LookupResult } from '@app/services';
 import type { DeckCategory, ParsedDeck } from '@app/types';
 
@@ -67,10 +69,10 @@ export function countResolvedRows(rows: ResolvedImportRow[]): { matched: number;
  * `.cod` XML for a reviewed paste. Unmatched entries are kept — the
  * editor flags them (`lookupSource: 'unknown'`) so typos can be fixed.
  */
-export function buildPastedDeckCod(rows: ResolvedImportRow[], name: string, format: string): string {
+export function buildPastedDeckCod(rows: ResolvedImportRow[], name: string, format: string, t: TFunction): string {
   const cards: DeckCard[] = rows.map((r) => assembleDeckCard(r.entry, r.lookup));
   return serializeCod({
-    name: name.trim() || 'Imported deck',
+    name: name.trim() || t('DeckImport.defaultName'),
     meta: defaultMeta(),
     cards,
     format: format.trim().toLowerCase() || 'commander',
@@ -82,9 +84,9 @@ export function buildPastedDeckCod(rows: ResolvedImportRow[], name: string, form
  * file's) and format (else the file's) while preserving the file's
  * metadata, printing hints and desktop bookkeeping elements.
  */
-export function buildUploadedDeckCod(file: ParsedDeck, name: string, format: string): string {
+export function buildUploadedDeckCod(file: ParsedDeck, name: string, format: string, t: TFunction): string {
   return serializeCod({
-    name: name.trim() || file.name || 'Imported deck',
+    name: name.trim() || file.name || t('DeckImport.defaultName'),
     meta: file.meta,
     // Parsed cards carry set/collector/scryfallId hints that serializeCod
     // emits back onto the <card> attributes.
@@ -100,7 +102,7 @@ export function buildUploadedDeckCod(file: ParsedDeck, name: string, format: str
 }
 
 /** Per-zone card totals for the uploaded-file summary card. */
-export function summarizeUploadedDeck(file: ParsedDeck): { total: number; parts: string[] } {
+export function summarizeUploadedDeck(file: ParsedDeck): { total: number; main: number; sideboard: number } {
   const totals = file.cards.reduce(
     (acc, c) => {
       acc[c.category] = (acc[c.category] ?? 0) + c.quantity;
@@ -109,12 +111,5 @@ export function summarizeUploadedDeck(file: ParsedDeck): { total: number; parts:
     {} as Partial<Record<DeckCategory, number>>,
   );
   const total = file.cards.reduce((sum, c) => sum + c.quantity, 0);
-  const parts: string[] = [];
-  if (totals.main) {
-    parts.push(`${totals.main} main`);
-  }
-  if (totals.sideboard) {
-    parts.push(`${totals.sideboard} sideboard`);
-  }
-  return { total, parts };
+  return { total, main: totals.main ?? 0, sideboard: totals.sideboard ?? 0 };
 }

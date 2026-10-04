@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Copy, Check, Download, FileText, Swords, Package } from 'lucide-react';
 
 import { saveTextFile } from '../browserHandoff';
@@ -9,37 +10,29 @@ import { DeckDialogFrame } from './DeckDialogFrame';
 
 interface FormatDef {
   id: DeckExportFormat;
-  label: string;
   icon: typeof FileText;
   extension: string;
   mime: string;
-  description: string;
 }
 
 const FORMATS: FormatDef[] = [
   {
     id: 'plain',
-    label: 'Plain text',
     icon: FileText,
     extension: 'txt',
     mime: 'text/plain',
-    description: 'Simple list, grouped by section. Works with most tools.',
   },
   {
     id: 'arena',
-    label: 'MTG Arena',
     icon: Swords,
     extension: 'txt',
     mime: 'text/plain',
-    description: 'Includes set + collector. Works for Arena, Moxfield, Archidekt imports.',
   },
   {
     id: 'cockatrice',
-    label: 'Cockatrice (.cod)',
     icon: Package,
     extension: 'cod',
     mime: 'application/xml',
-    description: 'XML deck file for Cockatrice — preserves everything.',
   },
 ];
 
@@ -57,6 +50,7 @@ export function ExportDeckDialog({
   /** The live editor deck; the preview re-renders as it changes. */
   deck: HydratedDeck;
 }) {
+  const { t } = useTranslation();
   const [exportFormat, setExportFormat] = useState<DeckExportFormat>('plain');
   const [copied, setCopied] = useState(false);
 
@@ -103,13 +97,13 @@ export function ExportDeckDialog({
           type="button"
           onClick={onClose}
           className="absolute top-3 right-3 p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"
-          aria-label="Close"
+          aria-label={t('Common.action.close')}
         >
           <X size={18} />
         </button>
 
         <div className="mb-4">
-          <h2 id={titleId} className="font-modern text-xl font-bold text-text-primary">Export deck</h2>
+          <h2 id={titleId} className="font-modern text-xl font-bold text-text-primary">{t('ExportDeckDialog.title')}</h2>
           <p className="text-xs text-text-muted mt-1 truncate">{deck.name}</p>
         </div>
 
@@ -130,10 +124,10 @@ export function ExportDeckDialog({
                 ].join(' ')}
               >
                 <span className="flex items-center gap-1.5 text-sm font-medium">
-                  <Icon size={13} /> {f.label}
+                  <Icon size={13} /> {t(`ExportDeckDialog.format.${f.id}.label`)}
                 </span>
                 <span className="text-[10px] text-text-muted leading-snug">
-                  {f.description}
+                  {t(`ExportDeckDialog.format.${f.id}.description`)}
                 </span>
               </button>
             );
@@ -162,7 +156,7 @@ export function ExportDeckDialog({
             ].join(' ')}
           >
             {copied ? <Check size={14} /> : <Copy size={14} />}
-            {copied ? 'Copied' : 'Copy'}
+            {copied ? t('Common.status.copied') : t('Common.action.copy')}
           </button>
           <button
             type="button"
@@ -173,7 +167,7 @@ export function ExportDeckDialog({
               'text-text-primary text-sm font-medium border border-border-strong transition-colors',
             ].join(' ')}
           >
-            <Download size={14} /> Download .{currentFormat.extension}
+            <Download size={14} /> {t('ExportDeckDialog.download', { extension: currentFormat.extension })}
           </button>
         </div>
       </div>

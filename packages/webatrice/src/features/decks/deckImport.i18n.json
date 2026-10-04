@@ -1,0 +1,12 @@
+{
+  "DeckImport": {
+    "defaultName": "Imported deck",
+    "error": {
+      "invalidCodReason": "Not a valid Cockatrice .cod: {reason}",
+      "invalidCod": "Not a valid Cockatrice .cod file",
+      "readFailed": "Could not read the selected file",
+      "noCards": "No cards recognised. Check the format — one line per card, like `1 Sol Ring`.",
+      "resolveFailed": "Failed to resolve cards"
+    }
+  }
+}

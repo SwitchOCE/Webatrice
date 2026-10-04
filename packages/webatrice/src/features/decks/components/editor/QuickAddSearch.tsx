@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2, Search, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { useQuickAddSuggestions } from '../../hooks/useQuickAddSuggestions';
 
@@ -12,6 +13,7 @@ export interface QuickAddSearchProps {
 }
 
 export function QuickAddSearch({ query, onQueryChange, onAdd }: QuickAddSearchProps) {
+  const { t } = useTranslation();
   const setQuery = onQueryChange;
   const { suggestions, loading, highlight, setHighlight, clear } = useQuickAddSuggestions(query);
   const [open, setOpen] = useState(false);
@@ -84,7 +86,7 @@ export function QuickAddSearch({ query, onQueryChange, onAdd }: QuickAddSearchPr
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          placeholder="Quick add — type a card name"
+          placeholder={t('DeckEditor.quickAdd.placeholder')}
           className={[
             'w-full pl-8 pr-8 py-1.5 rounded-md bg-bg-base border',
             'border-border-subtle text-xs text-text-primary',
@@ -100,7 +102,7 @@ export function QuickAddSearch({ query, onQueryChange, onAdd }: QuickAddSearchPr
               inputRef.current?.focus();
             }}
             className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-text-muted hover:text-text-primary transition-colors"
-            aria-label="Clear"
+            aria-label={t('DeckEditor.quickAdd.clear')}
           >
             <X size={12} />
           </button>
@@ -116,11 +118,11 @@ export function QuickAddSearch({ query, onQueryChange, onAdd }: QuickAddSearchPr
         >
           {loading && (
             <div className="flex items-center gap-2 px-3 py-2 text-xs text-text-muted">
-              <Loader2 size={11} className="animate-spin" /> Searching…
+              <Loader2 size={11} className="animate-spin" /> {t('DeckEditor.quickAdd.searching')}
             </div>
           )}
           {!loading && suggestions.length === 0 && (
-            <div className="px-3 py-2 text-xs text-text-muted italic">No matches</div>
+            <div className="px-3 py-2 text-xs text-text-muted italic">{t('DeckEditor.quickAdd.noMatches')}</div>
           )}
           {!loading &&
             suggestions.map((s, i) => {

@@ -7,6 +7,8 @@ export const SEARCH_DEBOUNCE_MS = 300;
 export interface ScryfallCardSearch {
   results: ScryfallSearchCard[];
   loading: boolean;
+  /** The failure's message; `''` when it had none (the UI shows a generic
+   *  "search failed"); `null` when the last search didn't fail. */
   error: string | null;
 }
 
@@ -39,7 +41,7 @@ export function useScryfallCardSearch(query: string): ScryfallCardSearch {
         if ((e as { name?: string })?.name === 'AbortError') {
           return;
         }
-        setError(e instanceof Error ? e.message : 'Search failed');
+        setError(e instanceof Error ? e.message : '');
       } finally {
         setLoading(false);
       }

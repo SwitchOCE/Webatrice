@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, CircleAlert, Loader2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 
 import { AuthGuard } from '@app/components';
 import { Layout } from '@app/feature-wrappers/layout';
@@ -14,6 +14,7 @@ import { RouteEnum } from '@app/types';
  * hydration phase has nothing to count yet.
  */
 export function DeckEditorSkeleton({ loaded, total }: { loaded: number; total: number }) {
+  const { t } = useTranslation();
   return (
     <Layout>
       <AuthGuard />
@@ -30,7 +31,9 @@ export function DeckEditorSkeleton({ loaded, total }: { loaded: number; total: n
           <div className="h-9 w-full rounded-md bg-bg-elevated animate-pulse" />
           <div className="mt-auto flex items-center justify-center gap-2 text-xs text-text-muted italic">
             <Loader2 size={12} className="animate-spin text-accent" />
-            {total > 0 ? `Preloading ${loaded}/${total} cards…` : 'Loading deck…'}
+            {total > 0
+              ? t('DeckEditor.shell.preloading', { loaded: String(loaded), total: String(total) })
+              : t('DeckEditor.shell.loadingDeck')}
           </div>
         </div>
         {/* Main pane skeleton */}
@@ -62,10 +65,10 @@ export function DeckNotFound({ reason }: { reason: string | null }) {
       <div className="h-full flex flex-col items-center justify-center bg-bg-base gap-3">
         <CircleAlert size={32} className="text-danger" />
         <div className="text-text-primary font-medium">
-          {reason ? t('DeckEditor.loadFailedTitle') : 'Deck not found'}
+          {reason ? t('DeckEditor.loadFailedTitle') : t('DeckEditor.shell.notFoundTitle')}
         </div>
         <div className="text-sm text-text-muted">
-          {reason ?? <>Servatrice didn't return this deck. Might have been deleted.</>}
+          {reason ?? t('DeckEditor.shell.notFoundBody')}
         </div>
         <button
           type="button"
@@ -75,7 +78,7 @@ export function DeckNotFound({ reason }: { reason: string | null }) {
             'font-semibold bg-accent text-white hover:bg-accent-hover shadow-glow transition-colors',
           ].join(' ')}
         >
-          <ArrowLeft size={14} /> Back to My Decks
+          <ArrowLeft size={14} /> {t('DeckEditor.shell.backToDecks')}
         </button>
       </div>
     </Layout>
@@ -83,24 +86,17 @@ export function DeckNotFound({ reason }: { reason: string | null }) {
 }
 
 export function EmptyCardsHint({ isMtg }: { isMtg: boolean }) {
+  const { t } = useTranslation();
   return (
     <>
       <div className="text-sm text-text-muted italic text-center mt-6 mb-24">
-        {isMtg ? (
-          <>
-            Empty deck. Use{' '}
-            <span className="font-semibold text-text-primary">Quick add</span> above to start
-            adding, or import a list from My Decks.
-          </>
-        ) : (
-          <>
-            Empty deck. Type a card name in{' '}
-            <span className="font-semibold text-text-primary">Add a card</span> above to start.
-          </>
-        )}
+        <Trans
+          i18nKey={isMtg ? 'DeckEditor.shell.emptyMtg' : 'DeckEditor.shell.emptyPlain'}
+          components={{ hl: <span className="font-semibold text-text-primary" /> }}
+        />
       </div>
       <div className="text-center text-text-muted">
-        <div className="text-sm">No cards in this deck yet.</div>
+        <div className="text-sm">{t('DeckEditor.shell.noCards')}</div>
       </div>
     </>
   );

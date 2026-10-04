@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle2, CircleAlert, Loader2, X } from 'lucide-react';
 
 import { usePreference } from '@app/hooks';
@@ -37,6 +38,7 @@ export function PrintingPickerDialog({
   onClose: () => void;
   onPick: (printing: PrintingSummary) => void;
 }) {
+  const { t } = useTranslation();
   // Keyed on the card name, so a fresh `request` object for the same
   // card doesn't refetch.
   const { printings: allPrintings, loading, error, prices } = useCardPrintings(request?.card.name);
@@ -64,20 +66,20 @@ export function PrintingPickerDialog({
           type="button"
           onClick={onClose}
           className="absolute top-3 right-3 p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"
-          aria-label="Close"
+          aria-label={t('Common.action.close')}
         >
           <X size={18} />
         </button>
 
         <div>
           <h2 id={titleId} className="font-modern text-xl font-semibold text-text-primary truncate">
-            Choose printing
+            {t('PrintingPicker.title')}
           </h2>
           <p className="text-sm text-text-muted mt-1">
             {request.card.name}
             {!loading && printings.length > 0 && (
               <span className="ml-2 text-text-muted">
-                · {printings.length} printing{printings.length === 1 ? '' : 's'}
+                · {t('PrintingPicker.count', { count: printings.length })}
               </span>
             )}
           </p>
@@ -85,7 +87,7 @@ export function PrintingPickerDialog({
 
         {loading && (
           <div className="flex-1 flex items-center justify-center py-16 text-text-muted text-sm">
-            <Loader2 size={18} className="animate-spin mr-2 text-accent" /> Loading printings…
+            <Loader2 size={18} className="animate-spin mr-2 text-accent" /> {t('PrintingPicker.loading')}
           </div>
         )}
 
@@ -98,7 +100,7 @@ export function PrintingPickerDialog({
 
         {!loading && !error && printings.length === 0 && (
           <div className="flex-1 flex items-center justify-center py-16 text-text-muted text-sm">
-            No printings found.
+            {t('PrintingPicker.empty')}
           </div>
         )}
 
@@ -156,7 +158,7 @@ export function PrintingPickerDialog({
                               'tabular-nums shrink-0',
                               usd != null ? 'text-success font-medium' : 'text-text-muted',
                             ].join(' ')}
-                            title={usd != null ? 'TCGplayer USD' : 'No TCGplayer price'}
+                            title={usd != null ? t('PrintingPicker.priceUsd') : t('PrintingPicker.noPrice')}
                           >
                             {usd != null ? `$${usd.toFixed(2)}` : '—'}
                           </span>
@@ -175,7 +177,7 @@ export function PrintingPickerDialog({
                           'rounded bg-accent text-white text-[10px] font-semibold shadow-glow',
                         ].join(' ')}
                       >
-                        <CheckCircle2 size={10} /> Current
+                        <CheckCircle2 size={10} /> {t('PrintingPicker.current')}
                       </div>
                     )}
                   </button>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat } from '@app/types';
 
@@ -30,13 +31,11 @@ const VARIANTS = {
       'focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
     ].join(' '),
     chevronPosition: 'right 10px center',
-    otherLabel: 'Other (specify)',
     input: [
       'w-full bg-bg-base border border-border-subtle rounded-md px-3 py-2',
       'text-sm text-text-primary placeholder:text-text-muted',
       'focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
     ].join(' '),
-    placeholder: 'e.g. Netrunner, Playtest, Cube',
     autoFocus: true,
   },
   sidebar: {
@@ -46,16 +45,15 @@ const VARIANTS = {
       'py-1 text-xs text-text-primary focus:outline-none focus:border-accent transition-colors',
     ].join(' '),
     chevronPosition: 'right 6px center',
-    otherLabel: 'Other',
     input: 'w-full bg-bg-base border border-border-subtle rounded-md px-2 py-1 text-xs '
       + 'text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent '
       + 'transition-colors',
-    placeholder: 'e.g. Netrunner, Playtest',
     autoFocus: false,
   },
 } as const;
 
 export function FormatPicker({ value, onChange, variant }: FormatPickerProps) {
+  const { t } = useTranslation();
   const styles = VARIANTS[variant];
   const normalized = normalizeFormat(value);
   const isKnown = MTG_FORMATS.includes(normalized);
@@ -72,7 +70,7 @@ export function FormatPicker({ value, onChange, variant }: FormatPickerProps) {
   return (
     <div className={styles.root}>
       <select
-        aria-label="Format"
+        aria-label={t('FormatPicker.label')}
         value={dropdownValue}
         onChange={(e) => {
           const next = e.target.value;
@@ -94,7 +92,7 @@ export function FormatPicker({ value, onChange, variant }: FormatPickerProps) {
         {MTG_FORMAT_LABELS.map((o) => (
           <option key={o.value} value={o.value}>{o.label}</option>
         ))}
-        <option value="other">{styles.otherLabel}</option>
+        <option value="other">{t(`FormatPicker.other.${variant}`)}</option>
       </select>
       {inOtherMode && (
         <input
@@ -108,7 +106,7 @@ export function FormatPicker({ value, onChange, variant }: FormatPickerProps) {
               setOtherMode(false);
             }
           }}
-          placeholder={styles.placeholder}
+          placeholder={t(`FormatPicker.placeholder.${variant}`)}
           maxLength={60}
           className={styles.input}
           autoFocus={styles.autoFocus}

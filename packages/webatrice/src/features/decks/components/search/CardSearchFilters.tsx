@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
 import { getScryfallSymbolUrl } from '@app/services';
@@ -10,7 +11,7 @@ import {
   type FilterColorMode,
   type SearchFiltersState,
 } from '../../cardSearchQuery';
-import { MANA_COLORS, MANA_COLOR_LABEL } from '../../manaSymbols';
+import { MANA_COLORS } from '../../manaSymbols';
 import { SELECT_CHEVRON_BACKGROUND } from '../../selectChevron';
 import { NUMBER_INPUT_CLASS, TEXT_INPUT_CLASS } from '../editor/editorStyles';
 
@@ -23,6 +24,7 @@ export function CardSearchFilters({
   onChange: (next: SearchFiltersState) => void;
   onReset: () => void;
 }) {
+  const { t } = useTranslation();
   const set = <K extends keyof SearchFiltersState>(key: K, v: SearchFiltersState[K]) =>
     onChange({ ...value, [key]: v });
 
@@ -33,7 +35,7 @@ export function CardSearchFilters({
       {/* Row 1: colors + mode + clear */}
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
-          Colors
+          {t('CardSearch.filter.colors')}
         </span>
         {MANA_COLORS.map((c) => {
           const active = value.colors.includes(c);
@@ -48,12 +50,12 @@ export function CardSearchFilters({
                   ? 'ring-2 ring-offset-1 ring-offset-bg-surface ring-accent'
                   : 'opacity-40 hover:opacity-80',
               ].join(' ')}
-              title={MANA_COLOR_LABEL[c]}
+              title={t(`CardSearch.color.${c}`)}
               aria-pressed={active}
             >
               <img
                 src={getScryfallSymbolUrl(c)}
-                alt={MANA_COLOR_LABEL[c]}
+                alt={t(`CardSearch.color.${c}`)}
                 className="w-full h-full block"
                 draggable={false}
               />
@@ -68,16 +70,16 @@ export function CardSearchFilters({
             'appearance-none bg-bg-base border border-border-subtle rounded-md pl-2 pr-6 py-1',
             'text-xs text-text-primary focus:outline-none focus:border-accent transition-colors',
           ].join(' ')}
-          title="Color match mode"
+          title={t('CardSearch.filter.colorMode')}
           style={{
             backgroundImage: SELECT_CHEVRON_BACKGROUND,
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'right 6px center',
           }}
         >
-          <option value="includes">Includes</option>
-          <option value="exactly">Exactly</option>
-          <option value="atMost">At most</option>
+          <option value="includes">{t('CardSearch.filter.mode.includes')}</option>
+          <option value="exactly">{t('CardSearch.filter.mode.exactly')}</option>
+          <option value="atMost">{t('CardSearch.filter.mode.atMost')}</option>
         </select>
 
         {hasAny && (
@@ -86,7 +88,7 @@ export function CardSearchFilters({
             onClick={onReset}
             className="ml-auto text-xs text-text-muted hover:text-text-primary transition-colors"
           >
-            Clear filters
+            {t('CardSearch.filter.clear')}
           </button>
         )}
       </div>
@@ -94,15 +96,15 @@ export function CardSearchFilters({
       {/* Row 2: types */}
       <div className="flex items-center gap-1.5 flex-wrap">
         <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted mr-1">
-          Types
+          {t('CardSearch.filter.types')}
         </span>
-        {FILTER_TYPES.map((t) => {
-          const active = value.types.includes(t);
+        {FILTER_TYPES.map((type) => {
+          const active = value.types.includes(type);
           return (
             <button
-              key={t}
+              key={type}
               type="button"
-              onClick={() => set('types', toggleFilter(value.types, t))}
+              onClick={() => set('types', toggleFilter(value.types, type))}
               className={[
                 'px-2 py-1 rounded-md text-xs font-medium border transition-colors',
                 active
@@ -111,7 +113,7 @@ export function CardSearchFilters({
               ].join(' ')}
               aria-pressed={active}
             >
-              {t}
+              {t(`CardSearch.cardType.${type}`)}
             </button>
           );
         })}
@@ -123,7 +125,7 @@ export function CardSearchFilters({
         className="inline-flex items-center gap-1 text-xs text-text-secondary hover:text-text-primary transition-colors"
       >
         {value.showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-        Advanced filters
+        {t('CardSearch.filter.advanced')}
       </button>
 
       {value.showAdvanced && (
@@ -133,7 +135,7 @@ export function CardSearchFilters({
         >
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-widest text-text-muted mb-1">
-              Mana value
+              {t('CardSearch.filter.manaValue')}
             </div>
             <div className="flex items-center gap-2">
               <input
@@ -142,17 +144,17 @@ export function CardSearchFilters({
                 max={20}
                 value={value.cmcMin}
                 onChange={(e) => set('cmcMin', e.target.value)}
-                placeholder="min"
+                placeholder={t('CardSearch.filter.min')}
                 className={NUMBER_INPUT_CLASS}
               />
-              <span className="text-xs text-text-muted">to</span>
+              <span className="text-xs text-text-muted">{t('CardSearch.filter.to')}</span>
               <input
                 type="number"
                 min={0}
                 max={20}
                 value={value.cmcMax}
                 onChange={(e) => set('cmcMax', e.target.value)}
-                placeholder="max"
+                placeholder={t('CardSearch.filter.max')}
                 className={NUMBER_INPUT_CLASS}
               />
             </div>
@@ -160,10 +162,10 @@ export function CardSearchFilters({
 
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-widest text-text-muted mb-1">
-              Rarity
+              {t('CardSearch.filter.rarity')}
             </div>
             <div className="flex items-center gap-1">
-              {FILTER_RARITIES.map(({ id, label }) => {
+              {FILTER_RARITIES.map((id) => {
                 const active = value.rarities.includes(id);
                 return (
                   <button
@@ -176,10 +178,10 @@ export function CardSearchFilters({
                         ? 'bg-accent/20 border-accent text-text-primary'
                         : 'bg-bg-base border-border-subtle text-text-muted hover:text-text-primary hover:border-border-strong',
                     ].join(' ')}
-                    title={id[0].toUpperCase() + id.slice(1)}
+                    title={t(`CardSearch.rarity.${id}.name`)}
                     aria-pressed={active}
                   >
-                    {label}
+                    {t(`CardSearch.rarity.${id}.short`)}
                   </button>
                 );
               })}
@@ -188,26 +190,26 @@ export function CardSearchFilters({
 
           <div className="col-span-2">
             <div className="text-[10px] font-semibold uppercase tracking-widest text-text-muted mb-1">
-              Subtype
+              {t('CardSearch.filter.subtype')}
             </div>
             <input
               type="text"
               value={value.subtype}
               onChange={(e) => set('subtype', e.target.value)}
-              placeholder='e.g. Elemental, or "Human Warrior" for both'
+              placeholder={t('CardSearch.filter.subtypePlaceholder')}
               className={TEXT_INPUT_CLASS}
             />
           </div>
 
           <div className="col-span-2">
             <div className="text-[10px] font-semibold uppercase tracking-widest text-text-muted mb-1">
-              Oracle text contains
+              {t('CardSearch.filter.oracle')}
             </div>
             <input
               type="text"
               value={value.oracle}
               onChange={(e) => set('oracle', e.target.value)}
-              placeholder='e.g. "draw a card"'
+              placeholder={t('CardSearch.filter.oraclePlaceholder')}
               className={TEXT_INPUT_CLASS}
             />
           </div>

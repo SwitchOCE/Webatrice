@@ -1,4 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
+
+import { renderWithProviders } from '../../../__test-utils__';
 
 import { DeleteDeckDialog } from './DeleteDeckDialog';
 
@@ -6,13 +8,13 @@ describe('DeleteDeckDialog', () => {
   it('names the deck and confirms or cancels', () => {
     const onCancel = vi.fn();
     const onConfirm = vi.fn();
-    render(<DeleteDeckDialog deckName="Burn" onCancel={onCancel} onConfirm={onConfirm} />);
+    renderWithProviders(<DeleteDeckDialog deckName="Burn" onCancel={onCancel} onConfirm={onConfirm} />);
 
-    expect(screen.getByRole('dialog', { name: 'Delete deck?' })).toHaveTextContent('Burn will be permanently removed');
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(screen.getByRole('dialog', { name: 'DeleteDeckDialog.title' })).toHaveTextContent('DeleteDeckDialog.message');
+    fireEvent.click(screen.getByRole('button', { name: 'Common.action.delete' }));
     expect(onConfirm).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Common.action.cancel' }));
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onCancel).toHaveBeenCalledTimes(2);
   });

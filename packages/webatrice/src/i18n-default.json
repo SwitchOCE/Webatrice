@@ -301,7 +301,15 @@
       "apply": "Apply",
       "reset": "Reset",
       "join": "Join",
-      "dismiss": "Dismiss"
+      "dismiss": "Dismiss",
+      "delete": "Delete",
+      "remove": "Remove",
+      "copy": "Copy",
+      "back": "Back"
+    },
+    "status": {
+      "loading": "Loading…",
+      "copied": "Copied"
     }
   },
   "CardDetails": {
@@ -1245,7 +1253,81 @@
   },
   "DeckEditor": {
     "downloadFailed": "Failed to download this deck from the server.",
-    "loadFailedTitle": "Deck could not be loaded"
+    "loadFailedTitle": "Deck could not be loaded",
+    "shell": {
+      "preloading": "Preloading {loaded}/{total} cards…",
+      "loadingDeck": "Loading deck…",
+      "notFoundTitle": "Deck not found",
+      "notFoundBody": "Servatrice didn''t return this deck. Might have been deleted.",
+      "backToDecks": "Back to My Decks",
+      "emptyMtg": "Empty deck. Use <hl>Quick add</hl> above to start adding, or import a list from My Decks.",
+      "emptyPlain": "Empty deck. Type a card name in <hl>Add a card</hl> above to start.",
+      "noCards": "No cards in this deck yet."
+    },
+    "main": {
+      "advancedSearch": "Advanced search",
+      "backToList": "Back to deck list",
+      "backToDeck": "Back to deck"
+    },
+    "section": {
+      "commander": "Commander",
+      "creature": "Creature",
+      "planeswalker": "Planeswalker",
+      "battle": "Battle",
+      "instant": "Instant",
+      "sorcery": "Sorcery",
+      "enchantment": "Enchantment",
+      "artifact": "Artifact",
+      "land": "Land",
+      "other": "Other",
+      "sideboard": "Sideboard"
+    },
+    "row": {
+      "details": "Click for details",
+      "unknown": "Not in your card DB and Scryfall couldn''t find it. The card is saved but details/images can''t be shown."
+    },
+    "rowActions": {
+      "trigger": "Actions for {card}",
+      "quantity": "Quantity",
+      "removeOne": "Remove one",
+      "decrease": "Decrease quantity",
+      "addOne": "Add one",
+      "increase": "Increase quantity",
+      "changePrinting": "Change printing",
+      "markCommander": "Mark as commander",
+      "unmarkCommander": "Unmark as commander",
+      "moveToMain": "Move to main",
+      "moveToSideboard": "Move to sideboard"
+    },
+    "list": {
+      "addPlaceholder": "Add a card by name",
+      "decrease": "Decrease",
+      "decreaseCard": "Decrease {card}",
+      "increase": "Increase",
+      "increaseCard": "Increase {card}",
+      "removeCard": "Remove {card}"
+    },
+    "quickAdd": {
+      "placeholder": "Quick add — type a card name",
+      "clear": "Clear",
+      "searching": "Searching…",
+      "noMatches": "No matches"
+    },
+    "buy": {
+      "deck": "Buy deck @ TCGplayer",
+      "card": "Buy @ TCGplayer",
+      "disabled": "Add cards to enable",
+      "openDeck": "Open the full deck in TCGplayer''s mass-entry cart (opens in a new tab)",
+      "openCard": "Buy on TCGplayer (opens in a new tab)",
+      "pricing": "Pricing {count, plural, one {# card} other {# cards}}… ({priced}/{total})",
+      "missingHint": "Click to see which cards Scryfall couldn''t price",
+      "missingShow": "Price missing for {count, plural, one {# card} other {# cards}} — show",
+      "missingHide": "Price missing for {count, plural, one {# card} other {# cards}} — hide"
+    },
+    "preview": {
+      "noImage": "No image available",
+      "hover": "Hover a card to preview"
+    }
   },
   "DeckSharing": {
     "shareDeck": "Share deck...",
@@ -1348,7 +1430,39 @@
     "retry": "Retry",
     "moveFailed": "Couldn’t move {name}. The original deck is unchanged.",
     "uploadFailed": "Couldn’t save {name} to the server.",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "list": {
+      "title": "My Decks",
+      "deckCount": "{count, plural, one {# deck} other {# decks}} on this server",
+      "viewMode": "View mode",
+      "view": {
+        "card": "Card view",
+        "compact": "Compact view"
+      },
+      "refresh": "Refresh",
+      "refreshLabel": "Refresh deck list",
+      "import": "Import",
+      "newDeck": "New deck",
+      "defaultDeckName": "New Deck",
+      "loading": "Loading decks…",
+      "emptyTitle": "No decks yet",
+      "emptyBody": "Decks live on the Servatrice server tied to your account. Create your first one to get started.",
+      "deleteDeck": "Delete deck",
+      "deleteDeckNamed": "Delete {name}",
+      "created": "Created {age}",
+      "age": {
+        "unknown": "unknown",
+        "justNow": "just now"
+      }
+    },
+    "badge": {
+      "bracket": "Commander Bracket {level}",
+      "bracketShort": "B{level}",
+      "priceLoading": "Loading price…",
+      "priceNone": "No cached price — open the deck to compute it",
+      "priceTotal": "TCGplayer USD total",
+      "priceTotalMissing": "TCGplayer USD total. {count, plural, one {# card} other {# cards}} had no price on file — actual total is higher."
+    }
   },
   "DeckLink": {
     "label": "Load deck from online service",
@@ -1358,9 +1472,21 @@
     "copyFromPage": "Browsers can't read decks from {provider} directly. Open the deck, use its Export option to copy the list, and paste it below.",
     "open": "Open on {provider}"
   },
+  "FormatPicker": {
+    "label": "Format",
+    "other": {
+      "dialog": "Other (specify)",
+      "sidebar": "Other"
+    },
+    "placeholder": {
+      "dialog": "e.g. Netrunner, Playtest, Cube",
+      "sidebar": "e.g. Netrunner, Playtest"
+    }
+  },
   "DeckBracket": {
     "assessing": "Assessing bracket…",
     "failed": "Couldn’t assess bracket: {message}",
+    "unknownError": "Bracket assessment failed",
     "title": "Bracket {level} · {label}",
     "partialTitle": "At least bracket {level} · {label}",
     "methodology": "Minimum bracket per <0>edhpowerlevel</0>’s algorithm: Game Changers, MLD, extra turns, and early game-defining combos.",
@@ -1403,6 +1529,25 @@
       "lateCombos": "Late combos"
     },
     "chainable": "— chain-able:"
+  },
+  "DeckBreakdown": {
+    "overview": "Overview",
+    "stat": {
+      "total": "Total",
+      "nonland": "Nonland",
+      "lands": "Lands",
+      "avgCmc": "Avg CMC"
+    },
+    "bracketEstimate": "Bracket estimate",
+    "manaCurve": "Mana curve",
+    "colorDistribution": "Color distribution",
+    "cardTypes": "Card types",
+    "pieLabel": "Color distribution pie",
+    "curve": {
+      "barTitle": "{count, plural, one {# card} other {# cards}} at CMC {cmc}",
+      "sevenPlus": "7+"
+    },
+    "noCards": "No cards yet."
   },
   "DeckBanner": {
     "label": "Banner Card"
@@ -1463,7 +1608,16 @@
   "DeckSidebar": {
     "saveFailed": "The deck could not be saved.",
     "retrySave": "Retry",
-    "saveFailedHint": "Your last change was not saved. It will be sent again with your next change, or now with Retry."
+    "saveFailedHint": "Your last change was not saved. It will be sent again with your next change, or now with Retry.",
+    "namePlaceholder": "Untitled Deck",
+    "cardCount": "{count, plural, one {# card} other {# cards}}",
+    "sideboardCount": "{count} sideboard",
+    "format": "Format",
+    "export": "Export deck",
+    "exportHint": "Export deck (plain text, Arena, Cockatrice)",
+    "saving": "Saving…",
+    "dirty": "Unsaved changes",
+    "saved": "Saved"
   },
   "DeckTags": {
     "label": "Tags",
@@ -1505,6 +1659,116 @@
     "downloadDeckNamed": "Download {name}",
     "empty": "This folder is empty."
   },
+  "CardSearch": {
+    "placeholder": "Search cards — Scryfall syntax works here too",
+    "searching": "Searching…",
+    "searchFailed": "Search failed",
+    "resultCount": "Showing {count, plural, one {# result} other {# results}} ·",
+    "noResults": "No results.",
+    "emptyPrompt": "Type to search, or use the filters above.",
+    "syntaxHint": "Scryfall syntax also works directly: <0>{oracleExample}</0>, <1>{commanderExample}</1>, etc.",
+    "addCardTitle": "Add {name} to deck",
+    "addToDeck": "Add to deck",
+    "filter": {
+      "colors": "Colors",
+      "colorMode": "Color match mode",
+      "mode": {
+        "includes": "Includes",
+        "exactly": "Exactly",
+        "atMost": "At most"
+      },
+      "clear": "Clear filters",
+      "types": "Types",
+      "advanced": "Advanced filters",
+      "manaValue": "Mana value",
+      "min": "min",
+      "to": "to",
+      "max": "max",
+      "rarity": "Rarity",
+      "subtype": "Subtype",
+      "subtypePlaceholder": "e.g. Elemental, or \"Human Warrior\" for both",
+      "oracle": "Oracle text contains",
+      "oraclePlaceholder": "e.g. \"draw a card\""
+    },
+    "color": {
+      "W": "White",
+      "U": "Blue",
+      "B": "Black",
+      "R": "Red",
+      "G": "Green",
+      "C": "Colorless"
+    },
+    "cardType": {
+      "Creature": "Creature",
+      "Planeswalker": "Planeswalker",
+      "Battle": "Battle",
+      "Instant": "Instant",
+      "Sorcery": "Sorcery",
+      "Enchantment": "Enchantment",
+      "Artifact": "Artifact",
+      "Land": "Land",
+      "Other": "Other"
+    },
+    "rarity": {
+      "common": {
+        "name": "Common",
+        "short": "C"
+      },
+      "uncommon": {
+        "name": "Uncommon",
+        "short": "U"
+      },
+      "rare": {
+        "name": "Rare",
+        "short": "R"
+      },
+      "mythic": {
+        "name": "Mythic",
+        "short": "M"
+      }
+    }
+  },
+  "DeckImport": {
+    "defaultName": "Imported deck",
+    "error": {
+      "invalidCodReason": "Not a valid Cockatrice .cod: {reason}",
+      "invalidCod": "Not a valid Cockatrice .cod file",
+      "readFailed": "Could not read the selected file",
+      "noCards": "No cards recognised. Check the format — one line per card, like `1 Sol Ring`.",
+      "resolveFailed": "Failed to resolve cards"
+    }
+  },
+  "DeckSummary": {
+    "section": {
+      "other": "Other",
+      "unknown": "Unknown format"
+    }
+  },
+  "CardDetailDialog": {
+    "noImage": "No image",
+    "cmc": "CMC {cmc}",
+    "backTo": "Back to {name}",
+    "actions": "Actions",
+    "addToDeck": "Add to deck",
+    "buy": "Buy @ TCGplayer",
+    "priceUsd": "TCGplayer USD",
+    "quantity": "Quantity",
+    "removed": "· removed from deck",
+    "decrease": "Decrease quantity",
+    "increase": "Increase quantity",
+    "changePrinting": "Change printing",
+    "markCommander": "Mark as commander",
+    "unmarkCommander": "Unmark as commander",
+    "moveToMain": "Move to main",
+    "moveToSideboard": "Move to sideboard",
+    "removeFromDeck": "Remove from deck"
+  },
+  "CreateDeckDialog": {
+    "title": "Create a deck",
+    "deckName": "Deck name",
+    "namePlaceholder": "Untitled Deck",
+    "format": "Format"
+  },
   "CreateFolder": {
     "title": "New folder",
     "label": "Name of new folder:",
@@ -1516,6 +1780,10 @@
       "exists": "A folder with this name already exists here."
     }
   },
+  "DeleteDeckDialog": {
+    "title": "Delete deck?",
+    "message": "<name>{name}</name> will be permanently removed from the server. This can''t be undone."
+  },
   "DeleteFolder": {
     "title": "Delete folder?",
     "body": "The folder {name} will be permanently removed from the server.",
@@ -1524,12 +1792,72 @@
     "delete": "Delete",
     "cancel": "Cancel"
   },
+  "ExportDeckDialog": {
+    "title": "Export deck",
+    "download": "Download .{extension}",
+    "format": {
+      "plain": {
+        "label": "Plain text",
+        "description": "Simple list, grouped by section. Works with most tools."
+      },
+      "arena": {
+        "label": "MTG Arena",
+        "description": "Includes set + collector. Works for Arena, Moxfield, Archidekt imports."
+      },
+      "cockatrice": {
+        "label": "Cockatrice (.cod)",
+        "description": "XML deck file for Cockatrice — preserves everything."
+      }
+    }
+  },
+  "ImportDeckDialog": {
+    "title": "Import a deck",
+    "subtitle": "Paste a list from Moxfield, Arena, MTGO, Cockatrice — most formats work.",
+    "resolving": "Looking up cards…",
+    "resolveFailed": "Failed to resolve cards",
+    "importing": "Creating deck…",
+    "importFile": "Import file",
+    "importFileHint": ".cod files are pre-structured — no card review needed",
+    "next": "Next: check cards",
+    "importCards": "Import {count, plural, one {# card} other {# cards}}",
+    "deckName": "Deck name",
+    "format": "Format",
+    "decklist": "Decklist",
+    "clearFile": "Clear file",
+    "uploadFile": "Upload .cod file",
+    "uploadFileHint": "Import from a Cockatrice .cod file (preserves all metadata)",
+    "placeholder": "Paste your deck list (Arena / MTGO / Moxfield export). Example:\n\nCommander\n1 Atraxa, Grand Unifier\n\nDeck\n1 Sol Ring\n1 Cultivate\n1 Swords to Plowshares\n...",
+    "review": {
+      "matched": "{count, plural, other {# matched}}",
+      "missing": "{count, plural, other {# unknown (imported with warning)}}",
+      "ignored": "{count, plural, one {# unrecognised line} other {# unrecognised lines}}",
+      "unknown": "unknown"
+    },
+    "file": {
+      "deckName": "Deck name in file: <name>{name}</name>",
+      "cards": "{count, plural, one {# card} other {# cards}}",
+      "main": "{count, plural, other {# main}}",
+      "sideboard": "{count, plural, other {# sideboard}}",
+      "cachedPrice": "${price} cached from source",
+      "hint": ".cod files are pre-structured — importing skips the card review step and preserves any embedded metadata."
+    }
+  },
   "MoveDeck": {
     "title": "Move {name}",
     "target": "To folder",
     "howItWorks": "The deck is copied into the folder and keeps its visibility; the original is deleted once the copy is saved. The copy gets a new deck id. Share links you already made keep working: they hold a copy of the deck from when they were made.",
     "move": "Move",
     "cancel": "Cancel"
+  },
+  "PrintingPicker": {
+    "title": "Choose printing",
+    "count": "{count, plural, one {# printing} other {# printings}}",
+    "loading": "Loading printings…",
+    "empty": "No printings found.",
+    "priceUsd": "TCGplayer USD",
+    "noPrice": "No TCGplayer price",
+    "current": "Current",
+    "loadFailed": "Failed to load printings"
   },
   "Developer": {
     "table": {

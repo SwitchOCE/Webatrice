@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft, SlidersHorizontal } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import type { BracketAssessment, DeckCategory } from '@app/types';
 
@@ -62,6 +63,7 @@ export function DeckMainPane({
   isCommander,
   legality,
 }: DeckMainPaneProps) {
+  const { t } = useTranslation();
   // Right-pane view mode. `deckList` is the default (grouped column
   // layout of deck rows). `search` is the full-page advanced search
   // view — takes over the whole pane, hides QuickAdd.
@@ -99,10 +101,10 @@ export function DeckMainPane({
               <button
                 type="button"
                 onClick={openAdvancedSearch}
-                title="Advanced search"
+                title={t('DeckEditor.main.advancedSearch')}
                 className={ACCENT_BUTTON_CLASS}
               >
-                <SlidersHorizontal size={12} /> Advanced search
+                <SlidersHorizontal size={12} /> {t('DeckEditor.main.advancedSearch')}
               </button>
               <QuickAddSearch
                 query={quickAddQuery}
@@ -114,10 +116,10 @@ export function DeckMainPane({
             <button
               type="button"
               onClick={() => setRightView('deckList')}
-              title="Back to deck list"
+              title={t('DeckEditor.main.backToList')}
               className={ACCENT_BUTTON_CLASS}
             >
-              <ArrowLeft size={12} /> Back to deck
+              <ArrowLeft size={12} /> {t('DeckEditor.main.backToDeck')}
             </button>
           )
         ) : (

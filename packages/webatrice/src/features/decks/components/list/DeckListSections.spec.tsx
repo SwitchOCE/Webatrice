@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 
 import type { FlatDeck } from '../../deckTree';
 import { DeckListSections } from './DeckListSections';
@@ -21,9 +21,9 @@ describe('DeckListSections', () => {
       />,
     );
 
-    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Modern2', 'Loading…0']);
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toEqual(['Modern2', 'Common.status.loading0']);
     fireEvent.click(screen.getByText('Elves'));
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Burn' }));
+    fireEvent.click(within(screen.getByText('Burn').closest('li')!).getByRole('button', { name: 'Decks.list.deleteDeckNamed' }));
     expect(onOpen).toHaveBeenCalledWith(elves);
     expect(onDelete).toHaveBeenCalledWith(burn);
   });
@@ -38,9 +38,9 @@ describe('DeckListStates', () => {
         <DeckListEmpty onCreate={onCreate} disabled={false} />
       </>,
     );
-    expect(screen.getByText('Loading decks…')).toBeInTheDocument();
-    expect(screen.getByText('No decks yet')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /New deck/ }));
+    expect(screen.getByText('Decks.list.loading')).toBeInTheDocument();
+    expect(screen.getByText('Decks.list.emptyTitle')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Decks.list.newDeck/ }));
     expect(onCreate).toHaveBeenCalled();
   });
 });
