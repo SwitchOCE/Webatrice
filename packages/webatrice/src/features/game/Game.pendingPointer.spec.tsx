@@ -1,5 +1,6 @@
-// A pending target pick follows the pointer for its live arrow; only the
-// arrow may re-render on a mouse move, never the seats (rv20).
+// A pending target pick follows the pointer for its live arrow, drawn from
+// the source card in its own zone; only the arrow may re-render on a mouse
+// move, never the seats (rv20).
 
 import { act, fireEvent, screen } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
@@ -40,11 +41,12 @@ vi.mock('../../services/cards/cardCatalog', () => {
 
 const OGRE = makeCard({ id: 10, name: 'Ogre', x: 0, y: 0 });
 const BEAR = makeCard({ id: 20, name: 'Bear', x: 0, y: 0 });
+const AURA = makeCard({ id: 40, name: 'Aura' });
 
 const SPEC: SeatGameSpec = {
   localPlayerId: 1,
   seats: [
-    { playerId: 1, table: [OGRE], deckCount: 40 },
+    { playerId: 1, table: [OGRE], stack: [AURA], deckCount: 40 },
     { playerId: 2, table: [BEAR], deckCount: 40 },
   ],
 };
@@ -70,5 +72,15 @@ describe('a pending target pick\'s pointer', () => {
     expect(arrowPath()).not.toBe(firstPath);
     expect(seatRenders).toEqual(rendersBefore);
     expect([...seatRenders.keys()].sort()).toEqual([1, 2]);
+  });
+
+  it('draws an attach from a stack card from that card', () => {
+    renderWithProviders(<Game />, { preloadedState: buildSeatGameState(SPEC), webClient: createMockWebClient() });
+    openContextMenu(cardEl(AURA.id, 'stack'));
+    chooseMenuPath('Attach to card...');
+    act(() => {
+      fireEvent.mouseMove(window, { clientX: 300, clientY: 200 });
+    });
+    expect(screen.getByTestId('pending-target-arrows').querySelectorAll('path')).toHaveLength(1);
   });
 });
