@@ -74,4 +74,18 @@ describe('useIdentityChange', () => {
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(window.localStorage.getItem(OWNER_KEY)).toBe('Test Server::alice');
   });
+
+  it('reports nothing, and does not throw, when storage is blocked', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError');
+    });
+    const onChange = vi.fn();
+
+    expect(() => render(onChange)).not.toThrow();
+    expect(onChange).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
 });

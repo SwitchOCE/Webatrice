@@ -543,3 +543,26 @@ describe('TopBar last route', () => {
     expect(loadPersistedLastRoute()).toBe(RouteEnum.SERVER);
   });
 });
+
+describe('TopBar without local storage', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    window.localStorage.clear();
+  });
+
+  // The sign-in identity check used to read and write its owner key directly,
+  // so a browser that blocks storage threw from TopBar's effect.
+  it('still renders when the browser blocks local storage', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError');
+    });
+
+    const lifecycle = renderTopBar(RouteEnum.SETTINGS);
+
+    expect(screen.getByRole('link', { name: /UserMenu\.settings/ })).toHaveAttribute('aria-current', 'page');
+    expect(lifecycle.onIdentityChanged).not.toHaveBeenCalled();
+  });
+});
