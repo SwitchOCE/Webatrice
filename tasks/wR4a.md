@@ -10,7 +10,7 @@ Base: `origin/claude/restack-28-i18n-gate` (bcced39 = 01…23p | 05 09 18 23d 16
 | 1 | 25a | `13351fd..origin/claude/parity-25a-platform-prefs` | new 28 |
 | 2 | R1 | `41f0d47..origin/claude/parity-r1-card-ops-seam` | new 25a |
 | 3 | 25b | `d2e516c..origin/claude/parity-25b-board-prefs` (minus `af3cfc1`) | new R1 |
-| 4 | R2 | `af3cfc1..origin/claude/parity-r2-zone-view-family` | new 25b |
+| 4 | R2 | `origin/claude/parity-25b-board-prefs..origin/claude/parity-r2-zone-view-family` (fr2 rebased R2 onto f25b's 25b) | new 25b |
 | 5 | R6 | `af3cfc1..origin/claude/parity-r6-game-listeners` | new R2 |
 | 6 | R4 | `d2e516c..origin/claude/parity-r4-scryfall-catalog` | new R6 |
 
