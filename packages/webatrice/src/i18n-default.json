@@ -1660,6 +1660,38 @@
       "rotateViewCCW": "Rotate view counterclockwise"
     }
   },
+  "PhaseTrack": {
+    "label": "Turn phases",
+    "activePlayerOnly": "Only the active player can change phases",
+    "pass": "Pass",
+    "passTitle": "Pass to the next turn",
+    "phase": {
+      "untap": "Untap",
+      "upkeep": "Upkeep",
+      "draw": "Draw",
+      "firstMain": "Main 1",
+      "beginCombat": "Start Combat",
+      "declareAttackers": "Attack",
+      "declareBlockers": "Block",
+      "combatDamage": "Damage",
+      "endCombat": "End Combat",
+      "secondMain": "Main 2",
+      "endCleanup": "End"
+    },
+    "title": {
+      "untap": "Untap step (double-click: untap all)",
+      "upkeep": "Upkeep step",
+      "draw": "Draw step (double-click: draw a card)",
+      "firstMain": "First main phase",
+      "beginCombat": "Beginning of combat",
+      "declareAttackers": "Declare attackers",
+      "declareBlockers": "Declare blockers",
+      "combatDamage": "Combat damage",
+      "endCombat": "End of combat",
+      "secondMain": "Second main phase",
+      "endCleanup": "End step / cleanup"
+    }
+  },
   "TallyOverlay": {
     "tally": "Tally",
     "selectedCount": "{count, plural, one {# card selected} other {# cards selected}}"
