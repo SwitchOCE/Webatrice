@@ -464,16 +464,16 @@ describe('battlefield card menu actions', () => {
     expect(wire(game)).toEqual([['createToken', { ...clone('Wall', '0/4', 2), annotation: 'note' }]]);
   });
 
-  it('untaps the selection from a tapped clicked card', () => {
+  // Desktop cmTap sends 1 - tapped for each card (player_actions.cpp:1768-1776).
+  it('flips each selected card\'s tapped state', () => {
     const tapped = makeCard({ ...OGRE, tapped: true });
     const { game } = renderGame({ ...SPEC, seats: [{ ...SPEC.seats[0], table: [tapped, MORPH, WALL] }, SPEC.seats[1]] });
     selectOgreAndMorph();
     openContextMenu(cardEl(OGRE.id, 'battlefield'));
     chooseMenuPath('Tap / Untap');
     expect(wire(game)).toEqual([
+      [...attr(11, CardAttribute.AttrTapped, '1'), 'options'],
       [...attr(10, CardAttribute.AttrTapped, '0'), 'options'],
-      // Morph is already untapped: no optimistic change, so no rollback options.
-      attr(11, CardAttribute.AttrTapped, '0'),
     ]);
   });
 

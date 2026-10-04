@@ -373,10 +373,11 @@ export default function Battlefield() {
                   }
                   onDoubleClick={
                     isSelf
-                      // A double-click taps or untaps like the card
-                      // menu's Tap / Untap: the whole selection when the
-                      // card is part of it, toggled from this card.
-                      ? () => cardOps.forCard(c.id)?.toggleTapped()
+                      // A double-click taps or untaps the whole selection
+                      // when the card is part of it, else this card: all
+                      // tapped when any is untapped (desktop
+                      // TableZone::toggleTapped).
+                      ? () => cardOps.forCard(c.id)?.tapOrUntapAll()
                       : undefined
                   }
                   style={{

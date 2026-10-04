@@ -83,15 +83,36 @@ describe('useBattlefieldCardOps', () => {
     expect(ops.forCard('99')).toBeNull();
   });
 
-  it('drives toggles from the clicked card, or from the first selected card for a shortcut', () => {
+  // Desktop cmTap sends 1 - tapped for each card (player_actions.cpp:1768-1776).
+  it('flips each target\'s tapped state, whichever card the action starts from', () => {
     const { ops, props } = setup();
     ops.forCard('11')!.toggleTapped();
-    ops.forCard('10')!.toggleTapped();
+    ops.forSelection()!.toggleTapped();
+    ops.forCard('12')!.toggleTapped();
+    // Card 10 is tapped and 11 is not.
+    expect(vi.mocked(props.cardCommands.setTapped).mock.calls).toEqual([
+      [[11], true], [[10], false],
+      [[11], true], [[10], false],
+      [[12], true],
+    ]);
+  });
+
+  // A double-click (table_zone.cpp:250-280) taps every target when any is
+  // untapped, else untaps them, sending only the cards that change.
+  it('taps or untaps the targets together on a double-click', () => {
+    const { ops, props } = setup();
+    ops.forCard('10')!.tapOrUntapAll();
+    expect(props.cardCommands.setTapped).toHaveBeenLastCalledWith([11], true);
+    const allTapped = setup({ cards: BOARD.map((c) => ({ ...c, tapped: true })) });
+    allTapped.ops.forSelection()!.tapOrUntapAll();
+    expect(allTapped.props.cardCommands.setTapped).toHaveBeenCalledExactlyOnceWith([10, 11], false);
+  });
+
+  it('drives the other toggles from the clicked card, or from the first selected card for a shortcut', () => {
+    const { ops, props } = setup();
     ops.forCard('11')!.toggleFaceDown();
     ops.forSelection()!.toggleFaceDown();
     ops.forCard('12')!.toggleDoesntUntap();
-    // Card 10 is tapped, so from it the selection untaps.
-    expect(vi.mocked(props.cardCommands.setTapped).mock.calls).toEqual([[[10, 11], true], [[10, 11], false]]);
     expect(vi.mocked(props.cardCommands.flip).mock.calls).toEqual([[10, false], [11, false], [10, true], [11, true]]);
     expect(vi.mocked(props.cardCommands.setDoesntUntap).mock.calls).toEqual([[12, false]]);
   });

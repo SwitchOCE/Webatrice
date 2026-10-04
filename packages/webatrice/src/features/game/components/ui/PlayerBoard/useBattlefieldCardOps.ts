@@ -59,12 +59,17 @@ export interface UseBattlefieldCardOpsArgs {
   startArrow: (sourceCardId: number, sourceCardName: string) => void;
 }
 
-/** The battlefield actions on one target set (see resolveTargets). Toggles,
- *  prompt prefills, the draw-arrow pick, move-X and the row / column
- *  selection follow the anchor; an attach starts from every card with the
- *  anchor carrying the arrow; everything else applies to every card. */
+/** The battlefield actions on one target set (see resolveTargets). Tap
+ *  flips each card; the other toggles, prompt prefills, the draw-arrow pick,
+ *  move-X and the row / column selection follow the anchor; an attach starts
+ *  from every card with the anchor carrying the arrow; everything else
+ *  applies to every card. */
 export interface BattlefieldCardOps {
+  /** Tap / Untap (desktop cmTap): flip each card. */
   toggleTapped(): void;
+  /** A double-click (desktop TableZone::toggleTapped): tap them all when any
+   *  is untapped, else untap them all. */
+  tapOrUntapAll(): void;
   toggleFaceDown(): void;
   /** Reveal the face-down cards among the targets to the local player. */
   peek(): void;
@@ -160,9 +165,22 @@ export function useBattlefieldCardOps({
       };
 
       return {
+        // Desktop cmTap flips each card (1 - tapped, player_actions.cpp:1768-1776):
+        // a mixed selection taps the untapped cards and untaps the tapped ones.
         toggleTapped: () => {
-          if (targetIds.length > 0) {
-            cardCommands.setTapped(targetIds, !anchor.tapped);
+          for (const tapped of [false, true]) {
+            const ids = cardIdsOf(targetCards.filter((c) => Boolean(c.tapped) === tapped));
+            if (ids.length > 0) {
+              cardCommands.setTapped(ids, !tapped);
+            }
+          }
+        },
+        // table_zone.cpp:250-280: only the cards whose state changes.
+        tapOrUntapAll: () => {
+          const tapAll = targetCards.some((c) => !c.tapped);
+          const ids = cardIdsOf(targetCards.filter((c) => Boolean(c.tapped) !== tapAll));
+          if (ids.length > 0) {
+            cardCommands.setTapped(ids, tapAll);
           }
         },
         toggleFaceDown: () => each((id) => cardCommands.flip(id, !anchor.faceDown)),
