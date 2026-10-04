@@ -2,12 +2,13 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import { Enriched } from '../../types';
 import { Event_MoveCard, ServerInfo_Card, ServerInfo_CardSchema } from '@cockatrice/sockatrice/generated';
 import { cloneWith } from '../../common';
+import type { GamesState } from './game.interfaces';
 import { buildEmptyCard, resetCardState } from './game.reducer.helpers';
 import { formatCardMoved, formatCardUndoneDraw, type LogEntry } from './messageLog';
 
 // Pure planning for the `cardMoved` listener (game.listeners.zones.ts). Event_MoveCard
 // drives six jobs: identity, placement plus optimistic bookkeeping, open zone-view
-// sync, the orphan-arrow sweep (Selectors.getArrowsTouchingCard), attachment
+// sync, the orphan-arrow sweep (arrowsTouchingCard), attachment
 // reparenting and the log line. Each planner reads the pre-move state it is given
 // and returns data; the listener turns that into primitive actions.
 
@@ -184,6 +185,37 @@ export function planZoneViewSync(
  */
 export function sweepsArrows(move: MoveIdentity): boolean {
   return move.cardId >= 0 && move.crossesZones;
+}
+
+/** An arrow by owner: arrows live on the player who drew them. */
+export interface ArrowRef {
+  ownerPlayerId: number;
+  arrowId: number;
+}
+
+/**
+ * Every arrow, on any player (arrows cross players), with an endpoint on the given card.
+ * A state scan for the sweep, read once per move after the move lands; not a selector,
+ * since it allocates a fresh array on every call.
+ */
+export function arrowsTouchingCard(
+  games: GamesState,
+  gameId: number,
+  playerId: number,
+  zoneName: string,
+  cardId: number,
+): ArrowRef[] {
+  const refs: ArrowRef[] = [];
+  for (const [ownerId, owner] of Object.entries(games.games[gameId]?.players ?? {})) {
+    for (const arrow of Object.values(owner.arrows)) {
+      const fromCard = arrow.startPlayerId === playerId && arrow.startZone === zoneName && arrow.startCardId === cardId;
+      const toCard = arrow.targetPlayerId === playerId && arrow.targetZone === zoneName && arrow.targetCardId === cardId;
+      if (fromCard || toCard) {
+        refs.push({ ownerPlayerId: Number(ownerId), arrowId: arrow.id });
+      }
+    }
+  }
+  return refs;
 }
 
 /**
