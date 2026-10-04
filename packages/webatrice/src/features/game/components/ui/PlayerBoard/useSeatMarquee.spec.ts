@@ -62,7 +62,7 @@ describe('useSeatMarquee', () => {
     const { result, ownBoard, setSelection, clearAllSelection, press } = setup();
     press(ownBoard, 205, 5);
     expect(clearAllSelection).toHaveBeenCalled();
-    expect(result.current.marquee).toMatchObject({ x1: 205, y1: 5, startZone: { zone: 'battlefield', ownerId: '1' } });
+    expect(result.current.marquee).toMatchObject({ x1: 205, y1: 5, start: { zone: 'battlefield', ownerId: '1' } });
 
     act(() => {
       fireEvent.pointerMove(window, { clientX: 300, clientY: 50 });

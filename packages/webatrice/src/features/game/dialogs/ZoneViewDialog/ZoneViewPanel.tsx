@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { usePreference } from '@app/hooks';
 import { cardViewRowsHeight, toggledCardViewHeight } from './cardViewHeight';
 import { MARQUEE_BORDER, MARQUEE_FILL } from '../../components/ui/seatColors/seatColors';
+import { useMarquee } from '../../hooks/useMarquee';
 import { useCardCatalogMeta } from '../shared/useCardCatalogMeta';
 import { clampPanelSize, useFloatingPanelGeometry } from '../shared/useFloatingPanelGeometry';
 import { useZoneViewPreferences } from '../shared/useZoneViewPreferences';
@@ -177,11 +178,21 @@ export default function ZoneViewPanel({
     el.style.height = `${Math.round(Math.max(MIN_SIZE.h, chrome + next))}px`;
   };
 
-  // Marquee selection scoped to the view: the marquee never spans into
-  // the play area behind it. The selection itself is the caller's.
-  const [marquee, setMarquee] = useState<
-    { x1: number; y1: number; x2: number; y2: number } | null
-  >(null);
+  // Marquee selection scoped to the view: the band never spans into the
+  // play area behind it, and picks from the view's own cards. The selection
+  // itself is the caller's.
+  const { marquee, begin } = useMarquee<undefined>((rect) => {
+    const ids = new Set<string>();
+    contentRef.current?.querySelectorAll<HTMLElement>('[data-card]').forEach((el) => {
+      const id = el.dataset.cardId;
+      const r = el.getBoundingClientRect();
+      if (id && !(r.right < rect.left || r.left > rect.right || r.bottom < rect.top || r.top > rect.bottom)) {
+        ids.add(id);
+      }
+    });
+    onSelectedIdsChange(ids);
+    return ids.size;
+  }, { blockTextSelection: true });
 
   const onContentPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) {
@@ -228,85 +239,8 @@ export default function ZoneViewPanel({
       }
     }
     onSelectedIdsChange(new Set());
-    setMarquee({
-      x1: e.clientX,
-      y1: e.clientY,
-      x2: e.clientX,
-      y2: e.clientY,
-    });
+    begin(e, undefined);
   };
-
-  const computeMarqueeSelection = (rect: {
-    left: number;
-    right: number;
-    top: number;
-    bottom: number;
-  }) => {
-    const boxEl = contentRef.current;
-    if (!boxEl) {
-      return new Set<string>();
-    }
-    const els = boxEl.querySelectorAll<HTMLElement>('[data-card]');
-    const ids = new Set<string>();
-    els.forEach((el) => {
-      const id = el.dataset.cardId;
-      if (!id) {
-        return;
-      }
-      const r = el.getBoundingClientRect();
-      const disjoint =
-        r.right < rect.left ||
-        r.left > rect.right ||
-        r.bottom < rect.top ||
-        r.top > rect.bottom;
-      if (disjoint) {
-        return;
-      }
-      ids.add(id);
-    });
-    return ids;
-  };
-
-  // While a marquee is active, block text selection globally. Reverts
-  // when the marquee ends. Depends on `marqueeActive` (a boolean) rather
-  // than the marquee state directly so the effect doesn't re-run on
-  // every pointermove — only when the marquee turns on / off.
-  const marqueeActive = marquee !== null;
-  useEffect(() => {
-    if (!marqueeActive) {
-      return;
-    }
-    const prev = document.body.style.userSelect;
-    document.body.style.userSelect = 'none';
-    return () => {
-      document.body.style.userSelect = prev;
-    };
-  }, [marqueeActive]);
-
-  useEffect(() => {
-    if (!marquee) {
-      return;
-    }
-    const onMove = (e: PointerEvent) => {
-      const rect = {
-        left: Math.min(marquee.x1, e.clientX),
-        right: Math.max(marquee.x1, e.clientX),
-        top: Math.min(marquee.y1, e.clientY),
-        bottom: Math.max(marquee.y1, e.clientY),
-      };
-      onSelectedIdsChange(computeMarqueeSelection(rect));
-      setMarquee((m) =>
-        m ? { ...m, x2: e.clientX, y2: e.clientY } : null,
-      );
-    };
-    const onUp = () => setMarquee(null);
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-    return () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-    };
-  }, [marquee, onSelectedIdsChange]);
 
   const { metaByName, metadataLoaded } = useCardCatalogMeta(library);
   const effectiveGroupBy: GroupMode = metadataLoaded ? groupBy : 'none';
