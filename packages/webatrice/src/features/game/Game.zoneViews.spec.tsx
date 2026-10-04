@@ -310,6 +310,26 @@ describe('seat zone views', () => {
     expect(zoneView('Exile — P1')).toBeInTheDocument();
   });
 
+  // Desktop's zone views are separate windows that never see the board's
+  // Tab binding; the floating view is a non-modal dialog for the same reason.
+  it('Tab on a card in a zone view moves focus, while Tab on a board card advances the phase', () => {
+    const { game } = renderSeats();
+    openContextMenu(pileEl('Graveyard', 0));
+    chooseMenuPath('View graveyard');
+
+    const view = screen.getByRole('dialog', { name: 'Graveyard — P1' });
+    const viewCard = view.querySelector<HTMLElement>(`[data-card-id="${DURESS.id}"]`)!;
+    const tab = fireEvent.keyDown(viewCard, { key: 'Tab', code: 'Tab' });
+    expect(tab).toBe(true);
+    expect(game.setActivePhase).not.toHaveBeenCalled();
+
+    const handCard = document.querySelector<HTMLElement>(`[data-card-id="${SHOCK.id}"]`)!;
+    act(() => {
+      fireEvent.keyDown(handCard, { key: 'Tab', code: 'Tab' });
+    });
+    expect(game.setActivePhase).toHaveBeenCalledTimes(1);
+  });
+
   it('the sideboard view dumps the sideboard and clears the snapshot on close', () => {
     const { game, store } = renderSeats();
     openContextMenu(battlefieldEl(1));

@@ -332,6 +332,11 @@ export default function ZoneRevealPanel({
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div
+        // A non-modal dialog (no aria-modal): Tab moves focus inside it
+        // instead of advancing the phase, and Escape still closes the
+        // most recent view.
+        role="dialog"
+        aria-label={title}
         ref={(el) => {
           dialogRef.current = el;
           setRef(dropRef, el);
