@@ -1,0 +1,1 @@
+- 00:16Z started; base 41f0d47 checked out → reading code, characterization specs
