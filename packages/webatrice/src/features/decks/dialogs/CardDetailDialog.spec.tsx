@@ -88,11 +88,11 @@ describe('CardDetailDialog', () => {
     expect(handlers.onDec).toHaveBeenCalledWith(1);
     expect(handlers.onClose).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'CardDetailDialog.markCommander' }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.rowActions.markCommander' }));
     expect(handlers.onSetCommander).toHaveBeenCalledWith(1, true);
-    fireEvent.click(screen.getByRole('button', { name: 'CardDetailDialog.moveToSideboard' }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.rowActions.moveToSideboard' }));
     expect(handlers.onSetCategory).toHaveBeenCalledWith(1, 'sideboard');
-    fireEvent.click(screen.getByRole('button', { name: 'CardDetailDialog.changePrinting' }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.rowActions.changePrinting' }));
     expect(handlers.onChangePrinting).toHaveBeenCalledWith(1, solRing);
     fireEvent.click(screen.getByRole('button', { name: 'CardDetailDialog.removeFromDeck' }));
     expect(handlers.onDelete).toHaveBeenCalledWith(1);
@@ -102,8 +102,8 @@ describe('CardDetailDialog', () => {
   it('keeps a commander in the main deck', () => {
     vi.mocked(useCardDetail).mockReturnValue(detailState({ detail: null }));
     renderDialog({ snapshot: atraxa });
-    expect(screen.getByRole('button', { name: 'CardDetailDialog.unmarkCommander' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'CardDetailDialog.moveToSideboard' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'DeckEditor.rowActions.unmarkCommander' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'DeckEditor.rowActions.moveToSideboard' })).toBeDisabled();
   });
 
   it('disables the actions once the row is removed', () => {

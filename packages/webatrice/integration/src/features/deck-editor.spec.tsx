@@ -440,7 +440,7 @@ describe('DeckEditor (integration)', () => {
     await autosaved((d) => card(d, 'Lightning Bolt')?.quantity === 2);
     expect(screen.getByText('Lightning Bolt deals 3 damage to any target.')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'CardDetailDialog.moveToSideboard' }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.rowActions.moveToSideboard' }));
     await autosaved((d) => card(d, 'Lightning Bolt')?.category === 'sideboard');
     expect(screen.queryByText('Lightning Bolt deals 3 damage to any target.')).toBeNull();
   });
