@@ -139,7 +139,18 @@ describe('useSeatDnd', () => {
     const up = release({ shiftKey: true });
     act(() => dnd.starts.get('seat-1-hand')!.mock.calls[0][2](up));
     expect(props.setSelection).toHaveBeenCalledWith({ zone: 'hand', ids: new Set(['31']) });
-    expect(onCardClick).toHaveBeenCalledWith('hand', card(31), up);
+    expect(onCardClick).toHaveBeenCalledWith('hand', card(31), up, null);
+  });
+
+  it('hands onCardClick the selection from before the click it replaced', () => {
+    const onCardClick = vi.fn();
+    const before = { zone: 'hand' as const, ids: new Set(['30', '32']) };
+    const { result, props } = setup({ onCardClick, selection: before });
+    result.current.startSeatCardDrag(press, card(31), 'hand', [card(30), card(31), card(32)]);
+    const up = release();
+    act(() => dnd.starts.get('seat-1-hand')!.mock.calls[0][2](up));
+    expect(props.setSelection).toHaveBeenCalledWith({ zone: 'hand', ids: new Set(['31']) });
+    expect(onCardClick).toHaveBeenCalledWith('hand', card(31), up, before);
   });
 
   it('keeps a group selected on a click on one of its cards, and still hands the click on', () => {
@@ -149,7 +160,7 @@ describe('useSeatDnd', () => {
     const up = release();
     act(() => dnd.starts.get('seat-1-hand')!.mock.calls[0][2](up));
     expect(props.setSelection).not.toHaveBeenCalled();
-    expect(onCardClick).toHaveBeenCalledWith('hand', card(30), up);
+    expect(onCardClick).toHaveBeenCalledWith('hand', card(30), up, { zone: 'hand', ids: new Set(['30', '32']) });
   });
 
   it('drags the top card of a pile', () => {

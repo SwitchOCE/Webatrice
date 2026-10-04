@@ -34,7 +34,7 @@ const META = new Map<string, SeatCardMeta>([
   ['Grizzly Bears', { typeLine: 'Creature — Bear' }],
 ]);
 
-const click = { shiftKey: false, altKey: false };
+const click = { shiftKey: false, altKey: false, ctrlKey: false, metaKey: false };
 
 const setPreferences = async (patch: Partial<Preferences>) => {
   const settings = await getSettings();
@@ -48,7 +48,7 @@ function setup(args: Partial<Parameters<typeof useSeatClickToPlay>[0]> = {}) {
   const cardCommands = { setTapped: vi.fn() } as unknown as PlayerCardCommands;
   const setCardMetaByName = vi.fn();
   const { result } = renderHook(() => useSeatClickToPlay({
-    isSelf: true,
+    canAct: true,
     selection: null,
     handDisplayList: [FOREST, SHOCK, BEAR],
     stackDisplayList: [SHOCK, BEAR],
@@ -73,7 +73,7 @@ describe('useSeatClickToPlay', () => {
 
   it('plays on a double-click by default, and not on a single click', async () => {
     const { result, moveCards } = setup();
-    result.current.onCardClick('hand', FOREST, click);
+    result.current.onCardClick('hand', FOREST, click, null);
     await Promise.resolve();
     expect(moveCards).not.toHaveBeenCalled();
 
@@ -89,14 +89,21 @@ describe('useSeatClickToPlay', () => {
     await Promise.resolve();
     expect(moveCards).not.toHaveBeenCalled();
 
-    result.current.onCardClick('hand', FOREST, click);
+    result.current.onCardClick('hand', FOREST, click, null);
     await waitFor(() => expect(moveCards).toHaveBeenCalledTimes(1));
   });
 
-  it('never plays with Alt held, nor another player\'s card', async () => {
+  it('still plays with Alt held alongside another modifier, as desktop compares the whole set', async () => {
+    const { result, moveCards } = setup();
+    result.current.onCardDoubleClick('hand', SHOCK, { ...click, altKey: true, shiftKey: true });
+    await waitFor(() => expect(moveCards).toHaveBeenCalledTimes(1));
+    expect(moveCards.mock.calls[0][1]).toEqual([{ id: 31, faceDown: true }]);
+  });
+
+  it('never plays with Alt on its own, nor a card of a seat it cannot act for', async () => {
     const own = setup();
-    own.result.current.onCardDoubleClick('hand', FOREST, { shiftKey: false, altKey: true });
-    const other = setup({ isSelf: false });
+    own.result.current.onCardDoubleClick('hand', FOREST, { ...click, altKey: true });
+    const other = setup({ canAct: false });
     other.result.current.onCardDoubleClick('hand', FOREST, click);
     await Promise.resolve();
     expect(own.moveCards).not.toHaveBeenCalled();
@@ -135,7 +142,7 @@ describe('useSeatClickToPlay', () => {
 
   it('plays face down onto the battlefield with Shift held', async () => {
     const { result, moveCards } = setup();
-    result.current.onCardDoubleClick('hand', SHOCK, { shiftKey: true, altKey: false });
+    result.current.onCardDoubleClick('hand', SHOCK, { ...click, shiftKey: true });
     await waitFor(() => expect(moveCards).toHaveBeenCalledTimes(1));
     expect(moveCards).toHaveBeenCalledWith(
       ZoneName.HAND,
@@ -172,6 +179,15 @@ describe('useSeatClickToPlay', () => {
       result.current.onCardDoubleClick('hand', SHOCK, click);
       await waitFor(() => expect(moveCards).toHaveBeenCalledTimes(1));
       expect(moveCards.mock.calls[0][1]).toEqual([31]);
+    });
+
+    it('reads a single click\'s selection from before the click, not the one the release made', async () => {
+      // The release has already narrowed the selection to the clicked card.
+      const { result, moveCards } = setup({ selection: { zone: 'hand', ids: new Set(['30']) } });
+      await setPreferences({ doubleClickToPlay: false });
+      result.current.onCardClick('hand', FOREST, click, selection);
+      await waitFor(() => expect(moveCards).toHaveBeenCalledTimes(2));
+      expect(moveCards.mock.calls.map((call) => call[1])).toEqual([[32], [30]]);
     });
 
     it('plays only the clicked card when the option is off', async () => {
