@@ -62,6 +62,18 @@ test('create, fill, save and share a deck with the keyboard only', async ({ page
   await page.keyboard.press('Control+s');
   await expect(page.getByText('Saved', { exact: true })).toBeVisible({ timeout: 15_000 });
 
+  // Escape closes the suggestions and drops the highlight, so the next Enter
+  // adds what was typed rather than a suggestion nobody can see.
+  await tabTo(page, quickAdd);
+  await page.keyboard.type('Fore');
+  await expect(page.getByRole('option', { name: 'Forest' })).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('Escape');
+  await expect(quickAdd).toHaveAttribute('aria-expanded', 'false');
+  await expect(quickAdd).not.toHaveAttribute('aria-activedescendant');
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('row', { name: /× Fore$/ })).toHaveAccessibleName('1 × Fore');
+  await expect(forest).toHaveAccessibleName('3 × Forest');
+
   if (!SERVER_IS_3_1) {
     return;
   }

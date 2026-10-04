@@ -49,6 +49,7 @@ describe('QuickAddSearch', () => {
     vi.mocked(useQuickAddSuggestions).mockReturnValue(suggestions({ highlight: 1 }));
     const onAdd = vi.fn();
     const { unmount } = render(<Harness onAdd={onAdd} initial="sol" />);
+    fireEvent.focus(screen.getByRole('combobox'));
     fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
     expect(onAdd).toHaveBeenLastCalledWith('Sol Talisman');
     unmount();
@@ -83,7 +84,24 @@ describe('QuickAddSearch', () => {
     expect(screen.getByRole('status')).toHaveTextContent('DeckEditor.quickAdd.noMatches');
 
     fireEvent.keyDown(input, { key: 'Escape' });
+    expect(screen.queryByText('DeckEditor.quickAdd.noMatches')).toBeNull();
+    expect(input).toHaveValue('zzz');
+
+    fireEvent.keyDown(input, { key: 'Escape' });
     expect(input).toHaveValue('');
+  });
+
+  it('closes a searching popup on the first Escape instead of clearing the field', () => {
+    vi.mocked(useQuickAddSuggestions).mockReturnValue(suggestions({ loading: true }));
+    render(<Harness onAdd={vi.fn()} />);
+    const input = screen.getByRole('combobox');
+    fireEvent.change(input, { target: { value: 'sol' } });
+    expect(screen.getByRole('status')).toHaveTextContent('DeckEditor.quickAdd.searching');
+
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(screen.queryByText('DeckEditor.quickAdd.searching')).toBeNull();
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    expect(input).toHaveValue('sol');
   });
 
   it('is a combobox that points at the highlighted option and announces the count', () => {
@@ -117,5 +135,22 @@ describe('QuickAddSearch', () => {
 
     fireEvent.keyDown(input, { key: 'Escape' });
     expect(input).toHaveValue('');
+  });
+
+  it('adds the typed name, not the hidden suggestion, on Enter after Escape', () => {
+    const state = suggestions();
+    vi.mocked(useQuickAddSuggestions).mockReturnValue(state);
+    const onAdd = vi.fn();
+    render(<Harness onAdd={onAdd} />);
+    const input = screen.getByRole('combobox');
+    fireEvent.change(input, { target: { value: 'sol' } });
+
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(input).not.toHaveAttribute('aria-activedescendant');
+    expect(state.setHighlight).toHaveBeenCalledWith(-1);
+
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onAdd).toHaveBeenCalledWith('sol');
+    expect(onAdd).not.toHaveBeenCalledWith('Sol Ring');
   });
 });
