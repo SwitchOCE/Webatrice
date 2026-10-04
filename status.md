@@ -2,3 +2,4 @@
 - 03:27Z deps installed, desktop cloned, plan made → startup-tab rule fix
 - 03:31Z startup-tab rule fixed (3ad4660) → open-deck-in-new-tab semantics
 - 03:36Z deck tabs fixed → Commander Spellbook consent
+- 03:40Z spellbook consent done → minors/nits
