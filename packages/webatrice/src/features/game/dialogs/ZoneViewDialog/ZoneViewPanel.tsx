@@ -191,6 +191,10 @@ type Props = {
   /** Ids of the cards selected in the view, and the marquee's update to them. */
   selectedIds: ReadonlySet<string>;
   onSelectedIdsChange: (ids: Set<string>) => void;
+  /** Whose zone the cards are in, marked on each card for arrow hit-testing:
+   *  an arrow pick or a right-button drag can then land on, or start from, a
+   *  card in the view. */
+  cardOwner?: { playerId: number; zone: string };
 };
 
 /** Metadata for a name the catalog hasn't answered for (yet): sorts and
@@ -214,6 +218,7 @@ export default function ZoneViewPanel({
   dropRef,
   selectedIds,
   onSelectedIdsChange,
+  cardOwner,
 }: Props) {
   const { setHoveredCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
   const [query, setQuery] = useState('');
@@ -879,6 +884,8 @@ export default function ZoneViewPanel({
                             key={c.handCard.id}
                             data-card
                             data-card-id={c.handCard.id}
+                            data-card-owner={cardOwner?.playerId}
+                            data-card-zone={cardOwner?.zone}
                             className="absolute left-0 hover:z-10 group"
                             onPointerDown={(e) => {
                               if (e.button !== 0) {
@@ -976,6 +983,8 @@ export default function ZoneViewPanel({
                             key={c.handCard.id}
                             data-card
                             data-card-id={c.handCard.id}
+                            data-card-owner={cardOwner?.playerId}
+                            data-card-zone={cardOwner?.zone}
                             className="shrink-0"
                             onPointerDown={(e) => {
                               if (e.button !== 0) {
