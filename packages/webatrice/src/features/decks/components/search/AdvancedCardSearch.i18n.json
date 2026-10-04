@@ -1,5 +1,6 @@
 {
   "CardSearch": {
+    "label": "Search cards",
     "placeholder": "Search cards — Scryfall syntax works here too",
     "searching": "Searching…",
     "searchFailed": "Search failed",

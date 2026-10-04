@@ -49,6 +49,7 @@ export function AdvancedCardSearch({
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder={t('CardSearch.placeholder')}
+            aria-label={t('CardSearch.label')}
             autoFocus
             className={[
               'w-full bg-bg-base border border-border-subtle rounded-md pl-10 pr-3 py-2',
