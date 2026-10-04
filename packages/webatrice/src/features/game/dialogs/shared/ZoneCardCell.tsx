@@ -1,4 +1,4 @@
-import type { CSSProperties, MouseEvent, PointerEvent, ReactElement } from 'react';
+import type { CSSProperties, HTMLAttributes, MouseEvent, PointerEvent, ReactElement } from 'react';
 
 import Card from '../../components/ui/SeatCard/SeatCard';
 import { CARD_HEIGHT, CARD_WIDTH } from '../../components/ui/SeatCard/cardSize';
@@ -31,6 +31,8 @@ export interface ZoneCardCellProps {
   /** A left press on the card; the card is grabbable while set. */
   onPointerDown?: (e: PointerEvent<HTMLElement>) => void;
   onContextMenu?: (e: MouseEvent<HTMLElement>) => void;
+  /** Extra props for a card the view lets the user act on in place (its role, keys, menu). */
+  interaction?: HTMLAttributes<HTMLDivElement>;
   className?: string;
   style?: CSSProperties;
 }
@@ -51,6 +53,7 @@ export function ZoneCardCell({
   hidden,
   onPointerDown,
   onContextMenu,
+  interaction,
   className,
   style,
 }: ZoneCardCellProps): ReactElement {
@@ -96,6 +99,7 @@ export function ZoneCardCell({
         onContextMenu(e);
       })}
       {...pileProps}
+      {...interaction}
       style={{
         width: CARD_WIDTH,
         height: pile && !pile.isLast ? `calc(${CARD_HEIGHT} * ${PILE_STEP_FRACTION})` : CARD_HEIGHT,
