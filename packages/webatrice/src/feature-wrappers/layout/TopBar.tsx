@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, generatePath } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -24,8 +24,12 @@ import { CardImportDialog } from '@app/feature-widgets/card-import';
 
 import LatencyStatus from './LatencyStatus';
 import { useShellLifecycle } from './ShellLifecycleContext';
+import { useBackendDeckNames } from './hooks/useBackendDeckNames';
+import { useIdentityChange } from './hooks/useIdentityChange';
+import { usePersistLastRoute } from './hooks/usePersistLastRoute';
+import { useStickyTabs } from './hooks/useStickyTabs';
 import {
-  addStickyTab, detectTransientTab, flattenDeckNames, isStickyTabType, routeMatches, tabTitle, withDeckNames,
+  addStickyTab, detectTransientTab, isStickyTabType, routeMatches, tabTitle, withDeckNames,
   type Tab, type TabType,
 } from './topBarTabs';
 import { UserMenuDialog, visibleUserMenuEntries, type CapabilityCheck } from './userMenuEntries';
@@ -65,24 +69,18 @@ export default function TopBar() {
   const leaveGameRequest = useLeaveGame();
 
   const user = useAppSelector(server.Selectors.getUser);
-  const serverName = useAppSelector(server.Selectors.getName);
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
   const isServerUnresponsive = useAppSelector(server.Selectors.getIsServerUnresponsive);
   const connectionState = !isConnected ? 'disconnected' : isServerUnresponsive ? 'stale' : 'connected';
   const joinedRooms = useAppSelector(rooms.Selectors.getJoinedRooms);
   const activeGames = useAppSelector(games.Selectors.getActiveGames);
   const openedReplays = useOpenedReplays();
-  const backendDecks = useAppSelector(server.Selectors.getBackendDecks);
   const [snapGridVisible, setSnapGridVisible] = useSnapGridSetting();
   const [phaseTrackPinned, setPhaseTrackPinned] = usePhaseTrackPinnedSetting();
   const { onIdentityChanged } = useShellLifecycle();
   const [openDialog, setOpenDialog] = useState<UserMenuDialog | null>(null);
 
-  // Sticky tabs (see `isStickyTabType`) are backed by a MODULE-LEVEL
-  // singleton (see bottom of this file) — TopBar is rendered inside each
-  // page's Layout so it remounts on every navigation, which would wipe a
-  // normal useState. The singleton + useSyncExternalStore pair survives
-  // remounts.
+  // Each visit to a sticky page (see `isStickyTabType`) pins its tab.
   const [stickyTabs, setStickyTabs] = useStickyTabs();
   useEffect(() => {
     const transient = detectTransientTab(location.pathname);
@@ -95,70 +93,24 @@ export default function TopBar() {
     setStickyTabs((prev) => addStickyTab(prev, transient, replacesDeckId));
   }, [location.pathname, location.state, setStickyTabs]);
 
-  // Mirror the current pathname to localStorage so an F5 refresh drops
-  // the user back on the same route (MemoryRouter has no URL to lean
-  // on for this — AppShell reads the persisted value at boot).
-  useEffect(() => {
-    persistLastRoute(location.pathname);
-  }, [location.pathname]);
+  usePersistLastRoute();
+  const deckIdToName = useBackendDeckNames();
 
-  // Kick off a deckList fetch as soon as we're connected if backendDecks
-  // isn't loaded yet. Otherwise a refresh directly into `/deck/:id`
-  // never fires deckList (that's owned by the MyDecks page) and the
-  // deck-editor sticky tab's title stays stuck on the "Deck #N"
-  // fallback because deckIdToName has nothing to enrich from.
-  useEffect(() => {
-    if (!isConnected) {
-      return;
-    }
-    if (backendDecks) {
-      return;
-    }
-    webClient.request.session.deckList();
-  }, [isConnected, backendDecks, webClient]);
-
-  // Server/user identity change — deck ids are per-user on servatrice,
-  // so any deck tab / cache from a previous login is stale after
-  // signing into a different server or as a different user. Watch
-  // `(serverName, userName)`; when it transitions to a new non-null
-  // value that doesn't match the last known owner, purge deck sticky
-  // tabs and report the change so features drop their server-scoped
-  // caches (AppShell wires the deck caches). If the user is on a
-  // now-stale deck route, bounce them to the lobby so the editor
+  // Server/user identity change: deck ids are per user on Servatrice, so
+  // purge the deck tabs and report the change so features drop their
+  // server-scoped caches (AppShell wires the deck caches). If the user is
+  // on a now-stale deck route, bounce them to the lobby so the editor
   // doesn't try to load an id that doesn't exist here.
-  const identity = useMemo(() => {
-    if (!serverName || !user?.name) {
-      return null;
+  useIdentityChange(() => {
+    setStickyTabs((prev) => prev.filter((t) => t.type !== 'deck' && t.type !== 'decks'));
+    onIdentityChanged();
+    if (
+      location.pathname.startsWith('/deck/')
+      || location.pathname === RouteEnum.DECKS
+    ) {
+      navigate(generatePath(RouteEnum.SERVER));
     }
-    return `${serverName}::${user.name}`;
-  }, [serverName, user?.name]);
-  useEffect(() => {
-    if (identity == null) {
-      return;
-    }
-    const previous = window.localStorage.getItem(STICKY_OWNER_KEY);
-    if (previous && previous !== identity) {
-      setStickyTabs((prev) => prev.filter((t) => t.type !== 'deck' && t.type !== 'decks'));
-      onIdentityChanged();
-      if (
-        location.pathname.startsWith('/deck/')
-        || location.pathname === RouteEnum.DECKS
-      ) {
-        navigate(generatePath(RouteEnum.SERVER));
-      }
-    }
-    window.localStorage.setItem(STICKY_OWNER_KEY, identity);
-    // location.pathname / navigate intentionally excluded — the
-    // owner-key mismatch check gates the wipe, and localStorage
-    // updates after the wipe so subsequent path changes with the
-    // same identity are no-ops. Depending on pathname would rerun
-    // this effect on every route hop.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run on identity change only (see above)
-  }, [identity, setStickyTabs, onIdentityChanged]);
-
-  // Enrich a deck-editor sticky tab with the actual deck name once
-  // backendDecks has loaded it. Falls back to `Deck #N` before that.
-  const deckIdToName = useMemo(() => flattenDeckNames(backendDecks), [backendDecks]);
+  });
 
   // Whenever the deck name enrichment ("Deck #N" → real name) resolves,
   // persist the freshly enriched title back into the sticky-tab list.
@@ -534,147 +486,4 @@ function UserMenu({
       )}
     </div>
   );
-}
-
-// ---------- Sticky-tab singleton ----------
-// TopBar remounts on every route change (it's inside per-page Layout),
-// which would wipe a normal useState. This module-level pair keeps
-// the sticky-tab list alive across remounts. `useSyncExternalStore`
-// is React 18's official external-state binding: cheap to subscribe,
-// no Context provider needed above the tree.
-//
-// Also persisted to localStorage so tabs survive an F5 refresh. Only
-// the plain metadata (key/type/title/titleKey/titleParams/route/closeable)
-// round-trips —
-// `onClose` handlers aren't serializable but aren't needed either,
-// since none of the tab types we mark sticky (`decks`, `deck`) carry
-// an onClose; the tab-list useMemo attaches close behaviour at derive
-// time based on current state.
-const STICKY_STORAGE_KEY = 'webatrice.stickyTabs';
-/** Owner (`${serverName}::${userName}`) of the currently-persisted
- *  sticky tabs. Written after every non-null identity settles; a
- *  mismatch on next login means we jumped servers or logged in as
- *  someone else and need to wipe stale deck tabs + caches. */
-const STICKY_OWNER_KEY = 'webatrice.stickyTabs.owner';
-const VALID_TAB_TYPES: TabType[] = [
-  'server', 'room', 'game', 'decks', 'deck',
-  'my-decks', 'settings', 'account', 'logs', 'player', 'unknown',
-];
-
-function loadPersistedStickyTabs(): Tab[] {
-  if (typeof window === 'undefined') {
-    return [];
-  }
-  try {
-    const raw = window.localStorage.getItem(STICKY_STORAGE_KEY);
-    if (!raw) {
-      return [];
-    }
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-    return parsed.filter(isValidPersistedTab).map(retitleLegacyTab);
-  } catch {
-    return [];
-  }
-}
-
-function isValidPersistedTab(t: unknown): t is Tab {
-  if (!t || typeof t !== 'object') {
-    return false;
-  }
-  const rec = t as Record<string, unknown>;
-  return (
-    typeof rec.key === 'string' &&
-    (typeof rec.title === 'string' || typeof rec.titleKey === 'string') &&
-    typeof rec.route === 'string' &&
-    typeof rec.closeable === 'boolean' &&
-    typeof rec.type === 'string' &&
-    (VALID_TAB_TYPES as string[]).includes(rec.type)
-  );
-}
-
-/** Earlier builds persisted the translated title of every tab, which would pin
- *  "My Decks" and the like to the language they were saved in. Re-derive such a
- *  tab's title from its route; a deck's real name comes back with deckList. */
-function retitleLegacyTab(tab: Tab): Tab {
-  if (tab.titleKey !== undefined) {
-    return tab;
-  }
-  const derived = detectTransientTab(tab.route);
-  return derived && derived.key === tab.key ? derived : tab;
-}
-
-function persistStickyTabs(tabs: Tab[]): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  try {
-    // Strip onClose (functions don't survive JSON) before writing.
-    const serializable = tabs.map(({ key, type, title, titleKey, titleParams, route, closeable }) => ({
-      key, type, title, titleKey, titleParams, route, closeable,
-    }));
-    window.localStorage.setItem(STICKY_STORAGE_KEY, JSON.stringify(serializable));
-  } catch {
-    // Quota / private mode / disabled storage — nothing we can do,
-    // tabs just won't persist this session.
-  }
-}
-
-let stickySingleton: Tab[] = loadPersistedStickyTabs();
-const stickyListeners = new Set<() => void>();
-
-function subscribeSticky(cb: () => void): () => void {
-  stickyListeners.add(cb);
-  return () => {
-    stickyListeners.delete(cb);
-  };
-}
-
-function getStickySnapshot(): Tab[] {
-  return stickySingleton;
-}
-
-function useStickyTabs(): [Tab[], (updater: (prev: Tab[]) => Tab[]) => void] {
-  const tabs = useSyncExternalStore(subscribeSticky, getStickySnapshot);
-  const update = useCallback((updater: (prev: Tab[]) => Tab[]) => {
-    const next = updater(stickySingleton);
-    if (next === stickySingleton) {
-      return;
-    } // no-op, don't notify
-    stickySingleton = next;
-    persistStickyTabs(next);
-    stickyListeners.forEach((cb) => cb());
-  }, []);
-  return [tabs, update];
-}
-
-// ---------- Last-route persistence (for MemoryRouter restore) ----------
-// MemoryRouter has no URL to lean on across refreshes, so we mirror the
-// current pathname to localStorage. AppShell reads it back at boot and
-// hands it to `<MemoryRouter initialEntries={[…]}>`. Skipped for the
-// server root (default landing anyway) to avoid write churn.
-const LAST_ROUTE_STORAGE_KEY = 'webatrice.lastRoute';
-
-export function persistLastRoute(pathname: string): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  try {
-    window.localStorage.setItem(LAST_ROUTE_STORAGE_KEY, pathname);
-  } catch {
-    /* nothing we can do */
-  }
-}
-
-export function loadPersistedLastRoute(): string | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  try {
-    return window.localStorage.getItem(LAST_ROUTE_STORAGE_KEY);
-  } catch {
-    return null;
-  }
 }
