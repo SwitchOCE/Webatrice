@@ -406,7 +406,6 @@ function VerticalHand({
   const sizeRef = useRef<HTMLDivElement>(null);
   const ref = useForkRef(zoneRef, sizeRef);
   const [size, setSize] = useState({ w: 0, h: 0 });
-  const [hovered, setHovered] = useState<string | null>(null);
   useEffect(() => {
     const el = sizeRef.current;
     if (!el) {
@@ -433,12 +432,11 @@ function VerticalHand({
         {positions.map((pos, i) => {
           const key = cardKey(i);
           return (
+            // The hovered card comes to the front in CSS, so a hover re-renders nothing.
             <div
               key={key}
-              className="absolute"
-              style={{ left: pos.x, top: pos.y, zIndex: hovered === key ? count : i }}
-              onMouseEnter={() => setHovered(key)}
-              onMouseLeave={() => setHovered((current) => (current === key ? null : current))}
+              className="absolute hover:!z-[999]"
+              style={{ left: pos.x, top: pos.y, zIndex: i }}
             >
               {renderCard(i)}
             </div>
