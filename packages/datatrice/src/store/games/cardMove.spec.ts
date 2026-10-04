@@ -117,6 +117,7 @@ describe('buildMovedCard', () => {
 });
 
 describe('planMovePlacement', () => {
+  const pile = (name: string) => makeZoneEntry({ name, cards: [BOLT, ISLAND], cardCount: 2 });
   const viewedHiddenDeck = { ...viewedDeck, order: [] };
   it.each([
     ['a hidden cross-zone move', hiddenHand, { startZone: 'hand', targetZone: 'deck' }, 'count-transfer'],
@@ -125,6 +126,9 @@ describe('planMovePlacement', () => {
     ['a visible move inside an open view', viewedDeck, { cardId: 100, startZone: 'deck', targetZone: 'deck', position: 0 }, 'view-reorder'],
     ['an open-view zone left without a position', viewedDeck, { cardId: 100, startZone: 'deck', targetZone: 'deck' }, 'between-zones'],
     ['a hand reorder', hand, { cardId: 20, targetZone: 'hand' }, 'same-zone'],
+    ['a stack reorder', pile('stack'), { cardId: 20, startZone: 'stack', targetZone: 'stack' }, 'same-zone'],
+    ['a graveyard reorder', pile('grave'), { cardId: 20, startZone: 'grave', targetZone: 'grave' }, 'same-zone'],
+    ['an exile reorder', pile('rfg'), { cardId: 20, startZone: 'rfg', targetZone: 'rfg' }, 'same-zone'],
     ['a table reposition', hand, { cardId: 20, startZone: 'table', targetZone: 'table' }, 'between-zones'],
     ['a cross-zone move', hand, { cardId: 20, targetZone: 'grave' }, 'between-zones'],
     ['an unidentified same-zone hand move with a new id', hand, { newCardId: 7, targetZone: 'hand' }, 'between-zones'],
@@ -149,6 +153,12 @@ describe('planOptimisticReconcile', () => {
   it('patches the position when the id is unchanged', () => {
     expect(planOptimisticReconcile(target, 10, makeCard({ id: 10, x: 6, y: 0 }))).toEqual({
       kind: 'patch', fields: { x: 6, y: 0, faceDown: false },
+    });
+  });
+
+  it('patches a face-down landing', () => {
+    expect(planOptimisticReconcile(target, 10, makeCard({ id: 10, x: 6, y: 1, faceDown: true }))).toEqual({
+      kind: 'patch', fields: { x: 6, y: 1, faceDown: true },
     });
   });
 
@@ -262,6 +272,8 @@ describe('cardMovedLogEntry', () => {
   it.each([
     ['names the known card', { cardId: 20, targetZone: 'grave' }, false, 'Alice puts Lightning Bolt from their hand into their graveyard.'],
     ['logs an undo draw with the known name', { cardId: 20, targetZone: 'deck' }, true, 'Alice undoes their last draw (Lightning Bolt).'],
+    ['prefers the known name over the event name on an undo draw', { cardId: 20, cardName: 'Shock', targetZone: 'deck' }, true,
+      'Alice undoes their last draw (Lightning Bolt).'],
     ['logs an undo draw with the event name', { cardId: 99, cardName: 'Opt', targetZone: 'deck' }, true,
       'Alice undoes their last draw (Opt).'],
     ['logs an undo draw of a hidden card', { targetZone: 'deck' }, true, 'Alice undoes their last draw.'],
