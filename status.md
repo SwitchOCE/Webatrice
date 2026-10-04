@@ -7,3 +7,4 @@
 - 01:14Z IncomingRevealDialog + useIncomingReveal (a91cc8e); clamp unified (listed fix) → ZoneRevealPanel, then D8 labels, then marquee
 - 01:19Z ZoneRevealPanel + useMarquee pushed (015628c) → D8 zone label map with i18n keys
 - 01:30Z D8 labels + changeset pushed (3852150) → full gate (typecheck/lint/unit/integration/e2e)
+- 01:40Z gate green on 3242ea4 (unit 896/1316/3615, integ 175/144/266) → webatrice e2e in playwright container
