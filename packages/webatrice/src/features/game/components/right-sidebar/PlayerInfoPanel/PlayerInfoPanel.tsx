@@ -67,7 +67,7 @@ function ManaPip({
         // subtle dark ring reads as "physical pip" without needing
         // the ManaSymbols SVG underneath.
         <div
-          className="absolute inset-0 rounded-full pointer-events-none border border-black/50"
+          className="absolute inset-0 rounded-full pointer-events-none border border-over-art-backdrop/50"
           style={{ backgroundColor: tint }}
         />
       )}
@@ -215,7 +215,7 @@ export default function PlayerInfoPanel() {
         <div className="relative z-10 flex-1 flex items-center justify-start gap-[0.75em] px-[0.5em] pb-[0.25em] pointer-events-none">
           <Heart
             size="2.5em"
-            className="text-red-400"
+            className="text-over-art-life"
             style={{ filter: OVER_ART_ICON_SHADOW }}
           />
           <span
