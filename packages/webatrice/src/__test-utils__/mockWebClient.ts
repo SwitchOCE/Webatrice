@@ -75,6 +75,7 @@ export function createMockWebClient() {
         setActivePhase: vi.fn(),
         reverseTurn: vi.fn(),
         moveCard: vi.fn(),
+        moveCardAndShuffle: vi.fn(),
         sendGameCommands: vi.fn(),
         bulkTap: vi.fn(),
         bulkDoesntUntap: vi.fn(),

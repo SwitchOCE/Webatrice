@@ -180,6 +180,12 @@ export interface SeatMoveDestination {
   row?: number;
   /** Insert the batch in reverse order (Command_MoveCard.is_reversed); sent only when given. */
   reversed?: boolean;
+  /**
+   * Into the library: also shuffle the moved block, in the same command
+   * container, so the order the cards went in stays hidden (desktop
+   * cmMoveToTopLibrary / cmMoveToBottomLibrary).
+   */
+  shuffleMoved?: boolean;
 }
 
 /** Which cards of a zone a reveal shows: the whole zone, one random card,

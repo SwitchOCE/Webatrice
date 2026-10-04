@@ -138,6 +138,31 @@ describe('usePlayerZoneCommands — moveCards', () => {
     });
   });
 
+  // Desktop cmMoveToTopLibrary / cmMoveToBottomLibrary
+  // (player_actions.cpp:1853-1888) shuffle the moved block in the same
+  // container: [0, N-1] on top, [-N, -1] at the bottom.
+  it('shuffles a block of cards moved to the top or bottom of the library with the move', () => {
+    const { commands, game } = renderZone();
+    act(() => {
+      commands().moveCards(ZoneName.HAND, [30, 31], { zone: ZoneName.DECK, reversed: false, shuffleMoved: true });
+      commands().moveCards(ZoneName.TABLE, [61, 62, 63], { zone: ZoneName.DECK, reversed: true, shuffleMoved: true });
+      // One card has no order to hide.
+      commands().moveCards(ZoneName.HAND, [32], { zone: ZoneName.DECK, reversed: false, shuffleMoved: true });
+    });
+
+    expect(vi.mocked(game.moveCardAndShuffle).mock.calls.map(([, move, shuffle]) => [move, shuffle])).toEqual([
+      [
+        expect.objectContaining({ startZone: ZoneName.HAND, cardsToMove: { card: [{ cardId: 30 }, { cardId: 31 }] }, x: 0 }),
+        { zoneName: ZoneName.DECK, start: 0, end: 1 },
+      ],
+      [
+        expect.objectContaining({ startZone: ZoneName.TABLE, isReversed: true }),
+        { zoneName: ZoneName.DECK, start: -3, end: -1 },
+      ],
+    ]);
+    expect(vi.mocked(game.moveCard).mock.calls.map(([, p]) => p.cardsToMove)).toEqual([{ card: [{ cardId: 32 }] }]);
+  });
+
   it('sends is_reversed only when the caller gives it', () => {
     const { commands, game } = renderZone();
     act(() => commands().moveCards(ZoneName.HAND, [30, 31], { zone: ZoneName.DECK, index: 'end' }));
