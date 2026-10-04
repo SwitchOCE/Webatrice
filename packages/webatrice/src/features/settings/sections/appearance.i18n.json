@@ -89,6 +89,9 @@
       "cardName": "Card for {zone}",
       "set": "Set",
       "clear": "Clear",
+      "setLabel": "Set the {zone} background",
+      "editLabel": "Edit the {zone} background's crop",
+      "clearLabel": "Clear the {zone} background",
       "current": "{zone}: {card}"
     }
   }
