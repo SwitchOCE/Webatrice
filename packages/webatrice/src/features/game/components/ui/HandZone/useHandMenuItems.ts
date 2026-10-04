@@ -50,11 +50,13 @@ export function useHandMenuItems({
     revealTargets,
     (targetPlayerId) => zoneCommands.reveal(ZoneName.HAND, toRecipient(targetPlayerId)),
     handSize <= 0,
+    shortcutHints['game.revealHandToAll'],
   );
   const revealRandomHandSubmenu = buildRevealToSubmenu(
     revealTargets,
     (targetPlayerId) => zoneCommands.reveal(ZoneName.HAND, toRecipient(targetPlayerId), 'random'),
     handSize <= 0,
+    shortcutHints['game.revealRandomHandCardToAll'],
   );
   // Helper: build a "move all cards from HAND to <target>" click
   // handler. Hand card ids are real numeric ids on the wire.
@@ -80,6 +82,7 @@ export function useHandMenuItems({
       label: 'View hand',
       onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.HAND }),
       disabled: !isSelf || handSize <= 0,
+      shortcut: shortcutHints['game.viewHand'],
     },
     {
       // Sort hand by ... — dispatches per-card moveCard reorders
@@ -91,6 +94,7 @@ export function useHandMenuItems({
           label: 'Name',
           onClick: () => handleRequestSortHandBy('name'),
           disabled: !isSelf || handSize <= 1,
+          shortcut: shortcutHints['game.sortHandByName'],
         },
         {
           label: 'Type',
@@ -102,6 +106,7 @@ export function useHandMenuItems({
           label: 'Mana Value',
           onClick: () => handleRequestSortHandBy('manacost'),
           disabled: !isSelf || handSize <= 1,
+          shortcut: shortcutHints['game.sortHandByManaValue'],
         },
       ],
     },

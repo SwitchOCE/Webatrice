@@ -9,10 +9,15 @@ import { ActionId, ShortcutGroupId, ShortcutScope } from '../types';
 import SequenceEdit from './SequenceEdit';
 import ShortcutsRow from './ShortcutsRow';
 
-// Display order; matches Cockatrice's group ordering pattern (Game → Editor).
+// Display order: the game groups in desktop's order (ShortcutGroup::Groups),
+// then the editor, room and replays.
 const GROUP_ORDER: ShortcutGroupId[] = [
-  'game',
   'gamePhases',
+  'gamePlayingArea',
+  'gameMoveSelected',
+  'gameView',
+  'gameHand',
+  'game',
   'deckEditor',
   'room',
   'replays',

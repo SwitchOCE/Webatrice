@@ -4,7 +4,7 @@ import type { BattlefieldCardOps } from '../../ui/PlayerBoard/useBattlefieldCard
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import { CardMenuPopup } from '../CardContextMenu/CardContextMenu';
 import { buildCardContextMenu, buildOpponentCardMenu, type CardMenuItem } from '../CardContextMenu/cardContextMenu.model';
-import { buildRelatedTokenItems, buildTransformItems } from '../CardContextMenu/relatedCardActions';
+import { buildRelatedActionItems } from '../CardContextMenu/relatedCardActions';
 
 /**
  * The battlefield card menu: right-click a battlefield card to open. Each item
@@ -45,19 +45,22 @@ export default function BattlefieldCardMenu() {
   };
 
   // "Token: …" items from the card's related list, plus "Token: Transform
-  // into …" for a double-faced card (desktop addRelatedCardActions,
-  // card_menu.cpp:407-479). On another player's card the token is still
-  // created by the local player, so it lands on the local battlefield.
+  // into …" for a double-faced card and "All tokens" (desktop
+  // addRelatedCardActions, card_menu.cpp:407-479). On another player's card
+  // the token is still created by the local player, so it lands on the local
+  // battlefield.
   const tokenItems: CardMenuItem[] = card
-    ? [
-      ...buildRelatedTokenItems(cardMetaByName.get(card.name)?.related ?? [], tokenMetaByName, cardCommands.createToken),
-      ...buildTransformItems(
-        cardMetaByName.get(card.name),
-        Number.isFinite(cardIdNum) ? cardIdNum : undefined,
-        card.name,
-        cardCommands.createToken,
-      ),
-    ]
+    ? buildRelatedActionItems(
+      {
+        related: cardMetaByName.get(card.name)?.related ?? [],
+        tokenMeta: tokenMetaByName,
+        parentMeta: cardMetaByName.get(card.name),
+        sourceCardId: Number.isFinite(cardIdNum) ? cardIdNum : undefined,
+        parentName: card.name,
+      },
+      cardCommands.createToken,
+      shortcutHints['game.createRelatedTokens'],
+    )
     : [];
   const relatedViewItems = card ? relatedViewItemsFor(card.name) : [];
 

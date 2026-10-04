@@ -12,6 +12,7 @@ import {
 } from '@cockatrice/datatrice/testing';
 import { CardAttribute } from '@cockatrice/sockatrice/generated';
 
+import { allActionIds, defaults, ShortcutScope } from '@app/feature-widgets/shortcuts';
 import { makeReduxWebClientHookWrapper } from '../../../__test-utils__/makeHookWrapper';
 
 interface ShortcutRegistration {
@@ -194,6 +195,20 @@ describe('useGameShortcuts', () => {
     expect(registrations.has('game.prevPhase')).toBe(true);
     expect(registrations.has('game.nextPhaseAction')).toBe(true);
     expect(registrations.has('game.reverseTurn')).toBe(true);
+  });
+
+  // Every game-scope action in the catalogue has a handler: one registered
+  // here, or the two registered where their target lives.
+  it('registers a handler for every game shortcut in the catalogue', () => {
+    setup();
+    const elsewhere = new Set([
+      'chat.focus', // the game chat input
+      'game.hideRevealedCard', // the open IncomingRevealDialog
+    ]);
+    const unhandled = allActionIds.filter(
+      (id) => defaults[id].scope === ShortcutScope.GAME && !elsewhere.has(id) && !registrations.has(id),
+    );
+    expect(unhandled).toEqual([]);
   });
 
   it('sends a single bulk setCardAttr with cardId -1 for untap-all', () => {

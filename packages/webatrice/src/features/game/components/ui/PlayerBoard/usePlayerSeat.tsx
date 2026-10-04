@@ -27,6 +27,7 @@ import type {
   PlayerBoardModel,
 } from './playerBoard.types';
 import { useBattlefieldCardOps } from './useBattlefieldCardOps';
+import { useHandCardOps } from './useHandCardOps';
 import { useDrawFlights } from './useDrawFlights';
 import { useSeatCardMetadata } from './useSeatCardMetadata';
 import { useSeatDnd } from './useSeatDnd';
@@ -270,6 +271,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     selection,
     setSelection,
     cardMetaByName,
+    tokenMetaByName,
     deckCount,
     lifeControl,
     cardCommands,
@@ -280,6 +282,9 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     startAttach,
     startArrow: startTableArrow,
   });
+  // The hand card actions the play and move-selection shortcuts share with
+  // the hand card menu.
+  const handOps = useHandCardOps({ cards: zones.hand.cards, selection, cardMetaByName, zoneCommands });
   // Displayed counts mirror Cockatrice desktop: read straight from the
   // server-authoritative `zone.cardCount` and DON'T decrement while a
   // card is under the cursor mid-drag. The desktop client also shows
@@ -377,6 +382,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     selection,
     selectedCardKeys: gameSelection?.selectedCardKeys ?? EMPTY_CARD_KEYS,
     deckCount,
+    handCount,
     alwaysRevealTopCard,
     alwaysLookAtTopCard,
     manaCounters,
@@ -387,6 +393,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     openCreateTokenDialog,
     openMoveTopUntilDialog,
     cardOps,
+    handOps,
     zoneCommands,
     cardCommands,
     counterCommands,
