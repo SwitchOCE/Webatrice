@@ -123,11 +123,11 @@ describe.each(Object.keys(PALETTES) as ColorScheme[])('the %s palette', (scheme)
   });
 });
 
-test('keeps the mana tints and the life flashes the same in both palettes, on purpose', () => {
+test('keeps the mana tints, the life heart and the life flashes the same in both palettes, on purpose', () => {
   // They sit on card art and avatars, not on the page, so the light theme leaves them alone. A
   // light-theme change to them has to come with its own contrast check.
   const shared: PaletteToken[] = [
-    'mana-w', 'mana-u', 'mana-b', 'mana-r', 'mana-g', 'mana-c', 'mana-o', 'seat-flash-gain', 'seat-flash-loss',
+    'mana-w', 'mana-u', 'mana-b', 'mana-r', 'mana-g', 'mana-c', 'mana-o', 'over-art-life', 'seat-flash-gain', 'seat-flash-loss',
   ];
   for (const token of shared) {
     expect(PALETTES.light[token], token).toBe(PALETTES.dark[token]);

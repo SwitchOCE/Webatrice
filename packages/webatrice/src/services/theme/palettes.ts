@@ -27,6 +27,7 @@ export type PaletteToken =
   | 'seat-doesnt-untap'
   | 'over-art-text'
   | 'over-art-backdrop'
+  | 'over-art-life'
   | 'pt-modified'
   | 'mana-w'
   | 'mana-u'
@@ -69,6 +70,7 @@ export const PALETTES: Readonly<Record<ColorScheme, Palette>> = {
     'seat-doesnt-untap': '#FBBF24',
     'over-art-text': '#FFFFFF',
     'over-art-backdrop': '#000000',
+    'over-art-life': '#F87171',
     'pt-modified': '#FF9600',
     'mana-w': '#F9F1C8',
     'mana-u': '#3B82F6',
@@ -103,6 +105,7 @@ export const PALETTES: Readonly<Record<ColorScheme, Palette>> = {
     'seat-doesnt-untap': '#B45309',
     'over-art-text': '#FFFFFF',
     'over-art-backdrop': '#000000',
+    'over-art-life': '#F87171',
     'pt-modified': '#FF9600',
     'mana-w': '#F9F1C8',
     'mana-u': '#3B82F6',
