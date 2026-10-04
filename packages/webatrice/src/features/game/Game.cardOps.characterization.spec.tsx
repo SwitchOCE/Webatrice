@@ -327,6 +327,19 @@ describe('battlefield card menu actions', () => {
     });
   });
 
+  it('untaps the selection from a tapped clicked card', () => {
+    const tapped = makeCard({ ...OGRE, tapped: true });
+    const { game } = renderGame({ ...SPEC, seats: [{ ...SPEC.seats[0], table: [tapped, MORPH, WALL] }, SPEC.seats[1]] });
+    selectOgreAndMorph();
+    openContextMenu(cardEl(OGRE.id, 'battlefield'));
+    chooseMenuPath('Tap / Untap');
+    expect(wire(game)).toEqual([
+      [...attr(10, CardAttribute.AttrTapped, '0'), 'options'],
+      // Morph is already untapped: no optimistic change, so no rollback options.
+      attr(11, CardAttribute.AttrTapped, '0'),
+    ]);
+  });
+
   it('acts on the clicked card alone when it is outside the selection', () => {
     const { game } = renderGame();
     selectOgreAndMorph();
