@@ -1,6 +1,7 @@
-import { screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
+import { getSettings, settingsStore } from '../../../../../hooks/useSettings';
 import { battlefieldEl, cardEl, pileEl, renderSeatCell, type SeatGameSpec } from '../../../__test-utils__/seatFixtures';
 
 vi.mock('../../../../../services/cards/cardCatalog', async () =>
@@ -46,5 +47,28 @@ describe('PlayerBoard', () => {
     const root = battlefieldEl(2).closest<HTMLElement>('.rounded-lg')!;
     expect(root.style.gridTemplateRows).toMatch(/ 1fr$/);
     expect(root).toHaveClass('border-border-subtle');
+  });
+
+  it('draws each zone\'s background in its own region, under its content', async () => {
+    const params = { marginPctL: 0, marginPctR: 0, verticalOffset: 0, zoom: 1 };
+    const art = (cardName: string) => ({ cardName, cardProviderId: '', params });
+    const settings = await getSettings();
+    await act(async () => {
+      settingsStore.setValue(Object.assign(settings, {
+        zoneBackgrounds: { hand: art('Island'), stack: art('Swamp'), table: art('Forest'), playerInfo: art('Plains') },
+      }));
+    });
+    renderSeatCell(SPEC);
+
+    const region = (zone: string) => screen.getByTestId(`zone-background-${zone}`).parentElement!;
+    expect(region('hand')).toContainElement(cardEl(30, 'hand'));
+    expect(region('stack')).toContainElement(cardEl(50, 'stack'));
+    expect(region('table')).toContainElement(battlefieldEl(1));
+    expect(region('playerInfo')).toContainElement(screen.getByLabelText(/^Alice — life total/));
+    for (const zone of ['hand', 'stack', 'table', 'playerInfo']) {
+      // Isolated, so the art sits under the region's own content only.
+      expect(region(zone).className + region(zone).style.zIndex).toMatch(/isolate|30/);
+    }
+    settingsStore.reset();
   });
 });

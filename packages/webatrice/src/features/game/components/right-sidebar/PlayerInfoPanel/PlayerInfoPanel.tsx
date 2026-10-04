@@ -5,6 +5,7 @@ import { ManaSymbols } from '../../ui/ManaSymbols/ManaSymbols';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import { useValueFlash } from '../../ui/ValueFlash/useValueFlash';
 import ValueFlashOverlay from '../../ui/ValueFlash/ValueFlashOverlay';
+import ZoneBackground from '../../ui/ZoneBackground/ZoneBackground';
 import ZoneStack from '../../ui/ZoneStack/ZoneStack';
 import { MANA_COLORS } from './manaColors';
 import { OVER_ART_ICON_SHADOW, OVER_ART_SHADOW_LIFE, OVER_ART_SHADOW_NAME, OVER_ART_SHADOW_PIP } from '../../ui/seatColors/seatColors';
@@ -129,9 +130,10 @@ export default function PlayerInfoPanel() {
 
   return (
     <div
-      className="border-r border-border-subtle bg-bg-surface/70 flex flex-col p-[0.75em] gap-[0.5em] min-h-0"
+      className="relative isolate border-r border-border-subtle bg-bg-surface/70 flex flex-col p-[0.75em] gap-[0.5em] min-h-0"
       style={seatGrid.info}
     >
+      <ZoneBackground zone="playerInfo" />
       {/* Combined name + life-total pill. Avatar (or purple gradient
          fallback) fills the whole block; a 50% black wash keeps
          the name / number readable. The player name sits pinned

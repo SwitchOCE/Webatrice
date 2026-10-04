@@ -4,6 +4,7 @@ import { ZoneName } from '@cockatrice/sockatrice';
 
 import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
 import { layoutVerticalPile } from '../VerticalPile/verticalPile';
+import ZoneBackground from '../ZoneBackground/ZoneBackground';
 import { CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
 import Card from '../SeatCard/SeatCard';
 import { SELECTED_RING } from '../seatColors/seatColors';
@@ -52,9 +53,10 @@ export default function StackColumn() {
 
   return (
     <div
-      className="border-r border-border-subtle flex flex-col min-h-0 p-2"
+      className="relative isolate border-r border-border-subtle flex flex-col min-h-0 p-2"
       style={seatGrid.stack}
     >
+      <ZoneBackground zone="stack" />
       {/* Stack — spells/abilities waiting to resolve: desktop's vertical
         pile (overlapping by the card layout setting, zig-zagging); index 0
         renders topmost. Dropping between two existing cards inserts at that

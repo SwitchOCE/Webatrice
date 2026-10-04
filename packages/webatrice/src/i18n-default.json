@@ -1996,7 +1996,8 @@
       "cardLayout": "Card layout",
       "cardCounters": "Card counters",
       "menus": "Menu settings",
-      "cardPrintings": "Card printings"
+      "cardPrintings": "Card printings",
+      "zoneBackgrounds": "Zone backgrounds"
     },
     "themeMode": {
       "label": "Active theme palette",
@@ -2062,6 +2063,21 @@
     },
     "bumpSetsWithCardsInDeckToTop": {
       "label": "Bump sets that the deck contains cards from to the top in the printing selector"
+    },
+    "zoneBackgrounds": {
+      "label": "Backgrounds",
+      "description": "A card's art behind a zone of every player's area, cropped like a playmat. A table background shows where no playmat is drawn.",
+      "zone": {
+        "hand": "Hand",
+        "stack": "Stack",
+        "table": "Table",
+        "playerInfo": "Player area"
+      },
+      "none": "None",
+      "cardName": "Card for {zone}",
+      "set": "Set",
+      "clear": "Clear",
+      "current": "{zone}: {card}"
     }
   },
   "SettingsCardSources": {

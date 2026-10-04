@@ -11,6 +11,7 @@ import { SEAT_DROP_PRIORITY } from '../../../hooks/seatDropPlan';
 import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
 import { SeatDropPreview, useSeatDropZone } from '../../ui/SeatDragContext';
 import { useValueFlash } from '../../ui/ValueFlash/useValueFlash';
+import ZoneBackground from '../../ui/ZoneBackground/ZoneBackground';
 import ValueFlashOverlay from '../../ui/ValueFlash/ValueFlashOverlay';
 import {
   BATTLEFIELD_ROWS,
@@ -201,9 +202,12 @@ export default function Battlefield() {
   return (
     <ContextMenu
       items={isSelf ? battlefieldMenuItems : opponentBattlefieldMenuItems}
-      wrapperClassName="min-h-0 relative"
+      wrapperClassName="min-h-0 relative isolate"
       wrapperStyle={seatGrid.battlefield}
     >
+      {/* Desktop paints the table's background only without a playmat; the
+        playmat, cover-fitted over the same area, hides it. */}
+      <ZoneBackground zone="table" />
       {playerId != null && <PlayerPlaymat playerId={playerId} isSelf={isSelf} />}
       <ValueFlashOverlay flash={damageFlash} kind="damage" />
       {/* Lands divider — spans the full width of the play area,
