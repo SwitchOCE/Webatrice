@@ -25,6 +25,8 @@ export interface UseSeatDndArgs {
   /** Resolve the seat's pending attach pick against a press on one of its
    *  battlefield cards; false when no attach pick is pending. */
   resolveAttachPress: (cardId: number) => boolean;
+  /** A card's printed P/T, from the seat's card metadata. */
+  printedPT: (cardName: string) => string | undefined;
   stackDisplayList: readonly PlayerCardViewModel[];
   /** The hand strip in display order, which a hand reorder replays. */
   handDisplayList: readonly PlayerCardViewModel[];
@@ -54,6 +56,7 @@ export function useSeatDnd({
   selection,
   setSelection,
   resolveAttachPress,
+  printedPT,
   stackDisplayList,
   handDisplayList,
   boxRef,
@@ -66,12 +69,22 @@ export function useSeatDnd({
   CARD_H_PX,
   STACK_HOFFSET_PX,
 }: UseSeatDndArgs) {
+  // A card dragged out of any zone but the battlefield carries its printed
+  // P/T, which it lands with if dropped on the battlefield.
+  const withPrintedPT = (cards: readonly HandCard[], zone: DragSourceZone): readonly HandCard[] =>
+    zone === 'battlefield'
+      ? cards
+      : cards.map((card) => {
+        const pt = printedPT(card.name);
+        return pt ? { ...card, printedPT: pt } : card;
+      });
+
   const startPileDrag = (
     e: React.PointerEvent<HTMLElement>,
     card: HandCard,
     zone: Exclude<DragSourceZone, 'hand' | 'battlefield' | 'stack'>,
   ) => {
-    seatDragSources[zone]?.(e, [card]);
+    seatDragSources[zone]?.(e, withPrintedPT([card], zone));
   };
 
   /** True if this specific card is currently part of an active drag.
@@ -201,9 +214,9 @@ export function useSeatDnd({
       // lives in its owner's TABLE, not this seat's.
       const ownerOf = (c: HandCard) => c.ownerPlayerId ?? seatId;
       const group = zoneCards.filter((c) => selection.ids.has(c.id) && ownerOf(c) === ownerOf(card));
-      start(e, group, group.length === 1 ? (up) => releaseCardPress(zone, card.id, up) : undefined);
+      start(e, withPrintedPT(group, zone), group.length === 1 ? (up) => releaseCardPress(zone, card.id, up) : undefined);
     } else {
-      start(e, [card], (up) => releaseCardPress(zone, card.id, up));
+      start(e, withPrintedPT([card], zone), (up) => releaseCardPress(zone, card.id, up));
     }
   };
 
