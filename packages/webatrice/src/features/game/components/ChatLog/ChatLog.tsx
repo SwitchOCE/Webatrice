@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MessageSquare } from 'lucide-react';
 import { classifyLogTone, games, type LogSegment, type LogTone } from '@cockatrice/datatrice';
 
@@ -80,6 +81,7 @@ export default function ChatLog() {
 }
 
 function ChatLogView() {
+  const { t } = useTranslation();
   const gameId = useGameId();
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -265,7 +267,7 @@ function ChatLogView() {
             // reason (e.g. "Spectators are not allowed to chat in this
             // game.") when the field is greyed out.
             title={inputTitle}
-            aria-label="game chat input"
+            aria-label={t('ChatLog.inputLabel')}
             aria-disabled={inputDisabled}
             className={[
               'w-full bg-bg-base border border-border-subtle rounded-md px-3 py-1.5 text-xs',
