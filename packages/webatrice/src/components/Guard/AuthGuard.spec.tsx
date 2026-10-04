@@ -85,9 +85,18 @@ describe('AuthGuard', () => {
   it('stops once the login route is reached, rather than navigating forever', () => {
     // A page that renders the guard without its own Routes keeps it mounted on /login; a fresh
     // `state` object each render would otherwise count as a new location every time.
-    renderWithProviders(<AuthGuard />, { preloadedState: disconnectedState, route: '/login' });
+    const keys: string[] = [];
+    function LocationKeys() {
+      keys.push(useLocation().key);
+      // A loop would otherwise hang the test instead of failing it.
+      if (keys.length > 20) {
+        throw new Error('AuthGuard keeps navigating');
+      }
+      return null;
+    }
+    renderWithProviders(<><AuthGuard /><LocationKeys /></>, { preloadedState: disconnectedState, route: '/login' });
 
-    expect(screen.queryByText(/^login-page/)).not.toBeInTheDocument();
+    expect(new Set(keys).size).toBe(1);
   });
 
   it('tells the login page which page the user was sent away from', () => {
