@@ -6,3 +6,4 @@
 - 03:07Z majors done (incl. Battlefield double-click tap dedupe; useBattlefieldMenuItems arg selection→incrementAllCardCounters) → minors
 - 03:14Z minors: planAttach TABLE, stack attach zone (startAttach gains optional 3rd arg sourceZone), hand/zone-view arrow attrs pushed → eslint, drag colour, prompts memo, pending tests, P/T
 - 03:17Z eslint narrowing, drag colour freeze, prompts memo pushed → pending-target consequence tests, characterization gaps, P/T note, nits
+- 03:22Z pending-consequence + characterization gap tests pushed → P/T source note, nits
