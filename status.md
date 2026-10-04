@@ -1,2 +1,3 @@
 - 03:45Z read brief, task, rv22; work branch on 87a20ef → apply majors
 - 03:49Z majors fixed+pushed (c0708a5, a3d7c67) → minors
+- 03:57Z minors: +, row menu keys, last-row focus, deck delete focus, copy feedback done → quick-add searching Escape (done in c0708a5), unknown warning, adv search label, changeset
