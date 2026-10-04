@@ -44,6 +44,7 @@
      the art underneath does not follow the theme. */
   --over-art-text: 255 255 255;     /* #FFFFFF */
   --over-art-backdrop: 0 0 0;       /* #000000 */
+  --over-art-life: 248 113 113;     /* #F87171 */
   /* A modified P/T, over art (desktop's orange). */
   --pt-modified: 255 150 0;         /* #FF9600 */
   /* Mana pool pips, in pool order (W U B R G, colorless, other/storm). */
@@ -87,6 +88,7 @@
      the art underneath does not follow the theme. */
   --over-art-text: 255 255 255;     /* #FFFFFF */
   --over-art-backdrop: 0 0 0;       /* #000000 */
+  --over-art-life: 248 113 113;     /* #F87171 */
   /* A modified P/T, over art (desktop's orange). */
   --pt-modified: 255 150 0;         /* #FF9600 */
   /* Mana pool pips, in pool order (W U B R G, colorless, other/storm). */
