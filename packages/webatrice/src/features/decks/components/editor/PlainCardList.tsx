@@ -59,15 +59,19 @@ export function PlainCardList({
   onInc,
   onDelete,
   grid,
+  order,
 }: {
   cards: DeckCard[];
   onInc: (index: number, delta: number) => void;
   onDelete: (index: number) => void;
   /** The deck list's keyboard grid (`useDeckCardGrid`); its rows take the list's keys. */
   grid?: DeckCardGrid;
+  /** Row order, the one `grid` was given, so arrow keys follow the rows drawn. Defaults to by name. */
+  order?: readonly number[];
 }) {
   const { t } = useTranslation();
-  const sortedIndices = useMemo(() => sortIndicesByName(cards, cards.map((_, i) => i)), [cards]);
+  const byName = useMemo(() => sortIndicesByName(cards, cards.map((_, i) => i)), [cards]);
+  const sortedIndices = order ?? byName;
 
   return (
     <div role="grid" aria-label={t('DeckEditor.list.label')}>

@@ -39,4 +39,11 @@ describe('PlainCardList', () => {
     expect(onInc.mock.calls).toEqual([[0, 1], [1, -1]]);
     expect(onDelete).toHaveBeenCalledWith(0);
   });
+
+  it('draws its rows in the order the keyboard grid was given', () => {
+    renderWithProviders(
+      <PlainCardList cards={[card('Apple'), card('Mango'), card('zebra')]} onInc={vi.fn()} onDelete={vi.fn()} order={[2, 0, 1]} />,
+    );
+    expect(screen.getAllByRole('row').map((row) => row.textContent)).toEqual(['1zebra', '1Apple', '1Mango']);
+  });
 });
