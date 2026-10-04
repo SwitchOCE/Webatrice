@@ -1,1 +1,2 @@
 - 02:15 started rv20 review → read PR+spec
+- 02:17 lint/M1/commit checks done; 3 sub-reviews running (card ops, targeting, mutation) → write reviews/rv20.md
