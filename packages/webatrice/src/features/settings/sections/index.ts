@@ -17,9 +17,10 @@ import { userInterfaceSection } from './userInterface';
  */
 const registrations: readonly SettingsSection[] = [
   generalSection,
+  // Appearance in desktop's group order: theme, playmats, then the rest (appearance.ts).
   themeSection,
-  appearanceSection,
   playmatsSection,
+  appearanceSection,
   userInterfaceSection,
   cardSourcesSection,
   storageSection,
