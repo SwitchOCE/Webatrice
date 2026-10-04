@@ -2,8 +2,9 @@
 // (the lender as the move's start player, battlefield-only drops, no drag for
 // a spectator) are pinned in Game.dragdrop.spec.tsx.
 
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
+import { games } from '@cockatrice/datatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
 import { createMockWebClient, renderWithProviders } from '../../../../__test-utils__';
@@ -154,6 +155,46 @@ describe('IncomingRevealDialog', () => {
       renderReveal();
       expect(popup().style.width).toBe(`${window.innerWidth}px`);
       expect(popup().style.height).toBe('300px');
+    });
+
+    it('opens again, at its opening size and centred, when another reveal arrives', () => {
+      vi.useFakeTimers();
+      try {
+        const { store } = renderReveal();
+        popup().style.width = '640px';
+        const header = screen.getByRole('heading', { name: TITLE }).parentElement!;
+        popup().getBoundingClientRect = () => new DOMRect(100, 100, 400, 300);
+        fireEvent.pointerDown(header, { button: 0, clientX: 110, clientY: 105 });
+        act(() => {
+          window.dispatchEvent(new MouseEvent('pointermove', { clientX: 210, clientY: 155 }));
+        });
+        act(() => {
+          window.dispatchEvent(new MouseEvent('pointerup'));
+        });
+        expect(popup().style.left).toBe('200px');
+
+        const hand = [makeCard({ id: 0, name: 'Swamp' })];
+        act(() => {
+          store.dispatch(games.Actions.zoneViewRevealed({
+            gameId: 1, playerId: 2, zoneName: ZoneName.HAND, cards: hand, isReversed: false,
+          }));
+          store.dispatch(games.Actions.incomingRevealShown({
+            gameId: 1, sourceOwnerId: 2, zoneName: ZoneName.HAND, cards: hand, grantWriteAccess: false,
+          }));
+        });
+
+        expect(screen.getByRole('heading', { name: 'P2 reveals their ZoneLabel.inline.hand' })).toBeInTheDocument();
+        expect(popup().style.width).toBe('900px');
+        // The 400×300 popup centres on the 1024×768 viewport.
+        expect(popup().style.left).toBe('312px');
+        expect(popup().style.top).toBe('234px');
+        act(() => {
+          vi.advanceTimersByTime(1000);
+        });
+        expect(window.localStorage.getItem('webatrice.incomingRevealPosition')).toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('restores a stored position, keeping 60px of its header on screen', () => {
