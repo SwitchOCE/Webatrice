@@ -1,3 +1,4 @@
 - 00:16 started, branch set up at d2e516c → reproduce
 - 00:29 repro 15/30 fail (aria-hidden during MUI exit transition); fix pushed, 50/50 green → gate
 - ACK M1: compared w25b af3cfc1 (findByRole back) — same diagnosis; keeping explicit dialog-unmount wait (moderation.spec precedent); running gate
+- 00:38 gate green, PR note written → done
