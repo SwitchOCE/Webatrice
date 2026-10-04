@@ -35,12 +35,13 @@ export function useShortcut(
 
 /**
  * Register one handler for a fixed list of actions, e.g. a group whose
- * operations come from elsewhere. The handler receives the action id. The list
- * must be stable (a module constant): changing it re-registers every entry.
+ * operations come from elsewhere. The handler receives the action id and its
+ * index in the list. The list must be stable (a module constant): changing it
+ * re-registers every entry.
  */
 export function useShortcutGroup(
   actionIds: readonly string[],
-  handler: (actionId: string, event: KeyboardEvent) => void,
+  handler: (actionId: string, event: KeyboardEvent, index: number) => void,
   options: UseShortcutOptions,
 ): void {
   const { register } = useContext(ShortcutContext);
@@ -53,10 +54,10 @@ export function useShortcutGroup(
     if (!enabled) {
       return;
     }
-    const unregisters = actionIds.map((actionId) =>
+    const unregisters = actionIds.map((actionId, index) =>
       register({
         actionId,
-        handler: (event) => handlerRef.current(actionId, event),
+        handler: (event) => handlerRef.current(actionId, event, index),
         scope,
         preventDefault,
       }),
