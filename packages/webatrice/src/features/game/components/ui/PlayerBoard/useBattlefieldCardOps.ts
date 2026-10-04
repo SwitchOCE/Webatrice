@@ -27,6 +27,7 @@ import type {
   PlayerZoneCommands,
   SeatMoveDestination,
 } from './playerBoard.types';
+import { moveSelectedCards } from './selectionMoves';
 import type { SeatCardMeta } from './useSeatCardMetadata';
 import type { LifeControl, useSeatPrompts } from './useSeatPrompts';
 
@@ -179,11 +180,7 @@ export function useBattlefieldCardOps({
           }
         }),
         // One Command_MoveCard for every target (cards_to_move is repeated).
-        move: (to) => {
-          if (targetIds.length > 0) {
-            zoneCommands.moveCards(ZoneName.TABLE, targetIds, { reversed: false, ...to });
-          }
-        },
+        move: (to) => moveSelectedCards(zoneCommands.moveCards, ZoneName.TABLE, targetCards, to, (name) => cardMetaByName.get(name)),
         promptMoveXFromTop: () => {
           if (anchorNumeric) {
             openMoveXFromTopPrompt({ cardIds: [anchorId], cardName: anchor.name, deckSize: deckCount });

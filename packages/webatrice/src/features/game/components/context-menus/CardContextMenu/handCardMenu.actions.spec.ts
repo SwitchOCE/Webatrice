@@ -116,7 +116,23 @@ describe('resolveHandOrZoneCardMenu', () => {
   it('acts on the whole hand selection when the clicked card is part of it', () => {
     const deps = makeDeps({ handSelection: { zone: 'hand', ids: new Set(['10', '11']) } });
     click(itemsOf(deps), 'Move to', 'Bottom of library in random order');
-    expect(deps.moveCards).toHaveBeenCalledWith(ZoneName.HAND, [10, 11], { zone: ZoneName.DECK, reversed: true });
+    expect(deps.moveCards).toHaveBeenCalledWith(ZoneName.HAND, [10, 11], { zone: ZoneName.DECK, reversed: true, shuffleMoved: true });
+  });
+
+  // Desktop cmMoveToTable (player_actions.cpp:1925-1950): one command per
+  // card, x -1, the card's own row, printed P/T and cipt, face up; an
+  // instant lands on the battlefield too.
+  it('moves each target onto the battlefield in its own row, with its P/T and cipt', () => {
+    const deps = makeDeps({
+      handSelection: { zone: 'hand', ids: new Set(['10', '11', '12']) },
+      cardMeta: (name) => ({ ...META[name], ...(name === 'Grizzly Bears' && { pt: '2/2' }), ...(name === 'Island' && { cipt: true }) }),
+    });
+    click(itemsOf(deps), 'Move to', 'Table');
+    expect(vi.mocked(deps.moveCards!).mock.calls).toEqual([
+      [ZoneName.HAND, [{ id: 10, tapped: true }], { zone: ZoneName.TABLE, index: 'end', row: 2 }],
+      [ZoneName.HAND, [{ id: 11, pt: '2/2' }], { zone: ZoneName.TABLE, index: 'end', row: 0 }],
+      [ZoneName.HAND, [12], { zone: ZoneName.TABLE, index: 'end', row: 1 }],
+    ]);
   });
 
   it('acts on the selected cards of a zone view that include the clicked card', () => {

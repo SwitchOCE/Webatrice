@@ -20,6 +20,7 @@ import type {
   SeatMoveCard,
   SeatMoveDestination,
 } from '../../ui/PlayerBoard/playerBoard.types';
+import { moveSelectedCards } from '../../ui/PlayerBoard/selectionMoves';
 import type { CardMenuItem } from './cardContextMenu.model';
 import { buildHandOrZoneCardMenu } from './handCardMenu.model';
 
@@ -181,8 +182,8 @@ export function resolveHandOrZoneCardMenu(deps: HandOrZoneCardMenuDeps): CardMen
     deps.close();
   };
   const moveTargets = (to: SeatMoveDestination) => {
-    if (targetIds.length > 0) {
-      deps.moveCards?.(zone, targetIds, { reversed: false, ...to });
+    if (deps.moveCards) {
+      moveSelectedCards(deps.moveCards, zone, targets, to, deps.cardMeta);
     }
   };
   const selectInView = (ids: readonly string[]) => deps.setSelectedCardKeys(new Set(ids.map(viewKey)));

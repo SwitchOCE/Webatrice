@@ -230,14 +230,16 @@ describe('useSeatShortcutOperations', () => {
     battlefield.run('game.moveSelectedToLibraryTop');
     expect(vi.mocked(battlefield.zoneCommands.moveCards).mock.calls).toEqual([
       [ZoneName.TABLE, [10, 11], { zone: ZoneName.EXILE, reversed: false }],
-      [ZoneName.TABLE, [10, 11], { zone: ZoneName.DECK, reversed: false }],
+      [ZoneName.TABLE, [10, 11], { zone: ZoneName.DECK, reversed: false, shuffleMoved: true }],
     ]);
 
     const hand = setup({ selection: { zone: 'hand', ids: new Set(['4', '9']) } });
     hand.run('game.moveSelectedToBattlefield');
     hand.run('game.moveSelectedToGrave');
     expect(vi.mocked(hand.zoneCommands.moveCards).mock.calls).toEqual([
-      [ZoneName.HAND, [4, 9], { zone: ZoneName.TABLE, reversed: false }],
+      // Desktop cmMoveToTable (player_actions.cpp:1925-1950): one per card.
+      [ZoneName.HAND, [{ id: 4, pt: '3/3' }], { zone: ZoneName.TABLE, index: 'end', row: 0 }],
+      [ZoneName.HAND, [9], { zone: ZoneName.TABLE, index: 'end', row: 1 }],
       [ZoneName.HAND, [4, 9], { zone: ZoneName.GRAVE, reversed: false }],
     ]);
 
