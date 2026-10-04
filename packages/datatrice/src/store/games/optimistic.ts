@@ -7,7 +7,7 @@
  * `onError` callback that invokes `rollbackOptimistic` if the server
  * rejects.
  *
- * The listener middleware (`game.listeners.ts`) consults this
+ * The game listeners (`game.listeners.zones.ts`, `.cards.ts`) consult this
  * registry when the corresponding server event arrives — if a matching
  * pending op is present, the reducer dispatch is skipped for
  * non-idempotent state changes (specifically `cardMovedBetweenZones`,
