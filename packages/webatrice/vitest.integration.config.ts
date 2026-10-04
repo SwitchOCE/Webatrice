@@ -24,6 +24,9 @@ export default defineConfig({
     // hardcoded 60s worker-startup timeout intermittently as the integration
     // setup.ts cold-starts datatrice + sockatrice + protobuf per fork.
     pool: 'threads',
+    // The unit suite's heap flag is for its child processes; a worker
+    // thread refuses V8 flags and never starts.
+    execArgv: [],
     coverage: {
       ...viteConfig.test?.coverage,
       reportsDirectory: './coverage/integration',
