@@ -1,8 +1,5 @@
 import { createPortal } from 'react-dom';
-import { ZoneName } from '@cockatrice/sockatrice';
-import { ArrowColor, rgbaToCss } from '@app/types';
 
-import { buildArrowGeometry } from '../../arrows/GameArrowOverlay/arrowPath';
 import Battlefield from '../../battlefield/Battlefield/Battlefield';
 import BattlefieldCardMenu from '../../context-menus/SeatCardMenus/BattlefieldCardMenu';
 import HandCardMenu from '../../context-menus/SeatCardMenus/HandCardMenu';
@@ -14,6 +11,7 @@ import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../S
 import { SeatDragGhost } from '../SeatDragContext';
 import StackColumn from '../StackColumn/StackColumn';
 import type { PlayerCardViewModel } from './playerBoard.types';
+import PendingTargetArrows from './PendingTargetArrows';
 import { PlayerSeatProvider } from './PlayerSeatContext';
 import SeatDragGhostCards from './SeatDragGhostCards';
 import { usePlayerSeat, type PlayerSeatProps } from './usePlayerSeat';
@@ -43,18 +41,15 @@ function PlayerBoard(props: PlayerSeatProps) {
   const controller = usePlayerSeat(props);
   const {
     DRAW_ANIMATION_MS,
-    attachExtraSourceIds,
-    attachPending,
     boxRef,
-    drawArrowPending,
     flights,
     handOnTop,
     isActive,
     marquee,
     onPointerDownBox,
-    pendingArrowPointer,
     playerId,
     seatDrag,
+    seatPending,
   } = controller;
 
   return (
@@ -168,84 +163,7 @@ function PlayerBoard(props: PlayerSeatProps) {
           document.body,
         )}
 
-        {/* Menu-initiated arrow visuals — live arrow from the source card
-          to the cursor. Green for "Attach to card...", red for "Draw
-          arrow...". Ports Cockatrice's ArrowAttachItem / ArrowDragItem
-          mouse-grabbed visuals (arrow_item.cpp:177+, 288+). Uses the
-          exact same curved-leaf path helper the right-click-drag arrow
-          uses so the shape is 1:1. */}
-        {(attachPending || drawArrowPending) && pendingArrowPointer &&
-        (() => {
-          const color = attachPending ? ArrowColor.GREEN : ArrowColor.RED;
-          // Attach fires from every selected source (primary + extras
-          // snapshotted at start) so multi-attach shows one green arrow
-          // per source card, all converging on the pointer. Draw-arrow
-          // is always single-source.
-          const sourceIds: readonly number[] = attachPending
-            ? [attachPending.sourceCardId, ...attachExtraSourceIds]
-            : [drawArrowPending!.sourceCardId];
-          // Cockatrice's ArrowItem::paint uses alpha 150 while unlocked
-          // and 200 when snapped to a target. We don't do target-snap
-          // preview here (menu flows resolve on click), so always draw
-          // at 200 to read as "committed direction".
-          const fill = rgbaToCss({ ...color, a: 200 });
-          // Look each source card up by its data attributes so we don't
-          // have to plumb a ref out of the render loop.
-          type Geom = NonNullable<ReturnType<typeof buildArrowGeometry>>;
-          const geoms: { sourceId: number; geom: Geom }[] = [];
-          for (const sourceId of sourceIds) {
-            const cardIdSel = CSS.escape(String(sourceId));
-            const ownerSel = CSS.escape(String(playerId));
-            const zoneSel = CSS.escape(ZoneName.TABLE);
-            const el = document.querySelector(
-              `[data-card-id="${cardIdSel}"][data-card-owner="${ownerSel}"][data-card-zone="${zoneSel}"]`,
-            ) as HTMLElement | null;
-            if (!el) {
-              continue;
-            }
-            const r = el.getBoundingClientRect();
-            const sx = r.left + r.width / 2;
-            const sy = r.top + r.height / 2;
-            const geom = buildArrowGeometry(sx, sy, pendingArrowPointer.x, pendingArrowPointer.y);
-            if (!geom) {
-              continue;
-            }
-            geoms.push({ sourceId, geom });
-          }
-          if (geoms.length === 0) {
-            return null;
-          }
-          return createPortal(
-            <svg
-              style={{
-                position: 'fixed',
-                inset: 0,
-                width: '100vw',
-                height: '100vh',
-                pointerEvents: 'none',
-                zIndex: 200,
-                overflow: 'visible',
-              }}
-              aria-hidden
-            >
-              {geoms.map(({ sourceId, geom }) => (
-                <g
-                  key={sourceId}
-                  transform={`translate(${geom.originX} ${geom.originY}) rotate(${geom.angleDeg})`}
-                >
-                  <path
-                    d={geom.d}
-                    fill={fill}
-                    stroke="black"
-                    strokeWidth={1}
-                    strokeLinejoin="round"
-                  />
-                </g>
-              ))}
-            </svg>,
-            document.body,
-          );
-        })()}
+        {seatPending && <PendingTargetArrows playerId={playerId} pending={seatPending} />}
 
         <BattlefieldCardMenu />
 
