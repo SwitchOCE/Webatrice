@@ -9,12 +9,16 @@ import { GameDialogsProvider } from '../GameDialogsContext';
 import { SEAT_SHORTCUT_ACTIONS, SeatShortcutsProvider, createSeatShortcutRegistry } from '../SeatShortcutsContext';
 import type {
   BattlefieldCardViewModel,
+  CreateTokenRequest,
   PlayerCardCommands,
   PlayerCounterCommands,
+  PlayerCounterViewModel,
   PlayerTargetCommands,
   PlayerZoneCommands,
 } from './playerBoard.types';
-import { useSeatShortcutOperations, type UseSeatShortcutOperationsArgs } from './useSeatShortcutOperations';
+import { useBattlefieldCardOps } from './useBattlefieldCardOps';
+import { useSeatShortcutOperations } from './useSeatShortcutOperations';
+import type { LifeControl } from './useSeatPrompts';
 
 const bf = (id: number, extra: Partial<BattlefieldCardViewModel> = {}): BattlefieldCardViewModel => ({
   id: String(id),
@@ -47,50 +51,91 @@ function ports<T extends object>(): T {
 
 const selected = (...ids: number[]): SeatSelection => ({ zone: 'battlefield', ids: new Set(ids.map(String)) });
 
-function setup(args: Partial<UseSeatShortcutOperationsArgs> = {}) {
+interface SetupArgs {
+  isSelf?: boolean;
+  selection?: SeatSelection | null;
+  selectedCardKeys?: ReadonlySet<string>;
+  deckCount?: number;
+  manaCounters?: PlayerCounterViewModel['mana'];
+  lastToken?: CreateTokenRequest | null;
+}
+
+/** The seat's shortcuts over the real battlefield card ops and spy ports. */
+function setup({
+  isSelf = true,
+  selection = null,
+  selectedCardKeys = new Set(),
+  deckCount = 30,
+  manaCounters = { O: { id: 7, count: 0 } },
+  lastToken = null,
+}: SetupArgs = {}) {
   const registry = createSeatShortcutRegistry();
   const dialogs = { ...NOOP_GAME_DIALOGS_ACTIONS, handleRequestChooseMulligan: vi.fn() };
   const zoneCommands = ports<PlayerZoneCommands>();
   const cardCommands = ports<PlayerCardCommands>();
   const counterCommands = ports<PlayerCounterCommands>();
   const targetCommands = ports<PlayerTargetCommands>();
-  const props: UseSeatShortcutOperationsArgs = {
-    seatId: 1,
-    isSelf: true,
-    selection: null,
+  const lifeControl: LifeControl = { value: 20, onDelta: vi.fn(), onSet: vi.fn() };
+  const props = {
     setSelection: vi.fn(),
-    selectedCardKeys: new Set(),
-    battlefieldDisplayList: BOARD,
-    cardMetaByName: new Map([['Card 12', { typeLine: 'Creature', pt: '1/1' }]]),
-    deckCount: 30,
-    alwaysRevealTopCard: false,
-    alwaysLookAtTopCard: false,
-    manaCounters: { O: { id: 7, count: 0 } },
-    lifeControl: { value: 20, onDelta: vi.fn(), onSet: vi.fn() },
-    lastToken: null,
+    lifeControl,
     openLifePrompt: vi.fn(),
     openCounterPrompt: vi.fn(),
-    openAnnotationPrompt: vi.fn(),
-    openPTPrompt: vi.fn(),
     openViewLibraryCountPrompt: vi.fn(),
-    openCardCounterPrompt: vi.fn(),
     openCreateTokenDialog: vi.fn(),
     openMoveTopUntilDialog: vi.fn(),
-    setAttachPending: vi.fn(),
-    setAttachExtraSourceIds: vi.fn(),
-    setDrawArrowPending: vi.fn(),
-    zoneCommands,
-    cardCommands,
-    counterCommands,
-    targetCommands,
-    ...args,
+    openPTPrompt: vi.fn(),
+    startAttach: vi.fn(),
+    startArrow: vi.fn(),
   };
   const wrapper = ({ children }: { children: ReactNode }) => (
     <GameDialogsProvider value={dialogs as unknown as GameDialogs}>
       <SeatShortcutsProvider registry={registry}>{children}</SeatShortcutsProvider>
     </GameDialogsProvider>
   );
-  renderHook(() => useSeatShortcutOperations(props), { wrapper });
+  renderHook(() => {
+    const cardOps = useBattlefieldCardOps({
+      cards: BOARD,
+      selection,
+      setSelection: props.setSelection,
+      cardMetaByName: new Map([['Card 12', { typeLine: 'Creature', pt: '1/1' }]]),
+      deckCount,
+      lifeControl,
+      cardCommands,
+      counterCommands,
+      targetCommands,
+      zoneCommands,
+      prompts: {
+        openAnnotationPrompt: vi.fn(),
+        openPTPrompt: props.openPTPrompt,
+        openCardCounterPrompt: vi.fn(),
+        openMoveXFromTopPrompt: vi.fn(),
+      },
+      startAttach: props.startAttach,
+      startArrow: props.startArrow,
+    });
+    useSeatShortcutOperations({
+      seatId: 1,
+      isSelf,
+      selection,
+      selectedCardKeys,
+      deckCount,
+      alwaysRevealTopCard: false,
+      alwaysLookAtTopCard: false,
+      manaCounters,
+      lastToken,
+      openLifePrompt: props.openLifePrompt,
+      openCounterPrompt: props.openCounterPrompt,
+      openViewLibraryCountPrompt: props.openViewLibraryCountPrompt,
+      openCreateTokenDialog: props.openCreateTokenDialog,
+      openMoveTopUntilDialog: props.openMoveTopUntilDialog,
+      cardOps,
+      zoneCommands,
+      cardCommands,
+      counterCommands,
+      targetCommands,
+    });
+  }, { wrapper });
   return { run: registry.run, props, dialogs, zoneCommands, cardCommands, counterCommands, targetCommands };
 }
 
@@ -170,7 +215,7 @@ describe('useSeatShortcutOperations', () => {
       { cardId: 12, counterId: 0, value: 1 },
     ]);
     run('game.reduceLifeByPower');
-    expect(props.lifeControl!.onDelta).toHaveBeenCalledWith(-3);
+    expect(props.lifeControl.onDelta).toHaveBeenCalledWith(-3);
   });
 
   it('selects a row or column from the first selected card', () => {
@@ -184,9 +229,34 @@ describe('useSeatShortcutOperations', () => {
   it('starts the attach and draw-arrow picks from the selection', () => {
     const { run, props } = setup({ selection: selected(10, 11) });
     run('game.attachCard');
-    expect(props.setAttachPending).toHaveBeenCalledWith({ sourceCardId: 10, sourceCardName: 'Card 10' });
-    expect(props.setAttachExtraSourceIds).toHaveBeenCalledWith([11]);
+    expect(props.startAttach).toHaveBeenCalledWith([10, 11], 'Card 10');
     run('game.drawArrow');
-    expect(props.setDrawArrowPending).toHaveBeenCalledWith({ sourceCardId: 10, sourceCardName: 'Card 10', sourceZone: ZoneName.TABLE });
+    expect(props.startArrow).toHaveBeenCalledWith(10, 'Card 10');
+  });
+
+  it('runs the library and token actions only when they have something to act on', () => {
+    const empty = setup({ deckCount: 0, manaCounters: {}, lastToken: null });
+    (['game.moveTopUntil', 'game.viewTopCards', 'game.addStormCounter', 'game.setStormCounter', 'game.createAnotherToken'] as const)
+      .forEach((id) => empty.run(id));
+    expect(empty.props.openMoveTopUntilDialog).not.toHaveBeenCalled();
+    expect(empty.props.openViewLibraryCountPrompt).not.toHaveBeenCalled();
+    expect(empty.counterCommands.increment).not.toHaveBeenCalled();
+    expect(empty.props.openCounterPrompt).not.toHaveBeenCalled();
+    expect(empty.cardCommands.createToken).not.toHaveBeenCalled();
+
+    const token = { name: 'Soldier', color: 'w', pt: '1/1', annotation: '', destroyOnZoneChange: true, faceDown: false };
+    const full = setup({ lastToken: token });
+    full.run('game.moveTopUntil');
+    full.run('game.setStormCounter');
+    full.run('game.createAnotherToken');
+    expect(full.props.openMoveTopUntilDialog).toHaveBeenCalled();
+    expect(full.props.openCounterPrompt).toHaveBeenCalledWith({ counterId: 7, label: 'Other', currentValue: 0 });
+    expect(full.cardCommands.createToken).toHaveBeenCalledWith(token);
+  });
+
+  it('opens the P/T prompt on the selection, prefilled from its first card', () => {
+    const { run, props } = setup({ selection: selected(12, 10) });
+    run('game.setCardPT');
+    expect(props.openPTPrompt).toHaveBeenCalledWith({ targetIds: [10, 12], cardName: 'Card 10', current: '3/3' });
   });
 });
