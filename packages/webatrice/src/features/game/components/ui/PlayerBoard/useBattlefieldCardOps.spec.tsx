@@ -153,6 +153,12 @@ describe('useBattlefieldCardOps', () => {
     expect(optimistic.props.startArrow).not.toHaveBeenCalled();
   });
 
+  it('anchors a shortcut attach on the first selected card with a server id', () => {
+    const { ops, props } = setup({ cards: [bf('mock-1'), ...BOARD], selection: battlefield('mock-1', '11', '12') });
+    ops.forSelection()!.attach();
+    expect(props.startAttach).toHaveBeenCalledWith([11, 12], 'Card 11');
+  });
+
   it('unattaches, clones and lowers life over every target', () => {
     const { ops, props } = setup();
     const selected = ops.forSelection()!;
