@@ -1,11 +1,13 @@
 import { expect, test } from '../fixtures/test';
 import { E2E_HOST_LABEL, registerAndReachRooms } from '../fixtures/flows';
+import { LoginPage } from '../pages';
 
-// Settings › General "Startup tab": a fresh login lands on the chosen page, while a
-// reload returns the user to the page they were on. The app routes through a
-// MemoryRouter (AppShell), so the page is read from the UI, not from the URL.
+// Settings › General "Startup tab". Desktop applies it once per launch: here, the first login
+// of a page load that is not a reload. Signing in again and reloading keep the page the user
+// was on. The app routes through a MemoryRouter (AppShell), so the page is read from the UI,
+// not from the URL.
 
-test('a fresh login opens the startup tab; a reload keeps the current page', async ({ page }) => {
+test('the startup tab opens once per launch; signing in again and reloading keep the page', async ({ page, context }) => {
   test.setTimeout(120_000);
   const { login, rooms, user } = await registerAndReachRooms(page);
   const userMenu = page.getByRole('button', { name: user.username });
@@ -19,21 +21,29 @@ test('a fresh login opens the startup tab; a reload keeps the current page', asy
   // The room row shows only for "Server Room".
   await expect(page.getByRole('textbox', { name: /^room$/i })).toBeHidden();
 
-  // Sign out from the lobby and back in: the login lands on Game Replays.
+  // Sign out from the lobby and back in: the second login of the page load stays in the lobby.
   await rooms.waitForRoomList();
   await userMenu.click();
   await page.getByRole('menuitem', { name: /sign out/i }).click();
   await expect(login.hostPicker).toBeVisible();
   await login.login(user.username, user.password);
-  await expect(replaysPage).toBeVisible({ timeout: 30_000 });
+  await expect(lobbyRooms).toBeVisible({ timeout: 30_000 });
+  await expect(replaysPage).toBeHidden();
 
-  // Back to the lobby and reload: the login the reload starts with returns to the lobby,
-  // not to the startup tab.
-  await rooms.waitForRoomList();
+  // Reload: the login the reload starts with returns to the lobby.
   await page.reload();
   await expect(login.hostPicker).toBeVisible();
   await login.selectHost(E2E_HOST_LABEL);
   await login.login(user.username, user.password);
   await expect(lobbyRooms).toBeVisible({ timeout: 30_000 });
   await expect(replaysPage).toBeHidden();
+
+  // A new launch: a fresh page shares the storage that still names the lobby as the last
+  // route, yet its first login opens the startup tab.
+  const launch = await context.newPage();
+  const launchLogin = new LoginPage(launch);
+  await launchLogin.goto();
+  await launchLogin.selectHost(E2E_HOST_LABEL);
+  await launchLogin.login(user.username, user.password);
+  await expect(launch.getByRole('region', { name: /local replays/i })).toBeVisible({ timeout: 30_000 });
 });
