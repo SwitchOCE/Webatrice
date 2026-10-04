@@ -2,3 +2,4 @@
 - 03:35Z baseline reproduced: vmThreads --maxWorkers=2 OOM-killed at 13.3 GB after 380 s → trying threads/forks pools + per-file heap
 - 03:46Z forks w=2: 468/468 files, 3789 tests pass, peak 1434 MB, 668 s (import 493 s) → vmThreads w=1 per-file heap log
 - 04:06Z root cause found: vitest 4 vmThreads runs a batch of files in ONE vm context; node_modules (RTL, react, MUI) are shared across the batch, so RTL's import-time afterEach(cleanup) only binds to the first file → later files never unmount → DOM/roots accumulate. Fix: explicit cleanup() in setupTests afterEach → measuring full suite
+- 04:32Z cleanup() alone still OOMs (13.3 GB). Heap snapshots: one JSDOM per vmThreads worker; node_modules + jsdom shared across files → cross-file contamination (w=1 subsets fail 63 tests on base). threads pool w=2: 3789/3789 pass, 1246 MB, 659 s → measuring base vmThreads speed via 2 shards
