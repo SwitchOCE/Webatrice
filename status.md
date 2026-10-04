@@ -1,2 +1,3 @@
 - 02:15Z started w17c; read brief+task → read spec §0/§11/§14
 - 02:39Z commit 1 (playing area/move selected/view/hand) pushed a237841 → commit 2 (move top/bottom/gameplay, library ops seam)
+- 03:07Z commit 2 (move top/bottom/gameplay + useLibraryOps) pushed 4f7195b → commit 3 (card/player counters, P/T, phases)
