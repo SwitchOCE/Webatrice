@@ -150,3 +150,7 @@ The group, sort and pile choices are pinned by `ZoneViewPanel.spec`. As of 25b t
 | M24 | header drag starts from a button | killed | 2 failing: ZoneViewPanel.spec.tsx, useFloatingPanelGeometry.spec.ts |
 
 24/24 killed (rv19: 20/24).
+
+## Restack notes (wR4a)
+
+Branch `claude/restack-r2-zone-view-family`, tip `f8f5713`, 13 commits on 25b. 17a's read-only reveal menu (Hide, Clone, Select All, View related cards), window-local hide/selection and keyboard select move into `IncomingRevealPanel`; `ZoneCardCell` gains `cardOwner` (R1's `data-card-owner`/`data-card-zone`) and `interaction` props. From `fix(game): translate the zone views' and the reveal's titles whole` on, 28's ReportQueue spec bundle uses ICU `{status}` (the test i18n now formats with ICU), and f17's zone-view Tab spec names the view by its key.

@@ -163,3 +163,7 @@ Tip `5023cfa` on `claude/restack-17b-game-menus`. 17b's own 27 commits were reba
     - Result: **78 passed, 0 failed, 12 skipped (the 3.1-only specs), 15.5 min.**
     - The run was at `a065b30`. `5023cfa` differs from it only in `.github/instructions/webatrice.instructions.md` (17a's doc commit `fc80478`, rebased under).
   - Sockatrice e2e: 4 files / 5 tests pass.
+
+## Restack notes (wR4a)
+
+Replayed on fx16-folded 16 (no conflicts); tip `0b80cec`. The per-commit typecheck found two red commits from f17: `docs(game): say where the play-to-stack preference enters playCardMove` also deleted `features/game/hooks/useMessageMacros.ts` while its readers still imported it. The deletion now lives in `refactor(game): read message macros from @app/hooks and fix the Say comment`, which moves the readers; the tip tree is unchanged and every commit typechecks.

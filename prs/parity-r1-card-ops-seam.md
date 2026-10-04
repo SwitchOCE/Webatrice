@@ -142,3 +142,7 @@ New commits on top of 2f6e5b6 (the task asked for no history rewrite):
 - **Nits.** All applied (`f6ef503`, `3086532`): the ref is set in the setters and resolve returns false without a port (2 specs); `handlePlayerClick` deleted; `targets` removed and `PrintedPT` made private, with the doc reworded; `startTableArrow` renamed and the comment fixed; isSelf comment added; stale instructions and spec text updated; settings read one way.
 
 API changes, for w17c: `PendingTargetPicker.pointer` is now a `PendingPointerStore`, read with `usePendingPointer`. The `usePlayerSeat` controller drops `pendingArrowPointer` and `drawArrowPending` and adds `seatPending`. The controller's `startAttach` gains an optional third `sourceZone` argument. `useBattlefieldMenuItems` takes `incrementAllCardCounters` in place of `selection`. `BattlefieldCardOps.targets` is removed. `useGameArrowInteractions` no longer returns `handlePlayerClick`.
+
+## Restack notes (wR4a)
+
+Branch `claude/restack-r1-card-ops-seam`, tip `3f4840e`, 24 commits on 25a, replayed from `41f0d47` onto f17's 17b line. Conflicts: `Game.tsx` keeps f17's `data-game-board` on R1's re-indented board; `usePlayerSeat` takes `EMPTY_CARD_KEYS` from `GameSelectionContext` (f17) and keeps `NO_CARD_IDS`. f17's play-path commits apply on top of R1's single `playCardMove` / `playedCardFields` helper with no duplicate path left.

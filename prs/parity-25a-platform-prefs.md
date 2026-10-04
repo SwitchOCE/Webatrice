@@ -84,3 +84,14 @@ New or extended specs:
 - Desktop's startup destinations with no Webatrice page (Home, visual deck storage/editor, a blank deck editor) can be offered as those pages appear.
 - A card completer (`[[Card Name]]`, desktop's second completer on the same input) is a natural next step now that the chat inputs have a completer; it needs the card database, so it belongs with the card PRs.
 - `MentionCompleter`'s popup moves to PR 26's shared listbox.
+
+## Restack notes (wR4a)
+
+Branch `claude/restack-25a-platform-prefs`, tip `40aa071`, 14 commits on 28 (`4626393`); final 25a per M1 (`13351fd..ba53e13`).
+
+History edits (rv21): `f70f45a`, `734ecf0`, `de1dd81` and `f437ae5`'s e2e hunk are squashed into `feat(settings): startup tab, missing-feature notice and replay rewind buffer`; the `CommittedInput` change was already in that commit's tree, so only its paragraph moved out of the completer commit's message; `f437ae5` keeps only its changeset line; `bf310a1` is dropped (its spec file is replaced, below).
+
+Conflicts:
+- **Chat inputs:** the completer wraps 28's translated, labelled inputs (26's `border-control`). `fix(chat): drop the private-chat completer …` no longer adds `inputLabel` keys (28's labels already name the inputs); it drops the private completer and translates the game input label. Chat specs expect a `combobox` from the completer commit on.
+- **Deck tabs (`c1ab7e8`) onto 09's split editor:** `useDeckAutosave` gains `isModified`, `saveNow()` and `discardChanges()`, passed on by `useDeckEditor`; the failure-spec cases move to `useDeckAutosave.spec`. `OpenDeckButton` lives in `components/editor/`, uses `deckTree`'s `flattenFolder` (no `deckStorage.ts`), sits in `DeckSidebar`'s new `openDeck` slot, and is offered for stored decks only; `isBlank` uses `isBlankDeck`. TopBar deck-tab specs find tabs by route (27's links, 28's `TopBar.tab.deck`), fixed from the deck-tab commit on.
+- **Commander Spellbook consent (`a91c8c4`) merged into 18's `bracketConsent` seam:** the setting is the store (`useBracketLookupsMode` / `writeBracketLookupsMode`); 18's inline prompt offers desktop's Enable / Automatic / Disable; Enabled shows "Estimate bracket"; Disabled leaves the section out; "Turn off online lookups" goes back to asking. 25a's modal and old-path `DeckBreakdown` gating/spec are not carried.

@@ -152,3 +152,7 @@ because spec files sit outside the typecheck project. `36ae794` restores the imp
   sequence, so it needs its own PR.
 - **Three player-name fallbacks** (`playerLeft`'s `'Unknown player'` among them). These belong to the messageLog
   descriptor row.
+
+## Restack notes (wR4a)
+
+Branch `claude/restack-r6-game-listeners`, tip `3a46eb6`, 7 commits on R2. 17b's reverse-turn actor fix moves into `game.listeners.phases.ts`; the characterization stream sends the actor from its first commit. f25b's replay time base (`game.reducer.primitives`) is untouched by the split. A now-unused `ZoneNameValue` import is dropped where the conflict was resolved.

@@ -137,3 +137,7 @@ Seven commits on top of `b2158d5`, parent still `dc77ebd`. Tip is `c8f8c37` on `
 | Unit | sockatrice 782 (39 files), datatrice 1200 (29), webatrice 1657 (213) |
 | Integration | sockatrice 168 (19), datatrice 137 (9), webatrice 169 passed + 2 skipped (40 files; the skips are upstream) |
 | Webatrice e2e, chromium+firefox+webkit (Servatrice 3.0.0, Playwright 1.60 container) | 36/39 on the full run (11.3 min). The 3 failures were `staff-tools` (one per browser): the container had no `docker compose` for that spec's MySQL seeding. Re-run with the docker CLI and compose plugin mounted: 6/6. `lobby-sideboard-force-start` passed on all three browsers. |
+
+## Restack notes (wR4a)
+
+fx16's `a472e86` (`test(game): wait for the link dialog to close before clicking Back`) is folded in as PR 16's last commit: `claude/restack-16-game-lobby` is now `a472e86`. The copies in w25b (`af3cfc1`) and at the end of 28 (`bcced39`) are dropped. 17a, 17b, 26, 27 and 28 were replayed on it with no conflicts.

@@ -152,3 +152,12 @@ No history rewrite (task f25b): every finding is a new commit on af3cfc1.
 | nit: commit hygiene (squash `verticalHandLayout.ts` churn, split the SETTINGS_VERSION bump, retitle db87cbe) | **not applied**: task f25b forbids rewriting history (R2 and R6 are built on af3cfc1 and will be replayed onto this tip). It can be done at the final restack or with a squash-merge. |
 | nit: PR file's Arrows and Game-time bullets | fixed: `delete_in_phase` is unset with the option off, and the game time prints `hh:mm:ss` |
 
+## Restack notes (wR4a)
+
+Branch `claude/restack-25b-board-prefs`, tip `4f035da`, 40 commits on R1 (`af3cfc1` and `fd36e74` dropped).
+- **Settings:** one number control: 25a's `NumberControl` (`unitKey`) commits through 25b's `clampWhole` and gains 25b's `pushes`; `suffixKey` rows use `unitKey`; the duplicate CSS goes.
+- **Layout:** `useGameBoardLayout(game, rotation, minPlayersForMultiColumn)` keeps 17b's rotation and 25b's preference.
+- **Click to play:** `useSeatClickToPlay` plays through R1's `playCardMove` (printed P/T, cipt); the battlefield click keeps desktop `TableZone::toggleTapped`. HandZone keeps R1/17a's arrow attributes and card menu on 25b's `renderOwnCard`.
+- **Arrows:** `deleteInPhase` is sent from R1's single `createArrow` port; R1's specs expect it.
+- **Selection count:** 17a's `TallyOverlay` count is gated by "Show total selection count"; 25b's `TotalSelectionCount` is dropped, and so is `fd36e74` (17a's review keeps the count silent).
+- "Annotate card text on tokens" also covers 17a's hand-card token items; `keepFocusOnBoardPress` runs before R1's board mouse-down; `BoardMotionConfig` wraps the re-indented provider tree.
