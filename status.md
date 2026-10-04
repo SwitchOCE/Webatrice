@@ -1,1 +1,2 @@
 - 00:54Z started; base af3cfc1, branch claude/parity-r6-game-listeners → npm ci + read game.listeners.ts
+- 00:59Z characterization spec pushed (db9b1cd, 18 tests) → extract pure planners + cardMoved helpers
