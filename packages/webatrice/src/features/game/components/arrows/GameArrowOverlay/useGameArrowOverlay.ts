@@ -99,8 +99,15 @@ function pointOnCircleEdge(
   return { x: cx + (dx * r) / d, y: cy + (dy * r) / d };
 }
 
+/** An arrow's identity: desktop keys arrows by their creator and id (arrow_registry.h). */
+export function arrowKey(arrow: Pick<ResolvedArrow, 'ownerPlayerId' | 'arrowId'>): string {
+  return `${arrow.ownerPlayerId}:${arrow.arrowId}`;
+}
+
 export interface GameArrowOverlay {
   arrows: ResolvedArrow[];
+  /** Every arrow in the game's state (arrowKey), drawn or not; null until the overlay is measured. */
+  gameArrowKeys: ReadonlySet<string> | null;
   width: number;
   height: number;
   handleArrowClick: (arrowId: number) => void;
@@ -243,5 +250,19 @@ export function useGameArrowOverlay({
   const width = containerRect?.width ?? 0;
   const height = containerRect?.height ?? 0;
 
-  return { arrows, width, height, handleArrowClick };
+  const measured = !!players && !!registry && !!containerRect;
+  const gameArrowKeys = useMemo(() => {
+    if (!measured) {
+      return null;
+    }
+    const keys = new Set<string>();
+    for (const player of Object.values(players) as PlayerEntry[]) {
+      for (const a of Object.values(player.arrows) as ServerInfo_Arrow[]) {
+        keys.add(arrowKey({ ownerPlayerId: player.properties.playerId, arrowId: a.id }));
+      }
+    }
+    return keys;
+  }, [measured, players]);
+
+  return { arrows, gameArrowKeys, width, height, handleArrowClick };
 }
