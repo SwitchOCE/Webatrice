@@ -1,2 +1,3 @@
 - 00:54Z started rv17 → reading PR 25b
 - 00:54Z PR read, worktree /tmp/pr25b ready → fan-out review (parity/arch/anim/perf)
+- 01:11Z review written (1 major, 19 minor, 10 nit; ready after fixes) → done
