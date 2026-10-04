@@ -1,1 +1,2 @@
 - 03:10Z started vr6, checked out 115f1e9 → npm ci
+- 03:15Z npm ci ok; gate: typecheck/lint/integration green, unit had 1 red (missing makeArrow import) → fixed+pushed; next mutation probes
