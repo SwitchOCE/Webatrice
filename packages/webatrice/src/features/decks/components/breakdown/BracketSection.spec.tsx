@@ -1,7 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
-import { BRACKET_LOOKUPS_STORAGE_KEY, writeBracketLookupsAllowed } from '../../bracketConsent';
+import { getSettings, settingsStore } from '@app/hooks';
+import { CommanderSpellbookIntegration } from '@app/types';
+
+import { writeBracketLookupsMode } from '../../bracketConsent';
 import { useBracketAssessment } from '../../hooks/useBracketAssessment';
+import type { DeckCard } from '../../types';
 import { BracketSection } from './BracketSection';
 
 vi.mock('../../hooks/useBracketAssessment', () => ({ useBracketAssessment: vi.fn() }));
@@ -14,35 +18,60 @@ const signals = {
   lateCombos: [],
 };
 
+const lookupsAllowed = () => vi.mocked(useBracketAssessment).mock.lastCall?.[3];
+
+beforeEach(async () => {
+  settingsStore.reset();
+  await getSettings();
+});
+
 afterEach(() => {
-  window.localStorage.clear();
+  settingsStore.reset();
 });
 
 describe('BracketSection', () => {
-  it('asks before any third-party lookup, and remembers the opt-in', () => {
+  it('asks before any third-party lookup, with desktop\'s three answers', async () => {
     vi.mocked(useBracketAssessment).mockReturnValue({ status: 'consentRequired', retry: vi.fn() });
     render(<BracketSection cards={[]} />);
 
     expect(screen.getByText('DeckBracket.consent.prompt')).toBeInTheDocument();
-    expect(vi.mocked(useBracketAssessment).mock.lastCall?.[3]).toBe(false);
+    expect(screen.getByRole('button', { name: 'DeckBracket.consent.enable' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'DeckBracket.consent.disable' })).toBeInTheDocument();
+    expect(lookupsAllowed()).toBe(false);
 
-    fireEvent.click(screen.getByRole('button', { name: /DeckBracket\.consent\.allow/ }));
-    expect(window.localStorage.getItem(BRACKET_LOOKUPS_STORAGE_KEY)).toBe('true');
-    expect(vi.mocked(useBracketAssessment).mock.lastCall?.[3]).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'DeckBracket.consent.automatic' }));
+    await waitFor(() => expect(lookupsAllowed()).toBe(true));
+    expect((await getSettings()).commanderSpellbookIntegration).toBe(CommanderSpellbookIntegration.Automatic);
   });
 
-  it('lets the user turn the lookups off again', () => {
-    writeBracketLookupsAllowed(true);
+  it('estimates on request when Enabled, for the deck as it is then', async () => {
+    await act(() => writeBracketLookupsMode(CommanderSpellbookIntegration.Enabled));
+    vi.mocked(useBracketAssessment).mockReturnValue({ status: 'consentRequired', retry: vi.fn() });
+    const cards: DeckCard[] = [{ name: 'Sol Ring', quantity: 1, category: 'main', lookupSource: 'scryfall' }];
+    const { rerender } = render(<BracketSection cards={cards} />);
+    expect(screen.queryByText('DeckBracket.consent.prompt')).not.toBeInTheDocument();
+    expect(lookupsAllowed()).toBe(false);
+
+    fireEvent.click(screen.getByRole('button', { name: 'DeckBracket.estimate' }));
+    expect(lookupsAllowed()).toBe(true);
+
+    rerender(<BracketSection cards={[...cards, { name: 'Mana Crypt', quantity: 1, category: 'main', lookupSource: 'scryfall' }]} />);
+    expect(lookupsAllowed()).toBe(false);
+  });
+
+  it('lets the user turn the lookups off again, back to asking first', async () => {
+    await act(() => writeBracketLookupsMode(CommanderSpellbookIntegration.Automatic));
     vi.mocked(useBracketAssessment).mockReturnValue({
       status: 'complete',
       report: { level: 2, signals },
       retry: vi.fn(),
     });
     render(<BracketSection cards={[]} />);
+    expect(lookupsAllowed()).toBe(true);
 
     fireEvent.click(screen.getByRole('button', { name: 'DeckBracket.consent.revoke' }));
-    expect(window.localStorage.getItem(BRACKET_LOOKUPS_STORAGE_KEY)).toBe('false');
-    expect(vi.mocked(useBracketAssessment).mock.lastCall?.[3]).toBe(false);
+    await waitFor(() => expect(lookupsAllowed()).toBe(false));
+    expect((await getSettings()).commanderSpellbookIntegration).toBe(CommanderSpellbookIntegration.Unprompted);
   });
 
   it('shows progress while assessing', () => {

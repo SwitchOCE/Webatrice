@@ -1,58 +1,46 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 
-import {
-  BRACKET_LOOKUPS_STORAGE_KEY,
-  readBracketLookupsAllowed,
-  useBracketLookupsConsent,
-  writeBracketLookupsAllowed,
-} from './bracketConsent';
+import { getSettings, settingsStore } from '@app/hooks';
+import { CommanderSpellbookIntegration } from '@app/types';
+
+import { lookupsAllowedFor, useBracketLookupsMode, writeBracketLookupsMode } from './bracketConsent';
+
+beforeEach(async () => {
+  settingsStore.reset();
+  await getSettings();
+});
 
 afterEach(() => {
-  vi.restoreAllMocks();
-  window.localStorage.clear();
+  settingsStore.reset();
 });
 
 describe('bracket lookups consent', () => {
-  it('is off until the user opts in', () => {
-    expect(readBracketLookupsAllowed()).toBe(false);
+  it('asks first by default, as desktop does', () => {
+    const { result } = renderHook(() => useBracketLookupsMode());
+    expect(result.current[0]).toBe(CommanderSpellbookIntegration.Unprompted);
   });
 
-  it('ignores a value it did not write', () => {
-    window.localStorage.setItem(BRACKET_LOOKUPS_STORAGE_KEY, 'yes');
-    expect(readBracketLookupsAllowed()).toBe(false);
+  it('allows lookups only when Automatic, or Enabled and asked for', () => {
+    expect(lookupsAllowedFor(CommanderSpellbookIntegration.Unprompted, true)).toBe(false);
+    expect(lookupsAllowedFor(CommanderSpellbookIntegration.Disabled, true)).toBe(false);
+    expect(lookupsAllowedFor(CommanderSpellbookIntegration.Enabled, false)).toBe(false);
+    expect(lookupsAllowedFor(CommanderSpellbookIntegration.Enabled, true)).toBe(true);
+    expect(lookupsAllowedFor(CommanderSpellbookIntegration.Automatic, false)).toBe(true);
   });
 
-  it('remembers the choice in localStorage', () => {
-    writeBracketLookupsAllowed(true);
-    expect(window.localStorage.getItem(BRACKET_LOOKUPS_STORAGE_KEY)).toBe('true');
-    expect(readBracketLookupsAllowed()).toBe(true);
-
-    writeBracketLookupsAllowed(false);
-    expect(readBracketLookupsAllowed()).toBe(false);
+  it('remembers the choice on the settings row', async () => {
+    await writeBracketLookupsMode(CommanderSpellbookIntegration.Automatic);
+    expect((await getSettings()).commanderSpellbookIntegration).toBe(CommanderSpellbookIntegration.Automatic);
   });
 
-  it('keeps the choice for the session when storage is unavailable', () => {
-    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
-      throw new Error('QuotaExceededError');
-    });
-    writeBracketLookupsAllowed(true);
-    expect(readBracketLookupsAllowed()).toBe(true);
+  it('updates every hook user when one of them changes it', async () => {
+    const first = renderHook(() => useBracketLookupsMode());
+    const second = renderHook(() => useBracketLookupsMode());
 
-    vi.restoreAllMocks();
-    writeBracketLookupsAllowed(false);
-    expect(readBracketLookupsAllowed()).toBe(false);
-  });
+    act(() => first.result.current[1](CommanderSpellbookIntegration.Enabled));
+    await waitFor(() => expect(second.result.current[0]).toBe(CommanderSpellbookIntegration.Enabled));
 
-  it('updates every hook user when one of them changes it', () => {
-    const first = renderHook(() => useBracketLookupsConsent());
-    const second = renderHook(() => useBracketLookupsConsent());
-    expect(second.result.current[0]).toBe(false);
-
-    act(() => first.result.current[1](true));
-    expect(first.result.current[0]).toBe(true);
-    expect(second.result.current[0]).toBe(true);
-
-    act(() => second.result.current[1](false));
-    expect(first.result.current[0]).toBe(false);
+    act(() => second.result.current[1](CommanderSpellbookIntegration.Disabled));
+    await waitFor(() => expect(first.result.current[0]).toBe(CommanderSpellbookIntegration.Disabled));
   });
 });

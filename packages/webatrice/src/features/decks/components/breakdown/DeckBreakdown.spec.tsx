@@ -1,5 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 
+import { getSettings, settingsStore } from '@app/hooks';
+import { CommanderSpellbookIntegration } from '@app/types';
+
+import { writeBracketLookupsMode } from '../../bracketConsent';
 import type { DeckCard } from '../../types';
 import { DeckBreakdown } from './DeckBreakdown';
 
@@ -36,5 +40,17 @@ describe('DeckBreakdown', () => {
     rerender(<DeckBreakdown cards={cards} format="paupercommander" />);
     expect(screen.getByText('Bracket estimate')).toBeInTheDocument();
     expect(screen.getByText('bracket section')).toBeInTheDocument();
+  });
+
+  it('leaves the bracket estimate out when Commander Spellbook is disabled', async () => {
+    settingsStore.reset();
+    await getSettings();
+    await act(() => writeBracketLookupsMode(CommanderSpellbookIntegration.Disabled));
+
+    render(<DeckBreakdown cards={cards} format="commander" />);
+
+    expect(screen.queryByText('Bracket estimate')).toBeNull();
+    expect(screen.queryByText('bracket section')).toBeNull();
+    settingsStore.reset();
   });
 });
