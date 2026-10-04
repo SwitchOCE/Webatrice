@@ -1,9 +1,9 @@
-import type { RefObject } from 'react';
+import type { KeyboardEvent, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Archive, Crown, Info, Layers, Minus, PackageOpen, Plus, Trash2 } from 'lucide-react';
 
 import { Menu, MenuItem, MenuSeparator, type MenuAnchor } from '@app/components';
-import { useMenuShortcut } from '@app/feature-widgets/shortcuts';
+import { matchesEvent, useMenuShortcut, useResolvedBinding } from '@app/feature-widgets/shortcuts';
 import type { DeckCategory } from '@app/types';
 
 import type { DeckCard } from '../../types';
@@ -37,6 +37,7 @@ export interface DeckRowActionsMenuProps {
  * returns focus to the row. Opened from the row's chevron, a right-click,
  * Shift+F10 or the Menu key. Adding or removing a copy keeps it open, as the
  * old inline +/− did; removing the last copy removes the row and closes it.
+ * The keys those two entries advertise work while the menu is open too.
  */
 export function DeckRowActionsMenu({
   card,
@@ -62,6 +63,23 @@ export function DeckRowActionsMenu({
   const isSideboard = card.category === 'sideboard';
   const addShortcut = menuShortcut('deck.addCard');
   const removeShortcut = menuShortcut('deck.removeCard');
+  const addSequences = useResolvedBinding('deck.addCard');
+  const removeSequences = useResolvedBinding('deck.removeCard');
+
+  // One-key bindings (= and -) would otherwise be type-ahead inside the menu.
+  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const matches = (sequences: readonly string[]) => sequences.some((sequence) => matchesEvent(sequence, event.nativeEvent));
+    if (matches(addSequences)) {
+      event.preventDefault();
+      onInc();
+    } else if (matches(removeSequences)) {
+      event.preventDefault();
+      onDec();
+      if (card.quantity <= 1) {
+        onClose();
+      }
+    }
+  };
 
   return (
     <Menu
@@ -70,6 +88,7 @@ export function DeckRowActionsMenu({
       onClose={onClose}
       triggerRef={triggerRef}
       className="w-[220px]"
+      onKeyDown={onKeyDown}
     >
       <div className="px-3 py-1.5 flex items-center justify-between text-xs" aria-hidden>
         <span className="text-text-secondary">{t('DeckEditor.rowActions.quantity')}</span>
