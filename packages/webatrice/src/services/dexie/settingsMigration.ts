@@ -37,10 +37,16 @@ const MIGRATIONS: Record<number, (row: SettingRow) => void> = {
   // v4: the board preferences (hand and table layout, card clicks, arrows, selection counts,
   // animations, card rendering). Every one is new, so the closing fillPreferenceDefaults gives
   // each its desktop default. The one exception: a row whose tap animation is already off
-  // belongs to someone who chose their animations, so the system's reduced-motion setting no
-  // longer decides for them.
+  // belongs to someone who turned animation off. That counts as their choice, and it covers the
+  // three animations new in v4 as well, so they start off rather than at desktop's "on". Anyone
+  // else has made no choice, and the system's reduced-motion setting keeps deciding.
   4: (row) => {
     row.animationsChosen = row.tapAnimation === false;
+    if (row.animationsChosen) {
+      row.arrowDrawAnimation = false;
+      row.lifeCounterAnimations = false;
+      row.battlefieldFlash = false;
+    }
   },
 };
 

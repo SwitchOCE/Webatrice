@@ -114,13 +114,25 @@ describe('v2: theme palette and language', () => {
     expect(PREFERENCE_DEFAULTS.themeMode).toBe(ThemeMode.System);
   });
 
-  describe('v3: animations', () => {
-    it('counts a tap animation already turned off as an animation choice', () => {
-      expect(migrateSetting({ user: '*app', version: 2, tapAnimation: false }).animationsChosen).toBe(true);
+  describe('v4: animations', () => {
+    it('keeps animation off for a user who had turned the tap animation off, new animations included', () => {
+      expect(migrateSetting({ user: '*app', version: 2, tapAnimation: false })).toMatchObject({
+        animationsChosen: true,
+        tapAnimation: false,
+        arrowDrawAnimation: false,
+        lifeCounterAnimations: false,
+        battlefieldFlash: false,
+      });
     });
 
-    it('lets the system\'s reduced-motion setting decide for everyone else', () => {
-      expect(migrateSetting({ user: '*app', version: 2, tapAnimation: true }).animationsChosen).toBe(false);
+    it('lets the system\'s reduced-motion setting decide for a user who had the tap animation on', () => {
+      expect(migrateSetting({ user: '*app', version: 2, tapAnimation: true })).toMatchObject({
+        animationsChosen: false,
+        tapAnimation: true,
+        arrowDrawAnimation: true,
+        lifeCounterAnimations: true,
+        battlefieldFlash: true,
+      });
       expect(migrateSetting({ user: '*app' }).animationsChosen).toBe(false);
     });
 
@@ -154,13 +166,11 @@ describe('playmat migration', () => {
   });
 });
 
-describe('v4: animation choices', () => {
-  it('treats a row with the tap animation off as having chosen its animations', () => {
-    expect(migrateSetting({ user: '*app', version: 3, tapAnimation: false }).animationsChosen).toBe(true);
-  });
-
-  it('leaves a row with the tap animation on to follow the system reduced-motion setting', () => {
-    expect(migrateSetting({ user: '*app', version: 3, tapAnimation: true }).animationsChosen).toBe(false);
+describe('v4: animation choices from a v3 row', () => {
+  it('applies to a row the playmat step already brought to v3', () => {
+    expect(migrateSetting({ user: '*app', version: 3, tapAnimation: false })).toMatchObject({
+      animationsChosen: true, arrowDrawAnimation: false, lifeCounterAnimations: false, battlefieldFlash: false,
+    });
   });
 
   it('does not rerun on a current row', () => {
