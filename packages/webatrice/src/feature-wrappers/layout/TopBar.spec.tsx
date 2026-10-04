@@ -15,11 +15,10 @@ import {
   connectedState, connectedWithRoomsState, createMockWebClient, disconnectedState, makeUser, renderWithProviders,
 } from '../../__test-utils__';
 import { RouteEnum } from '@app/types';
-import { closeReplay, getOpenedReplay, getOpenedReplays, openReplay } from '@app/services';
+import { closeReplay, getOpenedReplay, getOpenedReplays, loadPersistedLastRoute, openReplay } from '@app/services';
 import { buildReplay, sayContainer } from '../../services/replay/__mocks__/fixtures';
 
 import { getSettings, settingsStore } from '../../hooks/useSettings';
-import { loadPersistedLastRoute } from './index';
 import TopBar from './TopBar';
 
 const TABS_KEY = 'webatrice.stickyTabs';
