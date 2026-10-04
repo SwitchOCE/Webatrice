@@ -36,6 +36,10 @@ export default tseslint.config(
   // everywhere. Other Sockatrice exports are unrestricted. Integration
   // tests are exempt. Datatrice's WebClientProvider is the sole
   // construction site, and it lives outside this repo.
+  //
+  // The `@mui/material` root is restricted for load cost: each unit test
+  // file gets a fresh module graph, so one root import anywhere under a
+  // barrel loads all of MUI in every spec that reaches that barrel.
   {
     rules: {
       '@typescript-eslint/no-restricted-imports': ['error', {
@@ -43,6 +47,10 @@ export default tseslint.config(
           name: '@cockatrice/sockatrice',
           importNames: ['WebClient'],
           message: 'UI/store/feature code must use useWebClient() from `@cockatrice/datatrice/react` for runtime WebClient access. For type-only references, use `import type { WebClient } from "@cockatrice/sockatrice"`.',
+          allowTypeImports: true,
+        }, {
+          name: '@mui/material',
+          message: 'Import each component from its own path (`@mui/material/Button`); the root loads all of MUI into every spec.',
           allowTypeImports: true,
         }],
       }],
