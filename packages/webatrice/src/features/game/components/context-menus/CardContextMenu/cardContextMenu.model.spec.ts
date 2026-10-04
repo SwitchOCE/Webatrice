@@ -87,21 +87,21 @@ const find = (items: CardMenuItem[], ...path: string[]): Exclude<CardMenuItem, {
 describe('buildCardContextMenu', () => {
   it('builds the own face-up battlefield card menu', () => {
     expect(tree(buildCardContextMenu(makeArgs()))).toEqual([
-      'Tap / Untap',
+      'Tap / Untap [<game.tapCard>]',
       'Skip untapping [<game.doesntUntap>]',
       'Turn Over [<game.flipCard>]',
       '---',
       'Clone [<game.cloneCard>]',
       'Move to',
-      '  Top of library in random order',
+      '  Top of library in random order [<game.moveSelectedToLibraryTop>]',
       '  X cards from the top of library...',
       '  Bottom of library in random order [<game.moveSelectedToLibraryBottom>]',
       '  ---',
-      '  Table',
-      '  Hand',
+      '  Table [<game.moveSelectedToBattlefield>]',
+      '  Hand [<game.moveSelectedToHand>]',
       '  ---',
       '  Graveyard [<game.moveSelectedToGrave>]',
-      '  Exile',
+      '  Exile [<game.moveSelectedToExile>]',
       '---',
       'Attach to card... [<game.attachCard>]',
       'Draw arrow... [<game.drawArrow>]',
@@ -139,7 +139,7 @@ describe('buildCardContextMenu', () => {
   it('adds peek and the face-up label for a face-down card, unattach for an attached one, and checks skip-untapping', () => {
     const rows = tree(buildCardContextMenu(makeArgs({ faceDown: true, isAttached: true, doesntUntap: true })));
     expect(rows.slice(0, 4)).toEqual([
-      'Tap / Untap',
+      'Tap / Untap [<game.tapCard>]',
       'Skip untapping [<game.doesntUntap>] ✓',
       'Turn Over (face up) [<game.flipCard>]',
       'Peek card [<game.peekCard>]',

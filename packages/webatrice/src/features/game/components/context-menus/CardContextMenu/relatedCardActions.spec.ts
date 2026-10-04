@@ -1,7 +1,14 @@
 import type { LookupResult, RelatedCardRef } from '@app/services';
 
 import type { CardMenuItem } from './cardContextMenu.model';
-import { buildRelatedTokenItems, buildRelatedViewItems, buildTransformItems } from './relatedCardActions';
+import {
+  buildRelatedActionItems,
+  buildRelatedTokenItems,
+  buildRelatedViewItems,
+  buildTransformItems,
+  createAllRelatedRequests,
+  type RelatedCardSource,
+} from './relatedCardActions';
 
 const lookup = (name: string, overrides: Partial<LookupResult> = {}): LookupResult => ({
   found: true,
@@ -119,7 +126,8 @@ describe('buildTransformItems', () => {
   it('offers the other face of a transformable card and targets the source card', () => {
     const create = vi.fn();
     const [front] = buildTransformItems({ layout: 'transform', faces }, 42, 'Delver of Secrets', create).map(row);
-    expect(front).toMatchObject({ label: 'Token: Transform into "Insectile Aberration"', shortcut: 'Ctrl+Shift+T' });
+    // The create-all hint is placed by buildRelatedActionItems, never hard-coded.
+    expect(front).toEqual({ label: 'Token: Transform into "Insectile Aberration"', onClick: expect.any(Function) });
     front.onClick!();
     expect(create).toHaveBeenCalledWith({
       name: 'Insectile Aberration',
@@ -154,6 +162,62 @@ describe('buildTransformItems', () => {
 
   it('offers nothing without a create-token command', () => {
     expect(buildTransformItems({ layout: 'transform', faces }, 42, 'Delver of Secrets', undefined)).toEqual([]);
+  });
+});
+
+describe('create all related tokens', () => {
+  const tokenMeta = new Map([['Soldier', lookup('Soldier', { power: '1', toughness: '1' })]]);
+  const faces = [
+    { name: 'Delver of Secrets', power: '1', toughness: '1' },
+    { name: 'Insectile Aberration', power: '3', toughness: '2' },
+  ];
+  const source = (overrides: Partial<RelatedCardSource>): RelatedCardSource => ({
+    related: [],
+    tokenMeta,
+    parentMeta: undefined,
+    sourceCardId: 7,
+    parentName: 'Delver of Secrets',
+    ...overrides,
+  });
+
+  it('runs the only related action, whatever it is', () => {
+    expect(createAllRelatedRequests(source({ related: [ref('Treasure', { count: 'x' })] })).map((r) => r.name))
+      .toEqual(['Treasure']);
+    expect(createAllRelatedRequests(source({ parentMeta: { layout: 'transform', faces } })))
+      .toEqual([expect.objectContaining({ name: 'Insectile Aberration', targetCardId: 7, targetMode: 'transform_into' })]);
+  });
+
+  it('otherwise creates every token that neither attaches nor asks for a count', () => {
+    const requests = createAllRelatedRequests(source({
+      related: [ref('Soldier', { count: '2' }), ref('Treasure', { count: 'x' }), ref('Aura', { attach: 'attach' })],
+      parentMeta: { layout: 'transform', faces },
+    }));
+    expect(requests.map((r) => r.name)).toEqual(['Soldier', 'Soldier']);
+  });
+
+  it('puts the create-all hint on the only item, or on "All tokens"', () => {
+    const single = buildRelatedActionItems(source({ related: [ref('Soldier')] }), vi.fn(), 'Ctrl+Shift+K').map(row);
+    expect(single.map((i) => [i.label, i.shortcut])).toEqual([['Token: 1/1 Soldier', 'Ctrl+Shift+K']]);
+
+    const create = vi.fn();
+    const many = buildRelatedActionItems(
+      source({ related: [ref('Soldier'), ref('Treasure', { count: 'x' })], parentMeta: { layout: 'transform', faces } }),
+      create,
+      'Ctrl+Shift+K',
+    ).map(row);
+    expect(many.map((i) => [i.label, i.shortcut])).toEqual([
+      ['Token: 1/1 Soldier', undefined],
+      ['Token: X Treasure', undefined],
+      ['Token: Transform into "Insectile Aberration"', undefined],
+      ['All tokens', 'Ctrl+Shift+K'],
+    ]);
+    many[3].onClick!();
+    expect(create.mock.calls.map(([r]) => r.name)).toEqual(['Soldier']);
+  });
+
+  it('offers nothing for a card without relations, and no hint when unbound', () => {
+    expect(buildRelatedActionItems(source({}), vi.fn(), 'Ctrl+Shift+K')).toEqual([]);
+    expect(row(buildRelatedActionItems(source({ related: [ref('Soldier')] }), vi.fn(), '')[0]).shortcut).toBeUndefined();
   });
 });
 

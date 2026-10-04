@@ -48,6 +48,7 @@ function setup(args: Partial<UseBattlefieldCardOpsArgs> = {}) {
     selection: battlefield('10', '11'),
     setSelection: vi.fn(),
     cardMetaByName: new Map([['Card 11', { typeLine: 'Creature', pt: '2/2' }]]),
+    tokenMetaByName: new Map(),
     deckCount: 33,
     lifeControl: { value: 20, onDelta: vi.fn(), onSet: vi.fn() },
     cardCommands: ports<PlayerCardCommands>(),
@@ -192,5 +193,20 @@ describe('useBattlefieldCardOps', () => {
     const some = setup({ selection: battlefield('11') });
     some.ops.incrementAllCounters();
     expect(some.props.counterCommands.setCardCounters).not.toHaveBeenCalled();
+  });
+
+  it('creates the anchor\'s related tokens, as desktop\'s create-all does', () => {
+    const { ops, props } = setup({
+      cardMetaByName: new Map([['Card 10', {
+        typeLine: 'Creature',
+        related: [
+          { name: 'Soldier', count: '2', origin: 'related' },
+          { name: 'Treasure', count: 'x', origin: 'related' },
+          { name: 'Equipment', attach: 'attach', origin: 'related' },
+        ],
+      }]]),
+    });
+    ops.forSelection()!.createRelatedTokens();
+    expect(vi.mocked(props.cardCommands.createToken).mock.calls.map(([r]) => r.name)).toEqual(['Soldier', 'Soldier']);
   });
 });

@@ -1,5 +1,7 @@
 import { ZoneName } from '@cockatrice/sockatrice';
 
+import type { GameDialogsActions } from '../../../hooks/dialogs/gameDialogs.types';
+
 import type { SeatSelection } from '../../../hooks/useSeatSelection';
 import { selectedHiddenZoneCards } from '../../context-menus/CardContextMenu/handCardMenu.actions';
 import { useGameDialogsContext } from '../GameDialogsContext';
@@ -15,9 +17,11 @@ import type {
   PlayerCounterViewModel,
   PlayerTargetCommands,
   PlayerZoneCommands,
+  SeatMoveDestination,
 } from './playerBoard.types';
 import { toRecipient } from './revealRecipient';
 import type { BattlefieldCardActions, BattlefieldCardOps } from './useBattlefieldCardOps';
+import type { HandCardActions } from './useHandCardOps';
 import type { useSeatPrompts } from './useSeatPrompts';
 
 type SeatPrompts = ReturnType<typeof useSeatPrompts>;
@@ -30,6 +34,7 @@ export interface SeatShortcutSeat {
   /** The game selection, which holds a library / sideboard view's selected cards. */
   selectedCardKeys: ReadonlySet<string>;
   deckCount: number;
+  handCount: number;
   alwaysRevealTopCard: boolean;
   alwaysLookAtTopCard: boolean;
   manaCounters: PlayerCounterViewModel['mana'];
@@ -40,13 +45,17 @@ export interface SeatShortcutSeat {
   openCreateTokenDialog: SeatPrompts['openCreateTokenDialog'];
   openMoveTopUntilDialog: () => void;
   cardOps: BattlefieldCardActions;
+  handOps: HandCardActions;
   zoneCommands: PlayerZoneCommands;
   cardCommands: PlayerCardCommands;
   counterCommands: PlayerCounterCommands;
   targetCommands: PlayerTargetCommands;
 }
 
-type SeatShortcut = (seat: SeatShortcutSeat & { requestMulligan: () => void }) => void;
+/** The game dialogs a seat shortcut opens, beside the seat's own prompts. */
+type SeatShortcutDialogs = Pick<GameDialogsActions, 'handleRequestChooseMulligan' | 'handleRequestSortHandBy' | 'openZoneView'>;
+
+type SeatShortcut = (seat: SeatShortcutSeat & SeatShortcutDialogs) => void;
 
 /** A battlefield action on the selection (desktop runs these on the scene's
  *  selected cards); nothing without a battlefield selection. */
@@ -61,6 +70,19 @@ const onSelection = (op: (ops: BattlefieldCardOps) => void): SeatShortcut => ({ 
 const onStorm = (op: (seat: SeatShortcutSeat, storm: { id: number; count: number }) => void): SeatShortcut => (seat) => {
   if (seat.manaCounters?.O) {
     op(seat, seat.manaCounters.O);
+  }
+};
+
+/** A move of the selected cards: desktop moves the scene's selection from any
+ *  zone, here the battlefield or the hand selection. */
+const moveSelection = (to: SeatMoveDestination): SeatShortcut => ({ cardOps, handOps }) => {
+  (cardOps.forSelection() ?? handOps.forSelection())?.move(to);
+};
+
+/** A hand action, while the hand has cards. */
+const onHand = (op: SeatShortcut): SeatShortcut => (seat) => {
+  if (seat.handCount > 0) {
+    op(seat);
   }
 };
 
@@ -79,7 +101,7 @@ const onLibrary = (op: SeatShortcut): SeatShortcut => (seat) => {
  */
 const SEAT_SHORTCUTS: Record<SeatShortcutActionId, SeatShortcut> = {
   // aMulligan (Ctrl+M) asks for the hand size rather than assuming seven.
-  'game.mulligan': (seat) => seat.requestMulligan(),
+  'game.mulligan': (seat) => seat.handleRequestChooseMulligan(),
   'game.setLife': (seat) => seat.openLifePrompt(),
   // aRemoveLocalArrows (Ctrl+R): only the arrows this player drew.
   'game.removeLocalArrows': (seat) => seat.targetCommands.clearOwnArrows(),
@@ -107,7 +129,7 @@ const SEAT_SHORTCUTS: Record<SeatShortcutActionId, SeatShortcut> = {
   'game.peekCard': onSelection((ops) => ops.peek()),
   'game.flipCard': onSelection((ops) => ops.toggleFaceDown()),
   'game.unattachCard': onSelection((ops) => ops.unattach()),
-  'game.moveSelectedToGrave': onSelection((ops) => ops.move({ zone: ZoneName.GRAVE })),
+  'game.moveSelectedToGrave': moveSelection({ zone: ZoneName.GRAVE }),
   'game.setCardPT': onSelection((ops) => ops.promptPT()),
   'game.incP': onSelection((ops) => ops.changePT(1, 0)),
   'game.decP': onSelection((ops) => ops.changePT(-1, 0)),
@@ -131,7 +153,7 @@ const SEAT_SHORTCUTS: Record<SeatShortcutActionId, SeatShortcut> = {
   'game.setCounterC': onSelection((ops) => ops.promptCounter(2)),
   'game.incrementAllCardCounters': (seat) => seat.cardOps.incrementAllCounters(),
   'game.setAnnotation': onSelection((ops) => ops.promptAnnotation()),
-  'game.moveSelectedToLibraryBottom': onSelection((ops) => ops.move({ zone: ZoneName.DECK, reversed: true })),
+  'game.moveSelectedToLibraryBottom': moveSelection({ zone: ZoneName.DECK, reversed: true }),
   'game.cloneCard': onSelection((ops) => ops.clone()),
   // aRevealToAll: one Command_RevealCards without player_id for the selected
   // cards of one hidden zone of this seat (the hand, or an open library /
@@ -142,6 +164,20 @@ const SEAT_SHORTCUTS: Record<SeatShortcutActionId, SeatShortcut> = {
       seat.zoneCommands.reveal(picked.zone, toRecipient(-1), { cardIds: picked.cardIds });
     }
   },
+  'game.tapCard': onSelection((ops) => ops.toggleTapped()),
+  'game.playCard': (seat) => seat.handOps.forSelection()?.play(false),
+  'game.playCardFaceDown': (seat) => seat.handOps.forSelection()?.play(true),
+  'game.createRelatedTokens': onSelection((ops) => ops.createRelatedTokens()),
+  'game.moveSelectedToExile': moveSelection({ zone: ZoneName.EXILE }),
+  'game.moveSelectedToHand': moveSelection({ zone: ZoneName.HAND }),
+  'game.moveSelectedToLibraryTop': moveSelection({ zone: ZoneName.DECK }),
+  'game.moveSelectedToBattlefield': moveSelection({ zone: ZoneName.TABLE }),
+  'game.viewHand': (seat) => seat.openZoneView({ playerId: seat.seatId, zoneName: ZoneName.HAND }),
+  'game.viewExile': (seat) => seat.openZoneView({ playerId: seat.seatId, zoneName: ZoneName.EXILE }),
+  'game.sortHandByName': onHand((seat) => seat.handleRequestSortHandBy('name')),
+  'game.sortHandByManaValue': onHand((seat) => seat.handleRequestSortHandBy('manacost')),
+  'game.revealHandToAll': onHand((seat) => seat.zoneCommands.reveal(ZoneName.HAND, 'all')),
+  'game.revealRandomHandCardToAll': onHand((seat) => seat.zoneCommands.reveal(ZoneName.HAND, 'all', 'random')),
 };
 
 /**
@@ -150,8 +186,8 @@ const SEAT_SHORTCUTS: Record<SeatShortcutActionId, SeatShortcut> = {
  * for the local seat only, so only the local seat publishes.
  */
 export function useSeatShortcutOperations(seat: SeatShortcutSeat): void {
-  const { handleRequestChooseMulligan } = useGameDialogsContext();
-  const context = { ...seat, requestMulligan: handleRequestChooseMulligan };
+  const { handleRequestChooseMulligan, handleRequestSortHandBy, openZoneView } = useGameDialogsContext();
+  const context = { ...seat, handleRequestChooseMulligan, handleRequestSortHandBy, openZoneView };
   const operations: SeatShortcutOperations = Object.fromEntries(
     SEAT_SHORTCUT_ACTIONS.map((id) => [id, () => SEAT_SHORTCUTS[id](context)]),
   );

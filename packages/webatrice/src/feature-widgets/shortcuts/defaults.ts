@@ -4,12 +4,9 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // Bindings align with Cockatrice desktop defaults from
   // vendor/cockatrice/cockatrice/src/client/settings/shortcuts_settings.h.
   // See plans/shortcuts.md for the browser-compatibility audit and
-  // per-action progress tracking.
-  //
-  // `game.untapAll` uses Ctrl+U (Cockatrice default) instead of F5
-  // because F5 is a browser-reserved reload key that
-  // `event.preventDefault()` cannot cancel in Chromium.
-  'game.untapAll': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: ['Ctrl+KeyU'] },
+  // per-action progress tracking. The game sections below follow desktop's
+  // shortcut groups; a browser-reserved desktop key is remapped where it
+  // is defined, with the reason.
   'game.drawCard': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyD'] },
   // Cockatrice's `aNextTurn` accepts either Ctrl+Return or Ctrl+Enter
   // (numpad); browser event.code names them Enter and NumpadEnter.
@@ -33,46 +30,14 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'game.undoDraw': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+KeyD'] },
   'game.rollDice': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyI'] },
   'game.leaveGame': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyQ'] },
-  'game.viewSideboard': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+F3'] },
 
   // Round 2 — dialog-based utilities Cockatrice binds by default:
   'game.mulliganSameSize': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+KeyM'] },
   'game.mulliganMinusOne': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+Alt+KeyM'] },
-  'game.sortHandByType': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+KeyH'] },
-  'game.viewLibrary': { scope: ShortcutScope.GAME, group: 'game', sequences: ['F3'] },
-  'game.viewGraveyard': { scope: ShortcutScope.GAME, group: 'game', sequences: ['F4'] },
   'game.playTop': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyY'] },
   'game.moveTopToGrave': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+KeyY'] },
   'game.moveTopNToGrave': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+KeyM'] },
-  'game.closeRecentView': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Escape'] },
   'game.flipCoin': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+KeyI'] },
-  // Cockatrice's `aDoesntUntap` (Alt+U) — toggles the "Skip Untapping"
-  // flag on the current selection's battlefield cards. Uses the same
-  // bulkDoesntUntap wire the card-menu "Doesn't Untap / Allow Untap"
-  // item already fires; selection ∩ TABLE, then judge-wrapped per owner.
-  'game.doesntUntap': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+KeyU'] },
-  // Cockatrice's `aFlip` (Alt+F) — toggles face-down on the selection's
-  // battlefield cards. Uses the first selected card's current faceDown
-  // to drive the target so a mixed selection unifies (same rule the
-  // right-click "Flip card" menu uses).
-  'game.flipCard': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+KeyF'] },
-  // Cockatrice's `aUnattach` (Ctrl+Alt+U) — fires per-card unattach on
-  // the selection. Server no-ops for non-attached cards, so we don't
-  // filter client-side.
-  'game.unattachCard': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Alt+KeyU'] },
-  // Cockatrice's `aClone` (Ctrl+J) — fires one Command_CreateToken per
-  // selected card, preserving each card's own metadata. Server has no
-  // batch wire so we loop; optimistic-mock cards (non-numeric id) are
-  // skipped, matching the menu path.
-  'game.cloneCard': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyJ'] },
-  // Cockatrice's `aRevealToAll` (unbound by default) — reveals the
-  // selected hand cards to every player in one Command_RevealCards,
-  // the card menu's "Reveal to... > All players".
-  'game.revealSelectedToAll': { scope: ShortcutScope.GAME, group: 'game', sequences: [] },
-  // Cockatrice's `aHide` (Alt+H) — hides the selected cards from a
-  // read-only reveal window. Purely local; registered by the open
-  // IncomingRevealDialog only.
-  'game.hideRevealedCard': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+KeyH'] },
   // Desktop's Say menu binds its first ten message macros to fixed
   // Ctrl+1 … Ctrl+9, Ctrl+0 (say_menu.cpp:21-29). Browsers keep
   // Ctrl+digit for switching tabs, so the web client defaults to
@@ -88,16 +53,6 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'game.sayMacro8': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit8'] },
   'game.sayMacro9': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit9'] },
   'game.sayMacro10': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Digit0'] },
-  // Cockatrice's `aMoveToGraveyard` (Ctrl+Del) — moves the selection
-  // to the local player's graveyard. Single batched Command_MoveCard
-  // with cards_to_move populated, matching the menu's "Send to
-  // Graveyard" path.
-  'game.moveSelectedToGrave': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Delete'] },
-  // Cockatrice's `aMoveToBottomLibrary` (Ctrl+B) — moves the selection
-  // to the bottom of the local player's library. Uses `x: 0` with
-  // `isReversed: true`, matching the menu's "Bottom of library" path
-  // (the card menu's Move to > Bottom of library).
-  'game.moveSelectedToLibraryBottom': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyB'] },
   // Cockatrice's `aSetPT` (Ctrl+P) — opens the "Set Power/Toughness"
   // modal against the selection. First-selected card drives the
   // modal's label / prefill (same as the menu path but without a
@@ -122,29 +77,6 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'game.decT': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+Minus', 'Alt+NumpadSubtract'] },
   'game.incPT': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Alt+Equal', 'Ctrl+Alt+Shift+Equal', 'Ctrl+Alt+NumpadAdd'] },
   'game.decPT': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Alt+Minus', 'Ctrl+Alt+NumpadSubtract'] },
-  // Cockatrice's `aSetAnnotation` (Alt+N) — opens the annotation
-  // modal against the selection. First-selected card drives the
-  // label / prefill, same shape as Set Power/Toughness.
-  'game.setAnnotation': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+KeyN'] },
-  // Cockatrice's `aSelectAll` (Ctrl+A) — selects every card on the
-  // local player's battlefield. Cockatrice desktop uses "zone under
-  // cursor" semantics; this first pass just always targets own
-  // battlefield, since that's the actionable zone for the bulk-action
-  // shortcuts (doesntUntap, flip, clone, move-to-grave, PT deltas)
-  // that consume the selection.
-  'game.selectAllBattlefield': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyA'] },
-  // Cockatrice's `aSelectRow` / `aSelectColumn` (Ctrl+Shift+X / +C) —
-  // expand the selection to every battlefield card sharing the
-  // first-selected card's row / column. First-pass anchor rule: use
-  // the first card in the current selection (menu path uses the
-  // right-clicked card). No-op with an empty selection.
-  'game.selectRowBattlefield': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+KeyX'] },
-  'game.selectColumnBattlefield': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+KeyC'] },
-  // Cockatrice's `aIncrementAllCardCounters` (Ctrl+Shift+A) — for
-  // each targeted card (selection if any, else full battlefield),
-  // bumps every EXISTING counter by +1 (skips MAX_COUNTER_VALUE).
-  // Same logic as the utility-menu "Increment all card counters" item.
-  'game.incrementAllCardCounters': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+KeyA'] },
   // Card-counter shortcuts. Cockatrice ships three default counter
   // colors (A red / B yellow / C green) with Add / Remove / Set-value
   // bindings each. counterId matches Card.tsx's COUNTER_COLORS index
@@ -167,16 +99,6 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'game.addCounterC': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+Period'] },
   'game.removeCounterC': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+Comma'] },
   'game.setCounterC': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+Slash'] },
-  // Cockatrice's `aPeek` (Alt+L) — reveals face-down battlefield cards
-  // in the selection to the local player only. No-op if the selection
-  // has no face-down cards (matches the menu path which only shows
-  // the "Peek card" item when the right-clicked card is face-down).
-  'game.peekCard': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+KeyL'] },
-  // Cockatrice's `aAttach` (Ctrl+Alt+A) — starts the "attach arrow"
-  // pending flow. Attach is 1:1 (source → target) so the first
-  // selected card is used as source; the next battlefield click
-  // resolves the attach. Escape or clicking the source cancels.
-  'game.attachCard': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Alt+KeyA'] },
   // Cockatrice's `aIncCounter_storm` / `aDecCounter_storm` /
   // `aSetCounter_storm` (Ctrl+] / Ctrl+[ / Ctrl+\) — Add / Remove /
   // Set the local player's "Other" (storm) counter. Uses
@@ -196,22 +118,11 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // plans/shortcuts.md's "Suggested rebinds" table.
   'game.alwaysRevealTopCard': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Alt+KeyN'] },
   'game.alwaysLookAtTopCard': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Alt+Shift+KeyN'] },
-  // View top/bottom cards prompts. Cockatrice uses Ctrl+W / Ctrl+Shift+W
-  // — both Chromium-hardcoded (close tab / close window). Rebound.
-  'game.viewTopCards': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Alt+KeyW'] },
-  'game.viewBottomCards': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Alt+Shift+KeyW'] },
-  // Create token modal + re-fire. Cockatrice uses Ctrl+T (new tab,
-  // hardcoded); rebound to Ctrl+K per the plan.
-  'game.createToken': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyK'] },
-  'game.createAnotherToken': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyG'] },
   // Cockatrice's `aDrawArrow` (Alt+A) — starts the draw-arrow pending
   // flow from the first selected battlefield card.
   'game.drawArrow': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+KeyA'] },
   // Cockatrice's `aResetPT` (Ctrl+Alt+0) — resets selection PT to base.
   'game.resetPT': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Alt+Digit0'] },
-  // Cockatrice's `aReduceLifeByPower` (Ctrl+Shift+L) — sums selection
-  // powers and subtracts from local player's life.
-  'game.reduceLifeByPower': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+KeyL'] },
   // Cockatrice's `aMulligan` (Ctrl+M) opens the choose-hand-size prompt,
   // `aSet` (Ctrl+L) the set-life prompt, and `aRemoveLocalArrows` (Ctrl+R)
   // deletes the arrows the local player drew (and keeps Ctrl+R from
@@ -219,6 +130,124 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'game.mulligan': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyM'] },
   'game.setLife': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyL'] },
   'game.removeLocalArrows': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyR'] },
+
+  // Playing Area (desktop ShortcutGroup::Playing_Area).
+  // Cockatrice's `aIncrementAllCardCounters` (Ctrl+Shift+A) — for
+  // each targeted card (selection if any, else full battlefield),
+  // bumps every EXISTING counter by +1 (skips MAX_COUNTER_VALUE).
+  // Same logic as the utility-menu "Increment all card counters" item.
+  'game.incrementAllCardCounters': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Ctrl+Shift+KeyA'] },
+  // Cockatrice's `aHide` (Alt+H) — hides the selected cards from a
+  // read-only reveal window. Purely local; registered by the open
+  // IncomingRevealDialog only.
+  'game.hideRevealedCard': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Alt+KeyH'] },
+  // Desktop's `aTap`, `aPlay` and `aPlayFacedown` have no default. Tap toggles the
+  // battlefield selection; Play / Play face down play the selected hand cards.
+  'game.tapCard': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: [] },
+  // `game.untapAll` uses Ctrl+U (Cockatrice default) instead of F5
+  // because F5 is a browser-reserved reload key that
+  // `event.preventDefault()` cannot cancel in Chromium.
+  'game.untapAll': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Ctrl+KeyU'] },
+  // Cockatrice's `aDoesntUntap` (Alt+U) — toggles the "Skip Untapping"
+  // flag on the current selection's battlefield cards. Uses the same
+  // bulkDoesntUntap wire the card-menu "Doesn't Untap / Allow Untap"
+  // item already fires; selection ∩ TABLE, then judge-wrapped per owner.
+  'game.doesntUntap': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Alt+KeyU'] },
+  // Cockatrice's `aFlip` (Alt+F) — toggles face-down on the selection's
+  // battlefield cards. Uses the first selected card's current faceDown
+  // to drive the target so a mixed selection unifies (same rule the
+  // right-click "Flip card" menu uses).
+  'game.flipCard': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Alt+KeyF'] },
+  // Cockatrice's `aPeek` (Alt+L) — reveals face-down battlefield cards
+  // in the selection to the local player only. No-op if the selection
+  // has no face-down cards (matches the menu path which only shows
+  // the "Peek card" item when the right-clicked card is face-down).
+  'game.peekCard': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Alt+KeyL'] },
+  'game.playCard': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: [] },
+  'game.playCardFaceDown': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: [] },
+  // Cockatrice's `aAttach` (Ctrl+Alt+A) — starts the "attach arrow"
+  // pending flow. Attach is 1:1 (source → target) so the first
+  // selected card is used as source; the next battlefield click
+  // resolves the attach. Escape or clicking the source cancels.
+  'game.attachCard': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Ctrl+Alt+KeyA'] },
+  // Cockatrice's `aUnattach` (Ctrl+Alt+U) — fires per-card unattach on
+  // the selection. Server no-ops for non-attached cards, so we don't
+  // filter client-side.
+  'game.unattachCard': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Ctrl+Alt+KeyU'] },
+  // Cockatrice's `aClone` (Ctrl+J) — fires one Command_CreateToken per
+  // selected card, preserving each card's own metadata. Server has no
+  // batch wire so we loop; optimistic-mock cards (non-numeric id) are
+  // skipped, matching the menu path.
+  'game.cloneCard': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Ctrl+KeyJ'] },
+  // Create token modal + re-fire. Cockatrice uses Ctrl+T (new tab,
+  // hardcoded); rebound to Ctrl+K per the plan.
+  'game.createToken': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Ctrl+KeyK'] },
+  'game.createAnotherToken': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Ctrl+KeyG'] },
+  // Desktop's `aCreateRelatedTokens` is Ctrl+Shift+T, which reopens a closed tab
+  // and cannot be cancelled; it follows Create token's Ctrl+T → Ctrl+K.
+  'game.createRelatedTokens': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Ctrl+Shift+KeyK'] },
+  // Cockatrice's `aSetAnnotation` (Alt+N) — opens the annotation
+  // modal against the selection. First-selected card drives the
+  // label / prefill, same shape as Set Power/Toughness.
+  'game.setAnnotation': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Alt+KeyN'] },
+  // Cockatrice's `aReduceLifeByPower` (Ctrl+Shift+L) — sums selection
+  // powers and subtracts from local player's life.
+  'game.reduceLifeByPower': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Ctrl+Shift+KeyL'] },
+  // Cockatrice's `aSelectAll` (Ctrl+A) — selects every card on the
+  // local player's battlefield. Cockatrice desktop uses "zone under
+  // cursor" semantics; this first pass just always targets own
+  // battlefield, since that's the actionable zone for the bulk-action
+  // shortcuts (doesntUntap, flip, clone, move-to-grave, PT deltas)
+  // that consume the selection.
+  'game.selectAllBattlefield': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Ctrl+KeyA'] },
+  // Cockatrice's `aSelectRow` / `aSelectColumn` (Ctrl+Shift+X / +C) —
+  // expand the selection to every battlefield card sharing the
+  // first-selected card's row / column. First-pass anchor rule: use
+  // the first card in the current selection (menu path uses the
+  // right-clicked card). No-op with an empty selection.
+  'game.selectRowBattlefield': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Ctrl+Shift+KeyX'] },
+  'game.selectColumnBattlefield': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: ['Ctrl+Shift+KeyC'] },
+  // Cockatrice's `aRevealToAll` (unbound by default) — reveals the
+  // selected hand cards to every player in one Command_RevealCards,
+  // the card menu's "Reveal to... > All players".
+  'game.revealSelectedToAll': { scope: ShortcutScope.GAME, group: 'gamePlayingArea', sequences: [] },
+
+  // Move Selected Card (desktop ShortcutGroup::Move_selected). Each acts on the
+  // battlefield selection or the hand selection.
+  // Cockatrice's `aMoveToBottomLibrary` (Ctrl+B) — moves the selection
+  // to the bottom of the local player's library. Uses `x: 0` with
+  // `isReversed: true`, matching the menu's "Bottom of library" path
+  // (the card menu's Move to > Bottom of library).
+  'game.moveSelectedToLibraryBottom': { scope: ShortcutScope.GAME, group: 'gameMoveSelected', sequences: ['Ctrl+KeyB'] },
+  'game.moveSelectedToExile': { scope: ShortcutScope.GAME, group: 'gameMoveSelected', sequences: [] },
+  // Cockatrice's `aMoveToGraveyard` (Ctrl+Del) — moves the selection
+  // to the local player's graveyard. Single batched Command_MoveCard
+  // with cards_to_move populated, matching the menu's "Send to
+  // Graveyard" path.
+  'game.moveSelectedToGrave': { scope: ShortcutScope.GAME, group: 'gameMoveSelected', sequences: ['Ctrl+Delete'] },
+  'game.moveSelectedToHand': { scope: ShortcutScope.GAME, group: 'gameMoveSelected', sequences: [] },
+  'game.moveSelectedToLibraryTop': { scope: ShortcutScope.GAME, group: 'gameMoveSelected', sequences: [] },
+  'game.moveSelectedToBattlefield': { scope: ShortcutScope.GAME, group: 'gameMoveSelected', sequences: [] },
+
+  // View (desktop ShortcutGroup::View).
+  'game.viewHand': { scope: ShortcutScope.GAME, group: 'gameView', sequences: [] },
+  'game.viewGraveyard': { scope: ShortcutScope.GAME, group: 'gameView', sequences: ['F4'] },
+  'game.viewLibrary': { scope: ShortcutScope.GAME, group: 'gameView', sequences: ['F3'] },
+  'game.viewExile': { scope: ShortcutScope.GAME, group: 'gameView', sequences: [] },
+  'game.viewSideboard': { scope: ShortcutScope.GAME, group: 'gameView', sequences: ['Ctrl+F3'] },
+  // View top/bottom cards prompts. Cockatrice uses Ctrl+W / Ctrl+Shift+W
+  // — both Chromium-hardcoded (close tab / close window). Rebound.
+  'game.viewTopCards': { scope: ShortcutScope.GAME, group: 'gameView', sequences: ['Ctrl+Alt+KeyW'] },
+  'game.viewBottomCards': { scope: ShortcutScope.GAME, group: 'gameView', sequences: ['Ctrl+Alt+Shift+KeyW'] },
+  'game.closeRecentView': { scope: ShortcutScope.GAME, group: 'gameView', sequences: ['Escape'] },
+
+  // Hand (desktop ShortcutGroup::Hand).
+  'game.sortHandByName': { scope: ShortcutScope.GAME, group: 'gameHand', sequences: [] },
+  'game.sortHandByType': { scope: ShortcutScope.GAME, group: 'gameHand', sequences: ['Ctrl+Shift+KeyH'] },
+  'game.sortHandByManaValue': { scope: ShortcutScope.GAME, group: 'gameHand', sequences: [] },
+  'game.revealHandToAll': { scope: ShortcutScope.GAME, group: 'gameHand', sequences: [] },
+  'game.revealRandomHandCardToAll': { scope: ShortcutScope.GAME, group: 'gameHand', sequences: [] },
+
   // Matches Cockatrice desktop's `aFocusChat` (Shift+Return). Fires in
   // text inputs too so the user can jump to chat from search boxes, etc.
   // Ordered last in the game group so it sits at the bottom of the

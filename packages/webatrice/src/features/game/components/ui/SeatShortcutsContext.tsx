@@ -59,6 +59,20 @@ export const SEAT_SHORTCUT_ACTIONS = [
   'game.moveSelectedToLibraryBottom',
   'game.cloneCard',
   'game.revealSelectedToAll',
+  'game.tapCard',
+  'game.playCard',
+  'game.playCardFaceDown',
+  'game.createRelatedTokens',
+  'game.moveSelectedToExile',
+  'game.moveSelectedToHand',
+  'game.moveSelectedToLibraryTop',
+  'game.moveSelectedToBattlefield',
+  'game.viewHand',
+  'game.viewExile',
+  'game.sortHandByName',
+  'game.sortHandByManaValue',
+  'game.revealHandToAll',
+  'game.revealRandomHandCardToAll',
 ] as const satisfies readonly ActionId[];
 
 export type SeatShortcutActionId = (typeof SEAT_SHORTCUT_ACTIONS)[number];
