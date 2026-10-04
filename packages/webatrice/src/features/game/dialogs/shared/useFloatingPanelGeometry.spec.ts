@@ -208,4 +208,51 @@ describe('useFloatingPanelGeometry', () => {
     rerender({ openKey: 2 });
     expect(result.current.panel.style.width).toBe('900px');
   });
+
+  describe('opening again', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    /** Drags the panel by its header to (300, 200), leaving the position unstored. */
+    function drag(result: ReturnType<typeof setup>['result']) {
+      act(() => {
+        result.current.onHeaderPointerDown(press(document.createElement('div')));
+      });
+      act(() => {
+        fireEvent.pointerMove(window, { clientX: 310, clientY: 205 });
+        fireEvent.pointerUp(window);
+      });
+      expect(result.current.panelStyle).toMatchObject({ left: 300, top: 200 });
+    }
+
+    it('centres itself again and forgets the drag, storing nothing', () => {
+      const { result, rerender } = setup({ openKey: 1 }, new DOMRect(100, 100, 400, 300));
+      drag(result);
+      rerender({ openKey: 2 });
+      expect(result.current.panelStyle).toMatchObject({
+        left: (window.innerWidth - 400) / 2,
+        top: (window.innerHeight - 300) / 2,
+      });
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(readStoredPosition(KEY)).toBeNull();
+    });
+
+    it('goes back to its stored position, clamped', () => {
+      const { result, rerender } = setup({ openKey: 1 }, new DOMRect(100, 100, 400, 300));
+      drag(result);
+      window.localStorage.setItem(`${KEY}Position`, JSON.stringify({ x: 5000, y: 20 }));
+      rerender({ openKey: 2 });
+      expect(result.current.panelStyle).toMatchObject({ left: window.innerWidth - 60, top: 20 });
+      act(() => {
+        vi.advanceTimersByTime(1000);
+      });
+      expect(readStoredPosition(KEY)).toEqual({ x: 5000, y: 20 });
+    });
+  });
 });
