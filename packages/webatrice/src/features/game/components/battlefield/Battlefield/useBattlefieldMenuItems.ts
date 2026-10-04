@@ -1,9 +1,9 @@
 import type { useShortcutHints } from '@app/feature-widgets/shortcuts';
+import { useMessageMacros } from '@app/hooks';
 
 import type { SeatSelection } from '../../../hooks/useSeatSelection';
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import { MANA_COLORS } from '../../right-sidebar/PlayerInfoPanel/manaColors';
-import { useMessageMacros } from '../../../hooks/useMessageMacros';
 import { useTallyType } from '../../../hooks/useTallyType';
 import { useGameDialogActions } from '../../ui/GameDialogActionsContext';
 import { useGameDialogsContext } from '../../ui/GameDialogsContext';

@@ -1,5 +1,6 @@
 import { ZoneName } from '@cockatrice/sockatrice';
 import { ShortcutScope, useShortcut, useShortcutGroup } from '@app/feature-widgets/shortcuts';
+import { useMessageMacros } from '@app/hooks';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { CardAttribute } from '@cockatrice/sockatrice/generated';
 import {
@@ -14,7 +15,6 @@ import { useCurrentGame } from './useCurrentGame';
 import { useGameAffordances } from './useGameAffordances';
 import { SAY_MACRO_ACTIONS } from '../components/battlefield/Battlefield/sayMenu';
 import { ROTATE_CLOCKWISE, ROTATE_COUNTERCLOCKWISE, type RotationStep } from './useGameBoardLayout';
-import { useMessageMacros } from './useMessageMacros';
 
 interface UseGameShortcutsArgs {
   gameId: number | undefined;
@@ -363,12 +363,10 @@ export function useGameShortcuts({
     { scope: ShortcutScope.GAME, enabled: inGame && isParticipant },
   );
 
-  // Seat-scoped shortcuts act on the local seat's selection, prompts and zones,
-  // so they run whatever the local seat published. The key is consumed only
-  // when a seat handled it: a spectator has no seat, and Ctrl+R stays a reload.
-  // Say macros 1-10 (desktop SayMenu's fixed Ctrl+1 … Ctrl+0): send the
-  // macro verbatim as game chat. Only a seated player has a Say menu, and a
-  // slot without a macro leaves the key alone.
+  // Say macros 1-10: send the macro verbatim as game chat. Desktop's SayMenu
+  // binds Ctrl+1 … Ctrl+0; the browser defaults are Alt+1 … Alt+0, since
+  // Ctrl+digit switches tabs. Only a seated player has a Say menu, and a slot
+  // without a macro leaves the key alone.
   useShortcutGroup(
     SAY_MACRO_ACTIONS,
     (actionId, event) => {
@@ -382,6 +380,9 @@ export function useGameShortcuts({
     { scope: ShortcutScope.GAME, preventDefault: false, enabled: hasLiveGame },
   );
 
+  // Seat-scoped shortcuts act on the local seat's selection, prompts and zones,
+  // so they run whatever the local seat published. The key is consumed only
+  // when a seat handled it: a spectator has no seat, and Ctrl+R stays a reload.
   useShortcutGroup(
     SEAT_SHORTCUT_ACTIONS,
     (actionId, event) => {
