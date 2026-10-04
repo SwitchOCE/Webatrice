@@ -22,3 +22,5 @@ Expected conflicts and how to resolve them:
 - **R6 vs 25b:** the time base in game listeners. f25b's datatrice time-base fix must survive the split.
 
 Gate at the R4 tip: the full gate plus webatrice e2e on all browsers; per-commit typecheck for every row. Write `prs/restack-part4.md` and add restack notes to each PR file.
+
+**25a timing:** f25a is still finishing review fixes on `origin/claude/parity-25a-platform-prefs`. Do the 17b/26–28 re-replay and the fx16 fold first. When you reach row 1, take whatever 25a tip exists then, but the orchestrator will mailbox "25a final <sha>". If that message arrives after you've replayed 25a, replay the extra commits on top of row 1 and rebase the rows above.
