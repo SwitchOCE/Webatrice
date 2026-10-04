@@ -1,2 +1,3 @@
 - 01:16Z read brief, task, rv17 → checkout PR branch, plan fixes
 - 01:23Z major (motion policy) pushed a10b87d → migration v3
+- 01:30Z pushed migration, click-to-play (judge/Alt/closure), flash loss-only+rewind+wash spec → arrows draw-in, sockatrice/datatrice time
