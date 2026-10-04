@@ -37,7 +37,7 @@ function setup(args: Partial<UseSeatPromptsArgs> = {}) {
   const wrapper = ({ children }: { children: ReactNode }) => (
     <GameDialogsProvider value={dialogs as unknown as GameDialogs}>{children}</GameDialogsProvider>
   );
-  const { result } = renderHook(() => useSeatPrompts({
+  const { result, rerender } = renderHook(() => useSeatPrompts({
     seatId: 1,
     lifeControl: undefined,
     battlefieldCards: [],
@@ -54,10 +54,21 @@ function setup(args: Partial<UseSeatPromptsArgs> = {}) {
     act(() => prompt.onSubmit(value));
     return prompt;
   };
-  return { result, dialogs, zoneCommands, cardCommands, counterCommands, draw, answer };
+  return { result, rerender, dialogs, zoneCommands, cardCommands, counterCommands, draw, answer };
 }
 
 describe('useSeatPrompts', () => {
+  it('keeps the card-op prompt openers across renders, so the seat\'s card ops stay memoised', () => {
+    const { result, rerender } = setup();
+    const pick = () => {
+      const { openAnnotationPrompt, openPTPrompt, openCardCounterPrompt, openMoveXFromTopPrompt } = result.current;
+      return [openAnnotationPrompt, openPTPrompt, openCardCounterPrompt, openMoveXFromTopPrompt];
+    };
+    const before = pick();
+    rerender();
+    pick().forEach((opener, i) => expect(opener).toBe(before[i]));
+  });
+
   it('sends life changes through the life counter: +/- as a delta, a typed value as an absolute, capped at 9999', () => {
     const life: LifeControl = { value: 20, onDelta: vi.fn(), onSet: vi.fn() };
     const { result, answer } = setup({ lifeControl: life });
