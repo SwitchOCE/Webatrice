@@ -49,6 +49,53 @@ export default tseslint.config(
   },
   { files: ['integration/**'], rules: { '@typescript-eslint/no-restricted-imports': 'off' } },
 
+  // Game layering: the game's components and hooks reach the server through
+  // its command ports (components/ui/GameBoardCell: the seat's
+  // usePlayer*Commands, useTargetCommandsFor, useCardPlayCommands, useMoveCard,
+  // useGameSay), never through useWebClient. The files listed below predate
+  // the rule and still call the WebClient directly; each is to move behind a
+  // port (the stack-A card menus with its deletion), so the list only shrinks.
+  // This block replaces the WebClient value-import rule above for these files,
+  // so it repeats it.
+  {
+    files: ['src/features/game/components/**', 'src/features/game/hooks/**'],
+    ignores: [
+      'src/features/game/components/ui/GameBoardCell/**',
+      '**/*.spec.ts',
+      '**/*.spec.tsx',
+      'src/features/game/components/ChatLog/useGameLog.ts',
+      'src/features/game/components/PhaseTrack/usePhaseBar.ts',
+      'src/features/game/components/arrows/GameArrowOverlay/useGameArrowOverlay.ts',
+      'src/features/game/components/context-menus/CardContextMenu/useCardContextMenu.ts',
+      'src/features/game/components/context-menus/HandContextMenu/useHandContextMenu.ts',
+      'src/features/game/components/context-menus/ZoneContextMenu/useZoneContextMenu.ts',
+      'src/features/game/components/lobby/useLobbyDeckView.ts',
+      'src/features/game/components/right-sidebar/PlayerList/PlayerList.tsx',
+      'src/features/game/hooks/useGameDialogs.ts',
+      'src/features/game/hooks/useGameDnd.ts',
+      'src/features/game/hooks/useGameInvite.ts',
+      'src/features/game/hooks/useGameShortcuts.ts',
+      'src/features/game/hooks/usePlaymatSync.ts',
+    ],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': ['error', {
+        paths: [
+          {
+            name: '@cockatrice/sockatrice',
+            importNames: ['WebClient'],
+            message: 'UI/store/feature code must use useWebClient() from `@cockatrice/datatrice/react` for runtime WebClient access. For type-only references, use `import type { WebClient } from "@cockatrice/sockatrice"`.',
+            allowTypeImports: true,
+          },
+          {
+            name: '@cockatrice/datatrice/react',
+            importNames: ['useWebClient'],
+            message: 'Game components and hooks send commands through the game\'s command ports (components/ui/GameBoardCell), not the WebClient.',
+          },
+        ],
+      }],
+    },
+  },
+
   // E2E specs run against real browsers, so their network must be isolated:
   // `e2e/fixtures/test.ts` routes every context it hands out. Importing
   // Playwright's own `test`, or opening a context straight off `browser`,
