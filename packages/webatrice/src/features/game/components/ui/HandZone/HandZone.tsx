@@ -254,6 +254,10 @@ export default function HandZone() {
                     data-zone="hand"
                     data-card-id={c.id}
                     data-selected={selected || undefined}
+                    // Arrow hit-testing, as on the battlefield and stack:
+                    // a right-button drag starts here and a pick lands here.
+                    data-card-owner={playerId}
+                    data-card-zone={ZoneName.HAND}
                     onPointerDown={(e) =>
                       startSeatCardDrag(e, c, 'hand', handDisplayList)
                     }

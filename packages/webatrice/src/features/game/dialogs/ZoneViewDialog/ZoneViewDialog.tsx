@@ -211,6 +211,7 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
       draggingCardIds={draggingCardIds}
       selectedIds={selectedIds}
       onSelectedIdsChange={setSelectedIds}
+      cardOwner={{ playerId, zone: zoneName }}
     />
   );
 }
