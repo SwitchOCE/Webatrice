@@ -1,1 +1,2 @@
 - 00:16 started, branch set up at d2e516c → reproduce
+- 00:29 repro 15/30 fail (aria-hidden during MUI exit transition); fix pushed, 50/50 green → gate
