@@ -263,3 +263,33 @@ export function groupCards<M extends ZoneViewCardMetadata>(cards: EnrichedCard<M
       cards: buckets.get(k)!,
     }));
 }
+
+/** Metadata for a name the catalog hasn't answered for (yet): sorts and
+ *  groups as unknown ("Other", mana value 0). */
+export function placeholderMeta(name: string): ZoneViewCardMetadata {
+  return { name, type_line: null, cmc: null, colors: [], set: null, power: null, toughness: null };
+}
+
+export interface CardGroupOptions {
+  /** The search box's query; empty lists every card. */
+  query?: string;
+  sortBy: SortMode;
+  groupBy: GroupMode;
+}
+
+/** A view's cards as it lists them: filtered by its search, sorted, then grouped. */
+export function buildCardGroups(
+  cards: readonly HandCard[],
+  metaByName: ReadonlyMap<string, ZoneViewCardMetadata>,
+  { query = '', sortBy, groupBy }: CardGroupOptions,
+): CardGroup[] {
+  const enriched: EnrichedCard[] = [];
+  for (const handCard of cards) {
+    const meta = metaByName.get(handCard.name) ?? placeholderMeta(handCard.name);
+    if (matchesQuery(meta, query)) {
+      enriched.push({ handCard, meta });
+    }
+  }
+  enriched.sort((a, b) => compareCards(a.meta, b.meta, sortBy));
+  return groupCards(enriched, groupBy);
+}

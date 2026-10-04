@@ -8,7 +8,7 @@ import { makeReduxWebClientHookWrapper } from '../../../../__test-utils__/makeHo
 import { makeDialogTestEnv, makeSetterSpies } from '../../__test-utils__/dialogTestEnv';
 import type { RevealState, ZoneMenuState, ZoneViewTarget } from './gameDialogs.types';
 import { useZoneDialogActions } from './useZoneDialogActions';
-import { writeShuffleOnClose } from '../../dialogs/ZoneViewDialog/zoneViewPreferences';
+import { writeShuffleOnClose } from '../../dialogs/shared/zoneViewPreferences';
 
 /** Player 1 (local) and player 2, each with every zone a view here opens. */
 function makeZonesGame() {

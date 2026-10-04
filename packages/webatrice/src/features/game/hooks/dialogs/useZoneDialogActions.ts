@@ -6,7 +6,7 @@ import { useAppDispatch, useAppSelector } from '@app/store';
 import type { GameDialogsActions, ZoneMenuState, ZoneViewTarget } from './gameDialogs.types';
 import type { GameDialogEnv } from './gameDialogEnv';
 import type { GameDialogSetters } from './useGameDialogState';
-import { readShuffleOnClose } from '../../dialogs/ZoneViewDialog/zoneViewPreferences';
+import { readShuffleOnClose } from '../../dialogs/shared/zoneViewPreferences';
 import { isHiddenZone, offersShuffleOnClose } from '../../dialogs/ZoneViewDialog/zoneViewTarget';
 import { revealRecipient } from '../../dialogs/RevealCardsDialog/revealRecipient';
 
