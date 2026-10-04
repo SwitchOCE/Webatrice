@@ -5,8 +5,8 @@ import type { ListenerMiddlewareInstance } from '@reduxjs/toolkit';
 import { Event_DeleteArrowSchema } from '@cockatrice/sockatrice/generated';
 import { GamesState } from './game.interfaces';
 import { Actions } from './game.actions';
-import { Selectors } from './game.selectors';
 import {
+  arrowsTouchingCard,
   buildMovedCard,
   cardMovedLogEntry,
   planAttachmentReparent,
@@ -129,8 +129,8 @@ export function registerZonesListeners(mw: ListenerMiddlewareInstance<unknown>):
 
       if (sweepsArrows(move)) {
         const postMove = api.getState() as { games: GamesState };
-        for (const { ownerPlayerId, arrowId } of Selectors.getArrowsTouchingCard(
-          postMove, gameId, startPlayerId, startZone, move.cardId,
+        for (const { ownerPlayerId, arrowId } of arrowsTouchingCard(
+          postMove.games, gameId, startPlayerId, startZone, move.cardId,
         )) {
           api.dispatch(Actions.arrowDeleted({
             gameId, playerId: ownerPlayerId, data: create(Event_DeleteArrowSchema, { arrowId }),
