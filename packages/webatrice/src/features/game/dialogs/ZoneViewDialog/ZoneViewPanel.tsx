@@ -1,49 +1,27 @@
-import {
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { setRef } from '@mui/material/utils';
 import { Maximize2, Minimize2, Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import Card from '../../components/ui/SeatCard/SeatCard';
-import { CARD_HEIGHT, CARD_WIDTH } from '../../components/ui/SeatCard/cardSize';
-import { useCardPreviewActions } from '../../components/ui/CardPreviewContext';
 import { usePreference } from '@app/hooks';
-import { lookupCardsCached } from '@app/services';
-import {
-  compareCards,
-  groupCards,
-  matchesQuery,
-  type EnrichedCard,
-  type GroupMode,
-  type SortMode,
-  type ZoneViewCardMetadata,
-} from './zoneViewSort';
-import { readShuffleOnClose, writeShuffleOnClose } from './zoneViewPreferences';
 import { cardViewRowsHeight, toggledCardViewHeight } from './cardViewHeight';
-import { MARQUEE_BORDER, MARQUEE_FILL, SELECTED_RING } from '../../components/ui/seatColors/seatColors';
-
-const TOOLBAR_SELECT_CLASS =
-  'px-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm text-text-primary '
-  + 'focus:outline-none focus:border-accent';
+import { MARQUEE_BORDER, MARQUEE_FILL } from '../../components/ui/seatColors/seatColors';
+import { useCardCatalogMeta } from '../shared/useCardCatalogMeta';
+import { clampPanelSize, useFloatingPanelGeometry } from '../shared/useFloatingPanelGeometry';
+import { useZoneViewPreferences } from '../shared/useZoneViewPreferences';
+import { ZoneCardCell } from '../shared/ZoneCardCell';
+import { ZoneCardGroups } from '../shared/ZoneCardGroups';
+import { PileViewToggle, ZoneViewSortControls } from '../shared/ZoneViewControls';
+import { readShuffleOnClose, writeShuffleOnClose } from '../shared/zoneViewPreferences';
+import { buildCardGroups, type GroupMode, type SortMode } from '../shared/zoneViewSort';
 
 type HandCard = { id: string; name: string; scryfallId: string };
 
-/** localStorage keys for the dialog's persisted UI state. Cockatrice
- *  desktop persists these via SettingsCache (view_zone_widget.cpp:161-163);
- *  we mirror the behavior in browser localStorage. */
-const POSITION_STORAGE_KEY = 'webatrice.searchLibraryPosition';
-const SIZE_STORAGE_KEY = 'webatrice.searchLibrarySize';
-const SORT_BY_STORAGE_KEY = 'webatrice.searchLibrarySortBy';
-const GROUP_BY_STORAGE_KEY = 'webatrice.searchLibraryGroupBy';
-const PILE_VIEW_STORAGE_KEY = 'webatrice.searchLibraryPileView';
+/** Where the view keeps its geometry and choices. Cockatrice desktop persists
+ *  these via SettingsCache (view_zone_widget.cpp:161-163). */
+const STORAGE_KEY = 'webatrice.searchLibrary';
 
-const MIN_DIALOG_W = 400;
-const MIN_DIALOG_H = 300;
+const MIN_SIZE = { w: 400, h: 300 };
 /** The card height inside a card view (its --card-height). */
 const CARD_VIEW_CARD_HEIGHT_REM = 12.6;
 
@@ -67,104 +45,6 @@ function measureCardView(dialog: HTMLElement, content: HTMLElement): { chrome: n
 function contentsHeight(content: HTMLElement): number {
   const style = window.getComputedStyle(content);
   return content.scrollHeight - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0);
-}
-
-function readStoredPosition(): { x: number; y: number } | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  try {
-    const raw = window.localStorage.getItem(POSITION_STORAGE_KEY);
-    if (!raw) {
-      return null;
-    }
-    const parsed = JSON.parse(raw);
-    if (
-      parsed &&
-      typeof parsed.x === 'number' &&
-      typeof parsed.y === 'number' &&
-      Number.isFinite(parsed.x) &&
-      Number.isFinite(parsed.y)
-    ) {
-      return { x: parsed.x, y: parsed.y };
-    }
-  } catch {
-    // ignore parse errors — fall back to centered layout
-  }
-  return null;
-}
-
-function writeStoredPosition(pos: { x: number; y: number }): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  try {
-    window.localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(pos));
-  } catch {
-    // ignore quota / disabled storage errors — the dialog still works
-  }
-}
-
-function readStoredSize(): { w: number; h: number } | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  try {
-    const raw = window.localStorage.getItem(SIZE_STORAGE_KEY);
-    if (!raw) {
-      return null;
-    }
-    const parsed = JSON.parse(raw);
-    if (
-      parsed &&
-      typeof parsed.w === 'number' &&
-      typeof parsed.h === 'number' &&
-      Number.isFinite(parsed.w) &&
-      Number.isFinite(parsed.h)
-    ) {
-      return { w: parsed.w, h: parsed.h };
-    }
-  } catch {
-    // ignore
-  }
-  return null;
-}
-
-function writeStoredSize(size: { w: number; h: number }): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  try {
-    window.localStorage.setItem(SIZE_STORAGE_KEY, JSON.stringify(size));
-  } catch {
-    // ignore
-  }
-}
-
-function clampSizeToViewport(size: { w: number; h: number }): {
-  w: number;
-  h: number;
-} {
-  return {
-    w: Math.max(MIN_DIALOG_W, Math.min(window.innerWidth, size.w)),
-    h: Math.max(MIN_DIALOG_H, Math.min(window.innerHeight, size.h)),
-  };
-}
-
-/** Clamp a position so the dialog's header stays reachable on screen —
- *  handy when the viewport shrinks between sessions. */
-function clampToViewport(
-  pos: { x: number; y: number },
-  size: { w: number; h: number },
-): { x: number; y: number } {
-  const minVisible = 60; // keep at least 60px of the header visible
-  const maxX = window.innerWidth - minVisible;
-  const maxY = window.innerHeight - minVisible;
-  const minX = minVisible - size.w;
-  return {
-    x: Math.max(minX, Math.min(maxX, pos.x)),
-    y: Math.max(0, Math.min(maxY, pos.y)),
-  };
 }
 
 /** The cards around a right-clicked card, in display order: every card the
@@ -221,16 +101,6 @@ type Props = {
   onSelectedIdsChange: (ids: Set<string>) => void;
 };
 
-/** Metadata for a name the catalog hasn't answered for (yet): sorts and
- *  groups as unknown ("Other", mana value 0). */
-function placeholderMeta(name: string): ZoneViewCardMetadata {
-  return { name, type_line: null, cmc: null, colors: [], set: null, power: null, toughness: null };
-}
-
-/** Amount of vertical space each card takes in a pile — enough to show the
- *  title pill on top. Last card in a pile still renders fully. */
-const PILE_STEP_FRACTION = 0.25;
-
 export default function ZoneViewPanel({
   onClose,
   library,
@@ -243,7 +113,6 @@ export default function ZoneViewPanel({
   selectedIds,
   onSelectedIdsChange,
 }: Props) {
-  const { setHoveredCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
   const [query, setQuery] = useState('');
   const focusSearchBar = usePreference('focusCardViewSearchBar');
   const cardViewInitialRowsMax = usePreference('cardViewInitialRowsMax');
@@ -251,100 +120,7 @@ export default function ZoneViewPanel({
   // Desktop hides the search box while "Keep game chat focused" is on: typing goes to the chat.
   const showSearchBar = !usePreference('keepGameChatFocus');
   const activeQuery = showSearchBar ? query : '';
-  // Grouping/sorting defaults match Cockatrice's SettingsCache
-  // (cache_settings.cpp:383-384): `zoneview/groupby` defaults to index 1
-  // (By Type) and `zoneview/sortby` defaults to index 1 (By Name).
-  // Persisted across sessions like desktop's SettingsCache-backed
-  // settings, keyed off the option string rather than the index.
-  const [groupBy, setGroupBy] = useState<GroupMode>(() => {
-    if (typeof window === 'undefined') {
-      return 'type';
-    }
-    try {
-      const raw = window.localStorage.getItem(GROUP_BY_STORAGE_KEY);
-      if (
-        raw === 'none' ||
-        raw === 'type' ||
-        raw === 'cmc' ||
-        raw === 'color'
-      ) {
-        return raw;
-      }
-    } catch {
-      // ignore
-    }
-    return 'type';
-  });
-  const [sortBy, setSortBy] = useState<SortMode>(() => {
-    if (typeof window === 'undefined') {
-      return 'name';
-    }
-    try {
-      const raw = window.localStorage.getItem(SORT_BY_STORAGE_KEY);
-      if (
-        raw === 'none' ||
-        raw === 'name' ||
-        raw === 'cmc' ||
-        raw === 'type' ||
-        raw === 'color' ||
-        raw === 'set' ||
-        raw === 'pt'
-      ) {
-        return raw;
-      }
-    } catch {
-      // ignore
-    }
-    return 'name';
-  });
-  // Pile view: stacks cards within each group into a fan. Only
-  // meaningful when grouped — Cockatrice disables the checkbox when
-  // grouping is off (view_zone_widget.cpp:197). Default ON so a
-  // 90+ card library fits without endless vertical scrolling.
-  const [pileView, setPileView] = useState<boolean>(() => {
-    if (typeof window === 'undefined') {
-      return true;
-    }
-    try {
-      const raw = window.localStorage.getItem(PILE_VIEW_STORAGE_KEY);
-      if (raw === null) {
-        return true;
-      }
-      return raw === '1';
-    } catch {
-      return true;
-    }
-  });
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    try {
-      window.localStorage.setItem(GROUP_BY_STORAGE_KEY, groupBy);
-    } catch {
-      // ignore
-    }
-  }, [groupBy]);
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    try {
-      window.localStorage.setItem(SORT_BY_STORAGE_KEY, sortBy);
-    } catch {
-      // ignore
-    }
-  }, [sortBy]);
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    try {
-      window.localStorage.setItem(PILE_VIEW_STORAGE_KEY, pileView ? '1' : '0');
-    } catch {
-      // ignore
-    }
-  }, [pileView]);
+  const { groupBy, setGroupBy, sortBy, setSortBy, pileView, setPileView } = useZoneViewPreferences(STORAGE_KEY);
   // "Shuffle when closing" toggle. Cockatrice's ZoneViewWidget
   // defaults this to on; unchecking lets the player peek at library
   // order without wrecking the game state. Persist across sessions.
@@ -353,47 +129,24 @@ export default function ZoneViewPanel({
     writeShuffleOnClose(shuffleOnClose);
   }, [shuffleOnClose]);
 
-  // Drag-to-move state. `pos` is the current top-left of the dialog in
-  // viewport coords; while it's null, the dialog falls back to being
-  // centered by the flex parent (used on first open before we've
-  // measured its size).
-  const dialogRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
-  const dragOffset = useRef<{ x: number; y: number } | null>(null);
-  // Only true after the user has actively grabbed the header at least
-  // once. Gates the debounced save so opening the dialog (which sets
-  // `pos` via useLayoutEffect from either storage or the centered
-  // fallback) doesn't trigger a redundant no-op write.
-  const hasBeenDraggedRef = useRef(false);
-
-  // Apply the saved size on open (before measuring for position) so the
-  // position calc uses the final rendered size. Written imperatively so
-  // the browser's native `resize: both` handle can freely modify the
-  // inline width/height without racing React state.
-  useLayoutEffect(() => {
-    const el = dialogRef.current;
-    if (!el) {
-      return;
-    }
-    const storedSize = readStoredSize();
-    if (storedSize) {
-      const clamped = clampSizeToViewport(storedSize);
-      el.style.width = `${clamped.w}px`;
-      el.style.height = `${clamped.h}px`;
-    } else if (contentRef.current) {
-      // Desktop's "Maximum initial height for card view window", in rows. A size the user set
-      // by hand, stored above, wins.
+  const { panelRef: dialogRef, panelStyle, dragging, onHeaderPointerDown } = useFloatingPanelGeometry({
+    storageKey: STORAGE_KEY,
+    minSize: MIN_SIZE,
+    // Desktop's "Maximum initial height for card view window", in rows, and no taller than the
+    // cards need (unknown, 0, before layout). A size the user set by hand, stored, wins.
+    initialSize: (el) => {
+      if (!contentRef.current) {
+        return;
+      }
       const { chrome, cardHeightPx } = measureCardView(el, contentRef.current);
       // As on desktop, no taller than the cards need (unknown, 0, before layout).
       const cardsHeight = contentsHeight(contentRef.current);
       const rowsHeight = cardViewRowsHeight(cardViewInitialRowsMax, cardHeightPx);
       const height = chrome + (cardsHeight > 0 ? Math.min(rowsHeight, cardsHeight) : rowsHeight);
-      el.style.height = `${Math.round(clampSizeToViewport({ w: el.getBoundingClientRect().width, h: height }).h)}px`;
-    }
-    // Read once, at open, as desktop sizes a new view.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      el.style.height = `${Math.round(clampPanelSize({ w: el.getBoundingClientRect().width, h: height }, MIN_SIZE).h)}px`;
+    },
+  });
 
   const { t } = useTranslation();
   // Whether the last expand/shrink left the view taller than its initial height (the header
@@ -419,127 +172,7 @@ export default function ZoneViewPanel({
       maxHeight,
     });
     setExpanded(next > Math.min(initial, maxHeight) + 1);
-    el.style.height = `${Math.round(Math.max(MIN_DIALOG_H, chrome + next))}px`;
-  };
-
-  // Position the dialog whenever it opens. Prefer a saved position from
-  // a previous session (so the dialog reappears where the user last put
-  // it); otherwise center it. Runs in useLayoutEffect so the paint of
-  // the explicitly-positioned dialog lands on the same frame as the
-  // flex-centered fallback — no visible jump.
-  useLayoutEffect(() => {
-    const el = dialogRef.current;
-    if (!el) {
-      return;
-    }
-    const rect = el.getBoundingClientRect();
-    const stored = readStoredPosition();
-    if (stored) {
-      setPos(
-        clampToViewport(stored, { w: rect.width, h: rect.height }),
-      );
-    } else {
-      setPos({
-        x: Math.max(0, (window.innerWidth - rect.width) / 2),
-        y: Math.max(0, (window.innerHeight - rect.height) / 2),
-      });
-    }
-  }, []);
-
-  // Watch dialog size changes and persist them after 500ms of no change.
-  // The first ResizeObserver fire is skipped — it reports the initial
-  // size (from storage or CSS default), which the user hasn't actively
-  // set. Any subsequent fire means the user grabbed the resize handle.
-  useEffect(() => {
-    const el = dialogRef.current;
-    if (!el) {
-      return;
-    }
-    let first = true;
-    let timer: number | null = null;
-    const ro = new ResizeObserver(([entry]) => {
-      if (first) {
-        first = false;
-        return;
-      }
-      const w = entry.contentRect.width;
-      const h = entry.contentRect.height;
-      if (timer !== null) {
-        window.clearTimeout(timer);
-      }
-      timer = window.setTimeout(() => {
-        writeStoredSize({ w, h });
-      }, 500);
-    });
-    ro.observe(el);
-    return () => {
-      ro.disconnect();
-      if (timer !== null) {
-        window.clearTimeout(timer);
-      }
-    };
-  }, []);
-
-  // Global pointer listeners while the user is dragging the header.
-  // Registered only during a drag; released on pointerup.
-  const [dragging, setDragging] = useState(false);
-  useEffect(() => {
-    if (!dragging) {
-      return;
-    }
-    const onMove = (e: PointerEvent) => {
-      const off = dragOffset.current;
-      if (!off) {
-        return;
-      }
-      setPos({ x: e.clientX - off.x, y: e.clientY - off.y });
-    };
-    const onUp = () => {
-      dragOffset.current = null;
-      setDragging(false);
-    };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-    return () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-    };
-  }, [dragging]);
-
-  // Persist the position 500ms after the last move so we don't hit
-  // localStorage on every pointermove. Each new `pos` value resets the
-  // timer; once the user leaves the dialog alone for half a second, the
-  // final position is written. Gated on hasBeenDraggedRef so the
-  // useLayoutEffect that positions the dialog on open doesn't also
-  // trigger a redundant save.
-  useEffect(() => {
-    if (!pos || !hasBeenDraggedRef.current) {
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      writeStoredPosition(pos);
-    }, 500);
-    return () => window.clearTimeout(timer);
-  }, [pos]);
-
-  const onHeaderPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0) {
-      return;
-    }
-    // Don't start a drag from the close button (or any other button we
-    // might add to the header later).
-    const target = e.target as HTMLElement | null;
-    if (target?.closest('button')) {
-      return;
-    }
-    const rect = dialogRef.current?.getBoundingClientRect();
-    if (!rect) {
-      return;
-    }
-    dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    setPos({ x: rect.left, y: rect.top });
-    setDragging(true);
-    hasBeenDraggedRef.current = true;
+    el.style.height = `${Math.round(Math.max(MIN_SIZE.h, chrome + next))}px`;
   };
 
   // Marquee selection scoped to the view: the marquee never spans into
@@ -673,71 +306,17 @@ export default function ZoneViewPanel({
     };
   }, [marquee, onSelectedIdsChange]);
 
-  // Card metadata (type line, mana value, colours, P/T) from the card
-  // catalog, keyed by name: dumps routinely leave provider_id empty, and
-  // the display fields are stable across printings. Mirrors
-  // IncomingRevealDialog: names already looked up skip the round trip.
-  const [metaByName, setMetaByName] = useState<Map<string, ZoneViewCardMetadata>>(
-    () => new Map(),
-  );
-  const uniqueNames = useMemo(
-    () => new Set(library.map((c) => c.name).filter((n) => n.length > 0)),
-    [library],
-  );
-  useEffect(() => {
-    const needsLookup = Array.from(uniqueNames).filter((name) => !metaByName.has(name));
-    if (needsLookup.length === 0) {
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      const results = await lookupCardsCached(needsLookup);
-      if (cancelled) {
-        return;
-      }
-      setMetaByName((prev) => {
-        const next = new Map(prev);
-        for (const [name, r] of results) {
-          next.set(name, {
-            name,
-            type_line: r.typeLine ?? null,
-            cmc: r.cmc ?? null,
-            colors: r.colors ?? [],
-            set: r.printings[0]?.set ?? null,
-            power: r.power ?? null,
-            toughness: r.toughness ?? null,
-          });
-        }
-        return next;
-      });
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [uniqueNames, metaByName]);
-
-  // Every unique name must have its metadata before Group by Type / Sort
-  // by Type / etc. run. Otherwise a card with real metadata racing one
-  // still loading would briefly be the only thing outside "Other".
-  const metadataLoaded = Array.from(uniqueNames).every((name) => metaByName.has(name));
+  const { metaByName, metadataLoaded } = useCardCatalogMeta(library);
   const effectiveGroupBy: GroupMode = metadataLoaded ? groupBy : 'none';
   const effectiveSortBy: SortMode = metadataLoaded ? sortBy : 'none';
-
-  const groups = useMemo(() => {
-    const enriched: EnrichedCard[] = [];
-    for (const hc of library) {
-      const meta = metaByName.get(hc.name) ?? placeholderMeta(hc.name);
-      if (!matchesQuery(meta, activeQuery)) {
-        continue;
-      }
-      enriched.push({ handCard: hc, meta });
-    }
-    enriched.sort((a, b) => compareCards(a.meta, b.meta, effectiveSortBy));
-    return groupCards(enriched, effectiveGroupBy);
-  }, [library, metaByName, activeQuery, effectiveSortBy, effectiveGroupBy]);
+  const groups = useMemo(
+    () => buildCardGroups(library, metaByName, { query: activeQuery, sortBy: effectiveSortBy, groupBy: effectiveGroupBy }),
+    [library, metaByName, activeQuery, effectiveSortBy, effectiveGroupBy],
+  );
 
   const totalShown = groups.reduce((n, g) => n + g.cards.length, 0);
   const shownIds = groups.flatMap((g) => g.cards.map((c) => c.handCard.id));
+  const pile = pileView && groupBy !== 'none';
 
   return createPortal(
     <div
@@ -762,20 +341,11 @@ export default function ZoneViewPanel({
         // Override the shared card-size CSS variables so every card
         // inside the dialog renders bigger than in the play area.
         // Cards use these vars via cardSize.ts, so nothing else changes.
-        //
-        // When `pos` is set, we position the dialog absolutely at that
-        // point so the user can freely drag it around the play area.
-        // While `pos` is null (before the layout effect fires), the flex
-        // parent centers it — no visible jump.
         style={
           {
             '--card-width': '9rem',
             '--card-height': `${CARD_VIEW_CARD_HEIGHT_REM}rem`,
-            minWidth: `${MIN_DIALOG_W}px`,
-            minHeight: `${MIN_DIALOG_H}px`,
-            ...(pos
-              ? { position: 'absolute', left: pos.x, top: pos.y, margin: 0 }
-              : null),
+            ...panelStyle,
           } as React.CSSProperties
         }
       >
@@ -800,28 +370,7 @@ export default function ZoneViewPanel({
             </span>
           </h2>
           <div className="flex items-center gap-3">
-            <label
-              className={[
-                'flex items-center gap-1.5 text-xs select-none',
-                groupBy === 'none'
-                  ? 'text-text-disabled cursor-not-allowed'
-                  : 'text-text-muted cursor-pointer',
-              ].join(' ')}
-              title={
-                groupBy === 'none'
-                  ? 'Pile view requires a grouping'
-                  : 'Stack cards within each group'
-              }
-            >
-              <input
-                type="checkbox"
-                checked={pileView && groupBy !== 'none'}
-                disabled={groupBy === 'none'}
-                onChange={(e) => setPileView(e.target.checked)}
-                className="accent-accent"
-              />
-              pile view
-            </label>
+            <PileViewToggle groupBy={groupBy} pileView={pileView} onChange={setPileView} />
             {showShuffleOnClose && (
               <label className="flex items-center gap-1.5 text-xs text-text-muted select-none cursor-pointer">
                 <input
@@ -886,31 +435,7 @@ export default function ZoneViewPanel({
           ) : (
             <div className="flex-1" />
           )}
-          <select
-            value={groupBy}
-            onChange={(e) => setGroupBy(e.target.value as GroupMode)}
-            className={TOOLBAR_SELECT_CLASS}
-            title="Group by"
-          >
-            <option value="none">Ungrouped</option>
-            <option value="type">Group by Type</option>
-            <option value="cmc">Group by Mana Value</option>
-            <option value="color">Group by Color</option>
-          </select>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortMode)}
-            className={TOOLBAR_SELECT_CLASS}
-            title="Sort by"
-          >
-            <option value="none">Unsorted</option>
-            <option value="name">Sort by Name</option>
-            <option value="cmc">Sort by Mana Cost</option>
-            <option value="type">Sort by Type</option>
-            <option value="color">Sort by Color</option>
-            <option value="set">Sort by Set</option>
-            <option value="pt">Sort by P/T</option>
-          </select>
+          <ZoneViewSortControls groupBy={groupBy} sortBy={sortBy} onGroupByChange={setGroupBy} onSortByChange={setSortBy} />
         </div>
 
         {/* Grouped columns of stacked cards */}
@@ -924,191 +449,24 @@ export default function ZoneViewPanel({
               No cards match the current filter.
             </div>
           ) : (
-            // Two layouts: pile-view stacks cards vertically per group
-            // (one column per group), flat-view lays them out in a wrapping
-            // grid within each group. Cockatrice's pile-view checkbox
-            // toggles between these (view_zone_widget.cpp:64 + 197).
-            <div className={pileView && groupBy !== 'none' ? 'flex gap-3 items-start' : 'flex flex-col gap-6'}>
-              {groups.map((g) => (
-                <div
-                  key={g.key}
-                  className={pileView && groupBy !== 'none' ? 'shrink-0' : ''}
-                  style={pileView && groupBy !== 'none' ? { width: CARD_WIDTH } : undefined}
-                >
-                  {/* Group label — hidden when ungrouped ("all"/"" key). */}
-                  {g.label && (
-                    <div className="text-xs font-semibold text-text-secondary uppercase tracking-wide mb-1.5 select-none">
-                      {g.label} <span className="text-text-muted normal-case">({g.cards.length})</span>
-                    </div>
-                  )}
-                  {pileView && groupBy !== 'none' ? (
-                    <div
-                      className="relative"
-                      style={{
-                        width: CARD_WIDTH,
-                        // Each card except the last takes PILE_STEP; the last
-                        // one shows fully.
-                        height: `calc(${CARD_HEIGHT} + ${Math.max(
-                          0,
-                          g.cards.length - 1,
-                        )} * calc(${CARD_HEIGHT} * ${PILE_STEP_FRACTION}))`,
-                      }}
-                    >
-                      {g.cards.map((c, i) => {
-                        const selected = selectedIds.has(c.handCard.id);
-                        const dragging = draggingCardIds?.has(c.handCard.id);
-                        const isLast = i === g.cards.length - 1;
-                        // Outer wrapper's DOM box = the visible strip only
-                        // (last card gets full height since it shows fully).
-                        // The Card inside is absolutely positioned at full
-                        // size with pointer-events:none, so it visually
-                        // overflows the strip but the browser's hover
-                        // detection stays confined to the strip's bounds —
-                        // moving off the strip cleanly hands off to the
-                        // next card's strip below. `group` + `group-hover`
-                        // apply the scale to the inner visual container
-                        // when the outer strip is hovered.
-                        return (
-                          <div
-                            key={c.handCard.id}
-                            data-card
-                            data-card-id={c.handCard.id}
-                            className="absolute left-0 hover:z-10 group"
-                            onPointerDown={(e) => {
-                              if (e.button !== 0) {
-                                return;
-                              }
-                              onCardPointerDown?.(e, c.handCard);
-                            }}
-                            onContextMenu={
-                              onCardContextMenu
-                                ? (e) => {
-                                  e.preventDefault();
-                                  onCardContextMenu(e, c.handCard, { shownIds, columnIds: g.cards.map((gc) => gc.handCard.id) });
-                                }
-                                : undefined
-                            }
-                            onMouseEnter={() => {
-                              // Right-rail preview picks up the hovered card
-                              // (same as normal Card hover). Handled here
-                              // because the inner Card is pointer-events:
-                              // none and never receives its own mouseenter.
-                              setHoveredCard({
-                                name: c.handCard.name,
-                                scryfallId: c.handCard.scryfallId,
-                              });
-                            }}
-                            onMouseDown={(e) => {
-                              // Middle-click zoom parity with Card.tsx —
-                              // held down = show big preview, release =
-                              // dismiss. Same reason as the mouseEnter
-                              // above: Card can't receive this itself.
-                              if (e.button !== 1) {
-                                return;
-                              }
-                              e.preventDefault();
-                              openBigPreview({
-                                name: c.handCard.name,
-                                scryfallId: c.handCard.scryfallId,
-                              });
-                              const handleUp = (ev: MouseEvent) => {
-                                if (ev.button !== 1) {
-                                  return;
-                                }
-                                closeBigPreview();
-                                window.removeEventListener('mouseup', handleUp);
-                              };
-                              window.addEventListener('mouseup', handleUp);
-                            }}
-                            onAuxClick={(e) => {
-                              if (e.button === 1) {
-                                e.preventDefault();
-                              }
-                            }}
-                            style={{
-                              top: `calc(${CARD_HEIGHT} * ${PILE_STEP_FRACTION} * ${i})`,
-                              width: CARD_WIDTH,
-                              height: isLast
-                                ? CARD_HEIGHT
-                                : `calc(${CARD_HEIGHT} * ${PILE_STEP_FRACTION})`,
-                              borderRadius: '7.5%',
-                              boxShadow: selected
-                                ? SELECTED_RING
-                                : undefined,
-                              opacity: dragging ? 0 : 1,
-                              touchAction: onCardPointerDown ? 'none' : undefined,
-                              cursor: onCardPointerDown ? 'grab' : undefined,
-                            }}
-                          >
-                            <div
-                              className={[
-                                'absolute left-0 top-0 pointer-events-none',
-                                'transition-transform duration-150 ease-out group-hover:scale-[1.06]',
-                              ].join(' ')}
-                              style={{
-                                width: CARD_WIDTH,
-                                height: CARD_HEIGHT,
-                              }}
-                            >
-                              <Card
-                                name={c.handCard.name}
-                                scryfallId={c.handCard.scryfallId}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    // Flat layout: cards wrap in a grid within the group.
-                    <div className="flex flex-wrap gap-2">
-                      {g.cards.map((c) => {
-                        const selected = selectedIds.has(c.handCard.id);
-                        const dragging = draggingCardIds?.has(c.handCard.id);
-                        return (
-                          <div
-                            key={c.handCard.id}
-                            data-card
-                            data-card-id={c.handCard.id}
-                            className="shrink-0"
-                            onPointerDown={(e) => {
-                              if (e.button !== 0) {
-                                return;
-                              }
-                              onCardPointerDown?.(e, c.handCard);
-                            }}
-                            onContextMenu={
-                              onCardContextMenu
-                                ? (e) => {
-                                  e.preventDefault();
-                                  onCardContextMenu(e, c.handCard, { shownIds, columnIds: g.cards.map((gc) => gc.handCard.id) });
-                                }
-                                : undefined
-                            }
-                            style={{
-                              width: CARD_WIDTH,
-                              height: CARD_HEIGHT,
-                              borderRadius: '7.5%',
-                              boxShadow: selected
-                                ? SELECTED_RING
-                                : undefined,
-                              opacity: dragging ? 0 : 1,
-                              touchAction: onCardPointerDown ? 'none' : undefined,
-                              cursor: onCardPointerDown ? 'grab' : undefined,
-                            }}
-                          >
-                            <Card
-                              name={c.handCard.name}
-                              scryfallId={c.handCard.scryfallId}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
+            <ZoneCardGroups
+              groups={groups}
+              pile={pile}
+              renderCell={(c, g, place) => (
+                <ZoneCardCell
+                  card={c.handCard}
+                  pile={place}
+                  marked
+                  className="shrink-0"
+                  selected={selectedIds.has(c.handCard.id)}
+                  hidden={draggingCardIds?.has(c.handCard.id)}
+                  onPointerDown={onCardPointerDown && ((e) => onCardPointerDown(e, c.handCard))}
+                  onContextMenu={onCardContextMenu && ((e) => {
+                    onCardContextMenu(e, c.handCard, { shownIds, columnIds: g.cards.map((gc) => gc.handCard.id) });
+                  })}
+                />
+              )}
+            />
           )}
         </div>
       </div>
