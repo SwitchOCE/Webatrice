@@ -5,6 +5,12 @@
 
 const OVERLAY_SELECTOR = '[role="dialog"], [role="alertdialog"], [role="menu"], [aria-modal="true"]';
 
+// The game board and the cards on it. A board card may carry a control role
+// (dnd-kit gives draggable cards role="button"), but focusing one is the
+// desktop flow "tap a card, press Tab", so membership wins over role.
+const BOARD_SELECTOR = '[data-game-board]';
+const CARD_SELECTOR = '[data-card-id]';
+
 const CONTROL_SELECTOR = [
   'button',
   'input',
@@ -24,13 +30,20 @@ const CONTROL_SELECTOR = [
 /**
  * True when Tab / Shift+Tab should move focus instead of firing a shortcut:
  * focus is inside a dialog, menu or modal, or on a form control or button.
- * On the page body or the board, Tab keeps desktop's Next Phase binding.
+ * On the page body, the board or a card, Tab keeps desktop's Next Phase
+ * binding, whatever role the card element has.
  */
 export function keepsTabNavigation(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) {
     return false;
   }
-  return target.closest(OVERLAY_SELECTOR) !== null || target.matches(CONTROL_SELECTOR);
+  if (target.closest(OVERLAY_SELECTOR) !== null) {
+    return true;
+  }
+  if (target.closest(CARD_SELECTOR) !== null || target.matches(BOARD_SELECTOR)) {
+    return false;
+  }
+  return target.matches(CONTROL_SELECTOR);
 }
 
 /**
