@@ -98,11 +98,12 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
   // players who bounce between the clients see a familiar tag.
   const displayName = faceDown && id != null ? `# ${id}` : name;
   // Desktop's "Display card names on cards having a picture": the name is
-  // always drawn on a face-down card and on one whose picture failed to load
-  // (AbstractCardItem::paintPicture); with the option off, nowhere else.
+  // always drawn on a face-down card and on one without its picture, still
+  // loading or failed (AbstractCardItem::paintPicture: a null pixmap); with
+  // the option off, nowhere else.
   const displayCardNames = usePreference('displayCardNames');
-  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
-  const showName = displayCardNames || !!faceDown || failedImageUrl === imageUrl;
+  const [loadedImageUrl, setLoadedImageUrl] = useState<string | null>(null);
+  const showName = displayCardNames || !!faceDown || !imageUrl || loadedImageUrl !== imageUrl;
 
   const { setHoveredCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
 
@@ -179,7 +180,7 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
         draggable={false}
         className="w-full h-full"
         style={{ imageRendering: '-webkit-optimize-contrast' }}
-        onError={() => setFailedImageUrl(imageUrl)}
+        onLoad={() => setLoadedImageUrl(imageUrl ?? null)}
       />
       {/* Card name — small pill overlay anchored to the top-left.
           Mirrors the P/T pill's bottom-right anchoring so the two
