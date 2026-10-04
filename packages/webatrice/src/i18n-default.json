@@ -1249,6 +1249,7 @@
     "expires": "The share expires on {date}.",
     "copy": "Copy link",
     "copied": "Copied",
+    "copyFailed": "Couldn't copy the link. It is selected: copy it with Ctrl+C (⌘C on a Mac).",
     "createFailed": "Failed to create the share link (server response code {code}).",
     "notConnected": "You must be connected to the server to share a deck.",
     "linkLabel": "Share link",

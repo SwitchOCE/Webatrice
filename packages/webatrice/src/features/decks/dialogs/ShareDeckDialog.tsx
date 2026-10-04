@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
@@ -39,12 +39,15 @@ export function ShareDeckDialog({ open, defaultName, state, onClose, onCreate }:
     defaultValues: { name: defaultName },
     resolver: zodResolver(shareDeckSchema),
   });
-  const [copiedAgain, setCopiedAgain] = useState(false);
+  // The Copy button's last outcome. `copying` empties the status region, so a
+  // second "Copied" is announced again rather than being the same text.
+  const [copy, setCopy] = useState<'idle' | 'copying' | 'copied' | 'failed'>('idle');
+  const linkRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
       reset({ name: defaultName });
-      setCopiedAgain(false);
+      setCopy('idle');
     }
   }, [open, defaultName, reset]);
 
@@ -56,11 +59,20 @@ export function ShareDeckDialog({ open, defaultName, state, onClose, onCreate }:
   const created = state.status === 'created' ? state : null;
   // One region, mounted with the dialog, announces each step: screen readers
   // read a live region reliably only when it was there before its text.
-  const announcement = state.status === 'pending'
-    ? t('DeckSharing.creating')
-    : created
-      ? (copiedAgain ? t('DeckSharing.copied') : t(created.copied ? 'DeckSharing.createdCopied' : 'DeckSharing.created'))
-      : '';
+  const createdText = created ? t(created.copied ? 'DeckSharing.createdCopied' : 'DeckSharing.created') : '';
+  const copyText = { idle: createdText, copying: '', copied: t('DeckSharing.copied'), failed: t('DeckSharing.copyFailed') }[copy];
+  const announcement = state.status === 'pending' ? t('DeckSharing.creating') : created ? copyText : '';
+
+  const copyLink = async (link: string) => {
+    setCopy('copying');
+    const copied = await copyShareLink(link);
+    setCopy(copied ? 'copied' : 'failed');
+    if (!copied) {
+      // Focusing the link selects it, ready for the user to copy by hand.
+      linkRef.current?.focus();
+      linkRef.current?.select();
+    }
+  };
 
   return (
     <DeckDialogFrame onClose={onClose} titleId={titleId}>
@@ -79,6 +91,7 @@ export function ShareDeckDialog({ open, defaultName, state, onClose, onCreate }:
                 {/* The name field unmounts with the form step, so the link takes focus
                     (selected, ready to copy) instead of focus falling to the page. */}
                 <input
+                  ref={linkRef}
                   type="text"
                   readOnly
                   autoFocus
@@ -90,17 +103,18 @@ export function ShareDeckDialog({ open, defaultName, state, onClose, onCreate }:
                 <button
                   type="button"
                   onClick={() => {
-                    void copyShareLink(created.link).then(setCopiedAgain);
+                    void copyLink(created.link);
                   }}
                   className={[
                     'inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium shrink-0',
                     'text-text-primary bg-bg-elevated border border-border-strong hover:bg-border-subtle',
                   ].join(' ')}
                 >
-                  {copiedAgain ? <Check size={13} /> : <Copy size={13} />}
-                  {t(copiedAgain ? 'DeckSharing.copied' : 'DeckSharing.copy')}
+                  {copy === 'copied' ? <Check size={13} /> : <Copy size={13} />}
+                  {t(copy === 'copied' ? 'DeckSharing.copied' : 'DeckSharing.copy')}
                 </button>
               </div>
+              {copy === 'failed' && <p className="text-danger">{t('DeckSharing.copyFailed')}</p>}
               <p>{t('DeckSharing.expires', { date: formatShareExpiry(created.expiresAt) })}</p>
             </>
           ) : (
