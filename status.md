@@ -1,2 +1,3 @@
 - 01:44Z started; base checked out → read spec
 - 01:48Z i18n extraction split over 4 parallel subagents (dialogs/search+breakdown/editor/list); decks removed from no-literal-string off-list → D1–D6 a11y next
+- 01:50Z e2e autocomplete stub added; building servatrice master image for share e2e; waiting on extraction agents
