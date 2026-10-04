@@ -2,3 +2,4 @@
 - 00:28Z characterization spec pushed (74fd4c9, 96 tests: 46 seat ids, battlefield menu, both arrow paths) → battlefieldSelectionOps + useBattlefieldCardOps
 - 00:41Z card ops + menu (40e2d0c) and shortcut table pushed → target port (judge, colour), arrowResolution, pending owner
 - 01:26Z targeting seam pushed (00445b5: port judge/colour/zone/playAndCreateArrow, arrowResolution, useArrowDrag, usePendingTarget, usePendingArrows deleted; 3813 unit green) → lint rule, full gate, e2e
+- ACK M1: will route every play entry point (double-click autoPlay, play-then-arrow, hand→battlefield drag, stack-A play) through one helper carrying printed pt + cipt tapped, with specs; after the lint rule
