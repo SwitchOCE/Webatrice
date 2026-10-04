@@ -6,3 +6,4 @@
 - 03:48Z all rv21 findings applied (tip 7899922) → full gate
 - 03:56Z typecheck/lint/unit/integration green on bf310a1 → webatrice e2e (docker)
 - 04:12Z e2e run 1: startup-tab failed on firefox (reload not reported as 'reload') → fixed ba53e13 (sessionStorage marker); e2e run 2 in progress
+- 04:30Z full gate green on ba53e13 (e2e 60/6 skipped/3 known replays) → PR file written; done
