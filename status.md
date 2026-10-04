@@ -1,1 +1,2 @@
 - 03:25Z started rv22, read brief/template/task; inbox empty → review PR 31 diff
+- 03:28Z read core diff (dialogs, grid, row menu, quick add, shortcuts, e2e) → i18n checks + keyboard e2e drive
