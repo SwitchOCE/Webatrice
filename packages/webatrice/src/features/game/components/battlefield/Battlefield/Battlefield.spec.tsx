@@ -2,7 +2,11 @@ import { act, fireEvent, screen } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 import { games } from '@cockatrice/datatrice';
 import { ZoneName } from '@cockatrice/sockatrice';
-import { CardAttribute, Event_SetCounterSchema } from '@cockatrice/sockatrice/generated';
+import {
+  CardAttribute,
+  Event_SetCounterSchema,
+  ServerInfo_PlayerProperties_PlaymatParamsSchema,
+} from '@cockatrice/sockatrice/generated';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
 import { getSettings, settingsStore } from '../../../../../hooks/useSettings';
@@ -124,6 +128,32 @@ describe('Battlefield', () => {
       setLife(store, 10);
       expect(wash()).toBeInTheDocument();
       expect(cardEl(OGRE.id, 'battlefield').style.transition).toBe('transform 150ms ease-out');
+    });
+  });
+
+  describe('table background', () => {
+    const island = { cardName: 'Island', cardProviderId: 'uuid-1', params: { marginPctL: 0, marginPctR: 0, verticalOffset: 0, zoom: 1 } };
+    const playmat = create(ServerInfo_PlayerProperties_PlaymatParamsSchema, { cardName: 'Forest', cardProviderId: 'uuid-2', zoom: 1 });
+
+    beforeEach(async () => {
+      const settings = await getSettings();
+      settingsStore.setValue(Object.assign(settings, { zoneBackgrounds: { table: island } }));
+    });
+
+    afterEach(() => {
+      settingsStore.reset();
+    });
+
+    it('draws the table\'s zone background where there is no playmat', () => {
+      renderSeatCell({ ...SPEC, server31: true });
+      expect(screen.getByTestId('zone-background-table')).toBeInTheDocument();
+      expect(screen.queryByTestId('player-playmat')).not.toBeInTheDocument();
+    });
+
+    it('draws only the playmat where there is one, as desktop does', () => {
+      renderSeatCell({ ...SPEC, server31: true, seats: [{ ...SPEC.seats[0], playmat }, SPEC.seats[1]] });
+      expect(screen.getByTestId('player-playmat')).toBeInTheDocument();
+      expect(screen.queryByTestId('zone-background-table')).not.toBeInTheDocument();
     });
   });
 });
