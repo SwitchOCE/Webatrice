@@ -25,6 +25,12 @@ function renderSearch(query = 'bolt', filters = EMPTY_FILTERS) {
 }
 
 describe('AdvancedCardSearch', () => {
+  it('names its query field for assistive technology, not only by placeholder', () => {
+    vi.mocked(useScryfallCardSearch).mockReturnValue({ results: [], loading: false, error: null });
+    renderSearch();
+    expect(screen.getByRole('textbox', { name: 'CardSearch.label' })).toHaveValue('bolt');
+  });
+
   it('searches the typed text combined with the filters', () => {
     vi.mocked(useScryfallCardSearch).mockReturnValue({ results: [], loading: false, error: null });
     renderSearch('bolt', { ...EMPTY_FILTERS, colors: ['R'] });
