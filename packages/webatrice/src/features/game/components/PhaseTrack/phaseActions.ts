@@ -1,7 +1,23 @@
 import { Phase } from '@cockatrice/datatrice';
+import type { ActionId } from '@app/feature-widgets/shortcuts';
 
 /** Desktop's phasesToolbar->phaseCount(): Untap through End. */
 export const PHASE_COUNT = 11;
+
+/** Desktop's direct phase shortcuts (Player/phase0 … phase10), indexed by phase. */
+export const PHASE_SHORTCUT_ACTIONS = [
+  'game.setPhase0',
+  'game.setPhase1',
+  'game.setPhase2',
+  'game.setPhase3',
+  'game.setPhase4',
+  'game.setPhase5',
+  'game.setPhase6',
+  'game.setPhase7',
+  'game.setPhase8',
+  'game.setPhase9',
+  'game.setPhase10',
+] as const satisfies readonly ActionId[];
 
 /** The phase after `current`, wrapping End to Untap (desktop TabGame::actNextPhase).
  *  A game with no phase yet (-1) goes to Untap. */
