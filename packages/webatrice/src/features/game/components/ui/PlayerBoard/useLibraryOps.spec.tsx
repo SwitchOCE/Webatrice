@@ -2,7 +2,7 @@ import { renderHook } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 
 import type { PlayerZoneCommands } from './playerBoard.types';
-import { useLibraryOps } from './useLibraryOps';
+import { libraryMovePrompt, useLibraryOps } from './useLibraryOps';
 
 function setup(deckCount = 5) {
   const zoneCommands = { moveCards: vi.fn(), shuffleLibrary: vi.fn() } as unknown as PlayerZoneCommands;
@@ -26,12 +26,13 @@ describe('useLibraryOps', () => {
 
   it('moves N top or bottom cards in desktop\'s order, clamped to the library', () => {
     const { ops, openCountPrompt, submit, zoneCommands } = setup();
-    ops.promptMoveTopCards('Move top cards to exile', ZoneName.EXILE, true);
+    ops.promptMoveTopCards(ZoneName.EXILE, true);
     expect(openCountPrompt).toHaveBeenLastCalledWith(expect.objectContaining({
-      title: 'Move top cards to exile', submitLabel: 'Move', deckSize: 5,
+      title: 'Move top cards to exile face down', submitLabel: 'Move', deckSize: 5,
     }));
     submit(2);
-    ops.promptMoveBottomCards('Draw bottom cards', 'Draw', ZoneName.HAND);
+    ops.promptMoveBottomCards(ZoneName.HAND);
+    expect(openCountPrompt).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Draw bottom cards', submitLabel: 'Draw' }));
     submit(9);
     expect(vi.mocked(zoneCommands.moveCards).mock.calls).toEqual([
       [ZoneName.DECK, [{ id: 1, faceDown: true }, { id: 0, faceDown: true }], { zone: ZoneName.EXILE }],
@@ -52,14 +53,28 @@ describe('useLibraryOps', () => {
     const empty = setup(0);
     empty.ops.moveTopCard(ZoneName.GRAVE, 0);
     empty.ops.moveBottomCard(ZoneName.GRAVE, 0);
-    empty.ops.promptMoveTopCards('Move', ZoneName.GRAVE);
+    empty.ops.promptMoveTopCards(ZoneName.GRAVE);
     empty.ops.promptShuffleBottomCards();
     expect(empty.zoneCommands.moveCards).not.toHaveBeenCalled();
     expect(empty.openCountPrompt).not.toHaveBeenCalled();
 
     const zero = setup();
-    zero.ops.promptMoveTopCards('Move', ZoneName.GRAVE);
+    zero.ops.promptMoveTopCards(ZoneName.GRAVE);
     zero.submit(0);
     expect(zero.zoneCommands.moveCards).not.toHaveBeenCalled();
+  });
+
+  it('titles each top / bottom move prompt from its destination, for the menu and the shortcuts alike', () => {
+    expect([
+      libraryMovePrompt('top', ZoneName.GRAVE),
+      libraryMovePrompt('top', ZoneName.EXILE, true),
+      libraryMovePrompt('bottom', ZoneName.GRAVE, true),
+      libraryMovePrompt('bottom', ZoneName.HAND),
+    ]).toEqual([
+      { title: 'Move top cards to graveyard', submitLabel: 'Move' },
+      { title: 'Move top cards to exile face down', submitLabel: 'Move' },
+      { title: 'Move bottom cards to graveyard face down', submitLabel: 'Move' },
+      { title: 'Draw bottom cards', submitLabel: 'Draw' },
+    ]);
   });
 });
