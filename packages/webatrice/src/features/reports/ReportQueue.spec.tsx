@@ -283,7 +283,7 @@ describe('ReportQueue', () => {
     }
     const { load, store } = renderQueue({ probe: <I18nProbe /> });
     i18n.addResourceBundle('en-US', 'translation', {
-      Reports: { status: { open: 'Open' }, userContext: { recentLine: '{{status}}: {{category}}' } },
+      Reports: { status: { open: 'Open' }, userContext: { recentLine: '{status}: {category}' } },
       ReportUserDialog: { categoryLabel: { spam: 'Spam' } },
     });
     try {
