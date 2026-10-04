@@ -9,7 +9,7 @@
 import { createElement } from 'react';
 import { act, fireEvent, screen } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
-import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
+import type { ServerInfo_Card, ServerInfo_PlayerProperties_PlaymatParams } from '@cockatrice/sockatrice/generated';
 import {
   makeCounter,
   makeGameEntry,
@@ -18,7 +18,14 @@ import {
   makePlayerProperties,
   makeZoneEntry,
 } from '@cockatrice/datatrice/testing';
-import { connectedState, createMockWebClient, makeStoreState, makeUser, renderWithProviders } from '../../../__test-utils__';
+import {
+  connected31State,
+  connectedState,
+  createMockWebClient,
+  makeStoreState,
+  makeUser,
+  renderWithProviders,
+} from '../../../__test-utils__';
 import GameBoardCell from '../components/ui/GameBoardCell/GameBoardCell';
 import type { BoardCell } from '../hooks/useGameBoardLayout';
 import { ReplayRewindProvider } from '../components/ui/ReplayRewindContext';
@@ -56,6 +63,8 @@ export interface SeatSpec {
   sideboardCount?: number;
   life?: number;
   deckList?: string;
+  /** The playmat the player announced (shown on a 3.1 server, `server31`). */
+  playmat?: ServerInfo_PlayerProperties_PlaymatParams;
 }
 
 export interface SeatGameSpec {
@@ -67,6 +76,8 @@ export interface SeatGameSpec {
   spectator?: boolean;
   judge?: boolean;
   omniscient?: boolean;
+  /** Connected to a Servatrice 3.1 server (playmats and the other 3.1 capabilities). */
+  server31?: boolean;
 }
 
 function counterSet(life: number) {
@@ -87,6 +98,7 @@ export function makeSeat(seat: SeatSpec) {
     properties: makePlayerProperties({
       playerId: seat.playerId,
       userInfo: makeUser({ name: seat.name ?? `P${seat.playerId}` }),
+      playmatParams: seat.playmat,
     }),
     deckList: seat.deckList ?? '',
     counters: counterSet(seat.life ?? 20),
@@ -111,13 +123,14 @@ export function buildSeatGameState({
   spectator = false,
   judge = false,
   omniscient = false,
+  server31 = false,
 }: SeatGameSpec) {
   const players: Record<number, ReturnType<typeof makePlayerEntry>> = {};
   for (const seat of seats) {
     players[seat.playerId] = makeSeat(seat);
   }
   return makeStoreState({
-    ...connectedState,
+    ...(server31 ? connected31State : connectedState),
     games: {
       games: {
         1: makeGameEntry({
