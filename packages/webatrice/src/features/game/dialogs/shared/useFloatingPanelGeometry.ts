@@ -214,9 +214,11 @@ export function useFloatingPanelGeometry({ storageKey, minSize, initialSize, ope
     hasBeenDragged.current = true;
   };
 
+  // CSS minimums beat a width, height or maximum, so the viewport (the panels' max-w-screen and
+  // max-h-screen) has to win inside them too, as it does in clampPanelSize.
   const panelStyle: CSSProperties = {
-    minWidth: `${minSize.w}px`,
-    minHeight: `${minSize.h}px`,
+    minWidth: `min(${minSize.w}px, 100vw)`,
+    minHeight: `min(${minSize.h}px, 100vh)`,
     ...(pos ? { position: 'absolute', left: pos.x, top: pos.y, margin: 0 } : null),
   };
 
