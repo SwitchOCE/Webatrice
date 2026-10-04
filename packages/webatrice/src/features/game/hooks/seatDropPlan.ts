@@ -28,6 +28,9 @@ export interface SeatDragCard {
    *  player: a card attached to one of this seat's battlefield cards. A
    *  drag never mixes owners. */
   ownerPlayerId?: number;
+  /** The card's printed P/T, which it lands with when it enters the
+   *  battlefield from another zone. */
+  printedPT?: string;
 }
 
 export interface SeatDragSource extends PointerGestureData {
@@ -251,10 +254,19 @@ export function planSeatMove(source: SeatDragSource, target: SeatDropTarget): Mo
     }
   })();
 
+  // A card entering the battlefield from another zone carries its printed
+  // P/T (desktop TableZone::handleDropEventByGrid, table_zone.cpp:192-203).
+  // Unlike a play, a drop never taps a cipt card.
+  const entersBattlefield = target.zone === 'battlefield' && source.zone !== 'battlefield';
   return [{
     startPlayerId: source.lenderPlayerId ?? owner,
     startZone: WIRE_ZONE[source.zone],
-    cardsToMove: { card: cardIds.map((cardId) => ({ cardId: cardId as number })) },
+    cardsToMove: {
+      card: cardIds.map((cardId, i) => {
+        const pt = entersBattlefield ? source.cards[i].printedPT : undefined;
+        return { cardId: cardId as number, ...(pt && { pt }) };
+      }),
+    },
     targetPlayerId: target.zone === 'battlefield' ? target.playerId : owner,
     targetZone: WIRE_ZONE[target.zone],
     x,

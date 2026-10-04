@@ -2,6 +2,7 @@ import {
   legacyTableRowFromTypeLine,
   parseTableRow,
   placementFromCardDatabaseRow,
+  playedCardFields,
   tableRowToGridY,
   tokenGridYFromCardDatabaseRow,
 } from './cardPlacement';
@@ -88,5 +89,15 @@ describe('cardPlacement', () => {
     expect(applyInvertY(placement.visualY, true)).toBe(0);
     // A second inversion would undo the first.
     expect(applyInvertY(applyInvertY(placement.visualY, true), true)).toBe(placement.visualY);
+  });
+
+  it.each([
+    ['the printed P/T, tapped for cipt', { pt: '2/2', cipt: true }, false, { pt: '2/2', tapped: true }],
+    ['the printed P/T alone', { pt: '0/4' }, false, { pt: '0/4' }],
+    ['tapped alone for a cipt card without P/T', { cipt: true }, false, { tapped: true }],
+    ['nothing face down', { pt: '2/2', cipt: true }, true, {}],
+    ['nothing without metadata', undefined, false, {}],
+  ])('a played card carries %s', (_, meta, faceDown, fields) => {
+    expect(playedCardFields(meta, faceDown)).toEqual(fields);
   });
 });

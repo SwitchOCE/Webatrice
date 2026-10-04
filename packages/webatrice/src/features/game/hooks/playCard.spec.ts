@@ -126,3 +126,39 @@ describe('playCardViaTableRow — row placement (card-database policy)', () => {
     expect(moveCard).toHaveBeenCalledWith(1, expect.objectContaining({ targetZone: zone, x: 0, y }), undefined);
   });
 });
+
+describe('playCardViaTableRow / autoPlayCard — the played card\'s fields', () => {
+  const cardsToMove = (moveCard: ReturnType<typeof vi.fn>) => moveCard.mock.calls[0][1].cardsToMove;
+
+  it('lands on the battlefield with the printed P/T, tapped when cipt', async () => {
+    vi.mocked(CardDTO.get).mockResolvedValue({
+      tablerow: { value: '0' },
+      cipt: { value: '1' },
+      prop: { value: { pt: { value: '0/3' } } },
+    } as never);
+    const { webClient, moveCard } = makeWebClient();
+
+    await autoPlayCard({ ...baseArgs, webClient, sourcePlayerId: 1 });
+
+    expect(cardsToMove(moveCard)).toEqual({ card: [{ cardId: 7, faceDown: false, pt: '0/3', tapped: true }] });
+  });
+
+  it('reads split power and toughness properties, and sends neither field face down or onto the stack', async () => {
+    vi.mocked(CardDTO.get).mockResolvedValue({
+      tablerow: { value: '1' },
+      prop: { value: { power: { value: '2' }, toughness: { value: '2' } } },
+    } as never);
+    const table = makeWebClient();
+    await playCardViaTableRow({ ...baseArgs, webClient: table.webClient, sourcePlayerId: 1 });
+    expect(cardsToMove(table.moveCard)).toEqual({ card: [{ cardId: 7, faceDown: false, pt: '2/2' }] });
+
+    const faceDown = makeWebClient();
+    await playCardViaTableRow({ ...baseArgs, webClient: faceDown.webClient, sourcePlayerId: 1, faceDown: true });
+    expect(cardsToMove(faceDown.moveCard)).toEqual({ card: [{ cardId: 7, faceDown: true }] });
+
+    const stack = makeWebClient();
+    await autoPlayCard({ ...baseArgs, webClient: stack.webClient, sourcePlayerId: 1 });
+    expect(stack.moveCard.mock.calls[0][1]).toMatchObject({ targetZone: ZoneName.STACK });
+    expect(cardsToMove(stack.moveCard)).toEqual({ card: [{ cardId: 7, faceDown: false }] });
+  });
+});
