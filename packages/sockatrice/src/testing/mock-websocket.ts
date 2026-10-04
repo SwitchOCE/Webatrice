@@ -3,10 +3,32 @@
 // unit tests opt into one-off without taking on the full WebClient singleton
 // reset/timer-installation that `setup.ts` performs.
 
-import { vi } from 'vitest';
+import { type Mock, vi } from 'vitest';
+
+// Spelled out because the declaration build cannot name the type vitest infers
+// for a bare `vi.fn()`.
+type AnyMock = Mock<(...args: any[]) => any>;
+
+export interface UnitMockWebSocket {
+  send: AnyMock;
+  close: AnyMock;
+  readyState: number;
+  binaryType: BinaryType;
+  onopen: ((ev?: Event) => void) | null;
+  onclose: ((ev?: CloseEvent) => void) | null;
+  onerror: ((ev?: Event) => void) | null;
+  onmessage: ((ev: MessageEvent) => void) | null;
+}
+
+export interface UnitMockWebSocketHarness {
+  MockWS: typeof WebSocket;
+  mockInstance: UnitMockWebSocket;
+  instances: UnitMockWebSocket[];
+  restore: () => void;
+}
 
 /** Builds a mock WebSocket instance */
-export function makeMockWebSocketInstance() {
+export function makeMockWebSocketInstance(): UnitMockWebSocket {
   return {
     send: vi.fn(),
     close: vi.fn(),
@@ -26,10 +48,10 @@ export function makeMockWebSocketInstance() {
  * helper exported from `./setup`; tests that want full lifecycle management
  * call this directly and invoke `restore()` themselves.
  */
-export function installMockWebSocketHarness() {
+export function installMockWebSocketHarness(): UnitMockWebSocketHarness {
   const originalWebSocket = (globalThis as { WebSocket?: typeof WebSocket }).WebSocket;
   const mockInstance = makeMockWebSocketInstance();
-  const instances: ReturnType<typeof makeMockWebSocketInstance>[] = [mockInstance];
+  const instances: UnitMockWebSocket[] = [mockInstance];
   let firstCall = true;
   const MockWS = vi.fn(function MockWebSocket() {
     if (firstCall) {
