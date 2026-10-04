@@ -152,6 +152,26 @@ describe('usePendingTarget', () => {
     expect(game.attachCard).not.toHaveBeenCalled();
   });
 
+  it('resolves a pick started in the same handler, before a re-render', () => {
+    const { picker, game } = renderPicker();
+    act(() => {
+      picker().startArrow(BOLT);
+      expect(picker().pick({ kind: 'player', playerId: 2 })).toBe(true);
+    });
+    expect(vi.mocked(game.createArrow).mock.calls).toEqual([arrow(10, { targetPlayerId: 2 })]);
+  });
+
+  it('leaves the pick pending, reporting false, until the game id is known', () => {
+    const { result } = renderSeatHook(() => usePendingTarget(undefined), { localPlayerId: 1, seats: [{ playerId: 1 }] });
+    act(() => result().startArrow(BOLT));
+    let picked = true;
+    act(() => {
+      picked = result().pick({ kind: 'player', playerId: 2 });
+    });
+    expect(picked).toBe(false);
+    expect(result().pending).not.toBeNull();
+  });
+
   it('follows the pointer only while a pick is pending, without changing the picker', () => {
     const { picker } = renderPicker();
     fireEvent.mouseMove(window, { clientX: 5, clientY: 6 });

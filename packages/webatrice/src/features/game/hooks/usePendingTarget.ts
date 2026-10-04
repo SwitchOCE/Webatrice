@@ -25,11 +25,12 @@ export interface PendingTargetPicker {
    *  `usePendingPointer`; it is not part of this value's identity. */
   pointer: PendingPointerStore;
   startArrow(source: PendingTargetSource): void;
-  /** Attach `source` and `extraSourceIds` (battlefield cards of one player). */
+  /** Attach `source` and `extraSourceIds` (cards of one player and zone). */
   startAttach(source: PendingTargetSource, extraSourceIds?: readonly number[]): void;
   cancel(): void;
   /** Resolve the pending pick against `target` (a cancel when the plan sends
-   *  nothing). False, leaving the pick pending, when nothing is pending. */
+   *  nothing). False, leaving any pick pending, when nothing is pending or
+   *  the game id (and so the target port) is not known yet. */
   pick(target: ArrowTarget): boolean;
   /** As `pick`, for a press on a battlefield card, which only resolves an attach. */
   pickAttachTarget(target: ArrowTarget): boolean;
@@ -46,29 +47,30 @@ export interface PendingTargetPicker {
 export function usePendingTarget(gameId: number | undefined): PendingTargetPicker {
   const { localPlayerId } = useGameAccess(gameId);
   const targetCommandsFor = useTargetCommandsFor(gameId);
-  const [pending, setPending] = useState<PendingTarget | null>(null);
+  const [pending, setPendingState] = useState<PendingTarget | null>(null);
   const [pointer] = useState(createPendingPointerStore);
   // The press-release and click resolvers run from listeners registered
-  // earlier; they read the pick as it is now.
+  // earlier; they read the pick as it is now, so every change goes through
+  // the ref as well as the state.
   const pendingRef = useRef(pending);
-  pendingRef.current = pending;
+  const setPending = useCallback((next: PendingTarget | null) => {
+    pendingRef.current = next;
+    setPendingState(next);
+  }, []);
 
   const resolve = useCallback((target: ArrowTarget, only?: PendingTarget['kind']): boolean => {
     const current = pendingRef.current;
-    if (!current || (only && current.kind !== only)) {
+    if (!current || (only && current.kind !== only) || !targetCommandsFor) {
       return false;
     }
     const { source } = current;
     const plan: ArrowPlan = current.kind === 'arrow'
       ? planArrow(source, target, localPlayerId)
       : planAttach(source.playerId, [source.cardId, ...current.extraSourceIds], target);
-    if (targetCommandsFor) {
-      sendArrowPlan(plan, targetCommandsFor);
-    }
-    pendingRef.current = null;
+    sendArrowPlan(plan, targetCommandsFor);
     setPending(null);
     return true;
-  }, [localPlayerId, targetCommandsFor]);
+  }, [localPlayerId, targetCommandsFor, setPending]);
 
   // An arrow pick resolves on the next left click anywhere. Capture phase, so
   // it runs before the cards' own click handlers.
@@ -93,7 +95,7 @@ export function usePendingTarget(gameId: number | undefined): PendingTargetPicke
     };
     window.addEventListener('click', onClick, { capture: true });
     return () => window.removeEventListener('click', onClick, { capture: true });
-  }, [arrowPending, resolve]);
+  }, [arrowPending, resolve, setPending]);
 
   // Escape cancels a pick, whatever has focus, unless a MUI dialog takes it
   // first; the pointer is tracked meanwhile for the live arrow.
@@ -116,7 +118,7 @@ export function usePendingTarget(gameId: number | undefined): PendingTargetPicke
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('mousemove', onMove);
     };
-  }, [active, pointer]);
+  }, [active, pointer, setPending]);
 
   const actions = useMemo(() => ({
     startArrow: (source: PendingTargetSource) => setPending({ kind: 'arrow', source }),
@@ -125,7 +127,7 @@ export function usePendingTarget(gameId: number | undefined): PendingTargetPicke
     cancel: () => setPending(null),
     pick: (target: ArrowTarget) => resolve(target),
     pickAttachTarget: (target: ArrowTarget) => resolve(target, 'attach'),
-  }), [resolve]);
+  }), [resolve, setPending]);
 
   return useMemo(() => ({ pending, pointer, ...actions }), [pending, pointer, actions]);
 }
