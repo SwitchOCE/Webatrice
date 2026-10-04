@@ -52,15 +52,29 @@ describe('DragSelectionCount', () => {
 describe('TotalSelectionCount', () => {
   it('shows the selection count once more than one card is selected', () => {
     const { rerender } = render(<TotalSelectionCount count={1} />);
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('total-selection-count')).not.toBeInTheDocument();
 
     rerender(<TotalSelectionCount count={2} />);
-    expect(screen.getByRole('status')).toHaveTextContent('2');
+    expect(screen.getByTestId('total-selection-count')).toHaveTextContent('2');
+  });
+
+  it('announces the count in words from a status region that stays mounted, the badge hidden', () => {
+    const { rerender } = render(<TotalSelectionCount count={1} />);
+    const status = screen.getByTestId('total-selection-status');
+    expect(status).toHaveAttribute('role', 'status');
+    expect(status).toHaveTextContent('');
+
+    rerender(<TotalSelectionCount count={3} />);
+    expect(screen.getByTestId('total-selection-status')).toBe(status);
+    // The i18n key ("{count} cards selected"): specs run without the catalogue.
+    expect(status).toHaveTextContent('SelectionCount.total');
+    expect(screen.getByTestId('total-selection-count')).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('shows nothing with the option off', async () => {
     await setPreferences({ showTotalSelectionCount: false });
     render(<TotalSelectionCount count={5} />);
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('total-selection-count')).not.toBeInTheDocument();
+    expect(screen.getByTestId('total-selection-status')).toHaveTextContent('');
   });
 });

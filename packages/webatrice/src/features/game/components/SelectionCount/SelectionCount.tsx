@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePreference } from '@app/hooks';
 
 // Desktop's count labels (GameView): white bold monospace on translucent black.
@@ -56,21 +57,29 @@ export function DragSelectionCount({ band, count }: { band: MarqueeRect; count: 
 
 /**
  * "Show total selection count": how many cards are selected across the game, in the board's
- * bottom-right corner, once more than one is (GameView::updateTotalSelectionCount).
+ * bottom-right corner, once more than one is (GameView::updateTotalSelectionCount). Screen readers
+ * hear it from a status region that stays mounted (one that mounts with its first message is often
+ * missed), in words ("3 cards selected"); the badge itself is hidden from them.
  */
 export function TotalSelectionCount({ count, style }: { count: number; style?: CSSProperties }) {
+  const { t } = useTranslation();
   const enabled = usePreference('showTotalSelectionCount');
-  if (!enabled || count <= 1) {
-    return null;
-  }
+  const shown = enabled && count > 1;
   return (
-    <span
-      data-testid="total-selection-count"
-      role="status"
-      className={`absolute z-[250] text-[16px] ${LABEL_CLASS}`}
-      style={style}
-    >
-      {count}
-    </span>
+    <>
+      <span role="status" data-testid="total-selection-status" className="sr-only">
+        {shown ? t('SelectionCount.total', { count }) : ''}
+      </span>
+      {shown && (
+        <span
+          data-testid="total-selection-count"
+          aria-hidden
+          className={`absolute z-[250] text-[16px] ${LABEL_CLASS}`}
+          style={style}
+        >
+          {count}
+        </span>
+      )}
+    </>
   );
 }

@@ -1,0 +1,5 @@
+{
+  "SelectionCount": {
+    "total": "{count, plural, one {# card selected} other {# cards selected}}"
+  }
+}
