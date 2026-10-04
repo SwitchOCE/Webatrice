@@ -105,18 +105,18 @@ describe('HandZone', () => {
       expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({ startZone: ZoneName.HAND, targetZone: ZoneName.STACK });
     });
 
-    it('brings the hovered card to the front', async () => {
+    it('stacks the cards in order and brings the hovered one to the front in CSS, re-rendering nothing', async () => {
       renderSeatCell(SPEC);
       await setPreferences({ horizontalHand: false });
       const slot = (id: number) => cardEl(id, 'hand').parentElement!;
       expect(slot(FOREST.id).style.zIndex).toBe('0');
       expect(slot(SHOCK.id).style.zIndex).toBe('1');
+      expect(slot(FOREST.id)).toHaveClass('hover:!z-[999]');
 
+      const shock = cardEl(SHOCK.id, 'hand');
       fireEvent.mouseEnter(slot(FOREST.id));
-      expect(slot(FOREST.id).style.zIndex).toBe('2');
-
-      fireEvent.mouseLeave(slot(FOREST.id));
       expect(slot(FOREST.id).style.zIndex).toBe('0');
+      expect(cardEl(SHOCK.id, 'hand')).toBe(shock);
     });
 
     it('shows another player\'s hand as a column of card backs', async () => {
