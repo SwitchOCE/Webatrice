@@ -17,18 +17,24 @@ interface PlayerPlaymatProps {
  * honouring the "Playmat visibility" setting.
  */
 export default function PlayerPlaymat({ playerId, isSelf }: PlayerPlaymatProps) {
+  const playmat = usePlayerPlaymat(playerId, isSelf);
+  return playmat && <PlaymatArt art={playmat} testId="player-playmat" />;
+}
+
+/**
+ * The playmat PlayerPlaymat draws for the player, or null when it draws none (no playmat, a
+ * server without them, or hidden by "Playmat visibility"). A seat that draws something else
+ * where there is no playmat (the table's zone background) chooses with it.
+ */
+export function usePlayerPlaymat(playerId: number | undefined, isSelf: boolean) {
   // Optional: PlayerBox also renders outside a live game (previews, specs).
   const gameId = useGameId();
   const supported = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.PLAYMATS));
   const playmat = useAppSelector((state) =>
-    gameId == null ? null : games.Selectors.getPlayerPlaymat(state, gameId, playerId));
+    gameId == null || playerId == null ? null : games.Selectors.getPlayerPlaymat(state, gameId, playerId));
   const { visibility } = usePlaymatSettings();
   const visible = supported && playmat !== null
     && visibility !== PlaymatVisibility.NONE
     && (isSelf || visibility === PlaymatVisibility.ALL);
-
-  if (!visible) {
-    return null;
-  }
-  return <PlaymatArt art={playmat} testId="player-playmat" />;
+  return visible ? playmat : null;
 }
