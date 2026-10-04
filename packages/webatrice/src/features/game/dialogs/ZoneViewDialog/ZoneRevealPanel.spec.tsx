@@ -71,11 +71,10 @@ describe('ZoneRevealPanel', () => {
       expect(dialog().style.height).toBe('240px');
     });
 
-    it('restores a stored position, kept on screen', () => {
+    it('restores a stored position, keeping 60px of its header on screen', () => {
       window.localStorage.setItem('webatrice.zoneRevealPosition', JSON.stringify({ x: 5000, y: -40 }));
       renderPanel();
-      // jsdom lays nothing out, so the dialog measures 0×0.
-      expect(dialog().style.left).toBe(`${window.innerWidth}px`);
+      expect(dialog().style.left).toBe(`${window.innerWidth - 60}px`);
       expect(dialog().style.top).toBe('0px');
     });
   });
