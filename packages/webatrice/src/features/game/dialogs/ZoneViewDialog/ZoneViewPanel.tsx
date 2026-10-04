@@ -62,6 +62,12 @@ function measureCardView(dialog: HTMLElement, content: HTMLElement): { chrome: n
   };
 }
 
+/** The height the view's cards take, without the card area's padding; 0 before layout. */
+function contentsHeight(content: HTMLElement): number {
+  const style = window.getComputedStyle(content);
+  return content.scrollHeight - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0);
+}
+
 function readStoredPosition(): { x: number; y: number } | null {
   if (typeof window === 'undefined') {
     return null;
@@ -384,9 +390,7 @@ export default function ZoneViewPanel({
       // by hand, stored above, wins.
       const { chrome, cardHeightPx } = measureCardView(el, contentRef.current);
       // As on desktop, no taller than the cards need (unknown, 0, before layout).
-      const style = window.getComputedStyle(contentRef.current);
-      const cardsHeight = contentRef.current.scrollHeight
-        - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0);
+      const cardsHeight = contentsHeight(contentRef.current);
       const rowsHeight = cardViewRowsHeight(cardViewInitialRowsMax, cardHeightPx);
       const height = chrome + (cardsHeight > 0 ? Math.min(rowsHeight, cardsHeight) : rowsHeight);
       el.style.height = `${Math.round(clampSizeToViewport({ w: el.getBoundingClientRect().width, h: height }).h)}px`;
@@ -396,7 +400,9 @@ export default function ZoneViewPanel({
   }, []);
 
   // Desktop's title-bar double-click (ZoneViewWidget::expandWindow): between the initial height
-  // and "Maximum expanded height for card view window".
+  // and "Maximum expanded height for card view window", never taller than the cards need (the
+  // widget's maximum size) or the page allows. Expanded is never below initial, as desktop's
+  // coupled spin boxes keep it.
   const toggleExpanded = () => {
     const el = dialogRef.current;
     const content = contentRef.current;
@@ -404,10 +410,11 @@ export default function ZoneViewPanel({
       return;
     }
     const { chrome, area, cardHeightPx } = measureCardView(el, content);
+    const cardsHeight = contentsHeight(content);
     const next = toggledCardViewHeight(area, {
       initial: cardViewRowsHeight(cardViewInitialRowsMax, cardHeightPx),
-      expanded: cardViewRowsHeight(cardViewExpandedRowsMax, cardHeightPx),
-      maxHeight: window.innerHeight - chrome,
+      expanded: cardViewRowsHeight(Math.max(cardViewExpandedRowsMax, cardViewInitialRowsMax), cardHeightPx),
+      maxHeight: Math.min(window.innerHeight - chrome, cardsHeight > 0 ? cardsHeight : Infinity),
     });
     el.style.height = `${Math.round(Math.max(MIN_DIALOG_H, chrome + next))}px`;
   };
