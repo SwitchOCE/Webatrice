@@ -101,6 +101,28 @@ describe('useMentionCompleter', () => {
     expect(input.selectionStart).toBe(5);
   });
 
+  it('lets Tab move focus on after inserting, as desktop does', () => {
+    render(<ChatInput names={NAMES} />);
+    type('@b');
+
+    const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    act(() => {
+      screen.getByRole('combobox').dispatchEvent(tab);
+    });
+
+    expect(screen.getByRole('combobox')).toHaveValue('@Bob ');
+    expect(tab.defaultPrevented).toBe(false);
+  });
+
+  it('points aria-controls at the listbox even while it is closed', () => {
+    render(<ChatInput names={NAMES} />);
+
+    const input = screen.getByRole('combobox');
+    const listbox = document.getElementById(input.getAttribute('aria-controls') ?? '');
+    expect(listbox).toHaveAttribute('role', 'listbox');
+    expect(listbox).not.toBeVisible();
+  });
+
   it('leaves Shift+Tab to move focus', () => {
     render(<ChatInput names={NAMES} />);
     type('@b');
