@@ -95,6 +95,13 @@ describe('useDeckCardGrid', () => {
     expect(row('Bolt')).toHaveTextContent('2 main');
   });
 
+  it('adds a copy on desktop\'s + (Shift+= on US layouts)', async () => {
+    const { user, row } = renderList([card('Bolt', 2)]);
+    row('Bolt').focus();
+    await user.keyboard('{Shift>}[Equal]{/Shift}');
+    expect(row('Bolt')).toHaveTextContent('3 main');
+  });
+
   it('removes the row with Delete and hands focus to the next one', async () => {
     const { user, row } = renderList([card('Bolt'), card('Shock'), card('Opt')]);
     row('Shock').focus();
