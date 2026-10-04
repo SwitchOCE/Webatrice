@@ -43,6 +43,10 @@ export class Setting {
   // Appearance — menus (desktop interface `showShortcuts`)
   showShortcutsInMenus: boolean;
 
+  // Appearance — zone backgrounds (desktop's theme images for the hand, stack, table and player
+  // area). Each is a card's art cropped like a playmat; a zone without one keeps its plain look.
+  zoneBackgrounds: ZoneBackgrounds;
+
   // Appearance — card printings (desktop cards_display `bumpSetsWithCardsInDeckToTop`)
   bumpSetsWithCardsInDeckToTop: boolean;
 
@@ -153,6 +157,19 @@ export class Setting {
 
 export const APP_USER = '*app';
 
+/** The board zones a background can be set for. */
+export type ZoneBackgroundZone = 'hand' | 'stack' | 'table' | 'playerInfo';
+
+/** A zone background: a card's art, cropped as a playmat is (the shape of Datatrice's `games.Playmat`). */
+export interface ZoneBackground {
+  cardName: string;
+  /** Printing uuid; empty to follow the card name. */
+  cardProviderId: string;
+  params: { marginPctL: number; marginPctR: number; verticalOffset: number; zoom: number };
+}
+
+export type ZoneBackgrounds = Readonly<Partial<Record<ZoneBackgroundZone, ZoneBackground>>>;
+
 /** Desktop's "Active theme palette": a fixed palette, or follow the operating system. */
 export enum ThemeMode {
   System = 'system',
@@ -215,6 +232,9 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   themeMode: ThemeMode.System,
 
   showShortcutsInMenus: true,
+
+  // Frozen too, like the macros.
+  zoneBackgrounds: Object.freeze({}),
 
   bumpSetsWithCardsInDeckToTop: true,
 

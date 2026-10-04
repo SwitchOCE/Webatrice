@@ -1,5 +1,6 @@
 import { Palette } from 'lucide-react';
 
+import ZoneBackgroundsEditor from '../controls/ZoneBackgroundsEditor';
 import { SettingsSectionId, type SettingsSection } from '../registry';
 
 /**
@@ -11,6 +12,18 @@ export const appearanceSection: SettingsSection = {
   titleKey: 'Settings.section.appearance',
   icon: Palette,
   groups: [
+    {
+      id: 'appearance.zoneBackgrounds',
+      titleKey: 'SettingsAppearance.group.zoneBackgrounds',
+      entries: [
+        {
+          id: 'zoneBackgrounds',
+          labelKey: 'SettingsAppearance.zoneBackgrounds.label',
+          descriptionKey: 'SettingsAppearance.zoneBackgrounds.description',
+          control: { kind: 'custom', component: ZoneBackgroundsEditor, keys: ['zoneBackgrounds'], layout: 'block' },
+        },
+      ],
+    },
     {
       id: 'appearance.menus',
       titleKey: 'SettingsAppearance.group.menus',
