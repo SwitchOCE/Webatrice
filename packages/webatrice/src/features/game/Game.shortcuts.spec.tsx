@@ -14,6 +14,7 @@ import {
   buildSeatGameState,
   cardEl,
   chooseMenuPath,
+  LIFE_COUNTER_ID,
   openContextMenu,
   type SeatGameSpec,
 } from './__test-utils__/seatFixtures';
@@ -211,6 +212,27 @@ describe('Game seat shortcuts', () => {
       });
       press('KeyJ', { altKey: true });
       expect(screen.getByRole('dialog', { name: 'Shuffle top cards' })).toBeInTheDocument();
+    });
+
+    it('Player counters: Shift+F12 / Shift+F11 add and remove one life; F12 itself stays with the browser', () => {
+      const { game } = renderGame();
+      const devtools = press('F12');
+      press('F12', { shiftKey: true });
+      press('F11', { shiftKey: true });
+      expect(devtools.defaultPrevented).toBe(false);
+      expect(vi.mocked(game.incCounter).mock.calls.map(([, params]) => params)).toEqual([
+        { counterId: LIFE_COUNTER_ID, delta: 1 },
+        { counterId: LIFE_COUNTER_ID, delta: -1 },
+      ]);
+    });
+
+    it('Game phases: a bound phase key sets that phase once', () => {
+      const { game, store } = renderGame();
+      act(() => {
+        store.dispatch(shortcuts.Actions.setOverride({ actionId: 'game.setPhase3', sequences: ['Alt+KeyP'] }));
+      });
+      press('KeyP', { altKey: true });
+      expect(vi.mocked(game.setActivePhase).mock.calls.map(([, params]) => params)).toEqual([{ phase: 3 }]);
     });
 
     it('Hand: a bound "Reveal hand to all players" reveals the whole hand once; a spectator reveals nothing', () => {

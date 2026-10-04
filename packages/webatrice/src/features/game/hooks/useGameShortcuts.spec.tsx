@@ -264,6 +264,20 @@ describe('useGameShortcuts', () => {
     );
   });
 
+  it('sets a phase directly from its phase shortcut, for the active player only', () => {
+    const { webClient } = setup({ activePhase: 2 });
+    fire('game.setPhase0');
+    fire('game.setPhase9');
+    expect(vi.mocked(webClient.request.game.setActivePhase).mock.calls.map(([, params]) => params)).toEqual([
+      { phase: 0 },
+      { phase: 9 },
+    ]);
+
+    const offTurn = setup({ activePlayerId: 8 });
+    fire('game.setPhase4');
+    expect(offTurn.webClient.request.game.setActivePhase).not.toHaveBeenCalled();
+  });
+
   it('steps back one phase, wrapping Untap to End', () => {
     const { webClient } = setup({ activePhase: 0 });
 

@@ -419,6 +419,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     alwaysRevealTopCard,
     alwaysLookAtTopCard,
     manaCounters,
+    lifeControl,
     lastToken,
     openLifePrompt,
     openCounterPrompt,
