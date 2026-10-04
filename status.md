@@ -9,3 +9,4 @@
 - 23:57Z webatrice unit green per-directory: 286/294 files, 2239 passed, 2 skipped (pre-existing); re-running 8 stragglers + integration → e2e
 - 00:26Z root-caused the hangs/OOMs: my AuthGuard change navigated in a loop (fresh state object per render) — fixed + regression spec; integration green (20/10/43 files) → full unit re-run, then e2e
 - 00:30Z full gate green: typecheck 5/5, lint 3/3, unit 881+1281+2297 passed (2 skipped, pre-existing), integration 171+140+210 (2 skipped) → e2e running
+- 00:39Z first e2e run: 38 passed, 27 failed — all browserType.launch (missing libgtk-4 etc.); ran playwright install-deps, re-running e2e
