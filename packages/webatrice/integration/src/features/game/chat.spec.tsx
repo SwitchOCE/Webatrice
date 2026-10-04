@@ -27,10 +27,10 @@ describe('Game chat', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByLabelText('game chat input')).not.toBeDisabled();
+      expect(screen.getByLabelText('ChatLog.inputLabel')).not.toBeDisabled();
     });
 
-    const input = screen.getByLabelText('game chat input') as HTMLInputElement;
+    const input = screen.getByLabelText('ChatLog.inputLabel') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'gl hf' } });
     fireEvent.submit(input.closest('form')!);
 
@@ -50,10 +50,10 @@ describe('Game chat', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByLabelText('game chat input')).not.toBeDisabled();
+      expect(screen.getByLabelText('ChatLog.inputLabel')).not.toBeDisabled();
     });
 
-    const input = screen.getByRole('combobox', { name: 'game chat input' }) as HTMLInputElement;
+    const input = screen.getByRole('combobox', { name: 'ChatLog.inputLabel' }) as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'gg @p' } });
     expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['@P1', '@P2']);
     fireEvent.keyDown(input, { key: 'ArrowDown' });
