@@ -267,6 +267,25 @@ describe('Settings', () => {
     expect(within(panel).queryByRole('button', { name: /Settings\.restoreDefaults/ })).not.toBeInTheDocument();
   });
 
+  it('lays out the Appearance page in desktop\'s group order', async () => {
+    await renderSettings();
+    openSection(/Settings\.section\.appearance/);
+
+    const groups = within(screen.getByRole('tabpanel')).getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
+    expect(groups).toEqual([
+      'SettingsAppearance.group.theme',
+      'PlaymatSettings.title',
+      'SettingsAppearance.group.zoneBackgrounds',
+      'SettingsAppearance.group.menus',
+      'SettingsAppearance.group.cardPrintings',
+      'SettingsAppearance.group.cardRendering',
+      'SettingsAppearance.group.cardLayout',
+      'SettingsAppearance.group.cardCounters',
+      'SettingsAppearance.group.handLayout',
+      'SettingsAppearance.group.tableGrid',
+    ]);
+  });
+
   it('shows the playmat settings as a group of the Appearance page', async () => {
     await renderSettings();
     openSection(/Settings\.section\.appearance/);
