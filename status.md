@@ -1,1 +1,2 @@
 - 03:45Z read brief, task, rv22; work branch on 87a20ef → apply majors
+- 03:49Z majors fixed+pushed (c0708a5, a3d7c67) → minors
