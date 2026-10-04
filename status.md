@@ -17,3 +17,4 @@
 - 23:54Z printings bump pushed → zone backgrounds (playmat infra) next
 - 00:02Z zone backgrounds pushed → appearance ordering check, changeset, full gate, e2e
 - 00:16Z gate: typecheck 5/5, lint 3/3, unit 896/1316/3542, integration 175/144/266 (fixed pre-existing race in invite-link spec, reproduced on base) → e2e sockatrice + webatrice
+- 00:41Z e2e: sockatrice 5 passed; webatrice 66 passed / 12 skipped (3.0-server gates) / 0 failed on chromium+firefox+webkit (staff-tools rerun with compose plugin mounted: 6/6) → PR file
