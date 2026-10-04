@@ -1,0 +1,1 @@
+- 05:10Z started f17c, read brief/rv23 → setup + gate baseline
