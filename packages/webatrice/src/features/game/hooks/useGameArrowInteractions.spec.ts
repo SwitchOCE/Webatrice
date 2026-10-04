@@ -101,7 +101,7 @@ describe('useGameArrowInteractions', () => {
     document.body.innerHTML = '';
   });
 
-  it('creates an arrow after right-click-drag past the 8px threshold', () => {
+  it('creates an arrow after right-click-drag past the 4px threshold', () => {
     const { result, webClient } = setup();
     const targetEl = makeCardElement({ playerId: 2, zone: ZoneName.TABLE, cardId: 99 });
     const origElementFromPoint = document.elementFromPoint;
@@ -388,8 +388,8 @@ describe('useGameArrowInteractions', () => {
     // Regression: dnd-kit's PointerSensor used to fire onDragStart on every
     // pointerdown (no activationConstraint), which routed through
     // cancelPendingOnDragStart and wiped pendingAttach before the click
-    // event reached handleCardClick. The fix adds `distance: 8` to the
-    // sensor in useGame.ts; this spec covers handleCardClick's contract
+    // event reached handleCardClick. GamePointerSensor now starts a drag only
+    // on motion (useGame.ts); this spec covers handleCardClick's contract
     // directly so the click-through-attach path is no longer untested.
 
     it('dispatches attachCard when handleCardClick fires on a different card while pendingAttach is set', () => {

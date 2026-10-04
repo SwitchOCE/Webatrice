@@ -74,7 +74,8 @@ const onLibrary = (op: SeatShortcut): SeatShortcut => (seat) => {
 /**
  * Desktop's player shortcuts, by action id. Each one calls an existing seat
  * op, prompt or port; the selection-scoped ones go through the same
- * battlefield card ops as the card menu.
+ * battlefield card ops as the card menu. No entry checks isSelf: only the
+ * local seat publishes its shortcuts (usePublishSeatShortcuts below).
  */
 const SEAT_SHORTCUTS: Record<SeatShortcutActionId, SeatShortcut> = {
   // aMulligan (Ctrl+M) asks for the hand size rather than assuming seven.
