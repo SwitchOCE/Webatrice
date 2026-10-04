@@ -1,2 +1,3 @@
 - 00:16Z started; base 41f0d47 checked out → reading code, characterization specs
 - 00:28Z characterization spec pushed (74fd4c9, 96 tests: 46 seat ids, battlefield menu, both arrow paths) → battlefieldSelectionOps + useBattlefieldCardOps
+- 00:41Z card ops + menu (40e2d0c) and shortcut table pushed → target port (judge, colour), arrowResolution, pending owner
