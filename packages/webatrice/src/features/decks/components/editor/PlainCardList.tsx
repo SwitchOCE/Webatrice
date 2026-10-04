@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type RefObject } from 'react';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -9,7 +9,7 @@ import type { DeckCard } from '../../types';
 /** Bare "type a card name and press Enter to add" input shown in the
  *  non-MTG toolbar. No autocomplete, no lookup — the whole point of a
  *  non-MTG deck is that we don't know what the cards are. */
-export function PlainAddCard({ onAdd }: { onAdd: (name: string) => void }) {
+export function PlainAddCard({ onAdd, inputRef }: { onAdd: (name: string) => void; inputRef?: RefObject<HTMLInputElement | null> }) {
   const { t } = useTranslation();
   const [value, setValue] = useState('');
   const handleAdd = () => {
@@ -27,6 +27,7 @@ export function PlainAddCard({ onAdd }: { onAdd: (name: string) => void }) {
         className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
       />
       <input
+        ref={inputRef}
         type="text"
         value={value}
         onChange={(e) => setValue(e.target.value)}

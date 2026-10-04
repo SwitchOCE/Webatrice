@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { ArrowLeft, SlidersHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -101,7 +101,16 @@ export function DeckMainPane({
       : sortIndicesByName(deck.cards, deck.cards.map((_, i) => i))),
     [isMtg, groups, deck.cards],
   );
-  const grid = useDeckCardGrid({ cards: deck.cards, order: rowOrder, onInc, onDelete, onSetCategory });
+  // Removing the last card leaves no row to take focus; the add field does.
+  const addFieldRef = useRef<HTMLInputElement>(null);
+  const grid = useDeckCardGrid({
+    cards: deck.cards,
+    order: rowOrder,
+    onInc,
+    onDelete,
+    onSetCategory,
+    onLastRowRemoved: () => addFieldRef.current?.focus(),
+  });
 
   return (
     <section className="min-h-0 flex flex-col">
@@ -121,6 +130,7 @@ export function DeckMainPane({
                 query={quickAddQuery}
                 onQueryChange={setQuickAddQuery}
                 onAdd={onAddByName}
+                inputRef={addFieldRef}
               />
             </>
           ) : (
@@ -137,7 +147,7 @@ export function DeckMainPane({
           // Non-MTG toolbar: plain typed-name entry, no Scryfall
           // autocomplete or advanced search since we have no card DB
           // to search against.
-          <PlainAddCard onAdd={onAddByName} />
+          <PlainAddCard onAdd={onAddByName} inputRef={addFieldRef} />
         )}
       </div>
 

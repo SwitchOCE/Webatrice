@@ -4,14 +4,15 @@ import { renderWithProviders } from '../../../../__test-utils__';
 import { groupDeckCards } from '../../deckGrouping';
 import type { HydratedDeck } from '../../types';
 import { DeckMainPane, type DeckMainPaneProps } from './DeckMainPane';
+import type { QuickAddSearchProps } from './QuickAddSearch';
 
 vi.mock('../breakdown/DeckBreakdown', () => ({ DeckBreakdown: () => <div>breakdown</div> }));
 vi.mock('../search/AdvancedCardSearch', () => ({
   AdvancedCardSearch: ({ query }: { query: string }) => <div>advanced search for “{query}”</div>,
 }));
 vi.mock('./QuickAddSearch', () => ({
-  QuickAddSearch: ({ query, onQueryChange }: { query: string; onQueryChange: (q: string) => void }) => (
-    <input aria-label="quick add" value={query} onChange={(e) => onQueryChange(e.target.value)} />
+  QuickAddSearch: ({ query, onQueryChange, inputRef }: QuickAddSearchProps) => (
+    <input ref={inputRef} aria-label="quick add" value={query} onChange={(e) => onQueryChange(e.target.value)} />
   ),
 }));
 
@@ -77,5 +78,16 @@ describe('DeckMainPane', () => {
   it('explains how to start an empty deck', () => {
     renderPane({ deck: { ...deck, cards: [] }, groups: [] });
     expect(screen.getByText('DeckEditor.shell.noCards')).toBeInTheDocument();
+  });
+
+  it.each([true, false])('moves focus to the add field when the last card is removed (MTG: %s)', (isMtg) => {
+    const one = { ...deck, cards: [deck.cards[0]] };
+    const props = renderPane({ deck: one, groups: groupDeckCards(one.cards, false), isMtg });
+    const row = screen.getByRole('row');
+    row.focus();
+    fireEvent.keyDown(row, { key: 'Delete' });
+    expect(props.onDelete).toHaveBeenCalledWith(0);
+    expect(isMtg ? screen.getByLabelText('quick add') : screen.getByPlaceholderText('DeckEditor.list.addPlaceholder'))
+      .toHaveFocus();
   });
 });

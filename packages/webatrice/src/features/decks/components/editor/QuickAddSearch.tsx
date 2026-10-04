@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState, type RefObject } from 'react';
 import { Loader2, Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -10,6 +10,8 @@ export interface QuickAddSearchProps {
   query: string;
   onQueryChange: (query: string) => void;
   onAdd: (name: string) => void;
+  /** The combobox input, for a parent that hands focus to it. */
+  inputRef?: RefObject<HTMLInputElement | null>;
 }
 
 /**
@@ -19,13 +21,14 @@ export interface QuickAddSearchProps {
  * typed name), and Escape closes the popup, then clears the field. A polite status reports searching,
  * the number of suggestions and no matches.
  */
-export function QuickAddSearch({ query, onQueryChange, onAdd }: QuickAddSearchProps) {
+export function QuickAddSearch({ query, onQueryChange, onAdd, inputRef: externalInputRef }: QuickAddSearchProps) {
   const { t } = useTranslation();
   const setQuery = onQueryChange;
   const { suggestions, loading, highlight, setHighlight, clear } = useQuickAddSuggestions(query);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const ownInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = externalInputRef ?? ownInputRef;
   const listboxId = useId();
   const optionId = (index: number) => `${listboxId}-option-${index}`;
 
