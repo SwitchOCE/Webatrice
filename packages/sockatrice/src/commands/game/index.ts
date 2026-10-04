@@ -8,6 +8,7 @@ export { nextTurn } from './nextTurn';
 export { setActivePhase } from './setActivePhase';
 export { reverseTurn } from './reverseTurn';
 export { moveCard } from './moveCard';
+export { moveCardAndShuffle } from './moveCardAndShuffle';
 export { sendGameCommands } from './sendGameCommands';
 export {
   bulkTap,
