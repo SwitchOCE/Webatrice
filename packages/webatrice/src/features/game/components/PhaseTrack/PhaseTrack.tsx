@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   RotateCcw,
   Settings,
@@ -34,9 +35,15 @@ import { usePhaseBar } from './usePhaseBar';
  *     right of its bar. Everything else is just tint. The strip is
  *     the hover target, so mousing over any bar triggers the expand.
  *
- *   • **Expanded** (on hover). Slides out to the classic 112 px wide
- *     panel with icon + label per phase, plus the Pass button at the
- *     bottom. Clicking a phase advances to it and collapses back.
+ *   • **Expanded** (on hover, or while focus is inside it). Slides out
+ *     to the classic 112 px wide panel with icon + label per phase, plus
+ *     the Pass button at the bottom. Clicking a phase advances to it and
+ *     collapses back.
+ *
+ * Every phase button is named by its phase, collapsed or not, and the
+ * current one carries `aria-current="step"`. For a player who may not
+ * change phases the buttons stay focusable (`aria-disabled`, not
+ * `disabled`), so the current phase can still be read from the keyboard.
  *
  * The bar sits inside the game shell's `position: relative` root, so
  * the expansion animation floats over the play area without shifting
@@ -46,8 +53,8 @@ import { usePhaseBar } from './usePhaseBar';
 
 interface PhaseEntry {
   phase: Phase;
-  label: string;
-  title: string;
+  /** Names its label (`PhaseTrack.phase.*`) and tooltip (`PhaseTrack.title.*`). */
+  key: string;
   icon: LucideIcon;
   tint: string;
   builtInOnDoubleClick?: 'untapAll' | 'drawCard';
@@ -62,31 +69,17 @@ const TINT_BLUE = '#3b82f6';
 const TINT_RED = '#ef4444';
 
 const PHASE_ENTRIES: ReadonlyArray<PhaseEntry> = [
-  {
-    phase: Phase.Untap,
-    label: 'Untap',
-    title: 'Untap step (double-click: untap all)',
-    icon: RotateCcw,
-    tint: TINT_GREEN,
-    builtInOnDoubleClick: 'untapAll',
-  },
-  { phase: Phase.Upkeep, label: 'Upkeep', title: 'Upkeep step', icon: Settings, tint: TINT_GREEN },
-  {
-    phase: Phase.Draw,
-    label: 'Draw',
-    title: 'Draw step (double-click: draw a card)',
-    icon: BookOpen,
-    tint: TINT_GREEN,
-    builtInOnDoubleClick: 'drawCard',
-  },
-  { phase: Phase.FirstMain, label: 'Main 1', title: 'First main phase', icon: Circle, tint: TINT_BLUE },
-  { phase: Phase.BeginCombat, label: 'Start Combat', title: 'Beginning of combat', icon: Swords, tint: TINT_RED },
-  { phase: Phase.DeclareAttackers, label: 'Attack', title: 'Declare attackers', icon: Sword, tint: TINT_RED },
-  { phase: Phase.DeclareBlockers, label: 'Block', title: 'Declare blockers', icon: Shield, tint: TINT_RED },
-  { phase: Phase.CombatDamage, label: 'Damage', title: 'Combat damage', icon: Zap, tint: TINT_RED },
-  { phase: Phase.EndCombat, label: 'End Combat', title: 'End of combat', icon: Flag, tint: TINT_RED },
-  { phase: Phase.SecondMain, label: 'Main 2', title: 'Second main phase', icon: CircleDot, tint: TINT_BLUE },
-  { phase: Phase.EndCleanup, label: 'End', title: 'End step / cleanup', icon: Moon, tint: TINT_GREEN },
+  { phase: Phase.Untap, key: 'untap', icon: RotateCcw, tint: TINT_GREEN, builtInOnDoubleClick: 'untapAll' },
+  { phase: Phase.Upkeep, key: 'upkeep', icon: Settings, tint: TINT_GREEN },
+  { phase: Phase.Draw, key: 'draw', icon: BookOpen, tint: TINT_GREEN, builtInOnDoubleClick: 'drawCard' },
+  { phase: Phase.FirstMain, key: 'firstMain', icon: Circle, tint: TINT_BLUE },
+  { phase: Phase.BeginCombat, key: 'beginCombat', icon: Swords, tint: TINT_RED },
+  { phase: Phase.DeclareAttackers, key: 'declareAttackers', icon: Sword, tint: TINT_RED },
+  { phase: Phase.DeclareBlockers, key: 'declareBlockers', icon: Shield, tint: TINT_RED },
+  { phase: Phase.CombatDamage, key: 'combatDamage', icon: Zap, tint: TINT_RED },
+  { phase: Phase.EndCombat, key: 'endCombat', icon: Flag, tint: TINT_RED },
+  { phase: Phase.SecondMain, key: 'secondMain', icon: CircleDot, tint: TINT_BLUE },
+  { phase: Phase.EndCleanup, key: 'endCleanup', icon: Moon, tint: TINT_GREEN },
 ];
 
 // Widths for the two modes. Collapsed stays skinny enough that the
@@ -102,13 +95,16 @@ const COLLAPSED_WIDTH = VISIBLE_BAR_WIDTH + HOVER_BUFFER_PX;
 const EXPANDED_WIDTH = 112;
 
 export default function PhaseTrack() {
+  const { t } = useTranslation();
   const gameId = useGameId();
   const pinned = usePhaseTrackPinned();
   // Hover-driven expand still applies in unpinned mode; pinned mode
   // treats `expanded` as always-true and skips the hover handlers so
-  // stray mouse-outs can't collapse the panel.
+  // stray mouse-outs can't collapse the panel. Focus inside the track
+  // expands it the same way, so a keyboard user sees the labels.
   const [hoverExpanded, setHoverExpanded] = useState(false);
-  const expanded = pinned || hoverExpanded;
+  const [focusExpanded, setFocusExpanded] = useState(false);
+  const expanded = pinned || hoverExpanded || focusExpanded;
   const {
     activePhase,
     canPassTurn,
@@ -161,13 +157,19 @@ export default function PhaseTrack() {
   return (
     <nav
       data-testid="phase-bar"
-      aria-label="Turn phases"
+      aria-label={t('PhaseTrack.label')}
       // Pinned mode: no hover-driven expand/collapse; the panel is
       // always full-width and lives in its own grid column, so hover
       // events are irrelevant. Unpinned mode: mouse in / out drives
       // the auto-expand HUD behavior.
       onMouseEnter={pinned ? undefined : () => setHoverExpanded(true)}
       onMouseLeave={pinned ? undefined : () => setHoverExpanded(false)}
+      onFocus={() => setFocusExpanded(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+          setFocusExpanded(false);
+        }
+      }}
       className={[
         // Pinned: `relative` so it takes up the reserved grid column.
         // Unpinned: `absolute` so it floats over the play area and
@@ -185,7 +187,7 @@ export default function PhaseTrack() {
       ].join(' ')}
       style={{ width: expanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH }}
     >
-      {PHASE_ENTRIES.map(({ phase, label, title, icon: Icon, tint, builtInOnDoubleClick }) => {
+      {PHASE_ENTRIES.map(({ phase, key: phaseKey, icon: Icon, tint, builtInOnDoubleClick }) => {
         const isActive = phase === activePhase;
         const isEndStep = phase === Phase.EndCleanup;
         return (
@@ -201,8 +203,13 @@ export default function PhaseTrack() {
               key={isEndStep ? `endstep-${endStepFlashSeq}` : `phase-${phase}`}
               type="button"
               data-phase={phase}
-              disabled={!canAdvancePhase}
+              aria-label={t(`PhaseTrack.phase.${phaseKey}`)}
+              aria-current={isActive ? 'step' : undefined}
+              aria-disabled={!canAdvancePhase || undefined}
               onClick={() => {
+                if (!canAdvancePhase) {
+                  return;
+                }
                 // Snapshot BEFORE advancing so we can distinguish
                 // "user is re-clicking the already-active phase" from
                 // "user is advancing into this phase for the first
@@ -229,8 +236,8 @@ export default function PhaseTrack() {
                   handleDrawOne();
                 }
               }}
-              onDoubleClick={onDoubleClickFor(builtInOnDoubleClick)}
-              title={canAdvancePhase ? title : 'Only the active player can change phases'}
+              onDoubleClick={canAdvancePhase ? onDoubleClickFor(builtInOnDoubleClick) : undefined}
+              title={canAdvancePhase ? t(`PhaseTrack.title.${phaseKey}`) : t('PhaseTrack.activePlayerOnly')}
               className={[
                 'relative overflow-hidden w-full h-full transition-all duration-200',
                 expanded
@@ -252,9 +259,9 @@ export default function PhaseTrack() {
               )}
               {expanded && (
                 <>
-                  <Icon size={16} className="relative z-10 text-white" strokeWidth={2.25} />
+                  <Icon size={16} className="relative z-10 text-white" strokeWidth={2.25} aria-hidden />
                   <span className="relative z-10 text-[11px] font-semibold uppercase tracking-wider text-white leading-tight text-center">
-                    {label}
+                    {t(`PhaseTrack.phase.${phaseKey}`)}
                   </span>
                 </>
               )}
@@ -271,12 +278,13 @@ export default function PhaseTrack() {
       <button
         type="button"
         onClick={handlePass}
-        disabled={!canPassTurn}
-        title="Pass to the next turn"
+        aria-label={t('PhaseTrack.pass')}
+        aria-disabled={!canPassTurn || undefined}
+        title={t('PhaseTrack.passTitle')}
         className={[
           'relative shrink-0 overflow-hidden w-full transition-all duration-200',
           'bg-accent-secondary hover:bg-accent text-white',
-          'disabled:opacity-50 disabled:cursor-not-allowed',
+          'aria-disabled:opacity-50 aria-disabled:cursor-not-allowed',
           expanded
             ? 'mt-1 rounded-md px-2 py-3 flex flex-col items-center gap-1 text-xs font-bold uppercase tracking-wider shadow-glow'
             : 'rounded-sm h-8',
@@ -284,8 +292,8 @@ export default function PhaseTrack() {
       >
         {expanded && (
           <>
-            <LogOut size={16} />
-            <span>Pass</span>
+            <LogOut size={16} aria-hidden />
+            <span>{t('PhaseTrack.pass')}</span>
           </>
         )}
       </button>
