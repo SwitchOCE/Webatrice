@@ -117,12 +117,12 @@ describe('useDeckList', () => {
 
     const [path, deckId, xml] = vi.mocked(webClient.request.session.deckUpload).mock.calls[0];
     expect([path, deckId]).toEqual(['', 0]);
-    expect(parseCod(xml)).toEqual(expect.objectContaining({ name: 'New Deck', format: 'modern' }));
+    expect(parseCod(xml)).toEqual(expect.objectContaining({ name: 'Decks.list.defaultDeckName', format: 'modern' }));
 
     act(() => {
       store.dispatch(server.Actions.deckUpload({
         path: '',
-        treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 7, name: 'New Deck' }),
+        treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 7, name: 'Decks.list.defaultDeckName' }),
       }));
     });
     expect(onDeckCreated).toHaveBeenCalledWith(7);

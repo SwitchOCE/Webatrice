@@ -1,5 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { I18nextProvider, initReactI18next } from 'react-i18next';
+import i18n from 'i18next';
 
 import { RouteEnum } from '@app/types';
 
@@ -10,12 +12,16 @@ vi.mock('@app/feature-wrappers/layout', () => ({
 }));
 vi.mock('@app/components', () => ({ AuthGuard: () => null }));
 
+// Trans renders nothing without an i18n instance; this one echoes keys.
+const testI18n = i18n.createInstance();
+testI18n.use(initReactI18next).init({ lng: 'en-US', resources: { 'en-US': { translation: {} } } });
+
 describe('DeckEditorShells', () => {
   it('shows hydration, then preload progress, in the skeleton', () => {
     const { rerender } = render(<DeckEditorSkeleton loaded={0} total={0} />);
-    expect(screen.getByText('Loading deck…')).toBeInTheDocument();
+    expect(screen.getByText('DeckEditor.shell.loadingDeck')).toBeInTheDocument();
     rerender(<DeckEditorSkeleton loaded={3} total={10} />);
-    expect(screen.getByText('Preloading 3/10 cards…')).toBeInTheDocument();
+    expect(screen.getByText('DeckEditor.shell.preloading')).toBeInTheDocument();
   });
 
   it('links a missing deck back to My Decks', () => {
@@ -27,8 +33,8 @@ describe('DeckEditorShells', () => {
         </Routes>
       </MemoryRouter>,
     );
-    expect(screen.getByText('Deck not found')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Back to My Decks/ }));
+    expect(screen.getByText('DeckEditor.shell.notFoundTitle')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'DeckEditor.shell.backToDecks' }));
     expect(screen.getByText('my decks')).toBeInTheDocument();
   });
 
@@ -40,13 +46,13 @@ describe('DeckEditorShells', () => {
     );
     expect(screen.getByText('DeckEditor.loadFailedTitle')).toBeInTheDocument();
     expect(screen.getByText('CommandFailure.timeout')).toBeInTheDocument();
-    expect(screen.queryByText('Deck not found')).not.toBeInTheDocument();
+    expect(screen.queryByText('DeckEditor.shell.notFoundTitle')).not.toBeInTheDocument();
   });
 
   it('points an empty deck at the right entry control', () => {
-    const { rerender } = render(<EmptyCardsHint isMtg />);
-    expect(screen.getByText('Quick add')).toBeInTheDocument();
-    rerender(<EmptyCardsHint isMtg={false} />);
-    expect(screen.getByText('Add a card')).toBeInTheDocument();
+    const { rerender } = render(<I18nextProvider i18n={testI18n}><EmptyCardsHint isMtg /></I18nextProvider>);
+    expect(screen.getByText('DeckEditor.shell.emptyMtg')).toBeInTheDocument();
+    rerender(<I18nextProvider i18n={testI18n}><EmptyCardsHint isMtg={false} /></I18nextProvider>);
+    expect(screen.getByText('DeckEditor.shell.emptyPlain')).toBeInTheDocument();
   });
 });

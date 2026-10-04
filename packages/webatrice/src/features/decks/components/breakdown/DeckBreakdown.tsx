@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { isCommanderFormat, type BracketAssessment } from '@app/types';
 
@@ -36,6 +37,7 @@ export function DeckBreakdown({
    *  `meta.bracketLevel` for legacy consumers. */
   onAssessmentComputed?: (assessment: BracketAssessment | undefined) => void;
 }) {
+  const { t } = useTranslation();
   const stats = useMemo(() => computeDeckStats(cards), [cards]);
   // Brackets are a Commander concept. Include Pauper Commander since
   // it shares commander-designation UX; if it turns out brackets read
@@ -49,18 +51,18 @@ export function DeckBreakdown({
   return (
     <div className="space-y-6">
       <section>
-        <SectionHeader>Overview</SectionHeader>
+        <SectionHeader>{t('DeckBreakdown.overview')}</SectionHeader>
         <div className="grid grid-cols-4 gap-3">
-          <StatCard label="Total" value={stats.totalCards} />
-          <StatCard label="Nonland" value={stats.nonlandCards} />
-          <StatCard label="Lands" value={stats.landCount} />
-          <StatCard label="Avg CMC" value={stats.avgNonlandCmc.toFixed(2)} />
+          <StatCard label={t('DeckBreakdown.stat.total')} value={stats.totalCards} />
+          <StatCard label={t('DeckBreakdown.stat.nonland')} value={stats.nonlandCards} />
+          <StatCard label={t('DeckBreakdown.stat.lands')} value={stats.landCount} />
+          <StatCard label={t('DeckBreakdown.stat.avgCmc')} value={stats.avgNonlandCmc.toFixed(2)} />
         </div>
       </section>
 
       {showBracket && (
         <section>
-          <SectionHeader>Bracket estimate</SectionHeader>
+          <SectionHeader>{t('DeckBreakdown.bracketEstimate')}</SectionHeader>
           <BracketSection
             cards={cards}
             cachedAssessment={cachedAssessment}
@@ -70,17 +72,17 @@ export function DeckBreakdown({
       )}
 
       <section>
-        <SectionHeader>Mana curve</SectionHeader>
+        <SectionHeader>{t('DeckBreakdown.manaCurve')}</SectionHeader>
         <ManaCurve curve={stats.curve} />
       </section>
 
       <section>
-        <SectionHeader>Color distribution</SectionHeader>
+        <SectionHeader>{t('DeckBreakdown.colorDistribution')}</SectionHeader>
         <ColorPie pips={stats.pips} />
       </section>
 
       <section>
-        <SectionHeader>Card types</SectionHeader>
+        <SectionHeader>{t('DeckBreakdown.cardTypes')}</SectionHeader>
         <TypeBreakdown counts={stats.typeCounts} />
       </section>
     </div>

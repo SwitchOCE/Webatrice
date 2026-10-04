@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { fetchAllPrintings, lookupCard, type PrintingSummary } from '@app/services';
 
@@ -21,6 +22,7 @@ export interface CardPrintings {
  * Reloads only when the card name changes; `undefined` loads nothing.
  */
 export function useCardPrintings(cardName: string | undefined): CardPrintings {
+  const { t } = useTranslation();
   const [printings, setPrintings] = useState<PrintingSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,14 +79,14 @@ export function useCardPrintings(cardName: string | undefined): CardPrintings {
         if (cancelled) {
           return;
         }
-        setError(e instanceof Error ? e.message : 'Failed to load printings');
+        setError(e instanceof Error ? e.message : t('PrintingPicker.loadFailed'));
         setLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [cardName]);
+  }, [cardName, t]);
 
   return { printings, loading, error, prices };
 }

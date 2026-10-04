@@ -15,7 +15,7 @@ const bolt: DeckCard = {
 describe('DeckCardPreview', () => {
   it('invites a hover before any card is previewed', () => {
     render(<DeckCardPreview card={null} prices={emptyPriceLookup()} />);
-    expect(screen.getByText('Hover a card to preview')).toBeInTheDocument();
+    expect(screen.getByText('DeckEditor.preview.hover')).toBeInTheDocument();
   });
 
   it('shows the card at preview size with a buy link when Scryfall has one', () => {
@@ -31,7 +31,7 @@ describe('DeckCardPreview', () => {
 
   it('handles a card without art or price', () => {
     render(<DeckCardPreview card={{ ...bolt, imageUri: undefined }} prices={emptyPriceLookup()} />);
-    expect(screen.getByText('No image available')).toBeInTheDocument();
+    expect(screen.getByText('DeckEditor.preview.noImage')).toBeInTheDocument();
     expect(screen.queryByRole('link')).toBeNull();
     expect(screen.getByText('—')).toBeInTheDocument();
   });

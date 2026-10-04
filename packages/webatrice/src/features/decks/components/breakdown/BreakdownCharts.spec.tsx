@@ -19,9 +19,11 @@ describe('breakdown building blocks', () => {
 
   it('ManaCurve scales every bucket against the tallest', () => {
     render(<ManaCurve curve={{ 1: 2, 3: 4 }} />);
-    expect(screen.getByTitle('4 cards at CMC 3')).toHaveStyle({ height: '100%' });
-    expect(screen.getByTitle('2 cards at CMC 1')).toHaveStyle({ height: '50%' });
-    expect(screen.getByTitle('0 cards at CMC 0')).toHaveStyle({ height: '0%' });
+    const bars = screen.getAllByTitle('DeckBreakdown.curve.barTitle');
+    expect(bars[3]).toHaveStyle({ height: '100%' });
+    expect(bars[1]).toHaveStyle({ height: '50%' });
+    expect(bars[0]).toHaveStyle({ height: '0%' });
+    expect(screen.getByText('DeckBreakdown.curve.sevenPlus')).toBeInTheDocument();
   });
 
   it('ColorPie shows an empty disc without cards, else slices and a legend', () => {
@@ -30,14 +32,17 @@ describe('breakdown building blocks', () => {
 
     rerender(<ColorPie pips={{ W: 1, U: 0, B: 0, R: 3, G: 0, C: 0 }} />);
     expect(container.querySelectorAll('path')).toHaveLength(2);
-    expect(screen.getByTitle('Red')).toHaveTextContent('375%');
-    expect(screen.getByRole('img', { name: 'White' })).toHaveAttribute('src', 'https://svgs.scryfall.io/card-symbols/W.svg');
+    expect(screen.getByTitle('CardSearch.color.R')).toHaveTextContent('375%');
+    expect(screen.getByRole('img', { name: 'CardSearch.color.W' })).toHaveAttribute('src', 'https://svgs.scryfall.io/card-symbols/W.svg');
   });
 
   it('TypeBreakdown lists the most common types first', () => {
     const { rerender } = render(<TypeBreakdown counts={{ Land: 2, Creature: 5, Instant: 0 }} />);
-    expect(screen.getAllByText(/Creature|Land|Instant/).map((el) => el.textContent)).toEqual(['Creature', 'Land']);
+    expect(screen.getAllByText(/Creature|Land|Instant/).map((el) => el.textContent)).toEqual([
+      'CardSearch.cardType.Creature',
+      'CardSearch.cardType.Land',
+    ]);
     rerender(<TypeBreakdown counts={{}} />);
-    expect(screen.getByText('No cards yet.')).toBeInTheDocument();
+    expect(screen.getByText('DeckBreakdown.noCards')).toBeInTheDocument();
   });
 });

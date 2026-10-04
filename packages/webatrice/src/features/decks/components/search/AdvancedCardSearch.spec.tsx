@@ -29,7 +29,7 @@ describe('AdvancedCardSearch', () => {
     vi.mocked(useScryfallCardSearch).mockReturnValue({ results: [], loading: false, error: null });
     renderSearch('bolt', { ...EMPTY_FILTERS, colors: ['R'] });
     expect(useScryfallCardSearch).toHaveBeenLastCalledWith('bolt c:r');
-    expect(screen.getByText('No results.')).toBeInTheDocument();
+    expect(screen.getByText('CardSearch.noResults')).toBeInTheDocument();
   });
 
   it('adds a clicked result and previews a hovered one', () => {
@@ -37,7 +37,7 @@ describe('AdvancedCardSearch', () => {
     const handlers = renderSearch();
 
     expect(screen.getByText('bolt')).toHaveClass('font-mono');
-    const tile = screen.getByTitle('Add Lightning Bolt to deck');
+    const tile = screen.getByTitle('CardSearch.addCardTitle');
     fireEvent.mouseEnter(tile);
     fireEvent.click(tile);
 
@@ -53,19 +53,27 @@ describe('AdvancedCardSearch', () => {
       <AdvancedCardSearch query="x" filters={EMPTY_FILTERS} onQueryChange={vi.fn()}
         onFiltersChange={vi.fn()} onAddByName={vi.fn()} onPreviewCard={vi.fn()} />,
     );
-    expect(screen.getByText('Searching…')).toBeInTheDocument();
+    expect(screen.getByText('CardSearch.searching')).toBeInTheDocument();
     unmount();
 
     vi.mocked(useScryfallCardSearch).mockReturnValue({ results: [], loading: false, error: 'Search failed' });
     renderSearch();
     expect(screen.getByText('Search failed')).toBeInTheDocument();
+    expect(screen.queryByText('CardSearch.resultCount')).toBeNull();
+  });
+
+  it('falls back to a generic message for a failure without one', () => {
+    vi.mocked(useScryfallCardSearch).mockReturnValue({ results: [], loading: false, error: '' });
+    renderSearch();
+    expect(screen.getByText('CardSearch.searchFailed')).toHaveClass('text-danger');
+    expect(screen.queryByText('CardSearch.resultCount')).toBeNull();
   });
 
   it('prompts for a query when there is none, and passes typing up', () => {
     vi.mocked(useScryfallCardSearch).mockReturnValue({ results: [], loading: false, error: null });
     const handlers = renderSearch('');
-    expect(screen.getByText('Type to search, or use the filters above.')).toBeInTheDocument();
-    fireEvent.change(screen.getByPlaceholderText('Search cards — Scryfall syntax works here too'), {
+    expect(screen.getByText('CardSearch.emptyPrompt')).toBeInTheDocument();
+    fireEvent.change(screen.getByPlaceholderText('CardSearch.placeholder'), {
       target: { value: 'o:draw' },
     });
     expect(handlers.onQueryChange).toHaveBeenCalledWith('o:draw');

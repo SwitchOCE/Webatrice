@@ -70,7 +70,7 @@ describe('CardDetailDialog', () => {
     renderDialog();
 
     expect(screen.getByRole('heading', { name: 'Sol Ring' })).toBeInTheDocument();
-    expect(screen.getByText('CMC 1')).toBeInTheDocument();
+    expect(screen.getByText('CardDetailDialog.cmc')).toBeInTheDocument();
     expect(screen.getByText('Artifact')).toBeInTheDocument();
     expect(screen.getByText('Lost to time.')).toBeInTheDocument();
     expect(screen.getByText('related to Sol Ring')).toBeInTheDocument();
@@ -81,19 +81,19 @@ describe('CardDetailDialog', () => {
     vi.mocked(useCardDetail).mockReturnValue(detailState());
     const { handlers } = renderDialog();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Increase quantity' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Decrease quantity' }));
+    fireEvent.click(screen.getByRole('button', { name: 'CardDetailDialog.increase' }));
+    fireEvent.click(screen.getByRole('button', { name: 'CardDetailDialog.decrease' }));
     expect(handlers.onInc).toHaveBeenCalledWith(1);
     expect(handlers.onDec).toHaveBeenCalledWith(1);
     expect(handlers.onClose).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Mark as commander' }));
+    fireEvent.click(screen.getByRole('button', { name: 'CardDetailDialog.markCommander' }));
     expect(handlers.onSetCommander).toHaveBeenCalledWith(1, true);
-    fireEvent.click(screen.getByRole('button', { name: 'Move to sideboard' }));
+    fireEvent.click(screen.getByRole('button', { name: 'CardDetailDialog.moveToSideboard' }));
     expect(handlers.onSetCategory).toHaveBeenCalledWith(1, 'sideboard');
-    fireEvent.click(screen.getByRole('button', { name: 'Change printing' }));
+    fireEvent.click(screen.getByRole('button', { name: 'CardDetailDialog.changePrinting' }));
     expect(handlers.onChangePrinting).toHaveBeenCalledWith(1, solRing);
-    fireEvent.click(screen.getByRole('button', { name: 'Remove from deck' }));
+    fireEvent.click(screen.getByRole('button', { name: 'CardDetailDialog.removeFromDeck' }));
     expect(handlers.onDelete).toHaveBeenCalledWith(1);
     expect(handlers.onClose).toHaveBeenCalledTimes(4);
   });
@@ -101,15 +101,15 @@ describe('CardDetailDialog', () => {
   it('keeps a commander in the main deck', () => {
     vi.mocked(useCardDetail).mockReturnValue(detailState({ detail: null }));
     renderDialog({ snapshot: atraxa });
-    expect(screen.getByRole('button', { name: 'Unmark as commander' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Move to sideboard' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'CardDetailDialog.unmarkCommander' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'CardDetailDialog.moveToSideboard' })).toBeDisabled();
   });
 
   it('disables the actions once the row is removed', () => {
     vi.mocked(useCardDetail).mockReturnValue(detailState());
     renderDialog({ deckCards: [atraxa] });
-    expect(screen.getByText('· removed from deck')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Remove from deck' })).toBeDisabled();
+    expect(screen.getByText('CardDetailDialog.removed')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'CardDetailDialog.removeFromDeck' })).toBeDisabled();
   });
 
   it('offers Add to deck for a browsed card that is not in the deck, and goes back', () => {
@@ -122,10 +122,10 @@ describe('CardDetailDialog', () => {
 
     expect(screen.getByRole('heading', { name: 'Grim Tutor' })).toBeInTheDocument();
     expect(screen.queryByText(/related to/)).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Remove from deck' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Add to deck' }));
+    expect(screen.queryByRole('button', { name: 'CardDetailDialog.removeFromDeck' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'CardDetailDialog.addToDeck' }));
     expect(handlers.onAdd).toHaveBeenCalledWith('Grim Tutor');
-    fireEvent.click(screen.getByRole('button', { name: /Back to Sol Ring/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'CardDetailDialog.backTo' }));
     expect(state.back).toHaveBeenCalled();
   });
 
@@ -134,7 +134,7 @@ describe('CardDetailDialog', () => {
     const prices = emptyPriceLookup();
     prices.byName.set('sol ring', { usd: 2.25, tcgplayer: 'https://tcg/sol' });
     renderDialog({ prices });
-    expect(screen.getByRole('link', { name: /Buy @ TCGplayer/ })).toHaveAttribute('href', 'https://tcg/sol');
+    expect(screen.getByRole('link', { name: /CardDetailDialog.buy/ })).toHaveAttribute('href', 'https://tcg/sol');
     expect(screen.getByText('$2.25')).toBeInTheDocument();
   });
 });

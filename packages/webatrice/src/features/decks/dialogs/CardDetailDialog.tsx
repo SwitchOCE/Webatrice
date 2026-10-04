@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Archive, ArrowLeft, Crown, Layers, Loader2, Minus, PackageOpen, Plus, Trash2, X } from 'lucide-react';
 
 import { CardRelatedLinks, relatedCardKey } from '@app/components';
@@ -59,6 +60,7 @@ export function CardDetailDialog({
   onDelete,
   onAdd,
 }: CardDetailDialogProps) {
+  const { t } = useTranslation();
   const { detail, detailLoading, browsed, pending, browse, back } = useCardDetail(snapshot);
   useEscapeKey(snapshot != null, onClose);
   const titleId = useId();
@@ -98,7 +100,7 @@ export function CardDetailDialog({
           type="button"
           onClick={onClose}
           className="absolute top-3 right-3 p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors"
-          aria-label="Close"
+          aria-label={t('Common.action.close')}
         >
           <X size={18} />
         </button>
@@ -123,7 +125,7 @@ export function CardDetailDialog({
                   'border-border-subtle flex items-center justify-center text-xs text-text-muted',
                 ].join(' ')}
               >
-                No image
+                {t('CardDetailDialog.noImage')}
               </div>
             )}
           </div>
@@ -136,7 +138,7 @@ export function CardDetailDialog({
                 </h2>
                 {typeof view.cmc === 'number' && (
                   <span className="text-xs text-text-muted tabular-nums shrink-0">
-                    CMC {view.cmc}
+                    {t('CardDetailDialog.cmc', { cmc: view.cmc })}
                   </span>
                 )}
               </div>
@@ -172,9 +174,9 @@ export function CardDetailDialog({
                   'rounded-md text-xs font-medium text-text-primary',
                   'bg-bg-elevated hover:bg-border-subtle border border-border-subtle transition-colors',
                 ].join(' ')}
-                title={`Back to ${snapshot.name}`}
+                title={t('CardDetailDialog.backTo', { name: snapshot.name })}
               >
-                <ArrowLeft size={12} /> Back to {snapshot.name}
+                <ArrowLeft size={12} /> {t('CardDetailDialog.backTo', { name: snapshot.name })}
               </button>
             )}
             {/* Related links only on the clicked card's own view: once
@@ -230,11 +232,11 @@ export function CardDetailDialog({
             {browsedNotInDeck && browsed && canAddBrowsedCard(browsed.kind) && (
               <div className="mt-2 border-t border-border-subtle pt-3 space-y-2">
                 <div className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
-                  Actions
+                  {t('CardDetailDialog.actions')}
                 </div>
                 <ActionButton
                   icon={<Plus size={14} />}
-                  label="Add to deck"
+                  label={t('CardDetailDialog.addToDeck')}
                   // Stays open on the browsed card: once added, the row
                   // resolves and the full actions block takes over.
                   onClick={() => {
@@ -257,7 +259,7 @@ export function CardDetailDialog({
                       'hover:bg-accent-secondary border-accent/40 hover:border-accent text-white shadow-glow',
                     ].join(' ')}
                   >
-                    <span className="text-sm font-medium">Buy @ TCGplayer</span>
+                    <span className="text-sm font-medium">{t('CardDetailDialog.buy')}</span>
                     <span className="tabular-nums text-sm font-semibold">
                       ${priceInfo.usd.toFixed(2)}
                     </span>
@@ -269,7 +271,7 @@ export function CardDetailDialog({
                       'rounded-md border bg-accent-secondary/30 border-accent/30 text-text-primary',
                     ].join(' ')}
                   >
-                    <span className="text-sm font-medium">TCGplayer USD</span>
+                    <span className="text-sm font-medium">{t('CardDetailDialog.priceUsd')}</span>
                     <span className="tabular-nums text-sm font-semibold">
                       ${priceInfo.usd.toFixed(2)}
                     </span>
@@ -318,19 +320,20 @@ function CardDetailActions({
   onMove: (category: DeckCategory) => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   const cardIsCommander = !!card?.isCommander;
   const cardIsSideboard = card?.category === 'sideboard';
   return (
     <div className="mt-2 border-t border-border-subtle pt-3 space-y-2">
       <div className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
-        Actions
+        {t('CardDetailDialog.actions')}
       </div>
 
       <div className="flex items-center justify-between px-3 py-2 rounded-md bg-bg-elevated border border-border-subtle">
         <span className="text-sm text-text-secondary">
-          Quantity{' '}
+          {t('CardDetailDialog.quantity')}{' '}
           {removed && (
-            <span className="text-xs text-text-muted">· removed from deck</span>
+            <span className="text-xs text-text-muted">{t('CardDetailDialog.removed')}</span>
           )}
         </span>
         <div className="flex items-center gap-2">
@@ -339,7 +342,7 @@ function CardDetailActions({
             onClick={onDec}
             disabled={removed}
             className={QUANTITY_BUTTON_CLASS}
-            aria-label="Decrease quantity"
+            aria-label={t('CardDetailDialog.decrease')}
           >
             <Minus size={14} />
           </button>
@@ -351,7 +354,7 @@ function CardDetailActions({
             onClick={onInc}
             disabled={removed}
             className={QUANTITY_BUTTON_CLASS}
-            aria-label="Increase quantity"
+            aria-label={t('CardDetailDialog.increase')}
           >
             <Plus size={14} />
           </button>
@@ -360,14 +363,14 @@ function CardDetailActions({
 
       <ActionButton
         icon={<Layers size={14} />}
-        label="Change printing"
+        label={t('CardDetailDialog.changePrinting')}
         disabled={removed}
         onClick={closeAfter(onChangePrinting)}
       />
       {isCommanderDeck && (
         <ActionButton
           icon={<Crown size={14} className={cardIsCommander ? 'text-warning' : ''} />}
-          label={cardIsCommander ? 'Unmark as commander' : 'Mark as commander'}
+          label={cardIsCommander ? t('CardDetailDialog.unmarkCommander') : t('CardDetailDialog.markCommander')}
           disabled={removed}
           onClick={closeAfter(onToggleCommander)}
         />
@@ -375,21 +378,21 @@ function CardDetailActions({
       {cardIsSideboard ? (
         <ActionButton
           icon={<PackageOpen size={14} />}
-          label="Move to main"
+          label={t('CardDetailDialog.moveToMain')}
           disabled={removed}
           onClick={closeAfter(() => onMove('main'))}
         />
       ) : (
         <ActionButton
           icon={<Archive size={14} />}
-          label="Move to sideboard"
+          label={t('CardDetailDialog.moveToSideboard')}
           disabled={removed || cardIsCommander}
           onClick={closeAfter(() => onMove('sideboard'))}
         />
       )}
       <ActionButton
         icon={<Trash2 size={14} />}
-        label="Remove from deck"
+        label={t('CardDetailDialog.removeFromDeck')}
         danger
         disabled={removed}
         onClick={closeAfter(onDelete)}

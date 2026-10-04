@@ -47,7 +47,7 @@ describe('FormatPicker', () => {
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'other' } });
     expect(onChange).toHaveBeenLastCalledWith('');
     expect(screen.getByRole('combobox')).toHaveValue('other');
-    expect(screen.getByPlaceholderText('e.g. Netrunner, Playtest, Cube')).toHaveValue('');
+    expect(screen.getByPlaceholderText('FormatPicker.placeholder.dialog')).toHaveValue('');
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Legacy' } });
     expect(screen.getByRole('combobox')).toHaveValue('legacy');
@@ -56,7 +56,7 @@ describe('FormatPicker', () => {
 
   it('uses the compact labels in the sidebar variant', () => {
     render(<Harness initial="cube" variant="sidebar" />);
-    expect(screen.getByRole('option', { name: 'Other' })).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('e.g. Netrunner, Playtest')).toHaveValue('cube');
+    expect(screen.getByRole('option', { name: 'FormatPicker.other.sidebar' })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('FormatPicker.placeholder.sidebar')).toHaveValue('cube');
   });
 });

@@ -21,6 +21,7 @@ export type BracketAssessmentState =
   | { status: 'complete'; report: BracketReport }
   /** Some source failed: `report.level` is a floor, not the answer. */
   | { status: 'degraded'; report: BracketReport; unavailable: UnavailableSource[] }
+  /** `message` is the failure's text; `''` when it had none (the UI shows a generic one). */
   | { status: 'error'; message: string };
 
 /**
@@ -89,7 +90,7 @@ export function useBracketAssessment(
         if (cancelled) {
           return;
         }
-        setState({ status: 'error', message: e instanceof Error ? e.message : 'Bracket assessment failed' });
+        setState({ status: 'error', message: e instanceof Error ? e.message : '' });
         persist?.(undefined);
       });
     return () => {

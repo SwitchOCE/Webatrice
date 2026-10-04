@@ -2,6 +2,7 @@
   "DeckBracket": {
     "assessing": "Assessing bracket…",
     "failed": "Couldn’t assess bracket: {message}",
+    "unknownError": "Bracket assessment failed",
     "title": "Bracket {level} · {label}",
     "partialTitle": "At least bracket {level} · {label}",
     "methodology": "Minimum bracket per <0>edhpowerlevel</0>’s algorithm: Game Changers, MLD, extra turns, and early game-defining combos.",

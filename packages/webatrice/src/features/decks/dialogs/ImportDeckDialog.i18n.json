@@ -1,0 +1,33 @@
+{
+  "ImportDeckDialog": {
+    "title": "Import a deck",
+    "subtitle": "Paste a list from Moxfield, Arena, MTGO, Cockatrice — most formats work.",
+    "resolving": "Looking up cards…",
+    "importing": "Creating deck…",
+    "importFile": "Import file",
+    "importFileHint": ".cod files are pre-structured — no card review needed",
+    "next": "Next: check cards",
+    "importCards": "Import {count, plural, one {# card} other {# cards}}",
+    "deckName": "Deck name",
+    "format": "Format",
+    "decklist": "Decklist",
+    "clearFile": "Clear file",
+    "uploadFile": "Upload .cod file",
+    "uploadFileHint": "Import from a Cockatrice .cod file (preserves all metadata)",
+    "placeholder": "Paste your deck list (Arena / MTGO / Moxfield export). Example:\n\nCommander\n1 Atraxa, Grand Unifier\n\nDeck\n1 Sol Ring\n1 Cultivate\n1 Swords to Plowshares\n...",
+    "review": {
+      "matched": "{count, plural, other {# matched}}",
+      "missing": "{count, plural, other {# unknown (imported with warning)}}",
+      "ignored": "{count, plural, one {# unrecognised line} other {# unrecognised lines}}",
+      "unknown": "unknown"
+    },
+    "file": {
+      "deckName": "Deck name in file: <name>{name}</name>",
+      "cards": "{count, plural, one {# card} other {# cards}}",
+      "main": "{count, plural, other {# main}}",
+      "sideboard": "{count, plural, other {# sideboard}}",
+      "cachedPrice": "${price} cached from source",
+      "hint": ".cod files are pre-structured — importing skips the card review step and preserves any embedded metadata."
+    }
+  }
+}

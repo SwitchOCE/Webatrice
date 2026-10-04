@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat, type ParsedDeck } from '@app/types';
 
 import { readDeckTags } from './deckTags';
@@ -120,15 +122,22 @@ export const SECTION_LOADING = 'loading';
 /** Deck fetched, but its `<format>` was empty or missing. */
 export const SECTION_UNKNOWN = 'unknown';
 
-const SECTION_LABELS: Record<string, string> = {
-  ...Object.fromEntries(MTG_FORMAT_LABELS.map((f) => [f.value, f.label])),
-  [SECTION_OTHER]: 'Other',
-  [SECTION_LOADING]: 'Loading…',
-  [SECTION_UNKNOWN]: 'Unknown format',
-};
+const MTG_SECTION_LABELS: Record<string, string> = Object.fromEntries(
+  MTG_FORMAT_LABELS.map((f) => [f.value, f.label]),
+);
 
-export function deckSectionLabel(section: string): string {
-  return SECTION_LABELS[section] ?? section;
+/** A section's heading. MTG format names stay as they are (proper names). */
+export function deckSectionLabel(section: string, t: TFunction): string {
+  switch (section) {
+    case SECTION_OTHER:
+      return t('DeckSummary.section.other');
+    case SECTION_LOADING:
+      return t('Common.status.loading');
+    case SECTION_UNKNOWN:
+      return t('DeckSummary.section.unknown');
+    default:
+      return MTG_SECTION_LABELS[section] ?? section;
+  }
 }
 
 /**

@@ -24,7 +24,7 @@ describe('PrintingPickerDialog', () => {
     printings({});
     render(<PrintingPickerDialog request={null} onClose={vi.fn()} onPick={vi.fn()} />);
     expect(useCardPrintings).toHaveBeenLastCalledWith(undefined);
-    expect(screen.queryByText('Choose printing')).toBeNull();
+    expect(screen.queryByText('PrintingPicker.title')).toBeNull();
   });
 
   it('lists printings with prices, marks the current one and picks', () => {
@@ -35,9 +35,9 @@ describe('PrintingPickerDialog', () => {
     render(<PrintingPickerDialog request={{ index: 0, card: bolt }} onClose={vi.fn()} onPick={onPick} />);
 
     expect(useCardPrintings).toHaveBeenLastCalledWith('Lightning Bolt');
-    expect(screen.getByText('· 2 printings')).toBeInTheDocument();
+    expect(screen.getByText('· PrintingPicker.count')).toBeInTheDocument();
     const current = screen.getByTitle('M11 · Lightning Bolt');
-    expect(current).toHaveTextContent('Current');
+    expect(current).toHaveTextContent('PrintingPicker.current');
     expect(screen.getByAltText('Lightning Bolt (m11)')).toHaveAttribute('src', 'https://cards.scryfall.io/normal/front/m11.jpg');
     expect(screen.getByText('$1.50')).toBeInTheDocument();
 
@@ -50,7 +50,7 @@ describe('PrintingPickerDialog', () => {
     const { rerender } = render(
       <PrintingPickerDialog request={{ index: 0, card: bolt }} onClose={vi.fn()} onPick={vi.fn()} />,
     );
-    expect(screen.getByText('Loading printings…')).toBeInTheDocument();
+    expect(screen.getByText('PrintingPicker.loading')).toBeInTheDocument();
 
     printings({ error: 'Scryfall is down' });
     rerender(<PrintingPickerDialog request={{ index: 0, card: bolt }} onClose={vi.fn()} onPick={vi.fn()} />);
@@ -58,7 +58,7 @@ describe('PrintingPickerDialog', () => {
 
     printings({});
     rerender(<PrintingPickerDialog request={{ index: 0, card: bolt }} onClose={vi.fn()} onPick={vi.fn()} />);
-    expect(screen.getByText('No printings found.')).toBeInTheDocument();
+    expect(screen.getByText('PrintingPicker.empty')).toBeInTheDocument();
   });
 
   it('closes on Escape', () => {

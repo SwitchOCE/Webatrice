@@ -2,6 +2,15 @@
   "DeckSidebar": {
     "saveFailed": "The deck could not be saved.",
     "retrySave": "Retry",
-    "saveFailedHint": "Your last change was not saved. It will be sent again with your next change, or now with Retry."
+    "saveFailedHint": "Your last change was not saved. It will be sent again with your next change, or now with Retry.",
+    "namePlaceholder": "Untitled Deck",
+    "cardCount": "{count, plural, one {# card} other {# cards}}",
+    "sideboardCount": "{count} sideboard",
+    "format": "Format",
+    "export": "Export deck",
+    "exportHint": "Export deck (plain text, Arena, Cockatrice)",
+    "saving": "Saving…",
+    "dirty": "Unsaved changes",
+    "saved": "Saved"
   }
 }

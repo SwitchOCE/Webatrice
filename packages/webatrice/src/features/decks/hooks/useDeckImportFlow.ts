@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { parseCod } from '@app/services';
 import type { ParsedDeck } from '@app/types';
@@ -51,6 +52,7 @@ export interface DeckImportFlow {
  * embedded metadata. Every open starts fresh.
  */
 export function useDeckImportFlow(open: boolean, onImport: (xml: string) => void): DeckImportFlow {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [format, setFormat] = useState('commander');
   const [text, setText] = useState('');
@@ -108,14 +110,14 @@ export function useDeckImportFlow(open: boolean, onImport: (xml: string) => void
         setFile(null);
         setError(
           e instanceof Error
-            ? `Not a valid Cockatrice .cod: ${e.message}`
-            : 'Not a valid Cockatrice .cod file',
+            ? t('DeckImport.error.invalidCodReason', { reason: e.message })
+            : t('DeckImport.error.invalidCod'),
         );
         resetFileInput();
       }
     };
     reader.onerror = () => {
-      setError('Could not read the selected file');
+      setError(t('DeckImport.error.readFailed'));
     };
     reader.readAsText(picked);
   };
@@ -130,7 +132,7 @@ export function useDeckImportFlow(open: boolean, onImport: (xml: string) => void
     setError(null);
     const { entries, ignored: skipped } = parseDecklist(text);
     if (entries.length === 0) {
-      setError('No cards recognised. Check the format — one line per card, like `1 Sol Ring`.');
+      setError(t('DeckImport.error.noCards'));
       return;
     }
     setPhase('resolving');
@@ -140,14 +142,14 @@ export function useDeckImportFlow(open: boolean, onImport: (xml: string) => void
       setPhase('review');
     } catch (e) {
       setPhase('input');
-      setError(e instanceof Error ? e.message : 'Failed to resolve cards');
+      setError(e instanceof Error ? e.message : t('DeckImport.error.resolveFailed'));
     }
   };
 
   const confirmPaste = () => {
     setError(null);
     setPhase('importing');
-    onImport(buildPastedDeckCod(resolved, name, format));
+    onImport(buildPastedDeckCod(resolved, name, format, t));
   };
 
   const confirmFile = () => {
@@ -156,7 +158,7 @@ export function useDeckImportFlow(open: boolean, onImport: (xml: string) => void
     }
     setError(null);
     setPhase('importing');
-    onImport(buildUploadedDeckCod(file.deck, name, format));
+    onImport(buildUploadedDeckCod(file.deck, name, format, t));
   };
 
   const { matched, missing } = countResolvedRows(resolved);

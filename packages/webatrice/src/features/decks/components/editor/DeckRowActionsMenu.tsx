@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { Archive, ChevronDown, Crown, Layers, Minus, PackageOpen, Plus, Trash2 } from 'lucide-react';
 
 import type { DeckCategory } from '@app/types';
@@ -36,6 +37,7 @@ export function DeckRowActionsMenu({
    *  "Mark as commander" toggle. */
   isCommander: boolean;
 }) {
+  const { t } = useTranslation();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -110,7 +112,7 @@ export function DeckRowActionsMenu({
           setOpen((v) => !v);
         }}
         className="p-1 rounded hover:bg-bg-base text-text-muted hover:text-text-primary transition-colors"
-        title="Card actions"
+        title={t('DeckEditor.rowActions.trigger', { card: card.name })}
         aria-haspopup="menu"
         aria-expanded={open}
       >
@@ -126,14 +128,14 @@ export function DeckRowActionsMenu({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-3 py-1.5 flex items-center justify-between text-xs">
-              <span className="text-text-secondary">Quantity</span>
+              <span className="text-text-secondary">{t('DeckEditor.rowActions.quantity')}</span>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={onDec}
                   className="p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary"
-                  title="Remove one"
-                  aria-label="Decrease quantity"
+                  title={t('DeckEditor.rowActions.removeOne')}
+                  aria-label={t('DeckEditor.rowActions.decrease')}
                 >
                   <Minus size={12} />
                 </button>
@@ -144,8 +146,8 @@ export function DeckRowActionsMenu({
                   type="button"
                   onClick={onInc}
                   className="p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary"
-                  title="Add one"
-                  aria-label="Increase quantity"
+                  title={t('DeckEditor.rowActions.addOne')}
+                  aria-label={t('DeckEditor.rowActions.increase')}
                 >
                   <Plus size={12} />
                 </button>
@@ -156,27 +158,27 @@ export function DeckRowActionsMenu({
             {isMtg && (
               <MenuItem
                 icon={<Layers size={13} />}
-                label="Change printing"
+                label={t('DeckEditor.rowActions.changePrinting')}
                 onClick={runAndClose(onChangePrinting)}
               />
             )}
             {isCommander && (
               <MenuItem
                 icon={<Crown size={13} className={cardIsCommander ? 'text-warning' : ''} />}
-                label={cardIsCommander ? 'Unmark as commander' : 'Mark as commander'}
+                label={t(cardIsCommander ? 'DeckEditor.rowActions.unmarkCommander' : 'DeckEditor.rowActions.markCommander')}
                 onClick={runAndClose(() => onSetCommander(!cardIsCommander))}
               />
             )}
             {isSideboard ? (
               <MenuItem
                 icon={<PackageOpen size={13} />}
-                label="Move to main"
+                label={t('DeckEditor.rowActions.moveToMain')}
                 onClick={runAndClose(() => onSetCategory('main'))}
               />
             ) : (
               <MenuItem
                 icon={<Archive size={13} />}
-                label="Move to sideboard"
+                label={t('DeckEditor.rowActions.moveToSideboard')}
                 onClick={runAndClose(() => onSetCategory('sideboard'))}
                 disabled={cardIsCommander}
               />
@@ -185,7 +187,7 @@ export function DeckRowActionsMenu({
             <div className="border-t border-border-subtle my-1" />
             <MenuItem
               icon={<Trash2 size={13} />}
-              label="Remove"
+              label={t('Common.action.remove')}
               danger
               onClick={runAndClose(onDelete)}
             />

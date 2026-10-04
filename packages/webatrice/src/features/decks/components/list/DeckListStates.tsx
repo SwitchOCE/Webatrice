@@ -7,19 +7,21 @@ const NEW_DECK_BUTTON_CLASS =
   + 'disabled:cursor-not-allowed transition-colors';
 
 export function NewDeckButton({ onClick, disabled }: { onClick: () => void; disabled: boolean }) {
+  const { t } = useTranslation();
   return (
     <button type="button" onClick={onClick} disabled={disabled} className={NEW_DECK_BUTTON_CLASS}>
-      <Plus size={14} /> New deck
+      <Plus size={14} /> {t('Decks.list.newDeck')}
     </button>
   );
 }
 
 export function DeckListLoading() {
+  const { t } = useTranslation();
   return (
     <div className="h-full min-h-[240px] flex items-center justify-center">
       <div className="flex items-center gap-2 text-sm text-text-muted">
         <Loader2 size={16} className="animate-spin text-accent" />
-        Loading decks…
+        {t('Decks.list.loading')}
       </div>
     </div>
   );
@@ -72,17 +74,15 @@ export function DeckStorageError({ message, onDismiss }: { message: string; onDi
 }
 
 export function DeckListEmpty({ onCreate, disabled }: { onCreate: () => void; disabled: boolean }) {
+  const { t } = useTranslation();
   return (
     <div className="h-full min-h-[280px] flex items-center justify-center">
       <div className="text-center max-w-sm">
         <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-bg-elevated border border-border-subtle mb-3">
           <FileText size={20} className="text-accent" />
         </div>
-        <div className="text-text-primary font-medium">No decks yet</div>
-        <div className="text-sm text-text-muted mt-1 mb-4">
-          Decks live on the Servatrice server tied to your account.
-          Create your first one to get started.
-        </div>
+        <div className="text-text-primary font-medium">{t('Decks.list.emptyTitle')}</div>
+        <div className="text-sm text-text-muted mt-1 mb-4">{t('Decks.list.emptyBody')}</div>
         <NewDeckButton onClick={onCreate} disabled={disabled} />
       </div>
     </div>

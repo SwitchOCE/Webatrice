@@ -55,4 +55,11 @@ describe('useScryfallCardSearch', () => {
     await settle();
     expect(result.current).toEqual({ results: [], loading: false, error: 'Search failed: 500' });
   });
+
+  it('reports a failure without a message as an empty error, for the UI to word', async () => {
+    vi.mocked(searchScryfallCards).mockRejectedValue('boom');
+    const { result } = renderHook(() => useScryfallCardSearch('bolt'));
+    await settle();
+    expect(result.current).toEqual({ results: [], loading: false, error: '' });
+  });
 });

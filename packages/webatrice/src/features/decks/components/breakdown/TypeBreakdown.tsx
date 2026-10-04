@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { sortedTypeCounts } from '../../deckStats';
 import type { CardTypeGroup } from '../../types';
 
@@ -6,10 +8,11 @@ export function TypeBreakdown({
 }: {
   counts: Partial<Record<CardTypeGroup, number>>;
 }) {
+  const { t } = useTranslation();
   const entries = sortedTypeCounts(counts);
 
   if (entries.length === 0) {
-    return <div className="text-sm text-text-muted italic">No cards yet.</div>;
+    return <div className="text-sm text-text-muted italic">{t('DeckBreakdown.noCards')}</div>;
   }
 
   return (
@@ -19,7 +22,7 @@ export function TypeBreakdown({
           key={type}
           className="flex items-center justify-between px-3 py-1.5 rounded-md bg-bg-elevated border border-border-subtle text-sm"
         >
-          <span className="text-text-primary">{type}</span>
+          <span className="text-text-primary">{t(`CardSearch.cardType.${type}`)}</span>
           <span className="text-text-muted tabular-nums">{count}</span>
         </div>
       ))}

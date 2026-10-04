@@ -1,4 +1,6 @@
 import { lookupCards, parseCod, type LookupResult } from '@app/services';
+import type { TFunction } from 'i18next';
+
 import type { ParsedDeck } from '@app/types';
 
 import {
@@ -14,6 +16,8 @@ vi.mock('@app/services', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@app/services')>()),
   lookupCards: vi.fn(),
 }));
+
+const t = ((key: string) => key) as unknown as TFunction;
 
 const solRing: LookupResult = {
   found: true,
@@ -60,6 +64,7 @@ describe('buildPastedDeckCod', () => {
       ],
       '  Pasted ',
       ' Modern ',
+      t,
     );
     const deck = parseCod(xml);
     expect(deck.name).toBe('Pasted');
@@ -71,8 +76,8 @@ describe('buildPastedDeckCod', () => {
   });
 
   it('falls back to a default name and the commander format', () => {
-    const deck = parseCod(buildPastedDeckCod([], ' ', ''));
-    expect(deck.name).toBe('Imported deck');
+    const deck = parseCod(buildPastedDeckCod([], ' ', '', t));
+    expect(deck.name).toBe('DeckImport.defaultName');
     expect(deck.format).toBe('commander');
   });
 });
@@ -91,7 +96,7 @@ describe('uploaded .cod files', () => {
   };
 
   it('keeps the file name and format unless the user typed their own', () => {
-    const kept = parseCod(buildUploadedDeckCod(file, '', ''));
+    const kept = parseCod(buildUploadedDeckCod(file, '', '', t));
     expect(kept.name).toBe('From Desktop');
     expect(kept.format).toBe('legacy');
     expect(kept.meta.description).toBe('kept');
@@ -99,12 +104,12 @@ describe('uploaded .cod files', () => {
     expect(kept.lastLoadedTimestamp).toBe('2026-01-02');
     expect(kept.cards[0]).toEqual(expect.objectContaining({ set: 'm11', collectorNumber: '149' }));
 
-    const renamed = parseCod(buildUploadedDeckCod(file, ' Mine ', 'Vintage'));
+    const renamed = parseCod(buildUploadedDeckCod(file, ' Mine ', 'Vintage', t));
     expect(renamed.name).toBe('Mine');
     expect(renamed.format).toBe('vintage');
   });
 
   it('summarizes card totals per zone', () => {
-    expect(summarizeUploadedDeck(file)).toEqual({ total: 6, parts: ['4 main', '2 sideboard'] });
+    expect(summarizeUploadedDeck(file)).toEqual({ total: 6, main: 4, sideboard: 2 });
   });
 });

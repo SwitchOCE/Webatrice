@@ -12,6 +12,7 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import type { DeckCategory } from '@app/types';
 
@@ -66,6 +67,7 @@ export function DeckCardGroup({
   isCommander,
   legality,
 }: DeckCardGroupProps) {
+  const { t } = useTranslation();
   const totalQty = indices.reduce((sum, i) => sum + deck[i].quantity, 0);
   const Icon = SECTION_ICON[label] ?? MoreHorizontal;
   return (
@@ -73,7 +75,7 @@ export function DeckCardGroup({
       <h3 className="flex items-center gap-2 mb-2 pb-1.5 border-b border-border-subtle">
         <Icon size={14} className="text-text-secondary shrink-0" />
         <span className="text-sm font-semibold uppercase tracking-wider text-text-secondary">
-          {label}
+          {t(`DeckEditor.section.${label.toLowerCase()}`)}
         </span>
         <span className="text-sm tabular-nums text-text-muted">{totalQty}</span>
       </h3>

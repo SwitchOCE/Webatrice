@@ -18,11 +18,11 @@ describe('DeckRow', () => {
     );
     expect(screen.getByText('Superfriends')).toBeInTheDocument();
     expect(screen.getByText('Commander')).toBeInTheDocument();
-    expect(screen.getByText('Created unknown')).toBeInTheDocument();
+    expect(screen.getByText('Decks.list.created')).toBeInTheDocument();
     // The folder is the list's breadcrumb, not repeated per row.
     expect(screen.queryByText('Cube/Old')).toBeNull();
-    expect(screen.getByText('B4')).toHaveAttribute('title', 'Commander Bracket 4');
-    expect(screen.getByText('$12.50+')).toHaveAttribute('title', expect.stringContaining('1 card had no price'));
+    expect(screen.getByText('Decks.badge.bracketShort')).toHaveAttribute('title', 'Decks.badge.bracket');
+    expect(screen.getByText('$12.50+')).toHaveAttribute('title', 'Decks.badge.priceTotalMissing');
   });
 
   it('shows the deck tags', () => {
@@ -35,7 +35,7 @@ describe('DeckRow', () => {
     const { rerender } = render(
       <DeckRow deck={deck} summary={undefined} mode="card" onOpen={() => {}} onDelete={() => {}} />,
     );
-    expect(screen.getByTitle('Loading price…')).toBeInTheDocument();
+    expect(screen.getByTitle('Decks.badge.priceLoading')).toBeInTheDocument();
     rerender(<DeckRow deck={deck} summary={{}} mode="card" onOpen={() => {}} onDelete={() => {}} />);
     expect(screen.getByText('—')).toBeInTheDocument();
   });
@@ -45,7 +45,7 @@ describe('DeckRow', () => {
     const onDelete = vi.fn();
     render(<DeckRow deck={deck} summary={undefined} mode="card" onOpen={onOpen} onDelete={onDelete} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete Superfriends' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Decks.list.deleteDeckNamed' }));
     expect(onDelete).toHaveBeenCalledTimes(1);
     expect(onOpen).not.toHaveBeenCalled();
 

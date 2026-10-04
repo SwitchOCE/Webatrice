@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 
 import { useEscapeKey } from '../hooks/useEscapeKey';
 import { DeckDialogFrame } from './DeckDialogFrame';
@@ -11,6 +12,7 @@ export interface DeleteDeckDialogProps {
 
 /** Confirmation before a deck is permanently removed from the server. */
 export function DeleteDeckDialog({ deckName, onCancel, onConfirm }: DeleteDeckDialogProps) {
+  const { t } = useTranslation();
   useEscapeKey(true, onCancel, window);
   const titleId = useId();
 
@@ -18,11 +20,14 @@ export function DeleteDeckDialog({ deckName, onCancel, onConfirm }: DeleteDeckDi
     <DeckDialogFrame onClose={onCancel} titleId={titleId}>
       <div className="relative z-10 w-full max-w-sm rounded-xl bg-bg-surface border border-border-subtle shadow-glow overflow-hidden">
         <div className="px-5 py-4 border-b border-border-subtle">
-          <h2 id={titleId} className="font-modern text-lg font-semibold text-text-primary">Delete deck?</h2>
+          <h2 id={titleId} className="font-modern text-lg font-semibold text-text-primary">{t('DeleteDeckDialog.title')}</h2>
         </div>
         <div className="px-5 py-4 text-sm text-text-secondary">
-          <span className="text-text-primary font-medium">{deckName}</span> will be permanently removed from the server.
-          This can't be undone.
+          <Trans
+            i18nKey="DeleteDeckDialog.message"
+            values={{ name: deckName }}
+            components={{ name: <span className="text-text-primary font-medium" /> }}
+          />
         </div>
         <div className="px-5 py-3 border-t border-border-subtle flex items-center justify-end gap-2">
           <button
@@ -33,14 +38,14 @@ export function DeleteDeckDialog({ deckName, onCancel, onConfirm }: DeleteDeckDi
               'hover:text-text-primary hover:bg-bg-elevated transition-colors',
             ].join(' ')}
           >
-            Cancel
+            {t('Common.action.cancel')}
           </button>
           <button
             type="button"
             onClick={onConfirm}
             className="px-4 py-1.5 rounded-md text-sm font-semibold bg-red-500 text-white hover:bg-red-400 transition-colors"
           >
-            Delete
+            {t('Common.action.delete')}
           </button>
         </div>
       </div>

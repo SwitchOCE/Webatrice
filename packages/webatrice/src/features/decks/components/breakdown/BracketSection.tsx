@@ -40,7 +40,9 @@ export function BracketSection({ cards, cachedAssessment, onAssessmentComputed }
           <Loader2 size={14} className="animate-spin" /> {t('DeckBracket.assessing')}
         </div>
       ) : assessment.status === 'error' ? (
-        <div className="text-sm text-text-muted">{t('DeckBracket.failed', { message: assessment.message })}</div>
+        <div className="text-sm text-text-muted">
+          {t('DeckBracket.failed', { message: assessment.message || t('DeckBracket.unknownError') })}
+        </div>
       ) : (
         <BracketResult
           assessment={assessment}

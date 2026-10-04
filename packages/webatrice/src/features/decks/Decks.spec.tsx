@@ -26,13 +26,13 @@ vi.mock('@app/feature-widgets/known-hosts', async (importOriginal) => ({
 describe('Decks (MyDecks page)', () => {
   it('renders the page header + New Deck button when connected', () => {
     renderWithProviders(<Decks />, { preloadedState: connectedState });
-    expect(screen.getByRole('heading', { name: 'My Decks' })).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /new deck/i }).length).toBeGreaterThan(0);
+    expect(screen.getByRole('heading', { name: 'Decks.list.title' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Decks.list.newDeck/ }).length).toBeGreaterThan(0);
   });
 
   it('shows the loading state while backendDecks is null', () => {
     renderWithProviders(<Decks />, { preloadedState: connectedState });
-    expect(screen.getByText(/loading decks/i)).toBeInTheDocument();
+    expect(screen.getByText('Decks.list.loading')).toBeInTheDocument();
   });
 
   it('replaces the spinner with the failure reason when the deck list fails', () => {
@@ -43,7 +43,7 @@ describe('Decks (MyDecks page)', () => {
         failure: WebsocketTypes.CommandFailure.Timeout,
       }));
     });
-    expect(screen.queryByText(/loading decks/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('Decks.list.loading')).not.toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('CommandFailure.timeout');
   });
 
@@ -57,12 +57,12 @@ describe('Decks (MyDecks page)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Decks.retry/ }));
     expect(webClient.request.session.deckList).toHaveBeenCalledTimes(1);
-    expect(screen.getByText(/loading decks/i)).toBeInTheDocument();
+    expect(screen.getByText('Decks.list.loading')).toBeInTheDocument();
   });
 
   it('still renders the page shell when disconnected (AuthGuard does not blank the page)', () => {
     renderWithProviders(<Decks />, { preloadedState: disconnectedState });
-    expect(screen.getByRole('heading', { name: 'My Decks' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Decks.list.title' })).toBeInTheDocument();
   });
 });
 
