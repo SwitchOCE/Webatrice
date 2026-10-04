@@ -117,3 +117,26 @@ Branch `claude/restack-17a-game-actions`, tip `57a3449`, on `claude/restack-16-g
   - Unit: sockatrice 42 files / 895 tests, datatrice 35 / 1316, webatrice 449 / 3554. All pass.
   - Lint 3/3.
 - The webatrice e2e for 17a's flows (`game-menu.spec`) ran in the full suite at the 17b tip; see the 17b note.
+
+## Review response (rv16, f17)
+
+Tip `fc80478` on `claude/restack-17a-game-actions`, three code / test commits and two doc commits on top of `57a3449`. No history rewrite.
+
+- **M1 (major): Tab stopped advancing the phase once an own card had focus.** Fixed in `8f6e29a`.
+  - Cause: dnd-kit gives a draggable (own) card `role="button"`, and the guard treated that as a control.
+  - `keepsTabNavigation` now checks dialogs, menus and modals first. Then anything inside a card (`[data-card-id]`), or the board container itself, keeps the shortcut whatever role it carries. Only then are real controls matched.
+  - `Game.tsx` marks `.game__board` with `data-game-board`.
+  - The guard keys off board membership, not role, so PR 30's keyboard-focusable cards keep the binding.
+  - Specs:
+    - `focusGuards.spec` has 3 new cases: a board card with role=button and the board are not controls, a real button on the board is, and a card inside a dialog is.
+    - `ShortcutProvider.spec` has 2 new cases: Tab and Shift+Tab on a `data-card-id` / `role=button` element fire `nextPhase` and `nextPhaseAction`, and a card inside `role=dialog` leaves Tab to the browser.
+    - The two "fires on the board" cases fail against `57a3449`.
+- **M2: zone views were not dialogs.** Fixed in `015a31e`.
+  - Both floating zone-view panels (`ZoneViewPanel` and the bounded top/bottom-N `ZoneRevealPanel`) get `role="dialog"` and `aria-label={title}`.
+  - They do not get `aria-modal`, so route shortcuts still run and Escape still closes the latest view.
+  - `Game.zoneViews.spec` has a new end-to-end case through `<Game />` and `ShortcutProvider`: Tab on a card in the graveyard view is not prevented and sends no `setActivePhase`, while Tab on a hand card sends one. It fails without the role.
+- **Nit, the board case dispatched on `document.body`:** that case is now named for the page body. The new board-card case dispatches on a card element.
+- `4133479` widens the changeset to name a focused card and zone views. `fc80478` updates the "Shortcut focus guards" bullet in `webatrice.instructions.md`.
+- **Testing at `015a31e`** (the two later commits only touch the changeset and the instructions):
+  - `turbo typecheck` passes. Lint 3/3.
+  - Unit: sockatrice 42 files / 895 tests, datatrice 35 / 1316, webatrice 449 / 3560. All pass. That is +6 in webatrice: focusGuards +3, ShortcutProvider +2, Game.zoneViews +1.
