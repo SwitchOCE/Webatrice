@@ -2654,7 +2654,7 @@
     "animations": {
       "all": {
         "label": "All animations",
-        "description": "Until you change an animation here, they follow your system's \"reduce motion\" setting."
+        "description": "Until you change an animation here, they follow your system's \"reduce motion\" setting. With all four off, the board's other motion stops too: card flips, draw flights, the hand slide, the end step flash and hover transitions."
       },
       "enableAll": "Enable all animations",
       "disableAll": "Disable all animations"

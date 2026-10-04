@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useLayoutEffect, useSyncExternalStore } from 'react';
 
 import type { Preferences } from '@app/types';
 import { usePreference } from './useSettings';
@@ -46,7 +46,11 @@ export function resolveAnimation(
   key: AnimationPreferenceKey,
   reducedMotion: boolean,
 ): boolean {
-  return preferences.animationsChosen ? preferences[key] : preferences[key] && !reducedMotion;
+  return animationApplies(preferences[key], preferences.animationsChosen, reducedMotion);
+}
+
+function animationApplies(value: boolean, animationsChosen: boolean, reducedMotion: boolean): boolean {
+  return animationsChosen ? value : value && !reducedMotion;
 }
 
 /** One animation setting as it applies now (resolveAnimation, reading only what it needs). */
@@ -54,7 +58,43 @@ export function useAnimationPreference(key: AnimationPreferenceKey): boolean {
   const animationsChosen = usePreference('animationsChosen');
   const value = usePreference(key);
   const reducedMotion = usePrefersReducedMotion();
-  return animationsChosen ? value : value && !reducedMotion;
+  return animationApplies(value, animationsChosen, reducedMotion);
+}
+
+/**
+ * Whether the board's own motion plays: the draw flights, the hand slide, the phase flash, the
+ * card flip and the hover and slot transitions. Desktop has no switch for these, so they follow
+ * its four: they stop once all four are off, which is what "Disable all" does and what the
+ * reduced-motion default resolves to until the user chooses.
+ */
+export function boardAnimationsAllowed(
+  preferences: Pick<Preferences, AnimationPreferenceKey | 'animationsChosen'>,
+  reducedMotion: boolean,
+): boolean {
+  return ANIMATION_PREFERENCE_KEYS.some((key) => resolveAnimation(preferences, key, reducedMotion));
+}
+
+/** boardAnimationsAllowed as it applies now. */
+export function useBoardAnimations(): boolean {
+  const preferences = {
+    animationsChosen: usePreference('animationsChosen'),
+    tapAnimation: usePreference('tapAnimation'),
+    arrowDrawAnimation: usePreference('arrowDrawAnimation'),
+    lifeCounterAnimations: usePreference('lifeCounterAnimations'),
+    battlefieldFlash: usePreference('battlefieldFlash'),
+  };
+  return boardAnimationsAllowed(preferences, usePrefersReducedMotion());
+}
+
+/**
+ * Publishes useBoardAnimations as `<html data-animations="on|off">`, which `styles/board-motion.css`
+ * reads to stop the board's CSS transitions and keyframes. Mount once, at the app root.
+ */
+export function useApplyAnimationPolicy(): void {
+  const allowed = useBoardAnimations();
+  useLayoutEffect(() => {
+    document.documentElement.dataset.animations = allowed ? 'on' : 'off';
+  }, [allowed]);
 }
 
 /**

@@ -11,11 +11,11 @@ function elementAt(rect: DOMRect): HTMLElement {
 const LIBRARY = new DOMRect(0, 0, 100, 70);
 const HAND = new DOMRect(300, 400, 200, 100);
 
-function renderFlights(handRect = HAND) {
+function renderFlights(handRect = HAND, enabled = true) {
   const libraryRef = { current: elementAt(LIBRARY) };
   const handRef = { current: elementAt(handRect) };
   return renderHook(
-    ({ drawSeq, lastDrawCount }) => useDrawFlights({ drawSeq, lastDrawCount, libraryRef, handRef }),
+    ({ drawSeq, lastDrawCount }) => useDrawFlights({ drawSeq, lastDrawCount, libraryRef, handRef, enabled }),
     { initialProps: { drawSeq: 3, lastDrawCount: 1 } },
   );
 }
@@ -50,6 +50,13 @@ describe('useDrawFlights', () => {
     expect(result.current.flights.map((f) => f.id)).toEqual([1, 2]);
 
     act(() => vi.advanceTimersByTime(DRAW_ANIMATION_MS + 50));
+    expect(result.current.flights).toEqual([]);
+  });
+
+  it('flies nothing while the board animation policy is off', () => {
+    const { result, rerender } = renderFlights(HAND, false);
+    rerender({ drawSeq: 4, lastDrawCount: 2 });
+    act(() => vi.runAllTimers());
     expect(result.current.flights).toEqual([]);
   });
 
