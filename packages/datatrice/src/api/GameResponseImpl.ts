@@ -183,7 +183,7 @@ export class GameResponseImpl implements WebsocketTypes.IGameResponse {
     this.store.dispatch(GameActions.replayGameUnloaded({ gameId }));
   }
 
-  replayGameTime(gameId: number, secondsElapsed: number): void {
+  replayGameTimeSynced(gameId: number, secondsElapsed: number): void {
     this.store.dispatch(GameActions.gameTimeSynced({ gameId, secondsElapsed }));
   }
 }

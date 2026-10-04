@@ -256,9 +256,10 @@ export interface IGameResponse {
   /**
    * The game time, in seconds since the game started, of the recorded container
    * `WebClient.replayGameEventContainer` is about to play into the local game `gameId`.
-   * Raised before the container's events, never by the server.
+   * Raised before the container's events, and only for a container that carries one;
+   * never by the server.
    */
-  replayGameTime?(gameId: number, secondsElapsed: number): void;
+  replayGameTimeSynced?(gameId: number, secondsElapsed: number): void;
   /**
    * Response_DeckDownload to Command_DeckSelect: the server's copy of the deck.
    * Optional so existing IGameResponse implementations keep compiling.
