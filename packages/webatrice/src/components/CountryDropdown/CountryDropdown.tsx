@@ -1,5 +1,6 @@
 import type { FocusEvent } from 'react';
-import { Select, MenuItem, SelectChangeEvent } from '@mui/material';
+import MenuItem from '@mui/material/MenuItem';
+import Select, { type SelectChangeEvent } from '@mui/material/Select';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import { useTranslation } from 'react-i18next';

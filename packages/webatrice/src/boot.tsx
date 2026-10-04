@@ -4,7 +4,7 @@ import './polyfills';
 
 import { StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
-import { StyledEngineProvider } from '@mui/material';
+import { StyledEngineProvider } from '@mui/material/styles';
 
 import { DatatriceProvider, WebClientProvider } from '@cockatrice/datatrice/react';
 import { extensions } from '@app/store';
