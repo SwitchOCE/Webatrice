@@ -58,7 +58,18 @@ export type SettingControl =
   /** A line of text, saved trimmed once the user commits it (Enter or leaving the field). */
   | { kind: 'text'; key: StringPreferenceKey; placeholderKey?: string }
   /** A whole number typed in, like desktop's spin boxes; `unitKey` labels it (e.g. "ms"). */
-  | { kind: 'number'; key: NumberPreferenceKey; min: number; max: number; unitKey?: string }
+  | {
+    kind: 'number';
+    key: NumberPreferenceKey;
+    min: number;
+    max: number;
+    unitKey?: string;
+    /**
+     * Desktop's coupled spin boxes: writing this value also moves `key` so that it stays at least
+     * (`'atLeast'`) or at most (`'atMost'`) this one.
+     */
+    pushes?: { key: NumberPreferenceKey; keep: 'atLeast' | 'atMost' };
+  }
   | { kind: 'color'; key: StringPreferenceKey }
   /**
    * Anything else. `keys` lists the preferences it edits so "Restore defaults" covers them;
