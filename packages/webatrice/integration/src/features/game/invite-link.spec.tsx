@@ -171,7 +171,8 @@ describe('Game invites and links (GAME-033)', () => {
       deliverMessage(buildSessionEventMessage(Event_GameJoined_ext, buildEventGameJoined({ gameId: 77, localPlayerId: 2, hostId: 1 })));
     });
     await waitFor(() => expect(screen.getByTestId('app-location')).toHaveTextContent('/game/77'));
-    fireEvent.click(screen.getByRole('button', { name: 'back' }));
+    // The link's confirmation may still be closing: until it has, MUI hides the rest of the page.
+    fireEvent.click(await screen.findByRole('button', { name: 'back' }));
     await waitFor(() => expect(screen.getByTestId('app-location')).toHaveTextContent('/room/1'));
   });
 
