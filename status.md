@@ -4,3 +4,4 @@
 - 03:00Z fix2 pointer store pushed. API change: PendingTargetPicker.pointer is now a PendingPointerStore (read via usePendingPointer); usePlayerSeat controller drops pendingArrowPointer/drawArrowPending, adds seatPending → attach shortcut anchor
 - 03:03Z attach anchor + untap specs pushed → increment-all duplicate
 - 03:07Z majors done (incl. Battlefield double-click tap dedupe; useBattlefieldMenuItems arg selection→incrementAllCardCounters) → minors
+- 03:14Z minors: planAttach TABLE, stack attach zone (startAttach gains optional 3rd arg sourceZone), hand/zone-view arrow attrs pushed → eslint, drag colour, prompts memo, pending tests, P/T
