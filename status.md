@@ -1,3 +1,4 @@
 - 02:00Z started rv19 review → reading PR+spec
 - 02:05Z read diff, deps installed, 216 targeted specs green → mutation run (24 mutants) + spec review
 - 02:16Z characterization+intermediate commits green; trial merge onto f25b tip done; mutants 2-8 run (2 survivors) → finishing mutants, then write review
+- 02:28Z review written (3 major, 4 minor, 3 nits; mutants 20/24 killed) → done
