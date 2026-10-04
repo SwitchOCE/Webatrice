@@ -19,6 +19,8 @@ export interface DeckSidebarProps {
   onNameChange: (name: string) => void;
   onFormatChange: (format: string) => void;
   onExport: () => void;
+  /** The editor's "Open deck…" action (OpenDeckButton). */
+  openDeck?: ReactNode;
   /** Desktop "Share deck..." (Servatrice 3.1 only). */
   onShare?: () => void;
   previewCard: DeckCard | null;
@@ -43,6 +45,7 @@ export function DeckSidebar({
   onNameChange,
   onFormatChange,
   onExport,
+  openDeck,
   onShare,
   previewCard,
   prices,
@@ -96,6 +99,7 @@ export function DeckSidebar({
           >
             <Upload size={13} /> Export deck
           </button>
+          {openDeck}
           {onShare && (
             <button
               type="button"

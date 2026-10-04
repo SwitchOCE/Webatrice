@@ -15,13 +15,13 @@ import type { ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/gen
 import { useAppSelector } from '@app/store';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import {
-  useDocumentTitle, useLeaveGame, useOpenedReplays, usePhaseTrackPinnedSetting, usePreference, useSnapGridSetting,
+  useDocumentTitle, useLeaveGame, useOpenedReplays, usePhaseTrackPinnedSetting, useSnapGridSetting,
 } from '@app/hooks';
 import { Images } from '@app/images';
 import { closeReplay } from '@app/services';
 import { Menu, MenuCheckboxItem, MenuItem, MenuSeparator, type MenuAnchor } from '@app/components';
 import { DebugLogDialog } from '@app/dialogs';
-import { RouteEnum } from '@app/types';
+import { RouteEnum, type DeckRouteState } from '@app/types';
 import { CardImportDialog } from '@app/feature-widgets/card-import';
 
 import LatencyStatus from './LatencyStatus';
@@ -113,18 +113,15 @@ export default function TopBar() {
   // edited deck so switching to Lobby / a room / a game doesn't drop
   // the deck editing context.
   //   • decks: one entry, always keyed 'decks'
-  //   • deck : at most one entry (opening a different deck replaces
-  //            the previous deck tab — same "single deck editor at a
-  //            time" model the sidebar back-button used to enforce).
+  //   • deck : one entry per open deck, as desktop's Deck Storage opens
+  //            each deck in a tab of its own; a deck the editor loads
+  //            into its own tab replaces that tab (DeckRouteState).
   //
   // Backed by a MODULE-LEVEL singleton (see bottom of this file) —
   // TopBar is rendered inside each page's Layout so it remounts on
   // every navigation, which would wipe a normal useState. The
   // singleton + useSyncExternalStore pair survives remounts.
   const [stickyTabs, setStickyTabs] = useStickyTabs();
-  // Settings > User Interface: desktop's "Open deck in new tab by default". Off (desktop's
-  // default) the deck editor keeps one tab, as it always has here; on, each deck opens its own.
-  const openDeckInNewTab = usePreference('openDeckInNewTab');
   useEffect(() => {
     const transient = detectTransientTab(location.pathname);
     if (!transient) {
@@ -143,16 +140,22 @@ export default function TopBar() {
     if (!shouldStick) {
       return;
     }
+    const replacesDeckId = transient.type === 'deck'
+      ? (location.state as DeckRouteState | null)?.replacesDeckId
+      : undefined;
     setStickyTabs((prev) => {
-      // Deck editor: single-slot unless the user asked for a tab per deck.
-      if (transient.type === 'deck' && !openDeckInNewTab) {
-        const others = prev.filter((t) => t.type !== 'deck');
-        return [...others, transient];
+      // A deck the editor loaded into its own tab takes that tab's place (or, when the deck
+      // already has a tab, the replaced tab just closes).
+      const replaced = replacesDeckId != null ? prev.findIndex((tab) => tab.key === `deck:${replacesDeckId}`) : -1;
+      if (replaced >= 0 && prev[replaced].key !== transient.key) {
+        return prev.some((tab) => tab.key === transient.key)
+          ? prev.filter((_, i) => i !== replaced)
+          : prev.map((tab, i) => (i === replaced ? transient : tab));
       }
-      // Decks list / Shortcuts / Player: additive, no-op if already present.
+      // Decks list / deck editor / Shortcuts / Player: additive, no-op if already present.
       return prev.some((t) => t.key === transient.key) ? prev : [...prev, transient];
     });
-  }, [location.pathname, openDeckInNewTab, setStickyTabs]);
+  }, [location.pathname, location.state, setStickyTabs]);
 
   // Mirror the current pathname to localStorage so an F5 refresh drops
   // the user back on the same route (MemoryRouter has no URL to lean

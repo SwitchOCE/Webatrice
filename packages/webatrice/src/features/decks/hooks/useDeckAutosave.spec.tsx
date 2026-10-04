@@ -191,3 +191,66 @@ describe('useDeckAutosave', () => {
     expect(latest.savedSignature()).toBe('sig');
   });
 });
+
+describe('useDeckAutosave save prompt support (desktop confirmOpen)', () => {
+  it('counts an edit waiting on the debounce as modified', () => {
+    setup();
+    expect(latest.isModified).toBe(false);
+
+    act(() => latest.scheduleSave());
+
+    expect(latest.isModified).toBe(true);
+  });
+
+  it('saves now and resolves true once the server takes the deck', async () => {
+    const { webClient, store } = setup();
+    act(() => latest.scheduleSave());
+
+    let saved: Promise<boolean> = Promise.resolve(false);
+    act(() => {
+      saved = latest.saveNow();
+    });
+    expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);
+    ack(store);
+
+    await expect(saved).resolves.toBe(true);
+    expect(latest.isModified).toBe(false);
+  });
+
+  it('resolves true at once when the server already holds the deck', async () => {
+    current = deck;
+    const { webClient } = setup();
+
+    await expect(latest.saveNow()).resolves.toBe(true);
+    expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+  });
+
+  it('resolves false and stays modified when the save fails', async () => {
+    const { store } = setup();
+    act(() => latest.scheduleSave());
+
+    let saved: Promise<boolean> = Promise.resolve(true);
+    act(() => {
+      saved = latest.saveNow();
+    });
+    act(() => {
+      store.dispatch(server.Actions.deckUpdateFailed({ deckId: 7, responseCode: Response_ResponseCode.RespInternalError }));
+    });
+
+    await expect(saved).resolves.toBe(false);
+    expect(latest.isModified).toBe(true);
+  });
+
+  it('discards an edit without sending it, even on unmount, and forgets the cached copy', () => {
+    setCachedDeck(7, { deck: EDITED, savedSignature: SAVED });
+    const { webClient, unmount } = setup();
+    act(() => latest.scheduleSave());
+
+    act(() => latest.discardChanges());
+    expect(latest.isModified).toBe(false);
+    expect(getCachedDeck(7)).toBeUndefined();
+    unmount();
+
+    expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+  });
+});

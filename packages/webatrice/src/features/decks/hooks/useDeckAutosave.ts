@@ -4,7 +4,7 @@ import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { useReduxEffect } from '@app/hooks';
 
-import { getCachedDeck, setCachedDeck } from '../deckEditorCache';
+import { deleteCachedDeck, getCachedDeck, setCachedDeck } from '../deckEditorCache';
 import { deckColorIdentity, deckSaveSignature, serializeDeckForSave } from '../deckPersistence';
 import type { HydratedDeck } from '../types';
 
@@ -19,6 +19,14 @@ export interface DeckAutosave {
   scheduleSave: () => void;
   /** Save a pending change right now. Also runs on unmount. */
   flushSave: () => void;
+  /** Whether the deck has edits the server has not taken: one waiting on the debounce, or one
+   *  whose save failed. Desktop's `isModified`. */
+  isModified: boolean;
+  /** Save now, resolving once the server answers: true when the deck is saved. */
+  saveNow: () => Promise<boolean>;
+  /** Drop the edits the server has not taken, as desktop's Discard does: nothing is sent, and
+   *  reopening the deck downloads it again. */
+  discardChanges: () => void;
   /** Record `signature` (see `deckSaveSignature`) as what the server holds. */
   markSaved: (signature: string) => void;
   /** Forget the saved signature and show the deck as clean: the next save uploads whatever the deck holds. */
@@ -69,6 +77,14 @@ export function useDeckAutosave(
   const storedIdRef = useRef<number | null>(null);
   const draftRef = useRef(draft);
   draftRef.current = draft;
+  // `saveNow` callers waiting for the server to answer the saves in flight.
+  const saveWaitersRef = useRef<((saved: boolean) => void)[]>([]);
+
+  const answerWaiters = useCallback((saved: boolean) => {
+    const waiters = saveWaitersRef.current;
+    saveWaitersRef.current = [];
+    waiters.forEach((resolve) => resolve(saved));
+  }, []);
 
   const settle = useCallback((state: SaveState) => {
     settledStateRef.current = state;
@@ -118,6 +134,7 @@ export function useDeckAutosave(
       const signature = inFlightRef.current.shift()!;
       if (type === server.Types.DECK_UPDATE_FAILED) {
         settle('failed');
+        answerWaiters(false);
         return;
       }
       savedSignatureRef.current = signature;
@@ -133,10 +150,11 @@ export function useDeckAutosave(
         if (saveTimerRef.current == null) {
           setSaveState('saved');
         }
+        answerWaiters(true);
       }
     },
     [server.Types.DECK_UPDATED, server.Types.DECK_UPDATE_FAILED],
-    [deckId],
+    [deckId, answerWaiters],
   );
 
   // A draft's first save came back as a new stored deck: the root-level
@@ -161,11 +179,12 @@ export function useDeckAutosave(
         persistNow();
       } else {
         settle('saved');
+        answerWaiters(true);
       }
       draftRef.current?.onStored(payload.treeItem.id, upload.signature);
     },
     server.Types.DECK_UPLOAD,
-    [deckId, settle, persistNow],
+    [deckId, settle, persistNow, answerWaiters],
   );
   useReduxEffect<{ path: string }>(
     ({ payload }) => {
@@ -174,10 +193,11 @@ export function useDeckAutosave(
         // The in-flight edits are in the next attempt's deck.
         draftEditedRef.current = false;
         settle('failed');
+        answerWaiters(false);
       }
     },
     server.Types.DECK_UPLOAD_FAILED,
-    [settle],
+    [settle, answerWaiters],
   );
 
   const scheduleSave = useCallback(() => {
@@ -202,6 +222,33 @@ export function useDeckAutosave(
   }, [persistNow]);
   useEffect(() => flushSave, [flushSave]);
 
+  const saveNow = useCallback(() => {
+    if (saveTimerRef.current != null) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    persistNow();
+    // Nothing went out and nothing is in flight: the server already holds this deck.
+    if (inFlightRef.current.length === 0 && draftUploadRef.current == null) {
+      return Promise.resolve(true);
+    }
+    return new Promise<boolean>((resolve) => {
+      saveWaitersRef.current.push(resolve);
+    });
+  }, [persistNow]);
+
+  const discardChanges = useCallback(() => {
+    if (saveTimerRef.current != null) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    // The cache mirrors unsaved edits; dropping the entry makes the next open download the deck.
+    if (deckId != null) {
+      deleteCachedDeck(deckId);
+    }
+    settle('idle');
+  }, [deckId, settle]);
+
   const markSaved = useCallback((signature: string) => {
     savedSignatureRef.current = signature;
     settle('idle');
@@ -212,5 +259,15 @@ export function useDeckAutosave(
   }, [settle]);
   const savedSignature = useCallback(() => savedSignatureRef.current, []);
 
-  return { saveState, scheduleSave, flushSave, markSaved, resetSaved, savedSignature };
+  return {
+    saveState,
+    scheduleSave,
+    flushSave,
+    isModified: saveState === 'dirty' || saveState === 'failed',
+    saveNow,
+    discardChanges,
+    markSaved,
+    resetSaved,
+    savedSignature,
+  };
 }

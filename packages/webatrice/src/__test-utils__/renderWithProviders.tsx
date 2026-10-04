@@ -1,7 +1,7 @@
 import { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { combineReducers, type EnhancedStore } from '@reduxjs/toolkit';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, type InitialEntry } from 'react-router-dom';
 import { I18nextProvider } from 'react-i18next';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
@@ -131,7 +131,7 @@ const TEST_CLIENT_OPTIONS: WebsocketTypes.ClientOptions = {
 
 interface ExtendedRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   preloadedState?: Partial<RootState>;
-  route?: string;
+  route?: InitialEntry;
   webClient?: WebClient;
   // Pre-built store override — used by the integration harness, whose
   // setup.ts owns a test store shared with a manually-constructed WebClient.
