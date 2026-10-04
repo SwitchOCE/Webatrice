@@ -51,7 +51,8 @@ const sameQuery = (a: MentionQuery | null, b: MentionQuery | null) =>
 /**
  * Chat › "Enable mention completer": typing `@` in a chat input suggests the names that can be
  * mentioned, desktop's LineEditCompleter with its mention completer. Keyboard first: Arrow keys
- * move through the suggestions, Enter or Tab inserts `@name `, Escape closes the list. The input
+ * move through the suggestions, Enter or Tab inserts `@name ` (Tab then moves focus on), Escape
+ * closes the list. The input
  * is an ARIA combobox and the list a listbox. With the setting off the input is left as it was.
  */
 export function useMentionCompleter({ names, value, onValueChange, inputRef }: MentionCompleterOptions): MentionCompleter {
@@ -127,11 +128,12 @@ export function useMentionCompleter({ names, value, onValueChange, inputRef }: M
         accept(activeIndex);
         break;
       case 'Tab':
-        if (event.shiftKey) {
-          return;
+        // Accept and let focus move on, as desktop's LineEditCompleter::focusOutEvent and the
+        // APG list autocomplete do.
+        if (!event.shiftKey) {
+          accept(activeIndex);
         }
-        accept(activeIndex);
-        break;
+        return;
       case 'Escape':
         setQuery(null);
         // Closing the list is all Escape does here, not closing a dialog or leaving the game.
@@ -152,14 +154,18 @@ export function useMentionCompleter({ names, value, onValueChange, inputRef }: M
       role: 'combobox',
       'aria-autocomplete': 'list',
       'aria-expanded': open,
-      'aria-controls': open ? listboxId : undefined,
+      // ARIA 1.2 requires it on a combobox, so the listbox is always rendered (hidden when empty).
+      'aria-controls': listboxId,
       'aria-activedescendant': open ? optionId(activeIndex) : undefined,
     },
-    popup: open && (
-      // TODO(PR26): replace with the shared listbox popup once PR 26's a11y primitives land.
+    popup: (
+      // TODO: share the combobox/listbox logic (arrow keys, aria-activedescendant, focus kept in
+      // the input, Escape closes first) with PR 31's QuickAddSearch as a `useComboboxListbox`
+      // hook, once PR 31 is in.
       <ul
         id={listboxId}
         role="listbox"
+        hidden={!open}
         aria-label={t('MentionCompleter.label')}
         className={[
           'absolute bottom-full left-0 z-20 mb-1 w-full max-w-xs overflow-y-auto',
