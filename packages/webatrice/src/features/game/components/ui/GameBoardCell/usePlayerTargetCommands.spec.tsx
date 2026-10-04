@@ -7,14 +7,25 @@ import { games } from '@cockatrice/datatrice';
 import { ArrowColor } from '@app/types';
 import { makeCard } from '@cockatrice/datatrice/testing';
 import { renderSeatHook, type SeatGameSpec } from '../../../__test-utils__/seatFixtures';
+import { PREFERENCE_DEFAULTS } from '@app/types';
+import { usePreference } from '../../../../../hooks/useSettings';
 import { usePlayerTargetCommands, useTargetCommandsFor } from './usePlayerTargetCommands';
 
 vi.mock('../../../../../hooks/useSettings');
 
-// playCardViaTableRow reads the card's tablerow; 1 = creature, played to the battlefield.
+// The play reads the card's tablerow; 1 = creature.
 vi.mock('../../../../../services/dexie/DexieDTOs/CardDTO', () => ({
   CardDTO: { get: vi.fn(async () => ({ tablerow: { value: '1' } })) },
 }));
+
+const preferring = (overrides: Partial<typeof PREFERENCE_DEFAULTS>) => vi.mocked(usePreference).mockImplementation(
+  ((key: keyof typeof PREFERENCE_DEFAULTS) => ({ ...PREFERENCE_DEFAULTS, ...overrides })[key]) as typeof usePreference,
+);
+
+// clearAllMocks keeps implementations; restore the preference defaults per test.
+afterEach(() => {
+  preferring({});
+});
 
 const SPEC: SeatGameSpec = { localPlayerId: 1, seats: [{ playerId: 1 }, { playerId: 2 }] };
 
@@ -87,7 +98,8 @@ describe('target commands', () => {
     expect(vi.mocked(own.game.attachCard).mock.calls[0][2]).toBeUndefined();
   });
 
-  it('plays a hand card, then draws the arrow from where it landed with the hand-side id', async () => {
+  const playThenArrow = async (playToStack: boolean) => {
+    preferring({ playToStack });
     const { result, game } = renderSeatHook(
       () => useTargetCommandsFor(1),
       { localPlayerId: 1, seats: [{ playerId: 1, hand: [makeCard({ id: 30, name: 'Bear' })] }, { playerId: 2 }] },
@@ -95,7 +107,24 @@ describe('target commands', () => {
     result()!(1).playAndCreateArrow(30, { kind: 'player', playerId: 2 }, ArrowColor.YELLOW);
     result()!(1).playAndCreateArrow(99, { kind: 'player', playerId: 2 });
     await vi.waitFor(() => expect(game.createArrow).toHaveBeenCalled());
+    return game;
+  };
 
+  // Desktop ArrowDragItem::mouseReleaseEvent → playCard(false), which honours playToStack.
+  it('plays a hand creature onto the stack with playToStack on, then draws the arrow from there', async () => {
+    const game = await playThenArrow(true);
+    expect(vi.mocked(game.moveCard).mock.calls).toEqual([[1, expect.objectContaining({
+      startZone: ZoneName.HAND,
+      cardsToMove: { card: [{ cardId: 30, faceDown: false }] },
+      targetZone: ZoneName.STACK,
+    }), undefined]]);
+    expect(vi.mocked(game.createArrow).mock.calls).toEqual([[1, {
+      startPlayerId: 1, startZone: ZoneName.STACK, startCardId: 30, targetPlayerId: 2, arrowColor: ArrowColor.YELLOW,
+    }]]);
+  });
+
+  it('plays a hand creature onto the battlefield with playToStack off, then draws the arrow from there', async () => {
+    const game = await playThenArrow(false);
     expect(vi.mocked(game.moveCard).mock.calls).toEqual([[1, expect.objectContaining({
       startZone: ZoneName.HAND,
       cardsToMove: { card: [{ cardId: 30, faceDown: false }] },

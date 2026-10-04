@@ -77,9 +77,10 @@ describe('usePendingTarget', () => {
     fireEvent.click(target);
 
     await vi.waitFor(() => expect(game.createArrow).toHaveBeenCalled());
-    expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({ startZone: ZoneName.HAND, targetZone: ZoneName.TABLE });
+    // playToStack is on by default, so the creature goes onto the stack.
+    expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({ startZone: ZoneName.HAND, targetZone: ZoneName.STACK });
     expect(vi.mocked(game.createArrow).mock.calls).toEqual([
-      arrow(30, { targetPlayerId: 2, targetZone: ZoneName.TABLE, targetCardId: 20 }),
+      arrow(30, { targetPlayerId: 2, targetZone: ZoneName.TABLE, targetCardId: 20 }, ZoneName.STACK),
     ]);
   });
 
