@@ -29,6 +29,25 @@ function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05);
 }
 
+/** `color` painted at `alpha` over `under`, as hex. */
+function composite(color: string, alpha: number, under: string): string {
+  const channel = (hex: string, i: number) => parseInt(hex.slice(i, i + 2), 16);
+  return `#${[1, 3, 5]
+    .map((i) => Math.round(alpha * channel(color, i) + (1 - alpha) * channel(under, i)).toString(16).padStart(2, '0'))
+    .join('')}`.toUpperCase();
+}
+
+// The lightest art a label can sit on: a white card frame or a blown-out sky.
+const LIGHTEST_ART = '#FFFFFF';
+
+/** The opacity of the backdrop behind the selection count labels, read from the component. */
+const selectionLabelBackdropAlpha = Number(
+  /bg-over-art-backdrop\/(\d+)/.exec(fs.readFileSync(
+    path.resolve(__dirname, '../../features/game/components/SelectionCount/SelectionCount.tsx'),
+    'utf8',
+  ))![1],
+) / 100;
+
 const css = fs.readFileSync(path.resolve(__dirname, '../../styles/tokens.css'), 'utf8')
   .replace(/\/\*[\s\S]*?\*\//g, '');
 const SELECTORS: Record<ColorScheme, string> = {
@@ -71,10 +90,15 @@ describe.each(Object.keys(PALETTES) as ColorScheme[])('the %s palette', (scheme)
     },
   );
 
-  test('keeps text over card art, a modified P/T included, at AA contrast on its backdrop', () => {
+  test('keeps text on the cards\' solid label pills, a modified P/T included, at AA contrast', () => {
     for (const token of ['over-art-text', 'pt-modified'] as PaletteToken[]) {
       expect(contrast(palette[token], palette['over-art-backdrop']), token).toBeGreaterThanOrEqual(4.5);
     }
+  });
+
+  test('keeps the selection counts at AA contrast on their translucent backdrop over the lightest art', () => {
+    const backdrop = composite(palette['over-art-backdrop'], selectionLabelBackdropAlpha, LIGHTEST_ART);
+    expect(contrast(palette['over-art-text'], backdrop)).toBeGreaterThanOrEqual(4.5);
   });
 
   test.each(SURFACES)('keeps disabled text at least 3:1 on %s', (surface) => {
@@ -97,6 +121,17 @@ describe.each(Object.keys(PALETTES) as ColorScheme[])('the %s palette', (scheme)
       expect(contrast(palette['status-danger'], palette[surface]), surface).toBeGreaterThanOrEqual(4.5);
     }
   });
+});
+
+test('keeps the mana tints and the life flashes the same in both palettes, on purpose', () => {
+  // They sit on card art and avatars, not on the page, so the light theme leaves them alone. A
+  // light-theme change to them has to come with its own contrast check.
+  const shared: PaletteToken[] = [
+    'mana-w', 'mana-u', 'mana-b', 'mana-r', 'mana-g', 'mana-c', 'mana-o', 'seat-flash-gain', 'seat-flash-loss',
+  ];
+  for (const token of shared) {
+    expect(PALETTES.light[token], token).toBe(PALETTES.dark[token]);
+  }
 });
 
 test('dark is the palette of a page without data-theme', () => {
