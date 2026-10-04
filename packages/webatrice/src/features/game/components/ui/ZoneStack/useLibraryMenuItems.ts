@@ -110,13 +110,13 @@ export function useLibraryMenuItems({
     },
     {
       label: 'Move top cards to graveyard...',
-      onClick: () => libraryOps.promptMoveTopCards('Move top cards to graveyard', ZoneName.GRAVE),
+      onClick: () => libraryOps.promptMoveTopCards(ZoneName.GRAVE),
       disabled: deckCount <= 0,
       shortcut: shortcutHints['game.moveTopNToGrave'],
     },
     {
       label: 'Move top cards to graveyard face down...',
-      onClick: () => libraryOps.promptMoveTopCards('Move top cards to graveyard face down', ZoneName.GRAVE, true),
+      onClick: () => libraryOps.promptMoveTopCards(ZoneName.GRAVE, true),
       disabled: deckCount <= 0,
       shortcut: shortcutHints['game.moveTopNToGraveFaceDown'],
     },
@@ -128,13 +128,13 @@ export function useLibraryMenuItems({
     },
     {
       label: 'Move top cards to exile...',
-      onClick: () => libraryOps.promptMoveTopCards('Move top cards to exile', ZoneName.EXILE),
+      onClick: () => libraryOps.promptMoveTopCards(ZoneName.EXILE),
       disabled: deckCount <= 0,
       shortcut: shortcutHints['game.moveTopNToExile'],
     },
     {
       label: 'Move top cards to exile face down...',
-      onClick: () => libraryOps.promptMoveTopCards('Move top cards to exile face down', ZoneName.EXILE, true),
+      onClick: () => libraryOps.promptMoveTopCards(ZoneName.EXILE, true),
       disabled: deckCount <= 0,
       shortcut: shortcutHints['game.moveTopNToExileFaceDown'],
     },
@@ -162,7 +162,7 @@ export function useLibraryMenuItems({
     },
     {
       label: 'Draw bottom cards...',
-      onClick: () => libraryOps.promptMoveBottomCards('Draw bottom cards', 'Draw', ZoneName.HAND),
+      onClick: () => libraryOps.promptMoveBottomCards(ZoneName.HAND),
       disabled: deckCount <= 0,
       shortcut: shortcutHints['game.drawBottomCards'],
     },
@@ -194,14 +194,13 @@ export function useLibraryMenuItems({
     },
     {
       label: 'Move bottom cards to graveyard...',
-      onClick: () => libraryOps.promptMoveBottomCards('Move bottom cards to graveyard', 'Move', ZoneName.GRAVE),
+      onClick: () => libraryOps.promptMoveBottomCards(ZoneName.GRAVE),
       disabled: deckCount <= 0,
       shortcut: shortcutHints['game.moveBottomNToGrave'],
     },
     {
       label: 'Move bottom cards to graveyard face down...',
-      onClick: () =>
-        libraryOps.promptMoveBottomCards('Move bottom cards to graveyard face down', 'Move', ZoneName.GRAVE, true),
+      onClick: () => libraryOps.promptMoveBottomCards(ZoneName.GRAVE, true),
       disabled: deckCount <= 0,
       shortcut: shortcutHints['game.moveBottomNToGraveFaceDown'],
     },
@@ -213,14 +212,13 @@ export function useLibraryMenuItems({
     },
     {
       label: 'Move bottom cards to exile...',
-      onClick: () => libraryOps.promptMoveBottomCards('Move bottom cards to exile', 'Move', ZoneName.EXILE),
+      onClick: () => libraryOps.promptMoveBottomCards(ZoneName.EXILE),
       disabled: deckCount <= 0,
       shortcut: shortcutHints['game.moveBottomNToExile'],
     },
     {
       label: 'Move bottom cards to exile face down...',
-      onClick: () =>
-        libraryOps.promptMoveBottomCards('Move bottom cards to exile face down', 'Move', ZoneName.EXILE, true),
+      onClick: () => libraryOps.promptMoveBottomCards(ZoneName.EXILE, true),
       disabled: deckCount <= 0,
       shortcut: shortcutHints['game.moveBottomNToExileFaceDown'],
     },
