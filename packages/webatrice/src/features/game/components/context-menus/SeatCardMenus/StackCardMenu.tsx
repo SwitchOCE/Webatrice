@@ -24,9 +24,8 @@ export default function StackCardMenu() {
     isSelf,
     relatedViewItemsFor,
     selection,
-    setAttachExtraSourceIds,
-    setAttachPending,
-    setDrawArrowPending,
+    startAttach,
+    startDrawArrow,
     setSelection,
     shortcutHints,
     stackCardMenu,
@@ -64,7 +63,7 @@ export default function StackCardMenu() {
               shortcut: shortcutHints['game.drawArrow'],
               onClick: () => {
                 if (numeric && card) {
-                  setDrawArrowPending({
+                  startDrawArrow({
                     sourceCardId: cardIdNum,
                     sourceCardName: card.name,
                     sourceZone: ZoneName.STACK,
@@ -255,11 +254,7 @@ export default function StackCardMenu() {
                   .filter((sc) => Number(sc.id) !== cardIdNum)
                   .map((sc) => Number(sc.id))
                   .filter((n) => Number.isFinite(n));
-                setAttachPending({
-                  sourceCardId: cardIdNum,
-                  sourceCardName: card.name,
-                });
-                setAttachExtraSourceIds(extras);
+                startAttach([cardIdNum, ...extras], card.name);
               }
               close();
             },
@@ -269,7 +264,7 @@ export default function StackCardMenu() {
             shortcut: shortcutHints['game.drawArrow'],
             onClick: () => {
               if (numeric && card) {
-                setDrawArrowPending({
+                startDrawArrow({
                   sourceCardId: cardIdNum,
                   sourceCardName: card.name,
                   sourceZone: ZoneName.STACK,

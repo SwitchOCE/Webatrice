@@ -1,4 +1,4 @@
-import { ZoneName } from '@cockatrice/sockatrice';
+import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 import type { WebClient } from '@cockatrice/sockatrice';
 import { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
 import { ZoneEntry } from '@cockatrice/datatrice';
@@ -48,7 +48,7 @@ export async function playCardViaTableRow({
   // Owner to run the play as when a judge plays a foreign card (Command_Judge);
   // undefined for own cards (sent bare). See useJudgeTarget.
   judgeTargetId?: number;
-}): Promise<string> {
+}): Promise<ZoneNameValue> {
   // `<tablerow>` is a top-level element on `<card>`, not inside `<prop>`.
   const placement = placementFromCardDatabaseRow(await readTablerow(card.name));
 
@@ -114,7 +114,7 @@ export async function autoPlayCard(args: {
   judgeTargetId?: number;
   /** The "Play all nonlands onto the stack" preference; desktop's default is on. */
   playToStack?: boolean;
-}): Promise<string> {
+}): Promise<ZoneNameValue> {
   const { webClient, gameId, sourcePlayerId, sourceZone, card, faceDown, judgeTargetId, playToStack = true } = args;
 
   if (sourceZone === ZoneName.HAND) {

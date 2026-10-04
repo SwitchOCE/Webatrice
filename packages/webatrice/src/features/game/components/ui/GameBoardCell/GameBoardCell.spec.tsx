@@ -409,7 +409,7 @@ describe('GameBoardCell — card commands', () => {
         state.games!.games![1]!.players![1]!.arrows = { 5: makeArrow({ id: 5 }), 6: makeArrow({ id: 6 }) };
       },
     });
-    commands().target.createArrow(10, ZoneName.TABLE, { kind: 'card', playerId: 2, cardId: 20 });
+    commands().target.createArrow(10, ZoneName.TABLE, { kind: 'card', playerId: 2, zone: ZoneName.TABLE, cardId: 20 });
     commands().target.createArrow(40, ZoneName.GRAVE, { kind: 'player', playerId: 2 });
     commands().target.clearOwnArrows();
 
