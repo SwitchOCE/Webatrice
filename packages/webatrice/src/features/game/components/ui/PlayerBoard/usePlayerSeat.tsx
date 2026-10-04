@@ -1,4 +1,5 @@
-import { useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
+import { ZoneName } from '@cockatrice/sockatrice';
 import { useShortcutHints } from '@app/feature-widgets/shortcuts';
 
 import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
@@ -24,6 +25,7 @@ import type {
   PlayerBoardCommands,
   PlayerBoardModel,
 } from './playerBoard.types';
+import { useBattlefieldCardOps } from './useBattlefieldCardOps';
 import { useDrawFlights } from './useDrawFlights';
 import { usePendingArrows } from './usePendingArrows';
 import { useSeatCardMetadata } from './useSeatCardMetadata';
@@ -237,6 +239,30 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     setDrawArrowPending,
     pendingArrowPointer,
   } = usePendingArrows({ playerId, targetCommands });
+  const startAttach = useCallback((sourceCardIds: readonly number[], anchorName: string) => {
+    const [anchorId, ...extraIds] = sourceCardIds;
+    setAttachPending({ sourceCardId: anchorId, sourceCardName: anchorName });
+    setAttachExtraSourceIds(extraIds);
+  }, [setAttachPending, setAttachExtraSourceIds]);
+  const startArrow = useCallback((sourceCardId: number, sourceCardName: string) => {
+    setDrawArrowPending({ sourceCardId, sourceCardName, sourceZone: ZoneName.TABLE });
+  }, [setDrawArrowPending]);
+  // The battlefield card actions behind both the card menu and the shortcuts.
+  const cardOps = useBattlefieldCardOps({
+    cards: battlefieldDisplayList,
+    selection,
+    setSelection,
+    cardMetaByName,
+    deckCount,
+    lifeControl,
+    cardCommands,
+    counterCommands,
+    targetCommands,
+    zoneCommands,
+    prompts: { openAnnotationPrompt, openPTPrompt, openCardCounterPrompt, openMoveXFromTopPrompt },
+    startAttach,
+    startArrow,
+  });
   // Displayed counts mirror Cockatrice desktop: read straight from the
   // server-authoritative `zone.cardCount` and DON'T decrement while a
   // card is under the cursor mid-drag. The desktop client also shows
@@ -407,6 +433,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     cardCommands,
     cardContextMenu,
     cardMetaByName,
+    cardOps,
     closeSeatCardMenu,
     counterCommands,
     deckCount,
