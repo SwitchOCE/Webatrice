@@ -66,7 +66,9 @@ test('create, fill, save and share a deck with the keyboard only', async ({ page
   // adds what was typed rather than a suggestion nobody can see.
   await tabTo(page, quickAdd);
   await page.keyboard.type('Fore');
-  await expect(page.getByRole('option', { name: 'Forest' })).toHaveAttribute('aria-selected', 'true');
+  // The deck's banner-card picker now lists Forest too; look in the suggestions.
+  const suggestion = page.getByRole('listbox', { name: 'Card suggestions' }).getByRole('option', { name: 'Forest' });
+  await expect(suggestion).toHaveAttribute('aria-selected', 'true');
   await page.keyboard.press('Escape');
   await expect(quickAdd).toHaveAttribute('aria-expanded', 'false');
   await expect(quickAdd).not.toHaveAttribute('aria-activedescendant');
