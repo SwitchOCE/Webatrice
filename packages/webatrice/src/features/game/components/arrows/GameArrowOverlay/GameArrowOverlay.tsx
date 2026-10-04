@@ -1,10 +1,11 @@
+import { useId } from 'react';
 import { useAnimationPreference } from '@app/hooks';
 
 import { useGameId } from '../../ui/GameIdContext';
 
-import { useGameArrowOverlay } from './useGameArrowOverlay';
+import { arrowKey, useGameArrowOverlay } from './useGameArrowOverlay';
 import { buildArrowGeometry } from './arrowPath';
-import { useArrowDrawIn } from './useArrowDrawIn';
+import { useArrivingArrows, useArrowDrawIn } from './useArrowDrawIn';
 
 import './GameArrowOverlay.css';
 
@@ -113,9 +114,12 @@ function ArrowShape({
 
 function GameArrowOverlay({ containerRef, layoutVersion, dragPreview = null }: GameArrowOverlayProps) {
   const gameId = useGameId();
-  const { arrows, width, height, handleArrowClick } = useGameArrowOverlay({ gameId, containerRef, layoutVersion });
-  // Desktop's "Arrow draw animation", for arrows as they appear.
+  const { arrows, gameArrowKeys, width, height, handleArrowClick } = useGameArrowOverlay({ gameId, containerRef, layoutVersion });
+  // Desktop's "Arrow draw animation", for arrows as the game adds them.
   const arrowDrawAnimation = useAnimationPreference('arrowDrawAnimation');
+  const arriving = useArrivingArrows(gameArrowKeys, arrows.map(arrowKey));
+  // Clip ids are document-wide: scope them to this overlay, and to the arrow's creator and id.
+  const clipScope = useId().replace(/[^\w-]/g, '');
 
   // Committed arrows always render at Cockatrice's "locked target" alpha
   // (α=200) — they've already resolved to a real endpoint.
@@ -136,7 +140,7 @@ function GameArrowOverlay({ containerRef, layoutVersion, dragPreview = null }: G
     >
       {arrows.map((a) => (
         <ArrowShape
-          key={a.arrowId}
+          key={arrowKey(a)}
           x1={a.x1}
           y1={a.y1}
           x2={a.x2}
@@ -145,7 +149,7 @@ function GameArrowOverlay({ containerRef, layoutVersion, dragPreview = null }: G
           onClick={() => handleArrowClick(a.arrowId)}
           testId={`arrow-${a.arrowId}`}
           className="game-arrow-overlay__shape"
-          drawIn={{ id: String(a.arrowId), animate: arrowDrawAnimation }}
+          drawIn={{ id: `${clipScope}-${a.ownerPlayerId}-${a.arrowId}`, animate: arrowDrawAnimation && arriving.has(arrowKey(a)) }}
         />
       ))}
       {dragPreview && (

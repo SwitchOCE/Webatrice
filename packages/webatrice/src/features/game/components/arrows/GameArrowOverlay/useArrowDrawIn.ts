@@ -43,3 +43,35 @@ export function useArrowDrawIn(animate: boolean, lengthPx: number): number {
 
   return progress;
 }
+
+/**
+ * Which of the drawn arrows arrived since the overlay last drew: desktop animates an arrow once,
+ * when the game adds it (GameScene::addArrow). The arrows already in the game when the overlay is
+ * first measured (joining a game in progress, a remount) count as seen, and so does every arrow
+ * once drawn, so a re-measure or an endpoint that goes missing for a pass never draws one again.
+ * An arrow that leaves the game is forgotten, so one created again with its id is new.
+ */
+export function useArrivingArrows(
+  gameArrowKeys: ReadonlySet<string> | null,
+  drawnKeys: readonly string[],
+): ReadonlySet<string> {
+  const seen = useRef<Set<string> | null>(null);
+  if (seen.current === null && gameArrowKeys !== null) {
+    seen.current = new Set(gameArrowKeys);
+  }
+  const arriving = new Set(seen.current ? drawnKeys.filter((key) => !seen.current!.has(key)) : []);
+
+  useEffect(() => {
+    if (!seen.current || !gameArrowKeys) {
+      return;
+    }
+    for (const key of seen.current) {
+      if (!gameArrowKeys.has(key)) {
+        seen.current.delete(key);
+      }
+    }
+    drawnKeys.forEach((key) => seen.current!.add(key));
+  });
+
+  return arriving;
+}
