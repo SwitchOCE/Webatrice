@@ -61,6 +61,9 @@ export function DeckCardRow({
   const [quantityAtOpen, setQuantityAtOpen] = useState(card.quantity);
   const illegal = legality?.status === 'illegal' ? legality : undefined;
   const illegalText = illegal && t(`DeckLegality.reason.${illegal.reason}`, { max: illegal.max });
+  const unknownText = card.lookupSource === 'unknown' ? t('DeckEditor.row.unknown') : '';
+  // The row's label replaces its content, so its warnings reach assistive technology here.
+  const description = [unknownText, illegalText].filter(Boolean).join(' ');
 
   const openMenu = (trigger: HTMLElement, anchor: MenuAnchor) => {
     menuTriggerRef.current = trigger;
@@ -100,7 +103,7 @@ export function DeckCardRow({
       {...rowProps}
       role="row"
       aria-label={t('DeckEditor.row.label', { count: card.quantity, card: card.name })}
-      aria-description={illegalText || undefined}
+      aria-description={description || undefined}
       className={[
         'group flex items-center gap-1.5 px-1 py-0.5 rounded transition-colors',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent',
@@ -136,7 +139,9 @@ export function DeckCardRow({
         {card.lookupSource === 'unknown' && (
           <span
             className="shrink-0 text-warning"
-            title={t('DeckEditor.row.unknown')}
+            title={unknownText}
+            role="img"
+            aria-label={unknownText}
           >
             <CircleAlert size={10} />
           </span>

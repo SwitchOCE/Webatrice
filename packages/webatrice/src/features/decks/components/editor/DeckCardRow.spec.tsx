@@ -100,6 +100,13 @@ describe('DeckCardRow', () => {
     expect(within(row).getByRole('img', { name: 'DeckLegality.reason.tooMany' })).toBeInTheDocument();
   });
 
+  it('describes the row\'s warnings to assistive technology, as its label replaces the content', () => {
+    renderRow({ card: { ...bolt, lookupSource: 'unknown' }, legality: { status: 'illegal', reason: 'tooMany', max: 4 } });
+    const row = screen.getByRole('row');
+    expect(row).toHaveAttribute('aria-description', 'DeckEditor.row.unknown DeckLegality.reason.tooMany');
+    expect(within(row).getByRole('img', { name: 'DeckEditor.row.unknown' })).toBeInTheDocument();
+  });
+
   it('leaves legal and unchecked rows unmarked', () => {
     renderRow({ legality: { status: 'unknown' } });
     const row = screen.getByText('4').parentElement!;
