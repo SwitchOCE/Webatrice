@@ -4,3 +4,4 @@
 - ACK M1: keeping HandZone/StackColumn unchanged; will note in PR file
 - 01:00Z characterization specs pushed (daa99d1) → shared dialogs/shared modules + ZoneViewPanel move
 - 01:08Z shared modules + ZoneViewPanel moved (b776fcb) → IncomingRevealDialog + useIncomingReveal
+- 01:14Z IncomingRevealDialog + useIncomingReveal (a91cc8e); clamp unified (listed fix) → ZoneRevealPanel, then D8 labels, then marquee
