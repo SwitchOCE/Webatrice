@@ -31,13 +31,14 @@ describe('QuickAddSearch', () => {
     vi.mocked(useQuickAddSuggestions).mockReturnValue(state);
     const onAdd = vi.fn();
     render(<Harness onAdd={onAdd} />);
-    const input = screen.getByPlaceholderText('DeckEditor.quickAdd.placeholder');
+    const input = screen.getByRole('combobox', { name: 'DeckEditor.quickAdd.label' });
 
     fireEvent.change(input, { target: { value: 's' } });
-    expect(screen.queryByRole('button', { name: 'Sol Ring' })).toBeNull();
+    expect(screen.queryByRole('option', { name: 'Sol Ring' })).toBeNull();
+    expect(input).toHaveAttribute('aria-expanded', 'false');
 
     fireEvent.change(input, { target: { value: 'sol' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Sol Talisman' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Sol Talisman' }));
 
     expect(onAdd).toHaveBeenCalledWith('Sol Talisman');
     expect(state.clear).toHaveBeenCalled();
@@ -48,13 +49,13 @@ describe('QuickAddSearch', () => {
     vi.mocked(useQuickAddSuggestions).mockReturnValue(suggestions({ highlight: 1 }));
     const onAdd = vi.fn();
     const { unmount } = render(<Harness onAdd={onAdd} initial="sol" />);
-    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter' });
+    fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
     expect(onAdd).toHaveBeenLastCalledWith('Sol Talisman');
     unmount();
 
     vi.mocked(useQuickAddSuggestions).mockReturnValue(suggestions({ suggestions: [], highlight: -1 }));
     render(<Harness onAdd={onAdd} initial=" Unknown Card " />);
-    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter' });
+    fireEvent.keyDown(screen.getByRole('combobox'), { key: 'Enter' });
     expect(onAdd).toHaveBeenLastCalledWith('Unknown Card');
   });
 
@@ -62,8 +63,8 @@ describe('QuickAddSearch', () => {
     const state = suggestions();
     vi.mocked(useQuickAddSuggestions).mockReturnValue(state);
     render(<Harness onAdd={vi.fn()} initial="sol" />);
-    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'ArrowDown' });
-    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'ArrowUp' });
+    fireEvent.keyDown(screen.getByRole('combobox'), { key: 'ArrowDown' });
+    fireEvent.keyDown(screen.getByRole('combobox'), { key: 'ArrowUp' });
 
     const [down, up] = vi.mocked(state.setHighlight).mock.calls.map(([update]) => update as (h: number) => number);
     expect(down(1)).toBe(0);
@@ -73,13 +74,46 @@ describe('QuickAddSearch', () => {
   it('shows searching and empty states, and clears on Escape', () => {
     vi.mocked(useQuickAddSuggestions).mockReturnValue(suggestions({ loading: true }));
     const { rerender } = render(<Harness onAdd={vi.fn()} />);
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('combobox');
     fireEvent.change(input, { target: { value: 'zzz' } });
-    expect(screen.getByText('DeckEditor.quickAdd.searching')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('DeckEditor.quickAdd.searching');
 
     vi.mocked(useQuickAddSuggestions).mockReturnValue(suggestions({ suggestions: [] }));
     rerender(<Harness onAdd={vi.fn()} />);
-    expect(screen.getByText('DeckEditor.quickAdd.noMatches')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('DeckEditor.quickAdd.noMatches');
+
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(input).toHaveValue('');
+  });
+
+  it('is a combobox that points at the highlighted option and announces the count', () => {
+    vi.mocked(useQuickAddSuggestions).mockReturnValue(suggestions({ highlight: 1 }));
+    render(<Harness onAdd={vi.fn()} />);
+    const input = screen.getByRole('combobox', { name: 'DeckEditor.quickAdd.label' });
+    expect(input).toHaveAttribute('aria-autocomplete', 'list');
+    expect(input).not.toHaveAttribute('aria-activedescendant');
+
+    fireEvent.change(input, { target: { value: 'sol' } });
+    const listbox = screen.getByRole('listbox', { name: 'DeckEditor.quickAdd.listLabel' });
+    const options = screen.getAllByRole('option');
+    expect(input).toHaveAttribute('aria-expanded', 'true');
+    expect(input).toHaveAttribute('aria-controls', listbox.id);
+    expect(input).toHaveAttribute('aria-activedescendant', options[1].id);
+    expect(options[1]).toHaveAttribute('aria-selected', 'true');
+    expect(options[0]).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('status')).toHaveTextContent('DeckEditor.quickAdd.suggestions');
+  });
+
+  it('closes the list on the first Escape and clears the field on the second', () => {
+    vi.mocked(useQuickAddSuggestions).mockReturnValue(suggestions());
+    render(<Harness onAdd={vi.fn()} />);
+    const input = screen.getByRole('combobox');
+    fireEvent.change(input, { target: { value: 'sol' } });
+
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(input).toHaveAttribute('aria-expanded', 'false');
+    expect(input).toHaveValue('sol');
 
     fireEvent.keyDown(input, { key: 'Escape' });
     expect(input).toHaveValue('');

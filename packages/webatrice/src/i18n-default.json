@@ -1205,7 +1205,10 @@
       "placeholder": "Quick add — type a card name",
       "clear": "Clear",
       "searching": "Searching…",
-      "noMatches": "No matches"
+      "noMatches": "No matches",
+      "label": "Quick add a card",
+      "listLabel": "Card suggestions",
+      "suggestions": "{count, plural, one {# suggestion} other {# suggestions}}"
     },
     "buy": {
       "deck": "Buy deck @ TCGplayer",
