@@ -2,9 +2,11 @@ import { act, renderHook } from '@testing-library/react';
 
 import { PREFERENCE_DEFAULTS } from '@app/types';
 import {
+  boardAnimationsAllowed,
   chooseAnimations,
   resolveAnimation,
   useAnimationPreference,
+  useApplyAnimationPolicy,
   usePrefersReducedMotion,
 } from './useAnimationPreferences';
 import { getSettings, settingsStore } from './useSettings';
@@ -55,6 +57,23 @@ describe('resolveAnimation', () => {
   });
 });
 
+describe('boardAnimationsAllowed', () => {
+  const allOff = { tapAnimation: false, arrowDrawAnimation: false, lifeCounterAnimations: false, battlefieldFlash: false };
+
+  it('lets the board move while any of the four animations applies', () => {
+    expect(boardAnimationsAllowed(unchosen, false)).toBe(true);
+    expect(boardAnimationsAllowed({ ...unchosen, ...allOff, animationsChosen: true, arrowDrawAnimation: true }, true)).toBe(true);
+  });
+
+  it('stops it after "Disable all"', () => {
+    expect(boardAnimationsAllowed({ ...unchosen, ...allOff, animationsChosen: true }, false)).toBe(false);
+  });
+
+  it('stops it under reduced motion until the user has chosen', () => {
+    expect(boardAnimationsAllowed(unchosen, true)).toBe(false);
+  });
+});
+
 describe('chooseAnimations', () => {
   it('records every animation as it shows, the change on top, and marks the choice made', () => {
     expect(chooseAnimations(unchosen, true, { battlefieldFlash: true })).toEqual({
@@ -94,5 +113,37 @@ describe('useAnimationPreference', () => {
     settingsStore.setValue(Object.assign(settings, { animationsChosen: true, tapAnimation: true }));
     const { result } = renderHook(() => useAnimationPreference('tapAnimation'));
     expect(result.current).toBe(true);
+  });
+});
+
+describe('useApplyAnimationPolicy', () => {
+  let media: ReturnType<typeof mockReducedMotion>;
+
+  afterEach(() => {
+    media.restore();
+    settingsStore.reset();
+    delete document.documentElement.dataset.animations;
+  });
+
+  it('publishes the board policy on the document root, following the system and the choice live', async () => {
+    media = mockReducedMotion(false);
+    const settings = await getSettings();
+    renderHook(() => useApplyAnimationPolicy());
+    expect(document.documentElement.dataset.animations).toBe('on');
+
+    act(() => media.set(true));
+    expect(document.documentElement.dataset.animations).toBe('off');
+
+    act(() => settingsStore.setValue(Object.assign(settings, chooseAnimations(settings, true, { tapAnimation: true }))));
+    expect(document.documentElement.dataset.animations).toBe('on');
+
+    act(() => settingsStore.setValue(Object.assign(settings, {
+      animationsChosen: true,
+      tapAnimation: false,
+      arrowDrawAnimation: false,
+      lifeCounterAnimations: false,
+      battlefieldFlash: false,
+    })));
+    expect(document.documentElement.dataset.animations).toBe('off');
   });
 });
