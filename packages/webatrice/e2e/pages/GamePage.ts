@@ -223,9 +223,11 @@ export class GamePage {
   }
 
   // Whether the local player may change phases (the active player or a
-  // judge): PhaseTrack disables its phase buttons otherwise.
+  // judge): PhaseTrack marks its phase buttons aria-disabled otherwise (they
+  // stay focusable, so the current phase can be read).
   async canAdvancePhase(): Promise<boolean> {
-    return this.page.getByTestId('phase-bar').locator('button[data-phase="1"]').isEnabled();
+    const button = this.page.getByTestId('phase-bar').locator('button[data-phase="1"]');
+    return (await button.getAttribute('aria-disabled')) !== 'true';
   }
 
   // A line in the game's message log (ChatLog, in the right panel).
