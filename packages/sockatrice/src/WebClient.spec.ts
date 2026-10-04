@@ -93,7 +93,7 @@ function makeMockResponse(): IWebClientResponse {
       testConnectionFailed: vi.fn(),
     },
     room: { clearStore: vi.fn() },
-    game: { clearStore: vi.fn(), replayGameLoaded: vi.fn(), replayGameUnloaded: vi.fn(), replayGameTime: vi.fn() },
+    game: { clearStore: vi.fn(), replayGameLoaded: vi.fn(), replayGameUnloaded: vi.fn(), replayGameTimeSynced: vi.fn() },
     admin: {},
     moderator: {},
   } as unknown as IWebClientResponse;
@@ -468,10 +468,23 @@ describe('WebClient', () => {
       const container = create(GameEventContainerSchema, { secondsElapsed: 95 });
       client.protobuf.replayGameEventContainer = vi.fn();
       client.replayGameEventContainer(container, -1001);
-      expect(mockResponse.game.replayGameTime).toHaveBeenCalledWith(-1001, 95);
+      expect(mockResponse.game.replayGameTimeSynced).toHaveBeenCalledWith(-1001, 95);
       expect(client.protobuf.replayGameEventContainer).toHaveBeenCalledWith(container, -1001);
-      expect(vi.mocked(mockResponse.game.replayGameTime!).mock.invocationCallOrder[0])
+      expect(vi.mocked(mockResponse.game.replayGameTimeSynced!).mock.invocationCallOrder[0])
         .toBeLessThan(vi.mocked(client.protobuf.replayGameEventContainer).mock.invocationCallOrder[0]);
+    });
+
+    it('replayGameEventContainer reports no game time for a container without one', () => {
+      client.protobuf.replayGameEventContainer = vi.fn();
+      client.replayGameEventContainer(create(GameEventContainerSchema, {}), -1001);
+      expect(mockResponse.game.replayGameTimeSynced).not.toHaveBeenCalled();
+      expect(client.protobuf.replayGameEventContainer).toHaveBeenCalled();
+    });
+
+    it('replayGameEventContainer reports a recorded game time of 0', () => {
+      client.protobuf.replayGameEventContainer = vi.fn();
+      client.replayGameEventContainer(create(GameEventContainerSchema, { secondsElapsed: 0 }), -1001);
+      expect(mockResponse.game.replayGameTimeSynced).toHaveBeenCalledWith(-1001, 0);
     });
   });
 
