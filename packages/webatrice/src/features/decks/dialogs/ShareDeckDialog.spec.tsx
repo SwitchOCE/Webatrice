@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 import type { DeckShareCreateState } from '../hooks/useDeckSharing';
 import { ShareDeckDialog } from './ShareDeckDialog';
@@ -51,6 +51,36 @@ describe('ShareDeckDialog', () => {
     expect(writeText).toHaveBeenCalledWith('https://x/#share=t');
     expect(await screen.findByRole('button', { name: /DeckSharing.copied/ })).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('DeckSharing.copied');
+  });
+
+  it('announces a second copy afresh, emptying the status while it copies', async () => {
+    let finish = () => {};
+    const writeText = vi.fn(() => new Promise<void>((resolve) => {
+      finish = resolve;
+    }));
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    renderDialog({ status: 'created', link: 'https://x/#share=t', expiresAt: 1n, itemCount: 1, copied: true });
+    const status = screen.getByRole('status');
+
+    for (let copy = 0; copy < 2; copy++) {
+      fireEvent.click(screen.getByRole('button', { name: /DeckSharing.cop/ }));
+      expect(status).toBeEmptyDOMElement();
+      await act(async () => finish());
+      expect(status).toHaveTextContent('DeckSharing.copied');
+    }
+  });
+
+  it('says when the copy fails and selects the link for copying by hand', async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error('denied'));
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    renderDialog({ status: 'created', link: 'https://x/#share=t', expiresAt: 1n, itemCount: 1, copied: false });
+    const link = screen.getByRole('textbox', { name: 'DeckSharing.linkLabel' });
+    fireEvent.click(screen.getByRole('button', { name: /DeckSharing.copy/ }));
+
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('DeckSharing.copyFailed'));
+    expect(screen.getAllByText('DeckSharing.copyFailed')).toHaveLength(2);
+    expect(link).toHaveFocus();
+    expect(screen.queryByRole('button', { name: /DeckSharing.copied/ })).toBeNull();
   });
 
   it('moves focus to the new link when the name step goes away, and announces it from the same region', () => {
