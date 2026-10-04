@@ -1,4 +1,5 @@
-import { act, render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { act, render, renderHook, screen } from '@testing-library/react';
 import { MemoryRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 
 import { PREFERENCE_DEFAULTS, RouteEnum, StartupTab, type PreferenceKey, type Preferences } from '@app/types';
@@ -25,13 +26,23 @@ const prefs = (overrides: Partial<Preferences> = {}) => ({
 });
 
 describe('resolveStartupDestination', () => {
-  it('returns to the page a reload started on', () => {
-    expect(resolveStartupDestination(prefs({ startupTab: StartupTab.Replays }), 'a:1', '/decks'))
+  it('returns any other login to the page it was sent away from', () => {
+    expect(resolveStartupDestination(prefs({ startupTab: StartupTab.Replays }), 'a:1', '/decks', false))
       .toEqual({ to: '/decks' });
   });
 
+  it('returns any other login with nowhere to return to to the lobby', () => {
+    expect(resolveStartupDestination(prefs({ startupTab: StartupTab.Replays }), 'a:1', undefined, false))
+      .toEqual({ to: RouteEnum.SERVER });
+  });
+
+  it('opens the startup tab whatever page the last session was on', () => {
+    expect(resolveStartupDestination(prefs({ startupTab: StartupTab.Replays }), 'a:1', '/decks', true))
+      .toEqual({ to: RouteEnum.REPLAYS });
+  });
+
   it('opens the lobby by default, as Webatrice always has', () => {
-    expect(resolveStartupDestination(prefs(), 'a:1', undefined)).toEqual({ to: RouteEnum.SERVER });
+    expect(resolveStartupDestination(prefs(), 'a:1', undefined, true)).toEqual({ to: RouteEnum.SERVER });
   });
 
   it.each([
@@ -39,27 +50,28 @@ describe('resolveStartupDestination', () => {
     [StartupTab.Replays, RouteEnum.REPLAYS],
     [StartupTab.Server, RouteEnum.SERVER],
   ])('opens the %s startup tab', (startupTab, to) => {
-    expect(resolveStartupDestination(prefs({ startupTab }), 'a:1', undefined)).toEqual({ to });
+    expect(resolveStartupDestination(prefs({ startupTab }), 'a:1', undefined, true)).toEqual({ to });
   });
 
   it('hands the startup room to the lobby on any server when none is chosen', () => {
-    expect(resolveStartupDestination(prefs({ startupTab: StartupTab.ServerRoom, startupRoom: 'Magic' }), 'a:1', undefined))
+    const preferences = prefs({ startupTab: StartupTab.ServerRoom, startupRoom: 'Magic' });
+    expect(resolveStartupDestination(preferences, 'a:1', undefined, true))
       .toEqual({ to: RouteEnum.SERVER, state: { startupRoom: 'Magic' } });
   });
 
   it('hands the startup room to the lobby on the startup server', () => {
     const preferences = prefs({ startupTab: StartupTab.ServerRoom, startupServer: 'a:1', startupRoom: 'Magic' });
-    expect(resolveStartupDestination(preferences, 'a:1', undefined))
+    expect(resolveStartupDestination(preferences, 'a:1', undefined, true))
       .toEqual({ to: RouteEnum.SERVER, state: { startupRoom: 'Magic' } });
   });
 
   it('opens the lobby of any other server', () => {
     const preferences = prefs({ startupTab: StartupTab.ServerRoom, startupServer: 'a:1', startupRoom: 'Magic' });
-    expect(resolveStartupDestination(preferences, 'b:2', undefined)).toEqual({ to: RouteEnum.SERVER });
+    expect(resolveStartupDestination(preferences, 'b:2', undefined, true)).toEqual({ to: RouteEnum.SERVER });
   });
 
   it('opens the lobby when no room is named', () => {
-    expect(resolveStartupDestination(prefs({ startupTab: StartupTab.ServerRoom }), 'a:1', undefined))
+    expect(resolveStartupDestination(prefs({ startupTab: StartupTab.ServerRoom }), 'a:1', undefined, true))
       .toEqual({ to: RouteEnum.SERVER });
   });
 });
@@ -85,39 +97,67 @@ function renderLogin(connected: boolean, from?: string) {
   );
 }
 
+function loginRouteWrapper(from?: string) {
+  return ({ children }: { children: ReactNode }) => (
+    <MemoryRouter initialEntries={[{ pathname: RouteEnum.LOGIN, state: from ? { from } : null }]}>
+      {children}
+    </MemoryRouter>
+  );
+}
+
 describe('useStartupDestination', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     pageLoadLoginGate.done = false;
+    pageLoadLoginGate.reload = false;
     hoisted.preferences = {};
     const host = makeHost({ host: 'a', port: '1' });
     hoisted.useKnownHosts.mockReturnValue(makeKnownHostsHook({ value: { hosts: [host], selectedHost: host } }));
   });
 
-  it('returns the first login of a page load to the page it was sent away from', () => {
+  it('opens the startup tab on a cold start, whatever page the last session was on', () => {
     hoisted.preferences = { startupTab: StartupTab.Replays };
 
-    renderLogin(true, '/decks');
-
-    expect(screen.getByText('at /decks null')).toBeInTheDocument();
-    expect(pageLoadLoginGate.done).toBe(true);
-  });
-
-  it('sends a later login to the startup tab, wherever the user was sent from', () => {
-    hoisted.preferences = { startupTab: StartupTab.Replays };
-    pageLoadLoginGate.done = true;
-
+    // AppShell boots on the persisted last route; AuthGuard sends it as `from`.
     renderLogin(true, '/decks');
 
     expect(screen.getByText('at /replays null')).toBeInTheDocument();
+    expect(pageLoadLoginGate.done).toBe(true);
   });
 
-  it('sends a login that started on the login page to the startup tab', () => {
+  it('opens the startup tab on a cold start with no last route', () => {
     hoisted.preferences = { startupTab: StartupTab.DeckStorage };
 
     renderLogin(true);
 
     expect(screen.getByText('at /decks null')).toBeInTheDocument();
+  });
+
+  it('returns the login a reload starts with to the page the user was on', () => {
+    hoisted.preferences = { startupTab: StartupTab.Replays };
+    pageLoadLoginGate.reload = true;
+
+    renderLogin(true, '/decks');
+
+    expect(screen.getByText('at /decks null')).toBeInTheDocument();
+  });
+
+  it('returns a reconnect to the page the connection dropped on', () => {
+    hoisted.preferences = { startupTab: StartupTab.Replays };
+    pageLoadLoginGate.done = true;
+
+    renderLogin(true, '/room/1');
+
+    expect(screen.getByText('at /room/1 null')).toBeInTheDocument();
+  });
+
+  it('returns a second login of the page load to the lobby when there is no page to return to', () => {
+    hoisted.preferences = { startupTab: StartupTab.Replays };
+    pageLoadLoginGate.done = true;
+
+    renderLogin(true);
+
+    expect(screen.getByText('at /server null')).toBeInTheDocument();
   });
 
   it('matches the startup server against the host being signed in to', () => {
@@ -137,22 +177,24 @@ describe('useStartupDestination', () => {
     expect(pageLoadLoginGate.done).toBe(false);
   });
 
-  it('keeps the destination it decided when the login page re-renders', () => {
+  it.each([
+    ['a cold start', false, { to: RouteEnum.REPLAYS }],
+    ['a reload', true, { to: '/decks' }],
+  ])('keeps the destination of %s while the login page re-renders', (_, reload, expected) => {
     hoisted.preferences = { startupTab: StartupTab.Replays };
-    const { rerender } = renderLogin(true, '/decks');
-    expect(screen.getByText('at /decks null')).toBeInTheDocument();
+    pageLoadLoginGate.reload = reload;
+    const { result, rerender } = renderHook(({ connected }) => useStartupDestination(connected), {
+      initialProps: { connected: false },
+      wrapper: loginRouteWrapper('/decks'),
+    });
 
-    // The first post-login events (user info, rooms) re-render the login page; the gate has
-    // latched by then, and a recomputed destination would navigate a second time.
-    rerender(
-      <MemoryRouter initialEntries={[{ pathname: RouteEnum.LOGIN, state: { from: '/decks' } }]}>
-        <Routes>
-          <Route path={RouteEnum.LOGIN} element={<LoginPage connected />} />
-          <Route path="*" element={<Landing />} />
-        </Routes>
-      </MemoryRouter>,
-    );
+    rerender({ connected: true });
+    expect(result.current).toEqual(expected);
 
-    expect(screen.getByText('at /decks null')).toBeInTheDocument();
+    // The first post-login events (user info, rooms) re-render the login page after the gate
+    // has latched; the destination must not change under `Navigate`.
+    expect(pageLoadLoginGate.done).toBe(true);
+    rerender({ connected: true });
+    expect(result.current).toEqual(expected);
   });
 });
