@@ -31,10 +31,10 @@ export interface ZoneViewData {
 export function zoneViewTitle(t: TFunction, view: ZoneViewTarget, playerName: string, shownCount: number): string {
   if (view.zoneName === ZoneName.DECK) {
     return isOrderedView(view)
-      ? `${view.isReversed ? 'Bottom' : 'Top'} ${shownCount} cards — ${playerName}`
-      : `${playerName}'s library`;
+      ? t(view.isReversed ? 'ZoneViewTitle.bottom' : 'ZoneViewTitle.top', { count: shownCount, player: playerName })
+      : t('ZoneViewTitle.library', { player: playerName });
   }
-  return `${zoneLabel(t, view.zoneName)} — ${playerName}`;
+  return t('ZoneViewTitle.zone', { zone: zoneLabel(t, view.zoneName), player: playerName });
 }
 
 /** What one zone view shows, read from the game state. */

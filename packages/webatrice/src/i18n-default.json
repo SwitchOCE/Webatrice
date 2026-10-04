@@ -1409,8 +1409,18 @@
   "SelectionCount": {
     "total": "{count, plural, one {# card selected} other {# cards selected}}"
   },
+  "IncomingRevealDialog": {
+    "title": "{player} reveals their {zone}",
+    "titleUnknownSender": "A player reveals their {zone}"
+  },
   "ZoneViewPanel": {
     "expand": "Expand the card view"
+  },
+  "ZoneViewTitle": {
+    "zone": "{zone} — {player}",
+    "library": "{player}'s library",
+    "top": "Top {count} cards — {player}",
+    "bottom": "Bottom {count} cards — {player}"
   },
   "ZoneLabel": {
     "title": {
