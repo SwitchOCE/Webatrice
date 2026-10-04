@@ -2,10 +2,10 @@ import { act } from 'react';
 import { fireEvent, screen, within } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 
-import { ServerInfo_GameSchema } from '@cockatrice/sockatrice/generated';
-import type { Room } from '@cockatrice/datatrice';
+import { ServerInfo_GameSchema, ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
+import { rooms as roomsSlice, type Room } from '@cockatrice/datatrice';
 
-import { connectedWithRoomsState, createMockWebClient, renderWithProviders } from '../../../__test-utils__';
+import { connectedWithRoomsState, createMockWebClient, makeUser, renderWithProviders } from '../../../__test-utils__';
 import type { RootState } from '../../../store';
 import GamesList from './GamesList';
 
@@ -30,20 +30,29 @@ function mountRows(container: HTMLElement): void {
   }
 }
 
-const makeGame = (gameId: number, description: string, playerCount = 1) => ({
+const makeGame = (gameId: number, description: string, playerCount = 1, spectatorsAllowed = true) => ({
   info: create(ServerInfo_GameSchema, {
-    gameId, roomId: 1, description, playerCount, maxPlayers: 2, spectatorsAllowed: true, startTime: gameId,
+    gameId, roomId: 1, description, playerCount, maxPlayers: 2, spectatorsAllowed, startTime: gameId,
   }),
   gameType: '',
 });
 
 const GAMES = { 1: makeGame(1, 'Alpha'), 2: makeGame(2, 'Bravo'), 3: makeGame(3, 'Charlie') };
 
-function setup() {
+interface SetupOptions {
+  games?: Record<number, ReturnType<typeof makeGame>>;
+  rooms?: Partial<RootState['rooms']>;
+  userLevel?: number;
+}
+
+function setup({ games = GAMES, rooms: roomsOverrides = {}, userLevel }: SetupOptions = {}) {
   const rooms = connectedWithRoomsState.rooms!;
   const preloadedState: Partial<RootState> = {
     ...connectedWithRoomsState,
-    rooms: { ...rooms, rooms: { 1: { ...rooms.rooms[1], games: GAMES } } },
+    rooms: { ...rooms, rooms: { 1: { ...rooms.rooms[1], games } }, ...roomsOverrides },
+    ...(userLevel != null && {
+      server: { ...connectedWithRoomsState.server!, user: makeUser({ name: 'me', userLevel }) },
+    }),
   };
   const room = preloadedState.rooms!.rooms[1] as Room;
   const webClient = createMockWebClient();
@@ -133,5 +142,101 @@ describe('GamesList', () => {
     expect(header).toHaveAttribute('aria-sort');
     // Restrictions has no sort field, so it gets no button.
     expect(screen.queryByRole('button', { name: 'Restrictions' })).not.toBeInTheDocument();
+  });
+
+  // Ported from the deleted GameSelector / GameSelectorToolbar specs: the
+  // toolbar gating and dialogs they covered now live in GamesList. Password,
+  // full-game spectate, already-open routing and join errors are useJoinGame's.
+  describe('toolbar', () => {
+    const join = () => screen.getByRole('button', { name: /^Join$/ });
+    const spectate = () => screen.getByRole('button', { name: /^Spectate$/ });
+
+    it('keeps Join disabled until a game is selected', () => {
+      setup();
+
+      expect(join()).toBeDisabled();
+      fireEvent.click(row('Alpha'));
+      expect(join()).toBeEnabled();
+    });
+
+    it('disables Join and Spectate while a join is pending', () => {
+      setup({ rooms: { joinGamePending: true } });
+
+      fireEvent.click(row('Alpha'));
+
+      expect(join()).toBeDisabled();
+      expect(spectate()).toBeDisabled();
+    });
+
+    it('disables Join when the selected game is full', () => {
+      setup({ games: { 1: makeGame(1, 'Full', 2) } });
+
+      fireEvent.click(row('Full'));
+
+      expect(join()).toBeDisabled();
+      expect(spectate()).toBeEnabled();
+    });
+
+    it('disables Spectate when the game allows no spectators', () => {
+      setup({ games: { 1: makeGame(1, 'Closed', 1, false) } });
+
+      fireEvent.click(row('Closed'));
+
+      expect(spectate()).toBeDisabled();
+      expect(join()).toBeEnabled();
+    });
+
+    it('shows the judge buttons only to a user with the IsJudge flag', () => {
+      setup({ userLevel: ServerInfo_User_UserLevelFlag.IsUser });
+      expect(screen.queryByRole('button', { name: /Judge/ })).not.toBeInTheDocument();
+    });
+
+    it('shows both judge buttons to a judge', () => {
+      setup({ userLevel: ServerInfo_User_UserLevelFlag.IsUser | ServerInfo_User_UserLevelFlag.IsJudge });
+
+      expect(screen.getByRole('button', { name: /^Judge$/ })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Judge · Spectate/ })).toBeInTheDocument();
+    });
+
+    it('applies the filter dialog to the room', () => {
+      const { store } = setup();
+
+      fireEvent.click(screen.getByRole('button', { name: /Filter games/ }));
+      fireEvent.click(screen.getByLabelText(/Hide full games/i));
+      fireEvent.click(screen.getByRole('button', { name: /Apply/ }));
+
+      expect(store.getState().rooms.gameFilters[1]?.hideFullGames).toBe(true);
+    });
+
+    it('cancels the filter dialog without touching the filters', () => {
+      const { store } = setup();
+
+      fireEvent.click(screen.getByRole('button', { name: /Filter games/ }));
+      fireEvent.click(screen.getByLabelText(/Hide full games/i));
+      fireEvent.click(screen.getByRole('button', { name: /Cancel/ }));
+
+      expect(store.getState().rooms.gameFilters[1]).toBeUndefined();
+    });
+
+    it('dispatches clearGameFilters from Clear filter', () => {
+      const { store } = setup({
+        rooms: { gameFilters: { 1: { ...roomsSlice.DEFAULT_GAME_FILTERS, hideFullGames: true } } },
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Clear filter/ }));
+
+      expect(store.getState().rooms.gameFilters[1]).toEqual(roomsSlice.DEFAULT_GAME_FILTERS);
+    });
+
+    it('submits createGame from the create dialog', () => {
+      const { webClient } = setup();
+
+      fireEvent.click(screen.getByRole('button', { name: /^Create$/ }));
+      const create = screen.getAllByRole('button', { name: /^Create$/ });
+      fireEvent.click(create[create.length - 1]);
+
+      expect(webClient.request.rooms.createGame).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(webClient.request.rooms.createGame).mock.calls[0][0]).toBe(1);
+    });
   });
 });
