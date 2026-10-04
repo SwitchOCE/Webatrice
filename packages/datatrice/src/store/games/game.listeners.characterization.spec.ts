@@ -1,4 +1,5 @@
 import { create } from '@bufbuild/protobuf';
+import { ZoneName } from '@cockatrice/sockatrice';
 import {
   configureStore,
   createListenerMiddleware,
@@ -21,6 +22,7 @@ import {
   Event_SetCardCounterSchema,
   Event_SetCounterSchema,
   ServerInfo_ArrowSchema,
+  ServerInfo_CardSchema,
   ServerInfo_PlayerSchema,
   ServerInfo_UserSchema,
   ServerInfo_ZoneSchema,
@@ -129,13 +131,16 @@ function scriptedState(): GamesState {
 
 type Recorded = Record<string, unknown> | string;
 
-const CARD_DEFAULTS: Record<string, unknown> = { attachPlayerId: -1, attachCardId: -1 };
+// Schema defaults, not falsy values: a card attached to player 0 / card 0 must not
+// render like a detached one (attach defaults are -1).
+const CARD_DEFAULTS = create(ServerInfo_CardSchema) as unknown as Record<string, unknown>;
 
-/** `#id name` plus every field that differs from a fresh card, e.g. `#40 Gray Ogre x=6 tapped`. */
+/** `#id name`, the position, and every field that differs from the schema default, e.g. `#40 Gray Ogre x=6 y=0 tapped`. */
 function describeCard(card: ServerInfo_Card): string {
   const parts = [`#${card.id} ${card.name}`.trim()];
   for (const [key, value] of Object.entries(card)) {
-    if (key === '$typeName' || key === 'id' || key === 'name' || value === CARD_DEFAULTS[key]) {
+    const isPosition = key === 'x' || key === 'y';
+    if (key === '$typeName' || key === 'id' || key === 'name' || (!isPosition && value === CARD_DEFAULTS[key])) {
       continue;
     }
     if (key === 'counterList') {
@@ -145,7 +150,7 @@ function describeCard(card: ServerInfo_Card): string {
       }
     } else if (value === true) {
       parts.push(key);
-    } else if (value !== false && value !== '' && !(key !== 'x' && key !== 'y' && value === 0)) {
+    } else {
       parts.push(`${key}=${String(value)}`);
     }
   }
@@ -263,7 +268,13 @@ describe('game listeners: registration', () => {
 
 describe('game listeners: scripted event stream', () => {
   it('records the dispatched action sequence for every listener, in stream order', () => {
-    const { play } = makeRecordingStore(scriptedState());
+    const state = scriptedState();
+    // Survives card 10's sweep, so the plain cross-player move below sweeps it.
+    state.games[1].players[BOB].arrows[4] = makeArrow({
+      id: 4, startPlayerId: BOB, startZone: 'table', startCardId: 30,
+      targetPlayerId: ALICE, targetZone: 'table', targetCardId: 11,
+    });
+    const { play } = makeRecordingStore(state);
     const stream: Array<[string, UnknownAction]> = [
       ['hand → stack', Actions.cardMoved({
         gameId: 1, playerId: ALICE,
@@ -492,6 +503,14 @@ describe('game listeners: scripted event stream', () => {
                 "fromZone": "table",
                 "toPlayerId": 1,
                 "toZone": "table",
+              },
+            },
+            {
+              "arrowDeleted": {
+                "data": {
+                  "arrowId": 4,
+                },
+                "playerId": 2,
               },
             },
             {
@@ -1090,6 +1109,31 @@ describe('game listeners: branch recordings', () => {
         ]
       `);
       expect(consumeOptimistic(moveOpKey(ALICE, 21))).toBe(false);
+    });
+
+    // Every positional zone reorders in place (desktop's ordered piles); only HAND is in
+    // the scripted stream. A zone dropped from the reorder set would fall through to
+    // cardMovedBetweenZones and skip re-applying an optimistic reorder.
+    it.each([ZoneName.HAND, ZoneName.STACK, ZoneName.GRAVE, ZoneName.EXILE])('reorders %s in place', (zoneName) => {
+      const state = scriptedState();
+      game(state).players[ALICE].zones[zoneName] = publicZone(zoneName, [
+        makeCard({ id: 20, name: 'Lightning Bolt' }),
+        makeCard({ id: 21, name: 'Island' }),
+      ]);
+      beginOptimistic(moveOpKey(ALICE, 21), () => {});
+      const { play, games } = makeRecordingStore(state);
+
+      const recorded = play(Actions.cardMoved({
+        gameId: 1, playerId: ALICE,
+        data: move({ cardId: 21, startZone: zoneName, targetZone: zoneName, x: 0 }),
+      }));
+
+      expect(recorded[1]).toEqual({
+        cardMovedInSameZone: { card: '#21 Island x=0 y=0', cardId: 21, playerId: ALICE, toIndex: 0, zoneName },
+      });
+      expect(recorded).not.toContainEqual(expect.objectContaining({ cardMovedBetweenZones: expect.anything() }));
+      expect(consumeOptimistic(moveOpKey(ALICE, 21))).toBe(false);
+      expect(games().games[1].players[ALICE].zones[zoneName].order).toEqual([21, 20]);
     });
 
     it('logs an undo draw of a hidden card before returning', () => {
