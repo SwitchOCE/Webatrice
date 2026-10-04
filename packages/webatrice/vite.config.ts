@@ -166,7 +166,16 @@ export default defineConfig({
     include: ['src/**/*.spec.{ts,tsx}', 'e2e/global-setup.spec.ts', 'scripts/**/*.spec.mjs'],
     exclude: ['node_modules', 'build', 'integration', 'coverage'],
     isolate: true,
-    pool: 'vmThreads',
+    // A VM pool gives every spec file a fresh module graph but loads
+    // node_modules once per worker, so the suite runs in about a third of
+    // the time `threads` or `forks` take. Forks rather than threads, because
+    // only a child process accepts a V8 heap flag. The 1 GB cap makes V8
+    // collect: a worker's live heap stays near 200 MB, but without a cap
+    // V8 sizes the heap from total RAM and lets garbage reach several GB
+    // per worker. A spec that really holds more than 1 GB now fails with
+    // an out-of-memory error instead of growing until CI kills the run.
+    pool: 'vmForks',
+    execArgv: ['--max-old-space-size=1024'],
     maxWorkers: '75%',
     testTimeout: 15000,
     coverage: {
