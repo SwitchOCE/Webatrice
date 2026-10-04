@@ -3,14 +3,24 @@ import { useLocation, type InitialEntry } from 'react-router-dom';
 import type { i18n as I18n } from 'i18next';
 import { useTranslation } from 'react-i18next';
 
-import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
-import { connectedState, createMockWebClient, makeUser, renderWithProviders } from '../../__test-utils__';
+import { create } from '@bufbuild/protobuf';
+import {
+  Response_DeckListSchema,
+  ServerInfo_DeckStorage_FileSchema,
+  ServerInfo_DeckStorage_FolderSchema,
+  ServerInfo_DeckStorage_TreeItemSchema,
+  ServerInfo_User_UserLevelFlag as Level,
+} from '@cockatrice/sockatrice/generated';
+import {
+  connectedState, connectedWithRoomsState, createMockWebClient, disconnectedState, makeUser, renderWithProviders,
+} from '../../__test-utils__';
 import { RouteEnum } from '@app/types';
 import { closeReplay, getOpenedReplay, getOpenedReplays, openReplay } from '@app/services';
 import { buildReplay, sayContainer } from '../../services/replay/__mocks__/fixtures';
 
 import { getSettings, settingsStore } from '../../hooks/useSettings';
 import { ShellLifecycleProvider, type ShellLifecycle } from './ShellLifecycleContext';
+import { loadPersistedLastRoute } from './index';
 import TopBar from './TopBar';
 
 const OWNER_KEY = 'webatrice.stickyTabs.owner';
@@ -376,5 +386,155 @@ describe('TopBar deck tabs', () => {
     const tabs = deckTab();
     expect(tabs).not.toContain('/deck/9');
     expect(tabs.filter((tab) => tab === '/deck/8')).toHaveLength(1);
+  });
+});
+
+describe('TopBar requests', () => {
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('asks for the deck list once connected, so a deck tab can be titled', () => {
+    const webClient = createMockWebClient();
+    renderWithProviders(<TopBar />, { preloadedState: connectedState, route: RouteEnum.SERVER, webClient });
+
+    expect(webClient.request.session.deckList).toHaveBeenCalledTimes(1);
+    expect(webClient.request.session.deckList).toHaveBeenCalledWith();
+  });
+
+  it('does not ask for the deck list when it is loaded or the client is offline', () => {
+    const webClient = createMockWebClient();
+    const loaded = {
+      ...connectedState,
+      server: { ...(connectedState.server as any), backendDecks: create(Response_DeckListSchema, {}) },
+    };
+    renderWithProviders(<TopBar />, { preloadedState: loaded, route: RouteEnum.SERVER, webClient }).unmount();
+    renderWithProviders(<TopBar />, { preloadedState: disconnectedState, route: RouteEnum.SERVER, webClient });
+
+    expect(webClient.request.session.deckList).not.toHaveBeenCalled();
+  });
+
+  it('leaves a room when its tab closes, and falls back to the Lobby when it was current', () => {
+    const webClient = createMockWebClient();
+    renderWithProviders(
+      <>
+        <TopBar />
+        <LocationProbe />
+      </>,
+      { preloadedState: connectedWithRoomsState, route: '/room/1', webClient },
+    );
+
+    const roomTab = screen.getByRole('link', { name: /Main Room/ });
+    expect(roomTab).toHaveAttribute('aria-current', 'page');
+    fireEvent.click(within(roomTab.closest('li')!).getByRole('button', { name: 'TopBar.tabs.close' }));
+
+    expect(webClient.request.rooms.leaveRoom).toHaveBeenCalledWith(1);
+    expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
+  });
+
+  it('signs out by disconnecting', () => {
+    const webClient = createMockWebClient();
+    renderWithProviders(<TopBar />, { preloadedState: connectedState, route: RouteEnum.SERVER, webClient });
+
+    fireEvent.click(screen.getByRole('button', { name: 'testUser' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'TopBar.user.signOut' }));
+
+    expect(webClient.request.authentication.disconnect).toHaveBeenCalledWith();
+  });
+});
+
+describe('TopBar sticky tabs', () => {
+  const STICKY_KEY = 'webatrice.stickyTabs';
+  const persisted = (): { key: string }[] => JSON.parse(window.localStorage.getItem(STICKY_KEY) ?? '[]');
+
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('keeps a player tab after leaving it, and saves it without its handlers', () => {
+    renderTopBar('/player/alice');
+
+    fireEvent.click(screen.getByRole('link', { name: /TopBar\.tab\.lobby/ }));
+
+    expect(screen.getByRole('link', { name: 'alice' })).not.toHaveAttribute('aria-current');
+    expect(persisted()).toContainEqual({
+      key: 'player:alice', type: 'player', title: 'alice', route: '/player/alice', closeable: true,
+    });
+  });
+
+  it('shows other pages only while they are current, and never saves them', () => {
+    renderTopBar(RouteEnum.ACCOUNT);
+
+    expect(screen.getByRole('link', { name: /UserMenu\.account/ })).toHaveAttribute('aria-current', 'page');
+    expect(persisted().map(({ key }) => key)).not.toContain('account');
+  });
+
+  it('drops a sticky tab from the strip and from storage when it closes', () => {
+    renderTopBar('/player/carol');
+
+    const carol = screen.getByRole('link', { name: 'carol' }).closest('li')!;
+    fireEvent.click(within(carol).getByRole('button', { name: 'TopBar.tabs.close' }));
+
+    expect(screen.queryByRole('link', { name: 'carol' })).not.toBeInTheDocument();
+    expect(persisted().map(({ key }) => key)).not.toContain('player:carol');
+    expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
+  });
+
+  it('titles a deck tab with its name from the deck list, and saves that name', () => {
+    const burn = create(ServerInfo_DeckStorage_TreeItemSchema, {
+      id: 21, name: 'Burn', file: create(ServerInfo_DeckStorage_FileSchema, {}),
+    });
+    const folder = create(ServerInfo_DeckStorage_TreeItemSchema, {
+      name: 'Modern', folder: create(ServerInfo_DeckStorage_FolderSchema, { items: [burn] }),
+    });
+    const withDecks = {
+      ...connectedState,
+      server: {
+        ...(connectedState.server as any),
+        backendDecks: create(Response_DeckListSchema, {
+          root: create(ServerInfo_DeckStorage_FolderSchema, { items: [folder] }),
+        }),
+      },
+    };
+    renderTopBar('/deck/21', withDecks);
+
+    expect(screen.getByRole('link', { name: 'Burn' })).toHaveAttribute('aria-current', 'page');
+    expect(persisted()).toContainEqual(expect.objectContaining({ key: 'deck:21', title: 'Burn' }));
+  });
+
+  it('restores saved tabs on load, dropping malformed ones and retitling ones saved translated', async () => {
+    window.localStorage.setItem(STICKY_KEY, JSON.stringify([
+      { key: 'decks', type: 'decks', title: 'My Decks', route: '/decks', closeable: true },
+      { key: 'player:bob', type: 'player', title: 'bob', route: '/player/bob', closeable: true },
+      { key: 'bogus', type: 'bogus', title: 'Bogus', route: '/bogus', closeable: true },
+      { key: 'player:', type: 'player', route: '/player', closeable: true },
+    ]));
+    // The sticky tabs load with their module, so load fresh copies.
+    vi.resetModules();
+    const { renderWithProviders: renderFresh } = await import('../../__test-utils__');
+    const { default: FreshTopBar } = await import('./TopBar');
+
+    renderFresh(<FreshTopBar />, { preloadedState: connectedState, route: RouteEnum.SERVER });
+
+    expect(screen.getByRole('link', { name: 'TopBar.tab.myDecks' })).toHaveAttribute('href', '/decks');
+    expect(screen.getByRole('link', { name: 'bob' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'My Decks' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Bogus' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'TopBar.tab.player' })).not.toBeInTheDocument();
+  });
+});
+
+describe('TopBar last route', () => {
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('saves the current route for the next launch', () => {
+    renderTopBar(RouteEnum.SETTINGS);
+    expect(loadPersistedLastRoute()).toBe(RouteEnum.SETTINGS);
+
+    fireEvent.click(screen.getByRole('link', { name: /TopBar\.tab\.lobby/ }));
+
+    expect(loadPersistedLastRoute()).toBe(RouteEnum.SERVER);
   });
 });

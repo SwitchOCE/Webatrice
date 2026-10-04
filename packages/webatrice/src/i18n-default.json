@@ -1140,120 +1140,6 @@
       "tooLong": "At most {max} characters"
     }
   },
-  "DeckEditor": {
-    "downloadFailed": "Failed to download this deck from the server.",
-    "loadFailedTitle": "Deck could not be loaded"
-  },
-  "DeckSharing": {
-    "shareDeck": "Share deck...",
-    "shareDeckNamed": "Share {name}",
-    "shareDecks": "Share decks",
-    "shareFolderNamed": "Share the decks in {name}",
-    "publish": "Publish/unpublish deck",
-    "publishNamed": "Publish or unpublish {name}",
-    "title": "Share deck",
-    "nameLabel": "Share name:",
-    "defaultDeckName": "Shared deck",
-    "defaultDecksName": "Shared decks",
-    "create": "Create share link",
-    "cancel": "Cancel",
-    "close": "Close",
-    "creating": "Creating share link…",
-    "createdCopied": "Share link created and copied to the clipboard:",
-    "created": "Share link created:",
-    "expires": "The share expires on {date}.",
-    "copy": "Copy link",
-    "copied": "Copied",
-    "createFailed": "Failed to create the share link (server response code {code}).",
-    "notConnected": "You must be connected to the server to share a deck.",
-    "linkLabel": "Share link",
-    "notSupported": "This server does not support deck share links or public decks.",
-    "noServer": "This session's server is not known, so a share link for it can't be made.",
-    "emptyDeck": "The deck is empty. Add cards before sharing it.",
-    "visibilityFailed": "Failed to change deck visibility on server (response code {code}).",
-    "error": "Error",
-    "public": "Public",
-    "inherited": "Public (inherited)",
-    "deckPublic": "This deck is visible to other users",
-    "deckInherited": "This deck is private, but a parent folder is public (inherited).",
-    "folderPublic": "This folder is visible to other users",
-    "folderInherited": "This folder is private, but a parent folder is public (inherited)."
-  },
-  "DeckShareLinks": {
-    "open": "Share links",
-    "title": "My share links",
-    "loading": "Loading share links…",
-    "none": "You have no active share links.",
-    "summary": "{count, plural, one {# deck} other {# decks}} · created {created} · expires {expires}",
-    "revoke": "Revoke",
-    "revokeNamed": "Revoke {name}",
-    "confirmRevoke": "Revoke the share link \"{name}\"? Anyone who has the link will no longer be able to open it.",
-    "listFailed": "Failed to load your share links (server response code {code}).",
-    "revokeFailed": "Failed to revoke the share link (server response code {code}).",
-    "close": "Close"
-  },
-  "OpenShareLink": {
-    "open": "Open shared deck",
-    "title": "Open shared deck",
-    "label": "Share link:",
-    "submit": "Open",
-    "cancel": "Cancel",
-    "problem": {
-      "invalid": "This is not a share link.",
-      "hostname": "Missing or empty hostname in the share link",
-      "port": "Invalid or missing port in the share link",
-      "share": "Missing or empty share value in the share link"
-    }
-  },
-  "SharedDeck": {
-    "title": "Open shared decks",
-    "share": "Share: {name}",
-    "untitled": "Untitled",
-    "from": "From {server}",
-    "expires": "This share link expires on {date}",
-    "loading": "Loading the shared deck…",
-    "otherServer": "This share link is for {server}. Log in to that server to open it.",
-    "notFound": "The shared deck could not be found or has expired",
-    "empty": "The shared deck is empty",
-    "downloadFailed": "Failed to download the shared deck",
-    "unreadable": "The shared deck could not be loaded",
-    "openDeck": "Open",
-    "openDeckNamed": "Open {name}",
-    "back": "My Decks"
-  },
-  "PublicDecks": {
-    "title": "Public decks of {name}",
-    "loading": "Loading public decks…",
-    "empty": "This user has not published any decks.",
-    "listFailed": "Failed to load the user's public decks (server response code {code}).",
-    "openFailed": "Failed to open the public deck (server response code {code}).",
-    "unreadable": "The public deck could not be parsed.",
-    "refresh": "Refresh",
-    "openDeckNamed": "Open {name}"
-  },
-  "ReadOnlyDeck": {
-    "import": "Import to my decks",
-    "readOnly": "Read-only",
-    "main": "Main deck",
-    "sideboard": "Sideboard",
-    "close": "Close",
-    "cardCount": "{count, plural, one {# card} other {# cards}}"
-  },
-  "Decks": {
-    "listError": "Failed to load your decks from the server.",
-    "retry": "Retry",
-    "moveFailed": "Couldn’t move {name}. The original deck is unchanged.",
-    "uploadFailed": "Couldn’t save {name} to the server.",
-    "dismiss": "Dismiss"
-  },
-  "DeckLink": {
-    "label": "Load deck from online service",
-    "placeholder": "Paste a link to a deck on Archidekt, Deckstats, Moxfield or TappedOut",
-    "unsupported": "Not a supported deck link. (Archidekt, Deckstats, Moxfield, and TappedOut are supported.)",
-    "copyText": "Browsers can't read decks from {provider} directly. Open its text export, copy the list and paste it below.",
-    "copyFromPage": "Browsers can't read decks from {provider} directly. Open the deck, use its Export option to copy the list, and paste it below.",
-    "open": "Open on {provider}"
-  },
   "DeckBracket": {
     "assessing": "Assessing bracket…",
     "failed": "Couldn’t assess bracket: {message}",
@@ -1299,6 +1185,14 @@
       "lateCombos": "Late combos"
     },
     "chainable": "— chain-able:"
+  },
+  "DeckLink": {
+    "label": "Load deck from online service",
+    "placeholder": "Paste a link to a deck on Archidekt, Deckstats, Moxfield or TappedOut",
+    "unsupported": "Not a supported deck link. (Archidekt, Deckstats, Moxfield, and TappedOut are supported.)",
+    "copyText": "Browsers can't read decks from {provider} directly. Open its text export, copy the list and paste it below.",
+    "copyFromPage": "Browsers can't read decks from {provider} directly. Open the deck, use its Export option to copy the list, and paste it below.",
+    "open": "Open on {provider}"
   },
   "DeckBanner": {
     "label": "Banner Card"
@@ -1401,6 +1295,112 @@
     "downloadDeckNamed": "Download {name}",
     "empty": "This folder is empty."
   },
+  "DeckEditor": {
+    "downloadFailed": "Failed to download this deck from the server.",
+    "loadFailedTitle": "Deck could not be loaded"
+  },
+  "Decks": {
+    "listError": "Failed to load your decks from the server.",
+    "retry": "Retry",
+    "moveFailed": "Couldn’t move {name}. The original deck is unchanged.",
+    "uploadFailed": "Couldn’t save {name} to the server.",
+    "dismiss": "Dismiss"
+  },
+  "DeckSharing": {
+    "shareDeck": "Share deck...",
+    "shareDeckNamed": "Share {name}",
+    "shareDecks": "Share decks",
+    "shareFolderNamed": "Share the decks in {name}",
+    "publish": "Publish/unpublish deck",
+    "publishNamed": "Publish or unpublish {name}",
+    "title": "Share deck",
+    "nameLabel": "Share name:",
+    "defaultDeckName": "Shared deck",
+    "defaultDecksName": "Shared decks",
+    "create": "Create share link",
+    "cancel": "Cancel",
+    "close": "Close",
+    "creating": "Creating share link…",
+    "createdCopied": "Share link created and copied to the clipboard:",
+    "created": "Share link created:",
+    "expires": "The share expires on {date}.",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "createFailed": "Failed to create the share link (server response code {code}).",
+    "notConnected": "You must be connected to the server to share a deck.",
+    "linkLabel": "Share link",
+    "notSupported": "This server does not support deck share links or public decks.",
+    "noServer": "This session's server is not known, so a share link for it can't be made.",
+    "emptyDeck": "The deck is empty. Add cards before sharing it.",
+    "visibilityFailed": "Failed to change deck visibility on server (response code {code}).",
+    "error": "Error",
+    "public": "Public",
+    "inherited": "Public (inherited)",
+    "deckPublic": "This deck is visible to other users",
+    "deckInherited": "This deck is private, but a parent folder is public (inherited).",
+    "folderPublic": "This folder is visible to other users",
+    "folderInherited": "This folder is private, but a parent folder is public (inherited)."
+  },
+  "DeckShareLinks": {
+    "open": "Share links",
+    "title": "My share links",
+    "loading": "Loading share links…",
+    "none": "You have no active share links.",
+    "summary": "{count, plural, one {# deck} other {# decks}} · created {created} · expires {expires}",
+    "revoke": "Revoke",
+    "revokeNamed": "Revoke {name}",
+    "confirmRevoke": "Revoke the share link \"{name}\"? Anyone who has the link will no longer be able to open it.",
+    "listFailed": "Failed to load your share links (server response code {code}).",
+    "revokeFailed": "Failed to revoke the share link (server response code {code}).",
+    "close": "Close"
+  },
+  "OpenShareLink": {
+    "open": "Open shared deck",
+    "title": "Open shared deck",
+    "label": "Share link:",
+    "submit": "Open",
+    "cancel": "Cancel",
+    "problem": {
+      "invalid": "This is not a share link.",
+      "hostname": "Missing or empty hostname in the share link",
+      "port": "Invalid or missing port in the share link",
+      "share": "Missing or empty share value in the share link"
+    }
+  },
+  "SharedDeck": {
+    "title": "Open shared decks",
+    "share": "Share: {name}",
+    "untitled": "Untitled",
+    "from": "From {server}",
+    "expires": "This share link expires on {date}",
+    "loading": "Loading the shared deck…",
+    "otherServer": "This share link is for {server}. Log in to that server to open it.",
+    "notFound": "The shared deck could not be found or has expired",
+    "empty": "The shared deck is empty",
+    "downloadFailed": "Failed to download the shared deck",
+    "unreadable": "The shared deck could not be loaded",
+    "openDeck": "Open",
+    "openDeckNamed": "Open {name}",
+    "back": "My Decks"
+  },
+  "PublicDecks": {
+    "title": "Public decks of {name}",
+    "loading": "Loading public decks…",
+    "empty": "This user has not published any decks.",
+    "listFailed": "Failed to load the user's public decks (server response code {code}).",
+    "openFailed": "Failed to open the public deck (server response code {code}).",
+    "unreadable": "The public deck could not be parsed.",
+    "refresh": "Refresh",
+    "openDeckNamed": "Open {name}"
+  },
+  "ReadOnlyDeck": {
+    "import": "Import to my decks",
+    "readOnly": "Read-only",
+    "main": "Main deck",
+    "sideboard": "Sideboard",
+    "close": "Close",
+    "cardCount": "{count, plural, one {# card} other {# cards}}"
+  },
   "CreateFolder": {
     "title": "New folder",
     "label": "Name of new folder:",
@@ -1483,35 +1483,6 @@
       "refresh": "Refresh server stats"
     }
   },
-  "GameErrorBoundary": {
-    "title": "The game board hit an unexpected error",
-    "message": "You are still in the game. Reload the board to pick up where you left off.",
-    "retry": "Reload board"
-  },
-  "GameLobby": {
-    "action": {
-      "unloadDeck": "Unload deck",
-      "readyStart": "Ready to start",
-      "sideboardLocked": "Sideboard locked",
-      "sideboardUnlocked": "Sideboard unlocked",
-      "forceStart": "Force start"
-    },
-    "deck": {
-      "heading": "Your deck",
-      "maindeck": "Maindeck: {count}",
-      "sideboard": "Sideboard: {count}",
-      "moveToSideboard": "Move {name} to the sideboard",
-      "moveToMaindeck": "Move {name} to the maindeck",
-      "lockedHint": "Unlock the sideboard to change which cards you play this game."
-    },
-    "forceStart": {
-      "title": "Are you sure you want to force start?",
-      "message": "This will kick all non-ready players from the game.",
-      "confirm": "Yes",
-      "cancel": "No"
-    },
-    "deckSelectFailed": "The server did not accept this deck."
-  },
   "ChatLog": {
     "inputLabel": "Game chat message"
   },
@@ -1556,6 +1527,35 @@
     "tally": "Tally",
     "selectedCount": "{count, plural, one {# card selected} other {# cards selected}}"
   },
+  "GameErrorBoundary": {
+    "title": "The game board hit an unexpected error",
+    "message": "You are still in the game. Reload the board to pick up where you left off.",
+    "retry": "Reload board"
+  },
+  "GameLobby": {
+    "action": {
+      "unloadDeck": "Unload deck",
+      "readyStart": "Ready to start",
+      "sideboardLocked": "Sideboard locked",
+      "sideboardUnlocked": "Sideboard unlocked",
+      "forceStart": "Force start"
+    },
+    "deck": {
+      "heading": "Your deck",
+      "maindeck": "Maindeck: {count}",
+      "sideboard": "Sideboard: {count}",
+      "moveToSideboard": "Move {name} to the sideboard",
+      "moveToMaindeck": "Move {name} to the maindeck",
+      "lockedHint": "Unlock the sideboard to change which cards you play this game."
+    },
+    "forceStart": {
+      "title": "Are you sure you want to force start?",
+      "message": "This will kick all non-ready players from the game.",
+      "confirm": "Yes",
+      "cancel": "No"
+    },
+    "deckSelectFailed": "The server did not accept this deck."
+  },
   "GameReplay": {
     "missing": "This replay is no longer open. Replays are kept only until the page is reloaded.",
     "backToReplays": "Back to replays",
@@ -1580,33 +1580,6 @@
     "settings": {
       "fastForwardSpeed": "Fast forward speed",
       "skipEmptySections": "Skip empty sections"
-    }
-  },
-  "Login": {
-    "header": {
-      "title": "Login",
-      "subtitle": "A cross-platform virtual tabletop for multiplayer card games."
-    },
-    "footer": {
-      "registerPrompt": "Not registered yet?",
-      "registerAction": "Create an account",
-      "credit": "Cockatrice is an open source project",
-      "version": "Version",
-      "debugLog": "View debug log"
-    },
-    "content": {
-      "subtitle1": "Play multiplayer card games online.",
-      "subtitle2": "Cross-platform virtual tabletop for multiplayer card games. Forever free."
-    },
-    "toasts": {
-      "accountActivationSuccess": "Account Activated Successfully",
-      "passwordResetSuccessToast": "Password Reset Successfully"
-    },
-    "status": {
-      "serverUnreachable": "Trouble reaching the server. Wait a minute and try again.",
-      "passwordChangeRequired": "An administrator has reset your password. The server will not log you in until you choose a new one: use Forgot Password to set it, then log in with the new password.",
-      "passwordChangeRequiredAction": "Reset password",
-      "serverFull": "The server has reached its maximum number of users. Please check back later."
     }
   },
   "AccountActivationDialog": {
@@ -1660,6 +1633,55 @@
       "reset": "Reset Password"
     }
   },
+  "Login": {
+    "header": {
+      "title": "Login",
+      "subtitle": "A cross-platform virtual tabletop for multiplayer card games."
+    },
+    "footer": {
+      "registerPrompt": "Not registered yet?",
+      "registerAction": "Create an account",
+      "credit": "Cockatrice is an open source project",
+      "version": "Version",
+      "debugLog": "View debug log"
+    },
+    "content": {
+      "subtitle1": "Play multiplayer card games online.",
+      "subtitle2": "Cross-platform virtual tabletop for multiplayer card games. Forever free."
+    },
+    "toasts": {
+      "accountActivationSuccess": "Account Activated Successfully",
+      "passwordResetSuccessToast": "Password Reset Successfully"
+    },
+    "status": {
+      "serverUnreachable": "Trouble reaching the server. Wait a minute and try again.",
+      "passwordChangeRequired": "An administrator has reset your password. The server will not log you in until you choose a new one: use Forgot Password to set it, then log in with the new password.",
+      "passwordChangeRequiredAction": "Reset password",
+      "serverFull": "The server has reached its maximum number of users. Please check back later."
+    }
+  },
+  "Logs": {
+    "tab": {
+      "rooms": "Room Logs",
+      "games": "Game Logs",
+      "chats": "Chat Logs"
+    },
+    "column": {
+      "time": "Time",
+      "senderName": "Sender Name",
+      "senderIp": "Sender IP",
+      "message": "Message",
+      "targetId": "Target ID",
+      "targetName": "Target Name"
+    },
+    "notice": {
+      "title": "Message History",
+      "empty": "There are no messages for the selected filters.",
+      "failed": "Failed to collect message history information."
+    },
+    "title": "Log Results",
+    "tabWithCount": "{tab} [{count}]"
+  },
   "LogSearchForm": {
     "group": {
       "filters": "Filters",
@@ -1691,28 +1713,6 @@
       "search": "Get User Logs",
       "clear": "Clear Filters"
     }
-  },
-  "Logs": {
-    "tab": {
-      "rooms": "Room Logs",
-      "games": "Game Logs",
-      "chats": "Chat Logs"
-    },
-    "column": {
-      "time": "Time",
-      "senderName": "Sender Name",
-      "senderIp": "Sender IP",
-      "message": "Message",
-      "targetId": "Target ID",
-      "targetName": "Target Name"
-    },
-    "notice": {
-      "title": "Message History",
-      "empty": "There are no messages for the selected filters.",
-      "failed": "Failed to collect message history information."
-    },
-    "title": "Log Results",
-    "tabWithCount": "{tab} [{count}]"
   },
   "ModerationPage": {
     "search": {
@@ -2201,30 +2201,6 @@
     "count": "{count, plural, other {# connected}}",
     "empty": "No one connected."
   },
-  "Settings": {
-    "title": "Settings",
-    "searchLabel": "Search settings",
-    "searchPlaceholder": "Search settings...",
-    "searchResults": "Search results",
-    "noResults": "No settings match \"{query}\".",
-    "openSection": "Open {section}",
-    "restoreDefaults": "Restore defaults",
-    "restoreDefaultsConfirm": {
-      "title": "Restore {section} defaults?",
-      "message": "Every setting on this page goes back to its default. This cannot be undone.",
-      "cancel": "Cancel"
-    },
-    "section": {
-      "appearance": "Appearance",
-      "userInterface": "User Interface",
-      "chat": "Chat",
-      "sound": "Sound",
-      "shortcuts": "Shortcuts",
-      "general": "General",
-      "cardSources": "Card Sources",
-      "storage": "Storage"
-    }
-  },
   "PlaymatSettings": {
     "title": "Playmat settings",
     "label": "Playmats",
@@ -2533,6 +2509,34 @@
       "unit": "ms"
     }
   },
+  "Settings": {
+    "title": "Settings",
+    "searchLabel": "Search settings",
+    "searchPlaceholder": "Search settings...",
+    "searchResults": "Search results",
+    "noResults": "No settings match \"{query}\".",
+    "openSection": "Open {section}",
+    "restoreDefaults": "Restore defaults",
+    "restoreDefaultsConfirm": {
+      "title": "Restore {section} defaults?",
+      "message": "Every setting on this page goes back to its default. This cannot be undone.",
+      "cancel": "Cancel"
+    },
+    "section": {
+      "appearance": "Appearance",
+      "userInterface": "User Interface",
+      "chat": "Chat",
+      "sound": "Sound",
+      "shortcuts": "Shortcuts",
+      "general": "General",
+      "cardSources": "Card Sources",
+      "storage": "Storage"
+    }
+  },
+  "AppAlerts": {
+    "mention": "{sender} mentioned you.",
+    "buddySignedOn": "Your buddy {name} has signed on!"
+  },
   "BrowserFeature": {
     "syntax": "Modern JavaScript, used by the whole client",
     "esModules": "JavaScript modules, used to load the client",
@@ -2600,10 +2604,6 @@
     "subtitle1": "Please update your browser and/or check your permissions.",
     "subtitle2": "Note: Private browsing causes some browsers to disable certain permissions or features.",
     "missing": "This browser does not provide:"
-  },
-  "AppAlerts": {
-    "mention": "{sender} mentioned you.",
-    "buddySignedOn": "Your buddy {name} has signed on!"
   },
   "CommandFailure": {
     "notSent": "You are not connected to the server.",
