@@ -22,4 +22,6 @@ Game-slice listeners, reducers, and Servatrice-derived behavior. Most of the rul
 
 ## Listener patterns
 
+**One listener per inbound event, grouped by domain.** `game.listeners.ts` is a barrel over `game.listeners.{zones,cards,counters,arrows,players,phases}.ts`, each exporting `register<Domain>Listeners(mw)`. Keep exactly one listener per event action (`game.listeners.characterization.spec.ts` pins it), so the order the domains register in can't change what an event dispatches. Keep planning out of the effects: card-move planning lives in `cardMove.ts`, payload planners (`cardAttrFields`, `mergeCardCounter`, `buildTokenCard`, …) in `game.reducer.helpers.ts`, state scans in `game.selectors.ts`.
+
 **Pre-mutation reads via `api.getOriginalState()`.** Listeners that log on a deletion must read pre-mutation state via `api.getOriginalState()`. `playerLeft`, `cardDestroyed`, and `cardFlipped` (when the name is changing) all delete or overwrite the data they need to format the log line. The pattern: capture from `api.getOriginalState()` *before* dispatching the mutation primitive, format the log line, then dispatch `gameMessageAppended`. `formatLeaveMessage` falls back to `'Unknown player'` so a missing pre-state user is non-fatal.
