@@ -15,6 +15,7 @@
       "userLeft": "{name} has left the server.",
       "userJoined": "{name} has joined the server.",
       "notSent": "Message not sent: {reason}"
-    }
+    },
+    "inputLabel": "Private message to {name}"
   }
 }

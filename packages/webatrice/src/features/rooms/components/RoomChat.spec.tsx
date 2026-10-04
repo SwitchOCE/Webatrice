@@ -51,6 +51,12 @@ describe('RoomChat', () => {
     expect(screen.getByText('RoomChat.notice.notSent')).toBeInTheDocument();
   });
 
+  it('names its input', () => {
+    renderChat();
+
+    expect(screen.getByRole('combobox', { name: 'RoomChat.inputLabel' })).toBeInTheDocument();
+  });
+
   it('sends the draft and clears the input', () => {
     const onSay = vi.fn();
     renderChat([], onSay);

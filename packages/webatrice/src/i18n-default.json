@@ -1076,6 +1076,9 @@
     "message": "You are still in the game. Reload the board to pick up where you left off.",
     "retry": "Reload board"
   },
+  "ChatLog": {
+    "inputLabel": "Game chat message"
+  },
   "GameReplay": {
     "missing": "This replay is no longer open. Replays are kept only until the page is reloaded.",
     "backToReplays": "Back to replays",
@@ -1365,7 +1368,8 @@
       "userLeft": "{name} has left the server.",
       "userJoined": "{name} has joined the server.",
       "notSent": "Message not sent: {reason}"
-    }
+    },
+    "inputLabel": "Private message to {name}"
   },
   "PrivateMessageNotifier": {
     "title": "New message from {sender}"
@@ -1583,7 +1587,8 @@
     "notice": {
       "chatFlood": "You are flooding the chat. Please wait a couple of seconds.",
       "notSent": "Message not sent: {reason}"
-    }
+    },
+    "inputLabel": "Chat message to {roomName}"
   },
   "RoomsList": {
     "joinError": {

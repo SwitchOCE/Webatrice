@@ -139,6 +139,7 @@ function RoomChatView({ roomId, roomName, messages: allMessages, users, onSay }:
             value={draft}
             {...mention.inputProps}
             placeholder={`Message ${roomName}`}
+            aria-label={t('RoomChat.inputLabel', { roomName })}
             className={[
               'w-full px-3 py-2 rounded-md bg-bg-base border',
               'border-border-subtle text-sm text-text-primary',
