@@ -4,3 +4,4 @@
 - 01:35Z pushed arrows draw-in, sockatrice presence/rename, datatrice time base → card font/zone view/settings
 - 01:42Z pushed font px, zone view cap, rows coupling, playmat/table, hand hover → a11y (selection count, zone bg editor, expand button)
 - 01:46Z pushed a11y (selection count, zone bg names, expand button) → contrast spec, changeset, nits
+- 01:52Z all code findings pushed (tip 0a67ce1); commit-hygiene nit not applied (task forbids history rewrite) → full gate
