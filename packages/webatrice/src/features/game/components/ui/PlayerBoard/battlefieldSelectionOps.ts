@@ -16,7 +16,7 @@ export interface BattlefieldTargets {
 }
 
 /** The printed P/T of a card by name, or '' when unknown. */
-export type PrintedPT = (cardName: string) => string;
+type PrintedPT = (cardName: string) => string;
 
 /**
  * Desktop's cardMenuAction rule (player_actions.cpp:1761-1808). From a card

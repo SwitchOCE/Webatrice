@@ -240,7 +240,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
   );
   const attachExtraSourceIds = seatPending?.kind === 'attach' ? seatPending.extraSourceIds : NO_CARD_IDS;
   const { startArrow: startPendingArrow, startAttach: startPendingAttach, pickAttachTarget } = pendingTarget;
-  /** "Draw arrow..." from one of this seat's cards in any public zone. */
+  /** "Draw arrow..." from one of this seat's cards in any zone, the hand included. */
   const startDrawArrow = useCallback(
     ({ sourceCardId, sourceCardName, sourceZone }: { sourceCardId: number; sourceCardName: string; sourceZone: ZoneNameValue }) =>
       startPendingArrow({ playerId, zone: sourceZone, cardId: sourceCardId, name: sourceCardName }),
@@ -254,7 +254,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     },
     [startPendingAttach, playerId],
   );
-  const startArrow = useCallback(
+  const startTableArrow = useCallback(
     (sourceCardId: number, sourceCardName: string) => startDrawArrow({ sourceCardId, sourceCardName, sourceZone: ZoneName.TABLE }),
     [startDrawArrow],
   );
@@ -277,7 +277,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     zoneCommands,
     prompts: { openAnnotationPrompt, openPTPrompt, openCardCounterPrompt, openMoveXFromTopPrompt },
     startAttach,
-    startArrow,
+    startArrow: startTableArrow,
   });
   // Displayed counts mirror Cockatrice desktop: read straight from the
   // server-authoritative `zone.cardCount` and DON'T decrement while a

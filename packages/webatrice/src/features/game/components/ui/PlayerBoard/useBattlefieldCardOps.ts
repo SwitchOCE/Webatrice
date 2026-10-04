@@ -49,10 +49,11 @@ export interface UseBattlefieldCardOpsArgs {
   startArrow: (sourceCardId: number, sourceCardName: string) => void;
 }
 
-/** The battlefield actions on one target set (see resolveTargets). Toggles and
- *  prompt prefills follow the anchor; everything else applies to every card. */
+/** The battlefield actions on one target set (see resolveTargets). Toggles,
+ *  prompt prefills, the draw-arrow pick, move-X and the row / column
+ *  selection follow the anchor; an attach starts from every card with the
+ *  anchor carrying the arrow; everything else applies to every card. */
 export interface BattlefieldCardOps {
-  readonly targets: BattlefieldTargets;
   toggleTapped(): void;
   toggleFaceDown(): void;
   /** Reveal the face-down cards among the targets to the local player. */
@@ -145,7 +146,6 @@ export function useBattlefieldCardOps({
       };
 
       return {
-        targets,
         toggleTapped: () => {
           if (targetIds.length > 0) {
             cardCommands.setTapped(targetIds, !anchor.tapped);
