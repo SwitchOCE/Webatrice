@@ -225,7 +225,10 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // Shortcuts tab (group items follow object-key order).
   'chat.focus': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Shift+Enter', 'Shift+NumpadEnter'] },
 
-  'deck.new': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Ctrl+KeyN'] },
+  // Desktop's `TabDeckEditor/aNewDeck` is Ctrl+N, which Chromium keeps
+  // (new window). Rebound like game.alwaysRevealTopCard, which owns
+  // Ctrl+Alt+N only in the GAME scope.
+  'deck.new': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Ctrl+Alt+KeyN'] },
   'deck.save': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Ctrl+KeyS'] },
   'deck.load': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Ctrl+KeyO'] },
   'deck.addCard': { scope: ShortcutScope.DECK_EDITOR, group: 'deckEditor', sequences: ['Equal', 'NumpadAdd'] },

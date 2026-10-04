@@ -79,8 +79,9 @@ function Decks() {
   const [shareLinksOpen, setShareLinksOpen] = useState(false);
   const [openLinkOpen, setOpenLinkOpen] = useState(false);
 
-  // Desktop's New Deck (Ctrl+N) and Load Deck (Ctrl+O): here they open the
-  // create and import dialogs; the editor sends them here with the dialog to open.
+  // Desktop's New Deck (Ctrl+N; Ctrl+Alt+N here, since browsers keep Ctrl+N) and
+  // Load Deck (Ctrl+O) open the create and import dialogs; the editor sends
+  // them here with the dialog to open.
   const location = useLocation();
   useEffect(() => {
     const open = (location.state as DecksLocationState | null)?.open;
