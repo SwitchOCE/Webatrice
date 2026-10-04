@@ -1,5 +1,5 @@
 import { fireEvent, screen, within } from '@testing-library/react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, type InitialEntry } from 'react-router-dom';
 
 import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
 import { connectedState, createMockWebClient, makeUser, renderWithProviders } from '../../__test-utils__';
@@ -19,7 +19,7 @@ function LocationProbe() {
   return <div data-testid="location">{useLocation().pathname}</div>;
 }
 
-function renderTopBar(route: string = RouteEnum.SERVER, preloadedState = connectedState) {
+function renderTopBar(route: InitialEntry = RouteEnum.SERVER, preloadedState = connectedState) {
   const lifecycle: ShellLifecycle = { onIdentityChanged: vi.fn() };
   const { unmount } = renderWithProviders(
     <ShellLifecycleProvider value={lifecycle}>
@@ -244,21 +244,42 @@ describe('TopBar deck tabs', () => {
     settingsStore.reset();
   });
 
-  it('keeps one deck tab by default, as desktop does with the option off', () => {
-    renderTopBar('/deck/1').unmount();
-    renderTopBar('/deck/2');
-
-    expect(deckTab()).toEqual(['Deck #2']);
-  });
-
-  it('opens a tab per deck once "Open deck in new tab by default" is on', async () => {
-    const settings = await getSettings();
-    settings.openDeckInNewTab = true;
-    settingsStore.setValue(settings);
-
+  // The sticky tabs are a module singleton, so each case uses its own deck ids.
+  it('opens each deck from Deck Storage in its own tab, as desktop always does', () => {
     renderTopBar('/deck/1').unmount();
     renderTopBar('/deck/2');
 
     expect(deckTab().sort()).toEqual(['Deck #1', 'Deck #2']);
+  });
+
+  it('opens each deck in its own tab whatever "Open deck in new tab by default" says', async () => {
+    const settings = await getSettings();
+    settings.openDeckInNewTab = false;
+    settingsStore.setValue(settings);
+
+    renderTopBar('/deck/3').unmount();
+    renderTopBar('/deck/4');
+
+    expect(deckTab()).toEqual(expect.arrayContaining(['Deck #3', 'Deck #4']));
+  });
+
+  it('puts a deck the editor loaded into its own tab in that tab\'s place', () => {
+    renderTopBar('/deck/5').unmount();
+    renderTopBar('/deck/6').unmount();
+    renderTopBar({ pathname: '/deck/7', state: { replacesDeckId: 5 } });
+
+    const tabs = deckTab();
+    expect(tabs).not.toContain('Deck #5');
+    expect(tabs.indexOf('Deck #7')).toBeLessThan(tabs.indexOf('Deck #6'));
+  });
+
+  it('closes the replaced tab when the loaded deck already has one', () => {
+    renderTopBar('/deck/8').unmount();
+    renderTopBar('/deck/9').unmount();
+    renderTopBar({ pathname: '/deck/8', state: { replacesDeckId: 9 } });
+
+    const tabs = deckTab();
+    expect(tabs).not.toContain('Deck #9');
+    expect(tabs.filter((tab) => tab === 'Deck #8')).toHaveLength(1);
   });
 });

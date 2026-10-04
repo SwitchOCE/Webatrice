@@ -36,3 +36,12 @@ export interface LoginRouteState {
 export interface ServerRouteState {
   startupRoom?: string;
 }
+
+/**
+ * Router state on a deck editor route: the deck whose tab this deck replaces, when the editor
+ * loaded it into its own tab (desktop's `confirmOpen` same-tab answer). Without it, the deck
+ * opens in a tab of its own, as opening from Deck Storage always does.
+ */
+export interface DeckRouteState {
+  replacesDeckId?: number;
+}

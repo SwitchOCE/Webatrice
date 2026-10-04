@@ -20,7 +20,7 @@ import { AuthGuard } from '@app/components';
 import { Layout } from '@app/feature-wrappers/layout';
 import { server } from '@cockatrice/datatrice';
 import type { CommandFailedPayload } from '@cockatrice/datatrice';
-import type { ServerInfo_DeckStorage_Folder, ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
+import type { ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
 import { useAppSelector } from '@app/store';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { useWebClient } from '@cockatrice/datatrice/react';
@@ -29,6 +29,7 @@ import { RouteEnum } from '@app/types';
 import { lookupCards, type LookupResult } from './cardLookup';
 import { emptyCod, parseCod, serializeCod } from './cod';
 import { parseDecklist, type ParsedEntry } from './decklistParser';
+import { flattenFolder, type FlatDeck } from './deckStorage';
 import { assembleDeckCard } from './hydrate';
 import { defaultMeta } from './meta';
 import { SELECT_CHEVRON_BACKGROUND } from './selectChevron';
@@ -66,15 +67,6 @@ const IMPORT_PRIMARY_BUTTON_CLASS =
  * Rename is deferred to Piece 3 (handled by the editor via the
  * deckname field).
  */
-
-interface FlatDeck {
-  id: number;
-  name: string;
-  /** Folder path from root, `""` for root-level decks. */
-  path: string;
-  /** Unix seconds. Not `updated_at` — Servatrice only tracks creation. */
-  creationTime: number;
-}
 
 /**
  * Category slugs used by the deck-list grouping. MTG format slugs get
@@ -1786,26 +1778,6 @@ function DeleteConfirmDialog({ deckName, onCancel, onConfirm }: DeleteConfirmDia
 }
 
 // --- Helpers ---
-
-/** Recursively walk a Servatrice folder tree collecting only files
- *  (leaf decks). `pathPrefix` is the display path from the root. */
-function flattenFolder(folder: ServerInfo_DeckStorage_Folder, pathPrefix: string): FlatDeck[] {
-  const out: FlatDeck[] = [];
-  for (const item of folder.items) {
-    if (item.file && item.id) {
-      out.push({
-        id: item.id,
-        name: item.name || `Deck #${item.id}`,
-        path: pathPrefix,
-        creationTime: item.file.creationTime ?? 0,
-      });
-    } else if (item.folder) {
-      const nextPath = pathPrefix ? `${pathPrefix}/${item.name}` : item.name;
-      out.push(...flattenFolder(item.folder, nextPath));
-    }
-  }
-  return out;
-}
 
 /** Loose "3 hours ago" formatter for Unix seconds. Good enough for
  *  the list view; the editor can show absolute timestamps. */

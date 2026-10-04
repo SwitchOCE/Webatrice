@@ -997,6 +997,17 @@
     "listError": "Failed to load your decks from the server.",
     "retry": "Retry"
   },
+  "OpenDeckButton": {
+    "label": "Open deck…",
+    "pickerTitle": "Open deck",
+    "empty": "No other decks in your deck storage.",
+    "confirmTitle": "Are you sure?",
+    "confirmMessage": "The decklist has been modified.\nDo you want to save the changes?",
+    "save": "Save",
+    "discard": "Discard",
+    "openInNewTab": "Open in new tab",
+    "cancel": "Cancel"
+  },
   "Developer": {
     "table": {
       "stats": "Server statistics",
@@ -1890,7 +1901,7 @@
     },
     "openDeckInNewTab": {
       "label": "Open deck in new tab by default",
-      "description": "With this off, opening a deck replaces the deck tab you had open."
+      "description": "Applies to Open deck in the deck editor. On, the deck opens in a new tab; off, it replaces the deck you are editing, asking first if that deck has unsaved changes. Decks opened from My Decks always get their own tab."
     },
     "replayRewindBufferingMs": {
       "label": "Buffer time for backwards skip via shortcut",

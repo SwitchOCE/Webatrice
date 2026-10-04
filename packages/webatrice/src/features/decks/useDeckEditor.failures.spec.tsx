@@ -111,3 +111,69 @@ describe('useDeckEditor autosave failure', () => {
     }
   });
 });
+
+describe('useDeckEditor save prompt support (desktop confirmOpen)', () => {
+  async function loadDeck() {
+    const ctx = setup(5);
+    act(() => {
+      ctx.store.dispatch(server.Actions.deckDownloaded({ deckId: 5, deck: emptyCod('Test', 'commander') }));
+    });
+    await waitFor(() => expect(editor.current!.loading).toBe(false));
+    ctx.webClient.protobuf.sendSessionCommand.mockClear();
+    return ctx;
+  }
+
+  function lastUploadOptions(webClient: { protobuf: { sendSessionCommand: ReturnType<typeof vi.fn> } }) {
+    const calls = webClient.protobuf.sendSessionCommand.mock.calls;
+    return calls[calls.length - 1][2] as { onSuccess: () => void; onError: (...args: unknown[]) => void };
+  }
+
+  it('counts an edit waiting on the autosave as modified', async () => {
+    await loadDeck();
+    expect(editor.current!.isModified).toBe(false);
+
+    act(() => editor.current!.setName('Renamed'));
+
+    expect(editor.current!.isModified).toBe(true);
+  });
+
+  it('saves now and resolves true once the server takes the deck', async () => {
+    const { webClient } = await loadDeck();
+    act(() => editor.current!.setName('Renamed'));
+
+    let saved: Promise<boolean> = Promise.resolve(false);
+    act(() => {
+      saved = editor.current!.saveNow();
+    });
+    expect(webClient.protobuf.sendSessionCommand).toHaveBeenCalledTimes(1);
+    act(() => lastUploadOptions(webClient).onSuccess());
+
+    await expect(saved).resolves.toBe(true);
+    expect(editor.current!.isModified).toBe(false);
+  });
+
+  it('resolves false and stays modified when the save fails', async () => {
+    const { webClient } = await loadDeck();
+    act(() => editor.current!.setName('Renamed'));
+
+    let saved: Promise<boolean> = Promise.resolve(true);
+    act(() => {
+      saved = editor.current!.saveNow();
+    });
+    act(() => lastUploadOptions(webClient).onError(Response_ResponseCode.RespInternalError, {}));
+
+    await expect(saved).resolves.toBe(false);
+    expect(editor.current!.isModified).toBe(true);
+  });
+
+  it('discards an edit without sending it, even on unmount', async () => {
+    const { webClient, unmount } = await loadDeck();
+    act(() => editor.current!.setName('Renamed'));
+
+    act(() => editor.current!.discardChanges());
+    expect(editor.current!.isModified).toBe(false);
+    unmount();
+
+    expect(webClient.protobuf.sendSessionCommand).not.toHaveBeenCalled();
+  });
+});

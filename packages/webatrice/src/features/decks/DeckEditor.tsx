@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -42,6 +42,7 @@ import { RouteEnum } from '@app/types';
 import CardDetailModal from './CardDetailModal';
 import DeckBreakdown from './DeckBreakdown';
 import ExportDeckModal from './ExportDeckModal';
+import OpenDeckButton from './OpenDeckButton';
 import { fetchAllPrintings, lookupCard, type PrintingSummary } from './cardLookup';
 import {
   buildTcgMassEntryUrl,
@@ -248,6 +249,15 @@ const DeckEditor = () => {
       <div className="h-full grid bg-bg-base bg-purple-radial" style={{ gridTemplateColumns: '360px 1fr' }}>
         <DeckSidebar
           deck={editor.deck}
+          openDeck={(
+            <OpenDeckButton
+              deckId={deckId}
+              isModified={editor.isModified}
+              isBlank={!editor.isModified && editor.deck.cards.length === 0}
+              saveNow={editor.saveNow}
+              discardChanges={editor.discardChanges}
+            />
+          )}
           saveState={editor.saveState}
           totalMainboardCount={editor.totalMainboardCount}
           totalSideboardCount={editor.totalSideboardCount}
@@ -336,6 +346,8 @@ const DeckEditor = () => {
 
 interface DeckSidebarProps {
   deck: HydratedDeck;
+  /** The editor's "Open deck…" action (OpenDeckButton). */
+  openDeck: ReactNode;
   saveState: SaveState;
   totalMainboardCount: number;
   totalSideboardCount: number;
@@ -353,6 +365,7 @@ interface DeckSidebarProps {
 
 function DeckSidebar({
   deck,
+  openDeck,
   saveState,
   totalMainboardCount,
   totalSideboardCount,
@@ -406,6 +419,7 @@ function DeckSidebar({
           >
             <Upload size={13} /> Export deck
           </button>
+          {openDeck}
           {/* Deck-total TCGplayer pill only makes sense when the cards
               are MTG (Scryfall pricing has no coverage for anything
               else). Non-MTG decks drop the row entirely. */}

@@ -98,6 +98,14 @@ export interface UseDeckEditor {
   addCard: (name: string) => Promise<void>;
   /** Force a save right now (bypass debounce). Useful on unmount. */
   flushSave: () => void;
+  /** Whether the deck has edits the server has not taken: one waiting on the autosave
+   *  debounce, or one whose upload failed. Desktop's `isModified`. */
+  isModified: boolean;
+  /** Save now, resolving once the server answers: true when saved. */
+  saveNow: () => Promise<boolean>;
+  /** Drop the edits the server has not taken, as desktop's Discard does; reopening the
+   *  deck downloads it again. */
+  discardChanges: () => void;
 }
 
 // (pendingLocalSaveRef removed — the DECK_UPLOAD-listening race with
@@ -262,9 +270,10 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   );
 
   // --- Save (debounced) ---
-  const persistNow = useCallback(() => {
+  const persistNow = useCallback((onSettled?: (saved: boolean) => void) => {
     const current = deckRef.current;
     if (!current || deckId == null) {
+      onSettled?.(true);
       return;
     }
     const nextMeta = touchMeta(current.meta);
@@ -279,6 +288,7 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
       bracketAssessment: current.bracketAssessment,
     });
     if (xml === savedSignatureRef.current) {
+      onSettled?.(true);
       return;
     } // nothing changed
     const previousSignature = savedSignatureRef.current;
@@ -294,7 +304,10 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     // uploadDeckUpdate handles both the server "saved" ack (flips our
     // saveState) and a follow-up deckList refetch that keeps MyDecks
     // + the sticky tab title in sync without needing a manual refresh.
-    uploadDeckUpdate(webClient, deckId, xml, () => setSaveState('saved'), () => {
+    uploadDeckUpdate(webClient, deckId, xml, () => {
+      setSaveState('saved');
+      onSettled?.(true);
+    }, () => {
       // Not saved: forget the optimistic signature (here and in the cache) so
       // the next edit or unmount flush sends this content again.
       if (savedSignatureRef.current === xml) {
@@ -305,6 +318,7 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
         deckCache.set(deckId, { deck: entry.deck, savedXml: previousSignature ?? '' });
       }
       setSaveState('failed');
+      onSettled?.(false);
     });
   }, [deckId, webClient]);
 
@@ -329,6 +343,26 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     }
   }, [persistNow]);
   useEffect(() => flushSave, [flushSave]);
+
+  const saveNow = useCallback(() => {
+    if (saveTimerRef.current != null) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    return new Promise<boolean>((resolve) => persistNow(resolve));
+  }, [persistNow]);
+
+  const discardChanges = useCallback(() => {
+    if (saveTimerRef.current != null) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    // The cache mirrors unsaved edits; dropping the entry makes the next open download the deck.
+    if (deckId != null) {
+      deckCache.delete(deckId);
+    }
+    setSaveState('idle');
+  }, [deckId]);
 
   // Mirror local edits into the module cache so returning to this
   // deck's tab after switching away shows the latest in-editor state
@@ -588,6 +622,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     setCommander,
     addCard,
     flushSave,
+    isModified: saveState === 'dirty' || saveState === 'failed',
+    saveNow,
+    discardChanges,
   };
 }
 
