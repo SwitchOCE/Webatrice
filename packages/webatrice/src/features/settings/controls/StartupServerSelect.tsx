@@ -17,7 +17,9 @@ export default function StartupServerSelect({ id, labelId, describedBy, disabled
   const knownHosts = useKnownHosts();
   const stored = usePreference('startupServer');
   const hosts = knownHosts.status === LoadingState.READY ? knownHosts.value?.hosts ?? [] : [];
-  const options = hosts.map((host) => ({ value: getHostKey(host), label: host.name }));
+  // Two known hosts can share a `host:port`; they are one server here, listed once.
+  const options = [...new Map(hosts.map((host) => [getHostKey(host), host.name])).entries()]
+    .map(([value, label]) => ({ value, label }));
   const missing = stored !== '' && !options.some((option) => option.value === stored);
 
   return (
