@@ -30,7 +30,11 @@ vi.mock('../../../../services/cards/cardCatalog', () => {
 
 const REVEALED = [makeCard({ id: 0, name: 'Island' }), makeCard({ id: 1, name: 'Forest' })];
 
-function renderReveal({ grantWriteAccess = false, zoneName = ZoneName.DECK as string } = {}) {
+function renderReveal({
+  grantWriteAccess = false,
+  zoneName = ZoneName.DECK as string,
+  snapshot = REVEALED as typeof REVEALED | undefined,
+} = {}) {
   const preloadedState = buildSeatGameState({
     localPlayerId: 1,
     seats: [
@@ -42,7 +46,7 @@ function renderReveal({ grantWriteAccess = false, zoneName = ZoneName.DECK as st
     ...preloadedState.games!,
     incomingReveal: { gameId: 1, sourceOwnerId: 2, zoneName, cards: REVEALED, grantWriteAccess },
   } as typeof preloadedState.games;
-  preloadedState.games!.games![1]!.players![2]!.zones![zoneName]!.revealedCards = REVEALED;
+  preloadedState.games!.games![1]!.players![2]!.zones![zoneName]!.revealedCards = snapshot;
   const webClient = createMockWebClient();
   const utils = renderWithProviders(<ShortcutProvider><Game /></ShortcutProvider>, { preloadedState, webClient, route: '/game/1' });
   const reveal = () => utils.store.getState().games;
@@ -163,6 +167,68 @@ describe('IncomingRevealDialog', () => {
       renderReveal({ grantWriteAccess: true });
       rightClick('Island');
       expect(openMenus()).toHaveLength(0);
+    });
+  });
+
+  it('lists the sender’s live snapshot rather than the first payload', () => {
+    renderReveal({ snapshot: [REVEALED[0]] });
+    expect(within(popup()).getByTitle('Island')).toBeInTheDocument();
+    expect(within(popup()).queryByTitle('Forest')).not.toBeInTheDocument();
+  });
+
+  it('falls back to the first payload when no snapshot was seeded, and shows an emptied one as empty', () => {
+    const { unmount } = renderReveal({ snapshot: undefined });
+    expect(within(popup()).getByTitle('Island')).toBeInTheDocument();
+    expect(within(popup()).getByTitle('Forest')).toBeInTheDocument();
+    unmount();
+
+    renderReveal({ snapshot: [] });
+    expect(within(popup()).getByText('No cards to show.')).toBeInTheDocument();
+  });
+
+  it('says it is loading until the catalog answers, then groups by type', async () => {
+    renderReveal();
+    expect(within(popup()).getByText('Loading card details…')).toBeInTheDocument();
+    expect(await within(popup()).findByText('Other')).toBeInTheDocument();
+    expect(within(popup()).queryByText('Loading card details…')).not.toBeInTheDocument();
+  });
+
+  describe('its own stored choices', () => {
+    afterEach(() => {
+      window.localStorage.clear();
+    });
+
+    it('restores and stores the group, sort and pile choices under their own keys', async () => {
+      window.localStorage.setItem('webatrice.incomingRevealGroupBy', 'none');
+      window.localStorage.setItem('webatrice.searchLibraryGroupBy', 'cmc');
+      renderReveal();
+      await within(popup()).findAllByTitle('Island');
+      expect(within(popup()).getByTitle('Group by')).toHaveValue('none');
+      expect(within(popup()).getByRole('checkbox', { name: /pile view/ })).toBeDisabled();
+
+      fireEvent.change(within(popup()).getByTitle('Sort by'), { target: { value: 'set' } });
+      expect(window.localStorage.getItem('webatrice.incomingRevealSortBy')).toBe('set');
+      expect(window.localStorage.getItem('webatrice.searchLibrarySortBy')).toBeNull();
+    });
+
+    it('opens at 900×520 unless a size is stored', () => {
+      const { unmount } = renderReveal();
+      expect(popup().style.width).toBe('900px');
+      expect(popup().style.height).toBe('520px');
+      unmount();
+
+      window.localStorage.setItem('webatrice.incomingRevealSize', JSON.stringify({ w: 640, h: 480 }));
+      renderReveal();
+      expect(popup().style.width).toBe('640px');
+      expect(popup().style.height).toBe('480px');
+    });
+
+    it('restores a stored position, kept on screen', () => {
+      window.localStorage.setItem('webatrice.incomingRevealPosition', JSON.stringify({ x: 5000, y: -40 }));
+      renderReveal();
+      // jsdom lays nothing out, so the dialog measures 0×0.
+      expect(popup().style.left).toBe(`${window.innerWidth}px`);
+      expect(popup().style.top).toBe('0px');
     });
   });
 });
