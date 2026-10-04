@@ -132,6 +132,17 @@ describe('ShortcutProvider focus guards', () => {
     expect(escape).toBe(true);
   });
 
+  it('leaves a key the focused control already handled alone', () => {
+    const { getByRole } = renderGame(
+      <button type="button" onKeyDown={(event) => event.preventDefault()}>Handles its own keys</button>,
+    );
+    press(getByRole('button'), { code: 'Escape', key: 'Escape' });
+    expect(handlers.closeRecentView).not.toHaveBeenCalled();
+
+    press(document.body, { code: 'Escape', key: 'Escape' });
+    expect(handlers.closeRecentView).toHaveBeenCalledTimes(1);
+  });
+
   it('still fires global shortcuts while a modal is open', () => {
     renderGame(<div role="dialog" aria-modal="true">Modal</div>);
 

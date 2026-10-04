@@ -124,6 +124,12 @@ export function ShortcutProvider({ children }: ShortcutProviderProps) {
         return;
       }
 
+      // A key the focused control already handled (a deck row's Enter or
+      // Delete) is not also a shortcut, even when the user rebinds one to it.
+      if (event.defaultPrevented) {
+        return;
+      }
+
       // Tab / Shift+Tab move focus inside dialogs and menus and between
       // controls; only on the board do they keep desktop's phase bindings.
       if (isTabNavigationKey(event) && keepsTabNavigation(event.target)) {
