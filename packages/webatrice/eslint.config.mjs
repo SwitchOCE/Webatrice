@@ -52,15 +52,20 @@ export default tseslint.config(
   // Game layering: the game's components and hooks reach the server through
   // its command ports (components/ui/GameBoardCell: the seat's
   // usePlayer*Commands, useTargetCommandsFor, useCardPlayCommands, useMoveCard,
-  // useGameSay), never through useWebClient. The files listed below predate
-  // the rule and still call the WebClient directly; each is to move behind a
-  // port (the stack-A card menus with its deletion), so the list only shrinks.
-  // This block replaces the WebClient value-import rule above for these files,
-  // so it repeats it.
+  // useGameSay), never through useWebClient. The ports are listed by name;
+  // the files after them predate the rule and still call the WebClient
+  // directly; each is to move behind a port (the stack-A card menus with its
+  // deletion), so the list only shrinks. The rule checks imports only:
+  // hooks/dialogs/* and hooks/playCard.ts still drive request.game.* on an
+  // instance handed in by the allowlisted useGameDialogs, debt that leaves
+  // with it. This block replaces the WebClient value-import rule above for
+  // these files, so it repeats it.
   {
     files: ['src/features/game/components/**', 'src/features/game/hooks/**'],
     ignores: [
-      'src/features/game/components/ui/GameBoardCell/**',
+      'src/features/game/components/ui/GameBoardCell/use*Commands.ts',
+      'src/features/game/components/ui/GameBoardCell/useMoveCard.ts',
+      'src/features/game/components/ui/GameBoardCell/useGameSay.ts',
       '**/*.spec.ts',
       '**/*.spec.tsx',
       'src/features/game/components/ChatLog/useGameLog.ts',
@@ -88,7 +93,7 @@ export default tseslint.config(
           },
           {
             name: '@cockatrice/datatrice/react',
-            importNames: ['useWebClient'],
+            importNames: ['useWebClient', 'WebClientContext'],
             message: 'Game components and hooks send commands through the game\'s command ports (components/ui/GameBoardCell), not the WebClient.',
           },
         ],
