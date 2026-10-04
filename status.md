@@ -3,3 +3,4 @@
 - QUESTION Q1: on this base (25b) HandZone.tsx/StackColumn.tsx no longer call lookupCard (25b routes click-to-play through useSeatClickToPlay → seatCardMetaFromLookup; the direct calls only exist on r4's older base). | default: no change to HandZone/StackColumn; note in PR that the follow-up is already resolved here, and that a rebase onto r4 must keep the 25b hook rather than r4's inline calls.
 - ACK M1: keeping HandZone/StackColumn unchanged; will note in PR file
 - 01:00Z characterization specs pushed (daa99d1) → shared dialogs/shared modules + ZoneViewPanel move
+- 01:08Z shared modules + ZoneViewPanel moved (b776fcb) → IncomingRevealDialog + useIncomingReveal
