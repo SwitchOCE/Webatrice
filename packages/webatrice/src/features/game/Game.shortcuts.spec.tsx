@@ -2,10 +2,11 @@
 // game key binding and runs the local seat's published operations, so each
 // keystroke reaches exactly one handler and sends exactly one command set.
 
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { makeArrow, makeCard } from '@cockatrice/datatrice/testing';
+import { CardAttribute } from '@cockatrice/sockatrice/generated';
 
-import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
+import { ShortcutProvider, type ActionId } from '@app/feature-widgets/shortcuts';
 import { usePreferences } from '@app/hooks';
 import { PREFERENCE_DEFAULTS } from '@app/types';
 import { shortcuts } from '@app/store';
@@ -60,6 +61,12 @@ function renderGame(spec: Partial<SeatGameSpec> = {}) {
     { preloadedState: seatState(spec), webClient, route: '/game/1' },
   );
   return { ...utils, game: webClient.request.game };
+}
+
+function bindKey(store: ReturnType<typeof renderGame>['store'], actionId: ActionId, sequence: string) {
+  act(() => {
+    store.dispatch(shortcuts.Actions.setOverride({ actionId, sequences: [sequence] }));
+  });
 }
 
 function press(code: string, init: KeyboardEventInit = {}) {
@@ -205,13 +212,72 @@ describe('Game seat shortcuts', () => {
       })]]);
     });
 
-    it('Gameplay: a bound "Shuffle top cards" asks how many', () => {
-      const { store } = renderGame();
-      act(() => {
-        store.dispatch(shortcuts.Actions.setOverride({ actionId: 'game.shuffleTopCards', sequences: ['Alt+KeyJ'] }));
-      });
+    // Desktop actShuffleTop (player_actions.cpp:257-270): [0, N-1], inclusive.
+    it('Gameplay: a bound "Shuffle top cards" asks how many, then shuffles that many once', () => {
+      const { game, store } = renderGame();
+      bindKey(store, 'game.shuffleTopCards', 'Alt+KeyJ');
       press('KeyJ', { altKey: true });
-      expect(screen.getByRole('dialog', { name: 'Shuffle top cards' })).toBeInTheDocument();
+      const dialog = screen.getByRole('dialog', { name: 'Shuffle top cards' });
+      fireEvent.change(within(dialog).getByRole('spinbutton'), { target: { value: '5' } });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Shuffle' }));
+      expect(vi.mocked(game.shuffle).mock.calls).toEqual([[1, { zoneName: 'deck', start: 0, end: 4 }]]);
+    });
+
+    // The battlefield groups act on the battlefield selection.
+    const tableSeats = {
+      seats: [
+        {
+          playerId: 1,
+          deckCount: 40,
+          hand: [],
+          table: [makeCard({ id: 70, name: 'Bear', pt: '2/2' }), makeCard({ id: 71, name: 'Wall', pt: '0/4', tapped: true })],
+        },
+        { playerId: 2, deckCount: 40 },
+      ],
+    };
+    const selectBattlefield = () => {
+      openContextMenu(cardEl(70, 'battlefield'));
+      chooseMenuPath('Select All');
+    };
+    const cardAttrs = (game: ReturnType<typeof renderGame>['game'], attribute: CardAttribute) =>
+      vi.mocked(game.setCardAttr).mock.calls.map(([, p]) => p).filter((p) => p.attribute === attribute)
+        .map((p) => [p.cardId, p.attrValue]);
+
+    it('Card counters: a bound "Add counter (D)" adds one cyan counter to each selected card in one command', () => {
+      const { game, store } = renderGame(tableSeats);
+      bindKey(store, 'game.addCounterD', 'Alt+KeyD');
+      selectBattlefield();
+      press('KeyD', { altKey: true });
+      expect(vi.mocked(game.bulkSetCardCounterEntries).mock.calls.map(([, entries]) => entries)).toEqual([[
+        { ownerPlayerId: 1, zone: 'table', cardId: 70, counterId: 3, counterValue: 1 },
+        { ownerPlayerId: 1, zone: 'table', cardId: 71, counterId: 3, counterValue: 1 },
+      ]]);
+    });
+
+    // Desktop aFlowP: +1/-1 on each selected card.
+    it('Power and toughness: a bound "Move toughness to power" sets each selected card\'s P/T once', () => {
+      const { game, store } = renderGame(tableSeats);
+      bindKey(store, 'game.flowP', 'Alt+KeyF');
+      selectBattlefield();
+      press('KeyF', { altKey: true });
+      expect(cardAttrs(game, CardAttribute.AttrPT)).toEqual([[70, '3/1'], [71, '1/3']]);
+    });
+
+    // Desktop cmTap (player_actions.cpp:1768-1776) flips each card.
+    it('Playing area: a bound "Tap / Untap" flips each selected card once', () => {
+      const { game, store } = renderGame(tableSeats);
+      bindKey(store, 'game.tapCard', 'Alt+KeyT');
+      selectBattlefield();
+      press('KeyT', { altKey: true });
+      expect(cardAttrs(game, CardAttribute.AttrTapped)).toEqual([[70, '1'], [71, '0']]);
+    });
+
+    it('View: a bound "View exile" opens the exile view and sends nothing', () => {
+      const { game, store } = renderGame();
+      bindKey(store, 'game.viewExile', 'Alt+KeyX');
+      press('KeyX', { altKey: true });
+      expect(screen.getAllByRole('heading').map((h) => h.textContent)).toEqual(expect.arrayContaining([expect.stringMatching(/exile/i)]));
+      expect(game.moveCard).not.toHaveBeenCalled();
     });
 
     it('Player counters: Shift+F12 / Shift+F11 add and remove one life; F12 itself stays with the browser', () => {
