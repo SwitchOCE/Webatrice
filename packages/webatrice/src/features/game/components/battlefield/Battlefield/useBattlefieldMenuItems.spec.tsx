@@ -37,7 +37,7 @@ const marker = (label: string): ContextMenuItem[] => [{ label }];
 function setup(args: Partial<UseBattlefieldMenuItemsArgs> = {}) {
   const actions = { onRequestRollDie: vi.fn(), onRequestGameInfo: vi.fn(), onRequestViewSideboard: vi.fn() };
   const cardCommands = { untapAll: vi.fn(), createToken: vi.fn() } as unknown as PlayerCardCommands;
-  const counterCommands = { increment: vi.fn(), flipCoin: vi.fn(), setCardCounters: vi.fn() } as unknown as PlayerCounterCommands;
+  const counterCommands = { increment: vi.fn(), flipCoin: vi.fn() } as unknown as PlayerCounterCommands;
   const props: UseBattlefieldMenuItemsArgs = {
     seatId: 1,
     customZones: [],
@@ -52,7 +52,7 @@ function setup(args: Partial<UseBattlefieldMenuItemsArgs> = {}) {
     openLifePrompt: vi.fn(),
     openCounterPrompt: vi.fn(),
     manaCounters: { G: { id: 6, count: 2 } },
-    selection: null,
+    incrementAllCardCounters: vi.fn(),
     battlefieldDisplayList: [bf(10, [{ id: 0, value: 1 }]), bf(11, [{ id: 1, value: 999 }]), bf(12)],
     lastToken: null,
     openCreateTokenDialog: vi.fn(),
@@ -123,14 +123,11 @@ describe('useBattlefieldMenuItems', () => {
     expect(find(battlefieldMenuItems, 'Counters', 'White').disabled).toBe(true);
   });
 
-  it('increments existing card counters below the cap, on the selection or the whole board, in one batch', () => {
+  it('increments all card counters through the seat\'s card op, disabled on an empty battlefield', () => {
     const board = setup();
     find(board.battlefieldMenuItems, 'Increment all card counters').onClick!();
-    expect(board.counterCommands.setCardCounters).toHaveBeenCalledExactlyOnceWith([{ cardId: 10, counterId: 0, value: 2 }]);
-
-    const selected = setup({ selection: { zone: 'battlefield', ids: new Set(['11', '12']) } });
-    find(selected.battlefieldMenuItems, 'Increment all card counters').onClick!();
-    expect(selected.counterCommands.setCardCounters).not.toHaveBeenCalled();
+    expect(board.props.incrementAllCardCounters).toHaveBeenCalledOnce();
+    expect(find(setup({ battlefieldDisplayList: [] }).battlefieldMenuItems, 'Increment all card counters').disabled).toBe(true);
   });
 
   it('runs the utility items and offers another token only once one was made', () => {
