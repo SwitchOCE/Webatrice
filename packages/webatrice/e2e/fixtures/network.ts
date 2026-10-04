@@ -46,7 +46,8 @@ const SYMBOL_SVG =
 // card's type line from Scryfall to decide where a double-clicked card lands
 // (a land goes to the battlefield, an instant to the stack), so a missing or
 // wrong record changes game behaviour, not just art.
-const SCRYFALL_CARDS: { id: string; name: string }[] = ['forest.json', 'castle-ardenvale.json', 'human-token.json'].map((file) =>
+type ScryfallFixture = { id: string; name: string; set?: string; collector_number?: string };
+const SCRYFALL_CARDS: ScryfallFixture[] = ['forest.json', 'castle-ardenvale.json', 'human-token.json'].map((file) =>
   JSON.parse(readFileSync(resolve(__dirname, 'scryfall', file), 'utf8')),
 );
 
@@ -62,8 +63,9 @@ const SCRYFALL_NOT_FOUND = JSON.stringify({
 const SCRYFALL_CARD_BY_ID = /^\/cards\/([0-9a-f-]{36})$/;
 
 // The single-card routes the app reads: `/cards/named?exact=<name>` and
-// `/cards/<id>`, each with or without `format=image`. Other endpoints (search,
-// autocomplete, collection) answer in other shapes, so they get no stand-in.
+// `/cards/<id>`, each with or without `format=image`, plus the batch
+// `/cards/collection` POST below. Other endpoints (search, autocomplete)
+// answer in other shapes, so they get no stand-in.
 const isScryfallCardRoute = (url: URL): boolean =>
   url.pathname === '/cards/named' || SCRYFALL_CARD_BY_ID.test(url.pathname);
 
@@ -74,6 +76,34 @@ function scryfallCardFor(url: URL): { id: string; name: string } | undefined {
   }
   const id = url.pathname.match(SCRYFALL_CARD_BY_ID)?.[1];
   return id ? SCRYFALL_CARDS.find((card) => card.id === id) : undefined;
+}
+
+// Scryfall's batch lookup (`POST /cards/collection`, used by the card
+// catalog's lookupCards): each identifier is a name, an id or a set +
+// collector number, answered from the fixtures; the rest are `not_found`.
+type CollectionIdentifier = { name?: string; id?: string; set?: string; collector_number?: string };
+const SCRYFALL_CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+function scryfallCollection(postData: string | null): string {
+  const { identifiers = [] } = JSON.parse(postData ?? '{}') as { identifiers?: CollectionIdentifier[] };
+  const data: ScryfallFixture[] = [];
+  const notFound: CollectionIdentifier[] = [];
+  for (const wanted of identifiers) {
+    const card = SCRYFALL_CARDS.find((c) =>
+      (wanted.id != null && c.id === wanted.id) ||
+      (wanted.name != null && c.name.toLowerCase() === wanted.name.toLowerCase()) ||
+      (wanted.set != null && c.set === wanted.set && c.collector_number === wanted.collector_number));
+    if (card) {
+      data.push(card);
+    } else {
+      notFound.push(wanted);
+    }
+  }
+  return JSON.stringify({ object: 'list', not_found: notFound, data });
 }
 
 // Desktop's public server list, which the host picker downloads the first
@@ -96,7 +126,12 @@ const KNOWN_GAME_SERVERS = new Set([
 
 const SCRYFALL_IMAGE_HOSTS = new Set(['cards.scryfall.io', 'backs.scryfall.io']);
 
-function stubFor(url: URL): Parameters<Route['fulfill']>[0] | null {
+function stubFor(url: URL, method: string, postData: string | null): Parameters<Route['fulfill']>[0] | null {
+  if (url.hostname === 'api.scryfall.com' && url.pathname === '/cards/collection') {
+    return method === 'OPTIONS'
+      ? { status: 204, headers: SCRYFALL_CORS }
+      : { status: 200, contentType: 'application/json', headers: SCRYFALL_CORS, body: scryfallCollection(postData) };
+  }
   if (url.href === PUBLIC_SERVERS_URL) {
     // GitHub Pages allows any origin; the browser fetches the list cross-origin.
     return {
@@ -139,7 +174,8 @@ export async function isolateNetwork(context: BrowserContext): Promise<NetworkIs
   const unexpected: string[] = [];
 
   await context.route(isExternal, async (route) => {
-    const stub = stubFor(new URL(route.request().url()));
+    const request = route.request();
+    const stub = stubFor(new URL(request.url()), request.method(), request.postData());
     if (stub) {
       await route.fulfill(stub);
       return;
