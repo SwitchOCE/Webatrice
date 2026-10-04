@@ -4,3 +4,4 @@
 - 01:26Z targeting seam pushed (00445b5: port judge/colour/zone/playAndCreateArrow, arrowResolution, useArrowDrag, usePendingTarget, usePendingArrows deleted; 3813 unit green) → lint rule, full gate, e2e
 - ACK M1: will route every play entry point (double-click autoPlay, play-then-arrow, hand→battlefield drag, stack-A play) through one helper carrying printed pt + cipt tapped, with specs; after the lint rule
 - 01:36Z lint rule (da48901) + M1 fix pushed (d37009f) → changeset check, full gate, webatrice e2e
+- 02:12Z M1 done (d37009f); gate done; PR file written → final report
