@@ -17,6 +17,27 @@ describe('keepsTabNavigation', () => {
     expect(keepsTabNavigation(null)).toBe(false);
   });
 
+  it('leaves Tab to the shortcuts on the board and on a card, whatever role the card has', () => {
+    mount(
+      '<div id="board" data-game-board tabindex="0">'
+      + '<div id="card" data-card-id="7" role="button" aria-roledescription="draggable" tabindex="0">'
+      + '<span id="name">Bear</span></div></div>',
+    );
+    expect(keepsTabNavigation(document.getElementById('board'))).toBe(false);
+    expect(keepsTabNavigation(document.getElementById('card'))).toBe(false);
+    expect(keepsTabNavigation(document.getElementById('name'))).toBe(false);
+  });
+
+  it('keeps Tab navigation on a real control on the board', () => {
+    mount('<div data-game-board><button id="t">Untap all</button></div>');
+    expect(keepsTabNavigation(document.getElementById('t'))).toBe(true);
+  });
+
+  it('keeps Tab navigation on a card inside a dialog', () => {
+    mount('<div role="dialog"><div id="t" data-card-id="7" role="button" tabindex="0">Bear</div></div>');
+    expect(keepsTabNavigation(document.getElementById('t'))).toBe(true);
+  });
+
   it.each([
     ['button', '<button id="t">Go</button>'],
     ['input', '<input id="t" />'],

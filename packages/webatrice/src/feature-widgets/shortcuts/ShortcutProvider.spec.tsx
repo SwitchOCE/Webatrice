@@ -46,8 +46,8 @@ describe('ShortcutProvider focus guards', () => {
     vi.clearAllMocks();
   });
 
-  it('fires Tab and Shift+Tab on the board as desktop does', () => {
-    renderGame(<div data-testid="board">board</div>);
+  it('fires Tab and Shift+Tab on the page body as desktop does', () => {
+    renderGame();
 
     const tab = press(document.body, { code: 'Tab', key: 'Tab' });
     press(document.body, { code: 'Tab', key: 'Tab', shiftKey: true });
@@ -57,10 +57,35 @@ describe('ShortcutProvider focus guards', () => {
     expect(tab).toBe(false);
   });
 
+  // dnd-kit gives an own (draggable) card role="button"; a focused card is
+  // still the board, so desktop's "tap a card, press Tab" keeps working.
+  it('fires Tab and Shift+Tab on a focused board card with a button role', () => {
+    const { getByTestId } = renderGame(
+      <div data-game-board>
+        <div data-testid="t" data-card-id="7" role="button" aria-roledescription="draggable" tabIndex={0}>
+          Bear
+        </div>
+      </div>,
+    );
+    const card = getByTestId('t');
+
+    const tab = press(card, { code: 'Tab', key: 'Tab' });
+    const shiftTab = press(card, { code: 'Tab', key: 'Tab', shiftKey: true });
+
+    expect(handlers.nextPhase).toHaveBeenCalledTimes(1);
+    expect(handlers.nextPhaseAction).toHaveBeenCalledTimes(1);
+    expect(tab).toBe(false);
+    expect(shiftTab).toBe(false);
+  });
+
   it.each([
     ['a button', <button key="b" data-testid="t">Go</button>],
     ['a menu', <ul key="m" role="menu"><li data-testid="t" role="menuitem" tabIndex={0}>Item</li></ul>],
     ['a non-modal dialog', <div key="d" role="dialog"><span data-testid="t">Panel</span></div>],
+    [
+      'a card inside a dialog',
+      <div key="c" role="dialog"><div data-testid="t" data-card-id="7" role="button" tabIndex={0}>Bear</div></div>,
+    ],
   ])('leaves Tab and Shift+Tab to the browser on %s', (_name, node) => {
     const { getByTestId } = renderGame(node);
     const target = getByTestId('t');
