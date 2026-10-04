@@ -118,6 +118,27 @@ describe('Menu', () => {
     now.mockRestore();
   });
 
+  it('lets onKeyDown claim a key before type-ahead', async () => {
+    const user = userEvent.setup();
+    const onKeyDown = vi.fn((event: { key: string; preventDefault: () => void }) => {
+      if (event.key === 'd') {
+        event.preventDefault();
+      }
+    });
+    render(
+      <Menu anchor={{ x: 10, y: 10 }} label="Options" onClose={vi.fn()} onKeyDown={onKeyDown}>
+        <MenuItem onSelect={vi.fn()}>Alpha</MenuItem>
+        <MenuItem onSelect={vi.fn()}>Delta</MenuItem>
+      </Menu>,
+    );
+    await user.keyboard('d');
+    expect(onKeyDown).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('menuitem', { name: 'Alpha' })).toHaveFocus();
+
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getByRole('menuitem', { name: 'Delta' })).toHaveFocus();
+  });
+
   it('toggles a checkbox item in place and reports its state', async () => {
     const user = await openExample();
     const grid = screen.getByRole('menuitemcheckbox', { name: 'Grid' });

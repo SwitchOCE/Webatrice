@@ -56,6 +56,9 @@ export interface MenuProps {
   id?: string;
   /** Width and other panel classes. */
   className?: string;
+  /** Sees this level's keys before navigation and type-ahead, so an entry's `aria-keyshortcuts`
+   *  can work while the menu is open; `preventDefault` claims the key. */
+  onKeyDown?: (event: KeyboardEvent<HTMLDivElement>) => void;
   children: ReactNode;
 }
 
@@ -147,7 +150,9 @@ function anchorKey(anchor: MenuAnchor): string {
  * Items are found in the DOM, so entries rendered by an extension slot take part as long as they
  * carry a `menuitem` role. Portalled to `document.body` so scrolling ancestors never clip it.
  */
-export function Menu({ anchor, label, onClose, triggerRef, autoFocus = true, id, className, children }: MenuProps) {
+export function Menu({
+  anchor, label, onClose, triggerRef, autoFocus = true, id, className, onKeyDown: onShortcutKey, children,
+}: MenuProps) {
   const parent = useContext(MenuLevelContext);
   const ref = useRef<HTMLDivElement>(null);
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
@@ -235,6 +240,11 @@ export function Menu({ anchor, label, onClose, triggerRef, autoFocus = true, id,
     }
     // Other keys from a submenu bubble here too; that level handles its own.
     if (!menu || (event.target as Element).closest('[role="menu"]') !== menu) {
+      return;
+    }
+    onShortcutKey?.(event);
+    if (event.defaultPrevented) {
+      event.stopPropagation();
       return;
     }
     const items = menuItems(menu);

@@ -51,6 +51,28 @@ describe('DeckRowActionsMenu', () => {
     expect(handlers.onClose).not.toHaveBeenCalled();
   });
 
+  it('runs the keys its add and remove entries advertise while it is open', async () => {
+    const user = userEvent.setup();
+    const handlers = renderMenu();
+    const add = screen.getByRole('menuitem', { name: /DeckEditor.rowActions.addOne/ });
+
+    await user.keyboard('[Equal]');
+    await user.keyboard('{Shift>}[Equal]{/Shift}');
+    await user.keyboard('[Minus]');
+    expect(handlers.onInc).toHaveBeenCalledTimes(2);
+    expect(handlers.onDec).toHaveBeenCalledTimes(1);
+    expect(handlers.onClose).not.toHaveBeenCalled();
+    expect(add).toHaveFocus();
+  });
+
+  it('closes when its remove key takes the last copy', async () => {
+    const user = userEvent.setup();
+    const handlers = renderMenu({ ...atraxa, quantity: 1 });
+    await user.keyboard('[Minus]');
+    expect(handlers.onDec).toHaveBeenCalledTimes(1);
+    expect(handlers.onClose).toHaveBeenCalled();
+  });
+
   it('closes after removing the last copy, which removes the row', async () => {
     const user = userEvent.setup();
     const handlers = renderMenu({ ...atraxa, quantity: 1 });
