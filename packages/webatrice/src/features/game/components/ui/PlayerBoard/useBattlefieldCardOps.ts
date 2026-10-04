@@ -180,10 +180,14 @@ export function useBattlefieldCardOps({
         promptPT: () => prompt((t) => openPTPrompt({ ...t, current: currentPT(anchor, printedPT) })),
         resetPT: () => setPT(resetPTEntries(targetCards, printedPT)),
         promptAnnotation: () => prompt((t) => openAnnotationPrompt({ ...t, current: anchor.annotation ?? '' })),
-        // Desktop attaches every target; the anchor carries the arrow.
+        // Desktop attaches every target; the anchor carries the arrow. An
+        // optimistic placeholder anchor hands the arrow to the first target
+        // with a server id.
         attach: () => {
-          if (anchorNumeric) {
-            startAttach([anchorId, ...targetIds.filter((id) => id !== anchorId)], anchor.name);
+          const sourceIds = anchorNumeric ? [anchorId, ...targetIds.filter((id) => id !== anchorId)] : targetIds;
+          if (sourceIds.length > 0) {
+            const arrowCard = targetCards.find((c) => Number(c.id) === sourceIds[0]) ?? anchor;
+            startAttach(sourceIds, arrowCard.name);
           }
         },
         drawArrow: () => {
