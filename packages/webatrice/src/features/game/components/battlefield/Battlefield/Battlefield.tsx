@@ -13,6 +13,7 @@ import { SeatDropPreview, useSeatDropZone } from '../../ui/SeatDragContext';
 import { useValueFlash } from '../../ui/ValueFlash/useValueFlash';
 import ZoneBackground from '../../ui/ZoneBackground/ZoneBackground';
 import ValueFlashOverlay from '../../ui/ValueFlash/ValueFlashOverlay';
+import { useJustRewound } from '../../ui/ReplayRewindContext';
 import {
   BATTLEFIELD_ROWS,
   computeCellWidths,
@@ -153,10 +154,12 @@ export default function Battlefield() {
     selection,
     startSeatCardDrag,
   } = usePlayerSeatContext();
-  const tapAnimation = useAnimationPreference('tapAnimation');
+  // A replay's backward skip taps and untaps without the animation (SKIP_TAP_ANIMATION).
+  const justRewound = useJustRewound();
+  const tapAnimation = useAnimationPreference('tapAnimation') && !justRewound;
   // Desktop's "Battlefield flash on damage": a crimson wash, under the cards,
   // when this player's life drops.
-  const damageFlash = useValueFlash(lifeControl?.value, useAnimationPreference('battlefieldFlash'));
+  const damageFlash = useValueFlash(lifeControl?.value, useAnimationPreference('battlefieldFlash'), { only: 'loss' });
 
   const {
     battlefieldLayout,
