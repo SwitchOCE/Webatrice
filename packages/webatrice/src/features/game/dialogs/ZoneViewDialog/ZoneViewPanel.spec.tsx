@@ -115,6 +115,19 @@ describe('ZoneViewPanel', () => {
       expect(dialog().style.height).toBe('300px');
     });
 
+    it('fits a viewport smaller than its minimum, the viewport winning', async () => {
+      const { innerWidth } = window;
+      window.innerWidth = 300;
+      try {
+        window.localStorage.setItem('webatrice.searchLibrarySize', JSON.stringify({ w: 100, h: 400 }));
+        await renderPanel();
+        expect(dialog().style.width).toBe('300px');
+        expect(dialog().style.minWidth).toBe('min(400px, 100vw)');
+      } finally {
+        window.innerWidth = innerWidth;
+      }
+    });
+
     it('stores where the header drags it to, half a second after the drag', async () => {
       vi.useFakeTimers();
       try {

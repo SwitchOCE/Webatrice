@@ -69,7 +69,24 @@ describe('useFloatingPanelGeometry', () => {
       left: (window.innerWidth - 200) / 2,
       top: (window.innerHeight - 100) / 2,
     });
-    expect(result.current.panelStyle).toMatchObject({ minWidth: '400px', minHeight: '300px' });
+    expect(result.current.panelStyle).toMatchObject({ minWidth: 'min(400px, 100vw)', minHeight: 'min(300px, 100vh)' });
+  });
+
+  it('lets the viewport win over its minimum, in its CSS too', () => {
+    const { innerWidth, innerHeight } = window;
+    window.innerWidth = 300;
+    window.innerHeight = 200;
+    try {
+      window.localStorage.setItem(`${KEY}Size`, JSON.stringify({ w: 100, h: 100 }));
+      const { result } = setup();
+      expect(result.current.panel.style.width).toBe('300px');
+      expect(result.current.panel.style.height).toBe('200px');
+      // A bare 400px minimum would hold the panel at 400×300 whatever its width and height say.
+      expect(result.current.panelStyle).toMatchObject({ minWidth: 'min(400px, 100vw)', minHeight: 'min(300px, 100vh)' });
+    } finally {
+      window.innerWidth = innerWidth;
+      window.innerHeight = innerHeight;
+    }
   });
 
   const press = (target: Element, button = 0) =>
