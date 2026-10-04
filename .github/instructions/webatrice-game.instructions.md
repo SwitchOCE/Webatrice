@@ -59,7 +59,7 @@ Port of `table_zone.cpp:153-185`.
 
 ## Servatrice game-event quirks
 
-Affecting [src/store/game/game.listeners.ts](../../packages/webatrice/src/store/game/game.listeners.ts) and [src/store/game/messageLog.ts](../../packages/webatrice/src/store/game/messageLog.ts).
+Affecting Datatrice's [game.listeners.zones.ts](../../packages/datatrice/src/store/games/game.listeners.zones.ts), [cardMove.ts](../../packages/datatrice/src/store/games/cardMove.ts) and [messageLog.ts](../../packages/datatrice/src/store/games/messageLog.ts).
 
 - **`target_zone` omitted on intra-zone moves.** Servatrice strips it when it equals `start_zone` (proto3 default elision). Fall back to `start_zone || target_zone` — without it, intra-zone moves silently bail at the zone lookup.
 - **Zone-exit zeroing is client-side.** Servatrice doesn't reliably emit `cardCounterChanged` events when a card leaves the battlefield, so the reducer clears `counterList` on `TABLE → non-TABLE`. Mirrors desktop's `CardItem::resetState()`.
