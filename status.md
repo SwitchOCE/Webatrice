@@ -1,1 +1,2 @@
 - 02:34 started fr2 → rebase R2 onto f25b
+- 02:43 rebased R2 onto f25b 0a67ce1 (conflicts resolved, ZoneViewDialog.spec selectors fixed, i18n regenerated, every commit typechecks+dialog specs green), pushed 3e7e703 → rv19 fixes
