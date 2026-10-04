@@ -42,12 +42,12 @@ vi.mock('@app/feature-widgets/shortcuts', async (importOriginal) => {
     },
     useShortcutGroup: (
       actionIds: readonly string[],
-      handler: (actionId: string, event: KeyboardEvent) => void,
+      handler: (actionId: string, event: KeyboardEvent, index: number) => void,
       options: { scope: unknown; enabled?: boolean },
     ) => {
-      for (const actionId of actionIds) {
+      for (const [index, actionId] of actionIds.entries()) {
         registrations.set(actionId, {
-          handler: (event?: KeyboardEvent) => handler(actionId, event ?? new KeyboardEvent('keydown')),
+          handler: (event?: KeyboardEvent) => handler(actionId, event ?? new KeyboardEvent('keydown'), index),
           enabled: options.enabled ?? true,
           scope: options.scope,
         });
