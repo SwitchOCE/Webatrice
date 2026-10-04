@@ -22,6 +22,7 @@ import {
   LIFE_COUNTER_ID,
   MANA_COUNTER_IDS,
   openContextMenu,
+  pileEl,
   type SeatGameSpec,
 } from './__test-utils__/seatFixtures';
 import { SEAT_SHORTCUT_ACTIONS, type SeatShortcutActionId, type SeatShortcutRegistry } from './components/ui/SeatShortcutsContext';
@@ -451,6 +452,19 @@ describe('arrows and attachments', () => {
       ]);
     });
 
+    it('targets a card in an open graveyard view', () => {
+      const DURESS = makeCard({ id: 50, name: 'Duress' });
+      const { game } = renderGame({ ...SPEC, seats: [{ ...SPEC.seats[0], grave: [DURESS] }, SPEC.seats[1]] });
+      openContextMenu(pileEl('Graveyard', 0));
+      chooseMenuPath('View graveyard');
+      openContextMenu(cardEl(OGRE.id, 'battlefield'));
+      chooseMenuPath('Draw arrow...');
+      act(() => {
+        fireEvent.click(cardEl(DURESS.id));
+      });
+      expect(wire(game)).toEqual([arrowTo(10, { targetPlayerId: 1, targetZone: ZoneName.GRAVE, targetCardId: 50 })]);
+    });
+
     it('is cancelled by the source card, by empty space and by Escape', () => {
       const { game } = renderGame();
       for (const cancel of [
@@ -570,6 +584,16 @@ describe('arrows and attachments', () => {
           startPlayerId: 2, startZone: ZoneName.TABLE, startCardId: 20,
           targetPlayerId: 1, targetZone: ZoneName.TABLE, targetCardId: 10, arrowColor: ArrowColor.RED,
         }],
+      ]);
+    });
+
+    it('plays a hand card dragged out of the hand, then draws the arrow from where it landed', async () => {
+      const { game } = renderGame();
+      rightDrag(cardEl(SHOCK.id, 'hand'), cardEl(BEAR.id, 'battlefield'));
+      await vi.waitFor(() => expect(game.createArrow).toHaveBeenCalled());
+      expect(wire(game)).toEqual([
+        ['moveCard', expect.objectContaining({ startZone: ZoneName.HAND, targetZone: ZoneName.STACK })],
+        arrowTo(30, { targetPlayerId: 2, targetZone: ZoneName.TABLE, targetCardId: 20 }, ZoneName.STACK),
       ]);
     });
 
