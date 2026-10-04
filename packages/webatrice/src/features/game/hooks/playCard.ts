@@ -6,7 +6,9 @@ import { CardDTO } from '../../../services/dexie/DexieDTOs/CardDTO';
 import {
   parseTableRow,
   placementFromCardDatabaseRow,
+  playedCardFields,
   STACK_TABLE_ROW,
+  type PlayedCardMeta,
 } from '../components/battlefield/Battlefield/cardPlacement';
 import {
   applyInvertY,
@@ -19,9 +21,22 @@ import {
 // Placement follows the card-database policy in cardPlacement.ts.
 const TABLEROW_LAND = 0;
 
-async function readTablerow(cardName: string): Promise<number | null> {
-  const meta = await CardDTO.get(cardName).catch(() => undefined);
-  return parseTableRow(meta?.tablerow?.value);
+/** What a play reads from the card database: the row, the printed P/T and cipt. */
+interface CardDatabasePlay extends PlayedCardMeta {
+  tablerow: number | null;
+}
+
+async function readCardDatabase(cardName: string): Promise<CardDatabasePlay> {
+  const entry = await CardDTO.get(cardName).catch(() => undefined);
+  const prop = entry?.prop?.value ?? {};
+  // Desktop CardInfo::getPowTough reads the `pt` property; a database built
+  // from split power / toughness properties is read the same way.
+  const pt = prop.pt?.value || (prop.power?.value && prop.toughness?.value ? `${prop.power.value}/${prop.toughness.value}` : undefined);
+  return {
+    tablerow: parseTableRow(entry?.tablerow?.value),
+    ...(pt && { pt }),
+    ...(entry?.cipt?.value === '1' && { cipt: true }),
+  };
 }
 
 // tableRow=3 → stack; 0/1/2 → battlefield with per-row default.
@@ -50,7 +65,8 @@ export async function playCardViaTableRow({
   judgeTargetId?: number;
 }): Promise<ZoneNameValue> {
   // `<tablerow>` is a top-level element on `<card>`, not inside `<prop>`.
-  const placement = placementFromCardDatabaseRow(await readTablerow(card.name));
+  const cardDatabase = await readCardDatabase(card.name);
+  const placement = placementFromCardDatabaseRow(cardDatabase.tablerow);
 
   if (placement.zone === 'stack') {
     // A card is played onto its owner's own stack; for own cards
@@ -80,7 +96,7 @@ export async function playCardViaTableRow({
   webClient.request.game.moveCard(gameId, {
     startPlayerId: sourcePlayerId,
     startZone: sourceZone,
-    cardsToMove: { card: [{ cardId: card.id, faceDown }] },
+    cardsToMove: { card: [{ cardId: card.id, faceDown, ...playedCardFields(cardDatabase, faceDown) }] },
     targetPlayerId: sourcePlayerId,
     targetZone: ZoneName.TABLE,
     x: gridXFromColumn(nextCol),
@@ -118,7 +134,7 @@ export async function autoPlayCard(args: {
   const { webClient, gameId, sourcePlayerId, sourceZone, card, faceDown, judgeTargetId, playToStack = true } = args;
 
   if (sourceZone === ZoneName.HAND) {
-    const tablerow = await readTablerow(card.name);
+    const { tablerow } = await readCardDatabase(card.name);
     if (tablerow === TABLEROW_LAND || (!playToStack && tablerow !== STACK_TABLE_ROW)) {
       return playCardViaTableRow(args);
     }
@@ -136,7 +152,7 @@ export async function autoPlayCard(args: {
   }
 
   if (sourceZone === ZoneName.STACK) {
-    const tablerow = await readTablerow(card.name);
+    const { tablerow } = await readCardDatabase(card.name);
     if (tablerow === STACK_TABLE_ROW) {
       webClient.request.game.moveCard(gameId, {
         startPlayerId: sourcePlayerId,

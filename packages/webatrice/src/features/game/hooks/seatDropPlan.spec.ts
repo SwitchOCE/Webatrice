@@ -118,6 +118,16 @@ describe('planSeatMove', () => {
     expect(planSeatMove(source(from), target)).toEqual([]);
   });
 
+  it('lands a card entering the battlefield with its printed P/T, and only then', () => {
+    const fromHand = source({ cards: [{ id: '30', printedPT: '2/2' }, { id: '31' }] });
+    expect(planSeatMove(fromHand, battlefield(2))[0].cardsToMove).toEqual({ card: [{ cardId: 30, pt: '2/2' }, { cardId: 31 }] });
+    expect(planSeatMove(fromHand, { zone: 'graveyard' })[0].cardsToMove).toEqual({ card: [{ cardId: 30 }, { cardId: 31 }] });
+
+    // A battlefield move keeps the card's own P/T.
+    const onBoard = source({ zone: 'battlefield', cards: [{ id: '10', slot: { row: 0, col: 1 }, printedPT: '2/2' }] });
+    expect(planSeatMove(onBoard, battlefield(2))[0].cardsToMove).toEqual({ card: [{ cardId: 10 }] });
+  });
+
   it('addresses hidden zones by position: the pile\'s top card is 0', () => {
     const pile = source({ zone: 'library', cards: [{ id: 'library-top' }] });
     expect(planSeatMove(pile, { zone: 'graveyard' })).toEqual([
