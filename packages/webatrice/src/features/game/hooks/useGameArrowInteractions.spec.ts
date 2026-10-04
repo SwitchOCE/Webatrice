@@ -64,7 +64,6 @@ function setup({
     () =>
       useGameArrowInteractions({
         gameId: 1,
-        game: { ...game, info: { ...game.info, gameId: 1 } },
         containerRef: boardRef,
         cardRegistry,
         selectedCards: [],

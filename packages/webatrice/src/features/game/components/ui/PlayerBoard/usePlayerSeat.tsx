@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef } from 'react';
-import { ZoneName } from '@cockatrice/sockatrice';
+import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 import { useShortcutHints } from '@app/feature-widgets/shortcuts';
 
 import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
@@ -15,6 +15,7 @@ import type { CardMenuItem } from '../../context-menus/CardContextMenu/cardConte
 import { buildRelatedViewItems } from '../../context-menus/CardContextMenu/relatedCardActions';
 import { useCardPreviewActions } from '../CardPreviewContext';
 import { useCardScale } from '../CardScaleContext';
+import { usePendingTargetContext } from '../PendingTargetContext';
 import { useGameDialogsContext } from '../GameDialogsContext';
 import { useGameSelectionState } from '../GameSelectionContext';
 import { useHandMenuItems } from '../HandZone/useHandMenuItems';
@@ -27,7 +28,6 @@ import type {
 } from './playerBoard.types';
 import { useBattlefieldCardOps } from './useBattlefieldCardOps';
 import { useDrawFlights } from './useDrawFlights';
-import { usePendingArrows } from './usePendingArrows';
 import { useSeatCardMetadata } from './useSeatCardMetadata';
 import { useSeatDnd } from './useSeatDnd';
 import { useSeatMarquee } from './useSeatMarquee';
@@ -35,6 +35,7 @@ import { useSeatPrompts } from './useSeatPrompts';
 import { useSeatShortcutOperations } from './useSeatShortcutOperations';
 
 const EMPTY_CARD_KEYS: ReadonlySet<string> = new Set();
+const NO_CARD_IDS: readonly number[] = [];
 
 export type PlayerSeatProps = {
   /** What the seat shows: identity, zones, counters, permissions. */
@@ -228,25 +229,44 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     cardCommands,
     counterCommands,
   });
-  const {
-    attachPending,
-    setAttachPending,
-    attachExtraSourceIds,
-    setAttachExtraSourceIds,
-    attachPendingRef,
-    attachExtraSourceIdsRef,
-    drawArrowPending,
-    setDrawArrowPending,
-    pendingArrowPointer,
-  } = usePendingArrows({ playerId, targetCommands });
+  // The game's pending target pick, as far as it starts from this seat: the
+  // seat rings its attach sources and draws the live arrow from its card.
+  const pendingTarget = usePendingTargetContext();
+  const seatPending = pendingTarget.pending?.source.playerId === playerId ? pendingTarget.pending : null;
+  const attachPending = useMemo(
+    () => (seatPending?.kind === 'attach'
+      ? { sourceCardId: seatPending.source.cardId, sourceCardName: seatPending.source.name }
+      : null),
+    [seatPending],
+  );
+  const attachExtraSourceIds = seatPending?.kind === 'attach' ? seatPending.extraSourceIds : NO_CARD_IDS;
+  const drawArrowPending = useMemo(
+    () => (seatPending?.kind === 'arrow'
+      ? { sourceCardId: seatPending.source.cardId, sourceCardName: seatPending.source.name, sourceZone: seatPending.source.zone }
+      : null),
+    [seatPending],
+  );
+  const pendingArrowPointer = seatPending ? pendingTarget.pointer : null;
+  const { startArrow: startPendingArrow, startAttach: startPendingAttach, pickAttachTarget } = pendingTarget;
+  /** "Draw arrow..." from one of this seat's cards in any public zone. */
+  const startDrawArrow = useCallback(
+    ({ sourceCardId, sourceCardName, sourceZone }: { sourceCardId: number; sourceCardName: string; sourceZone: ZoneNameValue }) =>
+      startPendingArrow({ playerId, zone: sourceZone, cardId: sourceCardId, name: sourceCardName }),
+    [startPendingArrow, playerId],
+  );
   const startAttach = useCallback((sourceCardIds: readonly number[], anchorName: string) => {
     const [anchorId, ...extraIds] = sourceCardIds;
-    setAttachPending({ sourceCardId: anchorId, sourceCardName: anchorName });
-    setAttachExtraSourceIds(extraIds);
-  }, [setAttachPending, setAttachExtraSourceIds]);
-  const startArrow = useCallback((sourceCardId: number, sourceCardName: string) => {
-    setDrawArrowPending({ sourceCardId, sourceCardName, sourceZone: ZoneName.TABLE });
-  }, [setDrawArrowPending]);
+    startPendingAttach({ playerId, zone: ZoneName.TABLE, cardId: anchorId, name: anchorName }, extraIds);
+  }, [startPendingAttach, playerId]);
+  const startArrow = useCallback(
+    (sourceCardId: number, sourceCardName: string) => startDrawArrow({ sourceCardId, sourceCardName, sourceZone: ZoneName.TABLE }),
+    [startDrawArrow],
+  );
+  // A press on one of this seat's battlefield cards resolves this seat's
+  // attach pick (desktop attaches to any battlefield card; the seat still
+  // takes only its own).
+  const resolveAttachPress = (cardId: number) =>
+    attachPending != null && pickAttachTarget({ kind: 'card', playerId, zone: ZoneName.TABLE, cardId });
   // The battlefield card actions behind both the card menu and the shortcuts.
   const cardOps = useBattlefieldCardOps({
     cards: battlefieldDisplayList,
@@ -387,15 +407,10 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     exileZoneRef,
   } = useSeatDnd({
     seatId,
-    playerId,
     seatDrag,
     selection,
     setSelection,
-    attachPendingRef,
-    attachExtraSourceIdsRef,
-    setAttachPending,
-    setAttachExtraSourceIds,
-    targetCommands,
+    resolveAttachPress,
     stackDisplayList,
     handDisplayList,
     boxRef,
@@ -486,16 +501,15 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     seatDrag,
     seatId,
     selection,
-    setAttachExtraSourceIds,
-    setAttachPending,
     setCardMetaByName,
-    setDrawArrowPending,
     setLife,
     setSelection,
     shortcutHints,
     stackCardMenu,
     stackDisplayList,
     stackZoneRef,
+    startAttach,
+    startDrawArrow,
     startPileDrag,
     startSeatCardDrag,
     targetCommands,

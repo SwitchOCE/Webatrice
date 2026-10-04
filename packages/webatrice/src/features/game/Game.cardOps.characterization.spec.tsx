@@ -391,14 +391,14 @@ describe('arrows and attachments', () => {
       expect(wire(game)).toEqual([arrowTo(10, { targetPlayerId: 2, targetZone: ZoneName.TABLE, targetCardId: 20 })]);
     });
 
-    it('sends TABLE as the target zone of a stack card', () => {
+    it('sends the target card\'s own zone, as the right-button drag does', () => {
       const { game } = renderGame(WITH_STACK);
       openContextMenu(cardEl(OGRE.id, 'battlefield'));
       chooseMenuPath('Draw arrow...');
       act(() => {
         fireEvent.click(cardEl(COUNTERSPELL.id, 'stack'));
       });
-      expect(wire(game)).toEqual([arrowTo(10, { targetPlayerId: 2, targetZone: ZoneName.TABLE, targetCardId: 21 })]);
+      expect(wire(game)).toEqual([arrowTo(10, { targetPlayerId: 2, targetZone: ZoneName.STACK, targetCardId: 21 })]);
     });
 
     it('draws an arrow to a player, omitting the target card fields', () => {
@@ -413,14 +413,28 @@ describe('arrows and attachments', () => {
       }]]);
     });
 
-    it('from a hand card draws the arrow from the hand, without playing it', () => {
+    it('from a hand card plays the card, then draws the arrow from where it landed', async () => {
       const { game } = renderGame();
       openContextMenu(cardEl(SHOCK.id, 'hand'));
       chooseMenuPath('Draw arrow...');
       act(() => {
         fireEvent.click(cardEl(BEAR.id, 'battlefield'));
       });
-      expect(wire(game)).toEqual([arrowTo(30, { targetPlayerId: 2, targetZone: ZoneName.TABLE, targetCardId: 20 }, ZoneName.HAND)]);
+      await vi.waitFor(() => expect(game.createArrow).toHaveBeenCalled());
+      expect(wire(game)).toEqual([
+        ['moveCard', {
+          startPlayerId: 1,
+          startZone: ZoneName.HAND,
+          cardsToMove: { card: [{ cardId: 30, faceDown: false }] },
+          targetPlayerId: 1,
+          // A creature (tablerow 1) lands in the first free column of the middle row.
+          targetZone: ZoneName.TABLE,
+          x: 0,
+          y: 1,
+          isReversed: false,
+        }],
+        arrowTo(30, { targetPlayerId: 2, targetZone: ZoneName.TABLE, targetCardId: 20 }),
+      ]);
     });
 
     it('is cancelled by the source card, by empty space and by Escape', () => {

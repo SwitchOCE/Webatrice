@@ -8,6 +8,7 @@
 
 import type { ZoneNameValue } from '@cockatrice/sockatrice';
 import type { MoveCardParams } from '@cockatrice/sockatrice/generated';
+import type { ColorRGBA } from '@app/types';
 
 import type { BattlefieldSlot } from '../../battlefield/Battlefield/battlefieldLayout';
 
@@ -259,15 +260,28 @@ export interface PlayerCounterCommands {
   flipCoin(): void;
 }
 
+/** Where an arrow ends: a card in any public zone, or a player. */
 export type ArrowTarget =
-  | { kind: 'card'; playerId: number; cardId: number }
+  | { kind: 'card'; playerId: number; zone: ZoneNameValue; cardId: number }
   | { kind: 'player'; playerId: number };
 
-/** Arrows and attachments. */
+/**
+ * Arrows and attachments from one player's cards. An attach runs as that
+ * card's owner, so a judge acting on another player's card wraps it in
+ * Command_Judge; an arrow belongs to the local player and is never wrapped
+ * (desktop CardItem::drawArrow draws as the active local player).
+ */
 export interface PlayerTargetCommands {
   attach(sourceCardId: number, target: { playerId: number; cardId: number }): void;
   unattach(sourceCardId: number): void;
-  createArrow(sourceCardId: number, sourceZone: ZoneNameValue, target: ArrowTarget): void;
+  /** Draw an arrow from one of this player's cards in `sourceZone`. Red unless `color` is given. */
+  createArrow(sourceCardId: number, sourceZone: ZoneNameValue, target: ArrowTarget, color?: ColorRGBA): void;
+  /**
+   * Play a hand card, then draw the arrow from where it lands (desktop
+   * ArrowDragItem::mouseReleaseEvent, arrow_item.cpp:434-446). The arrow keeps
+   * the hand-side card id; Servatrice resolves it against the moved card.
+   */
+  playAndCreateArrow(handCardId: number, target: ArrowTarget, color?: ColorRGBA): void;
   /** Delete every arrow this seat's player drew. */
   clearOwnArrows(): void;
 }
