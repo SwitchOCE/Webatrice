@@ -1,5 +1,9 @@
 {
   "ChatLog": {
-    "inputLabel": "Game chat message"
+    "heading": "Chat & log",
+    "empty": "no messages",
+    "inputLabel": "Game chat message",
+    "placeholder": "Say something…",
+    "unavailable": "Chat unavailable"
   }
 }

@@ -1616,7 +1616,11 @@
     "deckSelectFailed": "The server did not accept this deck."
   },
   "ChatLog": {
-    "inputLabel": "Game chat message"
+    "heading": "Chat & log",
+    "empty": "no messages",
+    "inputLabel": "Game chat message",
+    "placeholder": "Say something…",
+    "unavailable": "Chat unavailable"
   },
   "GameInvite": {
     "copyLink": "Copy game link",
