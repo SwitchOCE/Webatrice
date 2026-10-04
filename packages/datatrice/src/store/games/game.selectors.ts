@@ -42,6 +42,11 @@ const seatedPlayersEqual = (a: Enriched.PlayerEntry[], b: Enriched.PlayerEntry[]
 
 const selectSeatedPlayers = lruMemoize(seatedPlayersOf, { resultEqualityCheck: seatedPlayersEqual });
 
+export interface ArrowRef {
+  ownerPlayerId: number;
+  arrowId: number;
+}
+
 export interface AttachedChild {
   card: ServerInfo_Card;
   ownerPlayerId: number;
@@ -219,6 +224,28 @@ export const Selectors = {
 
   getArrows: ({ games }: State, gameId: number, playerId: number) =>
     games.games[gameId]?.players[playerId]?.arrows ?? EMPTY_OBJECT,
+
+  // Every arrow, on any player (arrows cross players), with an endpoint on the given
+  // card. Unmemoized: the cardMoved listener reads it once per move.
+  getArrowsTouchingCard: (
+    { games }: State,
+    gameId: number,
+    playerId: number,
+    zoneName: string,
+    cardId: number,
+  ): ArrowRef[] => {
+    const refs: ArrowRef[] = [];
+    for (const [ownerId, owner] of Object.entries(games.games[gameId]?.players ?? {})) {
+      for (const arrow of Object.values(owner.arrows)) {
+        const fromCard = arrow.startPlayerId === playerId && arrow.startZone === zoneName && arrow.startCardId === cardId;
+        const toCard = arrow.targetPlayerId === playerId && arrow.targetZone === zoneName && arrow.targetCardId === cardId;
+        if (fromCard || toCard) {
+          refs.push({ ownerPlayerId: Number(ownerId), arrowId: arrow.id });
+        }
+      }
+    }
+    return refs;
+  },
 
   getActivePlayerId: ({ games }: State, gameId: number): number | undefined =>
     games.games[gameId]?.activePlayerId,

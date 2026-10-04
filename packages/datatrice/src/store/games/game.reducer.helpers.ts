@@ -1,8 +1,15 @@
-import { create } from '@bufbuild/protobuf';
+import { create, isFieldSet } from '@bufbuild/protobuf';
 import { Enriched } from '../../types';
 import {
+  CardAttribute,
+  Event_AttachCard,
+  Event_CreateToken,
+  Event_GameStateChanged,
+  Event_GameStateChangedSchema,
   ServerInfo_Arrow,
   ServerInfo_Card,
+  ServerInfo_CardCounter,
+  ServerInfo_CardCounterSchema,
   ServerInfo_CardSchema,
   ServerInfo_Counter,
   ServerInfo_Player,
@@ -179,4 +186,123 @@ export function clearZoneKnownCards(zone: Enriched.ZoneEntry): void {
   zone.byId = {};
   delete zone.revealedCards;
   delete zone.topRevealedCard;
+}
+
+// The fields an Event_SetCardAttr sets; booleans arrive as '0' / '1'. An attribute
+// without a card field yields undefined: the event still logs but changes nothing.
+export function cardAttrFields(attribute: CardAttribute, attrValue: string): Partial<ServerInfo_Card> | undefined {
+  switch (attribute) {
+    case CardAttribute.AttrTapped:
+      return { tapped: attrValue === '1' };
+    case CardAttribute.AttrAttacking:
+      return { attacking: attrValue === '1' };
+    case CardAttribute.AttrFaceDown:
+      return { faceDown: attrValue === '1' };
+    case CardAttribute.AttrColor:
+      return { color: attrValue };
+    case CardAttribute.AttrPT:
+      return { pt: attrValue };
+    case CardAttribute.AttrAnnotation:
+      return { annotation: attrValue };
+    case CardAttribute.AttrDoesntUntap:
+      return { doesntUntap: attrValue === '1' };
+    default:
+      return undefined;
+  }
+}
+
+// Event_SetCardCounter sets an absolute value: zero or less removes the counter,
+// otherwise it is updated in place or appended.
+export function mergeCardCounter(
+  counterList: ServerInfo_CardCounter[],
+  counterId: number,
+  counterValue: number,
+): ServerInfo_CardCounter[] {
+  if (counterValue <= 0) {
+    return counterList.filter(c => c.id !== counterId);
+  }
+  const idx = counterList.findIndex(c => c.id === counterId);
+  if (idx < 0) {
+    return [...counterList, create(ServerInfo_CardCounterSchema, { id: counterId, value: counterValue })];
+  }
+  return counterList.map((c, i) => (i === idx ? { ...c, value: counterValue } : c));
+}
+
+// Unattach is an Event_AttachCard with an empty targetZone (proto3 can't tell the
+// unset numerics from player 0 / card 0), written as the explicit -1 / '' / -1
+// sentinels `isAttachedChild` checks for.
+// See .github/instructions/datatrice-game.instructions.md#servatrice-game-event-quirks.
+export function cardAttachFields(data: Event_AttachCard): Pick<ServerInfo_Card, 'attachPlayerId' | 'attachZone' | 'attachCardId'> {
+  const { targetPlayerId, targetZone, targetCardId } = data;
+  return targetZone
+    ? { attachPlayerId: targetPlayerId, attachZone: targetZone, attachCardId: targetCardId }
+    : { attachPlayerId: -1, attachZone: '', attachCardId: -1 };
+}
+
+// Builds the token through the schema so fields the wire omits start at the protocol's
+// documented defaults, with the attach sentinels set so the token lands detached.
+export function buildTokenCard(data: Event_CreateToken): ServerInfo_Card {
+  const { cardId, cardName, x, y, faceDown, color, pt, annotation, destroyOnZoneChange, cardProviderId } = data;
+  return create(ServerInfo_CardSchema, {
+    id: cardId, name: cardName, x, y, faceDown,
+    tapped: false, attacking: false, color, pt, annotation, destroyOnZoneChange,
+    doesntUntap: false, counterList: [],
+    attachPlayerId: -1, attachZone: '', attachCardId: -1, providerId: cardProviderId,
+  });
+}
+
+// A gameStateChanged resync rebuilds every player from the wire, which omits two
+// things the client already holds: `userInfo` (Servatrice resyncs with
+// withUserInfo=false, server_game.cpp:280) and any open "View library" snapshot
+// (`revealedCards` is local-only). Copies both from `previous` into the freshly
+// normalized `next`, so names and open zone views survive a mid-game resync.
+// See .github/instructions/datatrice-game.instructions.md#servatrice-game-event-quirks.
+export function carryForwardResyncState(
+  previous: { [playerId: number]: Enriched.PlayerEntry },
+  next: { [playerId: number]: Enriched.PlayerEntry },
+): void {
+  for (const idStr of Object.keys(next)) {
+    const id = Number(idStr);
+    const prevPlayer = previous[id];
+    const prevUserInfo = prevPlayer?.properties.userInfo;
+    if (prevUserInfo && !next[id].properties.userInfo) {
+      next[id].properties.userInfo = prevUserInfo;
+    }
+    if (prevPlayer) {
+      for (const zoneName of Object.keys(next[id].zones)) {
+        const prevRevealed = prevPlayer.zones[zoneName]?.revealedCards;
+        if (prevRevealed) {
+          next[id].zones[zoneName].revealedCards = prevRevealed;
+        }
+      }
+    }
+  }
+}
+
+export interface GameInfoUpdate {
+  gameStarted?: boolean;
+  activePlayerId?: number;
+  activePhase?: number;
+  secondsElapsed?: number;
+}
+
+// The game-level fields an Event_GameStateChanged actually carries, or null when it
+// carries none. isFieldSet tells "set" from "default";
+// see .github/instructions/datatrice-store.instructions.md#reducer-author-hazards.
+export function gameInfoUpdateFrom(data: Event_GameStateChanged): GameInfoUpdate | null {
+  const { field } = Event_GameStateChangedSchema;
+  const update: GameInfoUpdate = {};
+  if (isFieldSet(data, field.gameStarted)) {
+    update.gameStarted = data.gameStarted;
+  }
+  if (isFieldSet(data, field.activePlayerId)) {
+    update.activePlayerId = data.activePlayerId;
+  }
+  if (isFieldSet(data, field.activePhase)) {
+    update.activePhase = data.activePhase;
+  }
+  if (isFieldSet(data, field.secondsElapsed)) {
+    update.secondsElapsed = data.secondsElapsed;
+  }
+  return Object.keys(update).length > 0 ? update : null;
 }
