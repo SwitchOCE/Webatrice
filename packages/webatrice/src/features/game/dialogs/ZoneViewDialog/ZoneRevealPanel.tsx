@@ -1,17 +1,11 @@
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-  type Ref,
-} from 'react';
+import type { PointerEvent as ReactPointerEvent, Ref } from 'react';
 import { createPortal } from 'react-dom';
 import { setRef } from '@mui/material/utils';
 import { X } from 'lucide-react';
 
-import Card from '../../components/ui/SeatCard/SeatCard';
-import { CARD_HEIGHT, CARD_WIDTH } from '../../components/ui/SeatCard/cardSize';
+import { CARD_WIDTH } from '../../components/ui/SeatCard/cardSize';
+import { useFloatingPanelGeometry } from '../shared/useFloatingPanelGeometry';
+import { ZoneCardCell } from '../shared/ZoneCardCell';
 
 type HandCard = { id: string; name: string; scryfallId: string };
 
@@ -28,7 +22,8 @@ type HandCard = { id: string; name: string; scryfallId: string };
  *   • The dialog itself is draggable via the header, resizable via
  *     the browser's native `resize` handle, and non-modal (no blurred
  *     backdrop) so the play area behind stays visible and interactive.
- *   • Position + size persist to localStorage across sessions.
+ *   • Position + size persist to localStorage across sessions
+ *     (useFloatingPanelGeometry).
  *
  * Zone-specific bits (title, labels, drag wiring) live in the caller.
  */
@@ -64,116 +59,11 @@ export interface ZoneRevealPanelProps {
   onClose: () => void;
 }
 
-/** localStorage keys — shared across ALL zone-reveal invocations so the
- *  user's remembered position/size applies whether they're viewing the
- *  library, graveyard, or exile. */
-const POSITION_STORAGE_KEY = 'webatrice.zoneRevealPosition';
-const SIZE_STORAGE_KEY = 'webatrice.zoneRevealSize';
-
-const MIN_DIALOG_W = 400;
-const MIN_DIALOG_H = 240;
-const DEFAULT_DIALOG_W = 900;
-const DEFAULT_DIALOG_H = 480;
-
-function readStoredPosition(): { x: number; y: number } | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  try {
-    const raw = window.localStorage.getItem(POSITION_STORAGE_KEY);
-    if (!raw) {
-      return null;
-    }
-    const parsed = JSON.parse(raw);
-    if (
-      parsed &&
-      typeof parsed.x === 'number' &&
-      typeof parsed.y === 'number' &&
-      Number.isFinite(parsed.x) &&
-      Number.isFinite(parsed.y)
-    ) {
-      return { x: parsed.x, y: parsed.y };
-    }
-  } catch {
-    // ignore
-  }
-  return null;
-}
-
-function writeStoredPosition(pos: { x: number; y: number }): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  try {
-    window.localStorage.setItem(POSITION_STORAGE_KEY, JSON.stringify(pos));
-  } catch {
-    // ignore
-  }
-}
-
-function readStoredSize(): { w: number; h: number } | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  try {
-    const raw = window.localStorage.getItem(SIZE_STORAGE_KEY);
-    if (!raw) {
-      return null;
-    }
-    const parsed = JSON.parse(raw);
-    if (
-      parsed &&
-      typeof parsed.w === 'number' &&
-      typeof parsed.h === 'number' &&
-      Number.isFinite(parsed.w) &&
-      Number.isFinite(parsed.h)
-    ) {
-      return { w: parsed.w, h: parsed.h };
-    }
-  } catch {
-    // ignore
-  }
-  return null;
-}
-
-function writeStoredSize(size: { w: number; h: number }): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-  try {
-    window.localStorage.setItem(SIZE_STORAGE_KEY, JSON.stringify(size));
-  } catch {
-    // ignore
-  }
-}
-
-function clampToViewport(
-  pos: { x: number; y: number },
-  size: { w: number; h: number },
-): { x: number; y: number } {
-  if (typeof window === 'undefined') {
-    return pos;
-  }
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  return {
-    x: Math.min(Math.max(0, pos.x), Math.max(0, vw - size.w)),
-    y: Math.min(Math.max(0, pos.y), Math.max(0, vh - size.h)),
-  };
-}
-
-function clampSizeToViewport(size: { w: number; h: number }): {
-  w: number;
-  h: number;
-} {
-  if (typeof window === 'undefined') {
-    return size;
-  }
-  return {
-    w: Math.min(Math.max(MIN_DIALOG_W, size.w), window.innerWidth),
-    h: Math.min(Math.max(MIN_DIALOG_H, size.h), window.innerHeight),
-  };
-}
+/** Where the view keeps its geometry: one place for every top / bottom N view,
+ *  whichever zone it shows. */
+const STORAGE_KEY = 'webatrice.zoneReveal';
+const MIN_SIZE = { w: 400, h: 240 };
+const DEFAULT_SIZE = { w: 900, h: 480 };
 
 export default function ZoneRevealPanel({
   title,
@@ -185,143 +75,11 @@ export default function ZoneRevealPanel({
   draggingCardIds,
   onClose,
 }: ZoneRevealPanelProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  // Position — `null` until the layout effect measures the dialog and
-  // either restores a saved position or centers it. Once set, the
-  // dialog is absolutely positioned (draggable via the header).
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
-  const dragOffset = useRef<{ x: number; y: number } | null>(null);
-  const [dragging, setDragging] = useState(false);
-  const hasBeenDraggedRef = useRef(false);
-
-  // Apply saved size before the position layout effect runs, so the
-  // position calc uses the final rendered size. Written imperatively
-  // so the native `resize: both` handle can freely change the inline
-  // width/height without racing React state.
-  useLayoutEffect(() => {
-    const el = dialogRef.current;
-    if (!el) {
-      return;
-    }
-    const storedSize = readStoredSize();
-    if (storedSize) {
-      const clamped = clampSizeToViewport(storedSize);
-      el.style.width = `${clamped.w}px`;
-      el.style.height = `${clamped.h}px`;
-    } else {
-      el.style.width = `${DEFAULT_DIALOG_W}px`;
-      el.style.height = `${DEFAULT_DIALOG_H}px`;
-    }
-  }, []);
-
-  // Position on open — restore saved location or center. useLayoutEffect
-  // so the paint of the positioned dialog lands on the same frame as the
-  // flex-centered fallback — no visible jump.
-  useLayoutEffect(() => {
-    const el = dialogRef.current;
-    if (!el) {
-      return;
-    }
-    const rect = el.getBoundingClientRect();
-    const stored = readStoredPosition();
-    if (stored) {
-      setPos(clampToViewport(stored, { w: rect.width, h: rect.height }));
-    } else {
-      setPos({
-        x: Math.max(0, (window.innerWidth - rect.width) / 2),
-        y: Math.max(0, (window.innerHeight - rect.height) / 2),
-      });
-    }
-  }, []);
-
-  // Persist size after 500ms of no change. First ResizeObserver fire
-  // is skipped — it reports the initial size (from storage or CSS
-  // default), which the user hasn't actively set. Any subsequent fire
-  // means the user grabbed the resize handle.
-  useEffect(() => {
-    const el = dialogRef.current;
-    if (!el) {
-      return;
-    }
-    let first = true;
-    let timer: number | null = null;
-    const ro = new ResizeObserver(([entry]) => {
-      if (first) {
-        first = false;
-        return;
-      }
-      const w = entry.contentRect.width;
-      const h = entry.contentRect.height;
-      if (timer !== null) {
-        window.clearTimeout(timer);
-      }
-      timer = window.setTimeout(() => {
-        writeStoredSize({ w, h });
-      }, 500);
-    });
-    ro.observe(el);
-    return () => {
-      ro.disconnect();
-      if (timer !== null) {
-        window.clearTimeout(timer);
-      }
-    };
-  }, []);
-
-  // Global pointer listeners while dragging the header.
-  useEffect(() => {
-    if (!dragging) {
-      return;
-    }
-    const onMove = (e: PointerEvent) => {
-      const off = dragOffset.current;
-      if (!off) {
-        return;
-      }
-      setPos({ x: e.clientX - off.x, y: e.clientY - off.y });
-    };
-    const onUp = () => {
-      dragOffset.current = null;
-      setDragging(false);
-    };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-    return () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-    };
-  }, [dragging]);
-
-  // Persist position 500ms after last move (skipped on first open).
-  useEffect(() => {
-    if (!pos || !hasBeenDraggedRef.current) {
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      writeStoredPosition(pos);
-    }, 500);
-    return () => window.clearTimeout(timer);
-  }, [pos]);
-
-  const onHeaderPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0) {
-      return;
-    }
-    // Don't start a drag from the close button (or any other button
-    // that might land in the header later).
-    const target = e.target as HTMLElement | null;
-    if (target?.closest('button')) {
-      return;
-    }
-    const rect = dialogRef.current?.getBoundingClientRect();
-    if (!rect) {
-      return;
-    }
-    dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    setPos({ x: rect.left, y: rect.top });
-    setDragging(true);
-    hasBeenDraggedRef.current = true;
-  };
+  const { panelRef, panelStyle, dragging, onHeaderPointerDown } = useFloatingPanelGeometry({
+    storageKey: STORAGE_KEY,
+    minSize: MIN_SIZE,
+    initialSize: DEFAULT_SIZE,
+  });
 
   return createPortal(
     // The outer wrapper is pointer-events: none so clicks pass through
@@ -338,20 +96,14 @@ export default function ZoneRevealPanel({
         role="dialog"
         aria-label={title}
         ref={(el) => {
-          dialogRef.current = el;
+          panelRef.current = el;
           setRef(dropRef, el);
         }}
         className={[
           'bg-bg-surface border border-border-subtle rounded-lg',
           'shadow-glow flex flex-col pointer-events-auto resize overflow-hidden',
         ].join(' ')}
-        style={{
-          minWidth: `${MIN_DIALOG_W}px`,
-          minHeight: `${MIN_DIALOG_H}px`,
-          ...(pos
-            ? { position: 'absolute', left: pos.x, top: pos.y, margin: 0 }
-            : null),
-        }}
+        style={panelStyle}
       >
         {/* Header — grab handle for dragging the dialog. */}
         <div
@@ -389,34 +141,19 @@ export default function ZoneRevealPanel({
             <div className="flex flex-wrap gap-3">
               {cards.map((c, i) => {
                 const label = labels?.[i];
-                const isDragging = draggingCardIds?.has(c.id);
                 return (
                   <div
                     key={`${c.id}-${i}`}
                     className="flex flex-col items-center gap-1"
                     style={{ width: CARD_WIDTH }}
                   >
-                    <div
-                      data-card
-                      data-card-id={c.id}
+                    <ZoneCardCell
+                      card={c}
+                      marked
+                      hidden={draggingCardIds?.has(c.id)}
+                      onPointerDown={onCardPointerDown && ((e) => onCardPointerDown(e, c))}
                       className="board-motion transition-opacity duration-100 ease-out"
-                      onPointerDown={(e) => {
-                        if (e.button !== 0) {
-                          return;
-                        }
-                        onCardPointerDown?.(e, c);
-                      }}
-                      style={{
-                        width: CARD_WIDTH,
-                        height: CARD_HEIGHT,
-                        cursor: onCardPointerDown ? 'grab' : 'default',
-                        opacity: isDragging ? 0 : 1,
-                        touchAction: onCardPointerDown ? 'none' : undefined,
-                        borderRadius: '7.5%',
-                      }}
-                    >
-                      <Card name={c.name} scryfallId={c.scryfallId} />
-                    </div>
+                    />
                     {label != null && (
                       <span className="text-xs font-semibold text-text-secondary tabular-nums select-none">
                         {label}
