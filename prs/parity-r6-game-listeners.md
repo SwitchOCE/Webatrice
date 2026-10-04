@@ -21,7 +21,7 @@
     - `drawBeaconBumped`;
     - unknown game and unknown zone.
   - A registration test pins exactly one listener per inbound event.
-- **Six named `cardMoved` jobs as pure helpers** (`cardMove.ts`). Each reads the pre-move zones, returns data,
+- **Six named `cardMoved` jobs as pure helpers** (`cardMove.ts`). Each reads the state it is given, returns data,
   and has a table spec:
 
   | Job | Helper |
@@ -29,7 +29,7 @@
   | identity | `resolveMoveIdentity`, `buildMovedCard`, `planMovePlacement` (`count-transfer` / `none` / `view-reorder` / `same-zone` / `between-zones`) |
   | optimistic bookkeeping | `planOptimisticReconcile` → `migrate` / `patch` / null (`consumeOptimistic` stays in the listener; it is the impure registry) |
   | zone-view sync | `planZoneViewSync` → `{ removeAt, clearTop, insertAt }` |
-  | orphan-arrow sweep | `sweepsArrows` + new selector `Selectors.getArrowsTouchingCard` (the audit's `arrowsTouchingCard`) |
+  | orphan-arrow sweep | `sweepsArrows` + the internal state scan `arrowsTouchingCard` (not exported from the package) |
   | attachment reparenting | `planAttachmentReparent` |
   | log line | `cardMovedLogEntry` |
 
@@ -51,17 +51,20 @@
 - Docs: `datatrice-game.instructions.md` gains a "One listener per inbound event, grouped by domain" rule. Two stale
   references to the old file are fixed: the `optimistic.ts` header, and a `webatrice-game.instructions.md` link
   that pointed at a webatrice path that no longer exists.
-- Changeset: `@cockatrice/datatrice` patch. The new public members are `Selectors.getArrowsTouchingCard` and
-  `type ArrowRef`, both additive.
+- Changeset: `@cockatrice/datatrice` patch. No public API is added: the arrow scan stays inside the package.
 
 Commits (oldest first):
 
 1. `test(datatrice): characterize the game listeners before splitting them`
 2. `refactor(datatrice): plan cardMoved and the listener payloads in pure helpers`
 3. `refactor(datatrice): split the game listeners by domain`
+4. `refactor(datatrice): keep the arrow sweep's state scan internal` (review)
+5. `test(datatrice): pin every same-zone reorder zone and the unpinned move branches` (review)
+6. `refactor(datatrice): drop a dead fallback and clone counters through the schema` (review)
 
 **Behaviour fixes: none.** The aud2 row names no bug in this file. The recordings were captured before any code
-moved and pass byte-for-byte after each step.
+moved and passed byte-for-byte through commit 3. Commit 5 changes the spec on purpose: `describeCard` now compares
+against schema defaults, and the stream gains one arrow and one recorded sweep.
 
 ## Parity rows closed
 
@@ -81,7 +84,16 @@ Behaviour is unchanged. The comments that cite desktop and Servatrice moved with
 
 ## Testing
 
-All run from the repo root on the branch tip:
+**Review-fix commits 4–6 are UNVERIFIED.** In the fr6 cloud run, the auto-mode permission classifier denied
+`npm ci` (and with it `git submodule update --init`), so no typecheck, lint or test ran on the new tip. The counts
+below are from tip `2673b2d`. The orchestrator must run the full gate on `115f1e9` and report each rv18 mutation
+probe killed. Expected deltas: `cardMove.spec.ts` +5 tests (3 placement rows, 1 face-down patch, 1 undo-draw row;
+`arrowsTouchingCard`'s 5 tests moved here from `game.selectors.spec.ts`), and the characterization spec +4 (one
+reorder recording per positional zone). The risk to check first: `describeCard` now assumes the `ServerInfo_Card`
+schema defaults for `attachPlayerId`/`attachCardId` are -1 (rv18 says the recordings should not change). If they
+are 0, every card one-liner gains `attachPlayerId=-1 attachCardId=-1` and the inline snapshots need regenerating.
+
+Previous results, from the repo root on `2673b2d`:
 
 - `npx turbo run typecheck --concurrency=1`: pass.
 - `npm run lint`: pass.
@@ -107,7 +119,8 @@ All run from the repo root on the branch tip:
   interleaving. Each inbound event has exactly one listener (pinned by the registration test), so no event's effects
   or dispatch sequence can change. The scripted-stream recording confirms this.
 - **Planners return data, not actions.** `consumeOptimistic` (a module-level registry) and the post-dispatch
-  `getState()` reads stay in the effect, so every helper is pure.
+  `getState()` reads stay in the effect. The one helper that is not pure is `carryForwardResyncState`: it writes into
+  the freshly normalized players it is handed, which nothing else holds. Its comment and the instruction file say so.
 - **Size.** `zones` is 307 lines, above the aud2 size target (`rooms.listeners.ts`, 133). About 125 of those lines
   are `cardMoved`'s dispatch wiring, and its explanatory comments were kept on purpose. All of its decisions now live
   in specced helpers.
@@ -126,3 +139,19 @@ All run from the repo root on the branch tip:
   sequence, so it needs its own PR.
 - **Three player-name fallbacks** (`playerLeft`'s `'Unknown player'` among them). These belong to the messageLog
   descriptor row.
+
+## Review response (rv18)
+
+| Finding | Response |
+|---|---|
+| major: changeset `patch` publishes new API | The scan is now `arrowsTouchingCard` in `cardMove.ts`, which `index.ts` does not export. `ArrowRef` export dropped, `Selectors.getArrowsTouchingCard` removed, its spec moved to `cardMove.spec.ts`. The changeset stays `patch`, with the API sentence removed. |
+| major: STACK/GRAVE/EXILE reorders unpinned | `planMovePlacement` rows for stack, grave and `rfg`. A characterization branch recording `reorders %s in place` for HAND, STACK, GRAVE and EXILE, with an optimistic marker: it asserts `cardMovedInSameZone`, no `cardMovedBetweenZones`, the marker consumed, and the final order. Dropping any one zone from `POSITIONAL_REORDER_ZONES` should fail both (mutation run pending, see Testing). |
+| minor: `getArrowsTouchingCard` ref churn | Resolved by the first row: the scan is no longer a selector. |
+| minor: `describeCard` zero ambiguity | It compares against `create(ServerInfo_CardSchema)` and always prints x/y. |
+| minor: face-down optimistic patch | Added a `patches a face-down landing` row. |
+| minor: undo-draw name precedence | Added a row where the known name `Lightning Bolt` beats the event's `Shock`. |
+| minor: `carryForwardResyncState` purity claim | Reworded (the review's second option) in the helper comment, the instruction file and this PR. Behaviour is unchanged. |
+| nit: dead `sourceCard?.id` fallback | Removed. |
+| nit: `mergeCardCounter` spread | Uses `cloneWith(ServerInfo_CardCounterSchema, …)`. |
+| nit: card 30 sweeps nothing in the stream | The stream test adds Bob's arrow 4 (card 30 → Alice's card 11). The cross-player move now records `arrowDeleted` 4 between the move and the reparent. |
+

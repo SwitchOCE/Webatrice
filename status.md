@@ -1,1 +1,2 @@
 - 02:00Z started fr6, read brief/task/rv18 → set up branch work on origin/claude/parity-r6-game-listeners
+- 02:05Z BLOCKED: npm ci denied by auto-mode classifier; applied all rv18 findings unverified as 3 commits on top (tip 115f1e9), pushed; PR file updated → orchestrator must run gate + mutation probes
