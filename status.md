@@ -1,1 +1,2 @@
 - 03:25Z started; branch created from 87a20ef → install + baseline measurement
+- 03:35Z baseline reproduced: vmThreads --maxWorkers=2 OOM-killed at 13.3 GB after 380 s → trying threads/forks pools + per-file heap
