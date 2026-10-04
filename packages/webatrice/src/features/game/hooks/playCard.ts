@@ -29,9 +29,8 @@ interface CardDatabasePlay extends PlayedCardMeta {
 async function readCardDatabase(cardName: string): Promise<CardDatabasePlay> {
   const entry = await CardDTO.get(cardName).catch(() => undefined);
   const prop = entry?.prop?.value ?? {};
-  // Desktop CardInfo::getPowTough reads the `pt` property; a database built
-  // from split power / toughness properties is read the same way.
-  const pt = prop.pt?.value || (prop.power?.value && prop.toughness?.value ? `${prop.power.value}/${prop.toughness.value}` : undefined);
+  // Desktop CardInfo::getPowTough reads the `pt` property.
+  const pt = prop.pt?.value || undefined;
   return {
     tablerow: parseTableRow(entry?.tablerow?.value),
     ...(pt && { pt }),
