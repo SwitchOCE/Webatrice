@@ -7,3 +7,4 @@
 - f25b adds commits on 25b after R2/R6 based on af3cfc1 → replay R2, R6 onto f25b's tip (expect ZoneViewPanel/HandZone/Battlefield conflicts; f25b behaviour wins, R2 structure wins).
 - 25a red commits (rv21): squash f70f45a, 734ecf0, de1dd81 into 4cbea4b; move CommittedInput hunk from 8701aae into 4cbea4b; fold f437ae5's e2e tweak into its owning commit.
 - T1 (test memory) slots after 32, before R5.
+- 17c f17c creates feature-widgets/shortcuts/browserReserved.ts (canonical = 31's d7084c5 content). At 31's replay, drop 31's creation of the file and keep only its deck.new remap + any additions.
