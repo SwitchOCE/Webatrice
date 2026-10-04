@@ -1,8 +1,8 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { classifyLogTone, games, type LogSegment, type LogTone } from '@cockatrice/datatrice';
 
-import { PlayerLink, renderGameLinks } from '@app/components';
+import { PlayerLink, renderGameLinks, useMentionCompleter } from '@app/components';
 import { ReportChatScope } from '@app/dialogs';
 import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 import { useAppSelector } from '@app/store';
@@ -95,6 +95,12 @@ function ChatLogView() {
     canChat,
     chatDisabledReason,
   } = useGameLog({ gameId, listRef });
+  // Players and spectators, as desktop's TabGame adds each to its completer as they join.
+  const names = useMemo(
+    () => Object.values(players ?? {}).flatMap((player) => player.properties.userInfo?.name ?? []),
+    [players],
+  );
+  const mention = useMentionCompleter({ names, value: draft, onValueChange: setDraft, inputRef });
   // A replay is a recording: desktop's replay tab has no say box at all.
   const readOnly = useGameReadOnly();
   // Composite disabled state — no active game OR spectator-can't-chat OR replay.
@@ -248,26 +254,29 @@ function ChatLogView() {
         <label htmlFor="game-log-say-input" className="sr-only">
           Say:
         </label>
-        <input
-          id="game-log-say-input"
-          ref={inputRef}
-          type="text"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          disabled={inputDisabled}
-          placeholder={inputPlaceholder}
-          // Native browser tooltip on hover — surfaces the disable
-          // reason (e.g. "Spectators are not allowed to chat in this
-          // game.") when the field is greyed out.
-          title={inputTitle}
-          aria-label="game chat input"
-          aria-disabled={inputDisabled}
-          className={[
-            'w-full bg-bg-base border border-border-subtle rounded-md px-3 py-1.5 text-xs',
-            'text-text-primary placeholder:text-text-muted focus:outline-none',
-            'focus:border-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
-          ].join(' ')}
-        />
+        <div className="relative">
+          <input
+            id="game-log-say-input"
+            ref={inputRef}
+            type="text"
+            value={draft}
+            {...mention.inputProps}
+            disabled={inputDisabled}
+            placeholder={inputPlaceholder}
+            // Native browser tooltip on hover — surfaces the disable
+            // reason (e.g. "Spectators are not allowed to chat in this
+            // game.") when the field is greyed out.
+            title={inputTitle}
+            aria-label="game chat input"
+            aria-disabled={inputDisabled}
+            className={[
+              'w-full bg-bg-base border border-border-subtle rounded-md px-3 py-1.5 text-xs',
+              'text-text-primary placeholder:text-text-muted focus:outline-none',
+              'focus:border-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
+            ].join(' ')}
+          />
+          {mention.popup}
+        </div>
       </form>
     </div>
   );

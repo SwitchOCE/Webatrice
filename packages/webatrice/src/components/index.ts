@@ -22,6 +22,8 @@ export { default as ThreePaneLayout } from './ThreePaneLayout/ThreePaneLayout';
 export { default as CheckboxField } from './CheckboxField/CheckboxField';
 export { default as SelectField } from './SelectField/SelectField';
 export { default as ScrollToBottomOnChanges } from './ScrollToBottomOnChanges/ScrollToBottomOnChanges';
+export { useMentionCompleter } from './MentionCompleter/useMentionCompleter';
+export type { MentionCompleter, MentionCompleterOptions } from './MentionCompleter/useMentionCompleter';
 
 export { default as AuthGuard } from './Guard/AuthGuard';
 export { default as ModGuard } from './Guard/ModGuard';

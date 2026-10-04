@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Send, Hash } from 'lucide-react';
 
-import { Message as MessageBubble } from '@app/components';
+import { Message as MessageBubble, useMentionCompleter } from '@app/components';
 import { ReportChatScope } from '@app/dialogs';
 import { useChatHighlight, useCommandFailureMessage, useReduxEffect, useRoomChatFilter } from '@app/hooks';
 import { chatFilterVerdicts, isPrivilegedUser, isRoomMessageVisible } from '@app/utils';
@@ -51,7 +51,10 @@ function RoomChatView({ roomId, roomName, messages, users, onSay }: RoomChatProp
   const noticeText = (m: Message) =>
     t(`RoomChat.notice.${m.notice}`, { reason: describeFailure(m.failure, '') });
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState('');
+  const userNames = useMemo(() => Object.keys(users), [users]);
+  const mention = useMentionCompleter({ names: userNames, value: draft, onValueChange: setDraft, inputRef });
   // Settings → Chat: room history and unregistered-sender filtering, and the reader's mention /
   // alert-word highlighting. Ignored senders never reach the store (Datatrice drops them). Each
   // line keeps the verdict AppAlerts gave it on arrival.
@@ -132,19 +135,23 @@ function RoomChatView({ roomId, roomName, messages, users, onSay }: RoomChatProp
         onSubmit={send}
         className="shrink-0 flex items-center gap-2 px-3 py-2 border-t border-border-subtle bg-bg-surface"
       >
-        <input
-          type="text"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder={t('RoomChat.input', { room: roomName })}
-          aria-label={t('RoomChat.input', { room: roomName })}
-          className={[
-            'flex-1 min-w-0 px-3 py-2 rounded-md bg-bg-base border',
-            'border-border-control text-sm text-text-primary',
-            'placeholder:text-text-muted focus:outline-none',
-            'focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
-          ].join(' ')}
-        />
+        <div className="relative flex-1 min-w-0">
+          <input
+            ref={inputRef}
+            type="text"
+            value={draft}
+            {...mention.inputProps}
+            placeholder={t('RoomChat.input', { room: roomName })}
+            aria-label={t('RoomChat.input', { room: roomName })}
+            className={[
+              'w-full px-3 py-2 rounded-md bg-bg-base border',
+              'border-border-control text-sm text-text-primary',
+              'placeholder:text-text-muted focus:outline-none',
+              'focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
+            ].join(' ')}
+          />
+          {mention.popup}
+        </div>
         <button
           type="submit"
           disabled={!draft.trim()}
