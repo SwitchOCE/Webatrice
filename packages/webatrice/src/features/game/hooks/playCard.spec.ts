@@ -143,10 +143,18 @@ describe('playCardViaTableRow / autoPlayCard — the played card\'s fields', () 
     expect(cardsToMove(moveCard)).toEqual({ card: [{ cardId: 7, faceDown: false, pt: '0/3', tapped: true }] });
   });
 
-  it('reads split power and toughness properties, and sends neither field face down or onto the stack', async () => {
-    vi.mocked(CardDTO.get).mockResolvedValue({
+  it('reads only the pt property, as desktop CardInfo::getPowTough, and sends no P/T face down or onto the stack', async () => {
+    vi.mocked(CardDTO.get).mockResolvedValueOnce({
       tablerow: { value: '1' },
       prop: { value: { power: { value: '2' }, toughness: { value: '2' } } },
+    } as never);
+    const split = makeWebClient();
+    await playCardViaTableRow({ ...baseArgs, webClient: split.webClient, sourcePlayerId: 1 });
+    expect(cardsToMove(split.moveCard)).toEqual({ card: [{ cardId: 7, faceDown: false }] });
+
+    vi.mocked(CardDTO.get).mockResolvedValue({
+      tablerow: { value: '1' },
+      prop: { value: { pt: { value: '2/2' } } },
     } as never);
     const table = makeWebClient();
     await playCardViaTableRow({ ...baseArgs, webClient: table.webClient, sourcePlayerId: 1 });
