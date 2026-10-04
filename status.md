@@ -15,3 +15,4 @@
 - 23:43Z card layout (stack overlap via VerticalPile, card view rows) pushed → counter colours, menu shortcuts, printings bump, zone backgrounds
 - 23:52Z counter colours + menu shortcuts pushed → printings bump-sets, then zone backgrounds
 - 23:54Z printings bump pushed → zone backgrounds (playmat infra) next
+- 00:02Z zone backgrounds pushed → appearance ordering check, changeset, full gate, e2e
