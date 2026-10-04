@@ -1,6 +1,6 @@
 import { expect, test } from '../fixtures/test';
-import { E2E_HOST_LABEL, joinFirstRoom, registerAndJoinFirstRoom, registerAndReachRooms } from '../fixtures/flows';
 import { tabTo } from '../fixtures/keyboard';
+import { E2E_HOST_LABEL, joinFirstRoom, registerAndJoinFirstRoom, registerAndReachRooms } from '../fixtures/flows';
 import { randomSuffix } from '../fixtures/users';
 import { GamePage, LoginPage } from '../pages';
 
