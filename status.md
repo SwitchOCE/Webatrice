@@ -3,3 +3,4 @@
 - 23:46Z barrel narrowed + eslint rule; bracketTone → utils; pushed → nits
 - 23:47Z all rv15 findings committed+pushed (eca62b5) → full gate
 - 00:01Z gate: typecheck/lint/unit green; integration 264/265, invite-link.spec:174 flaky on base d2e516c too (4/5) → e2e
+- 00:18Z e2e 66 passed/12 skipped; PR file updated → done
