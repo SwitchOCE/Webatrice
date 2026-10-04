@@ -61,6 +61,27 @@ describe('AuthGuard', () => {
     expect(screen.queryByText('protected-page')).not.toBeInTheDocument();
   });
 
+  it('redirects exactly once from a guarded route, as the app routes it', () => {
+    // Every guard in the app sits in a route element, so the redirect unmounts it. Counting the
+    // login route's location keys proves the redirect lands once and does not re-fire.
+    const keys: string[] = [];
+    function CountingLoginPage() {
+      const { key, state } = useLocation();
+      keys.push(key);
+      return <div>{`login-page ${JSON.stringify(state)}`}</div>;
+    }
+    renderWithProviders(
+      <Routes>
+        <Route path="/login" element={<CountingLoginPage />} />
+        <Route path="/server" element={<><AuthGuard /><div>protected-page</div></>} />
+      </Routes>,
+      { preloadedState: disconnectedState, route: '/server' },
+    );
+
+    expect(screen.getByText('login-page {"from":"/server"}')).toBeInTheDocument();
+    expect(new Set(keys).size).toBe(1);
+  });
+
   it('stops once the login route is reached, rather than navigating forever', () => {
     // A page that renders the guard without its own Routes keeps it mounted on /login; a fresh
     // `state` object each render would otherwise count as a new location every time.
