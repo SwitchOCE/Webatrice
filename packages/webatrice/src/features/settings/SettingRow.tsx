@@ -167,7 +167,21 @@ function BuiltInControl({ id, control, preferences, disabled, describedBy, onCha
  * A spin box's value: a whole number within its range, as QSpinBox keeps it. A cleared or
  * unparsable box saves nothing, and the box shows the stored value again.
  */
-export function clampWhole(raw: string, min: number, max: number): number | undefined {
+export /** The other spin box a number control pushes along, when the new value passes it. */
+function pushedAlong(
+  control: Extract<SettingControl, { kind: 'number' }>,
+  value: number,
+  preferences: Preferences,
+): Partial<Preferences> {
+  if (!control.pushes) {
+    return {};
+  }
+  const { key, keep } = control.pushes;
+  const other = preferences[key];
+  return (keep === 'atLeast' ? other < value : other > value) ? { [key]: value } : {};
+}
+
+function clampWhole(raw: string, min: number, max: number): number | undefined {
   const value = Number(raw);
   if (raw.trim() === '' || !Number.isFinite(value)) {
     return undefined;
@@ -221,7 +235,7 @@ function NumberControl({ id, control, preferences, disabled, describedBy, onChan
   const commit = (raw: string) => {
     const value = clampWhole(raw, control.min, control.max);
     if (value !== undefined) {
-      onChange({ [control.key]: value });
+      onChange({ [control.key]: value, ...pushedAlong(control, value, preferences) });
     }
   };
 
