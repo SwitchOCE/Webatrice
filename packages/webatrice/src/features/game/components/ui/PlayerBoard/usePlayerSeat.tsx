@@ -247,10 +247,14 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
       startPendingArrow({ playerId, zone: sourceZone, cardId: sourceCardId, name: sourceCardName }),
     [startPendingArrow, playerId],
   );
-  const startAttach = useCallback((sourceCardIds: readonly number[], anchorName: string) => {
-    const [anchorId, ...extraIds] = sourceCardIds;
-    startPendingAttach({ playerId, zone: ZoneName.TABLE, cardId: anchorId, name: anchorName }, extraIds);
-  }, [startPendingAttach, playerId]);
+  /** "Attach to card..." from these cards of one zone; the first carries the arrow. */
+  const startAttach = useCallback(
+    (sourceCardIds: readonly number[], anchorName: string, sourceZone: ZoneNameValue = ZoneName.TABLE) => {
+      const [anchorId, ...extraIds] = sourceCardIds;
+      startPendingAttach({ playerId, zone: sourceZone, cardId: anchorId, name: anchorName }, extraIds);
+    },
+    [startPendingAttach, playerId],
+  );
   const startArrow = useCallback(
     (sourceCardId: number, sourceCardName: string) => startDrawArrow({ sourceCardId, sourceCardName, sourceZone: ZoneName.TABLE }),
     [startDrawArrow],

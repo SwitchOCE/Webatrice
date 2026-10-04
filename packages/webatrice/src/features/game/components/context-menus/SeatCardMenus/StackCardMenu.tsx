@@ -254,7 +254,7 @@ export default function StackCardMenu() {
                   .filter((sc) => Number(sc.id) !== cardIdNum)
                   .map((sc) => Number(sc.id))
                   .filter((n) => Number.isFinite(n));
-                startAttach([cardIdNum, ...extras], card.name);
+                startAttach([cardIdNum, ...extras], card.name, ZoneName.STACK);
               }
               close();
             },
