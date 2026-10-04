@@ -1,5 +1,5 @@
-import { renderHook } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { act, renderHook } from '@testing-library/react';
+import { useState, type ReactNode } from 'react';
 import { ZoneName } from '@cockatrice/sockatrice';
 
 import { NOOP_GAME_DIALOGS_ACTIONS, type GameDialogs } from '../../../hooks/dialogs/gameDialogs.types';
@@ -57,7 +57,7 @@ const HAND = [
   { id: '9', name: 'Shock', scryfallId: 'p9' },
 ];
 const CARD_META = new Map([
-  ['Card 12', { typeLine: 'Creature', pt: '1/1' }],
+  ['Card 12', { typeLine: 'Creature', pt: '1/1', related: [{ name: 'Clue', origin: 'related' as const }] }],
   ['Ogre', { typeLine: 'Creature — Ogre', pt: '3/3' }],
   ['Shock', { typeLine: 'Instant' }],
 ]);
@@ -116,6 +116,8 @@ function setup({
     </GameDialogsProvider>
   );
   renderHook(() => {
+    // The seat's last token, as useSeatPrompts keeps it.
+    const [lastTokenState, setLastToken] = useState(lastToken);
     const cardOps = useBattlefieldCardOps({
       cards: BOARD,
       selection,
@@ -135,6 +137,7 @@ function setup({
         openMoveXFromTopPrompt: vi.fn(),
         openTokenCountPrompt: vi.fn(),
       },
+      setLastToken,
       startAttach: props.startAttach,
       startArrow: props.startArrow,
     });
@@ -151,7 +154,7 @@ function setup({
       alwaysLookAtTopCard: false,
       manaCounters,
       lifeControl,
-      lastToken,
+      lastToken: lastTokenState,
       openLifePrompt: props.openLifePrompt,
       openCounterPrompt: props.openCounterPrompt,
       openViewLibraryCountPrompt: props.openViewLibraryCountPrompt,
@@ -339,6 +342,19 @@ describe('useSeatShortcutOperations', () => {
     expect(full.props.openMoveTopUntilDialog).toHaveBeenCalled();
     expect(full.props.openCounterPrompt).toHaveBeenCalledWith({ counterId: 7, label: 'Other', currentValue: 0 });
     expect(full.cardCommands.createToken).toHaveBeenCalledWith(token);
+  });
+
+  // Desktop actCreateAllRelatedCards hands the first token it creates to
+  // "Create another token" (player_actions.cpp:1053-1061).
+  it('repeats the token create-all made on "Create another token"', () => {
+    const { run, cardCommands } = setup({ selection: selected(12) });
+    run('game.createAnotherToken');
+    expect(cardCommands.createToken).not.toHaveBeenCalled();
+    act(() => {
+      run('game.createRelatedTokens');
+    });
+    run('game.createAnotherToken');
+    expect(vi.mocked(cardCommands.createToken).mock.calls.map(([r]) => r.name)).toEqual(['Clue', 'Clue']);
   });
 
   it('opens the P/T prompt on the selection, prefilled from its first card', () => {
