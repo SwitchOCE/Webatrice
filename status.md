@@ -1,3 +1,4 @@
 - 02:34 started fr2 → rebase R2 onto f25b
 - 02:43 rebased R2 onto f25b 0a67ce1 (conflicts resolved, ZoneViewDialog.spec selectors fixed, i18n regenerated, every commit typechecks+dialog specs green), pushed 3e7e703 → rv19 fixes
 - 02:50 rv19: size-persistence specs, reopen specs, CSS min fix committed+pushed → ungrouped grid spec, i18n titles, nits
+- 03:33 rv19 fixes pushed (tip 7f454bd); typecheck/lint/unit/integration green; 24/24 mutants killed → webatrice e2e
