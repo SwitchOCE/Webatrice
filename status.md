@@ -1,0 +1,1 @@
+- 02:00Z started fr6, read brief/task/rv18 → set up branch work on origin/claude/parity-r6-game-listeners
