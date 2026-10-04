@@ -47,8 +47,8 @@ describe('DeckCardGroup', () => {
 
   it('flags cards the catalog could not find and draws mana costs', () => {
     renderGroup({ label: 'Other', indices: [1] });
-    expect(screen.getByTitle('DeckEditor.row.unknown')).toBeInTheDocument();
-    expect(screen.getAllByRole('img').map((img) => img.getAttribute('alt'))).toEqual(['{2}', '{G}']);
+    expect(screen.getByRole('img', { name: 'DeckEditor.row.unknown' })).toHaveAttribute('title', 'DeckEditor.row.unknown');
+    expect(screen.getAllByRole('img').flatMap((img) => img.getAttribute('alt') ?? [])).toEqual(['{2}', '{G}']);
   });
 
   it('renders names as plain text when cards have no detail view', () => {
