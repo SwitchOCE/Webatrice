@@ -17,13 +17,15 @@ export interface UseDrawFlightsArgs {
   lastDrawCount: number;
   libraryRef: RefObject<HTMLElement | null>;
   handRef: RefObject<HTMLElement | null>;
+  /** The board animation policy (useBoardAnimations): with it off, a draw flies nothing. */
+  enabled: boolean;
 }
 
 /**
  * The seat's draw animation: one card back per drawn card, tweened from the
  * library pile to the hand row.
  */
-export function useDrawFlights({ drawSeq, lastDrawCount, libraryRef, handRef }: UseDrawFlightsArgs) {
+export function useDrawFlights({ drawSeq, lastDrawCount, libraryRef, handRef, enabled }: UseDrawFlightsArgs) {
   // In-flight draw animations. Purely visual: a card back tweens from
   // the library rect to the hand rect whenever this player's hand
   // count grows in Redux (a draw or mulligan just happened). Doesn't
@@ -52,7 +54,7 @@ export function useDrawFlights({ drawSeq, lastDrawCount, libraryRef, handRef }: 
     if (prev === null) {
       return;
     } // first render — establish baseline only
-    if (currentSeq <= prev) {
+    if (currentSeq <= prev || !enabled) {
       return;
     }
     const drawn = lastDrawCount ?? 0;
@@ -89,7 +91,7 @@ export function useDrawFlights({ drawSeq, lastDrawCount, libraryRef, handRef }: 
         }, DRAW_ANIMATION_MS + 50);
       }, startDelay);
     }
-  }, [drawSeq, lastDrawCount, libraryRef, handRef]);
+  }, [drawSeq, lastDrawCount, libraryRef, handRef, enabled]);
 
   return { flights, DRAW_ANIMATION_MS };
 }
