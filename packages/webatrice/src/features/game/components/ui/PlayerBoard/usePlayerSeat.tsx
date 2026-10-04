@@ -15,7 +15,7 @@ import { buildRelatedViewItems } from '../../context-menus/CardContextMenu/relat
 import { useCardPreviewActions } from '../CardPreviewContext';
 import { useCardScale } from '../CardScaleContext';
 import { useGameDialogsContext } from '../GameDialogsContext';
-import { useGameSelectionState } from '../GameSelectionContext';
+import { EMPTY_CARD_KEYS, useGameSelectionState } from '../GameSelectionContext';
 import { useHandMenuItems } from '../HandZone/useHandMenuItems';
 import { useActiveSeatDrag } from '../SeatDragContext';
 import { useLibraryMenuItems } from '../ZoneStack/useLibraryMenuItems';
@@ -31,8 +31,6 @@ import { useSeatDnd } from './useSeatDnd';
 import { useSeatMarquee } from './useSeatMarquee';
 import { useSeatPrompts } from './useSeatPrompts';
 import { useSeatShortcutOperations } from './useSeatShortcutOperations';
-
-const EMPTY_CARD_KEYS: ReadonlySet<string> = new Set();
 
 export type PlayerSeatProps = {
   /** What the seat shows: identity, zones, counters, permissions. */
