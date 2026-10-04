@@ -11,7 +11,8 @@ export function cardViewRowsHeight(rows: number, cardHeightPx: number): number {
  * The card area height a double-click on a card view's title bar switches to
  * (ZoneViewWidget::expandWindow): back to the initial height when the view is shorter than it,
  * already expanded, or as tall as it can get short of expanded; otherwise up to the expanded
- * height, as far as `maxHeight` (the room the page has) allows.
+ * height. Both are capped at `maxHeight`: the height of the zone's contents (the widget's maximum
+ * size on desktop) or the room the page has, whichever is less.
  */
 export function toggledCardViewHeight(
   current: number,

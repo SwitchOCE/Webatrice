@@ -168,6 +168,30 @@ describe('ZoneViewDialog', () => {
       // 20 rows: 21 thirds of 201.6 px and 5 px.
       expect(dialogHeight()).toBe('1416px');
     });
+
+    it('expands no taller than its cards need, as desktop caps the view at its contents', () => {
+      const scrollHeight = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(450);
+      renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
+      const content = panel(/^Graveyard/).querySelector<HTMLElement>('.overflow-auto')!;
+      content.getBoundingClientRect = () => new DOMRect(0, 0, 900, 450);
+      panel(/^Graveyard/).getBoundingClientRect = () => new DOMRect(0, 0, 900, 450);
+      fireEvent.doubleClick(screen.getByRole('heading', { name: /^Graveyard/ }));
+      expect(dialogHeight()).toBe('450px');
+      scrollHeight.mockRestore();
+    });
+
+    it('never shrinks on expand when the initial rows exceed the expanded rows', async () => {
+      const settings = await getSettings();
+      settingsStore.setValue(Object.assign(settings, { cardViewInitialRowsMax: 8, cardViewExpandedRowsMax: 5 }));
+      renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
+      // 8 rows: 9 thirds of 201.6 px and 5 px.
+      expect(dialogHeight()).toBe('610px');
+      const content = panel(/^Graveyard/).querySelector<HTMLElement>('.overflow-auto')!;
+      content.getBoundingClientRect = () => new DOMRect(0, 0, 900, 610);
+      panel(/^Graveyard/).getBoundingClientRect = () => new DOMRect(0, 0, 900, 610);
+      fireEvent.doubleClick(screen.getByRole('heading', { name: /^Graveyard/ }));
+      expect(dialogHeight()).toBe('610px');
+    });
   });
 
   it('closes from its search box on Escape, which the game shortcut skips', () => {
