@@ -133,6 +133,7 @@ function setup({
         openPTPrompt: props.openPTPrompt,
         openCardCounterPrompt: props.openCardCounterPrompt,
         openMoveXFromTopPrompt: vi.fn(),
+        openTokenCountPrompt: vi.fn(),
       },
       startAttach: props.startAttach,
       startArrow: props.startArrow,

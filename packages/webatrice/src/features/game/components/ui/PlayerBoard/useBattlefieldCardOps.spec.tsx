@@ -60,6 +60,7 @@ function setup(args: Partial<UseBattlefieldCardOpsArgs> = {}) {
       openPTPrompt: vi.fn(),
       openCardCounterPrompt: vi.fn(),
       openMoveXFromTopPrompt: vi.fn(),
+      openTokenCountPrompt: vi.fn(),
     },
     startAttach: vi.fn(),
     startArrow: vi.fn(),
@@ -208,5 +209,26 @@ describe('useBattlefieldCardOps', () => {
     });
     ops.forSelection()!.createRelatedTokens();
     expect(vi.mocked(props.cardCommands.createToken).mock.calls.map(([r]) => r.name)).toEqual(['Soldier', 'Soldier']);
+    expect(props.prompts.openTokenCountPrompt).not.toHaveBeenCalled();
+  });
+
+  // player_actions.cpp:1007-1014: the one relation left after the excluded
+  // ones goes through the related-card dialog, which asks for an "x" count.
+  it('asks for the count of the one related token create-all runs when it is "x"', () => {
+    const { ops, props } = setup({
+      cardMetaByName: new Map([['Card 10', {
+        typeLine: 'Creature',
+        related: [
+          { name: 'Soldier', count: '2', exclude: 'exclude', origin: 'related' },
+          { name: 'Treasure', count: 'x=2', origin: 'related' },
+        ],
+      }]]),
+    });
+    ops.forSelection()!.createRelatedTokens();
+    expect(props.cardCommands.createToken).not.toHaveBeenCalled();
+    expect(props.prompts.openTokenCountPrompt).toHaveBeenCalledWith({
+      request: expect.objectContaining({ name: 'Treasure' }),
+      initial: 2,
+    });
   });
 });

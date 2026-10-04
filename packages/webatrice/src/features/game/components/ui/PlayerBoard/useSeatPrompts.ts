@@ -8,11 +8,13 @@ import {
   libraryCountPrompt,
   moveXFromTopPrompt,
   powerToughnessPrompt,
+  tokenCountPrompt,
 } from '../../../hooks/dialogs/seatPrompts';
 import { applyPTSet } from '../../context-menus/CardContextMenu/cardAttributeEdits';
 import { useGameDialogsContext } from '../GameDialogsContext';
 import type {
   BattlefieldCardViewModel,
+  CreateTokenRequest,
   PlayerCardCommands,
   PlayerCounterCommands,
   PlayerZoneCommands,
@@ -234,6 +236,17 @@ export function useSeatPrompts({
     faceDown: boolean;
     providerId?: string;
   } | null>(null);
+  // A variable-count related token: ask how many, then create that many.
+  const openTokenCountPrompt = useCallback(({ request, initial }: { request: CreateTokenRequest; initial: number }) =>
+    openPrompt(tokenCountPrompt({
+      tokenName: request.name,
+      initial,
+      onSubmit: (count) => {
+        for (let i = 0; i < count; i++) {
+          cardCommands.createToken(request);
+        }
+      },
+    })), [openPrompt, cardCommands]);
   // "Create token..." opens the game's CreateTokenDialog seeded with the
   // last token (an "edit last token" flow). The token goes through this
   // seat's card port (onCreateToken: the local battlefield, tablerow y) and
@@ -259,6 +272,7 @@ export function useSeatPrompts({
     openViewLibraryCountPrompt,
     openRevealTopCardsPrompt,
     openCardCounterPrompt,
+    openTokenCountPrompt,
     lastToken,
     openCreateTokenDialog,
   };
