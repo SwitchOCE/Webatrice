@@ -13,8 +13,12 @@ import {
 } from '@cockatrice/datatrice/testing';
 
 import { makeReduxHookWrapper } from '../../../../__test-utils__/makeHookWrapper';
+import { catalogT } from '../../__test-utils__/catalogT';
 import type { ZoneViewTarget } from '../../hooks/dialogs/gameDialogs.types';
-import { useZoneViewDialog, zoneLabel, zoneViewTitle } from './useZoneViewDialog';
+import zoneLabels from '../shared/zoneLabels.i18n.json';
+import { useZoneViewDialog, zoneViewTitle } from './useZoneViewDialog';
+
+const englishT = catalogT(zoneLabels);
 
 function setup(zoneArgs: Parameters<typeof makeZoneEntry>[0]) {
   const game = makeGameEntry({
@@ -43,15 +47,6 @@ function render(view: ZoneViewTarget, wrapper: ReturnType<typeof setup>['Wrapper
   return renderHook(() => useZoneViewDialog(gameId, view), { wrapper }).result.current;
 }
 
-describe('zoneLabel', () => {
-  it('maps short codes to human-readable names', () => {
-    expect(zoneLabel('grave')).toBe('Graveyard');
-    expect(zoneLabel('rfg')).toBe('Exile');
-    expect(zoneLabel('deck')).toBe('Library');
-    expect(zoneLabel(undefined)).toBe('');
-  });
-});
-
 describe('zoneViewTitle', () => {
   it.each([
     [{ zoneName: ZoneName.DECK }, 'P1\'s library'],
@@ -62,7 +57,7 @@ describe('zoneViewTitle', () => {
     [{ zoneName: ZoneName.HAND }, 'Hand — P1'],
     [{ zoneName: ZoneName.SIDEBOARD }, 'Sideboard — P1'],
   ])('%o reads %s', (view, title) => {
-    expect(zoneViewTitle({ playerId: 1, ...view }, 'P1', 3)).toBe(title);
+    expect(zoneViewTitle(englishT, { playerId: 1, ...view }, 'P1', 3)).toBe(title);
   });
 });
 
@@ -79,7 +74,8 @@ describe('useZoneViewDialog', () => {
     expect(view.cards.map((c) => [c.id, c.name])).toEqual([['1', 'Opt'], ['2', 'Duress']]);
     expect(view.cards[0].scryfallId).toBe('p1');
     expect(view.count).toBe(2);
-    expect(view.title).toBe('Graveyard — Trajer');
+    // The test i18n has no catalogue, so the zone reads as its key.
+    expect(view.title).toBe('ZoneLabel.title.grave — Trajer');
     expect(view.isLocal).toBe(true);
   });
 

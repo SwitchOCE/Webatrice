@@ -174,7 +174,7 @@ describe('Game orchestration', () => {
       numberCards: -1,
       isReversed: false,
     });
-    expect(screen.getByText('Sideboard — P1')).toBeInTheDocument();
+    expect(screen.getByText('ZoneLabel.title.sb — P1')).toBeInTheDocument();
   });
 
   it('Game info: battlefield menu → GameInfoDialog', () => {

@@ -322,7 +322,7 @@ describe('seat card menu trees', () => {
     renderSeats();
     openContextMenu(pileEl('Graveyard', 0));
     chooseMenuPath('View graveyard');
-    expect(screen.getByText(/^Graveyard — P1/)).toBeInTheDocument();
+    expect(screen.getByText(/^ZoneLabel\.title\.grave — P1/)).toBeInTheDocument();
 
     expect(menuTree(pileViewCard(OWN_GRAVE.id))).toMatchInlineSnapshot(`
       "
