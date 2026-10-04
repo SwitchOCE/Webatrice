@@ -79,7 +79,7 @@ export function ZoneCardCell({
 
   return (
     <div
-      {...(marked ? { 'data-card': true, 'data-card-id': card.id } : null)}
+      {...(marked ? { 'data-card': '', 'data-card-id': card.id } : null)}
       className={pile ? 'absolute left-0 hover:z-10 group' : className}
       onPointerDown={onPointerDown && ((e) => {
         if (e.button === 0) {
