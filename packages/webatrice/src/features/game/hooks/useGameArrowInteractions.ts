@@ -36,7 +36,6 @@ export interface GameArrowInteractions {
     card: ServerInfo_Card,
   ) => void;
   handleCardDoubleClick: (sourcePlayerId: number | undefined, sourceZone: string | undefined, card: ServerInfo_Card) => void;
-  handlePlayerClick: (targetPlayerId: number) => boolean;
   startPendingArrow: (source: CardSource) => void;
   startPendingAttach: (source: CardSource) => void;
   cancelPendingOnDragStart: () => void;
@@ -126,14 +125,6 @@ export function useGameArrowInteractions({
     [cardPlay, pending, selectedCards, collapseUnlessSelected],
   );
 
-  // True iff a pending arrow was resolved against this player. Callers use the
-  // return value to suppress the player-select dropdown's own click.
-  const handlePlayerClick = useCallback(
-    (targetPlayerId: number): boolean =>
-      pending?.kind === 'arrow' && pendingTarget.pick({ kind: 'player', playerId: targetPlayerId }),
-    [pending, pendingTarget],
-  );
-
   const { startArrow, startAttach, cancel } = pendingTarget;
   const startPendingArrow = useCallback((source: CardSource) => startArrow(pendingSource(source)), [startArrow]);
   const startPendingAttach = useCallback((source: CardSource) => startAttach(pendingSource(source)), [startAttach]);
@@ -149,7 +140,6 @@ export function useGameArrowInteractions({
     handleBoardMouseDown: drag.handleBoardMouseDown,
     handleCardClick,
     handleCardDoubleClick,
-    handlePlayerClick,
     startPendingArrow,
     startPendingAttach,
     cancelPendingOnDragStart: cancel,
