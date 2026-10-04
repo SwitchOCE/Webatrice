@@ -83,10 +83,12 @@ describe('useBattlefieldCardOps', () => {
   it('drives toggles from the clicked card, or from the first selected card for a shortcut', () => {
     const { ops, props } = setup();
     ops.forCard('11')!.toggleTapped();
+    ops.forCard('10')!.toggleTapped();
     ops.forCard('11')!.toggleFaceDown();
     ops.forSelection()!.toggleFaceDown();
     ops.forCard('12')!.toggleDoesntUntap();
-    expect(vi.mocked(props.cardCommands.setTapped).mock.calls).toEqual([[[10, 11], true]]);
+    // Card 10 is tapped, so from it the selection untaps.
+    expect(vi.mocked(props.cardCommands.setTapped).mock.calls).toEqual([[[10, 11], true], [[10, 11], false]]);
     expect(vi.mocked(props.cardCommands.flip).mock.calls).toEqual([[10, false], [11, false], [10, true], [11, true]]);
     expect(vi.mocked(props.cardCommands.setDoesntUntap).mock.calls).toEqual([[12, false]]);
   });
