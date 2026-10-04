@@ -275,6 +275,7 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
 
                                 <div
                                   className="game__board"
+                                  data-game-board
                                   ref={boardRef}
                                   onMouseDown={arrows.handleBoardMouseDown}
                                   {...(readOnly ? READ_ONLY_BOARD_GUARD : undefined)}
