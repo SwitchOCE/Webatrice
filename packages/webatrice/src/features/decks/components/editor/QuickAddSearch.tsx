@@ -15,8 +15,8 @@ export interface QuickAddSearchProps {
 /**
  * Card-name autocomplete for the MTG toolbar, as an ARIA 1.2 combobox: the
  * input keeps focus while ↑/↓ move the highlighted option (announced through
- * `aria-activedescendant`), Enter adds it (or the typed name), and Escape
- * closes the list, then clears the field. A polite status reports searching,
+ * `aria-activedescendant`), Enter adds it (or, with the list closed, the
+ * typed name), and Escape closes the popup, then clears the field. A polite status reports searching,
  * the number of suggestions and no matches.
  */
 export function QuickAddSearch({ query, onQueryChange, onAdd }: QuickAddSearchProps) {
@@ -74,16 +74,19 @@ export function QuickAddSearch({ query, onQueryChange, onAdd }: QuickAddSearchPr
       setHighlight((h) => (suggestions.length ? (h - 1 + suggestions.length) % suggestions.length : -1));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (highlight >= 0 && suggestions[highlight]) {
+      // Only an option the combobox announces counts: with the list closed,
+      // Enter adds what was typed, not a suggestion the user can't see.
+      if (activeOption) {
         handleAdd(suggestions[highlight].name);
       } else if (query.trim()) {
-        // No suggestion highlighted — try the exact query as a name.
         handleAdd(query.trim());
       }
     } else if (e.key === 'Escape') {
-      // APG combobox: the first Escape closes the list, the next clears the field.
-      if (expanded) {
+      // APG combobox: the first Escape closes the popup (list, searching or
+      // no matches) and drops the highlight, the next clears the field.
+      if (searching) {
         setOpen(false);
+        setHighlight(-1);
       } else {
         setQuery('');
       }
