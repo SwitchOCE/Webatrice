@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useId, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare } from 'lucide-react';
 import { classifyLogTone, games, type LogSegment, type LogTone } from '@cockatrice/datatrice';
@@ -14,6 +14,7 @@ import { useGameReadOnly } from '../ui/GameReadOnlyContext';
 import { useCardPreviewActions } from '../ui/CardPreviewContext';
 
 import { gameChatContext } from './gameChatContext';
+import { logRowKey } from './logRowKey';
 import { formatElapsed, useGameLog } from './useGameLog';
 
 // Per-tone styling for event log lines. Cockatrice desktop uses a fixed
@@ -86,6 +87,7 @@ function ChatLogView() {
   const gameId = useGameId();
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const headingId = useId();
   const { setHoveredCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
   const {
     messages,
@@ -129,8 +131,8 @@ function ChatLogView() {
   );
   const inputTitle = chatDisabledReason ?? undefined;
   const inputPlaceholder = gameId == null
-    ? 'Chat unavailable'
-    : (chatDisabledReason ?? 'Say something…');
+    ? t('ChatLog.unavailable')
+    : (chatDisabledReason ?? t('ChatLog.placeholder'));
 
   return (
     <div data-testid="game-log" className="flex flex-col h-full min-h-0">
@@ -138,9 +140,9 @@ function ChatLogView() {
            hides when there's no active game (lobby chat renders with no
            gameId while the game hasn't started yet). */}
       <div className="shrink-0 flex items-center justify-between gap-2 px-3 py-2 text-[10px] uppercase tracking-widest text-text-muted">
-        <div className="flex items-center gap-1">
-          <MessageSquare size={11} /> Chat &amp; log
-        </div>
+        <h2 id={headingId} className="flex items-center gap-1">
+          <MessageSquare size={11} aria-hidden /> {t('ChatLog.heading')}
+        </h2>
         {gameId != null && (
           <span
             data-testid="game-log-timer"
@@ -154,14 +156,23 @@ function ChatLogView() {
       {/* Messages — scrollable, pinned to bottom by useGameLog unless
            the user has scrolled up. Rows alternate bg to visually
            separate consecutive lines (Cockatrice does the same with
-           its zebra-striped log). */}
+           its zebra-striped log).
+           A polite live region (desktop has none; an accessibility
+           addition): screen readers read each new line once, so draws,
+           moves, life changes and opponents' chat are heard as they
+           happen. Rows keep their key for life (logRowKey), so trimming
+           the oldest lines never re-reads the rest. */}
       <div
         ref={listRef}
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+        aria-labelledby={headingId}
         onScroll={handleMessagesScroll}
         className="scrollable flex-1 min-h-0 overflow-y-auto py-1 text-xs"
       >
         {messages.length === 0 && (
-          <div className="italic text-text-muted px-3 py-1">no messages</div>
+          <div className="italic text-text-muted px-3 py-1">{t('ChatLog.empty')}</div>
         )}
         {messages.map((m, idx) => {
           const isEvent = m.kind === 'event';
@@ -183,7 +194,7 @@ function ChatLogView() {
             const tone = classifyLogTone(m.message);
             return (
               <div
-                key={`${m.timeReceived}-${idx}`}
+                key={logRowKey(m)}
                 data-tone={tone}
                 className={`px-3 py-0.5 leading-snug break-words ${TONE_CLASS[tone]} ${rowClass}`}
               >
@@ -233,7 +244,7 @@ function ChatLogView() {
           }
           return (
             <div
-              key={`${m.timeReceived}-${idx}`}
+              key={logRowKey(m)}
               className={`px-3 py-0.5 text-text-primary leading-snug break-words ${rowClass}`}
             >
               {stamp && (
@@ -248,15 +259,15 @@ function ChatLogView() {
         })}
       </div>
 
-      {/* Input — submits on Enter via the form's onSubmit. `Say:` label
-           kept as an sr-only affordance for keyboard-only users. */}
+      {/* Input — submits on Enter via the form's onSubmit. Named by its
+           sr-only label alone. */}
       <form
         onSubmit={handleSubmit}
         hidden={readOnly}
         className="shrink-0 p-2 border-t border-border-subtle"
       >
         <label htmlFor="game-log-say-input" className="sr-only">
-          Say:
+          {t('ChatLog.inputLabel')}
         </label>
         <div className="relative">
           <input
@@ -271,7 +282,6 @@ function ChatLogView() {
             // reason (e.g. "Spectators are not allowed to chat in this
             // game.") when the field is greyed out.
             title={inputTitle}
-            aria-label={t('ChatLog.inputLabel')}
             aria-disabled={inputDisabled}
             className={[
               'w-full bg-bg-base border border-border-subtle rounded-md px-3 py-1.5 text-xs',
