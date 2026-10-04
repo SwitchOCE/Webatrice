@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useRef } from 'react';
 import { useLocation, type To } from 'react-router-dom';
 
 import { useKnownHosts } from '@app/feature-widgets/known-hosts';
@@ -53,7 +53,14 @@ export function resolveStartupDestination(
   }
 }
 
-/** The login page's destination once connected. See `resolveStartupDestination`. */
+/**
+ * The login page's destination once connected. See `resolveStartupDestination`.
+ *
+ * @critical Decided once per login and then kept. The login page stays mounted while the first
+ * post-login events arrive (user info, rooms), and each of those re-renders it; recomputing would
+ * hand `Navigate` a second `to` — the gate below having latched meanwhile — and that second
+ * navigation would override the first, landing on the startup tab instead of `from`.
+ */
 export function useStartupDestination(isConnected: boolean): StartupDestination {
   const location = useLocation();
   const preferences = {
@@ -63,14 +70,14 @@ export function useStartupDestination(isConnected: boolean): StartupDestination 
   };
   const knownHosts = useKnownHosts();
   const selectedHost = knownHosts.status === LoadingState.READY ? knownHosts.value?.selectedHost : undefined;
-  const from = pageLoadLoginGate.done ? undefined : (location.state as LoginRouteState | null)?.from;
+  const decided = useRef<StartupDestination | null>(null);
 
-  // Flipped after the commit that navigates away, so StrictMode's second render agrees with the first.
-  useEffect(() => {
-    if (isConnected) {
-      pageLoadLoginGate.done = true;
-    }
-  }, [isConnected]);
+  if (isConnected && !decided.current) {
+    const from = pageLoadLoginGate.done ? undefined : (location.state as LoginRouteState | null)?.from;
+    decided.current = resolveStartupDestination(preferences, selectedHost && getHostKey(selectedHost), from);
+    // Latched with the decision, not in an effect: a later render must not decide differently.
+    pageLoadLoginGate.done = true;
+  }
 
-  return resolveStartupDestination(preferences, selectedHost && getHostKey(selectedHost), from);
+  return decided.current ?? { to: RouteEnum.SERVER };
 }

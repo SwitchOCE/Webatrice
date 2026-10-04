@@ -136,4 +136,23 @@ describe('useStartupDestination', () => {
     expect(screen.getByText('login-page')).toBeInTheDocument();
     expect(pageLoadLoginGate.done).toBe(false);
   });
+
+  it('keeps the destination it decided when the login page re-renders', () => {
+    hoisted.preferences = { startupTab: StartupTab.Replays };
+    const { rerender } = renderLogin(true, '/decks');
+    expect(screen.getByText('at /decks null')).toBeInTheDocument();
+
+    // The first post-login events (user info, rooms) re-render the login page; the gate has
+    // latched by then, and a recomputed destination would navigate a second time.
+    rerender(
+      <MemoryRouter initialEntries={[{ pathname: RouteEnum.LOGIN, state: { from: '/decks' } }]}>
+        <Routes>
+          <Route path={RouteEnum.LOGIN} element={<LoginPage connected />} />
+          <Route path="*" element={<Landing />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText('at /decks null')).toBeInTheDocument();
+  });
 });
