@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { generatePath, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -26,6 +26,7 @@ import { ImportDeckDialog } from './dialogs/ImportDeckDialog';
 import { MoveDeckDialog } from './dialogs/MoveDeckDialog';
 import { OpenShareLinkDialog } from './dialogs/OpenShareLinkDialog';
 import { ShareDeckDialog } from './dialogs/ShareDeckDialog';
+import { useDeckDeleteFocus } from './hooks/useDeckDeleteFocus';
 import { useDeckFileDownloads } from './hooks/useDeckFileDownloads';
 import { useDeckList } from './hooks/useDeckList';
 import { useDeckListViewMode } from './hooks/useDeckListViewMode';
@@ -134,10 +135,14 @@ function Decks() {
     }
   };
 
+  const listRef = useRef<HTMLDivElement>(null);
+  const focusAfterDelete = useDeckDeleteFocus(list.sections, listRef);
+
   const confirmDelete = () => {
     if (!pendingDelete) {
       return;
     }
+    focusAfterDelete(pendingDelete);
     list.deleteDeck(pendingDelete);
     setPendingDelete(null);
   };
@@ -173,7 +178,7 @@ function Decks() {
 
         {/* Capped at max-w-4xl so rows don't stretch across ultrawide monitors. */}
         <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4">
-          <div className="max-w-4xl mx-auto">
+          <div ref={listRef} className="max-w-4xl mx-auto focus:outline-none">
             {list.loading && !list.listError && <DeckListLoading />}
             {list.loading && list.listError && <DeckListError message={list.listError} onRetry={list.refresh} />}
             {list.storageError && <DeckStorageError message={list.storageError} onDismiss={list.dismissStorageError} />}

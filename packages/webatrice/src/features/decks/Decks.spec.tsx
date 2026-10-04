@@ -193,3 +193,32 @@ describe('Decks shortcuts', () => {
     expect(await screen.findByRole('dialog', { name: 'ImportDeckDialog.title' })).toBeInTheDocument();
   });
 });
+
+describe('Decks delete focus', () => {
+  const storage = create(Response_DeckListSchema, {
+    root: create(ServerInfo_DeckStorage_FolderSchema, {
+      items: [
+        create(ServerInfo_DeckStorage_TreeItemSchema, { id: 3, name: 'Burn', file: create(ServerInfo_DeckStorage_FileSchema, {}) }),
+        create(ServerInfo_DeckStorage_TreeItemSchema, { id: 5, name: 'Tron', file: create(ServerInfo_DeckStorage_FileSchema, {}) }),
+      ],
+    }),
+  });
+
+  it('moves focus to the next deck once the server drops the deleted one, not to the page', async () => {
+    const user = userEvent.setup();
+    const { store } = renderWithProviders(<Decks />, { preloadedState: connectedState });
+    act(() => {
+      store.dispatch(server.Actions.backendDecks({ deckList: storage }));
+    });
+    const [burnDelete] = screen.getAllByRole('button', { name: 'Decks.list.deleteDeckNamed' });
+    await user.click(burnDelete);
+    await user.click(screen.getByRole('button', { name: 'Common.action.delete' }));
+    expect(burnDelete).toHaveFocus();
+
+    act(() => {
+      store.dispatch(server.Actions.deckDelete({ deckId: 3 }));
+    });
+    expect(screen.getAllByRole('button', { name: 'Decks.list.deleteDeckNamed' })).toHaveLength(1);
+    expect(document.activeElement?.closest('[data-deck-id]')).toHaveAttribute('data-deck-id', '5');
+  });
+});
