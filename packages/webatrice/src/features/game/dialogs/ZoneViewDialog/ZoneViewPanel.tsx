@@ -7,7 +7,8 @@ import {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { setRef } from '@mui/material/utils';
-import { Search, X } from 'lucide-react';
+import { Maximize2, Minimize2, Search, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Card from '../../components/ui/SeatCard/SeatCard';
 import { CARD_HEIGHT, CARD_WIDTH } from '../../components/ui/SeatCard/cardSize';
 import { useCardPreviewActions } from '../../components/ui/CardPreviewContext';
@@ -399,6 +400,10 @@ export default function ZoneViewPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const { t } = useTranslation();
+  // Whether the last expand/shrink left the view taller than its initial height (the header
+  // button's pressed state).
+  const [expanded, setExpanded] = useState(false);
   // Desktop's title-bar double-click (ZoneViewWidget::expandWindow): between the initial height
   // and "Maximum expanded height for card view window", never taller than the cards need (the
   // widget's maximum size) or the page allows. Expanded is never below initial, as desktop's
@@ -411,11 +416,14 @@ export default function ZoneViewPanel({
     }
     const { chrome, area, cardHeightPx } = measureCardView(el, content);
     const cardsHeight = contentsHeight(content);
+    const initial = cardViewRowsHeight(cardViewInitialRowsMax, cardHeightPx);
+    const maxHeight = Math.min(window.innerHeight - chrome, cardsHeight > 0 ? cardsHeight : Infinity);
     const next = toggledCardViewHeight(area, {
-      initial: cardViewRowsHeight(cardViewInitialRowsMax, cardHeightPx),
+      initial,
       expanded: cardViewRowsHeight(Math.max(cardViewExpandedRowsMax, cardViewInitialRowsMax), cardHeightPx),
-      maxHeight: Math.min(window.innerHeight - chrome, cardsHeight > 0 ? cardsHeight : Infinity),
+      maxHeight,
     });
+    setExpanded(next > Math.min(initial, maxHeight) + 1);
     el.style.height = `${Math.round(Math.max(MIN_DIALOG_H, chrome + next))}px`;
   };
 
@@ -784,7 +792,12 @@ export default function ZoneViewPanel({
         {/* Header */}
         <div
           onPointerDown={onHeaderPointerDown}
-          onDoubleClick={toggleExpanded}
+          onDoubleClick={(e) => {
+            // The header's buttons take their own clicks.
+            if (!(e.target as HTMLElement).closest('button')) {
+              toggleExpanded();
+            }
+          }}
           className={[
             'flex items-center justify-between px-4 py-3 border-b border-border-subtle shrink-0 select-none',
             dragging ? 'cursor-grabbing' : 'cursor-grab',
@@ -830,6 +843,17 @@ export default function ZoneViewPanel({
                 shuffle when closing
               </label>
             )}
+            {/* The keyboard's way to the title bar's double-click. */}
+            <button
+              type="button"
+              onClick={toggleExpanded}
+              aria-pressed={expanded}
+              aria-label={t('ZoneViewPanel.expand')}
+              title={t('ZoneViewPanel.expand')}
+              className="p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary transition-colors"
+            >
+              {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
             <button
               onClick={() => onClose(showShuffleOnClose && shuffleOnClose)}
               className="p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary transition-colors"

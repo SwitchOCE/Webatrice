@@ -169,6 +169,28 @@ describe('ZoneViewDialog', () => {
       expect(dialogHeight()).toBe('1416px');
     });
 
+    it('expands and shrinks from a header button too, for the keyboard', () => {
+      renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
+      const content = panel(/^Graveyard/).querySelector<HTMLElement>('.overflow-auto')!;
+      content.getBoundingClientRect = () => new DOMRect(0, 0, 900, 1013);
+      panel(/^Graveyard/).getBoundingClientRect = () => new DOMRect(0, 0, 900, 1013);
+      const expand = within(panel(/^Graveyard/)).getByRole('button', { name: 'ZoneViewPanel.expand' });
+      expect(expand).toHaveAttribute('aria-pressed', 'false');
+
+      fireEvent.click(expand);
+      expect(dialogHeight()).toBe('1416px');
+      expect(expand).toHaveAttribute('aria-pressed', 'true');
+
+      content.getBoundingClientRect = () => new DOMRect(0, 0, 900, 1416);
+      panel(/^Graveyard/).getBoundingClientRect = () => new DOMRect(0, 0, 900, 1416);
+      fireEvent.doubleClick(expand);
+      // A double-click on the button is not the title bar's double-click.
+      expect(dialogHeight()).toBe('1416px');
+      fireEvent.click(expand);
+      expect(dialogHeight()).toBe('1013px');
+      expect(expand).toHaveAttribute('aria-pressed', 'false');
+    });
+
     it('expands no taller than its cards need, as desktop caps the view at its contents', () => {
       const scrollHeight = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(450);
       renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
