@@ -4,11 +4,11 @@ import { useStore } from 'react-redux';
 import { games } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { ZoneName } from '@cockatrice/sockatrice';
-import { getSettings } from '@app/hooks';
+import { usePreference, useSettings } from '@app/hooks';
 import { ArrowColor } from '@app/types';
 import type { RootState } from '@app/store';
 
-import { playCardViaTableRow } from '../../../hooks/playCard';
+import { autoPlayCard } from '../../../hooks/playCard';
 import { useJudgeTarget } from '../../../hooks/useJudgeTarget';
 import { useGameId } from '../GameIdContext';
 import type { PlayerTargetCommands } from '../PlayerBoard/playerBoard.types';
@@ -32,6 +32,9 @@ export function useTargetCommandsFor(gameId: number | undefined): TargetCommands
   const webClient = useWebClient();
   const store = useStore<RootState>();
   const judgeTarget = useJudgeTarget(gameId);
+  const { value: settings } = useSettings();
+  const invertVerticalCoordinate = settings?.invertVerticalCoordinate ?? false;
+  const playToStack = usePreference('playToStack');
 
   return useMemo(() => {
     if (gameId == null) {
@@ -72,26 +75,27 @@ export function useTargetCommandsFor(gameId: number | undefined): TargetCommands
           game.attachCard(id, { startZone: ZoneName.TABLE, cardId: sourceCardId } as AttachCardParams, judgeTarget(playerId));
         },
         createArrow,
+        // Desktop ArrowDragItem::mouseReleaseEvent (arrow_item.cpp:434-446)
+        // plays a hand card with playCard(false), which honours "Play all
+        // nonlands onto the stack" (player_actions.cpp:72-80), then draws the
+        // arrow from where the card landed.
         playAndCreateArrow: (handCardId, target, color) => {
           const card = zone(ZoneName.HAND)?.byId[handCardId];
           if (!card) {
             return;
           }
-          void (async () => {
-            const settings = await getSettings().catch(() => undefined);
-            const playedZone = await playCardViaTableRow({
-              webClient,
-              gameId: id,
-              sourcePlayerId: playerId,
-              sourceZone: ZoneName.HAND,
-              card,
-              faceDown: false,
-              isInverted: settings?.invertVerticalCoordinate ?? false,
-              tableZone: zone(ZoneName.TABLE),
-              judgeTargetId: judgeTarget(playerId),
-            });
-            createArrow(handCardId, playedZone, target, color);
-          })();
+          void autoPlayCard({
+            webClient,
+            gameId: id,
+            sourcePlayerId: playerId,
+            sourceZone: ZoneName.HAND,
+            card,
+            faceDown: false,
+            isInverted: invertVerticalCoordinate,
+            tableZone: zone(ZoneName.TABLE),
+            judgeTargetId: judgeTarget(playerId),
+            playToStack,
+          }).then((playedZone) => createArrow(handCardId, playedZone, target, color));
         },
         // Desktop clearArrowsForPlayer (Ctrl+R): one Command_DeleteArrow per
         // arrow this player created; other players' arrows are untouched.
@@ -106,7 +110,7 @@ export function useTargetCommandsFor(gameId: number | undefined): TargetCommands
         },
       };
     };
-  }, [gameId, webClient, store, judgeTarget]);
+  }, [gameId, webClient, store, judgeTarget, invertVerticalCoordinate, playToStack]);
 }
 
 /** Arrows and attachments drawn from one seat. Undefined until the game id is known. */

@@ -427,13 +427,14 @@ describe('arrows and attachments', () => {
           startZone: ZoneName.HAND,
           cardsToMove: { card: [{ cardId: 30, faceDown: false }] },
           targetPlayerId: 1,
-          // A creature (tablerow 1) lands in the first free column of the middle row.
-          targetZone: ZoneName.TABLE,
+          // Desktop playCard(false): with playToStack on (the default), a
+          // creature (tablerow 1) goes onto the stack.
+          targetZone: ZoneName.STACK,
           x: 0,
-          y: 1,
+          y: 0,
           isReversed: false,
         }],
-        arrowTo(30, { targetPlayerId: 2, targetZone: ZoneName.TABLE, targetCardId: 20 }),
+        arrowTo(30, { targetPlayerId: 2, targetZone: ZoneName.TABLE, targetCardId: 20 }, ZoneName.STACK),
       ]);
     });
 
