@@ -1,1 +1,2 @@
 - 02:15Z started w17c; read brief+task → read spec §0/§11/§14
+- 02:39Z commit 1 (playing area/move selected/view/hand) pushed a237841 → commit 2 (move top/bottom/gameplay, library ops seam)
