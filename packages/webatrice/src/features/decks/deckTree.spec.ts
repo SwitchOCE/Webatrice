@@ -111,7 +111,7 @@ describe('formatDeckAge', () => {
   it('builds one relative-time formatter per locale, not one per row', () => {
     const Real = Intl.RelativeTimeFormat;
     const RelativeTimeFormat = vi.spyOn(Intl, 'RelativeTimeFormat')
-      .mockImplementation(function (...args: ConstructorParameters<typeof Real>) {
+      .mockImplementation(function relativeTimeFormat(...args: ConstructorParameters<typeof Real>) {
         return new Real(...args);
       } as unknown as typeof Real);
     for (const s of [125, 3 * 3600, 2 * 86400]) {
