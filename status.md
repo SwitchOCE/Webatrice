@@ -1,3 +1,4 @@
 - 03:25Z started; branch created from 87a20ef → install + baseline measurement
 - 03:35Z baseline reproduced: vmThreads --maxWorkers=2 OOM-killed at 13.3 GB after 380 s → trying threads/forks pools + per-file heap
 - 03:46Z forks w=2: 468/468 files, 3789 tests pass, peak 1434 MB, 668 s (import 493 s) → vmThreads w=1 per-file heap log
+- 04:06Z root cause found: vitest 4 vmThreads runs a batch of files in ONE vm context; node_modules (RTL, react, MUI) are shared across the batch, so RTL's import-time afterEach(cleanup) only binds to the first file → later files never unmount → DOM/roots accumulate. Fix: explicit cleanup() in setupTests afterEach → measuring full suite
