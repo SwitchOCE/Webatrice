@@ -21,8 +21,8 @@ import { counterColorForId } from '../CardSlot/counterColors';
  * The hover-scale + tight name pill are ported straight from fancy
  * webatrice.
  */
-// Desktop's "Maximum font size for information displayed on cards", at card
-// scale (useApplyCardPresentation); 0.7rem where nothing sets it.
+// Desktop's "Maximum font size for information displayed on cards", in fixed
+// pixels (useApplyCardPresentation); 0.7rem where nothing sets it.
 const CARD_INFO_FONT_SIZE = 'var(--card-info-font-size, 0.7rem)';
 
 interface Props {
