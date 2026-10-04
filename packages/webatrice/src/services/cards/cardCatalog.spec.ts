@@ -83,6 +83,26 @@ describe('lookupCard', () => {
     expect(await lookupCard('Swan Song')).not.toHaveProperty('cipt');
   });
 
+  // Desktop reads `exclude` as present / absent (cockatrice_xml_4.cpp:408-410);
+  // "Create all related tokens" skips such a relation.
+  it('carries cards.xml exclude on related and reverse-related cards, and through the Scryfall overlay', async () => {
+    const xml = {
+      ...XML_SWAN_SONG,
+      related: [{ value: 'Bird', exclude: 'exclude' }, { value: 'Clue' }],
+      'reverse-related': { value: 'Swan', exclude: 'exclude' },
+    };
+    cards.get.mockResolvedValue(xml);
+    expect((await lookupCard('Swan Song')).related).toEqual([
+      expect.objectContaining({ name: 'Bird', origin: 'related', exclude: 'exclude' }),
+      expect.not.objectContaining({ exclude: expect.anything() }),
+      expect.objectContaining({ name: 'Swan', origin: 'reverse-related', exclude: 'exclude' }),
+    ]);
+
+    fetchMock.mockImplementation(() => respond(SCRYFALL_SWAN_SONG));
+    cache.get.mockResolvedValue(undefined);
+    expect((await lookupCard('Swan Song')).related?.[0]).toMatchObject({ name: 'Bird', origin: 'scryfall', exclude: 'exclude' });
+  });
+
   it('merges cards.xml base fields with Scryfall related cards and writes the cache', async () => {
     cards.get.mockResolvedValue(XML_SWAN_SONG);
     fetchMock.mockImplementation(() => respond(SCRYFALL_SWAN_SONG));

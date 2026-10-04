@@ -60,6 +60,7 @@ export default function BattlefieldCardMenu() {
       },
       cardCommands.createToken,
       shortcutHints['game.createRelatedTokens'],
+      run((o) => o.createRelatedTokens()),
     )
     : [];
   const relatedViewItems = card ? relatedViewItemsFor(card.name) : [];

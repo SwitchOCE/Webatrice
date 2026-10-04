@@ -6,7 +6,8 @@ import {
   buildRelatedTokenItems,
   buildRelatedViewItems,
   buildTransformItems,
-  createAllRelatedRequests,
+  createAllRelated,
+  relationCount,
   type RelatedCardSource,
 } from './relatedCardActions';
 
@@ -153,30 +154,90 @@ describe('create all related tokens', () => {
     ...overrides,
   });
 
-  it('runs the only related action, whatever it is', () => {
-    expect(createAllRelatedRequests(source({ related: [ref('Treasure', { count: 'x' })] })).map((r) => r.name))
-      .toEqual(['Treasure']);
-    expect(createAllRelatedRequests(source({ parentMeta: { layout: 'transform', faces } })))
+  const names = (plan: ReturnType<typeof createAllRelated>) => plan.requests.map((r) => r.name);
+
+  // Desktop actCreateAllRelatedCards (player_actions.cpp:989-995): a single
+  // relation goes through the related-card dialog, which asks for an "x"
+  // count (player_dialogs.cpp:198-213).
+  it('runs the only related action, prompting for an "x" count', () => {
+    expect(createAllRelated(source({ related: [ref('Soldier', { count: '2' })] })).requests.map((r) => r.name))
+      .toEqual(['Soldier', 'Soldier']);
+    expect(createAllRelated(source({ related: [ref('Treasure', { count: 'x=3', exclude: 'exclude' })] }))).toEqual({
+      requests: [],
+      prompt: { request: expect.objectContaining({ name: 'Treasure' }), defaultCount: 3 },
+    });
+    expect(createAllRelated(source({ parentMeta: { layout: 'transform', faces } })).requests)
       .toEqual([expect.objectContaining({ name: 'Insectile Aberration', targetCardId: 7, targetMode: 'transform_into' })]);
   });
 
-  it('otherwise creates every token that neither attaches nor asks for a count', () => {
-    const requests = createAllRelatedRequests(source({
-      related: [ref('Soldier', { count: '2' }), ref('Treasure', { count: 'x' }), ref('Aura', { attach: 'attach' })],
+  // player_actions.cpp:1000-1015: one relation left after dropping the
+  // excluded and attaching ones goes through the dialog too.
+  it('runs the one relation that is neither excluded nor attaching, prompting for an "x" count', () => {
+    const related = [ref('Soldier', { exclude: 'exclude' }), ref('Aura', { attach: 'attach' }), ref('Treasure', { count: 'x' })];
+    expect(createAllRelated(source({ related }))).toEqual({
+      requests: [],
+      prompt: { request: expect.objectContaining({ name: 'Treasure' }), defaultCount: 1 },
+    });
+    expect(names(createAllRelated(source({ related: [ref('Soldier', { exclude: 'exclude' }), ref('Clue', { count: '2' })] }))))
+      .toEqual(['Clue', 'Clue']);
+  });
+
+  // player_actions.cpp:1017-1034: when every relation is excluded, desktop
+  // treats none of them as excluded, minus the attaching and "x" ones.
+  it('creates every non-attaching, fixed-count relation when all are excluded', () => {
+    const related = [
+      ref('Soldier', { exclude: 'exclude', count: '2' }),
+      ref('Treasure', { exclude: 'exclude', count: 'x' }),
+      ref('Aura', { exclude: 'exclude', attach: 'attach' }),
+      ref('Clue', { exclude: 'exclude' }),
+    ];
+    expect(createAllRelated(source({ related, parentMeta: { layout: 'transform', faces } }))).toEqual({
+      requests: ['Soldier', 'Soldier', 'Clue'].map((name) => expect.objectContaining({ name })),
+    });
+  });
+
+  // player_actions.cpp:1036-1050: otherwise each relation not excluded,
+  // not attaching and not asking for a count.
+  it('otherwise creates every relation that is neither excluded, attaching nor asks for a count', () => {
+    const plan = createAllRelated(source({
+      related: [
+        ref('Soldier', { count: '2' }),
+        ref('Treasure', { count: 'x' }),
+        ref('Aura', { attach: 'attach' }),
+        ref('Clue'),
+        ref('Food', { exclude: 'exclude' }),
+      ],
       parentMeta: { layout: 'transform', faces },
     }));
-    expect(requests.map((r) => r.name)).toEqual(['Soldier', 'Soldier']);
+    expect(plan.prompt).toBeUndefined();
+    expect(names(plan)).toEqual(['Soldier', 'Soldier', 'Clue']);
+  });
+
+  it('reads counts as the cards.xml parser does', () => {
+    expect([undefined, '3', '0', 'x', 'x=4', 'x=0'].map((count) => relationCount({ count }))).toEqual([
+      { variable: false, count: 1 },
+      { variable: false, count: 3 },
+      { variable: false, count: 1 },
+      { variable: true, count: 1 },
+      { variable: true, count: 4 },
+      { variable: true, count: 1 },
+    ]);
   });
 
   it('puts the create-all hint on the only item, or on "All tokens"', () => {
-    const single = buildRelatedActionItems(source({ related: [ref('Soldier')] }), vi.fn(), 'Ctrl+Shift+K').map(row);
+    const createAll = vi.fn();
+    const single = buildRelatedActionItems(source({ related: [ref('Soldier')] }), vi.fn(), 'Ctrl+Shift+K', createAll).map(row);
     expect(single.map((i) => [i.label, i.shortcut])).toEqual([['Token: 1/1 Soldier', 'Ctrl+Shift+K']]);
+    single[0].onClick!();
+    expect(createAll).toHaveBeenCalledTimes(1);
+    createAll.mockClear();
 
     const create = vi.fn();
     const many = buildRelatedActionItems(
       source({ related: [ref('Soldier'), ref('Treasure', { count: 'x' })], parentMeta: { layout: 'transform', faces } }),
       create,
       'Ctrl+Shift+K',
+      createAll,
     ).map(row);
     expect(many.map((i) => [i.label, i.shortcut])).toEqual([
       ['Token: 1/1 Soldier', undefined],
@@ -185,12 +246,13 @@ describe('create all related tokens', () => {
       ['All tokens', 'Ctrl+Shift+K'],
     ]);
     many[3].onClick!();
-    expect(create.mock.calls.map(([r]) => r.name)).toEqual(['Soldier']);
+    expect(createAll).toHaveBeenCalledTimes(1);
+    expect(create).not.toHaveBeenCalled();
   });
 
   it('offers nothing for a card without relations, and no hint when unbound', () => {
-    expect(buildRelatedActionItems(source({}), vi.fn(), 'Ctrl+Shift+K')).toEqual([]);
-    expect(row(buildRelatedActionItems(source({ related: [ref('Soldier')] }), vi.fn(), '')[0]).shortcut).toBeUndefined();
+    expect(buildRelatedActionItems(source({}), vi.fn(), 'Ctrl+Shift+K', vi.fn())).toEqual([]);
+    expect(row(buildRelatedActionItems(source({ related: [ref('Soldier')] }), vi.fn(), '', vi.fn())[0]).shortcut).toBeUndefined();
   });
 });
 

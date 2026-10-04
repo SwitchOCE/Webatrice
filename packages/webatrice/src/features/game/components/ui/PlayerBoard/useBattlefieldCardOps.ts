@@ -3,7 +3,7 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import type { LookupResult } from '@app/services';
 
 import type { SeatSelection, SeatSelectionApi } from '../../../hooks/useSeatSelection';
-import { createAllRelatedRequests } from '../../context-menus/CardContextMenu/relatedCardActions';
+import { createAllRelated } from '../../context-menus/CardContextMenu/relatedCardActions';
 import {
   cardIdsOf,
   cloneSource,
@@ -46,7 +46,10 @@ export interface UseBattlefieldCardOpsArgs {
   counterCommands: PlayerCounterCommands;
   targetCommands: PlayerTargetCommands;
   zoneCommands: PlayerZoneCommands;
-  prompts: Pick<SeatPrompts, 'openAnnotationPrompt' | 'openPTPrompt' | 'openCardCounterPrompt' | 'openMoveXFromTopPrompt'>;
+  prompts: Pick<
+    SeatPrompts,
+    'openAnnotationPrompt' | 'openPTPrompt' | 'openCardCounterPrompt' | 'openMoveXFromTopPrompt' | 'openTokenCountPrompt'
+  >;
   /** Start an attach pick for these TABLE cards; the first is the arrow's anchor. */
   startAttach: (sourceCardIds: readonly number[], anchorName: string) => void;
   /** Start a draw-arrow pick from this TABLE card. */
@@ -114,7 +117,7 @@ export function useBattlefieldCardOps({
   startAttach,
   startArrow,
 }: UseBattlefieldCardOpsArgs): BattlefieldCardActions {
-  const { openAnnotationPrompt, openPTPrompt, openCardCounterPrompt, openMoveXFromTopPrompt } = prompts;
+  const { openAnnotationPrompt, openPTPrompt, openCardCounterPrompt, openMoveXFromTopPrompt, openTokenCountPrompt } = prompts;
 
   return useMemo(() => {
     const printedPT = (name: string) => cardMetaByName.get(name)?.pt ?? '';
@@ -221,13 +224,17 @@ export function useBattlefieldCardOps({
         // Desktop acts on the active card only, the anchor here.
         createRelatedTokens: () => {
           const meta = cardMetaByName.get(anchor.name);
-          createAllRelatedRequests({
+          const { requests, prompt: countPrompt } = createAllRelated({
             related: meta?.related ?? [],
             tokenMeta: tokenMetaByName,
             parentMeta: meta,
             sourceCardId: anchorNumeric ? anchorId : undefined,
             parentName: anchor.name,
-          }).forEach((request) => cardCommands.createToken(request));
+          });
+          requests.forEach((request) => cardCommands.createToken(request));
+          if (countPrompt) {
+            openTokenCountPrompt({ request: countPrompt.request, initial: countPrompt.defaultCount });
+          }
         },
       };
     };
@@ -241,6 +248,6 @@ export function useBattlefieldCardOps({
   }, [
     cards, selection, setSelection, cardMetaByName, tokenMetaByName, deckCount, lifeControl, cardCommands, counterCommands,
     targetCommands, zoneCommands, openAnnotationPrompt, openPTPrompt, openCardCounterPrompt, openMoveXFromTopPrompt,
-    startAttach, startArrow,
+    openTokenCountPrompt, startAttach, startArrow,
   ]);
 }

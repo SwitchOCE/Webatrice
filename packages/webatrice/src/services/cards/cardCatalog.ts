@@ -116,6 +116,9 @@ export interface RelatedCardRef {
   count?: string;
   attach?: string;
   persistent?: string;
+  /** cards.xml `exclude`: present when "Create all related tokens" skips
+   *  this relation (desktop CardRelation::getIsCreateAllExclusion). */
+  exclude?: string;
   component?: 'token' | 'combo_piece' | 'meld_part' | 'meld_result';
   /** Provenance of the relation. `'scryfall'` means the ref came
    *  from Scryfall `all_parts`; `'related'` / `'reverse-related'`
@@ -397,7 +400,7 @@ function mergeLookup(
   const overlaid: RelatedCardRef[] = scryfallRelated.map((s) => {
     const x = xmlByName.get(s.name);
     return x
-      ? { ...s, count: x.count ?? s.count, persistent: x.persistent ?? s.persistent, attach: x.attach ?? s.attach }
+      ? { ...s, count: x.count ?? s.count, persistent: x.persistent ?? s.persistent, attach: x.attach ?? s.attach, exclude: x.exclude }
       : s;
   });
   // Any cards.xml relations Scryfall didn't surface (rare — usually
@@ -482,6 +485,7 @@ function dexieToLookup(card: Card, preferences?: CardDataPreferences): LookupRes
       count: entry.count,
       attach: entry.attach,
       persistent: entry.persistent,
+      exclude: entry.exclude,
       origin: 'related',
     });
   }
@@ -495,6 +499,7 @@ function dexieToLookup(card: Card, preferences?: CardDataPreferences): LookupRes
       count: entry.count,
       attach: entry.attach,
       persistent: entry.persistent,
+      exclude: entry.exclude,
       origin: 'reverse-related',
     });
   }
