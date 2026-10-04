@@ -1,6 +1,12 @@
+import { BROWSER_RESERVED_SEQUENCES } from './browserReserved';
 import { allActionIds, defaults } from './defaults';
 import i18n from './SettingsTab/ShortcutsTab.i18n.json';
-import { ShortcutScope, type ActionId } from './types';
+import { normalizeSequence } from './shortcutSequence';
+import type { ActionId } from './types';
+
+// deck.new keeps desktop's Ctrl+N here; the deck editor i18n / a11y change
+// rebinds it to Ctrl+Alt+N. Drop the entry with that change.
+const PENDING_REMAP: readonly ActionId[] = ['deck.new'];
 
 describe('shortcut defaults', () => {
   const boundTo = (sequence: string) =>
@@ -16,11 +22,13 @@ describe('shortcut defaults', () => {
     expect(defaults['game.prevPhase'].sequences).toEqual([]);
   });
 
+  // Keyed by the chord the matcher compares, so Shift+Ctrl+KeyK and
+  // Ctrl+Shift+KeyK count as one.
   it('binds no sequence to two actions of one scope', () => {
     const owners = new Map<string, ActionId[]>();
     for (const id of allActionIds) {
       for (const sequence of defaults[id].sequences) {
-        const key = `${defaults[id].scope} ${sequence}`;
+        const key = `${defaults[id].scope} ${normalizeSequence(sequence)}`;
         owners.set(key, [...(owners.get(key) ?? []), id]);
       }
     }
@@ -34,12 +42,19 @@ describe('shortcut defaults', () => {
     expect([...new Set(allActionIds.map((id) => defaults[id].group))].filter((g) => !groups[g])).toEqual([]);
   });
 
-  // Keys the browser keeps (reload, fullscreen, devtools, tab and window
-  // management): a game default on one of them would never reach the page.
-  it.each([
-    'F5', 'F11', 'F12', 'Ctrl+KeyT', 'Ctrl+Shift+KeyT', 'Ctrl+KeyW', 'Ctrl+Shift+KeyW', 'Ctrl+KeyN', 'Ctrl+Shift+KeyN',
-    'Ctrl+Tab', 'Ctrl+Shift+Tab', 'Ctrl+PageUp', 'Ctrl+PageDown', 'Alt+F4', 'Ctrl+Digit1', 'Ctrl+Digit9', 'Ctrl+Digit0',
-  ])('binds no game action to the browser-reserved %s', (sequence) => {
-    expect(boundTo(sequence).filter((id) => defaults[id].scope === ShortcutScope.GAME)).toEqual([]);
+  // A default on a browser-reserved chord never reaches the page, so it
+  // would look bound in the Shortcuts tab and do nothing. Every scope.
+  const reservedOwners = (sequence: string) => {
+    const reserved = normalizeSequence(sequence);
+    return allActionIds.filter((id) => defaults[id].sequences.some((s) => normalizeSequence(s) === reserved));
+  };
+
+  it.each(BROWSER_RESERVED_SEQUENCES)('binds no action to the browser-reserved %s', (sequence) => {
+    expect(reservedOwners(sequence).filter((id) => !PENDING_REMAP.includes(id))).toEqual([]);
+  });
+
+  it('lists only actions still on a reserved chord as pending a remap', () => {
+    expect(PENDING_REMAP.filter((id) => !BROWSER_RESERVED_SEQUENCES.some((sequence) => reservedOwners(sequence).includes(id))))
+      .toEqual([]);
   });
 });
