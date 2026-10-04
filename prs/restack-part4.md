@@ -145,7 +145,7 @@ game chain (R1, R2, R6, R4) now continue the one linear chain above 28 (wR4a):
 Run on the R4 tip `30fbee1` (`/tmp/wt`), Vitest capped at 2 workers:
 
 - `npx turbo run typecheck --concurrency=1`: 5/5. **Per commit:** every commit from 16 (`a472e86`)
-  to the R4 tip typechecks (`turbo run typecheck` at each commit; 230 commits, 0 red after the
+  to the R4 tip typechecks (`turbo run typecheck` at each commit; 220 commits, 0 red after the
   17b fix).
 - `npm run lint`: 3/3, 0 errors, 0 warnings. `npm run i18n:check -w @cockatrice/webatrice`: 107
   catalogues, 774 sources, all keys resolve. `src/i18n-default.json` matches `npm run translate`.
