@@ -15,7 +15,7 @@ describe('useApplyCardPresentation', () => {
     renderHook(() => useApplyCardPresentation());
     expect(rootVar('--card-corner-radius')).toBe('7.5%');
     expect(rootVar('--card-hover-scale')).toBe('1.1');
-    expect(rootVar('--card-info-font-size')).toBe('calc(var(--card-width, 72px) * 12 / 72)');
+    expect(rootVar('--card-info-font-size')).toBe('12px');
   });
 
   it('follows the options as they change', async () => {
@@ -26,7 +26,13 @@ describe('useApplyCardPresentation', () => {
     });
     expect(rootVar('--card-corner-radius')).toBe('0px');
     expect(rootVar('--card-hover-scale')).toBe('1');
-    expect(rootVar('--card-info-font-size')).toBe('calc(var(--card-width, 72px) * 20 / 72)');
+    expect(rootVar('--card-info-font-size')).toBe('20px');
+
+    // Desktop never draws card text below 9 px.
+    await act(async () => {
+      settingsStore.setValue(Object.assign(settings, { maxFontSizeForCards: 4 }));
+    });
+    expect(rootVar('--card-info-font-size')).toBe('9px');
   });
 
   it('sets each card counter\'s colour, desktop\'s by default', async () => {
