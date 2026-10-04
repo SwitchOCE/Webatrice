@@ -1,1 +1,2 @@
 - 05:10Z started f17c, read brief/rv23 → setup + gate baseline
+- 05:17Z pushed 33a269d create-all exclusion → lastToken, hand→table, library shuffle
