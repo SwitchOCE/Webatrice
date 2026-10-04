@@ -5,3 +5,4 @@
 - 03:40Z spellbook consent done → minors/nits
 - 03:48Z all rv21 findings applied (tip 7899922) → full gate
 - 03:56Z typecheck/lint/unit/integration green on bf310a1 → webatrice e2e (docker)
+- 04:12Z e2e run 1: startup-tab failed on firefox (reload not reported as 'reload') → fixed ba53e13 (sessionStorage marker); e2e run 2 in progress
