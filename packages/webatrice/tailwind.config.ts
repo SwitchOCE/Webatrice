@@ -53,6 +53,8 @@ export default {
         'over-art': {
           text: 'rgb(var(--over-art-text) / <alpha-value>)',
           backdrop: 'rgb(var(--over-art-backdrop) / <alpha-value>)',
+          // The life total's heart, over the avatar.
+          life: 'rgb(var(--over-art-life) / <alpha-value>)',
         },
         'pt-modified': 'rgb(var(--pt-modified) / <alpha-value>)',
       },
