@@ -1,5 +1,5 @@
 # Task wr5r: PR R5, `refactor(layout): split TopBar`
-Push branch: `claude/parity-r5-topbar`. PR file: `parity-r5-topbar`. Base: `BASE_PLACEHOLDER` (the wR3 tip: 25a/26/27/28 restacked, all of which edit TopBar).
+Push branch: `claude/parity-r5-topbar`. PR file: `parity-r5-topbar`. Base: `fork/claude/restack-25a-platform-prefs` @ e1140717 (the wR4a 25a row: 25a/26/27/28 restacked: 25a/26/27/28 restacked, all of which edit TopBar).
 Spec: `/tmp/notes/specs/aud2.md` (the architecture audit). Follow the refactor idioms of PR 05/09: characterization specs first (pin current behaviour and request shapes before moving code), then move, then delete. No behaviour change unless the audit names a bug; list any such fixes separately in the PR file. Every commit typechecks. Gate: the full gate plus webatrice e2e on all browsers.
 Implement the aud2 TopBar row:
 - **Sticky-tab store:** the module singleton, `useSyncExternalStore` and `localStorage` move to `hooks/` or `services/` with specs.
