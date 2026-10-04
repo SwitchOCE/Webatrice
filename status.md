@@ -1,2 +1,3 @@
 - 03:25Z started rv22, read brief/template/task; inbox empty → review PR 31 diff
 - 03:28Z read core diff (dialogs, grid, row menu, quick add, shortcuts, e2e) → i18n checks + keyboard e2e drive
+- 03:39Z review written (2 major, 11 minor, 7 nit); keyboard e2e drive done on 3 browsers vs 3.1 image → done
