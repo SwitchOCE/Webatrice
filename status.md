@@ -6,3 +6,4 @@
 - ACK M1: kept deck.new in PENDING_REMAP; will note it in the PR file for 31's replay
 - 05:40Z pushed f81008c (library prompts, per-card tap + desktop double-click) → Game.shortcuts.spec cases, nits
 - 05:44Z pushed b2d2d09 (all findings applied) → full gate + e2e, PR file
+- 05:59Z gate: typecheck 5/5, lint 3/3, unit+integ green except known OOM (split run green) and pre-existing invite-link (fails on 3a78d2f too) → e2e running
