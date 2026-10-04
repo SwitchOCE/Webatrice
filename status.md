@@ -1,1 +1,2 @@
 - 03:25Z started f25a; read brief/template/rv21 → checkout PR branch
+- 03:27Z deps installed, desktop cloned, plan made → startup-tab rule fix
