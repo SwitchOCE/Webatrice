@@ -5,6 +5,7 @@ import {
   libraryCountPrompt,
   moveXFromTopPrompt,
   powerToughnessPrompt,
+  tokenCountPrompt,
 } from './seatPrompts';
 
 describe('expressionPrompt', () => {
@@ -96,5 +97,21 @@ describe('moveXFromTopPrompt', () => {
     expect(prompt.validate?.('-1')).toBe('Enter 0 or more');
     prompt.onSubmit('10');
     expect(onSubmit).toHaveBeenCalledWith(4);
+  });
+});
+
+describe('tokenCountPrompt', () => {
+  // Desktop asks QInputDialog::getInt(…, "Create tokens", "Number:", default, 1, 99)
+  // (player_dialogs.cpp:205-206).
+  it('takes 1 to 99, seeded with the default count', () => {
+    const onSubmit = vi.fn();
+    const prompt = tokenCountPrompt({ tokenName: 'Treasure', initial: 3, onSubmit });
+
+    expect(prompt).toMatchObject({ title: 'Create tokens', description: 'Treasure', initialValue: '3' });
+    expect(['0', '1', '99', '100', 'x'].map((v) => prompt.validate?.(v))).toEqual([
+      'Enter 1 to 99', null, null, 'Enter 1 to 99', 'Enter 1 to 99',
+    ]);
+    prompt.onSubmit('5');
+    expect(onSubmit).toHaveBeenCalledWith(5);
   });
 });

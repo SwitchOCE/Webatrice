@@ -61,8 +61,8 @@ describe('useSeatPrompts', () => {
   it('keeps the card-op prompt openers across renders, so the seat\'s card ops stay memoised', () => {
     const { result, rerender } = setup();
     const pick = () => {
-      const { openAnnotationPrompt, openPTPrompt, openCardCounterPrompt, openMoveXFromTopPrompt } = result.current;
-      return [openAnnotationPrompt, openPTPrompt, openCardCounterPrompt, openMoveXFromTopPrompt];
+      const { openAnnotationPrompt, openPTPrompt, openCardCounterPrompt, openMoveXFromTopPrompt, openTokenCountPrompt } = result.current;
+      return [openAnnotationPrompt, openPTPrompt, openCardCounterPrompt, openMoveXFromTopPrompt, openTokenCountPrompt];
     };
     const before = pick();
     rerender();
@@ -153,6 +153,15 @@ describe('useSeatPrompts', () => {
     result.current.openMoveXFromTopPrompt({ cardIds: [10], cardName: 'Bear', deckSize: 30 });
     answer('4');
     expect(zoneCommands.moveCards).toHaveBeenCalledWith(ZoneName.TABLE, [10], { zone: ZoneName.DECK, index: 4, reversed: false });
+  });
+
+  it('creates as many of a variable-count related token as the answer says', () => {
+    const { result, cardCommands, answer } = setup();
+    const request = { name: 'Treasure', color: '', pt: '', annotation: '', destroyOnZoneChange: true, faceDown: false };
+    result.current.openTokenCountPrompt({ request, initial: 1 });
+    expect(answer('3')).toMatchObject({ title: 'Create tokens', initialValue: '1' });
+    expect(cardCommands.createToken).toHaveBeenCalledTimes(3);
+    expect(cardCommands.createToken).toHaveBeenCalledWith(request);
   });
 
   it('seeds the create-token dialog with the last token and remembers what it creates', () => {

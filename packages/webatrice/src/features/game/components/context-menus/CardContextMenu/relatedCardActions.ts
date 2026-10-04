@@ -78,8 +78,8 @@ function relatedTokenAction(ref: RelatedCardRef, tok: LookupResult | undefined, 
       ? `${ref.count}x `
       : '';
   const ptPart = tokPT ? `${tokPT} ` : '';
-  const fireCount =
-    ref.count && /^\d+$/.test(ref.count) ? Number(ref.count) : 1;
+  const { variable, count } = relationCount(ref);
+  const fireCount = variable ? 1 : count;
   const request: CreateTokenRequest = {
     name: tok?.name ?? ref.name,
     color: tokColor,
@@ -221,21 +221,68 @@ export interface RelatedCardSource {
 }
 
 /**
- * What "Create all related tokens" (desktop aCreateRelatedTokens,
- * PlayerActions::actCreateAllRelatedCards, player_actions.cpp:977-1062)
- * sends: the card's only related action when it has one, else every
- * related token that neither attaches (a transform included) nor asks
- * for a count ("x").
+ * A relation's count as desktop's cards.xml parser reads it
+ * (cockatrice_xml_4.cpp:388-400): "x" or "x=N" is a variable count the user
+ * is asked for (default N, else 1); a number is a fixed count; anything
+ * below 1 counts as 1.
  */
-export function createAllRelatedRequests(source: RelatedCardSource): CreateTokenRequest[] {
-  const annotate = source.annotate ?? false;
-  const tokens = source.related.map((ref) => ({ ref, action: relatedTokenAction(ref, source.tokenMeta.get(ref.name), annotate) }));
-  const transform = transformAction(source.parentMeta, source.sourceCardId, source.parentName, annotate);
-  const actions = [...tokens.map((t) => t.action), ...(transform ? [transform] : [])];
-  if (actions.length === 1) {
-    return actions[0].requests;
+export function relationCount(ref: Pick<RelatedCardRef, 'count'>): { variable: boolean; count: number } {
+  const raw = ref.count;
+  if (raw == null) {
+    return { variable: false, count: 1 };
   }
-  return tokens.filter(({ ref }) => !ref.attach && ref.count !== 'x').flatMap((t) => t.action.requests);
+  const variable = raw.startsWith('x');
+  const parsed = parseInt(raw.startsWith('x=') ? raw.slice(2) : variable ? '' : raw, 10);
+  return { variable, count: Number.isFinite(parsed) && parsed >= 1 ? parsed : 1 };
+}
+
+/** What "Create all related tokens" does (see createAllRelated). */
+export interface CreateAllRelated {
+  /** Command_CreateToken requests to send now. */
+  requests: CreateTokenRequest[];
+  /**
+   * A variable-count relation ("x"), which desktop runs through its related
+   * card dialog: ask how many (default `defaultCount`), then send `request`
+   * that many times.
+   */
+  prompt?: { request: CreateTokenRequest; defaultCount: number };
+}
+
+/**
+ * What "Create all related tokens" (desktop aCreateRelatedTokens,
+ * PlayerActions::actCreateAllRelatedCards, player_actions.cpp:977-1050)
+ * does with a card's related actions:
+ *   - exactly one related action (a transform included): run it as its
+ *     menu item does, through the count prompt when its count is "x";
+ *   - else, of the relations neither marked `exclude` nor attaching:
+ *     - exactly one: run that one, as above;
+ *     - none (everything excluded): every relation that neither attaches
+ *       nor asks for a count;
+ *     - more: each of them that does not ask for a count.
+ */
+export function createAllRelated(source: RelatedCardSource): CreateAllRelated {
+  const annotate = source.annotate ?? false;
+  const runOne = (ref: RelatedCardRef): CreateAllRelated => {
+    const { requests } = relatedTokenAction(ref, source.tokenMeta.get(ref.name), annotate);
+    const { variable, count } = relationCount(ref);
+    return variable ? { requests: [], prompt: { request: requests[0], defaultCount: count } } : { requests };
+  };
+  const createEach = (refs: readonly RelatedCardRef[]): CreateAllRelated => ({
+    requests: refs
+      .filter((ref) => !ref.attach && !relationCount(ref).variable)
+      .flatMap((ref) => relatedTokenAction(ref, source.tokenMeta.get(ref.name), annotate).requests),
+  });
+
+  const transform = transformAction(source.parentMeta, source.sourceCardId, source.parentName, annotate);
+  if (source.related.length + (transform ? 1 : 0) === 1) {
+    return transform ? { requests: transform.requests } : runOne(source.related[0]);
+  }
+  // A transform attaches (attach="transform"), so it never counts here.
+  const nonExcluded = source.related.filter((ref) => !ref.exclude && !ref.attach);
+  if (nonExcluded.length === 1) {
+    return runOne(nonExcluded[0]);
+  }
+  return createEach(nonExcluded.length === 0 ? source.related : nonExcluded);
 }
 
 /**
@@ -249,14 +296,17 @@ export function buildRelatedActionItems(
   source: RelatedCardSource,
   onCreateToken: CreateTokenHandler | undefined,
   createAllShortcut: string,
+  onCreateAll: () => void,
 ): CardMenuItem[] {
   const items = [
     ...buildRelatedTokenItems(source.related, source.tokenMeta, onCreateToken, source.annotate),
     ...buildTransformItems(source.parentMeta, source.sourceCardId, source.parentName, onCreateToken, source.annotate),
   ];
   const shortcut = createAllShortcut || undefined;
+  // The only item is what create-all runs, so it runs it the same way (the
+  // count prompt for an "x" relation).
   if (items.length === 1) {
-    return [{ ...items[0], shortcut }];
+    return [{ ...items[0], shortcut, onClick: onCreateAll }];
   }
   if (items.length === 0) {
     return items;
@@ -266,11 +316,7 @@ export function buildRelatedActionItems(
     {
       label: 'All tokens',
       shortcut,
-      onClick: () => {
-        if (onCreateToken) {
-          createAllRelatedRequests(source).forEach((request) => onCreateToken(request));
-        }
-      },
+      onClick: onCreateAll,
     },
   ];
 }
