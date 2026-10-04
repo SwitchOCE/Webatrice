@@ -52,6 +52,39 @@ describe('useHandCardOps', () => {
     expect(moveCards).toHaveBeenCalledExactlyOnceWith(ZoneName.HAND, [31, 32], { zone: ZoneName.EXILE, reversed: false });
   });
 
+  // Desktop cmMoveToTable (player_actions.cpp:1925-1950), the hand menu's
+  // "Move to > Table" and the move-to-battlefield shortcut: one command per
+  // card, x -1, its row, printed P/T and cipt.
+  it('moves each card onto the battlefield in its own command, row, P/T and cipt', () => {
+    const { ops, moveCards } = setup({
+      selection: hand('30', '31', '32'),
+      cardMetaByName: new Map([
+        ['Shock', { typeLine: 'Instant' }],
+        ['Forest', { typeLine: 'Basic Land — Forest', cipt: true }],
+        ['Ogre', { typeLine: 'Creature — Ogre', pt: '3/3' }],
+      ]),
+    });
+    ops.forSelection()!.move({ zone: ZoneName.TABLE });
+    expect(moveCards.mock.calls).toEqual([
+      [ZoneName.HAND, [30], { zone: ZoneName.TABLE, index: 'end', row: 1 }],
+      [ZoneName.HAND, [{ id: 31, tapped: true }], { zone: ZoneName.TABLE, index: 'end', row: 2 }],
+      [ZoneName.HAND, [{ id: 32, pt: '3/3' }], { zone: ZoneName.TABLE, index: 'end', row: 0 }],
+    ]);
+  });
+
+  it('shuffles more than one card moved to the top or bottom of the library', () => {
+    const { ops, moveCards } = setup();
+    ops.forSelection()!.move({ zone: ZoneName.DECK });
+    ops.forSelection()!.move({ zone: ZoneName.DECK, reversed: true });
+    expect(moveCards.mock.calls.map(([, , to]) => to)).toEqual([
+      { zone: ZoneName.DECK, reversed: false, shuffleMoved: true },
+      { zone: ZoneName.DECK, reversed: true, shuffleMoved: true },
+    ]);
+    const one = setup({ selection: hand('30') });
+    one.ops.forSelection()!.move({ zone: ZoneName.DECK });
+    expect(one.moveCards).toHaveBeenCalledWith(ZoneName.HAND, [30], { zone: ZoneName.DECK, reversed: false });
+  });
+
   it('has nothing to act on without a hand selection', () => {
     expect(setup({ selection: null }).ops.forSelection()).toBeNull();
     expect(setup({ selection: { zone: 'battlefield', ids: new Set(['31']) } }).ops.forSelection()).toBeNull();
