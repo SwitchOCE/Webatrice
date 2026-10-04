@@ -8,7 +8,6 @@ import { DeckLinkHandoff } from '../components/DeckLinkHandoff';
 import { FormatPicker } from '../components/FormatPicker';
 import { summarizeUploadedDeck } from '../deckImport';
 import { useDeckImportFlow, type DeckImportFlow } from '../hooks/useDeckImportFlow';
-import { useEscapeKey } from '../hooks/useEscapeKey';
 import { DeckDialogFrame } from './DeckDialogFrame';
 
 const SECONDARY_BUTTON_CLASS =
@@ -34,7 +33,6 @@ export interface ImportDeckDialogProps {
 export function ImportDeckDialog({ open, onClose, onImport }: ImportDeckDialogProps) {
   const { t } = useTranslation();
   const flow = useDeckImportFlow(open, onImport);
-  useEscapeKey(open, onClose);
   const titleId = useId();
 
   if (!open) {
@@ -63,20 +61,22 @@ export function ImportDeckDialog({ open, onClose, onImport }: ImportDeckDialogPr
           {t('ImportDeckDialog.subtitle')}
         </p>
 
-        {flow.error && (
-          <div className="mt-4 flex items-start gap-2 text-sm text-danger bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">
-            <CircleAlert size={14} className="shrink-0 mt-0.5" />
-            <span>{flow.error}</span>
-          </div>
-        )}
+        <div data-dialog-content className="contents">
+          {flow.error && (
+            <div className="mt-4 flex items-start gap-2 text-sm text-danger bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2">
+              <CircleAlert size={14} className="shrink-0 mt-0.5" />
+              <span>{flow.error}</span>
+            </div>
+          )}
 
-        {flow.phase === 'input' && <ImportInputStep flow={flow} />}
+          {flow.phase === 'input' && <ImportInputStep flow={flow} />}
 
-        {flow.phase === 'resolving' && <ImportProgress label={t('ImportDeckDialog.resolving')} />}
+          {flow.phase === 'resolving' && <ImportProgress label={t('ImportDeckDialog.resolving')} />}
 
-        {flow.phase === 'review' && <ImportReviewStep flow={flow} />}
+          {flow.phase === 'review' && <ImportReviewStep flow={flow} />}
 
-        {flow.phase === 'importing' && <ImportProgress label={t('ImportDeckDialog.importing')} />}
+          {flow.phase === 'importing' && <ImportProgress label={t('ImportDeckDialog.importing')} />}
+        </div>
 
         <div className="mt-6 flex items-center justify-end gap-2 shrink-0">
           <button type="button" onClick={onClose} className={SECONDARY_BUTTON_CLASS}>

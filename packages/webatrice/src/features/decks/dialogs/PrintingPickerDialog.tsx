@@ -5,7 +5,6 @@ import { CheckCircle2, CircleAlert, Loader2, X } from 'lucide-react';
 import type { PrintingSummary } from '@app/services';
 
 import { useCardPrintings } from '../hooks/useCardPrintings';
-import { useEscapeKey } from '../hooks/useEscapeKey';
 import { upgradeScryfallImageSize } from '../scryfallImage';
 import type { DeckCard } from '../types';
 import { DeckDialogFrame } from './DeckDialogFrame';
@@ -37,7 +36,6 @@ export function PrintingPickerDialog({
   // Keyed on the card name, so a fresh `request` object for the same
   // card doesn't refetch.
   const { printings, loading, error, prices } = useCardPrintings(request?.card.name);
-  useEscapeKey(request != null, onClose);
   const titleId = useId();
 
   if (!request) {
@@ -96,7 +94,7 @@ export function PrintingPickerDialog({
         )}
 
         {!loading && !error && printings.length > 0 && (
-          <div className="mt-4 flex-1 overflow-y-auto pr-1">
+          <div data-dialog-content className="mt-4 flex-1 overflow-y-auto pr-1">
             <div
               className="grid gap-3"
               style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))' }}

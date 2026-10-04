@@ -1,7 +1,6 @@
 import { useId } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 
-import { useEscapeKey } from '../hooks/useEscapeKey';
 import { DeckDialogFrame } from './DeckDialogFrame';
 
 export interface DeleteDeckDialogProps {
@@ -13,16 +12,16 @@ export interface DeleteDeckDialogProps {
 /** Confirmation before a deck is permanently removed from the server. */
 export function DeleteDeckDialog({ deckName, onCancel, onConfirm }: DeleteDeckDialogProps) {
   const { t } = useTranslation();
-  useEscapeKey(true, onCancel, window);
   const titleId = useId();
+  const messageId = useId();
 
   return (
-    <DeckDialogFrame onClose={onCancel} titleId={titleId}>
+    <DeckDialogFrame onClose={onCancel} titleId={titleId} descriptionId={messageId} role="alertdialog">
       <div className="relative z-10 w-full max-w-sm rounded-xl bg-bg-surface border border-border-subtle shadow-glow overflow-hidden">
         <div className="px-5 py-4 border-b border-border-subtle">
           <h2 id={titleId} className="font-modern text-lg font-semibold text-text-primary">{t('DeleteDeckDialog.title')}</h2>
         </div>
-        <div className="px-5 py-4 text-sm text-text-secondary">
+        <div id={messageId} className="px-5 py-4 text-sm text-text-secondary">
           <Trans
             i18nKey="DeleteDeckDialog.message"
             values={{ name: deckName }}

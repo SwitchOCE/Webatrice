@@ -8,7 +8,6 @@ import type { DeckCategory } from '@app/types';
 import { canAddBrowsedCard, describeCardDetail, resolveDetailRow, selectCardFace } from '../cardDetail';
 import { ManaSymbols, SymbolText } from '../components/ManaSymbols';
 import { useCardDetail } from '../hooks/useCardDetail';
-import { useEscapeKey } from '../hooks/useEscapeKey';
 import { priceForCard, type PriceLookup } from '../pricing';
 import type { DeckCard } from '../types';
 import { DeckDialogFrame } from './DeckDialogFrame';
@@ -62,7 +61,6 @@ export function CardDetailDialog({
 }: CardDetailDialogProps) {
   const { t } = useTranslation();
   const { detail, detailLoading, browsed, pending, browse, back } = useCardDetail(snapshot);
-  useEscapeKey(snapshot != null, onClose);
   const titleId = useId();
 
   if (!snapshot) {
@@ -105,7 +103,7 @@ export function CardDetailDialog({
           <X size={18} />
         </button>
 
-        <div className="grid gap-6" style={{ gridTemplateColumns: '300px 1fr' }}>
+        <div data-dialog-content className="grid gap-6" style={{ gridTemplateColumns: '300px 1fr' }}>
           <div>
             {view.imageUrl ? (
               <img

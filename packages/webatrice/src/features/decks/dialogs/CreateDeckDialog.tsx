@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Plus, X } from 'lucide-react';
 
 import { FormatPicker } from '../components/FormatPicker';
-import { useEscapeKey } from '../hooks/useEscapeKey';
 import { DeckDialogFrame } from './DeckDialogFrame';
 
 export interface CreateDeckDialogProps {
@@ -26,7 +25,6 @@ export function CreateDeckDialog({ open, onClose, onCreate }: CreateDeckDialogPr
     setFormat('commander');
   }, [open]);
 
-  useEscapeKey(open, onClose);
   const titleId = useId();
 
   if (!open) {

@@ -65,7 +65,7 @@ describe('PrintingPickerDialog', () => {
     printings({});
     const onClose = vi.fn();
     render(<PrintingPickerDialog request={{ index: 0, card: bolt }} onClose={onClose} onPick={vi.fn()} />);
-    fireEvent.keyDown(document, { key: 'Escape' });
+    fireEvent.keyDown(document.activeElement as Element, { key: 'Escape' });
     expect(onClose).toHaveBeenCalled();
   });
 });
