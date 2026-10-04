@@ -1,3 +1,4 @@
 - 00:15Z read brief/task/template, inbox empty → fetch branches, diff 17a/17b
 - 00:20Z 17a range-diff clean, G1/macros/stub reviewed (G1: own draggable cards carry role=button) → 17b range-diff (2 subagents), gate running
 - 00:24Z review draft pushed (17a: 1 major G1, 17b: ready); unit 896/1316/3647 pass → integration, then e2e
+- 00:25Z integration 345 pass + webatrice 270/271 (invite-link fails identically on base d2e516c, verified) → webatrice e2e full suite running, then sockatrice e2e
