@@ -1,5 +1,6 @@
-import { useEffect, useState, type RefObject } from 'react';
+import type { RefObject } from 'react';
 
+import { useMarquee, type MarqueeRect } from '../../../hooks/useMarquee';
 import type { SeatSelection, SeatSelectionApi } from '../../../hooks/useSeatSelection';
 
 type Selection = SeatSelection;
@@ -32,57 +33,15 @@ export interface UseSeatMarqueeArgs {
  * selection is the game's.
  */
 export function useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelection, clearAllSelection }: UseSeatMarqueeArgs) {
-  const [marquee, setMarquee] = useState<{
-    x1: number;
-    y1: number;
-    x2: number;
-    y2: number;
-    startZone: MarqueeStartZone | null;
-    /** How many cards the band selects right now. */
-    count: number;
-  } | null>(null);
-
-  // Marquee pointer effect. Follows the pointer while dragging out a
-  // selection rect; on release, finalize the selection.
-  useEffect(() => {
-    if (!marquee) {
-      return;
+  // A band that starts outside any zone selects nothing.
+  const { marquee, begin } = useMarquee<MarqueeStartZone | null>((rect, startZone) => {
+    if (!startZone) {
+      return 0;
     }
-    const onMove = (e: PointerEvent) => {
-      // Live update the selection as the marquee expands so cards
-      // highlight the moment the rect covers them, and un-highlight the
-      // moment it doesn't. `pointerup` just closes the marquee — no need
-      // to recompute at the end because we already are.
-      let count = 0;
-      if (marquee.startZone) {
-        const rect = {
-          left: Math.min(marquee.x1, e.clientX),
-          right: Math.max(marquee.x1, e.clientX),
-          top: Math.min(marquee.y1, e.clientY),
-          bottom: Math.max(marquee.y1, e.clientY),
-        };
-        const { own } = computeMarqueeSelection(
-          rect,
-          marquee.startZone,
-        );
-        setSelection(own);
-        count = own?.ids.size ?? 0;
-      }
-      setMarquee((m) =>
-        m ? { ...m, x2: e.clientX, y2: e.clientY, count } : null,
-      );
-    };
-    const onUp = () => {
-      setMarquee(null);
-    };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-    return () => {
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- listeners re-bind on every marquee update, picking up fresh handlers
-  }, [marquee]);
+    const { own } = computeMarqueeSelection(rect, startZone);
+    setSelection(own);
+    return own?.ids.size ?? 0;
+  });
 
   // Which zone the given viewport point falls in, or null if none. For
   // battlefield, we scan EVERY player's battlefield globally and return
@@ -133,12 +92,7 @@ export function useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelecti
   // catch cards elsewhere, while preventing accidental mixed selections
   // when the rect straddles two zones that both contain cards.
   const computeMarqueeSelection = (
-    rect: {
-      left: number;
-      right: number;
-      top: number;
-      bottom: number;
-    },
+    rect: MarqueeRect,
     startZone: MarqueeStartZone,
   ): { own: Selection | null; foreign: Map<string, Set<string>> } => {
     const disjoint = (r: DOMRect) =>
@@ -290,14 +244,7 @@ export function useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelecti
     // each battlefield owns its own selection (Cockatrice parity).
     // Starting one clears the selection on every seat.
     clearAllSelection();
-    setMarquee({
-      x1: e.clientX,
-      y1: e.clientY,
-      x2: e.clientX,
-      y2: e.clientY,
-      startZone: zoneAtPoint(e.clientX, e.clientY),
-      count: 0,
-    });
+    begin(e, zoneAtPoint(e.clientX, e.clientY));
   };
 
   return { marquee, onPointerDownBox };
