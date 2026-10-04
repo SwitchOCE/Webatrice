@@ -3,3 +3,4 @@
 - 03:31Z startup-tab rule fixed (3ad4660) → open-deck-in-new-tab semantics
 - 03:36Z deck tabs fixed → Commander Spellbook consent
 - 03:40Z spellbook consent done → minors/nits
+- 03:48Z all rv21 findings applied (tip 7899922) → full gate
