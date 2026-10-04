@@ -66,6 +66,10 @@ function panel(title: RegExp): HTMLElement {
   return screen.getByRole('heading', { name: title }).closest<HTMLElement>('.pointer-events-auto.resize')!;
 }
 
+// The test i18n has no catalogue, so a zone's name reads as its key; useZoneViewDialog.spec pins
+// the English titles.
+const GRAVE = /^ZoneLabel\.title\.grave/;
+
 function viewCards(el: HTMLElement): HTMLElement[] {
   return Array.from(el.querySelectorAll<HTMLElement>('[data-card][data-card-id]'));
 }
@@ -79,7 +83,7 @@ describe('ZoneViewDialog', () => {
   it('lists a public zone under its owner\'s name', () => {
     renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT, DURESS], cardCount: 2 });
 
-    const view = panel(/^Graveyard — Trajer/);
+    const view = panel(/^ZoneLabel\.title\.grave — Trajer/);
     expect(viewCards(view).map((el) => el.dataset.cardId).sort()).toEqual(['7', '8']);
     expect(within(view).queryByRole('checkbox', { name: /shuffle when closing/i })).not.toBeInTheDocument();
   });
@@ -104,22 +108,22 @@ describe('ZoneViewDialog', () => {
 
   it('focuses its search box when it opens, as desktop does by default', () => {
     renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
-    expect(within(panel(/^Graveyard/)).getByRole('textbox')).toHaveFocus();
+    expect(within(panel(GRAVE)).getByRole('textbox')).toHaveFocus();
   });
 
   it('leaves the focus alone with "Auto focus search bar" off', async () => {
     const settings = await getSettings();
     settingsStore.setValue(Object.assign(settings, { focusCardViewSearchBar: false }));
     renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
-    expect(within(panel(/^Graveyard/)).getByRole('textbox')).not.toHaveFocus();
+    expect(within(panel(GRAVE)).getByRole('textbox')).not.toHaveFocus();
   });
 
   it('has no search box while "Keep game chat focused" is on, as desktop hides it', async () => {
     const settings = await getSettings();
     settingsStore.setValue(Object.assign(settings, { keepGameChatFocus: true }));
     renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
-    expect(within(panel(/^Graveyard/)).queryByRole('textbox')).not.toBeInTheDocument();
-    expect(viewCards(panel(/^Graveyard/))).toHaveLength(1);
+    expect(within(panel(GRAVE)).queryByRole('textbox')).not.toBeInTheDocument();
+    expect(viewCards(panel(GRAVE))).toHaveLength(1);
   });
 
   describe('card view height, in desktop\'s rows', () => {
@@ -131,7 +135,7 @@ describe('ZoneViewDialog', () => {
       Object.defineProperty(window, 'innerHeight', { configurable: true, value: innerHeight });
     });
 
-    const dialogHeight = () => panel(/^Graveyard/).style.height;
+    const dialogHeight = () => panel(GRAVE).style.height;
 
     it('opens at "Maximum initial height for card view window"', () => {
       renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
@@ -166,21 +170,21 @@ describe('ZoneViewDialog', () => {
 
     it('switches to the expanded height on a title bar double-click', () => {
       renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
-      const content = panel(/^Graveyard/).querySelector<HTMLElement>('.overflow-auto')!;
+      const content = panel(GRAVE).querySelector<HTMLElement>('.overflow-auto')!;
       // jsdom has no layout: the card area reports the height the view opened at.
       content.getBoundingClientRect = () => new DOMRect(0, 0, 900, 1013);
-      panel(/^Graveyard/).getBoundingClientRect = () => new DOMRect(0, 0, 900, 1013);
-      fireEvent.doubleClick(screen.getByRole('heading', { name: /^Graveyard/ }));
+      panel(GRAVE).getBoundingClientRect = () => new DOMRect(0, 0, 900, 1013);
+      fireEvent.doubleClick(screen.getByRole('heading', { name: GRAVE }));
       // 20 rows: 21 thirds of 201.6 px and 5 px.
       expect(dialogHeight()).toBe('1416px');
     });
 
     it('expands and shrinks from a header button too, for the keyboard', () => {
       renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
-      const content = panel(/^Graveyard/).querySelector<HTMLElement>('.overflow-auto')!;
+      const content = panel(GRAVE).querySelector<HTMLElement>('.overflow-auto')!;
       content.getBoundingClientRect = () => new DOMRect(0, 0, 900, 1013);
-      panel(/^Graveyard/).getBoundingClientRect = () => new DOMRect(0, 0, 900, 1013);
-      const expand = within(panel(/^Graveyard/)).getByRole('button', { name: 'ZoneViewPanel.expand' });
+      panel(GRAVE).getBoundingClientRect = () => new DOMRect(0, 0, 900, 1013);
+      const expand = within(panel(GRAVE)).getByRole('button', { name: 'ZoneViewPanel.expand' });
       expect(expand).toHaveAttribute('aria-pressed', 'false');
 
       fireEvent.click(expand);
@@ -188,7 +192,7 @@ describe('ZoneViewDialog', () => {
       expect(expand).toHaveAttribute('aria-pressed', 'true');
 
       content.getBoundingClientRect = () => new DOMRect(0, 0, 900, 1416);
-      panel(/^Graveyard/).getBoundingClientRect = () => new DOMRect(0, 0, 900, 1416);
+      panel(GRAVE).getBoundingClientRect = () => new DOMRect(0, 0, 900, 1416);
       fireEvent.doubleClick(expand);
       // A double-click on the button is not the title bar's double-click.
       expect(dialogHeight()).toBe('1416px');
@@ -202,10 +206,10 @@ describe('ZoneViewDialog', () => {
         return this.classList.contains('overflow-auto') ? 900 : 450;
       });
       renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
-      const content = panel(/^Graveyard/).querySelector<HTMLElement>('.overflow-auto')!;
+      const content = panel(GRAVE).querySelector<HTMLElement>('.overflow-auto')!;
       content.getBoundingClientRect = () => new DOMRect(0, 0, 900, 900);
-      panel(/^Graveyard/).getBoundingClientRect = () => new DOMRect(0, 0, 900, 900);
-      fireEvent.doubleClick(screen.getByRole('heading', { name: /^Graveyard/ }));
+      panel(GRAVE).getBoundingClientRect = () => new DOMRect(0, 0, 900, 900);
+      fireEvent.doubleClick(screen.getByRole('heading', { name: GRAVE }));
       expect(dialogHeight()).toBe('450px');
     });
 
@@ -215,10 +219,10 @@ describe('ZoneViewDialog', () => {
       renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
       // 8 rows: 9 thirds of 201.6 px and 5 px.
       expect(dialogHeight()).toBe('610px');
-      const content = panel(/^Graveyard/).querySelector<HTMLElement>('.overflow-auto')!;
+      const content = panel(GRAVE).querySelector<HTMLElement>('.overflow-auto')!;
       content.getBoundingClientRect = () => new DOMRect(0, 0, 900, 610);
-      panel(/^Graveyard/).getBoundingClientRect = () => new DOMRect(0, 0, 900, 610);
-      fireEvent.doubleClick(screen.getByRole('heading', { name: /^Graveyard/ }));
+      panel(GRAVE).getBoundingClientRect = () => new DOMRect(0, 0, 900, 610);
+      fireEvent.doubleClick(screen.getByRole('heading', { name: GRAVE }));
       expect(dialogHeight()).toBe('610px');
     });
   });
@@ -229,7 +233,7 @@ describe('ZoneViewDialog', () => {
       { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 },
     );
 
-    fireEvent.keyDown(within(panel(/^Graveyard/)).getByRole('textbox'), { key: 'Escape' });
+    fireEvent.keyDown(within(panel(GRAVE)).getByRole('textbox'), { key: 'Escape' });
 
     expect(handleClose).toHaveBeenCalledWith(false);
   });
@@ -257,8 +261,8 @@ describe('ZoneViewDialog', () => {
     renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
     renderView({ playerId: 2, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
 
-    expect(viewCards(panel(/^Graveyard — Trajer/))[0]).toHaveStyle({ cursor: 'grab' });
-    expect(viewCards(panel(/^Graveyard — Opp/))[0].style.cursor).toBe('');
+    expect(viewCards(panel(/^ZoneLabel\.title\.grave — Trajer/))[0]).toHaveStyle({ cursor: 'grab' });
+    expect(viewCards(panel(/^ZoneLabel\.title\.grave — Opp/))[0].style.cursor).toBe('');
   });
 
   it('opens the owning seat\'s card menu for a graveyard or exile card', () => {
@@ -269,7 +273,7 @@ describe('ZoneViewDialog', () => {
       { gameDialogs: { openSeatCardMenu } },
     );
 
-    fireEvent.contextMenu(viewCards(panel(/^Graveyard/))[0], { clientX: 5, clientY: 6 });
+    fireEvent.contextMenu(viewCards(panel(GRAVE))[0], { clientX: 5, clientY: 6 });
 
     expect(openSeatCardMenu).toHaveBeenCalledWith({
       kind: 'pile',
@@ -292,7 +296,7 @@ describe('ZoneViewDialog', () => {
       { gameDialogs: { openSeatCardMenu } },
     );
 
-    fireEvent.contextMenu(viewCards(panel(/^Hand/))[0]);
+    fireEvent.contextMenu(viewCards(panel(/^ZoneLabel\.title\.hand/))[0]);
 
     expect(openSeatCardMenu).not.toHaveBeenCalled();
   });
@@ -308,7 +312,7 @@ describe('ZoneViewDialog', () => {
       </GameSelectionProvider>,
       { preloadedState: stateWith({ name: ZoneName.GRAVE, cards: [OPT, DURESS], cardCount: 2 }) },
     );
-    const [first, second] = viewCards(panel(/^Graveyard/)).sort((a, b) => a.dataset.cardId!.localeCompare(b.dataset.cardId!));
+    const [first, second] = viewCards(panel(GRAVE)).sort((a, b) => a.dataset.cardId!.localeCompare(b.dataset.cardId!));
 
     expect(first.style.boxShadow).not.toBe('');
     expect(second.style.boxShadow).toBe('');

@@ -644,7 +644,7 @@ describe('PlayerBoard characterization — drag and drop destinations', () => {
       isReversed: false,
     });
 
-    const dialog = screen.getByText('Sideboard — P1').closest<HTMLElement>('.pointer-events-auto.resize');
+    const dialog = screen.getByText('ZoneLabel.title.sb — P1').closest<HTMLElement>('.pointer-events-auto.resize');
     expect(dialog).not.toBeNull();
     const ownBf = battlefieldEl(1);
     layoutBoxes([

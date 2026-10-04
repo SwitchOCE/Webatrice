@@ -262,9 +262,9 @@ describe('seat zone views', () => {
   });
 
   it.each([
-    ['Graveyard', 'View graveyard', 'Graveyard — P1', 2],
-    ['Exile', 'View exile', 'Exile — P1', 1],
-    ['Hand', 'View hand', 'Hand — P1', 1],
+    ['Graveyard', 'View graveyard', 'ZoneLabel.title.grave — P1', 2],
+    ['Exile', 'View exile', 'ZoneLabel.title.rfg — P1', 1],
+    ['Hand', 'View hand', 'ZoneLabel.title.hand — P1', 1],
   ] as const)('%s view lists the public zone and sends nothing', (pile, item, title, count) => {
     const { game } = renderSeats();
     openContextMenu(pileEl(pile, 0));
@@ -285,7 +285,7 @@ describe('seat zone views', () => {
     openContextMenu(pileEl('Graveyard', 1));
     chooseMenuPath('View graveyard');
 
-    expect(zoneView('Graveyard — P2').querySelectorAll('[data-card][data-card-id]')).toHaveLength(1);
+    expect(zoneView('ZoneLabel.title.grave — P2').querySelectorAll('[data-card][data-card-id]')).toHaveLength(1);
   });
 
   // Desktop closes a view when its zone is destroyed (ZoneViewZone::closed →
@@ -298,16 +298,16 @@ describe('seat zone views', () => {
     chooseMenuPath('View graveyard');
     openContextMenu(pileEl('Graveyard', 0));
     chooseMenuPath('View graveyard');
-    expect(zoneView('Graveyard — P2')).toBeInTheDocument();
+    expect(zoneView('ZoneLabel.title.grave — P2')).toBeInTheDocument();
 
     act(() => {
       store.dispatch(games.Actions.playerLeft({ gameId: 1, playerId: 2, reason: 1, timeReceived: 0 }));
     });
 
     // A view whose player is gone falls back to "Player 2" with no cards.
-    expect(screen.queryByRole('heading', { name: /^Graveyard — (P2|Player 2)/ })).not.toBeInTheDocument();
-    expect(screen.getAllByRole('heading', { name: /^Graveyard — / })).toHaveLength(1);
-    expect(zoneView('Graveyard — P1')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /^ZoneLabel\.title\.grave — (P2|Player 2)/ })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('heading', { name: /^ZoneLabel\.title\.grave — / })).toHaveLength(1);
+    expect(zoneView('ZoneLabel.title.grave — P1')).toBeInTheDocument();
     expect(game.shuffle).not.toHaveBeenCalled();
   });
 
@@ -320,8 +320,8 @@ describe('seat zone views', () => {
     openContextMenu(pileEl('Exile', 0));
     chooseMenuPath('View exile');
 
-    expect(zoneView('Graveyard — P1')).toBeInTheDocument();
-    expect(zoneView('Exile — P1')).toBeInTheDocument();
+    expect(zoneView('ZoneLabel.title.grave — P1')).toBeInTheDocument();
+    expect(zoneView('ZoneLabel.title.rfg — P1')).toBeInTheDocument();
   });
 
   // Desktop's zone views are separate windows that never see the board's
@@ -331,7 +331,7 @@ describe('seat zone views', () => {
     openContextMenu(pileEl('Graveyard', 0));
     chooseMenuPath('View graveyard');
 
-    const view = screen.getByRole('dialog', { name: 'Graveyard — P1' });
+    const view = screen.getByRole('dialog', { name: 'ZoneLabel.title.grave — P1' });
     const viewCard = view.querySelector<HTMLElement>(`[data-card-id="${DURESS.id}"]`)!;
     const tab = fireEvent.keyDown(viewCard, { key: 'Tab', code: 'Tab' });
     expect(tab).toBe(true);
@@ -356,7 +356,7 @@ describe('seat zone views', () => {
       isReversed: false,
     });
     dumpArrives(store, ZoneName.SIDEBOARD, ['Duress', 'Negate']);
-    const view = zoneView('Sideboard — P1');
+    const view = zoneView('ZoneLabel.title.sb — P1');
     expect(view.querySelectorAll('[data-card][data-card-id]')).toHaveLength(2);
 
     closeView(view);
@@ -380,7 +380,7 @@ describe('zone view card menu', () => {
     openContextMenu(pileEl('Graveyard', 0));
     chooseMenuPath('View graveyard');
 
-    openContextMenu(viewCard(zoneView('Graveyard — P1'), DURESS.id));
+    openContextMenu(viewCard(zoneView('ZoneLabel.title.grave — P1'), DURESS.id));
     chooseMenuPath('Clone');
 
     expect(game.createToken).toHaveBeenCalledTimes(1);
@@ -404,7 +404,7 @@ describe('zone view card menu', () => {
     const { game } = renderSeats();
     openContextMenu(pileEl('Graveyard', 0));
     chooseMenuPath('View graveyard');
-    const view = zoneView('Graveyard — P1');
+    const view = zoneView('ZoneLabel.title.grave — P1');
 
     openContextMenu(viewCard(view, DURESS.id));
     chooseMenuPath('Select All');
@@ -429,7 +429,7 @@ describe('zone view card menu', () => {
     renderSeats();
     openContextMenu(pileEl('Graveyard', 0));
     chooseMenuPath('View graveyard');
-    const view = zoneView('Graveyard — P1');
+    const view = zoneView('ZoneLabel.title.grave — P1');
     await within(view).findByText(/^Sorcery/);
 
     openContextMenu(viewCard(view, DURESS.id));
