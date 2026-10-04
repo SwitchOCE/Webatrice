@@ -109,7 +109,7 @@ describe('CardDetailDialog', () => {
   it('disables the actions once the row is removed', () => {
     vi.mocked(useCardDetail).mockReturnValue(detailState());
     renderDialog({ deckCards: [atraxa] });
-    expect(screen.getByText('CardDetailDialog.removed')).toBeInTheDocument();
+    expect(screen.getByText('· CardDetailDialog.removed')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'CardDetailDialog.removeFromDeck' })).toBeDisabled();
   });
 
