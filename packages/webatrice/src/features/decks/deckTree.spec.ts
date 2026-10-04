@@ -108,6 +108,19 @@ describe('formatDeckAge', () => {
   const now = Date.UTC(2026, 0, 31, 12, 0, 0);
   const secondsAgo = (s: number) => now / 1000 - s;
 
+  it('builds one relative-time formatter per locale, not one per row', () => {
+    const Real = Intl.RelativeTimeFormat;
+    const RelativeTimeFormat = vi.spyOn(Intl, 'RelativeTimeFormat')
+      .mockImplementation(function relativeTimeFormat(...args: ConstructorParameters<typeof Real>) {
+        return new Real(...args);
+      } as unknown as typeof Real);
+    for (const s of [125, 3 * 3600, 2 * 86400]) {
+      formatDeckAge(secondsAgo(s), 'nl', now);
+    }
+    expect(RelativeTimeFormat.mock.calls.filter(([locale]) => locale === 'nl')).toHaveLength(1);
+    RelativeTimeFormat.mockRestore();
+  });
+
   it.each([
     [125, '2m ago'],
     [3 * 3600 + 5, '3h ago'],
