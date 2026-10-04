@@ -1409,6 +1409,9 @@
   "SelectionCount": {
     "total": "{count, plural, one {# card selected} other {# cards selected}}"
   },
+  "ZoneViewPanel": {
+    "expand": "Expand the card view"
+  },
   "GameReplay": {
     "missing": "This replay is no longer open. Replays are kept only until the page is reloaded.",
     "backToReplays": "Back to replays",
