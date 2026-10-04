@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 
 import { deckSectionLabel, type DeckListSection, type DeckSummary } from '../../deckSummary';
 import type { FlatDeck } from '../../deckTree';
+import { DECK_LIST_ROW_ATTRIBUTE } from '../../hooks/useDeckDeleteFocus';
 import type { DeckListViewMode } from '../../hooks/useDeckListViewMode';
 import { DeckRow } from './DeckRow';
 
@@ -40,7 +41,7 @@ export function DeckListSections({
           </h2>
           <ul className="space-y-2">
             {decks.map((deck) => (
-              <li key={deck.id}>
+              <li key={deck.id} {...{ [DECK_LIST_ROW_ATTRIBUTE]: deck.id }}>
                 <DeckRow
                   deck={deck}
                   summary={summaries.get(deck.id)}
