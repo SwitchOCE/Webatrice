@@ -229,6 +229,21 @@
   accent-color: rgb(var(--accent-primary));
 }
 
+.settings-number {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-number__input {
+  min-width: 0;
+  width: 6rem;
+}
+
+.settings-number__unit {
+  color: rgb(var(--text-muted));
+}
+
 .settings-range__value {
   min-width: 2.5rem;
   text-align: right;

@@ -3,7 +3,8 @@
     "group": {
       "general": "General interface settings",
       "notifications": "Notifications settings",
-      "animation": "Animation settings"
+      "animation": "Animation settings",
+      "replay": "Replay settings"
     },
     "playToStack": {
       "label": "Play all nonlands onto the stack (not the battlefield) by default",
@@ -35,6 +36,11 @@
     },
     "tapAnimation": {
       "label": "Tap/untap animation"
+    },
+    "replayRewindBufferingMs": {
+      "label": "Buffer time for backwards skip via shortcut",
+      "description": "Skipping back several times within this time rewinds the replay once, after the last skip. 0 rewinds on every skip.",
+      "unit": "ms"
     }
   }
 }

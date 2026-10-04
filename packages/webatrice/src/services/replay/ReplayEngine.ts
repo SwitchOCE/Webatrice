@@ -62,7 +62,7 @@ export class ReplayEngine {
   readonly maxTime: number;
 
   private readonly containers: readonly GameEventContainer[];
-  private readonly rewindBufferingMs: number;
+  private rewindBufferingMs: number;
   private readonly listeners = new Set<() => void>();
 
   private skipEmptySections: boolean;
@@ -145,6 +145,11 @@ export class ReplayEngine {
   setSkipEmptySections(value: boolean): void {
     this.skipEmptySections = value;
     this.emit();
+  }
+
+  /** User Interface › Replay "Buffer time for backwards skip"; read at each backward skip, as on desktop. */
+  setRewindBufferingMs(ms: number): void {
+    this.rewindBufferingMs = ms;
   }
 
   /** Seek from a timeline click: rewinds immediately when going backwards. */

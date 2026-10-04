@@ -29,6 +29,10 @@ export default function SettingRow({ entry }: SettingRowProps) {
   const custom = entry.control.kind === 'custom' ? entry.control : null;
   const labelId = `${id}-label`;
 
+  if (entry.visibleWhen && !entry.visibleWhen(preferences)) {
+    return null;
+  }
+
   return (
     <div
       className={custom?.layout === 'block' ? 'settings-row settings-row--block' : 'settings-row'}
@@ -119,6 +123,30 @@ function BuiltInControl({ id, control, preferences, disabled, describedBy, onCha
           onChange={onChange}
         />
       );
+    case 'text':
+      return (
+        <CommittedInput
+          id={id}
+          type="text"
+          className="settings-input"
+          value={preferences[control.key]}
+          placeholder={control.placeholderKey ? t(control.placeholderKey) : undefined}
+          disabled={disabled}
+          aria-describedby={describedBy}
+          onCommit={(value) => onChange({ [control.key]: value.trim() })}
+        />
+      );
+    case 'number':
+      return (
+        <NumberControl
+          id={id}
+          control={control}
+          preferences={preferences}
+          disabled={disabled}
+          describedBy={describedBy}
+          onChange={onChange}
+        />
+      );
     case 'color':
       // Stored as desktop does: six hex digits without the '#'.
       return (
@@ -169,6 +197,44 @@ function RangeControl({ id, control, preferences, disabled, describedBy, onChang
   );
 }
 
+type NumberControlProps = Omit<BuiltInControlProps, 'control'> & {
+  control: Extract<SettingControl, { kind: 'number' }>;
+};
+
+/** Desktop's spin box: a whole number kept within its range, saved once the user commits it. */
+function NumberControl({ id, control, preferences, disabled, describedBy, onChange }: NumberControlProps) {
+  const { t } = useTranslation();
+  const { unitKey } = control;
+  const unitId = unitKey ? `${id}-unit` : undefined;
+  const commit = (raw: string) => {
+    const value = Number(raw);
+    // An emptied or invalid field goes back to the saved value, as a spin box cannot be emptied.
+    if (raw.trim() === '' || !Number.isFinite(value)) {
+      return;
+    }
+    onChange({ [control.key]: Math.min(control.max, Math.max(control.min, Math.round(value))) });
+  };
+
+  return (
+    <span className="settings-number">
+      <CommittedInput
+        id={id}
+        type="number"
+        inputMode="numeric"
+        className="settings-input settings-number__input"
+        min={control.min}
+        max={control.max}
+        step={1}
+        value={String(preferences[control.key])}
+        disabled={disabled}
+        aria-describedby={[describedBy, unitId].filter(Boolean).join(' ') || undefined}
+        onCommit={commit}
+      />
+      {unitKey && <span id={unitId} className="settings-number__unit">{t(unitKey)}</span>}
+    </span>
+  );
+}
+
 type CommittedInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> & {
   value: string;
   /** Each value the user passes through while dragging. */
@@ -178,9 +244,10 @@ type CommittedInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'va
 };
 
 /**
- * A range or colour input that saves once the user lets go. The native `change` event fires on
- * release, on a keyboard step and when the colour picker closes; React's onChange fires on every
- * drag tick, and saving each one would write the settings row and re-render its readers per tick.
+ * A range, text, number or colour input that saves once the user lets go. The native `change`
+ * event fires on release, on a keyboard step, when typed text is committed (Enter or leaving the
+ * field) and when the colour picker closes; React's onChange fires on every drag tick or
+ * keystroke, and saving each one would write the settings row and re-render its readers.
  */
 function CommittedInput({ value, onDraft, onCommit, ...props }: CommittedInputProps) {
   const ref = useRef<HTMLInputElement>(null);
@@ -207,6 +274,12 @@ function CommittedInput({ value, onDraft, onCommit, ...props }: CommittedInputPr
       {...props}
       value={draft ?? value}
       onChange={(e) => {
+        // React's onChange fires for `input` and `change` alike; the commit above owns `change`,
+        // so taking it as a draft too would keep the uncommitted text (an out-of-range number,
+        // untrimmed room name) on screen after the saved value came back.
+        if (e.nativeEvent.type !== 'input') {
+          return;
+        }
         setDraft(e.target.value);
         onDraft?.(e.target.value);
       }}
