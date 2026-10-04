@@ -60,4 +60,16 @@ describe('StartupServerSelect', () => {
     expect(select).toHaveValue('gone.example:4747');
     expect(screen.getByRole('option', { name: 'gone.example:4747' })).toBeInTheDocument();
   });
+
+  it('lists two known hosts with the same address once', () => {
+    const duplicate = makeHost({ id: 3, name: 'Chickatrice again', host: 'mtg.chickatrice.net', port: '443' });
+    hoisted.useKnownHosts.mockReturnValue(
+      makeKnownHostsHook({ value: { hosts: [chickatrice, duplicate, rooster], selectedHost: chickatrice } }),
+    );
+
+    const select = renderSelect();
+
+    const values = Array.from(select.querySelectorAll('option')).map((option) => option.value);
+    expect(values).toEqual(['', 'mtg.chickatrice.net:443', 'server.cockatrice.us/servatrice:4748']);
+  });
 });
