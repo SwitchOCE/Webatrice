@@ -11,6 +11,12 @@ const samePrinting = (printing: PrintingSummary, card: DeckCard) =>
  * Desktop's "Bump sets that the deck contains cards from to the top in the printing selector"
  * (PrintingSelectorCardSortingWidget::prependPrintingsInDeck): the printings of `cardName` the
  * deck's main zone holds go first, most copies first; the rest keep their order.
+ *
+ * Two deliberate departures from desktop's code, both towards what it says it does: desktop sorts
+ * the counts "in descending numerical order" and then prepends them one by one, which leaves the
+ * fewest copies first; and it looks only at each set's first printing (a `break` after the first),
+ * so a deck holding another printing of a set never bumps it. Here every printing counts, most
+ * copies first.
  */
 export function bumpPrintingsInDeck(
   printings: readonly PrintingSummary[],
