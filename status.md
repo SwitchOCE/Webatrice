@@ -1,0 +1,1 @@
+- 00:54Z started; base af3cfc1, branch claude/parity-r6-game-listeners → npm ci + read game.listeners.ts
