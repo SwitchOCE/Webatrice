@@ -74,3 +74,25 @@ All run from the repo root on the tip `4365b3b`, after `npm ci` (lockfile change
 - **Finding 5 (lint attributes):** `jsx-attributes.include` is widened exactly as proposed. Lint stays at 0 problems, and `BanUserDialog` needed no change: its `text="userName"` props are not in the include list (no pattern matches `text`), so they never fired. No `eslint-disable` was added.
 - **Nits:** `words.exclude` has `COCKATRICE` in place of `[A-Z_-]+`. The online/connected/available counts are ICU plurals. The chat-subtitle `·` is in JSX with `aria-hidden`. The logo has `alt=""` and `Common.label.logo` is gone. The script header documents both checker blind spots. `Reports.count` ("{count} report(s)", desktop's wording) is left as is, because the review did not list it.
 - Each fix is its own commit on top of `b8cabd1`; no history was rewritten. The parent is still `13351fd`.
+
+## Restack notes (wR3)
+
+Restacked onto the new 27 as `claude/restack-28-i18n-gate` (tip `bcced39`, 17 commits).
+
+Commit changes:
+- **Duplicate deletion.** GameSelector, OpenGames and SayMessage were already deleted by 27, so the rooms commit only translates, and its message says so.
+- **`9c81e97` dropped.** It was empty once replayed: 27 already made the logo and avatars decorative.
+- **New: `fix(game): write the tally count as an ICU plural`,** placed before the gate. `TallyOverlay.selectedCount` used `{{count}}`, which `i18n:check` rejects as malformed ICU.
+- **New, last commit: fx16's `a472e86`** (invite-link flake), per M2. The final restack folds it into PR 16.
+
+Resolutions against 26 and 27:
+- GamesList keeps 27's grid with `GamesList.column.*`. FilterGamesDialog stays on 26's DialogShell, translated. CreateGameDialog keeps 27's `useId` groups.
+- Room and private chat keep 26's `log`/`input` keys, and `placeholder` is dropped.
+- DialogShell and Toast use `Common.action.close`/`dismiss`. 26's `DialogShell.close` and `Toast.dismiss` are removed, and the empty DialogShell catalogue is deleted.
+- TopBar uses 27's `tabs.close`, and `closeTab` is dropped. The connection status stays 26's persistent region without seconds.
+- **`document.title`** is now derived from `tabTitle(tab, t)`, so it follows a language switch. A new TopBar spec checks English then German.
+- The deck work's unsaved-deck and public-decks tab titles are keyed (`TopBar.tab.unsavedDeck`, `TopBar.tab.publicDecks`).
+- `KnownHosts.edit` keeps 27's `Edit {name}`.
+- The specs added since the split (GamesList, Game.seatPrompts, GameLinkJoinHost, DialogShell, DebugLogDialog, Toast, TopBar) now query by i18n keys.
+
+With the rule on, lint reports 0 problems at every commit. No extra platform extraction was needed beyond the two TopBar tab titles.

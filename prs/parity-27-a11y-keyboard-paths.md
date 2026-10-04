@@ -80,3 +80,25 @@ Tip `aee9592`, from the repo root:
   - `features/rooms/components/Messages.tsx` is also dead: only its spec and the integration spec import it. The task scoped deletion to GameSelector, OpenGames and SayMessage.
   - GamesList's column labels and toolbar strings are still literals (i18n PR D).
   - Dialog and menu focus handling is left to PR 26 (accessibility primitives). No dialog or menu primitive was built here.
+
+## Restack notes (wR3)
+
+Restacked onto the new 26 as `claude/restack-27-a11y-keyboard-paths` (tip `8e5174d`, 13 commits). The changes:
+- `94a1ecb` is folded into the deletion commit (`fix(a11y): join a game from the keyboard`). The integration suite imports, and the rooms integration specs pass, at every commit.
+- **TopBar.** The tabs keep 26's undimmed Close button and `document.title`. The game chain's unsaved-deck tab test now uses links.
+- **Two TopBar specs** now scope their Close-button query to the replay tab's `<li>`, because the deck-draft tab can also be open.
+- **UserDisplay.** The flag's translated `alt` is combined with 26's `menu.getTriggerProps()`.
+
+**Coverage port** (`test(rooms): port the deleted GameSelector toolbar coverage to GamesList`, directly after the deletion). These tests in `GamesList.spec.tsx` run against the live component:
+1. keeps Join disabled until a game is selected
+2. disables Join and Spectate while a join is pending
+3. disables Join when the selected game is full
+4. disables Spectate when the game allows no spectators
+5. shows the judge buttons only to a user with the IsJudge flag (hidden for a plain user)
+6. shows both judge buttons to a judge
+7. applies the filter dialog to the room
+8. cancels the filter dialog without touching the filters
+9. dispatches clearGameFilters from Clear filter
+10. submits createGame from the create dialog
+
+`useJoinGame.spec` already covers the password prompt, full-game spectate, already-open routing and join errors. 28 later moves these specs onto i18n keys.
