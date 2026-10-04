@@ -37,6 +37,11 @@ describe('planAttach', () => {
     expect(planAttach(1, [10, 11], card(2, ZoneName.TABLE, 11)).kind).toBe('attach');
     expect(planAttach(1, [10], player(2)).kind).toBe('none');
   });
+
+  it('cancels on a card outside the battlefield', () => {
+    expect(planAttach(1, [10], card(2, ZoneName.STACK, 21)).kind).toBe('none');
+    expect(planAttach(1, [10], card(1, ZoneName.GRAVE, 12)).kind).toBe('none');
+  });
 });
 
 describe('arrowColorForModifiers', () => {

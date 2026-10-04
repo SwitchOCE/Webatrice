@@ -44,10 +44,16 @@ export function planArrow(source: ArrowSource, target: ArrowTarget, localPlayerI
 
 /**
  * Attach every source card (battlefield cards of one player) to a target
- * card. A click on one of the sources, or on a player, cancels.
+ * card on the battlefield. A click on one of the sources, on a card in any
+ * other zone, or on a player cancels (desktop ArrowAttachItem::attachCards,
+ * arrow_item.cpp:553-556, refuses a target that is not on the table).
  */
 export function planAttach(sourcePlayerId: number, sourceCardIds: readonly number[], target: ArrowTarget): ArrowPlan {
-  if (target.kind !== 'card' || (target.playerId === sourcePlayerId && sourceCardIds.includes(target.cardId))) {
+  if (
+    target.kind !== 'card'
+    || target.zone !== ZoneName.TABLE
+    || (target.playerId === sourcePlayerId && sourceCardIds.includes(target.cardId))
+  ) {
     return { kind: 'none' };
   }
   return { kind: 'attach', sourcePlayerId, sourceCardIds, target: { playerId: target.playerId, cardId: target.cardId } };
