@@ -16,9 +16,12 @@ import { makeReduxHookWrapper } from '../../../../__test-utils__/makeHookWrapper
 import { catalogT } from '../../__test-utils__/catalogT';
 import type { ZoneViewTarget } from '../../hooks/dialogs/gameDialogs.types';
 import zoneLabels from '../shared/zoneLabels.i18n.json';
+import zoneViewTitles from './useZoneViewDialog.i18n.json';
 import { useZoneViewDialog, zoneViewTitle } from './useZoneViewDialog';
 
-const englishT = catalogT(zoneLabels);
+const englishT = catalogT(zoneLabels, zoneViewTitles);
+
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: englishT }) }));
 
 function setup(zoneArgs: Parameters<typeof makeZoneEntry>[0]) {
   const game = makeGameEntry({
@@ -59,6 +62,16 @@ describe('zoneViewTitle', () => {
   ])('%o reads %s', (view, title) => {
     expect(zoneViewTitle(englishT, { playerId: 1, ...view }, 'P1', 3)).toBe(title);
   });
+
+  it('translates each title as one message, so a language can reorder it', () => {
+    const germanT = catalogT({
+      ZoneLabel: { title: { grave: 'Friedhof' } },
+      ZoneViewTitle: { zone: '{zone} von {player}', library: 'Bibliothek von {player}', top: 'Oberste {count} Karten von {player}' },
+    });
+    expect(zoneViewTitle(germanT, { playerId: 1, zoneName: ZoneName.GRAVE }, 'P1', 3)).toBe('Friedhof von P1');
+    expect(zoneViewTitle(germanT, { playerId: 1, zoneName: ZoneName.DECK }, 'P1', 3)).toBe('Bibliothek von P1');
+    expect(zoneViewTitle(germanT, { playerId: 1, zoneName: ZoneName.DECK, numberCards: 3 }, 'P1', 3)).toBe('Oberste 3 Karten von P1');
+  });
 });
 
 describe('useZoneViewDialog', () => {
@@ -74,8 +87,7 @@ describe('useZoneViewDialog', () => {
     expect(view.cards.map((c) => [c.id, c.name])).toEqual([['1', 'Opt'], ['2', 'Duress']]);
     expect(view.cards[0].scryfallId).toBe('p1');
     expect(view.count).toBe(2);
-    // The test i18n has no catalogue, so the zone reads as its key.
-    expect(view.title).toBe('ZoneLabel.title.grave — Trajer');
+    expect(view.title).toBe('Graveyard — Trajer');
     expect(view.isLocal).toBe(true);
   });
 

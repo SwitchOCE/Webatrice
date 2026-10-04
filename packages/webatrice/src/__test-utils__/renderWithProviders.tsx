@@ -5,6 +5,7 @@ import { MemoryRouter, type InitialEntry } from 'react-router-dom';
 import { I18nextProvider } from 'react-i18next';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import ICU from 'i18next-icu';
 import { DndContext } from '@dnd-kit/core';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
@@ -43,6 +44,8 @@ import { CardPreviewProvider, createCardPreviewStore, type CardPreviewStore } fr
 import { GameDialogsProvider } from '../features/game/components/ui/GameDialogsContext';
 import { NOOP_GAME_DIALOGS_ACTIONS, type GameDialogs } from '../features/game/hooks/useGameDialogs';
 import { createMockWebClient } from './mockWebClient';
+import zoneViewTitles from '../features/game/dialogs/ZoneViewDialog/useZoneViewDialog.i18n.json';
+import incomingRevealTitles from '../features/game/dialogs/IncomingRevealDialog/IncomingRevealDialog.i18n.json';
 
 // The game's pending target pick, as Game provides it, for seats rendered
 // without Game.
@@ -117,10 +120,13 @@ function getDefaultWebClient(): WebClient {
   return defaultWebClient;
 }
 
+// Every other key renders as itself. The zone views' and the reveal's titles name the player
+// through interpolation, and the specs tell those views apart by player, so their English is
+// loaded, formatted by ICU as in the app.
 const testI18n = i18n.createInstance();
-testI18n.use(initReactI18next).init({
+testI18n.use(ICU).use(initReactI18next).init({
   lng: 'en-US',
-  resources: { 'en-US': { translation: {} } },
+  resources: { 'en-US': { translation: { ...zoneViewTitles, ...incomingRevealTitles } } },
   fallbackLng: 'en-US',
   interpolation: { escapeValue: false },
 });

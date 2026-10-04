@@ -30,7 +30,10 @@ const DEFAULT_SIZE = { w: 900, h: 520 };
 
 /** "P2 reveals their library", or "A player reveals …" when the sender is unknown. */
 export function incomingRevealTitle(t: TFunction, sourceName: string | undefined, zoneName: string): string {
-  return `${sourceName ?? 'A player'} reveals their ${zoneLabel(t, zoneName, 'inline')}`;
+  const zone = zoneLabel(t, zoneName, 'inline');
+  return sourceName != null
+    ? t('IncomingRevealDialog.title', { player: sourceName, zone })
+    : t('IncomingRevealDialog.titleUnknownSender', { zone });
 }
 
 /**
