@@ -2485,20 +2485,33 @@ describe('2J: Turn, phase, and chat', () => {
     expect(result.games[1].messages[0].gameSeconds).toBe(665);
   });
 
-  it('GAME_INFO_UPDATED → restarts the game clock from the server\'s count', () => {
-    vi.spyOn(Date, 'now').mockReturnValue(5_000);
-    const result = gamesReducer(makeState(), Actions.gameInfoUpdated({ gameId: 1, secondsElapsed: 42 }));
-    expect(result.games[1]).toMatchObject({ secondsElapsed: 42, secondsElapsedAt: 5_000 });
-    vi.restoreAllMocks();
-  });
+  describe('game clock', () => {
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
 
-  it('GAME_TIME_SYNCED → sets a replay\'s game time to the recorded container\'s', () => {
-    vi.spyOn(Date, 'now').mockReturnValue(9_000);
-    let result = gamesReducer(makeState(), Actions.gameTimeSynced({ gameId: 1, secondsElapsed: 125 }));
-    expect(result.games[1]).toMatchObject({ secondsElapsed: 125, secondsElapsedAt: 9_000 });
-    result = gamesReducer(result, Actions.gameSay({ gameId: 1, playerId: 2, message: 'gg', timeReceived: 9_000 }));
-    expect(result.games[1].messages[0].gameSeconds).toBe(125);
-    vi.restoreAllMocks();
+    it('GAME_INFO_UPDATED → restarts the game clock from the server\'s count', () => {
+      vi.spyOn(Date, 'now').mockReturnValue(5_000);
+      const result = gamesReducer(makeState(), Actions.gameInfoUpdated({ gameId: 1, secondsElapsed: 42 }));
+      expect(result.games[1]).toMatchObject({ secondsElapsed: 42, secondsElapsedAt: 5_000 });
+    });
+
+    it('GAME_TIME_SYNCED → sets a replay\'s game time to the recorded container\'s', () => {
+      vi.spyOn(Date, 'now').mockReturnValue(9_000);
+      let result = gamesReducer(makeState(), Actions.gameTimeSynced({ gameId: 1, secondsElapsed: 125 }));
+      expect(result.games[1]).toMatchObject({ secondsElapsed: 125, secondsElapsedAt: 9_000 });
+      result = gamesReducer(result, Actions.gameSay({ gameId: 1, playerId: 2, message: 'gg', timeReceived: 9_000 }));
+      expect(result.games[1].messages[0].gameSeconds).toBe(125);
+    });
+
+    it('GAME_INFO_UPDATED → leaves a replay\'s game clock on its recorded containers\' time base', () => {
+      vi.spyOn(Date, 'now').mockReturnValue(9_000);
+      const state = makeState();
+      state.games[1].replay = true;
+      let result = gamesReducer(state, Actions.gameTimeSynced({ gameId: 1, secondsElapsed: 125 }));
+      result = gamesReducer(result, Actions.gameInfoUpdated({ gameId: 1, secondsElapsed: 4_000, activePhase: 3 }));
+      expect(result.games[1]).toMatchObject({ secondsElapsed: 125, secondsElapsedAt: 9_000, activePhase: 3 });
+    });
   });
 
   it('GAME_SAY → keeps the sender name after the player leaves', () => {
