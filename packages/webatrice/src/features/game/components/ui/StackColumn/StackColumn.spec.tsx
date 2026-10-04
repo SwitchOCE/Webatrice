@@ -1,4 +1,4 @@
-import { fireEvent, waitFor } from '@testing-library/react';
+import { act, fireEvent, waitFor } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
@@ -21,6 +21,11 @@ const SPEC: SeatGameSpec = {
 
 const found = (name: string, typeLine: string) =>
   ({ found: true, source: 'scryfall', name, typeLine, printings: [] }) as Awaited<ReturnType<typeof lookupCard>>;
+
+afterEach(() => {
+  vi.mocked(lookupCard).mockImplementation(async (name: string) =>
+    ({ found: false, source: 'unknown', name, printings: [] }) as Awaited<ReturnType<typeof lookupCard>>);
+});
 
 describe('StackColumn', () => {
   it('lists the stack\'s cards, addressable as arrow sources and targets', () => {
@@ -51,6 +56,25 @@ describe('StackColumn', () => {
     fireEvent.doubleClick(cardEl(BEAR.id, 'stack'));
     await waitFor(() => expect(game.moveCard).toHaveBeenCalledTimes(2));
     expect(vi.mocked(game.moveCard).mock.calls[1][1]).toMatchObject({ startZone: ZoneName.STACK, targetZone: ZoneName.TABLE });
+  });
+
+  it('resolves a creature to the battlefield with its seat metadata P/T and cipt', async () => {
+    vi.mocked(lookupCard).mockImplementation(async (name: string) =>
+      ({ ...found(name, 'Creature — Bear'), power: '2', toughness: '2', cipt: true }) as Awaited<ReturnType<typeof lookupCard>>);
+    const { game } = renderSeatCell(SPEC);
+    // The seat's visible-card prefetch fills cardMetaByName before the double-click.
+    await waitFor(() => expect(lookupCard).toHaveBeenCalledWith('Bear'));
+    await act(async () => {});
+    vi.mocked(lookupCard).mockClear();
+
+    fireEvent.doubleClick(cardEl(BEAR.id, 'stack'));
+    await waitFor(() => expect(game.moveCard).toHaveBeenCalledTimes(1));
+    expect(lookupCard).not.toHaveBeenCalled();
+    expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
+      startZone: ZoneName.STACK,
+      targetZone: ZoneName.TABLE,
+      cardsToMove: { card: [{ cardId: BEAR.id, pt: '2/2', tapped: true }] },
+    });
   });
 
   it('plays nothing from another player\'s stack', () => {
