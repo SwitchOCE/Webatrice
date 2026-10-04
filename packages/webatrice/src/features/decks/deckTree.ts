@@ -70,6 +70,18 @@ export function flattenFolder(
  */
 export type DeckAge = { key: 'unknown' | 'justNow' } | { text: string };
 
+// One formatter per locale: the list formats every row's age on each render.
+const relativeFormats = new Map<string, Intl.RelativeTimeFormat>();
+
+function relativeFormat(locale: string): Intl.RelativeTimeFormat {
+  let format = relativeFormats.get(locale);
+  if (!format) {
+    format = new Intl.RelativeTimeFormat(locale || undefined, { style: 'narrow' });
+    relativeFormats.set(locale, format);
+  }
+  return format;
+}
+
 /**
  * Loose "3h ago" formatter for Unix seconds. Good enough for the list view;
  * the editor can show absolute timestamps. `locale` is a BCP 47 tag (the UI
@@ -84,7 +96,7 @@ export function formatDeckAge(unixSeconds: number, locale: string, now = Date.no
   if (diffSec < 60) {
     return { key: 'justNow' };
   }
-  const relative = new Intl.RelativeTimeFormat(locale || undefined, { style: 'narrow' });
+  const relative = relativeFormat(locale);
   if (diffSec < 3600) {
     return { text: relative.format(-Math.floor(diffSec / 60), 'minute') };
   }
