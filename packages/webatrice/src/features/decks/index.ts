@@ -6,7 +6,7 @@ export { default as PublicDecks } from './PublicDecks';
 export { DeckShareLinkRedirect } from './components/DeckShareLinkRedirect';
 export { clearDeckEditorCache } from './deckEditorCache';
 export { clearBracketSourceCaches } from './bracketSources';
-export { writeBracketLookupsAllowed } from './bracketConsent';
+export { writeBracketLookupsMode } from './bracketConsent';
 
 // --- Data layer (Piece 1: foundation for MyDecks feature) ---
 // The Cockatrice deck document codec and its types are root owners

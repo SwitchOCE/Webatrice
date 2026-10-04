@@ -7,10 +7,13 @@
     "methodology": "Minimum bracket per <0>edhpowerlevel</0>’s algorithm: Game Changers, MLD, extra turns, and early game-defining combos.",
     "provenance": "Card data from Scryfall; combos from Commander Spellbook, which receives the main deck’s card names and quantities.",
     "consent": {
-      "prompt": "Estimating the bracket sends this deck’s card names to Scryfall (Game Changers list and card text), and the main deck’s card names and quantities to Commander Spellbook (combos). Nothing is sent until you allow it.",
-      "allow": "Allow online lookups",
+      "prompt": "Estimating the bracket sends this deck’s card names to Scryfall (Game Changers list and card text), and the main deck’s card names and quantities to Commander Spellbook (combos). Nothing is sent until you choose: Enable estimates when you ask, Automatic whenever the deck changes.",
+      "enable": "Enable",
+      "automatic": "Automatic",
+      "disable": "Disable",
       "revoke": "Turn off online lookups"
     },
+    "estimate": "Estimate bracket",
     "partialNotice": "Partial estimate: this deck may sit in a higher bracket. It isn’t saved with the deck until every source answers.",
     "sourceUnavailable": "{source} unavailable ({reason})",
     "sourcePartial": "{source}: {missing} of {total} cards missing ({reason})",

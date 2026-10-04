@@ -9,10 +9,10 @@ import {
   clearBracketSourceCaches,
   clearDeckEditorCache,
   clearDecksListCache,
-  writeBracketLookupsAllowed,
+  writeBracketLookupsMode,
 } from '@app/features/decks';
 import { parseCod } from '@app/services';
-import { RouteEnum, type ParsedDeck } from '@app/types';
+import { CommanderSpellbookIntegration, RouteEnum, type ParsedDeck } from '@app/types';
 import {
   Command_DeckDownload_ext,
   Command_DeckList_ext,
@@ -71,13 +71,13 @@ const GROUP_LABELS = /^(Commander|Creature|Planeswalker|Battle|Instant|Sorcery|E
 
 let fetchMock: ReturnType<typeof stubThirdPartyFetch>;
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.useRealTimers();
   clearDeckEditorCache();
   clearDecksListCache();
   clearBracketSourceCaches();
-  // Most specs exercise the bracket estimate; the consent spec turns it off.
-  writeBracketLookupsAllowed(true);
+  // Most specs exercise the bracket estimate; the consent spec asks first.
+  await writeBracketLookupsMode(CommanderSpellbookIntegration.Automatic);
   fetchMock = stubThirdPartyFetch();
   stubImagePreload();
   connectAndLogin();
@@ -170,7 +170,7 @@ describe('DeckEditor (integration)', () => {
   });
 
   it('makes no third-party bracket request until the user allows it', async () => {
-    writeBracketLookupsAllowed(false);
+    await writeBracketLookupsMode(CommanderSpellbookIntegration.Unprompted);
     await openDeck(COMMANDER_DECK);
 
     expect(await screen.findByText('DeckBracket.consent.prompt')).toBeInTheDocument();
@@ -180,7 +180,7 @@ describe('DeckEditor (integration)', () => {
     expect(fetchCalls(fetchMock, 'https://backend.commanderspellbook.com/')).toEqual([]);
     expect(fetchCalls(fetchMock, 'https://api.scryfall.com/cards/search?q=is%3Agamechanger')).toEqual([]);
 
-    fireEvent.click(screen.getByRole('button', { name: /DeckBracket\.consent\.allow/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'DeckBracket.consent.automatic' }));
 
     expect(await screen.findByText('DeckBracket.title', {}, { timeout: 3000 })).toBeInTheDocument();
     expect(fetchCalls(fetchMock, 'https://backend.commanderspellbook.com/find-my-combos/')).toHaveLength(1);

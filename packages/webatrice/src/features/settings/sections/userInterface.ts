@@ -1,5 +1,6 @@
 import { MousePointerClick } from 'lucide-react';
 
+import { CommanderSpellbookIntegration } from '@app/types';
 import NotificationPermissionControl from '../controls/NotificationPermissionControl';
 import { SettingsSectionId, type SettingsSection } from '../registry';
 
@@ -76,6 +77,35 @@ export const userInterfaceSection: SettingsSection = {
           labelKey: 'SettingsUserInterface.openDeckInNewTab.label',
           descriptionKey: 'SettingsUserInterface.openDeckInNewTab.description',
           control: { kind: 'toggle', key: 'openDeckInNewTab' },
+        },
+        {
+          id: 'commanderSpellbookIntegration',
+          labelKey: 'SettingsUserInterface.commanderSpellbookIntegration.label',
+          descriptionKey: 'SettingsUserInterface.commanderSpellbookIntegration.description',
+          control: {
+            kind: 'select',
+            key: 'commanderSpellbookIntegration',
+            // Desktop's three modes; its selector has no entry for the unprompted default and
+            // shows "Disabled" for it, so that state is named here rather than misreported.
+            options: [
+              {
+                value: CommanderSpellbookIntegration.Unprompted,
+                labelKey: 'SettingsUserInterface.commanderSpellbookIntegration.unprompted',
+              },
+              {
+                value: CommanderSpellbookIntegration.Disabled,
+                labelKey: 'SettingsUserInterface.commanderSpellbookIntegration.disabled',
+              },
+              {
+                value: CommanderSpellbookIntegration.Enabled,
+                labelKey: 'SettingsUserInterface.commanderSpellbookIntegration.enabled',
+              },
+              {
+                value: CommanderSpellbookIntegration.Automatic,
+                labelKey: 'SettingsUserInterface.commanderSpellbookIntegration.automatic',
+              },
+            ],
+          },
         },
       ],
     },
