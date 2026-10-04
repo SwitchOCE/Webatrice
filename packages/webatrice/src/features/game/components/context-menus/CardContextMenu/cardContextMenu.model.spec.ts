@@ -1,7 +1,13 @@
 import type { ActionId } from '@app/feature-widgets/shortcuts';
 
 import { counterColorForId } from '../../ui/CardSlot/counterColors';
-import { buildCardContextMenu, type BuildCardContextMenuArgs, type CardMenuItem } from './cardContextMenu.model';
+import {
+  buildCardContextMenu,
+  buildOpponentCardMenu,
+  type BuildCardContextMenuArgs,
+  type BuildOpponentCardMenuArgs,
+  type CardMenuItem,
+} from './cardContextMenu.model';
 
 // Every hint renders as its action id, so the tree pins which binding each row shows.
 const hints = new Proxy({}, { get: (_target, key) => `<${String(key)}>` }) as Record<ActionId, string>;
@@ -168,5 +174,49 @@ describe('buildCardContextMenu', () => {
     expect(args.onFlowP).toHaveBeenCalledTimes(1);
     expect(args.onAddCardCounter).toHaveBeenCalledWith(2);
     expect(args.onSetCardCounter).toHaveBeenCalledWith(4);
+  });
+});
+
+describe('buildOpponentCardMenu', () => {
+  const opponentArgs = (overrides: Partial<BuildOpponentCardMenuArgs> = {}): BuildOpponentCardMenuArgs => ({
+    shortcutHints: hints,
+    onDrawArrow: vi.fn(),
+    onClone: vi.fn(),
+    onReduceLifeByPower: vi.fn(),
+    onSelectAll: vi.fn(),
+    onSelectRow: vi.fn(),
+    ...overrides,
+  });
+
+  it('offers only the actions that leave the other player\'s cards alone', () => {
+    expect(tree(buildOpponentCardMenu(opponentArgs()))).toEqual([
+      'Draw arrow... [<game.drawArrow>]',
+      'Clone [<game.cloneCard>]',
+      '---',
+      'Reduce life by power [<game.reduceLifeByPower>]',
+      '---',
+      'Select All [<game.selectAllBattlefield>]',
+      'Select Row [<game.selectRowBattlefield>]',
+    ]);
+  });
+
+  it('ends with the related-card views, then the token items after a divider', () => {
+    const rows = tree(buildOpponentCardMenu(opponentArgs({
+      relatedViewItems: [{ divider: true }, { label: 'View related cards' }],
+      tokenItems: [{ label: 'Token: 0/1 Plant' }],
+    })));
+    expect(rows.slice(-5)).toEqual(['Select Row [<game.selectRowBattlefield>]', '---', 'View related cards', '---', 'Token: 0/1 Plant']);
+    expect(tree(buildOpponentCardMenu(opponentArgs({ tokenItems: [] }))).at(-1)).toBe('Select Row [<game.selectRowBattlefield>]');
+  });
+
+  it('wires each row to its handler', () => {
+    const args = opponentArgs();
+    const menu = buildOpponentCardMenu(args);
+    for (const label of ['Draw arrow...', 'Clone', 'Reduce life by power', 'Select All', 'Select Row']) {
+      find(menu, label).onClick!();
+    }
+    for (const handler of [args.onDrawArrow, args.onClone, args.onReduceLifeByPower, args.onSelectAll, args.onSelectRow]) {
+      expect(handler).toHaveBeenCalledTimes(1);
+    }
   });
 });

@@ -264,3 +264,42 @@ export function buildCardContextMenu(args: BuildCardContextMenuArgs): CardMenuIt
       : []),
   ];
 }
+
+export interface BuildOpponentCardMenuArgs {
+  shortcutHints: Record<ActionId, string>;
+  /** Arrows belong to the local player, so any card can start one. */
+  onDrawArrow: () => void;
+  /** The token copy lands on the local player's battlefield. */
+  onClone: () => void;
+  onReduceLifeByPower: () => void;
+  onSelectAll: () => void;
+  onSelectRow: () => void;
+  tokenItems?: CardMenuItem[];
+  relatedViewItems?: CardMenuItem[];
+}
+
+/**
+ * The menu of another player's battlefield card: desktop's `!canModifyCard`
+ * branch on the TABLE zone (card_menu.cpp:183-194). Only the actions that do
+ * not change that player's cards: no tap, flip, P/T, annotation, counters,
+ * moves or attach.
+ */
+export function buildOpponentCardMenu(args: BuildOpponentCardMenuArgs): CardMenuItem[] {
+  return [
+    { label: 'Draw arrow...', shortcut: args.shortcutHints['game.drawArrow'], onClick: args.onDrawArrow },
+    { label: 'Clone', shortcut: args.shortcutHints['game.cloneCard'], onClick: args.onClone },
+    { divider: true },
+    {
+      label: 'Reduce life by power',
+      shortcut: args.shortcutHints['game.reduceLifeByPower'],
+      onClick: args.onReduceLifeByPower,
+    },
+    { divider: true },
+    { label: 'Select All', shortcut: args.shortcutHints['game.selectAllBattlefield'], onClick: args.onSelectAll },
+    { label: 'Select Row', shortcut: args.shortcutHints['game.selectRowBattlefield'], onClick: args.onSelectRow },
+    ...(args.relatedViewItems ?? []),
+    ...(args.tokenItems && args.tokenItems.length > 0
+      ? [{ divider: true } as CardMenuItem, ...args.tokenItems]
+      : []),
+  ];
+}
