@@ -7,9 +7,12 @@ import { getSettings, settingsStore } from '../../hooks/useSettings';
 import DeckBreakdown from './DeckBreakdown';
 import type { DeckCard } from './types';
 
+const card = (name: string, typeLine: string, cmc: number, extra: Partial<DeckCard> = {}): DeckCard =>
+  ({ name, quantity: 1, category: 'main', typeLine, cmc, lookupSource: 'unknown', ...extra });
+
 const CARDS: DeckCard[] = [
-  { name: 'Sol Ring', quantity: 1, category: 'main', typeLine: 'Artifact', cmc: 1 },
-  { name: 'Atraxa, Praetors\' Voice', quantity: 1, category: 'main', typeLine: 'Legendary Creature', cmc: 4, isCommander: true },
+  card('Sol Ring', 'Artifact', 1),
+  card('Atraxa, Praetors\' Voice', 'Legendary Creature', 4, { isCommander: true }),
 ];
 
 const SPELLBOOK = 'commanderspellbook.com';
