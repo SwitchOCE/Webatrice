@@ -81,21 +81,47 @@ Behaviour is unchanged. The comments that cite desktop and Servatrice moved with
 
 ## Testing
 
-All run from the repo root on the branch tip:
+All run from the repo root on the branch tip `36ae794` after `npm ci`:
 
-- `npx turbo run typecheck --concurrency=1`: pass.
-- `npm run lint`: pass.
-- `npm test`: sockatrice 896, datatrice 1418, webatrice 3542, all passing. New tests:
-  - `game.listeners.characterization.spec.ts`: 18 tests;
-  - `cardMove.spec.ts`: 53 tests;
-  - `game.reducer.helpers.spec.ts`: 24 new tests;
-  - `game.selectors.spec.ts`: 5 new tests.
-- `npm run test:integration`: sockatrice 175, datatrice 144, webatrice 266, all passing.
-- `npm run test:e2e -w @cockatrice/webatrice` (chromium, firefox, webkit): 66 passed, 12 skipped, 0 failed.
-  - The first run failed only on WebKit: all 24 failures were `browserType.launch` errors from missing system
-    libraries (libgtk-4 and others).
-  - After `npx playwright install-deps`, a rerun passed.
+- `npx turbo run typecheck --concurrency=1`: pass (5/5 tasks).
+- `npm run lint`: pass (3/3 tasks).
+- `npm test -- -- --maxWorkers=2`: sockatrice 896, datatrice 1427, webatrice 3542, all passing.
+  Totals in the touched spec files:
+  - `game.listeners.characterization.spec.ts`: 22 tests;
+  - `cardMove.spec.ts`: 63 tests;
+  - `game.reducer.helpers.spec.ts`: 40 tests;
+  - `game.selectors.spec.ts`: 78 tests.
+- `npm run test:integration -- -- --maxWorkers=2`: sockatrice 175, datatrice 144, webatrice 266, all passing.
+- `npm run test:e2e -w @cockatrice/webatrice` (chromium, firefox, webkit), run on `2673b2d`: 66 passed, 12 skipped,
+  0 failed. (The first run's 24 WebKit failures were all `browserType.launch` errors from missing system libraries;
+  a rerun after `npx playwright install-deps` passed.) The follow-up commits touch only datatrice store internals,
+  specs, the changeset and an instruction line. No UI code changed, so e2e was not rerun.
 - Sockatrice e2e was not run because no sockatrice or server flow changed.
+
+### Mutation probes (rv18)
+
+Each mutant was applied alone and run against the characterization spec, `src/store/games`, and the full datatrice
+unit suite. A mutant is killed when at least one test fails.
+
+| Mutant | char spec (22) | games/ (636) | datatrice (1427) |
+|---|---|---|---|
+| STACK leaves `POSITIONAL_REORDER_ZONES` | killed (1) | killed (2) | killed (2) |
+| GRAVE leaves `POSITIONAL_REORDER_ZONES` | killed (1) | killed (3) | killed (3) |
+| EXILE leaves `POSITIONAL_REORDER_ZONES` | killed (1) | killed (2) | killed (2) |
+| optimistic `patch` forces `faceDown: false` | survives | killed (1) | killed (1) |
+| undo-draw prefers the event name (`data.cardName ?? knownName`) | killed (1) | killed (3) | killed (3) |
+| undo-draw prefers the event name (`data.cardName \|\| knownName`) | survives | killed (1) | killed (1) |
+| `buildMovedCard` writes `attachPlayerId/attachCardId = 0` | killed (7) | killed (10) | killed (10) |
+| unattach writes 0 / 0 | killed (1) | killed (4) | killed (4) |
+
+No mutant survives the suite. The faceDown mutant and the `||` form of the undo-draw mutant are caught by
+`cardMove.spec.ts`, not by the characterization barrier. That is enough: those planners are table-tested directly.
+
+### Fix found while verifying
+
+`b8f59cc` dropped `makeArrow` from the fixture import in `game.selectors.spec.ts`, but the existing `getArrows` case
+still uses it. The result was one `ReferenceError` failure in the datatrice unit suite. Typecheck did not catch it
+because spec files sit outside the typecheck project. `36ae794` restores the import.
 
 ## Notes for reviewers
 
