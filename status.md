@@ -1,1 +1,2 @@
 - 04:53Z started rv23 review → read diff
+- 04:57Z diff read, desktop defaults/groups/wire checked → mutation tests
