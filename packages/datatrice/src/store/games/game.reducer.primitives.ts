@@ -69,7 +69,10 @@ export const primitiveReducers = {
     if (activePhase !== undefined) {
       game.activePhase = activePhase;
     }
-    if (secondsElapsed !== undefined) {
+    // A replay keeps one time base: its containers' seconds_elapsed (gameTimeSynced), counted
+    // from the start of the game, not Event_GameStateChanged's, counted from its creation
+    // (server_game.cpp:271,292).
+    if (secondsElapsed !== undefined && !game.replay) {
       game.secondsElapsed = secondsElapsed;
       game.secondsElapsedAt = eventTimestamp();
     }
