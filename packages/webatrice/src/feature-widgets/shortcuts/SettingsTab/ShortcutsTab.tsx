@@ -12,6 +12,9 @@ import ShortcutsRow from './ShortcutsRow';
 // Display order: the game groups in desktop's order (ShortcutGroup::Groups),
 // then the editor, room and replays.
 const GROUP_ORDER: ShortcutGroupId[] = [
+  'gameCardCounters',
+  'gamePlayerCounters',
+  'gamePowerToughness',
   'gamePhases',
   'gamePlayingArea',
   'gameMoveSelected',

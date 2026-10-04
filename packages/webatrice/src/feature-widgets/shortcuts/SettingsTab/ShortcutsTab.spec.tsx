@@ -9,6 +9,9 @@ describe('ShortcutsTab', () => {
     const headers = screen.getAllByRole('button').filter((b) => b.hasAttribute('aria-expanded'));
     // Each header reads "<group><count>".
     expect(headers.map((b) => b.textContent?.replace(/\d+$/, ''))).toEqual([
+      'ShortcutsTab.group.gameCardCounters',
+      'ShortcutsTab.group.gamePlayerCounters',
+      'ShortcutsTab.group.gamePowerToughness',
       'ShortcutsTab.group.gamePhases',
       'ShortcutsTab.group.gamePlayingArea',
       'ShortcutsTab.group.gameMoveSelected',
@@ -36,6 +39,10 @@ describe('ShortcutsTab', () => {
     expect(within(section('gameMoveTop')).getByText('ShortcutsTab.action.game.moveTopToExile')).toBeInTheDocument();
     expect(within(section('gameMoveBottom')).getByText('ShortcutsTab.action.game.drawBottomCard')).toBeInTheDocument();
     expect(within(section('gameplay')).getByText('ShortcutsTab.action.game.shuffleTopCards')).toBeInTheDocument();
+    expect(within(section('gameCardCounters')).getByText('ShortcutsTab.action.game.addCounterD')).toBeInTheDocument();
+    expect(within(section('gamePlayerCounters')).getByText('ShortcutsTab.action.game.incManaCounterW')).toBeInTheDocument();
+    expect(within(section('gamePowerToughness')).getByText('ShortcutsTab.action.game.flowP')).toBeInTheDocument();
+    expect(within(section('gamePhases')).getByText('ShortcutsTab.action.game.setPhase10')).toBeInTheDocument();
     const tapRow = within(section('gamePlayingArea')).getByText('ShortcutsTab.action.game.tapCard').closest('div')!.parentElement!;
     expect(within(tapRow).getByText('ShortcutsTab.noBinding')).toBeInTheDocument();
   });
