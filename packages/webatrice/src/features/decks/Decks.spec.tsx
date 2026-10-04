@@ -165,11 +165,11 @@ describe('Decks sharing (Servatrice 3.1)', () => {
 });
 
 describe('Decks shortcuts', () => {
-  it('opens the create dialog on New Deck (Ctrl+N) and the import dialog on Load Deck (Ctrl+O)', async () => {
+  it('opens the create dialog on New Deck (Ctrl+Alt+N) and the import dialog on Load Deck (Ctrl+O)', async () => {
     const user = userEvent.setup();
     renderWithProviders(<ShortcutProvider><Decks /></ShortcutProvider>, { preloadedState: connectedState, route: '/decks' });
 
-    await user.keyboard('{Control>}n{/Control}');
+    await user.keyboard('{Control>}{Alt>}n{/Alt}{/Control}');
     expect(screen.getByRole('dialog', { name: 'CreateDeckDialog.title' })).toBeInTheDocument();
     await user.keyboard('{Escape}');
 

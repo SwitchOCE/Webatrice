@@ -4,10 +4,6 @@ import i18n from './SettingsTab/ShortcutsTab.i18n.json';
 import { normalizeSequence } from './shortcutSequence';
 import { ShortcutScope, type ActionId } from './types';
 
-// deck.new keeps desktop's Ctrl+N here; the deck editor i18n / a11y change
-// rebinds it to Ctrl+Alt+N. Drop the entry with that change.
-const PENDING_REMAP: readonly ActionId[] = ['deck.new'];
-
 type Bindings = Readonly<Record<string, { scope: ShortcutScope; sequences: readonly string[] }>>;
 
 /** Sequences bound to more than one action of a scope, keyed by the chord the
@@ -85,11 +81,6 @@ describe('shortcut defaults', () => {
   // A default on a browser-reserved chord never reaches the page, so it
   // would look bound in the Shortcuts tab and do nothing. Every scope.
   it.each(BROWSER_RESERVED_SEQUENCES)('binds no action to the browser-reserved %s', (sequence) => {
-    expect(reservedOwners(defaults, sequence).filter((id) => !PENDING_REMAP.includes(id as ActionId))).toEqual([]);
-  });
-
-  it('lists only actions still on a reserved chord as pending a remap', () => {
-    expect(PENDING_REMAP.filter((id) => !BROWSER_RESERVED_SEQUENCES.some((sequence) => reservedOwners(defaults, sequence).includes(id))))
-      .toEqual([]);
+    expect(reservedOwners(defaults, sequence)).toEqual([]);
   });
 });
