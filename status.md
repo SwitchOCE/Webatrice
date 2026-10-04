@@ -12,3 +12,4 @@
 - 00:39Z first e2e run: 38 passed, 27 failed — all browserType.launch (missing libgtk-4 etc.); ran playwright install-deps, re-running e2e
 - 00:57Z e2e after install-deps: 57 passed / 6 skipped / 6 failed = my startup-tab spec (URL asserts invalid: app uses MemoryRouter — rewritten to assert UI) + replays.spec on all 3 browsers (checking the base now)
 - 01:06Z e2e caught a real bug: destination recomputed on a post-login re-render overrode the first navigation — fixed (decide once in a ref) + regression spec; my 2 e2e specs pass; replays.spec failure confirmed pre-existing on the base → final full gate running
+- 01:27Z FINAL: gate green (typecheck 5/5, lint 3/3, unit 881/1281/2298+2skip, integration 171/140/210+2skip, e2e 60 passed 6 skipped 3 failed = replays.spec, pre-existing on base). Branch claude/parity-25a-platform-prefs @ 734ecf0

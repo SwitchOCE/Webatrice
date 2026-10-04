@@ -53,9 +53,10 @@ Desktop's other startup destinations have no Webatrice page (Home, the visual de
 Run from the repo root on the final tip, with Vitest capped at `--maxWorkers=2`:
 - `npx turbo run typecheck --concurrency=1`: passes (5/5 tasks).
 - `npm run lint`: passes (3/3 tasks), 0 errors.
-- `npm test -- -- --maxWorkers=2`: (counts below)
-- `npm run test:integration -- -- --maxWorkers=2`: (counts below)
-- `npm run test:e2e -w @cockatrice/webatrice`: (counts below)
+- `npm test -- -- --maxWorkers=2`: Sockatrice 881 passed; Datatrice 1281 passed; Webatrice 2298 passed, 2 skipped (both pre-existing).
+- `npm run test:integration -- -- --maxWorkers=2`: Sockatrice 171 passed; Datatrice 140 passed; Webatrice 210 passed, 2 skipped (both pre-existing).
+- `npm run test:e2e -w @cockatrice/webatrice` (3.0.0 image, chromium + firefox + webkit): 60 passed, 6 skipped, 3 failed in 13.9 min — `replays.spec.ts` on each browser, which **fails the same way on the base** (`13351fd`): it stops at the saved match folder waiting for `replay_<id>.cor` in the local pane, no code of this PR involved. Verified by running that spec alone in a worktree checked out at the base. Everything else passes, including the two specs added here, on all three browsers.
+  - The first run failed 27 browser launches for missing host libraries (`libgtk-4.so.1`, …); `npx playwright install-deps` fixed it, as the earlier PRs in this series also found.
 
 New or extended specs:
 - **Startup destination**: `startupDestination` (the resolver's every branch, and the hook's page-load gate: the first login returns to `from`, a later one goes to the startup tab, the startup server is matched against the host being signed in to); `AuthGuard` (hands the page it leaves to the login route); `useStartupRoom` (already-joined room, join sent once, an `auto_join` room waited for, exact name match, refused join, empty room list).
@@ -63,10 +64,12 @@ New or extended specs:
 - **Mention completer**: `mentionQuery` (trigger, prefix, matching, insertion — an email address is not a mention, a finished mention is not a query); `useMentionCompleter` (combobox and listbox semantics, arrow wrapping, Enter and Tab insert, Shift+Tab, Escape without reaching the page, Enter sends when nothing matches, click, blur, setting off); `RoomChat` and `PrivateChat` completion; a game-chat integration spec that completes a player's name and sends the completed text.
 - **Settings controls**: `SettingRow` (the number control's range, rounding and emptied field; the text control's trimming; `visibleWhen` hiding a row); `StartupServerSelect` (options, saving by address, a server since removed).
 - **Replay and deck tabs**: `ReplayEngine` (a changed buffer time takes effect from the next skip, 0 rewinds at once); `useReplayPlayback` (the preference drives it); `TopBar` (one deck tab by default, a tab per deck with the option on).
-- **e2e**: `chat-mention-completer.spec.ts` (keyboard only: list opens, Escape, Enter inserts, Enter then sends) and `startup-tab.spec.ts` (a fresh login opens the chosen tab; a reload keeps the current page).
+- **e2e**: `chat-mention-completer.spec.ts` (keyboard only: list opens, Escape, Enter inserts, Enter then sends) and `startup-tab.spec.ts` (a fresh login opens the chosen tab; a reload keeps the current page). Both read the page from the UI: the app routes through a `MemoryRouter`, so there is no URL to assert.
 
 ## Notes for reviewers
-- **Why the page-load gate is module state.** `pageLoadLoginGate` mirrors `autoLoginGate`: it must be per JS session, not per component, and it is exported so tests can reset it without `vi.resetModules()`. It flips in an effect, after the commit that navigates, so React StrictMode's double render agrees with itself.
+- **Why the page-load gate is module state.** `pageLoadLoginGate` mirrors `autoLoginGate`: it must be per JS session, not per component, and it is exported so tests can reset it without `vi.resetModules()`.
+- **The destination is decided once per login, in a ref.** The login page stays mounted while the first post-login events arrive (user info, room list), and each re-renders it. Recomputing the destination there handed `Navigate` a second `to` — the gate having latched meanwhile — and that second navigation overrode the first, so a reload of the lobby landed on the startup tab. The e2e run caught it; the fix decides on the render that first sees the connection and latches the gate with the decision, and a spec covers the re-render.
+- **`AuthGuard` renders nothing on the login route.** A `Navigate` whose `state` is a fresh object is a new location every render, so a guard still mounted on `/login` (a page that renders it without its own `Routes`) navigated forever. That is an `@critical` note on the guard, with a spec.
 - **A committed input no longer takes `change` as a draft.** `CommittedInput` saves on the native `change` event; React's `onChange` fires for both `input` and `change`, so a `change` was also stored as the draft and the field kept showing the uncommitted text (`12000` where `9999` was saved, `"Magic  "` where `Magic` was). It now only drafts on `input`, which is what a browser sends while typing or dragging.
 - **The completer's popup is local.** PR 26 is building shared a11y primitives; `useMentionCompleter` carries a `TODO(PR26)` on its own listbox so it can be swapped for the shared one. The hook supplies the input's `onChange`, so the three chat inputs each changed by a few lines — the diffs stay inside the input, away from PRs 27/28.
 - **Private chat completes two names.** Desktop's message tab has no completer at all. Rather than leave one of the three inputs out, it completes the conversation's two names, which is what an `@` can usefully mean there.
