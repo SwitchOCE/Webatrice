@@ -1,7 +1,8 @@
-import { fromBinary, getExtension, hasExtension } from '@bufbuild/protobuf';
+import { fromBinary, getExtension, hasExtension, isFieldSet } from '@bufbuild/protobuf';
 
 import {
   Event_ServerIdentification_ext,
+  GameEventContainerSchema,
   ServerMessageSchema,
   ServerMessage_MessageType,
   type GameEventContainer,
@@ -240,8 +241,11 @@ export class WebClient {
    */
   public replayGameEventContainer(container: GameEventContainer, gameId: number): void {
     // A recorded container carries the game time it was played at (Servatrice sets
-    // seconds_elapsed only on the copy it stores); live containers never do.
-    this.response.game.replayGameTime?.(gameId, container.secondsElapsed ?? 0);
+    // seconds_elapsed only on the copy it stores); live containers never do. The field
+    // is proto2 optional, which protobuf-es reads as 0 when unset, so test presence.
+    if (isFieldSet(container, GameEventContainerSchema.field.secondsElapsed)) {
+      this.response.game.replayGameTimeSynced?.(gameId, container.secondsElapsed);
+    }
     this.protobuf.replayGameEventContainer(container, gameId);
   }
 
