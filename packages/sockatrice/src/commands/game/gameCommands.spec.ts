@@ -73,6 +73,7 @@ import { setPlaymat } from './setPlaymat';
 import { setSideboardLock } from './setSideboardLock';
 import { setSideboardPlan } from './setSideboardPlan';
 import { shuffle } from './shuffle';
+import { moveCardAndShuffle } from './moveCardAndShuffle';
 import { undoDraw } from './undoDraw';
 import { unconcede } from './unconcede';
 
@@ -337,6 +338,31 @@ describe('Game commands — delegate to WebClient.instance.protobuf.sendGameComm
     expect(WebClient.instance.protobuf.sendGameCommand).toHaveBeenCalledWith(
       gameId, Command_Shuffle_ext, expect.objectContaining({ zoneName: 'hand' })
     );
+  });
+
+  // Desktop cmMoveToTopLibrary (player_actions.cpp:1853-1872) queues the
+  // shuffle before the move; Servatrice runs the container backwards.
+  it('moveCardAndShuffle sends Command_Shuffle then Command_MoveCard in one container', () => {
+    moveCardAndShuffle(
+      gameId,
+      {
+        startPlayerId: 1,
+        startZone: 'hand',
+        cardsToMove: { card: [{ cardId: 4 }, { cardId: 9 }] },
+        targetPlayerId: 1,
+        targetZone: 'deck',
+        x: 0,
+        y: 0,
+      },
+      { zoneName: 'deck', start: 0, end: 1 },
+    );
+    expect(WebClient.instance.protobuf.sendGameCommands).toHaveBeenCalledTimes(1);
+    const [sentGameId, entries] = vi.mocked(WebClient.instance.protobuf.sendGameCommands).mock.calls[0];
+    expect(sentGameId).toBe(gameId);
+    expect(entries.map((e) => e.ext)).toEqual([Command_Shuffle_ext, Command_MoveCard_ext]);
+    expect(entries[0].value).toEqual(expect.objectContaining({ zoneName: 'deck', start: 0, end: 1 }));
+    expect(entries[1].value).toEqual(expect.objectContaining({ startZone: 'hand', targetZone: 'deck', x: 0 }));
+    expect(entries.every((e) => e.judgeTargetId === undefined)).toBe(true);
   });
 
   it('undoDraw sends Command_UndoDraw with empty object', () => {
