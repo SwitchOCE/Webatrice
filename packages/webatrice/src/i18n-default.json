@@ -1550,7 +1550,7 @@
     "placeholder": "Search cards — Scryfall syntax works here too",
     "searching": "Searching…",
     "searchFailed": "Search failed",
-    "resultCount": "Showing {count, plural, one {# result} other {# results}} ·",
+    "resultCount": "Showing {count, plural, one {# result} other {# results}}",
     "noResults": "No results.",
     "emptyPrompt": "Type to search, or use the filters above.",
     "syntaxHint": "Scryfall syntax also works directly: <0>{oracleExample}</0>, <1>{commanderExample}</1>, etc.",
@@ -1640,7 +1640,7 @@
     "addToDeck": "Add to deck",
     "buy": "Buy @ TCGplayer",
     "quantity": "Quantity",
-    "removed": "· removed from deck",
+    "removed": "removed from deck",
     "decrease": "Decrease quantity",
     "increase": "Increase quantity",
     "removeFromDeck": "Remove from deck"

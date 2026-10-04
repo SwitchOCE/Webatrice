@@ -57,7 +57,7 @@ describe('AdvancedCardSearch', () => {
     vi.mocked(useScryfallCardSearch).mockReturnValue({ results: [bolt], loading: false, error: null });
     const handlers = renderSearch();
     const [count, added] = screen.getAllByRole('status');
-    expect(count).toHaveTextContent('CardSearch.resultCount');
+    expect(count).toHaveTextContent('CardSearch.resultCount · bolt');
     expect(added).toBeEmptyDOMElement();
 
     const tile = screen.getByRole('button', { name: 'CardSearch.addCardTitle' });

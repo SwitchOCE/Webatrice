@@ -71,7 +71,7 @@ export function AdvancedCardSearch({
           {error !== null && <span className="text-danger">{error || t('CardSearch.searchFailed')}</span>}
           {!loading && error === null && composedQuery && (
             <span>
-              {t('CardSearch.resultCount', { count: results.length })} <span className="font-mono">{composedQuery}</span>
+              {t('CardSearch.resultCount', { count: results.length })} · <span className="font-mono">{composedQuery}</span>
             </span>
           )}
         </div>

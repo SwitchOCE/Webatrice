@@ -331,7 +331,7 @@ function CardDetailActions({
         <span className="text-sm text-text-secondary">
           {t('CardDetailDialog.quantity')}{' '}
           {removed && (
-            <span className="text-xs text-text-muted">{t('CardDetailDialog.removed')}</span>
+            <span className="text-xs text-text-muted">· {t('CardDetailDialog.removed')}</span>
           )}
         </span>
         <div className="flex items-center gap-2">
