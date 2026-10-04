@@ -70,21 +70,25 @@ Cockatrice `add65caa`:
 
 ## Testing
 
-Run from the repo root on the rebased tip `3a78d2f`:
+Run from the repo root on the final tip `87daaeb` (after the rv23 fixes):
 
-- `npx turbo run typecheck --concurrency=1`: 5/5 pass. Per commit: `tsc --noEmit` and `tsc -p e2e --noEmit` pass at each of `91f1811`, `986924b`, `c59355e` and `3a78d2f`.
-- `npm run lint`: 3/3 pass. `npm run translate` leaves `i18n-default.json` unchanged.
-- Unit: sockatrice 43 files / 896, datatrice 35 / 1316, webatrice **473 files / 3960 tests, all passing**, run in two invocations (`src/features/game`: 155 / 1613; everything else: 318 / 2347). A single `npm test -- -- --maxWorkers=2` invocation of webatrice is killed by the kernel (OOM, 137) in this 16 GB container. The base (`2f6e5b6`) already peaks at ~14 GB in that run (measured; it passes with 467 / 3822), and this branch's added `<Game />` renders cross the limit. See follow-ups.
-- `npm run test:integration -- -- --maxWorkers=2`: sockatrice 20 / 175, datatrice 10 / 145, webatrice 51 of 52 files / 270 of 271 tests. The one failure is `invite-link.spec.tsx` › "a link clicked in a room's chat opens the game with one navigation". It fails identically in a full run on the base (checked), as R1 recorded, and passes when run alone on both. It is pre-existing and unrelated.
-- E2E (webatrice): `npm run build`, then `test:e2e:up` (Servatrice 3.0.0), then `mcr.microsoft.com/playwright:v1.60.0-noble` with the host's docker CLI and compose plugin mounted (so `staff-tools.spec` can seed SQL), on chromium + firefox + webkit: **78 passed, 12 skipped, 0 failed (13.1 min)**. Stack torn down. The pre-rebase tip got the same result. Sockatrice e2e was not run: no sockatrice or server-flow change.
-- New and extended specs:
-  - `defaults.spec`: the table test and the browser-reserved keys;
-  - `ShortcutsTab.spec` (new): group order, each new group renders its actions, keyboard-reachable headers and edit buttons;
-  - `useGameShortcuts.spec`: every GAME-scope action has a handler; the phase keys;
-  - `Game.cardOps.characterization.spec`: the seat-action table extended with all 64 new seat ids (the coverage check still requires every one), plus the hand and exile views;
-  - `Game.shortcuts.spec`: one action per group from key to request, sent exactly once (Ctrl+Delete on a hand selection, Ctrl+Shift+E, a bound draw-bottom, a bound shuffle-top prompt, Shift+F12/F11 with F12 left to the browser, a bound phase key, reveal hand). A spectator's key reaches no seat op and is not consumed;
-  - `useSeatShortcutOperations.spec`, `useBattlefieldCardOps.spec`, `relatedCardActions.spec`, `useLibraryMenuItems.spec`, `useBattlefieldMenuItems.spec`, `cardContextMenu.model.spec`, `handCardMenu.model.spec`;
-  - new `useHandCardOps.spec`, `useLibraryOps.spec`.
+- `npx turbo run typecheck --concurrency=1`: 5/5 pass.
+- `npm run lint`: 3/3 pass. The commit hook's `npm run translate` leaves `i18n-default.json` unchanged.
+- Unit: sockatrice 43 files / 897 tests, datatrice 35 / 1316, all passing. Webatrice: a single `npm test -- -- --maxWorkers=2` invocation is killed by the kernel (OOM, 137) in this 16 GB container, as before the fixes (see follow-ups). Run in two invocations it is **474 files / 3992 tests, all passing** (`src/features/game`: 156 / 1636; everything else: 318 / 2356).
+- `npm run test:integration -- -- --maxWorkers=2`: sockatrice 20 / 175, datatrice 10 / 145, webatrice 51 of 52 files / 270 of 271 tests. The one failure is `invite-link.spec.tsx` › "a link clicked in a room's chat opens the game with one navigation" (no "back" button found). It now also fails when run alone, and fails identically, alone, on the pre-fix tip `3a78d2f` (checked): pre-existing and unrelated.
+- E2E (webatrice): `npm run build`, `test:e2e:up` (Servatrice 3.0.0), then `mcr.microsoft.com/playwright:v1.60.0-noble` with the host's docker CLI and compose plugin mounted (for `staff-tools.spec`'s SQL seed), chromium + firefox + webkit: **78 passed, 12 skipped, 0 failed (16.3 min)**. Stack torn down. Sockatrice e2e not run: the new command is a client-side batch of two existing commands, covered by its unit spec and the webatrice e2e.
+- Every behaviour fix has a spec that fails without it (exact request shapes, with the desktop lines cited in the spec):
+  - `relatedCardActions.spec`: one case per create-all branch (single relation incl. `x=3` prompt and transform; one non-excluded relation; all excluded; default), `relationCount`, last token;
+  - `cardCatalog.spec`: `exclude` on related, reverse-related and through the Scryfall overlay;
+  - `seatPrompts.spec` / `useSeatPrompts.spec`: the "Create tokens" 1-99 prompt;
+  - `useBattlefieldCardOps.spec`: create-all prompt and last token, per-card tap, double-click tap-or-untap-all;
+  - `useSeatShortcutOperations.spec`: Ctrl+Shift+K then Ctrl+G repeats the token; hand → battlefield per card; library top with `shuffleMoved`;
+  - `selectionMoves.spec` (new), `useHandCardOps.spec`, `handCardMenu.actions.spec`: table moves (row, P/T, cipt, instant) and library shuffle flag;
+  - `usePlayerZoneCommands.spec` and Sockatrice `gameCommands.spec`: `[0, N-1]` / `[-N, -1]` shuffle with the move in one container, shuffle first; none for one card;
+  - `Game.cardOps.characterization.spec` / `PlayerBoard.characterization.spec`: library moves send `moveCardAndShuffle`; Tap / Untap flips each card; double-click sends only the cards that change;
+  - `defaults.spec`: shared reserved list on every scope, `deck.new` pending remap, normalised duplicate check (mutations `Shift+Ctrl+KeyK` and a deck-scope `Ctrl+Digit5` both fail it);
+  - `Game.shortcuts.spec`: shuffle prompt answered → one `shuffle`; add counter D, flow P, tap, view exile from key to request;
+  - `useLibraryOps.spec`: `libraryMovePrompt`; `useShortcut.spec`: group handler gets the index; `ShortcutsTab.spec`: focusable native buttons.
 
 ## Notes for reviewers
 
