@@ -64,8 +64,8 @@ const SCRYFALL_CARD_BY_ID = /^\/cards\/([0-9a-f-]{36})$/;
 
 // The single-card routes the app reads: `/cards/named?exact=<name>` and
 // `/cards/<id>`, each with or without `format=image`, plus the batch
-// `/cards/collection` POST below. Other endpoints (search, autocomplete)
-// answer in other shapes, so they get no stand-in.
+// `/cards/collection` POST and the quick-add `/cards/autocomplete` below.
+// Search answers in another shape, so it gets no stand-in.
 const isScryfallCardRoute = (url: URL): boolean =>
   url.pathname === '/cards/named' || SCRYFALL_CARD_BY_ID.test(url.pathname);
 
@@ -106,6 +106,14 @@ function scryfallCollection(postData: string | null): string {
   return JSON.stringify({ object: 'list', not_found: notFound, data });
 }
 
+// Quick add's name completion (`GET /cards/autocomplete?q=`): the fixture
+// names that contain the query, in Scryfall's catalog shape.
+function scryfallAutocomplete(url: URL): string {
+  const q = (url.searchParams.get('q') ?? '').toLowerCase();
+  const data = SCRYFALL_CARDS.map((card) => card.name).filter((name) => name.toLowerCase().includes(q));
+  return JSON.stringify({ object: 'catalog', total_values: data.length, data });
+}
+
 // Desktop's public server list, which the host picker downloads the first
 // time it opens (`PUBLIC_SERVERS_URL` in PublicServersService). It covers
 // the three kinds of entry the picker handles: reachable, desktop-only (no
@@ -131,6 +139,14 @@ function stubFor(url: URL, method: string, postData: string | null): Parameters<
     return method === 'OPTIONS'
       ? { status: 204, headers: SCRYFALL_CORS }
       : { status: 200, contentType: 'application/json', headers: SCRYFALL_CORS, body: scryfallCollection(postData) };
+  }
+  if (url.hostname === 'api.scryfall.com' && url.pathname === '/cards/autocomplete') {
+    return {
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: scryfallAutocomplete(url),
+    };
   }
   if (url.href === PUBLIC_SERVERS_URL) {
     // GitHub Pages allows any origin; the browser fetches the list cross-origin.
