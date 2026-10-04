@@ -155,4 +155,4 @@ because spec files sit outside the typecheck project. `36ae794` restores the imp
 
 ## Restack notes (wR4a)
 
-Branch `claude/restack-r6-game-listeners`, tip `3a46eb6`, 7 commits on R2. 17b's reverse-turn actor fix moves into `game.listeners.phases.ts`; the characterization stream sends the actor from its first commit. f25b's replay time base (`game.reducer.primitives`) is untouched by the split. A now-unused `ZoneNameValue` import is dropped where the conflict was resolved.
+Branch `claude/restack-r6-game-listeners`, tip `2ed4d62`, 7 commits on R2. 17b's reverse-turn actor fix moves into `game.listeners.phases.ts`; the characterization stream sends the actor from its first commit. f25b's replay time base (`game.reducer.primitives`) is untouched by the split. A now-unused `ZoneNameValue` import is dropped where the conflict was resolved.

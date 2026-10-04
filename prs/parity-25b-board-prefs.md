@@ -154,7 +154,7 @@ No history rewrite (task f25b): every finding is a new commit on af3cfc1.
 
 ## Restack notes (wR4a)
 
-Branch `claude/restack-25b-board-prefs`, tip `4f035da`, 40 commits on R1 (`af3cfc1` and `fd36e74` dropped).
+Branch `claude/restack-25b-board-prefs`, tip `7dd9b95`, 40 commits on R1 (`af3cfc1` and `fd36e74` dropped).
 - **Settings:** one number control: 25a's `NumberControl` (`unitKey`) commits through 25b's `clampWhole` and gains 25b's `pushes`; `suffixKey` rows use `unitKey`; the duplicate CSS goes.
 - **Layout:** `useGameBoardLayout(game, rotation, minPlayersForMultiColumn)` keeps 17b's rotation and 25b's preference.
 - **Click to play:** `useSeatClickToPlay` plays through R1's `playCardMove` (printed P/T, cipt); the battlefield click keeps desktop `TableZone::toggleTapped`. HandZone keeps R1/17a's arrow attributes and card menu on 25b's `renderOwnCard`.

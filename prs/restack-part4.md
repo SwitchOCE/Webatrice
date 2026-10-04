@@ -13,12 +13,12 @@ game chain (R1, R2, R6, R4) now continue the one linear chain above 28 (wR4a):
 | — | 26 a11y primitives | `claude/restack-26-a11y-primitives` | `d92b0aa` | 30 |
 | — | 27 a11y keyboard paths | `claude/restack-27-a11y-keyboard-paths` | `edf8c2e` | 13 |
 | — | 28 i18n gate | `claude/restack-28-i18n-gate` | `4626393` | 16 (17) |
-| 1 | 25a platform prefs | `claude/restack-25a-platform-prefs` | `40aa071` | 14 (18) |
-| 2 | R1 card-ops seam | `claude/restack-r1-card-ops-seam` | `3f4840e` | 24 |
-| 3 | 25b board prefs | `claude/restack-25b-board-prefs` | `4f035da` | 40 (42) |
-| 4 | R2 zone-view family | `claude/restack-r2-zone-view-family` | `f8f5713` | 13 |
-| 5 | R6 game listeners | `claude/restack-r6-game-listeners` | `3a46eb6` | 7 |
-| 6 | R4 Scryfall catalog | `claude/restack-r4-scryfall-catalog` | `2798f7d` | 15 |
+| 1 | 25a platform prefs | `claude/restack-25a-platform-prefs` | `c9c05e9` | 14 (18) |
+| 2 | R1 card-ops seam | `claude/restack-r1-card-ops-seam` | `331dfc9` | 24 |
+| 3 | 25b board prefs | `claude/restack-25b-board-prefs` | `7dd9b95` | 40 (42) |
+| 4 | R2 zone-view family | `claude/restack-r2-zone-view-family` | `d30b7af` | 13 |
+| 5 | R6 game listeners | `claude/restack-r6-game-listeners` | `2ed4d62` | 7 |
+| 6 | R4 Scryfall catalog | `claude/restack-r4-scryfall-catalog` | `30fbee1` | 15 |
 
 ### Below row 1
 
@@ -142,12 +142,33 @@ game chain (R1, R2, R6, R4) now continue the one linear chain above 28 (wR4a):
 
 ## Testing
 
-GATE_RESULTS
+Run on the R4 tip `30fbee1` (`/tmp/wt`), Vitest capped at 2 workers:
+
+- `npx turbo run typecheck --concurrency=1`: 5/5. **Per commit:** every commit from 16 (`a472e86`)
+  to the R4 tip typechecks (`turbo run typecheck` at each commit; 230 commits, 0 red after the
+  17b fix).
+- `npm run lint`: 3/3, 0 errors, 0 warnings. `npm run i18n:check -w @cockatrice/webatrice`: 107
+  catalogues, 774 sources, all keys resolve. `src/i18n-default.json` matches `npm run translate`.
+- Unit (`vitest run --maxWorkers=2`, webatrice in 4 shards because one run of the whole suite was
+  OOM-killed on this 16 GB VM): webatrice **4359 passed** (1128 + 1092 + 1139 + 1000),
+  sockatrice **900 passed**, datatrice **1430 passed**.
+- Integration (`npm run test:integration -- -- --maxWorkers=2`): sockatrice **175**, datatrice
+  **145**, webatrice **272** passed.
+- `npm run test:e2e -w @cockatrice/sockatrice`: 4 files, **5 passed**.
+- `test:e2e` webatrice (3.0.0 Servatrice image; chromium + firefox + webkit in the
+  `playwright:v1.60.0-noble` container): **93 passed, 12 skipped, 0 failed**.
+  - The full run reported 87 passed, 6 failed. `startup-tab.spec.ts` (25a, ×3 browsers) still
+    opened Settings and Sign out by `button`; 26 made the user menu a `Menu`, so both are
+    `menuitem` now, fixed in every commit that carries the spec; 3/3 pass after.
+    `staff-tools.spec.ts` "an admin publishes a new server message" (×3) failed with
+    `spawnSync docker ENOENT`: it seeds MySQL through `docker compose exec`, and the container had
+    no docker CLI. With the docker socket, CLI and compose plugin mounted it passes 6/6 (the
+    spec's other test included). Environment only.
 
 ## Notes for reviewers
 
 - Every commit from 16 to the R4 tip typechecks (`turbo run typecheck`, per commit).
-- The 25a chat specs and TopBar deck-tab specs, 17b's `useMessageMacros` deletion and R2's
+- 25a's `startup-tab` e2e selectors, the 25a chat specs and TopBar deck-tab specs, 17b's `useMessageMacros` deletion and R2's
   ReportQueue spec were fixed in the commits that broke them, and everything above was rebuilt with
   the same trees (`git commit-tree`), so no later commit changed.
 - `bracketConsent` changed meaning: the localStorage flag `decks:bracketOnlineLookups` (18) is no

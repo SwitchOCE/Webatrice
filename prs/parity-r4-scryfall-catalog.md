@@ -191,4 +191,4 @@ Base `origin/claude/restack-16-game-lobby` @ `d2e516c`. Tip `eca62b5` (the rv15 
 
 ## Restack notes (wR4a)
 
-Branch `claude/restack-r4-scryfall-catalog`, tip `2798f7d`, 15 commits on R6. The `cardCatalog.ts` split carries 25b's `cipt`, `landscape` and per-face `text`; the game chain's specs mock `services/cards/catalog/lookup`. `formatLeaveMessage` is imported from `messageLog` in R6's `game.listeners.players.ts`. D13's `SELECTED_CARD_GLOW` is not added (25b's `SELECTED_RING` already folds it). HandZone/StackColumn keep 25b's `useSeatClickToPlay`; no inline `lookupCard` survives. `BattlefieldSidebar.spec` stubs 17b's `GameMenu`.
+Branch `claude/restack-r4-scryfall-catalog`, tip `30fbee1`, 15 commits on R6. The `cardCatalog.ts` split carries 25b's `cipt`, `landscape` and per-face `text`; the game chain's specs mock `services/cards/catalog/lookup`. `formatLeaveMessage` is imported from `messageLog` in R6's `game.listeners.players.ts`. D13's `SELECTED_CARD_GLOW` is not added (25b's `SELECTED_RING` already folds it). HandZone/StackColumn keep 25b's `useSeatClickToPlay`; no inline `lookupCard` survives. `BattlefieldSidebar.spec` stubs 17b's `GameMenu`.

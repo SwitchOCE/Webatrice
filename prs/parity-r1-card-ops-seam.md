@@ -145,4 +145,4 @@ API changes, for w17c: `PendingTargetPicker.pointer` is now a `PendingPointerSto
 
 ## Restack notes (wR4a)
 
-Branch `claude/restack-r1-card-ops-seam`, tip `3f4840e`, 24 commits on 25a, replayed from `41f0d47` onto f17's 17b line. Conflicts: `Game.tsx` keeps f17's `data-game-board` on R1's re-indented board; `usePlayerSeat` takes `EMPTY_CARD_KEYS` from `GameSelectionContext` (f17) and keeps `NO_CARD_IDS`. f17's play-path commits apply on top of R1's single `playCardMove` / `playedCardFields` helper with no duplicate path left.
+Branch `claude/restack-r1-card-ops-seam`, tip `331dfc9`, 24 commits on 25a, replayed from `41f0d47` onto f17's 17b line. Conflicts: `Game.tsx` keeps f17's `data-game-board` on R1's re-indented board; `usePlayerSeat` takes `EMPTY_CARD_KEYS` from `GameSelectionContext` (f17) and keeps `NO_CARD_IDS`. f17's play-path commits apply on top of R1's single `playCardMove` / `playedCardFields` helper with no duplicate path left.

@@ -87,9 +87,9 @@ New or extended specs:
 
 ## Restack notes (wR4a)
 
-Branch `claude/restack-25a-platform-prefs`, tip `40aa071`, 14 commits on 28 (`4626393`); final 25a per M1 (`13351fd..ba53e13`).
+Branch `claude/restack-25a-platform-prefs`, tip `c9c05e9`, 14 commits on 28 (`4626393`); final 25a per M1 (`13351fd..ba53e13`).
 
-History edits (rv21): `f70f45a`, `734ecf0`, `de1dd81` and `f437ae5`'s e2e hunk are squashed into `feat(settings): startup tab, missing-feature notice and replay rewind buffer`; the `CommittedInput` change was already in that commit's tree, so only its paragraph moved out of the completer commit's message; `f437ae5` keeps only its changeset line; `bf310a1` is dropped (its spec file is replaced, below).
+History edits (rv21): `f70f45a`, `734ecf0`, `de1dd81` and `f437ae5`'s e2e hunk are squashed into `feat(settings): startup tab, missing-feature notice and replay rewind buffer`; the `CommittedInput` change was already in that commit's tree, so only its paragraph moved out of the completer commit's message; `f437ae5` keeps only its changeset line; `bf310a1` is dropped (its spec file is replaced, below). `startup-tab.spec.ts` opens Settings and Sign out as `menuitem`s (26's user `Menu`) in every commit that carries it.
 
 Conflicts:
 - **Chat inputs:** the completer wraps 28's translated, labelled inputs (26's `border-control`). `fix(chat): drop the private-chat completer …` no longer adds `inputLabel` keys (28's labels already name the inputs); it drops the private completer and translates the game input label. Chat specs expect a `combobox` from the completer commit on.
