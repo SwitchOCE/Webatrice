@@ -140,6 +140,39 @@ describe('ZoneViewPanel', () => {
       }
     });
 
+    it('stores a size the user resizes it to, not the one it opens at', async () => {
+      // setupTests' ResizeObserver never calls back; this one hands its callback to the spec.
+      let resized: (w: number, h: number) => void = () => undefined;
+      vi.stubGlobal('ResizeObserver', class {
+        constructor(callback: ResizeObserverCallback) {
+          resized = (w, h) => callback(
+            [{ contentRect: new DOMRect(0, 0, w, h) } as ResizeObserverEntry],
+            this as unknown as ResizeObserver,
+          );
+        }
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      });
+      vi.useFakeTimers();
+      try {
+        renderWithProviders(<Harness />);
+        act(() => {
+          resized(900, 480);
+          vi.advanceTimersByTime(1000);
+        });
+        expect(window.localStorage.getItem('webatrice.searchLibrarySize')).toBeNull();
+        act(() => {
+          resized(640, 420);
+          vi.advanceTimersByTime(500);
+        });
+        expect(JSON.parse(window.localStorage.getItem('webatrice.searchLibrarySize')!)).toEqual({ w: 640, h: 420 });
+      } finally {
+        vi.useRealTimers();
+        vi.unstubAllGlobals();
+      }
+    });
+
     it('does not start a drag from a header button', async () => {
       await renderPanel();
       dialog().getBoundingClientRect = () => new DOMRect(100, 100, 400, 300);
