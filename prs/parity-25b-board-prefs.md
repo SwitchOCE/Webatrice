@@ -1,6 +1,6 @@
 # feat(game): desktop's board preferences and card presentation options
 
-> **Stacks on claude/restack-16-game-lobby** (`d2e516c`). Branch `claude/parity-25b-board-prefs`: the original 21 commits, plus 27 review-fix commits on top (rv17, no history rewrite).
+> **Stacks on claude/restack-16-game-lobby** (`d2e516c`). Branch `claude/parity-25b-board-prefs`: the original 21 commits, plus 21 review-fix commits on top (rv17, no history rewrite).
 
 ## Summary
 Every desktop option that PR 19 left as "Follow-up (game)" now works on the board. So does the rest of desktop's AppearanceSettingsPage. Each option has a setting with desktop's default, i18n strings and tests. `SETTINGS_VERSION` is now 3; the migration step is described under Animations.
@@ -76,21 +76,22 @@ Every desktop option that PR 19 left as "Follow-up (game)" now works on the boar
 - `interface/widgets/server/message_log_widget.cpp` / `game_widget` time stamps; `common/pb/game_replay.proto` `seconds_elapsed`.
 
 ## Testing
-- `npx turbo run typecheck --concurrency=1`: 5/5 tasks pass. Each commit was also typechecked on its own.
+Final tip (after the rv17 fixes):
+- `npx turbo run typecheck --concurrency=1`: 5/5 tasks pass.
 - `npm run lint`: 3/3 pass.
-- `npm test -- -- --maxWorkers=2`: Sockatrice 896, Datatrice 1316, Webatrice 3542 (456 files). All pass.
+- `npm test -- -- --maxWorkers=2`: Sockatrice 898 (42 files), Datatrice 1317 (35 files), Webatrice 3576 (458 files). All pass.
 - `npm run test:integration -- -- --maxWorkers=2`: Sockatrice 175, Datatrice 144, Webatrice 266. All pass.
 - Sockatrice e2e: 5 passed (4 files).
-- Webatrice e2e, against Servatrice 3.0.0 in the `mcr.microsoft.com/playwright:v1.60.0-noble` container, on chromium, firefox and webkit: **66 passed, 12 skipped, 0 failed**.
+- Webatrice e2e, against Servatrice 3.0.0 in the `mcr.microsoft.com/playwright:v1.60.0-noble` container (docker CLI and compose plugin mounted), on chromium, firefox and webkit: **66 passed, 12 skipped, 0 failed**.
   - The 12 skips are the specs' own gates for 3.1-only features (deck sharing, reports).
-  - In the first run, `staff-tools › an admin publishes a new server message` failed on all three browsers with `docker: unknown flag: --env-file`. That run mounted the docker CLI without its compose plugin. Re-run with `/usr/libexec/docker/cli-plugins` mounted: 6/6 passed.
-  - The known proxy-CA failures did not happen in this run.
+  - No proxy-CA failures in this run.
 - New specs:
   - `seatGrid`, `verticalPile`, `useSeatClickToPlay`, `arrowLifetime`, `cardViewHeight`, `useValueFlash`, `SelectionCount`, `PreviewCardImage`, `ZoneBackground`, `keepChatFocus`
   - `ChatLog`, `useAnimationPreferences`, `useApplyCardPresentation`, `ZoneBackgroundsEditor`, `SeatCard`, `printingOrder`
   - Settings migration v3, `palettes.spec` token contrast
   - Datatrice `gameSeconds` / `gameTimeSynced`, Sockatrice `replayGameTime`
   - Integration: `replay.spec` (game time).
+  - rv17: `board-motion.spec`, `BoardMotionConfig`, `ReplayEngine` rewind count, `Battlefield › damage wash` and `› table background`, arrow arrival cases, Sockatrice unset/zero `seconds_elapsed`, the replay time-base reducer spec, coupled row boxes, the card view expand cap and button, `TotalSelectionCount` live region, `ZoneBackgroundsEditor` names with the English catalogue, the composited over-art contrast.
 
 ## Notes for reviewers
 - **Changes to existing specs, each with a behavioural reason:**
