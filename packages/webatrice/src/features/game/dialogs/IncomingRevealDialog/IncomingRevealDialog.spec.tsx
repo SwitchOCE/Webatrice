@@ -34,7 +34,8 @@ const REVEALED = [makeCard({ id: 0, name: 'Island', pt: '1/2' }), makeCard({ id:
 function renderReveal({
   grantWriteAccess = false,
   zoneName = ZoneName.DECK as string,
-  snapshot = REVEALED as typeof REVEALED | undefined,
+  // null: no snapshot was seeded.
+  snapshot = REVEALED as typeof REVEALED | null,
 } = {}) {
   const preloadedState = buildSeatGameState({
     localPlayerId: 1,
@@ -47,7 +48,7 @@ function renderReveal({
     ...preloadedState.games!,
     incomingReveal: { gameId: 1, sourceOwnerId: 2, zoneName, cards: REVEALED, grantWriteAccess },
   } as typeof preloadedState.games;
-  preloadedState.games!.games![1]!.players![2]!.zones![zoneName]!.revealedCards = snapshot;
+  preloadedState.games!.games![1]!.players![2]!.zones![zoneName]!.revealedCards = snapshot ?? undefined;
   const webClient = createMockWebClient();
   const utils = renderWithProviders(<ShortcutProvider><Game /></ShortcutProvider>, { preloadedState, webClient, route: '/game/1' });
   const reveal = () => utils.store.getState().games;
@@ -56,6 +57,12 @@ function renderReveal({
 
 function popup() {
   return screen.getByRole('heading', { name: /reveals their/ }).closest<HTMLElement>('.pointer-events-auto')!;
+}
+
+// The visible selection badge beside the overlay's stable live region (shown from two cards up).
+function selectionCount(): string | null {
+  const status = screen.getAllByRole('status').find((el) => el.textContent === 'TallyOverlay.selectedCount');
+  return status?.nextElementSibling?.querySelector('[aria-hidden="true"]')?.textContent ?? null;
 }
 
 describe('IncomingRevealDialog', () => {
@@ -68,14 +75,11 @@ describe('IncomingRevealDialog', () => {
     expect(within(popup()).getByTitle('Forest')).toBeInTheDocument();
   });
 
-  // TallyOverlay's visible selection count (shown from two cards; aria-hidden, as its live region announces it).
-  const selectionCount = () => screen.queryByText(/^\d+$/, { selector: 'div[aria-hidden="true"]' });
-
   it.each(['hide', 'close', 'source cleared'])('feeds reveal selection into the count and clears it on %s', async (action) => {
     const { store } = renderReveal();
     fireEvent.click(within(popup()).getByRole('button', { name: 'Island' }));
     fireEvent.click(within(popup()).getByRole('button', { name: 'Forest' }), { ctrlKey: true });
-    expect(selectionCount()).toHaveTextContent('2');
+    expect(selectionCount()).toBe('2');
     if (action === 'hide') {
       fireEvent.contextMenu(within(popup()).getByTitle('Forest'));
       chooseMenuPath('Hide');
@@ -85,7 +89,7 @@ describe('IncomingRevealDialog', () => {
       act(() => store.dispatch(games.Actions.zoneViewCleared({ gameId: 1, playerId: 2, zoneName: ZoneName.DECK })));
     }
     await act(async () => {});
-    expect(selectionCount()).not.toBeInTheDocument();
+    expect(selectionCount()).toBeNull();
   });
 
   it('tallies revealed live P/T and removes the selection when a new reveal replaces it', async () => {
@@ -101,7 +105,7 @@ describe('IncomingRevealDialog', () => {
         gameId: 1, sourceOwnerId: 2, zoneName: ZoneName.DECK, cards: REVEALED, grantWriteAccess: false,
       })));
       expect(screen.queryByRole('status', { name: 'TallyOverlay.tally' })).not.toBeInTheDocument();
-      expect(selectionCount()).not.toBeInTheDocument();
+      expect(selectionCount()).toBeNull();
     } finally {
       act(() => result.current[1]('none'));
     }
@@ -216,13 +220,12 @@ describe('IncomingRevealDialog', () => {
     expect(within(popup()).queryByTitle('Forest')).not.toBeInTheDocument();
   });
 
-  it('falls back to the first payload when no snapshot was seeded, and shows an emptied one as empty', () => {
-    const { unmount } = renderReveal({ snapshot: undefined });
-    expect(within(popup()).getByTitle('Island')).toBeInTheDocument();
-    expect(within(popup()).getByTitle('Forest')).toBeInTheDocument();
+  it('shows no cards when the snapshot was emptied or never seeded', () => {
+    const { unmount } = renderReveal({ snapshot: [] });
+    expect(within(popup()).getByText('No cards to show.')).toBeInTheDocument();
     unmount();
 
-    renderReveal({ snapshot: [] });
+    renderReveal({ snapshot: null });
     expect(within(popup()).getByText('No cards to show.')).toBeInTheDocument();
   });
 
@@ -263,11 +266,17 @@ describe('IncomingRevealDialog', () => {
       expect(popup().style.height).toBe('480px');
     });
 
-    it('restores a stored position, kept on screen', () => {
+    it('restores a stored size, clamped between its minimum and the viewport', () => {
+      window.localStorage.setItem('webatrice.incomingRevealSize', JSON.stringify({ w: 5000, h: 100 }));
+      renderReveal();
+      expect(popup().style.width).toBe(`${window.innerWidth}px`);
+      expect(popup().style.height).toBe('300px');
+    });
+
+    it('restores a stored position, keeping 60px of its header on screen', () => {
       window.localStorage.setItem('webatrice.incomingRevealPosition', JSON.stringify({ x: 5000, y: -40 }));
       renderReveal();
-      // jsdom lays nothing out, so the dialog measures 0×0.
-      expect(popup().style.left).toBe(`${window.innerWidth}px`);
+      expect(popup().style.left).toBe(`${window.innerWidth - 60}px`);
       expect(popup().style.top).toBe('0px');
     });
   });

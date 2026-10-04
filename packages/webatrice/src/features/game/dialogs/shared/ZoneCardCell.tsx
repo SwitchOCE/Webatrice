@@ -1,4 +1,4 @@
-import type { CSSProperties, MouseEvent, PointerEvent, ReactElement } from 'react';
+import type { CSSProperties, HTMLAttributes, MouseEvent, PointerEvent, ReactElement } from 'react';
 
 import Card from '../../components/ui/SeatCard/SeatCard';
 import { CARD_HEIGHT, CARD_WIDTH } from '../../components/ui/SeatCard/cardSize';
@@ -31,6 +31,8 @@ export interface ZoneCardCellProps {
   /** A left press on the card; the card is grabbable while set. */
   onPointerDown?: (e: PointerEvent<HTMLElement>) => void;
   onContextMenu?: (e: MouseEvent<HTMLElement>) => void;
+  /** Extra props for a card the view lets the user act on in place (its role, keys, menu). */
+  interaction?: HTMLAttributes<HTMLDivElement>;
   className?: string;
   style?: CSSProperties;
 }
@@ -51,6 +53,7 @@ export function ZoneCardCell({
   hidden,
   onPointerDown,
   onContextMenu,
+  interaction,
   className,
   style,
 }: ZoneCardCellProps): ReactElement {
@@ -96,6 +99,7 @@ export function ZoneCardCell({
         onContextMenu(e);
       })}
       {...pileProps}
+      {...interaction}
       style={{
         width: CARD_WIDTH,
         height: pile && !pile.isLast ? `calc(${CARD_HEIGHT} * ${PILE_STEP_FRACTION})` : CARD_HEIGHT,
@@ -110,7 +114,10 @@ export function ZoneCardCell({
     >
       {pile ? (
         <div
-          className="absolute left-0 top-0 pointer-events-none board-motion transition-transform duration-150 ease-out group-hover:scale-[var(--card-hover-scale,1.1)]"
+          className={[
+            'absolute left-0 top-0 pointer-events-none board-motion',
+            'transition-transform duration-150 ease-out group-hover:scale-[var(--card-hover-scale,1.1)]',
+          ].join(' ')}
           style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}
         >
           <Card name={card.name} scryfallId={card.scryfallId} />
