@@ -2,7 +2,7 @@
 
 ## Summary
 
-Part C of the game-actions PR (spec `specs/w17.md` §11). It adds the 75 game shortcuts that desktop has and the web client could not bind. It also sorts the Shortcuts tab into desktop's groups, so the game list stays readable. Base: `claude/parity-r1-card-ops-seam` (R1, `2f6e5b6`).
+Part C of the game-actions PR (spec `specs/w17.md` §11). It adds the 75 game shortcuts that desktop has and the web client could not bind. It also sorts the Shortcuts tab into desktop's groups, so the game list stays readable. Base: `claude/parity-r1-card-ops-seam` at `178bf75` (R1 after its rv20 review fixes). This branch was first built on `2f6e5b6` and rebased per orchestrator M1. Only one test conflict needed resolving, and no shortcut-table entry needed changes: none uses the changed APIs (`BattlefieldCardOps.targets`, the pending pointer, `useBattlefieldMenuItems`' `selection`).
 
 Each new ActionId is an entry in R1's `useSeatShortcutOperations` table (or, for the phases, one `useGameShortcuts` group) that calls an op from a seat seam. Where an op lived only in a menu or region hook, it moved into a seam first.
 
@@ -49,13 +49,13 @@ Cockatrice `add65caa`:
 
 ## Testing
 
-Run from the repo root on tip `82cb676`:
+Run from the repo root on the rebased tip `3a78d2f`:
 
-- `npx turbo run typecheck --concurrency=1`: 5/5 pass. Per commit: `tsc --noEmit` and `tsc -p e2e --noEmit` pass at each of the 4 commits.
-- `npm run lint`: 3/3 pass.
-- `npm test -- -- --maxWorkers=2`: sockatrice 43 files / 896, datatrice 35 / 1316. Webatrice was killed by the kernel (OOM, exit 137) as one run. The base (`2f6e5b6`) already peaks at ~14 GB of this container's 16 GB in that run (measured; it passes with 467 / 3822). This branch's added `<Game />` renders cross the limit. Run as two invocations at the final code, webatrice is 470 files / 3940 tests, all passing: `src/features/game` 152 / 1593, and everything else 318 / 2347.
-- `npm run test:integration -- -- --maxWorkers=2`: sockatrice 20 / 175, datatrice 10 / 145, webatrice 51 of 52 files / 270 of 271 tests. The one failure is `integration/src/features/game/invite-link.spec.tsx` › "a link clicked in a room's chat opens the game with one navigation". It fails identically in a full run on the base `2f6e5b6`, as R1 recorded, and passes alone on both. Pre-existing and unrelated.
-- E2E: `npm run build -w @cockatrice/webatrice` and `test:e2e:up` (Servatrice 3.0.0), then `mcr.microsoft.com/playwright:v1.60.0-noble` on chromium + firefox + webkit: **75 passed, 12 skipped, 3 failed (13.9 min)**. The 3 failures were `staff-tools.spec.ts:38` once per browser: `unknown flag: --env-file`, because the container had the docker CLI but no compose plugin. Re-run with the host's compose plugin mounted, `staff-tools.spec.ts` passed **6/6**. Net: 78 passed, 12 skipped, 0 failed. Stack torn down. Sockatrice e2e not run: no sockatrice or server-flow change.
+- `npx turbo run typecheck --concurrency=1`: 5/5 pass. Per commit: `tsc --noEmit` and `tsc -p e2e --noEmit` pass at each of `91f1811`, `986924b`, `c59355e` and `3a78d2f`.
+- `npm run lint`: 3/3 pass. `npm run translate` leaves `i18n-default.json` unchanged.
+- Unit: sockatrice 43 files / 896, datatrice 35 / 1316, webatrice **473 files / 3960 tests, all passing**, run in two invocations (`src/features/game`: 155 / 1613; everything else: 318 / 2347). A single `npm test -- -- --maxWorkers=2` invocation of webatrice is killed by the kernel (OOM, 137) in this 16 GB container. The base (`2f6e5b6`) already peaks at ~14 GB in that run (measured; it passes with 467 / 3822), and this branch's added `<Game />` renders cross the limit. See follow-ups.
+- `npm run test:integration -- -- --maxWorkers=2`: sockatrice 20 / 175, datatrice 10 / 145, webatrice 51 of 52 files / 270 of 271 tests. The one failure is `invite-link.spec.tsx` › "a link clicked in a room's chat opens the game with one navigation". It fails identically in a full run on the base (checked), as R1 recorded, and passes when run alone on both. It is pre-existing and unrelated.
+- E2E (webatrice): `npm run build`, then `test:e2e:up` (Servatrice 3.0.0), then `mcr.microsoft.com/playwright:v1.60.0-noble` with the host's docker CLI and compose plugin mounted (so `staff-tools.spec` can seed SQL), on chromium + firefox + webkit: **78 passed, 12 skipped, 0 failed (13.1 min)**. Stack torn down. The pre-rebase tip got the same result. Sockatrice e2e was not run: no sockatrice or server-flow change.
 - New and extended specs:
   - `defaults.spec`: the table test and the browser-reserved keys;
   - `ShortcutsTab.spec` (new): group order, each new group renders its actions, keyboard-reachable headers and edit buttons;
