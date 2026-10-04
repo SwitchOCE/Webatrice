@@ -9,7 +9,7 @@ import { Selectors, seatedPlayersOf } from './game.selectors';
 import { gamesReducer } from './game.reducer';
 import { Actions } from './game.actions';
 import { makeGameEntry, makePlayerEntry, makePlayerProperties, makeState,
-  makeZoneEntry, makeCard, makeCounter,
+  makeZoneEntry, makeCard, makeCounter, makeArrow,
 } from '../../testing/fixtures/games';
 import { GamesState } from './game.interfaces';
 
