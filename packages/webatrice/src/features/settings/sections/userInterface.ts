@@ -67,5 +67,24 @@ export const userInterfaceSection: SettingsSection = {
         },
       ],
     },
+    {
+      id: 'userInterface.replay',
+      titleKey: 'SettingsUserInterface.group.replay',
+      entries: [
+        {
+          id: 'replayRewindBufferingMs',
+          labelKey: 'SettingsUserInterface.replayRewindBufferingMs.label',
+          descriptionKey: 'SettingsUserInterface.replayRewindBufferingMs.description',
+          // Desktop's spin box range (user_interface_settings_page.cpp).
+          control: {
+            kind: 'number',
+            key: 'replayRewindBufferingMs',
+            min: 0,
+            max: 9999,
+            unitKey: 'SettingsUserInterface.replayRewindBufferingMs.unit',
+          },
+        },
+      ],
+    },
   ],
 };

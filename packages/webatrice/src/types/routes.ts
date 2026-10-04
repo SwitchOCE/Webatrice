@@ -32,3 +32,13 @@ export enum RouteEnum {
   // whatever the main window broadcasts on `webatrice-card-preview`.
   CARD_PREVIEW_POPUP = '/card-preview-popup',
 }
+
+/** Router state on the login route: the page `AuthGuard` sent the user away from. */
+export interface LoginRouteState {
+  from?: string;
+}
+
+/** Router state on the lobby: a room to open by name, the "Server Room" startup tab. */
+export interface ServerRouteState {
+  startupRoom?: string;
+}

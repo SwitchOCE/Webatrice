@@ -12,6 +12,7 @@ import { RouteEnum } from '@app/types';
 
 import RoomsList from './RoomsList';
 import ServerUsers from './ServerUsers';
+import { useStartupRoom } from './useStartupRoom';
 
 /**
  * Server (lobby) page — reached when a user hasn't been auto-joined
@@ -24,6 +25,9 @@ import ServerUsers from './ServerUsers';
  * the corresponding /room/:roomId route. A server auto-join opens the room
  * without switching to it, as desktop does (setCurrent = false,
  * tab_server.cpp), so it never pulls the user out of the Lobby.
+ *
+ * A login whose startup tab is "Server Room" arrives here with the room's name; `useStartupRoom`
+ * opens it.
  */
 const Server = () => {
   const message = useAppSelector((state) => server.Selectors.getMessage(state));
@@ -31,6 +35,7 @@ const Server = () => {
   const joinedRooms = useAppSelector((state) => rooms.Selectors.getJoinedRooms(state));
   const users = useAppSelector((state) => server.Selectors.getSortedUsers(state));
   const navigate = useNavigate();
+  useStartupRoom();
 
   useReduxEffect<{ roomInfo: ServerInfo_Room; userInitiated?: boolean }>((action) => {
     if (action.payload.userInitiated === false) {

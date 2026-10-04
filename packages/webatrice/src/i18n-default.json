@@ -2351,6 +2351,8 @@
   "SettingsGeneral": {
     "group": {
       "language": "Language",
+      "version": "Version",
+      "startup": "Startup",
       "diagnostics": "Diagnostics"
     },
     "debugLog": {
@@ -2362,6 +2364,27 @@
       "label": "Language",
       "description": "The language of menus, dialogs and messages. Missing translations show in English.",
       "followBrowser": "Use the browser's language"
+    },
+    "notifyAboutMissingFeatures": {
+      "label": "Notify if a feature supported by the server is missing in my client",
+      "description": "Shown once per server each time you open Webatrice."
+    },
+    "startupTab": {
+      "label": "Startup tab",
+      "description": "Where you land after signing in. Reloading the page keeps the page you were on.",
+      "deckStorage": "Deck Storage",
+      "replays": "Game Replays",
+      "server": "Server",
+      "serverRoom": "Server Room"
+    },
+    "startupServer": {
+      "label": "Server",
+      "description": "The room opens when you sign in to this server. Signing in to any other server opens its lobby.",
+      "any": "Any server"
+    },
+    "startupRoom": {
+      "label": "Room",
+      "placeholder": "Room name"
     }
   },
   "SettingsSound": {
@@ -2444,7 +2467,8 @@
     "group": {
       "general": "General interface settings",
       "notifications": "Notifications settings",
-      "animation": "Animation settings"
+      "animation": "Animation settings",
+      "replay": "Replay settings"
     },
     "playToStack": {
       "label": "Play all nonlands onto the stack (not the battlefield) by default",
@@ -2476,6 +2500,11 @@
     },
     "tapAnimation": {
       "label": "Tap/untap animation"
+    },
+    "replayRewindBufferingMs": {
+      "label": "Buffer time for backwards skip via shortcut",
+      "description": "Skipping back several times within this time rewinds the replay once, after the last skip. 0 rewinds on every skip.",
+      "unit": "ms"
     }
   },
   "BrowserFeature": {
@@ -2510,6 +2539,10 @@
   "Initialize": {
     "title": "DID YOU KNOW",
     "subtitle": "<1>Cockatrice is run by volunteers</1><2>that love card games!</2>"
+  },
+  "MissingFeaturesNotice": {
+    "title": "Information",
+    "message": "This server supports additional features that your client doesn't have.\nThis is most likely not a problem, but this message might mean there is a new version of Webatrice available or this server is running a custom or pre-release version.\n\nTo update your client, reload the page."
   },
   "ServerNotices": {
     "shutdown": {
