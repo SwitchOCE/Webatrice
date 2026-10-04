@@ -95,3 +95,25 @@ All on the final tip:
 - `ALL_PLAYERS` sentinel duplicated → imported in both places (commit 10).
 - Shift+Tab / prevPhase defaults not pinned → `defaults.spec.ts` (commit 11).
 - Not taken in this pass, per the task scope (the minors listed above): the Game-menu overclaim (Phases submenu and "Remove all local arrows"), `layoutVersion` churn, the `reveal-wire` integration spec reaching into internals, and the nits. They stay open as follow-ups.
+
+## Rebase onto stage 5 (w17r)
+
+Branch `claude/restack-17a-game-actions`, tip `57a3449`, on `claude/restack-16-game-lobby` (refactor stage 5 below). 12 commits: the 11 above, rebased, plus one new commit.
+
+- **Conflicts and where they went:**
+  - Commit 3 (`omit player_id`): the instructions line kept; its `SideboardDialog` bullet dropped, because stage 5 deleted that dialog.
+  - Commit 5 (game menu): the sidebar header now carries the invite controls (branch 16), then `GameMenu` and Leave. Leave keeps the replay "Close" label and title.
+  - Commit 6 (rotation): `onRotateView` is in both branches of `Game.tsx`'s read-only / live `dialogActions`, so a replay can rotate too.
+  - Commit 10 (`ALL_PLAYERS`): `usePlayerBoxProps.ts` no longer exists. Its "-1 = every player" mapping lives in stage 5's `ui/PlayerBoard/revealRecipient.ts` (`toRecipient`), which now compares against `ALL_PLAYERS`.
+  - No PlayerBox file came back. 17a never touched PlayerBox JSX.
+- **New commit 12, `fix(shortcuts): leave Tab to focus navigation inside dialogs, menus and controls`** (audit G1, `specs/aud.md` §1.2):
+  - `feature-widgets/shortcuts/focusGuards.ts`: Tab / Shift+Tab without Ctrl, Alt or Meta are ignored when focus is inside `[role=dialog]`, `[role=alertdialog]`, `[role=menu]` or `[aria-modal=true]`, or on a form control, button, link or button-like role. They keep desktop's bindings on the body and the board. This is a sanctioned accessibility divergence (instructions, divergence protocol item 3).
+  - Provider-level modal guard: while an `aria-modal="true"` element is mounted, only GLOBAL registrations fire. Route shortcuts stand down, so Escape reaches the modal and does not close the latest zone view.
+  - Shift+Tab → Next phase with action was already done by commit 11. The new `ShortcutProvider.spec` pins it through the real listener.
+  - Specs: `focusGuards.spec` (14 tests) and `ShortcutProvider.spec` (8 tests). 4 of the provider tests fail without the guard.
+  - The `webatrice.instructions.md` architecture list gains a "Shortcut focus guards" bullet. New patch changeset `game-shortcut-focus.md`.
+- **Testing at `57a3449`:**
+  - `turbo typecheck` passes at every one of the 12 commits.
+  - Unit: sockatrice 42 files / 895 tests, datatrice 35 / 1316, webatrice 449 / 3554. All pass.
+  - Lint 3/3.
+- The webatrice e2e for 17a's flows (`game-menu.spec`) ran in the full suite at the 17b tip; see the 17b note.
