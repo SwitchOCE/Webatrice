@@ -7,12 +7,11 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // per-action progress tracking. The game sections below follow desktop's
   // shortcut groups; a browser-reserved desktop key is remapped where it
   // is defined, with the reason.
-  'game.drawCard': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyD'] },
+
+  // Game Phases (desktop ShortcutGroup::Game_Phases).
   // Cockatrice's `aNextTurn` accepts either Ctrl+Return or Ctrl+Enter
   // (numpad); browser event.code names them Enter and NumpadEnter.
   'game.endTurn': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: ['Ctrl+Enter', 'Ctrl+NumpadEnter'] },
-  'game.concede': { scope: ShortcutScope.GAME, group: 'game', sequences: ['F2'] },
-  'game.shuffleLibrary': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyS'] },
   // Cockatrice's `aNextPhase` accepts Ctrl+Space OR Tab; keep both.
   'game.nextPhase': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: ['Tab', 'Ctrl+Space'] },
   // Webatrice-only, so it yields Shift+Tab to desktop's `aNextPhaseAction`; still rebindable.
@@ -21,23 +20,6 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   // Desktop reads `Player/aReverseTurn` but never registers a default, so it has no key there.
   // Listed here (unbound) so it can be bound.
   'game.reverseTurn': { scope: ShortcutScope.GAME, group: 'gamePhases', sequences: [] },
-  // Desktop's `aRotateViewCW` / `aRotateViewCCW` have no default either.
-  'game.rotateViewCW': { scope: ShortcutScope.GAME, group: 'game', sequences: [] },
-  'game.rotateViewCCW': { scope: ShortcutScope.GAME, group: 'game', sequences: [] },
-
-  // New bindings (Cockatrice-parity, browser-safe):
-  'game.drawMultipleCards': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyE'] },
-  'game.undoDraw': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+KeyD'] },
-  'game.rollDice': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyI'] },
-  'game.leaveGame': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyQ'] },
-
-  // Round 2 — dialog-based utilities Cockatrice binds by default:
-  'game.mulliganSameSize': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+KeyM'] },
-  'game.mulliganMinusOne': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+Alt+KeyM'] },
-  'game.playTop': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyY'] },
-  'game.moveTopToGrave': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+KeyY'] },
-  'game.moveTopNToGrave': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+KeyM'] },
-  'game.flipCoin': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+KeyI'] },
   // Desktop's Say menu binds its first ten message macros to fixed
   // Ctrl+1 … Ctrl+9, Ctrl+0 (say_menu.cpp:21-29). Browsers keep
   // Ctrl+digit for switching tabs, so the web client defaults to
@@ -108,28 +90,10 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'game.addStormCounter': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+BracketRight'] },
   'game.removeStormCounter': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+BracketLeft'] },
   'game.setStormCounter': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Backslash'] },
-  // Cockatrice's `aMoveTopCardsUntil` (Ctrl+Shift+Y) — opens the
-  // "Put top cards on stack until…" dialog; on confirm, iteratively
-  // reveals top-of-library into the stack until a name match (or the
-  // library empties).
-  'game.moveTopUntil': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Shift+KeyY'] },
-  // Deck-flip toggles. Cockatrice uses Ctrl+N / Ctrl+Shift+N; both
-  // are Chromium-hardcoded (new window / new incognito). Rebound per
-  // plans/shortcuts.md's "Suggested rebinds" table.
-  'game.alwaysRevealTopCard': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Alt+KeyN'] },
-  'game.alwaysLookAtTopCard': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Alt+Shift+KeyN'] },
-  // Cockatrice's `aDrawArrow` (Alt+A) — starts the draw-arrow pending
-  // flow from the first selected battlefield card.
-  'game.drawArrow': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Alt+KeyA'] },
   // Cockatrice's `aResetPT` (Ctrl+Alt+0) — resets selection PT to base.
   'game.resetPT': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+Alt+Digit0'] },
-  // Cockatrice's `aMulligan` (Ctrl+M) opens the choose-hand-size prompt,
-  // `aSet` (Ctrl+L) the set-life prompt, and `aRemoveLocalArrows` (Ctrl+R)
-  // deletes the arrows the local player drew (and keeps Ctrl+R from
-  // reloading the page mid-game).
-  'game.mulligan': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyM'] },
+  // Cockatrice's `aSet` (Ctrl+L) opens the set-life prompt.
   'game.setLife': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyL'] },
-  'game.removeLocalArrows': { scope: ShortcutScope.GAME, group: 'game', sequences: ['Ctrl+KeyR'] },
 
   // Playing Area (desktop ShortcutGroup::Playing_Area).
   // Cockatrice's `aIncrementAllCardCounters` (Ctrl+Shift+A) — for
@@ -240,6 +204,69 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'game.viewTopCards': { scope: ShortcutScope.GAME, group: 'gameView', sequences: ['Ctrl+Alt+KeyW'] },
   'game.viewBottomCards': { scope: ShortcutScope.GAME, group: 'gameView', sequences: ['Ctrl+Alt+Shift+KeyW'] },
   'game.closeRecentView': { scope: ShortcutScope.GAME, group: 'gameView', sequences: ['Escape'] },
+
+  // Move Top Card (desktop ShortcutGroup::Move_top).
+  'game.playTop': { scope: ShortcutScope.GAME, group: 'gameMoveTop', sequences: ['Ctrl+KeyY'] },
+  // Desktop's `aMoveTopToPlayFaceDown` (Ctrl+Shift+E). The other new top and
+  // bottom card actions are unbound on desktop too.
+  'game.moveTopToPlayFaceDown': { scope: ShortcutScope.GAME, group: 'gameMoveTop', sequences: ['Ctrl+Shift+KeyE'] },
+  'game.moveTopToGrave': { scope: ShortcutScope.GAME, group: 'gameMoveTop', sequences: ['Alt+KeyY'] },
+  'game.moveTopNToGrave': { scope: ShortcutScope.GAME, group: 'gameMoveTop', sequences: ['Alt+KeyM'] },
+  'game.moveTopNToGraveFaceDown': { scope: ShortcutScope.GAME, group: 'gameMoveTop', sequences: [] },
+  'game.moveTopToExile': { scope: ShortcutScope.GAME, group: 'gameMoveTop', sequences: [] },
+  'game.moveTopNToExile': { scope: ShortcutScope.GAME, group: 'gameMoveTop', sequences: [] },
+  'game.moveTopNToExileFaceDown': { scope: ShortcutScope.GAME, group: 'gameMoveTop', sequences: [] },
+  // Cockatrice's `aMoveTopCardsUntil` (Ctrl+Shift+Y) — opens the
+  // "Put top cards on stack until…" dialog; on confirm, iteratively
+  // reveals top-of-library into the stack until a name match (or the
+  // library empties).
+  'game.moveTopUntil': { scope: ShortcutScope.GAME, group: 'gameMoveTop', sequences: ['Ctrl+Shift+KeyY'] },
+  'game.moveTopToBottom': { scope: ShortcutScope.GAME, group: 'gameMoveTop', sequences: [] },
+
+  // Move Bottom Card (desktop ShortcutGroup::Move_bottom).
+  'game.moveBottomToPlay': { scope: ShortcutScope.GAME, group: 'gameMoveBottom', sequences: [] },
+  'game.moveBottomToPlayFaceDown': { scope: ShortcutScope.GAME, group: 'gameMoveBottom', sequences: [] },
+  'game.moveBottomToGrave': { scope: ShortcutScope.GAME, group: 'gameMoveBottom', sequences: [] },
+  'game.moveBottomNToGrave': { scope: ShortcutScope.GAME, group: 'gameMoveBottom', sequences: [] },
+  'game.moveBottomNToGraveFaceDown': { scope: ShortcutScope.GAME, group: 'gameMoveBottom', sequences: [] },
+  'game.moveBottomToExile': { scope: ShortcutScope.GAME, group: 'gameMoveBottom', sequences: [] },
+  'game.moveBottomNToExile': { scope: ShortcutScope.GAME, group: 'gameMoveBottom', sequences: [] },
+  'game.moveBottomNToExileFaceDown': { scope: ShortcutScope.GAME, group: 'gameMoveBottom', sequences: [] },
+  'game.moveBottomToTop': { scope: ShortcutScope.GAME, group: 'gameMoveBottom', sequences: [] },
+  'game.drawBottomCard': { scope: ShortcutScope.GAME, group: 'gameMoveBottom', sequences: [] },
+  'game.drawBottomCards': { scope: ShortcutScope.GAME, group: 'gameMoveBottom', sequences: [] },
+
+  // Gameplay (desktop ShortcutGroup::Gameplay).
+  // Cockatrice's `aDrawArrow` (Alt+A) — starts the draw-arrow pending
+  // flow from the first selected battlefield card.
+  'game.drawArrow': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: ['Alt+KeyA'] },
+  // Cockatrice's `aRemoveLocalArrows` (Ctrl+R) deletes the arrows the local
+  // player drew (and keeps Ctrl+R from reloading the page mid-game).
+  'game.removeLocalArrows': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: ['Ctrl+KeyR'] },
+  'game.leaveGame': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: ['Ctrl+KeyQ'] },
+  'game.concede': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: ['F2'] },
+  'game.rollDice': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: ['Ctrl+KeyI'] },
+  'game.flipCoin': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: ['Ctrl+Shift+KeyI'] },
+  'game.shuffleLibrary': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: ['Ctrl+KeyS'] },
+  'game.shuffleTopCards': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: [] },
+  'game.shuffleBottomCards': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: [] },
+  // Desktop's `aRotateViewCW` / `aRotateViewCCW` have no default either.
+  'game.rotateViewCW': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: [] },
+  'game.rotateViewCCW': { scope: ShortcutScope.GAME, group: 'gameplay', sequences: [] },
+
+  // Drawing (desktop ShortcutGroup::Drawing).
+  // Cockatrice's `aMulligan` (Ctrl+M) opens the choose-hand-size prompt.
+  'game.mulligan': { scope: ShortcutScope.GAME, group: 'gameDrawing', sequences: ['Ctrl+KeyM'] },
+  'game.mulliganSameSize': { scope: ShortcutScope.GAME, group: 'gameDrawing', sequences: ['Ctrl+Shift+KeyM'] },
+  'game.mulliganMinusOne': { scope: ShortcutScope.GAME, group: 'gameDrawing', sequences: ['Ctrl+Shift+Alt+KeyM'] },
+  'game.drawCard': { scope: ShortcutScope.GAME, group: 'gameDrawing', sequences: ['Ctrl+KeyD'] },
+  'game.drawMultipleCards': { scope: ShortcutScope.GAME, group: 'gameDrawing', sequences: ['Ctrl+KeyE'] },
+  'game.undoDraw': { scope: ShortcutScope.GAME, group: 'gameDrawing', sequences: ['Ctrl+Shift+KeyD'] },
+  // Deck-flip toggles. Cockatrice uses Ctrl+N / Ctrl+Shift+N; both
+  // are Chromium-hardcoded (new window / new incognito). Rebound per
+  // plans/shortcuts.md's "Suggested rebinds" table.
+  'game.alwaysRevealTopCard': { scope: ShortcutScope.GAME, group: 'gameDrawing', sequences: ['Ctrl+Alt+KeyN'] },
+  'game.alwaysLookAtTopCard': { scope: ShortcutScope.GAME, group: 'gameDrawing', sequences: ['Ctrl+Alt+Shift+KeyN'] },
 
   // Hand (desktop ShortcutGroup::Hand).
   'game.sortHandByName': { scope: ShortcutScope.GAME, group: 'gameHand', sequences: [] },

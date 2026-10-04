@@ -13,6 +13,10 @@ describe('ShortcutsTab', () => {
       'ShortcutsTab.group.gamePlayingArea',
       'ShortcutsTab.group.gameMoveSelected',
       'ShortcutsTab.group.gameView',
+      'ShortcutsTab.group.gameMoveTop',
+      'ShortcutsTab.group.gameMoveBottom',
+      'ShortcutsTab.group.gameplay',
+      'ShortcutsTab.group.gameDrawing',
       'ShortcutsTab.group.gameHand',
       'ShortcutsTab.group.game',
       'ShortcutsTab.group.deckEditor',
@@ -29,6 +33,9 @@ describe('ShortcutsTab', () => {
     expect(within(section('gameMoveSelected')).getByText('ShortcutsTab.action.game.moveSelectedToExile')).toBeInTheDocument();
     expect(within(section('gameView')).getByText('ShortcutsTab.action.game.viewHand')).toBeInTheDocument();
     expect(within(section('gameHand')).getByText('ShortcutsTab.action.game.revealHandToAll')).toBeInTheDocument();
+    expect(within(section('gameMoveTop')).getByText('ShortcutsTab.action.game.moveTopToExile')).toBeInTheDocument();
+    expect(within(section('gameMoveBottom')).getByText('ShortcutsTab.action.game.drawBottomCard')).toBeInTheDocument();
+    expect(within(section('gameplay')).getByText('ShortcutsTab.action.game.shuffleTopCards')).toBeInTheDocument();
     const tapRow = within(section('gamePlayingArea')).getByText('ShortcutsTab.action.game.tapCard').closest('div')!.parentElement!;
     expect(within(tapRow).getByText('ShortcutsTab.noBinding')).toBeInTheDocument();
   });

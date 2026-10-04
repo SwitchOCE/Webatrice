@@ -180,6 +180,39 @@ describe('Game seat shortcuts', () => {
       })]]);
     });
 
+    it('Move top card: Ctrl+Shift+E plays the top card face down once', () => {
+      const { game } = renderGame();
+      const event = press('KeyE', { ctrlKey: true, shiftKey: true });
+      expect(event.defaultPrevented).toBe(true);
+      expect(vi.mocked(game.moveCard).mock.calls).toEqual([[1, expect.objectContaining({
+        startZone: 'deck',
+        cardsToMove: { card: [{ cardId: 0, faceDown: true }] },
+        targetZone: 'table',
+      })]]);
+    });
+
+    it('Move bottom card: a bound "Draw bottom card" draws the bottom card once', () => {
+      const { game, store } = renderGame();
+      act(() => {
+        store.dispatch(shortcuts.Actions.setOverride({ actionId: 'game.drawBottomCard', sequences: ['Alt+KeyB'] }));
+      });
+      press('KeyB', { altKey: true });
+      expect(vi.mocked(game.moveCard).mock.calls).toEqual([[1, expect.objectContaining({
+        startZone: 'deck',
+        cardsToMove: { card: [{ cardId: 39 }] },
+        targetZone: 'hand',
+      })]]);
+    });
+
+    it('Gameplay: a bound "Shuffle top cards" asks how many', () => {
+      const { store } = renderGame();
+      act(() => {
+        store.dispatch(shortcuts.Actions.setOverride({ actionId: 'game.shuffleTopCards', sequences: ['Alt+KeyJ'] }));
+      });
+      press('KeyJ', { altKey: true });
+      expect(screen.getByRole('dialog', { name: 'Shuffle top cards' })).toBeInTheDocument();
+    });
+
     it('Hand: a bound "Reveal hand to all players" reveals the whole hand once; a spectator reveals nothing', () => {
       const bind = (store: ReturnType<typeof renderGame>['store']) => act(() => {
         store.dispatch(shortcuts.Actions.setOverride({ actionId: 'game.revealHandToAll', sequences: ['Alt+KeyV'] }));
