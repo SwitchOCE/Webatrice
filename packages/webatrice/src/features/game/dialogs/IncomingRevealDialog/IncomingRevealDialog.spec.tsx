@@ -9,9 +9,12 @@ import { makeCard } from '@cockatrice/datatrice/testing';
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 
 import { createMockWebClient, renderWithProviders } from '../../../../__test-utils__';
+import { catalogT } from '../../__test-utils__/catalogT';
 import { buildSeatGameState, chooseMenuPath, openMenus } from '../../__test-utils__/seatFixtures';
 import Game from '../../Game';
 import { useTallyType } from '../../hooks/useTallyType';
+import zoneLabels from '../shared/zoneLabels.i18n.json';
+import { incomingRevealTitle } from './IncomingRevealDialog';
 
 vi.mock('../../../../hooks/useSettings');
 
@@ -55,8 +58,12 @@ function renderReveal({
   return { ...utils, reveal, game: webClient.request.game };
 }
 
+// The test i18n has no catalogue, so the zone reads as its key; incomingRevealTitle's spec pins
+// the English.
+const TITLE = /reveals their/;
+
 function popup() {
-  return screen.getByRole('heading', { name: /reveals their/ }).closest<HTMLElement>('.pointer-events-auto')!;
+  return screen.getByRole('heading', { name: TITLE }).closest<HTMLElement>('.pointer-events-auto')!;
 }
 
 // The visible selection badge beside the overlay's stable live region (shown from two cards up).
@@ -69,7 +76,7 @@ describe('IncomingRevealDialog', () => {
   it('names the sender and the zone and shows every revealed card', () => {
     renderReveal();
 
-    expect(screen.getByRole('heading', { name: 'P2 reveals their library' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'P2 reveals their ZoneLabel.inline.deck' })).toBeInTheDocument();
     expect(within(popup()).getByText(/^2 cards/)).toBeInTheDocument();
     expect(within(popup()).getByTitle('Island')).toBeInTheDocument();
     expect(within(popup()).getByTitle('Forest')).toBeInTheDocument();
@@ -124,12 +131,12 @@ describe('IncomingRevealDialog', () => {
 
     expect(reveal().incomingReveal).toBeNull();
     expect(reveal().games[1].players[2].zones[ZoneName.DECK].revealedCards ?? []).toEqual([]);
-    expect(screen.queryByRole('heading', { name: /reveals their/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: TITLE })).not.toBeInTheDocument();
   });
 
   it('closes on Escape', () => {
     const { reveal } = renderReveal({ zoneName: ZoneName.HAND });
-    expect(screen.getByRole('heading', { name: 'P2 reveals their hand' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'P2 reveals their ZoneLabel.inline.hand' })).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: 'Escape' });
 
@@ -167,7 +174,7 @@ describe('IncomingRevealDialog', () => {
 
       expect(within(popup()).queryByTitle('Island')).not.toBeInTheDocument();
       expect(within(popup()).queryByTitle('Forest')).not.toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: 'P2 reveals their library' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: TITLE })).toBeInTheDocument();
     });
 
     it('selects cards from the keyboard, so Alt+H can hide them', () => {
@@ -279,5 +286,16 @@ describe('IncomingRevealDialog', () => {
       expect(popup().style.left).toBe(`${window.innerWidth - 60}px`);
       expect(popup().style.top).toBe('0px');
     });
+  });
+});
+
+describe('incomingRevealTitle', () => {
+  const englishT = catalogT(zoneLabels);
+
+  it('names the sender and the zone, in lower case', () => {
+    expect(incomingRevealTitle(englishT, 'P2', ZoneName.DECK)).toBe('P2 reveals their library');
+    expect(incomingRevealTitle(englishT, 'P2', ZoneName.HAND)).toBe('P2 reveals their hand');
+    expect(incomingRevealTitle(englishT, 'P2', ZoneName.EXILE)).toBe('P2 reveals their exile');
+    expect(incomingRevealTitle(englishT, undefined, ZoneName.GRAVE)).toBe('A player reveals their graveyard');
   });
 });

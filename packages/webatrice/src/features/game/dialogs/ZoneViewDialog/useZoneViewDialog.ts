@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { games } from '@cockatrice/datatrice';
 
@@ -11,6 +13,7 @@ import {
 } from '../../components/ui/GameBoardCell/usePlayerSeatViewModel';
 import type { PlayerCardViewModel } from '../../components/ui/PlayerBoard/playerBoard.types';
 import type { ZoneViewTarget } from '../../hooks/dialogs/gameDialogs.types';
+import { zoneLabel } from '../shared/zoneLabels';
 import { isHiddenZone, isOrderedView } from './zoneViewTarget';
 
 export interface ZoneViewData {
@@ -24,31 +27,19 @@ export interface ZoneViewData {
   isLocal: boolean;
 }
 
-export function zoneLabel(zoneName: string | undefined): string {
-  switch (zoneName) {
-    case 'grave': return 'Graveyard';
-    case 'rfg': return 'Exile';
-    case 'deck': return 'Library';
-    case 'sb': return 'Sideboard';
-    case 'stack': return 'Stack';
-    case 'hand': return 'Hand';
-    case 'table': return 'Battlefield';
-    default: return zoneName ?? '';
-  }
-}
-
 /** The header of a view: "P1's library", "Top 3 cards — P1", "Graveyard — P1". */
-export function zoneViewTitle(view: ZoneViewTarget, playerName: string, shownCount: number): string {
+export function zoneViewTitle(t: TFunction, view: ZoneViewTarget, playerName: string, shownCount: number): string {
   if (view.zoneName === ZoneName.DECK) {
     return isOrderedView(view)
       ? `${view.isReversed ? 'Bottom' : 'Top'} ${shownCount} cards — ${playerName}`
       : `${playerName}'s library`;
   }
-  return `${zoneLabel(view.zoneName)} — ${playerName}`;
+  return `${zoneLabel(t, view.zoneName)} — ${playerName}`;
 }
 
 /** What one zone view shows, read from the game state. */
 export function useZoneViewDialog(gameId: number | undefined, view: ZoneViewTarget): ZoneViewData {
+  const { t } = useTranslation();
   const { playerId, zoneName } = view;
   const zone = useAppSelector((state) =>
     gameId != null ? games.Selectors.getZone(state, gameId, playerId, zoneName) : undefined,
@@ -66,7 +57,7 @@ export function useZoneViewDialog(gameId: number | undefined, view: ZoneViewTarg
     [zoneName, zone],
   );
   const count = zone?.cardCount ?? cards.length;
-  const title = zoneViewTitle(view, seatDisplayName(realName, isLocal, playerId), cards.length);
+  const title = zoneViewTitle(t, view, seatDisplayName(realName, isLocal, playerId), cards.length);
 
   return { cards, count, title, isLocal };
 }

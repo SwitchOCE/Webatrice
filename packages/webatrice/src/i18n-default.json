@@ -1577,6 +1577,26 @@
   "ZoneViewPanel": {
     "expand": "Expand the card view"
   },
+  "ZoneLabel": {
+    "title": {
+      "table": "Battlefield",
+      "grave": "Graveyard",
+      "rfg": "Exile",
+      "hand": "Hand",
+      "deck": "Library",
+      "sb": "Sideboard",
+      "stack": "Stack"
+    },
+    "inline": {
+      "table": "battlefield",
+      "grave": "graveyard",
+      "rfg": "exile",
+      "hand": "hand",
+      "deck": "library",
+      "sb": "sideboard",
+      "stack": "stack"
+    }
+  },
   "GameReplay": {
     "missing": "This replay is no longer open. Replays are kept only until the page is reloaded.",
     "backToReplays": "Back to replays",
