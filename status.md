@@ -4,3 +4,4 @@
 - 03:36Z deck tabs fixed → Commander Spellbook consent
 - 03:40Z spellbook consent done → minors/nits
 - 03:48Z all rv21 findings applied (tip 7899922) → full gate
+- 03:56Z typecheck/lint/unit/integration green on bf310a1 → webatrice e2e (docker)
