@@ -23,6 +23,7 @@ import {
   MANA_COUNTER_IDS,
   openContextMenu,
   pileEl,
+  pointerDrag,
   type SeatGameSpec,
 } from './__test-utils__/seatFixtures';
 import { SEAT_SHORTCUT_ACTIONS, type SeatShortcutActionId, type SeatShortcutRegistry } from './components/ui/SeatShortcutsContext';
@@ -450,6 +451,45 @@ describe('arrows and attachments', () => {
         }],
         arrowTo(30, { targetPlayerId: 2, targetZone: ZoneName.TABLE, targetCardId: 20 }, ZoneName.STACK),
       ]);
+    });
+
+    it('holds one pick for the whole game: a pick from another seat replaces it', () => {
+      const { game } = renderGame();
+      openContextMenu(cardEl(OGRE.id, 'battlefield'));
+      chooseMenuPath('Draw arrow...');
+      openContextMenu(cardEl(BEAR.id, 'battlefield'));
+      chooseMenuPath('Draw arrow...');
+      act(() => {
+        fireEvent.click(cardEl(WALL.id, 'battlefield'));
+      });
+      expect(wire(game)).toEqual([['createArrow', {
+        startPlayerId: 2, startZone: ZoneName.TABLE, startCardId: 20,
+        targetPlayerId: 1, targetZone: ZoneName.TABLE, targetCardId: 12, arrowColor: ArrowColor.RED,
+      }]]);
+    });
+
+    it('is cancelled by a card drag', () => {
+      const { game } = renderGame();
+      openContextMenu(cardEl(OGRE.id, 'battlefield'));
+      chooseMenuPath('Draw arrow...');
+      pointerDrag(cardEl(WALL.id, 'battlefield'), { x: 50, y: 50 }, { x: 90, y: 90 });
+      act(() => {
+        fireEvent.click(cardEl(BEAR.id, 'battlefield'));
+      });
+      expect(game.createArrow).not.toHaveBeenCalled();
+    });
+
+    it('targets a card with the source\'s id in another zone instead of cancelling', () => {
+      const ECHO = makeCard({ id: OGRE.id, name: 'Echo' });
+      const { game } = renderGame({ ...SPEC, seats: [{ ...SPEC.seats[0], grave: [ECHO] }, SPEC.seats[1]] });
+      openContextMenu(pileEl('Graveyard', 0));
+      chooseMenuPath('View graveyard');
+      openContextMenu(cardEl(OGRE.id, 'battlefield'));
+      chooseMenuPath('Draw arrow...');
+      act(() => {
+        fireEvent.click(document.querySelector(`[data-card-zone="${ZoneName.GRAVE}"][data-card-id="${ECHO.id}"]`)!);
+      });
+      expect(wire(game)).toEqual([arrowTo(10, { targetPlayerId: 1, targetZone: ZoneName.GRAVE, targetCardId: 10 })]);
     });
 
     it('targets a card in an open graveyard view', () => {
