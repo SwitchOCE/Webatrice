@@ -24,6 +24,8 @@ const CONTROL_SELECTOR = [
   '[role="switch"]',
   '[role="tab"]',
   '[role="option"]',
+  // The life total and the mana pool counters on the board.
+  '[role="spinbutton"]',
   '[contenteditable="true"]',
 ].join(', ');
 

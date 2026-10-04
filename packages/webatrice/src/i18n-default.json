@@ -1556,6 +1556,20 @@
       "rotateViewCCW": "Rotate view counterclockwise"
     }
   },
+  "PlayerInfoPanel": {
+    "life": "{name}'s life",
+    "lifeHint": "Click or Up arrow: gain 1. Right-click or Down arrow: lose 1. Enter or Ctrl+L: set.",
+    "manaPool": "Mana pool",
+    "mana": {
+      "W": "White",
+      "U": "Blue",
+      "B": "Black",
+      "R": "Red",
+      "G": "Green",
+      "C": "Colorless",
+      "O": "Other"
+    }
+  },
   "TallyOverlay": {
     "tally": "Tally",
     "selectedCount": "{count, plural, one {# card selected} other {# cards selected}}"

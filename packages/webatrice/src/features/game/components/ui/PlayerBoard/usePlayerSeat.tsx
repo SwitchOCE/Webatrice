@@ -523,6 +523,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     openCardCounterPrompt,
     openCountPrompt,
     openDrawCardsPrompt,
+    openLifePrompt,
     openMoveTopUntilDialog,
     openMoveXFromTopPrompt,
     openPTPrompt,

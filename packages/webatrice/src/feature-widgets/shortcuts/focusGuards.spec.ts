@@ -46,6 +46,7 @@ describe('keepsTabNavigation', () => {
     ['link', '<a id="t" href="#x">x</a>'],
     ['role=button', '<div id="t" role="button" tabindex="0">x</div>'],
     ['role=menuitem', '<li id="t" role="menuitem" tabindex="0">x</li>'],
+    ['role=spinbutton', '<div data-game-board><div id="t" role="spinbutton" tabindex="0">20</div></div>'],
   ])('keeps Tab navigation on a %s', (_name, html) => {
     mount(html);
     expect(keepsTabNavigation(document.getElementById('t'))).toBe(true);

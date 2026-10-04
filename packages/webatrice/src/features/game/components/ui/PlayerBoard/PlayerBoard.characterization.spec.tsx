@@ -116,8 +116,8 @@ describe('PlayerBoard characterization — seats and hidden zones', () => {
   it('gives only the local seat an interactive life total', () => {
     renderSeats();
 
-    expect(screen.getByRole('button', { name: /^P1 — life total/ })).toBeInTheDocument();
-    expect(screen.getByLabelText('P2 — life total')).not.toHaveAttribute('role');
+    expect(screen.getByRole('spinbutton', { name: 'P1\'s life' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'P2\'s life' })).not.toHaveAttribute('tabindex');
   });
 
   it('shows a spectator no hand strip and no face-up hand cards', () => {
@@ -133,7 +133,7 @@ describe('PlayerBoard characterization — seats and hidden zones', () => {
     );
 
     expect(document.querySelectorAll('[data-card][data-zone="hand"]')).toHaveLength(0);
-    expect(screen.queryByRole('button', { name: /life total\. Left click/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
     expect(battlefieldEl(1)).toBeInTheDocument();
     expect(battlefieldEl(2)).toBeInTheDocument();
   });
@@ -416,7 +416,7 @@ describe('PlayerBoard characterization — commands from menus and dialogs', () 
 
   it('life total: left click +1, right click -1 through the life counter', () => {
     const { game } = renderSeats();
-    const life = screen.getByRole('button', { name: /^P1 — life total/ });
+    const life = screen.getByRole('spinbutton', { name: 'P1\'s life' });
 
     fireEvent.click(life);
     expect(game.incCounter).toHaveBeenLastCalledWith(
