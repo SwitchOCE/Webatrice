@@ -2,7 +2,7 @@ import { server, type CommandFailedPayload } from '@cockatrice/datatrice';
 import type { WebClient } from '@cockatrice/sockatrice';
 import type { RootState } from '@app/store';
 
-import { clearDeckEditorCache, getCachedDeck, setCachedDeck } from './deckEditorCache';
+import { clearDeckEditorCache, deleteCachedDeck, getCachedDeck, setCachedDeck } from './deckEditorCache';
 import { deckColorIdentity, deckSaveSignature, serializeDeckForSave } from './deckPersistence';
 import type { HydratedDeck } from './types';
 
@@ -13,6 +13,7 @@ export interface DeckSaveSnapshot {
   lastFailure: CommandFailedPayload | null;
   pending: ReadonlyMap<number, string>;
   saveState: SaveState;
+  isModified: boolean;
 }
 
 interface Entry {
@@ -20,10 +21,11 @@ interface Entry {
   dirty: boolean;
   lastSavedRequest: number;
   lastSettledRequest: number;
+  waiters: Set<(saved: boolean) => void>;
 }
 
 type SessionStore = { getState: () => RootState; subscribe: (listener: () => void) => () => void };
-const EMPTY: DeckSaveSnapshot = { savedSignature: null, lastFailure: null, pending: new Map(), saveState: 'idle' };
+const EMPTY: DeckSaveSnapshot = { savedSignature: null, lastFailure: null, pending: new Map(), saveState: 'idle', isModified: false };
 
 /** Local editor state only. Redux is observed for session lifetime, never written. */
 export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
@@ -42,10 +44,16 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
   let unsubscribe: (() => void) | undefined;
 
   const emit = () => listeners.forEach((listener) => listener());
+  const answerWaiters = (entry: Entry, saved: boolean) => {
+    const waiters = [...entry.waiters];
+    entry.waiters.clear();
+    waiters.forEach((resolve) => resolve(saved));
+  };
   const syncSession = () => {
     const next = identity();
     if (session !== next) {
       session = next;
+      entries.forEach((entry) => answerWaiters(entry, false));
       entries.clear();
       // Cached contents and signatures also belong to the departed session.
       clearDeckEditorCache();
@@ -57,7 +65,7 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
       return;
     }
     entries.set(deckId, {
-      snapshot: { ...EMPTY, savedSignature }, dirty: false, lastSavedRequest: 0, lastSettledRequest: 0,
+      snapshot: { ...EMPTY, savedSignature }, dirty: false, lastSavedRequest: 0, lastSettledRequest: 0, waiters: new Set(),
     });
     emit();
   };
@@ -67,11 +75,15 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
       : snapshot.pending.size ? 'saving'
         : snapshot.lastFailure ? 'failed'
           : entry.lastSavedRequest ? 'saved' : 'idle';
+    snapshot.isModified = snapshot.saveState === 'dirty' || snapshot.saveState === 'failed';
     entry.snapshot = snapshot;
+    if (snapshot.pending.size === 0 && (!entry.dirty || snapshot.lastFailure)) {
+      answerWaiters(entry, !entry.dirty && !snapshot.lastFailure);
+    }
     emit();
   };
 
-  return {
+  const registry = {
     // Connect once for this owner; an editor unmount must not end the session.
     connect() {
       syncSession();
@@ -80,6 +92,7 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
     dispose() {
       unsubscribe?.();
       unsubscribe = undefined;
+      entries.forEach((entry) => answerWaiters(entry, false));
       entries.clear();
     },
     subscribe(listener: () => void) {
@@ -98,6 +111,7 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
       if (!entry) {
         return;
       }
+      answerWaiters(entry, false);
       entry.dirty = false;
       entry.lastSavedRequest = 0;
       // A newly loaded authoritative deck supersedes older local requests.
@@ -111,6 +125,28 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
       }
       entry.dirty = true;
       publish(entry);
+    },
+    /** Discard unsent edits without cancelling requests already owned by this deck. */
+    discardChanges(deckId: number) {
+      deleteCachedDeck(deckId);
+      const entry = entries.get(deckId);
+      if (entry) {
+        answerWaiters(entry, false);
+        entry.dirty = false;
+        publish(entry, { lastFailure: null });
+      }
+    },
+    /** Waiters belong to the entry, so switching or closing an editor cannot orphan them. */
+    saveNow(deckId: number, deck: HydratedDeck): Promise<boolean> {
+      registry.save(deckId, deck);
+      const entry = entries.get(deckId);
+      if (!entry) {
+        return Promise.resolve(false);
+      }
+      if (entry.snapshot.pending.size === 0 && (!entry.dirty || entry.snapshot.lastFailure)) {
+        return Promise.resolve(!entry.dirty && !entry.snapshot.lastFailure);
+      }
+      return new Promise((resolve) => entry.waiters.add(resolve));
     },
     save(deckId: number, deck: HydratedDeck) {
       syncSession();
@@ -157,6 +193,7 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
       );
     },
   };
+  return registry;
 }
 
 // A provider/client pair identifies the connection owner. Within it, the

@@ -7,7 +7,9 @@ import type { WebClient } from '@cockatrice/sockatrice';
 import type { CommandFailedPayload } from '@cockatrice/datatrice';
 
 import { connectedState, createMockWebClient, renderWithProviders } from '../../../__test-utils__';
-import { clearDeckEditorCache, getCachedDeck, setCachedDeck } from '../deckEditorCache';
+import {
+  clearDeckEditorCache, getCachedDeck, getCachedDraft, getDraftDocument, setCachedDeck, setCachedDraft, setDraftDocument,
+} from '../deckEditorCache';
 import { deckSaveSignature } from '../deckPersistence';
 import type { HydratedDeck } from '../types';
 import { AUTOSAVE_DEBOUNCE_MS, useDeckAutosave, type DeckAutosave, type DraftAutosave } from './useDeckAutosave';
@@ -454,5 +456,161 @@ describe('useDeckAutosave', () => {
     act(() => latest.markSaved('sig'));
     expect(latest.saveState).toBe('idle');
     expect(latest.savedSignature()).toBe('sig');
+  });
+});
+
+describe('useDeckAutosave save prompt support (desktop confirmOpen)', () => {
+  it.each(['switch', 'unmount'] as const)('settles stored saveNow after an editor %s', async (change) => {
+    const view = setup();
+    let saved!: Promise<boolean>;
+    act(() => {
+      saved = latest.saveNow();
+    });
+    if (change === 'switch') {
+      view.rerender(<Probe initial={SAVED} deckId={8} />);
+    } else {
+      view.unmount();
+    }
+    ack(view.store, 7);
+    await expect(saved).resolves.toBe(true);
+    if (change === 'switch') {
+      expect(latest.saveState).toBe('idle');
+    }
+  });
+
+  it('transfers draft saveNow waiters to the follow-up registry update', async () => {
+    const webClient = createMockWebClient();
+    const onStored = vi.fn();
+    const view = renderWithProviders(<Probe initial={null} deckId={null} draft={{ key: 'waited-draft', onStored }} />, {
+      preloadedState: connectedState, webClient,
+    });
+    clients.set(view.store, webClient);
+    let saved!: Promise<boolean>;
+    const settled = vi.fn();
+    act(() => {
+      saved = latest.saveNow().then((value) => {
+        settled(value); return value;
+      });
+    });
+    current = { ...EDITED, name: 'Edited during Save' };
+    act(() => latest.scheduleSave());
+    expect(latest.isModified).toBe(true);
+    act(() => view.store.dispatch(server.Actions.deckUpload({
+      path: '', requestId: vi.mocked(webClient.request.session.deckUpload).mock.calls[0][5],
+      treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 42 }),
+    })));
+    await Promise.resolve();
+    expect(settled).not.toHaveBeenCalled();
+    expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);
+    view.unmount();
+    ack(view.store, 42);
+    await expect(saved).resolves.toBe(true);
+  });
+
+  it.each(['failure', 'discard', 'switch', 'unmount'] as const)(
+    'ends a draft saveNow on %s without accepting a late upload', async (change) => {
+      const webClient = createMockWebClient();
+      const onStored = vi.fn();
+      const view = renderWithProviders(<Probe initial={null} deckId={null} draft={{ key: 'waiting-A', onStored }} />, {
+        preloadedState: connectedState, webClient,
+      });
+      let saved!: Promise<boolean>;
+      act(() => {
+        saved = latest.saveNow();
+      });
+      const requestId = vi.mocked(webClient.request.session.deckUpload).mock.calls[0][5];
+      if (change === 'failure') {
+        act(() => view.store.dispatch(server.Actions.deckUploadFailed({ path: '', requestId, responseCode: 1 })));
+        expect(latest.isModified).toBe(true);
+      } else if (change === 'discard') {
+        act(() => latest.discardChanges());
+        expect(latest.isModified).toBe(false);
+      } else if (change === 'switch') {
+        view.rerender(<Probe initial={null} deckId={null} draft={{ key: 'waiting-B', onStored }} />);
+      } else {
+        view.unmount();
+      }
+      await expect(saved).resolves.toBe(false);
+      act(() => view.store.dispatch(server.Actions.deckUpload({
+        path: '', requestId, treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 42 }),
+      })));
+      expect(onStored).not.toHaveBeenCalled();
+    });
+
+  it('discards a draft debounce and cached edits while keeping its original document', () => {
+    const webClient = createMockWebClient();
+    const key = 'discard-draft';
+    setDraftDocument(key, '<original/>');
+    setCachedDraft(key, EDITED);
+    const view = renderWithProviders(<Probe initial={null} deckId={null} draft={{ key, onStored: vi.fn() }} />, {
+      preloadedState: connectedState, webClient,
+    });
+    act(() => latest.scheduleSave());
+    expect(latest.isModified).toBe(true);
+    act(() => latest.discardChanges());
+    expect(latest.isModified).toBe(false);
+    expect(getCachedDraft(key)).toBeUndefined();
+    expect(getDraftDocument(key)).toBe('<original/>');
+    view.unmount();
+    expect(webClient.request.session.deckUpload).not.toHaveBeenCalled();
+  });
+
+  it('counts an edit waiting on the debounce as modified', () => {
+    setup();
+    expect(latest.isModified).toBe(false);
+
+    act(() => latest.scheduleSave());
+
+    expect(latest.isModified).toBe(true);
+  });
+
+  it('saves now and resolves true once the server takes the deck', async () => {
+    const { webClient, store } = setup();
+    act(() => latest.scheduleSave());
+
+    let saved: Promise<boolean> = Promise.resolve(false);
+    act(() => {
+      saved = latest.saveNow();
+    });
+    expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);
+    ack(store);
+
+    await expect(saved).resolves.toBe(true);
+    expect(latest.isModified).toBe(false);
+  });
+
+  it('resolves true at once when the server already holds the deck', async () => {
+    current = deck;
+    const { webClient } = setup();
+
+    await expect(latest.saveNow()).resolves.toBe(true);
+    expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+  });
+
+  it('resolves false and stays modified when the save fails', async () => {
+    const { store } = setup();
+    act(() => latest.scheduleSave());
+
+    let saved: Promise<boolean> = Promise.resolve(true);
+    act(() => {
+      saved = latest.saveNow();
+    });
+    ack(store, 7, { responseCode: Response_ResponseCode.RespInternalError });
+
+    await expect(saved).resolves.toBe(false);
+    expect(latest.isModified).toBe(true);
+  });
+
+  it('discards an edit without sending it, even on unmount, and forgets the cached copy', () => {
+    setCachedDeck(7, { deck: EDITED, savedSignature: SAVED });
+    const { webClient, unmount } = setup();
+    act(() => latest.scheduleSave());
+
+    act(() => latest.discardChanges());
+    expect(latest.isModified).toBe(false);
+    expect(getCachedDeck(7)).toBeUndefined();
+    unmount();
+
+    expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
   });
 });

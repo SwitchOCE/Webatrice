@@ -115,6 +115,12 @@ export interface UseDeckEditor {
   flushSave: () => void;
   /** Send the deck again after a failed save. */
   retrySave: () => void;
+  /** Edits the server has not taken (see `useDeckAutosave`). */
+  isModified: boolean;
+  /** Save now; resolves true once the server takes the deck. */
+  saveNow: () => Promise<boolean>;
+  /** Drop the edits the server has not taken, as desktop's Discard does. */
+  discardChanges: () => void;
 
   // --- Undo/redo (desktop DeckStateManager + DeckListHistoryManager) ---
   history: DeckHistory;
@@ -547,6 +553,9 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
     addCard,
     flushSave: autosave.flushSave,
     retrySave: scheduleSave,
+    isModified: autosave.isModified,
+    saveNow: autosave.saveNow,
+    discardChanges: autosave.discardChanges,
     history: history.history,
     canUndo: history.canUndo,
     canRedo: history.canRedo,

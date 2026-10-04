@@ -1,5 +1,5 @@
 import { act, fireEvent, screen, within } from '@testing-library/react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, type InitialEntry } from 'react-router-dom';
 import type { i18n as I18n } from 'i18next';
 import { useTranslation } from 'react-i18next';
 
@@ -21,7 +21,7 @@ function LocationProbe() {
   return <div data-testid="location">{useLocation().pathname}</div>;
 }
 
-function renderTopBar(route: string = RouteEnum.SERVER, preloadedState = connectedState) {
+function renderTopBar(route: InitialEntry = RouteEnum.SERVER, preloadedState = connectedState) {
   return renderWithProviders(
     <>
       <TopBar />
@@ -80,16 +80,13 @@ describe('TopBar identity changes', () => {
 describe('TopBar user menu', () => {
   it('focuses a surviving tab after closing the focused tab', () => {
     renderTopBar(RouteEnum.SETTINGS);
-    // Tabs opened by earlier tests stay open (sticky tabs), so close the active Settings tab by its own button.
-    const settings = screen.getAllByRole('link').find((link) => link.getAttribute('aria-current') === 'page')!;
-    const close = within(settings.parentElement!).getByRole('button', { name: 'TopBar.tabs.close' });
+    // Other tests leave sticky tabs in the module store; close the Settings tab itself.
+    const settingsTab = screen.getByRole('link', { name: 'UserMenu.settings' }).parentElement!;
+    const close = within(settingsTab).getByRole('button', { name: 'TopBar.tabs.close' });
     close.focus();
     fireEvent.click(close);
-    // Focus moves to a surviving tab (the next one, else the previous), not to the document body.
-    const focused = document.activeElement;
-    expect(focused?.tagName).toBe('A');
-    expect(screen.getAllByRole('link')).toContain(focused);
-    expect(focused).not.toHaveAttribute('href', RouteEnum.SETTINGS);
+    expect(screen.queryByRole('link', { name: 'UserMenu.settings' })).not.toBeInTheDocument();
+    expect(document.activeElement).toHaveAttribute('href');
   });
   const moderatorState = {
     ...connectedState,
@@ -348,21 +345,42 @@ describe('TopBar deck tabs', () => {
     settingsStore.reset();
   });
 
-  it('keeps one deck tab by default, as desktop does with the option off', () => {
-    renderTopBar('/deck/1').unmount();
-    renderTopBar('/deck/2');
-
-    expect(deckTab()).toEqual(['/deck/2']);
-  });
-
-  it('opens a tab per deck once "Open deck in new tab by default" is on', async () => {
-    const settings = await getSettings();
-    settings.openDeckInNewTab = true;
-    settingsStore.setValue(settings);
-
+  // The sticky tabs are a module singleton, so each case uses its own deck ids.
+  it('opens each deck from Deck Storage in its own tab, as desktop always does', () => {
     renderTopBar('/deck/1').unmount();
     renderTopBar('/deck/2');
 
     expect(deckTab().sort()).toEqual(['/deck/1', '/deck/2']);
+  });
+
+  it('opens each deck in its own tab whatever "Open deck in new tab by default" says', async () => {
+    const settings = await getSettings();
+    settings.openDeckInNewTab = false;
+    settingsStore.setValue(settings);
+
+    renderTopBar('/deck/3').unmount();
+    renderTopBar('/deck/4');
+
+    expect(deckTab()).toEqual(expect.arrayContaining(['/deck/3', '/deck/4']));
+  });
+
+  it('puts a deck the editor loaded into its own tab in that tab\'s place', () => {
+    renderTopBar('/deck/5').unmount();
+    renderTopBar('/deck/6').unmount();
+    renderTopBar({ pathname: '/deck/7', state: { replacesDeckId: 5 } });
+
+    const tabs = deckTab();
+    expect(tabs).not.toContain('/deck/5');
+    expect(tabs.indexOf('/deck/7')).toBeLessThan(tabs.indexOf('/deck/6'));
+  });
+
+  it('closes the replaced tab when the loaded deck already has one', () => {
+    renderTopBar('/deck/8').unmount();
+    renderTopBar('/deck/9').unmount();
+    renderTopBar({ pathname: '/deck/8', state: { replacesDeckId: 9 } });
+
+    const tabs = deckTab();
+    expect(tabs).not.toContain('/deck/9');
+    expect(tabs.filter((tab) => tab === '/deck/8')).toHaveLength(1);
   });
 });
