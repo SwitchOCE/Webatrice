@@ -2,3 +2,4 @@
 - 01:48Z i18n extraction split over 4 parallel subagents (dialogs/search+breakdown/editor/list); decks removed from no-literal-string off-list → D1–D6 a11y next
 - 01:50Z e2e autocomplete stub added; building servatrice master image for share e2e; waiting on extraction agents
 - 01:58Z i18n extraction committed 60c6797 (i18n:check + decks lint/tests green); master image built → D1 dialog frame
+- 02:16Z D1/D2 (2d3176d), D3 (86e9bce), D4+D6 (3d081d8) pushed → D5 hover affordances, then e2e + full gate
