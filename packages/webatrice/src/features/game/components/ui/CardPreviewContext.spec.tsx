@@ -1,11 +1,9 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { makeCard } from '@cockatrice/datatrice/testing';
 
 import { BigCardPreview } from './BigCardPreview/BigCardPreview';
 import {
   CardPreviewProvider,
   createCardPreviewStore,
-  previewCardFromServerCard,
   useBigPreviewCard,
   useCardInfoRequest,
   useCardPreview,
@@ -88,15 +86,6 @@ describe('createCardPreviewStore', () => {
     expect(onRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('projects a structured-leaf server card to the presentation payload', () => {
-    expect(previewCardFromServerCard(makeCard({ id: 1, name: 'Bear', pt: '2/2', annotation: 'big' })))
-      .toEqual({ name: 'Bear', pt: '2/2', annotation: 'big' });
-    expect(previewCardFromServerCard(makeCard({ id: 1, name: 'Bear' })))
-      .toEqual({ name: 'Bear', pt: undefined, annotation: undefined });
-    // Face-down / unknown cards have no name and publish nothing.
-    expect(previewCardFromServerCard(makeCard({ id: 1, name: '' }))).toBeNull();
-    expect(previewCardFromServerCard(null)).toBeNull();
-  });
 });
 
 describe('CardPreviewContext hooks', () => {

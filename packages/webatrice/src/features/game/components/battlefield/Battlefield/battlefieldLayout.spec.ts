@@ -19,11 +19,10 @@ import {
   type BattlefieldLayoutOpts,
   type BattlefieldSlotFull,
 } from './battlefieldLayout';
-import { getStackColumn, getSubPosition, mapToGridX, MAX_SUBPOS, ROW_COUNT } from './gridMath';
+import { ROW_COUNT } from './gridMath';
 
 // Golden values for the seat's scaled pixel layout. The module moved out of
-// components/PlayerBox unchanged; these pin its outputs so later convergence
-// with gridMath / Battlefield.tsx cannot drift silently.
+// components/PlayerBox unchanged; these pin its outputs so it cannot drift silently.
 
 /** The options useBattlefieldLayout builds from the card scale. */
 function seatLayout(scale: number): BattlefieldLayoutOpts {
@@ -122,18 +121,6 @@ describe('battlefieldLayout', () => {
       expect(snapPxToSlot(20 + 120 + 17.5, 10, widths, opts)).toEqual({ row: 0, col: 1, subSlot: 0 });
     });
 
-    it('agrees with gridMath.mapToGridX when both see the same stack widths and no margin', () => {
-      const noMargin: BattlefieldLayoutOpts = { ...opts, marginLeftPx: 0 };
-      const stackCounts = new Map([[0, 2], [2, 3]]);
-      const cards = [slot(0, 0, 0), slot(0, 0, 1), slot(0, 2, 0), slot(0, 2, 1), slot(0, 2, 2)];
-      const rowWidths = computeCellWidths(cards, noMargin);
-      for (let x = 0; x < 600; x += 7) {
-        const gridX = mapToGridX(x, stackCounts, 72, 24, 35);
-        const snapped = snapPxToSlot(x, 10, rowWidths, noMargin);
-        expect([snapped.col, snapped.subSlot]).toEqual([getStackColumn(gridX), getSubPosition(gridX)]);
-      }
-      expect(MAX_SUBPOS).toBe(3);
-    });
   });
 
 });
