@@ -331,6 +331,11 @@ function IncomingRevealPanel({
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div
+        // A non-modal dialog (no aria-modal), as the other card views are:
+        // Tab moves focus inside it instead of advancing the phase, the
+        // scrolling card area Firefox makes a tab stop included.
+        role="dialog"
+        aria-label={title}
         ref={panelRef}
         className={[
           'bg-bg-surface border border-border-subtle rounded-lg',
