@@ -32,6 +32,8 @@ import {
 import { useBattlefieldLayout } from './useBattlefieldLayout';
 import { ATTACH_SOURCE_RING, DOESNT_UNTAP_RING, SELECTED_DOESNT_UNTAP_RING, SELECTED_RING } from '../../ui/seatColors/seatColors';
 
+const BATTLEFIELD_ZONE = 'battlefield';
+
 /**
  * Non-interactive overlay: dashed outline at every snap slot + the divider
  * marking the lands row. Grid is measured by the parent so slot outlines
@@ -394,7 +396,7 @@ export default function Battlefield() {
                 x: 0,
                 y: 0,
               };
-              const dragging = isDragging(c.id, 'battlefield');
+              const dragging = isDragging(c.id, BATTLEFIELD_ZONE);
               const selected =
             selection?.zone === 'battlefield' && selection.ids.has(c.id);
               // Attach source ring — green while pending so the user

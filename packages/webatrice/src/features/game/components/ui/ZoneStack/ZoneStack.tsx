@@ -76,6 +76,7 @@ const LargeZoneBox = forwardRef<
         },
         ref,
       ) {
+        const { t } = useTranslation();
         const draggable = !!onPointerDown;
         const { setHoveredCard } = useCardPreviewActions();
         return (
@@ -98,7 +99,9 @@ const LargeZoneBox = forwardRef<
                 touchAction: draggable ? 'none' : undefined,
               }}
               title={
-                topCard ? `${label} — ${count} (top: ${topCard.name})` : `${label} — ${count}`
+                topCard
+                  ? t('ZoneStack.pileWithTop', { zone: label, count, top: topCard.name })
+                  : t('ZoneStack.pile', { zone: label, count })
               }
             >
               {topCard && (
@@ -158,6 +161,7 @@ const CardBackZone = forwardRef<
     pileProps?: HTMLAttributes<HTMLDivElement>;
       }
       >(function CardBackZone({ label, count, onPointerDown, topCard, pileProps }, ref) {
+        const { t } = useTranslation();
         const draggable = !!onPointerDown;
         return (
           <div className="flex justify-center">
@@ -173,7 +177,9 @@ const CardBackZone = forwardRef<
                 cursor: draggable ? 'grab' : undefined,
                 touchAction: draggable ? 'none' : undefined,
               }}
-              title={topCard ? `${label} — ${count} (top: ${topCard.name})` : `${label} — ${count}`}
+              title={topCard
+                ? t('ZoneStack.pileWithTop', { zone: label, count, top: topCard.name })
+                : t('ZoneStack.pile', { zone: label, count })}
             >
               {topCard ? (
               // Face-up top card via the shared Card renderer (which reads
@@ -289,6 +295,7 @@ function usePile(pile: PileName, count: number, top: { name: string } | null | u
  * drag the top card off each pile.
  */
 export default function ZoneStack() {
+  const { t } = useTranslation();
   const {
     seatDrag,
     deckTopCard,
@@ -331,7 +338,7 @@ export default function ZoneStack() {
       <div>
         <CardBackZone
           ref={libraryZoneRef}
-          label="Library"
+          label={t('ZoneStack.library')}
           count={displayedDeckCount}
           pileProps={library.pileProps}
           // Pile face: whatever `deckTopCard` holds. The state is the guard:
@@ -353,7 +360,7 @@ export default function ZoneStack() {
         <LargeZoneBox
           ref={graveyardZoneRef}
           icon={Skull}
-          label="Graveyard"
+          label={t('ZoneStack.graveyard')}
           count={displayedGraveyardCount}
           topCard={graveyardTop}
           arrowAnchorPlayerId={playerId}
@@ -371,7 +378,7 @@ export default function ZoneStack() {
         <LargeZoneBox
           ref={exileZoneRef}
           icon={Sparkles}
-          label="Exile"
+          label={t('ZoneStack.exile')}
           count={displayedExileCount}
           topCard={exileTop}
           arrowAnchorPlayerId={playerId}

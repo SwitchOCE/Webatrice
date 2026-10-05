@@ -37,7 +37,7 @@ describe('PlayerBoard', () => {
   it('composes the info column, the stack, the battlefield and the hand', () => {
     renderSeatCell(SPEC);
     expect(screen.getByLabelText('Alice\'s life')).toBeInTheDocument();
-    expect(pileEl('Library')).toHaveAttribute('title', 'Library — 9');
+    expect(pileEl('Library')).toHaveAttribute('title', 'Library, 9 cards');
     expect(cardEl(50, 'stack')).toBeInTheDocument();
     expect(cardEl(10, 'battlefield')).toBeInTheDocument();
     expect(cardEl(30, 'hand')).toBeInTheDocument();

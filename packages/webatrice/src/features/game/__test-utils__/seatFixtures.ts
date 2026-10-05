@@ -293,7 +293,7 @@ export function battlefieldEl(ownerId: number): HTMLElement {
 /** The pile boxes carry their counts in a `title` ("Library — 40"). Seats are
  *  rendered local seat first. */
 export function pileEl(label: 'Library' | 'Graveyard' | 'Exile' | 'Hand', seatIndex = 0): HTMLElement {
-  return screen.getAllByTitle(new RegExp(`^${label} — `))[seatIndex];
+  return screen.getAllByTitle(new RegExp(`^${label}(?:, | — )`))[seatIndex];
 }
 
 // --- jsdom layout ----------------------------------------------------------

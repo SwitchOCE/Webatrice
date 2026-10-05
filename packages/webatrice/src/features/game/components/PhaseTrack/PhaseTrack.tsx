@@ -154,6 +154,12 @@ export default function PhaseTrack() {
     return undefined;
   };
 
+  const entries = PHASE_ENTRIES.map((entry) => ({
+    ...entry,
+    label: phaseLabel(t, entry.phase, 'short'),
+    title: phaseLabel(t, entry.phase, 'title'),
+  }));
+
   return (
     <nav
       data-testid="phase-bar"
@@ -187,7 +193,7 @@ export default function PhaseTrack() {
       ].join(' ')}
       style={{ width: expanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH }}
     >
-      {PHASE_ENTRIES.map(({ phase, icon: Icon, tint, builtInOnDoubleClick }) => {
+      {entries.map(({ phase, icon: Icon, tint, builtInOnDoubleClick, label, title }) => {
         const isActive = phase === activePhase;
         const isEndStep = phase === Phase.EndCleanup;
         return (
@@ -203,7 +209,7 @@ export default function PhaseTrack() {
               key={isEndStep ? `endstep-${endStepFlashSeq}` : `phase-${phase}`}
               type="button"
               data-phase={phase}
-              aria-label={phaseLabel(t, phase, 'short')}
+              aria-label={label}
               aria-current={isActive ? 'step' : undefined}
               aria-disabled={!canAdvancePhase || undefined}
               onClick={() => {
@@ -237,7 +243,7 @@ export default function PhaseTrack() {
                 }
               }}
               onDoubleClick={canAdvancePhase ? onDoubleClickFor(builtInOnDoubleClick) : undefined}
-              title={canAdvancePhase ? phaseLabel(t, phase, 'title') : t('PhaseTrack.activePlayerOnly')}
+              title={canAdvancePhase ? title : t('PhaseTrack.activePlayerOnly')}
               className={[
                 'relative overflow-hidden w-full h-full board-motion transition-all duration-200',
                 GAME_FOCUS_RING,
@@ -262,7 +268,7 @@ export default function PhaseTrack() {
                 <>
                   <Icon size={16} className="relative z-10 text-white" strokeWidth={2.25} aria-hidden />
                   <span className="relative z-10 text-[11px] font-semibold uppercase tracking-wider text-white leading-tight text-center">
-                    {phaseLabel(t, phase, 'short')}
+                    {label}
                   </span>
                 </>
               )}

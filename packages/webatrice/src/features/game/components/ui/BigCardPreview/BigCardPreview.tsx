@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 import { ScryfallImageSize } from '@cockatrice/datatrice';
 
@@ -25,6 +26,7 @@ import PreviewCardImage from '../PreviewCardImage/PreviewCardImage';
  * preview. This component only draws whatever the store holds.
  */
 export function BigCardPreview() {
+  const { t } = useTranslation();
   const card = useBigPreviewCard();
   const { openBigPreview } = useCardPreviewActions();
   const [detail, setDetail] = useState<ScryfallDetail | null>(null);
@@ -163,7 +165,7 @@ export function BigCardPreview() {
                 )}
 
                 {!detail && (
-                  <div className="text-text-muted italic">Loading…</div>
+                  <div className="text-text-muted italic">{t('BattlefieldSidebar.loading')}</div>
                 )}
 
                 {detail && (

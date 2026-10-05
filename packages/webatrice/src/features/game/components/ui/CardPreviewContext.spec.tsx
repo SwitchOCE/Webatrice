@@ -179,7 +179,7 @@ describe('BigCardPreview', () => {
 
     act(() => store.openBigPreview(BOLT));
     expect(screen.getByText('Lightning Bolt')).toBeInTheDocument();
-    expect(screen.getByText('Loading…')).toBeInTheDocument();
+    expect(screen.getByText('BattlefieldSidebar.loading')).toBeInTheDocument();
     expect(globalThis.fetch).toHaveBeenCalledWith(
       'https://api.scryfall.com/cards/bolt-id',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),

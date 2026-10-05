@@ -343,7 +343,7 @@ describe('useSeatShortcutOperations', () => {
     full.run('game.setStormCounter');
     full.run('game.createAnotherToken');
     expect(full.props.openMoveTopUntilDialog).toHaveBeenCalled();
-    expect(full.props.openCounterPrompt).toHaveBeenCalledWith({ counterId: 7, label: 'Other', currentValue: 0 });
+    expect(full.props.openCounterPrompt).toHaveBeenCalledWith({ counterId: 7, label: 'GameLog.counter.other', currentValue: 0 });
     expect(full.cardCommands.createToken).toHaveBeenCalledWith(token);
   });
 
