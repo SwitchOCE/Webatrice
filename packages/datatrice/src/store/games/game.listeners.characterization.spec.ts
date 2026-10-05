@@ -175,7 +175,8 @@ function compact(value: unknown): unknown {
     }
     const out: Record<string, unknown> = {};
     for (const [key, field] of Object.entries(value)) {
-      if (key === '$typeName' || key === 'gameId' || field === undefined) {
+      // Clock payloads are pinned by game.actionTime.spec.ts, independently of this event-order recording.
+      if (key === '$typeName' || key === 'gameId' || key === 'timeReceived' || field === undefined) {
         continue;
       }
       out[key] = compact(field);
@@ -1503,21 +1504,31 @@ describe('game listeners: branch recordings', () => {
   });
 
   describe('players', () => {
-    it('names an unknown leaving player', () => {
-      const { play } = makeRecordingStore(scriptedState());
+    // R3 parity fix: desktop eventLeave ignores a missing player (game_event_handler.cpp:469).
+    it('ignores a departure for an unknown player without changing state or logging', () => {
+      const recording = makeRecordingStore(scriptedState());
+      const before = recording.games();
 
-      expect(play(Actions.playerLeft({ gameId: 1, playerId: 9, reason: 3, timeReceived: 0 })))
-        .toMatchInlineSnapshot(`
-          [
-            "playerLeft",
-            {
-              "gameMessageAppended": {
-                "message": "Unknown player has left the game (player left the game).",
-                "playerId": 9,
-              },
-            },
-          ]
-        `);
+      expect(recording.play(Actions.playerLeft({ gameId: 1, playerId: 9, reason: 3, timeReceived: 0 })))
+        .toEqual(['playerLeft']);
+      expect(recording.games()).toBe(before);
+    });
+
+    // Desktop logLeave uses the stored name verbatim (message_log_widget.cpp:444).
+    it.each([undefined, '', '  ', 'Alice'])('captures the stored departure name before deletion: %j', (name) => {
+      const state = scriptedState();
+      game(state).players[ALICE].properties.userInfo = name === undefined ? undefined : user(name);
+      const recording = makeRecordingStore(state);
+      const leave = Actions.playerLeft({ gameId: 1, playerId: ALICE, reason: 3, timeReceived: 0 });
+
+      expect(recording.play(leave)).toEqual([
+        'playerLeft',
+        { gameMessageAppended: { playerId: ALICE, message: `${name ?? ''} has left the game (player left the game).` } },
+      ]);
+      expect(game(recording.games()).players[ALICE]).toBeUndefined();
+      const after = recording.games();
+      expect(recording.play(leave)).toEqual(['playerLeft']);
+      expect(recording.games()).toBe(after);
     });
   });
 

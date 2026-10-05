@@ -63,11 +63,12 @@ export function registerPlayersListeners(mw: ListenerMiddlewareInstance<unknown>
       // @critical Pre-mutation read; reducer deletes the player. See .github/instructions/datatrice-game.instructions.md#listener-patterns.
       const preState = api.getOriginalState() as { games: GamesState };
       const preGame = preState.games.games[gameId];
-      if (!preGame) {
+      const player = preGame?.players[playerId];
+      // Desktop eventLeave ignores missing players (game_event_handler.cpp:469).
+      if (!player) {
         return;
       }
-      const playerName = preGame.players[playerId]?.properties.userInfo?.name ?? 'Unknown player';
-      const message = formatLeaveMessage(playerName, reason);
+      const message = formatLeaveMessage({ id: playerId, name: player.properties.userInfo?.name }, reason);
       api.dispatch(Actions.gameMessageAppended({ gameId, playerId, message }));
     },
   });

@@ -15,13 +15,9 @@ import {
   ServerInfo_Player,
 } from '@cockatrice/sockatrice/generated';
 import { cloneWith } from '../../common';
-import type { LogEntry } from './messageLog';
+import type { LogDescriptor, LogEntry } from '../../types/gameLog';
 
 export const MAX_GAME_MESSAGES = 1000;
-
-export function eventTimestamp(): number {
-  return Date.now();
-}
 
 /**
  * The game time at wall-clock `now`: the server's last count plus the whole seconds since it
@@ -46,6 +42,7 @@ export function pushEventMessage(
   game: Enriched.GameEntry,
   playerId: number,
   message: string | LogEntry | null | undefined,
+  timeReceived: number,
 ): void {
   if (!message) {
     return;
@@ -58,13 +55,16 @@ export function pushEventMessage(
   if (game.messages.length >= MAX_GAME_MESSAGES) {
     game.messages = game.messages.slice(game.messages.length - MAX_GAME_MESSAGES + 1);
   }
-  const now = eventTimestamp();
+  const descriptor = typeof message !== 'string' && message.kind && message.params
+    ? { kind: message.kind, params: message.params } as LogDescriptor
+    : undefined;
   game.messages.push({
     playerId,
     message: text,
     segments,
-    timeReceived: now,
-    gameSeconds: gameSecondsNow(game, now),
+    ...(descriptor ? { descriptor } : {}),
+    timeReceived,
+    gameSeconds: gameSecondsNow(game, timeReceived),
     kind: 'event',
   });
 }

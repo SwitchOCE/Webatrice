@@ -1,3 +1,4 @@
+import { withEventTime, type EventTime } from './game.actionTime';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { CaseReducer, PayloadAction } from '@reduxjs/toolkit';
 import { clone, isFieldSet } from '@bufbuild/protobuf';
@@ -10,7 +11,7 @@ import {
 } from '@cockatrice/sockatrice/generated';
 import { cloneWith, mergeSetFields } from '../../common';
 import { GamesState } from './game.interfaces';
-import { eventTimestamp, pushEventMessage } from './game.reducer.helpers';
+import { pushEventMessage } from './game.reducer.helpers';
 import type { LogEntry } from './messageLog';
 
 const pingField = ServerInfo_PlayerPropertiesSchema.field.pingSeconds;
@@ -54,7 +55,7 @@ export const primitiveReducers = {
     order?: number[];
   }>>,
 
-  gameInfoUpdated: ((state, action) => {
+  gameInfoUpdated: withEventTime(((state, action) => {
     const { gameId, gameStarted, activePlayerId, activePhase, secondsElapsed } = action.payload;
     const game = state.games[gameId];
     if (!game) {
@@ -74,7 +75,7 @@ export const primitiveReducers = {
     // (server_game.cpp:271,292).
     if (secondsElapsed !== undefined && !game.replay) {
       game.secondsElapsed = secondsElapsed;
-      game.secondsElapsedAt = eventTimestamp();
+      game.secondsElapsedAt = action.payload.timeReceived;
     }
   }) as CaseReducer<GamesState, PayloadAction<{
     gameId: number;
@@ -82,20 +83,20 @@ export const primitiveReducers = {
     activePlayerId?: number;
     activePhase?: number;
     secondsElapsed?: number;
-  }>>,
+  } & EventTime>>),
 
   /**
    * A replay reached a recorded container played at `secondsElapsed` into the game: the game
    * time its events are logged at, however fast the replay runs.
    */
-  gameTimeSynced: ((state, action) => {
+  gameTimeSynced: withEventTime(((state, action) => {
     const game = state.games[action.payload.gameId];
     if (!game) {
       return;
     }
     game.secondsElapsed = action.payload.secondsElapsed;
-    game.secondsElapsedAt = eventTimestamp();
-  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; secondsElapsed: number }>>,
+    game.secondsElapsedAt = action.payload.timeReceived;
+  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; secondsElapsed: number } & EventTime>>),
 
   cardMovedBetweenZones: ((state, action) => {
     const {
@@ -339,16 +340,16 @@ export const primitiveReducers = {
     count: number;
   }>>,
 
-  gameMessageAppended: ((state, action) => {
+  gameMessageAppended: withEventTime(((state, action) => {
     const { gameId, playerId, message } = action.payload;
     const game = state.games[gameId];
     if (!game) {
       return;
     }
-    pushEventMessage(game, playerId, message);
+    pushEventMessage(game, playerId, message, action.payload.timeReceived);
   }) as CaseReducer<GamesState, PayloadAction<{
     gameId: number;
     playerId: number;
     message: string | LogEntry;
-  }>>,
+  } & EventTime>>),
 };

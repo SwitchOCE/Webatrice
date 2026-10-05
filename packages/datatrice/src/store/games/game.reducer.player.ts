@@ -27,7 +27,7 @@ export const playerReducers = {
   playerLeft: ((state, action) => {
     const { gameId, playerId } = action.payload;
     const game = state.games[gameId];
-    if (!game) {
+    if (!game?.players[playerId]) {
       return;
     }
     delete game.players[playerId];
