@@ -204,11 +204,6 @@ export default tseslint.config(
       }],
     },
   },
-  // Not migrated yet. Each translation PR deletes its folder from this list.
-  {
-    files: ['src/features/game/**'],
-    rules: { 'i18next/no-literal-string': 'off' },
-  },
 
   // Project-specific config
   {
