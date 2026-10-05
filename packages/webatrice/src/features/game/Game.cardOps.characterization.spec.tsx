@@ -16,6 +16,7 @@ import { CardAttribute } from '@cockatrice/sockatrice/generated';
 
 import { ArrowColor, PREFERENCE_DEFAULTS } from '@app/types';
 import { usePreference } from '../../hooks/useSettings';
+import { lookupCard, lookupCards } from '../../services/cards/catalog/lookup';
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
 import {
   buildSeatGameState,
@@ -331,6 +332,38 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
 
   it('covers every seat action', () => {
     expect(Object.keys(EXPECTED).sort()).toEqual([...SEAT_SHORTCUT_ACTIONS].sort());
+  });
+
+  // Desktop actCreateAllRelatedCards (player_actions.cpp:977-1062) on the
+  // active card, here the anchor: Ogre's one relation, count 2.
+  it('creates the anchor\'s related tokens', async () => {
+    const unknownCard = vi.mocked(lookupCard).getMockImplementation()!;
+    const unknownCards = vi.mocked(lookupCards).getMockImplementation()!;
+    const related = [{ name: 'Goblin', origin: 'related' as const, count: '2' }];
+    vi.mocked(lookupCard).mockImplementation(async (name) => (name === OGRE.name
+      ? { found: true, source: 'dexie', name, typeLine: 'Creature — Ogre', printings: [], related }
+      : unknownCard(name)));
+    vi.mocked(lookupCards).mockImplementation(async (inputs) => new Map([...await unknownCards(inputs)].map(([name, r]) => [
+      name,
+      name === 'Goblin' ? { found: true, source: 'dexie', name, power: '1', toughness: '1', colors: ['R'], printings: [] } : r,
+    ])));
+    try {
+      const { game } = renderGame();
+      selectOgreAndMorph();
+      await vi.waitFor(() => expect(vi.mocked(lookupCards).mock.calls.flat(2)).toContain('Goblin'));
+      await act(async () => {});
+
+      expect(runShortcut('game.createRelatedTokens')).toBe(true);
+
+      const goblin = {
+        zone: ZoneName.TABLE, cardName: 'Goblin', cardProviderId: '', color: 'r', pt: '1/1', annotation: '',
+        destroyOnZoneChange: true, faceDown: false, x: -1, y: 1,
+      };
+      await vi.waitFor(() => expect(wire(game)).toEqual([['createToken', goblin], ['createToken', goblin]]));
+    } finally {
+      vi.mocked(lookupCard).mockImplementation(unknownCard);
+      vi.mocked(lookupCards).mockImplementation(unknownCards);
+    }
   });
 
   it('does nothing selection-scoped without a battlefield selection', () => {
