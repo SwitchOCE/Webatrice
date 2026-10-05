@@ -9,10 +9,10 @@ import {
   Command_CreateToken_TargetMode,
   type ServerInfo_Card,
 } from '@cockatrice/sockatrice/generated';
-import { CardDTO } from '@app/services';
 import { useAppDispatch, type RootState } from '@app/store';
 
-import { parseTableRow, tokenGridYFromCardDatabaseRow } from '../../battlefield/Battlefield/cardPlacement';
+import { resolveCardTableRow, tableRowToGridY } from '../../battlefield/Battlefield/cardPlacement';
+import { readCardPlacement } from '../../battlefield/Battlefield/readCardPlacement';
 import { useGameId } from '../GameIdContext';
 import type { PlayerCardCommands } from '../PlayerBoard/playerBoard.types';
 
@@ -117,13 +117,11 @@ export function usePlayerCardCommands(playerId: number, isLocal: boolean): Playe
       },
       // Desktop actCreateToken (player_actions.cpp:878-916): x = -1 lets the
       // server pick a column; the row comes from the card database tablerow
-      // (face-down tokens and unknown names use the top row). Transform mode
+      // or the type-line fallback. Face-down tokens use the top row. Transform mode
       // also sends target_zone (player_actions.cpp:1198-1206).
       createToken: async (request) => {
-        const tablerow = request.faceDown
-          ? null
-          : parseTableRow((await CardDTO.get(request.name).catch(() => undefined))?.tablerow?.value);
-        const visualY = tokenGridYFromCardDatabaseRow(tablerow, request.faceDown);
+        const tableRow = request.faceDown ? 2 : resolveCardTableRow(await readCardPlacement(request.name));
+        const visualY = tableRowToGridY(tableRow);
         const isTransform = request.targetCardId != null && request.targetMode === 'transform_into';
         game.createToken(gameId, {
           zone: ZoneName.TABLE,

@@ -2,41 +2,21 @@ import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 import type { WebClient } from '@cockatrice/sockatrice';
 import { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
 import { ZoneEntry } from '@cockatrice/datatrice';
-import { CardDTO } from '../../../services/dexie/DexieDTOs/CardDTO';
 import {
-  parseTableRow,
-  placementFromCardDatabaseRow,
+  placementForCard,
   playedCardFields,
+  resolveCardTableRow,
   STACK_TABLE_ROW,
-  type PlayedCardMeta,
 } from '../components/battlefield/Battlefield/cardPlacement';
+import { readCardPlacement } from '../components/battlefield/Battlefield/readCardPlacement';
 import {
   applyInvertY,
   gridXFromColumn,
   nextAvailableColumn,
 } from '../components/battlefield/Battlefield/gridMath';
 
-// Cockatrice cards.xml tablerow convention (see carddatabase_v4/cards.xsd):
-//  0 = land, 1 = creature, 2 = other permanent, 3 = instant/sorcery.
-// Placement follows the card-database policy in cardPlacement.ts.
+// Oracle importer: 0 = land, 1 = other permanent, 2 = creature, 3 = instant/sorcery.
 const TABLEROW_LAND = 0;
-
-/** What a play reads from the card database: the row, the printed P/T and cipt. */
-interface CardDatabasePlay extends PlayedCardMeta {
-  tablerow: number | null;
-}
-
-async function readCardDatabase(cardName: string): Promise<CardDatabasePlay> {
-  const entry = await CardDTO.get(cardName).catch(() => undefined);
-  const prop = entry?.prop?.value ?? {};
-  // Desktop CardInfo::getPowTough reads the `pt` property.
-  const pt = prop.pt?.value || undefined;
-  return {
-    tablerow: parseTableRow(entry?.tablerow?.value),
-    ...(pt && { pt }),
-    ...(entry?.cipt?.value === '1' && { cipt: true }),
-  };
-}
 
 // tableRow=3 → stack; 0/1/2 → battlefield with per-row default.
 // tableZone picks fresh column (undefined → col 0). isInverted = useBattlefield's flag.
@@ -64,8 +44,8 @@ export async function playCardViaTableRow({
   judgeTargetId?: number;
 }): Promise<ZoneNameValue> {
   // `<tablerow>` is a top-level element on `<card>`, not inside `<prop>`.
-  const cardDatabase = await readCardDatabase(card.name);
-  const placement = placementFromCardDatabaseRow(cardDatabase.tablerow);
+  const cardDatabase = await readCardPlacement(card.name);
+  const placement = placementForCard(cardDatabase, faceDown);
 
   if (placement.zone === 'stack') {
     // A card is played onto its owner's own stack; for own cards
@@ -132,8 +112,12 @@ export async function autoPlayCard(args: {
 }): Promise<ZoneNameValue> {
   const { webClient, gameId, sourcePlayerId, sourceZone, card, faceDown, judgeTargetId, playToStack = true } = args;
 
+  if (faceDown) {
+    return playCardViaTableRow(args);
+  }
+
   if (sourceZone === ZoneName.HAND) {
-    const { tablerow } = await readCardDatabase(card.name);
+    const tablerow = resolveCardTableRow(await readCardPlacement(card.name));
     if (tablerow === TABLEROW_LAND || (!playToStack && tablerow !== STACK_TABLE_ROW)) {
       return playCardViaTableRow(args);
     }
@@ -151,7 +135,7 @@ export async function autoPlayCard(args: {
   }
 
   if (sourceZone === ZoneName.STACK) {
-    const { tablerow } = await readCardDatabase(card.name);
+    const tablerow = resolveCardTableRow(await readCardPlacement(card.name));
     if (tablerow === STACK_TABLE_ROW) {
       webClient.request.game.moveCard(gameId, {
         startPlayerId: sourcePlayerId,

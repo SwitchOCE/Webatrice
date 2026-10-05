@@ -17,6 +17,9 @@ vi.mock('../../../services/dexie/DexieDTOs/CardDTO', () => ({
   CardDTO: { get: vi.fn(() => Promise.resolve(undefined)) },
 }));
 
+vi.mock('../../../services/cards/catalog/lookup', async () =>
+  (await import('../__test-utils__/unknownCardCatalog')).unknownCardCatalog());
+
 vi.mock('../../../hooks/useSettings');
 
 function setup({
