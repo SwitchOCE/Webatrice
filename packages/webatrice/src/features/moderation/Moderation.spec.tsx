@@ -254,3 +254,24 @@ describe('Moderation failures and acknowledgements', () => {
     expect(screen.getByText('CommandFailure.disconnected')).toBeInTheDocument();
   });
 });
+
+describe.each(['resetPassword', 'removeAvatar'])('cancel-default %s', (action) => {
+  it('initially focuses Cancel', () => {
+    setup(ADMIN, '/moderation?user=alice');
+    fireEvent.click(screen.getByRole('button', { name: `ModerationPage.action.${action}` }));
+    expect(screen.getByRole('button', { name: 'ModerationPage.button.cancel' })).toHaveFocus();
+  });
+
+  it('Enter on open cancels without sending a command', () => {
+    const { webClient } = setup(ADMIN, '/moderation?user=alice');
+    fireEvent.click(screen.getByRole('button', { name: `ModerationPage.action.${action}` }));
+    // Supply the native Enter activation omitted by jsdom, using actual focus.
+    const focused = document.activeElement!;
+    if (fireEvent.keyDown(focused, { key: 'Enter', code: 'Enter' })) {
+      fireEvent.click(focused);
+    }
+    fireEvent.keyUp(focused, { key: 'Enter', code: 'Enter' });
+    expect(webClient.request.admin.resetUserPassword).not.toHaveBeenCalled();
+    expect(moderator(webClient).removeUserAvatar).not.toHaveBeenCalled();
+  });
+});

@@ -29,6 +29,8 @@ export interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   destructive?: boolean;
+  /** Make Cancel the initially focused action, as in desktop remediation dialogs. */
+  cancelDefault?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -40,6 +42,7 @@ function ConfirmDialog({
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
   destructive = false,
+  cancelDefault = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -59,13 +62,13 @@ function ConfirmDialog({
         <DialogContentText>{message}</DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button type="button" onClick={onCancel}>{cancelLabel}</Button>
+        <Button type="button" onClick={onCancel} autoFocus={cancelDefault}>{cancelLabel}</Button>
         <Button
           type="button"
           variant="contained"
           color={destructive ? 'error' : 'primary'}
           onClick={onConfirm}
-          autoFocus
+          autoFocus={!cancelDefault}
         >
           {confirmLabel}
         </Button>
