@@ -48,7 +48,7 @@ const SignalActions = {
   deckUpdateFailed: createAction<CommandFailedPayload & { deckId: number }>('server/deckUpdateFailed'),
   // Deck share links and public decks (#7241). The answers a view acts on once
   // are signals; the caller's share list and public deck trees are state.
-  deckShareCreated: createAction<{ share: Response_DeckShareCreate }>('server/deckShareCreated'),
+  deckShareCreated: createAction<{ share: Response_DeckShareCreate; requestId?: string }>('server/deckShareCreated'),
   deckShareListed: createAction<{ token: string; share: Response_DeckShareList }>('server/deckShareListed'),
   deckShareDownloaded: createAction<{ token: string; itemId: number; deck: string }>('server/deckShareDownloaded'),
   publicDeckDownloaded: createAction<{ deckId: number; deck: string }>('server/publicDeckDownloaded'),

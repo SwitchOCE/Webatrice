@@ -106,6 +106,7 @@ export interface CommandFailedPayload {
 export interface SessionCommandFailedPayload extends CommandFailedPayload {
   command: WebsocketTypes.SessionCommandName;
   target: string;
+  requestId?: string;
 }
 
 // `failed` carries the raw Response.ResponseCode, which the UI maps to desktop's

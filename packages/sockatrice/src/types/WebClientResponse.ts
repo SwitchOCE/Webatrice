@@ -149,7 +149,7 @@ export interface ISessionResponse {
   // refused query reaches the scope's optional commandFailed instead.
 
   /** Deck share links (#7241). */
-  deckShareCreated?(response: Response_DeckShareCreate): void;
+  deckShareCreated?(response: Response_DeckShareCreate, requestId?: string): void;
   deckShareListed?(token: string, response: Response_DeckShareList): void;
   deckShareDownloaded?(token: string, itemId: number, deck: string): void;
   deckSharesMine?(shares: ServerInfo_DeckShareSummary[]): void;
@@ -166,9 +166,10 @@ export interface ISessionResponse {
    * A query above failed; `target` names what it acted on (a share token, deck,
    * share or report id as a string, a user name, or '' for a list). `failure` is
    * set when the server never answered (see CommandFailure) and undefined for a
-   * server rejection. Optional for backward compatibility.
+   * server rejection. `requestId` echoes a caller-supplied client-only identity.
+   * Optional for backward compatibility.
    */
-  commandFailed?(command: SessionCommandName, responseCode: number, target: string, failure?: CommandFailure): void;
+  commandFailed?(command: SessionCommandName, responseCode: number, target: string, failure?: CommandFailure, requestId?: string): void;
 
   // Command failure outcomes. `failure` is set for a transport failure (no
   // server answer) and undefined for a server-sent rejection. Optional for

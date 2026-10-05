@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { server, ServerCapability } from '@cockatrice/datatrice';
@@ -63,32 +63,38 @@ export function useDeckShareCreate() {
   const describeFailure = useCommandFailureMessage();
   const shareServer = useShareServer();
   const [state, setState] = useState<DeckShareCreateState>({ status: 'idle' });
-  const pendingRef = useRef(false);
+  const pendingRef = useRef<{ requestId: string; server: NonNullable<typeof shareServer> } | null>(null);
+  const activeIdRef = useRef<string | null>(null);
 
-  const finish = useCallback(async (share: Response_DeckShareCreate) => {
-    if (!shareServer) {
-      setState({ status: 'failed', message: t('DeckSharing.noServer') });
-      return;
-    }
-    const link = buildDeckShareLink(window.location.href, { token: share.token, ...shareServer });
+  useEffect(() => () => {
+    pendingRef.current = null;
+    activeIdRef.current = null;
+  }, []);
+
+  const finish = useCallback(async (share: Response_DeckShareCreate, request: NonNullable<typeof pendingRef.current>) => {
+    const link = buildDeckShareLink(window.location.href, { token: share.token, ...request.server });
     setState({ status: 'created', link, expiresAt: share.expiresAt, itemCount: share.itemCount, copied: false });
     const copied = await copyShareLink(link);
-    setState((current) => (current.status === 'created' && current.link === link ? { ...current, copied } : current));
-  }, [shareServer, t]);
+    if (activeIdRef.current === request.requestId) {
+      setState((current) => (current.status === 'created' && current.link === link ? { ...current, copied } : current));
+    }
+  }, []);
 
-  useReduxEffect<{ share: Response_DeckShareCreate }>(({ payload: { share } }) => {
-    if (!pendingRef.current) {
+  useReduxEffect<{ share: Response_DeckShareCreate; requestId?: string }>(({ payload: { share, requestId } }) => {
+    const request = pendingRef.current;
+    if (!request || request.requestId !== requestId) {
       return;
     }
-    pendingRef.current = false;
-    void finish(share);
+    pendingRef.current = null;
+    void finish(share, request);
   }, server.Types.DECK_SHARE_CREATED, [finish]);
 
-  useReduxEffect<SessionCommandFailedPayload>(({ payload: { command, responseCode, failure } }) => {
-    if (command !== 'deckShareCreate' || !pendingRef.current) {
+  useReduxEffect<SessionCommandFailedPayload>(({ payload: { command, responseCode, failure, requestId } }) => {
+    if (command !== 'deckShareCreate' || !pendingRef.current || pendingRef.current.requestId !== requestId) {
       return;
     }
-    pendingRef.current = false;
+    pendingRef.current = null;
+    activeIdRef.current = null;
     setState({
       status: 'failed',
       message: describeFailure(failure, t('DeckSharing.createFailed', { code: responseCode })),
@@ -104,13 +110,16 @@ export function useDeckShareCreate() {
       setState({ status: 'failed', message: t('DeckSharing.noServer') });
       return;
     }
-    pendingRef.current = true;
+    const requestId = crypto.randomUUID();
+    pendingRef.current = { requestId, server: shareServer };
+    activeIdRef.current = requestId;
     setState({ status: 'pending' });
-    webClient.request.session.deckShareCreate(params);
+    webClient.request.session.deckShareCreate(params, requestId);
   };
 
   const reset = () => {
-    pendingRef.current = false;
+    pendingRef.current = null;
+    activeIdRef.current = null;
     setState({ status: 'idle' });
   };
 
