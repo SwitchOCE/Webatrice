@@ -42,7 +42,7 @@ describe('integration: staff tools', () => {
     expect(server.Selectors.getServerStats(store.getState())?.gamesCount).toBe(5n);
   });
 
-  it('keeps the card-art rule list in step with add and remove acknowledgements', () => {
+  it('updates the card-art cache only from the authoritative list response', () => {
     const store = createStore();
     const response = attachResponseHandlers(store);
 
@@ -50,6 +50,8 @@ describe('integration: staff tools', () => {
     response.moderator.cardArtRuleAdded!('Forest', 'b', 'ALLOW', '');
     response.moderator.cardArtRuleRemoved!('Island', 'a');
 
+    expect(server.Selectors.getCardArtRules(store.getState())?.map((r) => r.cardName)).toEqual(['Island']);
+    response.moderator.cardArtRules!([create(Response_CardArtRuleEntrySchema, { cardName: 'Forest', cardProviderId: 'b' })]);
     expect(server.Selectors.getCardArtRules(store.getState())?.map((r) => r.cardName)).toEqual(['Forest']);
   });
 

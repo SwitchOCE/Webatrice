@@ -1,8 +1,6 @@
 import { CaseReducer, PayloadAction } from '@reduxjs/toolkit';
-import { create } from '@bufbuild/protobuf';
 import {
   Response_CardArtRuleEntry,
-  Response_CardArtRuleEntrySchema,
   Response_GetServerStats,
   Response_ReportUserInfo,
   ServerInfo_ModeratorLogin,
@@ -23,9 +21,6 @@ export const initialStaffState: ServerStateStaff = {
   serverStats: null,
 };
 
-
-const sameRule = (cardName: string, cardProviderId: string) => (entry: Response_CardArtRuleEntry): boolean =>
-  entry.cardName === cardName && entry.cardProviderId === cardProviderId;
 
 function investigation(state: ServerState, userName: string): UserInvestigation | undefined {
   const active = state.staff.investigation;
@@ -80,30 +75,13 @@ export const staffReducers = {
     state.staff.cardArtRules = action.payload.entries;
   }) as CaseReducer<ServerState, PayloadAction<{ entries: Response_CardArtRuleEntry[] }>>,
 
-  // A rule is identified by (card, provider id): adding an existing pair replaces it.
-  cardArtRuleAdded: ((state, action) => {
-    const rules = state.staff.cardArtRules;
-    if (!rules) {
-      return;
-    }
-    const { cardName, cardProviderId, mode, reason } = action.payload;
-    const entry = create(Response_CardArtRuleEntrySchema, { cardName, cardProviderId, mode, reason });
-    const index = rules.findIndex(sameRule(cardName, cardProviderId));
-    if (index === -1) {
-      rules.push(entry);
-    } else {
-      rules[index] = entry;
-    }
-  }) as CaseReducer<ServerState, PayloadAction<{ cardName: string; cardProviderId: string; mode: string; reason: string }>>,
+  // Mutation acknowledgements are signals only. The following list response
+  // owns the cache, as in desktop TabCardArtRules.
+  cardArtRuleAdded: (() => {}) as CaseReducer<
+    ServerState, PayloadAction<{ cardName: string; cardProviderId: string; mode: string; reason: string }>
+  >,
 
-  cardArtRuleRemoved: ((state, action) => {
-    const rules = state.staff.cardArtRules;
-    if (!rules) {
-      return;
-    }
-    const { cardName, cardProviderId } = action.payload;
-    state.staff.cardArtRules = rules.filter((entry) => !sameRule(cardName, cardProviderId)(entry));
-  }) as CaseReducer<ServerState, PayloadAction<{ cardName: string; cardProviderId: string }>>,
+  cardArtRuleRemoved: (() => {}) as CaseReducer<ServerState, PayloadAction<{ cardName: string; cardProviderId: string }>>,
 
   serverStats: ((state, action) => {
     state.staff.serverStats = action.payload.stats;

@@ -103,21 +103,21 @@ describe('card-art rules', () => {
     expect(Selectors.getCardArtRules(rootState(state))).toBe(entries);
   });
 
-  it('adds a rule, replacing one for the same card and printing', () => {
+  it('waits for the list response after add acknowledgements', () => {
     let state = serverReducer(makeServerState(), Actions.cardArtRules({ entries: [rule('Island', 'a'), rule('Forest', 'b')] }));
 
     state = serverReducer(state, Actions.cardArtRuleAdded({ cardName: 'Island', cardProviderId: 'a', mode: 'ALLOW', reason: 'ok' }));
     state = serverReducer(state, Actions.cardArtRuleAdded({ cardName: 'Swamp', cardProviderId: 'c', mode: 'DENY', reason: '' }));
 
     const rules = Selectors.getCardArtRules(rootState(state))!;
-    expect(rules.map((r) => [r.cardName, r.mode])).toEqual([['Island', 'ALLOW'], ['Forest', 'DENY'], ['Swamp', 'DENY']]);
-    expect(rules[0].reason).toBe('ok');
+    expect(rules.map((r) => [r.cardName, r.mode])).toEqual([['Island', 'DENY'], ['Forest', 'DENY']]);
+    expect(rules[0].reason).toBe('');
   });
 
-  it('removes only the matching card and printing', () => {
+  it('waits for the list response after remove acknowledgements', () => {
     let state = serverReducer(makeServerState(), Actions.cardArtRules({ entries: [rule('Island', 'a'), rule('Island', 'b')] }));
     state = serverReducer(state, Actions.cardArtRuleRemoved({ cardName: 'Island', cardProviderId: 'a' }));
-    expect(Selectors.getCardArtRules(rootState(state))!.map((r) => r.cardProviderId)).toEqual(['b']);
+    expect(Selectors.getCardArtRules(rootState(state))!.map((r) => r.cardProviderId)).toEqual(['a', 'b']);
   });
 
   it('leaves a never-loaded list alone until it is fetched', () => {
