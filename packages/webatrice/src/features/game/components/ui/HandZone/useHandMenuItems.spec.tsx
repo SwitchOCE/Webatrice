@@ -39,7 +39,7 @@ function setup(args: Partial<UseHandMenuItemsArgs> = {}) {
     isSelf: true,
     hand: hand([30, 31, 32]),
     revealTargets: [{ playerId: 2, name: 'Opp' }],
-    shortcutHints: {} as UseHandMenuItemsArgs['shortcutHints'],
+    menuShortcut: () => ({ shortcut: '', keyShortcuts: '' }),
     zoneCommands,
     ...args,
   }), { wrapper });

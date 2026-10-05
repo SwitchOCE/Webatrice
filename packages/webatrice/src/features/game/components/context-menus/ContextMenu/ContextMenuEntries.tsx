@@ -38,13 +38,14 @@ export default function ContextMenuEntries({ items }: { items: readonly ContextM
               closeOnSelect
               disabled={disabled}
               shortcut={shortcut}
+              keyShortcuts={item.keyShortcuts}
             >
               {item.label}
             </MenuCheckboxItem>
           );
         }
         return (
-          <MenuItem key={key} onSelect={() => item.onClick?.()} disabled={disabled} shortcut={shortcut}>
+          <MenuItem key={key} onSelect={() => item.onClick?.()} disabled={disabled} shortcut={shortcut} keyShortcuts={item.keyShortcuts}>
             {item.label}
           </MenuItem>
         );

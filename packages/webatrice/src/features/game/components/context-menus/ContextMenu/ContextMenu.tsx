@@ -30,6 +30,8 @@ export type ContextMenuItem =
       disabled?: boolean;
       /** Optional keyboard-shortcut hint shown right-aligned. */
       shortcut?: string;
+      /** Normalized bindings for assistive technology (`aria-keyshortcuts`). */
+      keyShortcuts?: string;
       /** Nested items — rendered as a flyout to the right on hover.
        *  When present, a ▶ chevron is drawn instead of a shortcut. */
       submenu?: ContextMenuItem[];
