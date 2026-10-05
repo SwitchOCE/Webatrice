@@ -80,7 +80,7 @@ describe('Game orchestration', () => {
     const game = renderGame();
 
     fireEvent.contextMenu(screen.getByTestId('player-list-item-3'));
-    fireEvent.click(screen.getByText('Kick from game'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'PlayerListContextMenu.kick' }));
 
     expect(game.kickFromGame).toHaveBeenCalledWith(1, { playerId: 3 });
   });

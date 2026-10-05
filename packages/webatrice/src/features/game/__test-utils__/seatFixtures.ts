@@ -197,7 +197,8 @@ export function renderSeatCell(
 
 // --- Menu helpers ----------------------------------------------------------
 
-const MENU_SELECTOR = '[data-context-menu], [data-card-context-menu]';
+// The seat's own popups, and the shared Menu (the hand menu).
+const MENU_SELECTOR = '[data-context-menu], [data-card-context-menu], [role="menu"]';
 
 /** Every currently-open seat menu popup (zone/pile menus and card menus). */
 export function openMenus(): HTMLElement[] {
@@ -210,7 +211,7 @@ export function menuLabels(menu: HTMLElement): string[] {
   return Array.from(menu.querySelectorAll<HTMLButtonElement>(':scope > div > button, :scope > button')).map(
     (button) => {
       const label = button.querySelector('span.flex-1')?.textContent?.trim() ?? '';
-      return button.disabled ? `${label} (disabled)` : label;
+      return button.disabled || button.getAttribute('aria-disabled') === 'true' ? `${label} (disabled)` : label;
     },
   );
 }
@@ -239,12 +240,13 @@ function findMenuButton(label: string): HTMLButtonElement {
   throw new Error(`no open menu item labelled "${label}"`);
 }
 
-/** Clicks a menu path, hovering each submenu parent first:
+/** Clicks a menu path, hovering each submenu parent first (a shared Menu's
+ *  submenu entry is clicked, which opens it at once):
  *  `chooseMenuPath('Move to', 'Graveyard')`. */
 export function chooseMenuPath(...labels: string[]) {
   labels.forEach((label, i) => {
     const button = findMenuButton(label);
-    if (i < labels.length - 1) {
+    if (i < labels.length - 1 && button.getAttribute('role') !== 'menuitem') {
       act(() => {
         fireEvent.mouseEnter(button);
       });

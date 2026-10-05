@@ -1,13 +1,13 @@
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { generatePath, useNavigate } from 'react-router-dom';
-import { Crown, Eye, User } from 'lucide-react';
+import { Crown, Eye, MoreVertical, User } from 'lucide-react';
 
 import { games, server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { useAppSelector } from '@app/store';
 import { useAdminLocked } from '@app/hooks';
-import { UserBadges } from '@app/components';
+import { UserBadges, isContextMenuKey, type MenuAnchor } from '@app/components';
 import { MODERATION_MENU_LABEL_KEYS, useModerationMenu } from '@app/feature-widgets/moderation';
 import { useReportUser } from '@app/dialogs';
 import { RouteEnum } from '@app/types';
@@ -32,7 +32,9 @@ import { UserDetailsModal } from './PlayerListDialogs';
  * Right-click on a row opens `PlayerListContextMenu` (ports Cockatrice's
  * user_context_menu.cpp:348 role-gated menu). Its moderator/admin
  * section and their dialogs come from the moderation feature-widget,
- * shared with every other user context menu in the app.
+ * shared with every other user context menu in the app. The same menu
+ * opens from the keyboard through each row's "More actions for {name}"
+ * button (Enter, Space, Shift+F10 or the Menu key), below the button.
  */
 function PlayerList() {
   const { t } = useTranslation();
@@ -68,11 +70,13 @@ function PlayerList() {
   const userInfoMap = useAppSelector((state) => state.server.userInfo);
   const { reportingAvailable, openReportUser } = useReportUser();
 
-  // Menu popup state: {anchor, target} or null. A single popup
-  // handles every row; onContextMenu on each `<li>` calls
-  // `openMenuFor` with the row's target snapshot.
-  const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
+  // Menu state: {anchor, target} or null. A single menu handles every
+  // row; a right-click on a row or its "More actions" button opens it
+  // with the row's target snapshot. The button is the trigger focus
+  // returns to.
+  const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
   const [menuTarget, setMenuTarget] = useState<PlayerListMenuTarget | null>(null);
+  const menuTriggerRef = useRef<HTMLElement | null>(null);
   const dismissMenu = useCallback(() => {
     setMenuAnchor(null);
     setMenuTarget(null);
@@ -151,24 +155,25 @@ function PlayerList() {
     <>
       <ul data-testid="player-list" className="pb-1">
         {entries.length === 0 && (
-          <li className="px-3 py-2 text-xs italic text-text-muted">no players</li>
+          <li className="px-3 py-2 text-xs italic text-text-muted">{t('PlayerList.empty')}</li>
         )}
         {entries.map((p) => {
           const pid = p.properties.playerId;
-          const name = p.properties.userInfo?.name ?? '(unknown)';
+          const userName = p.properties.userInfo?.name;
+          const name = userName ?? t('PlayerList.unknown');
           const isActive = pid === activePlayerId;
           const isHost = pid === hostId;
           const isSpectator = !!p.properties.spectator;
           const isJudge = !!p.properties.judge;
           const isConceded = !!p.properties.conceded;
           const isSelfRow = pid === localPlayerId;
-          const roleLabel = isJudge
-            ? 'Judge'
+          const roleLabel = t(isJudge
+            ? 'PlayerList.role.judge'
             : isSpectator
-              ? 'Spectator'
+              ? 'PlayerList.role.spectator'
               : isConceded
-                ? 'Conceded'
-                : 'Player';
+                ? 'PlayerList.role.conceded'
+                : 'PlayerList.role.player');
           // Target-user registered flag. Prefer the seat's embedded
           // userInfo; fall back to the server's userInfo map if it's
           // been more recently updated (moderation flips flags there
@@ -178,22 +183,28 @@ function PlayerList() {
             ? (wireUser.userLevel & ServerInfo_User_UserLevelFlag.IsRegistered)
               === ServerInfo_User_UserLevelFlag.IsRegistered
             : false;
+          const openMenu = (anchor: MenuAnchor, trigger: HTMLElement | null) => {
+            menuTriggerRef.current = trigger;
+            setMenuAnchor(anchor);
+            setMenuTarget({
+              userName: userName!,
+              deckHash: p.properties.deckHash ?? '',
+              targetIsRegistered,
+              isSelf: isSelfRow,
+            });
+          };
+          const openBelow = (button: HTMLElement) =>
+            openMenu({ rect: button.getBoundingClientRect(), placement: 'below', align: 'end' }, button);
           return (
             <li
               key={pid}
               data-testid={`player-list-item-${pid}`}
-              onContextMenu={(e) => {
-                if (!name || name === '(unknown)') {
+              onContextMenu={(e: MouseEvent<HTMLLIElement>) => {
+                if (!userName) {
                   return;
                 }
                 e.preventDefault();
-                setMenuAnchor({ x: e.clientX, y: e.clientY });
-                setMenuTarget({
-                  userName: name,
-                  deckHash: p.properties.deckHash ?? '',
-                  targetIsRegistered,
-                  isSelf: isSelfRow,
-                });
+                openMenu({ x: e.clientX, y: e.clientY }, null);
               }}
               className={[
                 'flex items-center gap-2 px-3 py-2 transition-colors cursor-default',
@@ -229,7 +240,7 @@ function PlayerList() {
                     <Crown
                       size={11}
                       className="text-warning shrink-0"
-                      aria-label="Host"
+                      aria-label={t('PlayerList.host')}
                     />
                   )}
                   {wireUser && (
@@ -237,10 +248,34 @@ function PlayerList() {
                   )}
                 </div>
                 <div className="text-[10px] text-text-muted inline-flex items-center gap-1">
-                  {(isSpectator || isJudge) && <Eye size={10} />}
+                  {(isSpectator || isJudge) && <Eye size={10} aria-hidden />}
                   {roleLabel}
                 </div>
               </div>
+
+              {/* The keyboard's way to the row's right-click menu. */}
+              {userName && (
+                <button
+                  type="button"
+                  aria-label={t('PlayerList.moreActions', { name: userName })}
+                  title={t('PlayerList.moreActions', { name: userName })}
+                  aria-haspopup="menu"
+                  aria-expanded={menuTarget?.userName === userName && menuAnchor != null}
+                  onClick={(e) => openBelow(e.currentTarget)}
+                  onKeyDown={(e) => {
+                    if (isContextMenuKey(e)) {
+                      e.preventDefault();
+                      openBelow(e.currentTarget);
+                    }
+                  }}
+                  className={[
+                    'shrink-0 p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                  ].join(' ')}
+                >
+                  <MoreVertical size={14} aria-hidden />
+                </button>
+              )}
             </li>
           );
         })}
@@ -248,6 +283,7 @@ function PlayerList() {
 
       <PlayerListContextMenu
         anchor={menuAnchor}
+        triggerRef={menuTriggerRef}
         target={menuTarget}
         local={{
           isHost: hostId != null && hostId === localPlayerId,

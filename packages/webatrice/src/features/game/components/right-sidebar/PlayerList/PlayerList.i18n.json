@@ -1,0 +1,14 @@
+{
+  "PlayerList": {
+    "empty": "no players",
+    "unknown": "(unknown)",
+    "host": "Host",
+    "moreActions": "More actions for {name}",
+    "role": {
+      "judge": "Judge",
+      "spectator": "Spectator",
+      "conceded": "Conceded",
+      "player": "Player"
+    }
+  }
+}
