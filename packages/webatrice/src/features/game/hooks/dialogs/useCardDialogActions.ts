@@ -2,7 +2,7 @@ import { ZoneName, moveTargetPlayerId } from '@cockatrice/sockatrice';
 import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
 import { useCallback, useMemo } from 'react';
 
-import { COUNTER_TYPE_LABELS } from '../../components/ui/CardSlot/counterColors';
+import { COUNTER_TYPE_LABELS } from '../../components/ui/SeatCard/counterColors';
 import { effectiveTargets, type SelectedCard } from '../../utils/selection';
 import { playCardViaTableRow } from '../playCard';
 import type { CardMenuState, GameDialogsActions, SeatCardMenuState, StartPendingSource } from './gameDialogs.types';

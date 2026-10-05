@@ -34,7 +34,6 @@ const testTheme = createTheme({
 import { rootReducerMap, type RootState } from '../store';
 import { ToastProvider } from '../components/Toast/ToastContext';
 import { ShellLifecycleProvider, type ShellLifecycle } from '../feature-wrappers/layout';
-import { GameInteractionProvider, type GameInteractionHandlers } from '../features/game/components/ui/GameInteractionContext';
 import { CardVisualStateProvider, type CanActFor } from '../features/game/components/ui/CardVisualStateContext';
 import { GameDialogActionsProvider, type GameDialogActions } from '../features/game/components/ui/GameDialogActionsContext';
 import { GameIdProvider, useGameId } from '../features/game/components/ui/GameIdContext';
@@ -57,17 +56,6 @@ import battlefieldSidebarText from '../features/game/components/BattlefieldSideb
 function GamePendingTarget({ children }: { children: React.ReactNode }) {
   return <PendingTargetProvider value={usePendingTarget(useGameId())}>{children}</PendingTargetProvider>;
 }
-
-const NOOP_GAME_INTERACTION: GameInteractionHandlers = {
-  onCardHover: () => undefined,
-  onCardFocus: () => undefined,
-  onCardBlur: () => undefined,
-  onCardClick: () => undefined,
-  onCardContextMenu: () => undefined,
-  onCardDoubleClick: () => undefined,
-  onZoneClick: () => undefined,
-  onZoneContextMenu: () => undefined,
-};
 
 const NOOP_DIALOG_ACTIONS: GameDialogActions = {
   onRequestRollDie: () => undefined,
@@ -170,8 +158,6 @@ interface ExtendedRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   // setup.ts owns a test store shared with a manually-constructed WebClient.
   // When omitted, the helper builds a fresh store per render.
   store?: EnhancedStore<RootState>;
-  // Partial overrides for the game-interaction context (defaults to no-ops).
-  gameInteraction?: Partial<GameInteractionHandlers>;
   // Partial overrides for the card-visual-state context (arrow/selection/canAct).
   // Defaults: no arrows, empty selection, canAct denied for every seat.
   cardVisualState?: CardVisualStateOverride;
@@ -201,7 +187,6 @@ export function renderWithProviders(
     route = '/',
     webClient = getDefaultWebClient(),
     store: externalStore,
-    gameInteraction,
     cardVisualState,
     gameDialogActions,
     gameDialogs,
@@ -212,9 +197,6 @@ export function renderWithProviders(
   // Distinguish "omitted" (default game 1) from an explicit `gameId: undefined`
   // (no-active-game tests) — a destructure default can't tell them apart.
   const gameId = 'gameId' in options ? options.gameId : 1;
-  const interactionHandlers: GameInteractionHandlers = gameInteraction
-    ? { ...NOOP_GAME_INTERACTION, ...gameInteraction }
-    : NOOP_GAME_INTERACTION;
   const dialogActions: GameDialogActions = gameDialogActions
     ? { ...NOOP_DIALOG_ACTIONS, ...gameDialogActions }
     : NOOP_DIALOG_ACTIONS;
@@ -253,26 +235,24 @@ export function renderWithProviders(
                   >
                     <GameIdProvider value={gameId}>
                       <GamePendingTarget>
-                        <GameInteractionProvider value={interactionHandlers}>
-                          <CardVisualStateProvider
-                            arrowSourceKey={visualState.arrowSourceKey}
-                            arrowTargetKey={visualState.arrowTargetKey}
-                            selectedCardKeys={visualState.selectedCardKeys}
-                            canActFor={visualState.canActFor}
-                          >
-                            <GameDialogActionsProvider value={dialogActions}>
-                              <CardPreviewProvider store={previewStore}>
-                                <GameDialogsProvider value={dialogs}>
-                                  {shellLifecycle ? (
-                                    <ShellLifecycleProvider value={shellLifecycle}>{children}</ShellLifecycleProvider>
-                                  ) : (
-                                    children
-                                  )}
-                                </GameDialogsProvider>
-                              </CardPreviewProvider>
-                            </GameDialogActionsProvider>
-                          </CardVisualStateProvider>
-                        </GameInteractionProvider>
+                        <CardVisualStateProvider
+                          arrowSourceKey={visualState.arrowSourceKey}
+                          arrowTargetKey={visualState.arrowTargetKey}
+                          selectedCardKeys={visualState.selectedCardKeys}
+                          canActFor={visualState.canActFor}
+                        >
+                          <GameDialogActionsProvider value={dialogActions}>
+                            <CardPreviewProvider store={previewStore}>
+                              <GameDialogsProvider value={dialogs}>
+                                {shellLifecycle ? (
+                                  <ShellLifecycleProvider value={shellLifecycle}>{children}</ShellLifecycleProvider>
+                                ) : (
+                                  children
+                                )}
+                              </GameDialogsProvider>
+                            </CardPreviewProvider>
+                          </GameDialogActionsProvider>
+                        </CardVisualStateProvider>
                       </GamePendingTarget>
                     </GameIdProvider>
                   </DndContext>

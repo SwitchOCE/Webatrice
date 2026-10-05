@@ -82,12 +82,9 @@ describe('board motion ownership guard', () => {
       // 'animate-spin' is an example, not an owner.
       /* className="duration-100" */
       <div className="seat-card transition-transform duration-150" />
-      <div className="card-slot transition" />
       <div className="phase-endstep-flash animate-pulse" />
-      <div className="cardflip--animate-to-front animate-[flip_1s]" />
-      <div className="cardflip--animate-to-back animate-[flip_1s]" />
       <div className="animate-spin" />
-    `)).toEqual(['9: animate-spin']);
+    `)).toEqual(['6: animate-spin']);
   });
 
   it('covers every motion class string in production game TSX', () => {
