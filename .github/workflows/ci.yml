@@ -123,6 +123,12 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
+      - name: Check path case
+        run: npm run check:path-case
+
+      - name: Test path case guard
+        run: node --test scripts/check-path-case.test.mjs
+
       - name: Install packages
         uses: ./.github/actions/install-packages
 
