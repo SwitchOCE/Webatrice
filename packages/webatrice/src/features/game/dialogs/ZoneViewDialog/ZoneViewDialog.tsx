@@ -156,7 +156,7 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
 
   const { openSeatCardMenu } = useGameDialogsContext();
   // Enter on a card while an arrow pick is pending takes it, by the click rule.
-  const { pickArrowAt } = usePendingTargetContext();
+  const { pending, pickArrowAt, cancel: cancelPick } = usePendingTargetContext();
   const cardMenuKind = CARD_MENU_KIND[zoneName];
   const onCardContextMenu = cardMenuKind
     ? (at: { x: number; y: number }, card: { id: string; name: string }, scope: ZoneViewCardScope) => {
@@ -211,6 +211,13 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
       onCardPointerDown={onCardPointerDown}
       onCardContextMenu={onCardContextMenu}
       onCardActivate={(_card, element) => pickArrowAt(element)}
+      onEscapeCancel={() => {
+        if (!pending) {
+          return false;
+        }
+        cancelPick();
+        return true;
+      }}
       dropRef={panelDropRef}
       draggingCardIds={draggingCardIds}
       selectedIds={selectedIds}

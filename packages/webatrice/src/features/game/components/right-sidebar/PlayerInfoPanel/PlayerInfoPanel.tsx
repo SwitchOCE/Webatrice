@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Heart, MoreVertical } from 'lucide-react';
 import { useAnimationPreference } from '@app/hooks';
@@ -201,6 +201,31 @@ export default function PlayerInfoPanel() {
   const { pending, pickArrowAt } = usePendingTargetContext();
   const arrowPicking = pending?.kind === 'arrow';
   const registry = useCardRegistry();
+  // Another player's block is a target only while an arrow pick is pending.
+  // When the pick ends, by Enter or Escape, it leaves the tab order; if it
+  // had focus, focus goes back to the arrow's card, else to this player's
+  // menu button, never to the page (where Tab is Next Phase).
+  const blockRef = useRef<HTMLDivElement | null>(null);
+  const lifeRef = useRef<HTMLDivElement | null>(null);
+  const lifeFocused = useRef(false);
+  const pickSource = useRef(pending?.source);
+  if (pending) {
+    pickSource.current = pending.source;
+  }
+  const wasPicking = useRef(arrowPicking);
+  useLayoutEffect(() => {
+    const ended = wasPicking.current && !arrowPicking;
+    wasPicking.current = arrowPicking;
+    const active = document.activeElement;
+    if (!ended || isSelf || !lifeFocused.current || (active !== lifeRef.current && active !== document.body && active != null)) {
+      return;
+    }
+    lifeFocused.current = false;
+    const source = pickSource.current;
+    const card = source && registry?.get(makeCardKey(source.playerId, source.zone, source.cardId));
+    const target = card?.isConnected ? card : blockRef.current?.querySelector<HTMLElement>('button[aria-haspopup="menu"]');
+    target?.focus();
+  }, [arrowPicking, isSelf, registry]);
   // The mana pool is one tab stop; ← and → move between its pips (a roving tab index).
   const [manaFocus, setManaFocus] = useState(0);
   // Desktop's "Life counter flash": green on a gain, red on a loss, from the
@@ -249,23 +274,27 @@ export default function PlayerInfoPanel() {
          Non-owner boxes render read-only (no cursor change, no
          click handlers): a group, named the same, around the name
          and the number. */}
-      <div className="relative">
+      <div className="relative" ref={blockRef}>
         <div
+          ref={lifeRef}
+          onFocus={() => {
+            lifeFocused.current = true;
+          }}
+          onBlur={(e) => {
+            // Focus moved on to another control; a blur to nothing (the
+            // block leaving the tab order) keeps the flag for the effect above.
+            if (e.relatedTarget != null) {
+              lifeFocused.current = false;
+            }
+          }}
           role={isSelf ? 'spinbutton' : arrowPicking ? 'button' : 'group'}
           tabIndex={isSelf || arrowPicking ? 0 : undefined}
           aria-label={t('PlayerInfoPanel.life', { name })}
           aria-valuenow={isSelf ? life : undefined}
           title={isSelf ? t('PlayerInfoPanel.lifeHint') : undefined}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && NO_MODIFIERS(e) && pending?.kind === 'arrow') {
+            if (e.key === 'Enter' && NO_MODIFIERS(e) && pickArrowAt(e.currentTarget)) {
               e.preventDefault();
-              const { source } = pending;
-              pickArrowAt(e.currentTarget);
-              // Another player's block leaves the tab order with the pick, so
-              // focus goes back to the card the arrow came from.
-              if (!isSelf) {
-                registry?.get(makeCardKey(source.playerId, source.zone, source.cardId))?.focus();
-              }
               return;
             }
             if (!isSelf) {
