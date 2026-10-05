@@ -50,6 +50,7 @@ import playerInfoLabels from '../features/game/components/right-sidebar/PlayerIn
 import moveTopUntilText from '../features/game/dialogs/MoveTopUntilDialog/MoveTopUntilDialog.i18n.json';
 import handZoneText from '../features/game/components/ui/HandZone/HandZone.i18n.json';
 import playerBoardLabels from '../features/game/components/ui/PlayerBoard/PlayerBoard.i18n.json';
+import battlefieldSidebarText from '../features/game/components/BattlefieldSidebar/BattlefieldSidebar.i18n.json';
 
 // The game's pending target pick, as Game provides it, for seats rendered
 // without Game.
@@ -137,6 +138,7 @@ testI18n.use(ICU).use(initReactI18next).init({
         ...playerBoardLabels,
         ...moveTopUntilText,
         ...handZoneText,
+        ...battlefieldSidebarText,
       },
     },
   },
