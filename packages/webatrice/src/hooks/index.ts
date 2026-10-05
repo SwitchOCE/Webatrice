@@ -1,4 +1,7 @@
 export * from './useAdminLock';
+export * from './useBackendDeckList';
+export * from './useBackendDeckDownload';
+export * from './useGameDeckCommands';
 export * from './useChatPreferences';
 export * from './useColorScheme';
 export * from './useFireOnce';

@@ -1,13 +1,13 @@
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within, waitFor } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
-import { games } from '@cockatrice/datatrice';
+import { games, server } from '@cockatrice/datatrice';
 import {
   makeGameEntry,
   makePlayerEntry,
   makePlayerProperties,
 } from '@cockatrice/datatrice/testing';
 import type { WebClient } from '@cockatrice/sockatrice';
-import { Response_ResponseCode, ServerInfo_PlayerPropertiesSchema } from '@cockatrice/sockatrice/generated';
+import { Response_ResponseCode, Response_DeckListSchema, ServerInfo_PlayerPropertiesSchema } from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import {
@@ -96,6 +96,56 @@ const setLocalSideboardLock = (sideboardLocked: boolean) => games.Actions.player
 });
 
 const button = (name: string) => screen.getByRole('button', { name });
+
+describe('GameLobby — refactor characterization', () => {
+  it('kicks the remote seat with only the game and player ids', () => {
+    const { webClient } = renderLobby({ hostId: 1 });
+    fireEvent.click(button('Kick'));
+    expect(webClient.request.game.kickFromGame).toHaveBeenCalledExactlyOnceWith(1, { playerId: 2 });
+  });
+
+  it('keeps empty seats distinct from the seated player rows', () => {
+    const state = lobbyState();
+    state.games.games[1].info.maxPlayers = 4;
+    renderWithProviders(<GameLobby gameId={1} />, { preloadedState: state });
+    expect(screen.getAllByText('Waiting for player…')).toHaveLength(2);
+    expect(screen.getByText('Alice')).toBeInTheDocument();
+    expect(screen.getByText('Bob')).toBeInTheDocument();
+  });
+
+  it('flattens nested decks, downloads each summary once, and preserves selection payloads', () => {
+    const state = lobbyState({ deckList: '' });
+    state.server.backendDecks = create(Response_DeckListSchema, { root: { items: [
+      { id: 8101, name: 'Zebra', file: {} },
+      { name: 'Nested', folder: { items: [{ id: 8102, name: 'alpha', file: {} }] } },
+    ] } });
+    const webClient = createMockWebClient();
+    const { store } = renderWithProviders(<GameLobby gameId={1} />, { preloadedState: state, webClient });
+    expect(webClient.request.session.deckDownload).toHaveBeenCalledWith(8101);
+    expect(webClient.request.session.deckDownload).toHaveBeenCalledWith(8102);
+    act(() => {
+      store.dispatch(server.Actions.deckDownloaded({ deckId: 8101, deck: '<invalid/>' }));
+      store.dispatch(server.Actions.deckDownloaded({ deckId: 8102, deck: DECK }));
+    });
+    expect(webClient.request.session.deckDownload).toHaveBeenCalledTimes(2);
+    expect(screen.getAllByRole('button').filter(b => ['alpha', 'Zebra'].includes(b.textContent ?? '')).map(b => b.textContent))
+      .toEqual(['alpha', 'Zebra']);
+    fireEvent.click(button('alpha'));
+    expect(webClient.request.game.deckSelect).toHaveBeenCalledExactlyOnceWith(1, { deckId: 8102 });
+    expect(webClient.request.game.gameSay).not.toHaveBeenCalled();
+  });
+
+  it('rejects an invalid upload and sends a valid file verbatim without a duplicate chat announcement', async () => {
+    const { container, webClient } = renderLobby({ deckList: '' });
+    const input = container.querySelector('input[type="file"]')!;
+    fireEvent.change(input, { target: { files: [new File(['<other/>'], 'bad.cod')] } });
+    await screen.findByText('Not a valid Cockatrice deck (.cod) file');
+    expect(webClient.request.game.deckSelect).not.toHaveBeenCalled();
+    fireEvent.change(input, { target: { files: [new File([DECK], 'deck.cod')] } });
+    await waitFor(() => expect(webClient.request.game.deckSelect).toHaveBeenCalledWith(1, { deck: DECK }));
+    expect(webClient.request.game.gameSay).not.toHaveBeenCalled();
+  });
+});
 
 describe('GameLobby — force start (GAME-013)', () => {
   it('asks for confirmation, then sends ONE readyStart{ready, forceStart} and no kicks', () => {

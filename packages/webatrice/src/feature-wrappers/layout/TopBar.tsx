@@ -11,8 +11,8 @@ import {
 import type { TFunction } from 'i18next';
 
 import { server, rooms, games } from '@cockatrice/datatrice';
-import type { ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
 import { useAppSelector } from '@app/store';
+import { useBackendDeckNames } from './hooks/useBackendDeckNames';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import {
   useDocumentTitle, useLeaveGame, useOpenedReplays, usePhaseTrackPinnedSetting, useSnapGridSetting,
@@ -102,7 +102,6 @@ export default function TopBar() {
   const joinedRooms = useAppSelector(rooms.Selectors.getJoinedRooms);
   const activeGames = useAppSelector(games.Selectors.getActiveGames);
   const openedReplays = useOpenedReplays();
-  const backendDecks = useAppSelector(server.Selectors.getBackendDecks);
   const [snapGridVisible, setSnapGridVisible] = useSnapGridSetting();
   const [phaseTrackPinned, setPhaseTrackPinned] = usePhaseTrackPinnedSetting();
   const { onIdentityChanged } = useShellLifecycle();
@@ -164,21 +163,6 @@ export default function TopBar() {
     persistLastRoute(location.pathname);
   }, [location.pathname]);
 
-  // Kick off a deckList fetch as soon as we're connected if backendDecks
-  // isn't loaded yet. Otherwise a refresh directly into `/deck/:id`
-  // never fires deckList (that's owned by the MyDecks page) and the
-  // deck-editor sticky tab's title stays stuck on the "Deck #N"
-  // fallback because deckIdToName has nothing to enrich from.
-  useEffect(() => {
-    if (!isConnected) {
-      return;
-    }
-    if (backendDecks) {
-      return;
-    }
-    webClient.request.session.deckList();
-  }, [isConnected, backendDecks, webClient]);
-
   // Server/user identity change — deck ids are per-user on servatrice,
   // so any deck tab / cache from a previous login is stale after
   // signing into a different server or as a different user. Watch
@@ -220,7 +204,7 @@ export default function TopBar() {
 
   // Enrich a deck-editor sticky tab with the actual deck name once
   // backendDecks has loaded it. Falls back to `Deck #N` before that.
-  const deckIdToName = useMemo(() => flattenDeckNames(backendDecks), [backendDecks]);
+  const deckIdToName = useBackendDeckNames();
 
   // Whenever the deck name enrichment ("Deck #N" → real name) resolves,
   // persist the freshly enriched title back into the sticky-tab list.
@@ -738,29 +722,6 @@ function tabTitle(tab: Tab, t: TFunction): string {
   return tab.title ?? (tab.titleKey ? t(tab.titleKey, tab.titleParams) : '');
 }
 
-/** Walk the Servatrice deck-storage tree collecting `{deckId → name}`
- *  for every file (leaf deck). Used by TopBar to title the deck-editor
- *  sticky tab once the deck list is loaded. */
-function flattenDeckNames(
-  backendDecks: ReturnType<typeof server.Selectors.getBackendDecks>,
-): Map<number, string> {
-  const out = new Map<number, string>();
-  const walk = (items: readonly ServerInfo_DeckStorage_TreeItem[] | undefined) => {
-    if (!items) {
-      return;
-    }
-    for (const item of items) {
-      // An unnamed deck keeps its `Deck #N` catalogue title.
-      if (item.file && item.id && item.name) {
-        out.set(item.id, item.name);
-      } else if (item.folder) {
-        walk(item.folder.items);
-      }
-    }
-  };
-  walk(backendDecks?.root?.items);
-  return out;
-}
 
 // ---------- Sticky-tab singleton ----------
 // TopBar remounts on every route change (it's inside per-page Layout),

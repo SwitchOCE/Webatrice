@@ -23,9 +23,8 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import { games, rooms, server } from '@cockatrice/datatrice';
 import type { GameCommandFailedPayload } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
-import { useCommandFailureMessage, useLeaveGame, useReduxEffect } from '@app/hooks';
-import type { ServerInfo_DeckStorage_Folder, ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
-import { parseCod } from '@app/services';
+import { useBackendDeckList, useCommandFailureMessage, useLeaveGame, useReduxEffect } from '@app/hooks';
+import { parseCod, validateCod } from '@app/services';
 import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat } from '@app/types';
 import { bracketToneClass } from '@app/utils';
 
@@ -65,24 +64,6 @@ import { useLobbyDeckView } from './components/lobby/useLobbyDeckView';
 interface FlatDeck {
   id: number;
   name: string;
-}
-
-function flattenDecks(folder: ServerInfo_DeckStorage_Folder | undefined): FlatDeck[] {
-  const out: FlatDeck[] = [];
-  const walk = (items: ServerInfo_DeckStorage_TreeItem[] | undefined) => {
-    if (!items) {
-      return;
-    }
-    for (const item of items) {
-      if (item.file) {
-        out.push({ id: item.id, name: item.name });
-      } else if (item.folder) {
-        walk(item.folder.items);
-      }
-    }
-  };
-  walk(folder?.items);
-  return out;
 }
 
 /**
@@ -136,19 +117,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
   const webClient = useWebClient();
   const leaveGame = useLeaveGame();
   const { game, localPlayer, isHost, isSpectator, isJudge } = useCurrentGame(gameId);
-  const backendDecks = useAppSelector(server.Selectors.getBackendDecks);
-  const isConnected = useAppSelector(server.Selectors.getIsConnected);
-
-  // Fetch the deck list on mount if we don't have it yet. Same source
-  // MyDecks uses — deck picks resolve to server-side `deck_id` so
-  // Servatrice loads the deck without a re-upload round-trip.
-  useEffect(() => {
-    if (isConnected && !backendDecks) {
-      webClient.request.session.deckList();
-    }
-  }, [isConnected, backendDecks, webClient]);
-
-  const myDecks = useMemo(() => flattenDecks(backendDecks?.root), [backendDecks]);
+  const { backendDecks, isConnected, decks: myDecks } = useBackendDeckList();
 
   // Room format lookup — first game type in the room's gametypeMap.
   // Cockatrice games can have multiple game types; we prioritise the
@@ -299,7 +268,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
     const reader = new FileReader();
     reader.onload = () => {
       const xml = typeof reader.result === 'string' ? reader.result : '';
-      if (!isValidCod(xml)) {
+      if (!validateCod(xml)) {
         setUploadError('Not a valid Cockatrice deck (.cod) file');
         return;
       }
@@ -792,17 +761,6 @@ function PlayerRow({
       )}
     </div>
   );
-}
-
-function isValidCod(xml: string): boolean {
-  if (xml.length === 0) {
-    return false;
-  }
-  const doc = new DOMParser().parseFromString(xml, 'application/xml');
-  if (doc.getElementsByTagName('parsererror').length > 0) {
-    return false;
-  }
-  return doc.documentElement?.tagName === 'cockatrice_deck';
 }
 
 function BracketBadge({ level }: { level: number }) {
