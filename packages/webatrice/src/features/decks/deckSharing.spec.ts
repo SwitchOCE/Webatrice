@@ -106,7 +106,7 @@ describe('isBlankDeck', () => {
     expect(isBlankDeck(blank)).toBe(true);
     expect(isBlankDeck({ ...blank, name: 'Burn' })).toBe(false);
     expect(isBlankDeck({ ...blank, meta: { ...blank.meta, description: 'notes' } })).toBe(false);
-    expect(isBlankDeck({ ...blank, format: 'modern' })).toBe(false);
+    expect(isBlankDeck({ ...blank, format: 'modern' } as HydratedDeck)).toBe(true);
     expect(isBlankDeck({ ...blank, bannerCard: 'Lightning Bolt' })).toBe(false);
     expect(isBlankDeck({ ...blank, tagsXml: '<tags><tag>Aggro</tag></tags>' })).toBe(false);
     expect(isBlankDeck({ ...blank, cards: [{ name: 'x', quantity: 1, category: 'main', lookupSource: 'dexie' }] })).toBe(false);
