@@ -88,6 +88,65 @@ describe('deckVisibilityChanged', () => {
   });
 });
 
+describe('published folders after tree mutations', () => {
+  const uploaded = makeDeckTreeItem({ id: 3, name: 'Control', file: create(ServerInfo_DeckStorage_FileSchema) });
+  const updated = makeDeckTreeItem({ id: 2, name: 'Elves updated', file: create(ServerInfo_DeckStorage_FileSchema) });
+
+  it.each([
+    {
+      operation: 'upload',
+      action: Actions.deckUpload({ path: 'outer/inner', treeItem: uploaded }),
+      names: ['Elves', 'empty', 'Control'],
+    },
+    {
+      operation: 'upload into a missing folder',
+      action: Actions.deckUpload({ path: 'outer/inner/new', treeItem: uploaded }),
+      names: ['Elves', 'empty', 'new'],
+    },
+    {
+      operation: 'update',
+      action: Actions.deckUpdated({ deckId: 2, treeItem: updated }),
+      names: ['Elves updated', 'empty'],
+    },
+    {
+      operation: 'delete',
+      action: Actions.deckDelete({ deckId: 2 }),
+      names: ['empty'],
+    },
+    {
+      operation: 'delete outside the published folder',
+      action: Actions.deckDelete({ deckId: 1 }),
+      names: ['Elves', 'empty'],
+    },
+    {
+      operation: 'new folder',
+      action: Actions.deckNewDir({ path: 'outer/inner', dirName: 'new' }),
+      names: ['Elves', 'empty', 'new'],
+    },
+    {
+      operation: 'delete folder',
+      action: Actions.deckDelDir({ path: 'outer/inner/empty' }),
+      names: ['Elves'],
+    },
+  ])('preserves published ancestors after $operation', ({ action, names }) => {
+    let state = serverReducer(storage(), Actions.deckNewDir({ path: 'outer/inner', dirName: 'empty' }));
+    state = serverReducer(state, Actions.deckVisibilityChanged({ folderPath: 'outer', isPublic: true }));
+    state = serverReducer(state, Actions.deckVisibilityChanged({ folderPath: 'outer/inner', isPublic: true }));
+    const before = state.backendDecks!.root!.items[1].folder!;
+
+    const result = serverReducer(state, action);
+    const outer = result.backendDecks!.root!.items.find(item => item.name === 'outer')!.folder!;
+    const inner = outer.items[0].folder!;
+
+    expect(outer.isPublic).toBe(true);
+    expect(inner.isPublic).toBe(true);
+    expect(inner.items.map(item => item.name)).toEqual(names);
+    expect(result.backendDecks!.root!.isPublic).toBe(false);
+    expect(outer).not.toBe(before);
+    expect(before.items[0].folder!.items.map(item => item.name)).toEqual(['Elves', 'empty']);
+  });
+});
+
 describe('deckSharesMine / deckShareRemoved', () => {
   it('stores the caller\'s share links', () => {
     const result = serverReducer(makeServerState(), Actions.deckSharesMine({ shares: [share(1), share(2)] }));
