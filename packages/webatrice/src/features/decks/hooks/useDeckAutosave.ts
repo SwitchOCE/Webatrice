@@ -4,7 +4,7 @@ import { useStore } from 'react-redux';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { RootState } from '@app/store';
 
-import { createDeckSaveRegistry, type SaveState } from '../deckSaveRegistry';
+import { getDeckSaveRegistry, type SaveState } from '../deckSaveRegistry';
 import type { HydratedDeck } from '../types';
 
 export const AUTOSAVE_DEBOUNCE_MS = 500;
@@ -32,7 +32,7 @@ export function useDeckAutosave(
 ): DeckAutosave {
   const webClient = useWebClient();
   const store = useStore<RootState>();
-  const registry = useMemo(() => createDeckSaveRegistry(store, webClient), [store, webClient]);
+  const registry = useMemo(() => getDeckSaveRegistry(store, webClient), [store, webClient]);
   const getSnapshot = useCallback(() => registry.getSnapshot(deckId), [registry, deckId]);
   const { saveState } = useSyncExternalStore(registry.subscribe, getSnapshot);
   const saveTimerRef = useRef<number | null>(null);
@@ -75,7 +75,6 @@ export function useDeckAutosave(
     }
   }, [persistNow]);
   useEffect(() => flushSave, [flushSave]);
-  useEffect(() => () => registry.dispose(), [registry]);
 
   const markSaved = useCallback((signature: string) => {
     if (deckId != null) {
