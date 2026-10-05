@@ -93,6 +93,7 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
   const dnd = useGameDnd({
     gameId,
     judgeTarget,
+    isJudge: localAccess.isJudge,
     cancelPendingArrow: arrows.cancelPendingOnDragStart,
     clearSelection: selection.clearSelection,
     moveCard,

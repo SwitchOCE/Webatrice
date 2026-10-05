@@ -41,3 +41,30 @@ export function planHandReorder(
   }
   return plan;
 }
+
+/**
+ * The same plan for a hidden zone (the library), whose cards are addressed
+ * by their current position rather than a stable id: each step's `cardId` is
+ * where that card is when its command runs, after the steps before it.
+ * `positions` are the moved cards' positions now; `targetIndex` is the place
+ * among the cards not moved. The zone past the last position involved never
+ * shifts, so it is replayed only that far.
+ */
+export function planPositionalReorder(
+  positions: readonly number[],
+  targetIndex: number,
+): { cardId: number; x: number }[] {
+  const moved = [...new Set(positions)].sort((a, b) => a - b);
+  if (moved.length === 0) {
+    return [];
+  }
+  const length = Math.max(moved[moved.length - 1] + 1, targetIndex + moved.length);
+  const order = Array.from({ length }, (_, i) => String(i));
+  const current = order.slice();
+  return planHandReorder(order, moved.map(String), targetIndex).map(({ cardId, x }) => {
+    const position = current.indexOf(cardId);
+    current.splice(position, 1);
+    current.splice(x, 0, cardId);
+    return { cardId: position, x };
+  });
+}
