@@ -211,4 +211,38 @@ describe('useGridRows', () => {
     fireEvent.click(screen.getByRole('button', { name: 'remove b' }));
     expect(document.body).toHaveFocus();
   });
+
+  it('moves focus where the caller says when the last row leaves, asking while the row is still in the page', () => {
+    const connected: boolean[] = [];
+    function Emptying() {
+      const [keys, setKeys] = useState(['a']);
+      const rows = useGridRows({
+        keys,
+        selectedKey: null,
+        onSelect: vi.fn(),
+        onActivate: vi.fn(),
+        keepFocusOnRemoval: (removed) => {
+          connected.push(removed.isConnected);
+          return document.getElementById('after');
+        },
+      });
+      return (
+        <>
+          <div role="grid">
+            {keys.map((key) => (
+              <div key={key} role="row" data-testid={key} {...rows.getRowProps(key)}>
+                <button type="button" onClick={() => setKeys([])}>{`remove ${key}`}</button>
+              </div>
+            ))}
+          </div>
+          <button type="button" id="after">after</button>
+        </>
+      );
+    }
+    render(<Emptying />);
+    act(() => screen.getByTestId('a').focus());
+    fireEvent.click(screen.getByRole('button', { name: 'remove a' }));
+    expect(screen.getByRole('button', { name: 'after' })).toHaveFocus();
+    expect(connected).toEqual([true]);
+  });
 });
