@@ -2,8 +2,9 @@ import { act, screen } from '@testing-library/react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { create } from '@bufbuild/protobuf';
 
-import { rooms } from '@cockatrice/datatrice';
+import { rooms, server } from '@cockatrice/datatrice';
 import { ServerInfo_RoomSchema } from '@cockatrice/sockatrice/generated';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { renderWithProviders, createMockWebClient, connectedWithRoomsState } from '../../__test-utils__';
 
@@ -105,7 +106,7 @@ describe('useStartupRoom', () => {
     expect(hoisted.mockWebClient.request.session.joinRoom).not.toHaveBeenCalled();
   });
 
-  describe('when the room never opens', () => {
+  describe('startup room timeout', () => {
     beforeEach(() => {
       vi.useFakeTimers();
     });
@@ -114,8 +115,8 @@ describe('useStartupRoom', () => {
       vi.useRealTimers();
     });
 
-    it('gives up after 20 seconds, as desktop does, leaving the user in the lobby', () => {
-      renderLobby('Auto Room');
+    it('gives up on an unresolved room lookup after 20 seconds', () => {
+      renderLobby('Auto Room', { ...lobbyState, rooms: { ...lobbyState.rooms!, rooms: {}, joinedRoomIds: {} } });
       act(() => {
         vi.advanceTimersByTime(STARTUP_ROOM_TIMEOUT_MS - 1);
       });
@@ -128,14 +129,35 @@ describe('useStartupRoom', () => {
       expect(screen.getByText('lobby null')).toBeInTheDocument();
     });
 
-    it('gives up on a join the server never answers', () => {
-      renderLobby('Side Room');
+    it.each([
+      ['Auto Room', autoRoom, false],
+      ['Side Room', sideRoom, true],
+    ])('selects %s when its pending join succeeds after the timeout', (name, roomInfo, userInitiated) => {
+      const { store } = renderLobby(name);
 
       act(() => {
-        vi.advanceTimersByTime(STARTUP_ROOM_TIMEOUT_MS);
+        vi.advanceTimersByTime(STARTUP_ROOM_TIMEOUT_MS * 2);
+      });
+
+      act(() => {
+        store.dispatch(rooms.Actions.joinRoom({ roomInfo, userInitiated }));
+      });
+
+      expect(screen.getByText('room-page')).toBeInTheDocument();
+      expect(hoisted.mockWebClient.request.session.joinRoom).toHaveBeenCalledTimes(userInitiated ? 1 : 0);
+    });
+
+    it('drops a pending auto-join on disconnect', () => {
+      const { store } = renderLobby('Auto Room');
+      act(() => {
+        store.dispatch(server.Actions.updateStatus({ status: { state: WebsocketTypes.StatusEnum.DISCONNECTED, description: null } }));
       });
 
       expect(screen.getByText('lobby null')).toBeInTheDocument();
+      act(() => {
+        store.dispatch(rooms.Actions.joinRoom({ roomInfo: autoRoom, userInitiated: false }));
+      });
+      expect(screen.queryByText('room-page')).not.toBeInTheDocument();
     });
   });
 });
