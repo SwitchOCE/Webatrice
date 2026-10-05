@@ -121,6 +121,10 @@ export interface UseDeckEditor {
   saveNow: () => Promise<boolean>;
   /** Drop the edits the server has not taken, as desktop's Discard does. */
   discardChanges: () => void;
+  /** Hold autosave while an open-deck confirmation is pending. */
+  pauseAutosave: () => void;
+  /** Resume any held autosave after the open-deck choice. */
+  resumeAutosave: () => void;
 
   // --- Undo/redo (desktop DeckStateManager + DeckListHistoryManager) ---
   history: DeckHistory;
@@ -541,6 +545,8 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
     isModified: autosave.isModified,
     saveNow: autosave.saveNow,
     discardChanges: autosave.discardChanges,
+    pauseAutosave: autosave.pauseAutosave,
+    resumeAutosave: autosave.resumeAutosave,
     history: history.history,
     canUndo: history.canUndo,
     canRedo: history.canRedo,

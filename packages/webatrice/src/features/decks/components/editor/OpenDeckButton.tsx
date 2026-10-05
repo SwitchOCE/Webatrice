@@ -26,6 +26,8 @@ export interface OpenDeckButtonProps {
   isBlank: boolean;
   saveNow: () => Promise<boolean>;
   discardChanges: () => void;
+  pauseAutosave: () => void;
+  resumeAutosave: () => void;
 }
 
 /**
@@ -34,7 +36,9 @@ export interface OpenDeckButtonProps {
  * `deckOpenLocation`), including its Save / Discard / "Open in new tab" prompt for a modified
  * deck when "Open deck in new tab by default" is off.
  */
-export function OpenDeckButton({ deckId, isModified, isBlank, saveNow, discardChanges }: OpenDeckButtonProps) {
+export function OpenDeckButton({
+  deckId, isModified, isBlank, saveNow, discardChanges, pauseAutosave, resumeAutosave,
+}: OpenDeckButtonProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const openDeckInNewTab = usePreference('openDeckInNewTab');
@@ -61,6 +65,7 @@ export function OpenDeckButton({ deckId, isModified, isBlank, saveNow, discardCh
     setPickerOpen(false);
     const location = deckOpenLocation({ openDeckInNewTab, isModified, isBlank });
     if (location === 'prompt') {
+      pauseAutosave();
       setPending(deck);
     } else {
       open(deck, location);
@@ -73,10 +78,16 @@ export function OpenDeckButton({ deckId, isModified, isBlank, saveNow, discardCh
     if (!deck) {
       return;
     }
-    if (choice === 'discard') {
-      discardChanges();
+    let location: DeckOpenLocation;
+    try {
+      if (choice === 'discard') {
+        discardChanges();
+      }
+      location = await resolveDeckOpenChoice(choice, saveNow);
+    } finally {
+      resumeAutosave();
     }
-    open(deck, await resolveDeckOpenChoice(choice, saveNow));
+    open(deck, location);
   };
 
   return (

@@ -31,6 +31,8 @@ function renderButton(props: Partial<OpenDeckButtonProps> = {}) {
   const callbacks = {
     saveNow: vi.fn(async () => true),
     discardChanges: vi.fn(),
+    pauseAutosave: vi.fn(),
+    resumeAutosave: vi.fn(),
   };
   renderWithProviders(
     <>
