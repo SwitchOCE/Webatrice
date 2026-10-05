@@ -27,6 +27,10 @@ export interface DeckAutosave {
   /** Drop the edits the server has not taken, as desktop's Discard does: nothing is sent, and
    *  reopening the deck downloads it again. */
   discardChanges: () => void;
+  /** Hold pending autosave while the editor waits for an open-deck choice. */
+  pauseAutosave: () => void;
+  /** Resume a held save after the choice, unless it was saved or discarded. */
+  resumeAutosave: () => void;
   /** Record `signature` (see `deckSaveSignature`) as what the server holds. */
   markSaved: (signature: string) => void;
   /** Forget the saved signature and show the deck as clean: the next save uploads whatever the deck holds. */
@@ -63,6 +67,8 @@ export function useDeckAutosave(
   const webClient = useWebClient();
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const saveTimerRef = useRef<number | null>(null);
+  const savePendingRef = useRef(false);
+  const autosavePausedRef = useRef(false);
   const savedSignatureRef = useRef<string | null>(initialSavedSignature);
   const inFlightRef = useRef<string[]>([]);
   // What the indicator falls back to when a dirty deck turns out unchanged.
@@ -147,7 +153,7 @@ export function useDeckAutosave(
       if (inFlightRef.current.length === 0) {
         settledStateRef.current = 'saved';
         // A newer edit still waiting for the debounce keeps the deck dirty.
-        if (saveTimerRef.current == null) {
+        if (!savePendingRef.current) {
           setSaveState('saved');
         }
         answerWaiters(true);
@@ -169,14 +175,17 @@ export function useDeckAutosave(
       draftUploadRef.current = null;
       storedIdRef.current = payload.treeItem.id;
       savedSignatureRef.current = upload.signature;
-      const edited = draftEditedRef.current || saveTimerRef.current != null;
+      const edited = draftEditedRef.current || savePendingRef.current;
       draftEditedRef.current = false;
       if (saveTimerRef.current != null) {
         window.clearTimeout(saveTimerRef.current);
         saveTimerRef.current = null;
       }
       if (edited) {
-        persistNow();
+        savePendingRef.current = autosavePausedRef.current;
+        if (!autosavePausedRef.current) {
+          persistNow();
+        }
       } else {
         settle('saved');
         answerWaiters(true);
@@ -202,11 +211,17 @@ export function useDeckAutosave(
 
   const scheduleSave = useCallback(() => {
     setSaveState('dirty');
+    savePendingRef.current = true;
     if (saveTimerRef.current != null) {
       window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    if (autosavePausedRef.current) {
+      return;
     }
     saveTimerRef.current = window.setTimeout(() => {
       saveTimerRef.current = null;
+      savePendingRef.current = false;
       persistNow();
     }, AUTOSAVE_DEBOUNCE_MS);
   }, [persistNow]);
@@ -214,15 +229,34 @@ export function useDeckAutosave(
   // Flushed on unmount too, so closing the tab or navigating away
   // doesn't drop the last edit.
   const flushSave = useCallback(() => {
-    if (saveTimerRef.current != null) {
-      window.clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = null;
+    if (savePendingRef.current && !autosavePausedRef.current) {
+      if (saveTimerRef.current != null) {
+        window.clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      savePendingRef.current = false;
       persistNow();
     }
   }, [persistNow]);
   useEffect(() => flushSave, [flushSave]);
 
+  const pauseAutosave = useCallback(() => {
+    autosavePausedRef.current = true;
+    if (saveTimerRef.current != null) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+  }, []);
+
+  const resumeAutosave = useCallback(() => {
+    autosavePausedRef.current = false;
+    if (savePendingRef.current) {
+      scheduleSave();
+    }
+  }, [scheduleSave]);
+
   const saveNow = useCallback(() => {
+    savePendingRef.current = false;
     if (saveTimerRef.current != null) {
       window.clearTimeout(saveTimerRef.current);
       saveTimerRef.current = null;
@@ -238,6 +272,7 @@ export function useDeckAutosave(
   }, [persistNow]);
 
   const discardChanges = useCallback(() => {
+    savePendingRef.current = false;
     if (saveTimerRef.current != null) {
       window.clearTimeout(saveTimerRef.current);
       saveTimerRef.current = null;
@@ -266,6 +301,8 @@ export function useDeckAutosave(
     isModified: saveState === 'dirty' || saveState === 'failed',
     saveNow,
     discardChanges,
+    pauseAutosave,
+    resumeAutosave,
     markSaved,
     resetSaved,
     savedSignature,

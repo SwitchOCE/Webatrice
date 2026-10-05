@@ -155,6 +155,8 @@ const DeckEditor = () => {
               isBlank={!editor.isModified && isBlankDeck(editor.deck)}
               saveNow={editor.saveNow}
               discardChanges={editor.discardChanges}
+              pauseAutosave={editor.pauseAutosave}
+              resumeAutosave={editor.resumeAutosave}
             />
           )}
           onShare={sharingSupported ? startShare : undefined}
