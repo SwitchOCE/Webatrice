@@ -6,7 +6,10 @@
 // Assertions are on the wire, through <Game /> with the real seat ports.
 
 import { act, fireEvent, screen } from '@testing-library/react';
+import { create } from '@bufbuild/protobuf';
+import { games } from '@cockatrice/datatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
+import { Event_MoveCardSchema } from '@cockatrice/sockatrice/generated';
 import { ZoneName } from '@cockatrice/sockatrice';
 
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
@@ -42,10 +45,14 @@ const SPEC: SeatGameSpec = {
   ],
 };
 
-function renderGame() {
+function renderGameWithStore() {
   const webClient = createMockWebClient();
-  renderWithProviders(<Game />, { preloadedState: buildSeatGameState(SPEC), webClient });
-  return webClient.request.game;
+  const { store } = renderWithProviders(<Game />, { preloadedState: buildSeatGameState(SPEC), webClient });
+  return { game: webClient.request.game, store };
+}
+
+function renderGame() {
+  return renderGameWithStore().game;
 }
 
 const key = (el: Element, init: { key: string; shiftKey?: boolean }) => {
@@ -229,6 +236,82 @@ describe('arrow targets from the keyboard', () => {
     focus(duress);
     key(duress, { key: 'Enter' });
     expect(vi.mocked(game.createArrow).mock.calls[0][1]).toMatchObject(arrowTo({ playerId: 1, zone: ZoneName.GRAVE, cardId: DURESS.id }));
+  });
+});
+
+describe('Escape during a target pick', () => {
+  const PROMPT = /^Choose a target for the arrow from Ogre/;
+  const startArrow = () => {
+    openContextMenu(cardEl(OGRE.id, 'battlefield'));
+    chooseMenuPath('Draw arrow...');
+    expect(screen.getByText(PROMPT)).toBeInTheDocument();
+  };
+
+  it('cancels from another player\'s life and hands focus back to the arrow\'s card', () => {
+    const game = renderGame();
+    startArrow();
+    const bob = screen.getByRole('button', { name: 'Bob\'s life' });
+    focus(bob);
+    act(() => {
+      fireEvent.keyDown(bob, { key: 'Escape' });
+    });
+    expect(screen.queryByText(PROMPT)).not.toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Bob\'s life' })).not.toHaveAttribute('tabindex');
+    expect(cardEl(OGRE.id, 'battlefield')).toHaveFocus();
+    expect(game.createArrow).not.toHaveBeenCalled();
+  });
+
+  it('falls back to that player\'s menu button when the arrow\'s card is gone', () => {
+    const { store } = renderGameWithStore();
+    startArrow();
+    const bob = screen.getByRole('button', { name: 'Bob\'s life' });
+    focus(bob);
+    // The Ogre leaves the battlefield while the pick is pending.
+    act(() => {
+      store.dispatch(games.Actions.cardMoved({
+        gameId: 1,
+        playerId: 1,
+        data: create(Event_MoveCardSchema, {
+          cardId: OGRE.id,
+          cardName: OGRE.name,
+          startPlayerId: 1,
+          startZone: ZoneName.TABLE,
+          targetPlayerId: 1,
+          targetZone: ZoneName.GRAVE,
+          newCardId: OGRE.id,
+          x: 1,
+        }),
+      }));
+    });
+    expect(document.querySelector(`[data-zone="battlefield"][data-card-id="${OGRE.id}"]`)).toBeNull();
+    act(() => {
+      fireEvent.keyDown(bob, { key: 'Escape' });
+    });
+    expect(screen.getByRole('button', { name: 'Bob\'s player menu' })).toHaveFocus();
+  });
+
+
+  it('cancels the pick inside a card view and keeps the view open', () => {
+    const game = renderGame();
+    const grave = pileEl('Graveyard');
+    focus(grave);
+    key(grave, { key: 'Enter' });
+    chooseMenuPath('View graveyard');
+    startArrow();
+    const duress = screen.getByRole('option', { name: 'Duress' });
+    focus(duress);
+    act(() => {
+      fireEvent.keyDown(duress, { key: 'Escape' });
+    });
+    expect(screen.queryByText(PROMPT)).not.toBeInTheDocument();
+    expect(duress).toBeInTheDocument();
+    key(duress, { key: 'Enter' });
+    expect(game.createArrow).not.toHaveBeenCalled();
+    // With nothing pending, Escape closes the view as before.
+    act(() => {
+      fireEvent.keyDown(duress, { key: 'Escape' });
+    });
+    expect(screen.queryByRole('option', { name: 'Duress' })).not.toBeInTheDocument();
   });
 });
 
