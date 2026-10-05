@@ -1,4 +1,5 @@
 import { User, Crown, CheckCircle2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import BracketBadge from './BracketBadge';
 
 export default function PlayerRow({
@@ -27,6 +28,7 @@ export default function PlayerRow({
   showKick: boolean;
   onKick: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div
       className={[
@@ -42,12 +44,12 @@ export default function PlayerRow({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-base font-semibold text-text-primary truncate">{playerName}</span>
-          {isHost && <Crown size={14} className="text-warning shrink-0" aria-label="Host" />}
+          {isHost && <Crown size={14} className="text-warning shrink-0" aria-label={t('PlayerList.host')} />}
           {ready && (
             <CheckCircle2
               size={18}
               className="text-success shrink-0"
-              aria-label="Ready"
+              aria-label={t('DeckSelectDialog.ready')}
             />
           )}
         </div>
@@ -55,25 +57,27 @@ export default function PlayerRow({
           {ready ? (
             deckName ? (
               <>
-                <span>Ready ·</span>
-                <span className="text-text-secondary truncate">{deckName}</span>
+                <span className="text-text-secondary truncate">
+                  {t('GameLobby.player.readyWithDeck', { name: deckName })}
+                </span>
                 {bracket != null && <BracketBadge level={bracket} />}
               </>
             ) : (
-              <span>Ready</span>
+              <span>{t('DeckSelectDialog.ready')}</span>
             )
           ) : hasDeck ? (
             deckName ? (
               <>
-                <span className="text-text-secondary truncate">{deckName}</span>
+                <span className="text-text-secondary truncate">
+                  {t('GameLobby.player.waitingWithDeck', { name: deckName })}
+                </span>
                 {bracket != null && <BracketBadge level={bracket} />}
-                <span>· waiting to ready</span>
               </>
             ) : (
-              <span>Deck submitted · waiting to ready</span>
+              <span>{t('GameLobby.player.deckSubmittedWaiting')}</span>
             )
           ) : (
-            <span className="italic">Choosing a deck…</span>
+            <span className="italic">{t('GameLobby.player.choosingDeck')}</span>
           )}
         </div>
       </div>
@@ -85,9 +89,9 @@ export default function PlayerRow({
             'text-xs px-2 py-1 rounded text-text-muted hover:text-danger',
             'hover:bg-red-500/10 border border-transparent hover:border-red-500/40 board-motion transition-colors',
           ].join(' ')}
-          title="Kick from game"
+          title={t('PlayerListContextMenu.kick')}
         >
-          Kick
+          {t('GameLobby.player.kick')}
         </button>
       )}
     </div>

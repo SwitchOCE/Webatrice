@@ -2,6 +2,7 @@ import { expect, type Locator, type Page } from '@playwright/test';
 
 import { DeckSelectPage } from './DeckSelectPage';
 import { dragTo } from '../fixtures/dnd';
+import { t } from '../fixtures/i18n';
 
 // Page object for the game view (`/game/:gameId`). Covers the entry
 // sequence (deck-select → ready → board) and a small set of in-game
@@ -18,11 +19,10 @@ import { dragTo } from '../fixtures/dnd';
 //       - `.game__board-cell` — one per seat. `--mirrored` modifier is
 //         absent ONLY on the local seat (useGameBoardLayout guarantees
 //         `mirrored=false` iff local seat, in every N-player layout).
-//       - Zone piles (Library / Graveyard / Exile) are `<div>`s carrying
-//         `title="Library — 60"` (or with " (top: X)" suffix). They live
-//         inside the `.game__board-cell` — one per seat — and are the
-//         entry point for the pile context menu (right-click) and
-//         drag-to-move (pointerdown).
+//       - Zone piles (Library / Graveyard / Exile) expose a translated
+//         accessible name containing the count and optional top card. They
+//         live inside the `.game__board-cell` and are the entry point for the
+//         pile context menu (right-click) and drag-to-move (pointerdown).
 //       - Battlefield scroll container is `[data-battlefield-owner]`;
 //         cards are `[data-card][data-zone="battlefield"]`, and hand
 //         cards are `[data-card][data-zone="hand"]`. Card DOM wraps a
@@ -36,50 +36,25 @@ import { dragTo } from '../fixtures/dnd';
 //     the pile title ("Graveyard — <name>", "Exile — <name>", or
 //     "<name>'s library") and cards keyed by `[data-card][data-card-id]`.
 //
-// Two intent-preserving shims: `zoneName` values like `'deck' | 'grave'
-// | 'rfg'` (Cockatrice wire names, still passed by specs) are mapped to
-// human titles for pile lookups. Card menu items like "Send to
-// Graveyard" (spec regex) are mapped to the "Move to → Graveyard"
-// submenu path.
+export type PileZone = 'deck' | 'grave' | 'rfg';
+export type CardMoveZone = PileZone | 'hand' | 'table';
 
-// Map `zoneName` (spec-level, Cockatrice wire strings) → the seat pile
-// title prefix. The seat draws the pile as a `<div title="Library — N">`
-// (with an optional " (top: X)" suffix when a face-up top card is
-// showing). Anchoring on the `— ` separator keeps us safe against both
-// count changes and the top-card suffix.
-const ZONE_TITLE_PREFIX: Record<string, string> = {
-  deck: 'Library — ',
-  grave: 'Graveyard — ',
-  rfg: 'Exile — ',
+const PILE_LABEL_KEYS: Record<PileZone, string> = {
+  deck: 'ZoneStack.library',
+  grave: 'ZoneStack.graveyard',
+  rfg: 'ZoneStack.exile',
 };
 
-// Card-menu translation for spec regexes like `/send to graveyard/i`.
-// The seat's buildCardContextMenu places these under "Move to →
-// {Graveyard|Hand|Exile|Table|Top of library in random order|...}".
-// The POM opens the submenu when the requested item lives under it.
-interface MoveViaSubmenu {
-  submenu: RegExp;
-  item: RegExp;
-}
-function resolveCardMenuItem(request: RegExp): RegExp | MoveViaSubmenu {
-  const src = request.source.toLowerCase();
-  // Card menu items live under "Move to → {Graveyard|Hand|Exile|Table|
-  // Top of library ...}". The label-span filter used by
-  // `menuItemButton` isolates each item's label, so an exact match on
-  // the label works cleanly.
-  if (src.includes('send to graveyard')) {
-    return { submenu: /^move to$/i, item: /^graveyard$/i };
-  }
-  if (src.includes('send to hand')) {
-    return { submenu: /^move to$/i, item: /^hand$/i };
-  }
-  if (src.includes('send to exile')) {
-    return { submenu: /^move to$/i, item: /^exile$/i };
-  }
-  if (src.includes('send to battlefield') || src.includes('send to table')) {
-    return { submenu: /^move to$/i, item: /^table$/i };
-  }
-  return request;
+const CARD_MOVE_LABEL_KEYS: Record<CardMoveZone, string> = {
+  deck: 'ZoneLabel.title.deck',
+  grave: 'ZoneLabel.title.grave',
+  rfg: 'ZoneLabel.title.rfg',
+  hand: 'ZoneLabel.title.hand',
+  table: 'SettingsAppearance.zoneBackgrounds.zone.table',
+};
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 export class GamePage {
@@ -153,9 +128,7 @@ export class GamePage {
     // Cockatrice LibraryMenu order).
     const deckStack = this.zoneStack('deck');
     await deckStack.click({ button: 'right' });
-    // Label span contains just "Draw card" (no shortcut); anchor
-    // exactly so "Draw cards..." doesn't win.
-    await this.clickContextMenuItem(/^Draw card$/i);
+    await this.clickContextMenuItem(t('ShortcutsTab.action.game.drawCard'));
   }
 
   async playCardFromHand(cardName: string): Promise<void> {
@@ -192,15 +165,21 @@ export class GamePage {
   // sidebar's onRequestLeave → dialogs.openLeaveConfirm), which we then
   // confirm to actually dispatch `leaveGame(gameId)`.
   async leaveGame(): Promise<void> {
-    const leave = this.rightPanel.getByRole('button', { name: /^leave$/i });
+    const leave = this.rightPanel.getByRole('button', {
+      name: t('BattlefieldSidebar.leave'),
+      exact: true,
+    });
     await expect(leave).toBeEnabled({ timeout: 10_000 });
     await leave.click();
 
-    // ConfirmDialog is an MUI Dialog titled "Leave this game?" with a
-    // destructive "Leave" button in DialogActions.
-    const confirm = this.page.getByRole('dialog').filter({ hasText: /leave this game\?/i });
+    const confirm = this.page.getByRole('dialog', {
+      name: t('ShortcutsTab.action.game.leaveGame'),
+    });
     await expect(confirm).toBeVisible({ timeout: 5_000 });
-    await confirm.getByRole('button', { name: /^leave$/i }).click();
+    await confirm.getByRole('button', {
+      name: t('GameLink.yes'),
+      exact: true,
+    }).click();
     // After leaving: the local session drops out of the game. Route may
     // stay on `/game/:id` (empty state) or revert; the container is
     // what upstream tests assert against.
@@ -210,10 +189,11 @@ export class GamePage {
   // BattlefieldSidebar's "Game" button opens the game menu (desktop's Game
   // menu: phase and turn actions), on the shared `Menu` named "Game";
   // items are `menuitem`s named by their label alone.
-  async clickGameMenuItem(name: RegExp): Promise<void> {
-    await this.rightPanel.getByRole('button', { name: /^game$/i }).click();
-    const menu = this.page.getByRole('menu', { name: /^game$/i });
-    const item = menu.getByRole('menuitem', { name });
+  async clickGameMenuItem(key: `GameMenu.item.${string}`): Promise<void> {
+    const menuName = t('GameMenu.button');
+    await this.rightPanel.getByRole('button', { name: menuName, exact: true }).click();
+    const menu = this.page.getByRole('menu', { name: menuName, exact: true });
+    const item = menu.getByRole('menuitem', { name: t(key), exact: true });
     await expect(item).toBeEnabled({ timeout: 10_000 });
     await item.click();
     await expect(menu).toBeHidden();
@@ -238,17 +218,11 @@ export class GamePage {
 
   // ---- Zones / cards / popups ----
 
-  // Locate a pile (library / graveyard / exile) by its `title` attribute.
-  // ZoneStack's CardBackZone / LargeZoneBox both set
-  // `title="{Label} — {count}"` (with an optional " (top: X)" suffix),
-  // so anchoring on the shared prefix picks the pile regardless of the
-  // current count or top-card state.
-  zoneStack(zoneName: string, board: Locator = this.localBoard): Locator {
-    const prefix = ZONE_TITLE_PREFIX[zoneName];
-    if (!prefix) {
-      throw new Error(`Unknown zoneName '${zoneName}' — expected 'deck' | 'grave' | 'rfg'.`);
-    }
-    return board.locator(`[title^="${prefix}"]`).first();
+  // Match the pile's translated accessible-name prefix. The complete name
+  // also includes its count and optional top card.
+  zoneStack(zoneName: PileZone, board: Locator = this.localBoard): Locator {
+    const zone = t(PILE_LABEL_KEYS[zoneName]);
+    return board.getByLabel(new RegExp(`^${escapeRegex(zone)},`)).first();
   }
 
   // Battlefield row 0 for the given seat. Rows aren't individually
@@ -269,17 +243,10 @@ export class GamePage {
     return board.locator('[data-card][data-zone="battlefield"]');
   }
 
-  // Parse the numeric count from the pile's title attribute
-  // ("Library — 60" / "Graveyard — 2 (top: Forest)").
-  async zoneStackCount(zoneName: string, board: Locator = this.localBoard): Promise<number> {
-    const title = await this.zoneStack(zoneName, board).getAttribute('title');
-    if (title == null) {
-      return 0;
-    }
-    // Grab the digit(s) right after " — " — accepts both bare
-    // "Label — N" and "Label — N (top: ...)".
-    const match = title.match(/—\s*(\d+)/);
-    return match ? Number(match[1]) : 0;
+  // Read the visible count instead of parsing localized title text.
+  async zoneStackCount(zoneName: PileZone, board: Locator = this.localBoard): Promise<number> {
+    const count = this.zoneStack(zoneName, board).locator('span').filter({ hasText: /^\d+$/ }).first();
+    return Number(await count.textContent());
   }
 
   // Pile-view popup — ZoneViewPanel. Not a `role="dialog"` node,
@@ -320,14 +287,12 @@ export class GamePage {
   // race the wire. Graveyard / exile have pre-populated Redux
   // contents (no wire needed), so callers that open an empty pile
   // are fine — only wait when the caller-supplied label is `library`.
-  async openZoneView(zoneName: string, zoneLabel: RegExp): Promise<Locator> {
-    const openItem: RegExp = zoneName === 'deck'
-      ? /^view library$/i
-      : zoneName === 'grave'
-        ? /^view graveyard$/i
-        : zoneName === 'rfg'
-          ? /^view exile$/i
-          : /^view/i;
+  async openZoneView(zoneName: PileZone, zoneLabel: RegExp): Promise<Locator> {
+    const openItem = t({
+      deck: 'ShortcutsTab.action.game.viewLibrary',
+      grave: 'ShortcutsTab.action.game.viewGraveyard',
+      rfg: 'ZoneMenu.viewExile',
+    }[zoneName]);
     await this.zoneStack(zoneName).click({ button: 'right' });
     await this.clickContextMenuItem(openItem);
     const dialog = this.zoneView(zoneLabel);
@@ -340,65 +305,38 @@ export class GamePage {
     return dialog;
   }
 
-  // Right-click a card and pick a move item from its context menu.
-  // The card context menu is the shared `Menu` (`[role="menu"]`).
-  // Handles the "Move to" submenu path: specs pass regexes like
-  // `/send to graveyard/i` that resolve to "Move to → Graveyard".
-  //
-  // Hand-source shim: callers that ask for "send to graveyard" on a hand
-  // card mean "get this card into the graveyard"; the POM drags it onto
-  // the pile, which these specs have always exercised. (Hand cards also
-  // have desktop's card menu now; see chooseCardMenuPath.)
-  async moveViaCardMenu(card: Locator, item: RegExp): Promise<void> {
+  // Move a card through the translated "Move to" submenu. Hand cards and
+  // pile-view cards retain the drag shim needed by the existing UI.
+  async moveViaCardMenu(card: Locator, target: CardMoveZone): Promise<void> {
     const zone = await card.getAttribute('data-zone');
-    const resolved = resolveCardMenuItem(item);
 
-    // Shim #1: hand cards move by dragging onto the target pile.
-    //
-    // Shim #2: cards inside a pile-view popup (`data-zone` is null
+    // Cards inside a pile-view popup (`data-zone` is null
     // because the popup card wrapper doesn't set `data-zone`) also
     // lack move items in their context menu — the pile card menu only
     // has Draw arrow / Clone / Select. Emulate by dragging onto the
     // target pile (or the local hand pile via the hand button).
-    if (!(resolved instanceof RegExp)) {
-      const label = resolved.item.source.replace(/^\^|\$$/g, '').toLowerCase();
-      const isPileCard = zone == null; // pile-view cards omit data-zone
-      const isHandSource = zone === 'hand';
-      if (isHandSource || isPileCard) {
-        const targetZone: string | null =
-          label === 'graveyard' ? 'grave'
-            : label === 'exile' ? 'rfg'
-              : null;
-        if (targetZone) {
-          // For a hand card, keep the source seat as the drop owner;
-          // for a pile-view card, the popup is anchored to the local
-          // player's own pile, so drop on the local seat's target.
-          const board = isHandSource
-            ? card.locator('xpath=ancestor::div[contains(@class, "game__board-cell")][1]')
-            : this.localBoard;
-          await dragTo(this.page, card, this.zoneStack(targetZone, board));
-          return;
-        }
-        if (label === 'hand') {
-          // Send-to-hand from a pile-view card: drag onto the local
-          // hand button (top-left of the local seat), which
-          // `useGameDnd`'s hit-test routes to `{ zone: "hand" }`.
-          const handButton = this.localBoard.locator('button[title^="Hand — "]').first();
-          await dragTo(this.page, card, handButton);
-          return;
-        }
+    const isPileCard = zone == null;
+    const isHandSource = zone === 'hand';
+    if (isHandSource || isPileCard) {
+      if (target === 'grave' || target === 'rfg') {
+        const board = isHandSource
+          ? card.locator('xpath=ancestor::div[contains(@class, "game__board-cell")][1]')
+          : this.localBoard;
+        await dragTo(this.page, card, this.zoneStack(target, board));
+        return;
+      }
+      if (target === 'hand') {
+        const handButton = this.localBoard.getByRole('button', {
+          name: new RegExp(`^${escapeRegex(t('HandZone.menu'))} `),
+        }).first();
+        await dragTo(this.page, card, handButton);
+        return;
       }
     }
 
     await card.click({ button: 'right' });
-    if (resolved instanceof RegExp) {
-      await this.clickCardContextMenuItem(resolved);
-    } else {
-      // Hover the parent item so the submenu opens (the seat opens
-      // submenus on hover, matching desktop). Click the leaf.
-      await this.hoverCardContextMenuItem(resolved.submenu);
-      await this.clickCardContextMenuItem(resolved.item);
-    }
+    await this.hoverCardContextMenuItem(t('CardMenu.moveTo'));
+    await this.clickCardContextMenuItem(t(CARD_MOVE_LABEL_KEYS[target]));
   }
 
   // A local hand card by name (`[data-card][data-zone="hand"]`, whose Card
@@ -411,8 +349,9 @@ export class GamePage {
   }
 
   // Right-click `card` and follow a card-menu path: hover each submenu
-  // parent, click the leaf (`chooseCardMenuPath(card, /^reveal to/i, /^all players$/i)`).
-  async chooseCardMenuPath(card: Locator, ...path: RegExp[]): Promise<void> {
+  // parent, then click the leaf. Product labels come from the catalogue;
+  // dynamic player and card names pass through unchanged.
+  async chooseCardMenuPath(card: Locator, ...path: string[]): Promise<void> {
     await card.click({ button: 'right' });
     for (const [i, label] of path.entries()) {
       if (i < path.length - 1) {
@@ -454,25 +393,18 @@ export class GamePage {
 
   // ---- Internal: seat context-menu helpers ----
 
-  // Zone / player context menu (`[role="menu"]`). Items are `menuitem`
-  // buttons whose label lives in a `<span class="flex-1">`
-  // sibling to a `<span>{shortcut}</span>`. We match against the label
-  // span alone so shortcut hints (rendered adjacent with no whitespace,
-  // so `textContent` reads "Draw cardCtrl+D") don't interfere.
-  private menuItemButton(menu: Locator, name: RegExp): Locator {
-    return menu.locator('button').filter({
-      has: this.page.locator('span.flex-1').filter({ hasText: name }),
-    });
+  private menuItemButton(menu: Locator, name: string): Locator {
+    return menu.getByRole('menuitem', { name, exact: true });
   }
 
-  private async clickContextMenuItem(name: RegExp): Promise<void> {
+  private async clickContextMenuItem(name: string): Promise<void> {
     const menu = this.page.locator('[role="menu"]').last();
     await expect(menu).toBeVisible({ timeout: 5_000 });
     await this.menuItemButton(menu, name).first().click();
   }
 
   // Card context menu: the same `Menu`.
-  private async clickCardContextMenuItem(name: RegExp): Promise<void> {
+  private async clickCardContextMenuItem(name: string): Promise<void> {
     // Card menu opens as a portal and a submenu is a SECOND portal.
     // When clicking a leaf we want to hit the most-recently-opened one
     // (submenu wins over parent), so grab `.last()`.
@@ -484,7 +416,7 @@ export class GamePage {
   // Hover a card-menu item to open its submenu (the seat opens
   // submenus after a pointer rest — see Menu's MenuSubmenu). Waits
   // for the submenu portal to mount so the next click hits its leaf.
-  private async hoverCardContextMenuItem(name: RegExp): Promise<void> {
+  private async hoverCardContextMenuItem(name: string): Promise<void> {
     const parentMenu = this.page.locator('[role="menu"]').first();
     await expect(parentMenu).toBeVisible({ timeout: 5_000 });
     const before = await this.page.locator('[role="menu"]').count();

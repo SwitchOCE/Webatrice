@@ -31,7 +31,7 @@ async function renderBoard() {
     store.dispatch(games.Actions.gameJoined({ data: buildEventGameJoined({ gameId: 42, localPlayerId: 1, hostId: 1 }) }));
     store.dispatch(games.Actions.gameStateChanged({ gameId: 42, data: buildEventGameStateChanged([1, 2], 1) }));
   });
-  return waitFor(() => screen.getAllByTitle(/^Library — 40/)[0]);
+  return waitFor(() => screen.getAllByRole('button', { name: 'ZoneStack.pile' })[0]);
 }
 
 function openViewLibrary(library: HTMLElement) {
@@ -39,7 +39,7 @@ function openViewLibrary(library: HTMLElement) {
     fireEvent.contextMenu(library, { clientX: 10, clientY: 10 });
   });
   act(() => {
-    fireEvent.click(screen.getByRole('menuitem', { name: /^View library/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'ShortcutsTab.action.game.viewLibrary' }));
   });
 }
 
@@ -60,7 +60,7 @@ function answerDump(names: string[]) {
 }
 
 function libraryView(): HTMLElement {
-  return screen.getByRole('heading', { name: /^P1's library/ }).closest<HTMLElement>('.pointer-events-auto.resize')!;
+  return screen.getByRole('heading', { name: 'ZoneViewTitle.library' }).closest<HTMLElement>('.pointer-events-auto.resize')!;
 }
 
 describe('View library', () => {
@@ -91,6 +91,6 @@ describe('View library', () => {
     expect(shuffles).toHaveLength(1);
     expect(shuffles[0].value).toMatchObject({ zoneName: 'deck', start: 0, end: -1 });
     expect(games.Selectors.getZone(store.getState(), 42, 1, 'deck')?.revealedCards ?? []).toEqual([]);
-    expect(screen.queryByRole('heading', { name: /^P1's library/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'ZoneViewTitle.library' })).not.toBeInTheDocument();
   });
 });

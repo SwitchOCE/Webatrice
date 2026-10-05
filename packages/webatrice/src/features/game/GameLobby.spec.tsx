@@ -115,7 +115,7 @@ const button = (name: string) => screen.getByRole('button', { name });
 describe('GameLobby — refactor characterization', () => {
   it('kicks the remote seat with only the game and player ids', () => {
     const { webClient } = renderLobby({ hostId: 1 });
-    fireEvent.click(button('Kick'));
+    fireEvent.click(button('GameLobby.player.kick'));
     expect(webClient.request.game.kickFromGame).toHaveBeenCalledExactlyOnceWith(1, { playerId: 2 });
   });
 
@@ -123,7 +123,7 @@ describe('GameLobby — refactor characterization', () => {
     const state = lobbyState();
     state.games.games[1].info.maxPlayers = 4;
     renderWithProviders(<GameLobby gameId={1} />, { preloadedState: state });
-    expect(screen.getAllByText('Waiting for player…')).toHaveLength(2);
+    expect(screen.getAllByText('GameLobby.player.waiting')).toHaveLength(2);
     expect(screen.getByText('Alice')).toBeInTheDocument();
     expect(screen.getByText('Bob')).toBeInTheDocument();
   });
@@ -172,7 +172,7 @@ describe('GameLobby — force start (GAME-013)', () => {
     expect(within(dialog).getByText('GameLobby.forceStart.title')).toBeInTheDocument();
     expect(within(dialog).getByText('GameLobby.forceStart.message')).toBeInTheDocument();
 
-    fireEvent.click(within(dialog).getByRole('button', { name: 'GameLobby.forceStart.confirm' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'GameLink.yes' }));
     expect(webClient.request.game.readyStart).toHaveBeenCalledTimes(1);
     expect(webClient.request.game.readyStart).toHaveBeenCalledWith(1, { ready: true, forceStart: true });
     expect(webClient.request.game.kickFromGame).not.toHaveBeenCalled();
@@ -181,7 +181,7 @@ describe('GameLobby — force start (GAME-013)', () => {
   it('sends nothing when the confirmation is declined', () => {
     const { webClient } = renderLobby({ hostId: 1 });
     fireEvent.click(button('GameLobby.action.forceStart'));
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'GameLobby.forceStart.cancel' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'GameLink.no' }));
     expect(webClient.request.game.readyStart).not.toHaveBeenCalled();
   });
 
@@ -221,7 +221,7 @@ describe('GameLobby — deck states (GAME-014)', () => {
 
   it('without a deck shows the deck picker and none of the deck-loaded buttons', () => {
     renderLobby({ deckList: '' });
-    expect(screen.getByText('Upload a .cod file')).toBeInTheDocument();
+    expect(screen.getByText('GameLobby.upload.heading')).toBeInTheDocument();
     for (const name of [
       'GameLobby.action.readyStart',
       'GameLobby.action.sideboardLocked',
@@ -243,7 +243,7 @@ describe('GameLobby — deck states (GAME-014)', () => {
     expect(screen.getByRole('heading', { name: 'GameLobby.deck.sideboard' })).toBeInTheDocument();
     expect(within(screen.getByTestId('lobby-deck-main')).getByText('Lightning Bolt')).toBeInTheDocument();
     expect(within(screen.getByTestId('lobby-deck-side')).getByText('Smash to Smithereens')).toBeInTheDocument();
-    expect(screen.queryByText('Upload a .cod file')).not.toBeInTheDocument();
+    expect(screen.queryByText('GameLobby.upload.heading')).not.toBeInTheDocument();
   });
 
   it('Ready to start toggles readyStart', () => {
@@ -258,7 +258,7 @@ describe('GameLobby — deck states (GAME-014)', () => {
     const { webClient } = renderLobby({ ready: true });
     fireEvent.click(button('GameLobby.action.unloadDeck'));
     expect(webClient.request.game.readyStart).toHaveBeenCalledWith(1, { ready: false });
-    expect(screen.getByText('Upload a .cod file')).toBeInTheDocument();
+    expect(screen.getByText('GameLobby.upload.heading')).toBeInTheDocument();
     expect(screen.queryByTestId('lobby-deck-view')).not.toBeInTheDocument();
   });
 

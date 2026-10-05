@@ -4,6 +4,7 @@ import { expect, test } from '../fixtures/test';
 
 import { GamePage } from '../pages';
 import { joinFirstRoom, registerAndJoinFirstRoom, registerAndReachRooms } from '../fixtures/flows';
+import { t } from '../fixtures/i18n';
 import { randomSuffix } from '../fixtures/users';
 
 // Card-menu actions against real Servatrice:
@@ -40,7 +41,7 @@ test('a hand card revealed to one player opens their reveal window with that car
   await hostGame.drawCard();
   const forest = hostGame.handCard('Forest');
   await expect(forest).toBeVisible();
-  await hostGame.chooseCardMenuPath(forest, /^reveal to\.\.\.$/i, new RegExp(`^${joiner.user.username}$`));
+  await hostGame.chooseCardMenuPath(forest, t('CardMenu.revealTo'), joiner.user.username);
 
   const revealWindow = joinerPage.getByRole('heading', { name: `${host.user.username} reveals their hand` });
   await expect(revealWindow).toBeVisible({ timeout: 15_000 });
@@ -69,7 +70,7 @@ test('"View related cards" shows the related card in the card-info pane', async 
   await game.playCardFromHand('Castle Ardenvale');
   await expect(game.cardsOnBoard()).toHaveCount(1);
 
-  await game.chooseCardMenuPath(game.cardsOnBoard().first(), /^view related cards$/i, /^human$/i);
+  await game.chooseCardMenuPath(game.cardsOnBoard().first(), t('CardMenu.viewRelated'), 'Human');
 
   // The pane shows the token by its Scryfall id (from the parent's all_parts).
   await expect(game.rightPanel.locator('img[src*="00000000-0000-4000-8000-0000000e2e03"]').first())
@@ -86,10 +87,10 @@ test('Alt+1 sends the first message macro to the game chat', async ({ newContext
 
   // The macro is set up where a player would: Settings > Chat.
   await page.getByRole('button', { name: session.user.username }).click();
-  await page.getByRole('menuitem', { name: /^settings$/i }).click();
-  await page.getByRole('tab', { name: /^chat$/i }).click();
-  await page.getByRole('textbox', { name: /^new message$/i }).fill('e2e macro says hi');
-  await page.getByRole('button', { name: /^add new message$/i }).click();
+  await page.getByRole('menuitem', { name: t('UserMenu.settings'), exact: true }).click();
+  await page.getByRole('tab', { name: t('Settings.section.chat'), exact: true }).click();
+  await page.getByRole('textbox', { name: t('SettingsChat.macros.newLabel'), exact: true }).fill('e2e macro says hi');
+  await page.getByRole('button', { name: t('SettingsChat.macros.add'), exact: true }).click();
   await expect(page.getByText('e2e macro says hi')).toBeVisible();
 
   await session.rooms.waitForRoomList();

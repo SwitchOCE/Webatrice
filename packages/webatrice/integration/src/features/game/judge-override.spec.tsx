@@ -42,7 +42,10 @@ async function renderAsJudge() {
   });
   // jsdom has no layout: put the opponent's graveyard pile under the drop point
   // and everything else off-screen, so the drop hit-tests onto that pile.
-  const oppGrave = document.querySelectorAll<HTMLElement>('[title^="Graveyard — "]')[1];
+  const oppGrave = document.querySelector<HTMLElement>(
+    '[data-arrow-anchor-owner="2"][data-arrow-anchor-zone="grave"]',
+  );
+  expect(oppGrave).not.toBeNull();
   vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function rect(this: Element) {
     return this === oppGrave ? new DOMRect(900, 0, 80, 110) : new DOMRect(-10_000, -10_000, 0, 0);
   });

@@ -21,7 +21,7 @@ export function useLobbyDeckSelect(gameId: number) {
     reader.onload = () => {
       const xml = typeof reader.result === 'string' ? reader.result : '';
       if (!validateCod(xml)) {
-        setUploadError('Not a valid Cockatrice deck (.cod) file');
+        setUploadError(t('DeckSelectDialog.error.invalidCod'));
         return;
       }
       setMyPickedDeckId(null);
@@ -30,7 +30,7 @@ export function useLobbyDeckSelect(gameId: number) {
       // No gameSay: Cockatrice already emits an event message
       // ("X has loaded a deck (…)") when the server processes deckSelect.
     };
-    reader.onerror = () => setUploadError('Could not read the selected file');
+    reader.onerror = () => setUploadError(t('DeckSelectDialog.error.readFile'));
     reader.readAsText(file);
   };
 

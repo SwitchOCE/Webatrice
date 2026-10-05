@@ -1,5 +1,6 @@
 import type { BackendDeck } from '@app/hooks';
 import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat } from '@app/types';
+import type { TFunction } from 'i18next';
 
 export interface DeckSummary {
   format: string;
@@ -12,11 +13,19 @@ export interface DeckSummary {
 
 const CATEGORY_OTHER = 'other';
 const CATEGORY_UNKNOWN = 'unknown';
-export const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
+const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
   MTG_FORMAT_LABELS.map((f) => [f.value, f.label]),
 );
-CATEGORY_LABELS[CATEGORY_OTHER] = 'Other';
-CATEGORY_LABELS[CATEGORY_UNKNOWN] = 'Unknown format';
+
+export function lobbyDeckCategoryLabel(category: string, t: TFunction): string {
+  if (category === CATEGORY_OTHER) {
+    return t('GameLobby.deckCategory.other');
+  }
+  if (category === CATEGORY_UNKNOWN) {
+    return t('GameLobby.deckCategory.unknown');
+  }
+  return CATEGORY_LABELS[category] ?? category;
+}
 
 /** Bucket a deck's format string into a category slug for display. */
 function categoryOf(format: string | undefined): string {
