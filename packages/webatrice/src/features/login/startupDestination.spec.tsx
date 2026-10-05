@@ -31,12 +31,25 @@ describe('detectPageReload', () => {
     return { getItem: (key: string) => items.get(key) ?? null, setItem: (key: string, value: string) => void items.set(key, value) };
   };
 
-  it('treats the first load of a tab as a launch, and a later load of that tab as a reload', () => {
+  it('treats a fresh tab as a launch and an explicit reload as a reload', () => {
     const tab = memoryStorage();
 
     expect(detectPageReload(tab, 'navigate')).toBe(false);
-    // Not every browser reports a scripted reload as 'reload'; the tab's storage still knows.
-    expect(detectPageReload(tab, 'navigate')).toBe(true);
+    expect(detectPageReload(tab, 'reload')).toBe(true);
+  });
+
+  it('treats a same-tab relaunch as a launch despite the session marker', () => {
+    const tab = memoryStorage();
+    detectPageReload(tab, 'navigate');
+
+    expect(detectPageReload(tab, 'navigate')).toBe(false);
+  });
+
+  it('uses the session marker only when the navigation entry is missing', () => {
+    const tab = memoryStorage();
+
+    expect(detectPageReload(tab, undefined)).toBe(false);
+    expect(detectPageReload(tab, undefined)).toBe(true);
   });
 
   it('treats a new tab as a launch', () => {
@@ -169,6 +182,16 @@ describe('useStartupDestination', () => {
     renderLogin(true);
 
     expect(screen.getByText('at /decks null')).toBeInTheDocument();
+  });
+
+  it('opens the startup tab on a same-tab relaunch with a session marker', () => {
+    hoisted.preferences = { startupTab: StartupTab.Replays };
+    const tab = { getItem: () => '1', setItem: () => undefined };
+    pageLoadLoginGate.reload = detectPageReload(tab, 'navigate');
+
+    renderLogin(true, '/decks');
+
+    expect(screen.getByText('at /replays null')).toBeInTheDocument();
   });
 
   it('returns the login a reload starts with to the page the user was on', () => {
