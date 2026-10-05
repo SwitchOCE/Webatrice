@@ -142,6 +142,7 @@ const ModerationContent = () => {
         confirmLabel={t('ModerationPage.button.ok')}
         cancelLabel={t('ModerationPage.button.cancel')}
         destructive
+        cancelDefault
         onConfirm={moderation.confirmAction}
         onCancel={moderation.cancelConfirm}
       />
