@@ -37,7 +37,7 @@ export default tseslint.config(
   // tests are exempt. Datatrice's WebClientProvider is the sole
   // construction site, and it lives outside this repo.
   //
-  // The `@mui/material` root is restricted for load cost: each unit test
+  // The MUI package roots are restricted for load cost: each unit test
   // file gets a fresh module graph, so one root import anywhere under a
   // barrel loads all of MUI in every spec that reaches that barrel.
   {
@@ -51,6 +51,10 @@ export default tseslint.config(
         }, {
           name: '@mui/material',
           message: 'Import each component from its own path (`@mui/material/Button`); the root loads all of MUI into every spec.',
+          allowTypeImports: true,
+        }, {
+          name: '@mui/icons-material',
+          message: 'Import each icon from its own path (`@mui/icons-material/Close`); the root loads all icons into every spec.',
           allowTypeImports: true,
         }],
       }],
