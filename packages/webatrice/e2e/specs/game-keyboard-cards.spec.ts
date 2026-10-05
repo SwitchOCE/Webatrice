@@ -147,7 +147,9 @@ test('draw, play, tap, point and bin a card with the keyboard only', async ({ ne
   await expect(watcher.opponentBoard.getByRole('button', { name: 'Graveyard, 1 card, top: Forest' })).toBeVisible({ timeout: 15_000 });
 
   // M in the graveyard view: the Move dialog opens over the view.
+  // From the chat box, as at the start: Tab reaches the piles from there.
   const graveyard = game.localBoard.getByRole('button', { name: 'Graveyard, 1 card, top: Forest' });
+  await page.keyboard.press('Shift+Enter');
   await tabTo(page, graveyard);
   await page.keyboard.press('Enter');
   const graveMenu = page.getByRole('menu').filter({ has: page.getByRole('menuitem', { name: 'View graveyard', exact: true }) });
@@ -162,9 +164,12 @@ test('draw, play, tap, point and bin a card with the keyboard only', async ({ ne
   // M on a card of a library lent to this player: the dialog opens over the
   // lent view, and offers only this player's battlefield.
   const watcherPage = hostActive ? joinerPage : hostPage;
-  await watcherPage.getByRole('button', { name: /^Library, \d+ cards/ }).first().click();
-  await watcherPage.getByRole('menuitem', { name: 'Lend library to...' }).hover();
-  await watcherPage.getByRole('menuitem', { name: me, exact: true }).click();
+  await watcher.localBoard.getByRole('button', { name: /^Library, \d+ cards/ }).focus();
+  await watcherPage.keyboard.press('Enter');
+  await arrowToItem(watcherPage, watcherPage.getByRole('menu', { name: 'Library' }), 'Lend library to...');
+  await watcherPage.keyboard.press('ArrowRight');
+  await arrowToItem(watcherPage, watcherPage.getByRole('menu', { name: 'Lend library to...' }), me);
+  await watcherPage.keyboard.press('Enter');
   const lentCard = page.getByRole('button', { name: 'Move Forest to a battlefield' }).first();
   await tabTo(page, lentCard);
   await page.keyboard.press('m');
