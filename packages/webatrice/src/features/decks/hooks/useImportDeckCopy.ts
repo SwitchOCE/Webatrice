@@ -1,9 +1,7 @@
-import { useRef } from 'react';
-
 import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
-import { useReduxEffect } from '@app/hooks';
+import { useReduxEffect, useRequestTracker } from '@app/hooks';
 import { parseCod } from '@app/services';
 
 /**
@@ -16,25 +14,31 @@ import { parseCod } from '@app/services';
  */
 export function useImportDeckCopy(onImported: (deckId: number) => void) {
   const webClient = useWebClient();
-  const pendingNamesRef = useRef<string[]>([]);
+  // Several imports may be in flight; each answer settles only its own request.
+  const requests = useRequestTracker();
 
-  useReduxEffect<{ path: string; treeItem: ServerInfo_DeckStorage_TreeItem }>(({ payload: { path, treeItem } }) => {
-    const index = pendingNamesRef.current.indexOf(treeItem.name);
-    if (path !== '' || index < 0 || !treeItem.id) {
+  useReduxEffect<{ path: string; treeItem: ServerInfo_DeckStorage_TreeItem; requestId?: string }>(({ payload }) => {
+    const { treeItem, requestId } = payload;
+    if (!requests.settle(requestId)) {
       return;
     }
-    pendingNamesRef.current.splice(index, 1);
-    onImported(treeItem.id);
-  }, server.Types.DECK_UPLOAD, [onImported]);
+    if (treeItem.id) {
+      onImported(treeItem.id);
+    }
+  }, server.Types.DECK_UPLOAD, [requests, onImported]);
+
+  useReduxEffect<{ requestId?: string }>(({ payload: { requestId } }) => {
+    requests.settle(requestId);
+  }, server.Types.DECK_UPLOAD_FAILED, [requests]);
 
   return (xml: string, colorIdentity?: string) => {
-    let name: string;
     try {
-      name = parseCod(xml).name;
+      parseCod(xml);
     } catch {
       return;
     }
-    pendingNamesRef.current.push(name);
-    webClient.request.session.deckUpload('', 0, xml, undefined, colorIdentity || undefined);
+    const requestId = requests.begin();
+    requests.track(requestId);
+    webClient.request.session.deckUpload('', 0, xml, undefined, colorIdentity || undefined, requestId);
   };
 }

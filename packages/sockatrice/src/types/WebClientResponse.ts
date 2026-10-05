@@ -133,7 +133,7 @@ export interface ISessionResponse {
   removeFromList(list: string, userName: string): void;
   deleteServerDeck(deckId: number): void;
   updateServerDecks(deckList: Response_DeckList): void;
-  uploadServerDeck(path: string, treeItem: ServerInfo_DeckStorage_TreeItem): void;
+  uploadServerDeck(path: string, treeItem: ServerInfo_DeckStorage_TreeItem, requestId?: RequestId): void;
   updateServerDeck?(deckId: number, treeItem: ServerInfo_DeckStorage_TreeItem | undefined): void;
   updateServerDeckFailed?(deckId: number, responseCode: number, failure?: CommandFailure): void;
   downloadServerDeck(deckId: number, response: Response_DeckDownload, requestId?: RequestId): void;
@@ -181,7 +181,7 @@ export interface ISessionResponse {
   // backward compatibility with existing consumers.
   deckListFailed?(responseCode: number, failure?: CommandFailure): void;
   deckDownloadFailed?(deckId: number, responseCode: number, failure?: CommandFailure, requestId?: RequestId): void;
-  deckUploadFailed?(path: string, responseCode: number, failure?: CommandFailure): void;
+  deckUploadFailed?(path: string, responseCode: number, failure?: CommandFailure, requestId?: RequestId): void;
   replayListFailed?(responseCode: number, failure?: CommandFailure, requestId?: RequestId): void;
 }
 

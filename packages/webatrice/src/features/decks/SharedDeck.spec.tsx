@@ -81,7 +81,7 @@ describe('SharedDeck', () => {
     expect(screen.getByText('Lightning Bolt')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /ReadOnlyDeck.import/ }));
-    expect(webClient.request.session.deckUpload).toHaveBeenCalledWith('', 0, COD, undefined, 'R');
+    expect(webClient.request.session.deckUpload).toHaveBeenCalledWith('', 0, COD, undefined, 'R', expect.any(String));
   });
 
   it('disables every Open button while a download is pending', () => {
