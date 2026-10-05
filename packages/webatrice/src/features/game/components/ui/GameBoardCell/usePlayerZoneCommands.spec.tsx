@@ -54,6 +54,15 @@ describe('resolveBattlefieldDropX', () => {
     expect(resolveBattlefieldDropX(move({ targetZone: ZoneName.TABLE, x }) as never, table(cards))).toBe(expected);
   });
 
+  // Negative x values are Servatrice placement sentinels, not columns: -1
+  // stacks on a same-name pile, else takes the row's first free column
+  // (server_cardzone.cpp:192-235).
+  it('passes a negative x through for the server to place', () => {
+    const full = table([[1, 0, 0], [2, 1, 0], [3, 2, 0]]);
+    expect(resolveBattlefieldDropX(move({ targetZone: ZoneName.TABLE, x: -1 }) as never, full)).toBe(-1);
+    expect(resolveBattlefieldDropX(move({ targetZone: ZoneName.TABLE, x: -2 }) as never, full)).toBe(-2);
+  });
+
   it('ignores the moving card\'s own slot only for a same-table move', () => {
     const board = table([[61, 0, 0]]);
     const reslot = move({ startZone: ZoneName.TABLE, targetZone: ZoneName.TABLE, cardsToMove: { card: [{ cardId: 61 }] } });
@@ -120,9 +129,9 @@ describe('usePlayerZoneCommands — moveCards', () => {
         x: 0,
         y: 0,
       },
-      // 'end' is x = -1 before the battlefield sub-slot resolution, which
-      // leaves the pre-existing x = -3 (see Game.menuMoves.spec).
-      expect.objectContaining({ targetZone: ZoneName.TABLE, x: -3, y: 2 }),
+      // 'end' is x = -1, which the battlefield sub-slot resolution leaves for
+      // the server.
+      expect.objectContaining({ targetZone: ZoneName.TABLE, x: -1, y: 2 }),
       expect.objectContaining({ startZone: ZoneName.TABLE, targetZone: ZoneName.DECK, x: 0, y: 0, isReversed: true }),
     ]);
   });

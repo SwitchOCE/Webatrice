@@ -257,15 +257,15 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     'game.revealHandToAll': { wire: [['revealCards', { zoneName: ZoneName.HAND }]] },
     'game.revealRandomHandCardToAll': { wire: [['revealCards', { zoneName: ZoneName.HAND, cardId: [-2] }]] },
     // The library holds 40 cards: the top one is 0, the bottom one 39.
-    // A battlefield "end" placement goes out as x = -3, as from the library menu.
-    'game.moveTopToPlayFaceDown': { wire: [['moveCard', moveFromDeck({ cardId: 0, faceDown: true }, ZoneName.TABLE, -3)]] },
+    // A battlefield "end" placement goes out as desktop's x = -1.
+    'game.moveTopToPlayFaceDown': { wire: [['moveCard', moveFromDeck({ cardId: 0, faceDown: true }, ZoneName.TABLE, -1)]] },
     'game.moveTopNToGraveFaceDown': { dialogs: ['Move top cards to graveyard face down'] },
     'game.moveTopToExile': { wire: [['moveCard', moveFromDeck({ cardId: 0 }, ZoneName.EXILE, 0)]] },
     'game.moveTopNToExile': { dialogs: ['Move top cards to exile'] },
     'game.moveTopNToExileFaceDown': { dialogs: ['Move top cards to exile face down'] },
     'game.moveTopToBottom': { wire: [['moveCard', moveFromDeck({ cardId: 0 }, ZoneName.DECK, -1)]] },
     'game.moveBottomToPlay': { wire: [['moveCard', moveFromDeck({ cardId: 39 }, ZoneName.STACK, -1)]] },
-    'game.moveBottomToPlayFaceDown': { wire: [['moveCard', moveFromDeck({ cardId: 39, faceDown: true }, ZoneName.TABLE, -3)]] },
+    'game.moveBottomToPlayFaceDown': { wire: [['moveCard', moveFromDeck({ cardId: 39, faceDown: true }, ZoneName.TABLE, -1)]] },
     'game.moveBottomToGrave': { wire: [['moveCard', moveFromDeck({ cardId: 39 }, ZoneName.GRAVE, 0)]] },
     'game.moveBottomNToGrave': { dialogs: ['Move bottom cards to graveyard'] },
     'game.moveBottomNToGraveFaceDown': { dialogs: ['Move bottom cards to graveyard face down'] },
@@ -345,6 +345,36 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     const { game } = renderGame();
     runShortcut('game.incrementAllCardCounters');
     expect(wire(game)).toEqual([['bulkSetCardCounterEntries', counters([10, 0, 3], [10, 1, 2])]]);
+  });
+});
+
+// Desktop cmMoveToTable (player_actions.cpp:1928-1951) sends x = -1, which
+// Servatrice reads as "stack on a same-name pile, else the row's first free
+// column" (Server_CardZone::getFreeGridColumn, server_cardzone.cpp:192-235).
+// Shock has no catalog entry, so it takes the type-line fallback's middle row.
+describe('a hand card moved onto the battlefield', () => {
+  const SHOCK_TO_TABLE = ['moveCard', {
+    startPlayerId: 1,
+    startZone: ZoneName.HAND,
+    cardsToMove: { card: [{ cardId: SHOCK.id }] },
+    targetPlayerId: 1,
+    targetZone: ZoneName.TABLE,
+    x: -1,
+    y: 1,
+  }];
+
+  it('sends x = -1 from the move-selected shortcut', () => {
+    const { game } = renderGame();
+    click(cardEl(SHOCK.id, 'hand'));
+    runShortcut('game.moveSelectedToBattlefield');
+    expect(wire(game)).toEqual([[...SHOCK_TO_TABLE, 'options']]);
+  });
+
+  it('sends x = -1 from the hand card menu', () => {
+    const { game } = renderGame();
+    openContextMenu(cardEl(SHOCK.id, 'hand'));
+    chooseMenuPath('Move to', 'Table');
+    expect(wire(game)).toEqual([[...SHOCK_TO_TABLE, 'options']]);
   });
 });
 
