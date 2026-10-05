@@ -16,3 +16,4 @@ export * from './useJoinGameErrorMessage';
 export * from './useUserCapabilities';
 export * from './useJoinGame';
 export * from './useGridRows';
+export * from './useCanOverrideGameRestrictions';

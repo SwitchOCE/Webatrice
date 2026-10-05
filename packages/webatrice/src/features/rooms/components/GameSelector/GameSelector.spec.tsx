@@ -15,6 +15,10 @@ import { GameSortField, SortDirection, UserSortField, rooms } from '@cockatrice/
 import { games } from '@cockatrice/datatrice';
 import { makeGameInfo, makeRoom } from '@cockatrice/datatrice/testing';
 import GameSelector from './GameSelector';
+import GamesList from '../GamesList';
+import { setAdminLocked } from '../../../../hooks/useAdminLock';
+
+afterEach(() => setAdminLocked(false));
 
 const { mockUseWebClient, mockNavigate } = vi.hoisted(() => ({
   mockUseWebClient: vi.fn(),
@@ -398,5 +402,37 @@ describe('GameSelector', () => {
       1,
       expect.objectContaining({ gameId: 13, spectator: true, joinAsJudge: false }),
     );
+  });
+});
+
+const { IsRegistered, IsModerator, IsJudge } = ServerInfo_User_UserLevelFlag;
+describe.each([['legacy', GameSelector], ['current', GamesList]] as const)('restriction gating in %s', (_name, List) => {
+  it.each([
+    ['ordinary', IsRegistered, false, false],
+    ['locked ordinary', IsRegistered, true, false],
+    ['moderator', IsModerator, false, true],
+    ['locked moderator', IsModerator, true, false],
+    ['judge', IsJudge, false, true],
+    ['locked judge', IsJudge, true, true],
+  ] as const)('gates a full private game for %s', (_name, userLevel, locked, override) => {
+    setAdminLocked(locked);
+    const client = makeWebClient();
+    mockUseWebClient.mockReturnValue(client);
+    const room = makeRoomEntry([makeGame({ playerCount: 4, spectatorsAllowed: false, withPassword: true,
+      spectatorsNeedPassword: true })]);
+    renderWithProviders(<List room={room} />, { preloadedState: buildState(room, makeUser({ userLevel }), 1) });
+    const join = screen.getByRole('button', { name: /^Join$/ });
+    const spectate = screen.getByRole('button', { name: /^(Join as Spectator|Spectate)$/i });
+    expect(join).toHaveProperty('disabled', !override);
+    expect(spectate).toHaveProperty('disabled', !override);
+    if (override) {
+      fireEvent.click(join);
+      // The current list tags each join with its request id; the legacy selector sends none.
+      const tag = List === GamesList ? [expect.any(String)] : [];
+      expect(client.request.rooms.joinGame).toHaveBeenCalledWith(1, expect.objectContaining({
+        overrideRestrictions: true, password: '', spectator: true,
+      }), ...tag);
+      expect(screen.queryByText('Password required')).not.toBeInTheDocument();
+    }
   });
 });

@@ -7,6 +7,7 @@ import { create, type MessageInitShape } from '@bufbuild/protobuf';
 import { createStore, games, rooms } from '@cockatrice/datatrice';
 import { WebClientContext } from '@cockatrice/datatrice/react';
 import {
+  ServerInfo_User_UserLevelFlag,
   Event_GameJoinedSchema,
   ServerInfo_GameSchema,
   type ServerInfo_Game,
@@ -15,8 +16,12 @@ import {
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { endSession } from '@app/services/session';
 import { rootReducerMap, type RootState } from '../store';
-import { createMockWebClient, connectedState } from '../__test-utils__';
+import { createMockWebClient, connectedState, makeUser } from '../__test-utils__';
 import { useJoinGame, useNavigateOnGameJoined } from './useJoinGame';
+
+import { setAdminLocked } from './useAdminLock';
+
+afterEach(() => setAdminLocked(false));
 
 const navigateSpy = vi.hoisted(() => vi.fn());
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -229,5 +234,34 @@ describe('useNavigateOnGameJoined', () => {
     expect(navigateSpy).toHaveBeenCalledTimes(1);
     expect(navigateSpy).toHaveBeenCalledWith('/game/9');
     expect(onJoined).toHaveBeenCalledWith(9);
+  });
+});
+
+const { IsRegistered, IsModerator, IsJudge } = ServerInfo_User_UserLevelFlag;
+describe.each([
+  ['ordinary', IsRegistered, false, false],
+  ['locked ordinary', IsRegistered, true, false],
+  ['moderator', IsModerator, false, true],
+  ['locked moderator', IsModerator, true, false],
+  ['judge', IsJudge, false, true],
+  ['locked judge', IsJudge, true, true],
+] as const)('restriction override: %s', (_name, userLevel, locked, override) => {
+  it.each([false, true])('uses the same privilege for password prompting and the wire (password: %s)', (withPassword) => {
+    setAdminLocked(locked);
+    const state = {
+      ...connectedState,
+      server: { ...connectedState.server!, user: makeUser({ userLevel }) },
+    };
+    const { result, webClient } = setup(() => useJoinGame(), state);
+    act(() => result.current.beginJoin(2, makeGame({ withPassword }), false, false));
+    expect(result.current.passwordRequired).toBe(withPassword && !override);
+    if (withPassword && !override) {
+      expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
+      act(() => result.current.submitPassword('secret'));
+    }
+    expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(2, expect.objectContaining({
+      overrideRestrictions: override,
+      password: withPassword && !override ? 'secret' : '',
+    }), expect.any(String));
   });
 });

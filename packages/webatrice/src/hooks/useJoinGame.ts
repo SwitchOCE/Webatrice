@@ -7,6 +7,7 @@ import type { Event_GameJoined, ServerInfo_Game } from '@cockatrice/sockatrice/g
 import { useAppDispatch, useAppSelector } from '@app/store';
 import { RouteEnum } from '@app/types';
 
+import { useCanOverrideGameRestrictions } from './useCanOverrideGameRestrictions';
 import { useReduxEffect } from './useReduxEffect';
 import { useRequestTracker } from './useRequestTracker';
 
@@ -41,6 +42,7 @@ export interface JoinGameFlow {
  */
 export function useJoinGame(onAlreadyOpen?: () => void): JoinGameFlow {
   const webClient = useWebClient();
+  const overrideRestrictions = useCanOverrideGameRestrictions();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const activeGameIds = useAppSelector(games.Selectors.getActiveGameIds);
@@ -72,11 +74,11 @@ export function useJoinGame(onAlreadyOpen?: () => void): JoinGameFlow {
         gameId,
         password,
         spectator: asSpectator,
-        overrideRestrictions: false,
+        overrideRestrictions,
         joinAsJudge: asJudge,
       }, requestId);
     },
-    [activeGameIds, navigate, onAlreadyOpen, request, webClient],
+    [activeGameIds, navigate, onAlreadyOpen, overrideRestrictions, request, webClient],
   );
 
   const beginJoin = useCallback(
@@ -87,14 +89,14 @@ export function useJoinGame(onAlreadyOpen?: () => void): JoinGameFlow {
         sendJoin(join, '');
         return;
       }
-      const needsPassword = game.withPassword && !(effectiveSpectator && !game.spectatorsNeedPassword);
+      const needsPassword = !overrideRestrictions && game.withPassword && !(effectiveSpectator && !game.spectatorsNeedPassword);
       if (needsPassword) {
         setPendingPasswordJoin(join);
         return;
       }
       sendJoin(join, '');
     },
-    [activeGameIds, sendJoin],
+    [activeGameIds, overrideRestrictions, sendJoin],
   );
 
   const submitPassword = useCallback(

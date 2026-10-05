@@ -5,7 +5,7 @@ import Typography from '@mui/material/Typography';
 
 import { server, rooms, games, type GameFilters } from '@cockatrice/datatrice';
 import { useAppDispatch, useAppSelector } from '@app/store';
-import { useJoinGameErrorMessage, useReduxEffect } from '@app/hooks';
+import { useCanOverrideGameRestrictions, useJoinGameErrorMessage, useReduxEffect } from '@app/hooks';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { CreateGameParams, Event_GameJoined, JoinGameParams } from '@cockatrice/sockatrice/generated';
 import { Room } from '@cockatrice/datatrice';
@@ -32,6 +32,7 @@ interface PendingPasswordJoin {
 const GameSelector = ({ room }: GameSelectorProps) => {
   const roomId = room.info.roomId;
   const webClient = useWebClient();
+  const overrideRestrictions = useCanOverrideGameRestrictions();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
@@ -72,12 +73,12 @@ const GameSelector = ({ room }: GameSelectorProps) => {
         gameId,
         password,
         spectator: asSpectator,
-        overrideRestrictions: false,
+        overrideRestrictions,
         joinAsJudge: asJudge,
       };
       webClient.request.rooms.joinGame(roomId, params);
     },
-    [activeGameIds, navigate, roomId, webClient],
+    [activeGameIds, navigate, roomId, webClient, overrideRestrictions],
   );
 
   const beginJoin = useCallback(
@@ -90,14 +91,14 @@ const GameSelector = ({ room }: GameSelectorProps) => {
       const effectiveSpectator =
         asSpectator || info.playerCount >= info.maxPlayers;
       const needsPassword =
-        info.withPassword && !(effectiveSpectator && !info.spectatorsNeedPassword);
+        !overrideRestrictions && info.withPassword && !(effectiveSpectator && !info.spectatorsNeedPassword);
       if (needsPassword) {
         setPendingPasswordJoin({ gameId: info.gameId, asSpectator: effectiveSpectator, asJudge });
         return;
       }
       sendJoin(info.gameId, effectiveSpectator, asJudge, '');
     },
-    [selectedGame, sendJoin],
+    [selectedGame, sendJoin, overrideRestrictions],
   );
 
   const handleActivate = useCallback(
@@ -108,8 +109,8 @@ const GameSelector = ({ room }: GameSelectorProps) => {
   );
 
   const canJoin =
-    Boolean(selectedGame && selectedGame.info.playerCount < selectedGame.info.maxPlayers) && !joinPending;
-  const canSpectate = Boolean(selectedGame && selectedGame.info.spectatorsAllowed) && !joinPending;
+    Boolean(selectedGame && (selectedGame.info.playerCount < selectedGame.info.maxPlayers || overrideRestrictions)) && !joinPending;
+  const canSpectate = Boolean(selectedGame && (selectedGame.info.spectatorsAllowed || overrideRestrictions)) && !joinPending;
 
   const handleCreateSubmit = (params: CreateGameParams) => {
     webClient.request.rooms.createGame(roomId, params);
