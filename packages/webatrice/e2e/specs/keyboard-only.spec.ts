@@ -1,7 +1,6 @@
-import type { Locator, Page } from '@playwright/test';
-
 import { expect, test } from '../fixtures/test';
 import { E2E_HOST_LABEL, registerAndJoinFirstRoom, registerAndReachRooms } from '../fixtures/flows';
+import { tabTo } from '../fixtures/keyboard';
 import { randomSuffix } from '../fixtures/users';
 import { GamePage, LoginPage } from '../pages';
 
@@ -9,30 +8,6 @@ import { GamePage, LoginPage } from '../pages';
 // spec walks login → room → game with the keyboard alone (Tab, arrows,
 // Enter), so a regression in any step's focusability or key handling fails
 // here. Account creation and the host's game are mouse-driven setup.
-
-// Press Tab (Shift+Tab when the target comes earlier in the document) until
-// `target` has focus, proving it is in the tab order. Never relies on
-// wrapping past the end of the page: Firefox wraps into the browser chrome.
-async function tabTo(page: Page, target: Locator, maxPresses = 60): Promise<void> {
-  await target.waitFor();
-  for (let i = 0; i < maxPresses; i++) {
-    const position = await target.evaluate((element) => {
-      const active = document.activeElement;
-      if (element === active) {
-        return 'focused';
-      }
-      if (!active || active === document.body) {
-        return 'after';
-      }
-      return active.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_PRECEDING ? 'before' : 'after';
-    });
-    if (position === 'focused') {
-      return;
-    }
-    await page.keyboard.press(position === 'before' ? 'Shift+Tab' : 'Tab');
-  }
-  throw new Error(`Tab never reached ${target}`);
-}
 
 test('log in, join a room and join a game with the keyboard only', async ({ newContext }) => {
   test.setTimeout(120_000);
