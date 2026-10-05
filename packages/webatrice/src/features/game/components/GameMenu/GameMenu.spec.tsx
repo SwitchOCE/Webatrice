@@ -22,8 +22,8 @@ function renderMenu({ activePlayerId = 1, spectator = false, conceded = false, a
     gameDialogActions: { onRotateView },
   });
   fireEvent.click(screen.getByRole('button', { name: /GameMenu.button/ }));
-  const menu = within(screen.getByTestId('game-menu'));
-  const item = (id: string) => menu.getByTestId(`game-menu-${id}`);
+  const item = (id: string) => within(screen.getByRole('menu', { name: 'GameMenu.button' }))
+    .getByRole('menuitem', { name: `GameMenu.item.${id}` });
   return { webClient, item, onRotateView };
 }
 

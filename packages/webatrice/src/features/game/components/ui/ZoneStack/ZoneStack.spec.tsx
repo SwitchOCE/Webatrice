@@ -1,4 +1,4 @@
-import { fireEvent } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
 import {
@@ -49,6 +49,36 @@ describe('ZoneStack', () => {
     fireEvent.contextMenu(pileEl('Library'));
     expect(openMenus()).toEqual([]);
     expect(menuLabels(openContextMenu(pileEl('Exile')))).toEqual(['View exile (disabled)']);
+  });
+
+  it('makes each pile a menu button named by its zone, count and top card', () => {
+    renderSeatCell(SPEC);
+    expect(screen.getByRole('button', { name: 'Graveyard, 2 cards, top: Opt' })).toBe(pileEl('Graveyard'));
+    expect(screen.getByRole('button', { name: 'Library, 40 cards' })).toHaveAttribute('aria-haspopup', 'menu');
+    expect(screen.getByRole('button', { name: 'Exile, 0 cards' })).toHaveAttribute('tabindex', '0');
+  });
+
+  it('shows another player\'s library, which opens no menu, as a labelled picture out of the tab order', () => {
+    renderSeatCell(SPEC, 2);
+    expect(screen.getByRole('img', { name: 'Library, 33 cards' })).not.toHaveAttribute('tabindex');
+  });
+
+  it.each(['Enter', ' ', 'ContextMenu'])('opens the pile menu from the keyboard (%j) and hands focus back on Escape', (key) => {
+    renderSeatCell(SPEC);
+    const grave = pileEl('Graveyard');
+    act(() => grave.focus());
+    act(() => {
+      fireEvent.keyDown(grave, { key });
+    });
+    const [menu] = openMenus();
+    expect(menu).toHaveAccessibleName('Graveyard');
+    expect(grave).toHaveAttribute('aria-expanded', 'true');
+    expect(menu).toContainElement(document.activeElement as HTMLElement);
+    act(() => {
+      fireEvent.keyDown(document.activeElement!, { key: 'Escape' });
+    });
+    expect(openMenus()).toEqual([]);
+    expect(grave).toHaveFocus();
   });
 
   it('draws a pile\'s top card from its printing, else from its exact name', () => {

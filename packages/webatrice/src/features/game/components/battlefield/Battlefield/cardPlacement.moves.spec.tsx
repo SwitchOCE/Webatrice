@@ -2,7 +2,6 @@ import { act, waitFor } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 import { CardDTO, lookupCard } from '@app/services';
-import type { ActionId } from '@app/feature-widgets/shortcuts';
 
 import { getSettings, settingsStore } from '../../../../../hooks/useSettings';
 import { renderSeatHook } from '../../../__test-utils__/seatFixtures';
@@ -108,7 +107,7 @@ describe.each(cases)('placement: $typeLine, database row $tableRow', (fixture) =
     const { result, meta, game } = setup();
     const menu = resolveHandOrZoneCardMenu({
       menu: { kind: 'hand', playerId: 1, cardId: '7', x: 0, y: 0 },
-      ownerId: 1, shortcutHints: {} as Record<ActionId, string>, canModify: true,
+      ownerId: 1, menuShortcut: () => ({ shortcut: '', keyShortcuts: '' }), canModify: true,
       revealTargets: [], handCards: [view], libraryViewCards: [], sideboardCards: [],
       handSelection: null, setHandSelection: vi.fn(), selectedCardKeys: new Set(),
       setSelectedCardKeys: vi.fn(), cardMeta: () => meta, deckSize: 0,

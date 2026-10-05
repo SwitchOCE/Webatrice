@@ -1,12 +1,10 @@
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
-import type { useShortcutHints } from '@app/feature-widgets/shortcuts';
 
-import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
+import type { ContextMenuItem, MenuShortcutFor } from '../../context-menus/ContextMenu/ContextMenu';
 import { useGameDialogsContext } from '../GameDialogsContext';
 import type { PlayerCardViewModel, PlayerZoneCommands, SeatMoveDestination } from '../PlayerBoard/playerBoard.types';
 import { toRecipient } from '../PlayerBoard/revealRecipient';
 
-type ShortcutHints = ReturnType<typeof useShortcutHints>;
 
 export interface UsePileMenusArgs {
   seatId: number;
@@ -16,7 +14,7 @@ export interface UsePileMenusArgs {
   exileDisplayList: readonly PlayerCardViewModel[];
   displayedGraveyardCount: number;
   displayedExileCount: number;
-  shortcutHints: ShortcutHints;
+  menuShortcut: MenuShortcutFor;
   zoneCommands: PlayerZoneCommands;
 }
 
@@ -32,7 +30,7 @@ export function usePileMenus({
   exileDisplayList,
   displayedGraveyardCount,
   displayedExileCount,
-  shortcutHints,
+  menuShortcut,
   zoneCommands,
 }: UsePileMenusArgs) {
   const { openZoneView } = useGameDialogsContext();
@@ -98,7 +96,7 @@ export function usePileMenus({
     {
       label: 'View graveyard',
       onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.GRAVE }),
-      shortcut: shortcutHints['game.viewGraveyard'],
+      ...menuShortcut('game.viewGraveyard'),
     },
     {
       label: 'Reveal random card to...',
@@ -152,7 +150,7 @@ export function usePileMenus({
     {
       label: 'View exile',
       onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.EXILE }),
-      shortcut: shortcutHints['game.viewExile'],
+      ...menuShortcut('game.viewExile'),
     },
     { divider: true },
     {

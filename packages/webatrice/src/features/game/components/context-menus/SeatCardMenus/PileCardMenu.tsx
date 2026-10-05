@@ -2,14 +2,13 @@ import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 
 import { makeCardKey } from '../../../utils/CardRegistry/CardRegistryContext';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
-import { CardMenuPopup } from '../CardContextMenu/CardContextMenu';
-import { type CardMenuItem } from '../CardContextMenu/cardContextMenu.model';
+import { ContextMenuPopup, type ContextMenuItem } from '../ContextMenu/ContextMenu';
 
 /**
  * Pile-view card context menu — right-click a card inside a
  * graveyard / exile zone view. View-only shape: Draw arrow /
  * Clone / Select All / Select Column, matching Cockatrice's
- * card-in-ZoneView menu. Uses the same CardMenuPopup renderer
+ * card-in-ZoneView menu. Uses the same ContextMenuPopup renderer
  * as the battlefield menu — only the item set differs.
  */
 export default function PileCardMenu() {
@@ -23,7 +22,7 @@ export default function PileCardMenu() {
     pileCardMenu,
     relatedViewItemsFor,
     startDrawArrow,
-    shortcutHints,
+    menuShortcut,
   } = usePlayerSeatContext();
 
   return (
@@ -52,7 +51,7 @@ export default function PileCardMenu() {
           ? selectedInView
           : [pileCardMenu.cardId];
         const pileCards = pileCardMenu.zone === ZoneName.GRAVE ? graveDisplayList : exileDisplayList;
-        const items: CardMenuItem[] = [
+        const items: ContextMenuItem[] = [
           {
             // "Draw arrow..." — enters pending-arrow mode with the
             // source pointing at THIS grave/exile card. The window-
@@ -62,7 +61,7 @@ export default function PileCardMenu() {
             // battlefield cards / player anchors are valid targets
             // — Cockatrice never lets you target grave/exile cards.
             label: 'Draw arrow...',
-            shortcut: shortcutHints['game.drawArrow'],
+            ...menuShortcut('game.drawArrow'),
             onClick: () => {
               if (numeric) {
                 startDrawArrow({
@@ -83,7 +82,7 @@ export default function PileCardMenu() {
             // resetCardState), so pass empties. Only wired when we
             // have a real numeric card id (mock-id no-op).
             label: 'Clone',
-            shortcut: shortcutHints['game.cloneCard'],
+            ...menuShortcut('game.cloneCard'),
             onClick: () => {
               if (numeric) {
                 for (const id of cloneIds) {
@@ -105,21 +104,21 @@ export default function PileCardMenu() {
           },
           {
             label: 'Select All',
-            shortcut: shortcutHints['game.selectAllBattlefield'],
+            ...menuShortcut('game.selectAllBattlefield'),
             onClick: () => selectPileCards(pileCardMenu.viewCardIds),
           },
           {
             label: 'Select Column',
-            shortcut: shortcutHints['game.selectColumnBattlefield'],
+            ...menuShortcut('game.selectColumnBattlefield'),
             onClick: () => selectPileCards(pileCardMenu.columnCardIds),
           },
           ...relatedViewItemsFor(pileCardMenu.cardName),
         ];
         return (
-          <CardMenuPopup
+          <ContextMenuPopup
             items={items}
             anchor={{ x: pileCardMenu.x, y: pileCardMenu.y }}
-            disabled={!numeric}
+            label={pileCardMenu.cardName}
             onClose={closeSeatCardMenu}
           />
         );

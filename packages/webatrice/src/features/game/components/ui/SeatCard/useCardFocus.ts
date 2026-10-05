@@ -23,8 +23,9 @@ export interface CardFocusOptions<C extends { id: string }> {
   /** The zone's selected cards, and the selection's replacement (never empty). */
   selectedIds: ReadonlySet<string>;
   onSelectIds: (ids: Set<string>) => void;
-  /** Enter: desktop's click-to-play (tap, untap, play), or a pending target pick. Nothing when unset. */
-  onActivate?: (card: C) => void;
+  /** Enter: desktop's click-to-play (tap, untap, play), or a pending target pick, on the card's
+   *  element. Nothing when unset. */
+  onActivate?: (card: C, element: HTMLElement) => void;
   /** Shift+F10 or the Menu key: the card's context menu, under the card. */
   onOpenMenu: (card: C, rect: DOMRect) => void;
   /** Keyboard focus came to a card of the zone (true) or left it (false): the hand expands, as on hover. */
@@ -98,6 +99,7 @@ export function useCardFocus<C extends { id: string }>({
   // A press focuses the card too; only keyboard focus drives the preview.
   const pointerFocus = useRef(false);
   const zooming = useRef(false);
+  const elements = useRef(new Map<string, HTMLElement>());
 
   const select = useCallback((key: string) => {
     anchor.current = key;
@@ -117,8 +119,9 @@ export function useCardFocus<C extends { id: string }>({
     onSelect: select,
     onActivate: (key) => {
       const card = byId.get(key);
-      if (card) {
-        onActivate?.(card);
+      const element = elements.current.get(key);
+      if (card && element) {
+        onActivate?.(card, element);
       }
     },
     orientation,
@@ -141,8 +144,10 @@ export function useCardFocus<C extends { id: string }>({
       ref: (element) => {
         row.ref(element);
         if (element) {
+          elements.current.set(card.id, element);
           registry?.register(registryKey, element);
         } else {
+          elements.current.delete(card.id);
           registry?.unregister(registryKey);
         }
       },

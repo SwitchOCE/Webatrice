@@ -87,26 +87,25 @@ function serializeMenu(menu: HTMLElement, depth = 0): string[] {
     const spans = Array.from(row.querySelectorAll('span'));
     const swatch = spans.find((s) => s.classList.contains('rounded-full'))?.style.background;
     const checked = spans.some((s) => s.textContent === '✓');
-    const hasSubmenu = spans.some((s) => s.textContent === '▶');
+    const hasSubmenu = row.getAttribute('aria-haspopup') === 'menu';
     const shortcut = spans
-      .find((s) => s.classList.contains('text-xs') && s.textContent !== '▶' && s.textContent !== '✓')
+      .find((s) => s.classList.contains('text-xs') && s.textContent !== '' && s.textContent !== '✓')
       ?.textContent?.trim();
     const parts = [
       checked ? '✓ ' : '',
       swatch ? `●${swatch} ` : '',
       label,
       shortcut ? `  ⟨${shortcut}⟩` : '',
-      row.disabled ? '  (disabled)' : '',
+      row.disabled || row.getAttribute('aria-disabled') === 'true' ? '  (disabled)' : '',
       hasSubmenu ? '  ▶' : '',
     ];
     lines.push(pad + parts.join(''));
     if (hasSubmenu) {
       act(() => {
-        fireEvent.mouseEnter(row);
+        fireEvent.click(row);
       });
-      // One flyout is open at a time and it may reuse the previous one's node,
-      // so take the newest menu that is not this one.
-      const submenu = openMenus().filter((m) => m !== menu).at(-1);
+      const controls = row.getAttribute('aria-controls');
+      const submenu = controls ? document.getElementById(controls) : null;
       if (submenu) {
         lines.push(...serializeMenu(submenu, depth + 1));
       }

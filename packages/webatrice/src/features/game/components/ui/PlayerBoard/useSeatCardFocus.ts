@@ -25,7 +25,7 @@ export function useSeatCardFocus<C extends PlayerCardViewModel>(zone: SeatSelect
     ownerOf: () => playerId,
     selectedIds,
     onSelectIds,
-    onActivate: (card) => activateCard(zone, card),
+    onActivate: (card, element) => activateCard(zone, card, element),
     onOpenMenu: (card, rect) => openCardMenuAt(zone, card, rect),
     ...options,
   });

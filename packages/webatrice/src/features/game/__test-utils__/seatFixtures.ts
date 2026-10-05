@@ -198,7 +198,7 @@ export function renderSeatCell(
 // --- Menu helpers ----------------------------------------------------------
 
 // The seat's own popups, and the shared Menu (the hand menu).
-const MENU_SELECTOR = '[data-context-menu], [data-card-context-menu], [role="menu"]';
+const MENU_SELECTOR = '[role="menu"]';
 
 /** Every currently-open seat menu popup (zone/pile menus and card menus). */
 export function openMenus(): HTMLElement[] {
@@ -258,15 +258,17 @@ export function chooseMenuPath(...labels: string[]) {
   });
 }
 
-/** Seat menus arm their outside-click/Escape listeners on a zero-delay timer;
- *  flush it, then press Escape. */
+/** Closes every open seat menu as the user does: Escape in the root menu
+ *  (which closes its submenus with it), after flushing any pending effects. */
 export async function dismissMenus() {
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
   });
-  act(() => {
-    fireEvent.keyDown(document, { key: 'Escape' });
-  });
+  for (let i = 0; i < 5 && openMenus().length > 0; i++) {
+    act(() => {
+      fireEvent.keyDown(openMenus()[0], { key: 'Escape' });
+    });
+  }
 }
 
 // --- Seat anchors ----------------------------------------------------------

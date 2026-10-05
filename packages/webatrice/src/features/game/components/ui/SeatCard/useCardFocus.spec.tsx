@@ -85,7 +85,7 @@ describe('useCardFocus', () => {
     fireEvent.keyDown(card('2'), { key: 'Enter', shiftKey: true });
     expect(onActivate).not.toHaveBeenCalled();
     fireEvent.keyDown(card('2'), { key: 'Enter' });
-    expect(onActivate).toHaveBeenCalledWith(CARDS[1]);
+    expect(onActivate).toHaveBeenCalledWith(CARDS[1], card('2'));
   });
 
   it('opens the card menu under the card on Shift+F10 and the Menu key', () => {

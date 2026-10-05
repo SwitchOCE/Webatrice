@@ -1,9 +1,11 @@
-import { useState, type KeyboardEvent } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Heart } from 'lucide-react';
+import { Heart, MoreVertical } from 'lucide-react';
 import { useAnimationPreference } from '@app/hooks';
 
-import { ManaSymbols } from '@app/components';
+import { isContextMenuKey, ManaSymbols, type MenuAnchor } from '@app/components';
+import { ContextMenuPopup } from '../../context-menus/ContextMenu/ContextMenu';
+import { usePendingTargetContext } from '../../ui/PendingTargetContext';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import { useValueFlash } from '../../ui/ValueFlash/useValueFlash';
 import ValueFlashOverlay from '../../ui/ValueFlash/ValueFlashOverlay';
@@ -125,6 +127,55 @@ function ManaPip({
   );
 }
 
+const NO_MODIFIERS = (event: KeyboardEvent) => !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
+
+/**
+ * The keyboard's way to the player menu that right-clicking the battlefield
+ * opens (desktop's Player "name" menu): a button on the player's block.
+ * Enter, Space, Shift+F10 or the Menu key open the menu below it.
+ */
+function PlayerMenuButton() {
+  const { t } = useTranslation();
+  const { isSelf, name, battlefieldMenuItems, opponentBattlefieldMenuItems } = usePlayerSeatContext();
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
+  const openBelow = (button: HTMLElement) => setAnchor({ rect: button.getBoundingClientRect(), placement: 'below', align: 'end' });
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-label={t('PlayerInfoPanel.playerMenu', { name })}
+        aria-haspopup="menu"
+        aria-expanded={anchor != null}
+        onClick={(e) => (anchor ? setAnchor(null) : openBelow(e.currentTarget))}
+        onKeyDown={(e) => {
+          if (isContextMenuKey(e)) {
+            e.preventDefault();
+            openBelow(e.currentTarget);
+          }
+        }}
+        className={[
+          'absolute top-[0.25em] right-[0.25em] z-20 rounded p-[0.15em] text-over-art-text',
+          'hover:bg-over-art-backdrop/40',
+          GAME_FOCUS_RING,
+        ].join(' ')}
+      >
+        <MoreVertical size="1em" aria-hidden />
+      </button>
+      {anchor && (
+        <ContextMenuPopup
+          items={isSelf ? battlefieldMenuItems : opponentBattlefieldMenuItems}
+          anchor={anchor}
+          label={t('PlayerBoard.playerMenu', { name })}
+          onClose={() => setAnchor(null)}
+          triggerRef={buttonRef}
+        />
+      )}
+    </>
+  );
+}
+
 /**
  * Info column — spans the seat's rows (see seatGrid). Top: full-width header + life total.
  * Bottom: mana-pool sub-column on the left + card zones on the right.
@@ -144,6 +195,10 @@ export default function PlayerInfoPanel() {
     setLife,
   } = usePlayerSeatContext();
   const { t } = useTranslation();
+  // While an arrow pick is pending every player's block takes focus and
+  // Enter, so a player can be the arrow's target from the keyboard too.
+  const { pending, pickArrowAt } = usePendingTargetContext();
+  const arrowPicking = pending?.kind === 'arrow';
   // The mana pool is one tab stop; ← and → move between its pips (a roving tab index).
   const [manaFocus, setManaFocus] = useState(0);
   // Desktop's "Life counter flash": green on a gain, red on a loss, from the
@@ -192,97 +247,107 @@ export default function PlayerInfoPanel() {
          Non-owner boxes render read-only (no cursor change, no
          click handlers): a group, named the same, around the name
          and the number. */}
-      <div
-        role={isSelf ? 'spinbutton' : 'group'}
-        tabIndex={isSelf ? 0 : undefined}
-        aria-label={t('PlayerInfoPanel.life', { name })}
-        aria-valuenow={isSelf ? life : undefined}
-        title={isSelf ? t('PlayerInfoPanel.lifeHint') : undefined}
-        onKeyDown={isSelf ? (e) => {
-          const step = counterStep(e);
-          if (step !== 0) {
-            e.preventDefault();
-            setLife((l) => l + step);
-          } else if (e.key === 'Enter' && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-            e.preventDefault();
-            openLifePrompt();
-          }
-        } : undefined}
-        // Arrow target for right-click-drag arrows aimed at a player's
-        // life total. The interactions hook hit-tests by looking for
-        // `[data-arrow-target-kind="player"]` under the pointer; the
-        // overlay resolves player-targeted committed arrows the same
-        // way. Both self and opponent pills carry these — you can
-        // point arrows at yourself in Cockatrice too.
-        data-arrow-target-kind="player"
-        data-arrow-target-player-id={playerId}
-        onClick={isSelf ? () => setLife((l) => l + 1) : undefined}
-        onContextMenu={
-          isSelf
-            ? (e) => {
+      <div className="relative">
+        <div
+          role={isSelf ? 'spinbutton' : arrowPicking ? 'button' : 'group'}
+          tabIndex={isSelf || arrowPicking ? 0 : undefined}
+          aria-label={t('PlayerInfoPanel.life', { name })}
+          aria-valuenow={isSelf ? life : undefined}
+          title={isSelf ? t('PlayerInfoPanel.lifeHint') : undefined}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && NO_MODIFIERS(e) && pickArrowAt(e.currentTarget)) {
               e.preventDefault();
-              setLife((l) => l - 1);
+              return;
             }
-            : undefined
-        }
-        className={[
-          'relative flex flex-col rounded-md overflow-hidden',
-          isSelf ? GAME_FOCUS_RING : '',
-          isSelf ? 'cursor-pointer select-none' : '',
-        ].join(' ')}
-        style={{
-          backgroundImage: seat.avatarUrl
-            ? `url(${seat.avatarUrl})`
-            : undefined,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      >
-        {!seat.avatarUrl && (
-          <>
-            <div
-              className="absolute inset-0 bg-gradient-to-br from-accent-secondary to-accent pointer-events-none"
-              aria-hidden
-            />
-            {/* Wash only over the purple fallback — keeps no-avatar
+            if (!isSelf) {
+              return;
+            }
+            const step = counterStep(e);
+            if (step !== 0) {
+              e.preventDefault();
+              setLife((l) => l + step);
+            } else if (e.key === 'Enter' && NO_MODIFIERS(e)) {
+              e.preventDefault();
+              openLifePrompt();
+            }
+          }}
+          // Arrow target for right-click-drag arrows aimed at a player's
+          // life total. The interactions hook hit-tests by looking for
+          // `[data-arrow-target-kind="player"]` under the pointer; the
+          // overlay resolves player-targeted committed arrows the same
+          // way. Both self and opponent pills carry these — you can
+          // point arrows at yourself in Cockatrice too.
+          data-arrow-target-kind="player"
+          data-arrow-target-player-id={playerId}
+          onClick={isSelf ? () => setLife((l) => l + 1) : undefined}
+          onContextMenu={
+            isSelf
+              ? (e) => {
+                e.preventDefault();
+                setLife((l) => l - 1);
+              }
+              : undefined
+          }
+          className={[
+            'relative flex flex-col rounded-md overflow-hidden',
+            isSelf ? GAME_FOCUS_RING : '',
+            isSelf ? 'cursor-pointer select-none' : '',
+          ].join(' ')}
+          style={{
+            backgroundImage: seat.avatarUrl
+              ? `url(${seat.avatarUrl})`
+              : undefined,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          {!seat.avatarUrl && (
+            <>
+              <div
+                className="absolute inset-0 bg-gradient-to-br from-accent-secondary to-accent pointer-events-none"
+                aria-hidden
+              />
+              {/* Wash only over the purple fallback — keeps no-avatar
               pills at a consistent darker tone. Avatars stay
               unfiltered so the user's picture reads clearly. */}
-            <div
-              className="absolute inset-0 bg-over-art-backdrop/50 pointer-events-none"
-              aria-hidden
-            />
-          </>
-        )}
-        {/* Name row — pinned to the top. Stacked text-shadows (soft
+              <div
+                className="absolute inset-0 bg-over-art-backdrop/50 pointer-events-none"
+                aria-hidden
+              />
+            </>
+          )}
+          {/* Name row — pinned to the top. Stacked text-shadows (soft
           halo + tight outline) give the name a dark drop shadow
           that stays readable against any avatar color without
           needing a wash over the image. */}
-        <div className="relative z-10 px-[0.5em] pt-[0.35em] pointer-events-none">
-          <span
-            className="block text-[0.875em] font-semibold text-over-art-text truncate"
-            style={{ textShadow: OVER_ART_SHADOW_NAME }}
-          >
-            {name}
-          </span>
-        </div>
-        {/* Life row — centered in the remaining space. The Heart is
+          <div className="relative z-10 px-[0.5em] pt-[0.35em] pointer-events-none">
+            <span
+              className="block text-[0.875em] font-semibold text-over-art-text truncate"
+              style={{ textShadow: OVER_ART_SHADOW_NAME }}
+            >
+              {name}
+            </span>
+          </div>
+          {/* Life row — centered in the remaining space. The Heart is
           an SVG so we use `filter: drop-shadow(...)` for its
           shadow (text-shadow only affects glyphs). */}
-        <div className="relative z-10 flex-1 flex items-center justify-start gap-[0.75em] px-[0.5em] pb-[0.25em] pointer-events-none">
-          <Heart
-            size="2.5em"
-            className="text-over-art-life"
-            style={{ filter: OVER_ART_ICON_SHADOW }}
-            aria-hidden
-          />
-          <span
-            className="text-[3em] font-modern font-bold tabular-nums text-over-art-text leading-none"
-            style={{ textShadow: OVER_ART_SHADOW_LIFE }}
-          >
-            {life}
-          </span>
+          <div className="relative z-10 flex-1 flex items-center justify-start gap-[0.75em] px-[0.5em] pb-[0.25em] pointer-events-none">
+            <Heart
+              size="2.5em"
+              className="text-over-art-life"
+              style={{ filter: OVER_ART_ICON_SHADOW }}
+              aria-hidden
+            />
+            <span
+              className="text-[3em] font-modern font-bold tabular-nums text-over-art-text leading-none"
+              style={{ textShadow: OVER_ART_SHADOW_LIFE }}
+            >
+              {life}
+            </span>
+          </div>
+          <ValueFlashOverlay flash={lifeFlash} kind="change" />
         </div>
-        <ValueFlashOverlay flash={lifeFlash} kind="change" />
+        <PlayerMenuButton />
       </div>
 
       {/* Below the life total: mana pool sits as the first item of

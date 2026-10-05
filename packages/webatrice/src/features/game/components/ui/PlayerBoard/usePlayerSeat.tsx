@@ -1,17 +1,17 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
-import { useMenuShortcut, useShortcutHints } from '@app/feature-widgets/shortcuts';
+import { useMenuShortcut } from '@app/feature-widgets/shortcuts';
 import { useBoardAnimations, usePreference } from '@app/hooks';
 
 import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
 import { useMoveTopUntil } from '../../../hooks/useMoveTopUntil';
-import { SEAT_WIRE_ZONE, useSeatSelection, type SeatSelectionZone } from '../../../hooks/useSeatSelection';
+import { useSeatSelection, type SeatSelectionZone } from '../../../hooks/useSeatSelection';
 import {
   SEAT_CARD_HEIGHT_PX as CARD_H_PX_BASE,
   SEAT_CARD_WIDTH_PX as CARD_W_PX_BASE,
 } from '../../battlefield/Battlefield/battlefieldLayout';
 import { useBattlefieldMenuItems } from '../../battlefield/Battlefield/useBattlefieldMenuItems';
-import type { CardMenuItem } from '../../context-menus/CardContextMenu/cardContextMenu.model';
+import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import { buildRelatedViewItems } from '../../context-menus/CardContextMenu/relatedCardActions';
 import { useCardPreviewActions } from '../CardPreviewContext';
 import {
@@ -149,7 +149,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
   // relation resolves once the catalog has found it; the item shows that
   // card in the sidebar's card-info pane.
   const { showCardInfo } = useCardPreviewActions();
-  const relatedViewItemsFor = (cardName: string): CardMenuItem[] =>
+  const relatedViewItemsFor = (cardName: string): ContextMenuItem[] =>
     buildRelatedViewItems(
       cardMetaByName.get(cardName)?.related ?? [],
       (name) => tokenMetaByName.get(name)?.found ?? false,
@@ -207,7 +207,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
   // stack, hand and library / sideboard view. The open menu lives in the
   // game dialog state, so it is one of the game's mutually exclusive
   // context menus; this seat renders it when it
-  // opened it, and CardMenuPopup closes it on an outside click or Escape.
+  // opened it, and the menu closes it on an outside click or Escape.
   const menuOwnerId = playerId;
   const gameSelection = useGameSelectionState();
   const seatMenu = seatCardMenu?.playerId === menuOwnerId ? seatCardMenu : null;
@@ -226,12 +226,9 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
   useHorizontalWheelScroll(handRef);
   const battlefieldDisplayList = zones.battlefield.cards;
 
-  // Reactive shortcut-hint map — updates whenever the user rebinds a
-  // shortcut in the Shortcuts tab. Consumed by every menu item that
-  // shows a `shortcut:` chip so the hint always reflects the current
-  // binding (Cockatrice desktop hardcodes; we can't since bindings
-  // are user-customizable).
-  const shortcutHints = useShortcutHints();
+  // Every menu item's shortcut hint and aria-keyshortcuts, from the current
+  // bindings, so they follow a rebinding in the Shortcuts tab (desktop's
+  // menus show its fixed defaults).
   const menuShortcut = useMenuShortcut();
 
   const { marquee, onPointerDownBox } = useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelection, clearAllSelection });
@@ -274,7 +271,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     [seatPending],
   );
   const attachExtraSourceIds = seatPending?.kind === 'attach' ? seatPending.extraSourceIds : NO_CARD_IDS;
-  const { startArrow: startPendingArrow, startAttach: startPendingAttach, pickAttachTarget, pick } = pendingTarget;
+  const { startArrow: startPendingArrow, startAttach: startPendingAttach, pickAttachTarget, pickArrowAt } = pendingTarget;
   // Any seat's pick: an attach may land on any player's battlefield card.
   const attachPicking = pendingTarget.pending?.kind === 'attach';
   /** "Draw arrow..." from one of this seat's cards in any zone, the hand included. */
@@ -375,7 +372,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     exileDisplayList,
     displayedGraveyardCount,
     displayedExileCount,
-    shortcutHints,
+    menuShortcut,
     zoneCommands,
   });
   // The library actions the library menus and the top / bottom card
@@ -398,7 +395,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     openRevealTopCardsPrompt,
     openMoveTopUntilDialog,
     onOpenDeckInEditor,
-    shortcutHints,
+    menuShortcut,
     zoneCommands,
   });
   const {
@@ -426,7 +423,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     battlefieldDisplayList,
     lastToken,
     openCreateTokenDialog,
-    shortcutHints,
+    menuShortcut,
     cardCommands,
     counterCommands,
   });
@@ -470,11 +467,21 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
 
   // Enter on a focused card: a pending target pick takes it (desktop's arrow
   // or attach release on the card); otherwise it plays or taps, as a click does.
-  const activateCard = (zone: SeatSelectionZone, card: PlayerCardViewModel & { ownerPlayerId?: number }) => {
-    if (pendingTarget.pending) {
-      pick(zone === 'battlefield'
-        ? battlefieldTarget(card)
-        : { kind: 'card', playerId, zone: SEAT_WIRE_ZONE[zone] as ZoneNameValue, cardId: Number(card.id) });
+  // An arrow takes what a click there would (arrowTargetAt: a public zone's
+  // card, never a hand card); an attach only a battlefield card, as a press
+  // does (useSeatDnd), and Enter elsewhere leaves it pending.
+  const activateCard = (
+    zone: SeatSelectionZone,
+    card: PlayerCardViewModel & { ownerPlayerId?: number },
+    element: HTMLElement,
+  ) => {
+    if (pickArrowAt(element)) {
+      return;
+    }
+    if (attachPicking) {
+      if (zone === 'battlefield') {
+        pickAttachTarget(battlefieldTarget(card));
+      }
       return;
     }
     onCardActivate(zone, card);
@@ -563,6 +570,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     isActive,
     isDragging,
     isSelf,
+    libraryMenuItems,
     libraryZoneRef,
     life,
     lifeControl,
@@ -601,7 +609,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     setCardMetaByName,
     setLife,
     setSelection,
-    shortcutHints,
+    menuShortcut,
     stackCardMenu,
     stackDisplayList,
     stackPileOptions,

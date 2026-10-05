@@ -4,9 +4,9 @@ import { useCanActFor } from '../../ui/CardVisualStateContext';
 import { EMPTY_CARD_KEYS } from '../../ui/GameSelectionContext';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import { toRecipient } from '../../ui/PlayerBoard/revealRecipient';
-import { CardMenuPopup } from '../CardContextMenu/CardContextMenu';
 import { resolveHandOrZoneCardMenu } from '../CardContextMenu/handCardMenu.actions';
 import { buildRelatedTokenItems } from '../CardContextMenu/relatedCardActions';
+import { ContextMenuPopup } from '../ContextMenu/ContextMenu';
 
 /**
  * Hand and library / sideboard zone-view card menu — desktop's
@@ -30,7 +30,7 @@ export default function HandCardMenu() {
     selection,
     startDrawArrow,
     setSelection,
-    shortcutHints,
+    menuShortcut,
     tokenMetaByName,
     zoneCommands,
     zoneViewCardMenu,
@@ -44,7 +44,7 @@ export default function HandCardMenu() {
   const menu = resolveHandOrZoneCardMenu({
     menu: handCardMenu ?? zoneViewCardMenu,
     ownerId: menuOwnerId,
-    shortcutHints,
+    menuShortcut,
     canModify,
     revealTargets,
     handCards: handDisplayList,
@@ -66,5 +66,5 @@ export default function HandCardMenu() {
       buildRelatedTokenItems(cardMetaByName.get(name)?.related ?? [], tokenMetaByName, cardCommands.createToken, annotateTokens),
     close: closeSeatCardMenu,
   });
-  return menu && <CardMenuPopup {...menu} onClose={closeSeatCardMenu} />;
+  return menu && <ContextMenuPopup {...menu} onClose={closeSeatCardMenu} />;
 }

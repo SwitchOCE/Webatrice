@@ -1,14 +1,14 @@
 import type { ActionId } from '@app/feature-widgets/shortcuts';
 
-import type { CardMenuItem } from './cardContextMenu.model';
+import type { ContextMenuItem as CardMenuItem } from '../ContextMenu/ContextMenu';
 import { buildHandOrZoneCardMenu, type BuildHandOrZoneCardMenuArgs } from './handCardMenu.model';
 
 // Every hint renders as its action id, so the tree pins which binding each row shows.
-const hints = new Proxy({}, { get: (_target, key) => `<${String(key)}>` }) as Record<ActionId, string>;
+const menuShortcut = (id: ActionId) => ({ shortcut: `<${id}>`, keyShortcuts: '' });
 
 function makeArgs(overrides: Partial<BuildHandOrZoneCardMenuArgs> = {}): BuildHandOrZoneCardMenuArgs {
   return {
-    shortcutHints: hints,
+    menuShortcut,
     source: 'hand',
     canModify: true,
     revealTargets: [{ playerId: 2, name: 'Bob' }, { playerId: 3, name: 'Cy' }],
