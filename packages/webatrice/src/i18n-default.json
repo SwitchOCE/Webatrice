@@ -1602,16 +1602,76 @@
       "O": "Other"
     }
   },
+  "PlayerListDialogs": {
+    "unknownUser": "(unknown user)",
+    "privilegeLevel": "Privilege level: {level}",
+    "close": "Close",
+    "realName": "Real name",
+    "country": "Country",
+    "accountAge": "Account age",
+    "userLevel": "User level",
+    "age": {
+      "lessThanDay": "less than a day",
+      "days": "{count, plural, one {# day} other {# days}}",
+      "months": "{count, plural, one {# month} other {# months}}",
+      "years": "{count, plural, one {# year} other {# years}}"
+    },
+    "level": {
+      "admin": "Admin",
+      "moderator": "Moderator",
+      "judge": "Judge",
+      "registered": "Registered",
+      "unregistered": "Unregistered"
+    }
+  },
   "TallyOverlay": {
     "tally": "Tally",
     "selectedCount": "{count, plural, one {# card selected} other {# cards selected}}"
+  },
+  "GameInfoDialog": {
+    "title": "Game info",
+    "close": "Close",
+    "gameName": "Game {id}",
+    "noDescription": "(no description)",
+    "none": "(none)",
+    "yes": "Yes",
+    "no": "No",
+    "players": "Players",
+    "row": {
+      "gameId": "Game ID",
+      "name": "Name",
+      "description": "Description",
+      "started": "Started",
+      "elapsed": "Elapsed",
+      "host": "Host"
+    },
+    "tag": {
+      "host": "host",
+      "spectator": "spectator",
+      "judge": "judge",
+      "you": "you"
+    }
   },
   "IncomingRevealDialog": {
     "title": "{player} reveals their {zone}",
     "titleUnknownSender": "A player reveals their {zone}"
   },
+  "MoveTopUntilDialog": {
+    "title": "Put top cards on stack until…",
+    "librarySize": "Library size: {count}",
+    "filter": "Card name (or search expressions)",
+    "hits": "Number of hits",
+    "autoPlay": "Auto play hits",
+    "cancel": "Cancel",
+    "start": "Start"
+  },
   "ZoneViewPanel": {
-    "expand": "Expand the card view"
+    "expand": "Expand the card view",
+    "close": "Close the card view",
+    "search": "Search the cards",
+    "searchPlaceholder": "Search — try t:creature, c:blue, cmc:3",
+    "shuffleOnClose": "shuffle when closing",
+    "noMatch": "No cards match the current filter."
   },
   "ZoneViewTitle": {
     "zone": "{zone} — {player}",
