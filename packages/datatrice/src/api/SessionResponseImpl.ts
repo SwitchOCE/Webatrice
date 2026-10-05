@@ -333,12 +333,13 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     responseCode: number,
     target: string,
     failure?: WebsocketTypes.CommandFailure,
+    requestId?: string,
   ): void {
-    this.store.dispatch(ServerActions.sessionCommandFailed({ command, responseCode, target, failure }));
+    this.store.dispatch(ServerActions.sessionCommandFailed({ command, responseCode, target, failure, requestId }));
   }
 
-  deckShareCreated(share: Response_DeckShareCreate): void {
-    this.store.dispatch(ServerActions.deckShareCreated({ share }));
+  deckShareCreated(share: Response_DeckShareCreate, requestId?: string): void {
+    this.store.dispatch(ServerActions.deckShareCreated({ share, requestId }));
   }
 
   deckShareListed(token: string, share: Response_DeckShareList): void {
