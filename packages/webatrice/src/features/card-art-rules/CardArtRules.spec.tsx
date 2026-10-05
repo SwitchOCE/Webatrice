@@ -140,8 +140,10 @@ describe('CardArtRules', () => {
     expect(first).toHaveAttribute('tabindex', '0');
     expect(row).toHaveAttribute('tabindex', '-1');
 
-    fireEvent.keyDown(first, { key: 'ArrowDown' });
+    act(() => row.focus());
     expect(row).toHaveFocus();
+    expect(row).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('button', { name: /button\.remove/ })).toBeDisabled();
     fireEvent.keyDown(row, { key });
     expect(row).toHaveAttribute('aria-selected', 'true');
     expect(row).toHaveAttribute('tabindex', '0');
@@ -213,4 +215,17 @@ describe('printing lookup ownership', () => {
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'CardArtRules.button.add' })));
     expect(webClient.request.moderator.addCardArtRule).toHaveBeenCalledWith('Forest', 'forest-id', 'ALLOW', '');
   });
+});
+
+it('moves focus and selection independently with ArrowDown', () => {
+  const { store } = setup();
+  act(() => store.dispatch(server.Actions.cardArtRules({ entries: [rule('Island', 'uuid-1'), rule('Forest', 'uuid-9')] })));
+  const first = screen.getByRole('row', { name: /Island/ });
+  const next = screen.getByRole('row', { name: /Forest/ });
+  act(() => first.focus());
+  fireEvent.keyDown(first, { key: 'ArrowDown' });
+  expect(next).toHaveFocus();
+  expect(next).toHaveAttribute('aria-selected', 'true');
+  expect(next).toHaveAttribute('tabindex', '0');
+  expect(first).toHaveAttribute('tabindex', '-1');
 });
