@@ -348,8 +348,8 @@ describe('Game seat shortcuts', () => {
     const remove = vi.spyOn(window, 'removeEventListener');
     const { unmount } = renderGame();
 
-    // Only the ShortcutProvider and the game-level Escape handler
-    // (useGameBoxSelection) listen; neither seat adds one.
+    // Only the ShortcutProvider and the game selection's Escape handler
+    // (useGameSelection) listen; neither seat adds one.
     const keydownAdds = add.mock.calls.filter(([type]) => type === 'keydown');
     expect(keydownAdds).toHaveLength(2);
 

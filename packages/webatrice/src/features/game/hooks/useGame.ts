@@ -11,7 +11,6 @@ import { createCardRegistry, type CardRegistry } from '../utils/CardRegistry/Car
 import { useCurrentGame, type CurrentGame } from './useCurrentGame';
 import { useGameAccess, type GameAccess } from './useGameAccess';
 import { useGameArrowInteractions, type GameArrowInteractions } from './useGameArrowInteractions';
-import { useGameBoxSelection, type BoxSelectPreview } from './useGameBoxSelection';
 import { useGameDialogs, type GameDialogs } from './useGameDialogs';
 import { useGameDnd, type GameDnd } from './useGameDnd';
 import { useJudgeTarget } from './useJudgeTarget';
@@ -31,8 +30,6 @@ export interface Game extends CurrentGame {
   seatShortcuts: SeatShortcutRegistry;
   selectedCardKeys: ReadonlySet<string>;
   setSelectedCardKeys: GameSelection['setSelectedCardKeys'];
-  handleGameMouseDown: (e: React.MouseEvent<HTMLDivElement>) => void;
-  boxSelectPreview: BoxSelectPreview | null;
   localAccess: GameAccess;
   layout: GameBoardLayout;
   /** Turns the board view one seat around the table; local only (desktop playerRotation). */
@@ -90,12 +87,6 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
     containerRef: gameRef,
     cardRegistry,
   });
-  const box = useGameBoxSelection({
-    selectedCardKeys: selection.selectedCardKeys,
-    setSelectedCardKeys: selection.setSelectedCardKeys,
-    clearSelection: selection.clearSelection,
-    pendingActive: arrows.pending,
-  });
   const dialogs = useGameDialogs({ gameId, isSpectator });
   const moveCard = useMoveCard(gameId);
   const dnd = useGameDnd({
@@ -145,8 +136,6 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
     seatShortcuts,
     selectedCardKeys: selection.selectedCardKeys,
     setSelectedCardKeys: selection.setSelectedCardKeys,
-    handleGameMouseDown: box.handleGameMouseDown,
-    boxSelectPreview: box.previewRect,
     localAccess,
     layout,
     rotateView,

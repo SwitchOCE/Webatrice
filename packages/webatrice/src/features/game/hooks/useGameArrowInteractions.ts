@@ -17,7 +17,7 @@ export interface GameArrowInteractions {
   dragPreview: ArrowDragPreview | null;
   /** The game's pending target pick, which Game provides to the seats. */
   pendingTarget: PendingTargetPicker;
-  // True while an arrow/attach is pending (used to gate box-select + clicks).
+  // True while an arrow/attach is pending.
   pending: boolean;
   handleBoardMouseDown: (e: React.MouseEvent<HTMLDivElement>) => void;
   cancelPendingOnDragStart: () => void;

@@ -11,7 +11,6 @@ import GameErrorBoundary from './GameErrorBoundary';
 import { useCurrentGame } from './hooks/useCurrentGame';
 import { usePlaymatSync } from './hooks/usePlaymatSync';
 import GameArrowOverlay from './components/arrows/GameArrowOverlay/GameArrowOverlay';
-import BoxSelectOverlay from './components/ui/BoxSelectOverlay/BoxSelectOverlay';
 import PhaseTrack from './components/PhaseTrack/PhaseTrack';
 import BattlefieldSidebar from './components/BattlefieldSidebar/BattlefieldSidebar';
 import SidebarResizer from './components/SidebarResizer/SidebarResizer';
@@ -127,8 +126,6 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
     seatShortcuts,
     selectedCardKeys,
     setSelectedCardKeys,
-    handleGameMouseDown,
-    boxSelectPreview,
     layout,
     rotateView,
     arrows,
@@ -225,7 +222,6 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                                   data-testid="game-container"
                                   data-readonly={readOnly || undefined}
                                   ref={gameRef}
-                                  onMouseDown={readOnly ? undefined : handleGameMouseDown}
                                   style={{
                                     '--sidebar-width': `${sidebarWidth}px`,
                                     '--phase-track-width': `${phaseTrackColumnWidth}px`,
@@ -290,7 +286,6 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
 
                                   <GameArrowOverlay containerRef={gameRef} layoutVersion={layout} dragPreview={arrows.dragPreview} />
 
-                                  <BoxSelectOverlay preview={boxSelectPreview} />
 
                                   {!readOnly && <DeckSelectDialog />}
 

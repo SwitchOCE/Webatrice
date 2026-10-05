@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction, useCallback, useState } from 'react';
+import { Dispatch, SetStateAction, useCallback, useEffect, useState } from 'react';
 
 import { EMPTY_SELECTION } from '../utils/selection';
 
@@ -15,6 +15,17 @@ export function useGameSelection(): GameSelection {
   const clearSelection = useCallback(() => {
     setSelectedCardKeys(EMPTY_SELECTION);
   }, []);
+
+  // Escape clears the selection, unless a MUI dialog owns the key.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !document.querySelector('.MuiDialog-root[role="dialog"]')) {
+        clearSelection();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [clearSelection]);
 
   return { selectedCardKeys, setSelectedCardKeys, clearSelection };
 }

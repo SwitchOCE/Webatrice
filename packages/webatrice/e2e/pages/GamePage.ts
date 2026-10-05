@@ -431,8 +431,8 @@ export class GamePage {
 
   // Rubber-band select every card on the local battlefield. The
   // battlefield area is `[data-battlefield-owner]`; pointerdown on
-  // empty space starts a box-select (the useGameBoxSelect hook skips
-  // when the target is a `[data-card]`). Drag corner-to-corner over
+  // empty space starts the seat's marquee (useSeatMarquee skips a press
+  // on a `[data-card]`). Drag corner-to-corner over
   // the battlefield content — use the whole battlefield rect, not the
   // per-row locator from `battlefieldRow`.
   async boxSelectBattlefield(): Promise<void> {
