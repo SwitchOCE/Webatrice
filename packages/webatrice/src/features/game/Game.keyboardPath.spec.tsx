@@ -212,7 +212,9 @@ describe('arrow targets from the keyboard', () => {
     key(bob, { key: 'Enter' });
     expect(game.createArrow).toHaveBeenCalledTimes(1);
     expect(vi.mocked(game.createArrow).mock.calls[0][1]).toMatchObject({ startCardId: OGRE.id, targetPlayerId: 2 });
+    // Bob's block leaves the tab order again; focus goes back to the arrow's card.
     expect(screen.getByRole('group', { name: 'Bob\'s life' })).toBeInTheDocument();
+    expect(cardEl(OGRE.id, 'battlefield')).toHaveFocus();
   });
 
   it('draws an arrow to a card picked in a graveyard view', () => {

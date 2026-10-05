@@ -6,6 +6,7 @@ import { useAnimationPreference } from '@app/hooks';
 import { isContextMenuKey, ManaSymbols, type MenuAnchor } from '@app/components';
 import { ContextMenuPopup } from '../../context-menus/ContextMenu/ContextMenu';
 import { usePendingTargetContext } from '../../ui/PendingTargetContext';
+import { makeCardKey, useCardRegistry } from '../../../utils/CardRegistry/CardRegistryContext';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import { useValueFlash } from '../../ui/ValueFlash/useValueFlash';
 import ValueFlashOverlay from '../../ui/ValueFlash/ValueFlashOverlay';
@@ -199,6 +200,7 @@ export default function PlayerInfoPanel() {
   // Enter, so a player can be the arrow's target from the keyboard too.
   const { pending, pickArrowAt } = usePendingTargetContext();
   const arrowPicking = pending?.kind === 'arrow';
+  const registry = useCardRegistry();
   // The mana pool is one tab stop; ← and → move between its pips (a roving tab index).
   const [manaFocus, setManaFocus] = useState(0);
   // Desktop's "Life counter flash": green on a gain, red on a loss, from the
@@ -255,8 +257,15 @@ export default function PlayerInfoPanel() {
           aria-valuenow={isSelf ? life : undefined}
           title={isSelf ? t('PlayerInfoPanel.lifeHint') : undefined}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && NO_MODIFIERS(e) && pickArrowAt(e.currentTarget)) {
+            if (e.key === 'Enter' && NO_MODIFIERS(e) && pending?.kind === 'arrow') {
               e.preventDefault();
+              const { source } = pending;
+              pickArrowAt(e.currentTarget);
+              // Another player's block leaves the tab order with the pick, so
+              // focus goes back to the card the arrow came from.
+              if (!isSelf) {
+                registry?.get(makeCardKey(source.playerId, source.zone, source.cardId))?.focus();
+              }
               return;
             }
             if (!isSelf) {

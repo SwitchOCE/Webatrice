@@ -168,12 +168,7 @@ export function useGridRows({
   // React detaches and reattaches every row's ref on a re-render too, so the
   // row only left if its element is out of the document once the commit is done,
   // and its key is gone (a key still listed only scrolled out of the window).
-  const detachedFocus = useRef<{
-    key: string;
-    element: HTMLElement;
-    successors: readonly string[];
-    fallback: HTMLElement | null | undefined;
-  } | null>(null);
+  const detachedFocus = useRef<{ key: string; element: HTMLElement; successors: readonly string[] } | null>(null);
   useLayoutEffect(() => {
     const detached = detachedFocus.current;
     detachedFocus.current = null;
@@ -181,8 +176,6 @@ export function useGridRows({
       const successor = detached.successors.find((k) => elements.current.has(k));
       if (successor != null) {
         requestFocus(successor);
-      } else if (detached.fallback?.isConnected) {
-        detached.fallback.focus();
       }
     }
   });
@@ -220,8 +213,19 @@ export function useGridRows({
           key,
           element: removed,
           successors: [...keys.slice(index + 1), ...keys.slice(0, index).reverse()],
-          fallback: typeof keepFocusOnRemoval === 'function' ? keepFocusOnRemoval(removed) : null,
         };
+        // With no row left to take focus, or the whole list gone with this
+        // component, focus would drop to the page. Once the commit is done,
+        // hand it to the caller's fallback instead, unless a row took it.
+        const fallback = typeof keepFocusOnRemoval === 'function' ? keepFocusOnRemoval(removed) : null;
+        if (fallback) {
+          queueMicrotask(() => {
+            const active = document.activeElement;
+            if (!removed.isConnected && (active == null || active === document.body) && fallback.isConnected) {
+              fallback.focus();
+            }
+          });
+        }
       }
     },
     tabIndex: key === tabStop ? 0 : -1,
