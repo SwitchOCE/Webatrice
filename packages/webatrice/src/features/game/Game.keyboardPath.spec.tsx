@@ -464,6 +464,39 @@ describe('moving cards from the keyboard (M, aud.md G3)', () => {
       .toEqual([[FOREST.id, 3], [ISLAND.id, 3]]);
   });
 
+  it.each([
+    ['View top cards of library...', /^view top cards of library$/i, false, [0, 1, 2]],
+    ['View bottom cards of library...', /^view bottom cards of library$/i, true, [37, 38, 39]],
+  ] as const)('moves a card of a %s view from the keyboard, by its deck position', (item, prompt, isReversed, positions) => {
+    const { game, store } = renderGameWithStore();
+    openContextMenu(pileEl('Library'));
+    chooseMenuPath(item);
+    const countPrompt = screen.getByRole('dialog', { name: prompt });
+    fireEvent.change(within(countPrompt).getByRole('spinbutton'), { target: { value: '3' } });
+    act(() => {
+      fireEvent.click(within(countPrompt).getByRole('button', { name: 'View' }));
+    });
+    act(() => {
+      store.dispatch(games.Actions.zoneViewRevealed({
+        gameId: 1,
+        playerId: 1,
+        zoneName: ZoneName.DECK,
+        cards: ['Alpha', 'Beta', 'Gamma'].map((name, i) => makeCard({ id: positions[i], name })),
+        isReversed,
+      }));
+    });
+    const beta = screen.getByRole('option', { name: 'Beta' });
+    focus(beta);
+    key(beta, { key: 'm' });
+    expect(layer(moveDialog())).toBeGreaterThan(layer(beta));
+    choose('To', 'graveyard');
+    submit();
+    expect(game.moveCard).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
+      startPlayerId: 1, startZone: ZoneName.DECK, cardsToMove: { card: [{ cardId: positions[1] }] }, targetZone: ZoneName.GRAVE,
+    });
+  });
+
   it('opens nothing on a card the player may not move', () => {
     renderGame();
     const bear = cardEl(BEAR.id, 'battlefield');

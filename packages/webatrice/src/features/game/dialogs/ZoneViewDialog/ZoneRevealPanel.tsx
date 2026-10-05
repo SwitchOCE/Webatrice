@@ -1,4 +1,4 @@
-import type { PointerEvent as ReactPointerEvent, Ref } from 'react';
+import type { HTMLAttributes, PointerEvent as ReactPointerEvent, Ref } from 'react';
 import { createPortal } from 'react-dom';
 import { setRef } from '@mui/material/utils';
 import { X } from 'lucide-react';
@@ -54,6 +54,9 @@ export interface ZoneRevealPanelProps {
   /** IDs of cards currently mid-drag from the dialog. Rendered at
    *  opacity 0 so the drag ghost is the only visible copy. */
   draggingCardIds?: Set<string>;
+  /** Each card's keyboard props (useCardFocus): the row becomes a listbox
+   *  of focusable cards. */
+  cardInteraction?: (card: HandCard) => HTMLAttributes<HTMLDivElement> & { ref?: (element: HTMLElement | null) => void };
   /** Called when the dialog closes (X button or footer Close; the game's
    *  Esc closes the most recent view). */
   onClose: () => void;
@@ -73,6 +76,7 @@ export default function ZoneRevealPanel({
   onCardPointerDown,
   dropRef,
   draggingCardIds,
+  cardInteraction,
   onClose,
 }: ZoneRevealPanelProps) {
   const { panelRef, panelStyle, dragging, onHeaderPointerDown } = useFloatingPanelGeometry({
@@ -138,7 +142,13 @@ export default function ZoneRevealPanel({
               No cards to show.
             </div>
           ) : (
-            <div className="flex flex-wrap gap-3">
+            <div
+              className="flex flex-wrap gap-3"
+              role={cardInteraction ? 'listbox' : undefined}
+              aria-label={cardInteraction ? title : undefined}
+              aria-orientation={cardInteraction ? 'horizontal' : undefined}
+              aria-multiselectable={cardInteraction ? true : undefined}
+            >
               {cards.map((c, i) => {
                 const label = labels?.[i];
                 return (
@@ -151,6 +161,7 @@ export default function ZoneRevealPanel({
                       card={c}
                       marked
                       hidden={draggingCardIds?.has(c.id)}
+                      interaction={cardInteraction?.(c)}
                       onPointerDown={onCardPointerDown && ((e) => onCardPointerDown(e, c))}
                       className="board-motion transition-opacity duration-100 ease-out"
                     />
