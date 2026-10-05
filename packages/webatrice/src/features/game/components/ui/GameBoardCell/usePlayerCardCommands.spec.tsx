@@ -34,14 +34,14 @@ describe('usePlayerCardCommands', () => {
     expect(card(11).pt).toBe('3/3');
   });
 
-  it('untaps an opponent seat\'s card through that seat\'s zone', () => {
+  it('wraps a judge tap for the opponent seat while updating that owner optimistically', () => {
     const { commands, card, game } = renderCards(2, false);
     act(() => commands().setTapped([20], false));
     expect(card(20).tapped).toBe(false);
     expect(game.setCardAttr).toHaveBeenCalledWith(
       1,
       { zone: ZoneName.TABLE, cardId: 20, attribute: CardAttribute.AttrTapped, attrValue: '0' },
-      undefined,
+      2,
       { onError: expect.any(Function) },
     );
   });
