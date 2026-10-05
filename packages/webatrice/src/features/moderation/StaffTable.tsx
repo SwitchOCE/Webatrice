@@ -12,18 +12,19 @@ export interface StaffTableRow {
 }
 
 interface StaffTableProps {
+  label: string;
   columns: string[];
   rows: StaffTableRow[];
   loading?: boolean;
 }
 
 /** Read-only result table, one per desktop QTableWidget on the Moderation tab. */
-const StaffTable = ({ columns, rows, loading = false }: StaffTableProps) => {
+const StaffTable = ({ label, columns, rows, loading = false }: StaffTableProps) => {
   const { t } = useTranslation();
 
   return (
     <div className="moderation__table">
-      <Table size="small" stickyHeader>
+      <Table size="small" stickyHeader aria-label={label}>
         <TableHead>
           <TableRow>
             {columns.map((label) => <TableCell key={label}>{label}</TableCell>)}

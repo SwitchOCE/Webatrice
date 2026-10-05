@@ -119,17 +119,27 @@ const ModerationContent = () => {
 
       <Paper component="section" className="moderation__group" aria-label={t('ModerationPage.alts.title')}>
         <h2 className="moderation__title">{t('ModerationPage.alts.title')}</h2>
-        <StaffTable columns={altsColumns} rows={altsRows} loading={Boolean(currentUser) && pending.alts} />
+        <StaffTable
+          label={t('ModerationPage.alts.title')}
+          columns={altsColumns}
+          rows={altsRows}
+          loading={Boolean(currentUser) && pending.alts}
+        />
       </Paper>
 
       <Paper component="section" className="moderation__group" aria-label={t('ModerationPage.sessions.title')}>
         <h2 className="moderation__title">{t('ModerationPage.sessions.title')}</h2>
-        <StaffTable columns={sessionsColumns} rows={sessionsRows} loading={Boolean(currentUser) && pending.sessions} />
+        <StaffTable
+          label={t('ModerationPage.sessions.title')}
+          columns={sessionsColumns}
+          rows={sessionsRows}
+          loading={Boolean(currentUser) && pending.sessions}
+        />
       </Paper>
 
       <Paper component="section" className="moderation__group" aria-label={t('ModerationPage.staff.title')}>
         <h2 className="moderation__title">{t('ModerationPage.staff.title')}</h2>
-        <StaffTable columns={staffColumns} rows={staffRows} />
+        <StaffTable label={t('ModerationPage.staff.title')} columns={staffColumns} rows={staffRows} />
         <div className="moderation__refresh">
           <Button size="small" onClick={moderation.refreshStaffLogins}>{t('ModerationPage.staff.refresh')}</Button>
         </div>
