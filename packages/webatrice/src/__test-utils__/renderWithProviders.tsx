@@ -53,6 +53,8 @@ import battlefieldSidebarText from '../features/game/components/BattlefieldSideb
 import seatCardLabels from '../features/game/components/ui/SeatCard/SeatCard.i18n.json';
 import zoneStackLabels from '../features/game/components/ui/ZoneStack/ZoneStack.i18n.json';
 import pendingTargetText from '../features/game/components/ui/PendingTargetAnnouncer/PendingTargetAnnouncer.i18n.json';
+import gameLogText from '../features/game/components/ChatLog/formatLogDescriptor.i18n.json';
+import gamePhaseText from '../features/game/components/PhaseTrack/phaseLabels.i18n.json';
 
 // The game's pending target pick, as Game provides it, for seats rendered
 // without Game.
@@ -131,6 +133,8 @@ testI18n.use(ICU).use(initReactI18next).init({
         ...seatCardLabels,
         ...zoneStackLabels,
         ...pendingTargetText,
+        ...gameLogText,
+        ...gamePhaseText,
         ...moveTopUntilText,
         ...handZoneText,
         ...battlefieldSidebarText,
