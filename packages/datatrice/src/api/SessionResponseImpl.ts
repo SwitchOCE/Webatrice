@@ -340,8 +340,8 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.sessionCommandFailed({ command, responseCode, target, failure, requestId }));
   }
 
-  deckShareCreated(share: Response_DeckShareCreate): void {
-    this.store.dispatch(ServerActions.deckShareCreated({ share }));
+  deckShareCreated(share: Response_DeckShareCreate, requestId?: string): void {
+    this.store.dispatch(ServerActions.deckShareCreated({ share, requestId }));
   }
 
   deckShareListed(token: string, share: Response_DeckShareList): void {

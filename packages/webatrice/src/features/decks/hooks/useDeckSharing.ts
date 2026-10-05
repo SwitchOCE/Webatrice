@@ -1,11 +1,11 @@
-import { useCallback, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { server, ServerCapability } from '@cockatrice/datatrice';
 import type { SessionCommandFailedPayload } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { DeckSetVisibilityParams, DeckShareCreateParams, Response_DeckShareCreate } from '@cockatrice/sockatrice/generated';
-import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
+import { useCommandFailureMessage, useReduxEffect, useRequestTracker } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 import { useKnownHosts } from '@app/feature-widgets/known-hosts';
 
@@ -63,40 +63,39 @@ export function useDeckShareCreate() {
   const describeFailure = useCommandFailureMessage();
   const shareServer = useShareServer();
   const [state, setState] = useState<DeckShareCreateState>({ status: 'idle' });
-  const pendingRef = useRef(false);
+  const requests = useRequestTracker();
+  // The server the in-flight link will name, as it was when the user asked.
+  const requestServer = useRef<NonNullable<typeof shareServer> | null>(null);
 
-  const finish = useCallback(async (share: Response_DeckShareCreate) => {
-    if (!shareServer) {
-      setState({ status: 'failed', message: t('DeckSharing.noServer') });
+  useReduxEffect<{ share: Response_DeckShareCreate; requestId?: string }>(({ payload: { share, requestId } }) => {
+    const linkServer = requestServer.current;
+    if (!requests.isCurrent(requestId) || !linkServer) {
       return;
     }
-    const link = buildDeckShareLink(window.location.href, { token: share.token, ...shareServer });
+    const link = buildDeckShareLink(window.location.href, { token: share.token, ...linkServer });
     setState({ status: 'created', link, expiresAt: share.expiresAt, itemCount: share.itemCount, copied: false });
-    const copied = await copyShareLink(link);
-    setState((current) => (current.status === 'created' && current.link === link ? { ...current, copied } : current));
-  }, [shareServer, t]);
+    void copyShareLink(link).then((copied) => {
+      if (!requests.isCurrent(requestId)) {
+        return;
+      }
+      requests.cancel();
+      setState((current) => (current.status === 'created' && current.link === link ? { ...current, copied } : current));
+    });
+  }, server.Types.DECK_SHARE_CREATED, [requests]);
 
-  useReduxEffect<{ share: Response_DeckShareCreate }>(({ payload: { share } }) => {
-    if (!pendingRef.current) {
+  useReduxEffect<SessionCommandFailedPayload>(({ payload: { command, responseCode, failure, requestId } }) => {
+    if (command !== 'deckShareCreate' || !requests.isCurrent(requestId)) {
       return;
     }
-    pendingRef.current = false;
-    void finish(share);
-  }, server.Types.DECK_SHARE_CREATED, [finish]);
-
-  useReduxEffect<SessionCommandFailedPayload>(({ payload: { command, responseCode, failure } }) => {
-    if (command !== 'deckShareCreate' || !pendingRef.current) {
-      return;
-    }
-    pendingRef.current = false;
+    requests.cancel();
     setState({
       status: 'failed',
       message: describeFailure(failure, t('DeckSharing.createFailed', { code: responseCode })),
     });
-  }, server.Types.SESSION_COMMAND_FAILED, [describeFailure, t]);
+  }, server.Types.SESSION_COMMAND_FAILED, [requests, describeFailure, t]);
 
   const create = (params: DeckShareCreateParams) => {
-    if (pendingRef.current) {
+    if (state.status === 'pending') {
       return;
     }
     // A link has to name its server; one without could never be opened.
@@ -104,13 +103,13 @@ export function useDeckShareCreate() {
       setState({ status: 'failed', message: t('DeckSharing.noServer') });
       return;
     }
-    pendingRef.current = true;
+    requestServer.current = shareServer;
     setState({ status: 'pending' });
-    webClient.request.session.deckShareCreate(params);
+    webClient.request.session.deckShareCreate(params, requests.begin());
   };
 
   const reset = () => {
-    pendingRef.current = false;
+    requests.cancel();
     setState({ status: 'idle' });
   };
 

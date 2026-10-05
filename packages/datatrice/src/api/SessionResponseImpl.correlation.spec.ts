@@ -1,9 +1,10 @@
 import { create } from '@bufbuild/protobuf';
 import type { Store } from '@reduxjs/toolkit';
-import { Response_DeckDownloadSchema } from '@cockatrice/sockatrice/generated';
+import { Response_DeckDownloadSchema, Response_DeckShareCreateSchema } from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { SessionResponseImpl } from './SessionResponseImpl';
 import { RoomResponseImpl } from './RoomResponseImpl';
+import { createStore } from '../store/createStore';
 import { serverReducer } from '../store/server/server.reducer';
 import { Actions } from '../store/server/server.actions';
 import { roomsReducer } from '../store/rooms/rooms.reducer';
@@ -55,4 +56,18 @@ it('retains the join failure reason while settling pending state for UI translat
   const state = roomsReducer(undefined, action);
   expect(state.joinGamePending).toBe(false);
   expect(state.joinGameError).toEqual(action.payload);
+});
+
+it('carries share creation identities through success and failure actions', () => {
+  const store = createStore();
+  const dispatch = vi.spyOn(store, 'dispatch');
+  const response = new SessionResponseImpl(store);
+  response.deckShareCreated(create(Response_DeckShareCreateSchema, { token: 'secret' }), 'create-b');
+  expect(dispatch).toHaveBeenLastCalledWith(expect.objectContaining({
+    payload: expect.objectContaining({ requestId: 'create-b' }),
+  }));
+  response.commandFailed('deckShareCreate', 7, '', WebsocketTypes.CommandFailure.Timeout, 'create-a');
+  expect(dispatch).toHaveBeenLastCalledWith(expect.objectContaining({
+    payload: expect.objectContaining({ requestId: 'create-a', failure: WebsocketTypes.CommandFailure.Timeout }),
+  }));
 });

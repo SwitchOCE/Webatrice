@@ -152,7 +152,7 @@ export interface ISessionResponse {
   // refused query reaches the scope's optional commandFailed instead.
 
   /** Deck share links (#7241). */
-  deckShareCreated?(response: Response_DeckShareCreate): void;
+  deckShareCreated?(response: Response_DeckShareCreate, requestId?: RequestId): void;
   deckShareListed?(token: string, response: Response_DeckShareList): void;
   deckShareDownloaded?(token: string, itemId: number, deck: string): void;
   deckSharesMine?(shares: ServerInfo_DeckShareSummary[]): void;

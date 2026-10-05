@@ -95,7 +95,7 @@ describe('Decks sharing (Servatrice 3.1)', () => {
     await waitFor(() => expect(webClient.request.session.deckShareCreate).toHaveBeenCalledWith({
       name: 'DeckSharing.defaultDecksName',
       items: [{ deckId: 3 }],
-    }));
+    }, expect.any(String)));
   });
 
   it('drops a share answered after the dialog was cancelled: nothing is copied', async () => {
@@ -108,7 +108,10 @@ describe('Decks sharing (Servatrice 3.1)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'DeckSharing.cancel' }));
 
     await act(async () => {
-      store.dispatch(server.Actions.deckShareCreated({ share: create(Response_DeckShareCreateSchema, { token: 'late' }) }));
+      store.dispatch(server.Actions.deckShareCreated({
+        requestId: vi.mocked(webClient.request.session.deckShareCreate).mock.calls.at(-1)![1],
+        share: create(Response_DeckShareCreateSchema, { token: 'late' }),
+      }));
     });
     expect(writeText).not.toHaveBeenCalled();
   });
@@ -120,7 +123,7 @@ describe('Decks sharing (Servatrice 3.1)', () => {
     await waitFor(() => expect(webClient.request.session.deckShareCreate).toHaveBeenCalledWith({
       name: 'DeckSharing.defaultDecksName',
       folderPath: 'Cube',
-    }));
+    }, expect.any(String)));
   });
 
   it('publishes and unpublishes, and reports a rejected change', () => {

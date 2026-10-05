@@ -18,11 +18,15 @@ function Probe() {
   return null;
 }
 
+let activeClient: ReturnType<typeof createMockWebClient>;
+const requestId = () => vi.mocked(activeClient.request.session.deckShareCreate).mock.calls.at(-1)?.[1];
+
 function setup(preloadedState = connected31State, endpoint: string | null = 'wss://server.example:4748/') {
   const webClient = createMockWebClient();
+  activeClient = webClient;
   Object.assign(webClient, { socket: { connectedEndpoint: endpoint } });
-  const { store } = renderWithProviders(<Probe />, { preloadedState, webClient });
-  return { webClient, store };
+  const { store, unmount } = renderWithProviders(<Probe />, { preloadedState, webClient });
+  return { webClient, store, unmount };
 }
 
 const writeText = vi.fn();
@@ -44,12 +48,14 @@ describe('useDeckShareCreate', () => {
   it('sends the share, then builds the link to this page and copies it', async () => {
     const { webClient, store } = setup();
     act(() => create$.create({ name: 'Shared decks', folderPath: 'Cube' }));
-    expect(webClient.request.session.deckShareCreate).toHaveBeenCalledWith({ name: 'Shared decks', folderPath: 'Cube' });
+    expect(webClient.request.session.deckShareCreate).toHaveBeenCalledWith(
+      { name: 'Shared decks', folderPath: 'Cube' }, expect.any(String),
+    );
     expect(create$.state).toEqual({ status: 'pending' });
 
     const share = create(Response_DeckShareCreateSchema, { token: 'tok', expiresAt: 1800000000n, itemCount: 3 });
     await act(async () => {
-      store.dispatch(server.Actions.deckShareCreated({ share }));
+      store.dispatch(server.Actions.deckShareCreated({ requestId: requestId(), share }));
     });
     const link = new URL(window.location.href);
     link.search = '';
@@ -65,7 +71,9 @@ describe('useDeckShareCreate', () => {
     const { store } = setup();
     act(() => create$.create({ name: 'x', items: [{ deckId: 1 }] }));
     await act(async () => {
-      store.dispatch(server.Actions.deckShareCreated({ share: create(Response_DeckShareCreateSchema, { token: 't' }) }));
+      store.dispatch(server.Actions.deckShareCreated({
+        requestId: requestId(), share: create(Response_DeckShareCreateSchema, { token: 't' }),
+      }));
     });
     expect(create$.state).toMatchObject({ status: 'created', copied: false });
   });
@@ -82,7 +90,9 @@ describe('useDeckShareCreate', () => {
     act(() => create$.create({ name: 'x', items: [{ deckId: 1 }] }));
     act(() => create$.reset());
     await act(async () => {
-      store.dispatch(server.Actions.deckShareCreated({ share: create(Response_DeckShareCreateSchema, { token: 't' }) }));
+      store.dispatch(server.Actions.deckShareCreated({
+        requestId: requestId(), share: create(Response_DeckShareCreateSchema, { token: 't' }),
+      }));
     });
     expect(create$.state).toEqual({ status: 'idle' });
     expect(writeText).not.toHaveBeenCalled();
@@ -91,7 +101,9 @@ describe('useDeckShareCreate', () => {
   it('ignores a share it did not ask for', () => {
     const { store } = setup();
     act(() => {
-      store.dispatch(server.Actions.deckShareCreated({ share: create(Response_DeckShareCreateSchema, { token: 't' }) }));
+      store.dispatch(server.Actions.deckShareCreated({
+        requestId: requestId(), share: create(Response_DeckShareCreateSchema, { token: 't' }),
+      }));
     });
     expect(create$.state).toEqual({ status: 'idle' });
   });
@@ -100,18 +112,59 @@ describe('useDeckShareCreate', () => {
     const { store } = setup();
     act(() => create$.create({ name: 'x', items: [{ deckId: 1 }] }));
     act(() => {
-      store.dispatch(server.Actions.sessionCommandFailed({ command: 'deckShareCreate', target: '', responseCode: 11 }));
+      store.dispatch(server.Actions.sessionCommandFailed({
+        requestId: requestId(), command: 'deckShareCreate', target: '', responseCode: 11,
+      }));
     });
     expect(create$.state).toEqual({ status: 'failed', message: 'DeckSharing.createFailed' });
 
     act(() => create$.create({ name: 'x', items: [{ deckId: 1 }] }));
     act(() => {
       store.dispatch(server.Actions.sessionCommandFailed({
-        command: 'deckShareCreate', target: '', responseCode: -1, failure: WebsocketTypes.CommandFailure.Timeout,
+        requestId: requestId(), command: 'deckShareCreate', target: '', responseCode: -1, failure: WebsocketTypes.CommandFailure.Timeout,
       }));
     });
     expect(create$.state).toMatchObject({ status: 'failed' });
     expect(create$.state).not.toEqual({ status: 'failed', message: 'DeckSharing.createFailed' });
+  });
+
+  it.each(['success', 'failure'] as const)('ignores a late %s after cancel and create again', async (outcome) => {
+    const { store } = setup();
+    act(() => create$.create({ name: 'A' }));
+    const firstId = requestId();
+    act(() => create$.reset());
+    act(() => create$.create({ name: 'B' }));
+    const secondId = requestId();
+    await act(async () => {
+      store.dispatch(outcome === 'success'
+        ? server.Actions.deckShareCreated({ requestId: firstId, share: create(Response_DeckShareCreateSchema, { token: 'old' }) })
+        : server.Actions.sessionCommandFailed({ requestId: firstId, command: 'deckShareCreate', target: '', responseCode: 7 }));
+    });
+    expect(create$.state).toEqual({ status: 'pending' });
+    expect(writeText).not.toHaveBeenCalled();
+    expect(firstId).toEqual(expect.any(String));
+    expect(secondId).not.toBe(firstId);
+    await act(async () => {
+      store.dispatch(server.Actions.deckShareCreated({
+        requestId: secondId, share: create(Response_DeckShareCreateSchema, { token: 'new' }),
+      }));
+    });
+    expect(create$.state).toMatchObject({ status: 'created' });
+    expect(writeText).toHaveBeenCalledTimes(1);
+    expect(writeText.mock.calls[0][0]).toContain('share=new');
+  });
+
+  it('invalidates the request on unmount', async () => {
+    const { store, unmount } = setup();
+    act(() => create$.create({ name: 'A' }));
+    const oldId = requestId();
+    unmount();
+    await act(async () => {
+      store.dispatch(server.Actions.deckShareCreated({
+        requestId: oldId, share: create(Response_DeckShareCreateSchema, { token: 'old' }),
+      }));
+    });
+    expect(writeText).not.toHaveBeenCalled();
   });
 
   it('sends one request at a time', () => {
