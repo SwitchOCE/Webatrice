@@ -137,6 +137,22 @@ describe('useReplayPlayback', () => {
     expect(webClient.loadReplayGame).toHaveBeenCalledTimes(3);
   });
 
+  it('updates fast-forward speed and empty-section skipping when preferences change', async () => {
+    const { result } = setup(open().opened);
+    act(() => result.current.toggleFastForward());
+
+    await act(async () => {
+      const settings = await getSettings();
+      settings.replayFastForwardSpeed = 5;
+      settings.replaySkipEmptySections = true;
+      settingsStore.setValue(settings);
+    });
+
+    expect(result.current.fastForwardSpeed).toBe(5);
+    expect(result.current.state.timeScaleFactor).toBe(5);
+    expect(result.current.state.skipEmptySections).toBe(true);
+  });
+
   it('is idle without an opened replay', () => {
     const { result } = setup(undefined);
 
