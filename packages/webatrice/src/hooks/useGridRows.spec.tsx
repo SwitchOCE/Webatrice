@@ -184,6 +184,23 @@ describe('useGridRows', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
+  it('moves focus alone with Ctrl and a navigation key only when asked to', () => {
+    const onSelect = vi.fn();
+    const { unmount } = render(<Grid onSelect={onSelect} />);
+    act(() => screen.getByTestId('a').focus());
+    fireEvent.keyDown(screen.getByTestId('a'), { key: 'ArrowDown', ctrlKey: true });
+    expect(screen.getByTestId('a')).toHaveFocus();
+    unmount();
+
+    render(<Grid onSelect={onSelect} focusOnlyWithCtrl />);
+    act(() => screen.getByTestId('a').focus());
+    fireEvent.keyDown(screen.getByTestId('a'), { key: 'ArrowDown', ctrlKey: true });
+    expect(screen.getByTestId('b')).toHaveFocus();
+    fireEvent.keyDown(screen.getByTestId('b'), { key: 'End', ctrlKey: true });
+    expect(screen.getByTestId('c')).toHaveFocus();
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
   it('hands focus to the next row when the focused row leaves, or the previous at the end', () => {
     function Shrinking({ keep }: { keep: boolean }) {
       const [keys, setKeys] = useState(['a', 'b', 'c']);

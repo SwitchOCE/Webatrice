@@ -44,6 +44,13 @@ export interface GridRowsOptions {
    * still in the document.
    */
   keepFocusOnRemoval?: boolean | ((removed: HTMLElement) => HTMLElement | null | undefined);
+  /**
+   * Multi-selection lists: Ctrl (or Cmd) with a navigation key moves focus
+   * without touching the selection, the listbox pattern for picking rows
+   * with gaps between them (Space then marks the focused row). Off, a
+   * modified key is left alone.
+   */
+  focusOnlyWithCtrl?: boolean;
 }
 
 /** The window a virtualized list renders, as react-window's `onRowsRendered` reports it. */
@@ -120,6 +127,7 @@ export function useGridRows({
   lines,
   onExtend,
   keepFocusOnRemoval = false,
+  focusOnlyWithCtrl = false,
 }: GridRowsOptions) {
   const elements = useRef(new Map<string, HTMLElement>());
   // The row a keyboard move is waiting to focus. In a virtualized list the
@@ -213,7 +221,11 @@ export function useGridRows({
     },
     tabIndex: key === tabStop ? 0 : -1,
     onKeyDown: (event) => {
-      if (event.target !== event.currentTarget || event.altKey || event.ctrlKey || event.metaKey) {
+      if (event.target !== event.currentTarget || event.altKey) {
+        return;
+      }
+      const focusOnly = focusOnlyWithCtrl && (event.ctrlKey || event.metaKey) && !event.shiftKey;
+      if ((event.ctrlKey || event.metaKey) && !focusOnly) {
         return;
       }
       const index = keys.indexOf(key);
@@ -223,6 +235,15 @@ export function useGridRows({
           const target = navigationTarget(event.key, index < 0 ? null : index, keys.length, orientation);
           return target === null ? null : keys[target];
         })();
+      if (focusOnly) {
+        if (targetKey != null) {
+          event.preventDefault();
+          if (targetKey !== key) {
+            requestFocus(targetKey);
+          }
+        }
+        return;
+      }
       if (targetKey != null) {
         const extend = event.shiftKey && onExtend != null;
         // Home/End always select, like Qt's current-item moves; the arrows
