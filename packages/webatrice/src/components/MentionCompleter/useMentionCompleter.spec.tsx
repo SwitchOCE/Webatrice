@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useRef, useState } from 'react';
 
 import { getSettings, settingsStore } from '../../hooks/useSettings';
@@ -83,8 +84,10 @@ describe('useMentionCompleter', () => {
     type('hi @al');
 
     press('ArrowDown');
-    press('Enter');
+    const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true });
+    fireEvent(screen.getByRole('combobox'), enter);
 
+    expect(enter.defaultPrevented).toBe(true);
     expect(screen.getByRole('combobox')).toHaveValue('hi @albert ');
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
@@ -146,12 +149,15 @@ describe('useMentionCompleter', () => {
     document.removeEventListener('keydown', onPageKey);
   });
 
-  it('sends with Enter when nothing matches', () => {
+  it('sends with Enter when nothing matches', async () => {
+    const user = userEvent.setup();
     render(<ChatInput names={NAMES} />);
     type('@zed');
 
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
-    fireEvent.submit(screen.getByRole('combobox'));
+    screen.getByRole('combobox').focus();
+    await user.keyboard('{Enter}');
+    expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(onSubmit).toHaveBeenCalledWith('@zed');
   });
 
