@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { server, rooms, games } from '@cockatrice/datatrice';
+import { server, rooms, games, ServerCapability } from '@cockatrice/datatrice';
 import type { ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
 import { useAppSelector } from '@app/store';
 import { useWebClient } from '@cockatrice/datatrice/react';
@@ -481,8 +481,15 @@ function UserMenu({
   onSignOut,
 }: UserMenuProps) {
   const { t } = useTranslation();
-  const serverVersion = useAppSelector(server.Selectors.getVersion);
-  const supports: CapabilityCheck = (capability) => server.serverSupports(serverVersion, capability);
+  const cardArt = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.CARD_ART));
+  const moderation = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.MODERATION_TOOLS));
+  const developer = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.DEVELOPER_ROLE));
+  const capabilities: Partial<Record<ServerCapability, boolean>> = {
+    [ServerCapability.CARD_ART]: cardArt,
+    [ServerCapability.MODERATION_TOOLS]: moderation,
+    [ServerCapability.DEVELOPER_ROLE]: developer,
+  };
+  const supports: CapabilityCheck = (capability) => capabilities[capability] ?? false;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
