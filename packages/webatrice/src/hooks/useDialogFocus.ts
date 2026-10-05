@@ -91,6 +91,12 @@ export interface DialogFocusOptions {
   onEscape?: () => void;
   /** Where focus goes on close if the opener has unmounted meanwhile. Defaults to `closestLandmark`. */
   returnFocusTo?: ReturnFocusTo;
+  /** False for a non-modal dialog, a panel the user works beside (a zone view): Tab moves on past
+   *  its last control instead of cycling inside it. Defaults to true. */
+  modal?: boolean;
+  /** False leaves focus where it is on open (the user has asked for typing to stay elsewhere);
+   *  focus still returns from inside the dialog on close. Defaults to true. */
+  moveFocusIn?: boolean;
 }
 
 export interface DialogFocusProps {
@@ -113,13 +119,17 @@ export interface DialogFocusProps {
  * inner dialog stops Escape and ignores Tab from outside its own element, and the outer one in
  * turn ignores Tab from a portalled inner dialog.
  */
-export function useDialogFocus({ isOpen, onEscape, returnFocusTo, isolate = false }: DialogFocusOptions) {
+export function useDialogFocus({
+  isOpen, onEscape, returnFocusTo, isolate = false, modal = true, moveFocusIn = true,
+}: DialogFocusOptions) {
   const container = useRef<HTMLElement | null>(null);
   // The control focused before this dialog took focus. React focuses an `autoFocus` field in the
   // layout phase, before the effect below runs, so the focus event that brings focus in records it.
   const focusedBefore = useRef<HTMLElement | null>(null);
   const returnFocusToRef = useRef(returnFocusTo);
   returnFocusToRef.current = returnFocusTo;
+  const moveFocusInRef = useRef(moveFocusIn);
+  moveFocusInRef.current = moveFocusIn;
 
   useEffect(() => {
     const element = container.current;
@@ -133,7 +143,7 @@ export function useDialogFocus({ isOpen, onEscape, returnFocusTo, isolate = fals
     const fallback = opener ? (returnFocusToRef.current ?? closestLandmark)(opener) : null;
     const releaseModal = isolate ? registerModal(element) : undefined;
     // A control with React's autoFocus is already focused by the time this runs; leave it there.
-    if (!element.contains(document.activeElement)) {
+    if (moveFocusInRef.current && !element.contains(document.activeElement)) {
       const content = element.querySelector<HTMLElement>('[data-dialog-content]');
       const target = element.querySelector<HTMLElement>('[data-autofocus]')
         ?? (content && tabbableElements(content)[0])
@@ -212,7 +222,7 @@ export function useDialogFocus({ isOpen, onEscape, returnFocusTo, isolate = fals
       onEscape();
       return;
     }
-    if (event.key !== 'Tab') {
+    if (event.key !== 'Tab' || !modal) {
       return;
     }
     const tabbable = tabbableElements(element);

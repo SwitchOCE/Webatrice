@@ -61,7 +61,7 @@ function lands(store: Store, id: number, name: string) {
 function openDialog(): HTMLElement {
   openContextMenu(pileEl('Library', 0));
   chooseMenuPath('Top of library...', 'Put top cards on stack until…');
-  return screen.getByRole('dialog', { name: 'Put top cards on stack until' });
+  return screen.getByRole('dialog', { name: 'Put top cards on stack until…' });
 }
 
 function start(dialog: HTMLElement, { filter, hits = '1', autoPlay = false }: { filter: string; hits?: string; autoPlay?: boolean }) {
@@ -99,16 +99,16 @@ describe('put top cards on stack until', () => {
     expect(startButton).toBeDisabled();
 
     act(() => {
-      fireEvent.keyDown(window, { key: 'Escape' });
+      fireEvent.keyDown(dialog, { key: 'Escape' });
     });
-    expect(screen.queryByRole('dialog', { name: 'Put top cards on stack until' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Put top cards on stack until…' })).not.toBeInTheDocument();
     expect(game.moveCard).not.toHaveBeenCalled();
   });
 
   it('reveals one card at a time until the hits are found', () => {
     const { game, store } = renderSeats();
     start(openDialog(), { filter: 'Bolt', hits: '2' });
-    expect(screen.queryByRole('dialog', { name: 'Put top cards on stack until' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Put top cards on stack until…' })).not.toBeInTheDocument();
     expect(moves(game)).toEqual([REVEAL]);
 
     lands(store, 100, 'Island');

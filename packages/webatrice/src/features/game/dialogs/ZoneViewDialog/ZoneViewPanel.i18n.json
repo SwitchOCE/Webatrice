@@ -1,5 +1,10 @@
 {
   "ZoneViewPanel": {
-    "expand": "Expand the card view"
+    "expand": "Expand the card view",
+    "close": "Close the card view",
+    "search": "Search the cards",
+    "searchPlaceholder": "Search — try t:creature, c:blue, cmc:3",
+    "shuffleOnClose": "shuffle when closing",
+    "noMatch": "No cards match the current filter."
   }
 }

@@ -1,5 +1,6 @@
 import { ZoneName } from '@cockatrice/sockatrice';
 import { fireEvent, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import {
   makeGameEntry,
   makePlayerEntry,
@@ -34,7 +35,7 @@ function renderDialog({ deckCount = 7, open = true } = {}) {
   return { onSubmit, closeMoveTopUntil };
 }
 
-const dialog = () => screen.getByRole('dialog', { name: 'Put top cards on stack until' });
+const dialog = () => screen.getByRole('dialog', { name: 'Put top cards on stack until…' });
 const startButton = () => within(dialog()).getByRole('button', { name: 'Start' });
 
 describe('MoveTopUntilDialog', () => {
@@ -78,12 +79,25 @@ describe('MoveTopUntilDialog', () => {
     expect(startButton()).toBeDisabled();
   });
 
+  it('starts in the filter field, names its fields and keeps Tab inside', async () => {
+    const user = userEvent.setup();
+    renderDialog();
+    expect(dialog()).toHaveAttribute('aria-modal', 'true');
+    expect(within(dialog()).getByRole('textbox', { name: 'Card name (or search expressions)' })).toHaveFocus();
+    expect(within(dialog()).getByRole('spinbutton', { name: 'Number of hits' })).toBeInTheDocument();
+    expect(dialog()).toHaveAccessibleDescription('Library size: 7');
+    for (let i = 0; i < 6; i++) {
+      await user.tab();
+      expect(dialog()).toContainElement(document.activeElement as HTMLElement);
+    }
+  });
+
   it('cancels on Escape, Cancel and the backdrop', () => {
     const { closeMoveTopUntil, onSubmit } = renderDialog();
 
-    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.keyDown(dialog(), { key: 'Escape' });
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Cancel' }));
-    fireEvent.click(dialog().firstElementChild!);
+    fireEvent.click(dialog().previousElementSibling!);
 
     expect(closeMoveTopUntil).toHaveBeenCalledTimes(3);
     expect(onSubmit).not.toHaveBeenCalled();

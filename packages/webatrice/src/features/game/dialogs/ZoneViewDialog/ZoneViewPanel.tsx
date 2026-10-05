@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { setRef } from '@mui/material/utils';
 import { Maximize2, Minimize2, Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { usePreference } from '@app/hooks';
+import { useDialogFocus, usePreference } from '@app/hooks';
 import { cardViewRowsHeight, toggledCardViewHeight } from './cardViewHeight';
 import { MARQUEE_BORDER, MARQUEE_FILL } from '../../components/ui/seatColors/seatColors';
 import { useMarquee } from '../../hooks/useMarquee';
@@ -152,6 +152,14 @@ export default function ZoneViewPanel({
   });
 
   const { t } = useTranslation();
+  const titleId = useId();
+  const close = () => onClose(showShuffleOnClose && shuffleOnClose);
+  // Desktop's ZoneViewWidget is a floating window the player works beside, not a modal: focus
+  // moves in when it opens (unless typing is kept in the game chat), Tab moves on past its last
+  // control, Escape closes this view, and focus goes back to where it was, e.g. the control
+  // that opened it.
+  const { getDialogProps } = useDialogFocus({ isOpen: true, onEscape: close, modal: false, moveFocusIn: showSearchBar });
+  const dialogFocusProps = getDialogProps();
   // Whether the last expand/shrink left the view taller than its initial height (the header
   // button's pressed state).
   const [expanded, setExpanded] = useState(false);
@@ -265,14 +273,16 @@ export default function ZoneViewPanel({
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div
+        {...dialogFocusProps}
         // A non-modal dialog (no aria-modal): Tab moves focus inside it
         // instead of advancing the phase, and Escape still closes the
         // most recent view.
         role="dialog"
-        aria-label={title}
+        aria-labelledby={titleId}
         ref={(el) => {
           dialogRef.current = el;
           setRef(dropRef, el);
+          dialogFocusProps.ref(el);
         }}
         className={[
           'bg-bg-surface border border-border-subtle rounded-lg',
@@ -304,8 +314,13 @@ export default function ZoneViewPanel({
             dragging ? 'cursor-grabbing' : 'cursor-grab',
           ].join(' ')}
         >
-          <h2 className="text-lg font-semibold text-text-primary">
-            {title}
+          {/* Focus lands on the title when the search box doesn't take it. */}
+          <h2
+            className="text-lg font-semibold text-text-primary focus:outline-none"
+            tabIndex={-1}
+            data-autofocus={showSearchBar && focusSearchBar ? undefined : true}
+          >
+            <span id={titleId}>{title}</span>
             <span className="ml-2 text-sm text-text-muted">
               {totalShown} / {library.length}
             </span>
@@ -320,7 +335,7 @@ export default function ZoneViewPanel({
                   onChange={(e) => setShuffleOnClose(e.target.checked)}
                   className="accent-accent"
                 />
-                shuffle when closing
+                {t('ZoneViewPanel.shuffleOnClose')}
               </label>
             )}
             {/* The keyboard's way to the title bar's double-click. */}
@@ -335,11 +350,13 @@ export default function ZoneViewPanel({
               {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
             <button
-              onClick={() => onClose(showShuffleOnClose && shuffleOnClose)}
+              type="button"
+              onClick={close}
               className="p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary board-motion transition-colors"
-              title="Close"
+              aria-label={t('ZoneViewPanel.close')}
+              title={t('ZoneViewPanel.close')}
             >
-              <X size={18} />
+              <X size={18} aria-hidden />
             </button>
           </div>
         </div>
@@ -358,15 +375,8 @@ export default function ZoneViewPanel({
                 autoFocus={focusSearchBar}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                // The game's Esc (close the most recent view) skips text
-                // inputs, so the search box closes its own view.
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    e.preventDefault();
-                    onClose(showShuffleOnClose && shuffleOnClose);
-                  }
-                }}
-                placeholder="Search — try t:creature, c:blue, cmc:3"
+                aria-label={t('ZoneViewPanel.search')}
+                placeholder={t('ZoneViewPanel.searchPlaceholder')}
                 className={[
                   'w-full pl-8 pr-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm',
                   'text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent',
@@ -387,7 +397,7 @@ export default function ZoneViewPanel({
         >
           {totalShown === 0 ? (
             <div className="h-full flex items-center justify-center text-text-muted text-sm">
-              No cards match the current filter.
+              {t('ZoneViewPanel.noMatch')}
             </div>
           ) : (
             <ZoneCardGroups

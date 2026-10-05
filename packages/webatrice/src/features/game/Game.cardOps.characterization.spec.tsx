@@ -193,7 +193,7 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     'game.doesntUntap': {
       wire: [attr(10, CardAttribute.AttrDoesntUntap, '1'), attr(11, CardAttribute.AttrDoesntUntap, '1')],
     },
-    'game.moveTopUntil': { dialogs: ['Put top cards on stack until'] },
+    'game.moveTopUntil': { dialogs: ['Put top cards on stack until…'] },
     'game.alwaysRevealTopCard': { wire: [['changeZoneProperties', { zoneName: ZoneName.DECK, alwaysRevealTopCard: true }]] },
     'game.alwaysLookAtTopCard': { wire: [['changeZoneProperties', { zoneName: ZoneName.DECK, alwaysLookAtTopCard: true }]] },
     'game.viewTopCards': { dialogs: ['View top cards of library'] },
