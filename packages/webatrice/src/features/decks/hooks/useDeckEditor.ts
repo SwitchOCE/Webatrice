@@ -148,6 +148,9 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
   // effect) means no effect ever runs with the new id and the old deck.
   const [seededDeckId, setSeededDeckId] = useState(deckId);
   if (seededDeckId !== deckId) {
+    // Desktop clears history when replacing the deck. Do this before the
+    // new identity exposes actions, including when its deck is cached.
+    clearHistory();
     const cached = deckId != null ? getCachedDeck(deckId) : undefined;
     setSeededDeckId(deckId);
     setDeck(cached?.deck ?? null);

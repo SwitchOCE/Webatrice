@@ -251,17 +251,25 @@ describe('useDeckEditor', () => {
   });
 
   it('starts a fresh history when the deck is downloaded', async () => {
-    const { store } = setup();
+    const { store, webClient, requestId } = setup();
     act(() => {
-      store.dispatch(server.Actions.deckDownloaded({ deckId: 5, deck: COD }));
+      store.dispatch(server.Actions.deckDownloaded({ deckId: 5, deck: COD, requestId: requestId() }));
     });
     await waitFor(() => expect(latest.loading).toBe(false));
     act(() => latest.setFormat('legacy'));
     expect(latest.canUndo).toBe(true);
+
+    // A reconnect after the session cache is dropped downloads the deck again.
+    clearDeckEditorCache();
+    const status = (state: WebsocketTypes.StatusEnum) => server.Actions.updateStatus({ status: { state, description: null } });
+    act(() => store.dispatch(status(WebsocketTypes.StatusEnum.DISCONNECTED)));
+    act(() => store.dispatch(status(WebsocketTypes.StatusEnum.LOGGED_IN)));
+    expect(webClient.request.session.deckDownload).toHaveBeenCalledTimes(2);
     act(() => {
-      store.dispatch(server.Actions.deckDownloaded({ deckId: 5, deck: COD }));
+      store.dispatch(server.Actions.deckDownloaded({ deckId: 5, deck: COD, requestId: requestId() }));
     });
-    await waitFor(() => expect(latest.canUndo).toBe(false));
+    await waitFor(() => expect(latest.loading).toBe(false));
+    expect(latest.canUndo).toBe(false);
   });
 
   it('does nothing without a deck id', () => {

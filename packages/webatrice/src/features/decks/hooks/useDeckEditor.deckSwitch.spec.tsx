@@ -12,7 +12,7 @@ vi.mock('@app/services', async (importOriginal) => {
   return { ...actual, lookupCards: vi.fn(async () => new Map()), trackEvent: vi.fn() };
 });
 
-import { emptyCod } from '@app/services';
+import { emptyCod, parseCod, serializeCod } from '@app/services';
 import { clearDeckEditorCache } from '../deckEditorCache';
 import { useDeckEditor } from './useDeckEditor';
 
@@ -31,10 +31,13 @@ function setup(initialDeckId: number) {
     wrapper: Wrapper,
     initialProps: { deckId: initialDeckId },
   });
-  const download = async (deckId: number, name: string, format: string) => {
+  const download = async (deckId: number, name: string, format: string, cardName?: string) => {
     act(() => {
+      const deck = cardName ? serializeCod({
+        name, format, meta: { v: 1, updatedAt: 'x' }, cards: [{ name: cardName, quantity: 1, category: 'main' }],
+      }) : emptyCod(name, format);
       store.dispatch(server.Actions.deckDownloaded({
-        deckId, deck: emptyCod(name, format),
+        deckId, deck,
         requestId: vi.mocked(webClient.request.session.deckDownload).mock.calls.at(-1)![1],
       }));
     });
@@ -56,6 +59,37 @@ afterEach(() => {
 });
 
 describe('useDeckEditor — switching deckId on a mounted editor', () => {
+  it.each(['undo', 'redo'] as const)('cannot %s another deck after a cached switch', async (action) => {
+    const { result, rerender, download, uploads } = setup(DECK_A);
+    await download(DECK_A, 'Alpha', 'modern', 'Island');
+    rerender({ deckId: DECK_B });
+    await download(DECK_B, 'Bravo', 'standard', 'Mountain');
+    act(() => result.current.incQuantity(0, 1));
+    if (action === 'redo') {
+      act(() => result.current.undo());
+    }
+    rerender({ deckId: DECK_A });
+    act(() => result.current[action]());
+    expect(result.current.deck?.cards.map((card) => card.name)).toEqual(['Island']);
+    expect(result.current.canUndo).toBe(false);
+    expect(result.current.canRedo).toBe(false);
+    act(() => result.current.incQuantity(0, 1));
+    act(() => result.current.flushSave());
+
+    rerender({ deckId: DECK_B });
+    act(() => {
+      result.current.undo(); result.current.redo();
+    });
+    expect(result.current.deck?.cards.map((card) => card.name)).toEqual(['Mountain']);
+    act(() => result.current.incQuantity(0, 1));
+    act(() => result.current.flushSave());
+    expect(uploads().some(({ deckId }) => deckId === DECK_A)).toBe(true);
+    expect(uploads().some(({ deckId }) => deckId === DECK_B)).toBe(true);
+    for (const { deckId, deckList } of uploads()) {
+      expect(parseCod(deckList).cards.map((card) => card.name)).toEqual([deckId === DECK_A ? 'Island' : 'Mountain']);
+    }
+  });
+
   it('re-seeds from the cache and autosaves the open deck, not the previous one', async () => {
     const { result, rerender, download, uploads } = setup(DECK_A);
     await download(DECK_A, 'Alpha', 'modern');
