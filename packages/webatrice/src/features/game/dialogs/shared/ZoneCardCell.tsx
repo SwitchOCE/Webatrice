@@ -1,5 +1,7 @@
 import type { CSSProperties, HTMLAttributes, MouseEvent, PointerEvent, ReactElement } from 'react';
 
+import { GAME_FOCUS_RING } from '../../components/ui/focusRing';
+
 import Card from '../../components/ui/SeatCard/SeatCard';
 import { CARD_HEIGHT, CARD_WIDTH } from '../../components/ui/SeatCard/cardSize';
 import { useCardPreviewActions } from '../../components/ui/CardPreviewContext';
@@ -31,8 +33,8 @@ export interface ZoneCardCellProps {
   /** A left press on the card; the card is grabbable while set. */
   onPointerDown?: (e: PointerEvent<HTMLElement>) => void;
   onContextMenu?: (e: MouseEvent<HTMLElement>) => void;
-  /** Extra props for a card the view lets the user act on in place (its role, keys, menu). */
-  interaction?: HTMLAttributes<HTMLDivElement>;
+  /** Extra props for a card the view lets the user act on in place (its role, keys, menu, ref). */
+  interaction?: HTMLAttributes<HTMLDivElement> & { ref?: (element: HTMLElement | null) => void };
   className?: string;
   style?: CSSProperties;
 }
@@ -88,7 +90,9 @@ export function ZoneCardCell({
     <div
       {...(marked ? { 'data-card': '', 'data-card-id': card.id } : null)}
       {...(cardOwner ? { 'data-card-owner': cardOwner.playerId, 'data-card-zone': cardOwner.zone } : null)}
-      className={pile ? 'absolute left-0 hover:z-10 group' : className}
+      // A card the view lets the keyboard reach draws the game's focus ring.
+      className={[pile ? 'absolute left-0 hover:z-10 group' : className, interaction && `focus-visible:z-10 ${GAME_FOCUS_RING}`]
+        .filter(Boolean).join(' ') || undefined}
       onPointerDown={onPointerDown && ((e) => {
         if (e.button === 0) {
           onPointerDown(e);

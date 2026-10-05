@@ -12,6 +12,11 @@ describe('SeatCard', () => {
     }
   });
 
+  it('names each counter in its tooltip, where the badge shows its type only as a colour', () => {
+    const { container } = render(<Card name="Grizzly Bears" counters={[{ id: 0, value: 2 }, { id: 3, value: 1 }]} />);
+    expect(container.querySelector('.seat-card')?.getAttribute('title')?.split('\n')).toHaveLength(3);
+  });
+
   it('draws a modified P/T in desktop\'s orange, from its token', () => {
     render(<Card name="Grizzly Bears" pt="3/3" basePT="2/2" />);
     expect(screen.getByText('3/3')).toHaveClass('text-pt-modified');

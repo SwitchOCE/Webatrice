@@ -5,6 +5,8 @@ import { PILE_STEP_FRACTION, type PilePlace } from './ZoneCardCell';
 import type { CardGroup, EnrichedCard } from './zoneViewSort';
 
 export interface ZoneCardGroupsProps {
+  /** Set when the cells are listbox options (a card view): the listbox's name, the view's title. */
+  label?: string;
   groups: readonly CardGroup[];
   /** Desktop's pile view (view_zone_widget.cpp:64,197): one fanned column per group. A wrapping grid per group otherwise. */
   pile: boolean;
@@ -13,9 +15,14 @@ export interface ZoneCardGroupsProps {
 }
 
 /** A zone view's cards, group by group under each group's label and count. */
-export function ZoneCardGroups({ groups, pile, renderCell }: ZoneCardGroupsProps): ReactElement {
+export function ZoneCardGroups({ label, groups, pile, renderCell }: ZoneCardGroupsProps): ReactElement {
   return (
-    <div className={pile ? 'flex gap-3 items-start' : 'flex flex-col gap-6'}>
+    <div
+      role={label != null ? 'listbox' : undefined}
+      aria-multiselectable={label != null || undefined}
+      aria-label={label}
+      className={pile ? 'flex gap-3 items-start' : 'flex flex-col gap-6'}
+    >
       {groups.map((g) => (
         <div key={g.key} className={pile ? 'shrink-0' : ''} style={pile ? { width: CARD_WIDTH } : undefined}>
           {/* An ungrouped view's single group has no label. */}

@@ -145,4 +145,70 @@ describe('useGridRows', () => {
     expect(screen.getByTestId('a').tabIndex).toBe(0);
     expect(screen.getByTestId('b').tabIndex).toBe(-1);
   });
+  it('walks a row of items with ← and →, leaving ↑ and ↓ alone', () => {
+    const onSelect = vi.fn();
+    render(<Grid orientation="horizontal" onSelect={onSelect} />);
+
+    expect(fireEvent.keyDown(screen.getByTestId('a'), { key: 'ArrowDown' })).toBe(true);
+    fireEvent.keyDown(screen.getByTestId('a'), { key: 'ArrowRight' });
+    expect(screen.getByTestId('b')).toHaveFocus();
+    fireEvent.keyDown(screen.getByTestId('b'), { key: 'ArrowLeft' });
+    expect(onSelect.mock.calls.map(([key]) => key)).toEqual(['b', 'a']);
+  });
+
+  it('moves within a line along it and to the nearest place in the next non-empty line across it', () => {
+    const keys = ['a1', 'a2', 'a3', 'c1'];
+    const lines = [['a1', 'a2', 'a3'], [], ['c1']];
+    const onSelect = vi.fn();
+    render(<Grid keys={keys} lines={lines} orientation="horizontal" onSelect={onSelect} />);
+
+    fireEvent.keyDown(screen.getByTestId('a1'), { key: 'End' });
+    expect(screen.getByTestId('a3')).toHaveFocus();
+    // ↓ skips the empty middle line and clamps to the last place of the shorter one.
+    fireEvent.keyDown(screen.getByTestId('a3'), { key: 'ArrowDown' });
+    expect(screen.getByTestId('c1')).toHaveFocus();
+    // Nothing below the last line: focus stays.
+    expect(fireEvent.keyDown(screen.getByTestId('c1'), { key: 'ArrowDown' })).toBe(false);
+    fireEvent.keyDown(screen.getByTestId('c1'), { key: 'ArrowUp' });
+    expect(onSelect.mock.calls.map(([key]) => key)).toEqual(['a3', 'c1', 'a1']);
+  });
+
+  it('extends the selection with Shift and a navigation key when the list takes multi-selection', () => {
+    const onSelect = vi.fn();
+    const onExtend = vi.fn();
+    render(<Grid onSelect={onSelect} onExtend={onExtend} />);
+
+    fireEvent.keyDown(screen.getByTestId('a'), { key: 'ArrowDown', shiftKey: true });
+    expect(screen.getByTestId('b')).toHaveFocus();
+    expect(onExtend).toHaveBeenCalledWith('b');
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('hands focus to the next row when the focused row leaves, or the previous at the end', () => {
+    function Shrinking({ keep }: { keep: boolean }) {
+      const [keys, setKeys] = useState(['a', 'b', 'c']);
+      const rows = useGridRows({ keys, selectedKey: null, onSelect: vi.fn(), onActivate: vi.fn(), keepFocusOnRemoval: keep });
+      return (
+        <div role="grid">
+          {keys.map((key) => (
+            <div key={key} role="row" data-testid={key} {...rows.getRowProps(key)}>
+              <button type="button" onClick={() => setKeys((k) => k.filter((x) => x !== key))}>{`remove ${key}`}</button>
+            </div>
+          ))}
+        </div>
+      );
+    }
+    const { unmount } = render(<Shrinking keep />);
+    act(() => screen.getByTestId('b').focus());
+    fireEvent.click(screen.getByRole('button', { name: 'remove b' }));
+    expect(screen.getByTestId('c')).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'remove c' }));
+    expect(screen.getByTestId('a')).toHaveFocus();
+    unmount();
+
+    render(<Shrinking keep={false} />);
+    act(() => screen.getByTestId('b').focus());
+    fireEvent.click(screen.getByRole('button', { name: 'remove b' }));
+    expect(document.body).toHaveFocus();
+  });
 });

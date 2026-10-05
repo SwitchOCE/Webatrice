@@ -15,6 +15,8 @@ import { ZoneCardGroups } from '../shared/ZoneCardGroups';
 import { PileViewToggle, ZoneViewSortControls } from '../shared/ZoneViewControls';
 import { readShuffleOnClose, writeShuffleOnClose } from '../shared/zoneViewPreferences';
 import { GAME_FOCUS_RING } from '../../components/ui/focusRing';
+import { cardLabel } from '../../components/ui/SeatCard/cardLabel';
+import { useCardFocus } from '../../components/ui/SeatCard/useCardFocus';
 
 const HEADER_BUTTON_CLASS =
   `p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary transition-colors ${GAME_FOCUS_RING}`;
@@ -81,13 +83,14 @@ type Props = {
     e: React.PointerEvent<HTMLElement>,
     card: HandCard,
   ) => void;
-  /** Fired on right-click of a card. Parent renders its own per-card
+  /** Fired on right-click of a card, at the pointer, and on Shift+F10 or the
+   *  Menu key on a focused card, under it. Parent renders its own per-card
    *  context menu — used by the graveyard / exile pile-view flow to
    *  offer Draw arrow / Clone / etc. Undefined suppresses the menu
    *  and lets the browser's default context menu through (matches the
    *  library-search flow, which has no per-card menu). */
   onCardContextMenu?: (
-    e: React.MouseEvent<HTMLElement>,
+    at: { x: number; y: number },
     card: HandCard,
     scope: ZoneViewCardScope,
   ) => void;
@@ -268,6 +271,24 @@ export default function ZoneViewPanel({
   const totalShown = groups.reduce((n, g) => n + g.cards.length, 0);
   const shownIds = groups.flatMap((g) => g.cards.map((c) => c.handCard.id));
   const pile = pileView && groupBy !== 'none';
+  const scopeOf = (cardId: string): ZoneViewCardScope => ({
+    shownIds,
+    columnIds: groups.find((g) => g.cards.some((c) => c.handCard.id === cardId))?.cards.map((c) => c.handCard.id) ?? [],
+  });
+  // The cards on the keyboard: a listbox laid out as the view draws it, its
+  // groups as columns in the pile view and as rows otherwise.
+  const { cardProps } = useCardFocus<HandCard>({
+    zone: cardOwner?.zone ?? '',
+    cards: groups.flatMap((g) => g.cards.map((c) => c.handCard)),
+    orientation: pile ? 'vertical' : 'horizontal',
+    lines: groups.map((g) => g.cards.map((c) => c.handCard.id)),
+    ownerOf: () => cardOwner?.playerId ?? -1,
+    labelOf: (card) => cardLabel(t, { name: card.name }),
+    previewOf: (card) => ({ name: card.name, scryfallId: card.scryfallId }),
+    selectedIds,
+    onSelectIds: onSelectedIdsChange,
+    onOpenMenu: (card, rect) => onCardContextMenu?.({ x: rect.left, y: rect.bottom }, card, scopeOf(card.id)),
+  });
 
   return createPortal(
     <div
@@ -409,9 +430,10 @@ export default function ZoneViewPanel({
             </div>
           ) : (
             <ZoneCardGroups
+              label={title}
               groups={groups}
               pile={pile}
-              renderCell={(c, g, place) => (
+              renderCell={(c, _g, place) => (
                 <ZoneCardCell
                   card={c.handCard}
                   pile={place}
@@ -422,8 +444,9 @@ export default function ZoneViewPanel({
                   hidden={draggingCardIds?.has(c.handCard.id)}
                   onPointerDown={onCardPointerDown && ((e) => onCardPointerDown(e, c.handCard))}
                   onContextMenu={onCardContextMenu && ((e) => {
-                    onCardContextMenu(e, c.handCard, { shownIds, columnIds: g.cards.map((gc) => gc.handCard.id) });
+                    onCardContextMenu({ x: e.clientX, y: e.clientY }, c.handCard, scopeOf(c.handCard.id));
                   })}
+                  interaction={cardProps(c.handCard)}
                 />
               )}
             />

@@ -50,6 +50,7 @@ import moveTopUntilText from '../features/game/dialogs/MoveTopUntilDialog/MoveTo
 import handZoneText from '../features/game/components/ui/HandZone/HandZone.i18n.json';
 import playerBoardLabels from '../features/game/components/ui/PlayerBoard/PlayerBoard.i18n.json';
 import battlefieldSidebarText from '../features/game/components/BattlefieldSidebar/BattlefieldSidebar.i18n.json';
+import seatCardLabels from '../features/game/components/ui/SeatCard/SeatCard.i18n.json';
 
 // The game's pending target pick, as Game provides it, for seats rendered
 // without Game.
@@ -115,7 +116,8 @@ function getDefaultWebClient(): WebClient {
 
 // Every other key renders as itself. The zone views' and the reveal's titles, and the seats' life
 // totals and zones, name the player through interpolation, and the specs tell them apart by player, so
-// their English is loaded, formatted by ICU as in the app; so is the move-top-until dialog's, which
+// their English is loaded, formatted by ICU as in the app, with the cards' state labels; so is the
+// move-top-until dialog's, which
 // the game specs reach through the library menu by its English title, and the hand button's,
 // which they find by its English count title, as the e2e suite does.
 const testI18n = i18n.createInstance();
@@ -128,6 +130,7 @@ testI18n.use(ICU).use(initReactI18next).init({
         ...incomingRevealTitles,
         ...playerInfoLabels,
         ...playerBoardLabels,
+        ...seatCardLabels,
         ...moveTopUntilText,
         ...handZoneText,
         ...battlefieldSidebarText,

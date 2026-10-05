@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import { useForkRef } from '@mui/material/utils';
@@ -9,6 +9,8 @@ import { usePreference } from '@app/hooks';
 
 import ContextMenuEntries from '../../context-menus/ContextMenu/ContextMenuEntries';
 import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
+import { useSeatCardFocus } from '../PlayerBoard/useSeatCardFocus';
+import { cardLabel } from '../SeatCard/cardLabel';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
 import Card from '../SeatCard/SeatCard';
 import type { PlayerCardViewModel } from '../PlayerBoard/playerBoard.types';
@@ -74,6 +76,7 @@ export default function HandZone() {
     selection,
     startSeatCardDrag,
   } = usePlayerSeatContext();
+  const keysHintId = useId();
   const { t } = useTranslation();
   // The hand menu (desktop's HandMenu), opened from the count button: at the pointer for a
   // right-click or a click, under the button for Enter / Space, Shift+F10 or the Menu key.
@@ -96,6 +99,16 @@ export default function HandZone() {
   // the wrapper clips its own cards mid-slide when hover ends.
   const [handAnimating, setHandAnimating] = useState(false);
 
+  // Keyboard focus on a card expands the row, as hovering it does.
+  const [handFocused, setHandFocused] = useState(false);
+  const { cardProps } = useSeatCardFocus('hand', {
+    cards: isSelf ? handDisplayList : [],
+    orientation: horizontalHand ? 'horizontal' : 'vertical',
+    labelOf: (c) => cardLabel(t, { name: c.name }),
+    previewOf: (c) => ({ name: c.name, scryfallId: c.scryfallId || cardMetaByName.get(c.name)?.scryfallId }),
+    onKeyboardFocus: setHandFocused,
+  });
+
   // One of the owner's hand cards, in either layout.
   const renderOwnCard = (c: PlayerCardViewModel) => {
     const dragging = isDragging(c.id, 'hand');
@@ -103,6 +116,8 @@ export default function HandZone() {
     return (
       <div
         key={c.id}
+        {...cardProps(c)}
+        className={GAME_FOCUS_RING}
         data-card
         data-zone="hand"
         data-card-id={c.id}
@@ -249,6 +264,8 @@ export default function HandZone() {
     </button>
   );
 
+  const keysHint = isSelf && <span id={keysHintId} hidden>{t('PlayerBoard.cardKeys')}</span>;
+
   const renderCardBack = (i: number) => (
     <img
       key={i}
@@ -281,7 +298,7 @@ export default function HandZone() {
     return (
       <VerticalHand
         placement={seatGrid.hand}
-        badge={countBadge}
+        badge={<>{countBadge}{keysHint}</>}
         count={isSelf ? handDisplayList.length : handCount}
         cardKey={(i) => (isSelf ? handDisplayList[i].id : String(i))}
         renderCard={(i) => (isSelf ? renderOwnCard(handDisplayList[i]) : renderCardBack(i))}
@@ -291,6 +308,7 @@ export default function HandZone() {
         zoneRef={handZoneRef}
         testId={`hand-zone-${playerId}`}
         label={handLabel}
+        describedBy={isSelf ? keysHintId : undefined}
       />
     );
   }
@@ -311,7 +329,7 @@ export default function HandZone() {
         // too, otherwise the wrapper clips its own cards halfway
         // through the return-to-idle animation and it reads as a
         // z-index pop.
-        (handExpanded || handAnimating) ? 'overflow-visible' : 'overflow-hidden',
+        (handExpanded || handFocused || handAnimating) ? 'overflow-visible' : 'overflow-hidden',
       ].join(' ')}
       style={{
         ...seatGrid.hand,
@@ -324,6 +342,7 @@ export default function HandZone() {
     >
       <ZoneBackground zone="hand" />
       {countBadge}
+      {keysHint}
       {/* Inner row — full card height so cards render at their true
         size; the outer wrapper clips the half we don't want to see
         in idle mode. On hover, a translateY on this container
@@ -333,8 +352,12 @@ export default function HandZone() {
       <motion.div
         ref={handZoneRef}
         data-testid={`hand-zone-${playerId}`}
-        role="group"
+        // The owner's cards are a listbox; an opponent's card backs are only counted.
+        role={isSelf ? 'listbox' : 'group'}
+        aria-multiselectable={isSelf || undefined}
+        aria-orientation={isSelf ? 'horizontal' : undefined}
         aria-label={handLabel}
+        aria-describedby={isSelf ? keysHintId : undefined}
         // `overflow-y-hidden` set explicitly alongside overflow-x-auto
         // to short-circuit the CSS spec's promotion of the other
         // axis to `auto` — that's what was spawning a phantom
@@ -356,7 +379,7 @@ export default function HandZone() {
         // finish before it could reverse) and auto-promotes to
         // the compositor.
         animate={{
-          y: handExpanded
+          y: handExpanded || handFocused
             ? !handOnTop
               ? '-40%'
               : flipHandCardBacks
@@ -421,6 +444,8 @@ interface VerticalHandProps {
   testId: string;
   /** The zone's name for assistive technology: whose hand, and how many cards. */
   label: string;
+  /** The element that describes the cards' keys. */
+  describedBy?: string;
 }
 
 /**
@@ -441,6 +466,7 @@ function VerticalHand({
   zoneRef,
   testId,
   label,
+  describedBy,
 }: VerticalHandProps) {
   const sizeRef = useRef<HTMLDivElement>(null);
   const ref = useForkRef(zoneRef, sizeRef);
@@ -467,7 +493,16 @@ function VerticalHand({
       <ZoneBackground zone="hand" />
       {badge}
       {/* The cards start under the count badge. */}
-      <div ref={ref} data-testid={testId} role="group" aria-label={label} className="absolute inset-x-0 bottom-0 top-16">
+      <div
+        ref={ref}
+        data-testid={testId}
+        role={describedBy ? 'listbox' : 'group'}
+        aria-multiselectable={describedBy ? true : undefined}
+        aria-orientation={describedBy ? 'vertical' : undefined}
+        aria-label={label}
+        aria-describedby={describedBy}
+        className="absolute inset-x-0 bottom-0 top-16"
+      >
         {positions.map((pos, i) => {
           const key = cardKey(i);
           return (

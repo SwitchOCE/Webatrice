@@ -5,7 +5,7 @@ import { useBoardAnimations, usePreference } from '@app/hooks';
 
 import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
 import { useMoveTopUntil } from '../../../hooks/useMoveTopUntil';
-import { useSeatSelection } from '../../../hooks/useSeatSelection';
+import { SEAT_WIRE_ZONE, useSeatSelection, type SeatSelectionZone } from '../../../hooks/useSeatSelection';
 import {
   SEAT_CARD_HEIGHT_PX as CARD_H_PX_BASE,
   SEAT_CARD_WIDTH_PX as CARD_W_PX_BASE,
@@ -28,8 +28,10 @@ import { useActiveSeatDrag } from '../SeatDragContext';
 import { useLibraryMenuItems } from '../ZoneStack/useLibraryMenuItems';
 import { usePileMenus } from '../ZoneStack/usePileMenus';
 import type {
+  ArrowTarget,
   PlayerBoardCommands,
   PlayerBoardModel,
+  PlayerCardViewModel,
 } from './playerBoard.types';
 import { useBattlefieldCardOps } from './useBattlefieldCardOps';
 import { useDrawFlights } from './useDrawFlights';
@@ -268,7 +270,9 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     [seatPending],
   );
   const attachExtraSourceIds = seatPending?.kind === 'attach' ? seatPending.extraSourceIds : NO_CARD_IDS;
-  const { startArrow: startPendingArrow, startAttach: startPendingAttach, pickAttachTarget } = pendingTarget;
+  const { startArrow: startPendingArrow, startAttach: startPendingAttach, pickAttachTarget, pick } = pendingTarget;
+  // Any seat's pick: an attach may land on any player's battlefield card.
+  const attachPicking = pendingTarget.pending?.kind === 'attach';
   /** "Draw arrow..." from one of this seat's cards in any zone, the hand included. */
   const startDrawArrow = useCallback(
     ({ sourceCardId, sourceCardName, sourceZone }: { sourceCardId: number; sourceCardName: string; sourceZone: ZoneNameValue }) =>
@@ -287,11 +291,24 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     (sourceCardId: number, sourceCardName: string) => startDrawArrow({ sourceCardId, sourceCardName, sourceZone: ZoneName.TABLE }),
     [startDrawArrow],
   );
-  // A press on one of this seat's battlefield cards resolves this seat's
-  // attach pick (desktop attaches to any battlefield card; the seat still
-  // takes only its own).
-  const resolveAttachPress = (cardId: number) =>
-    attachPending != null && pickAttachTarget({ kind: 'card', playerId, zone: ZoneName.TABLE, cardId });
+  // A battlefield card of this seat as a pick target: its zone's owner (a
+  // cross-player attachment lives in its owner's TABLE) and whether it is
+  // attached itself, which desktop refuses as an attach target.
+  const battlefieldTarget = (card: { id: string; ownerPlayerId?: number }): ArrowTarget => {
+    const onTable = zones.battlefield.cards.find((c) => c.id === card.id);
+    return {
+      kind: 'card',
+      playerId: card.ownerPlayerId ?? onTable?.ownerPlayerId ?? playerId,
+      zone: ZoneName.TABLE,
+      cardId: Number(card.id),
+      attached: onTable?.attachTargetCardId != null && onTable.attachTargetCardId >= 0,
+    };
+  };
+  // A press on one of this seat's battlefield cards resolves the game's
+  // attach pick, whichever seat it started from: desktop attaches to any
+  // table card, an opponent's included (ArrowAttachItem::attachCards).
+  const resolveAttachPress = (card: { id: string; ownerPlayerId?: number }) =>
+    attachPicking && pickAttachTarget(battlefieldTarget(card));
   // The battlefield card actions behind both the card menu and the shortcuts.
   const cardOps = useBattlefieldCardOps({
     cards: battlefieldDisplayList,
@@ -421,7 +438,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     targetCommands,
   });
 
-  const { onCardClick, onCardDoubleClick } = useSeatClickToPlay({
+  const { onCardClick, onCardDoubleClick, onCardActivate } = useSeatClickToPlay({
     canAct: model.permissions.canAct,
     selection,
     handDisplayList,
@@ -432,6 +449,21 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     zoneCommands,
     cardCommands,
   });
+
+  // Enter on a focused card: a pending target pick takes it (desktop's arrow
+  // or attach release on the card); otherwise it plays or taps, as a click does.
+  const activateCard = (zone: SeatSelectionZone, card: PlayerCardViewModel & { ownerPlayerId?: number }) => {
+    if (pendingTarget.pending) {
+      pick(zone === 'battlefield'
+        ? battlefieldTarget(card)
+        : { kind: 'card', playerId, zone: SEAT_WIRE_ZONE[zone] as ZoneNameValue, cardId: Number(card.id) });
+      return;
+    }
+    onCardActivate(zone, card);
+  };
+  // Shift+F10 or the Menu key on a focused card: its menu, under the card.
+  const openCardMenuAt = (zone: SeatSelectionZone, card: { id: string }, rect: DOMRect) =>
+    openSeatCardMenu({ kind: zone, playerId: menuOwnerId, cardId: card.id, x: rect.left, y: rect.bottom });
 
   const {
     startPileDrag,
@@ -471,7 +503,9 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     alwaysLookAtTopCard,
     alwaysRevealTopCard,
     attachExtraSourceIds,
+    activateCard,
     attachPending,
+    attachPicking,
     battlefieldDisplayList,
     battlefieldMenuItems,
     boxRef,
@@ -522,6 +556,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     onPointerDownBox,
     openAnnotationPrompt,
     openCardCounterPrompt,
+    openCardMenuAt,
     openCountPrompt,
     openDrawCardsPrompt,
     openLifePrompt,

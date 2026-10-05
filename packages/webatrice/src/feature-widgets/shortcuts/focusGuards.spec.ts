@@ -28,6 +28,15 @@ describe('keepsTabNavigation', () => {
     expect(keepsTabNavigation(document.getElementById('name'))).toBe(false);
   });
 
+  it('leaves Tab to the shortcuts on a zone\'s roving card option, while a pile button beside it keeps Tab', () => {
+    mount(
+      '<div data-game-board><div role="listbox"><div id="card" data-card-id="7" role="option" tabindex="0">Bear</div></div>'
+      + '<button id="pile" type="button">Graveyard</button></div>',
+    );
+    expect(keepsTabNavigation(document.getElementById('card'))).toBe(false);
+    expect(keepsTabNavigation(document.getElementById('pile'))).toBe(true);
+  });
+
   it('leaves Tab to the shortcuts on a board scroller taken out of the tab order', () => {
     mount('<div data-game-board><div id="t" tabindex="-1" style="overflow-x:auto">cards</div></div>');
     expect(keepsTabNavigation(document.getElementById('t'))).toBe(false);
