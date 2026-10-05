@@ -48,10 +48,19 @@ export function usePlayerCardCommands(playerId: number, isLocal: boolean): Playe
       // the optimistic step.
       setTapped: (cardIds, tapped) => {
         const attrValue = tapped ? '1' : '0';
+        const judgeTargetId = isLocal ? undefined : playerId;
         for (const cardId of cardIds) {
           const currentCard = tableCard(cardId);
           if (currentCard == null || currentCard.tapped === tapped) {
-            setAttr(cardId, CardAttribute.AttrTapped, attrValue);
+            if (judgeTargetId == null) {
+              setAttr(cardId, CardAttribute.AttrTapped, attrValue);
+            } else {
+              game.setCardAttr(
+                gameId,
+                { zone: ZoneName.TABLE, cardId, attribute: CardAttribute.AttrTapped, attrValue },
+                judgeTargetId,
+              );
+            }
             continue;
           }
           const previousTapped = currentCard.tapped;
@@ -61,7 +70,7 @@ export function usePlayerCardCommands(playerId: number, isLocal: boolean): Playe
           game.setCardAttr(
             gameId,
             { zone: ZoneName.TABLE, cardId, attribute: CardAttribute.AttrTapped, attrValue },
-            undefined,
+            judgeTargetId,
             {
               onError: (responseCode) => {
                 console.warn(
