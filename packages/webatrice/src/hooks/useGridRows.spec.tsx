@@ -212,7 +212,7 @@ describe('useGridRows', () => {
     expect(document.body).toHaveFocus();
   });
 
-  it('moves focus where the caller says when the last row leaves, asking while the row is still in the page', () => {
+  it('moves focus where the caller says when the last row leaves, asking while the row is still in the page', async () => {
     const connected: boolean[] = [];
     function Emptying() {
       const [keys, setKeys] = useState(['a']);
@@ -242,6 +242,7 @@ describe('useGridRows', () => {
     render(<Emptying />);
     act(() => screen.getByTestId('a').focus());
     fireEvent.click(screen.getByRole('button', { name: 'remove a' }));
+    await act(async () => {});
     expect(screen.getByRole('button', { name: 'after' })).toHaveFocus();
     expect(connected).toEqual([true]);
   });
