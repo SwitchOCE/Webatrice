@@ -45,6 +45,35 @@ describe('ChatLog', () => {
   });
 
   describe('as a live region', () => {
+    it('renders structured life events once and keeps their identity without classifying deprecated text', () => {
+      const { store } = renderLog();
+      const message = {
+        kind: 'counterSet' as const,
+        params: { actor: { id: 1, name: 'Alice' }, counterId: 0, counterName: 'life', value: 19, previousValue: 20 },
+        text: 'It is now the obsolete English fallback.', segments: [],
+      };
+      act(() => {
+        store.dispatch(games.Actions.gameMessageAppended({ gameId: 1, playerId: 1, message }));
+      });
+      const log = screen.getByRole('log', { name: 'ChatLog.heading' });
+      const row = log.querySelector('[data-log-kind="counterSet"]');
+      expect(row).toHaveTextContent('Alice sets counter Life to 19 (-1).');
+      expect(row).toHaveAttribute('data-tone', 'action');
+      expect(log.querySelectorAll('[data-log-kind="counterSet"]')).toHaveLength(1);
+      expect(screen.queryByText(message.text)).not.toBeInTheDocument();
+      act(() => {
+        store.dispatch(games.Actions.gameInfoUpdated({ gameId: 1, activePhase: 3 }));
+      });
+      expect(log.querySelector('[data-log-kind="counterSet"]')).toBe(row);
+      act(() => {
+        store.dispatch(games.Actions.gameMessageAppended({ gameId: 1, playerId: 1, message }));
+      });
+      expect(log.querySelectorAll('[data-log-kind="counterSet"]')).toHaveLength(2);
+      expect(log.querySelector('[data-log-kind="counterSet"]')).toBe(row);
+      expect(log).toHaveAttribute('aria-live', 'polite');
+      expect(log).toHaveAttribute('tabindex', '0');
+    });
+
     it('is a polite log named by its heading, so new lines are read out as they arrive', () => {
       renderLog();
       const log = screen.getByRole('log', { name: 'ChatLog.heading' });

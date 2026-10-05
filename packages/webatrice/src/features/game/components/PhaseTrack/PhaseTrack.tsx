@@ -23,6 +23,7 @@ import { useGameId } from '../ui/GameIdContext';
 
 import { GAME_FOCUS_RING } from '../ui/focusRing';
 import { usePhaseBar } from './usePhaseBar';
+import { phaseLabel } from './phaseLabels';
 
 /**
  * Left-edge auto-collapsing phase track — a HUD-style overlay that
@@ -54,8 +55,6 @@ import { usePhaseBar } from './usePhaseBar';
 
 interface PhaseEntry {
   phase: Phase;
-  /** Names its label (`PhaseTrack.phase.*`) and tooltip (`PhaseTrack.title.*`). */
-  key: string;
   icon: LucideIcon;
   tint: string;
   builtInOnDoubleClick?: 'untapAll' | 'drawCard';
@@ -70,17 +69,17 @@ const TINT_BLUE = '#3b82f6';
 const TINT_RED = '#ef4444';
 
 const PHASE_ENTRIES: ReadonlyArray<PhaseEntry> = [
-  { phase: Phase.Untap, key: 'untap', icon: RotateCcw, tint: TINT_GREEN, builtInOnDoubleClick: 'untapAll' },
-  { phase: Phase.Upkeep, key: 'upkeep', icon: Settings, tint: TINT_GREEN },
-  { phase: Phase.Draw, key: 'draw', icon: BookOpen, tint: TINT_GREEN, builtInOnDoubleClick: 'drawCard' },
-  { phase: Phase.FirstMain, key: 'firstMain', icon: Circle, tint: TINT_BLUE },
-  { phase: Phase.BeginCombat, key: 'beginCombat', icon: Swords, tint: TINT_RED },
-  { phase: Phase.DeclareAttackers, key: 'declareAttackers', icon: Sword, tint: TINT_RED },
-  { phase: Phase.DeclareBlockers, key: 'declareBlockers', icon: Shield, tint: TINT_RED },
-  { phase: Phase.CombatDamage, key: 'combatDamage', icon: Zap, tint: TINT_RED },
-  { phase: Phase.EndCombat, key: 'endCombat', icon: Flag, tint: TINT_RED },
-  { phase: Phase.SecondMain, key: 'secondMain', icon: CircleDot, tint: TINT_BLUE },
-  { phase: Phase.EndCleanup, key: 'endCleanup', icon: Moon, tint: TINT_GREEN },
+  { phase: Phase.Untap, icon: RotateCcw, tint: TINT_GREEN, builtInOnDoubleClick: 'untapAll' },
+  { phase: Phase.Upkeep, icon: Settings, tint: TINT_GREEN },
+  { phase: Phase.Draw, icon: BookOpen, tint: TINT_GREEN, builtInOnDoubleClick: 'drawCard' },
+  { phase: Phase.FirstMain, icon: Circle, tint: TINT_BLUE },
+  { phase: Phase.BeginCombat, icon: Swords, tint: TINT_RED },
+  { phase: Phase.DeclareAttackers, icon: Sword, tint: TINT_RED },
+  { phase: Phase.DeclareBlockers, icon: Shield, tint: TINT_RED },
+  { phase: Phase.CombatDamage, icon: Zap, tint: TINT_RED },
+  { phase: Phase.EndCombat, icon: Flag, tint: TINT_RED },
+  { phase: Phase.SecondMain, icon: CircleDot, tint: TINT_BLUE },
+  { phase: Phase.EndCleanup, icon: Moon, tint: TINT_GREEN },
 ];
 
 // Widths for the two modes. Collapsed stays skinny enough that the
@@ -188,7 +187,7 @@ export default function PhaseTrack() {
       ].join(' ')}
       style={{ width: expanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH }}
     >
-      {PHASE_ENTRIES.map(({ phase, key: phaseKey, icon: Icon, tint, builtInOnDoubleClick }) => {
+      {PHASE_ENTRIES.map(({ phase, icon: Icon, tint, builtInOnDoubleClick }) => {
         const isActive = phase === activePhase;
         const isEndStep = phase === Phase.EndCleanup;
         return (
@@ -204,7 +203,7 @@ export default function PhaseTrack() {
               key={isEndStep ? `endstep-${endStepFlashSeq}` : `phase-${phase}`}
               type="button"
               data-phase={phase}
-              aria-label={t(`PhaseTrack.phase.${phaseKey}`)}
+              aria-label={phaseLabel(t, phase, 'short')}
               aria-current={isActive ? 'step' : undefined}
               aria-disabled={!canAdvancePhase || undefined}
               onClick={() => {
@@ -238,7 +237,7 @@ export default function PhaseTrack() {
                 }
               }}
               onDoubleClick={canAdvancePhase ? onDoubleClickFor(builtInOnDoubleClick) : undefined}
-              title={canAdvancePhase ? t(`PhaseTrack.title.${phaseKey}`) : t('PhaseTrack.activePlayerOnly')}
+              title={canAdvancePhase ? phaseLabel(t, phase, 'title') : t('PhaseTrack.activePlayerOnly')}
               className={[
                 'relative overflow-hidden w-full h-full board-motion transition-all duration-200',
                 GAME_FOCUS_RING,
@@ -263,7 +262,7 @@ export default function PhaseTrack() {
                 <>
                   <Icon size={16} className="relative z-10 text-white" strokeWidth={2.25} aria-hidden />
                   <span className="relative z-10 text-[11px] font-semibold uppercase tracking-wider text-white leading-tight text-center">
-                    {t(`PhaseTrack.phase.${phaseKey}`)}
+                    {phaseLabel(t, phase, 'short')}
                   </span>
                 </>
               )}

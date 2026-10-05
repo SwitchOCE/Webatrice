@@ -17,6 +17,7 @@ import { gameChatContext } from './gameChatContext';
 import { logRowKey } from './logRowKey';
 import { GAME_FOCUS_RING } from '../ui/focusRing';
 import { formatElapsed, useGameLog } from './useGameLog';
+import { formatLogDescriptor } from './formatLogDescriptor';
 
 // Per-tone styling for event log lines. Cockatrice desktop uses a fixed
 // palette per event kind (green turn banner, per-phase color, red for
@@ -195,11 +196,13 @@ function ChatLogView() {
               ? `[${formatWallClock(m.timeReceived)}]`
               : null;
           if (isEvent) {
-            const tone = classifyLogTone(m.message);
+            const formatted = m.descriptor ? formatLogDescriptor(m.descriptor, t) : { text: m.message, segments: m.segments };
+            const tone = m.descriptor ? games.logTone(m.descriptor.kind) : classifyLogTone(m.message);
             return (
               <div
                 key={logRowKey(m)}
                 data-tone={tone}
+                data-log-kind={m.descriptor?.kind}
                 className={`px-3 py-0.5 leading-snug break-words ${TONE_CLASS[tone]} ${rowClass}`}
               >
                 {stamp && (
@@ -207,8 +210,8 @@ function ChatLogView() {
                     {stamp}
                   </span>
                 )}
-                {m.segments && m.segments.length > 0 ? (
-                  m.segments.map((seg, si) => {
+                {formatted.segments && formatted.segments.length > 0 ? (
+                  formatted.segments.map((seg, si) => {
                     if (seg.kind === 'card') {
                       return (
                         <span
@@ -241,7 +244,7 @@ function ChatLogView() {
                     );
                   })
                 ) : (
-                  m.message
+                  formatted.text
                 )}
               </div>
             );

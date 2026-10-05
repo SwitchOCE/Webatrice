@@ -29,38 +29,38 @@ describe('PhaseTrack', () => {
     const { track } = renderTrack();
     const phases = within(track).getAllByRole('button').filter((button) => button.dataset.phase !== undefined);
     expect(phases.map((button) => button.getAttribute('aria-label'))).toEqual([
-      'PhaseTrack.phase.untap',
-      'PhaseTrack.phase.upkeep',
-      'PhaseTrack.phase.draw',
-      'PhaseTrack.phase.firstMain',
-      'PhaseTrack.phase.beginCombat',
-      'PhaseTrack.phase.declareAttackers',
-      'PhaseTrack.phase.declareBlockers',
-      'PhaseTrack.phase.combatDamage',
-      'PhaseTrack.phase.endCombat',
-      'PhaseTrack.phase.secondMain',
-      'PhaseTrack.phase.endCleanup',
+      'Untap',
+      'Upkeep',
+      'Draw',
+      'Main 1',
+      'Start Combat',
+      'Attack',
+      'Block',
+      'Damage',
+      'End Combat',
+      'Main 2',
+      'End',
     ]);
-    expect(within(track).getByRole('button', { current: 'step' })).toHaveAccessibleName('PhaseTrack.phase.upkeep');
+    expect(within(track).getByRole('button', { current: 'step' })).toHaveAccessibleName('Upkeep');
   });
 
   it('expands while focus is inside it and collapses when focus leaves', async () => {
     const user = userEvent.setup();
     const { track } = renderTrack();
-    expect(within(track).queryByText('PhaseTrack.phase.draw')).not.toBeInTheDocument();
+    expect(within(track).queryByText('Draw')).not.toBeInTheDocument();
     await user.tab();
-    expect(within(track).getByRole('button', { name: 'PhaseTrack.phase.untap' })).toHaveFocus();
-    expect(within(track).getByText('PhaseTrack.phase.draw')).toBeInTheDocument();
+    expect(within(track).getByRole('button', { name: 'Untap' })).toHaveFocus();
+    expect(within(track).getByText('Draw')).toBeInTheDocument();
     act(() => {
-      within(track).getByRole('button', { name: 'PhaseTrack.phase.untap' }).blur();
+      within(track).getByRole('button', { name: 'Untap' }).blur();
     });
-    expect(within(track).queryByText('PhaseTrack.phase.draw')).not.toBeInTheDocument();
+    expect(within(track).queryByText('Draw')).not.toBeInTheDocument();
   });
 
   it('changes phase from the keyboard', async () => {
     const user = userEvent.setup();
     const { game, track } = renderTrack();
-    within(track).getByRole('button', { name: 'PhaseTrack.phase.firstMain' }).focus();
+    within(track).getByRole('button', { name: 'Main 1' }).focus();
     await user.keyboard('{Enter}');
     expect(game.setActivePhase).toHaveBeenCalledWith(1, { phase: Phase.FirstMain }, expect.anything());
   });
@@ -68,15 +68,15 @@ describe('PhaseTrack', () => {
   it('keeps the buttons focusable but inert for a player who may not change phases', async () => {
     const user = userEvent.setup();
     const { game, track } = renderTrack({ activePlayerId: 2 });
-    const main = within(track).getByRole('button', { name: 'PhaseTrack.phase.firstMain' });
+    const main = within(track).getByRole('button', { name: 'Main 1' });
     expect(main).toHaveAttribute('aria-disabled', 'true');
     expect(main).not.toBeDisabled();
     expect(main).toHaveAttribute('title', 'PhaseTrack.activePlayerOnly');
     main.focus();
     await user.keyboard('{Enter}');
-    await user.dblClick(within(track).getByRole('button', { name: 'PhaseTrack.phase.untap' }));
+    await user.dblClick(within(track).getByRole('button', { name: 'Untap' }));
     expect(game.setActivePhase).not.toHaveBeenCalled();
     expect(game.setCardAttr).not.toHaveBeenCalled();
-    expect(within(track).getByRole('button', { current: 'step' })).toHaveAccessibleName('PhaseTrack.phase.upkeep');
+    expect(within(track).getByRole('button', { current: 'step' })).toHaveAccessibleName('Upkeep');
   });
 });
