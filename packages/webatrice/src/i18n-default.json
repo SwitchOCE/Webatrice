@@ -1710,6 +1710,29 @@
       "O": "Other"
     }
   },
+  "PlayerList": {
+    "empty": "no players",
+    "unknown": "(unknown)",
+    "host": "Host",
+    "moreActions": "More actions for {name}",
+    "role": {
+      "judge": "Judge",
+      "spectator": "Spectator",
+      "conceded": "Conceded",
+      "player": "Player"
+    }
+  },
+  "PlayerListContextMenu": {
+    "label": "Actions for {name}",
+    "copyHash": "Copy hash to clipboard",
+    "userDetails": "User details",
+    "privateChat": "Private chat",
+    "addBuddy": "Add to buddy list",
+    "removeBuddy": "Remove from buddy list",
+    "addIgnore": "Add to ignore list",
+    "removeIgnore": "Remove from ignore list",
+    "kick": "Kick from game"
+  },
   "PlayerListDialogs": {
     "unknownUser": "(unknown user)",
     "privilegeLevel": "Privilege level: {level}",
@@ -1731,6 +1754,10 @@
       "registered": "Registered",
       "unregistered": "Unregistered"
     }
+  },
+  "HandZone": {
+    "button": "Hand — {count, plural, one {# card} other {# cards}}",
+    "menu": "Hand"
   },
   "GameInfoDialog": {
     "title": "Game info",

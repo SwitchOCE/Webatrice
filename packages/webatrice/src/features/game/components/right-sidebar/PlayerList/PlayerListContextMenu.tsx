@@ -1,12 +1,12 @@
-import { memo, useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { memo, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
 import type { ServerInfo_User } from '@cockatrice/sockatrice/generated';
-import { usePreference } from '@app/hooks';
+import { Menu, MenuSeparator, type MenuAnchor } from '@app/components';
 
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
-import { useViewportClampedMenu } from '../../context-menus/useViewportClampedMenu';
+import ContextMenuEntries from '../../context-menus/ContextMenu/ContextMenuEntries';
 
 /**
  * Right-click context menu for PlayerList rows. Ports
@@ -20,10 +20,11 @@ import { useViewportClampedMenu } from '../../context-menus/useViewportClampedMe
  *   - Moderator / admin section: supplied by the moderation feature-widget
  *     (`useModerationMenu`), shared with every other user context menu
  *
- * This is a "controlled" popup — the parent tracks {anchor, target} in
- * state and passes them in. That avoids wrapping each `<li>` in a
- * ContextMenu `<div>` (invalid HTML inside `<ul>`) and lets the same
- * portal serve every row.
+ * This is a "controlled" menu — the parent tracks {anchor, target} in
+ * state and passes them in, so one menu serves every row, opened by a
+ * right-click on the row (at the pointer) or by the row's "More actions"
+ * button (under it). It is the shared `Menu`: it takes focus, moves with
+ * the arrow keys, and gives focus back to the button on close.
  */
 
 export interface PlayerListMenuTarget {
@@ -55,7 +56,9 @@ export interface PlayerListMenuActions {
 }
 
 interface Props {
-  anchor: { x: number; y: number } | null;
+  anchor: MenuAnchor | null;
+  /** The row's "More actions" button, when it opened the menu: focus returns there. */
+  triggerRef?: RefObject<HTMLElement | null>;
   target: PlayerListMenuTarget | null;
   local: PlayerListMenuLocal;
   buddyList: { [userName: string]: ServerInfo_User };
@@ -73,29 +76,24 @@ function buildItems(
   ignoreList: Props['ignoreList'],
   moderationItems: ContextMenuItem[],
   actions: PlayerListMenuActions,
-  reportUserLabel: string,
+  t: TFunction,
 ): ContextMenuItem[] {
   const items: ContextMenuItem[] = [];
 
-  // Header — Cockatrice renders the user name as the first (disabled)
-  // item so a right-clicked row always shows WHO is being acted on.
-  items.push({ label: target.userName, disabled: true });
-  items.push({ divider: true });
-
   if (target.deckHash) {
     items.push({
-      label: 'Copy hash to clipboard',
+      label: t('PlayerListContextMenu.copyHash'),
       onClick: () => actions.onCopyHashToClipboard(target.deckHash),
     });
   }
   items.push({
-    label: 'User details',
+    label: t('PlayerListContextMenu.userDetails'),
     onClick: () => actions.onOpenUserDetails(target.userName),
   });
   // Cockatrice disables Private chat when viewing yourself
   // (user_context_menu.cpp:376). We follow the same gate.
   items.push({
-    label: 'Private chat',
+    label: t('PlayerListContextMenu.privateChat'),
     onClick: () => actions.onOpenPrivateChat(target.userName),
     disabled: target.isSelf,
   });
@@ -107,14 +105,14 @@ function buildItems(
     items.push({ divider: true });
     const isBuddy = !!buddyList[target.userName];
     items.push({
-      label: isBuddy ? 'Remove from buddy list' : 'Add to buddy list',
+      label: isBuddy ? t('PlayerListContextMenu.removeBuddy') : t('PlayerListContextMenu.addBuddy'),
       onClick: () => (isBuddy
         ? actions.onRemoveBuddy(target.userName)
         : actions.onAddBuddy(target.userName)),
     });
     const isIgnored = !!ignoreList[target.userName];
     items.push({
-      label: isIgnored ? 'Remove from ignore list' : 'Add to ignore list',
+      label: isIgnored ? t('PlayerListContextMenu.removeIgnore') : t('PlayerListContextMenu.addIgnore'),
       onClick: () => (isIgnored
         ? actions.onRemoveIgnore(target.userName)
         : actions.onAddIgnore(target.userName)),
@@ -127,7 +125,7 @@ function buildItems(
     const onReportUser = actions.onReportUser;
     items.push({ divider: true });
     items.push({
-      label: reportUserLabel,
+      label: t('ReportUserDialog.menuItem'),
       onClick: () => onReportUser(target.userName),
       disabled: target.isSelf,
     });
@@ -138,7 +136,7 @@ function buildItems(
   if (!target.isSelf && (local.isHost || local.isModerator)) {
     items.push({ divider: true });
     items.push({
-      label: 'Kick from game',
+      label: t('PlayerListContextMenu.kick'),
       onClick: () => actions.onKickFromGame(target.userName),
     });
   }
@@ -148,13 +146,9 @@ function buildItems(
   return items;
 }
 
-// Local rendering copy of ContextMenu's popup — kept in this file so
-// this component stays self-contained (the seat's ContextMenu is
-// a wrapper primitive that owns its own right-click and children,
-// which isn't what we need here). Uses the same viewport-clamped
-// popup hook the seat menu uses so behaviour stays consistent.
 function PlayerListContextMenu({
   anchor,
+  triggerRef,
   target,
   local,
   buddyList,
@@ -164,139 +158,26 @@ function PlayerListContextMenu({
   onDismiss,
 }: Props) {
   const { t } = useTranslation();
-  const isOpen = anchor != null && target != null;
-  useEffect(() => {
-    if (!isOpen) {
-      return undefined;
-    }
-    const onDown = (e: MouseEvent) => {
-      const t = e.target as HTMLElement | null;
-      if (t?.closest('[data-player-context-menu]')) {
-        return;
-      }
-      onDismiss();
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onDismiss();
-      }
-    };
-    // Slight delay so the right-click that opened the menu doesn't
-    // immediately close it via the mousedown listener.
-    const timer = setTimeout(() => {
-      document.addEventListener('mousedown', onDown);
-      document.addEventListener('keydown', onKey);
-    }, 0);
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [isOpen, onDismiss]);
-
-  if (!isOpen) {
+  if (anchor == null || target == null) {
     return null;
   }
-  const items = buildItems(
-    target,
-    local,
-    buddyList,
-    ignoreList,
-    moderationItems,
-    actions,
-    t('ReportUserDialog.menuItem'),
-  );
-  return createPortal(
-    <MenuList items={items} x={anchor.x} y={anchor.y} onDismiss={onDismiss} />,
-    document.body,
-  );
-}
-
-function MenuList({
-  items,
-  x,
-  y,
-  onDismiss,
-}: {
-  items: ContextMenuItem[];
-  x: number;
-  y: number;
-  onDismiss: () => void;
-}) {
-  const [openSubmenu, setOpenSubmenu] = useState<number>(-1);
-  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  const { ref: popupRef, position: pos } = useViewportClampedMenu(x, y);
-  // Desktop's "Show keyboard shortcuts in right-click menus".
-  const showShortcuts = usePreference('showShortcutsInMenus');
+  const items = buildItems(target, local, buddyList, ignoreList, moderationItems, actions, t);
   return (
-    <div
-      ref={popupRef}
-      data-player-context-menu
-      className={
-        'fixed z-[9999] min-w-[200px] rounded-md border border-border-subtle '
-        + 'bg-bg-surface shadow-glow py-1'
-      }
-      style={{ left: pos.x, top: pos.y }}
+    <Menu
+      anchor={anchor}
+      label={t('PlayerListContextMenu.label', { name: target.userName })}
+      onClose={onDismiss}
+      triggerRef={triggerRef}
     >
-      {items.map((item, i) => {
-        if ('divider' in item) {
-          return (
-            <div
-              key={`d-${i}`}
-              className="my-1 border-t border-border-subtle"
-            />
-          );
-        }
-        const hasSubmenu = !!item.submenu && item.submenu.length > 0;
-        const effectivelyDisabled =
-          item.disabled || (!item.onClick && !hasSubmenu);
-        const rect = itemRefs.current[i]?.getBoundingClientRect();
-        return (
-          <div key={`i-${i}`} className="relative">
-            <button
-              ref={(el) => {
-                itemRefs.current[i] = el;
-              }}
-              disabled={effectivelyDisabled}
-              onClick={() => {
-                if (effectivelyDisabled) {
-                  return;
-                }
-                if (item.onClick) {
-                  item.onClick();
-                  onDismiss();
-                }
-              }}
-              onMouseEnter={() => {
-                setOpenSubmenu(hasSubmenu ? i : -1);
-              }}
-              className={
-                'w-full flex items-center gap-4 px-3 py-1.5 text-sm text-left '
-                + 'text-text-primary hover:bg-bg-elevated disabled:opacity-50 '
-                + 'disabled:cursor-not-allowed board-motion transition-colors'
-              }
-            >
-              <span className="flex-1">{item.label}</span>
-              {hasSubmenu ? (
-                <span className="text-xs text-text-muted" aria-hidden>
-                  ▶
-                </span>
-              ) : showShortcuts && item.shortcut ? (
-                <span className="text-xs text-text-muted">{item.shortcut}</span>
-              ) : null}
-            </button>
-            {hasSubmenu && openSubmenu === i && rect && (
-              <MenuList
-                items={item.submenu!}
-                x={rect.right}
-                y={rect.top}
-                onDismiss={onDismiss}
-              />
-            )}
-          </div>
-        );
-      })}
-    </div>
+      {/* Header — Cockatrice shows the user name first so a right-clicked
+          row always shows WHO is being acted on. Not an entry: the menu's
+          name already says it to assistive technology. */}
+      <div className="px-3 py-1.5 text-sm font-semibold text-text-primary truncate" aria-hidden>
+        {target.userName}
+      </div>
+      <MenuSeparator />
+      <ContextMenuEntries items={items} />
+    </Menu>
   );
 }
 

@@ -1,4 +1,5 @@
-import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
@@ -84,6 +85,52 @@ describe('HandZone', () => {
     expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
       startZone: ZoneName.HAND,
       targetZone: playToStack ? ZoneName.STACK : ZoneName.TABLE,
+    });
+  });
+
+  describe('from the keyboard', () => {
+    const BUTTON_RECT = { left: 40, top: 300, right: 96, bottom: 356, width: 56, height: 56, x: 40, y: 300 };
+
+    it('names the button by the hand size and says it opens a menu', () => {
+      renderSeatCell(SPEC);
+      const button = screen.getByRole('button', { name: 'Hand — 2 cards' });
+      expect(button).toHaveAttribute('aria-haspopup', 'menu');
+      expect(button).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it.each([
+      ['Enter', '{Enter}'],
+      ['Space', ' '],
+      ['Shift+F10', '{Shift>}{F10}{/Shift}'],
+    ])('opens the hand menu under the button with %s, focus on its first entry', async (_key, keys) => {
+      const user = userEvent.setup();
+      renderSeatCell(SPEC);
+      const button = handButton();
+      vi.spyOn(button, 'getBoundingClientRect').mockReturnValue({ ...BUTTON_RECT, toJSON: () => BUTTON_RECT } as DOMRect);
+      button.focus();
+      await user.keyboard(keys);
+
+      const menu = screen.getByRole('menu', { name: 'Hand' });
+      expect(button).toHaveAttribute('aria-expanded', 'true');
+      // Below the button (its bottom edge plus the menu's 2px gap), not at the viewport's corner.
+      expect(menu.style.top).toBe(`${BUTTON_RECT.bottom + 2}px`);
+      expect(menu.style.left).toBe(`${BUTTON_RECT.left}px`);
+      expect(within(menu).getByRole('menuitem', { name: 'View hand' })).toHaveFocus();
+    });
+
+    it('gives focus back to the button when the menu closes', async () => {
+      const user = userEvent.setup();
+      renderSeatCell(SPEC);
+      handButton().focus();
+      await user.keyboard('{Enter}');
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+      expect(handButton()).toHaveFocus();
+    });
+
+    it('names another player\'s hand button by its size too', () => {
+      renderSeatCell(SPEC, 2);
+      expect(screen.getByRole('button', { name: 'Hand — 3 cards' })).toBeDisabled();
     });
   });
 

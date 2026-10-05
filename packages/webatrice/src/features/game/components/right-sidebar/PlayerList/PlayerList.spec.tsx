@@ -1,4 +1,5 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import { ServerInfo_User_UserLevelFlag as Flag } from '@cockatrice/sockatrice/generated';
 import { ModerationProvider } from '@app/feature-widgets/moderation';
@@ -43,8 +44,8 @@ describe('PlayerList', () => {
     state.games!.games[1].localPlayerId = -1;
     renderWithProviders(<PlayerList />, { preloadedState: state });
     fireEvent.contextMenu(screen.getByTestId('player-list-item-2'));
-    expect(screen.getByRole('button', { name: 'User details' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Kick from game' })).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'PlayerListContextMenu.userDetails' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'PlayerListContextMenu.kick' })).not.toBeInTheDocument();
   });
 
   it('removes an already-open live menu when the list becomes read-only', () => {
@@ -55,9 +56,9 @@ describe('PlayerList', () => {
       <GameReadOnlyProvider value={false}><PlayerList /></GameReadOnlyProvider>, { preloadedState: state },
     );
     fireEvent.contextMenu(screen.getByTestId('player-list-item-2'));
-    expect(screen.getByRole('button', { name: 'User details' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'PlayerListContextMenu.userDetails' })).toBeInTheDocument();
     rerender(<GameReadOnlyProvider value><PlayerList /></GameReadOnlyProvider>);
-    expect(screen.queryByRole('button', { name: 'User details' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'PlayerListContextMenu.userDetails' })).not.toBeInTheDocument();
   });
 
   it.each([Flag.IsRegistered, Flag.IsRegistered | Flag.IsModerator | Flag.IsAdmin])(
@@ -169,7 +170,7 @@ describe('PlayerList', () => {
     });
 
     const row = screen.getByTestId('player-list-item-1');
-    expect(row.textContent).toMatch(/Conceded/);
+    expect(row.textContent).toMatch(/PlayerList\.role\.conceded/);
   });
 
   it('shows empty state when there are no players', () => {
@@ -177,7 +178,7 @@ describe('PlayerList', () => {
       preloadedState: buildState([], 0),
     });
 
-    expect(screen.getByText(/no players/i)).toBeInTheDocument();
+    expect(screen.getByText('PlayerList.empty')).toBeInTheDocument();
   });
 
   it('handles missing gameId without throwing', () => {
@@ -186,7 +187,7 @@ describe('PlayerList', () => {
       gameId: undefined,
     });
 
-    expect(screen.getByText(/no players/i)).toBeInTheDocument();
+    expect(screen.getByText('PlayerList.empty')).toBeInTheDocument();
   });
 
   it('renders a host badge on the host row only', () => {
@@ -212,8 +213,8 @@ describe('PlayerList', () => {
     // `.player-list__host-badge` element.
     const bobRow = screen.getByTestId('player-list-item-2');
     const aliceRow = screen.getByTestId('player-list-item-1');
-    expect(bobRow.querySelector('[aria-label="Host"]')).not.toBeNull();
-    expect(aliceRow.querySelector('[aria-label="Host"]')).toBeNull();
+    expect(bobRow.querySelector('[aria-label="PlayerList.host"]')).not.toBeNull();
+    expect(aliceRow.querySelector('[aria-label="PlayerList.host"]')).toBeNull();
   });
 
   describe('moderator section (shared moderation widget)', () => {
@@ -251,46 +252,85 @@ describe('PlayerList', () => {
     it('offers nothing extra to a regular user', () => {
       renderAs(REGULAR);
       openMenu(2);
-      expect(screen.queryByRole('button', { name: 'Moderation.menu.warnUser' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('menuitem', { name: 'Moderation.menu.warnUser' })).not.toBeInTheDocument();
     });
 
     it('offers warn / ban / notes to a moderator, without role changes', () => {
       renderAs(MODERATOR);
       openMenu(2);
-      expect(screen.getByRole('button', { name: 'Moderation.menu.warnUser' })).toBeEnabled();
-      expect(screen.getByRole('button', { name: 'Moderation.menu.banHistory' })).toBeEnabled();
-      expect(screen.getByRole('button', { name: 'Moderation.menu.adminNotes' })).toBeEnabled();
-      expect(screen.queryByRole('button', { name: 'Moderation.menu.promoteMod' })).not.toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Kick from game' })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: 'Moderation.menu.warnUser' })).not.toHaveAttribute('aria-disabled');
+      expect(screen.getByRole('menuitem', { name: 'Moderation.menu.banHistory' })).not.toHaveAttribute('aria-disabled');
+      expect(screen.getByRole('menuitem', { name: 'Moderation.menu.adminNotes' })).not.toHaveAttribute('aria-disabled');
+      expect(screen.queryByRole('menuitem', { name: 'Moderation.menu.promoteMod' })).not.toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: 'PlayerListContextMenu.kick' })).toBeInTheDocument();
     });
 
     it('hides Kick from game from a non-host moderator while the admin lock is on', () => {
       setAdminLocked(true);
       renderAs(MODERATOR, 2);
       openMenu(2);
-      expect(screen.queryByRole('button', { name: 'Kick from game' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('menuitem', { name: 'PlayerListContextMenu.kick' })).not.toBeInTheDocument();
     });
 
     it('still offers Kick from game to a locked moderator who hosts the game', () => {
       setAdminLocked(true);
       renderAs(MODERATOR, 1);
       openMenu(2);
-      expect(screen.getByRole('button', { name: 'Kick from game' })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: 'PlayerListContextMenu.kick' })).toBeInTheDocument();
     });
 
     it('adds promote entries for an admin', () => {
       renderAs(ADMIN);
       openMenu(2);
-      expect(screen.getByRole('button', { name: 'Moderation.menu.promoteMod' })).toBeEnabled();
-      expect(screen.getByRole('button', { name: 'Moderation.menu.promoteJudge' })).toBeEnabled();
+      expect(screen.getByRole('menuitem', { name: 'Moderation.menu.promoteMod' })).not.toHaveAttribute('aria-disabled');
+      expect(screen.getByRole('menuitem', { name: 'Moderation.menu.promoteJudge' })).not.toHaveAttribute('aria-disabled');
     });
 
     it('disables the section on your own seat', () => {
       renderAs(ADMIN);
       openMenu(1);
-      expect(screen.getByRole('button', { name: 'Moderation.menu.warnUser' })).toBeDisabled();
-      expect(screen.getByRole('button', { name: 'Moderation.menu.demoteMod' })).toBeDisabled();
+      expect(screen.getByRole('menuitem', { name: 'Moderation.menu.warnUser' })).toHaveAttribute('aria-disabled', 'true');
+      expect(screen.getByRole('menuitem', { name: 'Moderation.menu.demoteMod' })).toHaveAttribute('aria-disabled', 'true');
     });
+  });
+});
+
+describe('PlayerList actions from the keyboard', () => {
+  function renderPair() {
+    const alice = makePlayerEntry({ properties: makePlayerProperties({ playerId: 1, userInfo: makeUser({ name: 'Alice' }) }) });
+    const bob = makePlayerEntry({ properties: makePlayerProperties({ playerId: 2, userInfo: makeUser({ name: 'Bob' }) }) });
+    renderWithProviders(<PlayerList />, { preloadedState: buildState([alice, bob], 1) });
+  }
+
+  it('gives each row a "More actions" button that opens the row menu with focus in it', async () => {
+    const user = userEvent.setup();
+    renderPair();
+    const more = within(screen.getByTestId('player-list-item-2')).getByRole('button', { name: 'PlayerList.moreActions' });
+    expect(more).toHaveAttribute('aria-haspopup', 'menu');
+    expect(more).toHaveAttribute('aria-expanded', 'false');
+
+    more.focus();
+    await user.keyboard('{Enter}');
+    const menu = screen.getByRole('menu', { name: 'PlayerListContextMenu.label' });
+    expect(more).toHaveAttribute('aria-expanded', 'true');
+    expect(within(menu).getAllByRole('menuitem')[0]).toHaveFocus();
+    expect(within(menu).getByRole('menuitem', { name: 'PlayerListContextMenu.userDetails' })).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(more).toHaveFocus();
+  });
+
+  it('opens the menu with Shift+F10 and runs an entry with the arrows and Enter', async () => {
+    const user = userEvent.setup();
+    renderPair();
+    within(screen.getByTestId('player-list-item-2')).getByRole('button', { name: 'PlayerList.moreActions' }).focus();
+    await user.keyboard('{Shift>}{F10}{/Shift}');
+    const menu = screen.getByRole('menu', { name: 'PlayerListContextMenu.label' });
+    await user.keyboard('{End}');
+    expect(within(menu).getAllByRole('menuitem').at(-1)).toHaveFocus();
+    await user.keyboard('{Home}{ArrowDown}');
+    expect(within(menu).getByRole('menuitem', { name: 'PlayerListContextMenu.privateChat' })).toHaveFocus();
   });
 });
 
@@ -311,7 +351,7 @@ describe('PlayerList report user (#7091)', () => {
   it('offers "Report user" on a 3.1 server and opens the dialog with this game attached', () => {
     renderWithProviders(<ReportUserProvider><PlayerList /></ReportUserProvider>, { preloadedState: stateOn('3.1.0 ()') });
     fireEvent.contextMenu(screen.getByText('Bob'));
-    fireEvent.click(screen.getByRole('button', { name: 'ReportUserDialog.menuItem' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'ReportUserDialog.menuItem' }));
     expect(screen.getByTestId('report-reported-user').textContent).toBe('Bob');
     expect((screen.getByLabelText('ReportUserDialog.chatGroup') as HTMLTextAreaElement).value).toBe('');
     expect(screen.getByText('1', { selector: '#report-user-game-id' })).toBeTruthy();
@@ -320,6 +360,6 @@ describe('PlayerList report user (#7091)', () => {
   it('does not offer it on a 3.0 server', () => {
     renderWithProviders(<ReportUserProvider><PlayerList /></ReportUserProvider>, { preloadedState: stateOn('3.0.0 ()') });
     fireEvent.contextMenu(screen.getByText('Bob'));
-    expect(screen.queryByRole('button', { name: 'ReportUserDialog.menuItem' })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: 'ReportUserDialog.menuItem' })).toBeNull();
   });
 });
