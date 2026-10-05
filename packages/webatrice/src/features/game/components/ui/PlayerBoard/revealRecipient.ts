@@ -1,4 +1,5 @@
 import type { MenuShortcut } from '@app/feature-widgets/shortcuts';
+import type { TFunction } from 'i18next';
 
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import type { RevealRecipient } from './playerBoard.types';
@@ -16,13 +17,14 @@ export const toRecipient = (targetPlayerId: number): RevealRecipient =>
  * anyone else is seated (hand_menu.cpp:165-200, card_menu.cpp:360-369).
  */
 export function buildRevealToSubmenu(
+  t: TFunction,
   revealTargets: readonly { playerId: number; name: string }[] | undefined,
   onPick: (targetPlayerId: number) => void,
   disabled = false,
   allPlayersShortcut?: MenuShortcut,
 ): ContextMenuItem[] {
   return [
-    { label: 'All players', onClick: () => onPick(ALL_PLAYERS), disabled, ...allPlayersShortcut },
+    { label: t('CardMenu.allPlayers'), onClick: () => onPick(ALL_PLAYERS), disabled, ...allPlayersShortcut },
     { divider: true },
     ...(revealTargets ?? []).map((t) => ({
       label: t.name,

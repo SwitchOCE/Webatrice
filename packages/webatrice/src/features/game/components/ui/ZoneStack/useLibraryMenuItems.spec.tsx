@@ -1,7 +1,9 @@
 import { renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
+import { I18nextProvider } from 'react-i18next';
 import { ZoneName } from '@cockatrice/sockatrice';
 
+import { testI18n } from '../../../../../__test-utils__/renderWithProviders';
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import { NOOP_GAME_DIALOGS_ACTIONS, type GameDialogs } from '../../../hooks/dialogs/gameDialogs.types';
 import { GameDialogsProvider } from '../GameDialogsContext';
@@ -47,7 +49,9 @@ function setup(args: Partial<UseLibraryMenuItemsArgs> = {}) {
     ...args,
   };
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <GameDialogsProvider value={{ ...NOOP_GAME_DIALOGS_ACTIONS, openZoneView } as unknown as GameDialogs}>{children}</GameDialogsProvider>
+    <I18nextProvider i18n={testI18n}>
+      <GameDialogsProvider value={{ ...NOOP_GAME_DIALOGS_ACTIONS, openZoneView } as unknown as GameDialogs}>{children}</GameDialogsProvider>
+    </I18nextProvider>
   );
   const { result } = renderHook(() => useLibraryMenuItems(props), { wrapper });
   return { items: result.current.libraryMenuItems, props, openZoneView, zoneCommands };
@@ -87,7 +91,7 @@ describe('useLibraryMenuItems', () => {
     find(items, 'Reveal library to...', 'All players').onClick!();
     find(items, 'Reveal top cards to...', 'All players').onClick!();
     expect(zoneCommands.reveal).toHaveBeenCalledWith(ZoneName.DECK, 'all');
-    expect(props.openRevealTopCardsPrompt).toHaveBeenCalledWith({ targetPlayerId: -1, targetName: 'all players', deckSize: 30 });
+    expect(props.openRevealTopCardsPrompt).toHaveBeenCalledWith({ targetPlayerId: -1, targetName: 'All players', deckSize: 30 });
   });
 
   it('shows the top-card toggles checked from the zone and flips them', () => {
@@ -112,13 +116,28 @@ describe('useLibraryMenuItems', () => {
   it('moves and shuffles N cards through the count prompt', () => {
     const { items, props, zoneCommands } = setup({ deckCount: 5 });
     find(items, 'Bottom of library...', 'Move bottom cards to graveyard face down...').onClick!();
+    expect(vi.mocked(props.openCountPrompt).mock.calls[0][0].title).toBe('Move bottom cards to Graveyard');
     vi.mocked(props.openCountPrompt).mock.calls[0][0].onSubmit(2);
     expect(zoneCommands.moveCards).toHaveBeenCalledWith(
       ZoneName.DECK, [{ id: 3, faceDown: true }, { id: 4, faceDown: true }], { zone: ZoneName.GRAVE },
     );
     find(items, 'Top of library...', 'Shuffle top cards...').onClick!();
+    expect(vi.mocked(props.openCountPrompt).mock.calls[1][0].title).toBe('Shuffle top cards of library');
     vi.mocked(props.openCountPrompt).mock.calls[1][0].onSubmit(9);
     expect(zoneCommands.shuffleLibrary).toHaveBeenCalledWith({ start: 0, end: 4 });
+  });
+
+  it('uses the desktop prompt titles instead of the menu labels', () => {
+    const { items, props } = setup();
+    find(items, 'Top of library...', 'Move top cards to exile...').onClick!();
+    find(items, 'Bottom of library...', 'Draw bottom cards...').onClick!();
+    find(items, 'Bottom of library...', 'Shuffle bottom cards...').onClick!();
+
+    expect(vi.mocked(props.openCountPrompt).mock.calls.map(([options]) => options.title)).toEqual([
+      'Move top cards to Exile',
+      'Draw bottom cards',
+      'Shuffle bottom cards of library',
+    ]);
   });
 
   it('disables library actions on an empty library and the deck link without a saved deck', () => {

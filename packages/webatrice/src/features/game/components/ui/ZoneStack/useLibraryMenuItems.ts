@@ -1,4 +1,5 @@
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
+import { useTranslation } from 'react-i18next';
 
 import type { ContextMenuItem, MenuShortcutFor } from '../../context-menus/ContextMenu/ContextMenu';
 import { useGameDialogsContext } from '../GameDialogsContext';
@@ -49,6 +50,7 @@ export function useLibraryMenuItems({
   menuShortcut,
   zoneCommands,
 }: UseLibraryMenuItemsArgs) {
+  const { t } = useTranslation();
   const { openZoneView } = useGameDialogsContext();
 
   // Library menu items — ported 1:1 from Cockatrice's LibraryMenu.
@@ -94,7 +96,7 @@ export function useLibraryMenuItems({
     }
     openCountPrompt({
       title,
-      submitLabel: 'Move',
+      submitLabel: t('ZoneMenu.actionMove'),
       deckSize: size,
       onSubmit: (n) => {
         const count = Math.min(n, size);
@@ -144,6 +146,7 @@ export function useLibraryMenuItems({
   // 295-303); the reveal-top-N variant opens a count prompt per pick. Lend
   // library lists only the other players (library_menu.cpp:280-293).
   const revealLibraryItems = buildRevealToSubmenu(
+    t,
     revealTargets,
     (targetPlayerId) => zoneCommands.reveal(ZoneName.DECK, toRecipient(targetPlayerId)),
   );
@@ -153,28 +156,28 @@ export function useLibraryMenuItems({
         label: t.name,
         onClick: () => zoneCommands.lendLibrary(t.playerId),
       }))
-      : [{ label: '(no players)' }];
-  const revealTopCardsItems = buildRevealToSubmenu(revealTargets, (targetPlayerId) =>
+      : [{ label: t('ZoneMenu.noPlayers') }];
+  const revealTopCardsItems = buildRevealToSubmenu(t, revealTargets, (targetPlayerId) =>
     openRevealTopCardsPrompt({
       targetPlayerId,
-      targetName: revealTargets.find((t) => t.playerId === targetPlayerId)?.name ?? 'all players',
+      targetName: revealTargets.find((target) => target.playerId === targetPlayerId)?.name ?? t('CardMenu.allPlayers'),
       deckSize: deckCount,
     }));
   const libraryMenuItems: ContextMenuItem[] = [
     {
-      label: 'Draw card',
+      label: t('ShortcutsTab.action.game.drawCard'),
       onClick: () => draw(1),
       disabled: deckCount <= 0,
       ...menuShortcut('game.drawCard'),
     },
     {
-      label: 'Draw cards...',
+      label: t('ZoneMenu.drawCards'),
       onClick: () => openDrawCardsPrompt({ deckSize: deckCount }),
       disabled: deckCount <= 0,
       ...menuShortcut('game.drawMultipleCards'),
     },
     {
-      label: 'Undo last draw',
+      label: t('ZoneMenu.undoDraw'),
       onClick: () => zoneCommands.undoDraw(),
       // Cockatrice always shows this enabled; server rejects when
       // nothing to undo.
@@ -182,127 +185,133 @@ export function useLibraryMenuItems({
     },
     { divider: true },
     {
-      label: 'Shuffle',
+      label: t('ZoneMenu.shuffle'),
       onClick: () => zoneCommands.shuffleLibrary(),
       disabled: deckCount <= 1,
       ...menuShortcut('game.shuffleLibrary'),
     },
     { divider: true },
     {
-      label: 'View library',
+      label: t('ShortcutsTab.action.game.viewLibrary'),
       onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.DECK }),
       disabled: deckCount <= 0,
       ...menuShortcut('game.viewLibrary'),
     },
     {
-      label: 'View top cards of library...',
+      label: t('ZoneMenu.viewTop'),
       onClick: () =>
         openViewLibraryCountPrompt({ isReversed: false, deckSize: deckCount }),
       disabled: deckCount <= 0,
       ...menuShortcut('game.viewTopCards'),
     },
     {
-      label: 'View bottom cards of library...',
+      label: t('ZoneMenu.viewBottom'),
       onClick: () =>
         openViewLibraryCountPrompt({ isReversed: true, deckSize: deckCount }),
       disabled: deckCount <= 0,
       ...menuShortcut('game.viewBottomCards'),
     },
     { divider: true },
-    { label: 'Reveal library to...', submenu: revealLibraryItems },
-    { label: 'Lend library to...', submenu: lendLibraryItems },
-    { label: 'Reveal top cards to...', submenu: revealTopCardsItems },
+    { label: t('ZoneMenu.revealLibrary'), submenu: revealLibraryItems },
+    { label: t('ZoneMenu.lendLibrary'), submenu: lendLibraryItems },
+    { label: t('ZoneMenu.revealTop'), submenu: revealTopCardsItems },
     {
-      label: 'Always reveal top card',
+      label: t('ZoneMenu.alwaysRevealTop'),
       checked: alwaysRevealTopCard ?? false,
       onClick: () => zoneCommands.setAlwaysRevealTopCard(!alwaysRevealTopCard),
       ...menuShortcut('game.alwaysRevealTopCard'),
     },
     {
-      label: 'Always look at top card',
+      label: t('ZoneMenu.alwaysLookTop'),
       checked: alwaysLookAtTopCard ?? false,
       onClick: () => zoneCommands.setAlwaysLookAtTopCard(!alwaysLookAtTopCard),
       ...menuShortcut('game.alwaysLookAtTopCard'),
     },
     { divider: true },
     {
-      label: 'Top of library...',
+      label: t('ZoneMenu.topLibrary'),
       disabled: deckCount <= 0,
       submenu: [
         {
-          label: 'Play top card',
+          label: t('ShortcutsTab.action.game.playTop'),
           onClick: buildMoveTopCardTo(ZoneName.STACK, 'end'),
           disabled: deckCount <= 0,
           ...menuShortcut('game.playTop'),
         },
         {
-          label: 'Play top card face down',
+          label: t('ZoneMenu.playTopFaceDown'),
           onClick: buildMoveTopCardTo(ZoneName.TABLE, 'end', true),
           disabled: deckCount <= 0,
         },
         {
-          label: 'Put top card on bottom',
+          label: t('ZoneMenu.putTopOnBottom'),
           onClick: buildMoveTopCardTo(ZoneName.DECK, 'end'),
           disabled: deckCount <= 0,
         },
         { divider: true },
         {
-          label: 'Move top card to graveyard',
+          label: t('ShortcutsTab.action.game.moveTopToGrave'),
           onClick: buildMoveTopCardTo(ZoneName.GRAVE, 0),
           disabled: deckCount <= 0,
           ...menuShortcut('game.moveTopToGrave'),
         },
         {
-          label: 'Move top cards to graveyard...',
-          onClick: promptMoveTopNTo('Move top cards to graveyard', ZoneName.GRAVE),
+          label: t('ZoneMenu.moveTopNGrave'),
+          onClick: promptMoveTopNTo(
+            t('ZoneMenu.promptMoveTop', { target: t('ZoneLabel.title.grave') }),
+            ZoneName.GRAVE,
+          ),
           disabled: deckCount <= 0,
           ...menuShortcut('game.moveTopNToGrave'),
         },
         {
-          label: 'Move top cards to graveyard face down...',
+          label: t('ZoneMenu.moveTopNGraveFaceDown'),
           onClick: promptMoveTopNTo(
-            'Move top cards to graveyard face down',
+            t('ZoneMenu.promptMoveTop', { target: t('ZoneLabel.title.grave') }),
             ZoneName.GRAVE,
             true,
           ),
           disabled: deckCount <= 0,
         },
         {
-          label: 'Move top card to exile',
+          label: t('ZoneMenu.moveTopExile'),
           onClick: buildMoveTopCardTo(ZoneName.EXILE, 0),
           disabled: deckCount <= 0,
         },
         {
-          label: 'Move top cards to exile...',
-          onClick: promptMoveTopNTo('Move top cards to exile', ZoneName.EXILE),
+          label: t('ZoneMenu.moveTopNExile'),
+          onClick: promptMoveTopNTo(
+            t('ZoneMenu.promptMoveTop', { target: t('ZoneLabel.title.rfg') }),
+            ZoneName.EXILE,
+          ),
           disabled: deckCount <= 0,
         },
         {
-          label: 'Move top cards to exile face down...',
+          label: t('ZoneMenu.moveTopNExileFaceDown'),
           onClick: promptMoveTopNTo(
-            'Move top cards to exile face down',
+            t('ZoneMenu.promptMoveTop', { target: t('ZoneLabel.title.rfg') }),
             ZoneName.EXILE,
             true,
           ),
           disabled: deckCount <= 0,
         },
         {
-          label: 'Put top cards on stack until…',
+          label: t('ShortcutsTab.action.game.moveTopUntil'),
           onClick: openMoveTopUntilDialog,
           disabled: deckCount <= 0,
           ...menuShortcut('game.moveTopUntil'),
         },
         { divider: true },
         {
-          label: 'Shuffle top cards...',
+          label: t('ZoneMenu.shuffleTop'),
           onClick: () => {
             const size = deckCount;
             if (size <= 0) {
               return;
             }
             openCountPrompt({
-              title: 'Shuffle top cards',
-              submitLabel: 'Shuffle',
+              title: t('ZoneMenu.promptShuffleTop'),
+              submitLabel: t('ZoneMenu.shuffle'),
               deckSize: size,
               onSubmit: (n) => {
                 const count = Math.min(n, size);
@@ -320,83 +329,83 @@ export function useLibraryMenuItems({
       ],
     },
     {
-      label: 'Bottom of library...',
+      label: t('ZoneMenu.bottomLibrary'),
       disabled: deckCount <= 0,
       submenu: [
         {
-          label: 'Draw bottom card',
+          label: t('ZoneMenu.drawBottom'),
           onClick: buildMoveBottomCardTo(ZoneName.HAND, 0),
           disabled: deckCount <= 0,
         },
         {
-          label: 'Draw bottom cards...',
+          label: t('ZoneMenu.drawBottomN'),
           onClick: promptMoveBottomNTo(
-            'Draw bottom cards',
-            'Draw',
+            t('ZoneMenu.promptDrawBottom'),
+            t('ZoneMenu.actionDraw'),
             ZoneName.HAND,
           ),
           disabled: deckCount <= 0,
         },
         { divider: true },
         {
-          label: 'Play bottom card',
+          label: t('ZoneMenu.playBottom'),
           onClick: buildMoveBottomCardTo(ZoneName.STACK, 'end'),
           disabled: deckCount <= 0,
         },
         {
-          label: 'Play bottom card face down',
+          label: t('ZoneMenu.playBottomFaceDown'),
           onClick: buildMoveBottomCardTo(ZoneName.TABLE, 'end', true),
           disabled: deckCount <= 0,
         },
         {
-          label: 'Put bottom card on top',
+          label: t('ZoneMenu.putBottomOnTop'),
           onClick: buildMoveBottomCardTo(ZoneName.DECK, 0),
           disabled: deckCount <= 0,
         },
         { divider: true },
         {
-          label: 'Move bottom card to graveyard',
+          label: t('ZoneMenu.moveBottomGrave'),
           onClick: buildMoveBottomCardTo(ZoneName.GRAVE, 0),
           disabled: deckCount <= 0,
         },
         {
-          label: 'Move bottom cards to graveyard...',
+          label: t('ZoneMenu.moveBottomNGrave'),
           onClick: promptMoveBottomNTo(
-            'Move bottom cards to graveyard',
-            'Move',
+            t('ZoneMenu.promptMoveBottom', { target: t('ZoneLabel.title.grave') }),
+            t('ZoneMenu.actionMove'),
             ZoneName.GRAVE,
           ),
           disabled: deckCount <= 0,
         },
         {
-          label: 'Move bottom cards to graveyard face down...',
+          label: t('ZoneMenu.moveBottomNGraveFaceDown'),
           onClick: promptMoveBottomNTo(
-            'Move bottom cards to graveyard face down',
-            'Move',
+            t('ZoneMenu.promptMoveBottom', { target: t('ZoneLabel.title.grave') }),
+            t('ZoneMenu.actionMove'),
             ZoneName.GRAVE,
             true,
           ),
           disabled: deckCount <= 0,
         },
         {
-          label: 'Move bottom card to exile',
+          label: t('ZoneMenu.moveBottomExile'),
           onClick: buildMoveBottomCardTo(ZoneName.EXILE, 0),
           disabled: deckCount <= 0,
         },
         {
-          label: 'Move bottom cards to exile...',
+          label: t('ZoneMenu.moveBottomNExile'),
           onClick: promptMoveBottomNTo(
-            'Move bottom cards to exile',
-            'Move',
+            t('ZoneMenu.promptMoveBottom', { target: t('ZoneLabel.title.rfg') }),
+            t('ZoneMenu.actionMove'),
             ZoneName.EXILE,
           ),
           disabled: deckCount <= 0,
         },
         {
-          label: 'Move bottom cards to exile face down...',
+          label: t('ZoneMenu.moveBottomNExileFaceDown'),
           onClick: promptMoveBottomNTo(
-            'Move bottom cards to exile face down',
-            'Move',
+            t('ZoneMenu.promptMoveBottom', { target: t('ZoneLabel.title.rfg') }),
+            t('ZoneMenu.actionMove'),
             ZoneName.EXILE,
             true,
           ),
@@ -404,15 +413,15 @@ export function useLibraryMenuItems({
         },
         { divider: true },
         {
-          label: 'Shuffle bottom cards...',
+          label: t('ZoneMenu.shuffleBottom'),
           onClick: () => {
             const size = deckCount;
             if (size <= 0) {
               return;
             }
             openCountPrompt({
-              title: 'Shuffle bottom cards',
-              submitLabel: 'Shuffle',
+              title: t('ZoneMenu.promptShuffleBottom'),
+              submitLabel: t('ZoneMenu.shuffle'),
               deckSize: size,
               onSubmit: (n) => {
                 const count = Math.min(n, size);
@@ -435,7 +444,7 @@ export function useLibraryMenuItems({
       // Opens the deck being played in the deck editor as an
       // unsaved draft (desktop actOpenDeckInDeckEditor); disabled
       // until the deck is known.
-      label: 'Open deck in deck editor',
+      label: t('ZoneMenu.openDeckEditor'),
       onClick: onOpenDeckInEditor,
       disabled: !onOpenDeckInEditor,
     },

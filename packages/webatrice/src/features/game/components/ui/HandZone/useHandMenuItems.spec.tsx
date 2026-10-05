@@ -1,7 +1,9 @@
 import { renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
+import { I18nextProvider } from 'react-i18next';
 import { ZoneName } from '@cockatrice/sockatrice';
 
+import { testI18n } from '../../../../../__test-utils__/renderWithProviders';
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import { NOOP_GAME_DIALOGS_ACTIONS, type GameDialogs } from '../../../hooks/dialogs/gameDialogs.types';
 import { GameDialogsProvider } from '../GameDialogsContext';
@@ -32,7 +34,9 @@ function setup(args: Partial<UseHandMenuItemsArgs> = {}) {
   };
   const zoneCommands = { moveCards: vi.fn(), reveal: vi.fn(), mulligan: vi.fn() } as unknown as PlayerZoneCommands;
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <GameDialogsProvider value={dialogs as unknown as GameDialogs}>{children}</GameDialogsProvider>
+    <I18nextProvider i18n={testI18n}>
+      <GameDialogsProvider value={dialogs as unknown as GameDialogs}>{children}</GameDialogsProvider>
+    </I18nextProvider>
   );
   const { result } = renderHook(() => useHandMenuItems({
     seatId: 1,

@@ -1,7 +1,11 @@
 import type { LookupResult, RelatedCardRef } from '@app/services';
+import { catalogT } from '../../../__test-utils__/catalogT';
+import menuText from '../menus.i18n.json';
 
 import type { ContextMenuItem as CardMenuItem } from '../ContextMenu/ContextMenu';
 import { buildRelatedTokenItems, buildRelatedViewItems, buildTransformItems } from './relatedCardActions';
+
+const t = catalogT(menuText);
 
 const lookup = (name: string, overrides: Partial<LookupResult> = {}): LookupResult => ({
   found: true,
@@ -27,6 +31,7 @@ describe('buildRelatedTokenItems', () => {
 
   it('labels counts and P/T like desktop addRelatedCardActions', () => {
     const items = buildRelatedTokenItems(
+      t,
       [
         ref('Soldier'),
         ref('Soldier', { count: '1' }),
@@ -49,6 +54,7 @@ describe('buildRelatedTokenItems', () => {
   it('creates N tokens for a numeric count and one for X, with color and printing', () => {
     const create = vi.fn();
     const [three, x, multi, persistent] = buildRelatedTokenItems(
+      t,
       [ref('Soldier', { count: '3' }), ref('Treasure', { count: 'x' }), ref('Spirit'), ref('Soldier', { persistent: 'persistent' })],
       tokenMeta,
       create,
@@ -78,7 +84,7 @@ describe('buildRelatedTokenItems', () => {
   });
 
   it('still renders items when no create-token command is available', () => {
-    const [item] = buildRelatedTokenItems([ref('Soldier')], tokenMeta, undefined).map(row);
+    const [item] = buildRelatedTokenItems(t, [ref('Soldier')], tokenMeta, undefined).map(row);
     expect(() => item.onClick!()).not.toThrow();
   });
 });
@@ -87,13 +93,13 @@ describe('annotating tokens with their card text', () => {
   it('gives a related token its rules text with "Annotate card text on tokens" on, and nothing off', () => {
     const tokenMeta = new Map([['Treasure', lookup('Treasure', { text: 'Sacrifice this artifact: Add one mana of any color.' })]]);
     const create = vi.fn();
-    const [annotated] = buildRelatedTokenItems([ref('Treasure')], tokenMeta, create, true).map(row);
+    const [annotated] = buildRelatedTokenItems(t, [ref('Treasure')], tokenMeta, create, true).map(row);
     annotated.onClick!();
     expect(create).toHaveBeenLastCalledWith(expect.objectContaining({
       annotation: 'Sacrifice this artifact: Add one mana of any color.',
     }));
 
-    const [plain] = buildRelatedTokenItems([ref('Treasure')], tokenMeta, create).map(row);
+    const [plain] = buildRelatedTokenItems(t, [ref('Treasure')], tokenMeta, create).map(row);
     plain.onClick!();
     expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ annotation: '' }));
   });
@@ -104,7 +110,7 @@ describe('annotating tokens with their card text', () => {
       { name: 'Insectile Aberration', text: 'Flying' },
     ];
     const create = vi.fn();
-    const [item] = buildTransformItems({ layout: 'transform', faces }, 42, 'Delver of Secrets', create, true).map(row);
+    const [item] = buildTransformItems(t, { layout: 'transform', faces }, 42, 'Delver of Secrets', create, true).map(row);
     item.onClick!();
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ name: 'Insectile Aberration', annotation: 'Flying' }));
   });
@@ -118,7 +124,7 @@ describe('buildTransformItems', () => {
 
   it('offers the other face of a transformable card and targets the source card', () => {
     const create = vi.fn();
-    const [front] = buildTransformItems({ layout: 'transform', faces }, 42, 'Delver of Secrets', create).map(row);
+    const [front] = buildTransformItems(t, { layout: 'transform', faces }, 42, 'Delver of Secrets', create).map(row);
     expect(front).toMatchObject({ label: 'Token: Transform into "Insectile Aberration"', shortcut: 'Ctrl+Shift+T' });
     front.onClick!();
     expect(create).toHaveBeenCalledWith({
@@ -132,7 +138,7 @@ describe('buildTransformItems', () => {
       targetMode: 'transform_into',
     });
 
-    const [back] = buildTransformItems({ layout: 'modal_dfc', faces }, 42, 'Insectile Aberration', vi.fn()).map(row);
+    const [back] = buildTransformItems(t, { layout: 'modal_dfc', faces }, 42, 'Insectile Aberration', vi.fn()).map(row);
     expect(back.label).toBe('Token: Transform into "Delver of Secrets"');
   });
 
@@ -142,18 +148,18 @@ describe('buildTransformItems', () => {
     ['a single face', { layout: 'transform', faces: faces.slice(0, 1) }, 42],
     ['no server card id', { layout: 'transform', faces }, undefined],
   ])('offers nothing for %s', (_label, meta, cardId) => {
-    expect(buildTransformItems(meta, cardId, 'Delver of Secrets', vi.fn())).toEqual([]);
+    expect(buildTransformItems(t, meta, cardId, 'Delver of Secrets', vi.fn())).toEqual([]);
   });
 
   it('targets card id 0, the first id Servatrice hands out', () => {
     const create = vi.fn();
-    const [item] = buildTransformItems({ layout: 'reversible_card', faces }, 0, 'Delver of Secrets', create).map(row);
+    const [item] = buildTransformItems(t, { layout: 'reversible_card', faces }, 0, 'Delver of Secrets', create).map(row);
     item.onClick!();
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ targetCardId: 0, targetMode: 'transform_into' }));
   });
 
   it('offers nothing without a create-token command', () => {
-    expect(buildTransformItems({ layout: 'transform', faces }, 42, 'Delver of Secrets', undefined)).toEqual([]);
+    expect(buildTransformItems(t, { layout: 'transform', faces }, 42, 'Delver of Secrets', undefined)).toEqual([]);
   });
 });
 
@@ -164,6 +170,7 @@ describe('buildRelatedViewItems', () => {
   it('lists every relation, related and reverse-related, in order after a separator', () => {
     const onView = vi.fn();
     const items = buildRelatedViewItems(
+      t,
       [ref('Missing Card'), ref('Spark Elemental', { origin: 'reverse-related' })],
       resolvable,
       onView,
@@ -178,7 +185,7 @@ describe('buildRelatedViewItems', () => {
   });
 
   it('is empty unless at least one relation resolves', () => {
-    expect(buildRelatedViewItems([ref('Missing Card')], resolvable, vi.fn())).toEqual([]);
-    expect(buildRelatedViewItems([], resolvable, vi.fn())).toEqual([]);
+    expect(buildRelatedViewItems(t, [ref('Missing Card')], resolvable, vi.fn())).toEqual([]);
+    expect(buildRelatedViewItems(t, [], resolvable, vi.fn())).toEqual([]);
   });
 });

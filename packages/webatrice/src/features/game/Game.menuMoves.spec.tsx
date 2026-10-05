@@ -139,11 +139,11 @@ describe('seat menu moves on the wire', () => {
       [STACK, ['Play']],
       [STACK, ['Play Face Down']],
       [STACK, ['Move to', 'Hand']],
-      [STACK, ['Move to', 'Battlefield']],
+      [STACK, ['Move to', 'Table']],
       [STACK, ['Move to', 'Graveyard']],
       [STACK, ['Move to', 'Exile']],
-      [STACK, ['Move to', 'Top of Library']],
-      [STACK, ['Move to', 'Bottom of Library']],
+      [STACK, ['Move to', 'Top of library']],
+      [STACK, ['Move to', 'Bottom of library']],
     ])).toMatchInlineSnapshot(`
       "
       Play
@@ -152,15 +152,15 @@ describe('seat menu moves on the wire', () => {
         P1 stack [50/fd] → P1 table {"x":-3,"y":0} + [null,{}]
       Move to > Hand
         P1 stack [50] → P1 hand {"x":-1,"y":0,"isReversed":false} + [null,{}]
-      Move to > Battlefield
+      Move to > Table
         P1 stack [50] → P1 table {"x":-3,"y":0,"isReversed":false} + [null,{}]
       Move to > Graveyard
         P1 stack [50] → P1 grave {"x":0,"y":0,"isReversed":false} + [null,{}]
       Move to > Exile
         P1 stack [50] → P1 rfg {"x":0,"y":0,"isReversed":false} + [null,{}]
-      Move to > Top of Library
+      Move to > Top of library
         P1 stack [50] → P1 deck {"x":0,"y":0,"isReversed":false} + [null,{}]
-      Move to > Bottom of Library
+      Move to > Bottom of library
         P1 stack [50] → P1 deck {"x":-1,"y":0,"isReversed":false} + [null,{}]
       "
     `);

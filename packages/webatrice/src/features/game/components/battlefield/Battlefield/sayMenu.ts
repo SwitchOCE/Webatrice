@@ -1,4 +1,5 @@
 import type { ActionId } from '@app/feature-widgets/shortcuts';
+import type { TFunction } from 'i18next';
 
 import type { ContextMenuItem, MenuShortcutFor } from '../../context-menus/ContextMenu/ContextMenu';
 
@@ -21,12 +22,13 @@ export const SAY_MACRO_ACTIONS = [
  * (desktop SayMenu, say_menu.cpp); disabled while there are none.
  */
 export function buildSayMenu(
+  t: TFunction,
   macros: readonly string[],
   menuShortcut: MenuShortcutFor,
   onSay: (message: string) => void,
 ): ContextMenuItem {
   return {
-    label: 'Say',
+    label: t('PlayerMenu.say'),
     disabled: macros.length === 0,
     submenu: macros.map((message, i) => ({
       label: message,

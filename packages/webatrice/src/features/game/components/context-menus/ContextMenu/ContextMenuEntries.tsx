@@ -3,6 +3,9 @@ import { usePreference } from '@app/hooks';
 
 import type { ContextMenuItem } from './ContextMenu';
 
+const dividerKey = (index: number) => `divider-${index}`;
+const itemKey = (index: number) => `item-${index}`;
+
 /** A counter item's colour, before its label. */
 function Swatch({ color }: { color: string }) {
   return <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} aria-hidden />;
@@ -22,9 +25,9 @@ export default function ContextMenuEntries({ items }: { items: readonly ContextM
     <>
       {items.map((item, i) => {
         if ('divider' in item) {
-          return <MenuSeparator key={`d-${i}`} />;
+          return <MenuSeparator key={dividerKey(i)} />;
         }
-        const key = `i-${i}`;
+        const key = itemKey(i);
         if (item.submenu && item.submenu.length > 0) {
           return (
             <MenuSubmenu key={key} label={item.label} disabled={item.disabled}>

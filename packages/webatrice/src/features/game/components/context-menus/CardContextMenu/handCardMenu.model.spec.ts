@@ -1,13 +1,19 @@
 import type { ActionId } from '@app/feature-widgets/shortcuts';
+import { catalogT } from '../../../__test-utils__/catalogT';
+import menuText from '../menus.i18n.json';
+import zoneText from '../../../dialogs/shared/zoneLabels.i18n.json';
+import appearanceText from '../../../../settings/sections/appearance.i18n.json';
 
 import type { ContextMenuItem as CardMenuItem } from '../ContextMenu/ContextMenu';
 import { buildHandOrZoneCardMenu, type BuildHandOrZoneCardMenuArgs } from './handCardMenu.model';
 
 // Every hint renders as its action id, so the tree pins which binding each row shows.
 const menuShortcut = (id: ActionId) => ({ shortcut: `<${id}>`, keyShortcuts: '' });
+const t = catalogT(menuText, zoneText, appearanceText);
 
 function makeArgs(overrides: Partial<BuildHandOrZoneCardMenuArgs> = {}): BuildHandOrZoneCardMenuArgs {
   return {
+    t,
     menuShortcut,
     source: 'hand',
     canModify: true,

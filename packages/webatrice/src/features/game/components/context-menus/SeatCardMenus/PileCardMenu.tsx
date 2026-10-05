@@ -1,8 +1,14 @@
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
+import { useTranslation } from 'react-i18next';
 
 import { makeCardKey } from '../../../utils/CardRegistry/CardRegistryContext';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import { ContextMenuPopup, type ContextMenuItem } from '../ContextMenu/ContextMenu';
+
+const DRAW_ARROW_ACTION = 'game.drawArrow';
+const CLONE_CARD_ACTION = 'game.cloneCard';
+const SELECT_ALL_ACTION = 'game.selectAllBattlefield';
+const SELECT_COLUMN_ACTION = 'game.selectColumnBattlefield';
 
 /**
  * Pile-view card context menu — right-click a card inside a
@@ -12,6 +18,7 @@ import { ContextMenuPopup, type ContextMenuItem } from '../ContextMenu/ContextMe
  * as the battlefield menu — only the item set differs.
  */
 export default function PileCardMenu() {
+  const { t } = useTranslation();
   const {
     cardCommands,
     closeSeatCardMenu,
@@ -60,8 +67,8 @@ export default function PileCardMenu() {
             // so both clients render the arrow off the pile. Only
             // battlefield cards / player anchors are valid targets
             // — Cockatrice never lets you target grave/exile cards.
-            label: 'Draw arrow...',
-            ...menuShortcut('game.drawArrow'),
+            label: t('CardMenu.drawArrow'),
+            ...menuShortcut(DRAW_ARROW_ACTION),
             onClick: () => {
               if (numeric) {
                 startDrawArrow({
@@ -81,8 +88,8 @@ export default function PileCardMenu() {
             // (they were reset when they left the battlefield per
             // resetCardState), so pass empties. Only wired when we
             // have a real numeric card id (mock-id no-op).
-            label: 'Clone',
-            ...menuShortcut('game.cloneCard'),
+            label: t('CardMenu.clone'),
+            ...menuShortcut(CLONE_CARD_ACTION),
             onClick: () => {
               if (numeric) {
                 for (const id of cloneIds) {
@@ -103,13 +110,13 @@ export default function PileCardMenu() {
             },
           },
           {
-            label: 'Select All',
-            ...menuShortcut('game.selectAllBattlefield'),
+            label: t('CardMenu.selectAll'),
+            ...menuShortcut(SELECT_ALL_ACTION),
             onClick: () => selectPileCards(pileCardMenu.viewCardIds),
           },
           {
-            label: 'Select Column',
-            ...menuShortcut('game.selectColumnBattlefield'),
+            label: t('CardMenu.selectColumn'),
+            ...menuShortcut(SELECT_COLUMN_ACTION),
             onClick: () => selectPileCards(pileCardMenu.columnCardIds),
           },
           ...relatedViewItemsFor(pileCardMenu.cardName),

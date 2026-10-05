@@ -2,12 +2,15 @@
 // as data. Ports desktop CardMenu::createHandOrCustomZoneMenu
 // (card_menu.cpp:296-342); the builder only wires the caller's handlers.
 
+import type { TFunction } from 'i18next';
+
 import type { ContextMenuItem, MenuShortcutFor } from '../ContextMenu/ContextMenu';
 
 /** Desktop MoveMenu's targets (move_menu.cpp), in menu order. */
 export type HandCardMoveTarget = 'libraryTop' | 'libraryXFromTop' | 'libraryBottom' | 'table' | 'hand' | 'grave' | 'exile';
 
 export interface BuildHandOrZoneCardMenuArgs {
+  t: TFunction;
   menuShortcut: MenuShortcutFor;
   /** Where the card is: the hand, or a library / sideboard zone view. */
   source: 'hand' | 'zoneView';
@@ -40,16 +43,16 @@ export function buildHandOrZoneCardMenu(args: BuildHandOrZoneCardMenuArgs): Cont
     ? [{ divider: true } as ContextMenuItem, ...args.tokenItems]
     : [];
   const selectAll: ContextMenuItem = {
-    label: 'Select All',
+    label: args.t('CardMenu.selectAll'),
     ...hints('game.selectAllBattlefield'),
     onClick: args.onSelectAll,
   };
 
   if (!args.canModify) {
     return [
-      { label: 'Draw arrow...', ...hints('game.drawArrow'), onClick: args.onDrawArrow },
+      { label: args.t('CardMenu.drawArrow'), ...hints('game.drawArrow'), onClick: args.onDrawArrow },
       { divider: true },
-      { label: 'Clone', ...hints('game.cloneCard'), onClick: args.onClone },
+      { label: args.t('CardMenu.clone'), ...hints('game.cloneCard'), onClick: args.onClone },
       { divider: true },
       selectAll,
       ...related,
@@ -58,36 +61,36 @@ export function buildHandOrZoneCardMenu(args: BuildHandOrZoneCardMenuArgs): Cont
   }
 
   return [
-    { label: 'Play', onClick: args.onPlay },
-    { label: 'Play Face Down', onClick: args.onPlayFaceDown },
+    { label: args.t('CardMenu.play'), onClick: args.onPlay },
+    { label: args.t('CardMenu.playFaceDown'), onClick: args.onPlayFaceDown },
     {
-      label: 'Reveal to...',
+      label: args.t('CardMenu.revealTo'),
       submenu: [
-        { label: 'All players', ...hints('game.revealSelectedToAll'), onClick: () => args.onReveal(-1) },
+        { label: args.t('CardMenu.allPlayers'), ...hints('game.revealSelectedToAll'), onClick: () => args.onReveal(-1) },
         { divider: true },
         ...args.revealTargets.map((t) => ({ label: t.name, onClick: () => args.onReveal(t.playerId) })),
       ],
     },
     { divider: true },
-    { label: 'Clone', ...hints('game.cloneCard'), onClick: args.onClone },
+    { label: args.t('CardMenu.clone'), ...hints('game.cloneCard'), onClick: args.onClone },
     {
-      label: 'Move to',
+      label: args.t('CardMenu.moveTo'),
       submenu: [
-        { label: 'Top of library in random order', onClick: () => args.onMove('libraryTop') },
-        { label: 'X cards from the top of library...', onClick: () => args.onMove('libraryXFromTop') },
+        { label: args.t('CardMenu.topLibraryRandom'), onClick: () => args.onMove('libraryTop') },
+        { label: args.t('CardMenu.xFromTop'), onClick: () => args.onMove('libraryXFromTop') },
         {
-          label: 'Bottom of library in random order',
+          label: args.t('CardMenu.bottomLibraryRandom'),
           ...hints('game.moveSelectedToLibraryBottom'),
           onClick: () => args.onMove('libraryBottom'),
         },
         { divider: true },
-        { label: 'Table', onClick: () => args.onMove('table') },
+        { label: args.t('SettingsAppearance.zoneBackgrounds.zone.table'), onClick: () => args.onMove('table') },
         { divider: true },
-        { label: 'Hand', onClick: () => args.onMove('hand') },
+        { label: args.t('ZoneLabel.title.hand'), onClick: () => args.onMove('hand') },
         { divider: true },
-        { label: 'Graveyard', ...hints('game.moveSelectedToGrave'), onClick: () => args.onMove('grave') },
+        { label: args.t('ZoneLabel.title.grave'), ...hints('game.moveSelectedToGrave'), onClick: () => args.onMove('grave') },
         { divider: true },
-        { label: 'Exile', onClick: () => args.onMove('exile') },
+        { label: args.t('ZoneLabel.title.rfg'), onClick: () => args.onMove('exile') },
       ],
     },
     // Desktop drops Attach / Draw arrow for library and sideboard cards,
@@ -96,13 +99,13 @@ export function buildHandOrZoneCardMenu(args: BuildHandOrZoneCardMenuArgs): Cont
     ...(inHand
       ? [
         { divider: true } as ContextMenuItem,
-        { label: 'Draw arrow...', ...hints('game.drawArrow'), onClick: args.onDrawArrow },
+        { label: args.t('CardMenu.drawArrow'), ...hints('game.drawArrow'), onClick: args.onDrawArrow },
       ]
       : []),
     { divider: true },
     selectAll,
     ...(args.onSelectColumn
-      ? [{ label: 'Select Column', ...hints('game.selectColumnBattlefield'), onClick: args.onSelectColumn }]
+      ? [{ label: args.t('CardMenu.selectColumn'), ...hints('game.selectColumnBattlefield'), onClick: args.onSelectColumn }]
       : []),
     ...related,
     ...tokens,

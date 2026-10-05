@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 // Tallies over the selected cards, ported from desktop's tally overlay
 // (game_graphics/tally/, Cockatrice 3.1). Pure: callers resolve the cards and
 // their type lines.
@@ -75,6 +77,7 @@ function total(cards: readonly TallyCard[], name: string, pick: (pt: ReturnType<
 
 /** The overlay rows for `type` over `cards` (desktop Tally::compute). */
 export function computeTally(
+  t: TFunction,
   cards: readonly TallyCard[],
   type: TallyType,
   typeLineOf: (name: string) => string | undefined,
@@ -83,9 +86,9 @@ export function computeTally(
     case 'subtypes':
       return countSubtypes(cards, typeLineOf);
     case 'power':
-      return total(cards, 'Total Power', (pt) => pt.power);
+      return total(cards, t('PlayerMenu.tallyPower'), (pt) => pt.power);
     case 'toughness':
-      return total(cards, 'Total Toughness', (pt) => pt.toughness);
+      return total(cards, t('PlayerMenu.tallyToughness'), (pt) => pt.toughness);
     default:
       return [];
   }

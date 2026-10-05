@@ -1,4 +1,5 @@
 import { useMessageMacros } from '@app/hooks';
+import { useTranslation } from 'react-i18next';
 
 import type { ContextMenuItem, MenuShortcutFor } from '../../context-menus/ContextMenu/ContextMenu';
 import { MANA_COLORS } from '../../right-sidebar/PlayerInfoPanel/manaColors';
@@ -74,12 +75,13 @@ export function useBattlefieldMenuItems({
   cardCommands,
   counterCommands,
 }: UseBattlefieldMenuItemsArgs) {
+  const { t } = useTranslation();
   const { onRequestRollDie, onRequestGameInfo, onRequestViewSideboard } = useGameDialogActions();
   const { openZoneView } = useGameDialogsContext();
   // Every player's menu ends with Tally (player_menu.cpp:48), a local choice
   // the game overlays on the selection.
   const [tallyType, setTallyType] = useTallyType();
-  const tallyMenu = buildTallyMenu(tallyType, setTallyType);
+  const tallyMenu = buildTallyMenu(t, tallyType, setTallyType);
   // The own menu ends with Say (player_menu.cpp:54), the message macros.
   const messageMacros = useMessageMacros();
 
@@ -108,7 +110,7 @@ export function useBattlefieldMenuItems({
   };
   const lifeCounterItems: ContextMenuItem[] = [
     {
-      label: 'Set counter...',
+      label: t('PlayerMenu.setCounter'),
       onClick: () => openLifePrompt(),
       disabled: !lifeControl,
     },
@@ -120,7 +122,7 @@ export function useBattlefieldMenuItems({
     const canModify = counter != null;
     const canSet = counter != null;
     return {
-      label: m.label,
+      label: t(`PlayerInfoPanel.mana.${m.symbol}`),
       // Disable the whole counter's submenu when we don't have a
       // counter id from Redux (pre-hydration transient) — every row
       // inside would no-op anyway.
@@ -130,12 +132,12 @@ export function useBattlefieldMenuItems({
           // The same sum prompt Ctrl+L opens, titled with the
           // counter name. Fires Command_SetCounter with the
           // absolute value.
-          label: 'Set counter...',
+          label: t('PlayerMenu.setCounter'),
           onClick: () => {
             if (counter) {
               openCounterPrompt({
                 counterId: counter.id,
-                label: m.label,
+                label: t(`PlayerInfoPanel.mana.${m.symbol}`),
                 currentValue: counter.count,
               });
             }
@@ -152,7 +154,7 @@ export function useBattlefieldMenuItems({
     };
   });
   const countersMenuItems: ContextMenuItem[] = [
-    { label: 'Life', submenu: lifeCounterItems },
+    { label: t('GameLog.counter.life'), submenu: lifeCounterItems },
     ...manaCounterSubmenus,
   ];
 
@@ -163,14 +165,14 @@ export function useBattlefieldMenuItems({
   // identical in shape to Cockatrice's PlayerMenu.
   const battlefieldMenuItems: ContextMenuItem[] = [
     {
-      label: 'Hand',
+      label: t('ZoneLabel.title.hand'),
       submenu: handMenuItems,
     },
     {
       // Same items as right-clicking the library pile. Cockatrice's
       // PlayerMenu attaches the same LibraryMenu to both places
       // (player_menu.cpp:23,67).
-      label: 'Library',
+      label: t('ZoneLabel.title.deck'),
       submenu: libraryMenuItems,
     },
     {
@@ -180,29 +182,29 @@ export function useBattlefieldMenuItems({
       // when the pile is empty so the user can still open "View
       // graveyard" — individual submenu items handle their own
       // per-pile-count disabling.
-      label: 'Graveyard',
+      label: t('ZoneLabel.title.grave'),
       submenu: graveMenuItemsSelf,
     },
     {
       // Same items as right-clicking the exile pile. Cockatrice's
       // PlayerMenu attaches the same RfgMenu to both places
       // (player_menu.cpp:30,64).
-      label: 'Exile',
+      label: t('ZoneLabel.title.rfg'),
       submenu: exileMenuItemsSelf,
     },
     {
-      label: 'Sideboard',
+      label: t('ZoneLabel.title.sb'),
       submenu: [
         {
           // Cockatrice's actViewSideboard opens the same zone-view
           // dialog that "View library" opens (player_actions.cpp:232-234).
-          label: 'View sideboard',
+          label: t('ShortcutsTab.action.game.viewSideboard'),
           onClick: onRequestViewSideboard,
           ...menuShortcut('game.viewSideboard'),
         },
       ],
     },
-    ...buildCustomZonesMenu(customZones, (zoneName) => openZoneView({ playerId: seatId, zoneName })),
+    ...buildCustomZonesMenu(t, customZones, (zoneName) => openZoneView({ playerId: seatId, zoneName })),
     { divider: true },
     {
       // Counters submenu — Cockatrice's countersMenu lists every
@@ -210,14 +212,14 @@ export function useBattlefieldMenuItems({
       // ±N/Set submenu (AbstractCounter, abstract_counter.cpp:36-57).
       // We already wire the deltas via lifeControl.onDelta and
       // counterCommands.increment, and life's Set via the Ctrl+L modal.
-      label: 'Counters',
+      label: t('PlayerMenu.counters'),
       submenu: countersMenuItems,
     },
     {
       // "Increment all card counters" — desktop actIncrementAllCardCounters
       // (player_actions.cpp:1588-1621), on the selection or the whole
       // battlefield. Disabled while the battlefield is empty.
-      label: 'Increment all card counters',
+      label: t('ShortcutsTab.action.game.incrementAllCardCounters'),
       ...menuShortcut('game.incrementAllCardCounters'),
       onClick: incrementAllCardCounters,
       disabled:
@@ -233,13 +235,13 @@ export function useBattlefieldMenuItems({
       // the same wire the phase-tracker's untap-step double-click
       // fires (usePhaseBar.ts:41-51) — one wire, whole battlefield.
       // Not phase-gated here — the menu action is always available.
-      label: 'Untap all permanents',
+      label: t('PlayerMenu.untapAll'),
       onClick: () => cardCommands.untapAll(),
       ...menuShortcut('game.untapAll'),
     },
     { divider: true },
     {
-      label: 'Roll die...',
+      label: t('PlayerMenu.rollDie'),
       onClick: () => onRequestRollDie?.(),
       ...menuShortcut('game.rollDice'),
     },
@@ -248,7 +250,7 @@ export function useBattlefieldMenuItems({
       // Cockatrice models a coin flip as a `Command_RollDie(sides=2,
       // count=1)`; server broadcasts Event_RollDie and the chat log
       // renders the heads/tails outcome.
-      label: 'Flip coin',
+      label: t('ShortcutsTab.action.game.flipCoin'),
       onClick: () => counterCommands.flipCoin(),
       ...menuShortcut('game.flipCoin'),
     },
@@ -259,7 +261,7 @@ export function useBattlefieldMenuItems({
       // so "Create another token" can re-fire without the modal.
       // Matches Cockatrice's actCreateToken (player_actions.cpp:878-892):
       // stores lastTokenInfo, then chains into actCreateAnotherToken.
-      label: 'Create token...',
+      label: t('PlayerMenu.createToken'),
       onClick: () => openCreateTokenDialog(),
       ...menuShortcut('game.createToken'),
     },
@@ -269,7 +271,7 @@ export function useBattlefieldMenuItems({
       // returns when lastTokenInfo.name is empty (player_actions.cpp:895);
       // we disable the menu item instead so the state matches Cockatrice's
       // "enable" signal (requestEnableAndSetCreateAnotherTokenAction).
-      label: 'Create another token',
+      label: t('ShortcutsTab.action.game.createAnotherToken'),
       onClick: () => {
         if (lastToken) {
           cardCommands.createToken(lastToken);
@@ -279,17 +281,17 @@ export function useBattlefieldMenuItems({
       ...menuShortcut('game.createAnotherToken'),
     },
     {
-      label: 'Create predefined token',
+      label: t('PlayerMenu.createPredefinedToken'),
       // Populated at runtime from the deck's tokens zone in Cockatrice.
       disabled: true,
     },
     { divider: true },
     {
-      label: 'Game info...',
+      label: t('PlayerMenu.gameInfo'),
       onClick: () => onRequestGameInfo?.(),
     },
     tallyMenu,
-    ...(onSay ? [buildSayMenu(messageMacros, menuShortcut, onSay)] : []),
+    ...(onSay ? [buildSayMenu(t, messageMacros, menuShortcut, onSay)] : []),
   ];
 
   // Opponent battlefield right-click menu. Ports Cockatrice's
@@ -302,8 +304,8 @@ export function useBattlefieldMenuItems({
   // already attach so "View graveyard" opens the same LibrarySearch
   // dialog either way.
   const opponentBattlefieldMenuItems: ContextMenuItem[] = [
-    { label: 'Graveyard', submenu: graveMenuItemsOpponent },
-    { label: 'Exile', submenu: exileMenuItemsOpponent },
+    { label: t('ZoneLabel.title.grave'), submenu: graveMenuItemsOpponent },
+    { label: t('ZoneLabel.title.rfg'), submenu: exileMenuItemsOpponent },
     tallyMenu,
   ];
 

@@ -1,5 +1,6 @@
 import { ZoneName } from '@cockatrice/sockatrice';
 import { usePreference } from '@app/hooks';
+import { useTranslation } from 'react-i18next';
 
 import type { BattlefieldCardOps } from '../../ui/PlayerBoard/useBattlefieldCardOps';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
@@ -14,6 +15,7 @@ import { buildRelatedTokenItems, buildTransformItems } from '../CardContextMenu/
  * closes. The menu is disabled on an optimistic card without a server id.
  */
 export default function BattlefieldCardMenu() {
+  const { t } = useTranslation();
   const {
     battlefieldDisplayList,
     cardCommands,
@@ -52,8 +54,9 @@ export default function BattlefieldCardMenu() {
   // created by the local player, so it lands on the local battlefield.
   const tokenItems: ContextMenuItem[] = card
     ? [
-      ...buildRelatedTokenItems(cardMetaByName.get(card.name)?.related ?? [], tokenMetaByName, cardCommands.createToken, annotateTokens),
+      ...buildRelatedTokenItems(t, cardMetaByName.get(card.name)?.related ?? [], tokenMetaByName, cardCommands.createToken, annotateTokens),
       ...buildTransformItems(
+        t,
         cardMetaByName.get(card.name),
         Number.isFinite(cardIdNum) ? cardIdNum : undefined,
         card.name,
@@ -66,6 +69,7 @@ export default function BattlefieldCardMenu() {
 
   const items = isSelf
     ? buildCardContextMenu({
+      t,
       menuShortcut,
       faceDown: card?.faceDown ?? false,
       doesntUntap: card?.doesntUntap ?? false,
@@ -105,6 +109,7 @@ export default function BattlefieldCardMenu() {
       relatedViewItems,
     })
     : buildOpponentCardMenu({
+      t,
       menuShortcut,
       onDrawArrow: run((o) => o.drawArrow()),
       onClone: run((o) => o.clone()),

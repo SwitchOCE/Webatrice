@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef } from 'react';
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 import { useMenuShortcut } from '@app/feature-widgets/shortcuts';
 import { useBoardAnimations, usePreference } from '@app/hooks';
+import { useTranslation } from 'react-i18next';
 
 import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
 import { useMoveTopUntil } from '../../../hooks/useMoveTopUntil';
@@ -65,6 +66,7 @@ export type PlayerSeatProps = {
  * regions through PlayerSeatContext.
  */
 export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: PlayerSeatProps) {
+  const { t } = useTranslation();
   const { seat, zones, counters } = model;
   const {
     zone: zoneCommands,
@@ -149,6 +151,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
   const { showCardInfo } = useCardPreviewActions();
   const relatedViewItemsFor = (cardName: string): ContextMenuItem[] =>
     buildRelatedViewItems(
+      t,
       cardMetaByName.get(cardName)?.related ?? [],
       (name) => tokenMetaByName.get(name)?.found ?? false,
       (ref) => {

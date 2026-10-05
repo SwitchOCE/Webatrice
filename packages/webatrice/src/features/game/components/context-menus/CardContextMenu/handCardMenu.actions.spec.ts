@@ -1,5 +1,8 @@
 import { ZoneName } from '@cockatrice/sockatrice';
 import type { ActionId } from '@app/feature-widgets/shortcuts';
+import { catalogT } from '../../../__test-utils__/catalogT';
+import menuText from '../menus.i18n.json';
+import zoneText from '../../../dialogs/shared/zoneLabels.i18n.json';
 
 import type { SeatCardMenuState } from '../../../hooks/dialogs/gameDialogs.types';
 import { makeCardKey } from '../../../utils/CardRegistry/CardRegistryContext';
@@ -12,6 +15,7 @@ import {
 } from './handCardMenu.actions';
 
 const menuShortcut = (id: ActionId) => ({ shortcut: `<${id}>`, keyShortcuts: '' });
+const t = catalogT(menuText, zoneText);
 
 const OWNER = 1;
 const card = (id: string, name: string) => ({ id, name, scryfallId: `sf-${id}` });
@@ -40,6 +44,7 @@ const libraryViewMenu = (cardId: string, zone: string = ZoneName.DECK): SeatCard
 
 function makeDeps(overrides: Partial<HandOrZoneCardMenuDeps> = {}): HandOrZoneCardMenuDeps {
   return {
+    t,
     menu: handMenu('11'),
     ownerId: OWNER,
     menuShortcut,

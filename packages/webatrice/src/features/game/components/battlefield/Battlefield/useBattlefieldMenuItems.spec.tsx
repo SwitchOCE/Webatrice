@@ -1,6 +1,8 @@
 import { renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
+import { I18nextProvider } from 'react-i18next';
 
+import { testI18n } from '../../../../../__test-utils__/renderWithProviders';
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import { NOOP_GAME_DIALOGS_ACTIONS, type GameDialogs } from '../../../hooks/dialogs/gameDialogs.types';
 import { GameDialogActionsProvider, type GameDialogActions } from '../../ui/GameDialogActionsContext';
@@ -63,9 +65,11 @@ function setup(args: Partial<UseBattlefieldMenuItemsArgs> = {}) {
   };
   const dialogs = { ...NOOP_GAME_DIALOGS_ACTIONS, openZoneView: vi.fn() };
   const wrapper = ({ children }: { children: ReactNode }) => (
-    <GameDialogsProvider value={dialogs as unknown as GameDialogs}>
-      <GameDialogActionsProvider value={actions as unknown as GameDialogActions}>{children}</GameDialogActionsProvider>
-    </GameDialogsProvider>
+    <I18nextProvider i18n={testI18n}>
+      <GameDialogsProvider value={dialogs as unknown as GameDialogs}>
+        <GameDialogActionsProvider value={actions as unknown as GameDialogActions}>{children}</GameDialogActionsProvider>
+      </GameDialogsProvider>
+    </I18nextProvider>
   );
   const { result } = renderHook(() => useBattlefieldMenuItems(props), { wrapper });
   return { ...result.current, props, actions, dialogs, cardCommands, counterCommands };

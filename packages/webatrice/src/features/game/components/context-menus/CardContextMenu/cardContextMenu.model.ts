@@ -5,11 +5,13 @@
 // it and ContextMenuEntries draws it on the shared Menu.
 
 import type { ActionId } from '@app/feature-widgets/shortcuts';
+import type { TFunction } from 'i18next';
 
 import { counterColorForId } from '../../ui/SeatCard/counterColors';
 import type { ContextMenuItem, MenuShortcutFor } from '../ContextMenu/ContextMenu';
 
 export interface BuildCardContextMenuArgs {
+  t: TFunction;
   /** Each item's shortcut props from the current bindings (useMenuShortcut), so the
    *  hints follow a rebinding in the Shortcuts tab. */
   menuShortcut: MenuShortcutFor;
@@ -127,13 +129,13 @@ export function buildCardContextMenu(args: BuildCardContextMenuArgs): ContextMen
       counterItems.push({ divider: true });
     }
     counterItems.push({
-      label: `Add counter (${letter})`,
+      label: args.t('CardMenu.addCounter', { letter }),
       ...(counterShortcuts[i] && args.menuShortcut(counterShortcuts[i][0])),
       swatch: counterColorForId(i),
       onClick: () => args.onAddCardCounter(i),
     });
     counterItems.push({
-      label: `Set counters (${letter})...`,
+      label: args.t('CardMenu.setCounters', { letter }),
       ...(counterShortcuts[i] && args.menuShortcut(counterShortcuts[i][1])),
       swatch: counterColorForId(i),
       onClick: () => args.onSetCardCounter(i),
@@ -141,101 +143,101 @@ export function buildCardContextMenu(args: BuildCardContextMenuArgs): ContextMen
   });
 
   return [
-    { label: 'Tap / Untap', onClick: args.onTapUntap },
+    { label: args.t('CardMenu.tapUntap'), onClick: args.onTapUntap },
     {
-      label: 'Skip untapping',
+      label: args.t('CardMenu.skipUntapping'),
       ...args.menuShortcut('game.doesntUntap'),
       checked: args.doesntUntap,
       onClick: args.onSkipUntapping,
     },
     {
-      label: args.faceDown ? 'Turn Over (face up)' : 'Turn Over',
+      label: args.faceDown ? args.t('CardMenu.turnOverFaceUp') : args.t('CardMenu.turnOver'),
       ...args.menuShortcut('game.flipCard'),
       onClick: args.onFlip,
     },
     // Peek — only shown on face-down cards. Reveals the card to the
     // local player without flipping it (mirrors Cockatrice's aPeek).
     ...(args.faceDown
-      ? [{ label: 'Peek card', ...args.menuShortcut('game.peekCard'), onClick: args.onPeek } as ContextMenuItem]
+      ? [{ label: args.t('CardMenu.peek'), ...args.menuShortcut('game.peekCard'), onClick: args.onPeek } as ContextMenuItem]
       : []),
     { divider: true },
-    { label: 'Clone', ...args.menuShortcut('game.cloneCard'), onClick: args.onClone },
+    { label: args.t('CardMenu.clone'), ...args.menuShortcut('game.cloneCard'), onClick: args.onClone },
     {
-      label: 'Move to',
+      label: args.t('CardMenu.moveTo'),
       submenu: [
         {
-          label: 'Top of library in random order',
+          label: args.t('CardMenu.topLibraryRandom'),
           onClick: args.onMoveToTop,
         },
-        { label: 'X cards from the top of library...', onClick: args.onMoveToXCardsFromTop },
+        { label: args.t('CardMenu.xFromTop'), onClick: args.onMoveToXCardsFromTop },
         {
-          label: 'Bottom of library in random order',
+          label: args.t('CardMenu.bottomLibraryRandom'),
           ...args.menuShortcut('game.moveSelectedToLibraryBottom'),
           onClick: args.onMoveToBottom,
         },
         { divider: true },
-        { label: 'Table', onClick: args.onMoveToTable },
-        { label: 'Hand', onClick: args.onMoveToHand },
+        { label: args.t('SettingsAppearance.zoneBackgrounds.zone.table'), onClick: args.onMoveToTable },
+        { label: args.t('ZoneLabel.title.hand'), onClick: args.onMoveToHand },
         { divider: true },
         {
-          label: 'Graveyard',
+          label: args.t('ZoneLabel.title.grave'),
           ...args.menuShortcut('game.moveSelectedToGrave'),
           onClick: args.onMoveToGrave,
         },
-        { label: 'Exile', onClick: args.onMoveToExile },
+        { label: args.t('ZoneLabel.title.rfg'), onClick: args.onMoveToExile },
       ],
     },
     { divider: true },
     {
-      label: 'Attach to card...',
+      label: args.t('CardMenu.attach'),
       ...args.menuShortcut('game.attachCard'),
       onClick: args.onAttachToCard,
     },
     // Cockatrice hides "Unattach" for cards that aren't attached — only
     // include the item when there's actually something to detach.
     ...(args.isAttached
-      ? [{ label: 'Unattach', ...args.menuShortcut('game.unattachCard'), onClick: args.onUnattach } as ContextMenuItem]
+      ? [{ label: args.t('CardMenu.unattach'), ...args.menuShortcut('game.unattachCard'), onClick: args.onUnattach } as ContextMenuItem]
       : []),
     {
-      label: 'Draw arrow...',
+      label: args.t('CardMenu.drawArrow'),
       ...args.menuShortcut('game.drawArrow'),
       onClick: args.onDrawArrow,
     },
     { divider: true },
     {
-      label: 'Power / toughness',
+      label: args.t('CardMenu.powerToughness'),
       submenu: [
-        { label: 'Increase power', ...args.menuShortcut('game.incP'), onClick: args.onIncP },
-        { label: 'Decrease power', ...args.menuShortcut('game.decP'), onClick: args.onDecP },
-        { label: 'Increase power and decrease toughness', onClick: args.onFlowP },
+        { label: args.t('CardMenu.increasePower'), ...args.menuShortcut('game.incP'), onClick: args.onIncP },
+        { label: args.t('CardMenu.decreasePower'), ...args.menuShortcut('game.decP'), onClick: args.onDecP },
+        { label: args.t('CardMenu.increasePowerDecreaseToughness'), onClick: args.onFlowP },
         { divider: true },
-        { label: 'Increase toughness', ...args.menuShortcut('game.incT'), onClick: args.onIncT },
-        { label: 'Decrease toughness', ...args.menuShortcut('game.decT'), onClick: args.onDecT },
-        { label: 'Decrease power and increase toughness', onClick: args.onFlowT },
+        { label: args.t('CardMenu.increaseToughness'), ...args.menuShortcut('game.incT'), onClick: args.onIncT },
+        { label: args.t('CardMenu.decreaseToughness'), ...args.menuShortcut('game.decT'), onClick: args.onDecT },
+        { label: args.t('CardMenu.decreasePowerIncreaseToughness'), onClick: args.onFlowT },
         { divider: true },
-        { label: 'Increase power and toughness', ...args.menuShortcut('game.incPT'), onClick: args.onIncPT },
-        { label: 'Decrease power and toughness', ...args.menuShortcut('game.decPT'), onClick: args.onDecPT },
+        { label: args.t('CardMenu.increasePowerToughness'), ...args.menuShortcut('game.incPT'), onClick: args.onIncPT },
+        { label: args.t('CardMenu.decreasePowerToughness'), ...args.menuShortcut('game.decPT'), onClick: args.onDecPT },
         { divider: true },
-        { label: 'Set power and toughness...', ...args.menuShortcut('game.setCardPT'), onClick: args.onSetPT },
-        { label: 'Reset power and toughness', ...args.menuShortcut('game.resetPT'), onClick: args.onResetPT },
+        { label: args.t('CardMenu.setPowerToughness'), ...args.menuShortcut('game.setCardPT'), onClick: args.onSetPT },
+        { label: args.t('CardMenu.resetPowerToughness'), ...args.menuShortcut('game.resetPT'), onClick: args.onResetPT },
       ],
     },
     {
-      label: 'Set annotation...',
+      label: args.t('CardMenu.setAnnotation'),
       ...args.menuShortcut('game.setAnnotation'),
       onClick: args.onSetAnnotation,
     },
     { divider: true },
     {
-      label: 'Reduce life by power',
+      label: args.t('CardMenu.reduceLifeByPower'),
       ...args.menuShortcut('game.reduceLifeByPower'),
       onClick: args.onReduceLifeByPower,
     },
     { divider: true },
-    { label: 'Select All', ...args.menuShortcut('game.selectAllBattlefield'), onClick: args.onSelectAll },
-    { label: 'Select Row', ...args.menuShortcut('game.selectRowBattlefield'), onClick: args.onSelectRow },
+    { label: args.t('CardMenu.selectAll'), ...args.menuShortcut('game.selectAllBattlefield'), onClick: args.onSelectAll },
+    { label: args.t('CardMenu.selectRow'), ...args.menuShortcut('game.selectRowBattlefield'), onClick: args.onSelectRow },
     { divider: true },
-    { label: 'Card counters', submenu: counterItems },
+    { label: args.t('CardMenu.cardCounters'), submenu: counterItems },
     ...(args.relatedViewItems ?? []),
     // "Token: …" items — mirrors Cockatrice's addRelatedCardActions
     // (card_menu.cpp:407-479). The parent caller resolves each token
@@ -251,6 +253,7 @@ export function buildCardContextMenu(args: BuildCardContextMenuArgs): ContextMen
 }
 
 export interface BuildOpponentCardMenuArgs {
+  t: TFunction;
   menuShortcut: MenuShortcutFor;
   /** Arrows belong to the local player, so any card can start one. */
   onDrawArrow: () => void;
@@ -271,17 +274,17 @@ export interface BuildOpponentCardMenuArgs {
  */
 export function buildOpponentCardMenu(args: BuildOpponentCardMenuArgs): ContextMenuItem[] {
   return [
-    { label: 'Draw arrow...', ...args.menuShortcut('game.drawArrow'), onClick: args.onDrawArrow },
-    { label: 'Clone', ...args.menuShortcut('game.cloneCard'), onClick: args.onClone },
+    { label: args.t('CardMenu.drawArrow'), ...args.menuShortcut('game.drawArrow'), onClick: args.onDrawArrow },
+    { label: args.t('CardMenu.clone'), ...args.menuShortcut('game.cloneCard'), onClick: args.onClone },
     { divider: true },
     {
-      label: 'Reduce life by power',
+      label: args.t('CardMenu.reduceLifeByPower'),
       ...args.menuShortcut('game.reduceLifeByPower'),
       onClick: args.onReduceLifeByPower,
     },
     { divider: true },
-    { label: 'Select All', ...args.menuShortcut('game.selectAllBattlefield'), onClick: args.onSelectAll },
-    { label: 'Select Row', ...args.menuShortcut('game.selectRowBattlefield'), onClick: args.onSelectRow },
+    { label: args.t('CardMenu.selectAll'), ...args.menuShortcut('game.selectAllBattlefield'), onClick: args.onSelectAll },
+    { label: args.t('CardMenu.selectRow'), ...args.menuShortcut('game.selectRowBattlefield'), onClick: args.onSelectRow },
     ...(args.relatedViewItems ?? []),
     ...(args.tokenItems && args.tokenItems.length > 0
       ? [{ divider: true } as ContextMenuItem, ...args.tokenItems]

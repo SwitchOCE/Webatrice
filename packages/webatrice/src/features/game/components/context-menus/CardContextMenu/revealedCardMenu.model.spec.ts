@@ -1,9 +1,12 @@
 import type { ActionId } from '@app/feature-widgets/shortcuts';
+import { catalogT } from '../../../__test-utils__/catalogT';
+import menuText from '../menus.i18n.json';
 
 import type { ContextMenuItem as CardMenuItem } from '../ContextMenu/ContextMenu';
 import { buildRevealedCardMenu } from './revealedCardMenu.model';
 
 const menuShortcut = (id: ActionId) => ({ shortcut: `<${id}>`, keyShortcuts: '' });
+const t = catalogT(menuText);
 
 function rows(items: CardMenuItem[]): string[] {
   return items.map((item) => ('divider' in item ? '---' : [item.label, item.shortcut ? `[${item.shortcut}]` : ''].join(' ').trim()));
@@ -12,6 +15,7 @@ function rows(items: CardMenuItem[]): string[] {
 describe('buildRevealedCardMenu', () => {
   it('builds desktop\'s revealed-card menu', () => {
     const menu = buildRevealedCardMenu({
+      t,
       menuShortcut,
       onHide: vi.fn(),
       onClone: vi.fn(),
@@ -30,7 +34,7 @@ describe('buildRevealedCardMenu', () => {
   });
 
   it('wires Hide, Clone and Select All', () => {
-    const args = { menuShortcut, onHide: vi.fn(), onClone: vi.fn(), onSelectAll: vi.fn() };
+    const args = { t, menuShortcut, onHide: vi.fn(), onClone: vi.fn(), onSelectAll: vi.fn() };
     const menu = buildRevealedCardMenu(args);
     for (const item of menu) {
       if (!('divider' in item)) {

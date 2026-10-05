@@ -221,6 +221,7 @@ function IncomingRevealPanel({
   };
   const visibleIds = groups.flatMap((g) => g.cards.map((c) => c.handCard.id));
   const menuItems = cardMenu && buildRevealedCardMenu({
+    t,
     menuShortcut,
     onHide: () => {
       hideCards(selectedIds.has(cardMenu.id) ? [...selectedIds] : [cardMenu.id]);
@@ -249,7 +250,7 @@ function IncomingRevealPanel({
       setCardMenu(null);
     },
     relatedViewItems: buildRelatedViewItems(
-      relatedByName.get(cardMenu.name) ?? [],
+      t,      relatedByName.get(cardMenu.name) ?? [],
       (name) => knownRelated.has(name),
       (ref) => {
         showCardInfo({ name: ref.name, scryfallId: ref.scryfallId });

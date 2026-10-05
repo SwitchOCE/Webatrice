@@ -4,6 +4,7 @@
 // items fire the caller's handlers and never construct a request themselves.
 
 import type { LookupCardFace, LookupResult, RelatedCardRef } from '@app/services';
+import type { TFunction } from 'i18next';
 
 import type { CreateTokenRequest } from '../../ui/PlayerBoard/playerBoard.types';
 import type { ContextMenuItem } from '../ContextMenu/ContextMenu';
@@ -17,6 +18,7 @@ import type { ContextMenuItem } from '../ContextMenu/ContextMenu';
  * sends nothing.
  */
 export function buildRelatedViewItems(
+  t: TFunction,
   related: readonly RelatedCardRef[],
   resolvable: (name: string) => boolean,
   onView: (ref: RelatedCardRef) => void,
@@ -27,7 +29,7 @@ export function buildRelatedViewItems(
   return [
     { divider: true },
     {
-      label: 'View related cards',
+      label: t('CardMenu.viewRelated'),
       submenu: related.map((ref) => ({ label: ref.name, onClick: () => onView(ref) })),
     },
   ];
@@ -59,6 +61,7 @@ export function buildRelatedViewItems(
  *     carries its rules text as its annotation (PlayerActions::createCard).
  */
 export function buildRelatedTokenItems(
+  t: TFunction,
   related: RelatedCardRef[],
   tokenMeta: Map<string, LookupResult>,
   onCreateToken: CreateTokenHandler | undefined,
@@ -85,7 +88,7 @@ export function buildRelatedTokenItems(
     const fireCount =
       ref.count && /^\d+$/.test(ref.count) ? Number(ref.count) : 1;
     out.push({
-      label: `Token: ${countPrefix}${ptPart}${ref.name}`,
+      label: t('CardMenu.token', { description: `${countPrefix}${ptPart}${ref.name}` }),
       onClick: () => {
         if (!onCreateToken) {
           return;
@@ -136,6 +139,7 @@ const TRANSFORMABLE_LAYOUTS = new Set(['transform', 'modal_dfc', 'reversible_car
  * text as its annotation, as a related token does.
  */
 export function buildTransformItems(
+  t: TFunction,
   parentMeta: { layout?: string; faces?: LookupCardFace[] } | undefined,
   sourceCardId: number | undefined,
   parentName: string,
@@ -172,7 +176,7 @@ export function buildTransformItems(
     : '';
   return [
     {
-      label: `Token: Transform into "${target.name}"`,
+      label: t('CardMenu.transform', { name: target.name }),
       shortcut: 'Ctrl+Shift+T',
       onClick: () => {
         onCreateToken({
