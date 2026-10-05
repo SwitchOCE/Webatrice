@@ -27,6 +27,8 @@ const CONTROL_SELECTOR = [
   // The life total and the mana pool counters on the board.
   '[role="spinbutton"]',
   '[contenteditable="true"]',
+  // Any other tab stop the user moved to: the sidebar resizer, the game log.
+  '[tabindex]:not([tabindex="-1"])',
 ].join(', ');
 
 /**

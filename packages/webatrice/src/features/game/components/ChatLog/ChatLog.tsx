@@ -166,6 +166,9 @@ function ChatLogView() {
       <div
         ref={listRef}
         role="log"
+        // A tab stop in every browser, so the log can be scrolled from
+        // the keyboard (Chrome and Firefox already focus scrollers).
+        tabIndex={0}
         aria-live="polite"
         aria-relevant="additions"
         aria-labelledby={headingId}
