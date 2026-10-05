@@ -53,8 +53,29 @@ export function useSharedDeck(token: string | null) {
   const [open, setOpen] = useState<OpenDeckState>({ status: 'idle' });
   // A download failure names the share token only, so the item comes from here.
   const requestedItemRef = useRef<number | null>(null);
+  // Keep the wire request serialized even if its view is closed before settlement.
+  const inFlightRef = useRef<{ token: string; itemId: number } | null>(null);
+  const [downloadPending, setDownloadPending] = useState(false);
+
+  const finishDownload = (replyToken: string, itemId?: number): number | null => {
+    const request = inFlightRef.current;
+    if (!request || request.token !== replyToken || (itemId !== undefined && request.itemId !== itemId)) {
+      return null;
+    }
+    inFlightRef.current = null;
+    setDownloadPending(false);
+    const wanted = requestedItemRef.current === request.itemId && replyToken === token;
+    requestedItemRef.current = null;
+    return wanted ? request.itemId : null;
+  };
 
   useEffect(() => {
+    requestedItemRef.current = null;
+    setOpen({ status: 'idle' });
+    if (!isConnected) {
+      inFlightRef.current = null;
+      setDownloadPending(false);
+    }
     if (token && isConnected) {
       setListing({ status: 'loading' });
       setOpen({ status: 'idle' });
@@ -73,7 +94,7 @@ export function useSharedDeck(token: string | null) {
   }, server.Types.DECK_SHARE_LISTED, [token, t]);
 
   useReduxEffect<{ token: string; itemId: number; deck: string }>(({ payload }) => {
-    if (payload.token !== token) {
+    if (finishDownload(payload.token, payload.itemId) === null) {
       return;
     }
     const deck = payload.deck ? readDeck(payload.deck) : null;
@@ -85,22 +106,33 @@ export function useSharedDeck(token: string | null) {
   useReduxEffect<SessionCommandFailedPayload>(({ payload: { command, target, failure } }) => {
     if (command === 'deckShareList' && target === token) {
       setListing({ status: 'failed', message: describeFailure(failure, t('SharedDeck.notFound')) });
-    } else if (command === 'deckShareDownload' && target === token && requestedItemRef.current != null) {
-      const id = requestedItemRef.current;
+    } else if (command === 'deckShareDownload') {
+      const id = finishDownload(target);
+      if (id === null) {
+        return;
+      }
       setOpen({ status: 'failed', id, message: describeFailure(failure, t('SharedDeck.downloadFailed')) });
     }
   }, server.Types.SESSION_COMMAND_FAILED, [token, describeFailure, t]);
 
   const openItem = (itemId: number) => {
-    if (!token) {
+    if (!token || !isConnected || inFlightRef.current) {
       return;
     }
+    inFlightRef.current = { token, itemId };
+    setDownloadPending(true);
     requestedItemRef.current = itemId;
     setOpen({ status: 'loading', id: itemId });
     webClient.request.session.deckShareDownload(token, itemId);
   };
 
-  return { listing, open, openItem, close: () => setOpen({ status: 'idle' }) };
+  return {
+    listing, open, openItem, downloadPending,
+    close: () => {
+      requestedItemRef.current = null;
+      setOpen({ status: 'idle' });
+    },
+  };
 }
 
 /**
