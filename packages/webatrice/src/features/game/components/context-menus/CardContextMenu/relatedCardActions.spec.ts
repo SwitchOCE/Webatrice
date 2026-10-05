@@ -248,6 +248,18 @@ describe('create all related tokens', () => {
     expect(plan.lastToken).toMatchObject({ name: 'Soldier' });
   });
 
+  // The cards.xml parser checks only that `attach`, `exclude` and
+  // `persistent` are present (cockatrice_xml_4.cpp:403-414), so an empty
+  // attribute counts.
+  it('treats an empty exclude, attach or persistent attribute as set', () => {
+    expect(createAllRelated(source({ related: [ref('Soldier', { persistent: '' })] })).requests)
+      .toEqual([expect.objectContaining({ name: 'Soldier', destroyOnZoneChange: false })]);
+    const related = [ref('Soldier', { exclude: '' }), ref('Aura', { attach: '' }), ref('Clue', { count: '2' })];
+    expect(names(createAllRelated(source({ related })))).toEqual(['Clue', 'Clue']);
+    expect(names(createAllRelated(source({ related: related.map((r) => ({ ...r, exclude: '' })) })))).toEqual(['Soldier', 'Clue', 'Clue']);
+    expect(createAllRelated(source({ related: [ref('Aura', { attach: '' })] })).lastToken).toBeUndefined();
+  });
+
   it('reads counts as the cards.xml parser does', () => {
     expect([undefined, '3', '0', 'x', 'x=4', 'x=0'].map((count) => relationCount({ count }))).toEqual([
       { variable: false, count: 1 },
