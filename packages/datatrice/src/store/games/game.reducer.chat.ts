@@ -1,3 +1,4 @@
+import { withEventTime, type EventTime } from './game.actionTime';
 import { CaseReducer, PayloadAction } from '@reduxjs/toolkit';
 import {
   Event_DumpZone,
@@ -37,7 +38,7 @@ export const chatReducers = {
     });
   }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; playerId: number; message: string; timeReceived: number }>>,
 
-  zoneShuffled: ((state, action) => {
+  zoneShuffled: withEventTime(((state, action) => {
     const { gameId, playerId, data } = action.payload;
     const game = state.games[gameId];
     if (!game) {
@@ -53,30 +54,30 @@ export const chatReducers = {
     if (zone?.type === ServerInfo_Zone_ZoneType.HiddenZone) {
       clearZoneKnownCards(zone);
     }
-    pushEventMessage(game, playerId, formatZoneShuffled(game, playerId));
-  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; playerId: number; data: Event_Shuffle }>>,
+    pushEventMessage(game, playerId, formatZoneShuffled(game, playerId), action.payload.timeReceived);
+  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; playerId: number; data: Event_Shuffle } & EventTime>>),
 
-  zoneDumped: ((state, action) => {
+  zoneDumped: withEventTime(((state, action) => {
     const { gameId, playerId, data } = action.payload;
     const game = state.games[gameId];
     if (!game) {
       return;
     }
-    pushEventMessage(game, playerId, formatZoneDumped(game, playerId, data));
-  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; playerId: number; data: Event_DumpZone }>>,
+    pushEventMessage(game, playerId, formatZoneDumped(game, playerId, data), action.payload.timeReceived);
+  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; playerId: number; data: Event_DumpZone } & EventTime>>),
 
-  dieRolled: ((state, action) => {
+  dieRolled: withEventTime(((state, action) => {
     const { gameId, playerId, data } = action.payload;
     const game = state.games[gameId];
     if (!game) {
       return;
     }
-    pushEventMessage(game, playerId, formatDieRolled(game, playerId, data));
-  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; playerId: number; data: Event_RollDie }>>,
+    pushEventMessage(game, playerId, formatDieRolled(game, playerId, data), action.payload.timeReceived);
+  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; playerId: number; data: Event_RollDie } & EventTime>>),
 
   // Event_GameLogNotice: log-only, and by protocol contract a notice type this
   // client doesn't know is dropped (desktop PlayerEventHandler::eventGameLogNotice).
-  gameLogNotice: ((state, action) => {
+  gameLogNotice: withEventTime(((state, action) => {
     const { gameId, playerId, noticeType } = action.payload;
     const game = state.games[gameId];
     if (!game) {
@@ -84,10 +85,12 @@ export const chatReducers = {
     }
     switch (noticeType) {
       case Event_GameLogNotice_NoticeType.UNDO_DRAW_FAILED:
-        pushEventMessage(game, playerId, formatUndoDrawFailed(game, playerId));
+        pushEventMessage(game, playerId, formatUndoDrawFailed(game, playerId), action.payload.timeReceived);
         break;
       default:
         break;
     }
-  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; playerId: number; noticeType: Event_GameLogNotice_NoticeType }>>,
+  }) as CaseReducer<GamesState, PayloadAction<{
+    gameId: number; playerId: number; noticeType: Event_GameLogNotice_NoticeType;
+  } & EventTime>>),
 };

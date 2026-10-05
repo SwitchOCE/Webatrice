@@ -11,6 +11,7 @@ import type {
 } from '@cockatrice/sockatrice/generated';
 import type { ZoneNameValue } from '@cockatrice/sockatrice';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
+import type { LogDescriptor } from './gameLog';
 
 // @critical `info` is the wire snapshot; repeated collections on it go stale. Read normalized siblings.
 // See .github/instructions/datatrice-store.instructions.md#data-structure-invariants.
@@ -146,7 +147,9 @@ export interface GameMessage {
    *  player / number tokens independently. Chat lines and pre-segment
    *  legacy events leave this undefined. */
   segments?: LogMessageSegment[];
-  /** Wall-clock ms when the reducer processed this message. Rendered
+  /** Structured event data for host-owned translations; absent on legacy and chat lines. */
+  descriptor?: LogDescriptor;
+  /** Wall-clock ms captured in the action payload. Rendered
    *  as `[HH:MM:SS]` local time before the message body, matching
    *  Cockatrice desktop's `QDateTime::currentDateTime()` stamp. */
   timeReceived: number;

@@ -25,9 +25,9 @@ import { makeCard, makeGameEntry, makePlayerEntry, makePlayerProperties, makeZon
 describe('pushEventMessage', () => {
   it('no-ops when the message is null or empty', () => {
     const game = makeGameEntry({ messages: [] });
-    pushEventMessage(game, 1, null);
-    pushEventMessage(game, 1, undefined);
-    pushEventMessage(game, 1, '');
+    pushEventMessage(game, 1, null, 1234);
+    pushEventMessage(game, 1, undefined, 1234);
+    pushEventMessage(game, 1, '', 1234);
     expect(game.messages).toHaveLength(0);
   });
 
@@ -37,7 +37,7 @@ describe('pushEventMessage', () => {
     // stripped separator segments, or a format function that
     // returned an empty template).
     const game = makeGameEntry({ messages: [] });
-    pushEventMessage(game, 1, { text: '', segments: [] });
+    pushEventMessage(game, 1, { text: '', segments: [] }, 1234);
     expect(game.messages).toHaveLength(0);
   });
 
@@ -46,7 +46,7 @@ describe('pushEventMessage', () => {
     pushEventMessage(game, 2, {
       text: 'Alice plays Bolt.',
       segments: [{ text: 'Alice', kind: 'player' }, { text: ' plays Bolt.', kind: 'plain' }],
-    });
+    }, 1234);
     expect(game.messages).toHaveLength(1);
     expect(game.messages[0].message).toBe('Alice plays Bolt.');
     expect(game.messages[0].segments).toEqual([
@@ -57,7 +57,7 @@ describe('pushEventMessage', () => {
 
   it('appends an event message with playerId, kind and a timestamp', () => {
     const game = makeGameEntry({ messages: [] });
-    pushEventMessage(game, 3, 'Alice plays Bolt.');
+    pushEventMessage(game, 3, 'Alice plays Bolt.', 1234);
     expect(game.messages).toHaveLength(1);
     expect(game.messages[0].message).toBe('Alice plays Bolt.');
     expect(game.messages[0].playerId).toBe(3);
@@ -73,7 +73,7 @@ describe('pushEventMessage', () => {
       kind: 'event' as const,
     }));
     const game = makeGameEntry({ messages });
-    pushEventMessage(game, 1, 'overflow');
+    pushEventMessage(game, 1, 'overflow', 1234);
     expect(game.messages).toHaveLength(MAX_GAME_MESSAGES);
     expect(game.messages[MAX_GAME_MESSAGES - 1].message).toBe('overflow');
     expect(game.messages[0].message).not.toBe('msg-0');

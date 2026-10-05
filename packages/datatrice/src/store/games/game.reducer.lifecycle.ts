@@ -1,3 +1,4 @@
+import { withEventTime, type EventTime } from './game.actionTime';
 import { CaseReducer, PayloadAction } from '@reduxjs/toolkit';
 import { Event_GameJoined, ServerInfo_Game, ServerInfo_GameSchema } from '@cockatrice/sockatrice/generated';
 import { cloneWith } from '../../common';
@@ -27,7 +28,7 @@ export function retainReplayGames(state: GamesState): GamesState {
 
 // Mirrors desktop's replay game state: no local player, an omniscient spectator
 // (Replay ctor + AbstractGame::loadReplay), with the replay-started log line.
-function buildReplayGame(gameInfo: ServerInfo_Game, logStart: boolean): Enriched.GameEntry {
+function buildReplayGame(gameInfo: ServerInfo_Game, logStart: boolean, timeReceived: number): Enriched.GameEntry {
   const game: Enriched.GameEntry = {
     info: cloneWith(ServerInfo_GameSchema, gameInfo, { spectatorsOmniscient: true }),
     hostId: -1,
@@ -46,7 +47,7 @@ function buildReplayGame(gameInfo: ServerInfo_Game, logStart: boolean): Enriched
     replay: true,
   };
   if (logStart) {
-    pushEventMessage(game, EVENT_PLAYER_ID_SYSTEM, formatReplayStarted(gameInfo.gameId));
+    pushEventMessage(game, EVENT_PLAYER_ID_SYSTEM, formatReplayStarted(gameInfo.gameId), timeReceived);
   }
   return game;
 }
@@ -84,17 +85,17 @@ export const lifecycleReducers = {
     delete state.pings[action.payload.gameId];
   }) as CaseReducer<GamesState, PayloadAction<{ gameId: number }>>,
 
-  gameClosed: ((state, action) => {
+  gameClosed: withEventTime(((state, action) => {
     const game = state.games[action.payload.gameId];
     // Every stored replay ends with the Event_GameClosed Servatrice recorded when
     // the game was torn down; desktop only logs it and keeps the board.
     if (game?.replay) {
-      pushEventMessage(game, EVENT_PLAYER_ID_SYSTEM, formatGameClosed());
+      pushEventMessage(game, EVENT_PLAYER_ID_SYSTEM, formatGameClosed(), action.payload.timeReceived);
       return;
     }
     delete state.games[action.payload.gameId];
     delete state.pings[action.payload.gameId];
-  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number }>>,
+  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number } & EventTime>>),
 
   kicked: ((state, action) => {
     delete state.games[action.payload.gameId];
@@ -107,13 +108,13 @@ export const lifecycleReducers = {
    * `gameInfo` is the replay's `game_info`. Event containers are then fed through
    * the live game-event pipeline addressed to `gameId`.
    */
-  replayGameLoaded: ((state, action) => {
+  replayGameLoaded: withEventTime(((state, action) => {
     const { gameId, gameInfo } = action.payload;
     // Desktop logs "You are watching a replay…" once when the tab opens; a
     // rewind (TabGame::resetForRewind) clears the log without repeating it.
-    state.games[gameId] = buildReplayGame(gameInfo, !state.games[gameId]?.replay);
+    state.games[gameId] = buildReplayGame(gameInfo, !state.games[gameId]?.replay, action.payload.timeReceived);
     state.pings[gameId] = {};
-  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; gameInfo: ServerInfo_Game }>>,
+  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; gameInfo: ServerInfo_Game } & EventTime>>),
 
   replayGameUnloaded: ((state, action) => {
     if (!state.games[action.payload.gameId]?.replay) {

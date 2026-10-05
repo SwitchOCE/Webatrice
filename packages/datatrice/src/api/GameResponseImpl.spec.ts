@@ -37,6 +37,16 @@ function setup() {
 }
 
 describe('GameResponseImpl', () => {
+  beforeEach(() => {
+    // Prepared game actions capture time on creation; comparing two creations
+    // must not depend on whether the wall clock ticked between them.
+    vi.spyOn(Date, 'now').mockReturnValue(123456789);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('clearStore dispatches the clearStore action', () => {
     const { impl, dispatch } = setup();
     impl.clearStore();

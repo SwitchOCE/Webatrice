@@ -290,8 +290,8 @@ describe('2B: Game state & player management', () => {
     expect(msgs.length).toBe(before + 1);
     const added = msgs[msgs.length - 1];
     expect(added.playerId).toBe(1);
-    // The listener stamps via `eventTimestamp()` (matching every other
-    // event-log entry); the payload's `timeReceived` is informational only.
+    // The listener's append action captures its own timestamp, matching every
+    // event-log entry; the inbound leave timestamp is informational only.
     expect(added.timeReceived).toEqual(expect.any(Number));
     expect(added.message).toBe('Alice has left the game (kicked by game host or moderator).');
   });

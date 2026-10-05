@@ -11,8 +11,8 @@ export {
   moveOpKey,
   attrOpKey,
 } from './optimistic';
-export { classifyLogTone } from './messageLog';
-export type { LogTone, LogSegment, LogSegmentKind, LogEntry } from './messageLog';
+export { classifyLogTone, logTone } from './messageLog';
+export type { LogTone, LogSegment, LogSegmentKind, LogEntry, LogDescriptor, LogKind, LogParamsByKind, LogPlayer } from './messageLog';
 export type { AttachedChild } from './game.selectors';
 export * from './game.interfaces';
 export { DEFAULT_PLAYMAT_PARAMS, clampPlaymatParams, playmatFromParams } from './playmat';
