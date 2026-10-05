@@ -7,6 +7,7 @@ import { Response_CardArtRuleEntrySchema, ServerInfo_User_UserLevelFlag } from '
 
 import { connectedState, createMockWebClient, makeUser, renderWithProviders } from '../../__test-utils__';
 import CardArtRules from './CardArtRules';
+import { loadCardPrintings, type CardPrinting } from './cardPrintings';
 
 vi.mock('./cardPrintings', () => ({
   loadCardPrintings: vi.fn(async (name: string) => (name === 'Island'
@@ -77,7 +78,9 @@ describe('CardArtRules', () => {
 
   it('accepts a typed provider id when the card is not in the local database', async () => {
     const { webClient } = setup();
-    fireEvent.change(screen.getByRole('textbox', { name: /label\.card/ }), { target: { value: 'Unknown Card' } });
+    await act(async () => {
+      fireEvent.change(screen.getByRole('textbox', { name: /label\.card/ }), { target: { value: 'Unknown Card' } });
+    });
     fireEvent.change(screen.getByRole('textbox', { name: /label\.providerId/ }), { target: { value: 'custom-id' } });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /button\.add/ }));
@@ -88,8 +91,10 @@ describe('CardArtRules', () => {
   it('adds a rule without a provider id, as desktop does for a card missing from the local database', async () => {
     const { webClient } = setup();
     const card = screen.getByRole('textbox', { name: /label\.card/ });
-    fireEvent.change(card, { target: { value: 'Unknown Card' } });
-    fireEvent.blur(card);
+    await act(async () => {
+      fireEvent.change(card, { target: { value: 'Unknown Card' } });
+      fireEvent.blur(card);
+    });
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: /button\.add/ }));
     });
@@ -143,5 +148,69 @@ describe('CardArtRules', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /button\.remove/ }));
     expect(webClient.request.moderator.removeCardArtRule).toHaveBeenCalledWith('Forest', 'uuid-9');
+  });
+});
+
+function deferredPrintings() {
+  let resolve!: (value: CardPrinting[]) => void;
+  let reject!: () => void;
+  const promise = new Promise<CardPrinting[]>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+describe('printing lookup ownership', () => {
+  it('preserves a manual provider when an unchanged unknown card is blurred again', async () => {
+    setup();
+    const card = screen.getByRole('textbox', { name: 'CardArtRules.label.card' });
+    await act(async () => {
+      fireEvent.change(card, { target: { value: 'Unknown' } });
+      fireEvent.blur(card);
+    });
+    const provider = screen.getByRole('textbox', { name: 'CardArtRules.label.providerId' });
+    fireEvent.change(provider, { target: { value: 'manual-id' } });
+    await act(async () => fireEvent.blur(card));
+    expect(provider).toHaveValue('manual-id');
+  });
+
+  it.each(['resolve', 'reject'] as const)('ignores an older lookup that later %ss', async (finish) => {
+    const old = deferredPrintings();
+    const current = deferredPrintings();
+    vi.mocked(loadCardPrintings).mockImplementationOnce(() => old.promise).mockImplementationOnce(() => current.promise);
+    setup();
+    const card = screen.getByRole('textbox', { name: 'CardArtRules.label.card' });
+    fireEvent.change(card, { target: { value: 'Old' } });
+    fireEvent.blur(card);
+    fireEvent.change(card, { target: { value: 'Current' } });
+    fireEvent.blur(card);
+    await act(async () => current.resolve([{ providerId: 'new-id', label: 'Current printing' }]));
+    await act(async () => {
+      if (finish === 'resolve') {
+        old.resolve([{ providerId: 'old-id', label: 'Old printing' }]);
+      } else {
+        old.reject();
+      }
+    });
+    expect(screen.getByRole('combobox', { name: 'CardArtRules.label.providerId' })).toHaveTextContent('Current printing');
+  });
+
+  it('blocks submission while the changed card has unresolved printings, even before blur', async () => {
+    const next = deferredPrintings();
+    const { webClient } = setup();
+    const card = screen.getByRole('textbox', { name: 'CardArtRules.label.card' });
+    await act(async () => {
+      fireEvent.change(card, { target: { value: 'Island' } });
+      fireEvent.blur(card);
+    });
+    vi.mocked(loadCardPrintings).mockImplementationOnce(() => next.promise);
+    fireEvent.change(card, { target: { value: 'Forest' } });
+    await act(async () => fireEvent.submit(card.closest('form')!));
+    expect(webClient.request.moderator.addCardArtRule).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'CardArtRules.button.add' })).toBeDisabled();
+    await act(async () => next.resolve([{ providerId: 'forest-id', label: 'Forest printing' }]));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'CardArtRules.button.add' })));
+    expect(webClient.request.moderator.addCardArtRule).toHaveBeenCalledWith('Forest', 'forest-id', 'ALLOW', '');
   });
 });

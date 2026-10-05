@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
 
@@ -29,6 +29,7 @@ export interface CardArtRules {
   selectedIndex: number | null;
   select: (index: number) => void;
   printings: CardPrinting[];
+  printingsPending: boolean;
   lookUpPrintings: (cardName: string) => void;
   addRule: (rule: NewCardArtRule) => void;
   removeSelected: () => void;
@@ -62,6 +63,11 @@ export function useCardArtRules(): CardArtRules {
   const rules = useAppSelector(server.Selectors.getCardArtRules) ?? NO_RULES;
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [printings, setPrintings] = useState<CardPrinting[]>([]);
+  const [printingsPending, setPrintingsPending] = useState(false);
+  const lookup = useRef({ cardName: '', ready: false, sequence: 0 });
+  useEffect(() => () => {
+    lookup.current.sequence++;
+  }, []);
 
   const refresh = useCallback(() => {
     setError(null);
@@ -73,11 +79,29 @@ export function useCardArtRules(): CardArtRules {
     refresh();
   }, [refresh]);
 
-  const lookUpPrintings = (cardName: string) => {
-    loadCardPrintings(cardName).then(setPrintings, () => setPrintings([]));
+  const lookUpPrintings = (value: string) => {
+    const cardName = value.trim();
+    if (lookup.current.cardName === cardName) {
+      return;
+    }
+    const sequence = lookup.current.sequence + 1;
+    lookup.current = { cardName, ready: false, sequence };
+    setPrintingsPending(true);
+    const finish = (next: CardPrinting[]) => {
+      if (lookup.current.sequence !== sequence) {
+        return;
+      }
+      lookup.current.ready = true;
+      setPrintings(next);
+      setPrintingsPending(false);
+    };
+    loadCardPrintings(cardName).then(finish, () => finish([]));
   };
 
   const addRule = ({ cardName, cardProviderId, mode, reason }: NewCardArtRule) => {
+    if (!lookup.current.ready || lookup.current.cardName !== cardName) {
+      return;
+    }
     webClient.request.moderator.addCardArtRule(cardName, cardProviderId, mode, reason);
     refresh();
   };
@@ -98,6 +122,7 @@ export function useCardArtRules(): CardArtRules {
     selectedIndex,
     select: setSelectedIndex,
     printings,
+    printingsPending,
     lookUpPrintings,
     addRule,
     removeSelected,
