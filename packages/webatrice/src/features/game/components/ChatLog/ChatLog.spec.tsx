@@ -61,6 +61,39 @@ describe('ChatLog', () => {
       expect(input).not.toHaveAttribute('aria-label');
     });
 
+    it('adds life changes once to the polite log and keeps their rows on unrelated updates', () => {
+      const { store } = renderLog();
+      const message = 'Alice sets counter Life to 19 (-1).';
+      act(() => {
+        store.dispatch(games.Actions.gameMessageAppended({ gameId: 1, playerId: 1, message }));
+      });
+      const log = screen.getByRole('log', { name: 'ChatLog.heading' });
+      const line = within(log).getByText(message);
+      expect(screen.getAllByText(message)).toHaveLength(1);
+      expect(line.closest('[aria-live]')).toBe(log);
+      expect(log).toHaveAttribute('aria-live', 'polite');
+      expect(log).toHaveAttribute('tabindex', '0');
+      act(() => {
+        store.dispatch(games.Actions.gameInfoUpdated({ gameId: 1, activePhase: 3 }));
+      });
+      expect(within(log).getByText(message)).toBe(line);
+      expect(screen.getAllByText(message)).toHaveLength(1);
+    });
+
+    it('preserves distinct equal-looking events without re-announcing the earlier row', () => {
+      const { store } = renderLog();
+      const message = 'Alice sets counter Life to 19 (-1).';
+      act(() => {
+        store.dispatch(games.Actions.gameMessageAppended({ gameId: 1, playerId: 1, message }));
+      });
+      const first = screen.getByText(message);
+      act(() => {
+        store.dispatch(games.Actions.gameMessageAppended({ gameId: 1, playerId: 1, message }));
+      });
+      expect(screen.getAllByText(message)).toHaveLength(2);
+      expect(screen.getAllByText(message)[0]).toBe(first);
+    });
+
     it('keeps the lines already shown when a new one arrives, so only the new one is read', () => {
       const { store } = renderLog();
       const first = screen.getByText(/gg/).closest('div');

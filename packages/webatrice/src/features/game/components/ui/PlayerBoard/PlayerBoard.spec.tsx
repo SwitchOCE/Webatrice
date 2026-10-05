@@ -27,6 +27,13 @@ const SPEC: SeatGameSpec = {
 const seatRoot = () => battlefieldEl(1).closest<HTMLElement>('.rounded-lg')!;
 
 describe('PlayerBoard', () => {
+  it('leaves life announcements to the game log instead of a second live region', () => {
+    renderSeatCell(SPEC);
+    const life = screen.getByLabelText('Alice\'s life');
+    expect(life.closest('[aria-live]:not([aria-live="off"]), [role="status"], [role="log"]')).toBeNull();
+    expect(life.querySelector('[aria-live]:not([aria-live="off"]), [role="status"], [role="log"]')).toBeNull();
+  });
+
   it('composes the info column, the stack, the battlefield and the hand', () => {
     renderSeatCell(SPEC);
     expect(screen.getByLabelText('Alice\'s life')).toBeInTheDocument();
