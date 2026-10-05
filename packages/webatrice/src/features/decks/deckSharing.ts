@@ -134,17 +134,21 @@ export function formatShareExpiry(unixSeconds: bigint | number, locale?: string)
   return new Date(Number(unixSeconds) * 1000).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' });
 }
 
-/**
- * Desktop `DeckList::isBlankDeck`, which the editor's Share refuses: no cards
- * and no metadata (name, comments, format, banner card, tags). A named deck
- * without cards can still be shared.
- */
-export function isBlankDeck(deck: Pick<HydratedDeck, 'name' | 'meta' | 'cards' | 'format' | 'bannerCard' | 'tagsXml'>): boolean {
+/** Desktop `DeckList::Metadata::isEmpty`: format is not metadata; card references include provider ids. */
+export function isBlankDeck(
+  deck: Pick<HydratedDeck, 'name' | 'meta' | 'cards' | 'bannerCard' | 'bannerCardProviderId' | 'playmatXml' | 'tagsXml'>,
+): boolean {
+  const playmat = deck.playmatXml
+    ? new DOMParser().parseFromString(deck.playmatXml, 'application/xml').documentElement
+    : null;
+  const hasPlaymatCard = playmat?.tagName === 'playmatCard'
+    && !!(playmat.textContent || playmat.getAttribute('providerId'));
   return deck.cards.length === 0
-    && !deck.name.trim()
-    && !deck.meta.description?.trim()
-    && !deck.format
+    && !deck.name
+    && !deck.meta.description
     && !deck.bannerCard
+    && !deck.bannerCardProviderId
+    && !hasPlaymatCard
     && readDeckTags(deck.tagsXml).length === 0;
 }
 

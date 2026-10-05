@@ -47,4 +47,26 @@ describe('DeckEditor sharing', () => {
       }
     }
   });
+
+  it('refuses an otherwise blank deck that only has a game format', async () => {
+    renderEditor({ format: 'modern' });
+    fireEvent.click(await screen.findByRole('button', { name: /DeckSharing.shareDeck/ }));
+    expect(screen.getByText('DeckSharing.emptyDeck')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'DeckSharing.nameLabel' })).toBeNull();
+  });
+
+  it.each([
+    '<playmatCard>Island</playmatCard>',
+    '<playmatCard providerId="art-1"></playmatCard>',
+  ])('allows a deck whose only metadata is a playmat card: %s', async (playmatXml) => {
+    renderEditor({ playmatXml });
+    fireEvent.click(await screen.findByRole('button', { name: /DeckSharing.shareDeck/ }));
+    expect(screen.getByRole('textbox', { name: 'DeckSharing.nameLabel' })).toBeInTheDocument();
+  });
+
+  it('refuses an empty playmat element', async () => {
+    renderEditor({ playmatXml: '<playmatCard zoom="1"></playmatCard>' });
+    fireEvent.click(await screen.findByRole('button', { name: /DeckSharing.shareDeck/ }));
+    expect(screen.getByText('DeckSharing.emptyDeck')).toBeInTheDocument();
+  });
 });
