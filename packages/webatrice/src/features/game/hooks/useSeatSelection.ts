@@ -25,7 +25,8 @@ export interface SeatSelectableCards {
 
 const SEAT_ZONES: readonly SeatSelectionZone[] = ['hand', 'battlefield', 'stack'];
 
-const WIRE_ZONE: Record<SeatSelectionZone, string> = {
+/** The wire zone of each seat zone a selection can live in. */
+export const SEAT_WIRE_ZONE: Record<SeatSelectionZone, string> = {
   hand: ZoneName.HAND,
   battlefield: ZoneName.TABLE,
   stack: ZoneName.STACK,
@@ -57,7 +58,7 @@ export function useSeatSelection(playerId: number, cards: SeatSelectableCards): 
 
   const keyOf = useCallback(
     (zone: SeatSelectionZone, card: { id: string; ownerPlayerId?: number }) =>
-      makeCardKey(card.ownerPlayerId ?? playerId, WIRE_ZONE[zone], Number(card.id)),
+      makeCardKey(card.ownerPlayerId ?? playerId, SEAT_WIRE_ZONE[zone], Number(card.id)),
     [playerId],
   );
 

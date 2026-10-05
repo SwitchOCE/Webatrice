@@ -268,7 +268,14 @@ export interface PlayerCounterCommands {
 
 /** Where an arrow ends: a card in any public zone, or a player. */
 export type ArrowTarget =
-  | { kind: 'card'; playerId: number; zone: ZoneNameValue; cardId: number }
+  | {
+    kind: 'card';
+    playerId: number;
+    zone: ZoneNameValue;
+    cardId: number;
+    /** The card is itself attached to another, so nothing can attach to it. Set where it is known. */
+    attached?: boolean;
+  }
   | { kind: 'player'; playerId: number };
 
 /**

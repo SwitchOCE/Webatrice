@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePreference } from '@app/hooks';
 import { ScryfallImageSize } from '@cockatrice/datatrice';
 import { CardImage } from '@app/components';
 import { cleanScryfallName, getScryfallUrlByIdOrExactName } from '@app/services';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from './cardSize';
 import { useCardPreviewActions } from '../CardPreviewContext';
+import { counterLetter } from './cardLabel';
 import { counterColorForId } from './counterColors';
 
 
@@ -106,6 +108,7 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
   const showName = displayCardNames || !!faceDown || !imageUrl || loadedImageUrl !== imageUrl;
 
   const { setHoveredCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
+  const { t } = useTranslation();
 
   return (
     <div
@@ -119,7 +122,9 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
         height: CARD_HEIGHT,
         borderRadius: CARD_CORNER_RADIUS,
       }}
-      title={displayName}
+      // The tooltip names each counter's type, which the badge shows only as a colour.
+      title={[displayName, ...(counters ?? []).map((c) => t('SeatCard.counterBadge', { letter: counterLetter(c.id), count: c.value }))]
+        .join('\n')}
       onMouseEnter={() => {
         // Face-down cards don't publish to the hover preview — the true
         // face isn't shown while the card is flipped down (matches

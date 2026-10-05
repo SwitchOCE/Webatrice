@@ -22,9 +22,9 @@ export interface UseSeatDndArgs {
   seatDrag: ActiveSeatDrag | null;
   selection: SeatSelection | null;
   setSelection: SeatSelectionApi['setSelection'];
-  /** Resolve the seat's pending attach pick against a press on one of its
-   *  battlefield cards; false when no attach pick is pending. */
-  resolveAttachPress: (cardId: number) => boolean;
+  /** Resolve the game's pending attach pick against a press on one of this
+   *  seat's battlefield cards; false when no attach pick is pending. */
+  resolveAttachPress: (card: HandCard) => boolean;
   /** A card's printed P/T, from the seat's card metadata. */
   printedPT: (cardName: string) => string | undefined;
   stackDisplayList: readonly PlayerCardViewModel[];
@@ -101,7 +101,7 @@ export function useSeatDnd({
     seatDrag?.zone === zone && seatDrag.cards.some((c) => c.id === id);
 
   // A press released before the drag threshold (a click). Two readings:
-  //   1. Pending-attach mode: an "Attach to card..." pick from this seat is
+  //   1. Pending-attach mode: an "Attach to card..." pick from any seat is
   //      pending; this click on a battlefield card resolves it.
   //   2. Normal click: replace the selection with the clicked card, then
   //      hand the click on (single-click play).
@@ -111,7 +111,7 @@ export function useSeatDnd({
     // A press on a source card cancels the pick, as desktop's
     // ArrowAttachItem does when it lands on its start item; a press on any
     // other battlefield card attaches every source card to it.
-    if (zone === 'battlefield' && Number.isFinite(clickedCardIdNum) && resolveAttachPress(clickedCardIdNum)) {
+    if (zone === 'battlefield' && Number.isFinite(clickedCardIdNum) && resolveAttachPress(card)) {
       return;
     }
     if (

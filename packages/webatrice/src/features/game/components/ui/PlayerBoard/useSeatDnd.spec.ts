@@ -117,10 +117,10 @@ describe('useSeatDnd', () => {
   });
 
   it('hands a battlefield click to a pending attach pick first, and selects only when none took it', () => {
-    const { result, props } = setup({ resolveAttachPress: vi.fn((cardId: number) => cardId === 20) });
+    const { result, props } = setup({ resolveAttachPress: vi.fn((pressed: { id: string }) => pressed.id === '20') });
     result.current.startSeatCardDrag(press, card(20), 'battlefield', [card(20)]);
     act(() => dnd.starts.get('seat-1-battlefield')!.mock.calls[0][2](release()));
-    expect(props.resolveAttachPress).toHaveBeenCalledWith(20);
+    expect(props.resolveAttachPress).toHaveBeenCalledWith(expect.objectContaining({ id: '20' }));
     expect(props.setSelection).not.toHaveBeenCalled();
 
     result.current.startSeatCardDrag(press, card(21), 'battlefield', [card(21)]);
