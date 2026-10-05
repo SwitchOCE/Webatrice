@@ -186,11 +186,16 @@ describe('Moderation remediation', () => {
     expect(reset).toHaveBeenCalledWith('alice', expect.any(Function), expect.any(Function));
     act(() => reset.mock.calls[0][1]('alice', 's3cr3t-temp'));
 
-    expect(screen.getByText('s3cr3t-temp')).toBeInTheDocument();
+    const password = screen.getByRole('textbox', { name: 'ModerationPage.password.label' });
+    expect(password).toHaveValue('s3cr3t-temp');
+    expect(password).toHaveAttribute('readonly');
+    (password as HTMLInputElement).select();
+    expect((password as HTMLInputElement).selectionStart).toBe(0);
+    expect((password as HTMLInputElement).selectionEnd).toBe('s3cr3t-temp'.length);
     expect(JSON.stringify(store.getState())).not.toContain('s3cr3t-temp');
 
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /button\.ok/ }));
-    expect(screen.queryByText('s3cr3t-temp')).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('s3cr3t-temp')).not.toBeInTheDocument();
   });
 
   it('sends nothing when the reset is cancelled', () => {
@@ -274,4 +279,11 @@ describe.each(['resetPassword', 'removeAvatar'])('cancel-default %s', (action) =
     expect(webClient.request.admin.resetUserPassword).not.toHaveBeenCalled();
     expect(moderator(webClient).removeUserAvatar).not.toHaveBeenCalled();
   });
+});
+
+it('names each staff table independently of its surrounding section', () => {
+  setup();
+  for (const part of ['alts', 'sessions', 'staff']) {
+    expect(screen.getByRole('table', { name: `ModerationPage.${part}.title` })).toBeInTheDocument();
+  }
 });

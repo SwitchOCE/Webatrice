@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
+import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -26,9 +27,13 @@ const TemporaryPasswordDialog = ({ result, onDismiss }: TemporaryPasswordDialogP
       <DialogTitle id="temporary-password-title">{t('ModerationPage.password.title')}</DialogTitle>
       <DialogContent>
         <DialogContentText>{t('ModerationPage.password.for', { userName: result?.userName ?? '' })}</DialogContentText>
-        <code className="moderation__password" aria-label={t('ModerationPage.password.label')}>
-          {result?.temporaryPassword}
-        </code>
+        <TextField
+          className="moderation__password"
+          label={t('ModerationPage.password.label')}
+          value={result?.temporaryPassword ?? ''}
+          slotProps={{ input: { readOnly: true } }}
+          fullWidth
+        />
         <DialogContentText>{t('ModerationPage.password.secureChannel')}</DialogContentText>
       </DialogContent>
       <DialogActions>
