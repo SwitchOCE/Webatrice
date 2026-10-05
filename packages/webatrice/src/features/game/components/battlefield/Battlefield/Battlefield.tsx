@@ -254,6 +254,11 @@ export default function Battlefield() {
         // constants in the layout helpers, so adding container padding
         // would double up the inset and shrink the visible column
         // count for no visual gain.
+        // Not a tab stop: Firefox would otherwise put the scroller in the
+        // tab order, where Tab is the board's Next Phase and focus could
+        // never leave. A click still focuses it, so "click the table,
+        // press Tab" keeps desktop's binding.
+        tabIndex={-1}
         className="absolute inset-0 overflow-x-auto overflow-y-hidden box-border"
       >
         <div

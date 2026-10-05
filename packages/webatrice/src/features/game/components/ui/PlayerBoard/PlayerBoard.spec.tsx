@@ -45,6 +45,12 @@ describe('PlayerBoard', () => {
     expect(within(seat).getByRole('group', { name: 'Alice\'s hand, 1 card' })).toContainElement(cardEl(30, 'hand'));
   });
 
+  it('keeps the battlefield and hand scrollers out of the tab order, where Tab is the board\'s Next Phase', () => {
+    renderSeatCell(SPEC);
+    expect(battlefieldEl(1)).toHaveAttribute('tabindex', '-1');
+    expect(screen.getByRole('group', { name: 'Alice\'s hand, 1 card' })).toHaveAttribute('tabindex', '-1');
+  });
+
   it('names an opponent\'s hand by the server\'s count, in either hand layout', async () => {
     renderSeatCell(SPEC, 2);
     expect(screen.getByRole('group', { name: 'Bob\'s hand, 2 cards' })).toBeInTheDocument();
