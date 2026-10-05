@@ -201,12 +201,21 @@ describe('deckUpload (3.1 fields)', () => {
   });
 });
 
-describe('deck sharing failures', () => {
-  // Refusals and their targets are pinned with the other 3.1 queries in
-  // queryFailure.spec; this pins the transport failure riding along.
-  it('passes a transport failure through session.commandFailed', () => {
-    deckShareList('tok');
-    invokeOnError(-1, {}, CommandFailure.Timeout);
-    expect(WebClient.instance.response.session.commandFailed).toHaveBeenCalledWith('deckShareList', -1, 'tok', CommandFailure.Timeout);
+describe.each(Object.values(CommandFailure))('deck sharing transport failures: %s', (failure) => {
+  it.each([
+    ['deckShareCreate', () => deckShareCreate({ folderPath: 'Cube' }), 'Cube'],
+    ['deckShareList', () => deckShareList('tok'), 'tok'],
+    ['deckShareDownload', () => deckShareDownload('tok', 9), 'tok'],
+    ['deckShareListMine', () => deckShareListMine(), ''],
+    ['deckShareRemove', () => deckShareRemove(5), '5'],
+    ['deckListOtherUser', () => deckListOtherUser('bob'), 'bob'],
+    ['deckSetVisibility', () => deckSetVisibility({ deckId: 4, isPublic: true }), '4'],
+    ['deckDownloadPublic', () => deckDownloadPublic(4), '4'],
+  ] as const)('forwards the command, target and reason for %s', (command, send, target) => {
+    send();
+    invokeOnError(Response_ResponseCode.RespNotConnected, {}, failure);
+    expect(WebClient.instance.response.session.commandFailed).toHaveBeenCalledWith(
+      command, Response_ResponseCode.RespNotConnected, target, failure,
+    );
   });
 });
