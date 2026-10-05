@@ -4,7 +4,7 @@ import { Filter, FilterX, Plus, LogIn, Eye, Gavel, ArrowUp, ArrowDown } from 'lu
 import { server, rooms, type GameFilters, type Room, type Game } from '@cockatrice/datatrice';
 import { useAppDispatch, useAppSelector } from '@app/store';
 import { VirtualRows } from '@app/components';
-import { useJoinGame, useNavigateOnGameJoined } from '@app/hooks';
+import { useCanOverrideGameRestrictions, useJoinGame, useNavigateOnGameJoined } from '@app/hooks';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { CreateGameParams } from '@cockatrice/sockatrice/generated';
 import { AlertDialog, PromptDialog } from '@app/dialogs';
@@ -49,6 +49,7 @@ const GAME_ROW_HEIGHT = 37;
 export default function GamesList({ room }: GamesListProps) {
   const roomId = room.info.roomId;
   const webClient = useWebClient();
+  const overrideRestrictions = useCanOverrideGameRestrictions();
   const dispatch = useAppDispatch();
   const {
     beginJoin: joinGame,
@@ -82,8 +83,8 @@ export default function GamesList({ room }: GamesListProps) {
   }
 
   const canJoin =
-    Boolean(selectedGame && selectedGame.info.playerCount < selectedGame.info.maxPlayers) && !joinPending;
-  const canSpectate = Boolean(selectedGame && selectedGame.info.spectatorsAllowed) && !joinPending;
+    Boolean(selectedGame && (selectedGame.info.playerCount < selectedGame.info.maxPlayers || overrideRestrictions)) && !joinPending;
+  const canSpectate = Boolean(selectedGame && (selectedGame.info.spectatorsAllowed || overrideRestrictions)) && !joinPending;
 
   const handleCreateSubmit = (params: CreateGameParams) => {
     webClient.request.rooms.createGame(roomId, params);

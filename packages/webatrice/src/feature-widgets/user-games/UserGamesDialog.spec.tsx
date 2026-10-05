@@ -15,6 +15,9 @@ import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { renderWithProviders, connectedState, createMockWebClient, makeUser } from '../../__test-utils__';
 import type { RootState } from '../../store';
 import UserGamesDialog from './UserGamesDialog';
+import { setAdminLocked } from '../../hooks/useAdminLock';
+
+afterEach(() => setAdminLocked(false));
 
 const mockWebClient = createMockWebClient();
 
@@ -215,4 +218,21 @@ describe('UserGamesDialog', () => {
     });
     expect(onClose).toHaveBeenCalled();
   });
+});
+
+it.each([
+  ['ordinary', ServerInfo_User_UserLevelFlag.IsRegistered, false, false],
+  ['locked ordinary', ServerInfo_User_UserLevelFlag.IsRegistered, true, false],
+  ['moderator', ServerInfo_User_UserLevelFlag.IsModerator, false, true],
+  ['locked moderator', ServerInfo_User_UserLevelFlag.IsModerator, true, false],
+  ['judge', ServerInfo_User_UserLevelFlag.IsJudge, false, true],
+  ['locked judge', ServerInfo_User_UserLevelFlag.IsJudge, true, true],
+] as const)('gates private user games for %s', (_name, userLevel, locked, override) => {
+  setAdminLocked(locked);
+  const state = stateWith({ status: loaded, gameList: [makeGame({ playerCount: 2, spectatorsAllowed: false })] });
+  state.server!.user = makeUser({ userLevel });
+  renderWithProviders(<UserGamesDialog userName="bob" onClose={() => {}} />, { preloadedState: state });
+  fireEvent.click(screen.getByText('Friday casual'));
+  expect(screen.getByRole('button', { name: 'UserGamesDialog.action.join' })).toHaveProperty('disabled', !override);
+  expect(screen.getByRole('button', { name: 'UserGamesDialog.action.spectate' })).toHaveProperty('disabled', !override);
 });

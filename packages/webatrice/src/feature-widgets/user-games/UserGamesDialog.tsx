@@ -5,7 +5,7 @@ import { rooms, server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { Response_ResponseCode, type ServerInfo_Game } from '@cockatrice/sockatrice/generated';
 import { AlertDialog, DialogShell, PromptDialog } from '@app/dialogs';
-import { useCommandFailureMessage, useGridRows, useJoinGame, useNavigateOnGameJoined } from '@app/hooks';
+import { useCanOverrideGameRestrictions, useCommandFailureMessage, useGridRows, useJoinGame, useNavigateOnGameJoined } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 import { formatRestrictions, formatSpectators } from '@app/utils';
 
@@ -42,6 +42,7 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
   const webClient = useWebClient();
+  const overrideRestrictions = useCanOverrideGameRestrictions();
   const status = useAppSelector((state) => server.Selectors.getGamesOfUserStatus(state, userName));
   const gameList = useAppSelector((state) => server.Selectors.getGamesOfUser(state, userName));
   const allRooms = useAppSelector(rooms.Selectors.getRooms);
@@ -98,8 +99,8 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
   });
 
   // Desktop GameSelector::enableButtonsForIndex, plus no second join while one is in flight.
-  const canJoin = Boolean(selected && selected.playerCount < selected.maxPlayers) && !joinPending;
-  const canSpectate = Boolean(selected?.spectatorsAllowed) && !joinPending;
+  const canJoin = Boolean(selected && (selected.playerCount < selected.maxPlayers || overrideRestrictions)) && !joinPending;
+  const canSpectate = Boolean(selected && (selected.spectatorsAllowed || overrideRestrictions)) && !joinPending;
 
   let body;
   if (status?.state === 'failed') {
