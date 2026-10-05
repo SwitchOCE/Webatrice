@@ -13,3 +13,9 @@
 - Fold spec-only follow-ups into their owners while replaying: 87a20ef → 60c6797 + 3d081d8 (split by file); efe569d → 3c63b11; d7084c5 → 587892a; 2a4e842 (lint) → 0a553b8. Every commit of the row must typecheck, lint, and pass integration.
 - 25a lands before 31, so at 31's replay extract a shared `useListboxCombobox` into `@app/hooks` (ids, ARIA props, highlight cycling, Escape). Move both 31's quick add and 25a's `useMentionCompleter` onto it. Escape stays two-step (close list, then clear), matching quick add. Add it as its own `refactor:` commit with unit specs.
 - browserReserved.ts: 17c (f17c) now creates it. Drop 31's creation hunk and keep 31's every-scope assertion. Delete deck.new from 17c's PENDING_REMAP (31 remaps it).
+
+## Deterministic i18n rollup (found 10-05 on Windows)
+- `packages/webatrice/prebuild.js` merges `*.i18n.json` in `readdirSync` order. That order is alphabetical on NTFS but hash order on ext4, so the pre-commit `translate` hook rewrites `i18n-default.json` with key-order-only churn depending on the OS (458 lines in one commit).
+- In 28 (i18n gate), add `fix(i18n): build the default catalogue in a stable order`: sort `getAllFiles` results by relative path with a locale-independent compare (`a < b ? -1 : a > b ? 1 : 0` on POSIX-separated paths) and regenerate. Add a check (in `check-i18n.mjs`) that the committed rollup equals a fresh build, so CI catches drift.
+- Every later commit that regenerates the file then follows the sorted order. The R4 fix 08b50ca had the churn dropped by hand.
+- Fold R4 fix 08b50ca (ManaSymbols → manaTokens rename) into 2db3a459.
