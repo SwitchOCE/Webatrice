@@ -1,5 +1,5 @@
 import { create } from '@bufbuild/protobuf';
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -155,7 +155,9 @@ describe('Investigate user (integration)', () => {
 describe.each(['list', 'add', 'remove'] as const)('Card art %s failure (integration)', (command) => {
   it.each(['rejected', 'timed out'] as const)('shows a command that %s through the response-to-UI path', async (outcome) => {
     loginAsStaff();
-    vi.useFakeTimers();
+    if (command === 'list') {
+      vi.useFakeTimers();
+    }
     renderFeatureScreen(<CardArtRules />, '/card-art-rules');
     let cmdId = findLastModeratorCommand(Command_ListCardArtRules_ext).cmdId;
     if (command !== 'list') {
@@ -168,10 +170,15 @@ describe.each(['list', 'add', 'remove'] as const)('Card art %s failure (integrat
         }),
       }))));
       if (command === 'add') {
-        fireEvent.change(screen.getByRole('textbox', { name: 'CardArtRules.label.card' }), { target: { value: 'Island' } });
+        await act(async () => {
+          fireEvent.change(screen.getByRole('textbox', { name: 'CardArtRules.label.card' }), { target: { value: 'Island' } });
+        });
+        await waitFor(() => expect(screen.getByRole('button', { name: 'CardArtRules.button.add' })).toBeEnabled());
+        vi.useFakeTimers();
         await act(async () => fireEvent.click(screen.getByRole('button', { name: 'CardArtRules.button.add' })));
         cmdId = findLastModeratorCommand(Command_AddCardArtRule_ext).cmdId;
       } else {
+        vi.useFakeTimers();
         fireEvent.click(screen.getByText('uuid-1'));
         fireEvent.click(screen.getByRole('button', { name: 'CardArtRules.button.remove' }));
         cmdId = findLastModeratorCommand(Command_RemoveCardArtRule_ext).cmdId;

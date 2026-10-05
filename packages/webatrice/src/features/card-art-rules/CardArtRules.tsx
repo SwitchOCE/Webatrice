@@ -85,6 +85,10 @@ const CardArtRulesContent = () => {
                 slotProps={{ htmlInput: { maxLength: MAX_FIELD_LENGTH } }}
                 error={Boolean(fieldState.error)}
                 helperText={fieldState.error?.message}
+                onChange={(event) => {
+                  field.onChange(event);
+                  rulesState.lookUpPrintings(event.target.value);
+                }}
                 onBlur={() => {
                   field.onBlur();
                   rulesState.lookUpPrintings(field.value);
@@ -99,6 +103,7 @@ const CardArtRulesContent = () => {
               <TextField
                 {...field}
                 size="small"
+                disabled={rulesState.printingsPending}
                 select={printings.length > 0}
                 label={t('CardArtRules.label.providerId')}
                 slotProps={{ htmlInput: { maxLength: MAX_FIELD_LENGTH } }}
@@ -126,7 +131,7 @@ const CardArtRulesContent = () => {
             render={({ field }) => <TextField {...field} size="small" label={t('CardArtRules.label.reason')} />}
           />
           <div className="card-art-rules__buttons">
-            <Button type="submit" variant="contained">{t('CardArtRules.button.add')}</Button>
+            <Button type="submit" variant="contained" disabled={rulesState.printingsPending}>{t('CardArtRules.button.add')}</Button>
             <Button type="button" variant="outlined" disabled={selectedIndex === null} onClick={rulesState.removeSelected}>
               {t('CardArtRules.button.remove')}
             </Button>
