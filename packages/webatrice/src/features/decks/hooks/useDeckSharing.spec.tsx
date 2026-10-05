@@ -8,11 +8,6 @@ import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { connected31State, connectedState, createMockWebClient, renderWithProviders } from '../../../__test-utils__';
 import { useDeckShareCreate, useDeckSharingSupported, useDeckVisibility } from './useDeckSharing';
 
-const knownHosts = vi.hoisted(() => ({ selectedHost: { host: 'server.example', port: '4748' } as object | undefined }));
-vi.mock('@app/feature-widgets/known-hosts', () => ({
-  useKnownHosts: () => ({ status: 'loaded', value: { hosts: [], selectedHost: knownHosts.selectedHost } }),
-}));
-
 let create$: ReturnType<typeof useDeckShareCreate>;
 let visibility: ReturnType<typeof useDeckVisibility>;
 let supported: boolean;
@@ -23,15 +18,15 @@ function Probe() {
   return null;
 }
 
-function setup(preloadedState = connected31State) {
+function setup(preloadedState = connected31State, endpoint: string | null = 'wss://server.example:4748/') {
   const webClient = createMockWebClient();
+  Object.assign(webClient, { socket: { connectedEndpoint: endpoint } });
   const { store } = renderWithProviders(<Probe />, { preloadedState, webClient });
   return { webClient, store };
 }
 
 const writeText = vi.fn();
 beforeEach(() => {
-  knownHosts.selectedHost = { host: 'server.example', port: '4748' };
   writeText.mockResolvedValue(undefined);
   Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
 });
@@ -58,7 +53,7 @@ describe('useDeckShareCreate', () => {
     });
     const link = new URL(window.location.href);
     link.search = '';
-    link.hash = 'share=tok&hostname=server.example&port=4748';
+    link.hash = 'share=tok&hostname=wss%3A%2F%2Fserver.example%3A4748%2F&port=4748';
     expect(create$.state).toEqual({
       status: 'created', link: link.toString(), expiresAt: 1800000000n, itemCount: 3, copied: true,
     });
@@ -76,8 +71,7 @@ describe('useDeckShareCreate', () => {
   });
 
   it('refuses to make a link that names no server', () => {
-    knownHosts.selectedHost = undefined;
-    const { webClient } = setup();
+    const { webClient } = setup(connected31State, null);
     act(() => create$.create({ name: 'x', items: [{ deckId: 1 }] }));
     expect(webClient.request.session.deckShareCreate).not.toHaveBeenCalled();
     expect(create$.state).toEqual({ status: 'failed', message: 'DeckSharing.noServer' });

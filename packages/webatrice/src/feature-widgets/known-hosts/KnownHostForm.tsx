@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +18,7 @@ interface KnownHostFormProps {
 }
 
 const KnownHostForm = ({ host, onRemove, onSubmit }: KnownHostFormProps) => {
+  const desktopPortHelpId = useId();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { t } = useTranslation();
 
@@ -27,6 +28,7 @@ const KnownHostForm = ({ host, onRemove, onSubmit }: KnownHostFormProps) => {
       name: host?.name ?? '',
       host: host?.host ?? '',
       port: host?.port ?? '',
+      desktopPort: host?.desktopPort ?? '',
     },
     resolver: zodResolver(buildKnownHostFormSchema(t)),
   });
@@ -52,6 +54,7 @@ const KnownHostForm = ({ host, onRemove, onSubmit }: KnownHostFormProps) => {
         render={({ field, fieldState }) => (
           <InputField
             {...field}
+            disabled={host?.editable === false}
             label={t('Common.label.hostName')}
             error={fieldState.error?.message}
             touched={fieldState.isTouched}
@@ -64,6 +67,7 @@ const KnownHostForm = ({ host, onRemove, onSubmit }: KnownHostFormProps) => {
         render={({ field, fieldState }) => (
           <InputField
             {...field}
+            disabled={host?.editable === false}
             label={t('Common.label.hostAddress')}
             error={fieldState.error?.message}
             touched={fieldState.isTouched}
@@ -76,11 +80,36 @@ const KnownHostForm = ({ host, onRemove, onSubmit }: KnownHostFormProps) => {
         render={({ field, fieldState }) => (
           <InputField
             {...field}
+            disabled={host?.editable === false}
             label={t('Common.label.port')}
             type="number"
             error={fieldState.error?.message}
             touched={fieldState.isTouched}
           />
+        )}
+      />
+
+      <Controller
+        name="desktopPort"
+        control={control}
+        render={({ field, fieldState }) => (
+          <div>
+            <InputField
+              {...field}
+              value={field.value ?? ''}
+              label={t('KnownHostForm.label.desktopPort')}
+              type="number"
+              min={1}
+              max={65535}
+              step={1}
+              aria-describedby={desktopPortHelpId}
+              error={fieldState.error?.message}
+              touched={fieldState.isTouched}
+            />
+            <p id={desktopPortHelpId} className="mt-1 text-xs text-text-muted">
+              {t('KnownHostForm.desktopPortHelp')}
+            </p>
+          </div>
         )}
       />
 
@@ -96,7 +125,7 @@ const KnownHostForm = ({ host, onRemove, onSubmit }: KnownHostFormProps) => {
 
       <div className="flex items-center justify-between pt-1">
         <div>
-          {host && (
+          {host?.editable && (
             <button
               type="button"
               onClick={handleRemoveClick}

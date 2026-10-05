@@ -34,6 +34,14 @@ const openPicker = async () => {
 };
 
 describe('KnownHosts public servers', () => {
+  it('allows configuring the desktop port of a built-in host', async () => {
+    setup();
+    await openPicker();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit host' }));
+    expect(screen.getByRole('spinbutton', { name: 'KnownHostForm.label.desktopPort' })).toBeEnabled();
+    expect(screen.getByRole('textbox', { name: 'Common.label.hostAddress' })).toBeDisabled();
+  });
+
   beforeEach(() => {
     publicServersStore.reset();
     loadPublicServers.mockResolvedValue({

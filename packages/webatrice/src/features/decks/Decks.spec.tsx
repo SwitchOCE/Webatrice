@@ -14,12 +14,6 @@ import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { renderWithProviders, connected31State, connectedState, disconnectedState } from '../../__test-utils__';
 import Decks from './Decks';
 
-// Share links name the server this session logged into: the selected known host.
-vi.mock('@app/feature-widgets/known-hosts', async (importOriginal) => ({
-  ...await importOriginal<typeof import('@app/feature-widgets/known-hosts')>(),
-  useKnownHosts: () => ({ status: 'loaded', value: { hosts: [], selectedHost: { host: 'server.example', port: '4748' } } }),
-}));
-
 // Piece 2 coverage: smoke-test the new MyDecks list. Full RTL
 // coverage (create/delete flows, useReduxEffect navigation) lives in
 // integration tests to be added alongside Piece 3.
