@@ -6,6 +6,22 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import i18next from 'eslint-plugin-i18next';
 import { boundariesConfig } from './eslint.boundaries.mjs';
 
+// Block direct forwarding barrels anywhere in the package, including aliases
+// and namespace exports. Built-in rules do not follow local bindings: importing
+// a hook outside the seam and then exporting that binding (or a wrapper around
+// it) still needs review. Computed module names and aliased require calls are
+// likewise not resolved. These rules do not inspect passed-in client instances.
+const webClientReexports = [
+  {
+    selector: 'ExportNamedDeclaration[source.value="@cockatrice/datatrice/react"][exportKind!="type"] > ExportSpecifier[exportKind!="type"][local.name=/^(useWebClient|WebClientContext)$/]',
+    message: 'Do not forward WebClient access through a barrel; game code must use command ports.',
+  },
+  {
+    selector: 'ExportAllDeclaration[source.value="@cockatrice/datatrice/react"][exportKind!="type"]',
+    message: 'Do not forward WebClient access through a barrel; game code must use command ports.',
+  },
+];
+
 export default tseslint.config(
   // Global ignores
   { ignores: ['node_modules/**', 'build/**'] },
@@ -49,6 +65,7 @@ export default tseslint.config(
     },
   },
   { files: ['integration/**'], rules: { '@typescript-eslint/no-restricted-imports': 'off' } },
+  { rules: { 'no-restricted-syntax': ['error', ...webClientReexports] } },
 
   // Game layering: the game's components and hooks reach the server through
   // its command ports (components/ui/GameBoardCell: the seat's
@@ -56,7 +73,7 @@ export default tseslint.config(
   // useGameSay), never through useWebClient. The ports are listed by name;
   // the files after them predate the rule and still call the WebClient
   // directly; each is to move behind a port (the stack-A card menus with its
-  // deletion), so the list only shrinks. The rule checks imports only:
+  // deletion), so the list only shrinks. The rules check module access only:
   // hooks/dialogs/* and hooks/playCard.ts still drive request.game.* on an
   // instance handed in by the allowlisted useGameDialogs, debt that leaves
   // with it. This block replaces the WebClient value-import rule above for
@@ -84,6 +101,18 @@ export default tseslint.config(
       'src/features/game/hooks/usePlaymatSync.ts',
     ],
     rules: {
+      'no-restricted-syntax': ['error', ...webClientReexports, ...[
+        '@cockatrice/datatrice/react', '@cockatrice/sockatrice',
+      ].flatMap((source) => [
+        {
+          selector: `ImportExpression[source.value="${source}"]`,
+          message: 'Game components and hooks must use command ports, not dynamic WebClient imports.',
+        },
+        {
+          selector: `CallExpression[callee.name="require"][arguments.0.value="${source}"]`,
+          message: 'Game components and hooks must use command ports, not require WebClient entry points.',
+        },
+      ])],
       '@typescript-eslint/no-restricted-imports': ['error', {
         paths: [
           {
