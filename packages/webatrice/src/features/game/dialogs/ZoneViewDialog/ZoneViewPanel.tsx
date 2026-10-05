@@ -97,6 +97,9 @@ type Props = {
   /** Enter on a focused card, on its element: the game's pending arrow pick
    *  takes it, as a click would. */
   onCardActivate?: (card: HandCard, element: HTMLElement) => void;
+  /** Escape first offers itself here: true when it cancelled something (a
+   *  pending target pick), which keeps the view open. */
+  onEscapeCancel?: () => boolean;
   /** IDs of library cards currently being dragged by the parent. Those
    *  cards render at opacity 0 in the dialog so the user only sees the
    *  drag ghost. */
@@ -124,6 +127,7 @@ export default function ZoneViewPanel({
   onCardPointerDown,
   onCardContextMenu,
   onCardActivate,
+  onEscapeCancel,
   draggingCardIds,
   dropRef,
   selectedIds,
@@ -172,7 +176,17 @@ export default function ZoneViewPanel({
   // moves in when it opens (unless typing is kept in the game chat), Tab moves on past its last
   // control, Escape closes this view, and focus goes back to where it was, e.g. the control
   // that opened it.
-  const { getDialogProps } = useDialogFocus({ isOpen: true, onEscape: close, modal: false, moveFocusIn: showSearchBar });
+  // While a target pick is pending, Escape cancels the pick and leaves the view open.
+  const { getDialogProps } = useDialogFocus({
+    isOpen: true,
+    onEscape: () => {
+      if (!onEscapeCancel?.()) {
+        close();
+      }
+    },
+    modal: false,
+    moveFocusIn: showSearchBar,
+  });
   const dialogFocusProps = getDialogProps();
   // Whether the last expand/shrink left the view taller than its initial height (the header
   // button's pressed state).
