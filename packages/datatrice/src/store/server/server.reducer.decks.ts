@@ -1,6 +1,7 @@
 import { CaseReducer, PayloadAction } from '@reduxjs/toolkit';
-import { create } from '@bufbuild/protobuf';
+import { clone, create } from '@bufbuild/protobuf';
 import {
+  ServerInfo_DeckStorage_FileSchema,
   Response_DeckList,
   Response_DeckListSchema,
   ServerInfo_DeckStorage_Folder,
@@ -8,6 +9,7 @@ import {
   ServerInfo_DeckStorage_TreeItem,
   ServerInfo_DeckStorage_TreeItemSchema,
 } from '@cockatrice/sockatrice/generated';
+import { mergeSetFields } from '../../common/mergeSetFields';
 import { ServerState } from './server.interfaces';
 
 function splitPath(path: string): string[] {
@@ -59,7 +61,16 @@ function replaceFileById(
       if (item.folder) {
         return { ...item, folder: replaceFileById(item.folder, id, replacement) };
       }
-      return item.id === id ? replacement : item;
+      if (item.id !== id) {
+        return item;
+      }
+      const merged = clone(ServerInfo_DeckStorage_TreeItemSchema, item);
+      mergeSetFields(ServerInfo_DeckStorage_TreeItemSchema, merged, replacement);
+      if (item.file && replacement.file) {
+        merged.file = clone(ServerInfo_DeckStorage_FileSchema, item.file);
+        mergeSetFields(ServerInfo_DeckStorage_FileSchema, merged.file, replacement.file);
+      }
+      return merged;
     }),
   });
 }
@@ -98,7 +109,7 @@ export const deckReducers = {
   }) as CaseReducer<ServerState, PayloadAction<{ path: string; treeItem: ServerInfo_DeckStorage_TreeItem }>>,
 
   // An update keeps the deck's id and folder; Servatrice answers with the
-  // re-derived name and a fresh upload time, which replace the old entry.
+  // re-derived name and upload time; omitted metadata keeps its prior value.
   deckUpdated: ((state, action) => {
     const { deckId, treeItem } = action.payload;
     if (!state.backendDecks?.root || !treeItem) {
