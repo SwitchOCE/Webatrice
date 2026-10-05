@@ -1,0 +1,85 @@
+import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { games, type GameCommandFailedPayload } from '@cockatrice/datatrice';
+import { useCommandFailureMessage, useGameDeckCommands, useReduxEffect } from '@app/hooks';
+import { validateCod } from '@app/services';
+
+/** Deck selection and lobby commands; successful requests are announced by server events. */
+export function useLobbyDeckSelect(gameId: number) {
+  const { t } = useTranslation();
+  const commands = useGameDeckCommands(gameId);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const handleFilePicked = (file: File | null) => {
+    setUploadError(null);
+    if (!file) {
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const xml = typeof reader.result === 'string' ? reader.result : '';
+      if (!validateCod(xml)) {
+        setUploadError('Not a valid Cockatrice deck (.cod) file');
+        return;
+      }
+      setMyPickedDeckId(null);
+      setDeckSelectError(null);
+      commands.selectDeck({ deck: xml });
+      // No gameSay: Cockatrice already emits an event message
+      // ("X has loaded a deck (…)") when the server processes deckSelect.
+    };
+    reader.onerror = () => setUploadError('Could not read the selected file');
+    reader.readAsText(file);
+  };
+
+  // Remember which local deck the player just picked so the local
+  // player row can show its bracket badge. Cockatrice broadcasts each
+  // player's `deckHash` on the wire but NOT the deck's server-side
+  // id, so we can't map remote players' deckHash back to a bracket
+  // without an out-of-band channel. That means the badge on player
+  // rows only reflects the LOCAL player today; remote players'
+  // rows stay bracket-less unless we later broadcast via gameSay or
+  // upstream Cockatrice grows bracket in ServerInfo_PlayerProperties.
+  const [myPickedDeckId, setMyPickedDeckId] = useState<number | null>(null);
+
+  // A rejected or unanswered Command_DeckSelect leaves the picker up; say why
+  // instead of silently staying there (desktop has no handler for this).
+  // Kept apart from uploadError: a rejected pick from My Decks is not an upload problem.
+  const [deckSelectError, setDeckSelectError] = useState<string | null>(null);
+  const describeFailure = useCommandFailureMessage();
+  useReduxEffect<GameCommandFailedPayload>(
+    ({ payload }) => {
+      if (payload.gameId !== gameId) {
+        return;
+      }
+      setMyPickedDeckId(null);
+      setDeckSelectError(describeFailure(payload.failure, t('GameLobby.deckSelectFailed')));
+    },
+    games.Types.DECK_SELECT_FAILED,
+    [gameId, describeFailure, t],
+  );
+
+  const handleSelectDeck = (deckId: number) => {
+    setMyPickedDeckId(deckId);
+    setUploadError(null);
+    setDeckSelectError(null);
+    commands.selectDeck({ deckId });
+    // No gameSay: Cockatrice emits its own event
+    // ("X has loaded a deck (…)") on the deckHash property update.
+  };
+  // Force start (desktop DeckViewContainer::forceStart): after a Yes/No
+  // confirmation the host sends ONE Command_ReadyStart{ready, force_start}.
+  // Servatrice readies the host, kicks every unready player and starts the
+  // game atomically (Server_AbstractPlayer::cmdReadyStart → startGameIfReady(true)).
+  const [forceStartConfirmOpen, setForceStartConfirmOpen] = useState(false);
+  const confirmForceStart = () => {
+    setForceStartConfirmOpen(false);
+    commands.readyStart({ ready: true, forceStart: true });
+  };
+
+
+  return {
+    fileInputRef, uploadError, handleFilePicked, myPickedDeckId, deckSelectError, handleSelectDeck,
+    forceStartConfirmOpen, setForceStartConfirmOpen, confirmForceStart, kickPlayer: commands.kick,
+  };
+}
