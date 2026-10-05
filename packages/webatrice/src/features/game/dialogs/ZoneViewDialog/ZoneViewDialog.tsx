@@ -9,6 +9,7 @@ import { useGameDialogsContext } from '../../components/ui/GameDialogsContext';
 import { useGameId } from '../../components/ui/GameIdContext';
 import { useGameSelectionState } from '../../components/ui/GameSelectionContext';
 import { usePendingTargetContext } from '../../components/ui/PendingTargetContext';
+import { useKeyboardMove } from '../../components/ui/KeyboardMoveContext';
 import { useActiveSeatDrag, useSeatDragSource, useSeatDropZone } from '../../components/ui/SeatDragContext';
 import type { ZoneViewTarget } from '../../hooks/dialogs/gameDialogs.types';
 import {
@@ -154,6 +155,19 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
 
   const { selectedIds, setSelectedIds } = useZoneViewSelection(playerId, zoneName, cards);
 
+  // M on a card: the keyboard move, carrying what a drag from the view would
+  // (the selection when the card is in it), for the cards a drag may move.
+  const requestKeyboardMove = useKeyboardMove();
+  const onCardMove = isLocal && seatZone != null && requestKeyboardMove && canActFor(playerId)
+    ? (card: { id: string; name: string }) => {
+      const moved = selectedIds.has(card.id) ? cards.filter((c) => selectedIds.has(c.id)) : [card];
+      requestKeyboardMove({
+        source: { kind: 'seat', seatPlayerId: playerId, zone: seatZone, cards: moved.map((c) => ({ id: c.id })) },
+        name: card.name,
+      });
+    }
+    : undefined;
+
   const { openSeatCardMenu } = useGameDialogsContext();
   // Enter on a card while an arrow pick is pending takes it, by the click rule.
   const { pending, pickArrowAt, cancel: cancelPick } = usePendingTargetContext();
@@ -211,6 +225,7 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
       onCardPointerDown={onCardPointerDown}
       onCardContextMenu={onCardContextMenu}
       onCardActivate={(_card, element) => pickArrowAt(element)}
+      onCardMove={onCardMove}
       onEscapeCancel={() => {
         if (!pending) {
           return false;

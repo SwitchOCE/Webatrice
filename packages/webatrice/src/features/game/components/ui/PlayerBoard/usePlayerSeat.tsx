@@ -40,6 +40,7 @@ import { useDrawFlights } from './useDrawFlights';
 import { useSeatCardMetadata } from './useSeatCardMetadata';
 import { useSeatClickToPlay } from './useSeatClickToPlay';
 import { useSeatDnd } from './useSeatDnd';
+import { useKeyboardMove } from '../KeyboardMoveContext';
 import { useSeatMarquee } from './useSeatMarquee';
 import { useSeatPrompts } from './useSeatPrompts';
 import { useSeatShortcutOperations } from './useSeatShortcutOperations';
@@ -494,6 +495,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     startPileDrag,
     isDragging,
     startSeatCardDrag,
+    keyboardMoveSource,
     stackZoneRef,
     handZoneRef,
     libraryZoneRef,
@@ -521,7 +523,19 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     stackPileOptions,
   });
 
+  // M on a focused card: the keyboard move (MoveCardsDialog), carrying what
+  // a drag of the card would.
+  const requestKeyboardMove = useKeyboardMove();
+  const moveWithKeyboard = (zone: SeatSelectionZone, card: PlayerCardViewModel & { ownerPlayerId?: number }) => {
+    const zoneCards = zone === 'battlefield' ? battlefieldDisplayList : zone === 'hand' ? handDisplayList : stackDisplayList;
+    const source = keyboardMoveSource(card, zone, zoneCards);
+    if (source && requestKeyboardMove) {
+      requestKeyboardMove({ source, name: card.name, handOrder: handDisplayList.map((c) => c.id) });
+    }
+  };
+
   return {
+    moveWithKeyboard,
     CARD_H_PX,
     CARD_W_PX,
     DRAW_ANIMATION_MS,

@@ -17,7 +17,7 @@ export type SeatCardFocusOptions<C extends PlayerCardViewModel> =
  * pending pick, else click-to-play) and Shift+F10 to the seat's card menu.
  */
 export function useSeatCardFocus<C extends PlayerCardViewModel>(zone: SeatSelectionZone, options: SeatCardFocusOptions<C>) {
-  const { playerId, selection, setSelection, activateCard, openCardMenuAt } = usePlayerSeatContext();
+  const { playerId, selection, setSelection, activateCard, openCardMenuAt, moveWithKeyboard } = usePlayerSeatContext();
   const onSelectIds = useCallback((ids: Set<string>) => setSelection({ zone, ids }), [setSelection, zone]);
   const selectedIds = useMemo(() => (selection?.zone === zone ? selection.ids : NO_IDS), [selection, zone]);
   return useCardFocus<C>({
@@ -27,6 +27,7 @@ export function useSeatCardFocus<C extends PlayerCardViewModel>(zone: SeatSelect
     onSelectIds,
     onActivate: (card, element) => activateCard(zone, card, element),
     onOpenMenu: (card, rect) => openCardMenuAt(zone, card, rect),
+    onMove: (card) => moveWithKeyboard(zone, card),
     ...options,
   });
 }
