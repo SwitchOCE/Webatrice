@@ -90,8 +90,9 @@ function zoneView(title: string): HTMLElement {
   return screen.getByRole('heading', { name: titled(title) }).closest<HTMLElement>('.pointer-events-auto.resize')!;
 }
 
+// A card view's close button, or a reveal's.
 function closeView(view: HTMLElement) {
-  fireEvent.click(within(view).getAllByRole('button', { name: 'Close' })[0]);
+  fireEvent.click(within(view).getAllByRole('button', { name: /^(ZoneViewPanel\.close|Close)$/ })[0]);
 }
 
 function answerCountPrompt(title: RegExp, value: string) {
@@ -164,7 +165,7 @@ describe('seat zone views', () => {
     dumpArrives(store, ZoneName.DECK, ['Island']);
     const view = zoneView('P1\'s library');
 
-    fireEvent.click(within(view).getByRole('checkbox', { name: /shuffle when closing/i }));
+    fireEvent.click(within(view).getByRole('checkbox', { name: 'ZoneViewPanel.shuffleOnClose' }));
     closeView(view);
 
     expect(game.shuffle).not.toHaveBeenCalled();
@@ -251,7 +252,7 @@ describe('seat zone views', () => {
     openContextMenu(pileEl('Library', 0));
     chooseMenuPath('View library');
     dumpArrives(store, ZoneName.DECK, ['Island']);
-    fireEvent.click(within(zoneView('P1\'s library')).getByRole('checkbox', { name: /shuffle when closing/i }));
+    fireEvent.click(within(zoneView('P1\'s library')).getByRole('checkbox', { name: 'ZoneViewPanel.shuffleOnClose' }));
 
     openContextMenu(pileEl('Library', 0));
     chooseMenuPath('View top cards of library...');
@@ -272,7 +273,7 @@ describe('seat zone views', () => {
 
     const view = zoneView(title);
     expect(view.querySelectorAll('[data-card][data-card-id]')).toHaveLength(count);
-    expect(within(view).queryByRole('checkbox', { name: /shuffle when closing/i })).not.toBeInTheDocument();
+    expect(within(view).queryByRole('checkbox', { name: 'ZoneViewPanel.shuffleOnClose' })).not.toBeInTheDocument();
 
     closeView(view);
     expect(screen.queryByRole('heading', { name: titled(title) })).not.toBeInTheDocument();

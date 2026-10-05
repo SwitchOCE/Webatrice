@@ -8,11 +8,13 @@ interface DialogProps {
   isOpen: boolean;
   onEscape?: () => void;
   returnFocusTo?: ReturnFocusTo;
+  modal?: boolean;
+  moveFocusIn?: boolean;
   children?: React.ReactNode;
 }
 
-function Dialog({ isOpen, onEscape, returnFocusTo, children }: DialogProps) {
-  const { getDialogProps } = useDialogFocus({ isOpen, onEscape, returnFocusTo });
+function Dialog({ isOpen, onEscape, returnFocusTo, modal, moveFocusIn, children }: DialogProps) {
+  const { getDialogProps } = useDialogFocus({ isOpen, onEscape, returnFocusTo, modal, moveFocusIn });
   return isOpen ? <div role="dialog" aria-modal="true" aria-label="Dialog" {...getDialogProps()}>{children}</div> : null;
 }
 
@@ -215,6 +217,46 @@ describe('useDialogFocus', () => {
     await user.keyboard('{Escape}');
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open' })).toHaveFocus();
+  });
+});
+
+describe('useDialogFocus for a non-modal panel', () => {
+  function Panel({ moveFocusIn }: { moveFocusIn?: boolean }) {
+    const [open, setOpen] = useState(false);
+    return (
+      <>
+        <button type="button" onClick={() => setOpen(true)}>Open</button>
+        <Dialog isOpen={open} onEscape={() => setOpen(false)} modal={false} moveFocusIn={moveFocusIn}>
+          <button type="button">First</button>
+          <button type="button">Last</button>
+        </Dialog>
+        <button type="button">After</button>
+      </>
+    );
+  }
+
+  it('lets Tab move on past its last control, and still closes on Escape with focus back on the opener', async () => {
+    const user = userEvent.setup();
+    render(<Panel />);
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    expect(screen.getByRole('button', { name: 'First' })).toHaveFocus();
+
+    await user.tab();
+    await user.tab();
+    expect(screen.getByRole('button', { name: 'After' })).toHaveFocus();
+
+    await user.click(screen.getByRole('button', { name: 'First' }));
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open' })).toHaveFocus();
+  });
+
+  it('leaves focus where it was on open when asked not to move it', async () => {
+    const user = userEvent.setup();
+    render(<Panel moveFocusIn={false} />);
+    await user.click(screen.getByRole('button', { name: 'Open' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Open' })).toHaveFocus();
   });
 });

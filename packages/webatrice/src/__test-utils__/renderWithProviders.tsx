@@ -47,6 +47,7 @@ import { createMockWebClient } from './mockWebClient';
 import zoneViewTitles from '../features/game/dialogs/ZoneViewDialog/useZoneViewDialog.i18n.json';
 import incomingRevealTitles from '../features/game/dialogs/IncomingRevealDialog/IncomingRevealDialog.i18n.json';
 import playerInfoLabels from '../features/game/components/right-sidebar/PlayerInfoPanel/PlayerInfoPanel.i18n.json';
+import moveTopUntilText from '../features/game/dialogs/MoveTopUntilDialog/MoveTopUntilDialog.i18n.json';
 
 // The game's pending target pick, as Game provides it, for seats rendered
 // without Game.
@@ -123,11 +124,12 @@ function getDefaultWebClient(): WebClient {
 
 // Every other key renders as itself. The zone views' and the reveal's titles, and the seats' life
 // totals, name the player through interpolation, and the specs tell them apart by player, so
-// their English is loaded, formatted by ICU as in the app.
+// their English is loaded, formatted by ICU as in the app; so is the move-top-until dialog's, which
+// the game specs reach through the library menu by its English title.
 const testI18n = i18n.createInstance();
 testI18n.use(ICU).use(initReactI18next).init({
   lng: 'en-US',
-  resources: { 'en-US': { translation: { ...zoneViewTitles, ...incomingRevealTitles, ...playerInfoLabels } } },
+  resources: { 'en-US': { translation: { ...zoneViewTitles, ...incomingRevealTitles, ...playerInfoLabels, ...moveTopUntilText } } },
   fallbackLng: 'en-US',
   interpolation: { escapeValue: false },
 });

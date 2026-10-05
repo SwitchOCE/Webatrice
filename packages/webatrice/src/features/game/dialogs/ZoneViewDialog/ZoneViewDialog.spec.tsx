@@ -85,7 +85,7 @@ describe('ZoneViewDialog', () => {
 
     const view = panel(/^ZoneLabel\.title\.grave — Trajer/);
     expect(viewCards(view).map((el) => el.dataset.cardId).sort()).toEqual(['7', '8']);
-    expect(within(view).queryByRole('checkbox', { name: /shuffle when closing/i })).not.toBeInTheDocument();
+    expect(within(view).queryByRole('checkbox', { name: 'ZoneViewPanel.shuffleOnClose' })).not.toBeInTheDocument();
   });
 
   it('lists the library\'s dump snapshot and passes its shuffle choice on close', () => {
@@ -95,14 +95,14 @@ describe('ZoneViewDialog', () => {
     );
     const view = panel(/^Trajer's library/);
     expect(viewCards(view)).toHaveLength(1);
-    const shuffle = within(view).getByRole('checkbox', { name: /shuffle when closing/i });
+    const shuffle = within(view).getByRole('checkbox', { name: 'ZoneViewPanel.shuffleOnClose' });
     expect(shuffle).toBeChecked();
 
-    fireEvent.click(within(view).getByTitle('Close'));
+    fireEvent.click(within(view).getByTitle('ZoneViewPanel.close'));
     expect(handleClose).toHaveBeenLastCalledWith(true);
 
     fireEvent.click(shuffle);
-    fireEvent.click(within(view).getByTitle('Close'));
+    fireEvent.click(within(view).getByTitle('ZoneViewPanel.close'));
     expect(handleClose).toHaveBeenLastCalledWith(false);
   });
 

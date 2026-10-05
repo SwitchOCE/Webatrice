@@ -4,11 +4,12 @@
 // game wiring (titles, drags, menus, selection, desktop's row heights).
 
 import { act, fireEvent, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 
 import { renderWithProviders } from '../../../../__test-utils__';
 import { lookupCardsCached } from '../../../../services/cards/catalog/lookup';
-import { settingsStore } from '../../../../hooks/useSettings';
+import { getSettings, settingsStore } from '../../../../hooks/useSettings';
 import ZoneViewPanel from './ZoneViewPanel';
 
 vi.mock('../../../../services/cards/catalog/lookup', () => ({
@@ -189,7 +190,7 @@ describe('ZoneViewPanel', () => {
     it('does not start a drag from a header button', async () => {
       await renderPanel();
       dialog().getBoundingClientRect = () => new DOMRect(100, 100, 400, 300);
-      fireEvent.pointerDown(screen.getByTitle('Close'), { button: 0, clientX: 110, clientY: 105 });
+      fireEvent.pointerDown(screen.getByTitle('ZoneViewPanel.close'), { button: 0, clientX: 110, clientY: 105 });
       expect(dialog().closest('.cursor-grabbing')).toBeNull();
       expect(dialog().querySelector('.cursor-grabbing')).toBeNull();
     });
@@ -279,7 +280,7 @@ describe('ZoneViewPanel', () => {
       expect(screen.getByRole('heading', { name: /^Zone/ })).toHaveTextContent('1 / 3');
 
       fireEvent.change(screen.getByRole('textbox'), { target: { value: 'nothing-matches' } });
-      expect(screen.getByText('No cards match the current filter.')).toBeInTheDocument();
+      expect(screen.getByText('ZoneViewPanel.noMatch')).toBeInTheDocument();
     });
   });
 
@@ -391,16 +392,85 @@ describe('ZoneViewPanel', () => {
   it('passes its shuffle choice to the close, and only for a library', async () => {
     const onClose = vi.fn();
     const first = await renderPanel({ onClose });
-    fireEvent.click(screen.getByRole('checkbox', { name: /shuffle when closing/ }));
-    fireEvent.click(screen.getByTitle('Close'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'ZoneViewPanel.shuffleOnClose' }));
+    fireEvent.click(screen.getByTitle('ZoneViewPanel.close'));
     expect(onClose).toHaveBeenLastCalledWith(false);
     expect(window.localStorage.getItem('webatrice.searchLibraryShuffleOnClose')).toBe('0');
     first.unmount();
 
     await renderPanel({ onClose, showShuffleOnClose: false });
-    expect(screen.queryByRole('checkbox', { name: /shuffle when closing/ })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByTitle('Close'));
+    expect(screen.queryByRole('checkbox', { name: 'ZoneViewPanel.shuffleOnClose' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTitle('ZoneViewPanel.close'));
     expect(onClose).toHaveBeenLastCalledWith(false);
+  });
+
+  describe('as a non-modal dialog', () => {
+    /** A control that opens the view, as the pile menu or the F3 / F4 shortcuts do. */
+    function Opener({ onClose }: { onClose: (shuffle: boolean) => void }) {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>Open</button>
+          {open && (
+            <Harness
+              onClose={(shuffle) => {
+                onClose(shuffle);
+                setOpen(false);
+              }}
+            />
+          )}
+        </>
+      );
+    }
+
+    afterEach(() => {
+      settingsStore.reset();
+    });
+
+    it('is named by its title, and names its search box and close button', async () => {
+      await renderPanel();
+      const view = screen.getByRole('dialog', { name: 'Zone' });
+      expect(view).not.toHaveAttribute('aria-modal');
+      expect(within(view).getByRole('textbox', { name: 'ZoneViewPanel.search' })).toBeInTheDocument();
+      expect(within(view).getByRole('button', { name: 'ZoneViewPanel.close' })).toBeInTheDocument();
+    });
+
+    it('takes focus on open and gives it back to the opener when Escape closes it', async () => {
+      const user = userEvent.setup();
+      const onClose = vi.fn();
+      renderWithProviders(<Opener onClose={onClose} />);
+      await user.click(screen.getByRole('button', { name: 'Open' }));
+      await act(async () => undefined);
+      expect(screen.getByRole('textbox', { name: 'ZoneViewPanel.search' })).toHaveFocus();
+
+      await user.tab();
+      expect(screen.getByRole('dialog', { name: 'Zone' })).toContainElement(document.activeElement as HTMLElement);
+      await user.keyboard('{Escape}');
+      expect(onClose).toHaveBeenCalledWith(true);
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Open' })).toHaveFocus();
+    });
+
+    it('puts focus on its title when the search box is not to take it', async () => {
+      const user = userEvent.setup();
+      const settings = await getSettings();
+      settingsStore.setValue(Object.assign(settings, { focusCardViewSearchBar: false }));
+      renderWithProviders(<Opener onClose={vi.fn()} />);
+      await user.click(screen.getByRole('button', { name: 'Open' }));
+      await act(async () => undefined);
+      expect(screen.getByRole('heading', { name: /^Zone/ })).toHaveFocus();
+    });
+
+    it('leaves focus where it was while "Keep game chat focused" is on', async () => {
+      const user = userEvent.setup();
+      const settings = await getSettings();
+      settingsStore.setValue(Object.assign(settings, { keepGameChatFocus: true }));
+      renderWithProviders(<Opener onClose={vi.fn()} />);
+      await user.click(screen.getByRole('button', { name: 'Open' }));
+      await act(async () => undefined);
+      expect(screen.getByRole('dialog', { name: 'Zone' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Open' })).toHaveFocus();
+    });
   });
 
   it('stops pointer presses at the portal so the seat behind starts no marquee', async () => {

@@ -84,7 +84,7 @@ describe('View library', () => {
     await waitFor(() => expect(libraryView()).toBeInTheDocument());
 
     act(() => {
-      fireEvent.click(within(libraryView()).getAllByRole('button', { name: 'Close' })[0]);
+      fireEvent.click(within(libraryView()).getByRole('button', { name: 'ZoneViewPanel.close' }));
     });
 
     const shuffles = findAllGameCommands(Command_Shuffle_ext);
