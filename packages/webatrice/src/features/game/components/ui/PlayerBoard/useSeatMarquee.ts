@@ -219,7 +219,8 @@ export function useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelecti
       target?.closest('[data-card]') ||
       target?.closest('[data-drag-source]') ||
       target?.closest('[data-card-context-menu]') ||
-      target?.closest('[data-context-menu]')
+      target?.closest('[data-context-menu]') ||
+      target?.closest('[role="menu"]')
     ) {
       return;
     }

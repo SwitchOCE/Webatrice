@@ -58,6 +58,20 @@ afterEach(() => {
 });
 
 describe('useSeatMarquee', () => {
+  it('does not clear selection or start a marquee from a shared menu item descendant', () => {
+    const { result, clearAllSelection, setSelection, press } = setup();
+    const menu = document.createElement('div');
+    menu.setAttribute('role', 'menu');
+    menu.innerHTML = '<button role="menuitem"><span>All players</span></button>';
+    document.body.append(menu);
+
+    press(menu.querySelector('span')!, 10, 10);
+    expect(result.current.marquee).toBeNull();
+    expect(clearAllSelection).not.toHaveBeenCalled();
+    fireEvent.pointerMove(window, { clientX: 100, clientY: 100 });
+    expect(setSelection).not.toHaveBeenCalled();
+  });
+
   it('selects the own battlefield cards the rectangle touches, live, and ends on release', () => {
     const { result, ownBoard, setSelection, clearAllSelection, press } = setup();
     press(ownBoard, 205, 5);
