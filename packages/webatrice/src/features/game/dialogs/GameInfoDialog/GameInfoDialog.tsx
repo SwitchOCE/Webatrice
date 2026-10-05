@@ -112,7 +112,7 @@ function GameInfoDialog() {
             type="button"
             onClick={onClose}
             aria-label="close game info"
-            className="p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary transition-colors"
+            className="p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary board-motion transition-colors"
           >
             <X size={16} />
           </button>
@@ -194,7 +194,7 @@ function GameInfoDialog() {
             autoFocus
             className={[
               'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent',
-              'text-white hover:bg-accent-hover shadow-glow transition-colors',
+              'text-white hover:bg-accent-hover shadow-glow board-motion transition-colors',
             ].join(' ')}
           >
             Close

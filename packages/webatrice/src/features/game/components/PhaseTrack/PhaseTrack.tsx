@@ -175,7 +175,7 @@ export default function PhaseTrack() {
         pinned
           ? 'relative flex flex-col gap-0.5 min-h-0 box-border h-full'
           : 'absolute top-0 bottom-0 left-0 z-20 flex flex-col gap-0.5 min-h-0 box-border',
-        'transition-[width,background-color,padding,box-shadow] duration-200 ease-out',
+        'board-motion transition-[width,background-color,padding,box-shadow] duration-200 ease-out',
         expanded
           ? 'bg-bg-surface/85 backdrop-blur-sm border-r border-border-subtle py-4 px-2 gap-2 shadow-glow'
           : // `pr-1` (4 px) reserves invisible hit-area past the visible
@@ -232,7 +232,7 @@ export default function PhaseTrack() {
               onDoubleClick={onDoubleClickFor(builtInOnDoubleClick)}
               title={canAdvancePhase ? title : 'Only the active player can change phases'}
               className={[
-                'relative overflow-hidden w-full h-full transition-all duration-200',
+                'relative overflow-hidden w-full h-full board-motion transition-all duration-200',
                 expanded
                   ? 'rounded-md flex flex-col items-center justify-center gap-1 px-1 py-1'
                   : 'rounded-sm',
@@ -274,7 +274,7 @@ export default function PhaseTrack() {
         disabled={!canPassTurn}
         title="Pass to the next turn"
         className={[
-          'relative shrink-0 overflow-hidden w-full transition-all duration-200',
+          'relative shrink-0 overflow-hidden w-full board-motion transition-all duration-200',
           'bg-accent-secondary hover:bg-accent text-white',
           'disabled:opacity-50 disabled:cursor-not-allowed',
           expanded

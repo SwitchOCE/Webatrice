@@ -13,7 +13,7 @@ interface GameInviteControlsProps {
 const BUTTON_CLASS = [
   'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium',
   'text-text-primary bg-bg-elevated hover:bg-border-subtle border border-border-subtle',
-  'disabled:opacity-60 disabled:cursor-not-allowed transition-colors',
+  'disabled:opacity-60 disabled:cursor-not-allowed board-motion transition-colors',
 ].join(' ');
 
 /**

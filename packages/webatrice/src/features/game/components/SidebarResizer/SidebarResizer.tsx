@@ -119,7 +119,7 @@ export default function SidebarResizer({ width, onResize }: SidebarResizerProps)
     >
       {/* Thin visual affordance — a 1-px column that lights up on hover.
        *  Kept subtle so the resizer doesn't compete with sidebar content. */}
-      <div className="w-px h-8 bg-border-subtle group-hover:bg-accent transition-colors" />
+      <div className="w-px h-8 bg-border-subtle group-hover:bg-accent board-motion transition-colors" />
     </div>
   );
 }

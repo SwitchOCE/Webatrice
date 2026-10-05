@@ -262,7 +262,7 @@ export function CardMenuPopup({ items, anchor, disabled, onClose }: CardMenuPopu
           onClick={item.onClick}
           className={[
             'w-full flex items-center gap-3 px-3 py-1.5 text-sm text-left text-text-primary',
-            'hover:bg-bg-elevated disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
+            'hover:bg-bg-elevated disabled:opacity-50 disabled:cursor-not-allowed board-motion transition-colors',
           ].join(' ')}
         >
           {item.swatch !== undefined ? (

@@ -228,7 +228,7 @@ export default function CardPreviewPopupPage() {
                   className={[
                     'self-start inline-flex items-center gap-1',
                     'text-xs font-medium text-text-secondary',
-                    'hover:text-text-primary transition-colors',
+                    'hover:text-text-primary board-motion transition-colors',
                   ].join(' ')}
                   title={`Back to ${previousName}`}
                 >

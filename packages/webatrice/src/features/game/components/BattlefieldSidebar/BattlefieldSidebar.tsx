@@ -22,13 +22,13 @@ import PreviewCardImage from '../ui/PreviewCardImage/PreviewCardImage';
 const SIDEBAR_HEADER_BUTTON_CLASS = [
   'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium',
   'text-text-primary bg-bg-elevated hover:bg-border-subtle border',
-  'border-border-subtle disabled:opacity-60 disabled:cursor-not-allowed transition-colors',
+  'border-border-subtle disabled:opacity-60 disabled:cursor-not-allowed board-motion transition-colors',
 ].join(' ');
 
 const SIDEBAR_ACTION_BUTTON_CLASS =
   'flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-xs '
   + 'font-medium text-text-primary bg-bg-elevated hover:bg-border-subtle border '
-  + 'border-border-subtle transition-colors';
+  + 'border-border-subtle board-motion transition-colors';
 
 /**
  * Right-rail companion for the battlefield. Four stacked sections,
@@ -380,7 +380,7 @@ export default function BattlefieldSidebar() {
               aria-label={isPopupOpen ? 'Close preview window' : 'Open preview in a separate window'}
               aria-pressed={isPopupOpen}
               className={[
-                'inline-flex items-center justify-center px-2 py-1 rounded-md border transition-colors',
+                'inline-flex items-center justify-center px-2 py-1 rounded-md border board-motion transition-colors',
                 isPopupOpen
                   ? 'text-accent bg-accent/10 border-accent/40 hover:bg-accent/20'
                   : 'text-text-primary bg-bg-elevated hover:bg-border-subtle border-border-subtle',
@@ -407,7 +407,7 @@ export default function BattlefieldSidebar() {
                     aria-pressed={active}
                     title={title}
                     className={[
-                      'inline-flex items-center justify-center px-2 py-1 text-[11px] font-medium transition-colors',
+                      'inline-flex items-center justify-center px-2 py-1 text-[11px] font-medium board-motion transition-colors',
                       // Subtle divider between segments; last button
                       // doesn't need one on the right edge.
                       mode !== 'both' ? 'border-r border-border-subtle' : '',
@@ -433,7 +433,7 @@ export default function BattlefieldSidebar() {
             className={[
               'w-full aspect-[5/7] rounded-md border border-dashed border-accent/40',
               'bg-accent/5 flex flex-col items-center justify-center gap-2 text-xs',
-              'text-text-muted p-4 text-center hover:bg-accent/10 transition-colors',
+              'text-text-muted p-4 text-center hover:bg-accent/10 board-motion transition-colors',
             ].join(' ')}
             style={{ borderRadius: CARD_CORNER_RADIUS }}
           >
@@ -490,7 +490,7 @@ export default function BattlefieldSidebar() {
                       onClick={handleBack}
                       className={[
                         'self-start inline-flex items-center gap-1 text-[11px]',
-                        'font-medium text-text-secondary hover:text-text-primary transition-colors',
+                        'font-medium text-text-secondary hover:text-text-primary board-motion transition-colors',
                       ].join(' ')}
                       title={`Back to ${previousInStack.name}`}
                     >
