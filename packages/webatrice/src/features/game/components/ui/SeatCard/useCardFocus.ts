@@ -109,6 +109,20 @@ export function useCardFocus<C extends { id: string }>({
     onSelectIds(new Set([key]));
   }, [onSelectIds]);
 
+  // Space marks or unmarks the focused card and keeps the rest of the
+  // selection, as Ctrl+click does; with Ctrl+arrows moving focus alone, that
+  // builds a selection with gaps.
+  const toggle = useCallback((key: string) => {
+    anchor.current = key;
+    const next = new Set(selectedIds);
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    onSelectIds(next);
+  }, [selectedIds, onSelectIds]);
+
   const extend = useCallback((key: string) => {
     const from = keys.indexOf(anchor.current ?? current ?? key);
     const to = keys.indexOf(key);
@@ -130,6 +144,7 @@ export function useCardFocus<C extends { id: string }>({
     orientation,
     lines,
     onExtend: extend,
+    focusOnlyWithCtrl: true,
     // The zone's last card leaving (the hand played out) moves focus on to
     // the next tab stop, as F6 would, rather than dropping it to the page,
     // where Tab is Next Phase.
@@ -187,6 +202,12 @@ export function useCardFocus<C extends { id: string }>({
         }
         // Shift+Enter is the chat's focus shortcut.
         if (event.key === 'Enter' && event.shiftKey) {
+          return;
+        }
+        // Ctrl+Space is Next Phase; plain Space toggles the card.
+        if (event.key === ' ' && !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
+          event.preventDefault();
+          toggle(card.id);
           return;
         }
         row.onKeyDown(event);

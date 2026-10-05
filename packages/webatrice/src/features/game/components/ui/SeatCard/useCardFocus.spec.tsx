@@ -78,6 +78,33 @@ describe('useCardFocus', () => {
     expect(card('3').tabIndex).toBe(0);
   });
 
+  it('toggles the focused card in or out of the selection with Space, keeping the others', () => {
+    renderZone({ initial: ['1'] });
+    focus('2');
+    fireEvent.keyDown(card('2'), { key: ' ' });
+    expect(['1', '2', '3'].map((id) => card(id).getAttribute('aria-selected'))).toEqual(['true', 'true', 'false']);
+    fireEvent.keyDown(card('2'), { key: ' ' });
+    expect(['1', '2', '3'].map((id) => card(id).getAttribute('aria-selected'))).toEqual(['true', 'false', 'false']);
+    // Unmarking the last marked card leaves nothing selected.
+    fireEvent.keyDown(card('1'), { key: ' ' });
+    expect(['1', '2', '3'].map((id) => card(id).getAttribute('aria-selected'))).toEqual(['false', 'false', 'false']);
+  });
+
+  it('moves focus alone with Ctrl and an arrow, so Space builds a selection with gaps', () => {
+    renderZone();
+    focus('1');
+    fireEvent.keyDown(card('1'), { key: ' ' });
+    fireEvent.keyDown(card('1'), { key: 'ArrowRight', ctrlKey: true });
+    expect(card('2')).toHaveFocus();
+    expect(card('2')).toHaveAttribute('aria-selected', 'false');
+    fireEvent.keyDown(card('2'), { key: 'ArrowRight', ctrlKey: true });
+    fireEvent.keyDown(card('3'), { key: ' ' });
+    expect(['1', '2', '3'].map((id) => card(id).getAttribute('aria-selected'))).toEqual(['true', 'false', 'true']);
+    // A plain arrow still selects the card it lands on alone.
+    fireEvent.keyDown(card('3'), { key: 'ArrowLeft' });
+    expect(['1', '2', '3'].map((id) => card(id).getAttribute('aria-selected'))).toEqual(['false', 'true', 'false']);
+  });
+
   it('plays a card on Enter, but leaves Shift+Enter to the chat shortcut', () => {
     const onActivate = vi.fn();
     renderZone({ onActivate });
