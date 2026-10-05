@@ -1,12 +1,10 @@
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
-import type { useShortcutHints } from '@app/feature-widgets/shortcuts';
+import type { useMenuShortcut } from '@app/feature-widgets/shortcuts';
 
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import { useGameDialogsContext } from '../GameDialogsContext';
 import type { SeatMoveDestination, HandZoneViewModel, PlayerZoneCommands } from '../PlayerBoard/playerBoard.types';
 import { buildRevealToSubmenu, toRecipient } from '../PlayerBoard/revealRecipient';
-
-type ShortcutHints = ReturnType<typeof useShortcutHints>;
 
 export interface UseHandMenuItemsArgs {
   seatId: number;
@@ -14,7 +12,7 @@ export interface UseHandMenuItemsArgs {
   hand: HandZoneViewModel;
   /** Every other seated player. */
   revealTargets: readonly { playerId: number; name: string }[];
-  shortcutHints: ShortcutHints;
+  menuShortcut: ReturnType<typeof useMenuShortcut>;
   zoneCommands: PlayerZoneCommands;
 }
 
@@ -28,7 +26,7 @@ export function useHandMenuItems({
   isSelf,
   hand,
   revealTargets,
-  shortcutHints,
+  menuShortcut,
   zoneCommands,
 }: UseHandMenuItemsArgs) {
   const { openZoneView, handleRequestSortHandBy, handleRequestChooseMulligan } = useGameDialogsContext();
@@ -50,13 +48,13 @@ export function useHandMenuItems({
     revealTargets,
     (targetPlayerId) => zoneCommands.reveal(ZoneName.HAND, toRecipient(targetPlayerId)),
     handSize <= 0,
-    shortcutHints['game.revealHandToAll'],
+    menuShortcut('game.revealHandToAll').shortcut,
   );
   const revealRandomHandSubmenu = buildRevealToSubmenu(
     revealTargets,
     (targetPlayerId) => zoneCommands.reveal(ZoneName.HAND, toRecipient(targetPlayerId), 'random'),
     handSize <= 0,
-    shortcutHints['game.revealRandomHandCardToAll'],
+    menuShortcut('game.revealRandomHandCardToAll').shortcut,
   );
   // Helper: build a "move all cards from HAND to <target>" click
   // handler. Hand card ids are real numeric ids on the wire.
@@ -82,7 +80,7 @@ export function useHandMenuItems({
       label: 'View hand',
       onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.HAND }),
       disabled: !isSelf || handSize <= 0,
-      shortcut: shortcutHints['game.viewHand'],
+      ...menuShortcut('game.viewHand'),
     },
     {
       // Sort hand by ... — dispatches per-card moveCard reorders
@@ -94,19 +92,19 @@ export function useHandMenuItems({
           label: 'Name',
           onClick: () => handleRequestSortHandBy('name'),
           disabled: !isSelf || handSize <= 1,
-          shortcut: shortcutHints['game.sortHandByName'],
+          ...menuShortcut('game.sortHandByName'),
         },
         {
           label: 'Type',
           onClick: () => handleRequestSortHandBy('maintype'),
           disabled: !isSelf || handSize <= 1,
-          shortcut: shortcutHints['game.sortHandByType'],
+          ...menuShortcut('game.sortHandByType'),
         },
         {
           label: 'Mana Value',
           onClick: () => handleRequestSortHandBy('manacost'),
           disabled: !isSelf || handSize <= 1,
-          shortcut: shortcutHints['game.sortHandByManaValue'],
+          ...menuShortcut('game.sortHandByManaValue'),
         },
       ],
     },
@@ -132,13 +130,13 @@ export function useHandMenuItems({
       label: 'Take mulligan (Same hand size)',
       onClick: () => zoneCommands.mulligan(handSize),
       disabled: handSize <= 0,
-      shortcut: shortcutHints['game.mulliganSameSize'],
+      ...menuShortcut('game.mulliganSameSize'),
     },
     {
       label: 'Take mulligan (Hand size - 1)',
       onClick: () => zoneCommands.mulligan(Math.max(1, handSize - 1)),
       disabled: handSize <= 1,
-      shortcut: shortcutHints['game.mulliganMinusOne'],
+      ...menuShortcut('game.mulliganMinusOne'),
     },
     { divider: true },
     {

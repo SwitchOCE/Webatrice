@@ -16,6 +16,18 @@ function renderMenu(items: ContextMenuItem[], onClose = vi.fn()) {
 }
 
 describe('ContextMenuEntries', () => {
+  it('forwards normalized shortcuts for action and checkbox entries', () => {
+    const rebound = { shortcut: 'Ctrl+Shift+Y', keyShortcuts: 'Control+Shift+Y Alt+Z' };
+    renderMenu([
+      { label: 'Sort hand', onClick: vi.fn(), ...rebound },
+      { label: 'Reveal hand', checked: true, onClick: vi.fn(), ...rebound },
+    ]);
+    expect(screen.getByRole('menuitem', { name: 'Sort hand' }))
+      .toHaveAttribute('aria-keyshortcuts', rebound.keyShortcuts);
+    expect(screen.getByRole('menuitemcheckbox', { name: 'Reveal hand' }))
+      .toHaveAttribute('aria-keyshortcuts', rebound.keyShortcuts);
+  });
+
   it('draws items, dividers, check items, placeholders and submenus as menu entries', () => {
     const { menu } = renderMenu([
       { label: 'View hand', onClick: vi.fn() },
