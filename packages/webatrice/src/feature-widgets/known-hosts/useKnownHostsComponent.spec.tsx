@@ -73,6 +73,29 @@ function setup(args: {
 }
 
 describe('useKnownHostsComponent', () => {
+  it.each([undefined, 5])('persists the submitted desktop port when saving host %s', async (id) => {
+    const add = vi.fn().mockResolvedValue(makeHost());
+    const update = vi.fn().mockResolvedValue(makeHost());
+    const { result } = setup({ knownHostsOverrides: { add, update } });
+    await act(async () => {
+      await result.current.handleDialogSubmit({ id, name: 'TCP', host: 'server.example', port: '443', desktopPort: '4747' });
+    });
+    if (id) {
+      expect(update).toHaveBeenCalledWith(id, expect.objectContaining({ desktopPort: '4747' }));
+    } else {
+      expect(add).toHaveBeenCalledWith(expect.objectContaining({ desktopPort: '4747' }));
+    }
+  });
+
+  it('clears the saved desktop port when the field is emptied', async () => {
+    const update = vi.fn().mockResolvedValue(makeHost());
+    const { result } = setup({ knownHostsOverrides: { update } });
+    await act(async () => {
+      await result.current.handleDialogSubmit({ id: 5, name: 'TCP', host: 'server.example', port: '443', desktopPort: '' });
+    });
+    expect(update).toHaveBeenCalledWith(5, expect.objectContaining({ desktopPort: undefined }));
+  });
+
   beforeEach(() => {
     openToast.mockClear();
   });

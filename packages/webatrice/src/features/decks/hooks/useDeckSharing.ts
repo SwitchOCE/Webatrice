@@ -5,12 +5,11 @@ import { server, ServerCapability } from '@cockatrice/datatrice';
 import type { SessionCommandFailedPayload } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { DeckSetVisibilityParams, DeckShareCreateParams, Response_DeckShareCreate } from '@cockatrice/sockatrice/generated';
-import { useKnownHosts } from '@app/feature-widgets/known-hosts';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { useAppSelector } from '@app/store';
-import { getHostPort } from '@app/utils';
+import { useKnownHosts } from '@app/feature-widgets/known-hosts';
 
-import { buildDeckShareLink } from '../deckSharing';
+import { buildDeckShareLink, shareServerFromEndpoint } from '../deckSharing';
 import type { DeckVisibility } from '../deckTree';
 
 /** Whether the server offers share links and public decks (Servatrice 3.1). */
@@ -18,17 +17,23 @@ export function useDeckSharingSupported(): boolean {
   return useAppSelector((state) => server.Selectors.supports(state, ServerCapability.DECK_SHARING));
 }
 
-/**
- * The host and WebSocket port this session logged into (the selected known
- * host, which login connects to), named by the share links it creates.
- */
-export function useShareServer(): { hostname: string; port: string } | null {
-  const selectedHost = useKnownHosts().value?.selectedHost;
-  if (!selectedHost) {
+/** The live connection endpoint, independent of the currently selected known host. */
+export function useShareServer(): { hostname: string; port: string; desktopPort?: string } | null {
+  const webClient = useWebClient();
+  const connected = useAppSelector(server.Selectors.getIsConnected);
+  const knownHosts = useKnownHosts();
+  const live = connected ? shareServerFromEndpoint(webClient.socket?.connectedEndpoint) : null;
+  if (!live) {
     return null;
   }
-  const { host, port } = getHostPort(selectedHost);
-  return { hostname: host, port };
+  const protocol = new URL(live.hostname).protocol;
+  const host = knownHosts.value?.hosts?.find(candidate => {
+    // Sockatrice uses host verbatim when it contains a path, otherwise appends port.
+    // The live protocol is authoritative; a saved host has no separate scheme field.
+    const address = candidate.host.includes('/') ? candidate.host : `${candidate.host}:${candidate.port}`;
+    return shareServerFromEndpoint(`${protocol}//${address}`)?.hostname === live.hostname;
+  });
+  return { ...live, desktopPort: host?.desktopPort };
 }
 
 export type DeckShareCreateState =

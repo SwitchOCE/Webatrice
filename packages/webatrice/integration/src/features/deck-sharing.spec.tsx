@@ -48,12 +48,6 @@ import { LocationProbe, codXml, deckFile, deckFolder, respondToDeckList, stubThi
 // wire: each action's Command_* on the socket, and the screen after the
 // server's answer.
 
-// The share link names the server this session logged into: the selected known host.
-vi.mock('@app/feature-widgets/known-hosts', async (importOriginal) => ({
-  ...await importOriginal<typeof import('@app/feature-widgets/known-hosts')>(),
-  useKnownHosts: () => ({ status: 'loaded', value: { hosts: [], selectedHost: { host: 'localhost', port: '4748' } } }),
-}));
-
 function loginTo31() {
   connectRaw({ userName: 'alice' });
   deliverMessage(buildSessionEventMessage(
@@ -135,7 +129,7 @@ describe('deck sharing (integration)', () => {
         value: create(Response_DeckShareCreateSchema, { token: 'tok123', expiresAt: 1_800_000_000n, itemCount: 1 }),
       })));
     });
-    const link = await screen.findByDisplayValue(/#share=tok123&hostname=localhost&port=4748$/);
+    const link = await screen.findByDisplayValue(/#share=tok123&hostname=ws%3A%2F%2Flocalhost%3A4748%2F&port=4748$/);
     expect(link).toBeInTheDocument();
     expect(screen.getByText('DeckSharing.expires')).toBeInTheDocument();
   });
@@ -213,7 +207,7 @@ describe('deck sharing (integration)', () => {
         <Route path={RouteEnum.SHARED_DECK} element={<SharedDeck />} />
         <Route path={RouteEnum.DECK} element={<LocationProbe />} />
       </Routes>,
-      '/decks/shared?share=tok123&hostname=localhost&port=4747',
+      '/decks/shared?share=tok123&hostname=ws%3A%2F%2Flocalhost%3A4748%2F&port=4748',
     );
 
     const list = findLastSessionCommand(Command_DeckShareList_ext);
@@ -261,7 +255,7 @@ describe('deck sharing (integration)', () => {
 
   it('shows desktop\'s message for an expired share', async () => {
     loginTo31();
-    renderFeatureScreen(<SharedDeck />, '/decks/shared?share=gone&hostname=localhost&port=4747');
+    renderFeatureScreen(<SharedDeck />, '/decks/shared?share=gone&hostname=ws%3A%2F%2Flocalhost%3A4748%2F&port=4748');
     respondOk(findLastSessionCommand(Command_DeckShareList_ext).cmdId, Response_ResponseCode.RespNameNotFound);
     expect(await screen.findByText('SharedDeck.notFound')).toBeInTheDocument();
   });

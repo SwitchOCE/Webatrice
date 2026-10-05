@@ -210,24 +210,22 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
                     {hostPort.host}:{hostPort.port}
                   </span>
                 </span>
-                {host.editable && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpen(false);
-                      openEditKnownHostDialog(host);
-                    }}
-                    className={[
-                      'p-1 rounded text-text-muted hover:text-text-primary',
-                      'hover:bg-border-subtle opacity-0 group-hover:opacity-100 transition-opacity',
-                    ].join(' ')}
-                    title="Edit host"
-                    aria-label="Edit host"
-                  >
-                    <Pencil size={12} />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpen(false);
+                    openEditKnownHostDialog(host);
+                  }}
+                  className={[
+                    'p-1 rounded text-text-muted hover:text-text-primary',
+                    'hover:bg-border-subtle opacity-0 group-hover:opacity-100 transition-opacity',
+                  ].join(' ')}
+                  title="Edit host"
+                  aria-label="Edit host"
+                >
+                  <Pencil size={12} />
+                </button>
               </div>
             );
           })}

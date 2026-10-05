@@ -1,4 +1,4 @@
-﻿import { installMockWebSocketHarness } from '../testing/mock-websocket';
+import { installMockWebSocketHarness } from '../testing/mock-websocket';
 import { withMockLocation } from '../__test-utils__';
 import { Mock } from 'vitest';
 
@@ -84,6 +84,24 @@ describe('WebSocketService', () => {
   });
 
   describe('connect', () => {
+    it.each([
+      ['example.com', '4748', 'wss://example.com:4748/'],
+      ['example.com/server-a', '4748', 'wss://example.com/server-a'],
+    ])('exposes only the live socket endpoint for %s', (host, port, endpoint) => {
+      const service = new WebSocketService(mockConfig);
+      expect(service.connectedEndpoint).toBeNull();
+      service.connect({ host, port });
+      Object.assign(mockInstance, { url: endpoint, readyState: WebSocket.CONNECTING });
+      expect(service.connectedEndpoint).toBeNull();
+      mockInstance.readyState = WebSocket.OPEN;
+      expect(service.connectedEndpoint).toBe(endpoint);
+      mockInstance.readyState = WebSocket.CLOSED;
+      expect(service.connectedEndpoint).toBeNull();
+      mockInstance.readyState = WebSocket.OPEN;
+      service.disconnect();
+      expect(service.connectedEndpoint).toBeNull();
+    });
+
     it('creates a wss:// WebSocket for a remote target', () => {
       const service = new WebSocketService(mockConfig);
       service.connect({ host: 'example.com', port: '8080' });
