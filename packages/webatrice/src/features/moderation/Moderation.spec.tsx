@@ -3,7 +3,7 @@ import { act, fireEvent, screen, within } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 import type { Mock } from 'vitest';
 
-import { server } from '@cockatrice/datatrice';
+import { attachResponseHandlers, server } from '@cockatrice/datatrice';
 import {
   Response_ReportUserInfoSchema,
   Response_ResponseCode,
@@ -286,4 +286,33 @@ it('names each staff table independently of its surrounding section', () => {
   for (const part of ['alts', 'sessions', 'staff']) {
     expect(screen.getByRole('table', { name: `ModerationPage.${part}.title` })).toBeInTheDocument();
   }
+});
+
+it('prunes prior private results and ignores late responses when switching the investigation', async () => {
+  const { store } = setup();
+  const response = attachResponseHandlers(store).moderator;
+  const alts = [create(ServerInfo_UserAltSchema, { email: 'private@example.test', clientid: 'private-client' })];
+  const sessions = [create(ServerInfo_UserSessionSchema, { ipAddress: '192.0.2.7', clientid: 'private-session' })];
+  const info = create(Response_ReportUserInfoSchema, { userName: 'alice', adminNotes: 'private-note' });
+  await investigate('alice');
+  act(() => {
+    response.reportUserInfo!(info);
+    response.userAlts!('alice', alts);
+    response.userSessions!('alice', sessions);
+  });
+  expect(JSON.stringify(store.getState())).toContain('private@example.test');
+  await investigate('bob');
+  const expectPruned = () => {
+    const stored = JSON.stringify(store.getState());
+    for (const secret of ['private@example.test', 'private-client', '192.0.2.7', 'private-session', 'private-note']) {
+      expect(stored).not.toContain(secret);
+    }
+  };
+  expectPruned();
+  act(() => {
+    response.reportUserInfo!(info);
+    response.userAlts!('alice', alts);
+    response.userSessions!('alice', sessions);
+  });
+  expectPruned();
 });

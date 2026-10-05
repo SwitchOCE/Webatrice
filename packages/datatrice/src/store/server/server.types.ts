@@ -91,6 +91,7 @@ export const Types = {
   GAMES_OF_USER_REQUESTED: a.gamesOfUserRequested.type,
   GAMES_OF_USER_FAILED: a.gamesOfUserFailed.type,
   // Staff tools
+  USER_INVESTIGATION_STARTED: a.userInvestigationStarted.type,
   USER_INFO_REPORT: a.userInfoReport.type,
   USER_ALTS: a.userAlts.type,
   USER_SESSIONS: a.userSessions.type,

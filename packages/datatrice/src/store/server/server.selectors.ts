@@ -132,8 +132,10 @@ export const Selectors = {
     server.warnListOptions.find((list) => list.userName === userName),
   getLogs: ({ server }: State) => server.logs,
   // Staff tooling (see server.reducer.staff.ts). Lists are null until loaded.
-  getUserInvestigation: ({ server }: State, userName: string): UserInvestigation | undefined =>
-    server.staff.investigations[userName],
+  getUserInvestigation: ({ server }: State, userName: string): UserInvestigation | undefined => {
+    const active = server.staff.investigation;
+    return active?.userName === userName ? active.results : undefined;
+  },
   getModeratorLastLogins: ({ server }: State) => server.staff.moderatorLastLogins,
   getCardArtRules: ({ server }: State) => server.staff.cardArtRules,
   getServerStats: ({ server }: State) => server.staff.serverStats,

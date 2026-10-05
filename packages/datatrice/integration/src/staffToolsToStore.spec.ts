@@ -20,6 +20,7 @@ describe('integration: staff tools', () => {
     const store = createStore();
     const response = attachResponseHandlers(store);
 
+    store.dispatch(server.Actions.userInvestigationStarted({ userName: 'alice' }));
     response.moderator.reportUserInfo!(create(Response_ReportUserInfoSchema, { userName: 'alice', totalWarns: 1 }));
     response.moderator.userAlts!('alice', [create(ServerInfo_UserAltSchema, { userName: 'alice_alt', banCount: 2 })]);
     response.moderator.userSessions!('alice', [create(ServerInfo_UserSessionSchema, { ipAddress: '10.0.0.1' })]);

@@ -46,7 +46,7 @@ export const disconnectedState: Partial<RootState> = {
     gamesOfUser: {},
     gamesOfUserStatus: {},
     registrationError: null,
-    staff: { investigations: {}, moderatorLastLogins: null, cardArtRules: null, serverStats: null },
+    staff: { investigation: null, moderatorLastLogins: null, cardArtRules: null, serverStats: null },
   },
   rooms: {
     rooms: {},

@@ -14,7 +14,7 @@ import { server, type UserInvestigation } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { Response_ReportUserInfo, ServerInfo_ModeratorLogin } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { useAppSelector } from '@app/store';
+import { useAppDispatch, useAppSelector } from '@app/store';
 
 export type InvestigationPart = 'info' | 'alts' | 'sessions';
 
@@ -74,6 +74,7 @@ export function useModeration(): Moderation {
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
   const webClient = useWebClient();
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -150,6 +151,7 @@ export function useModeration(): Moderation {
 
   const runInvestigation = useCallback((userName: string) => {
     currentUserRef.current = userName;
+    dispatch(server.Actions.userInvestigationStarted({ userName }));
     setCurrentUser(userName);
     setPending(ALL);
     setFailed(NONE);
@@ -158,7 +160,7 @@ export function useModeration(): Moderation {
     moderator.reportUserInfo(userName);
     moderator.getUserSessions(userName);
     moderator.getUserAlts(userName);
-  }, [webClient]);
+  }, [dispatch, webClient]);
 
   const refreshStaffLogins = useCallback(() => {
     setStaffFailed(false);

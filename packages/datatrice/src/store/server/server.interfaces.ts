@@ -151,8 +151,8 @@ export interface ServerStateLogs {
 
 /** Staff tooling results: Moderation, Card Art Rules and Developer tabs. */
 export interface ServerStateStaff {
-  /** Moderation-tab lookups per investigated user name. */
-  investigations: { [userName: string]: UserInvestigation };
+  /** Only the active target is retained; starting another investigation discards prior private results. */
+  investigation: { userName: string; results: UserInvestigation } | null;
   /** null until the first Command_GetModeratorLastLogins answer. */
   moderatorLastLogins: ServerInfo_ModeratorLogin[] | null;
   /** null until the first Command_ListCardArtRules answer. */
