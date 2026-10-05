@@ -276,7 +276,7 @@ function ChatLogView() {
             className={[
               'w-full bg-bg-base border border-border-subtle rounded-md px-3 py-1.5 text-xs',
               'text-text-primary placeholder:text-text-muted focus:outline-none',
-              'focus:border-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
+              'focus:border-accent disabled:opacity-50 disabled:cursor-not-allowed board-motion transition-colors',
             ].join(' ')}
           />
           {mention.popup}

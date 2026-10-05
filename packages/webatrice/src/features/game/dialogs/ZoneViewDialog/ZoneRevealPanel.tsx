@@ -399,6 +399,7 @@ export default function ZoneRevealPanel({
                     <div
                       data-card
                       data-card-id={c.id}
+                      className="board-motion transition-opacity duration-100 ease-out"
                       onPointerDown={(e) => {
                         if (e.button !== 0) {
                           return;
@@ -412,7 +413,6 @@ export default function ZoneRevealPanel({
                         opacity: isDragging ? 0 : 1,
                         touchAction: onCardPointerDown ? 'none' : undefined,
                         borderRadius: '7.5%',
-                        transition: 'opacity 100ms ease-out',
                       }}
                     >
                       <Card name={c.name} scryfallId={c.scryfallId} />
@@ -436,7 +436,7 @@ export default function ZoneRevealPanel({
             onClick={onClose}
             className={[
               'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent',
-              'text-white hover:bg-accent-hover shadow-glow transition-colors',
+              'text-white hover:bg-accent-hover shadow-glow board-motion transition-colors',
             ].join(' ')}
           >
             Close

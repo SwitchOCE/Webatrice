@@ -152,10 +152,16 @@ describe('ZoneViewDialog', () => {
     });
 
     it('opens no taller than its cards need', () => {
-      const scrollHeight = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(450);
+      // A flex-1 viewport cannot report a scrollHeight below its clientHeight.
+      // Its intrinsic child can: a short pile inside a much taller viewport.
+      vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(function clientHeight() {
+        return this.classList.contains('overflow-auto') ? 900 : 450;
+      });
+      vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(function scrollHeight() {
+        return this.classList.contains('overflow-auto') ? 900 : 450;
+      });
       renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
       expect(dialogHeight()).toBe('450px');
-      scrollHeight.mockRestore();
     });
 
     it('switches to the expanded height on a title bar double-click', () => {
@@ -192,14 +198,15 @@ describe('ZoneViewDialog', () => {
     });
 
     it('expands no taller than its cards need, as desktop caps the view at its contents', () => {
-      const scrollHeight = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(450);
+      vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockImplementation(function scrollHeight() {
+        return this.classList.contains('overflow-auto') ? 900 : 450;
+      });
       renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
       const content = panel(/^Graveyard/).querySelector<HTMLElement>('.overflow-auto')!;
-      content.getBoundingClientRect = () => new DOMRect(0, 0, 900, 450);
-      panel(/^Graveyard/).getBoundingClientRect = () => new DOMRect(0, 0, 900, 450);
+      content.getBoundingClientRect = () => new DOMRect(0, 0, 900, 900);
+      panel(/^Graveyard/).getBoundingClientRect = () => new DOMRect(0, 0, 900, 900);
       fireEvent.doubleClick(screen.getByRole('heading', { name: /^Graveyard/ }));
       expect(dialogHeight()).toBe('450px');
-      scrollHeight.mockRestore();
     });
 
     it('never shrinks on expand when the initial rows exceed the expanded rows', async () => {

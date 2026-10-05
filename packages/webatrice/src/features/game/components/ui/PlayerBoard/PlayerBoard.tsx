@@ -52,7 +52,7 @@ function PlayerBoard(props: PlayerSeatProps) {
         ref={boxRef}
         onPointerDown={onPointerDownBox}
         className={[
-          'h-full min-h-0 rounded-lg border overflow-hidden bg-bg-surface/60 backdrop-blur-sm transition-shadow select-none',
+          'h-full min-h-0 rounded-lg border overflow-hidden bg-bg-surface/60 backdrop-blur-sm board-motion transition-shadow select-none',
           isActive ? 'border-accent' : 'border-border-subtle',
         ].join(' ')}
         style={{

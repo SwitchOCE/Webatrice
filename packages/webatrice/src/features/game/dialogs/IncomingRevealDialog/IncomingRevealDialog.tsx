@@ -807,7 +807,7 @@ export default function IncomingRevealDialog() {
                   cards stay flat until everything's in. */}
               {!metadataLoaded && (
                 <span className="inline-flex items-center gap-1 text-text-muted italic">
-                  <Loader2 size={12} className="animate-spin" />
+                  <Loader2 size={12} className="board-motion animate-spin" />
                   loading card details…
                 </span>
               )}
@@ -995,7 +995,7 @@ export default function IncomingRevealDialog() {
                             <div
                               className={[
                                 'absolute left-0 top-0 pointer-events-none',
-                                'transition-transform duration-150 ease-out group-hover:scale-[1.06]',
+                                'board-motion transition-transform duration-150 ease-out group-hover:scale-[var(--card-hover-scale,1.1)]',
                               ].join(' ')}
                               style={{
                                 width: CARD_WIDTH,
@@ -1040,7 +1040,7 @@ export default function IncomingRevealDialog() {
             onClick={close}
             className={[
               'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent',
-              'text-white hover:bg-accent-hover shadow-glow transition-colors',
+              'text-white hover:bg-accent-hover shadow-glow board-motion transition-colors',
             ].join(' ')}
           >
             Close
