@@ -260,8 +260,8 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.backendDecks({ deckList }));
   }
 
-  uploadServerDeck(path: string, treeItem: ServerInfo_DeckStorage_TreeItem): void {
-    this.store.dispatch(ServerActions.deckUpload({ path, treeItem }));
+  uploadServerDeck(path: string, treeItem: ServerInfo_DeckStorage_TreeItem, requestId?: string): void {
+    this.store.dispatch(ServerActions.deckUpload({ path, treeItem, requestId }));
   }
 
   updateServerDeck(deckId: number, treeItem: ServerInfo_DeckStorage_TreeItem | undefined): void {
@@ -312,8 +312,8 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.deckDownloadFailed({ deckId, responseCode, failure }));
   }
 
-  deckUploadFailed(path: string, responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
-    this.store.dispatch(ServerActions.deckUploadFailed({ path, responseCode, failure }));
+  deckUploadFailed(path: string, responseCode: number, failure?: WebsocketTypes.CommandFailure, requestId?: string): void {
+    this.store.dispatch(ServerActions.deckUploadFailed({ path, responseCode, failure, requestId }));
   }
 
   replayListFailed(responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
