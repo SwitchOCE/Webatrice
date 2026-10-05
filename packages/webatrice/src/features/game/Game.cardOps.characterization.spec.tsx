@@ -100,12 +100,15 @@ type GameRequests = ReturnType<typeof createMockWebClient>['request']['game'];
 function wire(game: GameRequests) {
   return Object.entries(game).flatMap(([method, fn]) =>
     vi.isMockFunction(fn)
-      ? fn.mock.calls.map(([, params, ...rest]) => {
+      ? fn.mock.calls.map(([, params, ...rest], index) => {
         const extra = rest.filter((arg) => arg !== undefined);
-        return extra.length ? [method, params, ...extra.map((arg) => (typeof arg === 'object' ? 'options' : arg))] : [method, params];
+        return {
+          order: fn.mock.invocationCallOrder[index],
+          call: extra.length ? [method, params, ...extra.map((arg) => (typeof arg === 'object' ? 'options' : arg))] : [method, params],
+        };
       })
       : [],
-  );
+  ).sort((a, b) => a.order - b.order).map(({ call }) => call);
 }
 
 function click(el: Element, init: { ctrlKey?: boolean } = {}) {
@@ -170,7 +173,10 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     'game.viewTopCards': { dialogs: ['View top cards of library'] },
     'game.viewBottomCards': { dialogs: ['View bottom cards of library'] },
     'game.createToken': { dialogs: ['Create token'] },
-    'game.createAnotherToken': {},
+    'game.createAnotherToken': { wire: [['createToken', {
+      zone: ZoneName.TABLE, cardName: 'Goblin', cardProviderId: '', color: 'w', pt: '1/1',
+      annotation: 'ETB', destroyOnZoneChange: true, faceDown: false, x: -1, y: 1,
+    }]] },
     'game.drawArrow': {},
     'game.resetPT': { wire: [setPT(10, '')] },
     'game.reduceLifeByPower': { wire: [['incCounter', { counterId: LIFE_COUNTER_ID, delta: -3 }, 'options']] },
@@ -209,7 +215,7 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     'game.removeCounterB': { wire: [['bulkSetCardCounterEntries', counters([10, 1, 0])]] },
     'game.setCounterB': { dialogs: ['Set counter B'] },
     'game.addCounterC': { wire: [['bulkSetCardCounterEntries', counters([10, 2, 1], [11, 2, 1])]] },
-    'game.removeCounterC': {},
+    'game.removeCounterC': { wire: [['bulkSetCardCounterEntries', counters([10, 2, 2])]] },
     'game.setCounterC': { dialogs: ['Set counter C'] },
     'game.incrementAllCardCounters': { wire: [['bulkSetCardCounterEntries', counters([10, 0, 3], [10, 1, 2])]] },
     'game.setAnnotation': { dialogs: ['Set annotation'] },
@@ -223,11 +229,28 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     'game.revealSelectedToAll': {},
   };
 
-  it.each(SEAT_SHORTCUT_ACTIONS.map((id) => [id]))('%s', (id) => {
-    const { game } = renderGame();
+  it.each(SEAT_SHORTCUT_ACTIONS.map((id) => [id]))('%s', async (id) => {
+    const ogreWithC = makeCard({ ...OGRE, counterList: [{ ...OGRE.counterList[0], id: 2, value: 3 }] });
+    const spec = id === 'game.removeCounterC'
+      ? { ...SPEC, seats: [{ ...SPEC.seats[0], table: [ogreWithC, MORPH, WALL] }, SPEC.seats[1]] }
+      : SPEC;
+    const { game } = renderGame(spec);
     selectOgreAndMorph();
+    if (id === 'game.createAnotherToken') {
+      runShortcut('game.createToken');
+      fireEvent.change(screen.getByLabelText('Token name'), { target: { value: 'Goblin' } });
+      fireEvent.change(screen.getByLabelText('Token power/toughness'), { target: { value: '1/1' } });
+      fireEvent.change(screen.getByLabelText('Token annotation'), { target: { value: 'ETB' } });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /^create$/i }));
+      });
+      expect(game.createToken).toHaveBeenCalledTimes(1);
+      vi.clearAllMocks();
+    }
 
-    expect(runShortcut(id)).toBe(true);
+    await act(async () => {
+      expect(runShortcut(id)).toBe(true);
+    });
 
     const expected = EXPECTED[id];
     expect({
@@ -461,7 +484,10 @@ describe('arrows and attachments', () => {
       act(() => {
         fireEvent.click(cardEl(BEAR.id, 'battlefield'));
       });
-      await vi.waitFor(() => expect(game.createArrow).toHaveBeenCalled());
+      await vi.waitFor(() => {
+        expect(game.moveCard).toHaveBeenCalled();
+        expect(game.createArrow).toHaveBeenCalled();
+      });
       expect(wire(game)).toEqual([
         ['moveCard', {
           startPlayerId: 1,
@@ -482,12 +508,15 @@ describe('arrows and attachments', () => {
     it('holds one pick for the whole game: a pick from another seat replaces it', () => {
       const { game } = renderGame();
       openContextMenu(cardEl(OGRE.id, 'battlefield'));
-      chooseMenuPath('Draw arrow...');
+      // An attach stays pending while the other seat's menu opens; an arrow
+      // would be cancelled by the menu click before replacement was tested.
+      chooseMenuPath('Attach to card...');
       openContextMenu(cardEl(BEAR.id, 'battlefield'));
       chooseMenuPath('Draw arrow...');
       act(() => {
         fireEvent.click(cardEl(WALL.id, 'battlefield'));
       });
+      click(cardEl(WALL.id, 'battlefield'));
       expect(wire(game)).toEqual([['createArrow', {
         startPlayerId: 2, startZone: ZoneName.TABLE, startCardId: 20,
         targetPlayerId: 1, targetZone: ZoneName.TABLE, targetCardId: 12, arrowColor: ArrowColor.RED,
@@ -528,7 +557,10 @@ describe('arrows and attachments', () => {
       act(() => {
         fireEvent.click(cardEl(BEAR.id, 'battlefield'));
       });
-      await vi.waitFor(() => expect(game.createArrow).toHaveBeenCalled());
+      await vi.waitFor(() => {
+        expect(game.moveCard).toHaveBeenCalled();
+        expect(game.createArrow).toHaveBeenCalled();
+      });
       expect(wire(game)).toEqual([
         ['moveCard', {
           startPlayerId: 1,
@@ -684,7 +716,10 @@ describe('arrows and attachments', () => {
     it('plays a hand card dragged out of the hand, then draws the arrow from where it landed', async () => {
       const { game } = renderGame();
       rightDrag(cardEl(SHOCK.id, 'hand'), cardEl(BEAR.id, 'battlefield'));
-      await vi.waitFor(() => expect(game.createArrow).toHaveBeenCalled());
+      await vi.waitFor(() => {
+        expect(game.moveCard).toHaveBeenCalled();
+        expect(game.createArrow).toHaveBeenCalled();
+      });
       expect(wire(game)).toEqual([
         ['moveCard', expect.objectContaining({ startZone: ZoneName.HAND, targetZone: ZoneName.STACK })],
         arrowTo(30, { targetPlayerId: 2, targetZone: ZoneName.TABLE, targetCardId: 20 }, ZoneName.STACK),
