@@ -705,7 +705,7 @@ export default function IncomingRevealDialog() {
       'aria-pressed': selectedIds.has(id),
       onClick: (e) => select(e.ctrlKey || e.metaKey),
       onKeyDown: (e) => {
-        if (e.key === ' ' || e.key === 'Enter') {
+        if ((e.key === ' ' || e.key === 'Enter') && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey) {
           e.preventDefault();
           select(true);
         }
