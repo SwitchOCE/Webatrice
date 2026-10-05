@@ -29,11 +29,15 @@ const WEB_CLIENT_IMPORT = {
   allowTypeImports: true,
 };
 
-const MUI_ROOT_IMPORT = {
+const MUI_ROOT_IMPORTS = [{
   name: '@mui/material',
   message: 'Import each component from its own path (`@mui/material/Button`); the root loads all of MUI into every spec.',
   allowTypeImports: true,
-};
+}, {
+  name: '@mui/icons-material',
+  message: 'Import each icon from its own path (`@mui/icons-material/Close`); the root loads all icons into every spec.',
+  allowTypeImports: true,
+}];
 
 const SCRYFALL_CLIENT_IMPORT = {
   group: ['**/scryfall/client'],
@@ -77,20 +81,20 @@ export default tseslint.config(
   // batch their own collection requests (pricing, bracket sources) may use
   // the raw Scryfall client in services/scryfall/client.ts.
   //
-  // The `@mui/material` root is restricted for load cost: each unit test
+  // The MUI package roots are restricted for load cost: each unit test
   // file gets a fresh module graph, so one root import anywhere under a
   // barrel loads all of MUI in every spec that reaches that barrel.
   {
     rules: {
       '@typescript-eslint/no-restricted-imports': ['error', {
-        paths: [WEB_CLIENT_IMPORT, MUI_ROOT_IMPORT],
+        paths: [WEB_CLIENT_IMPORT, ...MUI_ROOT_IMPORTS],
         patterns: [SCRYFALL_CLIENT_IMPORT],
       }],
     },
   },
   {
     files: ['src/services/cards/catalog/**', 'src/features/decks/pricing.ts', 'src/features/decks/bracketSources.ts'],
-    rules: { '@typescript-eslint/no-restricted-imports': ['error', { paths: [WEB_CLIENT_IMPORT, MUI_ROOT_IMPORT] }] },
+    rules: { '@typescript-eslint/no-restricted-imports': ['error', { paths: [WEB_CLIENT_IMPORT, ...MUI_ROOT_IMPORTS] }] },
   },
   { files: ['integration/**'], rules: { '@typescript-eslint/no-restricted-imports': 'off' } },
   { rules: { 'no-restricted-syntax': ['error', ...webClientReexports] } },
