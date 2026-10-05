@@ -49,6 +49,7 @@ import incomingRevealTitles from '../features/game/dialogs/IncomingRevealDialog/
 import playerInfoLabels from '../features/game/components/right-sidebar/PlayerInfoPanel/PlayerInfoPanel.i18n.json';
 import moveTopUntilText from '../features/game/dialogs/MoveTopUntilDialog/MoveTopUntilDialog.i18n.json';
 import handZoneText from '../features/game/components/ui/HandZone/HandZone.i18n.json';
+import playerBoardLabels from '../features/game/components/ui/PlayerBoard/PlayerBoard.i18n.json';
 
 // The game's pending target pick, as Game provides it, for seats rendered
 // without Game.
@@ -124,7 +125,7 @@ function getDefaultWebClient(): WebClient {
 }
 
 // Every other key renders as itself. The zone views' and the reveal's titles, and the seats' life
-// totals, name the player through interpolation, and the specs tell them apart by player, so
+// totals and zones, name the player through interpolation, and the specs tell them apart by player, so
 // their English is loaded, formatted by ICU as in the app; so is the move-top-until dialog's, which
 // the game specs reach through the library menu by its English title, and the hand button's,
 // which they find by its English count title, as the e2e suite does.
@@ -133,7 +134,14 @@ testI18n.use(ICU).use(initReactI18next).init({
   lng: 'en-US',
   resources: {
     'en-US': {
-      translation: { ...zoneViewTitles, ...incomingRevealTitles, ...playerInfoLabels, ...moveTopUntilText, ...handZoneText },
+      translation: {
+        ...zoneViewTitles,
+        ...incomingRevealTitles,
+        ...playerInfoLabels,
+        ...playerBoardLabels,
+        ...moveTopUntilText,
+        ...handZoneText,
+      },
     },
   },
   fallbackLng: 'en-US',

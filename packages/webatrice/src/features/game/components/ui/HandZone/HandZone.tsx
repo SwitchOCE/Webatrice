@@ -66,6 +66,7 @@ export default function HandZone() {
     isDragging,
     isSelf,
     menuOwnerId,
+    name,
     onCardDoubleClick,
     openSeatCardMenu,
     playerId,
@@ -81,6 +82,7 @@ export default function HandZone() {
   const openHandMenuBelow = (button: HTMLElement) =>
     setHandMenuAnchor({ rect: button.getBoundingClientRect(), placement: 'below' });
   const handButtonLabel = t('HandZone.button', { count: handSize });
+  const handLabel = t('PlayerBoard.hand', { name, count: handSize });
   // Desktop's "Enable left justification": the row starts at the left (past
   // the count badge) instead of centring.
   const leftJustified = usePreference('leftJustifiedHand');
@@ -288,6 +290,7 @@ export default function HandZone() {
         pileOptions={handPileOptions}
         zoneRef={handZoneRef}
         testId={`hand-zone-${playerId}`}
+        label={handLabel}
       />
     );
   }
@@ -330,6 +333,8 @@ export default function HandZone() {
       <motion.div
         ref={handZoneRef}
         data-testid={`hand-zone-${playerId}`}
+        role="group"
+        aria-label={handLabel}
         // `overflow-y-hidden` set explicitly alongside overflow-x-auto
         // to short-circuit the CSS spec's promotion of the other
         // axis to `auto` — that's what was spawning a phantom
@@ -412,6 +417,8 @@ interface VerticalHandProps {
   pileOptions: VerticalPileOptions;
   zoneRef: React.Ref<HTMLDivElement>;
   testId: string;
+  /** The zone's name for assistive technology: whose hand, and how many cards. */
+  label: string;
 }
 
 /**
@@ -431,6 +438,7 @@ function VerticalHand({
   pileOptions,
   zoneRef,
   testId,
+  label,
 }: VerticalHandProps) {
   const sizeRef = useRef<HTMLDivElement>(null);
   const ref = useForkRef(zoneRef, sizeRef);
@@ -457,7 +465,7 @@ function VerticalHand({
       <ZoneBackground zone="hand" />
       {badge}
       {/* The cards start under the count badge. */}
-      <div ref={ref} data-testid={testId} className="absolute inset-x-0 bottom-0 top-16">
+      <div ref={ref} data-testid={testId} role="group" aria-label={label} className="absolute inset-x-0 bottom-0 top-16">
         {positions.map((pos, i) => {
           const key = cardKey(i);
           return (

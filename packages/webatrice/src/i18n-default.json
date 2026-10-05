@@ -1483,6 +1483,10 @@
       "refresh": "Refresh server stats"
     }
   },
+  "BattlefieldSidebar": {
+    "label": "Game sidebar",
+    "players": "Players"
+  },
   "GameErrorBoundary": {
     "title": "The game board hit an unexpected error",
     "message": "You are still in the game. Reload the board to pick up where you left off.",
@@ -1654,6 +1658,12 @@
   "HandZone": {
     "button": "Hand — {count, plural, one {# card} other {# cards}}",
     "menu": "Hand"
+  },
+  "PlayerBoard": {
+    "seat": "{name}'s seat",
+    "battlefield": "{name}'s battlefield, {count, plural, one {# card} other {# cards}}",
+    "stack": "{name}'s stack, {count, plural, one {# card} other {# cards}}",
+    "hand": "{name}'s hand, {count, plural, one {# card} other {# cards}}"
   },
   "GameInfoDialog": {
     "title": "Game info",
