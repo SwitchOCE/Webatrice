@@ -7,11 +7,15 @@ import {
 } from '@reduxjs/toolkit';
 
 import { freezeMessagesMiddleware } from './freezeMessagesMiddleware';
+import { sanitizeDiagnostics } from './sanitizeDiagnostics';
 import { listenerMiddleware } from './listenerMiddleware';
 import { rootReducer, type RootState } from './rootReducer';
 import { registerServerListeners } from './server/server.listeners';
 import { registerGameListeners } from './games/game.listeners';
 import { registerRoomsListeners } from './rooms/rooms.listeners';
+
+// App bundlers replace this expression, as with freezeMessagesMiddleware.
+declare const process: { env: { NODE_ENV?: string } };
 
 // Shared with the renderWithProviders-style test harness so test stores behave
 // like the production store. Both dev-only invariant checks are OFF because
@@ -56,6 +60,10 @@ export function createStore<S = RootState>(
   } = options;
 
   return configureStore({
+    devTools: process.env.NODE_ENV === 'production' ? false : {
+      actionSanitizer: sanitizeDiagnostics,
+      stateSanitizer: sanitizeDiagnostics,
+    },
     reducer,
     preloadedState: preloadedState as Parameters<typeof configureStore>[0]['preloadedState'],
     middleware: (getDefaultMiddleware) => getDefaultMiddleware(storeMiddlewareOptions)
