@@ -1918,6 +1918,25 @@
       "refresh": "Refresh server stats"
     }
   },
+  "Game": {
+    "empty": "No active game. Join a game from a room to see the board.",
+    "confirm": {
+      "concede": {
+        "message": "Are you sure you want to concede this game?"
+      },
+      "unconcede": {
+        "title": "Unconcede",
+        "message": "You have already conceded.  Do you want to return to this game?"
+      },
+      "leave": {
+        "message": "Are you sure you want to leave this game?"
+      }
+    },
+    "toast": {
+      "kicked": "You were kicked from the game",
+      "closed": "The game was closed by the host"
+    }
+  },
   "GameErrorBoundary": {
     "title": "The game board hit an unexpected error",
     "message": "You are still in the game. Reload the board to pick up where you left off.",
@@ -1970,6 +1989,13 @@
     "rejoin": "Rejoin",
     "sideboardTitle": "Open sideboard",
     "sideboard": "Sideboard"
+  },
+  "CardPreviewPopup": {
+    "title": "Card Preview",
+    "receiving": "Receiving updates from the main window.",
+    "reconnectingDescription": "Waiting for the main window to reconnect…",
+    "live": "● Live",
+    "reconnecting": "○ Reconnecting…"
   },
   "ChatLog": {
     "heading": "Chat & log",
@@ -2344,6 +2370,10 @@
       "log": "end step",
       "title": "End step / cleanup"
     }
+  },
+  "SidebarResizer": {
+    "label": "Resize sidebar",
+    "title": "Drag to resize the sidebar (Arrow keys for keyboard)"
   },
   "TallyOverlay": {
     "tally": "Tally",

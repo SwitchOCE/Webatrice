@@ -2,7 +2,12 @@ import { act, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { ZoneName } from '@cockatrice/sockatrice';
 
+import editTokens from '../../../../../feature-widgets/card-import/EditTokens.i18n.json';
+import { catalogT } from '../../../__test-utils__/catalogT';
+import menus from '../../context-menus/menus.i18n.json';
+import moveTopUntil from '../../../dialogs/MoveTopUntilDialog/MoveTopUntilDialog.i18n.json';
 import { NOOP_GAME_DIALOGS_ACTIONS, type GameDialogs, type PromptState } from '../../../hooks/dialogs/gameDialogs.types';
+import gamePrompt from '../../../hooks/dialogs/GamePrompt.i18n.json';
 import { GameDialogsProvider } from '../GameDialogsContext';
 import type {
   BattlefieldCardViewModel,
@@ -12,6 +17,10 @@ import type {
 } from './playerBoard.types';
 import { useSeatPrompts, type LifeControl, type UseSeatPromptsArgs } from './useSeatPrompts';
 import type { SeatCardMeta } from './useSeatCardMetadata';
+
+const t = catalogT(gamePrompt, editTokens, menus, moveTopUntil);
+
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t }) }));
 
 const bf = (id: number, name: string, pt?: string): BattlefieldCardViewModel => ({
   id: String(id),
@@ -94,7 +103,7 @@ describe('useSeatPrompts', () => {
   it('sets a player counter to a non-negative value', () => {
     const { result, counterCommands, answer } = setup();
     result.current.openCounterPrompt({ counterId: 7, label: 'Other', currentValue: 2 });
-    expect(answer('-4').title).toBe('GamePrompt.playerCounter.title');
+    expect(answer('-4').title).toBe('Set other counter');
     expect(counterCommands.set).toHaveBeenCalledWith(7, 0);
   });
 
@@ -120,7 +129,7 @@ describe('useSeatPrompts', () => {
   it('sets a card counter on every target in one batch', () => {
     const { result, counterCommands, answer } = setup();
     result.current.openCardCounterPrompt({ targetIds: [10, 11], cardName: 'Bear', counterId: 1, currentValue: 3 });
-    expect(answer('5').title).toBe('GamePrompt.counter.title');
+    expect(answer('5').title).toBe('Set counter B');
     expect(counterCommands.setCardCounters).toHaveBeenCalledExactlyOnceWith([
       { cardId: 10, counterId: 1, value: 5 },
       { cardId: 11, counterId: 1, value: 5 },
@@ -135,7 +144,7 @@ describe('useSeatPrompts', () => {
     expect(draw).toHaveBeenCalledWith(2);
 
     result.current.openViewLibraryCountPrompt({ isReversed: true, deckSize: 10 });
-    expect(answer('3').title).toBe('GamePrompt.view.bottomLibrary');
+    expect(answer('3').title).toBe('View bottom cards of library');
     expect(dialogs.openZoneView).toHaveBeenCalledWith({ playerId: 1, zoneName: ZoneName.DECK, numberCards: 3, isReversed: true });
 
     result.current.openRevealTopCardsPrompt({ targetPlayerId: -1, targetName: 'all players', deckSize: 10 });

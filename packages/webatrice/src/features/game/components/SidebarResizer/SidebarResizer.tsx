@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { SIDEBAR_WIDTH_MAX, SIDEBAR_WIDTH_MIN } from '../../hooks/useSidebarWidth';
 
@@ -21,6 +22,7 @@ interface SidebarResizerProps {
  * a fixed slot for the handle right before the sidebar column.
  */
 export default function SidebarResizer({ width, onResize }: SidebarResizerProps) {
+  const { t } = useTranslation();
   const [dragging, setDragging] = useState(false);
   const dragStateRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
@@ -99,7 +101,7 @@ export default function SidebarResizer({ width, onResize }: SidebarResizerProps)
     <div
       role="separator"
       aria-orientation="vertical"
-      aria-label="Resize sidebar"
+      aria-label={t('SidebarResizer.label')}
       aria-valuenow={width}
       aria-valuemin={SIDEBAR_WIDTH_MIN}
       aria-valuemax={SIDEBAR_WIDTH_MAX}
@@ -115,7 +117,7 @@ export default function SidebarResizer({ width, onResize }: SidebarResizerProps)
         'hover:bg-accent/20 focus:outline-none focus:bg-accent/30',
         dragging ? 'bg-accent/30' : '',
       ].join(' ')}
-      title="Drag to resize the sidebar (Arrow keys for keyboard)"
+      title={t('SidebarResizer.title')}
     >
       {/* Thin visual affordance — a 1-px column that lights up on hover.
        *  Kept subtle so the resizer doesn't compete with sidebar content. */}

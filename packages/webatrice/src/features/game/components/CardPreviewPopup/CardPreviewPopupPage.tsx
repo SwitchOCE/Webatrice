@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft } from 'lucide-react';
 
 import { ScryfallImageSize } from '@cockatrice/datatrice';
@@ -41,6 +42,7 @@ const HEARTBEAT_TIMEOUT_MS = 5_000;
  *     re-opens the main window, the next broadcast pulls us back.
  */
 export default function CardPreviewPopupPage() {
+  const { t } = useTranslation();
   const [card, setCard] = useState<PreviewCard | null>(null);
   const [mode, setMode] = useState<PreviewMode>('image');
   const [detail, setDetail] = useState<CardPreviewDetail | null>(null);
@@ -120,7 +122,7 @@ export default function CardPreviewPopupPage() {
        *  webatrice preview vs. any other tab/window the user opens. */}
       <div className="shrink-0 px-3 py-1.5 flex items-center justify-between border-b border-border-subtle bg-bg-surface">
         <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
-          Card Preview
+          {t('CardPreviewPopup.title')}
         </span>
         <span
           className={[
@@ -128,10 +130,10 @@ export default function CardPreviewPopupPage() {
             connected ? 'text-success' : 'text-warning',
           ].join(' ')}
           title={connected
-            ? 'Receiving updates from the main window.'
-            : 'Waiting for the main window to reconnect…'}
+            ? t('CardPreviewPopup.receiving')
+            : t('CardPreviewPopup.reconnectingDescription')}
         >
-          {connected ? '● Live' : '○ Reconnecting…'}
+          {connected ? t('CardPreviewPopup.live') : t('CardPreviewPopup.reconnecting')}
         </span>
       </div>
 
@@ -197,8 +199,8 @@ export default function CardPreviewPopupPage() {
                 style={{ aspectRatio: '5 / 7' }}
               >
                 {connected
-                  ? 'Hover a card in the main window to preview it here'
-                  : 'Waiting for the main window to reconnect…'}
+                  ? t('BattlefieldSidebar.hoverToPreview')
+                  : t('CardPreviewPopup.reconnectingDescription')}
               </div>
             )}
           </div>
@@ -230,11 +232,11 @@ export default function CardPreviewPopupPage() {
                     'text-xs font-medium text-text-secondary',
                     'hover:text-text-primary board-motion transition-colors',
                   ].join(' ')}
-                  title={`Back to ${previousName}`}
+                  title={t('BattlefieldSidebar.backTo', { name: previousName })}
                 >
                   <ChevronLeft size={14} />
                   <span className="truncate max-w-[20rem]">
-                    Back to {previousName}
+                    {t('BattlefieldSidebar.backTo', { name: previousName })}
                   </span>
                 </button>
               )}
@@ -281,7 +283,7 @@ export default function CardPreviewPopupPage() {
                 </div>
               )}
               {fetchState === 'loading' && (
-                <div className="text-text-muted italic">Loading…</div>
+                <div className="text-text-muted italic">{t('BattlefieldSidebar.loading')}</div>
               )}
               {detail && (
                 // Related-card links (DFC faces, tokens, meld/combo
@@ -315,8 +317,8 @@ export default function CardPreviewPopupPage() {
                 ].join(' ')}
               >
                 {connected
-                  ? 'Hover a card in the main window to preview it here'
-                  : 'Waiting for the main window to reconnect…'}
+                  ? t('BattlefieldSidebar.hoverToPreview')
+                  : t('CardPreviewPopup.reconnectingDescription')}
               </div>
             )
           )

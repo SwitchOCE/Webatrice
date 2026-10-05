@@ -23,6 +23,10 @@ import PlayerListContextMenu, {
 } from './PlayerListContextMenu';
 import { UserDetailsModal } from './PlayerListDialogs';
 
+function menuAnchorBelow(button: HTMLElement): MenuAnchor {
+  return { rect: button.getBoundingClientRect(), placement: 'below', align: 'end' };
+}
+
 /**
  * Right-rail player list — one row per seat.
  *
@@ -197,7 +201,7 @@ function PlayerList() {
             });
           };
           const openBelow = (button: HTMLElement) =>
-            openMenu({ rect: button.getBoundingClientRect(), placement: 'below', align: 'end' }, button);
+            openMenu(menuAnchorBelow(button), button);
           return (
             <li
               key={pid}

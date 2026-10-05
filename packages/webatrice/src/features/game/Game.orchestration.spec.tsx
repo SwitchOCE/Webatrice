@@ -68,7 +68,7 @@ describe('Game orchestration', () => {
 
     openContextMenu(battlefieldEl(1));
     chooseMenuPath('Roll die...');
-    const dialog = screen.getByRole('dialog', { name: /roll dice/i });
+    const dialog = screen.getByRole('dialog', { name: 'Roll Dice' });
     fireEvent.change(within(dialog).getByLabelText('Number of sides'), { target: { value: '20' } });
     fireEvent.change(within(dialog).getByLabelText('Number of dice'), { target: { value: '2' } });
     fireEvent.click(within(dialog).getByRole('button', { name: /^roll$/i }));
@@ -158,7 +158,7 @@ describe('Game orchestration', () => {
     const game = renderGame();
 
     fireEvent.click(screen.getByTitle('Concede this game'));
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Concede' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'GameLink.yes' }));
 
     expect(game.concede).toHaveBeenCalledWith(1);
   });
