@@ -96,16 +96,16 @@ describe('PlayerBoard characterization — seats and hidden zones', () => {
   it('renders library counts from cardCount, never from the (empty) hidden order', () => {
     renderSeats();
 
-    expect(pileEl('Library', 0)).toHaveAttribute('title', 'Library — 40');
-    expect(pileEl('Library', 1)).toHaveAttribute('title', 'Library — 33');
+    expect(pileEl('Library', 0)).toHaveAttribute('title', 'Library, 40 cards');
+    expect(pileEl('Library', 1)).toHaveAttribute('title', 'Library, 33 cards');
   });
 
   it('renders public piles with their top card and every battlefield with owner and mirroring', () => {
     renderSeats();
 
-    expect(pileEl('Graveyard', 0)).toHaveAttribute('title', 'Graveyard — 1 (top: Duress)');
-    expect(pileEl('Graveyard', 1)).toHaveAttribute('title', 'Graveyard — 1 (top: Thoughtseize)');
-    expect(pileEl('Exile', 0)).toHaveAttribute('title', 'Exile — 0');
+    expect(pileEl('Graveyard', 0)).toHaveAttribute('title', 'Graveyard, 1 card, top: Duress');
+    expect(pileEl('Graveyard', 1)).toHaveAttribute('title', 'Graveyard, 1 card, top: Thoughtseize');
+    expect(pileEl('Exile', 0)).toHaveAttribute('title', 'Exile, 0 cards');
 
     expect(battlefieldEl(1)).toHaveAttribute('data-battlefield-mirrored', 'false');
     expect(battlefieldEl(2)).toHaveAttribute('data-battlefield-mirrored', 'true');
@@ -645,7 +645,7 @@ describe('PlayerBoard characterization — drag and drop destinations', () => {
       isReversed: false,
     });
 
-    const dialog = screen.getByText('ZoneLabel.title.sb — P1').closest<HTMLElement>('.pointer-events-auto.resize');
+    const dialog = screen.getByText('Sideboard — P1').closest<HTMLElement>('.pointer-events-auto.resize');
     expect(dialog).not.toBeNull();
     const ownBf = battlefieldEl(1);
     layoutBoxes([

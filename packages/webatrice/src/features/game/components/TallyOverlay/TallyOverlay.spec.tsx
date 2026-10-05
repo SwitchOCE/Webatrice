@@ -22,16 +22,21 @@ vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>();
   return {
     ...actual,
-    useTranslation: () => ({
-      t: (key: string, options?: { count?: number }) => {
-        if (key === 'TallyOverlay.selectedCount') {
-          return options?.count === 1
-            ? '1 card selected'
-            : `${options?.count ?? 0} cards selected`;
-        }
-        return key;
-      },
-    }),
+    // The selection count is spelled out; everything else answers as the test i18n does.
+    useTranslation: () => {
+      const real = actual.useTranslation();
+      return {
+        ...real,
+        t: ((key: string, options?: { count?: number }) => {
+          if (key === 'TallyOverlay.selectedCount') {
+            return options?.count === 1
+              ? '1 card selected'
+              : `${options?.count ?? 0} cards selected`;
+          }
+          return real.t(key, options);
+        }) as typeof real.t,
+      };
+    },
   };
 });
 
@@ -64,7 +69,7 @@ function renderGame() {
 }
 
 function tally() {
-  return screen.queryByRole('status', { name: 'TallyOverlay.tally' });
+  return screen.queryByRole('status', { name: 'Tally' });
 }
 
 function selectCard(cardId: number, ctrlKey = false) {

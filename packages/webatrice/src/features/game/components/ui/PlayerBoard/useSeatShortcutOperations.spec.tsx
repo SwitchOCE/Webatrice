@@ -379,8 +379,8 @@ describe('useSeatShortcutOperations', () => {
     run('game.moveBottomNToExileFaceDown');
     run('game.shuffleTopCards');
     expect(props.openCountPrompt.mock.calls.map(([p]) => [p.title, p.submitLabel])).toEqual([
-      ['Move bottom cards to exile face down', 'Move'],
-      ['Shuffle top cards', 'Shuffle'],
+      ['ZoneMenu.promptMoveBottom', 'ZoneMenu.actionMove'],
+      ['ZoneMenu.promptShuffleTop', 'ZoneMenu.actionShuffle'],
     ]);
 
     const empty = setup({ deckCount: 0 });
@@ -401,8 +401,8 @@ describe('useSeatShortcutOperations', () => {
     run('game.setManaCounterW');
     run('game.setManaCounterX');
     expect(vi.mocked(props.openCounterPrompt).mock.calls).toEqual([
-      [{ counterId: 2, label: 'White', currentValue: 4 }],
-      [{ counterId: 6, label: 'Colorless', currentValue: 0 }],
+      [{ counterId: 2, label: 'GameLog.counter.white', currentValue: 4 }],
+      [{ counterId: 6, label: 'GameLog.counter.colorless', currentValue: 0 }],
     ]);
   });
 

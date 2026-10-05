@@ -1,3 +1,8 @@
+import { catalogT } from '../__test-utils__/catalogT';
+import menuText from '../components/context-menus/menus.i18n.json';
+
+const t = catalogT(menuText);
+
 import { computeTally, type TallyCard } from './tally';
 
 const card = (name: string, pt = '', faceDown = false): TallyCard => ({ name, pt, faceDown });
@@ -12,7 +17,7 @@ const typeLineOf = (name: string) => TYPES[name];
 
 describe('computeTally', () => {
   it('counts subtypes across faces, skipping face-down cards, by count then name', () => {
-    expect(computeTally(
+    expect(computeTally(t,
       [card('Goblin Guide'), card('Krenko'), card('Delver'), card('Bolt'), card('Krenko', '', true)],
       'subtypes',
       typeLineOf,
@@ -35,17 +40,17 @@ describe('computeTally', () => {
     ['1+*/2', '4', 'power', '4'],
     ['1+*/2', '4', 'toughness', '2'],
   ])('sums %s and %s as %s %s', (a, b, type, value) => {
-    const rows = computeTally([card('A', a), card('B', b)], type as 'power' | 'toughness', typeLineOf);
+    const rows = computeTally(t, [card('A', a), card('B', b)], type as 'power' | 'toughness', typeLineOf);
     expect(rows.map((r) => r.value)).toEqual([value]);
   });
 
   it('labels the totals', () => {
-    expect(computeTally([card('A', '1/1')], 'power', typeLineOf)).toEqual([{ name: 'Total Power', value: '1' }]);
-    expect(computeTally([card('A', '1/1')], 'toughness', typeLineOf)).toEqual([{ name: 'Total Toughness', value: '1' }]);
+    expect(computeTally(t, [card('A', '1/1')], 'power', typeLineOf)).toEqual([{ name: 'Total Power', value: '1' }]);
+    expect(computeTally(t, [card('A', '1/1')], 'toughness', typeLineOf)).toEqual([{ name: 'Total Toughness', value: '1' }]);
   });
 
   it('has no rows when no card has a P/T, or for None', () => {
-    expect(computeTally([card('Bolt'), card('Krenko')], 'power', typeLineOf)).toEqual([]);
-    expect(computeTally([card('A', '1/1')], 'none', typeLineOf)).toEqual([]);
+    expect(computeTally(t, [card('Bolt'), card('Krenko')], 'power', typeLineOf)).toEqual([]);
+    expect(computeTally(t, [card('A', '1/1')], 'none', typeLineOf)).toEqual([]);
   });
 });

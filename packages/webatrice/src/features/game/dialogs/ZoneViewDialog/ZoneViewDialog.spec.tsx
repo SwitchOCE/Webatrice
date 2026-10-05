@@ -68,7 +68,7 @@ function panel(title: RegExp): HTMLElement {
 
 // The test i18n has no catalogue, so a zone's name reads as its key; useZoneViewDialog.spec pins
 // the English titles.
-const GRAVE = /^ZoneLabel\.title\.grave/;
+const GRAVE = /^Graveyard/;
 
 function viewCards(el: HTMLElement): HTMLElement[] {
   return Array.from(el.querySelectorAll<HTMLElement>('[data-card][data-card-id]'));
@@ -83,7 +83,7 @@ describe('ZoneViewDialog', () => {
   it('lists a public zone under its owner\'s name', () => {
     renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT, DURESS], cardCount: 2 });
 
-    const view = panel(/^ZoneLabel\.title\.grave — Trajer/);
+    const view = panel(/^Graveyard — Trajer/);
     expect(viewCards(view).map((el) => el.dataset.cardId).sort()).toEqual(['7', '8']);
     expect(within(view).queryByRole('checkbox', { name: 'ZoneViewPanel.shuffleOnClose' })).not.toBeInTheDocument();
   });
@@ -261,8 +261,8 @@ describe('ZoneViewDialog', () => {
     renderView({ playerId: 1, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
     renderView({ playerId: 2, zoneName: ZoneName.GRAVE }, { name: ZoneName.GRAVE, cards: [OPT], cardCount: 1 });
 
-    expect(viewCards(panel(/^ZoneLabel\.title\.grave — Trajer/))[0]).toHaveStyle({ cursor: 'grab' });
-    expect(viewCards(panel(/^ZoneLabel\.title\.grave — Opp/))[0].style.cursor).toBe('');
+    expect(viewCards(panel(/^Graveyard — Trajer/))[0]).toHaveStyle({ cursor: 'grab' });
+    expect(viewCards(panel(/^Graveyard — Opp/))[0].style.cursor).toBe('');
   });
 
   it('opens the owning seat\'s card menu for a graveyard or exile card', () => {
@@ -296,7 +296,7 @@ describe('ZoneViewDialog', () => {
       { gameDialogs: { openSeatCardMenu } },
     );
 
-    fireEvent.contextMenu(viewCards(panel(/^ZoneLabel\.title\.hand/))[0]);
+    fireEvent.contextMenu(viewCards(panel(/^Hand/))[0]);
 
     expect(openSeatCardMenu).not.toHaveBeenCalled();
   });

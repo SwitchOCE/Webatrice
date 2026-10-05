@@ -3,6 +3,7 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 import { CardDTO, lookupCard } from '@app/services';
 
+import { testI18n } from '../../../../../__test-utils__/renderWithProviders';
 import { getSettings, settingsStore } from '../../../../../hooks/useSettings';
 import { renderSeatHook } from '../../../__test-utils__/seatFixtures';
 import { autoPlayCard, playCardViaTableRow } from '../../../hooks/playCard';
@@ -107,6 +108,7 @@ describe.each(cases)('placement: $typeLine, database row $tableRow', (fixture) =
   it('hand menu Play sends the resolved row through the seat commands', () => {
     const { result, meta, game } = setup();
     const menu = resolveHandOrZoneCardMenu({
+      t: testI18n.t,
       menu: { kind: 'hand', playerId: 1, cardId: '7', x: 0, y: 0 },
       ownerId: 1, menuShortcut: () => ({ shortcut: '', keyShortcuts: '' }), canModify: true,
       revealTargets: [], handCards: [view], libraryViewCards: [], sideboardCards: [],

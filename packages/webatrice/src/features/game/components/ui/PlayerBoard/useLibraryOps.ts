@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 
 import type { PlayerZoneCommands, SeatMoveCard, SeatMoveDestination } from './playerBoard.types';
@@ -30,27 +32,28 @@ export interface LibraryOps {
   promptShuffleBottomCards(): void;
 }
 
-const ZONE_WORDS: Partial<Record<ZoneNameValue, string>> = {
-  [ZoneName.GRAVE]: 'graveyard',
-  [ZoneName.EXILE]: 'exile',
-};
-
 /**
  * The count prompt's title and submit label for moving the top or bottom
- * cards of the library, the same from the library menu and the shortcuts:
- * "Draw bottom cards" / Draw into the hand, else "Move top cards to exile
- * face down" / Move.
+ * cards of the library, the same from the library menu and the shortcuts.
+ * Desktop titles it "Move top cards to <zone>" whether or not the cards go
+ * face down, and "Draw bottom cards" into the hand (player_dialogs.cpp:138,162,174).
  */
 export function libraryMovePrompt(
+  t: TFunction,
   end: 'top' | 'bottom',
   to: ZoneNameValue,
-  faceDown = false,
 ): { title: string; submitLabel: string } {
   if (to === ZoneName.HAND) {
-    return { title: `Draw ${end} cards`, submitLabel: 'Draw' };
+    return {
+      title: end === 'top' ? t('ZoneMenu.promptDrawTop') : t('ZoneMenu.promptDrawBottom'),
+      submitLabel: t('ZoneMenu.actionDraw'),
+    };
   }
-  const where = ZONE_WORDS[to] ?? to;
-  return { title: `Move ${end} cards to ${where}${faceDown ? ' face down' : ''}`, submitLabel: 'Move' };
+  const target = t(`ZoneLabel.title.${to}`);
+  return {
+    title: end === 'top' ? t('ZoneMenu.promptMoveTop', { target }) : t('ZoneMenu.promptMoveBottom', { target }),
+    submitLabel: t('ZoneMenu.actionMove'),
+  };
 }
 
 /**
@@ -59,6 +62,7 @@ export function libraryMovePrompt(
  * Each sends what desktop's PlayerActions handler sends (player_actions.cpp).
  */
 export function useLibraryOps({ deckCount, openCountPrompt, zoneCommands }: UseLibraryOpsArgs): LibraryOps {
+  const { t } = useTranslation();
   return useMemo(() => {
     const card = (id: number, faceDown?: boolean): SeatMoveCard => (faceDown ? { id, faceDown: true } : id);
     // A count prompt over the library, clamped to its size.
@@ -95,7 +99,7 @@ export function useLibraryOps({ deckCount, openCountPrompt, zoneCommands }: UseL
         }
       },
       // Iterates i in [N-1..0], moveTopCardsTo's order (player_actions.cpp:475).
-      promptMoveTopCards: (to, faceDown) => promptCount(libraryMovePrompt('top', to, faceDown), (count) => {
+      promptMoveTopCards: (to, faceDown) => promptCount(libraryMovePrompt(t, 'top', to), (count) => {
         const cards: SeatMoveCard[] = [];
         for (let i = count - 1; i >= 0; i--) {
           cards.push(card(i, faceDown));
@@ -104,7 +108,7 @@ export function useLibraryOps({ deckCount, openCountPrompt, zoneCommands }: UseL
       }),
       // Iterates i in [size-N..size-1], moveBottomCardsTo's order
       // (player_actions.cpp:673) and actDrawBottomCards' (:798).
-      promptMoveBottomCards: (to, faceDown) => promptCount(libraryMovePrompt('bottom', to, faceDown), (count, size) => {
+      promptMoveBottomCards: (to, faceDown) => promptCount(libraryMovePrompt(t, 'bottom', to), (count, size) => {
         const cards: SeatMoveCard[] = [];
         for (let i = size - count; i < size; i++) {
           cards.push(card(i, faceDown));
@@ -113,12 +117,16 @@ export function useLibraryOps({ deckCount, openCountPrompt, zoneCommands }: UseL
       }),
       // Command_Shuffle's range is inclusive: [0, N-1] shuffles positions
       // 0..N-1 (player_actions.cpp:267-268).
-      promptShuffleTopCards: () => promptCount({ title: 'Shuffle top cards', submitLabel: 'Shuffle' }, (count) =>
-        zoneCommands.shuffleLibrary({ start: 0, end: count - 1 })),
+      promptShuffleTopCards: () => promptCount(
+        { title: t('ZoneMenu.promptShuffleTop'), submitLabel: t('ZoneMenu.actionShuffle') },
+        (count) => zoneCommands.shuffleLibrary({ start: 0, end: count - 1 }),
+      ),
       // `[-N, -1]`: negative positions count from the bottom (desktop always
       // sends negative for the bottom, player_actions.cpp:298-299).
-      promptShuffleBottomCards: () => promptCount({ title: 'Shuffle bottom cards', submitLabel: 'Shuffle' }, (count) =>
-        zoneCommands.shuffleLibrary({ start: -count, end: -1 })),
+      promptShuffleBottomCards: () => promptCount(
+        { title: t('ZoneMenu.promptShuffleBottom'), submitLabel: t('ZoneMenu.actionShuffle') },
+        (count) => zoneCommands.shuffleLibrary({ start: -count, end: -1 }),
+      ),
     };
-  }, [deckCount, openCountPrompt, zoneCommands]);
+  }, [deckCount, openCountPrompt, t, zoneCommands]);
 }

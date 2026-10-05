@@ -6,6 +6,7 @@ import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMen
  * has none: desktop hides the menu while it is empty.
  */
 export function buildCustomZonesMenu(
+  t: TFunction,
   zones: readonly { name: string }[],
   onView: (zoneName: string) => void,
 ): ContextMenuItem[] {
@@ -13,7 +14,11 @@ export function buildCustomZonesMenu(
     return [];
   }
   return [{
-    label: 'Custom Zones',
-    submenu: zones.map((zone) => ({ label: `View custom zone '${zone.name}'`, onClick: () => onView(zone.name) })),
+    label: t('PlayerMenu.customZones'),
+    submenu: zones.map((zone) => ({
+      label: t('PlayerMenu.viewCustomZone', { name: zone.name }),
+      onClick: () => onView(zone.name),
+    })),
   }];
 }
+import type { TFunction } from 'i18next';

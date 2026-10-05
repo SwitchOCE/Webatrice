@@ -6,20 +6,21 @@ import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMen
  * Total Power and Total Toughness (desktop TallyMenu, tally_menu.cpp). It
  * sets a local preference; nothing is sent.
  */
-export function buildTallyMenu(current: TallyType, onSet: (type: TallyType) => void): ContextMenuItem {
+export function buildTallyMenu(t: TFunction, current: TallyType, onSet: (type: TallyType) => void): ContextMenuItem {
   const option = (type: TallyType, label: string): ContextMenuItem => ({
     label,
     checked: current === type,
     onClick: () => onSet(type),
   });
   return {
-    label: 'Tally',
+    label: t('TallyOverlay.tally'),
     submenu: [
-      option('none', 'None'),
+      option('none', t('Common.label.none')),
       { divider: true },
-      option('subtypes', 'Subtypes'),
-      option('power', 'Total Power'),
-      option('toughness', 'Total Toughness'),
+      option('subtypes', t('PlayerMenu.tallySubtypes')),
+      option('power', t('PlayerMenu.tallyPower')),
+      option('toughness', t('PlayerMenu.tallyToughness')),
     ],
   };
 }
+import type { TFunction } from 'i18next';

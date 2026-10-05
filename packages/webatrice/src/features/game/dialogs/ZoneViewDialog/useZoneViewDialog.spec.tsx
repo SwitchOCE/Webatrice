@@ -17,9 +17,11 @@ import { catalogT } from '../../__test-utils__/catalogT';
 import type { ZoneViewTarget } from '../../hooks/dialogs/gameDialogs.types';
 import zoneLabels from '../shared/zoneLabels.i18n.json';
 import zoneViewTitles from './useZoneViewDialog.i18n.json';
+import gameLogText from '../../components/ChatLog/formatLogDescriptor.i18n.json';
 import { useZoneViewDialog, zoneViewTitle } from './useZoneViewDialog';
 
-const englishT = catalogT(zoneLabels, zoneViewTitles);
+// Seat names fall back to the game log's "Player N".
+const englishT = catalogT(zoneLabels, zoneViewTitles, gameLogText);
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: englishT }) }));
 

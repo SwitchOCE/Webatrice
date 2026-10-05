@@ -1,10 +1,18 @@
 import { ZoneName } from '@cockatrice/sockatrice';
 import { usePreference } from '@app/hooks';
+import { useTranslation } from 'react-i18next';
 
 import type { SeatMoveDestination } from '../../ui/PlayerBoard/playerBoard.types';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import { buildRelatedTokenItems, buildTransformItems } from '../CardContextMenu/relatedCardActions';
 import { ContextMenuPopup, type ContextMenuItem } from '../ContextMenu/ContextMenu';
+
+const DRAW_ARROW_ACTION = 'game.drawArrow';
+const CLONE_CARD_ACTION = 'game.cloneCard';
+const SELECT_ALL_ACTION = 'game.selectAllBattlefield';
+const ATTACH_CARD_ACTION = 'game.attachCard';
+const STACK_SELECTION_ZONE = 'stack' as const;
+const END_INDEX = 'end' as const;
 
 /**
  * Stack-card context menu — ports Cockatrice's
@@ -17,6 +25,7 @@ import { ContextMenuPopup, type ContextMenuItem } from '../ContextMenu/ContextMe
  * disabled.
  */
 export default function StackCardMenu() {
+  const { t } = useTranslation();
   const {
     cardCommands,
     cardMetaByName,
@@ -61,8 +70,8 @@ export default function StackCardMenu() {
           // Opponent stack — Draw arrow / Clone / Select All only.
           const opponentItems: ContextMenuItem[] = [
             {
-              label: 'Draw arrow...',
-              ...menuShortcut('game.drawArrow'),
+              label: t('CardMenu.drawArrow'),
+              ...menuShortcut(DRAW_ARROW_ACTION),
               onClick: () => {
                 if (numeric && card) {
                   startDrawArrow({
@@ -76,8 +85,8 @@ export default function StackCardMenu() {
             },
             { divider: true },
             {
-              label: 'Clone',
-              ...menuShortcut('game.cloneCard'),
+              label: t('CardMenu.clone'),
+              ...menuShortcut(CLONE_CARD_ACTION),
               onClick: () => {
                 if (targets.length > 0) {
                   for (const sc of targets) {
@@ -99,12 +108,12 @@ export default function StackCardMenu() {
             },
             { divider: true },
             {
-              label: 'Select All',
-              ...menuShortcut('game.selectAllBattlefield'),
+              label: t('CardMenu.selectAll'),
+              ...menuShortcut(SELECT_ALL_ACTION),
               onClick: () => {
                 const ids = new Set(stackDisplayList.map((sc) => sc.id));
                 if (ids.size > 0) {
-                  setSelection({ zone: 'stack', ids });
+                  setSelection({ zone: STACK_SELECTION_ZONE, ids });
                 }
                 close();
               },
@@ -120,12 +129,14 @@ export default function StackCardMenu() {
               }
               const tokens = [
                 ...buildRelatedTokenItems(
+                  t,
                   cardMetaByName.get(card.name)?.related ?? [],
                   tokenMetaByName,
                   cardCommands.createToken,
                   annotateTokens,
                 ),
                 ...buildTransformItems(
+                  t,
                   cardMetaByName.get(card.name),
                   Number.isFinite(cardIdNum) ? cardIdNum : undefined,
                   card.name,
@@ -156,14 +167,14 @@ export default function StackCardMenu() {
         };
         const items: ContextMenuItem[] = [
           {
-            label: 'Play',
+            label: t('CardMenu.play'),
             onClick: () => {
-              moveFromStack({ zone: ZoneName.TABLE, index: 'end' });
+              moveFromStack({ zone: ZoneName.TABLE, index: END_INDEX });
               close();
             },
           },
           {
-            label: 'Play Face Down',
+            label: t('CardMenu.playFaceDown'),
             onClick: () => {
               if (targetIds.length === 0) {
                 close();
@@ -172,15 +183,15 @@ export default function StackCardMenu() {
               zoneCommands.moveCards(
                 ZoneName.STACK,
                 targetIds.map((id) => ({ id, faceDown: true as const })),
-                { zone: ZoneName.TABLE, index: 'end' },
+                { zone: ZoneName.TABLE, index: END_INDEX },
               );
               close();
             },
           },
           { divider: true },
           {
-            label: 'Clone',
-            ...menuShortcut('game.cloneCard'),
+            label: t('CardMenu.clone'),
+            ...menuShortcut(CLONE_CARD_ACTION),
             onClick: () => {
               if (targets.length > 0) {
                 for (const sc of targets) {
@@ -201,31 +212,31 @@ export default function StackCardMenu() {
             },
           },
           {
-            label: 'Move to',
+            label: t('CardMenu.moveTo'),
             submenu: [
               {
-                label: 'Hand',
+                label: t('ZoneLabel.title.hand'),
                 onClick: () => {
-                  moveFromStack({ zone: ZoneName.HAND, index: 'end' });
+                  moveFromStack({ zone: ZoneName.HAND, index: END_INDEX });
                   close();
                 },
               },
               {
-                label: 'Battlefield',
+                label: t('CardMenu.table'),
                 onClick: () => {
-                  moveFromStack({ zone: ZoneName.TABLE, index: 'end' });
+                  moveFromStack({ zone: ZoneName.TABLE, index: END_INDEX });
                   close();
                 },
               },
               {
-                label: 'Graveyard',
+                label: t('ZoneLabel.title.grave'),
                 onClick: () => {
                   moveFromStack({ zone: ZoneName.GRAVE });
                   close();
                 },
               },
               {
-                label: 'Exile',
+                label: t('ZoneLabel.title.rfg'),
                 onClick: () => {
                   moveFromStack({ zone: ZoneName.EXILE });
                   close();
@@ -233,16 +244,16 @@ export default function StackCardMenu() {
               },
               { divider: true },
               {
-                label: 'Top of Library',
+                label: t('HandMenu.topLibrary'),
                 onClick: () => {
                   moveFromStack({ zone: ZoneName.DECK });
                   close();
                 },
               },
               {
-                label: 'Bottom of Library',
+                label: t('HandMenu.bottomLibrary'),
                 onClick: () => {
-                  moveFromStack({ zone: ZoneName.DECK, index: 'end' });
+                  moveFromStack({ zone: ZoneName.DECK, index: END_INDEX });
                   close();
                 },
               },
@@ -250,8 +261,8 @@ export default function StackCardMenu() {
           },
           { divider: true },
           {
-            label: 'Attach to card...',
-            ...menuShortcut('game.attachCard'),
+            label: t('CardMenu.attach'),
+            ...menuShortcut(ATTACH_CARD_ACTION),
             onClick: () => {
               if (numeric && card) {
                 const extras = targets
@@ -264,8 +275,8 @@ export default function StackCardMenu() {
             },
           },
           {
-            label: 'Draw arrow...',
-            ...menuShortcut('game.drawArrow'),
+            label: t('CardMenu.drawArrow'),
+            ...menuShortcut(DRAW_ARROW_ACTION),
             onClick: () => {
               if (numeric && card) {
                 startDrawArrow({
@@ -279,12 +290,12 @@ export default function StackCardMenu() {
           },
           { divider: true },
           {
-            label: 'Select All',
-            ...menuShortcut('game.selectAllBattlefield'),
+            label: t('CardMenu.selectAll'),
+            ...menuShortcut(SELECT_ALL_ACTION),
             onClick: () => {
               const ids = new Set(stackDisplayList.map((sc) => sc.id));
               if (ids.size > 0) {
-                setSelection({ zone: 'stack', ids });
+                setSelection({ zone: STACK_SELECTION_ZONE, ids });
               }
               close();
             },
@@ -299,12 +310,14 @@ export default function StackCardMenu() {
             }
             const tokens = [
               ...buildRelatedTokenItems(
+                t,
                 cardMetaByName.get(card.name)?.related ?? [],
                 tokenMetaByName,
                 cardCommands.createToken,
                 annotateTokens,
               ),
               ...buildTransformItems(
+                t,
                 cardMetaByName.get(card.name),
                 Number.isFinite(cardIdNum) ? cardIdNum : undefined,
                 card.name,

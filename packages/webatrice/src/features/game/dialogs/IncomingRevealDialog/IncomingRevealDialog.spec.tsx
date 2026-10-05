@@ -77,7 +77,7 @@ describe('IncomingRevealDialog', () => {
   it('names the sender and the zone and shows every revealed card', () => {
     renderReveal();
 
-    expect(screen.getByRole('heading', { name: 'P2 reveals their ZoneLabel.inline.deck' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'P2 reveals their library' })).toBeInTheDocument();
     expect(within(popup()).getByText(/^2 cards/)).toBeInTheDocument();
     expect(within(popup()).getByTitle('Island')).toBeInTheDocument();
     expect(within(popup()).getByTitle('Forest')).toBeInTheDocument();
@@ -108,11 +108,11 @@ describe('IncomingRevealDialog', () => {
       fireEvent.click(within(popup()).getByRole('button', { name: 'Island' }));
       fireEvent.click(within(popup()).getByRole('button', { name: 'Forest' }), { ctrlKey: true });
       await act(async () => {});
-      expect(within(screen.getByRole('status', { name: 'TallyOverlay.tally' })).getByText('4')).toBeInTheDocument();
+      expect(within(screen.getByRole('status', { name: 'Tally' })).getByText('4')).toBeInTheDocument();
       act(() => store.dispatch(games.Actions.incomingRevealShown({
         gameId: 1, sourceOwnerId: 2, zoneName: ZoneName.DECK, cards: REVEALED, grantWriteAccess: false,
       })));
-      expect(screen.queryByRole('status', { name: 'TallyOverlay.tally' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('status', { name: 'Tally' })).not.toBeInTheDocument();
       expect(selectionCount()).toBeNull();
     } finally {
       act(() => result.current[1]('none'));
@@ -137,7 +137,7 @@ describe('IncomingRevealDialog', () => {
 
   it('closes on Escape', () => {
     const { reveal } = renderReveal({ zoneName: ZoneName.HAND });
-    expect(screen.getByRole('heading', { name: 'P2 reveals their ZoneLabel.inline.hand' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'P2 reveals their hand' })).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: 'Escape' });
 
@@ -341,7 +341,7 @@ describe('IncomingRevealDialog', () => {
           }));
         });
 
-        expect(screen.getByRole('heading', { name: 'P2 reveals their ZoneLabel.inline.hand' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'P2 reveals their hand' })).toBeInTheDocument();
         expect(popup().style.width).toBe('900px');
         // The 400×300 popup centres on the 1024×768 viewport.
         expect(popup().style.left).toBe('312px');

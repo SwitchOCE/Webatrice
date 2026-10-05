@@ -3,9 +3,12 @@
 // Hide, Clone, Select All and View related cards. Select Column is left
 // out: the web reveal window has no fixed columns to select by.
 
+import type { TFunction } from 'i18next';
+
 import type { ContextMenuItem, MenuShortcutFor } from '../ContextMenu/ContextMenu';
 
 export interface BuildRevealedCardMenuArgs {
+  t: TFunction;
   menuShortcut: MenuShortcutFor;
   /** Hide the cards from this window only (desktop actHide); sends nothing. */
   onHide: () => void;
@@ -17,11 +20,11 @@ export interface BuildRevealedCardMenuArgs {
 
 export function buildRevealedCardMenu(args: BuildRevealedCardMenuArgs): ContextMenuItem[] {
   return [
-    { label: 'Hide', ...args.menuShortcut('game.hideRevealedCard'), onClick: args.onHide },
+    { label: args.t('CardMenu.hide'), ...args.menuShortcut('game.hideRevealedCard'), onClick: args.onHide },
     { divider: true },
-    { label: 'Clone', ...args.menuShortcut('game.cloneCard'), onClick: args.onClone },
+    { label: args.t('CardMenu.clone'), ...args.menuShortcut('game.cloneCard'), onClick: args.onClone },
     { divider: true },
-    { label: 'Select All', ...args.menuShortcut('game.selectAllBattlefield'), onClick: args.onSelectAll },
+    { label: args.t('CardMenu.selectAll'), ...args.menuShortcut('game.selectAllBattlefield'), onClick: args.onSelectAll },
     ...(args.relatedViewItems ?? []),
   ];
 }

@@ -1,4 +1,5 @@
 import { usePreference } from '@app/hooks';
+import { useTranslation } from 'react-i18next';
 
 import { useCanActFor } from '../../ui/CardVisualStateContext';
 import { EMPTY_CARD_KEYS } from '../../ui/GameSelectionContext';
@@ -15,6 +16,7 @@ import { ContextMenuPopup } from '../ContextMenu/ContextMenu';
  * state and ports.
  */
 export default function HandCardMenu() {
+  const { t } = useTranslation();
   const playToStack = usePreference('playToStack');
   const {
     cardCommands,
@@ -43,6 +45,7 @@ export default function HandCardMenu() {
   const canModify = useCanActFor()(menuOwnerId);
 
   const menu = resolveHandOrZoneCardMenu({
+    t,
     menu: handCardMenu ?? zoneViewCardMenu,
     ownerId: menuOwnerId,
     menuShortcut,
@@ -65,7 +68,7 @@ export default function HandCardMenu() {
     startArrow: startDrawArrow,
     relatedViewItems: relatedViewItemsFor,
     tokenItems: (name) =>
-      buildRelatedTokenItems(cardMetaByName.get(name)?.related ?? [], tokenMetaByName, cardCommands.createToken, annotateTokens),
+      buildRelatedTokenItems(t, cardMetaByName.get(name)?.related ?? [], tokenMetaByName, cardCommands.createToken, annotateTokens),
     close: closeSeatCardMenu,
   });
   return menu && <ContextMenuPopup {...menu} onClose={closeSeatCardMenu} />;

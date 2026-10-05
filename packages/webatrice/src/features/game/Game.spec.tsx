@@ -238,7 +238,7 @@ describe('Game container', () => {
         preloadedState: buildGame({ localId: 1, opponentIds: [2] }),
       });
 
-      expect(screen.queryByRole('heading', { name: /^ZoneLabel\.title\.grave — |'s library/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: /^Graveyard — |'s library/ })).not.toBeInTheDocument();
     });
 
     // The seat's pile menus open the game-level ZoneViewDialog (PB-13); the
@@ -255,7 +255,7 @@ describe('Game container', () => {
       openContextMenu(pileEl('Graveyard', 0));
       chooseMenuPath('View graveyard');
 
-      expect(screen.getAllByRole('heading', { name: /^ZoneLabel\.title\.grave — P1/ })).toHaveLength(1);
+      expect(screen.getAllByRole('heading', { name: /^Graveyard — P1/ })).toHaveLength(1);
     });
   });
 

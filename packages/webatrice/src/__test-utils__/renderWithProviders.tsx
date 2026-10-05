@@ -56,7 +56,12 @@ import pendingTargetText from '../features/game/components/ui/PendingTargetAnnou
 import moveCardsText from '../features/game/dialogs/MoveCardsDialog/MoveCardsDialog.i18n.json';
 import shortcutsText from '../feature-widgets/shortcuts/SettingsTab/ShortcutsTab.i18n.json';
 import gameLogText from '../features/game/components/ChatLog/formatLogDescriptor.i18n.json';
+import gameMenus from '../features/game/components/context-menus/menus.i18n.json';
+import zoneLabelText from '../features/game/dialogs/shared/zoneLabels.i18n.json';
+import shortcutsText from '../feature-widgets/shortcuts/SettingsTab/ShortcutsTab.i18n.json';
 import gamePhaseText from '../features/game/components/PhaseTrack/phaseLabels.i18n.json';
+import appearanceText from '../features/settings/sections/appearance.i18n.json';
+import tallyText from '../features/game/components/TallyOverlay/TallyOverlay.i18n.json';
 
 // The game's pending target pick, as Game provides it, for seats rendered
 // without Game.
@@ -136,6 +141,15 @@ testI18n.use(ICU).use(initReactI18next).init({
           action: Object.fromEntries(Object.entries(shortcutsText.ShortcutsTab.action).filter(([key]) => key.startsWith('game.'))),
         },
         ...gameLogText,
+        ...gameMenus,
+        SettingsAppearance: {
+          zoneBackgrounds: { zone: { table: appearanceText.SettingsAppearance.zoneBackgrounds.zone.table } },
+        },
+        TallyOverlay: { tally: tallyText.TallyOverlay.tally },
+        ...zoneLabelText,
+        ShortcutsTab: {
+          action: Object.fromEntries(Object.entries(shortcutsText.ShortcutsTab.action).filter(([key]) => key.startsWith('game.'))),
+        },
         ...gamePhaseText,
         ...moveTopUntilText,
         ...handZoneText,

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { ZoneName } from '@cockatrice/sockatrice';
 import { games } from '@cockatrice/datatrice';
@@ -36,6 +37,7 @@ function typeLineOf(result: LookupResult): string {
  * playing, player_actions.cpp:88), so the board shows the printed value too.
  */
 export function useSelectionTally(): SelectionTally {
+  const { t } = useTranslation();
   const gameId = useGameId();
   const selection = useGameSelectionState();
   const [type] = useTallyType();
@@ -84,11 +86,11 @@ export function useSelectionTally(): SelectionTally {
         ? { ...c, pt: `${printed.power}/${printed.toughness}` }
         : c;
     });
-    return computeTally(cards, type, (name) => {
+    return computeTally(t, cards, type, (name) => {
       const result = catalog.get(name);
       return result ? typeLineOf(result) : undefined;
     });
-  }, [selected, catalog, type]);
+  }, [selected, catalog, type, t]);
 
   return { rows, count: selection?.selectedCardKeys.size ?? 0 };
 }

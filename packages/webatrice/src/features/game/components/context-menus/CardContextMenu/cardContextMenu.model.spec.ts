@@ -1,4 +1,8 @@
 import type { ActionId } from '@app/feature-widgets/shortcuts';
+import { catalogT } from '../../../__test-utils__/catalogT';
+import menuText from '../menus.i18n.json';
+import zoneText from '../../../dialogs/shared/zoneLabels.i18n.json';
+import appearanceText from '../../../../settings/sections/appearance.i18n.json';
 
 import { counterColorForId } from '../../ui/SeatCard/counterColors';
 import {
@@ -11,10 +15,12 @@ import type { ContextMenuItem as CardMenuItem } from '../ContextMenu/ContextMenu
 
 // Every hint renders as its action id, so the tree pins which binding each row shows.
 const menuShortcut = (id: ActionId) => ({ shortcut: `<${id}>`, keyShortcuts: '' });
+const t = catalogT(menuText, zoneText, appearanceText);
 
 function makeArgs(overrides: Partial<BuildCardContextMenuArgs> = {}): BuildCardContextMenuArgs {
   const handler = () => vi.fn();
   return {
+    t,
     menuShortcut,
     faceDown: false,
     doesntUntap: false,
@@ -142,7 +148,7 @@ describe('buildCardContextMenu', () => {
       'Tap / Untap [<game.tapCard>]',
       'Skip untapping [<game.doesntUntap>] ✓',
       'Turn Over (face up) [<game.flipCard>]',
-      'Peek card [<game.peekCard>]',
+      'Peek at card face [<game.peekCard>]',
     ]);
     expect(rows).toContain('Unattach [<game.unattachCard>]');
     expect(rows.indexOf('Unattach [<game.unattachCard>]')).toBe(rows.indexOf('Attach to card... [<game.attachCard>]') + 1);
@@ -179,6 +185,7 @@ describe('buildCardContextMenu', () => {
 
 describe('buildOpponentCardMenu', () => {
   const opponentArgs = (overrides: Partial<BuildOpponentCardMenuArgs> = {}): BuildOpponentCardMenuArgs => ({
+    t,
     menuShortcut,
     onDrawArrow: vi.fn(),
     onClone: vi.fn(),

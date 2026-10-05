@@ -5,6 +5,7 @@
 
 import type { MenuShortcut } from '@app/feature-widgets/shortcuts';
 import type { LookupCardFace, LookupResult, RelatedCardRef } from '@app/services';
+import type { TFunction } from 'i18next';
 
 import type { CreateTokenRequest } from '../../ui/PlayerBoard/playerBoard.types';
 import type { ContextMenuItem } from '../ContextMenu/ContextMenu';
@@ -18,6 +19,7 @@ import type { ContextMenuItem } from '../ContextMenu/ContextMenu';
  * sends nothing.
  */
 export function buildRelatedViewItems(
+  t: TFunction,
   related: readonly RelatedCardRef[],
   resolvable: (name: string) => boolean,
   onView: (ref: RelatedCardRef) => void,
@@ -28,7 +30,7 @@ export function buildRelatedViewItems(
   return [
     { divider: true },
     {
-      label: 'View related cards',
+      label: t('CardMenu.viewRelated'),
       submenu: related.map((ref) => ({ label: ref.name, onClick: () => onView(ref) })),
     },
   ];
@@ -36,7 +38,7 @@ export function buildRelatedViewItems(
 
 /** One "Token: …" action: its label and the Command_CreateToken requests it sends. */
 interface RelatedTokenAction {
-  label: string;
+  label: (t: TFunction) => string;
   requests: CreateTokenRequest[];
 }
 
@@ -98,13 +100,13 @@ function relatedTokenAction(ref: RelatedCardRef, tok: LookupResult | undefined, 
     providerId: tokProviderId,
   };
   return {
-    label: `Token: ${countPrefix}${ptPart}${ref.name}`,
+    label: (t) => t('CardMenu.token', { description: `${countPrefix}${ptPart}${ref.name}` }),
     requests: Array.from({ length: fireCount }, () => request),
   };
 }
 
-const actionItem = (action: RelatedTokenAction, onCreateToken: CreateTokenHandler | undefined): ContextMenuItem => ({
-  label: action.label,
+const actionItem = (t: TFunction, action: RelatedTokenAction, onCreateToken: CreateTokenHandler | undefined): ContextMenuItem => ({
+  label: action.label(t),
   onClick: () => {
     if (onCreateToken) {
       action.requests.forEach((request) => onCreateToken(request));
@@ -118,12 +120,13 @@ const actionItem = (action: RelatedTokenAction, onCreateToken: CreateTokenHandle
  * menus so they label and dispatch identically.
  */
 export function buildRelatedTokenItems(
+  t: TFunction,
   related: readonly RelatedCardRef[],
   tokenMeta: ReadonlyMap<string, LookupResult>,
   onCreateToken: CreateTokenHandler | undefined,
   annotate = false,
 ): ContextMenuItem[] {
-  return related.map((ref) => actionItem(relatedTokenAction(ref, tokenMeta.get(ref.name), annotate), onCreateToken));
+  return related.map((ref) => actionItem(t, relatedTokenAction(ref, tokenMeta.get(ref.name), annotate), onCreateToken));
 }
 
 /** The seat's create-token command. */
@@ -190,7 +193,7 @@ function transformAction(
       : target.colors[0].toLowerCase()
     : '';
   return {
-    label: `Token: Transform into "${target.name}"`,
+    label: (t) => t('CardMenu.transform', { name: target.name }),
     requests: [{
       name: target.name,
       color: targetColor,
@@ -206,6 +209,7 @@ function transformAction(
 
 /** The "Token: Transform into …" item for a double-faced card (transformAction); [] otherwise. */
 export function buildTransformItems(
+  t: TFunction,
   parentMeta: TransformMeta,
   sourceCardId: number | undefined,
   parentName: string,
@@ -213,7 +217,7 @@ export function buildTransformItems(
   annotate = false,
 ): ContextMenuItem[] {
   const action = onCreateToken ? transformAction(parentMeta, sourceCardId, parentName, annotate) : null;
-  return action ? [actionItem(action, onCreateToken)] : [];
+  return action ? [actionItem(t, action, onCreateToken)] : [];
 }
 
 /** A battlefield card's related cards, as the token actions read them. */
@@ -333,14 +337,15 @@ export function createAllRelated(source: RelatedCardSource): CreateAllRelated {
  * tokens".
  */
 export function buildRelatedActionItems(
+  t: TFunction,
   source: RelatedCardSource,
   onCreateToken: CreateTokenHandler | undefined,
   createAllShortcut: MenuShortcut,
   onCreateAll: () => void,
 ): ContextMenuItem[] {
   const items = [
-    ...buildRelatedTokenItems(source.related, source.tokenMeta, onCreateToken, source.annotate),
-    ...buildTransformItems(source.parentMeta, source.sourceCardId, source.parentName, onCreateToken, source.annotate),
+    ...buildRelatedTokenItems(t, source.related, source.tokenMeta, onCreateToken, source.annotate),
+    ...buildTransformItems(t, source.parentMeta, source.sourceCardId, source.parentName, onCreateToken, source.annotate),
   ];
   const shortcut = createAllShortcut.shortcut ? createAllShortcut : null;
   // The only item is what create-all runs, so it runs it the same way (the
@@ -354,7 +359,7 @@ export function buildRelatedActionItems(
   return [
     ...items,
     {
-      label: 'All tokens',
+      label: t('CardMenu.allTokens'),
       ...shortcut,
       onClick: onCreateAll,
     },

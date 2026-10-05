@@ -204,7 +204,7 @@ describe('seat card menu trees', () => {
       Tap / Untap
       ✓ Skip untapping  ⟨Alt+U⟩
       Turn Over (face up)  ⟨Alt+F⟩
-      Peek card  ⟨Alt+L⟩
+      Peek at card face  ⟨Alt+L⟩
       ---
       Clone  ⟨Ctrl+J⟩
       Move to  ▶
@@ -289,12 +289,12 @@ describe('seat card menu trees', () => {
       Clone  ⟨Ctrl+J⟩
       Move to  ▶
         Hand
-        Battlefield
+        Table
         Graveyard
         Exile
         ---
-        Top of Library
-        Bottom of Library
+        Top of library
+        Bottom of library
       ---
       Attach to card...  ⟨Ctrl+Alt+A⟩
       Draw arrow...  ⟨Alt+A⟩
@@ -321,7 +321,7 @@ describe('seat card menu trees', () => {
     renderSeats();
     openContextMenu(pileEl('Graveyard', 0));
     chooseMenuPath('View graveyard');
-    expect(screen.getByText(/^ZoneLabel\.title\.grave — P1/)).toBeInTheDocument();
+    expect(screen.getByText(/^Graveyard — P1/)).toBeInTheDocument();
 
     expect(menuTree(pileViewCard(OWN_GRAVE.id))).toMatchInlineSnapshot(`
       "

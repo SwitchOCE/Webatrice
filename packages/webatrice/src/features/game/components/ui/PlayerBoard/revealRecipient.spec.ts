@@ -1,4 +1,6 @@
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
+import { catalogT } from '../../../__test-utils__/catalogT';
+import menuText from '../../context-menus/menus.i18n.json';
 import { buildRevealToSubmenu, toRecipient } from './revealRecipient';
 
 describe('toRecipient', () => {
@@ -9,13 +11,14 @@ describe('toRecipient', () => {
 });
 
 describe('buildRevealToSubmenu', () => {
+  const t = catalogT(menuText);
   type Item = Extract<ContextMenuItem, { label: string }>;
   const labels = (items: ContextMenuItem[]) => items.map((i) => ('divider' in i ? '---' : i.label));
   const item = (items: ContextMenuItem[], index: number) => items[index] as Item;
 
   it('lists "All players", a separator, then each other player', () => {
     const onPick = vi.fn();
-    const items = buildRevealToSubmenu([{ playerId: 2, name: 'Bob' }, { playerId: 3, name: 'Cy' }], onPick);
+    const items = buildRevealToSubmenu(t, [{ playerId: 2, name: 'Bob' }, { playerId: 3, name: 'Cy' }], onPick);
 
     expect(labels(items)).toEqual(['All players', '---', 'Bob', 'Cy']);
     item(items, 0).onClick!();
@@ -24,12 +27,12 @@ describe('buildRevealToSubmenu', () => {
   });
 
   it('still offers "All players" when playing alone, as desktop does', () => {
-    expect(labels(buildRevealToSubmenu([], vi.fn()))).toEqual(['All players', '---']);
-    expect(labels(buildRevealToSubmenu(undefined, vi.fn()))).toEqual(['All players', '---']);
+    expect(labels(buildRevealToSubmenu(t, [], vi.fn()))).toEqual(['All players', '---']);
+    expect(labels(buildRevealToSubmenu(t, undefined, vi.fn()))).toEqual(['All players', '---']);
   });
 
   it('disables every entry together and hints the shortcut on "All players"', () => {
-    const items = buildRevealToSubmenu([{ playerId: 2, name: 'Bob' }], vi.fn(), true, { shortcut: 'Ctrl+R', keyShortcuts: 'Control+R' });
+    const items = buildRevealToSubmenu(t, [{ playerId: 2, name: 'Bob' }], vi.fn(), true, { shortcut: 'Ctrl+R', keyShortcuts: 'Control+R' });
     expect(items[0]).toMatchObject({ disabled: true, shortcut: 'Ctrl+R' });
     expect(items[2]).toMatchObject({ disabled: true });
   });

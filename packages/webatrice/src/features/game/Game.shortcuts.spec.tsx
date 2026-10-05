@@ -217,7 +217,7 @@ describe('Game seat shortcuts', () => {
       const { game, store } = renderGame();
       bindKey(store, 'game.shuffleTopCards', 'Alt+KeyJ');
       press('KeyJ', { altKey: true });
-      const dialog = screen.getByRole('dialog', { name: 'Shuffle top cards' });
+      const dialog = screen.getByRole('dialog', { name: 'Shuffle top cards of library' });
       fireEvent.change(within(dialog).getByRole('spinbutton'), { target: { value: '5' } });
       fireEvent.click(within(dialog).getByRole('button', { name: 'Shuffle' }));
       expect(vi.mocked(game.shuffle).mock.calls).toEqual([[1, { zoneName: 'deck', start: 0, end: 4 }]]);
@@ -276,7 +276,7 @@ describe('Game seat shortcuts', () => {
       const { game, store } = renderGame();
       bindKey(store, 'game.viewExile', 'Alt+KeyX');
       press('KeyX', { altKey: true });
-      expect(screen.getByRole('dialog', { name: 'ZoneLabel.title.rfg — P1' })).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: 'Exile — P1' })).toBeInTheDocument();
       expect(game.moveCard).not.toHaveBeenCalled();
     });
 

@@ -173,7 +173,7 @@ const CASES: Record<string, PromptCase> = {
       openContextMenu(pileEl('Library', 0));
       chooseMenuPath('Top of library...', 'Shuffle top cards...');
     },
-    dialog: /^shuffle top cards$/i,
+    dialog: /^shuffle top cards of library$/i,
     initial: '3',
     invalid: '0',
     answer: '4',

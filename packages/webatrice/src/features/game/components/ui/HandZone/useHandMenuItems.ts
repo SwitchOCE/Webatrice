@@ -1,5 +1,6 @@
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 import type { useMenuShortcut } from '@app/feature-widgets/shortcuts';
+import { useTranslation } from 'react-i18next';
 
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import { useGameDialogsContext } from '../GameDialogsContext';
@@ -29,6 +30,7 @@ export function useHandMenuItems({
   menuShortcut,
   zoneCommands,
 }: UseHandMenuItemsArgs) {
+  const { t } = useTranslation();
   const { openZoneView, handleRequestSortHandBy, handleRequestChooseMulligan } = useGameDialogsContext();
 
   // Prefer the server-broadcast count from `hand.cardCount`, which
@@ -45,12 +47,14 @@ export function useHandMenuItems({
   // (Command_RevealCards with zoneName=hand); the port omits playerId
   // for "All players".
   const revealHandSubmenu = buildRevealToSubmenu(
+    t,
     revealTargets,
     (targetPlayerId) => zoneCommands.reveal(ZoneName.HAND, toRecipient(targetPlayerId)),
     handSize <= 0,
     menuShortcut('game.revealHandToAll'),
   );
   const revealRandomHandSubmenu = buildRevealToSubmenu(
+    t,
     revealTargets,
     (targetPlayerId) => zoneCommands.reveal(ZoneName.HAND, toRecipient(targetPlayerId), 'random'),
     handSize <= 0,
@@ -77,7 +81,7 @@ export function useHandMenuItems({
       // graveyard / exile (desktop aViewHand). Only offered
       // for the local player; opponents' hands are hidden and the
       // dialog would have nothing to show.
-      label: 'View hand',
+      label: t('HandMenu.view'),
       onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.HAND }),
       disabled: !isSelf || handSize <= 0,
       ...menuShortcut('game.viewHand'),
@@ -86,22 +90,22 @@ export function useHandMenuItems({
       // Sort hand by ... — dispatches per-card moveCard reorders
       // in the calculated order. Matches Cockatrice's
       // hand_menu.cpp; async lookup for maintype / manacost keys.
-      label: 'Sort hand by...',
+      label: t('HandMenu.sort'),
       submenu: [
         {
-          label: 'Name',
+          label: t('HandMenu.sortName'),
           onClick: () => handleRequestSortHandBy('name'),
           disabled: !isSelf || handSize <= 1,
           ...menuShortcut('game.sortHandByName'),
         },
         {
-          label: 'Type',
+          label: t('HandMenu.sortType'),
           onClick: () => handleRequestSortHandBy('maintype'),
           disabled: !isSelf || handSize <= 1,
           ...menuShortcut('game.sortHandByType'),
         },
         {
-          label: 'Mana Value',
+          label: t('HandMenu.sortManaValue'),
           onClick: () => handleRequestSortHandBy('manacost'),
           disabled: !isSelf || handSize <= 1,
           ...menuShortcut('game.sortHandByManaValue'),
@@ -109,11 +113,11 @@ export function useHandMenuItems({
       ],
     },
     {
-      label: 'Reveal hand to...',
+      label: t('HandMenu.reveal'),
       submenu: revealHandSubmenu,
     },
     {
-      label: 'Reveal random card to...',
+      label: t('ZoneMenu.revealRandom'),
       submenu: revealRandomHandSubmenu,
     },
     { divider: true },
@@ -122,46 +126,46 @@ export function useHandMenuItems({
       // Command_Mulligan with the resolved hand size. Accepts
       // -handSize..handSize+deckSize (≤0 is relative — desktop
       // parity, see handleRequestChooseMulligan in useGameDialogs).
-      label: 'Take mulligan (Choose hand size)',
+      label: t('HandMenu.mulliganChoose'),
       onClick: () => handleRequestChooseMulligan(),
       disabled: !isSelf,
     },
     {
-      label: 'Take mulligan (Same hand size)',
+      label: t('HandMenu.mulliganSame'),
       onClick: () => zoneCommands.mulligan(handSize),
       disabled: handSize <= 0,
       ...menuShortcut('game.mulliganSameSize'),
     },
     {
-      label: 'Take mulligan (Hand size - 1)',
+      label: t('HandMenu.mulliganMinusOne'),
       onClick: () => zoneCommands.mulligan(Math.max(1, handSize - 1)),
       disabled: handSize <= 1,
       ...menuShortcut('game.mulliganMinusOne'),
     },
     { divider: true },
     {
-      label: 'Move hand to...',
+      label: t('HandMenu.move'),
       disabled: handSize <= 0,
       submenu: [
         {
-          label: 'Top of library',
+          label: t('HandMenu.topLibrary'),
           onClick: moveAllHandTo(ZoneName.DECK, 0),
           disabled: handSize <= 0,
         },
         {
-          label: 'Bottom of library',
+          label: t('HandMenu.bottomLibrary'),
           onClick: moveAllHandTo(ZoneName.DECK, 'end'),
           disabled: handSize <= 0,
         },
         { divider: true },
         {
-          label: 'Graveyard',
+          label: t('ZoneLabel.title.grave'),
           onClick: moveAllHandTo(ZoneName.GRAVE, 0),
           disabled: handSize <= 0,
         },
         { divider: true },
         {
-          label: 'Exile',
+          label: t('ZoneLabel.title.rfg'),
           onClick: moveAllHandTo(ZoneName.EXILE, 0),
           disabled: handSize <= 0,
         },

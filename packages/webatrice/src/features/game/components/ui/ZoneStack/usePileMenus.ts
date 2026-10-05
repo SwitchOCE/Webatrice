@@ -1,4 +1,5 @@
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
+import { useTranslation } from 'react-i18next';
 
 import type { ContextMenuItem, MenuShortcutFor } from '../../context-menus/ContextMenu/ContextMenu';
 import { useGameDialogsContext } from '../GameDialogsContext';
@@ -33,6 +34,7 @@ export function usePileMenus({
   menuShortcut,
   zoneCommands,
 }: UsePileMenusArgs) {
+  const { t } = useTranslation();
   const { openZoneView } = useGameDialogsContext();
 
   // Shared pile-menu item arrays. Cockatrice's PlayerMenu shows the
@@ -77,7 +79,7 @@ export function usePileMenus({
     revealTargets && revealTargets.length > 0
       ? [
         {
-          label: 'All players',
+          label: t('CardMenu.allPlayers'),
           onClick: () => zoneCommands.reveal(zoneName, toRecipient(-1), 'random'),
           disabled: zoneSize <= 0,
         },
@@ -88,18 +90,18 @@ export function usePileMenus({
           disabled: zoneSize <= 0,
         })),
       ]
-      : [{ label: '(no players)' }];
+      : [{ label: t('ZoneMenu.noPlayers') }];
   // Graveyard menu items — ported 1:1 from Cockatrice's GraveyardMenu
   // (grave_menu.cpp:14-36). Full self-view; opponent-view uses just
   // the "View graveyard" item below.
   const graveMenuItemsSelf: ContextMenuItem[] = [
     {
-      label: 'View graveyard',
+      label: t('ShortcutsTab.action.game.viewGraveyard'),
       onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.GRAVE }),
       ...menuShortcut('game.viewGraveyard'),
     },
     {
-      label: 'Reveal random card to...',
+      label: t('ZoneMenu.revealRandom'),
       disabled: displayedGraveyardCount <= 0,
       submenu: buildRevealRandomSubmenu(ZoneName.GRAVE, displayedGraveyardCount),
     },
@@ -107,28 +109,28 @@ export function usePileMenus({
     {
       // "Move graveyard to..." — bulk move mirrors PileZoneLogic::moveAllToZone
       // (card_zone_logic.cpp:134-153).
-      label: 'Move graveyard to...',
+      label: t('ZoneMenu.moveGraveyard'),
       disabled: displayedGraveyardCount <= 0,
       submenu: [
         {
-          label: 'Top of library',
+          label: t('HandMenu.topLibrary'),
           onClick: buildMoveAll('graveyard', graveDisplayList, ZoneName.GRAVE, ZoneName.DECK, 0),
           disabled: displayedGraveyardCount <= 0,
         },
         {
-          label: 'Bottom of library',
+          label: t('HandMenu.bottomLibrary'),
           onClick: buildMoveAll('graveyard', graveDisplayList, ZoneName.GRAVE, ZoneName.DECK, 'end'),
           disabled: displayedGraveyardCount <= 0,
         },
         { divider: true },
         {
-          label: 'Hand',
+          label: t('ZoneLabel.title.hand'),
           onClick: buildMoveAll('graveyard', graveDisplayList, ZoneName.GRAVE, ZoneName.HAND, 0),
           disabled: displayedGraveyardCount <= 0,
         },
         { divider: true },
         {
-          label: 'Exile',
+          label: t('ZoneLabel.title.rfg'),
           onClick: buildMoveAll('graveyard', graveDisplayList, ZoneName.GRAVE, ZoneName.EXILE, 0),
           disabled: displayedGraveyardCount <= 0,
         },
@@ -137,7 +139,7 @@ export function usePileMenus({
   ];
   const graveMenuItemsOpponent: ContextMenuItem[] = [
     {
-      label: 'View graveyard',
+      label: t('ShortcutsTab.action.game.viewGraveyard'),
       onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.GRAVE }),
       disabled: displayedGraveyardCount <= 0,
     },
@@ -148,34 +150,34 @@ export function usePileMenus({
   // at "Graveyard" (not a self "Exile" target).
   const exileMenuItemsSelf: ContextMenuItem[] = [
     {
-      label: 'View exile',
+      label: t('ZoneMenu.viewExile'),
       onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.EXILE }),
       ...menuShortcut('game.viewExile'),
     },
     { divider: true },
     {
-      label: 'Move exile to...',
+      label: t('ZoneMenu.moveExile'),
       disabled: displayedExileCount <= 0,
       submenu: [
         {
-          label: 'Top of library',
+          label: t('HandMenu.topLibrary'),
           onClick: buildMoveAll('exile', exileDisplayList, ZoneName.EXILE, ZoneName.DECK, 0),
           disabled: displayedExileCount <= 0,
         },
         {
-          label: 'Bottom of library',
+          label: t('HandMenu.bottomLibrary'),
           onClick: buildMoveAll('exile', exileDisplayList, ZoneName.EXILE, ZoneName.DECK, 'end'),
           disabled: displayedExileCount <= 0,
         },
         { divider: true },
         {
-          label: 'Hand',
+          label: t('ZoneLabel.title.hand'),
           onClick: buildMoveAll('exile', exileDisplayList, ZoneName.EXILE, ZoneName.HAND, 0),
           disabled: displayedExileCount <= 0,
         },
         { divider: true },
         {
-          label: 'Graveyard',
+          label: t('ZoneLabel.title.grave'),
           onClick: buildMoveAll('exile', exileDisplayList, ZoneName.EXILE, ZoneName.GRAVE, 0),
           disabled: displayedExileCount <= 0,
         },
@@ -184,7 +186,7 @@ export function usePileMenus({
   ];
   const exileMenuItemsOpponent: ContextMenuItem[] = [
     {
-      label: 'View exile',
+      label: t('ZoneMenu.viewExile'),
       onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.EXILE }),
       disabled: displayedExileCount <= 0,
     },

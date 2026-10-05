@@ -1,5 +1,6 @@
 import { ZoneName } from '@cockatrice/sockatrice';
 import { usePreference } from '@app/hooks';
+import { useTranslation } from 'react-i18next';
 
 import type { BattlefieldCardOps } from '../../ui/PlayerBoard/useBattlefieldCardOps';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
@@ -14,6 +15,7 @@ import { buildRelatedActionItems } from '../CardContextMenu/relatedCardActions';
  * closes. The menu is disabled on an optimistic card without a server id.
  */
 export default function BattlefieldCardMenu() {
+  const { t } = useTranslation();
   const {
     battlefieldDisplayList,
     cardCommands,
@@ -53,6 +55,7 @@ export default function BattlefieldCardMenu() {
   // battlefield.
   const tokenItems: ContextMenuItem[] = card
     ? buildRelatedActionItems(
+      t,
       {
         related: cardMetaByName.get(card.name)?.related ?? [],
         tokenMeta: tokenMetaByName,
@@ -70,6 +73,7 @@ export default function BattlefieldCardMenu() {
 
   const items = isSelf
     ? buildCardContextMenu({
+      t,
       menuShortcut,
       faceDown: card?.faceDown ?? false,
       doesntUntap: card?.doesntUntap ?? false,
@@ -109,6 +113,7 @@ export default function BattlefieldCardMenu() {
       relatedViewItems,
     })
     : buildOpponentCardMenu({
+      t,
       menuShortcut,
       onDrawArrow: run((o) => o.drawArrow()),
       onClone: run((o) => o.clone()),

@@ -4,6 +4,7 @@
 // handler logic lives here and not in the seat's JSX.
 
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
+import type { TFunction } from 'i18next';
 
 import type { SeatCardMenuState } from '../../../hooks/dialogs/gameDialogs.types';
 import type { SeatSelection } from '../../../hooks/useSeatSelection';
@@ -103,6 +104,7 @@ export function selectedHiddenZoneCards(
 }
 
 export interface HandOrZoneCardMenuDeps {
+  t: TFunction;
   /** The seat's open card menu; only a hand or zone-view one renders here. */
   menu: SeatCardMenuState | null;
   /** The player whose cards the menu shows (card keys use it). */
@@ -200,6 +202,7 @@ export function resolveHandOrZoneCardMenu(deps: HandOrZoneCardMenuDeps): SeatCar
   });
 
   const items = buildHandOrZoneCardMenu({
+    t: deps.t,
     menuShortcut: deps.menuShortcut,
     source: zoneView ? 'zoneView' : 'hand',
     canModify: deps.canModify,
