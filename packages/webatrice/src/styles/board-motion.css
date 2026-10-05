@@ -1,13 +1,10 @@
 /* The board's own motion, stopped when the animation policy is off (`<html data-animations="off">`,
    set by useApplyAnimationPolicy): after "Disable all", or under the system's reduced-motion
    setting until the user chooses. The draw flights and the hand slide are gated in script. */
-:root[data-animations='off'] .card-slot,
 :root[data-animations='off'] .seat-card {
   transition: none;
 }
 
-:root[data-animations='off'] .cardflip--animate-to-front,
-:root[data-animations='off'] .cardflip--animate-to-back,
 :root[data-animations='off'] .phase-endstep-flash {
   animation: none;
 }

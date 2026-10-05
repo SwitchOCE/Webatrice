@@ -10,7 +10,7 @@ import {
   COUNTER_TYPE_COUNT,
   COUNTER_TYPE_LABELS,
   counterColorForId,
-} from '../../ui/CardSlot/counterColors';
+} from '../../ui/SeatCard/counterColors';
 
 import NestedMenuItem from './NestedMenuItem';
 import { useGameDialogsContext } from '../../ui/GameDialogsContext';

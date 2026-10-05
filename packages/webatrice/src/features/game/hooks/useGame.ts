@@ -1,14 +1,9 @@
-import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { RefObject, useCallback, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core';
 
-import { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
 import { usePreference } from '@app/hooks';
-import {
-  createCardPreviewStore,
-  previewCardFromServerCard,
-  type CardPreviewStore,
-} from '../components/ui/CardPreviewContext';
+import { createCardPreviewStore, type CardPreviewStore } from '../components/ui/CardPreviewContext';
 import { createSeatShortcutRegistry, type SeatShortcutRegistry } from '../components/ui/SeatShortcutsContext';
 import { useMoveCard } from '../components/ui/GameBoardCell/useMoveCard';
 import { GamePointerSensor } from './gamePointerSensor';
@@ -35,13 +30,9 @@ export interface Game extends CurrentGame {
   previewStore: CardPreviewStore;
   /** Seat-scoped shortcut operations the local seat publishes. */
   seatShortcuts: SeatShortcutRegistry;
-  /** Publishes a structured leaf's hovered server card to the preview store. */
-  setHoveredCard: (card: ServerInfo_Card | null) => void;
   selectedCardKeys: ReadonlySet<string>;
   setSelectedCardKeys: GameSelection['setSelectedCardKeys'];
   selectedCards: readonly SelectedCard[];
-  onCardFocus: (ownerPlayerId: number | undefined, zone: string | undefined, card: ServerInfo_Card) => void;
-  onCardBlur: (ownerPlayerId: number | undefined, zone: string | undefined, card: ServerInfo_Card) => void;
   collapseUnlessSelected: GameSelection['collapseUnlessSelected'];
   handleGameMouseDown: (e: React.MouseEvent<HTMLDivElement>) => void;
   boxSelectPreview: BoxSelectPreview | null;
@@ -84,16 +75,7 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
   );
   const previewStore = useMemo(() => createCardPreviewStore(), []);
   const seatShortcuts = useMemo(() => createSeatShortcutRegistry(), []);
-  const setHoveredCard = useCallback(
-    (card: ServerInfo_Card | null) => previewStore.setHoveredCard(previewCardFromServerCard(card)),
-    [previewStore],
-  );
   const selection = useGameSelection();
-  // Keyboard focus wins over hover in the preview pane.
-  const focusedCard = selection.focused?.card;
-  useEffect(() => {
-    previewStore.setFocusedCard(previewCardFromServerCard(focusedCard));
-  }, [previewStore, focusedCard]);
   const selectedCards = useMemo(
     () => (game ? resolveSelectedCards(game, selection.selectedCardKeys) : []),
     [game, selection.selectedCardKeys],
@@ -121,14 +103,11 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
     gameId,
     containerRef: gameRef,
     cardRegistry,
-    selectedCards,
-    collapseUnlessSelected: selection.collapseUnlessSelected,
   });
   const box = useGameBoxSelection({
     selectedCardKeys: selection.selectedCardKeys,
     setSelectedCardKeys: selection.setSelectedCardKeys,
     clearSelection: selection.clearSelection,
-    clearFocused: selection.clearFocused,
     pendingActive: arrows.pending,
   });
   const dialogs = useGameDialogs({
@@ -145,8 +124,6 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
     gameId,
     judgeTarget,
     cancelPendingArrow: arrows.cancelPendingOnDragStart,
-    collapseUnlessSelected: selection.collapseUnlessSelected,
-    getSelectedCards,
     clearSelection: selection.clearSelection,
     moveCard,
   });
@@ -188,12 +165,9 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
     sensors: readOnly ? NO_SENSORS : sensors,
     previewStore,
     seatShortcuts,
-    setHoveredCard,
     selectedCardKeys: selection.selectedCardKeys,
     setSelectedCardKeys: selection.setSelectedCardKeys,
     selectedCards,
-    onCardFocus: selection.onCardFocus,
-    onCardBlur: selection.onCardBlur,
     collapseUnlessSelected: selection.collapseUnlessSelected,
     handleGameMouseDown: box.handleGameMouseDown,
     boxSelectPreview: box.previewRect,

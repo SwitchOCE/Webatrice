@@ -6,7 +6,7 @@
 
 import type { ActionId } from '@app/feature-widgets/shortcuts';
 
-import { counterColorForId } from '../../ui/CardSlot/counterColors';
+import { counterColorForId } from '../../ui/SeatCard/counterColors';
 
 export type CardMenuItem =
   | { divider: true }
