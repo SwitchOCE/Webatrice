@@ -14,6 +14,7 @@ import Card from '../SeatCard/SeatCard';
 import type { PlayerCardViewModel } from '../PlayerBoard/playerBoard.types';
 import { layoutVerticalPile, type VerticalPileOptions } from '../VerticalPile/verticalPile';
 import ZoneBackground from '../ZoneBackground/ZoneBackground';
+import { GAME_FOCUS_RING } from '../focusRing';
 import { OVER_ART_SHADOW_SMALL, SELECTED_RING } from '../seatColors/seatColors';
 
 /**
@@ -162,7 +163,8 @@ export default function HandZone() {
           'absolute top-1 left-1 z-40 flex items-center justify-center '
           + 'h-14 w-14 rounded bg-bg-surface/80 hover:bg-bg-elevated '
           + 'border border-border-subtle text-text-primary '
-          + 'shadow board-motion transition-colors cursor-default'
+          + 'shadow board-motion transition-colors cursor-default '
+          + GAME_FOCUS_RING
         }
         title={handButtonLabel}
         aria-label={handButtonLabel}

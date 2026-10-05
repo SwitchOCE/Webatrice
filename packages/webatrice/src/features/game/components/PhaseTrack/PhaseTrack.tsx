@@ -21,6 +21,7 @@ import { usePhaseTrackPinned } from '@app/hooks';
 
 import { useGameId } from '../ui/GameIdContext';
 
+import { GAME_FOCUS_RING } from '../ui/focusRing';
 import { usePhaseBar } from './usePhaseBar';
 
 /**
@@ -240,6 +241,7 @@ export default function PhaseTrack() {
               title={canAdvancePhase ? t(`PhaseTrack.title.${phaseKey}`) : t('PhaseTrack.activePlayerOnly')}
               className={[
                 'relative overflow-hidden w-full h-full board-motion transition-all duration-200',
+                GAME_FOCUS_RING,
                 expanded
                   ? 'rounded-md flex flex-col items-center justify-center gap-1 px-1 py-1'
                   : 'rounded-sm',
@@ -283,6 +285,7 @@ export default function PhaseTrack() {
         title={t('PhaseTrack.passTitle')}
         className={[
           'relative shrink-0 overflow-hidden w-full board-motion transition-all duration-200',
+          GAME_FOCUS_RING,
           'bg-accent-secondary hover:bg-accent-secondary/90 text-white',
           'aria-disabled:opacity-50 aria-disabled:cursor-not-allowed',
           expanded

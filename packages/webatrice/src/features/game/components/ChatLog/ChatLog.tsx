@@ -15,6 +15,7 @@ import { useCardPreviewActions } from '../ui/CardPreviewContext';
 
 import { gameChatContext } from './gameChatContext';
 import { logRowKey } from './logRowKey';
+import { GAME_FOCUS_RING } from '../ui/focusRing';
 import { formatElapsed, useGameLog } from './useGameLog';
 
 // Per-tone styling for event log lines. Cockatrice desktop uses a fixed
@@ -288,6 +289,7 @@ function ChatLogView() {
             className={[
               'w-full bg-bg-base border border-border-subtle rounded-md px-3 py-1.5 text-xs',
               'text-text-primary placeholder:text-text-muted focus:outline-none',
+              GAME_FOCUS_RING,
               'focus:border-accent disabled:opacity-50 disabled:cursor-not-allowed board-motion transition-colors',
             ].join(' ')}
           />

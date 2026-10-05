@@ -10,6 +10,7 @@ import ValueFlashOverlay from '../../ui/ValueFlash/ValueFlashOverlay';
 import ZoneBackground from '../../ui/ZoneBackground/ZoneBackground';
 import ZoneStack from '../../ui/ZoneStack/ZoneStack';
 import { MANA_COLORS } from './manaColors';
+import { GAME_FOCUS_RING } from '../../ui/focusRing';
 import { OVER_ART_ICON_SHADOW, OVER_ART_SHADOW_LIFE, OVER_ART_SHADOW_NAME, OVER_ART_SHADOW_PIP } from '../../ui/seatColors/seatColors';
 
 /** The step an arrow key asks a counter for: ↑ adds one and ↓ removes one, as a spin box does. */
@@ -57,7 +58,7 @@ function ManaPip({
   // fits inside the compact info column without widening it.
   return (
     <div
-      className="relative"
+      className={['relative rounded-full', clickable ? GAME_FOCUS_RING : ''].join(' ')}
       style={{
         width: '2em',
         height: '2em',
@@ -226,6 +227,7 @@ export default function PlayerInfoPanel() {
         }
         className={[
           'relative flex flex-col rounded-md overflow-hidden',
+          isSelf ? GAME_FOCUS_RING : '',
           isSelf ? 'cursor-pointer select-none' : '',
         ].join(' ')}
         style={{
