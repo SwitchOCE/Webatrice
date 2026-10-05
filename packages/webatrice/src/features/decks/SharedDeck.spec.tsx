@@ -84,6 +84,20 @@ describe('SharedDeck', () => {
     expect(webClient.request.session.deckUpload).toHaveBeenCalledWith('', 0, COD, undefined, 'R');
   });
 
+  it('disables every Open button while a download is pending', () => {
+    const { store } = renderPage();
+    act(() => {
+      store.dispatch(server.Actions.deckShareListed({ token: 'tok', share: create(Response_DeckShareListSchema, {
+        items: [1, 2].map(id => create(ServerInfo_DeckShareItemSchema, { id, name: `Deck ${id}` })),
+      }) }));
+    });
+    const buttons = screen.getAllByRole('button', { name: 'SharedDeck.openDeckNamed' });
+    fireEvent.click(buttons[0]);
+    for (const button of buttons) {
+      expect(button).toBeDisabled();
+    }
+  });
+
   it.each([
     'wss://server.example:5748/',
     'wss://server.example:4748/server-b',

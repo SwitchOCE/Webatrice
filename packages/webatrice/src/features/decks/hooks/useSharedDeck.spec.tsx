@@ -99,10 +99,38 @@ describe('useSharedDeck', () => {
     ['<not a deck/>', 'SharedDeck.unreadable'],
   ])('reports a download of %j as %s', (deck, message) => {
     const { store } = setupShared();
+    act(() => shared.openItem(2));
     act(() => {
       store.dispatch(server.Actions.deckShareDownloaded({ token: 'tok', itemId: 2, deck }));
     });
     expect(shared.open).toEqual({ status: 'failed', id: 2, message });
+  });
+
+  it('serializes downloads so a failure belongs to the first requested item', () => {
+    const { webClient, store } = setupShared();
+    act(() => {
+      shared.openItem(1);
+      shared.openItem(2);
+    });
+    expect(webClient.request.session.deckShareDownload).toHaveBeenCalledTimes(1);
+    act(() => {
+      store.dispatch(server.Actions.sessionCommandFailed({ command: 'deckShareDownload', target: 'tok', responseCode: 7 }));
+    });
+    expect(shared.open).toMatchObject({ status: 'failed', id: 1 });
+    act(() => shared.openItem(2));
+    expect(webClient.request.session.deckShareDownload).toHaveBeenLastCalledWith('tok', 2);
+  });
+
+  it.each(['success', 'failure'] as const)('ignores a late %s after closing a download', (outcome) => {
+    const { store } = setupShared();
+    act(() => shared.openItem(1));
+    act(() => shared.close());
+    act(() => {
+      store.dispatch(outcome === 'success'
+        ? server.Actions.deckShareDownloaded({ token: 'tok', itemId: 1, deck: COD })
+        : server.Actions.sessionCommandFailed({ command: 'deckShareDownload', target: 'tok', responseCode: 7 }));
+    });
+    expect(shared.open).toEqual({ status: 'idle' });
   });
 
   it('reports a failed download for the item it asked for', () => {
