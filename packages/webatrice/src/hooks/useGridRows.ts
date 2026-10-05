@@ -39,9 +39,11 @@ export interface GridRowsOptions {
   /**
    * Lists whose rows can leave while focused (a card played out of a hand):
    * focus moves on to the row that takes the removed row's place, or the one
-   * before it at the end, instead of dropping to the page.
+   * before it at the end, instead of dropping to the page. A function also
+   * says where focus goes when the last row leaves: it gets the removed row,
+   * still in the document.
    */
-  keepFocusOnRemoval?: boolean;
+  keepFocusOnRemoval?: boolean | ((removed: HTMLElement) => HTMLElement | null | undefined);
 }
 
 /** The window a virtualized list renders, as react-window's `onRowsRendered` reports it. */
@@ -156,7 +158,11 @@ export function useGridRows({
   // A focused row whose ref detached, and the rows that would take its place.
   // React detaches and reattaches every row's ref on a re-render too, so the
   // row only left if its element is out of the document once the commit is done.
-  const detachedFocus = useRef<{ element: HTMLElement; successors: readonly string[] } | null>(null);
+  const detachedFocus = useRef<{
+    element: HTMLElement;
+    successors: readonly string[];
+    fallback: HTMLElement | null | undefined;
+  } | null>(null);
   useLayoutEffect(() => {
     const detached = detachedFocus.current;
     detachedFocus.current = null;
@@ -164,6 +170,8 @@ export function useGridRows({
       const successor = detached.successors.find((k) => elements.current.has(k));
       if (successor != null) {
         requestFocus(successor);
+      } else if (detached.fallback?.isConnected) {
+        detached.fallback.focus();
       }
     }
   });
@@ -194,6 +202,7 @@ export function useGridRows({
         detachedFocus.current = {
           element: removed,
           successors: [...keys.slice(index + 1), ...keys.slice(0, index).reverse()],
+          fallback: typeof keepFocusOnRemoval === 'function' ? keepFocusOnRemoval(removed) : null,
         };
       }
     },
