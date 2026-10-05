@@ -2,7 +2,7 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import type { MoveCardParams } from '@cockatrice/sockatrice/generated';
 
 import type { Coordinates, PointerGestureData } from './gamePointerSensor';
-import { planHandReorder } from './handReorder';
+import { planHandReorder, planPositionalReorder } from './handReorder';
 
 /**
  * Drag data, drop targets and the drop → Command_MoveCard plan for the seat
@@ -167,7 +167,13 @@ export function intendedBattlefieldSlots(
  * position, so their ids go on the wire as-is (a pile drag's non-numeric id
  * means the top card, 0).
  */
-export function planSeatMove(source: SeatDragSource, target: SeatDropTarget): MoveCardParams[] {
+export interface SeatMoveOptions {
+  /** The local user judges the game: Servatrice lets a judge move any
+   *  player's cards anywhere (server_abstract_player.cpp:788, 801). */
+  judge?: boolean;
+}
+
+export function planSeatMove(source: SeatDragSource, target: SeatDropTarget, options: SeatMoveOptions = {}): MoveCardParams[] {
   const seat = source.seatPlayerId;
   // Desktop moves a card out of its own zone (TableZone::handleDropEventByGrid
   // takes the start player from the card's zone), so a card attached across
@@ -176,8 +182,12 @@ export function planSeatMove(source: SeatDragSource, target: SeatDropTarget): Mo
   if (source.cards.length === 0) {
     return [];
   }
-  // Desktop only drags a lent zone's cards onto a table.
-  if (source.lenderPlayerId != null && target.zone !== 'battlefield') {
+  // Desktop only drags a lent zone's cards onto a table, and Servatrice only
+  // takes them onto the borrower's own: a move whose start and target players
+  // both differ from the sender is refused, unless the sender judges
+  // (server_abstract_player.cpp:801).
+  if (source.lenderPlayerId != null
+    && (target.zone !== 'battlefield' || (target.playerId !== seat && !options.judge))) {
     return [];
   }
 
@@ -222,9 +232,29 @@ export function planSeatMove(source: SeatDragSource, target: SeatDropTarget): Mo
     });
   }
 
-  const libraryReorder = source.zone === 'library' && target.zone === 'library' && target.position !== undefined;
+  // A move within the library goes one card at a time, as a hand reorder
+  // does, so a group lands together and in order: Servatrice moves a
+  // multi-card command card by card. Positions are counted among the cards
+  // not moved, and each command addresses its card where it then is.
+  if (source.zone === 'library' && target.zone === 'library' && target.position !== undefined) {
+    const positions = source.cards.map((card) => Number(card.id));
+    if (positions.some((p) => !Number.isFinite(p))) {
+      return [];
+    }
+    return planPositionalReorder(positions, target.position).map(({ cardId, x }) => ({
+      startPlayerId: owner,
+      startZone: ZoneName.DECK,
+      cardsToMove: { card: [{ cardId }] },
+      targetPlayerId: owner,
+      targetZone: ZoneName.DECK,
+      x,
+      y: 0,
+      isReversed: false,
+    } as MoveCardParams));
+  }
+
   const reorderable = target.zone === 'hand' || target.zone === 'battlefield';
-  if (target.zone === source.zone && !reorderable && !libraryReorder) {
+  if (target.zone === source.zone && !reorderable) {
     return [];
   }
 

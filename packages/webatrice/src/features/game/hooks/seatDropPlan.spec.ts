@@ -141,6 +141,55 @@ describe('planSeatMove', () => {
       expect.objectContaining({ startPlayerId: 2, startZone: ZoneName.DECK, cardsToMove: { card: [{ cardId: 3 }] }, targetPlayerId: 1 }),
     ]);
   });
+
+  it('lands a lent card only on the borrower\'s battlefield, unless a judge moves it (cmdMoveCard)', () => {
+    // Servatrice refuses a move whose start and target players both differ
+    // from the sender, unless the sender judges (server_abstract_player.cpp:801).
+    const lent = source({ zone: 'library', lenderPlayerId: 2, cards: [{ id: '3' }] });
+    expect(planSeatMove(lent, battlefield(2))).toEqual([]);
+    expect(planSeatMove(lent, battlefield(3))).toEqual([]);
+    expect(planSeatMove(lent, battlefield(3), { judge: true })).toEqual([
+      expect.objectContaining({ startPlayerId: 2, targetPlayerId: 3, targetZone: ZoneName.TABLE }),
+    ]);
+  });
+
+  describe('a move within the library', () => {
+    // Servatrice removes and inserts the cards of one command one at a time,
+    // in position order (server_abstract_player.cpp:332, processMoveCard), and
+    // a hidden zone addresses a card by its current position. Replaying the
+    // commands on a library shows where the cards land.
+    const replay = (library: string[], plan: ReturnType<typeof planSeatMove>) => {
+      const order = library.slice();
+      for (const params of plan) {
+        // The command's cards are looked up by position first, then each is
+        // removed and inserted at x + k in position order.
+        const cards = params.cardsToMove!.card!.map((card) => card.cardId!).sort((a, b) => a - b).map((p) => order[p]);
+        cards.forEach((card, k) => {
+          order.splice(order.indexOf(card), 1);
+          order.splice(params.x! + k, 0, card);
+        });
+      }
+      return order;
+    };
+    const libraryMove = (positions: number[], position: number) => planSeatMove(
+      source({ zone: 'library', cards: positions.map((p) => ({ id: String(p) })) }),
+      { zone: 'library', position },
+    );
+
+    it('keeps an adjacent group together and in order at the chosen place', () => {
+      expect(replay(['A', 'B', 'C', 'D'], libraryMove([0, 1], 2))).toEqual(['C', 'D', 'A', 'B']);
+      expect(replay(['A', 'B', 'C', 'D'], libraryMove([2, 3], 0))).toEqual(['C', 'D', 'A', 'B']);
+    });
+
+    it('gathers a group with gaps at the chosen place, in its order', () => {
+      expect(replay(['A', 'B', 'C', 'D', 'E'], libraryMove([0, 2], 2))).toEqual(['B', 'D', 'A', 'C', 'E']);
+      expect(replay(['A', 'B', 'C', 'D', 'E'], libraryMove([1, 4], 0))).toEqual(['B', 'E', 'A', 'C', 'D']);
+    });
+
+    it('moves one card with one command to the position chosen, as before', () => {
+      expect(libraryMove([0], 2)).toEqual([expect.objectContaining({ cardsToMove: { card: [{ cardId: 0 }] }, x: 2 })]);
+    });
+  });
 });
 
 describe('intendedBattlefieldSlots', () => {

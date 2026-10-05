@@ -79,7 +79,10 @@ describe('useGameDnd', () => {
       },
     });
 
-    function setupSeat({ judgeTarget = () => undefined }: { judgeTarget?: (owner: number) => number | undefined } = {}) {
+    function setupSeat({ judgeTarget = () => undefined, isJudge = false }: {
+      judgeTarget?: (owner: number) => number | undefined;
+      isJudge?: boolean;
+    } = {}) {
       mockUseWebClient.mockReturnValue(makeWebClient());
       const moveCard = vi.fn();
       const clearSelection = vi.fn();
@@ -87,6 +90,7 @@ describe('useGameDnd', () => {
         useGameDnd({
           gameId: 42,
           judgeTarget,
+          isJudge,
           cancelPendingArrow: vi.fn(),
           clearSelection,
           moveCard,
@@ -156,6 +160,24 @@ describe('useGameDnd', () => {
       );
       expect(moveCard).toHaveBeenCalledTimes(1);
       expect(moveCard).toHaveBeenCalledWith(expect.objectContaining({ startPlayerId: 2, startZone: ZoneName.DECK }));
+    });
+
+    it('drops a lent card only on the borrower’s battlefield, unless the mover is a judge', () => {
+      const lent = seatSource({ seatPlayerId: 1, zone: 'library', lenderPlayerId: 2, cards: [{ id: '0' }] });
+      const lenderBoard = seatZone('board', 50, {
+        seatPlayerId: 2,
+        resolve: () => ({ zone: 'battlefield', playerId: 2, slot: { row: 0, col: 0 }, grid: { rows: 3, cols: 5 } }),
+      });
+
+      const player = setupSeat();
+      player.result.current.handleDragEnd(seatDrop(lent, lenderBoard));
+      expect(player.moveCard).not.toHaveBeenCalled();
+
+      const judge = setupSeat({ isJudge: true });
+      judge.result.current.handleDragEnd(seatDrop(lent, lenderBoard));
+      expect(judge.moveCard).toHaveBeenCalledWith(
+        expect.objectContaining({ startPlayerId: 2, startZone: ZoneName.DECK, targetPlayerId: 2, targetZone: ZoneName.TABLE }),
+      );
     });
 
     it('sends nothing for a drop outside every seat zone', () => {
