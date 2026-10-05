@@ -306,3 +306,24 @@ describe('incomingRevealTitle', () => {
     expect(incomingRevealTitle(germanT, undefined, ZoneName.DECK)).toBe('Jemand zeigt die Bibliothek');
   });
 });
+
+describe('a lent zone from the keyboard', () => {
+  it('moves a lent card onto a battlefield through the keyboard move, as its drag does', () => {
+    const { game } = renderReveal({ grantWriteAccess: true });
+    const island = screen.getByRole('button', { name: 'Move Island to a battlefield' });
+    act(() => island.focus());
+    act(() => {
+      fireEvent.keyDown(island, { key: 'Enter' });
+    });
+    const dialog = screen.getByRole('dialog', { name: 'Move Island' });
+    const to = within(dialog).getByLabelText('To') as HTMLSelectElement;
+    expect([...to.options].map((o) => o.value)).toEqual(['battlefield:1', 'battlefield:2']);
+    act(() => {
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Move' }));
+    });
+    expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
+      startPlayerId: 2, startZone: ZoneName.DECK, cardsToMove: { card: [{ cardId: 0 }] },
+      targetPlayerId: 1, targetZone: ZoneName.TABLE,
+    });
+  });
+});

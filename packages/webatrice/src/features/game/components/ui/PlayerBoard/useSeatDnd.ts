@@ -1,7 +1,7 @@
 import type { RefObject } from 'react';
 import { useForkRef } from '@mui/material/utils';
 
-import { SEAT_DROP_PRIORITY, type SeatZone } from '../../../hooks/seatDropPlan';
+import { SEAT_DROP_PRIORITY, type SeatDragSource, type SeatZone } from '../../../hooks/seatDropPlan';
 import type { SeatSelection, SeatSelectionApi } from '../../../hooks/useSeatSelection';
 import { layoutVerticalPile, verticalPileDropIndex, type VerticalPileOptions } from '../VerticalPile/verticalPile';
 import { useCanActFor } from '../CardVisualStateContext';
@@ -204,11 +204,23 @@ export function useSeatDnd({
     exile: exileDragSource,
   };
 
-  // A press on a card in the selection drags the whole selection, in display
-  // order; anything else drags just the card (the selection is only touched
-  // once the gesture ends). Both seats take part: clicking selects on any
-  // battlefield. A click on a single card goes to releaseCardPress; one on a
-  // card of a group only goes on to onCardClick.
+  // The cards a move of `card` takes: the whole selection when the card is
+  // in it, in display order, else the card alone. Only the selected cards in
+  // the card's own zone come along (desktop CardItem::mouseMoveEvent): a card
+  // attached across seats lives in its owner's TABLE, not this seat's.
+  const movedGroup = (card: HandCard, zone: Selection['zone'], zoneCards: readonly HandCard[]): readonly HandCard[] | null => {
+    if (!selection || selection.zone !== zone || !selection.ids.has(card.id)) {
+      return null;
+    }
+    const ownerOf = (c: HandCard) => c.ownerPlayerId ?? seatId;
+    return zoneCards.filter((c) => selection.ids.has(c.id) && ownerOf(c) === ownerOf(card));
+  };
+
+  // A press on a card in the selection drags the whole selection; anything
+  // else drags just the card (the selection is only touched once the gesture
+  // ends). Both seats take part: clicking selects on any battlefield. A click
+  // on a single card goes to releaseCardPress; one on a card of a group only
+  // goes on to onCardClick.
   const startSeatCardDrag = (
     e: React.PointerEvent<HTMLElement>,
     card: HandCard,
@@ -219,12 +231,8 @@ export function useSeatDnd({
     if (!start) {
       return;
     }
-    if (selection && selection.zone === zone && selection.ids.has(card.id)) {
-      // Only the selected cards in the pressed card's own zone come along
-      // (desktop CardItem::mouseMoveEvent): a card attached across seats
-      // lives in its owner's TABLE, not this seat's.
-      const ownerOf = (c: HandCard) => c.ownerPlayerId ?? seatId;
-      const group = zoneCards.filter((c) => selection.ids.has(c.id) && ownerOf(c) === ownerOf(card));
+    const group = movedGroup(card, zone, zoneCards);
+    if (group && selection) {
       // A click on one card of a group keeps the group selected.
       start(e, withPrintedPT(group, zone), group.length === 1
         ? (up) => releaseCardPress(zone, card, up)
@@ -232,6 +240,16 @@ export function useSeatDnd({
     } else {
       start(e, withPrintedPT([card], zone), (up) => releaseCardPress(zone, card, up));
     }
+  };
+
+  /** What a drag of `card` would carry, for the keyboard move; null when the
+   *  user may not move these cards (as a press on them never drags). */
+  const keyboardMoveSource = (card: HandCard, zone: Selection['zone'], zoneCards: readonly HandCard[]): SeatDragSource | null => {
+    const cards = withPrintedPT(movedGroup(card, zone, zoneCards) ?? [card], zone);
+    if (!cards.every((c) => canActFor(c.ownerPlayerId ?? seatId))) {
+      return null;
+    }
+    return { kind: 'seat', seatPlayerId: seatId, zone, cards };
   };
 
   const stackDropRef = useSeatDropZone(`seat-${seatId}-stack`, {
@@ -297,6 +315,7 @@ export function useSeatDnd({
     startPileDrag,
     isDragging,
     startSeatCardDrag,
+    keyboardMoveSource,
     stackZoneRef,
     handZoneRef,
     libraryZoneRef,

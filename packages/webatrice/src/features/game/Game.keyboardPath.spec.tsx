@@ -5,7 +5,7 @@
 // here), so this spec replaces the keyboard-sensor suite origin/master skipped.
 // Assertions are on the wire, through <Game /> with the real seat ports.
 
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 import { games } from '@cockatrice/datatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
@@ -342,5 +342,77 @@ describe('piles from the keyboard (G5)', () => {
     key(duress, { key: 'Escape' });
     expect(screen.queryByRole('option', { name: 'Duress' })).not.toBeInTheDocument();
     expect(grave).toHaveFocus();
+  });
+});
+
+describe('moving cards from the keyboard (M, aud.md G3)', () => {
+  const moveDialog = () => screen.getByRole('dialog', { name: /^Move / });
+  const choose = (label: string, value: string) => {
+    act(() => {
+      fireEvent.change(within(moveDialog()).getByLabelText(label), { target: { value } });
+    });
+  };
+  const optionValue = (label: string, option: string) => {
+    const select = within(moveDialog()).getByLabelText(label) as HTMLSelectElement;
+    return [...select.options].find((o) => o.textContent === option)!.value;
+  };
+  const submit = () => {
+    act(() => {
+      fireEvent.click(within(moveDialog()).getByRole('button', { name: 'Move' }));
+    });
+  };
+
+  it('puts a hand card on another player\'s battlefield, at the row and column chosen', () => {
+    const game = renderGame();
+    const forest = cardEl(FOREST.id, 'hand');
+    focus(forest);
+    key(forest, { key: 'm' });
+    expect(moveDialog()).toHaveAccessibleName('Move Forest');
+    expect(within(moveDialog()).getByLabelText('To')).toHaveFocus();
+    choose('To', optionValue('To', 'Bob\'s battlefield'));
+    choose('Row', optionValue('Row', 'Creatures row'));
+    choose('Column (1 to 1; 1 starts a new one)', '1');
+    submit();
+    expect(game.moveCard).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
+      startPlayerId: 1, startZone: ZoneName.HAND, cardsToMove: { card: [{ cardId: FOREST.id }] },
+      targetPlayerId: 2, targetZone: ZoneName.TABLE, x: 0, y: 1,
+    });
+    expect(screen.queryByRole('dialog', { name: /^Move / })).not.toBeInTheDocument();
+  });
+
+  it('inserts a battlefield card into the hand at the position chosen, and keeps focus on the board', () => {
+    const game = renderGame();
+    const ogre = cardEl(OGRE.id, 'battlefield');
+    focus(ogre);
+    key(ogre, { key: 'm' });
+    choose('To', 'hand');
+    choose('Position (1 to 3; 3 is the end)', '1');
+    submit();
+    expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
+      startZone: ZoneName.TABLE, cardsToMove: { card: [{ cardId: OGRE.id }] }, targetZone: ZoneName.HAND, x: 0,
+    });
+    expect(document.activeElement?.getAttribute('role')).toBe('option');
+  });
+
+  it('cancels on Escape, sends nothing and hands focus back to the card', () => {
+    const game = renderGame();
+    const ogre = cardEl(OGRE.id, 'battlefield');
+    focus(ogre);
+    key(ogre, { key: 'm' });
+    act(() => {
+      fireEvent.keyDown(within(moveDialog()).getByLabelText('To'), { key: 'Escape' });
+    });
+    expect(screen.queryByRole('dialog', { name: /^Move / })).not.toBeInTheDocument();
+    expect(game.moveCard).not.toHaveBeenCalled();
+    expect(ogre).toHaveFocus();
+  });
+
+  it('opens nothing on a card the player may not move', () => {
+    renderGame();
+    const bear = cardEl(BEAR.id, 'battlefield');
+    focus(bear);
+    key(bear, { key: 'm' });
+    expect(screen.queryByRole('dialog', { name: /^Move / })).not.toBeInTheDocument();
   });
 });

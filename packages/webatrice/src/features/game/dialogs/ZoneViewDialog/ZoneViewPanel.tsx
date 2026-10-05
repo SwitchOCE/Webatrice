@@ -97,6 +97,8 @@ type Props = {
   /** Enter on a focused card, on its element: the game's pending arrow pick
    *  takes it, as a click would. */
   onCardActivate?: (card: HandCard, element: HTMLElement) => void;
+  /** M on a focused card: the keyboard move (MoveCardsDialog). */
+  onCardMove?: (card: HandCard) => void;
   /** Escape first offers itself here: true when it cancelled something (a
    *  pending target pick), which keeps the view open. */
   onEscapeCancel?: () => boolean;
@@ -128,6 +130,7 @@ export default function ZoneViewPanel({
   onCardContextMenu,
   onCardActivate,
   onEscapeCancel,
+  onCardMove,
   draggingCardIds,
   dropRef,
   selectedIds,
@@ -306,6 +309,7 @@ export default function ZoneViewPanel({
     selectedIds,
     onSelectIds: onSelectedIdsChange,
     onActivate: onCardActivate,
+    onMove: onCardMove,
     onOpenMenu: (card, rect) => onCardContextMenu?.({ x: rect.left, y: rect.bottom }, card, scopeOf(card.id)),
   });
 
