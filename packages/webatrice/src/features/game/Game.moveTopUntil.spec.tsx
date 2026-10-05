@@ -136,9 +136,8 @@ describe('put top cards on stack until', () => {
 
     lands(store, 101, 'Bolt');
 
-    // x = -3: "any free column" (-1) through resolveBattlefieldDropX, the
-    // finding Game.menuMoves.spec pins.
-    expect(moves(game)).toEqual([REVEAL, [ZoneName.STACK, [101], ZoneName.TABLE, -3]]);
+    // x = -1: the server picks the column (server_cardzone.cpp:192-235).
+    expect(moves(game)).toEqual([REVEAL, [ZoneName.STACK, [101], ZoneName.TABLE, -1]]);
   });
 
   it('stops when the library runs out', () => {

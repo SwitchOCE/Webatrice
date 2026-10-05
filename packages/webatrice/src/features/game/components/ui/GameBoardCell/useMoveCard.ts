@@ -18,9 +18,17 @@ import { useAppDispatch, type RootState } from '@app/store';
  * full it keeps `column * 3` so the wire stays legal and the listener's
  * field-patch fallback picks up whatever Servatrice decided. Cards being moved
  * within the same TABLE don't count as occupying their old slot.
+ *
+ * A negative x is not a column but a request for the server to place the
+ * card, and goes out unchanged: desktop sends -1 to put a card in the row's
+ * first free column, on a pile of same-named cards when there is one
+ * (Server_CardZone::getFreeGridColumn, server_cardzone.cpp:192-235).
  */
 export function resolveBattlefieldDropX(params: MoveCardParams, targetBattlefield: ZoneEntry): number {
   const x = params.x ?? 0;
+  if (x < 0) {
+    return x;
+  }
   const requestedCol = Math.floor(x / 3);
   const row = params.y;
   const excludeIds = new Set((params.cardsToMove?.card ?? []).map((c) => c.cardId));
