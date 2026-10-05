@@ -63,7 +63,7 @@ function DeckZoneColumn({ zone, view, editable, onMoveCard }: DeckZoneColumnProp
                 title={editable ? moveLabel : undefined}
                 className={[
                   'group w-full flex items-center gap-2 px-3 py-1.5 text-left text-sm text-text-primary',
-                  'enabled:hover:bg-bg-elevated disabled:cursor-default transition-colors',
+                  'enabled:hover:bg-bg-elevated disabled:cursor-default board-motion transition-colors',
                 ].join(' ')}
               >
                 <span className="w-6 shrink-0 text-right tabular-nums text-text-muted">{count}</span>

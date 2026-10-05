@@ -63,12 +63,6 @@ function measureCardView(dialog: HTMLElement, content: HTMLElement): { chrome: n
   };
 }
 
-/** The height the view's cards take, without the card area's padding; 0 before layout. */
-function contentsHeight(content: HTMLElement): number {
-  const style = window.getComputedStyle(content);
-  return content.scrollHeight - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0);
-}
-
 function readStoredPosition(): { x: number; y: number } | null {
   if (typeof window === 'undefined') {
     return null;
@@ -364,6 +358,8 @@ export default function ZoneViewPanel({
   // measured its size).
   const dialogRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  // The scroll viewport fills the dialog; only this inner group has the cards' intrinsic height.
+  const cardsRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const dragOffset = useRef<{ x: number; y: number } | null>(null);
   // Only true after the user has actively grabbed the header at least
@@ -391,7 +387,7 @@ export default function ZoneViewPanel({
       // by hand, stored above, wins.
       const { chrome, cardHeightPx } = measureCardView(el, contentRef.current);
       // As on desktop, no taller than the cards need (unknown, 0, before layout).
-      const cardsHeight = contentsHeight(contentRef.current);
+      const cardsHeight = cardsRef.current?.scrollHeight ?? 0;
       const rowsHeight = cardViewRowsHeight(cardViewInitialRowsMax, cardHeightPx);
       const height = chrome + (cardsHeight > 0 ? Math.min(rowsHeight, cardsHeight) : rowsHeight);
       el.style.height = `${Math.round(clampSizeToViewport({ w: el.getBoundingClientRect().width, h: height }).h)}px`;
@@ -415,7 +411,7 @@ export default function ZoneViewPanel({
       return;
     }
     const { chrome, area, cardHeightPx } = measureCardView(el, content);
-    const cardsHeight = contentsHeight(content);
+    const cardsHeight = cardsRef.current?.scrollHeight ?? 0;
     const initial = cardViewRowsHeight(cardViewInitialRowsMax, cardHeightPx);
     const maxHeight = Math.min(window.innerHeight - chrome, cardsHeight > 0 ? cardsHeight : Infinity);
     const next = toggledCardViewHeight(area, {
@@ -850,13 +846,13 @@ export default function ZoneViewPanel({
               aria-pressed={expanded}
               aria-label={t('ZoneViewPanel.expand')}
               title={t('ZoneViewPanel.expand')}
-              className="p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary transition-colors"
+              className="p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary board-motion transition-colors"
             >
               {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
             <button
               onClick={() => onClose(showShuffleOnClose && shuffleOnClose)}
-              className="p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary transition-colors"
+              className="p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary board-motion transition-colors"
               title="Close"
             >
               <X size={18} />
@@ -938,7 +934,7 @@ export default function ZoneViewPanel({
             // (one column per group), flat-view lays them out in a wrapping
             // grid within each group. Cockatrice's pile-view checkbox
             // toggles between these (view_zone_widget.cpp:64 + 197).
-            <div className={pileView && groupBy !== 'none' ? 'flex gap-3 items-start' : 'flex flex-col gap-6'}>
+            <div ref={cardsRef} className={pileView && groupBy !== 'none' ? 'flex gap-3 items-start' : 'flex flex-col gap-6'}>
               {groups.map((g) => (
                 <div
                   key={g.key}
@@ -1055,7 +1051,7 @@ export default function ZoneViewPanel({
                             <div
                               className={[
                                 'absolute left-0 top-0 pointer-events-none',
-                                'transition-transform duration-150 ease-out group-hover:scale-[1.06]',
+                                'board-motion transition-transform duration-150 ease-out group-hover:scale-[var(--card-hover-scale,1.1)]',
                               ].join(' ')}
                               style={{
                                 width: CARD_WIDTH,

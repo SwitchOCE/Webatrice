@@ -69,7 +69,7 @@ export default function InviteToGameDialog({ isOpen, onlyBuddies, excludeNames, 
           onClick={() => setSelected(row.name)}
           onDoubleClick={() => invite(row.name)}
           className={[
-            'w-full h-full px-3 text-left text-sm truncate transition-colors',
+            'w-full h-full px-3 text-left text-sm truncate board-motion transition-colors',
             isSelected ? 'bg-accent/25 text-text-primary' : 'text-text-primary hover:bg-bg-elevated',
           ].join(' ')}
         >
@@ -110,7 +110,7 @@ export default function InviteToGameDialog({ isOpen, onlyBuddies, excludeNames, 
             onClick={() => selectedName && invite(selectedName)}
             className={[
               'px-4 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover',
-              'disabled:opacity-50 disabled:cursor-not-allowed transition-colors',
+              'disabled:opacity-50 disabled:cursor-not-allowed board-motion transition-colors',
             ].join(' ')}
           >
             {t('GameInvite.dialog.invite')}

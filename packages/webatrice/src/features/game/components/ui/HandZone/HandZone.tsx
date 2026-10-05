@@ -152,7 +152,7 @@ export default function HandZone() {
           'absolute top-1 left-1 z-40 flex items-center justify-center '
           + 'h-14 w-14 rounded bg-bg-surface/80 hover:bg-bg-elevated '
           + 'border border-border-subtle text-text-primary '
-          + 'shadow transition-colors cursor-default'
+          + 'shadow board-motion transition-colors cursor-default'
         }
         title={`Hand — ${handSize} card${handSize === 1 ? '' : 's'}`}
         onContextMenu={(e) => {

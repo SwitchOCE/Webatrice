@@ -199,7 +199,7 @@ function PlayerList() {
                 });
               }}
               className={[
-                'flex items-center gap-2 px-3 py-2 transition-colors cursor-default',
+                'flex items-center gap-2 px-3 py-2 board-motion transition-colors cursor-default',
                 isActive ? 'bg-accent/10' : 'hover:bg-bg-elevated',
               ].join(' ')}
             >

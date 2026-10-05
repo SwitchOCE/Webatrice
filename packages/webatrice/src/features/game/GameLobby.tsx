@@ -400,7 +400,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
         <AuthGuard />
         <div className="h-full flex items-center justify-center bg-bg-base bg-purple-radial">
           <div className="flex items-center gap-2 text-sm text-text-muted">
-            <Loader2 size={16} className="animate-spin text-accent" /> Loading game…
+            <Loader2 size={16} className="board-motion animate-spin text-accent" /> Loading game…
           </div>
         </div>
       </Layout>
@@ -501,12 +501,12 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                     >
                       <Library size={13} /> From My Decks
                       {stillLoadingFormats && myDecks.length > 0 && (
-                        <Loader2 size={11} className="animate-spin text-text-muted ml-auto" />
+                        <Loader2 size={11} className="board-motion animate-spin text-text-muted ml-auto" />
                       )}
                     </div>
                     {!backendDecks ? (
                       <div className="px-4 py-6 flex items-center gap-2 text-sm text-text-muted justify-center">
-                        <Loader2 size={14} className="animate-spin" /> Loading your decks…
+                        <Loader2 size={14} className="board-motion animate-spin" /> Loading your decks…
                       </div>
                     ) : myDecks.length === 0 ? (
                       <div className="px-4 py-6 text-sm text-text-muted italic text-center">
@@ -536,7 +536,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                                         onClick={() => handleSelectDeck(deck.id)}
                                         className={[
                                           'w-full flex items-center gap-2 px-4 py-2',
-                                          'hover:bg-bg-elevated text-sm text-text-primary transition-colors text-left',
+                                          'hover:bg-bg-elevated text-sm text-text-primary board-motion transition-colors text-left',
                                         ].join(' ')}
                                       >
                                         <span className="flex-1 min-w-0 truncate">{deck.name}</span>
@@ -574,7 +574,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                       className={[
                         'w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5',
                         'rounded-md border border-border-strong bg-bg-elevated',
-                        'hover:bg-border-subtle text-text-primary text-sm font-medium transition-colors',
+                        'hover:bg-border-subtle text-text-primary text-sm font-medium board-motion transition-colors',
                       ].join(' ')}
                     >
                       <Upload size={13} /> Choose .cod file
@@ -655,7 +655,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                     onClick={() => leaveGame(gameId)}
                     className={[
                       'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-text-secondary',
-                      'hover:text-danger hover:bg-red-500/10 border border-border-subtle transition-colors',
+                      'hover:text-danger hover:bg-red-500/10 border border-border-subtle board-motion transition-colors',
                     ].join(' ')}
                   >
                     <LogOut size={14} /> Leave game
@@ -674,7 +674,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                     className={[
                       'ml-4 flex items-center gap-1 px-3 py-1 rounded-md text-xs',
                       'font-medium text-text-secondary hover:text-danger',
-                      'hover:bg-red-500/10 border border-border-subtle transition-colors',
+                      'hover:bg-red-500/10 border border-border-subtle board-motion transition-colors',
                     ].join(' ')}
                   >
                     <LogOut size={12} /> Leave
@@ -708,7 +708,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
 }
 
 const LOBBY_BUTTON_CLASS = [
-  'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-colors',
+  'flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold board-motion transition-colors',
   'bg-bg-elevated hover:bg-border-subtle text-text-primary border-2 border-border-strong',
   'disabled:opacity-50 disabled:cursor-not-allowed',
 ].join(' ');
@@ -744,7 +744,7 @@ function PlayerRow({
   return (
     <div
       className={[
-        'flex items-center gap-4 px-4 py-3 rounded-lg border transition-colors',
+        'flex items-center gap-4 px-4 py-3 rounded-lg border board-motion transition-colors',
         ready
           ? 'bg-emerald-500/5 border-emerald-500/40'
           : 'bg-bg-surface border-border-subtle',
@@ -797,7 +797,7 @@ function PlayerRow({
           onClick={onKick}
           className={[
             'text-xs px-2 py-1 rounded text-text-muted hover:text-danger',
-            'hover:bg-red-500/10 border border-transparent hover:border-red-500/40 transition-colors',
+            'hover:bg-red-500/10 border border-transparent hover:border-red-500/40 board-motion transition-colors',
           ].join(' ')}
           title="Kick from game"
         >
