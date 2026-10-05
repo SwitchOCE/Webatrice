@@ -1,4 +1,8 @@
 import { useSyncExternalStore } from 'react';
+import { server } from '@cockatrice/datatrice';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
+
+import { useReduxEffect } from './useReduxEffect';
 
 /**
  * Desktop's admin safety lock (TabAdmin "Lock functions" / "Unlock functions").
@@ -9,7 +13,7 @@ import { useSyncExternalStore } from 'react';
  * talking as a spectator where the game forbids it (`TabSupervisor::getAdminLocked`,
  * user_context_menu.cpp, tab_game.cpp). Desktop opens the admin tab unlocked, so
  * the lock starts off. It lives outside React so the Administration page, the
- * context menus and the game read one value; it is per page load and never
+ * context menus and the game read one value; it resets at session teardown and is never
  * persisted, like desktop's.
  */
 let locked = false;
@@ -42,4 +46,13 @@ export function useAdminLocked(): boolean {
 /** Reactive read plus setter, for the Administration page's Lock / Unlock buttons. */
 export function useAdminLock(): [boolean, (next: boolean) => void] {
   return [useAdminLocked(), setAdminLocked];
+}
+
+/** Mounted by AppShell so teardown is observed even when Administration is closed. */
+export function useAdminLockSession(): void {
+  useReduxEffect<{ status?: { state: WebsocketTypes.StatusEnum } }>(({ type, payload }) => {
+    if (type === server.Types.CLEAR_STORE || payload.status?.state === WebsocketTypes.StatusEnum.DISCONNECTED) {
+      setAdminLocked(false);
+    }
+  }, [server.Types.CLEAR_STORE, server.Types.UPDATE_STATUS]);
 }
