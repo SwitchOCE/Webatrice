@@ -48,10 +48,17 @@ export function readZoneViewPreferences(storageKey: string): ZoneViewPreferences
   };
 }
 
-export function writeZoneViewPreferences(storageKey: string, prefs: ZoneViewPreferences): void {
-  write(`${storageKey}GroupBy`, prefs.groupBy);
-  write(`${storageKey}SortBy`, prefs.sortBy);
-  write(`${storageKey}PileView`, prefs.pileView ? '1' : '0');
+/** Persist only the supplied choices so other open views' saved choices are preserved. */
+export function writeZoneViewPreferences(storageKey: string, prefs: Partial<ZoneViewPreferences>): void {
+  if (prefs.groupBy !== undefined) {
+    write(`${storageKey}GroupBy`, prefs.groupBy);
+  }
+  if (prefs.sortBy !== undefined) {
+    write(`${storageKey}SortBy`, prefs.sortBy);
+  }
+  if (prefs.pileView !== undefined) {
+    write(`${storageKey}PileView`, prefs.pileView ? '1' : '0');
+  }
 }
 
 /**

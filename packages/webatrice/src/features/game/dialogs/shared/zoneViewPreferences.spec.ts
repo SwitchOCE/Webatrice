@@ -52,4 +52,20 @@ describe('zone view preferences', () => {
     expect(result.current).toMatchObject({ groupBy: 'none', sortBy: 'cmc', pileView: false });
     expect(readZoneViewPreferences(KEY)).toEqual({ groupBy: 'none', sortBy: 'cmc', pileView: false });
   });
+
+  it('preserves choices saved by another open view sharing the same prefix', () => {
+    const storageKey = 'webatrice.searchLibrary';
+    const { result: first } = renderHook(() => useZoneViewPreferences(storageKey));
+    const { result: second } = renderHook(() => useZoneViewPreferences(storageKey));
+
+    act(() => first.current.setSortBy('cmc'));
+    expect(window.localStorage.getItem(`${storageKey}SortBy`)).toBe('cmc');
+
+    act(() => second.current.setGroupBy('color'));
+    expect(window.localStorage.getItem(`${storageKey}SortBy`)).toBe('cmc');
+    expect(window.localStorage.getItem(`${storageKey}GroupBy`)).toBe('color');
+
+    act(() => first.current.setPileView(false));
+    expect(readZoneViewPreferences(storageKey)).toEqual({ groupBy: 'color', sortBy: 'cmc', pileView: false });
+  });
 });
