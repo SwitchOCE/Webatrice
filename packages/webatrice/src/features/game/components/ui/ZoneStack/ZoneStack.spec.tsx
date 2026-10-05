@@ -1,5 +1,6 @@
 import { act, fireEvent, screen } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
+import { testI18n } from '../../../../../__test-utils__/renderWithProviders';
 
 import {
   chooseMenuPath,
@@ -23,11 +24,34 @@ const SPEC: SeatGameSpec = {
 };
 
 describe('ZoneStack', () => {
+  it('updates the pile name and count when the UI language changes', async () => {
+    renderSeatCell(SPEC);
+    testI18n.addResourceBundle('fr', 'translation', {
+      ZoneStack: {
+        library: 'Bibliothèque',
+        pile: '{zone}, {count, plural, one {# carte} other {# cartes}}',
+      },
+    });
+    try {
+      await act(async () => {
+        await testI18n.changeLanguage('fr');
+      });
+      const library = screen.getByRole('button', { name: 'Bibliothèque, 40 cartes' });
+      expect(library).toHaveAttribute('title', 'Bibliothèque, 40 cartes');
+    } finally {
+      await act(async () => {
+        await testI18n.changeLanguage('en-US');
+      });
+      testI18n.removeResourceBundle('fr', 'translation');
+    }
+    expect(screen.getByRole('button', { name: 'Library, 40 cards' })).toHaveAttribute('title', 'Library, 40 cards');
+  });
+
   it('draws the library, graveyard and exile piles with their counts and top card', () => {
     renderSeatCell(SPEC);
-    expect(pileEl('Library')).toHaveAttribute('title', 'Library — 40');
-    expect(pileEl('Graveyard')).toHaveAttribute('title', 'Graveyard — 2 (top: Opt)');
-    expect(pileEl('Exile')).toHaveAttribute('title', 'Exile — 0');
+    expect(pileEl('Library')).toHaveAttribute('title', 'Library, 40 cards');
+    expect(pileEl('Graveyard')).toHaveAttribute('title', 'Graveyard, 2 cards, top: Opt');
+    expect(pileEl('Exile')).toHaveAttribute('title', 'Exile, 0 cards');
   });
 
   it('gives the owner the library menu, and its first item draws', () => {

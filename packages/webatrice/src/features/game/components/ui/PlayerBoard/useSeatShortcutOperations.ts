@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { ZoneName } from '@cockatrice/sockatrice';
 
 import type { SeatSelection } from '../../../hooks/useSeatSelection';
@@ -77,7 +79,7 @@ const onLibrary = (op: SeatShortcut): SeatShortcut => (seat) => {
  * battlefield card ops as the card menu. No entry checks isSelf: only the
  * local seat publishes its shortcuts (usePublishSeatShortcuts below).
  */
-const SEAT_SHORTCUTS: Record<SeatShortcutActionId, SeatShortcut> = {
+const seatShortcuts = (t: TFunction): Record<SeatShortcutActionId, SeatShortcut> => ({
   // aMulligan (Ctrl+M) asks for the hand size rather than assuming seven.
   'game.mulligan': (seat) => seat.requestMulligan(),
   'game.setLife': (seat) => seat.openLifePrompt(),
@@ -102,7 +104,7 @@ const SEAT_SHORTCUTS: Record<SeatShortcutActionId, SeatShortcut> = {
   'game.addStormCounter': onStorm((seat, storm) => seat.counterCommands.increment(storm.id, 1)),
   'game.removeStormCounter': onStorm((seat, storm) => seat.counterCommands.increment(storm.id, -1)),
   'game.setStormCounter': onStorm((seat, storm) =>
-    seat.openCounterPrompt({ counterId: storm.id, label: 'Other', currentValue: storm.count })),
+    seat.openCounterPrompt({ counterId: storm.id, label: t('GameLog.counter.other'), currentValue: storm.count })),
   'game.attachCard': onSelection((ops) => ops.attach()),
   'game.peekCard': onSelection((ops) => ops.peek()),
   'game.flipCard': onSelection((ops) => ops.toggleFaceDown()),
@@ -142,7 +144,7 @@ const SEAT_SHORTCUTS: Record<SeatShortcutActionId, SeatShortcut> = {
       seat.zoneCommands.reveal(picked.zone, toRecipient(-1), { cardIds: picked.cardIds });
     }
   },
-};
+});
 
 /**
  * Publishes the seat's keyboard actions (desktop's player shortcuts) through
@@ -150,10 +152,12 @@ const SEAT_SHORTCUTS: Record<SeatShortcutActionId, SeatShortcut> = {
  * for the local seat only, so only the local seat publishes.
  */
 export function useSeatShortcutOperations(seat: SeatShortcutSeat): void {
+  const { t } = useTranslation();
+  const shortcuts = seatShortcuts(t);
   const { handleRequestChooseMulligan } = useGameDialogsContext();
   const context = { ...seat, requestMulligan: handleRequestChooseMulligan };
   const operations: SeatShortcutOperations = Object.fromEntries(
-    SEAT_SHORTCUT_ACTIONS.map((id) => [id, () => SEAT_SHORTCUTS[id](context)]),
+    SEAT_SHORTCUT_ACTIONS.map((id) => [id, () => shortcuts[id](context)]),
   );
   usePublishSeatShortcuts(seat.isSelf ? operations : null);
 }

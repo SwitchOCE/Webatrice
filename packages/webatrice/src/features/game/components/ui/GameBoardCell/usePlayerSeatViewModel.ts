@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
 import { games } from '@cockatrice/datatrice';
 import { ZoneName, isBuiltinZone } from '@cockatrice/sockatrice';
@@ -65,8 +67,8 @@ export function zoneToSeatCards(zone: ZoneCards | undefined): PlayerCardViewMode
 }
 
 /** The name a seat shows: the player's, or a placeholder until it arrives. */
-export function seatDisplayName(realName: string | undefined, isLocal: boolean, playerId: number): string {
-  return realName ?? (isLocal ? 'You' : `Player ${playerId}`);
+export function seatDisplayName(t: TFunction, realName: string | undefined, isLocal: boolean, playerId: number): string {
+  return realName ?? (isLocal ? t('PlayerBoard.you') : t('GameLog.player.number', { id: playerId }));
 }
 
 /** Project a Response_DumpZone snapshot. Falls back to the array index when the
@@ -208,6 +210,7 @@ export function deckListToSeatDeck(deckList: string | undefined): readonly SeatD
  * there.
  */
 export function usePlayerSeatViewModel(cell: BoardCell, totalPlayers: number): PlayerBoardModel {
+  const { t } = useTranslation();
   const gameId = useGameId();
   const { playerId, isLocal, mirrored, canAct } = cell;
 
@@ -234,9 +237,9 @@ export function usePlayerSeatViewModel(cell: BoardCell, totalPlayers: number): P
         .filter((p) => p.properties.playerId !== playerId)
         .map((p) => ({
           playerId: p.properties.playerId,
-          name: p.properties.userInfo?.name ?? `Player ${p.properties.playerId}`,
+          name: p.properties.userInfo?.name ?? t('GameLog.player.number', { id: p.properties.playerId }),
         })),
-    [seatedPlayers, playerId],
+    [seatedPlayers, playerId, t],
   );
 
   const realName = player?.properties.userInfo?.name;
@@ -255,7 +258,7 @@ export function usePlayerSeatViewModel(cell: BoardCell, totalPlayers: number): P
       isLocal,
       mirrored,
       isActive,
-      displayName: seatDisplayName(realName, isLocal, playerId),
+      displayName: seatDisplayName(t, realName, isLocal, playerId),
       username: realName ?? (isLocal ? 'you' : `player-${playerId}`),
       avatarUrl,
       flipHandCardBacks,
@@ -263,7 +266,7 @@ export function usePlayerSeatViewModel(cell: BoardCell, totalPlayers: number): P
       lastDrawCount,
       revealTargets,
     }),
-    [playerId, hydrated, isLocal, mirrored, isActive, realName, avatarUrl, flipHandCardBacks, drawSeq, lastDrawCount, revealTargets],
+    [playerId, hydrated, isLocal, mirrored, isActive, realName, avatarUrl, flipHandCardBacks, drawSeq, lastDrawCount, revealTargets, t],
   );
 
   const deckList = player?.deckList;

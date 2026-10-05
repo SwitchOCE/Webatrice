@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import type { DrawFlight } from './useDrawFlights';
 import { useTranslation } from 'react-i18next';
 
 import Battlefield from '../../battlefield/Battlefield/Battlefield';
@@ -87,27 +88,6 @@ function PlayerBoard(props: PlayerSeatProps) {
         createPortal(
           <>
             {flights.map((f) => {
-              const style: React.CSSProperties = {
-                position: 'fixed',
-                width: CARD_WIDTH,
-                height: CARD_HEIGHT,
-                borderRadius: CARD_CORNER_RADIUS,
-                transition:
-                  `left ${DRAW_ANIMATION_MS}ms ease-out, top ${DRAW_ANIMATION_MS}ms ease-out, `
-                  + `transform ${DRAW_ANIMATION_MS}ms ease-out`,
-                pointerEvents: 'none',
-                zIndex: 200,
-                willChange: 'left, top, transform',
-              };
-              if (!f.landed) {
-                style.left = f.from.left + f.from.width / 2;
-                style.top = f.from.top + f.from.height / 2;
-                style.transform = 'translate(-50%, -50%) rotate(-90deg)';
-              } else {
-                style.left = f.to.left + f.to.width / 2;
-                style.top = f.to.top + f.to.height / 2;
-                style.transform = 'translate(-50%, -50%) rotate(0deg)';
-              }
               return (
                 <img
                   key={f.id}
@@ -115,7 +95,7 @@ function PlayerBoard(props: PlayerSeatProps) {
                   alt=""
                   draggable={false}
                   className="shadow-glow"
-                  style={style}
+                  style={drawFlightStyle(f, DRAW_ANIMATION_MS)}
                 />
               );
             })}
@@ -185,3 +165,28 @@ function PlayerBoard(props: PlayerSeatProps) {
 }
 
 export default PlayerBoard;
+
+function drawFlightStyle(f: DrawFlight, DRAW_ANIMATION_MS: number): React.CSSProperties {
+  const style: React.CSSProperties = {
+    position: 'fixed',
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    borderRadius: CARD_CORNER_RADIUS,
+    transition:
+      `left ${DRAW_ANIMATION_MS}ms ease-out, top ${DRAW_ANIMATION_MS}ms ease-out, `
+      + `transform ${DRAW_ANIMATION_MS}ms ease-out`,
+    pointerEvents: 'none',
+    zIndex: 200,
+    willChange: 'left, top, transform',
+  };
+  if (!f.landed) {
+    style.left = f.from.left + f.from.width / 2;
+    style.top = f.from.top + f.from.height / 2;
+    style.transform = 'translate(-50%, -50%) rotate(-90deg)';
+  } else {
+    style.left = f.to.left + f.to.width / 2;
+    style.top = f.to.top + f.to.height / 2;
+    style.transform = 'translate(-50%, -50%) rotate(0deg)';
+  }
+  return style;
+}

@@ -120,7 +120,7 @@ function getDefaultWebClient(): WebClient {
 // names and the target pick's prompt; so is the move-top-until dialog's, which the game specs reach
 // through the library menu by its English title, and the hand button's, which they find by its
 // English count title, as the e2e suite does.
-const testI18n = i18n.createInstance();
+export const testI18n = i18n.createInstance();
 testI18n.use(ICU).use(initReactI18next).init({
   lng: 'en-US',
   resources: {

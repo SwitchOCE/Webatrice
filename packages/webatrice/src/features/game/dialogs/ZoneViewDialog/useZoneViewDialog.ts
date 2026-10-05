@@ -57,7 +57,7 @@ export function useZoneViewDialog(gameId: number | undefined, view: ZoneViewTarg
     [zoneName, zone],
   );
   const count = zone?.cardCount ?? cards.length;
-  const title = zoneViewTitle(t, view, seatDisplayName(realName, isLocal, playerId), cards.length);
+  const title = zoneViewTitle(t, view, seatDisplayName(t, realName, isLocal, playerId), cards.length);
 
   return { cards, count, title, isLocal };
 }
