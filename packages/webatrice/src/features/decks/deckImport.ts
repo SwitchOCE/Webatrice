@@ -1,6 +1,7 @@
 import { defaultMeta, lookupCards, serializeCod, type LookupResult } from '@app/services';
 import type { DeckCategory, ParsedDeck } from '@app/types';
 
+import { deckColorIdentity } from './deckPersistence';
 import type { ParsedEntry } from './decklistParser';
 import { assembleDeckCard } from './hydrate';
 import type { DeckCard } from './types';
@@ -41,6 +42,11 @@ export async function resolveImportEntries(entries: ParsedEntry[]): Promise<Reso
       printings: [],
     },
   }));
+}
+
+/** Storage metadata uses the same resolved card colors as editor saves. */
+export function resolvedImportColorIdentity(rows: ResolvedImportRow[]): string {
+  return deckColorIdentity(rows.map((r) => assembleDeckCard(r.entry, r.lookup)));
 }
 
 /** Matched / unknown card totals (by quantity) for the review step. */
@@ -88,6 +94,7 @@ export function buildUploadedDeckCod(file: ParsedDeck, name: string, format: str
     bannerCardProviderId: file.bannerCardProviderId,
     lastLoadedTimestamp: file.lastLoadedTimestamp,
     playmatXml: file.playmatXml,
+    sideboardPlansXml: file.sideboardPlansXml,
     tagsXml: file.tagsXml,
   });
 }

@@ -88,15 +88,25 @@ function zone(cards: readonly DeckCard[], category: DeckCard['category']): DeckC
  */
 export function plainDeckText(
   cards: readonly DeckCard[],
-  { prefixSideboard = true, slashSplitCards = false }: { prefixSideboard?: boolean; slashSplitCards?: boolean } = {},
+  { prefixSideboard = true, slashSplitCards = false, sectionHeaders = false }: {
+    prefixSideboard?: boolean;
+    slashSplitCards?: boolean;
+    sectionHeaders?: boolean;
+  } = {},
 ): string {
-  return [...zone(cards, 'main'), ...zone(cards, 'sideboard')]
-    .map((c) => {
+  const groups = sectionHeaders ? [
+    { header: '// Commander', cards: cards.filter((c) => c.isCommander) },
+    { header: '// Deck', cards: cards.filter((c) => c.category === 'main' && !c.isCommander) },
+    { header: '// Sideboard', cards: zone(cards, 'sideboard') },
+  ] : [{ header: '', cards: [...zone(cards, 'main'), ...zone(cards, 'sideboard')] }];
+  return groups.filter((group) => group.cards.length > 0).map((group) => {
+    const lines = group.cards.map((c) => {
       const name = slashSplitCards ? c.name.replace(/\/\//g, '/') : c.name;
       const prefix = prefixSideboard && c.category === 'sideboard' ? 'SB: ' : '';
-      return `${prefix}${c.quantity} ${name}\n`;
-    })
-    .join('');
+      return `${prefix}${c.quantity} ${name}`;
+    });
+    return [...(group.header ? [group.header] : []), ...lines].join('\n');
+  }).join(sectionHeaders ? '\n\n' : '\n') + (cards.length ? '\n' : '');
 }
 
 // ---------- decklist.org / decklist.xyz (DeckLoader::exportDeckToDecklist) ----------

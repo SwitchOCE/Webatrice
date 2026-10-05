@@ -1,5 +1,6 @@
 import { serializeCod } from '@app/services';
 
+import { plainDeckText } from './deckServices';
 import type { DeckCard, HydratedDeck } from './types';
 
 /**
@@ -48,11 +49,7 @@ function writeSections(
 }
 
 export function toPlainText(cards: DeckCard[]): string {
-  return writeSections(
-    cards,
-    { commander: '// Commander', main: '// Deck', side: '// Sideboard' },
-    (c) => `${c.quantity} ${c.name}`,
-  );
+  return plainDeckText(cards, { sectionHeaders: true }).trimEnd();
 }
 
 export function toArenaText(cards: DeckCard[]): string {
@@ -87,6 +84,7 @@ export function exportDeck(deck: HydratedDeck, format: DeckExportFormat): string
         bannerCardProviderId: deck.bannerCardProviderId,
         lastLoadedTimestamp: deck.lastLoadedTimestamp,
         playmatXml: deck.playmatXml,
+        sideboardPlansXml: deck.sideboardPlansXml,
         tagsXml: deck.tagsXml,
       });
     case 'plain':

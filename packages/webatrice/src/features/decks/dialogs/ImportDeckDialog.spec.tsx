@@ -49,6 +49,7 @@ describe('ImportDeckDialog', () => {
   });
 
   it('summarizes an uploaded .cod and imports it with its own name and format', async () => {
+    vi.mocked(lookupCards).mockResolvedValue(new Map());
     const onImport = vi.fn();
     render(<ImportDeckDialog open onClose={() => {}} onImport={onImport} />);
 
@@ -59,6 +60,7 @@ describe('ImportDeckDialog', () => {
     expect(screen.getByText('4 cards · 4 main')).toBeInTheDocument();
     expect(screen.getAllByRole('textbox')[0]).toHaveValue('From File');
     fireEvent.click(screen.getByRole('button', { name: /Import file/ }));
+    await waitFor(() => expect(onImport).toHaveBeenCalledOnce());
 
     const deck = parseCod(onImport.mock.calls[0][0]);
     expect(deck.name).toBe('From File');

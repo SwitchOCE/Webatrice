@@ -1,5 +1,7 @@
 import { parseCod } from '@app/services';
 
+import desktopMetadata from './fixtures/desktop-metadata.cod?raw';
+import { parseDecklist } from './decklistParser';
 import { exportDeck, exportFileName, toArenaText, toPlainText } from './deckExport';
 import type { DeckCard, HydratedDeck } from './types';
 
@@ -19,7 +21,7 @@ describe('toPlainText', () => {
     expect(toPlainText(cards)).toBe([
       '// Commander', '1 Atraxa', '',
       '// Deck', '4 Lightning Bolt', '10 Forest', '',
-      '// Sideboard', '2 Negate',
+      '// Sideboard', 'SB: 2 Negate',
     ].join('\n'));
   });
 
@@ -73,4 +75,34 @@ describe('exportFileName', () => {
     expect(exportFileName('  Atraxa: Superfriends!! ', 'cod')).toBe('atraxa-superfriends.cod');
     expect(exportFileName('???', 'txt')).toBe('deck.txt');
   });
+});
+
+
+it.each(['plain', 'arena'] as const)('round-trips quantities, zones and commanders through %s export', (format) => {
+  const deck: HydratedDeck = { name: 'Round trip', format: 'commander', meta: { v: 1, updatedAt: 'x' }, cards };
+  const parsed = parseDecklist(exportDeck(deck, format));
+  expect(parsed.ignored).toEqual([]);
+  expect(parsed.entries.map((c) => [c.name, c.quantity, c.category, !!c.isCommander]))
+    .toEqual(cards.map((c) => [c.name, c.quantity, c.category, !!c.isCommander]));
+});
+
+it('reads section markers from older commented exports', () => {
+  expect(parseDecklist('// Commander\n1 Atraxa\n// Deck\n4 Forest\n// Sideboard\n2 Negate').entries
+    .map((c) => [c.name, c.quantity, c.category, !!c.isCommander])).toEqual([
+    ['Atraxa', 1, 'main', true], ['Forest', 4, 'main', false], ['Negate', 2, 'sideboard', false],
+  ]);
+});
+
+
+it('exports desktop banner printing and playmat metadata through the real .cod adapter', () => {
+  const source = parseCod(desktopMetadata);
+  const hydrated: HydratedDeck = {
+    ...source,
+    cards: source.cards.map((c) => ({ ...c, lookupSource: 'unknown' })),
+  };
+  const exported = parseCod(exportDeck(hydrated, 'cockatrice'));
+  expect(exported.bannerCardProviderId).toBe('banner-printing-id');
+  expect(exported.playmatXml).toBe('<playmatCard providerId="playmat-printing-id">Island</playmatCard>');
+  expect(exported.tagsXml).toBe(source.tagsXml);
+  expect(exported.lastLoadedTimestamp).toBe(source.lastLoadedTimestamp);
 });

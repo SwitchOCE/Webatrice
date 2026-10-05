@@ -108,6 +108,8 @@ export interface HydratedDeck {
   bannerCardProviderId?: string;
   lastLoadedTimestamp?: string;
   playmatXml?: string;
+  /** Opaque desktop named/current sideboard plans, in document order. */
+  sideboardPlansXml?: string[];
   tagsXml?: string;
   bracketAssessment?: BracketAssessment;
 }

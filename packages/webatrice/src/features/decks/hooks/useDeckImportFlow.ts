@@ -8,6 +8,7 @@ import {
   buildUploadedDeckCod,
   countResolvedRows,
   resolveImportEntries,
+  resolvedImportColorIdentity,
   type ResolvedImportRow,
 } from '../deckImport';
 import { parseDecklist } from '../decklistParser';
@@ -41,7 +42,7 @@ export interface DeckImportFlow {
   /** Build the `.cod` for the reviewed paste and hand it to `onImport`. */
   confirmPaste: () => void;
   /** Build the `.cod` for the uploaded file and hand it to `onImport`. */
-  confirmFile: () => void;
+  confirmFile: () => Promise<void>;
 }
 
 /**
@@ -50,7 +51,7 @@ export interface DeckImportFlow {
  * reviewed before upload; a `.cod` file skips the review and keeps its
  * embedded metadata. Every open starts fresh.
  */
-export function useDeckImportFlow(open: boolean, onImport: (xml: string) => void): DeckImportFlow {
+export function useDeckImportFlow(open: boolean, onImport: (xml: string, colorIdentity: string) => void): DeckImportFlow {
   const [name, setName] = useState('');
   const [format, setFormat] = useState('commander');
   const [text, setText] = useState('');
@@ -147,16 +148,22 @@ export function useDeckImportFlow(open: boolean, onImport: (xml: string) => void
   const confirmPaste = () => {
     setError(null);
     setPhase('importing');
-    onImport(buildPastedDeckCod(resolved, name, format));
+    onImport(buildPastedDeckCod(resolved, name, format), resolvedImportColorIdentity(resolved));
   };
 
-  const confirmFile = () => {
+  const confirmFile = async () => {
     if (!file) {
       return;
     }
     setError(null);
     setPhase('importing');
-    onImport(buildUploadedDeckCod(file.deck, name, format));
+    try {
+      const rows = await resolveImportEntries(file.deck.cards);
+      onImport(buildUploadedDeckCod(file.deck, name, format), resolvedImportColorIdentity(rows));
+    } catch (e) {
+      setPhase('input');
+      setError(e instanceof Error ? e.message : 'Failed to resolve cards');
+    }
   };
 
   const { matched, missing } = countResolvedRows(resolved);
