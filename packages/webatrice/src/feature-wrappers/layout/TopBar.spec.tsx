@@ -527,6 +527,24 @@ describe('TopBar sticky tabs', () => {
     expect(screen.queryByRole('link', { name: 'Bogus' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'TopBar.tab.player' })).not.toBeInTheDocument();
   });
+
+  it('purges a foreign owner\'s deck tabs before selecting the Lobby on a restored deck route', async () => {
+    window.localStorage.setItem(OWNER_KEY, 'Test Server::someoneElse');
+    window.localStorage.setItem(STICKY_KEY, JSON.stringify([
+      { key: 'decks', type: 'decks', titleKey: 'TopBar.tab.myDecks', route: '/decks', closeable: true },
+      { key: 'deck:5', type: 'deck', title: 'Foreign deck', route: '/deck/5', closeable: true },
+    ]));
+    vi.resetModules();
+    const { renderWithProviders: renderFresh } = await import('../../__test-utils__');
+    const { default: FreshTopBar } = await import('./TopBar');
+
+    renderFresh(<><FreshTopBar /><LocationProbe /></>, { preloadedState: connectedState, route: '/deck/5' });
+
+    expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
+    expect(screen.getByRole('link', { name: 'TopBar.tab.lobby' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getAllByRole('link').filter((link) => /^\/decks?$|^\/deck\//.test(link.getAttribute('href') ?? ''))).toEqual([]);
+    expect(persisted().filter(({ key }) => key === 'decks' || key.startsWith('deck:'))).toEqual([]);
+  });
 });
 
 describe('TopBar last route', () => {
