@@ -49,6 +49,21 @@ describe('useStickyTabs', () => {
     expect(result.current[0]).toEqual([decks]);
   });
 
+  it('keeps a pinned Shortcuts tab after a reload', async () => {
+    const shortcuts: Tab = {
+      key: 'shortcuts', type: 'shortcuts', titleKey: 'UserMenu.shortcuts', route: '/shortcuts', closeable: true,
+    };
+    const { useStickyTabs } = await loadModule();
+    const writer = renderHook(() => useStickyTabs());
+    act(() => writer.result.current[1](() => [shortcuts]));
+    writer.unmount();
+
+    const { useStickyTabs: useRestoredTabs } = await loadModule();
+    const reader = renderHook(() => useRestoredTabs());
+
+    expect(reader.result.current[0]).toEqual([shortcuts]);
+  });
+
   it.each(['not json', '{"key":"decks"}'])('starts empty when the saved value is %s', async (raw) => {
     window.localStorage.setItem(STORAGE_KEY, raw);
     const { useStickyTabs } = await loadModule();

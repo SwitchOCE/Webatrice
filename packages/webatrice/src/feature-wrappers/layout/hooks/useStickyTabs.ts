@@ -2,7 +2,7 @@ import { useCallback, useSyncExternalStore } from 'react';
 
 import { readLocalStorage, writeLocalStorage } from '@app/services';
 
-import { detectTransientTab, type Tab, type TabType } from '../topBarTabs';
+import { detectTransientTab, isStickyTabType, type Tab, type TabType } from '../topBarTabs';
 
 /**
  * The sticky tabs (see `isStickyTabType`), kept in a module-level store.
@@ -17,14 +17,9 @@ import { detectTransientTab, type Tab, type TabType } from '../topBarTabs';
  */
 const STICKY_STORAGE_KEY = 'webatrice.stickyTabs';
 
-const VALID_TAB_TYPES: TabType[] = [
-  'server', 'room', 'game', 'decks', 'deck',
-  'my-decks', 'settings', 'account', 'logs', 'player', 'unknown',
-];
-
 export type StickyTabsUpdater = (prev: Tab[]) => Tab[];
 
-/** A persisted entry TopBar can still show: every field it needs, of a known type. */
+/** A persisted entry TopBar can still show: every field it needs, of a sticky type. */
 export function isValidPersistedTab(t: unknown): t is Tab {
   if (!t || typeof t !== 'object') {
     return false;
@@ -36,7 +31,7 @@ export function isValidPersistedTab(t: unknown): t is Tab {
     typeof rec.route === 'string' &&
     typeof rec.closeable === 'boolean' &&
     typeof rec.type === 'string' &&
-    (VALID_TAB_TYPES as string[]).includes(rec.type)
+    isStickyTabType(rec.type as TabType)
   );
 }
 
