@@ -1,10 +1,9 @@
 import {
-  legacyTableRowFromTypeLine,
+  tableRowFromTypeLine,
   parseTableRow,
-  placementFromCardDatabaseRow,
+  placementForCard,
   playedCardFields,
   tableRowToGridY,
-  tokenGridYFromCardDatabaseRow,
 } from './cardPlacement';
 import { applyInvertY } from './gridMath';
 
@@ -29,6 +28,7 @@ describe('cardPlacement', () => {
     [2, 0],
     [3, 1],
     [7, 1],
+    [-1, 2],
   ])('tableRowToGridY(%i) = %i', (row, y) => {
     expect(tableRowToGridY(row)).toBe(y);
   });
@@ -39,19 +39,18 @@ describe('cardPlacement', () => {
       [1, { zone: 'table', visualY: 1 }],
       [2, { zone: 'table', visualY: 0 }],
       [3, { zone: 'stack' }],
-      [4, { zone: 'table', visualY: 0 }],
-      [null, { zone: 'table', visualY: 0 }],
+      [4, { zone: 'table', visualY: 1 }],
+      [null, { zone: 'table', visualY: 1 }],
     ] as const)('row %j plays to %j', (row, placement) => {
-      expect(placementFromCardDatabaseRow(row)).toEqual(placement);
+      expect(placementForCard({ tableRow: row })).toEqual(placement);
     });
 
-    it('token rows fold past 2 to the middle; face-down and unknown use the top row', () => {
-      expect([0, 1, 2, 3, 9, null].map((row) => tokenGridYFromCardDatabaseRow(row, false))).toEqual([2, 1, 0, 1, 1, 0]);
-      expect(tokenGridYFromCardDatabaseRow(0, true)).toBe(0);
+    it('face-down plays use the creature row regardless of the database', () => {
+      expect(placementForCard({ tableRow: 3 }, true)).toEqual({ zone: 'table', visualY: 0 });
     });
   });
 
-  describe('legacy type-line policy (seat double-click)', () => {
+  describe('Oracle maintype fallback', () => {
     it.each([
       ['Basic Land — Forest', 0],
       ['Artifact', 1],
@@ -64,24 +63,12 @@ describe('cardPlacement', () => {
       ['Sorcery — Adventure', 3],
       ['', 1],
     ] as const)('%j is row %i', (typeLine, row) => {
-      expect(legacyTableRowFromTypeLine(typeLine)).toBe(row);
+      expect(tableRowFromTypeLine(typeLine)).toBe(row);
     });
   });
 
-  it('keeps the two policies apart for creatures and other permanents', () => {
-    // Pinned divergence, not a bug to fix here: see the refactor plan §10.
-    const legacyCreatureY = tableRowToGridY(legacyTableRowFromTypeLine('Creature — Bear'));
-    const databaseCreature = placementFromCardDatabaseRow(1);
-    expect(legacyCreatureY).toBe(0);
-    expect(databaseCreature).toEqual({ zone: 'table', visualY: 1 });
-
-    const legacyArtifactY = tableRowToGridY(legacyTableRowFromTypeLine('Artifact'));
-    expect(legacyArtifactY).toBe(1);
-    expect(placementFromCardDatabaseRow(2)).toEqual({ zone: 'table', visualY: 0 });
-  });
-
   it('leaves y-inversion to the caller, which applies it exactly once', () => {
-    const placement = placementFromCardDatabaseRow(0);
+    const placement = placementForCard({ tableRow: 0 });
     if (placement.zone !== 'table') {
       throw new Error('expected a table placement');
     }

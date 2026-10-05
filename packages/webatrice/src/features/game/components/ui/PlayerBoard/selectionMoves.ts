@@ -6,7 +6,7 @@
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 
 import {
-  legacyTableRowFromTypeLine,
+  resolveCardTableRow,
   playedCardFields,
   tableRowToGridY,
   type PlayedCardMeta,
@@ -31,7 +31,7 @@ export interface TableMoveMeta extends PlayedCardMeta {
  */
 export function tableMove(cardId: number, meta: TableMoveMeta | undefined): { card: SeatMoveCard; to: SeatMoveDestination } {
   const fields = playedCardFields(meta, false);
-  const tableRow = meta?.tableRow ?? legacyTableRowFromTypeLine(meta?.typeLine ?? '');
+  const tableRow = resolveCardTableRow(meta);
   return {
     card: fields.pt || fields.tapped ? { id: cardId, ...fields } : cardId,
     to: { zone: ZoneName.TABLE, index: 'end', row: tableRowToGridY(tableRow) },

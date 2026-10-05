@@ -20,6 +20,9 @@ import GameBoardCell from './GameBoardCell';
 
 const probe = vi.hoisted(() => ({ props: undefined as Record<string, any> | undefined }));
 
+vi.mock('../../../../../services/cards/catalog/lookup', async () =>
+  (await import('../../../__test-utils__/unknownCardCatalog')).unknownCardCatalog());
+
 vi.mock('../PlayerBoard/PlayerBoard', () => ({
   default: (props: Record<string, unknown>) => {
     probe.props = props;
@@ -489,9 +492,9 @@ describe('GameBoardCell — card commands', () => {
     expect(calls.map((p) => [p.cardName, p.y, p.faceDown])).toEqual([
       ['Forest', 2, false],
       ['Wall', 1, false],
-      ['Unknown', 0, false],
+      ['Unknown', 1, false],
       ['Forest', 0, true],
-      ['Back', 0, false],
+      ['Back', 1, false],
     ]);
     expect(calls[0]).toMatchObject({ zone: ZoneName.TABLE, x: -1, cardProviderId: '' });
     expect(calls[0]).not.toHaveProperty('targetMode');

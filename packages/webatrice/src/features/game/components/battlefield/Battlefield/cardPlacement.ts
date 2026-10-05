@@ -1,17 +1,9 @@
 // Which battlefield row (or the stack) a card is played to.
 //
-// Two policies are live and they disagree on creatures, so both are named here
-// and kept apart until the parity decision in
-// docs/webatrice-solid-refactor-plan.md §10 ("Which table-row policy is
-// authoritative"):
-//
-//   - the card-database policy reads cards.xml `<tablerow>`
-//     (0 land, 1 creature, 2 other permanent, 3 instant/sorcery), and drives
-//     playCardViaTableRow, token creation and "Move to > Table"
-//     (selectionMoves.tableMove, which falls back to the type line for a card
-//     the database lacks);
-//   - the legacy type-line policy classifies a type line itself and puts
-//     creatures in row 2, and drives the seat's double-click play.
+// cards.xml `<tablerow>` is authoritative. Oracle's importer assigns 0 to
+// lands, 1 to other permanents, 2 to creatures and 3 to instants/sorceries.
+// Without a database row, infer the same row from the type line using
+// Oracle's maintype priority (including creature lands and artifact creatures).
 //
 // Rows here are owner-perspective visual rows (0 = top). Inverting them for a
 // mirrored board is gridMath.applyInvertY's job, done once by the caller.
@@ -28,11 +20,11 @@ export function parseTableRow(raw: string | null | undefined): number | null {
   return raw != null && /^\d+$/.test(raw) ? Number(raw) : null;
 }
 
-/** Desktop `TableZone::tableRowToGridY` (table_zone.cpp:409-415): row r sits at
+/** Desktop `TableZone::tableRowToGridY` (table_zone.cpp:459-464): row r sits at
  *  visual row 2 - r, and rows past 2 fold to the middle. */
 export function tableRowToGridY(tableRow: number): number {
   const clamped = tableRow > 2 ? 1 : tableRow;
-  return 2 - clamped;
+  return Math.max(0, Math.min(2, 2 - clamped));
 }
 
 export type CardPlacement = { zone: 'stack' } | { zone: 'table'; visualY: number };
@@ -49,7 +41,7 @@ export interface PlayedCardMeta {
  * The fields of a card played face up onto the battlefield (desktop
  * PlayerActions::playCard, player_actions.cpp:120-130): its printed P/T, and
  * tapped when it comes into play tapped. A face-down card carries neither.
- * Every play sends these, whatever row policy placed it.
+ * Every face-up play onto the battlefield sends these.
  */
 export function playedCardFields(meta: PlayedCardMeta | undefined, faceDown: boolean): { pt?: string; tapped?: true } {
   if (faceDown || !meta) {
@@ -58,44 +50,43 @@ export function playedCardFields(meta: PlayedCardMeta | undefined, faceDown: boo
   return { ...(meta.pt && { pt: meta.pt }), ...(meta.cipt && { tapped: true as const }) };
 }
 
-/** Card-database policy for playing a card: row 3 goes to the stack, rows 0-2
- *  to visual row 2 - row, and an unknown or out-of-range row to the top row. */
-export function placementFromCardDatabaseRow(tablerow: number | null): CardPlacement {
-  if (tablerow === STACK_TABLE_ROW) {
-    return { zone: 'stack' };
-  }
-  const visualY = tablerow === 0 || tablerow === 1 || tablerow === 2 ? 2 - tablerow : 0;
-  return { zone: 'table', visualY };
+export interface CardPlacementMeta {
+  tableRow?: number | null;
+  typeLine?: string;
 }
 
-/** Card-database policy for Command_CreateToken's y (desktop actCreateToken):
- *  rows past 2 fold to the middle, an unknown row and a face-down token use the
- *  top row. */
-export function tokenGridYFromCardDatabaseRow(tablerow: number | null, faceDown: boolean): number {
-  if (faceDown || tablerow == null) {
-    return 0;
+/** Use the imported row even when it differs from the card's type line. */
+export function resolveCardTableRow(meta: CardPlacementMeta | undefined): number {
+  return meta?.tableRow ?? tableRowFromTypeLine(meta?.typeLine ?? '');
+}
+
+/** Row 3 plays to the stack; face-down plays always use creature row 2. */
+export function placementForCard(meta: CardPlacementMeta | undefined, faceDown = false): CardPlacement {
+  const tableRow = faceDown ? 2 : resolveCardTableRow(meta);
+  if (tableRow === STACK_TABLE_ROW) {
+    return { zone: 'stack' };
   }
-  return tableRowToGridY(tablerow);
+  return { zone: 'table', visualY: tableRowToGridY(tableRow) };
 }
 
 /**
- * Legacy type-line policy (the seat's hand / stack double-click): instants and sorceries 3,
- * creatures 2, lands 0, any other permanent 1. Checked in that order, so an
- * artifact creature or a creature land counts as a creature.
- *
- * Differs from the card database, which puts creatures in row 1 and other
- * permanents in row 2. Do not merge the two without the parity decision.
+ * Oracle's getMainCardType priority and row assignment
+ * (oracleimporter.cpp:150-176,254-262). Only types, not subtypes, participate;
+ * across multiple faces the highest-priority maintype wins too.
  */
-export function legacyTableRowFromTypeLine(typeLine: string): TableRow {
-  const t = typeLine.toLowerCase();
-  if (t.includes('instant') || t.includes('sorcery')) {
-    return 3;
+export function tableRowFromTypeLine(typeLine: string): TableRow {
+  const types = new Set(typeLine.toLowerCase().split('//').flatMap((face) => face.split(/[—–]/)[0].trim().split(/\s+/)));
+  if (types.has('planeswalker')) {
+    return 1;
   }
-  if (t.includes('creature')) {
+  if (types.has('creature')) {
     return 2;
   }
-  if (t.includes('land')) {
+  if (types.has('land')) {
     return 0;
+  }
+  if (types.has('sorcery') || types.has('instant')) {
+    return 3;
   }
   return 1;
 }
