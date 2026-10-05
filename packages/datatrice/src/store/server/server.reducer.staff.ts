@@ -17,7 +17,7 @@ import { ServerState, ServerStateStaff, UserInvestigation } from './server.inter
 // Each list starts as null ("never loaded") so a view can tell an empty answer
 // from one that has not arrived yet.
 export const initialStaffState: ServerStateStaff = {
-  investigations: {},
+  investigation: null,
   moderatorLastLogins: null,
   cardArtRules: null,
   serverStats: null,
@@ -27,23 +27,36 @@ export const initialStaffState: ServerStateStaff = {
 const sameRule = (cardName: string, cardProviderId: string) => (entry: Response_CardArtRuleEntry): boolean =>
   entry.cardName === cardName && entry.cardProviderId === cardProviderId;
 
-function investigation(state: ServerState, userName: string): UserInvestigation {
-  state.staff.investigations[userName] ??= {};
-  return state.staff.investigations[userName];
+function investigation(state: ServerState, userName: string): UserInvestigation | undefined {
+  const active = state.staff.investigation;
+  return active?.userName === userName ? active.results : undefined;
 }
 
 export const staffReducers = {
+  userInvestigationStarted: ((state, action) => {
+    state.staff.investigation = { userName: action.payload.userName, results: {} };
+  }) as CaseReducer<ServerState, PayloadAction<{ userName: string }>>,
+
   // Keyed by the name the server echoes (Servatrice copies the requested user_name).
   userInfoReport: ((state, action) => {
-    investigation(state, action.payload.info.userName).info = action.payload.info;
+    const active = investigation(state, action.payload.info.userName);
+    if (active) {
+      active.info = action.payload.info;
+    }
   }) as CaseReducer<ServerState, PayloadAction<{ info: Response_ReportUserInfo }>>,
 
   userAlts: ((state, action) => {
-    investigation(state, action.payload.userName).alts = action.payload.alts;
+    const active = investigation(state, action.payload.userName);
+    if (active) {
+      active.alts = action.payload.alts;
+    }
   }) as CaseReducer<ServerState, PayloadAction<{ userName: string; alts: ServerInfo_UserAlt[] }>>,
 
   userSessions: ((state, action) => {
-    investigation(state, action.payload.userName).sessions = action.payload.sessions;
+    const active = investigation(state, action.payload.userName);
+    if (active) {
+      active.sessions = action.payload.sessions;
+    }
   }) as CaseReducer<ServerState, PayloadAction<{ userName: string; sessions: ServerInfo_UserSession[] }>>,
 
   moderatorLastLogins: ((state, action) => {

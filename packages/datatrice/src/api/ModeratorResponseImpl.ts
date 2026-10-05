@@ -13,6 +13,7 @@ import {
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { Actions as ServerActions } from '../store/server/server.actions';
+import { Selectors as ServerSelectors } from '../store/server/server.selectors';
 
 export class ModeratorResponseImpl implements WebsocketTypes.IModeratorResponse {
   constructor(private store: Store) {}
@@ -70,14 +71,26 @@ export class ModeratorResponseImpl implements WebsocketTypes.IModeratorResponse 
   // ── Staff tools (Cockatrice 3.1: TabModeration, TabCardArtRules) ──────────
 
   reportUserInfo(info: Response_ReportUserInfo): void {
+    // Drop stale private payloads before dispatch, including action-observer snapshots.
+    if (!ServerSelectors.getUserInvestigation(this.store.getState(), info.userName)) {
+      return;
+    }
     this.store.dispatch(ServerActions.userInfoReport({ info }));
   }
 
   userAlts(userName: string, alts: ServerInfo_UserAlt[]): void {
+    // Drop stale private payloads before dispatch, including action-observer snapshots.
+    if (!ServerSelectors.getUserInvestigation(this.store.getState(), userName)) {
+      return;
+    }
     this.store.dispatch(ServerActions.userAlts({ userName, alts }));
   }
 
   userSessions(userName: string, sessions: ServerInfo_UserSession[]): void {
+    // Drop stale private payloads before dispatch, including action-observer snapshots.
+    if (!ServerSelectors.getUserInvestigation(this.store.getState(), userName)) {
+      return;
+    }
     this.store.dispatch(ServerActions.userSessions({ userName, sessions }));
   }
 

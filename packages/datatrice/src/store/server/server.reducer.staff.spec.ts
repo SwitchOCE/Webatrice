@@ -28,9 +28,9 @@ describe('staff tooling state', () => {
   });
 
   it('is cleared when the connection is re-initialized', () => {
-    let state = serverReducer(makeServerState(), Actions.userAlts({ userName: 'alice', alts: [] }));
+    let state = serverReducer(startInvestigation(makeServerState(), 'alice'), Actions.userAlts({ userName: 'alice', alts: [] }));
     state = serverReducer(state, Actions.initialized());
-    expect(state.staff.investigations).toEqual({});
+    expect(state.staff.investigation).toBeNull();
   });
 });
 
@@ -40,7 +40,7 @@ describe('user investigation', () => {
     const alts = [create(ServerInfo_UserAltSchema, { userName: 'alice2' })];
     const sessions = [create(ServerInfo_UserSessionSchema, { userName: 'alice', ipAddress: '1.2.3.4' })];
 
-    let state = serverReducer(makeServerState(), Actions.userAlts({ userName: 'alice', alts }));
+    let state = serverReducer(startInvestigation(makeServerState(), 'alice'), Actions.userAlts({ userName: 'alice', alts }));
     expect(Selectors.getUserInvestigation(rootState(state), 'alice')).toEqual({ alts });
 
     state = serverReducer(state, Actions.userSessions({ userName: 'alice', sessions }));
@@ -54,16 +54,16 @@ describe('user investigation', () => {
 
   it('keys the info report by the name the server echoed', () => {
     const info = create(Response_ReportUserInfoSchema, { userName: 'bob' });
-    const state = serverReducer(makeServerState(), Actions.userInfoReport({ info }));
+    const state = serverReducer(startInvestigation(makeServerState(), 'bob'), Actions.userInfoReport({ info }));
     expect(Selectors.getUserInvestigation(rootState(state), 'bob')?.info).toBe(info);
   });
 
   it('replaces an earlier answer for the same user', () => {
     const first = [create(ServerInfo_UserAltSchema, { userName: 'old' })];
     const second = [create(ServerInfo_UserAltSchema, { userName: 'new' })];
-    let state = serverReducer(makeServerState(), Actions.userAlts({ userName: 'alice', alts: first }));
+    let state = serverReducer(startInvestigation(makeServerState(), 'alice'), Actions.userAlts({ userName: 'alice', alts: first }));
     state = serverReducer(state, Actions.userAlts({ userName: 'alice', alts: second }));
-    expect(state.staff.investigations.alice.alts).toBe(second);
+    expect(state.staff.investigation!.results.alts).toBe(second);
   });
 });
 
@@ -133,5 +133,48 @@ describe('serverStats', () => {
     const stats = create(Response_GetServerStatsSchema, { usersCount: 4n, gamesCount: 1n });
     const state = serverReducer(makeServerState(), Actions.serverStats({ stats }));
     expect(Selectors.getServerStats(rootState(state))).toBe(stats);
+  });
+});
+
+const startInvestigation = (state: ServerState, userName: string) =>
+  serverReducer(state, Actions.userInvestigationStarted({ userName }));
+
+describe('active investigation privacy', () => {
+  it('prunes all earlier target data on start, before the next response', () => {
+    let state = startInvestigation(makeServerState(), 'alice');
+    state = serverReducer(state, Actions.userInfoReport({
+      info: create(Response_ReportUserInfoSchema, { userName: 'alice', adminNotes: 'private-note' }),
+    }));
+    state = serverReducer(state, Actions.userAlts({ userName: 'alice', alts: [
+      create(ServerInfo_UserAltSchema, { userName: 'alt', email: 'private@example.test', clientid: 'private-client' }),
+    ] }));
+    state = serverReducer(state, Actions.userSessions({ userName: 'alice', sessions: [
+      create(ServerInfo_UserSessionSchema, { ipAddress: '192.0.2.7', clientid: 'private-session' }),
+    ] }));
+    state = startInvestigation(state, 'bob');
+    expect(Selectors.getUserInvestigation(rootState(state), 'alice')).toBeUndefined();
+    expect(Selectors.getUserInvestigation(rootState(state), 'bob')).toEqual({});
+    const stored = JSON.stringify(state.staff, (_key, value) => typeof value === 'bigint' ? String(value) : value);
+    for (const secret of ['private-note', 'private@example.test', 'private-client', '192.0.2.7', 'private-session']) {
+      expect(stored).not.toContain(secret);
+    }
+  });
+
+  it.each(['info', 'alts', 'sessions'] as const)('ignores a late %s result for a prior target', (part) => {
+    let state = startInvestigation(makeServerState(), 'alice');
+    state = startInvestigation(state, 'bob');
+    const late = {
+      info: Actions.userInfoReport({ info: create(Response_ReportUserInfoSchema, { userName: 'alice' }) }),
+      alts: Actions.userAlts({ userName: 'alice', alts: [] }),
+      sessions: Actions.userSessions({ userName: 'alice', sessions: [] }),
+    }[part];
+    expect(serverReducer(state, late)).toBe(state);
+  });
+
+  it('clears earlier results when refreshing the same target', () => {
+    let state = startInvestigation(makeServerState(), 'alice');
+    state = serverReducer(state, Actions.userAlts({ userName: 'alice', alts: [] }));
+    state = startInvestigation(state, 'alice');
+    expect(Selectors.getUserInvestigation(rootState(state), 'alice')).toEqual({});
   });
 });

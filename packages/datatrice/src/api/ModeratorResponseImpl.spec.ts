@@ -18,8 +18,9 @@ import { ModeratorResponseImpl } from './ModeratorResponseImpl';
 
 function setup() {
   const store = createStore();
+  store.dispatch(ServerActions.userInvestigationStarted({ userName: 'alice' }));
   const dispatch = vi.spyOn(store, 'dispatch');
-  return { impl: new ModeratorResponseImpl(store), dispatch };
+  return { impl: new ModeratorResponseImpl(store), dispatch, store };
 }
 
 describe('ModeratorResponseImpl', () => {
@@ -147,4 +148,20 @@ describe('ModeratorResponseImpl', () => {
       expect(dispatch).toHaveBeenCalledWith(ServerActions.cardArtRuleRemoved({ cardName: 'Island', cardProviderId: 'p1' }));
     });
   });
+});
+
+it.each(['info', 'alts', 'sessions'] as const)('drops late %s before it can enter action snapshots', (part) => {
+  const { impl, store, dispatch } = setup();
+  store.dispatch(ServerActions.userInvestigationStarted({ userName: 'bob' }));
+  dispatch.mockClear();
+  if (part === 'info') {
+    impl.reportUserInfo(create(Response_ReportUserInfoSchema, { userName: 'alice', adminNotes: 'secret' }));
+  }
+  if (part === 'alts') {
+    impl.userAlts('alice', [create(ServerInfo_UserAltSchema, { email: 'secret@example.test' })]);
+  }
+  if (part === 'sessions') {
+    impl.userSessions('alice', [create(ServerInfo_UserSessionSchema, { ipAddress: '192.0.2.7' })]);
+  }
+  expect(dispatch).not.toHaveBeenCalled();
 });
