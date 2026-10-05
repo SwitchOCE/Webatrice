@@ -20,14 +20,21 @@ import { GamePage } from '../pages';
 
 const DECK_PATH = resolve(__dirname, '..', 'fixtures', 'decks', 'forest-60.cod');
 
-/** Moves focus down `menu` with the arrow keys until the entry named `name` has it. */
+/** Moves focus down `menu` with the arrow keys until the entry named `name`
+ *  has it. The menu moves focus a frame after the key (WebKit can lag more),
+ *  so each step waits for focus to settle in the menu and to move, rather
+ *  than pressing ahead of it and overshooting. */
 async function arrowToItem(page: Page, menu: Locator, name: string): Promise<void> {
   const item = menu.getByRole('menuitem', { name, exact: true });
+  const focused = menu.locator(':focus');
+  await expect(focused).toHaveCount(1);
   for (let i = 0; i < 40; i++) {
     if (await item.evaluate((el) => el === document.activeElement)) {
       return;
     }
+    const before = await focused.textContent();
     await page.keyboard.press('ArrowDown');
+    await expect.poll(async () => ((await focused.count()) === 1 ? focused.textContent() : before)).not.toBe(before);
   }
   throw new Error(`ArrowDown never reached "${name}"`);
 }
@@ -171,6 +178,8 @@ test('draw, play, tap, point and bin a card with the keyboard only', async ({ ne
   await arrowToItem(watcherPage, watcherPage.getByRole('menu', { name: 'Lend library to...' }), me);
   await watcherPage.keyboard.press('Enter');
   const lentCard = page.getByRole('button', { name: 'Move Forest to a battlefield' }).first();
+  await lentCard.waitFor();
+  await page.keyboard.press('Shift+Enter');
   await tabTo(page, lentCard);
   await page.keyboard.press('m');
   await moveWithDialog(page, 'Forest');
