@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 
 import { expect, test, type Page } from '@playwright/test';
+import { server, ServerCapability } from '@cockatrice/datatrice';
 
 import { E2E_ADMIN, E2E_MODERATOR, reachRoomsAs, registerAndReachRooms } from '../fixtures/flows';
 import { randomSuffix } from '../fixtures/users';
@@ -13,7 +14,8 @@ import { randomSuffix } from '../fixtures/users';
 // Moderation needs a 3.1 server. Run against Cockatrice master with
 //   SERVATRICE_IMAGE=webatrice-local/servatrice:master-add65ca npm run test:e2e
 // Against the pinned 3.0 release the spec checks that Moderation stays hidden.
-const SERVER_IS_3_1 = /master|3\.1/.test(process.env.SERVATRICE_IMAGE ?? '');
+// global-setup decodes Event_ServerIdentification, independently of the UI and image tag.
+const ADVERTISED_VERSION = process.env.SERVATRICE_ADVERTISED_VERSION;
 
 // Same compose invocation as the package's test:e2e:up script (cwd = packages/webatrice).
 function runSql(sql: string): void {
@@ -63,7 +65,12 @@ test('a moderator looks up the alts of an account from Moderation', async ({ bro
   await reachRoomsAs(page, E2E_MODERATOR);
   await openUserMenu(page, E2E_MODERATOR.username);
 
-  if (!SERVER_IS_3_1) {
+  expect(ADVERTISED_VERSION, 'global setup must capture the advertised server version').toBeTruthy();
+  if (!server.serverSupports(ADVERTISED_VERSION ?? null, ServerCapability.MODERATION_TOOLS)) {
+    test.info().annotations.push({
+      type: 'unsupported',
+      description: `Moderation investigation coverage unavailable on advertised server ${ADVERTISED_VERSION}`,
+    });
     await expect(page.getByRole('button', { name: 'Administration', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Moderation', exact: true })).toHaveCount(0);
     await suspectContext.close();
