@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useForkRef } from '@mui/material/utils';
+import { useTranslation } from 'react-i18next';
 import { ZoneName } from '@cockatrice/sockatrice';
 
 import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
@@ -15,6 +16,7 @@ import { SELECTED_RING } from '../seatColors/seatColors';
  * always renders in the same orientation.
  */
 export default function StackColumn() {
+  const { t } = useTranslation();
   const {
     CARD_H_PX,
     CARD_W_PX,
@@ -22,6 +24,7 @@ export default function StackColumn() {
     isDragging,
     isSelf,
     menuOwnerId,
+    name,
     onCardDoubleClick,
     openSeatCardMenu,
     playerId,
@@ -53,6 +56,8 @@ export default function StackColumn() {
 
   return (
     <div
+      role="group"
+      aria-label={t('PlayerBoard.stack', { name, count: stackDisplayList.length })}
       className="relative isolate border-r border-border-subtle flex flex-col min-h-0 p-2"
       style={seatGrid.stack}
     >

@@ -1,0 +1,8 @@
+{
+  "PlayerBoard": {
+    "seat": "{name}'s seat",
+    "battlefield": "{name}'s battlefield, {count, plural, one {# card} other {# cards}}",
+    "stack": "{name}'s stack, {count, plural, one {# card} other {# cards}}",
+    "hand": "{name}'s hand, {count, plural, one {# card} other {# cards}}"
+  }
+}

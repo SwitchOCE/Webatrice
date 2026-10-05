@@ -1,4 +1,4 @@
-import { act, screen } from '@testing-library/react';
+import { act, cleanup, screen, within } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
 import { getSettings, settingsStore } from '../../../../../hooks/useSettings';
@@ -34,6 +34,26 @@ describe('PlayerBoard', () => {
     expect(cardEl(50, 'stack')).toBeInTheDocument();
     expect(cardEl(10, 'battlefield')).toBeInTheDocument();
     expect(cardEl(30, 'hand')).toBeInTheDocument();
+  });
+
+  it('is a landmark named for its player, with its zones as groups named by owner and card count', () => {
+    renderSeatCell(SPEC);
+    const seat = screen.getByRole('region', { name: 'Alice\'s seat' });
+    expect(seat).toBe(seatRoot());
+    expect(within(seat).getByRole('group', { name: 'Alice\'s battlefield, 1 card' })).toBe(battlefieldEl(1));
+    expect(within(seat).getByRole('group', { name: 'Alice\'s stack, 1 card' })).toContainElement(cardEl(50, 'stack'));
+    expect(within(seat).getByRole('group', { name: 'Alice\'s hand, 1 card' })).toContainElement(cardEl(30, 'hand'));
+  });
+
+  it('names an opponent\'s hand by the server\'s count, in either hand layout', async () => {
+    renderSeatCell(SPEC, 2);
+    expect(screen.getByRole('group', { name: 'Bob\'s hand, 2 cards' })).toBeInTheDocument();
+    cleanup();
+    const settings = await getSettings();
+    settingsStore.setValue(Object.assign(settings, { horizontalHand: false }));
+    renderSeatCell(SPEC, 2);
+    expect(screen.getByRole('group', { name: 'Bob\'s hand, 2 cards' })).toBeInTheDocument();
+    settingsStore.reset();
   });
 
   it('puts the hand row below the play area on the local seat, and glows on its turn', () => {
