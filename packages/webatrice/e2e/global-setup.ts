@@ -1,7 +1,7 @@
 // Playwright global setup. Polls the Servatrice WebSocket port until the
 // server is accepting binary frames before any spec runs. The first message
 // Servatrice emits on a new connection is its `Event_ServerIdentification`,
-// so receiving any data within the timeout means it is fully ready.
+// so its advertised version also supplies capability checks to the specs.
 //
 // The shared e2e compose at `docker/servatrice/docker-compose.e2e.yml`
 // already waits for MySQL inside the container before launching servatrice,
@@ -9,33 +9,46 @@
 // is ready to accept clients. Hence the additional poll here.
 
 import WebSocket from 'ws';
+import { fromBinary, getExtension, hasExtension } from '@bufbuild/protobuf';
+import { Event_ServerIdentification_ext, ServerMessageSchema } from '@cockatrice/sockatrice/generated';
 
 const E2E_WS_URL = 'ws://localhost:4748';
 const READINESS_TIMEOUT_MS = 120_000;
 const POLL_INTERVAL_MS = 1_000;
 
-async function probe(): Promise<boolean> {
+async function probe(): Promise<string | null> {
   return new Promise((resolve) => {
     const ws = new WebSocket(E2E_WS_URL);
     let settled = false;
-    const done = (ok: boolean) => {
+    const done = (version: string | null) => {
       if (settled) return;
       settled = true;
       try { ws.close(); } catch { /* ignore */ }
-      resolve(ok);
+      clearTimeout(timer);
+      resolve(version);
     };
     ws.binaryType = 'arraybuffer';
-    ws.on('message', () => done(true));
-    ws.on('error', () => done(false));
-    ws.on('close', () => done(false));
-    setTimeout(() => done(false), 5_000);
+    const timer = setTimeout(() => done(null), 5_000);
+    ws.on('message', (data) => {
+      const bytes = Array.isArray(data) ? Buffer.concat(data) : new Uint8Array(data as ArrayBuffer);
+      const message = fromBinary(ServerMessageSchema, bytes);
+      if (message.sessionEvent && hasExtension(message.sessionEvent, Event_ServerIdentification_ext)) {
+        done(getExtension(message.sessionEvent, Event_ServerIdentification_ext).serverVersion || null);
+      }
+    });
+    ws.on('error', () => done(null));
+    ws.on('close', () => done(null));
   });
 }
 
 export default async function globalSetup(): Promise<void> {
   const deadline = Date.now() + READINESS_TIMEOUT_MS;
   while (Date.now() < deadline) {
-    if (await probe()) return;
+    const version = await probe();
+    if (version) {
+      process.env.SERVATRICE_ADVERTISED_VERSION = version;
+      return;
+    }
     await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
   }
   throw new Error(
