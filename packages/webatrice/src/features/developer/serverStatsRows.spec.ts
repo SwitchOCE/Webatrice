@@ -39,7 +39,7 @@ describe('buildStatRows', () => {
     expect(rows.find((row) => row.label === 'Developer.stat.uptime')?.value)
       .toBe('Developer.unit.uptimeDays:{"days":2,"hours":3,"minutes":4}');
     expect(rows.find((row) => row.label === 'Developer.stat.liveMetrics')?.section).toBe(true);
-    expect(rows.find((row) => row.label === 'Developer.stat.avgCommandTime')?.value).toBe('2.50 ms');
+    expect(rows.find((row) => row.label === 'Developer.stat.avgCommandTime')?.value).toBe('Developer.unit.milliseconds:{"value":"2.50"}');
     expect(labels).not.toContain('Developer.stat.gameStarts');
   });
 
@@ -47,7 +47,7 @@ describe('buildStatRows', () => {
     const rows = buildStatRows(create(Response_GetServerStatsSchema, { uptimeSecs: 3700n, gameStartCount: 2n, gameStartTotalMs: 5n }), t);
     expect(rows.map((row) => row.label)).not.toContain('Developer.stat.avgCommandTime');
     expect(rows.find((row) => row.label === 'Developer.stat.uptime')?.value).toBe('Developer.unit.uptimeHours:{"hours":1,"minutes":1}');
-    expect(rows.find((row) => row.label === 'Developer.stat.avgGameStart')?.value).toBe('2.5 ms');
+    expect(rows.find((row) => row.label === 'Developer.stat.avgGameStart')?.value).toBe('Developer.unit.milliseconds:{"value":"2.5"}');
   });
 });
 

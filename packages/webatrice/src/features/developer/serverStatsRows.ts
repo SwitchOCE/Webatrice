@@ -79,7 +79,7 @@ export function buildStatRows(stats: Response_GetServerStats, t: TFunction): Sta
 
   if (stats.totalCommands > 0n) {
     const avg = Number(stats.totalCommandTimeMs) / Number(stats.totalCommands);
-    rows.push({ label: t('Developer.stat.avgCommandTime'), value: `${avg.toFixed(2)} ms` });
+    rows.push({ label: t('Developer.stat.avgCommandTime'), value: t('Developer.unit.milliseconds', { value: avg.toFixed(2) }) });
   }
   rows.push(
     { label: t('Developer.stat.activeCommandTypes'), value: String(stats.activeCommandTypes) },
@@ -92,7 +92,7 @@ export function buildStatRows(stats: Response_GetServerStats, t: TFunction): Sta
     const avgStart = Number(stats.gameStartTotalMs) / Number(stats.gameStartCount);
     rows.push(
       { label: t('Developer.stat.gameStarts'), value: String(stats.gameStartCount) },
-      { label: t('Developer.stat.avgGameStart'), value: `${avgStart.toFixed(1)} ms` },
+      { label: t('Developer.stat.avgGameStart'), value: t('Developer.unit.milliseconds', { value: avgStart.toFixed(1) }) },
     );
   }
   return rows;
