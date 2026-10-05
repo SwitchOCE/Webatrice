@@ -22,10 +22,9 @@ function navigationType(): string | undefined {
 }
 
 /**
- * Whether this page load reloads a page already open in this tab, read once at boot. The tab's
- * `sessionStorage` survives a reload but not a new tab, window or browser restart, which are
- * launches; Navigation Timing's `type` is checked too, though not every browser reports a
- * scripted reload as `'reload'`.
+ * Whether this page load reloads a page already open in this tab, read once at boot.
+ * Navigation Timing decides when available: a same-tab launch also retains sessionStorage.
+ * The tab marker is a fallback for browsers that omit the navigation entry.
  */
 export function detectPageReload(storage: Pick<Storage, 'getItem' | 'setItem'> | undefined, type: string | undefined): boolean {
   let seenThisTab = false;
@@ -33,9 +32,9 @@ export function detectPageReload(storage: Pick<Storage, 'getItem' | 'setItem'> |
     seenThisTab = (storage?.getItem(PAGE_SESSION_KEY) ?? null) !== null;
     storage?.setItem(PAGE_SESSION_KEY, '1');
   } catch {
-    /* storage blocked: fall back to the navigation type */
+    /* storage blocked: use the navigation type when available */
   }
-  return seenThisTab || type === 'reload';
+  return type === undefined ? seenThisTab : type === 'reload';
 }
 
 function sessionStorageOrUndefined(): Storage | undefined {
