@@ -13,7 +13,7 @@ import { usePlayerTargetCommands, useTargetCommandsFor } from './usePlayerTarget
 
 vi.mock('../../../../../hooks/useSettings');
 
-// The play reads the card's tablerow; 1 = creature.
+// The play reads the database row; tableRow 1 maps to the middle grid row.
 vi.mock('../../../../../services/dexie/DexieDTOs/CardDTO', () => ({
   CardDTO: { get: vi.fn(async () => ({ tablerow: { value: '1' } })) },
 }));

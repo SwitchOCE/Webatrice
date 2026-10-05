@@ -9,6 +9,9 @@ vi.mock('../../../services/dexie/DexieDTOs/CardDTO', () => ({
   CardDTO: { get: vi.fn(() => Promise.resolve(undefined)) },
 }));
 
+vi.mock('../../../services/cards/catalog/lookup', async () =>
+  (await import('../__test-utils__/unknownCardCatalog')).unknownCardCatalog());
+
 function makeWebClient() {
   const moveCard = vi.fn();
   return { webClient: { request: { game: { moveCard } } } as never, moveCard };
@@ -114,9 +117,9 @@ describe('playCardViaTableRow — row placement (card-database policy)', () => {
     ['2', false, ZoneName.TABLE, 0],
     ['2', true, ZoneName.TABLE, 2],
     ['3', true, ZoneName.STACK, 0],
-    ['9', false, ZoneName.TABLE, 0],
-    ['x', true, ZoneName.TABLE, 2],
-    [undefined, false, ZoneName.TABLE, 0],
+    ['9', false, ZoneName.TABLE, 1],
+    ['x', true, ZoneName.TABLE, 1],
+    [undefined, false, ZoneName.TABLE, 1],
   ])('tablerow %j (inverted: %s) plays to %s row %i', async (raw, isInverted, zone, y) => {
     vi.mocked(CardDTO.get).mockResolvedValue((raw === undefined ? undefined : { tablerow: { value: raw } }) as never);
     const { webClient, moveCard } = makeWebClient();

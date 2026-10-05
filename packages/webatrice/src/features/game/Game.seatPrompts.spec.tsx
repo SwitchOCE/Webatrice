@@ -325,7 +325,7 @@ describe('seat create-token dialog', () => {
           destroyOnZoneChange: true
           faceDown: false
           x: -1
-          y: 0",
+          y: 1",
       ]
     `);
   });

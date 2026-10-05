@@ -79,7 +79,7 @@ export function useSeatClickToPlay({
   // time) so the first click routes correctly even before the prefetch lands.
   const metaOf = async (name: string): Promise<SeatCardMeta> => {
     const cached = cardMetaByName.get(name);
-    if (cached?.typeLine) {
+    if (cached?.tableRow != null || cached?.typeLine) {
       return cached;
     }
     const meta = seatCardMetaFromLookup(await lookupCard(name));

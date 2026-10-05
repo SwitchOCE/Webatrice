@@ -10,10 +10,11 @@ import type { SeatCardMenuState } from '../../../hooks/dialogs/gameDialogs.types
 import type { SeatSelection } from '../../../hooks/useSeatSelection';
 import { makeCardKey, parseCardKey } from '../../../utils/CardRegistry/CardRegistryContext';
 import {
-  legacyTableRowFromTypeLine,
+  resolveCardTableRow,
   playedCardFields,
   tableRowToGridY,
   type PlayedCardMeta,
+  type CardPlacementMeta,
 } from '../../battlefield/Battlefield/cardPlacement';
 import type {
   PlayerCardViewModel,
@@ -25,7 +26,7 @@ import type { CardMenuItem } from './cardContextMenu.model';
 import { buildHandOrZoneCardMenu } from './handCardMenu.model';
 
 /** What playing a card needs from its catalog entry. */
-export interface PlayCardMeta extends PlayedCardMeta {
+export interface PlayCardMeta extends PlayedCardMeta, CardPlacementMeta {
   typeLine: string;
 }
 
@@ -49,7 +50,7 @@ export function playCardMove(
     fromStack?: boolean;
   } = {},
 ): { card: SeatMoveCard; to: SeatMoveDestination } {
-  const tableRow = legacyTableRowFromTypeLine(meta?.typeLine ?? '');
+  const tableRow = resolveCardTableRow(meta);
   if (!faceDown && fromStack && tableRow === 3) {
     return { card: cardId, to: { zone: ZoneName.GRAVE, index: 'end' } };
   }
