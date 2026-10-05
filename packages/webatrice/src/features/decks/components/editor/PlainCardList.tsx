@@ -70,8 +70,7 @@ export function PlainCardList({
   order?: readonly number[];
 }) {
   const { t } = useTranslation();
-  const byName = useMemo(() => sortIndicesByName(cards, cards.map((_, i) => i)), [cards]);
-  const sortedIndices = order ?? byName;
+  const sortedIndices = useMemo(() => order ?? sortIndicesByName(cards, cards.map((_, i) => i)), [cards, order]);
 
   return (
     <div role="grid" aria-label={t('DeckEditor.list.label')}>
