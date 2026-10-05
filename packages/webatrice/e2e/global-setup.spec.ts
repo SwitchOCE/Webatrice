@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { create, setExtension, toBinary } from '@bufbuild/protobuf';
 import { Event_ServerIdentification_ext, Event_ServerIdentificationSchema, ServerMessageSchema,
   ServerMessage_MessageType, SessionEventSchema } from '@cockatrice/sockatrice/generated';
