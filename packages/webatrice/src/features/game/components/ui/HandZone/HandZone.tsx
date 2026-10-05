@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import { useForkRef } from '@mui/material/utils';
 import { Hand } from 'lucide-react';
 import { ZoneName } from '@cockatrice/sockatrice';
+import { Menu, isContextMenuKey, type MenuAnchor } from '@app/components';
 import { usePreference } from '@app/hooks';
 
-import ContextMenu from '../../context-menus/ContextMenu/ContextMenu';
+import ContextMenuEntries from '../../context-menus/ContextMenu/ContextMenuEntries';
 import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
 import Card from '../SeatCard/SeatCard';
@@ -70,6 +72,14 @@ export default function HandZone() {
     selection,
     startSeatCardDrag,
   } = usePlayerSeatContext();
+  const { t } = useTranslation();
+  // The hand menu (desktop's HandMenu), opened from the count button: at the pointer for a
+  // right-click or a click, under the button for Enter / Space, Shift+F10 or the Menu key.
+  const [handMenuAnchor, setHandMenuAnchor] = useState<MenuAnchor | null>(null);
+  const handButtonRef = useRef<HTMLButtonElement>(null);
+  const openHandMenuBelow = (button: HTMLElement) =>
+    setHandMenuAnchor({ rect: button.getBoundingClientRect(), placement: 'below' });
+  const handButtonLabel = t('HandZone.button', { count: handSize });
   // Desktop's "Enable left justification": the row starts at the left (past
   // the count badge) instead of centring.
   const leftJustified = usePreference('leftJustifiedHand');
@@ -133,20 +143,20 @@ export default function HandZone() {
   };
 
   /* Hand icon + count badge overlay. Top-left of the hand
-   * zone for every player. Right-click on the OWN button
-   * opens the hand context menu (ports Cockatrice's HandMenu
-   * — see handMenuItems above). Opponent buttons are inert
-   * (Cockatrice doesn't offer a menu on opponent hands
-   * either — you can't act on cards you can't see). The
-   * wrapper ContextMenu only mounts for isSelf, so
-   * right-clicking an opponent's button produces no popup
-   * (the browser default is also suppressed on the button's
-   * own onContextMenu). z-40 sits above the expanded hand's
-   * z-30 so the button stays clickable when cards float up
-   * on hover. */
+   * zone for every player. A click or right-click on the OWN
+   * button opens the hand menu (ports Cockatrice's HandMenu
+   * — see handMenuItems above), as do Enter / Space,
+   * Shift+F10 and the Menu key, which open it under the
+   * button. Opponent buttons are inert (Cockatrice doesn't
+   * offer a menu on opponent hands either — you can't act on
+   * cards you can't see); the browser default is suppressed
+   * on their onContextMenu. Both are named by the hand's
+   * size. z-40 sits above the expanded hand's z-30 so the
+   * button stays clickable when cards float up on hover. */
   const countBadge = isSelf ? (
-    <ContextMenu items={handMenuItems}>
+    <>
       <button
+        ref={handButtonRef}
         type="button"
         className={
           'absolute top-1 left-1 z-40 flex items-center justify-center '
@@ -154,29 +164,33 @@ export default function HandZone() {
           + 'border border-border-subtle text-text-primary '
           + 'shadow board-motion transition-colors cursor-default'
         }
-        title={`Hand — ${handSize} card${handSize === 1 ? '' : 's'}`}
-        onContextMenu={(e) => {
-          // ContextMenu's own onContextMenu on its wrapper div
-          // handles the popup; suppress the button's default
-          // context menu so nothing else fires.
+        title={handButtonLabel}
+        aria-label={handButtonLabel}
+        aria-haspopup="menu"
+        aria-expanded={handMenuAnchor != null}
+        onContextMenu={(e: MouseEvent<HTMLButtonElement>) => {
           e.preventDefault();
+          // A keyboard-raised contextmenu event carries no pointer position.
+          if (e.clientX === 0 && e.clientY === 0) {
+            openHandMenuBelow(e.currentTarget);
+          } else {
+            setHandMenuAnchor({ x: e.clientX, y: e.clientY });
+          }
         }}
         onClick={(e) => {
-          // Left-click also opens the menu. The ContextMenu
-          // wrapper only listens for `contextmenu` events on
-          // its own div, so we synthesize one at this button's
-          // location and dispatch it upward — the wrapper's
-          // handler catches it and sets `position` to the
-          // supplied clientX/clientY, opening the popup at
-          // the same spot a right-click would.
-          e.preventDefault();
-          const evt = new MouseEvent('contextmenu', {
-            bubbles: true,
-            cancelable: true,
-            clientX: e.clientX,
-            clientY: e.clientY,
-          });
-          e.currentTarget.dispatchEvent(evt);
+          // A click from Enter or Space has no pointer (detail 0): open
+          // under the button rather than at the viewport's corner.
+          if (e.detail === 0) {
+            openHandMenuBelow(e.currentTarget);
+          } else {
+            setHandMenuAnchor({ x: e.clientX, y: e.clientY });
+          }
+        }}
+        onKeyDown={(e) => {
+          if (isContextMenuKey(e)) {
+            e.preventDefault();
+            openHandMenuBelow(e.currentTarget);
+          }
         }}
       >
         <Hand size={32} className="text-text-secondary" aria-hidden />
@@ -187,11 +201,23 @@ export default function HandZone() {
             + 'pointer-events-none tabular-nums'
           }
           style={{ textShadow: OVER_ART_SHADOW_SMALL }}
+          aria-hidden
         >
           {handSize}
         </span>
       </button>
-    </ContextMenu>
+      {handMenuAnchor && (
+        <Menu
+          anchor={handMenuAnchor}
+          label={t('HandZone.menu')}
+          onClose={() => setHandMenuAnchor(null)}
+          triggerRef={handButtonRef}
+          className="w-[240px]"
+        >
+          <ContextMenuEntries items={handMenuItems} />
+        </Menu>
+      )}
+    </>
   ) : (
     <button
       type="button"
@@ -201,7 +227,8 @@ export default function HandZone() {
         + 'h-14 w-14 rounded bg-bg-surface/80 border border-border-subtle '
         + 'text-text-primary shadow cursor-default'
       }
-      title={`Hand — ${handSize} card${handSize === 1 ? '' : 's'}`}
+      title={handButtonLabel}
+      aria-label={handButtonLabel}
       onContextMenu={(e) => e.preventDefault()}
     >
       <Hand size={32} className="text-text-secondary" aria-hidden />

@@ -11,10 +11,11 @@ import { buildEventGameJoined, buildEventGameStateChanged, registerGameBoardHook
 registerGameBoardHooks();
 
 // PlayerList rewrite replaced the `.player-list__host-badge` className with a
-// lucide Crown icon carrying `aria-label="Host"`. The seat row still exposes
+// lucide Crown icon carrying `aria-label={t('PlayerList.host')}` (the test i18n
+// answers with the key). The seat row still exposes
 // `data-testid="player-list-item-N"`.
 function findHostBadge(row: HTMLElement) {
-  return within(row).queryByLabelText('Host');
+  return within(row).queryByLabelText('PlayerList.host');
 }
 
 describe('Game host change', () => {
