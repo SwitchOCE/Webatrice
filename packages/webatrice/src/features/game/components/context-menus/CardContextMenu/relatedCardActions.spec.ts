@@ -260,6 +260,30 @@ describe('create all related tokens', () => {
     expect(createAllRelated(source({ related: [ref('Aura', { attach: '' })] })).lastToken).toBeUndefined();
   });
 
+  // Desktop setLastTokenInfo (player_actions.cpp:929-943) rebuilds the
+  // repeat token from the card database: its first color, its P/T, its text
+  // when annotating, and destroyed on a zone change, whatever the relation
+  // said.
+  it('builds "Create another token" from the token\'s card, not from the relation', () => {
+    const spirit = lookup('Spirit', {
+      power: '1', toughness: '1', colors: ['W', 'B'], text: 'Flying', printings: [{ scryfallId: 'spirit-id' }],
+    });
+    const tokenMeta = new Map([['Spirit', spirit]]);
+    const plan = createAllRelated(source({ related: [ref('Spirit', { persistent: 'persistent' })], tokenMeta }));
+    expect(plan.requests).toEqual([expect.objectContaining({ color: 'm', destroyOnZoneChange: false })]);
+    expect(plan.lastToken).toEqual({
+      name: 'Spirit', color: 'w', pt: '1/1', annotation: '', destroyOnZoneChange: true, faceDown: false, providerId: 'spirit-id',
+    });
+    const each = createAllRelated(source({
+      related: [ref('Spirit', { persistent: '' }), ref('Clue')],
+      tokenMeta,
+      annotate: true,
+    }));
+    expect(each.lastToken).toEqual({
+      name: 'Spirit', color: 'w', pt: '1/1', annotation: 'Flying', destroyOnZoneChange: true, faceDown: false, providerId: 'spirit-id',
+    });
+  });
+
   it('reads counts as the cards.xml parser does', () => {
     expect([undefined, '3', '0', 'x', 'x=4', 'x=0'].map((count) => relationCount({ count }))).toEqual([
       { variable: false, count: 1 },
