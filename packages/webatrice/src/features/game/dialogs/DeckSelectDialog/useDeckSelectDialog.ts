@@ -1,8 +1,7 @@
 import { useState } from 'react';
 
-import { useWebClient } from '@cockatrice/datatrice/react';
-import { useLeaveGame } from '@app/hooks';
-import { trackEvent } from '@app/services';
+import { useGameDeckCommands, useLeaveGame } from '@app/hooks';
+import { trackEvent, validateCod } from '@app/services';
 
 import { useCurrentGame } from '../../hooks/useCurrentGame';
 
@@ -29,19 +28,8 @@ export interface DeckSelectDialog {
 
 const INVALID_COD_MESSAGE = 'Not a valid Cockatrice deck (.cod) file';
 
-function validateCodXml(xml: string): boolean {
-  if (xml.length === 0) {
-    return false;
-  }
-  const doc = new DOMParser().parseFromString(xml, 'application/xml');
-  if (doc.getElementsByTagName('parsererror').length > 0) {
-    return false;
-  }
-  return doc.documentElement?.tagName === 'cockatrice_deck';
-}
-
 export function useDeckSelectDialog(gameId: number | undefined): DeckSelectDialog {
-  const webClient = useWebClient();
+  const commands = useGameDeckCommands(gameId);
   const leaveGame = useLeaveGame();
   // useCurrentGame falls back to the first active game when gameId is undefined;
   // guard on gameId so the dialog never opens against that fallback (the action
@@ -107,12 +95,12 @@ export function useDeckSelectDialog(gameId: number | undefined): DeckSelectDialo
       return;
     }
     const xml = fileXml ?? deckText.trim();
-    if (!validateCodXml(xml)) {
+    if (!validateCod(xml)) {
       setValidationError(INVALID_COD_MESSAGE);
       return;
     }
     setValidationError(null);
-    webClient.request.game.deckSelect(gameId, { deck: xml });
+    commands.selectDeck({ deck: xml });
     // Analytics: capture the format distribution of decks players
     // actually bring into games. Lightweight regex against the .cod
     // <format> element — avoids pulling parseCod (and its full parse
@@ -128,7 +116,7 @@ export function useDeckSelectDialog(gameId: number | undefined): DeckSelectDialo
     if (!canToggleReady || gameId == null) {
       return;
     }
-    webClient.request.game.readyStart(gameId, { ready: !isReady });
+    commands.readyStart({ ready: !isReady });
   };
 
   // Leaving must always be possible: while this modal is open the rest of the

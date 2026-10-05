@@ -9,6 +9,16 @@ import type {
 
 import { defaultMeta, parseMeta, serializeMeta, touchMeta } from './cockatriceDeckMetadata';
 
+/** Check the .cod envelope without interpreting its cards or metadata.
+ * A parsed document can be reused by callers that also inspect sideboard plans. */
+export function validateCod(xml: string | Document): boolean {
+  if (typeof xml === 'string' && !xml) {
+    return false;
+  }
+  const doc = typeof xml === 'string' ? new DOMParser().parseFromString(xml, 'application/xml') : xml;
+  return doc.getElementsByTagName('parsererror').length === 0 && doc.documentElement?.tagName === 'cockatrice_deck';
+}
+
 /**
  * Parser + serializer for Cockatrice `.cod` deck XML.
  *

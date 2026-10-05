@@ -1,3 +1,4 @@
+import { validateCod } from '@app/services';
 import { DECK_ZONE_MAIN, DECK_ZONE_SIDE } from '@app/types';
 
 /**
@@ -67,7 +68,7 @@ export function parseDeckView(xml: string): ParsedDeckView | null {
   }
   const dom = new DOMParser().parseFromString(xml, 'application/xml');
   const root = dom.documentElement;
-  if (dom.getElementsByTagName('parsererror').length > 0 || root?.tagName !== 'cockatrice_deck') {
+  if (!validateCod(dom)) {
     return null;
   }
 

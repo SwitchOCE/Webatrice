@@ -1,14 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { server } from '@cockatrice/datatrice';
 import type { CommandFailedPayload } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { Response_DeckList, ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
-import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
+import { useBackendDeckList, useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { emptyCod, parseCod } from '@app/services';
 import { onSessionEnd } from '@app/services/session';
-import { useAppSelector } from '@app/store';
 
 import { clearDeckEditorCache, deleteCachedDeck } from '../deckEditorCache';
 import { allDeckFolderPaths, decksUnderFolder, listDeckFolder, type DeckFolderView } from '../deckFolders';
@@ -119,8 +118,6 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
   folderPath?: string;
 }): UseDeckList {
   const webClient = useWebClient();
-  const backendDecks = useAppSelector(server.Selectors.getBackendDecks);
-  const isConnected = useAppSelector(server.Selectors.getIsConnected);
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
   // Replaces the loading spinner (which would otherwise spin forever) until
@@ -136,10 +133,7 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
   // Decks being moved, waiting for authoritative metadata or their XML.
   const pendingMovesRef = useRef<Map<number, { deck: FlatDeck; targetPath: string; awaitingList?: boolean }>>(new Map());
 
-  const refresh = () => {
-    if (!isConnected) {
-      return;
-    }
+  const clearSummaries = useCallback(() => {
     setListError(null);
     // A manual refresh re-downloads every deck (picking up edits made
     // since the last visit) and drops the editor's copies too, so a deck
@@ -149,8 +143,8 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
     summaryCache.clear();
     clearDeckEditorCache();
     setSummaries(new Map());
-    webClient.request.session.deckList();
-  };
+  }, []);
+  const { backendDecks, isConnected, refresh } = useBackendDeckList({ beforeRequest: clearSummaries });
 
   useReduxEffect<CommandFailedPayload>(({ payload: { failure } }) => {
     setListError(describeFailure(failure, t('Decks.listError')));
@@ -161,13 +155,6 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
       }
     }
   }, server.Types.DECK_LIST_FAILED, [describeFailure, t]);
-
-  useEffect(() => {
-    if (isConnected && !backendDecks) {
-      refresh();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch on connect or when the list is dropped
-  }, [isConnected, backendDecks]);
 
   const root = backendDecks?.root;
   const folder = useMemo(() => listDeckFolder(root, folderPath), [root, folderPath]);

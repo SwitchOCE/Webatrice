@@ -1,7 +1,22 @@
 import type { DeckMeta, ParsedCard } from '@app/types';
 
-import { emptyCod, parseCod, serializeCod } from './cockatriceDeckDocument';
+import { emptyCod, parseCod, serializeCod, validateCod } from './cockatriceDeckDocument';
 import { defaultMeta, serializeMeta } from './cockatriceDeckMetadata';
+
+describe('validateCod', () => {
+  it.each([
+    ['', false],
+    ['not xml', false],
+    ['<cockatrice_deck>', false],
+    ['<other><cockatrice_deck/></other>', false],
+    ['<Cockatrice_Deck/>', false],
+    ['<cockatrice_deck/>', true],
+    ['<?xml version="1.0"?><cockatrice_deck><zone name="main"/></cockatrice_deck>', true],
+  ])('validates the envelope of %s', (xml, valid) => {
+    expect(validateCod(xml)).toBe(valid);
+    expect(validateCod(new DOMParser().parseFromString(xml, 'application/xml'))).toBe(valid);
+  });
+});
 
 describe('parseCod', () => {
   it('parses deck name, main + side zones, and a mix of card forms', () => {
