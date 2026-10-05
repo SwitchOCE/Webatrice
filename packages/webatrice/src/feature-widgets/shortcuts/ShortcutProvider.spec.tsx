@@ -68,6 +68,8 @@ describe('ShortcutProvider focus guards', () => {
       </div>,
     );
     const card = getByTestId('t');
+    card.focus();
+    expect(card).toHaveFocus();
 
     const tab = press(card, { code: 'Tab', key: 'Tab' });
     const shiftTab = press(card, { code: 'Tab', key: 'Tab', shiftKey: true });
@@ -86,9 +88,19 @@ describe('ShortcutProvider focus guards', () => {
       'a card inside a dialog',
       <div key="c" role="dialog"><div data-testid="t" data-card-id="7" role="button" tabIndex={0}>Bear</div></div>,
     ],
+    [
+      'a card inside a menu on the board',
+      <div key="cm" data-game-board>
+        <div role="menu"><div data-testid="t" data-card-id="7" role="button" tabIndex={0}>Bear</div></div>
+      </div>,
+    ],
   ])('leaves Tab and Shift+Tab to the browser on %s', (_name, node) => {
     const { getByTestId } = renderGame(node);
     const target = getByTestId('t');
+    if (target.hasAttribute('data-card-id')) {
+      target.focus();
+      expect(target).toHaveFocus();
+    }
 
     const tab = press(target, { code: 'Tab', key: 'Tab' });
     const shiftTab = press(target, { code: 'Tab', key: 'Tab', shiftKey: true });
