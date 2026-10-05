@@ -25,6 +25,9 @@ export interface DialogShellProps {
   /** Where focus goes on close if the control that opened the dialog has unmounted meanwhile.
    *  Defaults to a `DialogReturnFocusContext` above, else the opener's nearest landmark. */
   returnFocusTo?: ReturnFocusTo;
+  /** The stacking layer of the modal and its backdrop, a Tailwind z-index class. Defaults to
+   *  "z-50"; a dialog opened from a floating panel above that (a game card view) passes a higher one. */
+  layerClassName?: string;
 }
 
 /**
@@ -51,6 +54,7 @@ const DialogShell = ({
   contentClassName,
   maxWidth = 'max-w-md',
   returnFocusTo,
+  layerClassName = 'z-50',
 }: DialogShellProps) => {
   const { t } = useTranslation();
   const titleId = useId();
@@ -68,7 +72,7 @@ const DialogShell = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className={`fixed inset-0 ${layerClassName} flex items-center justify-center p-4`}
       // @critical React bubbles synthetic submit events along the React tree
       onSubmit={(e) => e.stopPropagation()}
     >
