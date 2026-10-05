@@ -292,7 +292,7 @@ export default function BattlefieldSidebar() {
             'text-warning bg-yellow-500/10 border-b border-yellow-500/30 text-center',
           ].join(' ')}
         >
-          {readOnly ? t('GameReplay.sidebar.tag') : 'Spectating'}
+          {readOnly ? t('GameReplay.sidebar.tag') : t('BattlefieldSidebar.spectating')}
         </div>
       )}
 
@@ -307,7 +307,7 @@ export default function BattlefieldSidebar() {
       <div className="shrink-0 p-3 border-b border-border-subtle">
         <div className="flex items-center justify-between pb-2 gap-2">
           <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
-            Preview
+            {t('BattlefieldSidebar.preview')}
           </span>
           <div className="flex items-center gap-1.5">
             {/* Pop-out toggle. Opens a small browser window that mirrors
@@ -317,8 +317,8 @@ export default function BattlefieldSidebar() {
             <button
               type="button"
               onClick={togglePopup}
-              title={isPopupOpen ? 'Close preview window' : 'Open preview in a separate window'}
-              aria-label={isPopupOpen ? 'Close preview window' : 'Open preview in a separate window'}
+              title={isPopupOpen ? t('BattlefieldSidebar.closePreview') : t('BattlefieldSidebar.openPreview')}
+              aria-label={isPopupOpen ? t('BattlefieldSidebar.closePreview') : t('BattlefieldSidebar.openPreview')}
               aria-pressed={isPopupOpen}
               className={[
                 'inline-flex items-center justify-center px-2 py-1 rounded-md border board-motion transition-colors',
@@ -335,9 +335,9 @@ export default function BattlefieldSidebar() {
              *  toggle. `aria-pressed` marks the active option. */}
             <div className="inline-flex rounded-md border border-border-subtle overflow-hidden">
               {([
-                { mode: 'image', Icon: ImageIcon, title: 'Show card image' },
-                { mode: 'text', Icon: FileText, title: 'Show card description' },
-                { mode: 'both', Icon: LayoutList, title: 'Show image and description' },
+                { mode: 'image', Icon: ImageIcon, title: t('BattlefieldSidebar.showImage') },
+                { mode: 'text', Icon: FileText, title: t('BattlefieldSidebar.showDescription') },
+                { mode: 'both', Icon: LayoutList, title: t('BattlefieldSidebar.showBoth') },
               ] as const).map(({ mode, Icon, title }) => {
                 const active = previewMode === mode;
                 return (
@@ -379,9 +379,9 @@ export default function BattlefieldSidebar() {
             style={{ borderRadius: CARD_CORNER_RADIUS }}
           >
             <ExternalLink size={22} className="text-accent" />
-            <span className="italic">Preview is open in a separate window</span>
+            <span className="italic">{t('BattlefieldSidebar.previewInWindow')}</span>
             <span className="text-[10px] uppercase tracking-widest text-accent">
-              Click to bring back
+              {t('BattlefieldSidebar.bringBack')}
             </span>
           </button>
         ) : (
@@ -410,7 +410,7 @@ export default function BattlefieldSidebar() {
                   ].join(' ')}
                   style={{ borderRadius: CARD_CORNER_RADIUS }}
                 >
-                  Hover a card to preview it here
+                  {t('BattlefieldSidebar.hoverToPreview')}
                 </div>
               )
             )}
@@ -433,11 +433,11 @@ export default function BattlefieldSidebar() {
                         'self-start inline-flex items-center gap-1 text-[11px]',
                         'font-medium text-text-secondary hover:text-text-primary board-motion transition-colors',
                       ].join(' ')}
-                      title={`Back to ${previousInStack.name}`}
+                      title={t('BattlefieldSidebar.backTo', { name: previousInStack.name })}
                     >
                       <ChevronLeft size={12} />
                       <span className="truncate max-w-[16rem]">
-                        Back to {previousInStack.name}
+                        {t('BattlefieldSidebar.backTo', { name: previousInStack.name })}
                       </span>
                     </button>
                   )}
@@ -499,7 +499,7 @@ export default function BattlefieldSidebar() {
                    *  card info above (name + PT + annotation) is all we
                    *  can show for a token without a Scryfall entry. */}
                   {detailFetchState === 'loading' && (
-                    <div className="text-text-muted italic">Loading…</div>
+                    <div className="text-text-muted italic">{t('BattlefieldSidebar.loading')}</div>
                   )}
                   {detail && (
                     <CardRelatedLinks
@@ -529,7 +529,7 @@ export default function BattlefieldSidebar() {
                     ].join(' ')}
                     style={{ borderRadius: CARD_CORNER_RADIUS }}
                   >
-                    Hover a card to preview it here
+                    {t('BattlefieldSidebar.hoverToPreview')}
                   </div>
                 )
               )
@@ -554,10 +554,10 @@ export default function BattlefieldSidebar() {
               type="button"
               onClick={handleLeave}
               disabled={gameId == null}
-              title={readOnly ? t('GameReplay.sidebar.closeTitle') : 'Leave the game'}
+              title={readOnly ? t('GameReplay.sidebar.closeTitle') : t('BattlefieldSidebar.leaveTitle')}
               className={SIDEBAR_HEADER_BUTTON_CLASS}
             >
-              <LogOut size={12} /> {readOnly ? t('GameReplay.sidebar.close') : 'Leave'}
+              <LogOut size={12} /> {readOnly ? t('GameReplay.sidebar.close') : t('BattlefieldSidebar.leave')}
             </button>
           </div>
         </div>
@@ -579,7 +579,7 @@ export default function BattlefieldSidebar() {
             <button
               type="button"
               onClick={onRequestConcede}
-              title="Concede this game"
+              title={t('BattlefieldSidebar.concedeTitle')}
               // Same visual as the Leave button above — matching the
               // rest of this button row keeps the sidebar reading as
               // one consistent affordance strip. flex-1 makes it (and
@@ -587,26 +587,26 @@ export default function BattlefieldSidebar() {
               // width evenly.
               className={SIDEBAR_ACTION_BUTTON_CLASS}
             >
-              <Flag size={12} /> Concede
+              <Flag size={12} /> {t('BattlefieldSidebar.concede')}
             </button>
           )}
           {canUnconcede && (
             <button
               type="button"
               onClick={onRequestUnconcede}
-              title="Rejoin the game"
+              title={t('BattlefieldSidebar.rejoinTitle')}
               className={SIDEBAR_ACTION_BUTTON_CLASS}
             >
-              <Flag size={12} /> Rejoin
+              <Flag size={12} /> {t('BattlefieldSidebar.rejoin')}
             </button>
           )}
           <button
             type="button"
             onClick={onRequestViewSideboard}
-            title="Open sideboard"
+            title={t('BattlefieldSidebar.sideboardTitle')}
             className={SIDEBAR_ACTION_BUTTON_CLASS}
           >
-            <Layers size={12} /> Sideboard
+            <Layers size={12} /> {t('BattlefieldSidebar.sideboard')}
           </button>
         </div>
       )}
