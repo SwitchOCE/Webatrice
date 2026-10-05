@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 
 /** How long one card back takes to fly from the library to the hand. */
 export const DRAW_ANIMATION_MS = 450;
@@ -34,9 +34,49 @@ export function useDrawFlights({ drawSeq, lastDrawCount, libraryRef, handRef, en
   // that fires alongside.
   const flightIdCounterRef = useRef(0);
   const [flights, setFlights] = useState<DrawFlight[]>([]);
+  const pendingTimerIdsRef = useRef<Set<number>>(new Set());
+  const pendingFrameIdsRef = useRef<Set<number>>(new Set());
   // Tracks the last observed `drawSeq` from Redux so the effect only fires
   // when the beacon actually ticks — not on unrelated re-renders.
   const prevDrawSeqForFlightRef = useRef<number | null>(null);
+
+  const cancelPending = useCallback((clearFlights: boolean) => {
+    for (const timerId of pendingTimerIdsRef.current) {
+      window.clearTimeout(timerId);
+    }
+    pendingTimerIdsRef.current.clear();
+    for (const frameId of pendingFrameIdsRef.current) {
+      window.cancelAnimationFrame(frameId);
+    }
+    pendingFrameIdsRef.current.clear();
+    if (clearFlights) {
+      setFlights([]);
+    }
+  }, []);
+
+  const scheduleTimer = useCallback((callback: () => void, delay: number) => {
+    const timerId = window.setTimeout(() => {
+      pendingTimerIdsRef.current.delete(timerId);
+      callback();
+    }, delay);
+    pendingTimerIdsRef.current.add(timerId);
+  }, []);
+
+  const scheduleFrame = useCallback((callback: FrameRequestCallback) => {
+    const frameId = window.requestAnimationFrame((time) => {
+      pendingFrameIdsRef.current.delete(frameId);
+      callback(time);
+    });
+    pendingFrameIdsRef.current.add(frameId);
+  }, []);
+
+  useEffect(() => {
+    if (!enabled) {
+      cancelPending(true);
+    }
+  }, [cancelPending, enabled]);
+
+  useEffect(() => () => cancelPending(false), [cancelPending]);
 
   // Fire flight animations from the library rect to the hand rect only
   // when the Redux draw beacon (`drawSeq`) ticks. The beacon is bumped
@@ -74,24 +114,24 @@ export function useDrawFlights({ drawSeq, lastDrawCount, libraryRef, handRef, en
     for (let i = 0; i < drawn; i++) {
       const id = ++flightIdCounterRef.current;
       const startDelay = i * 90;
-      window.setTimeout(() => {
+      scheduleTimer(() => {
         setFlights((prev) => [...prev, { id, from, to, landed: false }]);
         // Two rAFs so the initial style commits before the transition
         // target is set — otherwise browsers may collapse both frames
         // and skip the animation.
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
+        scheduleFrame(() => {
+          scheduleFrame(() => {
             setFlights((prev) =>
               prev.map((f) => (f.id === id ? { ...f, landed: true } : f)),
             );
           });
         });
-        window.setTimeout(() => {
+        scheduleTimer(() => {
           setFlights((prev) => prev.filter((f) => f.id !== id));
         }, DRAW_ANIMATION_MS + 50);
       }, startDelay);
     }
-  }, [drawSeq, lastDrawCount, libraryRef, handRef, enabled]);
+  }, [drawSeq, lastDrawCount, libraryRef, handRef, enabled, scheduleFrame, scheduleTimer]);
 
   return { flights, DRAW_ANIMATION_MS };
 }
