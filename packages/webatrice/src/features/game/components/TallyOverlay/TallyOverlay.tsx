@@ -15,43 +15,42 @@ const PANEL_CLASS = [
  * cards, the tally above it while it has rows.
  *
  * The count follows desktop's "Show total selection count" (on by default).
- * Only the tally is announced: the count changes with every click, so its
- * region stays silent.
+ * Selection changes are announced from a stable live region. The visible
+ * count stays presentational so assistive technology does not read it twice.
  */
 export default function TallyOverlay() {
   const { t } = useTranslation();
   const { rows, count: selected } = useSelectionTally();
   const showCount = usePreference('showTotalSelectionCount');
   const count = showCount ? selected : 0;
-  if (rows.length === 0 && count <= 1) {
-    return null;
-  }
   return (
-    <div className="absolute bottom-2.5 right-2.5 z-10 flex flex-col items-end gap-1 pointer-events-none">
-      {rows.length > 0 && (
-        <div role="status" aria-label={t('TallyOverlay.tally')} className={PANEL_CLASS}>
-          <table>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.name}>
-                  <td className="pr-3">{row.name}</td>
-                  <td className="text-right tabular-nums">{row.value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+    <>
+      <span role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {t('TallyOverlay.selectedCount', { count: selected })}
+      </span>
+      {(rows.length > 0 || count > 1) && (
+        <div className="absolute bottom-2.5 right-2.5 z-10 flex flex-col items-end gap-1 pointer-events-none">
+          {rows.length > 0 && (
+            <div role="status" aria-label={t('TallyOverlay.tally')} className={PANEL_CLASS}>
+              <table>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.name}>
+                      <td className="pr-3">{row.name}</td>
+                      <td className="text-right tabular-nums">{row.value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {count > 1 && (
+            <div aria-hidden="true" className={`${PANEL_CLASS} tabular-nums`}>
+              {count}
+            </div>
+          )}
         </div>
       )}
-      {count > 1 && (
-        <div
-          role="status"
-          aria-live="off"
-          aria-label={t('TallyOverlay.selectedCount', { count })}
-          className={`${PANEL_CLASS} tabular-nums`}
-        >
-          {count}
-        </div>
-      )}
-    </div>
+    </>
   );
 }
