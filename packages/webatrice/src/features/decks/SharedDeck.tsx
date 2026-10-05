@@ -114,7 +114,7 @@ function SharedDeck() {
                       <button
                         type="button"
                         onClick={() => shared.openItem(item.id)}
-                        disabled={!isConnected || (open.status === 'loading' && open.id === item.id)}
+                        disabled={!isConnected || shared.downloadPending}
                         className={[
                           'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium',
                           'text-text-primary bg-bg-elevated border border-border-strong hover:bg-border-subtle',
