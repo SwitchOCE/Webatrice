@@ -145,7 +145,8 @@ export default defineConfig({
     // node-side resolver handles them directly — no `deps.inline`
     // workaround needed.
     setupFiles: ['./src/setupTests.ts'],
-    include: ['src/**/*.spec.{ts,tsx}'],
+    // e2e/global-setup.spec.ts unit-tests the Playwright global setup; the other e2e specs are Playwright's.
+    include: ['src/**/*.spec.{ts,tsx}', 'e2e/global-setup.spec.ts'],
     exclude: ['node_modules', 'build', 'integration', 'coverage'],
     isolate: true,
     pool: 'vmThreads',
