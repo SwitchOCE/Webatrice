@@ -3,6 +3,12 @@ import { act, fireEvent, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  Command_AddCardArtRule_ext,
+  Command_RemoveCardArtRule_ext,
+  Command_ListCardArtRules_ext,
+  Response_ListCardArtRules_ext,
+  Response_ListCardArtRulesSchema,
+  Response_CardArtRuleEntrySchema,
   Command_GetModeratorLastLogins_ext,
   Command_GetUserAlts_ext,
   Command_Login_ext,
@@ -24,6 +30,7 @@ import {
 import { Route, Routes } from 'react-router-dom';
 import { UserDisplay } from '@app/components';
 import { ModerationProvider } from '@app/feature-widgets/moderation';
+import { CardArtRules } from '@app/features/card-art-rules';
 import { Administration } from '@app/features/administration';
 import { Moderation } from '@app/features/moderation';
 
@@ -142,5 +149,50 @@ describe('Investigate user (integration)', () => {
 
     expect(findLastModeratorCommand(Command_GetUserAlts_ext).value.userName).toBe('suspect');
     expect(screen.getByRole('searchbox', { name: /ModerationPage\.search\.placeholder/ })).toHaveValue('suspect');
+  });
+});
+
+describe.each(['list', 'add', 'remove'] as const)('Card art %s failure (integration)', (command) => {
+  it.each(['rejected', 'timed out'] as const)('shows a command that %s through the response-to-UI path', async (outcome) => {
+    loginAsStaff();
+    vi.useFakeTimers();
+    renderFeatureScreen(<CardArtRules />, '/card-art-rules');
+    let cmdId = findLastModeratorCommand(Command_ListCardArtRules_ext).cmdId;
+    if (command !== 'list') {
+      act(() => deliverMessage(buildResponseMessage(buildResponse({
+        cmdId,
+        responseCode: Response_ResponseCode.RespOk,
+        ext: Response_ListCardArtRules_ext,
+        value: create(Response_ListCardArtRulesSchema, {
+          entries: [create(Response_CardArtRuleEntrySchema, { cardName: 'Island', cardProviderId: 'uuid-1', mode: 'DENY' })],
+        }),
+      }))));
+      if (command === 'add') {
+        fireEvent.change(screen.getByRole('textbox', { name: 'CardArtRules.label.card' }), { target: { value: 'Island' } });
+        await act(async () => fireEvent.click(screen.getByRole('button', { name: 'CardArtRules.button.add' })));
+        cmdId = findLastModeratorCommand(Command_AddCardArtRule_ext).cmdId;
+      } else {
+        fireEvent.click(screen.getByText('uuid-1'));
+        fireEvent.click(screen.getByRole('button', { name: 'CardArtRules.button.remove' }));
+        cmdId = findLastModeratorCommand(Command_RemoveCardArtRule_ext).cmdId;
+      }
+      // Settle the automatic re-list separately: it must not mask the mutation failure.
+      act(() => deliverMessage(buildResponseMessage(buildResponse({
+        cmdId: findLastModeratorCommand(Command_ListCardArtRules_ext).cmdId,
+        responseCode: Response_ResponseCode.RespOk,
+        ext: Response_ListCardArtRules_ext,
+        value: create(Response_ListCardArtRulesSchema, {}),
+      }))));
+    }
+    act(() => {
+      if (outcome === 'rejected') {
+        deliverMessage(buildResponseMessage(buildResponse({ cmdId, responseCode: Response_ResponseCode.RespFunctionNotAllowed })));
+      } else {
+        vi.advanceTimersByTime(18000);
+      }
+    });
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      outcome === 'rejected' ? `CardArtRules.error.${command}` : 'CommandFailure.timeout',
+    );
   });
 });

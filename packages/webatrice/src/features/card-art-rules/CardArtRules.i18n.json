@@ -19,6 +19,11 @@
       "remove": "Remove rule",
       "refresh": "Refresh"
     },
+    "error": {
+      "list": "Failed to load card art rules.",
+      "add": "Failed to add the card art rule.",
+      "remove": "Failed to remove the card art rule."
+    },
     "validation": {
       "tooLong": "At most {max} characters"
     }

@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 
+import { useTranslation } from 'react-i18next';
+
+import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
+import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { Response_CardArtRuleEntry } from '@cockatrice/sockatrice/generated';
@@ -19,6 +23,8 @@ export interface NewCardArtRule {
 }
 
 export interface CardArtRules {
+  error: string | null;
+  dismissError: () => void;
   rules: Response_CardArtRuleEntry[];
   selectedIndex: number | null;
   select: (index: number) => void;
@@ -29,6 +35,12 @@ export interface CardArtRules {
   refresh: () => void;
 }
 
+const FAILURE_KEYS: Partial<Record<WebsocketTypes.ModeratorCommandName, string>> = {
+  listCardArtRules: 'CardArtRules.error.list',
+  addCardArtRule: 'CardArtRules.error.add',
+  removeCardArtRule: 'CardArtRules.error.remove',
+};
+
 const NO_RULES: Response_CardArtRuleEntry[] = [];
 
 /**
@@ -38,11 +50,21 @@ const NO_RULES: Response_CardArtRuleEntry[] = [];
  */
 export function useCardArtRules(): CardArtRules {
   const webClient = useWebClient();
+  const { t } = useTranslation();
+  const describeFailure = useCommandFailureMessage();
+  const [error, setError] = useState<string | null>(null);
+  useReduxEffect<{ command: WebsocketTypes.ModeratorCommandName; failure?: WebsocketTypes.CommandFailure }>(({ payload }) => {
+    const key = FAILURE_KEYS[payload.command];
+    if (key) {
+      setError(describeFailure(payload.failure, t(key)));
+    }
+  }, server.Types.MODERATOR_COMMAND_FAILED, [t, describeFailure]);
   const rules = useAppSelector(server.Selectors.getCardArtRules) ?? NO_RULES;
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [printings, setPrintings] = useState<CardPrinting[]>([]);
 
   const refresh = useCallback(() => {
+    setError(null);
     setSelectedIndex(null);
     webClient.request.moderator.listCardArtRules();
   }, [webClient]);
@@ -70,6 +92,8 @@ export function useCardArtRules(): CardArtRules {
   };
 
   return {
+    error,
+    dismissError: () => setError(null),
     rules,
     selectedIndex,
     select: setSelectedIndex,

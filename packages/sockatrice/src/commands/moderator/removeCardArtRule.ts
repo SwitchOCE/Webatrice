@@ -11,8 +11,8 @@ export function removeCardArtRule(cardName: string, cardProviderId: string): voi
       onSuccess: () => {
         WebClient.instance.response.moderator.cardArtRuleRemoved?.(cardName, cardProviderId);
       },
-      onError: (responseCode) => {
-        WebClient.instance.response.moderator.commandFailed?.('removeCardArtRule', responseCode, cardName);
+      onError: (responseCode, _raw, failure) => {
+        WebClient.instance.response.moderator.commandFailed?.('removeCardArtRule', responseCode, cardName, failure);
       },
     },
   );
