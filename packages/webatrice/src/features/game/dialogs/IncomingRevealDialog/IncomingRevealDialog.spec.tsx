@@ -178,6 +178,36 @@ describe('IncomingRevealDialog', () => {
       expect(screen.getByRole('heading', { name: TITLE })).toBeInTheDocument();
     });
 
+    it.each([
+      { key: 'Enter', code: 'Enter', ctrlKey: true, action: 'turn' },
+      { key: ' ', code: 'Space', ctrlKey: true, action: 'phase' },
+      { key: 'Enter', code: 'Enter', shiftKey: true, action: 'chat' },
+    ])('passes $action chords through without selecting the tile', ({ action, ...chord }) => {
+      const { game } = renderReveal();
+      const island = within(popup()).getByRole('button', { name: 'Island' });
+      island.focus();
+
+      fireEvent.keyDown(island, chord);
+
+      if (action === 'turn') {
+        expect(game.nextTurn).toHaveBeenCalledWith(1);
+      } else if (action === 'phase') {
+        expect(game.setActivePhase).toHaveBeenCalled();
+      } else {
+        expect(screen.getByRole('textbox', { name: 'game chat input' })).toHaveFocus();
+      }
+      expect(island).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it.each(['ctrlKey', 'altKey', 'metaKey', 'shiftKey'])('does not select tiles with %s held', (modifier) => {
+      renderReveal();
+      const island = within(popup()).getByRole('button', { name: 'Island' });
+      for (const key of ['Enter', ' ']) {
+        fireEvent.keyDown(island, { key, [modifier]: true });
+        expect(island).toHaveAttribute('aria-pressed', 'false');
+      }
+    });
+
     it('selects cards from the keyboard, so Alt+H can hide them', () => {
       renderReveal();
       const island = within(popup()).getByRole('button', { name: 'Island' });
@@ -185,6 +215,10 @@ describe('IncomingRevealDialog', () => {
       expect(island).toHaveAttribute('aria-pressed', 'false');
 
       fireEvent.keyDown(island, { key: ' ' });
+      expect(island).toHaveAttribute('aria-pressed', 'true');
+      fireEvent.keyDown(island, { key: ' ' });
+      expect(island).toHaveAttribute('aria-pressed', 'false');
+      fireEvent.keyDown(island, { key: 'Enter' });
       expect(island).toHaveAttribute('aria-pressed', 'true');
       fireEvent.keyDown(within(popup()).getByRole('button', { name: 'Forest' }), { key: 'Enter' });
       fireEvent.keyDown(island, { key: 'Enter' });
