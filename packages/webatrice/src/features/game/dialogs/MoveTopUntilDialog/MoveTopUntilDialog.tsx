@@ -79,7 +79,7 @@ function MoveTopUntilForm({
             onClick={onCancel}
             className="px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:bg-bg-base board-motion transition-colors"
           >
-            {t('MoveTopUntilDialog.cancel')}
+            {t('Common.action.cancel')}
           </button>
           <button type="submit" form={formId} disabled={!canSubmit} className={SUBMIT_BUTTON_CLASS}>
             {t('MoveTopUntilDialog.start')}

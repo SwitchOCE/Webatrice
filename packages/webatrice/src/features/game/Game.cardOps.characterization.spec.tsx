@@ -187,7 +187,7 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
   // What each seat action does from that selection: the requests
   // it sends, the dialog it opens, or the selection it leaves.
   const EXPECTED: Record<SeatShortcutActionId, { wire?: unknown[]; dialogs?: unknown[]; selected?: string[] }> = {
-    'game.mulligan': { dialogs: ['Take mulligan'] },
+    'game.mulligan': { dialogs: ['Draw hand'] },
     'game.setLife': { dialogs: ['Set life total'] },
     'game.removeLocalArrows': { wire: [['deleteArrow', { arrowId: 7 }]] },
     'game.doesntUntap': {
@@ -224,7 +224,7 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
       ],
     },
     'game.moveSelectedToGrave': { wire: [['moveCard', moveFromTable([10, 11], ZoneName.GRAVE, 0, false)]] },
-    'game.setCardPT': { dialogs: ['Set power and toughness'] },
+    'game.setCardPT': { dialogs: ['Change power/toughness'] },
     'game.incP': { wire: [setPT(10, '4/3'), setPT(11, '1/0')] },
     'game.decP': { wire: [setPT(10, '2/3'), setPT(11, '-1/0')] },
     'game.incT': { wire: [setPT(10, '3/4'), setPT(11, '0/1')] },
@@ -340,11 +340,11 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     selectOgreAndMorph();
     if (id === 'game.createAnotherToken') {
       runShortcut('game.createToken');
-      fireEvent.change(screen.getByLabelText('Token name'), { target: { value: 'Goblin' } });
-      fireEvent.change(screen.getByLabelText('Token power/toughness'), { target: { value: '1/1' } });
-      fireEvent.change(screen.getByLabelText('Token annotation'), { target: { value: 'ETB' } });
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Goblin' } });
+      fireEvent.change(screen.getByLabelText('P/T'), { target: { value: '1/1' } });
+      fireEvent.change(screen.getByLabelText('Annotation'), { target: { value: 'ETB' } });
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: /^create$/i }));
+        fireEvent.click(screen.getByRole('button', { name: 'Common.action.create' }));
       });
       expect(game.createToken).toHaveBeenCalledTimes(1);
       vi.clearAllMocks();
@@ -502,7 +502,7 @@ describe('battlefield card menu actions', () => {
     [['Turn Over'], { wire: [['flipCard', { ...table(10), faceDown: true }], ['flipCard', { ...table(11), faceDown: true }]] }],
     [['Clone'], { wire: [['createToken', clone('Ogre', '3/3')], ['createToken', clone('Morph', '')]] }],
     [['Move to', 'Top of library in random order'], { wire: [TO_LIBRARY_TOP] }],
-    [['Move to', 'X cards from the top of library...'], { dialogs: ['Move X cards from the top of library'] }],
+    [['Move to', 'X cards from the top of library...'], { dialogs: ['Place card X cards from top of library'] }],
     [['Move to', 'Bottom of library in random order'], { wire: [TO_LIBRARY_BOTTOM] }],
     [['Move to', 'Table'], { wire: [['moveCard', moveFromTable([10, 11], ZoneName.TABLE, 0, false)]] }],
     [['Move to', 'Hand'], { wire: [['moveCard', moveFromTable([10, 11], ZoneName.HAND, 0, false)]] }],
@@ -516,7 +516,7 @@ describe('battlefield card menu actions', () => {
     [['Power / toughness', 'Decrease power and increase toughness'], { wire: [setPT(10, '2/4'), setPT(11, '-1/1')] }],
     [['Power / toughness', 'Increase power and toughness'], { wire: [setPT(10, '4/4'), setPT(11, '1/1')] }],
     [['Power / toughness', 'Decrease power and toughness'], { wire: [setPT(10, '2/2'), setPT(11, '-1/-1')] }],
-    [['Power / toughness', 'Set power and toughness...'], { dialogs: ['Set power and toughness'] }],
+    [['Power / toughness', 'Set power and toughness...'], { dialogs: ['Change power/toughness'] }],
     [['Power / toughness', 'Reset power and toughness'], { wire: [setPT(10, '')] }],
     [['Set annotation...'], { dialogs: ['Set annotation'] }],
     [['Reduce life by power'], { wire: [['incCounter', { counterId: LIFE_COUNTER_ID, delta: -3 }, 'options']] }],

@@ -92,7 +92,7 @@ function zoneView(title: string): HTMLElement {
 
 // A card view's close button, or a reveal's.
 function closeView(view: HTMLElement) {
-  fireEvent.click(within(view).getAllByRole('button', { name: /^(ZoneViewPanel\.close|Close)$/ })[0]);
+  fireEvent.click(within(view).getAllByRole('button', { name: /^(Common\.action\.close|ZoneViewPanel\.close)$/ })[0]);
 }
 
 function answerCountPrompt(title: RegExp, value: string) {

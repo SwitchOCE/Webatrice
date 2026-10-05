@@ -66,8 +66,6 @@ function panel(title: RegExp): HTMLElement {
   return screen.getByRole('heading', { name: title }).closest<HTMLElement>('.pointer-events-auto.resize')!;
 }
 
-// The test i18n has no catalogue, so a zone's name reads as its key; useZoneViewDialog.spec pins
-// the English titles.
 const GRAVE = /^Graveyard/;
 
 function viewCards(el: HTMLElement): HTMLElement[] {
@@ -253,7 +251,7 @@ describe('ZoneViewDialog', () => {
     expect(within(view).getByText('Bottom')).toBeInTheDocument();
     expect(within(view).getByText('7')).toBeInTheDocument();
 
-    fireEvent.click(within(view).getAllByRole('button', { name: 'Close' })[0]);
+    fireEvent.click(within(view).getAllByRole('button', { name: 'Common.action.close' })[0]);
     expect(handleClose).toHaveBeenCalledWith(false);
   });
 

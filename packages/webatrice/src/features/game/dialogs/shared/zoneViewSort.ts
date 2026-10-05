@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 /**
  * Filter, sort and group policy for zone views, matching desktop's
  * ZoneViewWidget controls (view_zone_widget.cpp:234-250) so every zone
@@ -204,7 +206,11 @@ export function compareCards(a: ZoneViewCardMetadata, b: ZoneViewCardMetadata, m
   }
 }
 
-export function groupCards<M extends ZoneViewCardMetadata>(cards: EnrichedCard<M>[], mode: GroupMode): CardGroup<M>[] {
+export function groupCards<M extends ZoneViewCardMetadata>(
+  cards: EnrichedCard<M>[],
+  mode: GroupMode,
+  t: TFunction,
+): CardGroup<M>[] {
   if (mode === 'none') {
     return cards.length === 0 ? [] : [{ key: 'all', label: '', cards }];
   }
@@ -220,10 +226,10 @@ export function groupCards<M extends ZoneViewCardMetadata>(cards: EnrichedCard<M
     for (const c of cards) {
       push(primaryType(c.meta.type_line), c);
     }
-    return TYPE_ORDER.filter((t) => buckets.has(t)).map((t) => ({
-      key: t,
-      label: t,
-      cards: buckets.get(t)!,
+    return TYPE_ORDER.filter((typeName) => buckets.has(typeName)).map((typeName) => ({
+      key: typeName,
+      label: t(`ZoneView.group.${typeName.toLowerCase()}`),
+      cards: buckets.get(typeName)!,
     }));
   }
   if (mode === 'cmc') {
@@ -235,7 +241,7 @@ export function groupCards<M extends ZoneViewCardMetadata>(cards: EnrichedCard<M
       .sort((a, b) => a - b)
       .map((n) => ({
         key: String(n),
-        label: `Mana ${n}`,
+        label: t('ZoneView.group.mana', { value: n }),
         cards: buckets.get(String(n))!,
       }));
   }
@@ -259,7 +265,7 @@ export function groupCards<M extends ZoneViewCardMetadata>(cards: EnrichedCard<M
     })
     .map((k) => ({
       key: k,
-      label: k === 'Colorless' ? 'Colorless' : k,
+      label: k === 'Colorless' ? t('ZoneView.group.colorless') : k,
       cards: buckets.get(k)!,
     }));
 }
@@ -282,6 +288,7 @@ export function buildCardGroups(
   cards: readonly HandCard[],
   metaByName: ReadonlyMap<string, ZoneViewCardMetadata>,
   { query = '', sortBy, groupBy }: CardGroupOptions,
+  t: TFunction,
 ): CardGroup[] {
   const enriched: EnrichedCard[] = [];
   for (const handCard of cards) {
@@ -291,5 +298,5 @@ export function buildCardGroups(
     }
   }
   enriched.sort((a, b) => compareCards(a.meta, b.meta, sortBy));
-  return groupCards(enriched, groupBy);
+  return groupCards(enriched, groupBy, t);
 }

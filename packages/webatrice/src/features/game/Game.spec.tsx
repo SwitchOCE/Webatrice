@@ -159,7 +159,7 @@ describe('Game container', () => {
       });
 
       expect(screen.getByRole('dialog')).toBeInTheDocument();
-      expect(screen.getByLabelText('deck list')).toBeInTheDocument();
+      expect(screen.getByLabelText('Deck list')).toBeInTheDocument();
     });
 
     it('stays closed when the game has already started', () => {

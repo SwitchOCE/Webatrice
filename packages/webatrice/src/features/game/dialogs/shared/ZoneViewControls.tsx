@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { GroupMode, SortMode } from './zoneViewSort';
 
@@ -15,32 +16,33 @@ export interface ZoneViewSortControlsProps {
 
 /** Desktop's group and sort boxes (view_zone_widget.cpp:234-250). */
 export function ZoneViewSortControls({ groupBy, sortBy, onGroupByChange, onSortByChange }: ZoneViewSortControlsProps): ReactElement {
+  const { t } = useTranslation();
   return (
     <>
       <select
         value={groupBy}
         onChange={(e) => onGroupByChange(e.target.value as GroupMode)}
         className={TOOLBAR_SELECT_CLASS}
-        title="Group by"
+        title={t('ZoneView.groupBy.label')}
       >
-        <option value="none">Ungrouped</option>
-        <option value="type">Group by Type</option>
-        <option value="cmc">Group by Mana Value</option>
-        <option value="color">Group by Color</option>
+        <option value="none">{t('ZoneView.groupBy.none')}</option>
+        <option value="type">{t('ZoneView.groupBy.type')}</option>
+        <option value="cmc">{t('ZoneView.groupBy.cmc')}</option>
+        <option value="color">{t('ZoneView.groupBy.color')}</option>
       </select>
       <select
         value={sortBy}
         onChange={(e) => onSortByChange(e.target.value as SortMode)}
         className={TOOLBAR_SELECT_CLASS}
-        title="Sort by"
+        title={t('ZoneView.sortBy.label')}
       >
-        <option value="none">Unsorted</option>
-        <option value="name">Sort by Name</option>
-        <option value="cmc">Sort by Mana Cost</option>
-        <option value="type">Sort by Type</option>
-        <option value="color">Sort by Color</option>
-        <option value="set">Sort by Set</option>
-        <option value="pt">Sort by P/T</option>
+        <option value="none">{t('ZoneView.sortBy.none')}</option>
+        <option value="name">{t('ZoneView.sortBy.name')}</option>
+        <option value="cmc">{t('ZoneView.sortBy.cmc')}</option>
+        <option value="type">{t('ZoneView.sortBy.type')}</option>
+        <option value="color">{t('ZoneView.sortBy.color')}</option>
+        <option value="set">{t('ZoneView.sortBy.set')}</option>
+        <option value="pt">{t('ZoneView.sortBy.pt')}</option>
       </select>
     </>
   );
@@ -54,6 +56,7 @@ export interface PileViewToggleProps {
 
 /** Desktop's pile view box, which it disables while ungrouped (view_zone_widget.cpp:197). */
 export function PileViewToggle({ groupBy, pileView, onChange }: PileViewToggleProps): ReactElement {
+  const { t } = useTranslation();
   const ungrouped = groupBy === 'none';
   return (
     <label
@@ -61,7 +64,7 @@ export function PileViewToggle({ groupBy, pileView, onChange }: PileViewTogglePr
         'flex items-center gap-1.5 text-xs select-none',
         ungrouped ? 'text-text-disabled cursor-not-allowed' : 'text-text-muted cursor-pointer',
       ].join(' ')}
-      title={ungrouped ? 'Pile view requires a grouping' : 'Stack cards within each group'}
+      title={ungrouped ? t('ZoneView.pileViewRequiresGrouping') : t('ZoneView.pileViewDescription')}
     >
       <input
         type="checkbox"
@@ -70,7 +73,7 @@ export function PileViewToggle({ groupBy, pileView, onChange }: PileViewTogglePr
         onChange={(e) => onChange(e.target.checked)}
         className="accent-accent"
       />
-      pile view
+      {t('ZoneView.pileView')}
     </label>
   );
 }

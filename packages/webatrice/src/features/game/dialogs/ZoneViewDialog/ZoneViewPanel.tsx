@@ -282,8 +282,13 @@ export default function ZoneViewPanel({
   const effectiveGroupBy: GroupMode = metadataLoaded ? groupBy : 'none';
   const effectiveSortBy: SortMode = metadataLoaded ? sortBy : 'none';
   const groups = useMemo(
-    () => buildCardGroups(library, metaByName, { query: activeQuery, sortBy: effectiveSortBy, groupBy: effectiveGroupBy }),
-    [library, metaByName, activeQuery, effectiveSortBy, effectiveGroupBy],
+    () => buildCardGroups(
+      library,
+      metaByName,
+      { query: activeQuery, sortBy: effectiveSortBy, groupBy: effectiveGroupBy },
+      t,
+    ),
+    [library, metaByName, activeQuery, effectiveSortBy, effectiveGroupBy, t],
   );
 
   const totalShown = groups.reduce((n, g) => n + g.cards.length, 0);
@@ -424,7 +429,7 @@ export default function ZoneViewPanel({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 aria-label={t('ZoneViewPanel.search')}
-                placeholder={t('ZoneViewPanel.searchPlaceholder')}
+                placeholder={t('ZoneView.searchPlaceholder')}
                 className={[
                   'w-full pl-8 pr-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm',
                   'text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent',

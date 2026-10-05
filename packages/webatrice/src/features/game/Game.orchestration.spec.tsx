@@ -68,9 +68,9 @@ describe('Game orchestration', () => {
 
     openContextMenu(battlefieldEl(1));
     chooseMenuPath('Roll die...');
-    const dialog = screen.getByRole('dialog', { name: /roll die/i });
-    fireEvent.change(within(dialog).getByLabelText('Sides'), { target: { value: '20' } });
-    fireEvent.change(within(dialog).getByLabelText('Count'), { target: { value: '2' } });
+    const dialog = screen.getByRole('dialog', { name: /roll dice/i });
+    fireEvent.change(within(dialog).getByLabelText('Number of sides'), { target: { value: '20' } });
+    fireEvent.change(within(dialog).getByLabelText('Number of dice'), { target: { value: '2' } });
     fireEvent.click(within(dialog).getByRole('button', { name: /^roll$/i }));
 
     expect(game.rollDie).toHaveBeenCalledWith(1, { sides: 20, count: 2 });
@@ -90,8 +90,8 @@ describe('Game orchestration', () => {
       const game = renderGame();
       openContextMenu(pileEl('Hand', 0));
       chooseMenuPath('Take mulligan (Choose hand size)');
-      expect(screen.getByText('0 and lower are in comparison to current hand size.')).toBeInTheDocument();
-      fireEvent.change(screen.getByLabelText('New hand size'), { target: { value } });
+      expect(screen.getByText('0 and lower are in comparison to current hand size')).toBeInTheDocument();
+      fireEvent.change(screen.getByLabelText('Number of cards'), { target: { value } });
       fireEvent.click(screen.getByRole('button', { name: /ok/i }));
       return game;
     }

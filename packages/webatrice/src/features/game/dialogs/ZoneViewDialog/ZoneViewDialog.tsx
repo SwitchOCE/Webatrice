@@ -67,6 +67,7 @@ const CARD_MENU_KIND: Partial<Record<string, 'pile' | 'zoneView'>> = {
  * selection is the game's (useGameSelection), keyed like every other card.
  */
 function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
+  const { t } = useTranslation();
   const gameId = useGameId();
   const { playerId, zoneName } = view;
   const { cards, count, title, isLocal } = useZoneViewDialog(gameId, view);
@@ -178,7 +179,6 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
   // A top / bottom N view's cards on the keyboard, as ZoneViewPanel's are: a
   // row of options in server order, keyed by their deck position, with
   // Enter for a pending pick and M for the keyboard move.
-  const { t } = useTranslation();
   const { cardProps: orderedCardProps } = useCardFocus<(typeof cards)[number]>({
     zone: ZoneName.DECK,
     cards,
@@ -222,10 +222,10 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
             return '';
           }
           if (libraryPos <= 0) {
-            return 'Top';
+            return t('ZoneView.position.top');
           }
           if (libraryPos >= count - 1) {
-            return 'Bottom';
+            return t('ZoneView.position.bottom');
           }
           return String(libraryPos);
         })}

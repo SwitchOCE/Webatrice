@@ -1,4 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
+
+import { renderWithProviders } from '../../../../__test-utils__';
 
 import { PileViewToggle, ZoneViewSortControls } from './ZoneViewControls';
 
@@ -6,7 +8,14 @@ describe('ZoneViewSortControls', () => {
   it('offers desktop\'s groupings and sort keys and reports a pick', () => {
     const onGroupByChange = vi.fn();
     const onSortByChange = vi.fn();
-    render(<ZoneViewSortControls groupBy="type" sortBy="name" onGroupByChange={onGroupByChange} onSortByChange={onSortByChange} />);
+    renderWithProviders(
+      <ZoneViewSortControls
+        groupBy="type"
+        sortBy="name"
+        onGroupByChange={onGroupByChange}
+        onSortByChange={onSortByChange}
+      />,
+    );
     const group = screen.getByTitle('Group by') as HTMLSelectElement;
     const sort = screen.getByTitle('Sort by') as HTMLSelectElement;
     expect([...group.options].map((o) => o.value)).toEqual(['none', 'type', 'cmc', 'color']);
@@ -21,7 +30,7 @@ describe('ZoneViewSortControls', () => {
 describe('PileViewToggle', () => {
   it('is disabled and unticked while ungrouped', () => {
     const onChange = vi.fn();
-    const { rerender } = render(<PileViewToggle groupBy="none" pileView onChange={onChange} />);
+    const { rerender } = renderWithProviders(<PileViewToggle groupBy="none" pileView onChange={onChange} />);
     expect(screen.getByRole('checkbox')).toBeDisabled();
     expect(screen.getByRole('checkbox')).not.toBeChecked();
 

@@ -105,7 +105,7 @@ describe('Game seat shortcuts', () => {
     expect(screen.queryByRole('dialog', { name: 'Set life total' })).not.toBeInTheDocument();
 
     press('KeyM', { ctrlKey: true });
-    expect(screen.getByRole('dialog', { name: 'Take mulligan' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Draw hand' })).toBeInTheDocument();
   });
 
   it('on macOS Cmd answers the Ctrl bindings, as Qt maps Ctrl to Cmd', () => {
@@ -120,7 +120,7 @@ describe('Game seat shortcuts', () => {
     ]);
 
     press('KeyM', { metaKey: true });
-    expect(screen.getByRole('dialog', { name: 'Take mulligan' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Draw hand' })).toBeInTheDocument();
   });
 
   it('off macOS Cmd+R is left to the browser', () => {

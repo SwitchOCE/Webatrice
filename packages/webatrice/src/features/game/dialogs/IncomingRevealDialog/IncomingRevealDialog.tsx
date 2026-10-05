@@ -197,8 +197,9 @@ function IncomingRevealPanel({
       cards.filter((c) => !hiddenIds.has(c.id)),
       metaByName,
       { sortBy: effectiveSortBy, groupBy: effectiveGroupBy },
+      t,
     ),
-    [cards, hiddenIds, metaByName, effectiveSortBy, effectiveGroupBy],
+    [cards, hiddenIds, metaByName, effectiveSortBy, effectiveGroupBy, t],
   );
 
   const hideCards = (ids: readonly string[]) => {
@@ -358,16 +359,16 @@ function IncomingRevealPanel({
               {title}
             </h2>
             <p className="text-xs text-text-muted mt-0.5 flex items-center gap-1.5">
-              {cards.length} card{cards.length === 1 ? '' : 's'}
+              {t('ReadOnlyDeck.cardCount', { count: cards.length })}
               {reveal.grantWriteAccess
-                ? ' — write access granted (drag a card onto your battlefield)'
+                ? ` — ${t('ZoneView.status.writeAccess')}`
                 : ''}
               {/* Without the spinner a still-loading reveal reads as a wrong
                   "1 Creature, rest in Other". */}
               {!metadataLoaded && (
                 <span className="inline-flex items-center gap-1 text-text-muted italic">
                   <Loader2 size={12} className="board-motion animate-spin" />
-                  loading card details…
+                  {t('ZoneView.status.loadingCardDetails')}
                 </span>
               )}
             </p>
@@ -377,7 +378,7 @@ function IncomingRevealPanel({
             type="button"
             onClick={close}
             className="p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary"
-            aria-label="Close"
+            aria-label={t('Common.action.close')}
           >
             <X size={18} />
           </button>
@@ -391,12 +392,12 @@ function IncomingRevealPanel({
         <div className="flex-1 min-h-0 overflow-auto p-4">
           {!metadataLoaded && (
             <div className="text-xs text-text-muted italic mb-3 select-none">
-              Loading card details…
+              {t('ZoneView.status.loadingCardDetails')}
             </div>
           )}
           {cards.length === 0 ? (
             <div className="text-sm text-text-muted italic">
-              No cards to show.
+              {t('ZoneView.status.noCards')}
             </div>
           ) : (
             <ZoneCardGroups
@@ -425,7 +426,7 @@ function IncomingRevealPanel({
               'text-white hover:bg-accent-hover shadow-glow board-motion transition-colors',
             ].join(' ')}
           >
-            Close
+            {t('Common.action.close')}
           </button>
         </div>
       </div>

@@ -361,9 +361,9 @@ describe('PlayerBoard characterization — commands from menus and dialogs', () 
     chooseMenuPath('Create token...');
     const dialog = screen.getByRole('dialog', { name: 'Create token' });
     // The game's CreateTokenDialog since Phase 6 (was the seat's own modal).
-    fireEvent.change(within(dialog).getByLabelText('Token name'), { target: { value: 'Soldier' } });
+    fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'Soldier' } });
     await act(async () => {
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Common.action.create' }));
     });
 
     expect(game.createToken).toHaveBeenCalledWith(1, expect.objectContaining({
@@ -437,7 +437,7 @@ describe('PlayerBoard characterization — commands from menus and dialogs', () 
 
     openContextMenu(battlefieldEl(1));
     chooseMenuPath('Roll die...');
-    expect(screen.getByRole('dialog', { name: /roll die/i })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Roll Dice' })).toBeInTheDocument();
   });
 });
 

@@ -103,8 +103,8 @@ describe('EditTokens', () => {
     hoisted.useEditTokens.mockReturnValue(hook);
     renderWithProviders(<EditTokens />);
 
-    expect(screen.getByLabelText('EditTokens.label.pt')).toHaveValue('1/1');
-    fireEvent.change(screen.getByLabelText('EditTokens.label.pt'), { target: { value: '2/2' } });
+    expect(screen.getByLabelText('P/T')).toHaveValue('1/1');
+    fireEvent.change(screen.getByLabelText('P/T'), { target: { value: '2/2' } });
     fireEvent.click(screen.getByRole('button', { name: 'EditTokens.button.apply' }));
     await waitFor(() => expect(hook.updateSelected).toHaveBeenCalledWith(
       { color: 'w', pt: '2/2', annotation: 'Flying' },

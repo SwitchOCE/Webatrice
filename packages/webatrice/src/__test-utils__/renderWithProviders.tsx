@@ -57,7 +57,14 @@ import moveCardsText from '../features/game/dialogs/MoveCardsDialog/MoveCardsDia
 import shortcutsText from '../feature-widgets/shortcuts/SettingsTab/ShortcutsTab.i18n.json';
 import gameLogText from '../features/game/components/ChatLog/formatLogDescriptor.i18n.json';
 import gameMenus from '../features/game/components/context-menus/menus.i18n.json';
+import gamePrompts from '../features/game/hooks/dialogs/GamePrompt.i18n.json';
+import createTokenText from '../features/game/dialogs/CreateTokenDialog/CreateTokenDialog.i18n.json';
+import deckSelectText from '../features/game/dialogs/DeckSelectDialog/DeckSelectDialog.i18n.json';
+import rollDieText from '../features/game/dialogs/RollDieDialog/RollDieDialog.i18n.json';
+import zoneViewText from '../features/game/dialogs/shared/ZoneView.i18n.json';
 import zoneLabelText from '../features/game/dialogs/shared/zoneLabels.i18n.json';
+import editTokensText from '../feature-widgets/card-import/EditTokens.i18n.json';
+import deckSharingText from '../features/decks/DeckSharing.i18n.json';
 import shortcutsText from '../feature-widgets/shortcuts/SettingsTab/ShortcutsTab.i18n.json';
 import gamePhaseText from '../features/game/components/PhaseTrack/phaseLabels.i18n.json';
 import appearanceText from '../features/settings/sections/appearance.i18n.json';
@@ -146,7 +153,22 @@ testI18n.use(ICU).use(initReactI18next).init({
           zoneBackgrounds: { zone: { table: appearanceText.SettingsAppearance.zoneBackgrounds.zone.table } },
         },
         TallyOverlay: { tally: tallyText.TallyOverlay.tally },
+        ...gamePrompts,
+        ...createTokenText,
+        ...deckSelectText,
+        ...rollDieText,
+        ...zoneViewText,
         ...zoneLabelText,
+        EditTokens: {
+          label: {
+            name: editTokensText.EditTokens.label.name,
+            color: editTokensText.EditTokens.label.color,
+            pt: editTokensText.EditTokens.label.pt,
+            annotation: editTokensText.EditTokens.label.annotation,
+          },
+          color: editTokensText.EditTokens.color,
+        },
+        ReadOnlyDeck: { cardCount: deckSharingText.ReadOnlyDeck.cardCount },
         ShortcutsTab: {
           action: Object.fromEntries(Object.entries(shortcutsText.ShortcutsTab.action).filter(([key]) => key.startsWith('game.'))),
         },

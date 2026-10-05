@@ -96,7 +96,7 @@ describe('MoveTopUntilDialog', () => {
     const { closeMoveTopUntil, onSubmit } = renderDialog();
 
     fireEvent.keyDown(dialog(), { key: 'Escape' });
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Common.action.cancel' }));
     fireEvent.click(dialog().previousElementSibling!);
 
     expect(closeMoveTopUntil).toHaveBeenCalledTimes(3);

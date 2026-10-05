@@ -17,6 +17,12 @@ function formatElapsed(totalSeconds: number): string {
 }
 
 type PlayerTag = 'host' | 'spectator' | 'judge' | 'you';
+const PLAYER_TAG = {
+  host: 'host',
+  spectator: 'spectator',
+  judge: 'judge',
+  you: 'you',
+} as const satisfies Record<PlayerTag, PlayerTag>;
 
 /**
  * Game info modal — read-only summary of the current game (id, name,
@@ -67,7 +73,7 @@ function GameInfoDialog() {
   const players = Object.values(game.players);
 
   const host = players.find((p) => p.properties.playerId === game.hostId);
-  const hostLabel = host ? playerName(host) : `p${game.hostId}`;
+  const hostLabel = host ? playerName(host, t) : t('GameLog.player.number', { id: game.hostId });
 
   const rows: Array<{ label: string; value: string }> = [
     { label: t('GameInfoDialog.row.gameId'), value: id },
@@ -94,7 +100,7 @@ function GameInfoDialog() {
             'text-white hover:bg-accent-hover shadow-glow board-motion transition-colors',
           ].join(' ')}
         >
-          {t('GameInfoDialog.close')}
+          {t('Common.action.close')}
         </button>
       )}
     >
@@ -122,19 +128,19 @@ function GameInfoDialog() {
         <ul className="flex flex-col gap-1.5">
           {players.map((p) => {
             const pid = p.properties.playerId;
-            const pname = playerName(p);
+            const pname = playerName(p, t);
             const tags: PlayerTag[] = [];
             if (pid === game.hostId) {
-              tags.push('host');
+              tags.push(PLAYER_TAG.host);
             }
             if (p.properties.spectator) {
-              tags.push('spectator');
+              tags.push(PLAYER_TAG.spectator);
             }
             if (p.properties.judge) {
-              tags.push('judge');
+              tags.push(PLAYER_TAG.judge);
             }
             if (pid === game.localPlayerId) {
-              tags.push('you');
+              tags.push(PLAYER_TAG.you);
             }
             return (
               <li
