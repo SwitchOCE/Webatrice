@@ -50,6 +50,8 @@ describe('ChatLog', () => {
       const log = screen.getByRole('log', { name: 'ChatLog.heading' });
       expect(log).toHaveAttribute('aria-live', 'polite');
       expect(log).toHaveAttribute('aria-relevant', 'additions');
+      // A tab stop, so it scrolls from the keyboard in every browser.
+      expect(log).toHaveAttribute('tabindex', '0');
       expect(within(log).getByText(/gg/)).toBeInTheDocument();
     });
 
