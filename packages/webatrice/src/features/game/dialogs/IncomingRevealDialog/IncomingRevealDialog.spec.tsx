@@ -308,6 +308,18 @@ describe('incomingRevealTitle', () => {
 });
 
 describe('a lent zone from the keyboard', () => {
+  // Firefox makes the scrolling card area a tab stop; as in every other card
+  // view, the non-modal dialog keeps Tab moving focus there rather than
+  // advancing the phase, so the keyboard reaches the lent cards.
+  it('is a non-modal dialog named by its title, where Tab moves focus', () => {
+    const { game } = renderReveal({ grantWriteAccess: true });
+    const panel = screen.getByRole('dialog', { name: TITLE });
+    const island = within(panel).getByRole('button', { name: 'Move Island to a battlefield' });
+    const tab = fireEvent.keyDown(island.closest('.overflow-auto')!, { key: 'Tab', code: 'Tab' });
+    expect(tab).toBe(true);
+    expect(game.setActivePhase).not.toHaveBeenCalled();
+  });
+
   it('moves a lent card onto the borrower\'s battlefield through the keyboard move, as its drag does', () => {
     const { game } = renderReveal({ grantWriteAccess: true });
     const island = screen.getByRole('button', { name: 'Move Island to a battlefield' });
