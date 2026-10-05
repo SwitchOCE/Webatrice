@@ -1,12 +1,17 @@
+import 'fake-indexeddb/auto';
 import { act, renderHook, waitFor } from '@testing-library/react';
 
 import { getSettings, settingsStore } from '@app/hooks';
+import { dexieService } from '@app/services';
 import { CommanderSpellbookIntegration } from '@app/types';
+
+vi.unmock('dexie');
 
 import { lookupsAllowedFor, useBracketLookupsMode, writeBracketLookupsMode } from './bracketConsent';
 
 beforeEach(async () => {
   settingsStore.reset();
+  await dexieService.settings.clear();
   await getSettings();
 });
 
@@ -30,6 +35,7 @@ describe('bracket lookups consent', () => {
 
   it('remembers the choice on the settings row', async () => {
     await writeBracketLookupsMode(CommanderSpellbookIntegration.Automatic);
+    settingsStore.reset();
     expect((await getSettings()).commanderSpellbookIntegration).toBe(CommanderSpellbookIntegration.Automatic);
   });
 
