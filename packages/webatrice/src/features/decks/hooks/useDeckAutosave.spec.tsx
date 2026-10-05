@@ -3,6 +3,8 @@ import { act } from '@testing-library/react';
 import { server } from '@cockatrice/datatrice';
 import { create } from '@bufbuild/protobuf';
 import { Response_ResponseCode, ServerInfo_DeckStorage_TreeItemSchema } from '@cockatrice/sockatrice/generated';
+import type { WebClient } from '@cockatrice/sockatrice';
+import type { CommandFailedPayload } from '@cockatrice/datatrice';
 
 import { connectedState, createMockWebClient, renderWithProviders } from '../../../__test-utils__';
 import { clearDeckEditorCache, getCachedDeck, setCachedDeck } from '../deckEditorCache';
@@ -19,24 +21,36 @@ let current: HydratedDeck | null;
 // Stable, like the editor's `readDeck`: a new reader would re-create the
 // flush callback and flush on every render.
 const readDeck = () => current;
+const clients = new WeakMap<object, WebClient>();
+const settled = new WeakSet<NonNullable<Parameters<WebClient['request']['session']['deckUpdate']>[4]>>();
 
-function Probe({ initial }: { initial: string | null }) {
-  latest = useDeckAutosave(7, readDeck, initial);
+function Probe({ initial, deckId = 7 }: { initial: string | null; deckId?: number }) {
+  latest = useDeckAutosave(deckId, readDeck, initial);
   return null;
 }
 
 function setup(initial: string | null = SAVED) {
   const webClient = createMockWebClient();
   const view = renderWithProviders(<Probe initial={initial} />, { preloadedState: connectedState, webClient });
+  clients.set(view.store, webClient);
   return { ...view, webClient };
 }
 
-function ack(store: { dispatch: (a: unknown) => void }, deckId = 7) {
+function ack(store: { dispatch: (a: unknown) => void }, deckId = 7, error: CommandFailedPayload | null = null) {
   act(() => {
-    store.dispatch(server.Actions.deckUpdated({
+    store.dispatch(error ? server.Actions.deckUpdateFailed({ deckId, ...error }) : server.Actions.deckUpdated({
       deckId,
       treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: deckId, name: 'D' }),
     }));
+    // Sockatrice routes server state through Datatrice, then settles the
+    // originating request. Model both paths, including after unmount.
+    const call = vi.mocked(clients.get(store)!.request.session.deckUpdate).mock.calls
+      .find(([id, , , , callback]) => id === deckId && callback && !settled.has(callback));
+    const callback = call?.[4];
+    if (callback) {
+      settled.add(callback);
+      callback(error);
+    }
   });
 }
 
@@ -58,6 +72,32 @@ afterEach(() => {
 });
 
 describe('useDeckAutosave', () => {
+  it('settles each original deck when acknowledgements cross a switch', () => {
+    const view = setup();
+    setCachedDeck(7, { deck: EDITED, savedSignature: SAVED });
+    save();
+    view.rerender(<Probe initial={SAVED} deckId={8} />);
+    current = { ...deck, name: 'Other deck edited' };
+    setCachedDeck(8, { deck: current, savedSignature: SAVED });
+    save();
+    ack(view.store, 7);
+    ack(view.store, 8);
+    expect(getCachedDeck(7)?.savedSignature).toBe(deckSaveSignature(EDITED));
+    expect(getCachedDeck(8)?.savedSignature).toBe(deckSaveSignature(current));
+    expect(latest.saveState).toBe('saved');
+  });
+
+  it('sends identical contents for different decks with pending saves', () => {
+    const view = setup();
+    save();
+    view.rerender(<Probe initial={SAVED} deckId={8} />);
+    save();
+    expect(vi.mocked(view.webClient.request.session.deckUpdate).mock.calls.map(([id]) => id)).toEqual([7, 8]);
+    ack(view.store, 8);
+    ack(view.store, 7);
+    expect(latest.saveState).toBe('saved');
+  });
+
   it('sends the deck\'s color identity with every update and leaves visibility alone', () => {
     current = {
       ...EDITED,
@@ -131,9 +171,7 @@ describe('useDeckAutosave', () => {
   it('reports a failed save and uploads again on the next save', () => {
     const { webClient, store } = setup();
     save();
-    act(() => {
-      store.dispatch(server.Actions.deckUpdateFailed({ deckId: 7, responseCode: Response_ResponseCode.RespInternalError }));
-    });
+    ack(store, 7, { responseCode: Response_ResponseCode.RespInternalError });
     expect(latest.saveState).toBe('failed');
     expect(latest.savedSignature()).toBe(SAVED);
 

@@ -1,0 +1,160 @@
+import { server, type CommandFailedPayload } from '@cockatrice/datatrice';
+import type { WebClient } from '@cockatrice/sockatrice';
+import type { RootState } from '@app/store';
+
+import { clearDeckEditorCache, getCachedDeck, setCachedDeck } from './deckEditorCache';
+import { deckColorIdentity, deckSaveSignature, serializeDeckForSave } from './deckPersistence';
+import type { HydratedDeck } from './types';
+
+export type SaveState = 'idle' | 'dirty' | 'saving' | 'saved' | 'failed';
+
+export interface DeckSaveSnapshot {
+  savedSignature: string | null;
+  lastFailure: CommandFailedPayload | null;
+  pending: ReadonlyMap<number, string>;
+  saveState: SaveState;
+}
+
+interface Entry {
+  snapshot: DeckSaveSnapshot;
+  dirty: boolean;
+  lastSavedRequest: number;
+  lastSettledRequest: number;
+}
+
+type SessionStore = { getState: () => RootState; subscribe: (listener: () => void) => () => void };
+const EMPTY: DeckSaveSnapshot = { savedSignature: null, lastFailure: null, pending: new Map(), saveState: 'idle' };
+
+/** Local editor state only. Redux is observed for session lifetime, never written. */
+export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
+  const identity = () => {
+    const state = store.getState();
+    const serverName = server.Selectors.getName(state);
+    const userName = server.Selectors.getUser(state)?.name;
+    return server.Selectors.getIsConnected(state) && serverName && userName
+      ? JSON.stringify([serverName, userName])
+      : null;
+  };
+  let session = identity();
+  const entries = new Map<number, Entry>();
+  const listeners = new Set<() => void>();
+  let nextRequest = 0;
+  let unsubscribe: (() => void) | undefined;
+
+  const emit = () => listeners.forEach((listener) => listener());
+  const syncSession = () => {
+    const next = identity();
+    if (session !== next) {
+      session = next;
+      entries.clear();
+      // Cached contents and signatures also belong to the departed session.
+      clearDeckEditorCache();
+      emit();
+    }
+  };
+  const initialize = (deckId: number, savedSignature: string | null) => {
+    if (session == null || entries.has(deckId)) {
+      return;
+    }
+    entries.set(deckId, {
+      snapshot: { ...EMPTY, savedSignature }, dirty: false, lastSavedRequest: 0, lastSettledRequest: 0,
+    });
+    emit();
+  };
+  const publish = (entry: Entry, patch: Partial<DeckSaveSnapshot> = {}) => {
+    const snapshot = { ...entry.snapshot, ...patch };
+    snapshot.saveState = entry.dirty ? 'dirty'
+      : snapshot.pending.size ? 'saving'
+        : snapshot.lastFailure ? 'failed'
+          : entry.lastSavedRequest ? 'saved' : 'idle';
+    entry.snapshot = snapshot;
+    emit();
+  };
+
+  return {
+    // Connect once for this owner; an editor unmount must not end the session.
+    connect() {
+      syncSession();
+      unsubscribe ??= store.subscribe(syncSession);
+    },
+    dispose() {
+      unsubscribe?.();
+      unsubscribe = undefined;
+      entries.clear();
+    },
+    subscribe(listener: () => void) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    getSnapshot(deckId: number | null): DeckSaveSnapshot {
+      return deckId == null ? EMPTY : entries.get(deckId)?.snapshot ?? EMPTY;
+    },
+    initialize,
+    markSaved(deckId: number, savedSignature: string | null) {
+      initialize(deckId, savedSignature);
+      const entry = entries.get(deckId);
+      if (!entry) {
+        return;
+      }
+      entry.dirty = false;
+      entry.lastSavedRequest = 0;
+      // A newly loaded authoritative deck supersedes older local requests.
+      entry.lastSettledRequest = nextRequest;
+      publish(entry, { savedSignature, lastFailure: null, pending: new Map() });
+    },
+    markDirty(deckId: number) {
+      const entry = entries.get(deckId);
+      if (!entry) {
+        return;
+      }
+      entry.dirty = true;
+      publish(entry);
+    },
+    save(deckId: number, deck: HydratedDeck) {
+      syncSession();
+      const entry = entries.get(deckId);
+      if (!entry) {
+        return;
+      }
+      const signature = deckSaveSignature(deck);
+      const { pending, savedSignature, lastFailure } = entry.snapshot;
+      const latestPending = [...pending.entries()].at(-1);
+      const latestKnown = latestPending && latestPending[0] > entry.lastSavedRequest ? latestPending[1] : savedSignature;
+      entry.dirty = false;
+      if (signature === latestKnown && (pending.size > 0 || !lastFailure)) {
+        publish(entry);
+        return;
+      }
+      const requestId = ++nextRequest;
+      publish(entry, { pending: new Map(pending).set(requestId, signature) });
+      client.request.session.deckUpdate(
+        deckId, serializeDeckForSave(deck), undefined, deckColorIdentity(deck.cards),
+        (error) => {
+          // Entry identity is also a session generation: late replies cannot
+          // settle a newly logged-in user's deck with the same numeric id.
+          if (entries.get(deckId) !== entry || !entry.snapshot.pending.has(requestId)) {
+            return;
+          }
+          const remaining = new Map(entry.snapshot.pending);
+          remaining.delete(requestId);
+          const patch: Partial<DeckSaveSnapshot> = { pending: remaining };
+          if (requestId > entry.lastSettledRequest) {
+            entry.lastSettledRequest = requestId;
+            patch.lastFailure = error;
+          }
+          if (!error && requestId > entry.lastSavedRequest) {
+            entry.lastSavedRequest = requestId;
+            patch.savedSignature = signature;
+            const cached = getCachedDeck(deckId);
+            if (cached) {
+              setCachedDeck(deckId, { ...cached, savedSignature: signature });
+            }
+          }
+          publish(entry, patch);
+        },
+      );
+    },
+  };
+}
