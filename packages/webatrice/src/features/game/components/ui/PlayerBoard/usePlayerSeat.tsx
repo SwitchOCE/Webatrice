@@ -530,7 +530,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
     const zoneCards = zone === 'battlefield' ? battlefieldDisplayList : zone === 'hand' ? handDisplayList : stackDisplayList;
     const source = keyboardMoveSource(card, zone, zoneCards);
     if (source && requestKeyboardMove) {
-      requestKeyboardMove({ source, name: card.name, handOrder: handDisplayList.map((c) => c.id) });
+      requestKeyboardMove({ source, name: card.name });
     }
   };
 

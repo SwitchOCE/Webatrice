@@ -1853,7 +1853,7 @@
       "creatures": "Creatures row",
       "other": "Other permanents row"
     },
-    "column": "Column (1 to {max}; {max} starts a new one)",
+    "column": "Column (1 to {max})",
     "position": "Position (1 to {max}; {max} is the end)",
     "libraryPosition": "Position from the top (1 to {max})",
     "move": "Move",

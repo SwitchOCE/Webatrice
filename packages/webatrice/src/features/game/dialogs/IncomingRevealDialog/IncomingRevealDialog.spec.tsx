@@ -308,7 +308,7 @@ describe('incomingRevealTitle', () => {
 });
 
 describe('a lent zone from the keyboard', () => {
-  it('moves a lent card onto a battlefield through the keyboard move, as its drag does', () => {
+  it('moves a lent card onto the borrower\'s battlefield through the keyboard move, as its drag does', () => {
     const { game } = renderReveal({ grantWriteAccess: true });
     const island = screen.getByRole('button', { name: 'Move Island to a battlefield' });
     act(() => island.focus());
@@ -317,7 +317,8 @@ describe('a lent zone from the keyboard', () => {
     });
     const dialog = screen.getByRole('dialog', { name: 'Move Island' });
     const to = within(dialog).getByLabelText('To') as HTMLSelectElement;
-    expect([...to.options].map((o) => o.value)).toEqual(['battlefield:1', 'battlefield:2']);
+    // Servatrice takes a lent card only onto the borrower's battlefield.
+    expect([...to.options].map((o) => o.value)).toEqual(['battlefield:1']);
     act(() => {
       fireEvent.click(within(dialog).getByRole('button', { name: 'Move' }));
     });

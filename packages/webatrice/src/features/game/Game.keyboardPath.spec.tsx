@@ -45,9 +45,9 @@ const SPEC: SeatGameSpec = {
   ],
 };
 
-function renderGameWithStore() {
+function renderGameWithStore(spec: SeatGameSpec = SPEC) {
   const webClient = createMockWebClient();
-  const { store } = renderWithProviders(<Game />, { preloadedState: buildSeatGameState(SPEC), webClient });
+  const { store } = renderWithProviders(<Game />, { preloadedState: buildSeatGameState(spec), webClient });
   return { game: webClient.request.game, store };
 }
 
@@ -371,7 +371,7 @@ describe('moving cards from the keyboard (M, aud.md G3)', () => {
     expect(within(moveDialog()).getByLabelText('To')).toHaveFocus();
     choose('To', optionValue('To', 'Bob\'s battlefield'));
     choose('Row', optionValue('Row', 'Creatures row'));
-    choose('Column (1 to 1; 1 starts a new one)', '1');
+    choose('Column (1 to 5)', '1');
     submit();
     expect(game.moveCard).toHaveBeenCalledTimes(1);
     expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
@@ -406,6 +406,33 @@ describe('moving cards from the keyboard (M, aud.md G3)', () => {
     expect(screen.queryByRole('dialog', { name: /^Move / })).not.toBeInTheDocument();
     expect(game.moveCard).not.toHaveBeenCalled();
     expect(ogre).toHaveFocus();
+  });
+
+  it('reorders two cards picked in the hand view by the hand order a drag on the strip uses', () => {
+    const SWAMP = makeCard({ id: 32, name: 'Swamp' });
+    const PLAINS = makeCard({ id: 33, name: 'Plains' });
+    const { game } = renderGameWithStore({
+      ...SPEC,
+      seats: [{ ...SPEC.seats[0], hand: [FOREST, ISLAND, SWAMP, PLAINS] }, SPEC.seats[1]],
+    });
+    openContextMenu(pileEl('Hand'));
+    chooseMenuPath('View hand');
+    // The view, not the hand strip under it.
+    const view = screen.getByRole('heading', { name: /hand/i }).closest<HTMLElement>('.pointer-events-auto.resize')!;
+    const forest = within(view).getByRole('option', { name: 'Forest' });
+    const island = within(view).getByRole('option', { name: 'Island' });
+    focus(forest);
+    key(forest, { key: ' ' });
+    focus(island);
+    key(island, { key: ' ' });
+    key(island, { key: 'm' });
+    expect(moveDialog()).toHaveAccessibleName('Move 2 cards');
+    choose('To', 'hand');
+    choose('Position (1 to 3; 3 is the end)', '3');
+    submit();
+    // Both go to the end, one command each, as a drop past Plains sends them.
+    expect(vi.mocked(game.moveCard).mock.calls.map(([, params]) => [params.cardsToMove!.card![0].cardId, params.x]))
+      .toEqual([[FOREST.id, 3], [ISLAND.id, 3]]);
   });
 
   it('opens nothing on a card the player may not move', () => {
