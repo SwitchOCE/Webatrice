@@ -98,5 +98,7 @@ export const Types = {
   MODERATOR_LAST_LOGINS: a.moderatorLastLogins.type,
   USER_AVATAR_REMOVED: a.userAvatarRemoved.type,
   CARD_ART_RULES: a.cardArtRules.type,
+  CARD_ART_RULE_ADDED: a.cardArtRuleAdded.type,
+  CARD_ART_RULE_REMOVED: a.cardArtRuleRemoved.type,
   SERVER_STATS: a.serverStats.type,
 } as const;

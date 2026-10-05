@@ -229,3 +229,16 @@ it('moves focus and selection independently with ArrowDown', () => {
   expect(next).toHaveAttribute('tabindex', '0');
   expect(first).toHaveAttribute('tabindex', '-1');
 });
+
+it.each(['add', 'remove'])('updates the visible list only from the re-list after %s', (command) => {
+  const { store } = setup();
+  act(() => store.dispatch(server.Actions.cardArtRules({ entries: [rule('Island', 'uuid-1')] })));
+  act(() => store.dispatch(command === 'add'
+    ? server.Actions.cardArtRuleAdded({ cardName: 'Forest', cardProviderId: 'uuid-9', mode: 'ALLOW', reason: '' })
+    : server.Actions.cardArtRuleRemoved({ cardName: 'Island', cardProviderId: 'uuid-1' })));
+  expect(screen.getByText('Island')).toBeInTheDocument();
+  expect(screen.queryByText('Forest')).not.toBeInTheDocument();
+  act(() => store.dispatch(server.Actions.cardArtRules({ entries: [rule('Forest', 'uuid-9')] })));
+  expect(screen.getByText('Forest')).toBeInTheDocument();
+  expect(screen.queryByText('Island')).not.toBeInTheDocument();
+});
