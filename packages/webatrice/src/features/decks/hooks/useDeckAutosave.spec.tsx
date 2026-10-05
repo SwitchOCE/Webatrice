@@ -98,6 +98,29 @@ describe('useDeckAutosave', () => {
     expect(latest.saveState).toBe('saved');
   });
 
+  it('settles the final save after unmount and reopens it as saved', () => {
+    const view = setup();
+    setCachedDeck(7, { deck: EDITED, savedSignature: SAVED });
+    act(() => latest.scheduleSave());
+    view.unmount();
+    ack(view.store);
+    expect(getCachedDeck(7)?.savedSignature).toBe(deckSaveSignature(EDITED));
+    renderWithProviders(<Probe initial={getCachedDeck(7)!.savedSignature} />, { store: view.store, webClient: view.webClient });
+    expect(latest.saveState).toBe('saved');
+  });
+
+  it('retains a final-save failure after unmount and retries on reopen', () => {
+    const view = setup();
+    act(() => latest.scheduleSave());
+    view.unmount();
+    ack(view.store, 7, { responseCode: Response_ResponseCode.RespInternalError });
+    renderWithProviders(<Probe initial={SAVED} />, { store: view.store, webClient: view.webClient });
+    expect(latest.saveState).toBe('failed');
+    save();
+    ack(view.store);
+    expect(latest.saveState).toBe('saved');
+  });
+
   it('sends the deck\'s color identity with every update and leaves visibility alone', () => {
     current = {
       ...EDITED,

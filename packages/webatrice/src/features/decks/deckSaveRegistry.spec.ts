@@ -6,7 +6,7 @@ import { rootReducerMap, type RootState } from '@app/store';
 import { connectedState, createMockWebClient } from '../../__test-utils__';
 import { makeReduxHookWrapper } from '../../__test-utils__/makeHookWrapper';
 import { clearDeckEditorCache, getCachedDeck, setCachedDeck } from './deckEditorCache';
-import { createDeckSaveRegistry } from './deckSaveRegistry';
+import { createDeckSaveRegistry, getDeckSaveRegistry } from './deckSaveRegistry';
 import { deckSaveSignature } from './deckPersistence';
 import type { HydratedDeck } from './types';
 
@@ -142,5 +142,22 @@ describe('deckSaveRegistry', () => {
     unsubscribe();
     response(0)(null);
     expect(listener).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('deckSaveRegistry session ownership', () => {
+  it('shares one owner across editor subscribers but isolates different sessions', () => {
+    const { store, client } = setup();
+    const registry = getDeckSaveRegistry(store, client);
+    registry.connect();
+    registry.initialize(7, 'original');
+    registry.save(7, first);
+    const unsubscribe = registry.subscribe(vi.fn());
+    unsubscribe();
+    vi.mocked(client.request.session.deckUpdate).mock.calls[0][4]!({ responseCode: 1 });
+    expect(getDeckSaveRegistry(store, client)).toBe(registry);
+    expect(registry.getSnapshot(7).saveState).toBe('failed');
+    const other = setup();
+    expect(getDeckSaveRegistry(other.store, other.client).getSnapshot(7).savedSignature).toBeNull();
   });
 });

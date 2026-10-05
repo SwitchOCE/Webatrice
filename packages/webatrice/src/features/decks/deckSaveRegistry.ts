@@ -158,3 +158,22 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
     },
   };
 }
+
+// A provider/client pair identifies the connection owner. Within it, the
+// server/user identity and every disconnect delimit sessions. Keeping this
+// outside React preserves both in-flight callbacks and failures across mounts.
+const registries = new WeakMap<SessionStore, WeakMap<WebClient, ReturnType<typeof createDeckSaveRegistry>>>();
+
+export function getDeckSaveRegistry(store: SessionStore, client: WebClient) {
+  let clients = registries.get(store);
+  if (!clients) {
+    clients = new WeakMap();
+    registries.set(store, clients);
+  }
+  let registry = clients.get(client);
+  if (!registry) {
+    registry = createDeckSaveRegistry(store, client);
+    clients.set(client, registry);
+  }
+  return registry;
+}
