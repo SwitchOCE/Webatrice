@@ -2,7 +2,7 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
 import { renderWithProviders } from '../../../../__test-utils__';
-import { usePreference } from '../../../../hooks/useSettings';
+import { usePreference, usePreferences } from '../../../../hooks/useSettings';
 import { useZoneViewDialog } from './useZoneViewDialog';
 import ZoneViewDialog from './ZoneViewDialog';
 
@@ -22,6 +22,10 @@ const renderDialog = (handleClose: (shuffle?: boolean) => void, zoneName: string
   renderWithProviders(<ZoneViewDialog view={{ playerId: 1, zoneName }} handleClose={handleClose} />);
 
 describe('ZoneViewDialog — close when the last card is removed', () => {
+  beforeEach(() => {
+    vi.mocked(usePreference).mockImplementation((key) => usePreferences()[key]);
+  });
+
   it('closes once the last shown card leaves', () => {
     const handleClose = vi.fn();
     withCards([makeCard({ id: 1, name: 'Bolt' })]);
