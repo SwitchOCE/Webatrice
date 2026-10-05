@@ -47,6 +47,8 @@ describe('keepsTabNavigation', () => {
     ['role=button', '<div id="t" role="button" tabindex="0">x</div>'],
     ['role=menuitem', '<li id="t" role="menuitem" tabindex="0">x</li>'],
     ['role=spinbutton', '<div data-game-board><div id="t" role="spinbutton" tabindex="0">20</div></div>'],
+    ['focusable separator', '<div id="t" role="separator" aria-orientation="vertical" tabindex="0"></div>'],
+    ['focusable log', '<div id="t" role="log" tabindex="0">line</div>'],
   ])('keeps Tab navigation on a %s', (_name, html) => {
     mount(html);
     expect(keepsTabNavigation(document.getElementById('t'))).toBe(true);
