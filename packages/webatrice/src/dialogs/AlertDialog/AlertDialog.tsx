@@ -24,6 +24,12 @@ const StyledDialog = styled(Dialog)(({ theme }) => ({
 
 export type AlertDialogSeverity = 'error' | 'info';
 
+export interface AlertDialogNotice {
+  title: string;
+  message: string;
+  severity: AlertDialogSeverity;
+}
+
 export interface AlertDialogProps {
   isOpen: boolean;
   title: string;

@@ -1,3 +1,4 @@
+import type { AlertDialogNotice } from '@app/dialogs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
@@ -21,12 +22,6 @@ type PartFlags = Record<InvestigationPart, boolean>;
 
 const NONE: PartFlags = { info: false, alts: false, sessions: false };
 const ALL: PartFlags = { info: true, alts: true, sessions: true };
-
-export interface ModerationNotice {
-  title: string;
-  message: string;
-  severity: 'info' | 'error';
-}
 
 export type ModerationConfirm = 'resetPassword' | 'removeAvatar';
 
@@ -54,7 +49,7 @@ export interface Moderation {
   confirmAction: () => void;
   temporaryPassword: TemporaryPassword | null;
   dismissTemporaryPassword: () => void;
-  notice: ModerationNotice | null;
+  notice: AlertDialogNotice | null;
   dismissNotice: () => void;
 }
 
@@ -95,7 +90,7 @@ export function useModeration(): Moderation {
   const [staffFailed, setStaffFailed] = useState(false);
   const [confirm, setConfirm] = useState<ModerationConfirm | null>(null);
   const [temporaryPassword, setTemporaryPassword] = useState<TemporaryPassword | null>(null);
-  const [notice, setNotice] = useState<ModerationNotice | null>(null);
+  const [notice, setNotice] = useState<AlertDialogNotice | null>(null);
   // Avatar removals this page sent, so another page's outcomes are not reported here.
   const pendingAvatarRemovals = useRef(new Set<string>());
 

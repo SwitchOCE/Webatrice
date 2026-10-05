@@ -1,3 +1,4 @@
+import type { AlertDialogNotice } from '@app/dialogs';
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -35,15 +36,9 @@ export type ModerationFlow =
   | { kind: 'banUser'; userName: string; stage: Stage; noUserInfo: boolean }
   | { kind: 'warnHistory' | 'banHistory' | 'adminNotes'; userName: string; stage: Stage };
 
-export interface ModerationNotice {
-  title: string;
-  message: string;
-  severity: 'info' | 'error';
-}
-
 export interface ModerationFlowState {
   flow: ModerationFlow | null;
-  notice: ModerationNotice | null;
+  notice: AlertDialogNotice | null;
   userInfo: ServerInfo_User | undefined;
   warnList: Response_WarnList | undefined;
   banHistory: ServerInfo_Ban[] | undefined;
@@ -72,7 +67,7 @@ export function useModerationFlow(): ModerationFlowState {
   const openUserInvestigation = useOpenUserInvestigation();
   const ownName = useAppSelector((state) => server.Selectors.getUser(state)?.name ?? '');
   const [flow, setFlow] = useState<ModerationFlow | null>(null);
-  const [notice, setNotice] = useState<ModerationNotice | null>(null);
+  const [notice, setNotice] = useState<AlertDialogNotice | null>(null);
   // Role changes have no dialog: remember which way each pending one went so the
   // outcome box can say promoted / demoted (adjustMod_processUserResponse).
   const pendingRoleChanges = useRef(new Map<string, boolean>());
@@ -211,7 +206,7 @@ export function useModerationFlow(): ModerationFlowState {
       setFlow({ ...flow, stage: 'ready' });
       return;
     }
-    const failures: Partial<Record<WebsocketTypes.ModeratorCommandName, ModerationNotice>> = {
+    const failures: Partial<Record<WebsocketTypes.ModeratorCommandName, AlertDialogNotice>> = {
       banHistory: { title: t('Moderation.banHistory.title'), message: t('Moderation.banHistory.failed'), severity: 'error' },
       warnHistory: { title: t('Moderation.warnHistory.title'), message: t('Moderation.warnHistory.failed'), severity: 'error' },
       getAdminNotes: { title: t('Moderation.common.failed'), message: t('Moderation.adminNotes.failed'), severity: 'info' },
