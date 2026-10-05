@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForkRef } from '@mui/material/utils';
 import { ZoneName } from '@cockatrice/sockatrice';
 
@@ -10,6 +11,8 @@ import { useGameId } from '../../components/ui/GameIdContext';
 import { useGameSelectionState } from '../../components/ui/GameSelectionContext';
 import { usePendingTargetContext } from '../../components/ui/PendingTargetContext';
 import { useKeyboardMove } from '../../components/ui/KeyboardMoveContext';
+import { cardLabel } from '../../components/ui/SeatCard/cardLabel';
+import { useCardFocus } from '../../components/ui/SeatCard/useCardFocus';
 import { useActiveSeatDrag, useSeatDragSource, useSeatDropZone } from '../../components/ui/SeatDragContext';
 import type { ZoneViewTarget } from '../../hooks/dialogs/gameDialogs.types';
 import {
@@ -171,6 +174,24 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
   const { openSeatCardMenu } = useGameDialogsContext();
   // Enter on a card while an arrow pick is pending takes it, by the click rule.
   const { pending, pickArrowAt, cancel: cancelPick } = usePendingTargetContext();
+
+  // A top / bottom N view's cards on the keyboard, as ZoneViewPanel's are: a
+  // row of options in server order, keyed by their deck position, with
+  // Enter for a pending pick and M for the keyboard move.
+  const { t } = useTranslation();
+  const { cardProps: orderedCardProps } = useCardFocus<(typeof cards)[number]>({
+    zone: ZoneName.DECK,
+    cards,
+    orientation: 'horizontal',
+    ownerOf: () => playerId,
+    labelOf: (card) => cardLabel(t, { name: card.name }),
+    previewOf: (card) => ({ name: card.name, scryfallId: card.scryfallId }),
+    selectedIds,
+    onSelectIds: setSelectedIds,
+    onActivate: (_card, element) => pickArrowAt(element),
+    onMove: onCardMove,
+    onOpenMenu: () => undefined,
+  });
   const cardMenuKind = CARD_MENU_KIND[zoneName];
   const onCardContextMenu = cardMenuKind
     ? (at: { x: number; y: number }, card: { id: string; name: string }, scope: ZoneViewCardScope) => {
@@ -211,6 +232,7 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
         onCardPointerDown={onCardPointerDown}
         dropRef={panelDropRef}
         draggingCardIds={draggingCardIds}
+        cardInteraction={orderedCardProps}
         onClose={() => handleClose(false)}
       />
     );
