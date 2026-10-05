@@ -340,6 +340,8 @@ export default function HandZone() {
         // axis to `auto` — that's what was spawning a phantom
         // vertical scrollbar even though cards fit exactly.
         className='w-full flex items-center overflow-x-auto overflow-y-hidden'
+        // Not a tab stop, like the battlefield's scroller (Firefox tabs to scrollers).
+        tabIndex={-1}
         style={{ height: CARD_HEIGHT }}
         // Own hand slides UP on hover (top half of card floats
         // into the play area above, bottom half comes into the
