@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  User,
-  Crown,
   CheckCircle2,
   Loader2,
   AlertTriangle,
@@ -19,16 +17,17 @@ import {
 import { AuthGuard } from '@app/components';
 import { ConfirmDialog } from '@app/dialogs';
 import { Layout } from '@app/feature-wrappers/layout';
-import { useWebClient } from '@cockatrice/datatrice/react';
-import { games, rooms, server } from '@cockatrice/datatrice';
-import type { GameCommandFailedPayload } from '@cockatrice/datatrice';
+import { rooms } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
-import { useBackendDeckList, useCommandFailureMessage, useLeaveGame, useReduxEffect, useRequestTracker } from '@app/hooks';
-import { parseCod, validateCod } from '@app/services';
-import { onSessionEnd } from '@app/services/session';
-import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat } from '@app/types';
-import { bracketToneClass } from '@app/utils';
+import { useBackendDeckList, useLeaveGame } from '@app/hooks';
+import { normalizeFormat } from '@app/types';
 
+import { useLobbyDeckSummaries } from './hooks/useLobbyDeckSummaries';
+import { useLobbyDeckSelect } from './hooks/useLobbyDeckSelect';
+import { CATEGORY_LABELS, groupLobbyDecks } from './components/lobby/lobbyDeckGrouping';
+import PlayerRow from './components/lobby/PlayerRow';
+import EmptySeat from './components/lobby/EmptySeat';
+import BracketBadge from './components/lobby/BracketBadge';
 import { useCurrentGame } from './hooks/useCurrentGame';
 import ChatLog from './components/ChatLog/ChatLog';
 import { GameIdProvider } from './components/ui/GameIdContext';
@@ -62,64 +61,9 @@ import { useLobbyDeckView } from './components/lobby/useLobbyDeckView';
  *   • leaveGame(gameId)                   — self leave
  */
 
-interface FlatDeck {
-  id: number;
-  name: string;
-}
-
-/**
- * Category labels for the deck picker. `MTG_FORMATS` slugs get their
- * pretty label from `MTG_FORMAT_LABELS`; any non-empty format string
- * that isn't in the MTG list is "Other"; empty/missing is "Unknown".
- * Fixed sentinels keep the code that sorts + groups readable.
- */
-const CATEGORY_OTHER = 'other';
-const CATEGORY_UNKNOWN = 'unknown';
-const CATEGORY_LABELS: Record<string, string> = Object.fromEntries(
-  MTG_FORMAT_LABELS.map((f) => [f.value, f.label]),
-);
-CATEGORY_LABELS[CATEGORY_OTHER] = 'Other';
-CATEGORY_LABELS[CATEGORY_UNKNOWN] = 'Unknown format';
-
-/** Bucket a deck's format string into a category slug for display. */
-function categoryOf(format: string | undefined): string {
-  const n = normalizeFormat(format ?? '');
-  if (!n) {
-    return CATEGORY_UNKNOWN;
-  }
-  if (MTG_FORMATS.includes(n)) {
-    return n;
-  }
-  return CATEGORY_OTHER;
-}
-
-/** Info extracted from each downloaded .cod: format string + optional
- *  cached bracket level from `meta.bracketLevel`. Both are used by
- *  the deck picker (grouping + badge) and the picked-deck signal
- *  passed back so player rows can render the bracket too. */
-interface DeckSummary {
-  format: string;
-  bracketLevel?: number;
-  /** Deck name from the .cod's <deckname> — used to match a
-   *  selected deck back to its badge after the server accepts the
-   *  deckSelect. Servatrice broadcasts deckHash but not the name. */
-  name: string;
-}
-
-// Session-scoped cache. Populated when the lobby (or anywhere else in
-// the app) calls deckDownload — a Redux effect below parses each
-// response's <format> and <comments>-meta blob and drops the digest
-// here. Keyed by the server-side numeric deckId. Persists across
-// lobby remounts so a repeated visit doesn't re-hit the server, and is
-// dropped at a session boundary: deck ids belong to one account on one server.
-const deckSummaryCache = new Map<number, DeckSummary>();
-onSessionEnd(() => deckSummaryCache.clear());
-
 export default function GameLobby({ gameId }: { gameId: number }) {
   const { t } = useTranslation();
-  const webClient = useWebClient();
   const leaveGame = useLeaveGame();
-  const deckSelectRequest = useRequestTracker();
   const { game, localPlayer, isHost, isSpectator, isJudge } = useCurrentGame(gameId);
   const { backendDecks, isConnected, decks: myDecks } = useBackendDeckList();
 
@@ -144,199 +88,17 @@ export default function GameLobby({ gameId }: { gameId: number }) {
   }, [room, game?.info.gameTypes]);
   const roomFormatSlug = useMemo(() => normalizeFormat(roomFormatLabel), [roomFormatLabel]);
 
-  // Trigger a deckDownload for every deck we haven't yet cached a
-  // summary for. Runs whenever the deck list changes. Same technique
-  // MyDecks uses to pull prices — we ride the same DECK_DOWNLOADED
-  // events to learn each deck's <format> + cached bracketLevel.
-  const [summaryByDeckId, setSummaryByDeckId] = useState<Map<number, DeckSummary>>(
-    () => new Map(deckSummaryCache),
+  const { summaryByDeckId, bracketByDeckId, stillLoadingFormats } = useLobbyDeckSummaries(myDecks, isConnected);
+  const groupedDecks = useMemo(
+    () => groupLobbyDecks(myDecks, summaryByDeckId, roomFormatSlug),
+    [myDecks, summaryByDeckId, roomFormatSlug],
   );
-  const inFlightRef = useRef<Set<number>>(new Set());
-  useEffect(() => {
-    if (!isConnected) {
-      return;
-    }
-    for (const deck of myDecks) {
-      if (summaryByDeckId.has(deck.id)) {
-        continue;
-      }
-      if (inFlightRef.current.has(deck.id)) {
-        continue;
-      }
-      inFlightRef.current.add(deck.id);
-      webClient.request.session.deckDownload(deck.id);
-    }
-  }, [isConnected, myDecks, summaryByDeckId, webClient]);
-
-  useReduxEffect<{ deckId: number; deck: string }>(
-    ({ payload }) => {
-      inFlightRef.current.delete(payload.deckId);
-      let summary: DeckSummary;
-      try {
-        const parsed = parseCod(payload.deck);
-        // Prefer the level stored in the richer <bracketAssessment>
-        // element (which also carries the flagged card lists); fall
-        // back to meta.bracketLevel for decks last saved before the
-        // new element existed.
-        summary = {
-          format: parsed.format ?? '',
-          bracketLevel: parsed.bracketAssessment?.level ?? parsed.meta.bracketLevel,
-          name: parsed.name,
-        };
-      } catch {
-        // Malformed .cod → cache empty so we don't re-download.
-        summary = { format: '', bracketLevel: undefined, name: '' };
-      }
-      deckSummaryCache.set(payload.deckId, summary);
-      setSummaryByDeckId((prev) => {
-        const existing = prev.get(payload.deckId);
-        if (
-          existing &&
-          existing.format === summary.format &&
-          existing.bracketLevel === summary.bracketLevel &&
-          existing.name === summary.name
-        ) {
-          return prev;
-        }
-        const next = new Map(prev);
-        next.set(payload.deckId, summary);
-        return next;
-      });
-    },
-    server.Types.DECK_DOWNLOADED,
-    [],
-  );
-
-  // Group decks by category, sort alphabetically inside each group,
-  // then order the groups: room's format first (if it maps to a known
-  // MTG format), other MTG formats in their canonical MTG_FORMAT_LABELS
-  // order, then Other, then Unknown.
-  const groupedDecks = useMemo(() => {
-    const groups = new Map<string, FlatDeck[]>();
-    for (const deck of myDecks) {
-      const cat = categoryOf(summaryByDeckId.get(deck.id)?.format);
-      const bucket = groups.get(cat) ?? [];
-      bucket.push(deck);
-      groups.set(cat, bucket);
-    }
-    for (const bucket of groups.values()) {
-      bucket.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
-    }
-    const order: string[] = [];
-    if (roomFormatSlug && MTG_FORMATS.includes(roomFormatSlug)) {
-      order.push(roomFormatSlug);
-    }
-    for (const f of MTG_FORMAT_LABELS) {
-      if (f.value === roomFormatSlug) {
-        continue;
-      }
-      order.push(f.value);
-    }
-    order.push(CATEGORY_OTHER);
-    order.push(CATEGORY_UNKNOWN);
-    return order
-      .filter((cat) => groups.has(cat))
-      .map((cat) => ({ category: cat, decks: groups.get(cat)! }));
-  }, [myDecks, summaryByDeckId, roomFormatSlug]);
-
-  const stillLoadingFormats = myDecks.some((d) => !summaryByDeckId.has(d.id));
-
-  // For player-row bracket badges: map deckHash → bracketLevel via the
-  // summary cache. We can't key by deckId because Servatrice only
-  // broadcasts each player's deckHash on the wire (not the deck's
-  // server-side id). We rely on a deckHash → summary lookup instead,
-  // built by hashing each cached deck as we learn about it. Cheaper
-  // approach: just remember the last local deck the user picked and
-  // its bracket, and match remote players by name (best-effort — the
-  // player name shown in the tooltip is authoritative).
-  const bracketByDeckId = useMemo(() => {
-    const out = new Map<number, number>();
-    for (const [id, s] of summaryByDeckId) {
-      if (s.bracketLevel != null) {
-        out.set(id, s.bracketLevel);
-      }
-    }
-    return out;
-  }, [summaryByDeckId]);
-
-  // .cod file upload state — fallback for players who don't have the
-  // deck in their MyDecks. Validates the XML client-side before
-  // firing the deckSelect command.
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const handleFilePicked = (file: File | null) => {
-    setUploadError(null);
-    if (!file) {
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const xml = typeof reader.result === 'string' ? reader.result : '';
-      if (!validateCod(xml)) {
-        setUploadError('Not a valid Cockatrice deck (.cod) file');
-        return;
-      }
-      setMyPickedDeckId(null);
-      setDeckSelectError(null);
-      webClient.request.game.deckSelect(gameId, { deck: xml }, deckSelectRequest.begin());
-      // No gameSay: Cockatrice already emits an event message
-      // ("X has loaded a deck (…)") when the server processes deckSelect.
-    };
-    reader.onerror = () => setUploadError('Could not read the selected file');
-    reader.readAsText(file);
-  };
-
-  // Deck-loaded state, sideboard plan and the ready/lock toggles. No
-  // gameSay on ready: Cockatrice emits its own event ("X is ready to start
-  // the game.") on the readyStart property update.
+  const {
+    fileInputRef, uploadError, handleFilePicked, myPickedDeckId, deckSelectError, handleSelectDeck,
+    forceStartConfirmOpen, setForceStartConfirmOpen, confirmForceStart, kickPlayer,
+  } = useLobbyDeckSelect(gameId);
   const deckView = useLobbyDeckView(gameId);
 
-  // Remember which local deck the player just picked so the local
-  // player row can show its bracket badge. Cockatrice broadcasts each
-  // player's `deckHash` on the wire but NOT the deck's server-side
-  // id, so we can't map remote players' deckHash back to a bracket
-  // without an out-of-band channel. That means the badge on player
-  // rows only reflects the LOCAL player today; remote players'
-  // rows stay bracket-less unless we later broadcast via gameSay or
-  // upstream Cockatrice grows bracket in ServerInfo_PlayerProperties.
-  const [myPickedDeckId, setMyPickedDeckId] = useState<number | null>(null);
-
-  // A rejected or unanswered Command_DeckSelect leaves the picker up; say why
-  // instead of silently staying there (desktop has no handler for this).
-  // Kept apart from uploadError: a rejected pick from My Decks is not an upload problem.
-  const [deckSelectError, setDeckSelectError] = useState<string | null>(null);
-  const describeFailure = useCommandFailureMessage();
-  useReduxEffect<GameCommandFailedPayload>(
-    ({ payload }) => {
-      if (payload.gameId !== gameId || !deckSelectRequest.isCurrent(payload.requestId)) {
-        return;
-      }
-      deckSelectRequest.cancel();
-      setMyPickedDeckId(null);
-      setDeckSelectError(describeFailure(payload.failure, t('GameLobby.deckSelectFailed')));
-    },
-    games.Types.DECK_SELECT_FAILED,
-    [gameId, describeFailure, t, deckSelectRequest],
-  );
-
-  useReduxEffect<{ gameId: number; requestId?: string }>(
-    ({ payload }) => {
-      if (payload.gameId === gameId && deckSelectRequest.isCurrent(payload.requestId)) {
-        deckSelectRequest.cancel();
-      }
-    },
-    games.Types.DECK_SELECTED,
-    [gameId, deckSelectRequest],
-  );
-
-  const handleSelectDeck = (deckId: number) => {
-    setMyPickedDeckId(deckId);
-    setUploadError(null);
-    setDeckSelectError(null);
-    webClient.request.game.deckSelect(gameId, { deckId }, deckSelectRequest.begin());
-    // No gameSay: Cockatrice emits its own event
-    // ("X has loaded a deck (…)") on the deckHash property update.
-  };
   const myBracket = myPickedDeckId != null ? bracketByDeckId.get(myPickedDeckId) : undefined;
   const myDeckName =
     myPickedDeckId != null ? summaryByDeckId.get(myPickedDeckId)?.name : undefined;
@@ -351,16 +113,6 @@ export default function GameLobby({ gameId }: { gameId: number }) {
         !!p && !p.properties.spectator && !p.properties.judge,
       );
   }, [game]);
-
-  // Force start (desktop DeckViewContainer::forceStart): after a Yes/No
-  // confirmation the host sends ONE Command_ReadyStart{ready, force_start}.
-  // Servatrice readies the host, kicks every unready player and starts the
-  // game atomically (Server_AbstractPlayer::cmdReadyStart → startGameIfReady(true)).
-  const [forceStartConfirmOpen, setForceStartConfirmOpen] = useState(false);
-  const confirmForceStart = () => {
-    setForceStartConfirmOpen(false);
-    webClient.request.game.readyStart(gameId, { ready: true, forceStart: true });
-  };
 
   // Reconnect / stale-state guard. The lobby is only meaningful for
   // pre-started games where we have a local player row on the wire.
@@ -424,22 +176,12 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                         isLocalPlayer && !!p.properties.deckHash ? myDeckName : undefined
                       }
                       showKick={isHost && !isLocalPlayer}
-                      onKick={() =>
-                        webClient.request.game.kickFromGame(gameId, {
-                          playerId: p.properties.playerId,
-                        })
-                      }
+                      onKick={() => kickPlayer(p.properties.playerId)}
                     />
                   );
                 })}
                 {Array.from({ length: emptySeats }).map((_, i) => (
-                  <div
-                    key={`empty-${i}`}
-                    className="flex items-center gap-4 px-4 py-3 rounded-lg border border-dashed border-border-subtle bg-bg-surface/30"
-                  >
-                    <div className="h-11 w-11 rounded-full border-2 border-dashed border-border-subtle" />
-                    <span className="text-sm italic text-text-muted">Waiting for player…</span>
-                  </div>
+                  <EmptySeat key={`empty-${i}`} />
                 ))}
               </div>
 
@@ -684,110 +426,3 @@ const LOBBY_BUTTON_CLASS = [
 ].join(' ');
 const TOGGLE_ON_CLASS = 'border-emerald-500/70';
 const TOGGLE_OFF_CLASS = 'border-red-500/60';
-
-function PlayerRow({
-  playerName,
-  isHost,
-  ready,
-  hasDeck,
-  bracket,
-  deckName,
-  showKick,
-  onKick,
-}: {
-  playerName: string;
-  isHost: boolean;
-  ready: boolean;
-  hasDeck: boolean;
-  /** Commander bracket 1..5 for this player's selected deck when known.
-   *  Currently only populated for the local player (Cockatrice's wire
-   *  protocol doesn't expose enough for us to know a remote player's
-   *  bracket without extra channels). */
-  bracket?: number;
-  /** Name of the selected deck. Same caveat as `bracket` — only known
-   *  for the local player; remote players fall back to the generic
-   *  "Deck submitted" text. */
-  deckName?: string;
-  showKick: boolean;
-  onKick: () => void;
-}) {
-  return (
-    <div
-      className={[
-        'flex items-center gap-4 px-4 py-3 rounded-lg border board-motion transition-colors',
-        ready
-          ? 'bg-emerald-500/5 border-emerald-500/40'
-          : 'bg-bg-surface border-border-subtle',
-      ].join(' ')}
-    >
-      <div className="h-11 w-11 rounded-full bg-gradient-to-br from-accent-secondary to-accent flex items-center justify-center">
-        <User size={20} className="text-white" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-base font-semibold text-text-primary truncate">{playerName}</span>
-          {isHost && <Crown size={14} className="text-warning shrink-0" aria-label="Host" />}
-          {ready && (
-            <CheckCircle2
-              size={18}
-              className="text-success shrink-0"
-              aria-label="Ready"
-            />
-          )}
-        </div>
-        <div className="text-xs text-text-muted mt-0.5 truncate flex items-center gap-1.5">
-          {ready ? (
-            deckName ? (
-              <>
-                <span>Ready ·</span>
-                <span className="text-text-secondary truncate">{deckName}</span>
-                {bracket != null && <BracketBadge level={bracket} />}
-              </>
-            ) : (
-              <span>Ready</span>
-            )
-          ) : hasDeck ? (
-            deckName ? (
-              <>
-                <span className="text-text-secondary truncate">{deckName}</span>
-                {bracket != null && <BracketBadge level={bracket} />}
-                <span>· waiting to ready</span>
-              </>
-            ) : (
-              <span>Deck submitted · waiting to ready</span>
-            )
-          ) : (
-            <span className="italic">Choosing a deck…</span>
-          )}
-        </div>
-      </div>
-      {showKick && (
-        <button
-          type="button"
-          onClick={onKick}
-          className={[
-            'text-xs px-2 py-1 rounded text-text-muted hover:text-danger',
-            'hover:bg-red-500/10 border border-transparent hover:border-red-500/40 board-motion transition-colors',
-          ].join(' ')}
-          title="Kick from game"
-        >
-          Kick
-        </button>
-      )}
-    </div>
-  );
-}
-
-function BracketBadge({ level }: { level: number }) {
-  // The deck editor's traffic-light palette, so a B3 chip in the lobby
-  // matches the B3 verdict in the editor.
-  const tone = bracketToneClass(level);
-  return (
-    <span
-      className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-bold tabular-nums shrink-0 ${tone}`}
-      title={`Commander Bracket ${level} (from the deck's cached assessment)`}
-    >
-      B{level}
-    </span>
-  );
-}
