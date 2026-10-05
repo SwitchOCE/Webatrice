@@ -139,6 +139,10 @@ export function createDeckSaveRegistry(store: SessionStore, client: WebClient) {
     /** Waiters belong to the entry, so switching or closing an editor cannot orphan them. */
     saveNow(deckId: number, deck: HydratedDeck): Promise<boolean> {
       registry.save(deckId, deck);
+      return registry.waitForSave(deckId);
+    },
+    /** Adopt a draft's waiters without sending edits held by its paused editor. */
+    waitForSave(deckId: number): Promise<boolean> {
       const entry = entries.get(deckId);
       if (!entry) {
         return Promise.resolve(false);

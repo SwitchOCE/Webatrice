@@ -460,6 +460,132 @@ describe('useDeckAutosave', () => {
 });
 
 describe('useDeckAutosave save prompt support (desktop confirmOpen)', () => {
+  it.each(['stored', 'draft'] as const)('holds %s edits and flushes, then resumes the latest contents once', (kind) => {
+    const webClient = createMockWebClient();
+    renderWithProviders(<Probe initial={kind === 'stored' ? SAVED : null} deckId={kind === 'stored' ? 7 : null}
+      draft={kind === 'draft' ? { key: 'paused', onStored: vi.fn() } : undefined} />, {
+      preloadedState: connectedState, webClient,
+    });
+    act(() => {
+      latest.scheduleSave();
+      latest.pauseAutosave();
+      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS * 2);
+      latest.flushSave();
+    });
+    current = { ...EDITED, name: 'Latest held edit' };
+    save();
+    expect(latest.isModified).toBe(true);
+    expect(webClient.request.session.deckUpload).not.toHaveBeenCalled();
+    expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+    act(() => {
+      latest.resumeAutosave();
+      latest.resumeAutosave();
+      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS * 2);
+    });
+    if (kind === 'stored') {
+      expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(webClient.request.session.deckUpdate).mock.calls[0][1]).toContain('<deckname>Latest held edit</deckname>');
+      expect(webClient.request.session.deckUpload).not.toHaveBeenCalled();
+    } else {
+      expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(webClient.request.session.deckUpload).mock.calls[0][2]).toContain('<deckname>Latest held edit</deckname>');
+      expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+    }
+  });
+
+  it.each([
+    ['stored', 'discard'], ['stored', 'unmount'], ['draft', 'discard'], ['draft', 'unmount'],
+  ] as const)('does not send held %s edits on %s', (kind, end) => {
+    const webClient = createMockWebClient();
+    const view = renderWithProviders(<Probe initial={kind === 'stored' ? SAVED : null} deckId={kind === 'stored' ? 7 : null}
+      draft={kind === 'draft' ? { key: 'paused-end', onStored: vi.fn() } : undefined} />, {
+      preloadedState: connectedState, webClient,
+    });
+    act(() => {
+      latest.pauseAutosave();
+      latest.scheduleSave();
+      latest.flushSave();
+    });
+    if (end === 'discard') {
+      act(() => {
+        latest.discardChanges();
+        latest.resumeAutosave();
+      });
+    }
+    view.unmount();
+    act(() => vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS * 2));
+    expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+    expect(webClient.request.session.deckUpload).not.toHaveBeenCalled();
+  });
+
+  it.each(['resume', 'discard'] as const)('holds edits and waiters across a paused draft handoff until %s', async (choice) => {
+    const webClient = createMockWebClient();
+    const view = renderWithProviders(<Probe initial={null} deckId={null} draft={{ key: 'paused-handoff', onStored: vi.fn() }} />, {
+      preloadedState: connectedState, webClient,
+    });
+    clients.set(view.store, webClient);
+    let saved!: Promise<boolean>;
+    const settled = vi.fn();
+    act(() => { saved = latest.saveNow().then((value) => { settled(value); return value; }); });
+    current = { ...EDITED, name: 'Held through handoff' };
+    act(() => {
+      latest.scheduleSave();
+      latest.pauseAutosave();
+      view.store.dispatch(server.Actions.deckUpload({
+        path: '', requestId: vi.mocked(webClient.request.session.deckUpload).mock.calls[0][5],
+        treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 42 }),
+      }));
+    });
+    view.rerender(<Probe initial={deckSaveSignature(EDITED)} deckId={42} />);
+    act(() => {
+      latest.flushSave();
+      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS * 2);
+    });
+    await Promise.resolve();
+    expect(settled).not.toHaveBeenCalled();
+    expect(latest.isModified).toBe(true);
+    expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+    act(() => {
+      if (choice === 'discard') latest.discardChanges();
+      latest.resumeAutosave();
+      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS * 2);
+    });
+    if (choice === 'resume') {
+      expect(webClient.request.session.deckUpdate).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(webClient.request.session.deckUpdate).mock.calls[0][1]).toContain('<deckname>Held through handoff</deckname>');
+      ack(view.store, 42);
+    } else {
+      expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+    }
+    await expect(saved).resolves.toBe(choice === 'resume');
+    expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+  });
+
+  it('explicitly saves a paused draft once and resumes without uploading a duplicate', async () => {
+    const webClient = createMockWebClient();
+    const view = renderWithProviders(<Probe initial={null} deckId={null} draft={{ key: 'explicit-save', onStored: vi.fn() }} />, {
+      preloadedState: connectedState, webClient,
+    });
+    let saved!: Promise<boolean>;
+    act(() => {
+      latest.scheduleSave();
+      latest.pauseAutosave();
+      saved = latest.saveNow();
+    });
+    expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+    act(() => view.store.dispatch(server.Actions.deckUpload({
+      path: '', requestId: vi.mocked(webClient.request.session.deckUpload).mock.calls[0][5],
+      treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, { id: 42 }),
+    })));
+    await expect(saved).resolves.toBe(true);
+    act(() => {
+      latest.resumeAutosave();
+      vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS * 2);
+    });
+    expect(webClient.request.session.deckUpload).toHaveBeenCalledTimes(1);
+    expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
+  });
+
   it.each(['switch', 'unmount'] as const)('settles stored saveNow after an editor %s', async (change) => {
     const view = setup();
     let saved!: Promise<boolean>;
