@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef } from 'react';
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
-import { useShortcutHints } from '@app/feature-widgets/shortcuts';
+import { useMenuShortcut, useShortcutHints } from '@app/feature-widgets/shortcuts';
 import { useBoardAnimations, usePreference } from '@app/hooks';
 
 import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
@@ -228,6 +228,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
   // binding (Cockatrice desktop hardcodes; we can't since bindings
   // are user-customizable).
   const shortcutHints = useShortcutHints();
+  const menuShortcut = useMenuShortcut();
 
   const { marquee, onPointerDownBox } = useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelection, clearAllSelection });
 
@@ -372,7 +373,7 @@ export function usePlayerSeat({ model, commands, onOpenDeckInEditor, onSay }: Pl
   const {
     handSize,
     handMenuItems,
-  } = useHandMenuItems({ seatId, isSelf, hand: zones.hand, revealTargets, shortcutHints, zoneCommands });
+  } = useHandMenuItems({ seatId, isSelf, hand: zones.hand, revealTargets, menuShortcut, zoneCommands });
   const {
     battlefieldMenuItems,
     opponentBattlefieldMenuItems,

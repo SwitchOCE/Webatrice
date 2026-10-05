@@ -1,12 +1,10 @@
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
-import type { useShortcutHints } from '@app/feature-widgets/shortcuts';
+import type { useMenuShortcut } from '@app/feature-widgets/shortcuts';
 
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import { useGameDialogsContext } from '../GameDialogsContext';
 import type { SeatMoveDestination, HandZoneViewModel, PlayerZoneCommands } from '../PlayerBoard/playerBoard.types';
 import { buildRevealToSubmenu, toRecipient } from '../PlayerBoard/revealRecipient';
-
-type ShortcutHints = ReturnType<typeof useShortcutHints>;
 
 export interface UseHandMenuItemsArgs {
   seatId: number;
@@ -14,7 +12,7 @@ export interface UseHandMenuItemsArgs {
   hand: HandZoneViewModel;
   /** Every other seated player. */
   revealTargets: readonly { playerId: number; name: string }[];
-  shortcutHints: ShortcutHints;
+  menuShortcut: ReturnType<typeof useMenuShortcut>;
   zoneCommands: PlayerZoneCommands;
 }
 
@@ -28,7 +26,7 @@ export function useHandMenuItems({
   isSelf,
   hand,
   revealTargets,
-  shortcutHints,
+  menuShortcut,
   zoneCommands,
 }: UseHandMenuItemsArgs) {
   const { openZoneView, handleRequestSortHandBy, handleRequestChooseMulligan } = useGameDialogsContext();
@@ -96,7 +94,7 @@ export function useHandMenuItems({
           label: 'Type',
           onClick: () => handleRequestSortHandBy('maintype'),
           disabled: !isSelf || handSize <= 1,
-          shortcut: shortcutHints['game.sortHandByType'],
+          ...menuShortcut('game.sortHandByType'),
         },
         {
           label: 'Mana Value',
@@ -127,13 +125,13 @@ export function useHandMenuItems({
       label: 'Take mulligan (Same hand size)',
       onClick: () => zoneCommands.mulligan(handSize),
       disabled: handSize <= 0,
-      shortcut: shortcutHints['game.mulliganSameSize'],
+      ...menuShortcut('game.mulliganSameSize'),
     },
     {
       label: 'Take mulligan (Hand size - 1)',
       onClick: () => zoneCommands.mulligan(Math.max(1, handSize - 1)),
       disabled: handSize <= 1,
-      shortcut: shortcutHints['game.mulliganMinusOne'],
+      ...menuShortcut('game.mulliganMinusOne'),
     },
     { divider: true },
     {

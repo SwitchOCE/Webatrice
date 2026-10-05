@@ -4,6 +4,7 @@ import { ZoneName } from '@cockatrice/sockatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
 import { PREFERENCE_DEFAULTS } from '@app/types';
+import { shortcuts } from '@app/store';
 
 import { usePreferences } from '../../../../../hooks/useSettings';
 import { lookupCard } from '../../../../../services/cards/catalog/lookup';
@@ -49,6 +50,18 @@ afterEach(() => {
 });
 
 describe('HandZone', () => {
+  it('exposes rebound hand submenu shortcuts to assistive technology', () => {
+    const { store } = renderSeatCell(SPEC);
+    act(() => {
+      store.dispatch(shortcuts.Actions.setOverride({ actionId: 'game.sortHandByType', sequences: ['Ctrl+Shift+KeyY', 'Alt+KeyZ'] }));
+    });
+    openContextMenu(handButton());
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Sort hand by...' }));
+    const item = screen.getByRole('menuitem', { name: 'Type' });
+    expect(within(item).getByText('Ctrl+Shift+Y')).toBeInTheDocument();
+    expect(item).toHaveAttribute('aria-keyshortcuts', 'Control+Shift+Y Alt+Z');
+  });
+
   it('shows the owner their hand faces and its count', () => {
     renderSeatCell(SPEC);
     expect(handButton()).toHaveAttribute('title', 'Hand — 2 cards');
