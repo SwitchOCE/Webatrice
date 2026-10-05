@@ -39,7 +39,7 @@ function openViewLibrary(library: HTMLElement) {
     fireEvent.contextMenu(library, { clientX: 10, clientY: 10 });
   });
   act(() => {
-    fireEvent.click(screen.getByRole('button', { name: /^View library/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /^View library/ }));
   });
 }
 
