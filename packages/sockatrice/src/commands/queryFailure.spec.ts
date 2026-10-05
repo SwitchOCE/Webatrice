@@ -9,7 +9,7 @@ import { create } from '@bufbuild/protobuf';
 import { Mock } from 'vitest';
 import { WebClient } from '../WebClient';
 import { ResponseSchema, Response_ResponseCode } from '../generated';
-import { handleResponse } from '../services/command-options';
+import { CommandFailure, handleFailure, handleResponse } from '../services/command-options';
 
 import * as DeveloperCommands from './developer';
 import * as ModeratorCommands from './moderator';
@@ -138,4 +138,18 @@ describe('3.1 query failure reporting', () => {
       }
     });
   });
+});
+
+describe('card art transport failures', () => {
+  it.each(queries.filter(([command]) => ['listCardArtRules', 'addCardArtRule', 'removeCardArtRule'].includes(command)))(
+    '%s forwards the timeout reason', (command, scope, run, target, onSuccess) => {
+      run();
+      const calls = (WebClient.instance.protobuf[SEND[scope]] as Mock).mock.calls;
+      handleFailure('Command', CommandFailure.Timeout, calls[calls.length - 1][2]);
+      expect(responseScope(scope).commandFailed).toHaveBeenCalledWith(
+        command, Response_ResponseCode.RespNotConnected, target, CommandFailure.Timeout,
+      );
+      expect(responseScope(scope)[onSuccess]).not.toHaveBeenCalled();
+    },
+  );
 });

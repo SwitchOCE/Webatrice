@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { z } from 'zod';
 import type { TFunction } from 'i18next';
 
+import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
 import Paper from '@mui/material/Paper';
@@ -69,6 +70,7 @@ const CardArtRulesContent = () => {
 
   return (
     <>
+      {rulesState.error && <Alert severity="error" onClose={rulesState.dismissError}>{rulesState.error}</Alert>}
       <Paper component="section" className="card-art-rules__form-panel">
         <form className="card-art-rules__form" onSubmit={handleSubmit(rulesState.addRule)} noValidate>
           <Controller
