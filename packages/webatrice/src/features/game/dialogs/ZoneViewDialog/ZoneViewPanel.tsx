@@ -14,6 +14,10 @@ import { ZoneCardCell } from '../shared/ZoneCardCell';
 import { ZoneCardGroups } from '../shared/ZoneCardGroups';
 import { PileViewToggle, ZoneViewSortControls } from '../shared/ZoneViewControls';
 import { readShuffleOnClose, writeShuffleOnClose } from '../shared/zoneViewPreferences';
+import { GAME_FOCUS_RING } from '../../components/ui/focusRing';
+
+const HEADER_BUTTON_CLASS =
+  `p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary transition-colors ${GAME_FOCUS_RING}`;
 import { buildCardGroups, type GroupMode, type SortMode } from '../shared/zoneViewSort';
 
 type HandCard = { id: string; name: string; scryfallId: string };
@@ -319,7 +323,7 @@ export default function ZoneViewPanel({
         >
           {/* Focus lands on the title when the search box doesn't take it. */}
           <h2
-            className="text-lg font-semibold text-text-primary focus:outline-none"
+            className={`text-lg font-semibold text-text-primary rounded ${GAME_FOCUS_RING}`}
             tabIndex={-1}
             data-autofocus={showSearchBar && focusSearchBar ? undefined : true}
           >
@@ -348,14 +352,14 @@ export default function ZoneViewPanel({
               aria-pressed={expanded}
               aria-label={t('ZoneViewPanel.expand')}
               title={t('ZoneViewPanel.expand')}
-              className="p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary transition-colors"
+              className={HEADER_BUTTON_CLASS}
             >
               {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
             </button>
             <button
               type="button"
               onClick={close}
-              className="p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary transition-colors"
+              className={HEADER_BUTTON_CLASS}
               aria-label={t('ZoneViewPanel.close')}
               title={t('ZoneViewPanel.close')}
             >
@@ -383,6 +387,7 @@ export default function ZoneViewPanel({
                 className={[
                   'w-full pl-8 pr-3 py-2 rounded-md bg-bg-base border border-border-subtle text-sm',
                   'text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent',
+                  GAME_FOCUS_RING,
                 ].join(' ')}
               />
             </div>

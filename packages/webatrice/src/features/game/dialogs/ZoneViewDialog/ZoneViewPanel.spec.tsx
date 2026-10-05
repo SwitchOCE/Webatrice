@@ -432,7 +432,8 @@ describe('ZoneViewPanel', () => {
       const view = screen.getByRole('dialog', { name: 'Zone' });
       expect(view).not.toHaveAttribute('aria-modal');
       expect(within(view).getByRole('textbox', { name: 'ZoneViewPanel.search' })).toBeInTheDocument();
-      expect(within(view).getByRole('button', { name: 'ZoneViewPanel.close' })).toBeInTheDocument();
+      expect(within(view).getByRole('button', { name: 'ZoneViewPanel.close' })).toHaveClass('focus-visible:ring-2');
+      expect(within(view).getByRole('textbox', { name: 'ZoneViewPanel.search' })).toHaveClass('focus-visible:ring-2');
     });
 
     it('takes focus on open and gives it back to the opener when Escape closes it', async () => {

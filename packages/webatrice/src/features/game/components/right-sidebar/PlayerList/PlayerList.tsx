@@ -14,6 +14,7 @@ import { RouteEnum } from '@app/types';
 import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 
 import { useGameId } from '../../ui/GameIdContext';
+import { GAME_FOCUS_RING } from '../../ui/focusRing';
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import PlayerListContextMenu, {
   type PlayerListMenuActions,
@@ -270,7 +271,7 @@ function PlayerList() {
                   }}
                   className={[
                     'shrink-0 p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-elevated transition-colors',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                    GAME_FOCUS_RING,
                   ].join(' ')}
                 >
                   <MoreVertical size={14} aria-hidden />
