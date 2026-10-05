@@ -93,21 +93,40 @@ export function parseDeckShareLink(text: string): DeckShareLink | { problem: Dec
   return parseDeckShareQuery(fragmentParams(url.hash) ?? url.searchParams);
 }
 
-/**
- * The machine a host entry names: Webatrice hosts may carry a scheme, a port
- * or a WebSocket path (`server.cockatrice.us/servatrice`), desktop's never do.
- */
-function bareHostname(host: string): string {
-  return host.trim().toLowerCase().replace(/^[a-z]+:\/\//, '').split('/')[0].replace(/:\d+$/, '');
+/** Validate and normalize a full WebSocket endpoint without discarding its path or port. */
+export function shareServerFromEndpoint(endpoint: string | null | undefined): Omit<DeckShareLink, 'token'> | null {
+  if (!endpoint) {
+    return null;
+  }
+  try {
+    const url = new URL(endpoint);
+    if (!['ws:', 'wss:'].includes(url.protocol) || url.username || url.password || url.hash) {
+      return null;
+    }
+    return { hostname: url.href, port: url.port || (url.protocol === 'wss:' ? '443' : '80') };
+  } catch {
+    return null;
+  }
 }
 
-/**
- * Whether a link's server is the one this session is logged into. Only the
- * machine is compared: a desktop link names Servatrice's TCP port, which a
- * browser can't use, while this session knows only its WebSocket address.
- */
-export function isSameShareServer(link: DeckShareLink, hostname: string | undefined): boolean {
-  return !!hostname && bareHostname(link.hostname) === bareHostname(hostname);
+/** Fail closed: a token is sent only to the exact live endpoint, or the live host's configured TCP port. */
+export function isSameShareServer(
+  link: DeckShareLink,
+  endpoint: string | undefined,
+  desktopPort?: string,
+): boolean {
+  const live = shareServerFromEndpoint(endpoint);
+  if (!live) {
+    return false;
+  }
+  const direct = shareServerFromEndpoint(link.hostname);
+  if (direct) {
+    return direct.hostname === live.hostname && direct.port === link.port;
+  }
+  return !!desktopPort && /^\d+$/.test(desktopPort)
+    && Number(desktopPort) >= 1 && Number(desktopPort) <= 65535
+    && new URL(live.hostname).hostname === link.hostname.toLowerCase()
+    && Number(desktopPort) === Number(link.port);
 }
 
 /** Desktop `DeckShareUtils::formatShareExpiry`: local date and time, short. */

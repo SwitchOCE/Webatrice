@@ -5,6 +5,7 @@ type StoredHost = {
   name: string;
   host: string;
   port: string;
+  desktopPort?: string;
   editable: boolean;
   lastSelected?: boolean;
   userName?: string;
@@ -109,6 +110,27 @@ beforeEach(async () => {
 });
 
 describe('useKnownHosts', () => {
+  test('persists a desktop port across reloads and permits clearing it', async () => {
+    const { result, unmount } = renderHook(() => useKnownHostsModule.useKnownHosts());
+    await waitFor(() => expect(result.current.status).toBe(LoadingState.READY));
+    let id: number;
+    await act(async () => {
+      const host = await result.current.add({ name: 'TCP', host: 'tcp.example', port: '443', desktopPort: '4747', editable: true });
+      id = host.id!;
+      await result.current.update(id, { desktopPort: '5747' });
+    });
+    expect(stored.find(host => host.id === id)?.desktopPort).toBe('5747');
+    unmount();
+    useKnownHostsModule.knownHostsStore.reset();
+    const reloaded = renderHook(() => useKnownHostsModule.useKnownHosts());
+    await waitFor(() => expect(reloaded.result.current.status).toBe(LoadingState.READY));
+    expect(reloaded.result.current.value?.hosts.find(host => host.id === id)?.desktopPort).toBe('5747');
+    await act(async () => {
+      await reloaded.result.current.update(id, { desktopPort: undefined });
+    });
+    expect(stored.find(host => host.id === id)?.desktopPort).toBeUndefined();
+  });
+
   test('seeds DefaultHosts when the DB is empty and picks hosts[0] as selected', async () => {
     const { result } = renderHook(() => useKnownHostsModule.useKnownHosts());
 

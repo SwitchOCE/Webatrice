@@ -1,4 +1,5 @@
 import { Host } from '@app/types';
+// Desktop TCP ports are deliberately unset; configure them in each host's settings.
 export const DefaultHosts: Host[] = [
   {
     name: 'Chickatrice',

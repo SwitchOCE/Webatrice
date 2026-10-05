@@ -11,7 +11,7 @@ import { RouteEnum } from '@app/types';
 
 import { ReadOnlyDeck } from './components/ReadOnlyDeck';
 import { formatDisplayLabel } from './deckSummary';
-import { formatShareExpiry, isSameShareServer, parseDeckShareQuery } from './deckSharing';
+import { formatShareExpiry, isSameShareServer, parseDeckShareQuery, shareServerFromEndpoint } from './deckSharing';
 import { useDeckSharingSupported, useShareServer } from './hooks/useDeckSharing';
 import { useImportDeckCopy } from './hooks/useImportDeckCopy';
 import { useSharedDeck, type SharedDeckListing } from './hooks/useSharedDeck';
@@ -33,18 +33,22 @@ function SharedDeck() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const link = parseDeckShareQuery(searchParams);
+  const serverLabel = 'problem' in link ? ''
+    : shareServerFromEndpoint(link.hostname)?.hostname ?? `${link.hostname}:${link.port}`;
   const supported = useDeckSharingSupported();
   const shareServer = useShareServer();
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
 
   const problem = 'problem' in link ? t(`OpenShareLink.problem.${link.problem}`) : null;
   // Fails closed, like desktop, which sends the token only once logged into
-  // the link's own server: when this session's server isn't known (hosts not
-  // loaded, none selected), the token isn't sent anywhere.
-  const otherServer = !('problem' in link) && !(shareServer && isSameShareServer(link, shareServer.hostname))
-    ? t('SharedDeck.otherServer', { server: `${link.hostname}:${link.port}` })
+  // the link's own server: without a live endpoint, no token is sent.
+  const otherServer = !('problem' in link) && !(shareServer && isSameShareServer(link, shareServer.hostname, shareServer.desktopPort))
+    ? t('SharedDeck.otherServer', { server: serverLabel })
     : null;
-  const usable = !('problem' in link) && supported && !otherServer;
+  const desktopPortRequired = !('problem' in link) && shareServer && !shareServer.desktopPort
+    && new URL(shareServer.hostname).hostname === link.hostname.toLowerCase()
+    ? t('SharedDeck.desktopPortRequired') : null;
+  const usable = !('problem' in link) && supported && !otherServer && !desktopPortRequired;
   const shared = useSharedDeck(usable ? link.token : null);
 
   const openImported = useCallback(
@@ -53,7 +57,7 @@ function SharedDeck() {
   );
   const importCopy = useImportDeckCopy(openImported);
 
-  const blocked = problem ?? (supported ? otherServer : t('DeckSharing.notSupported'));
+  const blocked = problem ?? (supported ? desktopPortRequired ?? otherServer : t('DeckSharing.notSupported'));
   const { listing, open } = shared;
 
   return (
@@ -88,7 +92,7 @@ function SharedDeck() {
                   <p className="text-text-primary font-semibold">
                     {t('SharedDeck.share', { name: listing.name || t('SharedDeck.untitled') })}
                   </p>
-                  <p>{t('SharedDeck.from', { server: `${link.hostname}:${link.port}` })}</p>
+                  <p>{t('SharedDeck.from', { server: serverLabel })}</p>
                   {listing.expiresAt > 0n && (
                     <p>{t('SharedDeck.expires', { date: formatShareExpiry(listing.expiresAt) })}</p>
                   )}

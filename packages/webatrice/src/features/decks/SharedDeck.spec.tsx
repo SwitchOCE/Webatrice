@@ -4,11 +4,14 @@ import { create } from '@bufbuild/protobuf';
 import { server } from '@cockatrice/datatrice';
 import { Response_DeckShareListSchema, ServerInfo_DeckShareItemSchema } from '@cockatrice/sockatrice/generated';
 
-import { connected31State, connectedState, renderWithProviders } from '../../__test-utils__';
+import { connected31State, connectedState, createMockWebClient, renderWithProviders } from '../../__test-utils__';
 import SharedDeck from './SharedDeck';
 
 const knownHosts = vi.hoisted(() => {
-  const loaded = { hosts: [], selectedHost: { host: 'server.example', port: '4748' } as { host: string; port: string } | undefined };
+  const loaded = {
+    hosts: [] as { host: string; port: string; desktopPort?: string }[],
+    selectedHost: { host: 'server.example', port: '4748' } as { host: string; port: string } | undefined,
+  };
   return { loaded, value: loaded as typeof loaded | undefined };
 });
 vi.mock('@app/feature-widgets/known-hosts', () => ({
@@ -16,6 +19,7 @@ vi.mock('@app/feature-widgets/known-hosts', () => ({
 }));
 
 afterEach(() => {
+  knownHosts.loaded.hosts = [];
   knownHosts.value = knownHosts.loaded;
   knownHosts.loaded.selectedHost = { host: 'server.example', port: '4748' };
 });
@@ -23,11 +27,33 @@ afterEach(() => {
 const COD = '<cockatrice_deck version="1"><deckname>Burn</deckname><zone name="main">'
   + '<card number="4" name="Lightning Bolt"/></zone></cockatrice_deck>';
 
-function renderPage(query = 'share=tok&hostname=server.example&port=4747', preloadedState = connected31State) {
-  return renderWithProviders(<SharedDeck />, { preloadedState, route: `/decks/shared?${query}` });
+function renderPage(
+  query = 'share=tok&hostname=wss%3A%2F%2Fserver.example%3A4748%2F&port=4748',
+  preloadedState = connected31State,
+  endpoint: string | null = 'wss://server.example:4748/',
+) {
+  const webClient = createMockWebClient();
+  Object.assign(webClient, { socket: { connectedEndpoint: endpoint } });
+  return renderWithProviders(<SharedDeck />, { preloadedState, webClient, route: `/decks/shared?${query}` });
 }
 
 describe('SharedDeck', () => {
+  it.each([
+    ['server.example', '4747', '4747', null],
+    ['server.example', '4747', undefined, 'SharedDeck.desktopPortRequired'],
+    ['server.example', '5747', '4747', 'SharedDeck.otherServer'],
+    ['other.example', '4747', '4747', 'SharedDeck.otherServer'],
+  ])('checks saved desktop port before sending a token to %s:%s (%s)', (hostname, port, desktopPort, problem) => {
+    knownHosts.loaded.hosts = [{ host: 'server.example', port: '4748', desktopPort }];
+    const { webClient } = renderPage(`share=tok&hostname=${hostname}&port=${port}`);
+    if (problem) {
+      expect(webClient.request.session.deckShareList).not.toHaveBeenCalled();
+      expect(screen.getByRole('alert')).toHaveTextContent(problem);
+    } else {
+      expect(webClient.request.session.deckShareList).toHaveBeenCalledWith('tok');
+    }
+  });
+
   it('lists the share, opens a deck read-only and imports a copy', () => {
     const { store, webClient } = renderPage();
     expect(webClient.request.session.deckShareList).toHaveBeenCalledWith('tok');
@@ -58,6 +84,15 @@ describe('SharedDeck', () => {
     expect(webClient.request.session.deckUpload).toHaveBeenCalledWith('', 0, COD, undefined, 'R');
   });
 
+  it.each([
+    'wss://server.example:5748/',
+    'wss://server.example:4748/server-b',
+  ])('sends no token to a different live endpoint: %s', (endpoint) => {
+    const { webClient } = renderPage(undefined, connected31State, endpoint);
+    expect(webClient.request.session.deckShareList).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent('SharedDeck.otherServer');
+  });
+
   it('names what is missing from an incomplete link, like desktop', () => {
     const { webClient } = renderPage('share=tok&port=4747');
     expect(screen.getByRole('alert')).toHaveTextContent('OpenShareLink.problem.hostname');
@@ -70,16 +105,15 @@ describe('SharedDeck', () => {
     expect(webClient.request.session.deckShareList).not.toHaveBeenCalled();
   });
 
-  it('sends the token nowhere while the known hosts are not loaded', () => {
+  it('uses the live endpoint while the known hosts are not loaded', () => {
     knownHosts.value = undefined;
     const { webClient } = renderPage();
-    expect(screen.getByRole('alert')).toHaveTextContent('SharedDeck.otherServer');
-    expect(webClient.request.session.deckShareList).not.toHaveBeenCalled();
+    expect(webClient.request.session.deckShareList).toHaveBeenCalledWith('tok');
   });
 
-  it('sends the token nowhere when no host is selected', () => {
+  it('sends the token nowhere without a live connection endpoint', () => {
     knownHosts.loaded.selectedHost = undefined;
-    const { webClient } = renderPage();
+    const { webClient } = renderPage(undefined, connected31State, null);
     expect(screen.getByRole('alert')).toHaveTextContent('SharedDeck.otherServer');
     expect(webClient.request.session.deckShareList).not.toHaveBeenCalled();
   });

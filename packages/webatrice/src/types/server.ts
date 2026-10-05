@@ -3,6 +3,8 @@ export class Host {
   name: string;
   host: string;
   port: string;
+  /** Optional Servatrice TCP port for desktop share links; never inferred. */
+  desktopPort?: string;
   editable: boolean;
   lastSelected?: boolean;
   userName?: string;

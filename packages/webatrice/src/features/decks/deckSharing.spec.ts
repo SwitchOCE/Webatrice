@@ -60,18 +60,34 @@ describe('share links', () => {
     expect(parseDeckShareQuery(new URLSearchParams(deckShareQuery(link)))).toEqual(link);
   });
 
-  it('matches the server by host name only, ignoring case', () => {
-    expect(isSameShareServer(link, 'Server.Cockatrice.US')).toBe(true);
-    expect(isSameShareServer({ ...link, port: '4747' }, 'server.cockatrice.us')).toBe(true);
-    expect(isSameShareServer(link, 'other.host')).toBe(false);
-    expect(isSameShareServer(link, undefined)).toBe(false);
+  it('matches the full WebSocket endpoint, normalizing host case only', () => {
+    const endpoint = 'wss://Server.Cockatrice.US:4748/server-a';
+    expect(isSameShareServer({ ...link, hostname: endpoint }, 'wss://server.cockatrice.us:4748/server-a')).toBe(true);
+    expect(isSameShareServer({ ...link, hostname: endpoint }, undefined)).toBe(false);
   });
 
-  it('matches a desktop link against a host with a WebSocket path, scheme or port', () => {
-    expect(isSameShareServer(link, 'server.cockatrice.us/servatrice')).toBe(true);
-    expect(isSameShareServer(link, 'wss://server.cockatrice.us:4748/servatrice')).toBe(true);
-    expect(isSameShareServer({ ...link, hostname: 'server.cockatrice.us/servatrice' }, 'server.cockatrice.us')).toBe(true);
-    expect(isSameShareServer(link, 'cockatrice.us')).toBe(false);
+  it.each([
+    'wss://server.cockatrice.us:5748/server-a',
+    'wss://server.cockatrice.us:4748/server-b',
+    'wss://server.cockatrice.us:4748/Server-a',
+    'ws://server.cockatrice.us:4748/server-a',
+  ])('rejects a different endpoint: %s', (endpoint) => {
+    expect(isSameShareServer({ ...link, hostname: 'wss://server.cockatrice.us:4748/server-a' }, endpoint)).toBe(false);
+  });
+
+  it.each([
+    ['server.cockatrice.us', '4747', '4747', true],
+    ['server.cockatrice.us', '4747', undefined, false],
+    ['server.cockatrice.us', '5747', '4747', false],
+    ['other.example', '4747', '4747', false],
+  ])('checks desktop host %s and port %s against configured port %s', (hostname, port, desktopPort, expected) => {
+    expect(isSameShareServer({ ...link, hostname, port }, 'wss://server.cockatrice.us/servatrice', desktopPort)).toBe(expected);
+  });
+
+  it('rejects contradictory port fields and invalid endpoints', () => {
+    const endpoint = 'wss://server.cockatrice.us:4748/server-a';
+    expect(isSameShareServer({ ...link, hostname: endpoint, port: '5748' }, endpoint)).toBe(false);
+    expect(isSameShareServer({ ...link, hostname: 'https://server.cockatrice.us' }, endpoint)).toBe(false);
   });
 });
 

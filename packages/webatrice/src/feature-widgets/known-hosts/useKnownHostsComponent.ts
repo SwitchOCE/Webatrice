@@ -38,6 +38,7 @@ export interface KnownHostsComponent {
     name: string;
     host: string;
     port: string;
+    desktopPort?: string;
   }) => Promise<void>;
 }
 
@@ -167,21 +168,23 @@ export function useKnownHostsComponent({
     name,
     host,
     port,
+    desktopPort,
   }: {
     id?: number;
     name: string;
     host: string;
     port: string;
+    desktopPort?: string;
   }) => {
     if (knownHosts.status !== LoadingState.READY) {
       return;
     }
 
     if (id) {
-      await knownHosts.update(id, { name, host, port });
+      await knownHosts.update(id, { name, host, port, desktopPort: desktopPort || undefined });
       fireToast('edited');
     } else {
-      const newHost: Host = { name, host, port, editable: true };
+      const newHost: Host = { name, host, port, desktopPort: desktopPort || undefined, editable: true };
       await knownHosts.add(newHost);
       fireToast('created');
     }

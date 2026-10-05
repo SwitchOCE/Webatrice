@@ -74,7 +74,8 @@
     "unreadable": "The shared deck could not be loaded",
     "openDeck": "Open",
     "openDeckNamed": "Open {name}",
-    "back": "My Decks"
+    "back": "My Decks",
+    "desktopPortRequired": "To open this desktop or legacy share link, set the desktop port for this server in its settings."
   },
   "PublicDecks": {
     "title": "Public decks of {name}",

@@ -80,6 +80,11 @@ export class WebSocketService {
     return this.socket?.readyState === state;
   }
 
+  /** The active connection's full URL, including port and path; never a selected or pending host. */
+  public get connectedEndpoint(): string | null {
+    return this.socket?.readyState === WebSocket.OPEN ? this.socket.url : null;
+  }
+
   public send(message: Uint8Array): void {
     if (!this.socket) {
       return;
