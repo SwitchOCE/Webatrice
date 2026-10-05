@@ -84,13 +84,14 @@ export function parseDecklist(text: string): ParseResult {
     if (!line.trim()) {
       continue;
     }
-    if (COMMENT_RE.test(line)) {
+    const sectionLine = line.replace(/^\s*\/\/\s*/, '');
+    const sectionMatch = sectionLine.match(SECTION_RE);
+    if (sectionMatch) {
+      currentSection = mapSection(sectionMatch[1]);
       continue;
     }
 
-    const sectionMatch = line.match(SECTION_RE);
-    if (sectionMatch) {
-      currentSection = mapSection(sectionMatch[1]);
+    if (COMMENT_RE.test(line)) {
       continue;
     }
 

@@ -33,7 +33,7 @@ export interface ImportDeckDialogProps {
   open: boolean;
   onClose: () => void;
   /** Receives the `.cod` XML to upload as a new deck. */
-  onImport: (xml: string) => void;
+  onImport: (xml: string, colorIdentity: string) => void;
 }
 
 /**

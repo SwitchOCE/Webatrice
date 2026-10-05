@@ -8,6 +8,7 @@ import {
   resolveImportEntries,
   summarizeUploadedDeck,
 } from './deckImport';
+import desktopMetadata from './fixtures/desktop-metadata.cod?raw';
 import type { ParsedEntry } from './decklistParser';
 
 vi.mock('@app/services', async (importOriginal) => ({
@@ -107,4 +108,15 @@ describe('uploaded .cod files', () => {
   it('summarizes card totals per zone', () => {
     expect(summarizeUploadedDeck(file)).toEqual({ total: 6, parts: ['4 main', '2 sideboard'] });
   });
+});
+
+
+it('imports desktop banner printing and playmat metadata through the real .cod adapter', () => {
+  const source = parseCod(desktopMetadata);
+  const imported = parseCod(buildUploadedDeckCod(source, 'Renamed', 'modern'));
+  expect(imported.name).toBe('Renamed');
+  expect(imported.bannerCardProviderId).toBe('banner-printing-id');
+  expect(imported.playmatXml).toBe('<playmatCard providerId="playmat-printing-id">Island</playmatCard>');
+  expect(imported.tagsXml).toBe(source.tagsXml);
+  expect(imported.lastLoadedTimestamp).toBe(source.lastLoadedTimestamp);
 });

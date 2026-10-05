@@ -327,3 +327,38 @@ describe('useDeckList', () => {
     expect(webClient.request.session.deckList).toHaveBeenCalledTimes(2);
   });
 });
+
+
+describe('sparse storage acknowledgements', () => {
+  it('preserves color identity through edit then move', () => {
+    const { store, webClient } = setup('Modern');
+    act(() => store.dispatch(server.Actions.backendDecks({ deckList: folderTree() })));
+    act(() => store.dispatch(server.Actions.deckUpdated({ deckId: 3, treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, {
+      id: 3, name: 'Burn', file: { creationTime: 50, isPublic: true },
+    }) })));
+    act(() => latest.moveDeck(latest.decks[0], ''));
+    act(() => store.dispatch(server.Actions.deckDownloaded({ deckId: 3, deck: COD('modern') })));
+    expect(webClient.request.session.deckUpload).toHaveBeenLastCalledWith('', 0, COD('modern'), true, 'R');
+  });
+
+  it('refetches unknown metadata before moving a newly moved deck again', () => {
+    const { store, webClient } = setup('Modern');
+    act(() => store.dispatch(server.Actions.backendDecks({ deckList: folderTree() })));
+    act(() => latest.moveDeck(latest.decks[0], ''));
+    act(() => store.dispatch(server.Actions.deckDownloaded({ deckId: 3, deck: COD('modern') })));
+    act(() => store.dispatch(server.Actions.deckUpload({ path: '', treeItem: create(ServerInfo_DeckStorage_TreeItemSchema, {
+      id: 8, name: 'D', file: { creationTime: 60, isPublic: true },
+    }) })));
+    vi.clearAllMocks();
+    act(() => latest.moveDeck(latest.decksUnder('').find((d) => d.id === 8)!, 'Modern/Old'));
+    expect(webClient.request.session.deckList).toHaveBeenCalledOnce();
+    expect(webClient.request.session.deckUpload).not.toHaveBeenCalled();
+    const listed = folderTree();
+    listed.root!.items.push(create(ServerInfo_DeckStorage_TreeItemSchema, {
+      id: 8, name: 'D', file: { creationTime: 60, isPublic: true, colorIdentity: 'R' },
+    }));
+    act(() => store.dispatch(server.Actions.backendDecks({ deckList: listed })));
+    act(() => store.dispatch(server.Actions.deckDownloaded({ deckId: 8, deck: COD('modern') })));
+    expect(webClient.request.session.deckUpload).toHaveBeenLastCalledWith('Modern/Old', 0, COD('modern'), true, 'R');
+  });
+});
