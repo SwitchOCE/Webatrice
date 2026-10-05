@@ -158,4 +158,3 @@ describe('Decks sharing (Servatrice 3.1)', () => {
     expect(screen.queryByRole('button', { name: /OpenShareLink.open/ })).toBeNull();
   });
 });
-

@@ -294,4 +294,3 @@ describe('Cockatrice 3.1 protocol', () => {
     );
   });
 });
-
