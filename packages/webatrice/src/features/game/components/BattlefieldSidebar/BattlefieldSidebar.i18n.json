@@ -1,6 +1,26 @@
 {
   "BattlefieldSidebar": {
     "label": "Game sidebar",
-    "players": "Players"
+    "players": "Players",
+    "spectating": "Spectating",
+    "preview": "Preview",
+    "closePreview": "Close preview window",
+    "openPreview": "Open preview in a separate window",
+    "showImage": "Show card image",
+    "showDescription": "Show card description",
+    "showBoth": "Show image and description",
+    "previewInWindow": "Preview is open in a separate window",
+    "bringBack": "Click to bring back",
+    "hoverToPreview": "Hover a card to preview it here",
+    "backTo": "Back to {name}",
+    "loading": "Loading…",
+    "leaveTitle": "Leave the game",
+    "leave": "Leave",
+    "concedeTitle": "Concede this game",
+    "concede": "Concede",
+    "rejoinTitle": "Rejoin the game",
+    "rejoin": "Rejoin",
+    "sideboardTitle": "Open sideboard",
+    "sideboard": "Sideboard"
   }
 }
