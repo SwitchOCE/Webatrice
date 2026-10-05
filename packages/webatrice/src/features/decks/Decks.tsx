@@ -277,6 +277,7 @@ function Decks() {
         <DeckShareLinksDialog
           shares={shareLinks.shares}
           error={shareLinks.error}
+          pending={shareLinks.pending}
           onRevoke={shareLinks.revoke}
           onClose={() => setShareLinksOpen(false)}
         />

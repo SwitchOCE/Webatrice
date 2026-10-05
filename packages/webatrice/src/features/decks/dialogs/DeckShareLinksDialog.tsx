@@ -12,6 +12,7 @@ export interface DeckShareLinksDialogProps {
   /** null while the list is loading. */
   shares: ServerInfo_DeckShareSummary[] | null;
   error: string | null;
+  pending?: boolean;
   onRevoke: (shareId: number) => void;
   onClose: () => void;
 }
@@ -21,11 +22,16 @@ export interface DeckShareLinksDialogProps {
  * tokens are not listed back by the server, so a link can only be copied when
  * it is created.
  */
-export function DeckShareLinksDialog({ shares, error, onRevoke, onClose }: DeckShareLinksDialogProps) {
+export function DeckShareLinksDialog({ shares, error, pending = false, onRevoke, onClose }: DeckShareLinksDialogProps) {
   const { t } = useTranslation();
   const titleId = useId();
   const [confirming, setConfirming] = useState<ServerInfo_DeckShareSummary | null>(null);
-  useEscapeKey(true, confirming ? () => setConfirming(null) : onClose);
+  const close = () => {
+    if (!pending) {
+      onClose();
+    }
+  };
+  useEscapeKey(true, confirming ? () => setConfirming(null) : close);
   const confirmRef = useRef<HTMLButtonElement>(null);
 
   // The confirmation sits below a scrolling list: bring it into view and
@@ -37,7 +43,7 @@ export function DeckShareLinksDialog({ shares, error, onRevoke, onClose }: DeckS
   }, [confirming]);
 
   return (
-    <DeckDialogFrame onClose={onClose} titleId={titleId}>
+    <DeckDialogFrame onClose={close} titleId={titleId}>
       <div
         className="relative w-full max-w-lg rounded-xl bg-bg-surface border border-border-subtle shadow-glow overflow-hidden"
       >
@@ -68,6 +74,7 @@ export function DeckShareLinksDialog({ shares, error, onRevoke, onClose }: DeckS
                   <button
                     type="button"
                     onClick={() => setConfirming(share)}
+                    disabled={pending}
                     className="p-2 rounded-md text-text-muted hover:text-danger hover:bg-red-500/10 shrink-0"
                     title={t('DeckShareLinks.revoke')}
                     aria-label={t('DeckShareLinks.revokeNamed', { name: share.name })}
@@ -107,7 +114,8 @@ export function DeckShareLinksDialog({ shares, error, onRevoke, onClose }: DeckS
         <div className="px-5 py-3 border-t border-border-subtle flex items-center justify-end">
           <button
             type="button"
-            onClick={onClose}
+            onClick={close}
+            disabled={pending}
             className="px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-bg-elevated"
           >
             {t('DeckShareLinks.close')}
