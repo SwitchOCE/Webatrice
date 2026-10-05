@@ -54,8 +54,8 @@ export function useReplayPlayback(opened: OpenedReplay | undefined): ReplayPlayb
 
   const state = useSyncExternalStore(engine?.subscribe ?? subscribeNothing, engine?.getState ?? getIdleState);
 
-  const fastForwardSpeed = settings.value?.replayFastForwardSpeed ?? DEFAULT_FAST_FORWARD_SPEED;
-  const skipEmptySetting = settings.value?.replaySkipEmptySections ?? false;
+  const fastForwardSpeed = usePreference('replayFastForwardSpeed') ?? DEFAULT_FAST_FORWARD_SPEED;
+  const skipEmptySetting = usePreference('replaySkipEmptySections') ?? false;
   const rewindBufferingMs = usePreference('replayRewindBufferingMs');
 
   useEffect(() => {
