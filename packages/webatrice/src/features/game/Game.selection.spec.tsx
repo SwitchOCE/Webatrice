@@ -8,7 +8,7 @@ import { makeCard } from '@cockatrice/datatrice/testing';
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
 import { usePreference } from '../../hooks/useSettings';
 import { PREFERENCE_DEFAULTS, type PreferenceKey } from '../../types';
-import { buildSeatGameState, cardEl, pointerDrag, type SeatGameSpec } from './__test-utils__/seatFixtures';
+import { buildSeatGameState, cardEl, openContextMenu, pointerDrag, type SeatGameSpec } from './__test-utils__/seatFixtures';
 import Game from './Game';
 
 vi.mock('../../hooks/useSettings');
@@ -59,6 +59,25 @@ const selected = () =>
   );
 
 describe('Game selection across seats', () => {
+  it('keeps selected cards when pressing a portalled hand submenu item', () => {
+    renderGame();
+    click(cardEl(BOLT.id, 'battlefield'));
+    click(cardEl(OGRE.id, 'battlefield'), { ctrlKey: true });
+    const selection = [`battlefield:${BOLT.id}`, `battlefield:${OGRE.id}`];
+    expect(selected().sort()).toEqual(selection);
+
+    openContextMenu(screen.getByRole('button', { name: 'Hand — 1 card' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Reveal hand to...' }));
+    const item = screen.getByRole('menuitem', { name: 'All players' });
+    fireEvent.pointerDown(item, { button: 0, clientX: 10, clientY: 10 });
+    expect(selected().sort()).toEqual(selection);
+    fireEvent.pointerMove(window, { clientX: 100, clientY: 100 });
+    expect(selected().sort()).toEqual(selection);
+    fireEvent.pointerUp(window, { button: 0 });
+    fireEvent.click(item);
+    expect(selected().sort()).toEqual(selection);
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
     vi.mocked(usePreference).mockImplementation(((key: PreferenceKey) => PREFERENCE_DEFAULTS[key]) as typeof usePreference);
