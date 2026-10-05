@@ -117,6 +117,17 @@ describe('lookupCard', () => {
     expect((await lookupCard('Swan Song')).related?.[0]).toMatchObject({ name: 'Bird', origin: 'scryfall', exclude: 'exclude' });
   });
 
+  it('keeps an empty exclude or attach attribute, which desktop counts as present', async () => {
+    cards.get.mockResolvedValue({ ...XML_SWAN_SONG, related: [{ value: 'Bird', exclude: '', attach: '' }] });
+    expect((await lookupCard('Swan Song')).related).toEqual([
+      expect.objectContaining({ name: 'Bird', origin: 'related', exclude: '', attach: '' }),
+    ]);
+
+    fetchMock.mockImplementation(() => respond(SCRYFALL_SWAN_SONG));
+    cache.get.mockResolvedValue(undefined);
+    expect((await lookupCard('Swan Song')).related?.[0]).toMatchObject({ name: 'Bird', origin: 'scryfall', exclude: '', attach: '' });
+  });
+
   it('merges cards.xml base fields with Scryfall related cards and writes the cache', async () => {
     cards.get.mockResolvedValue(XML_SWAN_SONG);
     fetchMock.mockImplementation(() => respond(SCRYFALL_SWAN_SONG));

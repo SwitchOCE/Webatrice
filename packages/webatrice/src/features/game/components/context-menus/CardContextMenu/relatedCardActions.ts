@@ -56,12 +56,19 @@ interface RelatedTokenAction {
  *   - `count=N` sends N Command_CreateToken calls in a row
  *     (Cockatrice's actCreateRelatedCard loop). `count="x"` sends
  *     one — Cockatrice prompts the user for a number; that dialog
- *     is a follow-up. `persistent="persistent"` inverts the
+ *     is a follow-up. A `persistent` attribute inverts the
  *     default destroy-on-zone-change (rare — most tokens vanish
  *     off the battlefield).
  *   - With "Annotate card text on tokens" (`annotate`), each token
  *     carries its rules text as its annotation (PlayerActions::createCard).
  */
+/**
+ * Whether a cards.xml relation attribute is set. Desktop's parser checks
+ * only that `attach`, `exclude` and `persistent` are present
+ * (cockatrice_xml_4.cpp:403-414), so `exclude=""` counts.
+ */
+const isSet = (attribute: string | undefined): boolean => attribute !== undefined;
+
 function relatedTokenAction(ref: RelatedCardRef, tok: LookupResult | undefined, annotate: boolean): RelatedTokenAction {
   const tokPT = tok?.power != null && tok.toughness != null
     ? `${tok.power}/${tok.toughness}`
@@ -85,7 +92,7 @@ function relatedTokenAction(ref: RelatedCardRef, tok: LookupResult | undefined, 
     color: tokColor,
     pt: tokPT ?? '',
     annotation: annotate ? tok?.text ?? '' : '',
-    destroyOnZoneChange: ref.persistent !== 'persistent',
+    destroyOnZoneChange: !isSet(ref.persistent),
     faceDown: false,
     providerId: tokProviderId,
   };
@@ -271,14 +278,14 @@ export function createAllRelated(source: RelatedCardSource): CreateAllRelated {
   const runOne = (ref: RelatedCardRef): CreateAllRelated => {
     const { requests } = relatedTokenAction(ref, source.tokenMeta.get(ref.name), annotate);
     const { variable, count } = relationCount(ref);
-    const lastToken = ref.attach ? undefined : requests[0];
+    const lastToken = isSet(ref.attach) ? undefined : requests[0];
     return variable
       ? { requests: [], prompt: { request: requests[0], defaultCount: count }, lastToken }
       : { requests, lastToken };
   };
   const createEach = (refs: readonly RelatedCardRef[]): CreateAllRelated => {
     const perRef = refs
-      .filter((ref) => !ref.attach && !relationCount(ref).variable)
+      .filter((ref) => !isSet(ref.attach) && !relationCount(ref).variable)
       .map((ref) => relatedTokenAction(ref, source.tokenMeta.get(ref.name), annotate).requests);
     return { requests: perRef.flat(), lastToken: perRef[0]?.[0] };
   };
@@ -288,7 +295,7 @@ export function createAllRelated(source: RelatedCardSource): CreateAllRelated {
     return transform ? { requests: transform.requests } : runOne(source.related[0]);
   }
   // A transform attaches (attach="transform"), so it never counts here.
-  const nonExcluded = source.related.filter((ref) => !ref.exclude && !ref.attach);
+  const nonExcluded = source.related.filter((ref) => !isSet(ref.exclude) && !isSet(ref.attach));
   if (nonExcluded.length === 1) {
     return runOne(nonExcluded[0]);
   }
