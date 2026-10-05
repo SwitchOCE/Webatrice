@@ -61,11 +61,6 @@
   font-style: italic;
 }
 
-/* Box-select surfaces: never let a drag start a native text selection. */
-[data-zone-box-select] {
-  user-select: none;
-}
-
 /* End-step attention flash. Applied to the End step's phase bar for
  * ~1.5 s whenever the active phase transitions INTO end step
  * (typically an opponent's end step, since your own phase changes

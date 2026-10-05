@@ -1,7 +1,5 @@
 import { createContext, useContext, useEffect, useSyncExternalStore, type ReactNode } from 'react';
 
-import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
-
 /**
  * The one card-preview owner for a game: the right-rail hover preview, the
  * keyboard-focus preview and the middle-click zoom ("big preview", desktop's
@@ -106,18 +104,6 @@ export function createCardPreviewStore(): CardPreviewStore {
         emit();
       }
     },
-  };
-}
-
-/** The presentation payload for a structured-leaf server card. */
-export function previewCardFromServerCard(card: ServerInfo_Card | null | undefined): PreviewCard | null {
-  if (!card?.name) {
-    return null;
-  }
-  return {
-    name: card.name,
-    pt: card.pt || undefined,
-    annotation: card.annotation || undefined,
   };
 }
 
