@@ -1,6 +1,6 @@
 import { getScryfallSymbolUrl } from '@app/services';
 
-import { isManaToken, manaCostTokens } from './manaSymbols';
+import { isManaToken, manaCostTokens } from './manaTokens';
 
 /**
  * Renderers for Scryfall mana-cost / oracle-text tokens like `{3}`, `{R}`,

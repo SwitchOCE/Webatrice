@@ -1,6 +1,6 @@
-import { isManaToken, manaCostTokens } from './manaSymbols';
+import { isManaToken, manaCostTokens } from './manaTokens';
 
-describe('manaSymbols', () => {
+describe('manaTokens', () => {
   it('splits a cost into its tokens', () => {
     expect(manaCostTokens('{3}{G/W}{U}')).toEqual(['{3}', '{G/W}', '{U}']);
     expect(manaCostTokens('')).toEqual([]);

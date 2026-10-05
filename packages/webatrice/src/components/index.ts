@@ -17,7 +17,7 @@ export { UserMenuSlotProvider, useUserMenuSlot } from './UserDisplay/UserMenuSlo
 export type { UserMenuSlotProps } from './UserDisplay/UserMenuSlot';
 export { UserBadges } from './UserBadges/UserBadges';
 export { ManaSymbol, ManaSymbols, SymbolText } from './ManaSymbols/ManaSymbols';
-export { isManaToken, manaCostTokens } from './ManaSymbols/manaSymbols';
+export { isManaToken, manaCostTokens } from './ManaSymbols/manaTokens';
 export { CardRelatedLinks, relatedCardKey } from './CardRelatedLinks/CardRelatedLinks';
 export type { RelatedCardKind, NavigatedCard } from './CardRelatedLinks/CardRelatedLinks';
 export { default as ThreePaneLayout } from './ThreePaneLayout/ThreePaneLayout';
