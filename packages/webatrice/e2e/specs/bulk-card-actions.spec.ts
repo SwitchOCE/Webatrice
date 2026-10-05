@@ -55,7 +55,7 @@ test('bulk tap and bulk move act on every selected battlefield card', async ({ n
   // 2. Bulk move: re-select (don't rely on the tap preserving selection), then
   //    "Send to Graveyard" on a selected card → both move in one MoveCard.
   await game.boxSelectBattlefield();
-  await game.moveViaCardMenu(game.cardsOnBoard().first(), /send to graveyard/i);
+  await game.moveViaCardMenu(game.cardsOnBoard().first(), 'grave');
   await expect.poll(() => game.zoneStackCount('grave')).toBe(2);
   await expect(game.cardsOnBoard()).toHaveCount(0);
 

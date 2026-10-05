@@ -4,6 +4,7 @@ import type { Locator, Page } from '@playwright/test';
 
 import { expect, test } from '../fixtures/test';
 import { registerAndJoinFirstRoom } from '../fixtures/flows';
+import { t } from '../fixtures/i18n';
 import { tabTo } from '../fixtures/keyboard';
 import { randomSuffix } from '../fixtures/users';
 import { GamePage } from '../pages';
@@ -58,7 +59,7 @@ test('draw, play, tap, point and bin a card with the keyboard only', async ({ ne
 
   const hand = page.getByRole('listbox', { name: new RegExp(`^${me}'s hand`) });
   const battlefield = page.getByRole('listbox', { name: new RegExp(`^${me}'s battlefield`) });
-  const phases = page.getByRole('navigation', { name: 'Turn phases' });
+  const phases = page.getByRole('navigation', { name: t('PhaseTrack.label') });
 
   // Into the game from the keyboard: Shift+Enter focuses the chat box.
   await page.keyboard.press('Shift+Enter');
@@ -66,11 +67,13 @@ test('draw, play, tap, point and bin a card with the keyboard only', async ({ ne
 
   // Draw: the library pile is a button that opens the library menu.
   const handBefore = await hand.getByRole('option').count();
-  const library = page.getByRole('button', { name: /^Library, \d+ cards/ }).first();
+  const library = game.zoneStack('deck');
   await tabTo(page, library);
   await page.keyboard.press('Enter');
-  const libraryMenu = page.getByRole('menu', { name: 'Library' });
-  await expect(libraryMenu.getByRole('menuitem', { name: 'Draw card', exact: true })).toBeFocused();
+  const libraryMenu = page.getByRole('menu', { name: t('ZoneStack.library'), exact: true });
+  await expect(libraryMenu.getByRole('menuitem', {
+    name: t('ShortcutsTab.action.game.drawCard'), exact: true,
+  })).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(hand.getByRole('option')).toHaveCount(handBefore + 1, { timeout: 15_000 });
   await expect(library).toBeFocused();
@@ -79,9 +82,13 @@ test('draw, play, tap, point and bin a card with the keyboard only', async ({ ne
   // stays; F6 then leaves the hand for the next tab stop, off every zone.
   const firstCard = hand.locator('[role="option"][tabindex="0"]');
   await tabTo(page, firstCard);
-  await expect(phases.getByRole('button', { name: 'Untap', exact: true })).toHaveAttribute('aria-current', 'step');
+  await expect(phases.getByRole('button', {
+    name: t('GamePhase.untap.short'), exact: true,
+  })).toHaveAttribute('aria-current', 'step');
   await page.keyboard.press('Tab');
-  await expect(phases.getByRole('button', { name: 'Upkeep' })).toHaveAttribute('aria-current', 'step', { timeout: 15_000 });
+  await expect(phases.getByRole('button', {
+    name: t('GamePhase.upkeep.short'),
+  })).toHaveAttribute('aria-current', 'step', { timeout: 15_000 });
   await expect(watcher.logLine('It is now the upkeep step.')).toBeVisible({ timeout: 15_000 });
   await expect(firstCard).toBeFocused();
   await page.keyboard.press('F6');
@@ -108,9 +115,9 @@ test('draw, play, tap, point and bin a card with the keyboard only', async ({ ne
   await page.keyboard.press('Shift+F10');
   const cardMenu = page.getByRole('menu', { name: 'Forest' });
   await expect(cardMenu).toBeVisible();
-  await arrowToItem(page, cardMenu, 'Draw arrow...');
+  await arrowToItem(page, cardMenu, t('CardMenu.drawArrow'));
   await page.keyboard.press('Enter');
-  await expect(page.getByText(/^Choose a target for the arrow from Forest/)).toBeAttached();
+  await expect(page.getByText(t('PendingTargetAnnouncer.arrow', { name: 'Forest' }))).toBeAttached();
   const theirLife = page.getByRole('button', { name: `${them}'s life` });
   await tabTo(page, theirLife);
   await page.keyboard.press('Enter');
@@ -120,11 +127,14 @@ test('draw, play, tap, point and bin a card with the keyboard only', async ({ ne
   await tabTo(page, forest);
   await page.keyboard.press('Shift+F10');
   await expect(cardMenu).toBeVisible();
-  await arrowToItem(page, cardMenu, 'Move to');
+  await arrowToItem(page, cardMenu, t('CardMenu.moveTo'));
   await page.keyboard.press('ArrowRight');
-  const moveMenu = page.getByRole('menu', { name: 'Move to' });
-  await arrowToItem(page, moveMenu, 'Graveyard');
+  const moveMenu = page.getByRole('menu', { name: t('CardMenu.moveTo'), exact: true });
+  await arrowToItem(page, moveMenu, t('ZoneLabel.title.grave'));
   await page.keyboard.press('Enter');
-  await expect(game.localBoard.getByRole('button', { name: 'Graveyard, 1 card, top: Forest' })).toBeVisible({ timeout: 15_000 });
-  await expect(watcher.opponentBoard.getByRole('button', { name: 'Graveyard, 1 card, top: Forest' })).toBeVisible({ timeout: 15_000 });
+  const graveyardName = t('ZoneStack.pileWithTop', {
+    zone: t('ZoneStack.graveyard'), count: 1, top: 'Forest',
+  });
+  await expect(game.localBoard.getByRole('button', { name: graveyardName })).toBeVisible({ timeout: 15_000 });
+  await expect(watcher.opponentBoard.getByRole('button', { name: graveyardName })).toBeVisible({ timeout: 15_000 });
 });

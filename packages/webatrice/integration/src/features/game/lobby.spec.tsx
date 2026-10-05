@@ -160,7 +160,7 @@ describe('GameLobby integration (GAME-013 / GAME-014)', () => {
     await loadDeck();
 
     fireEvent.click(screen.getByRole('button', { name: 'GameLobby.action.forceStart' }));
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'GameLobby.forceStart.confirm' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'GameLink.yes' }));
 
     const readyStarts = findAllGameCommands(Command_ReadyStart_ext);
     expect(readyStarts).toHaveLength(1);

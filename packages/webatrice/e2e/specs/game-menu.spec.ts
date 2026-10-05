@@ -42,18 +42,18 @@ test('game menu: reverse turn order and next phase with action', async ({ newCon
   const waitingName = (hostActive ? joiner : host).user.username;
 
   // The player off turn reverses the order; both logs name them.
-  await waiting.clickGameMenuItem(/^reverse turn order/i);
+  await waiting.clickGameMenuItem('GameMenu.item.reverseTurn');
   const reversed = `${waitingName} reversed turn order, now it's reversed.`;
   await expect(active.logLine(reversed)).toBeVisible({ timeout: 15_000 });
   await expect(waiting.logLine(reversed)).toBeVisible({ timeout: 15_000 });
 
   // Untap → upkeep: no follow-up action.
-  await active.clickGameMenuItem(/^next phase with action/i);
+  await active.clickGameMenuItem('GameMenu.item.nextPhaseAction');
   await expect(waiting.logLine('It is now the upkeep step.')).toBeVisible({ timeout: 15_000 });
 
   // Upkeep → draw: sets the phase, then draws one card.
   const libraryBefore = await waiting.zoneStackCount('deck', waiting.opponentBoard);
-  await active.clickGameMenuItem(/^next phase with action/i);
+  await active.clickGameMenuItem('GameMenu.item.nextPhaseAction');
   await expect(waiting.logLine('It is now the draw step.')).toBeVisible({ timeout: 15_000 });
   await expect.poll(() => waiting.zoneStackCount('deck', waiting.opponentBoard), { timeout: 15_000 })
     .toBe(libraryBefore - 1);

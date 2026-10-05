@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 
 import { expect, test } from '../fixtures/test';
 import { registerAndJoinFirstRoom } from '../fixtures/flows';
+import { t } from '../fixtures/i18n';
 import { tabTo } from '../fixtures/keyboard';
 import { randomSuffix } from '../fixtures/users';
 import { GamePage } from '../pages';
@@ -120,14 +121,18 @@ test('play a turn of the board controls with the keyboard only', async ({ newCon
   const more = page.getByRole('button', { name: `More actions for ${them}` });
   await tabTo(page, more);
   await page.keyboard.press('Enter');
-  const menu = page.getByRole('menu', { name: `Actions for ${them}` });
+  const menu = page.getByRole('menu', {
+    name: t('PlayerListContextMenu.label', { name: them }),
+  });
   await expect(menu).toBeVisible();
   await expect(menu.getByRole('menuitem').first()).toBeFocused();
   await page.keyboard.press('ArrowDown');
   await expect(menu.getByRole('menuitem').nth(1)).toBeFocused();
   // Type-ahead jumps to an entry by its first letters.
   await page.keyboard.type('pri');
-  await expect(menu.getByRole('menuitem', { name: 'Private chat' })).toBeFocused();
+  await expect(menu.getByRole('menuitem', {
+    name: t('PlayerListContextMenu.privateChat'),
+  })).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(menu).toBeHidden();
   await expect(more).toBeFocused();

@@ -16,10 +16,10 @@ registerGameBoardHooks();
 /** The local library's "Reveal library to..." menu, choosing `recipient`. */
 function revealLibraryTo(recipient: string) {
   act(() => {
-    fireEvent.contextMenu(screen.getAllByTitle(/^Library — 40/)[0], { clientX: 10, clientY: 10 });
+    fireEvent.contextMenu(screen.getAllByRole('button', { name: 'ZoneStack.pile' })[0], { clientX: 10, clientY: 10 });
   });
   act(() => {
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Reveal library to...' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'ZoneMenu.revealLibrary' }));
   });
   act(() => {
     fireEvent.click(screen.getByRole('menuitem', { name: recipient }));
@@ -46,9 +46,9 @@ describe('Command_RevealCards wire shape', () => {
       store.dispatch(games.Actions.gameJoined({ data: buildEventGameJoined({ gameId: 42, localPlayerId: 1, hostId: 1 }) }));
       store.dispatch(games.Actions.gameStateChanged({ gameId: 42, data: buildEventGameStateChanged([1, 2], 1) }));
     });
-    await waitFor(() => screen.getAllByTitle(/^Library — 40/)[0]);
+    await waitFor(() => screen.getAllByRole('button', { name: 'ZoneStack.pile' })[0]);
 
-    revealLibraryTo('All players');
+    revealLibraryTo('CardMenu.allPlayers');
     const toAll = lastReveal();
     expect(toAll.zoneName).toBe('deck');
     expect(isFieldSet(toAll, Command_RevealCardsSchema.field.playerId)).toBe(false);

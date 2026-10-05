@@ -43,7 +43,7 @@ describe('Game deck select', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByLabelText('deck list')).toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: 'DeckSelectDialog.deckList' })).toBeInTheDocument();
     });
   });
 });

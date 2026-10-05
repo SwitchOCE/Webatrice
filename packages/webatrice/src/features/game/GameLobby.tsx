@@ -24,7 +24,7 @@ import { normalizeFormat } from '@app/types';
 
 import { useLobbyDeckSummaries } from './hooks/useLobbyDeckSummaries';
 import { useLobbyDeckSelect } from './hooks/useLobbyDeckSelect';
-import { CATEGORY_LABELS, groupLobbyDecks } from './components/lobby/lobbyDeckGrouping';
+import { groupLobbyDecks, lobbyDeckCategoryLabel } from './components/lobby/lobbyDeckGrouping';
 import PlayerRow from './components/lobby/PlayerRow';
 import EmptySeat from './components/lobby/EmptySeat';
 import BracketBadge from './components/lobby/BracketBadge';
@@ -122,7 +122,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
         <AuthGuard />
         <div className="h-full flex items-center justify-center bg-bg-base bg-purple-radial">
           <div className="flex items-center gap-2 text-sm text-text-muted">
-            <Loader2 size={16} className="animate-spin text-accent" /> Loading game…
+            <Loader2 size={16} className="animate-spin text-accent" /> {t('GameLobby.loadingGame')}
           </div>
         </div>
       </Layout>
@@ -143,7 +143,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
               {/* Header */}
               <div className="text-center">
                 <h1 className="font-modern text-2xl font-semibold text-text-primary">
-                  {game.info.description || `Game #${gameId}`}
+                  {game.info.description || t('GameLobby.gameNumber', { id: gameId })}
                 </h1>
                 {roomFormatLabel && (
                   <p className="text-sm text-text-muted mt-1">{roomFormatLabel}</p>
@@ -154,14 +154,14 @@ export default function GameLobby({ gameId }: { gameId: number }) {
               {/* Players */}
               <div className="space-y-3">
                 <div className="text-xs font-semibold uppercase tracking-widest text-text-muted text-center">
-                Players
+                  {t('BattlefieldSidebar.players')}
                 </div>
                 {seatedPlayers.map((p) => {
                   const isLocalPlayer = p.properties.playerId === game.localPlayerId;
                   return (
                     <PlayerRow
                       key={p.properties.playerId}
-                      playerName={p.properties.userInfo?.name || `Player ${p.properties.playerId}`}
+                      playerName={p.properties.userInfo?.name || t('GameLog.player.number', { id: p.properties.playerId })}
                       isHost={p.properties.playerId === game.hostId}
                       ready={p.properties.readyStart}
                       hasDeck={!!p.properties.deckHash}
@@ -211,18 +211,18 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                         'text-xs font-semibold uppercase tracking-widest text-text-secondary',
                       ].join(' ')}
                     >
-                      <Library size={13} /> From My Decks
+                      <Library size={13} /> {t('GameLobby.fromMyDecks')}
                       {stillLoadingFormats && myDecks.length > 0 && (
                         <Loader2 size={11} className="animate-spin text-text-muted ml-auto" />
                       )}
                     </div>
                     {!backendDecks ? (
                       <div className="px-4 py-6 flex items-center gap-2 text-sm text-text-muted justify-center">
-                        <Loader2 size={14} className="animate-spin" /> Loading your decks…
+                        <Loader2 size={14} className="animate-spin" /> {t('GameLobby.loadingDecks')}
                       </div>
                     ) : myDecks.length === 0 ? (
                       <div className="px-4 py-6 text-sm text-text-muted italic text-center">
-                      No decks yet — create one from the My Decks page, or upload a .cod below.
+                        {t('GameLobby.noDecks')}
                       </div>
                     ) : (
                       <div className="max-h-72 overflow-y-auto">
@@ -235,7 +235,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                                   'text-[10px] font-semibold uppercase tracking-widest text-text-muted flex items-center gap-2',
                                 ].join(' ')}
                               >
-                                <span>{CATEGORY_LABELS[category] ?? category}</span>
+                                <span>{lobbyDeckCategoryLabel(category, t)}</span>
                                 <span className="text-text-muted tabular-nums">{decks.length}</span>
                               </div>
                               <ul className="divide-y divide-border-subtle/50">
@@ -267,7 +267,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
 
                   <div className="rounded-lg bg-bg-surface border border-border-subtle p-3">
                     <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-text-secondary mb-2">
-                      <Upload size={13} /> Upload a .cod file
+                      <Upload size={13} /> {t('GameLobby.upload.heading')}
                     </div>
                     <input
                       ref={fileInputRef}
@@ -289,7 +289,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                         'hover:bg-border-subtle text-text-primary text-sm font-medium transition-colors',
                       ].join(' ')}
                     >
-                      <Upload size={13} /> Choose .cod file
+                      <Upload size={13} /> {t('DeckSelectDialog.chooseFile')}
                     </button>
                     {uploadError && (
                       <div
@@ -370,7 +370,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                       'hover:text-danger hover:bg-red-500/10 border border-border-subtle transition-colors',
                     ].join(' ')}
                   >
-                    <LogOut size={14} /> Leave game
+                    <LogOut size={14} /> {t('ShortcutsTab.action.game.leaveGame')}
                   </button>
                 </div>
               )}
@@ -379,7 +379,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
               {!iAmSeated && (
                 <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
                   <Eye size={14} />
-                Watching as {isJudge ? 'judge' : 'spectator'}
+                  {isJudge ? t('GameLobby.watching.judge') : t('GameLobby.watching.spectator')}
                   <button
                     type="button"
                     onClick={() => leaveGame(gameId)}
@@ -389,7 +389,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
                       'hover:bg-red-500/10 border border-border-subtle transition-colors',
                     ].join(' ')}
                   >
-                    <LogOut size={12} /> Leave
+                    <LogOut size={12} /> {t('BattlefieldSidebar.leave')}
                   </button>
                 </div>
               )}
@@ -409,8 +409,8 @@ export default function GameLobby({ gameId }: { gameId: number }) {
           isOpen={forceStartConfirmOpen}
           title={t('GameLobby.forceStart.title')}
           message={t('GameLobby.forceStart.message')}
-          confirmLabel={t('GameLobby.forceStart.confirm')}
-          cancelLabel={t('GameLobby.forceStart.cancel')}
+          confirmLabel={t('GameLink.yes')}
+          cancelLabel={t('GameLink.no')}
           onConfirm={confirmForceStart}
           onCancel={() => setForceStartConfirmOpen(false)}
         />
