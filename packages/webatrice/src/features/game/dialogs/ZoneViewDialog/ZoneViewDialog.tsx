@@ -156,15 +156,15 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
   const { openSeatCardMenu } = useGameDialogsContext();
   const cardMenuKind = CARD_MENU_KIND[zoneName];
   const onCardContextMenu = cardMenuKind
-    ? (e: React.MouseEvent<HTMLElement>, card: { id: string; name: string }, scope: ZoneViewCardScope) => {
+    ? (at: { x: number; y: number }, card: { id: string; name: string }, scope: ZoneViewCardScope) => {
       openSeatCardMenu({
         kind: cardMenuKind,
         playerId,
         zone: zoneName,
         cardId: card.id,
         cardName: card.name,
-        x: e.clientX,
-        y: e.clientY,
+        x: at.x,
+        y: at.y,
         viewCardIds: scope.shownIds,
         columnCardIds: scope.columnIds,
       });

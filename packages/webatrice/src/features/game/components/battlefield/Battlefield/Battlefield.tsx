@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useForkRef } from '@mui/material/utils';
 import { useTranslation } from 'react-i18next';
 import { ZoneName } from '@cockatrice/sockatrice';
@@ -6,6 +7,10 @@ import { useAnimationPreference, useSnapGridVisible } from '@app/hooks';
 import ContextMenu from '../../context-menus/ContextMenu/ContextMenu';
 import { PlaymatArt, usePlayerPlaymat } from '../../PlayerPlaymat';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
+import type { BattlefieldCardViewModel } from '../../ui/PlayerBoard/playerBoard.types';
+import { useSeatCardFocus } from '../../ui/PlayerBoard/useSeatCardFocus';
+import { cardLabel } from '../../ui/SeatCard/cardLabel';
+import { GAME_FOCUS_RING } from '../../ui/focusRing';
 import { CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../../ui/SeatCard/cardSize';
 import Card from '../../ui/SeatCard/SeatCard';
 import { SEAT_DROP_PRIORITY } from '../../../hooks/seatDropPlan';
@@ -138,6 +143,7 @@ export default function Battlefield() {
   const {
     attachExtraSourceIds,
     attachPending,
+    attachPicking,
     battlefieldDisplayList,
     battlefieldMenuItems,
     cardMetaByName,
@@ -157,6 +163,7 @@ export default function Battlefield() {
     selection,
     startSeatCardDrag,
   } = usePlayerSeatContext();
+  const keysHintId = useId();
   const playmat = usePlayerPlaymat(playerId, isSelf);
   // A replay's backward skip taps and untaps without the animation (SKIP_TAP_ANIMATION).
   const justRewound = useJustRewound();
@@ -204,6 +211,50 @@ export default function Battlefield() {
     },
   });
   const battlefieldScrollRef = useForkRef(scrollContainerRef, battlefieldDropRef);
+
+  // The P/T a card shows: the server's, else the printed one (not on a face-down card).
+  const shownPT = (c: BattlefieldCardViewModel) => c.pt || (c.faceDown ? undefined : cardMetaByName.get(c.name)?.pt);
+  const isAttached = (c: BattlefieldCardViewModel) => c.attachTargetCardId != null && c.attachTargetCardId >= 0;
+  // The arrows walk the board as it is drawn: by row, top to bottom, and left
+  // to right in a row. An attached card sits on its parent's row.
+  const lines = (() => {
+    const byRow: BattlefieldCardViewModel[][] = Array.from({ length: BATTLEFIELD_ROWS }, () => []);
+    for (const c of battlefieldDisplayList) {
+      const parent = isAttached(c) && c.attachTargetPlayerId === playerId
+        ? battlefieldDisplayList.find((p) => p.id === String(c.attachTargetCardId) && !isAttached(p))
+        : undefined;
+      const wireRow = (parent ?? c).slot.row;
+      byRow[handOnTop ? BATTLEFIELD_ROWS - 1 - wireRow : wireRow]?.push(c);
+    }
+    const x = (c: BattlefieldCardViewModel) => battlefieldPositions.get(c.id)?.x ?? 0;
+    return byRow.map((row) => row.sort((a, b) => x(a) - x(b)).map((c) => c.id));
+  })();
+  const { cardProps } = useSeatCardFocus('battlefield', {
+    cards: battlefieldDisplayList,
+    orientation: 'horizontal',
+    lines,
+    ownerOf: (c) => c.ownerPlayerId ?? playerId,
+    labelOf: (c) => cardLabel(t, {
+      name: c.name,
+      id: c.id,
+      faceDown: c.faceDown,
+      tapped: c.tapped,
+      doesntUntap: c.doesntUntap,
+      attached: isAttached(c),
+      pt: shownPT(c),
+      counters: c.counters,
+      annotation: c.annotation,
+    }),
+    previewOf: (c) => (c.faceDown
+      ? null
+      : {
+        name: c.name,
+        scryfallId: c.scryfallId || cardMetaByName.get(c.name)?.scryfallId,
+        imageUri: resolveFaceImageUri(c.name),
+        pt: shownPT(c),
+        annotation: c.annotation,
+      }),
+  });
   useHorizontalWheelScroll(scrollContainerRef);
 
   return (
@@ -245,8 +296,10 @@ export default function Battlefield() {
       <div
         ref={battlefieldScrollRef}
         data-battlefield-owner={String(playerId)}
-        role="group"
+        role="listbox"
+        aria-multiselectable
         aria-label={t('PlayerBoard.battlefield', { name, count: battlefieldDisplayList.length })}
+        aria-describedby={keysHintId}
         data-battlefield-mirrored={handOnTop ? 'true' : 'false'}
         // Cockatrice-style layout: the outer scroll container has no
         // padding. Left/right/top margins are already baked into the
@@ -346,6 +399,7 @@ export default function Battlefield() {
               return (
                 <div
                   key={c.id}
+                  {...cardProps(c)}
                   data-card
                   data-zone="battlefield"
                   data-card-id={c.id}
@@ -357,12 +411,12 @@ export default function Battlefield() {
                   // attributes. Zone value is the Cockatrice wire name
                   // (`ZoneName.TABLE`) so the DOM lookup matches the
                   // server's start/target_zone strings.
-                  data-card-owner={playerId}
+                  data-card-owner={c.ownerPlayerId ?? playerId}
                   data-card-zone={ZoneName.TABLE}
                   // Hover uses an arbitrary z far above the position-
                   // derived base so a mid-battlefield hover always pops
                   // to the top regardless of Y stacking.
-                  className="absolute hover:z-[10000]"
+                  className={`absolute hover:z-[10000] focus-visible:z-[10000] ${GAME_FOCUS_RING}`}
                   onPointerDown={(e) =>
                   // Pass the FULL BattlefieldCard object (not a
                   // stripped `{id, name, scryfallId}` projection):
@@ -415,7 +469,7 @@ export default function Battlefield() {
                     // top of it.
                     zIndex: Math.round(origin.y * 100) + Math.round(origin.x),
                     touchAction: isSelf ? 'none' : undefined,
-                    cursor: attachPending
+                    cursor: attachPicking
                       ? 'crosshair'
                       : isSelf
                         ? 'grab'
@@ -463,7 +517,7 @@ export default function Battlefield() {
                     // whatever PT the server has recorded so a manifested
                     // creature's stats stay readable (Cockatrice does
                     // the same).
-                    pt={c.pt || (c.faceDown ? undefined : cardMetaByName.get(c.name)?.pt)}
+                    pt={shownPT(c)}
                     basePT={cardMetaByName.get(c.name)?.pt}
                     annotation={c.annotation}
                     counters={c.counters}
@@ -474,6 +528,7 @@ export default function Battlefield() {
             });
           })()}
         </div>
+        <span id={keysHintId} hidden>{t('PlayerBoard.cardKeys')}</span>
       </div>
     </ContextMenu>
   );

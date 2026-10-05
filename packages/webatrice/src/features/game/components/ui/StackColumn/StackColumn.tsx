@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useForkRef } from '@mui/material/utils';
 import { useTranslation } from 'react-i18next';
 import { ZoneName } from '@cockatrice/sockatrice';
 
 import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
+import { useSeatCardFocus } from '../PlayerBoard/useSeatCardFocus';
+import { cardLabel } from '../SeatCard/cardLabel';
+import { GAME_FOCUS_RING } from '../focusRing';
 import { layoutVerticalPile } from '../VerticalPile/verticalPile';
 import ZoneBackground from '../ZoneBackground/ZoneBackground';
 import { CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
@@ -54,23 +57,39 @@ export default function StackColumn() {
     return () => ro.disconnect();
   }, []);
 
+  const keysHintId = useId();
+  // Cards dragged off the stack are hidden, so the pile re-flows without them.
+  const visible = stackDisplayList.filter((c) => !isDragging(c.id, 'stack'));
+  const { cardProps } = useSeatCardFocus('stack', {
+    cards: visible,
+    orientation: 'vertical',
+    labelOf: (c) => cardLabel(t, { name: c.name, pt: cardMetaByName.get(c.name)?.pt, annotation: c.annotation }),
+    previewOf: (c) => ({
+      name: c.name,
+      scryfallId: c.scryfallId || cardMetaByName.get(c.name)?.scryfallId,
+      pt: cardMetaByName.get(c.name)?.pt,
+      annotation: c.annotation,
+    }),
+  });
+
   return (
     <div
-      role="group"
+      role="listbox"
+      aria-multiselectable
+      aria-orientation="vertical"
+      aria-describedby={keysHintId}
       aria-label={t('PlayerBoard.stack', { name, count: stackDisplayList.length })}
       className="relative isolate border-r border-border-subtle flex flex-col min-h-0 p-2"
       style={seatGrid.stack}
     >
       <ZoneBackground zone="stack" />
+      <span id={keysHintId} hidden>{t('PlayerBoard.cardKeys')}</span>
       {/* Stack — spells/abilities waiting to resolve: desktop's vertical
         pile (overlapping by the card layout setting, zig-zagging); index 0
         renders topmost. Dropping between two existing cards inserts at that
         position. */}
       <div ref={stackRef} className="flex-1 min-h-0 relative">
         {(() => {
-          const visible = stackDisplayList.filter(
-            (c) => !isDragging(c.id, 'stack'),
-          );
           const { positions } = layoutVerticalPile(
             visible.length,
             stackSize.w,
@@ -89,6 +108,7 @@ export default function StackColumn() {
             return (
               <div
                 key={c.id}
+                {...cardProps(c)}
                 data-card
                 data-zone="stack"
                 data-card-id={c.id}
@@ -116,7 +136,7 @@ export default function StackColumn() {
                 // Click to play resolves the card: an instant or sorcery
                 // to the graveyard, anything else onto the battlefield.
                 onDoubleClick={(e) => onCardDoubleClick('stack', c, e)}
-                className="absolute hover:z-10"
+                className={`absolute hover:z-10 focus-visible:z-10 ${GAME_FOCUS_RING}`}
                 style={{
                   left: pos.x,
                   top: pos.y,

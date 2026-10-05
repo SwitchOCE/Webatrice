@@ -38,6 +38,11 @@ describe('planAttach', () => {
     expect(planAttach(1, [10], player(2)).kind).toBe('none');
   });
 
+  it('cancels on a card that is attached itself (desktop ArrowAttachItem::attachCards)', () => {
+    expect(planAttach(1, [10], { kind: 'card', playerId: 2, zone: ZoneName.TABLE, cardId: 12, attached: true }).kind).toBe('none');
+    expect(planAttach(1, [10], { kind: 'card', playerId: 2, zone: ZoneName.TABLE, cardId: 12, attached: false }).kind).toBe('attach');
+  });
+
   it('cancels on a card outside the battlefield', () => {
     expect(planAttach(1, [10], card(2, ZoneName.STACK, 21)).kind).toBe('none');
     expect(planAttach(1, [10], card(1, ZoneName.GRAVE, 12)).kind).toBe('none');

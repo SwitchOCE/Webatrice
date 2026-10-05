@@ -25,6 +25,8 @@ export interface ClickModifiers {
 }
 
 /** Desktop skips the play only when Alt is the one modifier held (`modifiers() != AltModifier`). */
+const NO_MODIFIERS: ClickModifiers = { shiftKey: false, altKey: false, ctrlKey: false, metaKey: false };
+
 function isAltOnly({ shiftKey, altKey, ctrlKey, metaKey }: ClickModifiers): boolean {
   return altKey && !shiftKey && !ctrlKey && !metaKey;
 }
@@ -158,6 +160,10 @@ export function useSeatClickToPlay({
 
   return {
     doubleClickToPlay,
+    /** Enter on a focused card: the click-to-play action, whichever click the preference asks for. */
+    onCardActivate: (zone: ClickToPlayZone, card: PlayerCardViewModel) => {
+      void clickToPlay(zone, card, NO_MODIFIERS, selection);
+    },
     /** A card's double-click: plays it when double-click is the gesture. */
     onCardDoubleClick: (zone: ClickToPlayZone, card: PlayerCardViewModel, e: ClickModifiers) => {
       if (doubleClickToPlay) {

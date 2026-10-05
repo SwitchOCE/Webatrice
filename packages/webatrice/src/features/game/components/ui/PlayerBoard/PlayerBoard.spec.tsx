@@ -36,19 +36,19 @@ describe('PlayerBoard', () => {
     expect(cardEl(30, 'hand')).toBeInTheDocument();
   });
 
-  it('is a landmark named for its player, with its zones as groups named by owner and card count', () => {
+  it('is a landmark named for its player, with its zones as listboxes named by owner and card count', () => {
     renderSeatCell(SPEC);
     const seat = screen.getByRole('region', { name: 'Alice\'s seat' });
     expect(seat).toBe(seatRoot());
-    expect(within(seat).getByRole('group', { name: 'Alice\'s battlefield, 1 card' })).toBe(battlefieldEl(1));
-    expect(within(seat).getByRole('group', { name: 'Alice\'s stack, 1 card' })).toContainElement(cardEl(50, 'stack'));
-    expect(within(seat).getByRole('group', { name: 'Alice\'s hand, 1 card' })).toContainElement(cardEl(30, 'hand'));
+    expect(within(seat).getByRole('listbox', { name: 'Alice\'s battlefield, 1 card' })).toBe(battlefieldEl(1));
+    expect(within(seat).getByRole('listbox', { name: 'Alice\'s stack, 1 card' })).toContainElement(cardEl(50, 'stack'));
+    expect(within(seat).getByRole('listbox', { name: 'Alice\'s hand, 1 card' })).toContainElement(cardEl(30, 'hand'));
   });
 
   it('keeps the battlefield and hand scrollers out of the tab order, where Tab is the board\'s Next Phase', () => {
     renderSeatCell(SPEC);
     expect(battlefieldEl(1)).toHaveAttribute('tabindex', '-1');
-    expect(screen.getByRole('group', { name: 'Alice\'s hand, 1 card' })).toHaveAttribute('tabindex', '-1');
+    expect(screen.getByRole('listbox', { name: 'Alice\'s hand, 1 card' })).toHaveAttribute('tabindex', '-1');
   });
 
   it('names an opponent\'s hand by the server\'s count, in either hand layout', async () => {
