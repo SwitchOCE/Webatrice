@@ -1,6 +1,7 @@
 export { createStore, storeMiddlewareOptions, type CreateStoreOptions } from './createStore';
 export { rootReducer, rootReducerMap, type RootState } from './rootReducer';
 export { isSerializable } from './isSerializable';
+export { sanitizeDiagnostics } from './sanitizeDiagnostics';
 export { listenerMiddleware } from './listenerMiddleware';
 
 // Per-slice namespace re-exports. Consumers use these as:
