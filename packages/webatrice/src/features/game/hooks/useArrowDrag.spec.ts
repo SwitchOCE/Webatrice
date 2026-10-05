@@ -26,6 +26,16 @@ afterEach(() => {
 });
 
 describe('arrow hit-testing', () => {
+  it.each([ZoneName.HAND, ZoneName.DECK, ZoneName.SIDEBOARD])('rejects %s destinations while retaining their card identity', (zone) => {
+    const card = cardElement(1, zone, 30);
+    expect(arrowCardAt(card)).toEqual({ playerId: 1, zone, cardId: 30 });
+    expect(arrowTargetAt(card)).toBeNull();
+  });
+
+  it.each([ZoneName.TABLE, ZoneName.STACK, ZoneName.GRAVE, ZoneName.EXILE])('accepts public %s destinations', (zone) => {
+    expect(arrowTargetAt(cardElement(1, zone, 30))).toEqual({ kind: 'card', playerId: 1, zone, cardId: 30 });
+  });
+
   it('reads a card from the closest element carrying its owner, zone and id', () => {
     const card = cardElement(2, ZoneName.STACK, 21);
     const inner = addElement({}, card);

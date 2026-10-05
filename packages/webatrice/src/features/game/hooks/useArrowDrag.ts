@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type RefObject } from 'react';
-import type { ZoneNameValue } from '@cockatrice/sockatrice';
+import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 
 import { rgbaToCss, type ColorRGBA } from '@app/types';
 import type { ArrowTarget } from '../components/ui/PlayerBoard/playerBoard.types';
@@ -30,6 +30,14 @@ export function arrowCardAt(el: Element | null | undefined): ArrowSource | null 
 export function arrowTargetAt(el: Element | null | undefined): ArrowTarget | null {
   const card = arrowCardAt(el);
   if (card) {
+    // Servatrice cmdCreateArrow requires a public target zone. Hand cards
+    // remain sources (played before drawing), but never destinations; opening
+    // a library/sideboard view does not make its hidden zone public either.
+    // Reject here, before either drag or pending-pick plans can play a card.
+    if (card.zone !== ZoneName.TABLE && card.zone !== ZoneName.STACK
+      && card.zone !== ZoneName.GRAVE && card.zone !== ZoneName.EXILE) {
+      return null;
+    }
     return { kind: 'card', ...card };
   }
   const playerEl = el?.closest(PLAYER_SELECTOR);
