@@ -13,7 +13,10 @@ import { GamePage } from '../pages';
 // Enter, point an arrow from it at the other player, and put it into the
 // graveyard through its menu's "Move to". The other client checks each step
 // as it arrives through Servatrice. On the way it pins the board's Tab rule:
-// on a card Tab is Next Phase, and F6 leaves the card's zone.
+// on a card Tab is Next Phase, and F6 leaves the card's zone. Then the
+// keyboard move (M) from the two floating card views, the graveyard view and
+// a lent library: its dialog must open over the view, take the pointer and
+// the keyboard, and move the card.
 
 const DECK_PATH = resolve(__dirname, '..', 'fixtures', 'decks', 'forest-60.cod');
 
@@ -27,6 +30,21 @@ async function arrowToItem(page: Page, menu: Locator, name: string): Promise<voi
     await page.keyboard.press('ArrowDown');
   }
   throw new Error(`ArrowDown never reached "${name}"`);
+}
+
+/** Proves the Move dialog sits on top: its "To" box has focus and takes a
+ *  pointer hit (no view over it), then the keyboard finishes the move. */
+async function moveWithDialog(page: Page, name: string, to?: string): Promise<void> {
+  const dialog = page.getByRole('dialog', { name: `Move ${name}` });
+  const toBox = dialog.getByLabel('To', { exact: true });
+  await expect(toBox).toBeFocused();
+  await toBox.click({ trial: true, timeout: 5_000 });
+  if (to) {
+    await toBox.selectOption(to);
+  }
+  await tabTo(page, dialog.getByRole('button', { name: 'Move', exact: true }));
+  await page.keyboard.press('Enter');
+  await expect(dialog).toBeHidden();
 }
 
 test('draw, play, tap, point and bin a card with the keyboard only', async ({ newContext }) => {
@@ -127,4 +145,30 @@ test('draw, play, tap, point and bin a card with the keyboard only', async ({ ne
   await page.keyboard.press('Enter');
   await expect(game.localBoard.getByRole('button', { name: 'Graveyard, 1 card, top: Forest' })).toBeVisible({ timeout: 15_000 });
   await expect(watcher.opponentBoard.getByRole('button', { name: 'Graveyard, 1 card, top: Forest' })).toBeVisible({ timeout: 15_000 });
+
+  // M in the graveyard view: the Move dialog opens over the view.
+  const graveyard = game.localBoard.getByRole('button', { name: 'Graveyard, 1 card, top: Forest' });
+  await tabTo(page, graveyard);
+  await page.keyboard.press('Enter');
+  const graveMenu = page.getByRole('menu').filter({ has: page.getByRole('menuitem', { name: 'View graveyard', exact: true }) });
+  await arrowToItem(page, graveMenu, 'View graveyard');
+  await page.keyboard.press('Enter');
+  const graveView = page.locator('.pointer-events-auto.resize').filter({ has: page.getByRole('heading', { name: /graveyard/i }) });
+  await tabTo(page, graveView.getByRole('option', { name: /^Forest/ }));
+  await page.keyboard.press('m');
+  await moveWithDialog(page, 'Forest', 'exile');
+  await expect(watcher.opponentBoard.getByRole('button', { name: /^Exile, 1 card/ })).toBeVisible({ timeout: 15_000 });
+
+  // M on a card of a library lent to this player: the dialog opens over the
+  // lent view, and offers only this player's battlefield.
+  const watcherPage = hostActive ? joinerPage : hostPage;
+  await watcherPage.getByRole('button', { name: /^Library, \d+ cards/ }).first().click();
+  await watcherPage.getByRole('menuitem', { name: 'Lend library to...' }).hover();
+  await watcherPage.getByRole('menuitem', { name: me, exact: true }).click();
+  const lentCard = page.getByRole('button', { name: 'Move Forest to a battlefield' }).first();
+  await tabTo(page, lentCard);
+  await page.keyboard.press('m');
+  await moveWithDialog(page, 'Forest');
+  await expect(battlefield.getByRole('option', { name: /^Forest/ })).toHaveCount(1, { timeout: 15_000 });
+  await expect(watcher.opponentBoard.locator('[data-card][data-zone="battlefield"]')).toHaveCount(1, { timeout: 15_000 });
 });

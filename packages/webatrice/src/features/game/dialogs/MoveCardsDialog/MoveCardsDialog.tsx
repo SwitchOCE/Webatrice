@@ -154,6 +154,9 @@ export default function MoveCardsDialog({
       // The card has usually gone when this closes: focus goes to its zone's
       // nearest card that stayed, else the next tab stop.
       returnFocusTo={cardFocusFallback}
+      // Above the card views it opens from (ZoneViewPanel z-[1000], the
+      // incoming reveal z-[1100]), backdrop included.
+      layerClassName="z-[1200]"
       footer={(
         <>
           <button
