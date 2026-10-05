@@ -1,3 +1,4 @@
+import type { AlertDialogNotice } from '@app/dialogs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -37,15 +38,9 @@ export type ModerationFlow =
   | { kind: 'banUser'; userName: string; stage: Stage; noUserInfo: boolean }
   | { kind: 'warnHistory' | 'banHistory' | 'adminNotes'; userName: string; stage: Stage };
 
-export interface ModerationNotice {
-  title: string;
-  message: string;
-  severity: 'info' | 'error';
-}
-
 export interface ModerationFlowState {
   flow: ModerationFlow | null;
-  notice: ModerationNotice | null;
+  notice: AlertDialogNotice | null;
   userInfo: ServerInfo_User | undefined;
   warnList: Response_WarnList | undefined;
   banHistory: ServerInfo_Ban[] | undefined;
@@ -84,8 +79,8 @@ export function useModerationFlow(): ModerationFlowState {
   // Accepted response snapshots belong to this flow. A stale same-user action
   // may still refresh the shared cache, but cannot replace an open dialog's data.
   const [data, setData] = useState<DialogData>({});
-  const [notices, setNotices] = useState<ModerationNotice[]>([]);
-  const notify = useCallback((notice: ModerationNotice) => setNotices((queue) => [...queue, notice]), []);
+  const [notices, setNotices] = useState<AlertDialogNotice[]>([]);
+  const notify = useCallback((notice: AlertDialogNotice) => setNotices((queue) => [...queue, notice]), []);
   const changeRole = useRoleChanges(notify);
   const close = useCallback(() => {
     requests.cancel();
@@ -240,7 +235,7 @@ export function useModerationFlow(): ModerationFlowState {
     if (kinds[command] !== current.kind) {
       return;
     }
-    const failures: Partial<Record<WebsocketTypes.ModeratorCommandName, ModerationNotice>> = {
+    const failures: Partial<Record<WebsocketTypes.ModeratorCommandName, AlertDialogNotice>> = {
       banHistory: { title: t('Moderation.banHistory.title'), message: t('Moderation.banHistory.failed'), severity: 'error' },
       warnHistory: { title: t('Moderation.warnHistory.title'), message: t('Moderation.warnHistory.failed'), severity: 'error' },
       getAdminNotes: { title: t('Moderation.common.failed'), message: t('Moderation.adminNotes.failed'), severity: 'info' },

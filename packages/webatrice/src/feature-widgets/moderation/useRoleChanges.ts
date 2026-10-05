@@ -5,10 +5,10 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import type { RequestId } from '@cockatrice/sockatrice/types';
 import { useCommandFailureMessage, useReduxEffect, useRequestTracker } from '@app/hooks';
 import { onSessionEnd } from '@app/services/session';
-import type { ModerationNotice } from './useModerationFlow';
+import type { AlertDialogNotice } from '@app/dialogs';
 
 /** Concurrent role commands have independent identities and meanings, even for the same user. */
-export function useRoleChanges(notify: (notice: ModerationNotice) => void) {
+export function useRoleChanges(notify: (notice: AlertDialogNotice) => void) {
   const { t } = useTranslation();
   const webClient = useWebClient();
   const describeFailure = useCommandFailureMessage();

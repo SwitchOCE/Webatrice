@@ -1,3 +1,4 @@
+import type { AlertDialogNotice } from '@app/dialogs';
 import { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -7,12 +8,6 @@ import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { useAppSelector } from '@app/store';
-
-export interface AdministrationNotice {
-  title: string;
-  message: string;
-  severity: 'info' | 'error';
-}
 
 export interface ModeratorFunctions {
   grantReplayAccess: (replayId: number) => void;
@@ -29,7 +24,7 @@ interface FailedPayload { command: string; responseCode: number; target: string;
  * activateUserProcessResponse do; a request the server never answered gets the
  * transport reason instead.
  */
-export function useModeratorFunctions(notify: (notice: AdministrationNotice) => void): ModeratorFunctions {
+export function useModeratorFunctions(notify: (notice: AlertDialogNotice) => void): ModeratorFunctions {
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
   const webClient = useWebClient();

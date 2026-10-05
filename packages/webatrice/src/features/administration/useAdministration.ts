@@ -1,3 +1,4 @@
+import type { AlertDialogNotice } from '@app/dialogs';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -8,7 +9,7 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { useAppSelector } from '@app/store';
 
-import { useModeratorFunctions, type AdministrationNotice } from './useModeratorFunctions';
+import { useModeratorFunctions } from './useModeratorFunctions';
 
 export interface Administration {
   /** Server administration group: needs IsAdmin (desktop `fullAdmin`) and the lock off. */
@@ -26,7 +27,7 @@ export interface Administration {
   reloadConfig: () => void;
   grantReplayAccess: (replayId: number) => void;
   forceActivateUser: (userName: string) => void;
-  notice: AdministrationNotice | null;
+  notice: AlertDialogNotice | null;
   dismissNotice: () => void;
 }
 
@@ -51,7 +52,7 @@ export function useAdministration(): Administration {
   const isAdmin = useAppSelector(server.Selectors.getIsUserAdmin);
   const [locked, setLocked] = useAdminLock();
   const [shutdownDialogOpen, setShutdownDialogOpen] = useState(false);
-  const [notice, setNotice] = useState<AdministrationNotice | null>(null);
+  const [notice, setNotice] = useState<AlertDialogNotice | null>(null);
 
   const { grantReplayAccess, forceActivateUser } = useModeratorFunctions(setNotice);
 
