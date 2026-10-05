@@ -1,14 +1,15 @@
-import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
-
 import { tableRowToGridY } from '../../components/battlefield/Battlefield/cardPlacement';
-import { applyInvertY, nextAvailableColumn, ROW_COUNT } from '../../components/battlefield/Battlefield/gridMath';
+import { applyInvertY } from '../../components/battlefield/Battlefield/gridMath';
+import type { BattlefieldGeometry } from '../../components/ui/BattlefieldGeometryContext';
 import { seatDragOwner, type SeatDragSource, type SeatDropTarget } from '../../hooks/seatDropPlan';
 
 /**
  * The keyboard's way to every move a drag can make (aud.md G3): a zone, with
  * a battlefield of any player, and a position in it. Each choice becomes the
- * SeatDropTarget the drop zone would have resolved, so the move goes through
- * planSeatMove and the same commands as a drop there.
+ * very SeatDropTarget the drop zone resolves for the pointer (the same slot
+ * and grid, the same hand order and index), so planSeatMove plans the same
+ * commands for both. Nothing here works out where cards land; it only says
+ * which drop the choice is.
  */
 export type MoveDestination =
   | { zone: 'battlefield'; playerId: number }
@@ -16,23 +17,30 @@ export type MoveDestination =
 
 /** What the dialog reads off the board for the moved cards. */
 export interface MoveBoard {
-  /** Every seated player, whose battlefields take the move (desktop lets a
-   *  card be dropped on another player's table). */
+  /** Every seated player, whose battlefields take a move. */
   players: readonly { playerId: number; name: string }[];
-  /** The cards' owner's zone sizes: the zones a move lands in. */
-  handSize: number;
+  /** The cards' owner's hand as shown, which a hand drop carries. */
+  handOrder: readonly string[];
+  /** The owner's stack and library sizes. */
   stackSize: number;
   deckSize: number;
-  /** A player's battlefield cards, for the free columns of each row. */
-  battlefield: (playerId: number) => readonly ServerInfo_Card[];
+  /** A battlefield's drop grid, as its board lays it out. */
+  geometry: (playerId: number) => BattlefieldGeometry;
 }
 
-/** Where a move may go: as for a drop, a lent card only onto a battlefield,
- *  and never back into the zone it is in unless that zone has positions. */
-export function moveDestinations(source: SeatDragSource, players: MoveBoard['players']): MoveDestination[] {
-  const owner = seatDragOwner(source);
+/** Where a move may go: as for a drop, never back into the zone the cards
+ *  are in unless that zone has positions, and a lent card only onto the
+ *  borrower's battlefield (every battlefield for a judge), which is all
+ *  Servatrice takes (server_abstract_player.cpp:801). */
+export function moveDestinations(
+  source: SeatDragSource,
+  players: MoveBoard['players'],
+  { judge = false }: { judge?: boolean } = {},
+): MoveDestination[] {
+  const owner = source.lenderPlayerId != null ? source.seatPlayerId : seatDragOwner(source);
   const battlefields: MoveDestination[] = [...players]
     .sort((a, b) => Number(b.playerId === owner) - Number(a.playerId === owner))
+    .filter((p) => source.lenderPlayerId == null || judge || p.playerId === source.seatPlayerId)
     .map((p) => ({ zone: 'battlefield', playerId: p.playerId }));
   if (source.lenderPlayerId != null) {
     return battlefields;
@@ -54,17 +62,17 @@ export function battlefieldRows(inverted: boolean): { kind: 'lands' | 'creatures
   }));
 }
 
-/** How many positions a zone offers the moved cards (1-based, the last one
- *  is the end): the cards already there, without the moved ones if they are
- *  in it already, plus one. A battlefield row offers its columns and a new
- *  one after them. Graveyard and exile have no position. */
+/** How many positions a zone offers (1-based; the last one is the end): a
+ *  battlefield row's columns a drop can reach on its board; in the hand, on
+ *  the stack and in the library, the gaps between the cards that stay, as
+ *  the drop counts them. Graveyard and exile have no position. */
 export function positionCount(destination: MoveDestination, source: SeatDragSource, board: MoveBoard, row: number): number {
   const staying = (size: number) => Math.max(0, size - (source.zone === destination.zone ? source.cards.length : 0));
   switch (destination.zone) {
     case 'battlefield':
-      return nextAvailableColumn([...board.battlefield(destination.playerId)], row) + 1;
+      return board.geometry(destination.playerId).colsByWireRow[row] ?? 0;
     case 'hand':
-      return staying(board.handSize) + 1;
+      return staying(board.handOrder.length) + 1;
     case 'stack':
       return staying(board.stackSize) + 1;
     case 'library':
@@ -74,27 +82,22 @@ export function positionCount(destination: MoveDestination, source: SeatDragSour
   }
 }
 
-/** The drop target a choice stands for. `position` is 1-based: a hand or
- *  stack index, a library position from the top, a battlefield column. */
+/** The drop target a choice stands for, as the drop zone resolves it.
+ *  `position` is 1-based: a battlefield column, or the place among the
+ *  cards that stay in the hand, on the stack or in the library. */
 export function moveTarget(
   destination: MoveDestination,
-  source: SeatDragSource,
-  options: { position: number; row: number; handOrder?: readonly string[] },
+  board: MoveBoard,
+  { position, row }: { position: number; row: number },
 ): SeatDropTarget {
-  const index = Math.max(0, options.position - 1);
+  const index = Math.max(0, position - 1);
   switch (destination.zone) {
-    case 'battlefield':
-      return {
-        zone: 'battlefield',
-        playerId: destination.playerId,
-        slot: { row: options.row, col: index },
-        // Room for every moved card to the right, so a spread never wraps.
-        grid: { rows: ROW_COUNT, cols: index + source.cards.length },
-      };
+    case 'battlefield': {
+      const { rows, cols } = board.geometry(destination.playerId);
+      return { zone: 'battlefield', playerId: destination.playerId, slot: { row, col: index }, grid: { rows, cols } };
+    }
     case 'hand':
-      return source.zone === 'hand' && options.handOrder
-        ? { zone: 'hand', index, order: options.handOrder }
-        : { zone: 'hand', index };
+      return { zone: 'hand', index, order: board.handOrder };
     case 'stack':
       return { zone: 'stack', index };
     case 'library':

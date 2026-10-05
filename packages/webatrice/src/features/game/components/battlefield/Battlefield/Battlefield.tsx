@@ -16,6 +16,7 @@ import Card from '../../ui/SeatCard/SeatCard';
 import { SEAT_DROP_PRIORITY } from '../../../hooks/seatDropPlan';
 import { useHorizontalWheelScroll } from '../../../hooks/useHorizontalWheelScroll';
 import { SeatDropPreview, useSeatDropZone } from '../../ui/SeatDragContext';
+import { usePublishBattlefieldGeometry } from '../../ui/BattlefieldGeometryContext';
 import { useValueFlash } from '../../ui/ValueFlash/useValueFlash';
 import ZoneBackground from '../../ui/ZoneBackground/ZoneBackground';
 import ValueFlashOverlay from '../../ui/ValueFlash/ValueFlashOverlay';
@@ -185,6 +186,16 @@ export default function Battlefield() {
     gridCols,
     battlefieldPositions,
   } = useBattlefieldLayout({ cards: battlefieldDisplayList, playerId, mirrored: handOnTop });
+  // The grid a drop on this board resolves against, by wire row (a mirrored
+  // board draws its rows upside down), for the keyboard move.
+  usePublishBattlefieldGeometry(seatId, {
+    rows: gridRows,
+    cols: gridCols,
+    colsByWireRow: Array.from(
+      { length: BATTLEFIELD_ROWS },
+      (_, row) => colsByRow[handOnTop ? BATTLEFIELD_ROWS - 1 - row : row] ?? gridCols,
+    ),
+  });
 
   // The board is a seat drop zone of its own: it resolves a drop against its
   // own columns and scale, so a gift onto another seat snaps to that board.
