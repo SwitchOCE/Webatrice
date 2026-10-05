@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { server } from '@cockatrice/datatrice';
 import type { CommandFailedPayload } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
-import type { ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
+import type { Response_DeckList, ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { emptyCod, parseCod } from '@app/services';
 import { useAppSelector } from '@app/store';
@@ -92,7 +92,7 @@ export interface UseDeckList {
   createDeck: (name: string, format: string) => boolean;
   /** Upload `.cod` XML as a new deck into the shown folder; opens like a created deck.
    *  False (nothing sent) while disconnected. */
-  importDeck: (xml: string) => boolean;
+  importDeck: (xml: string, colorIdentity?: string) => boolean;
   deleteDeck: (deck: FlatDeck) => void;
   /** Create a subfolder of the shown folder (`name` already checked). */
   createFolder: (name: string) => void;
@@ -132,6 +132,9 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
   const [summaries, setSummaries] = useState<Map<number, DeckSummary>>(() => new Map(summaryCache));
   const summaryRequestedRef = useRef<Set<number>>(new Set(summaryRequestedCache));
 
+  // Decks being moved, waiting for authoritative metadata or their XML.
+  const pendingMovesRef = useRef<Map<number, { deck: FlatDeck; targetPath: string; awaitingList?: boolean }>>(new Map());
+
   const refresh = () => {
     if (!isConnected) {
       return;
@@ -150,6 +153,12 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
 
   useReduxEffect<CommandFailedPayload>(({ payload: { failure } }) => {
     setListError(describeFailure(failure, t('Decks.listError')));
+    for (const [id, move] of pendingMovesRef.current) {
+      if (move.awaitingList) {
+        pendingMovesRef.current.delete(id);
+        setStorageError(describeFailure(failure, t('Decks.moveFailed', { name: move.deck.name })));
+      }
+    }
   }, server.Types.DECK_LIST_FAILED, [describeFailure, t]);
 
   useEffect(() => {
@@ -167,8 +176,6 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
   // --- Uploads (create, import, move) ---
   // Only a deck *this list* created or imported opens the editor.
   const pendingUploadsRef = useRef<PendingUpload[]>([]);
-  // Decks being moved, by id, waiting for their XML.
-  const pendingMovesRef = useRef<Map<number, { deck: FlatDeck; targetPath: string }>>(new Map());
 
   useReduxEffect<{ path: string; treeItem: ServerInfo_DeckStorage_TreeItem }>(
     ({ payload: { path, treeItem } }) => {
@@ -233,11 +240,11 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
     return true;
   };
 
-  const importDeck = (xml: string): boolean => {
+  const importDeck = (xml: string, colorIdentity = ''): boolean => {
     if (!isConnected) {
       return false;
     }
-    upload({ kind: 'create', path: folder.path, name: storedName(xml) }, xml);
+    upload({ kind: 'create', path: folder.path, name: storedName(xml) }, xml, undefined, colorIdentity);
     return true;
   };
 
@@ -268,9 +275,33 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
     if (!isConnected || targetPath === deck.path) {
       return;
     }
-    pendingMovesRef.current.set(deck.id, { deck, targetPath });
-    webClient.request.session.deckDownload(deck.id);
+    // New uploads have no prior row for datatrice to merge. Ask the server
+    // for metadata before copying; an explicit empty identity needs no fetch.
+    const awaitingList = deck.colorIdentity === undefined;
+    pendingMovesRef.current.set(deck.id, { deck, targetPath, awaitingList });
+    if (awaitingList) {
+      webClient.request.session.deckList();
+    } else {
+      webClient.request.session.deckDownload(deck.id);
+    }
   };
+
+  useReduxEffect<{ deckList: Response_DeckList }>(({ payload: { deckList } }) => {
+    const listed = decksUnderFolder(deckList.root, '');
+    for (const [id, move] of pendingMovesRef.current) {
+      if (!move.awaitingList) {
+        continue;
+      }
+      const deck = listed.find((entry) => entry.id === id);
+      if (!deck) {
+        pendingMovesRef.current.delete(id);
+        setStorageError(t('Decks.moveFailed', { name: move.deck.name }));
+        continue;
+      }
+      pendingMovesRef.current.set(id, { ...move, deck, awaitingList: false });
+      webClient.request.session.deckDownload(id);
+    }
+  }, server.Types.BACKEND_DECKS, [webClient, t]);
 
   // --- Summaries (and the XML a move needs) ---
   useEffect(() => {
@@ -290,7 +321,7 @@ export function useDeckList({ onDeckCreated, folderPath = '' }: {
   useReduxEffect<{ deckId: number; deck: string }>(
     ({ payload }) => {
       const move = pendingMovesRef.current.get(payload.deckId);
-      if (move) {
+      if (move && !move.awaitingList) {
         pendingMovesRef.current.delete(payload.deckId);
         // A new id is unavoidable (Servatrice has no move command), so the
         // copy carries what the server stores beside the XML.

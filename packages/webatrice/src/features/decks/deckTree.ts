@@ -1,4 +1,5 @@
-import type { ServerInfo_DeckStorage_Folder } from '@cockatrice/sockatrice/generated';
+import { isFieldSet } from '@bufbuild/protobuf';
+import { ServerInfo_DeckStorage_FileSchema, type ServerInfo_DeckStorage_Folder } from '@cockatrice/sockatrice/generated';
 
 /**
  * A deck file from the Servatrice deck-storage tree, with the path of the
@@ -31,7 +32,8 @@ export function flattenFolder(folder: ServerInfo_DeckStorage_Folder, pathPrefix:
         path: pathPrefix,
         creationTime: item.file.creationTime ?? 0,
         isPublic: item.file.isPublic,
-        colorIdentity: item.file.colorIdentity,
+        colorIdentity: isFieldSet(item.file, ServerInfo_DeckStorage_FileSchema.field.colorIdentity)
+          ? item.file.colorIdentity : undefined,
       });
     } else if (item.folder) {
       const nextPath = pathPrefix ? `${pathPrefix}/${item.name}` : item.name;

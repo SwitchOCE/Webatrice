@@ -114,6 +114,7 @@ export function parseCod(xml: string): ParsedDeck {
     bannerCardProviderId,
     lastLoadedTimestamp,
     playmatXml,
+    sideboardPlansXml: directChildren(root, 'sideboard_plan').map((el) => new XMLSerializer().serializeToString(el)),
     tagsXml,
     bracketAssessment,
   };
@@ -137,6 +138,8 @@ export function serializeCod(deck: {
   bannerCardProviderId?: string;
   lastLoadedTimestamp?: string;
   playmatXml?: string;
+  /** Opaque desktop named/current sideboard plans, in document order. */
+  sideboardPlansXml?: string[];
   tagsXml?: string;
   bracketAssessment?: BracketAssessment;
 }): string {
@@ -224,6 +227,10 @@ export function serializeCod(deck: {
       zone.appendChild(cardEl);
     }
     root.appendChild(zone);
+  }
+
+  for (const plan of deck.sideboardPlansXml ?? []) {
+    appendRawElement(doc, root, 'sideboard_plan', plan);
   }
 
   const serialized = new XMLSerializer().serializeToString(doc);

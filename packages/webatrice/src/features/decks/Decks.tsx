@@ -72,8 +72,8 @@ function Decks() {
     }
   };
 
-  const handleImport = (xml: string) => {
-    if (list.importDeck(xml)) {
+  const handleImport = (xml: string, colorIdentity: string) => {
+    if (list.importDeck(xml, colorIdentity)) {
       setImportOpen(false);
     }
   };
