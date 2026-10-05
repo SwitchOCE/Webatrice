@@ -133,7 +133,7 @@ export const deckReducers = {
     state.backendDecks = create(Response_DeckListSchema, {
       root: insertAtPath(state.backendDecks.root, splitPath(action.payload.path), action.payload.treeItem),
     });
-  }) as CaseReducer<ServerState, PayloadAction<{ path: string; treeItem: ServerInfo_DeckStorage_TreeItem }>>,
+  }) as CaseReducer<ServerState, PayloadAction<{ path: string; treeItem: ServerInfo_DeckStorage_TreeItem; requestId?: string }>>,
 
   // An update keeps the deck's id and folder; Servatrice answers with the
   // re-derived name and a fresh upload time, which replace the old entry.

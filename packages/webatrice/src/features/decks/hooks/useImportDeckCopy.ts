@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
@@ -16,25 +16,37 @@ import { parseCod } from '@app/services';
  */
 export function useImportDeckCopy(onImported: (deckId: number) => void) {
   const webClient = useWebClient();
-  const pendingNamesRef = useRef<string[]>([]);
+  const pendingRef = useRef(new Set<string>());
 
-  useReduxEffect<{ path: string; treeItem: ServerInfo_DeckStorage_TreeItem }>(({ payload: { path, treeItem } }) => {
-    const index = pendingNamesRef.current.indexOf(treeItem.name);
-    if (path !== '' || index < 0 || !treeItem.id) {
+  useEffect(() => {
+    const pending = pendingRef.current;
+    return () => pending.clear();
+  }, []);
+
+  useReduxEffect<{ path: string; treeItem: ServerInfo_DeckStorage_TreeItem; requestId?: string }>(({ payload }) => {
+    const { treeItem, requestId } = payload;
+    if (!requestId || !pendingRef.current.delete(requestId)) {
       return;
     }
-    pendingNamesRef.current.splice(index, 1);
-    onImported(treeItem.id);
+    if (treeItem.id) {
+      onImported(treeItem.id);
+    }
   }, server.Types.DECK_UPLOAD, [onImported]);
 
+  useReduxEffect<{ requestId?: string }>(({ payload: { requestId } }) => {
+    if (requestId) {
+      pendingRef.current.delete(requestId);
+    }
+  }, server.Types.DECK_UPLOAD_FAILED, []);
+
   return (xml: string, colorIdentity?: string) => {
-    let name: string;
     try {
-      name = parseCod(xml).name;
+      parseCod(xml);
     } catch {
       return;
     }
-    pendingNamesRef.current.push(name);
-    webClient.request.session.deckUpload('', 0, xml, undefined, colorIdentity || undefined);
+    const requestId = crypto.randomUUID();
+    pendingRef.current.add(requestId);
+    webClient.request.session.deckUpload('', 0, xml, undefined, colorIdentity || undefined, requestId);
   };
 }
