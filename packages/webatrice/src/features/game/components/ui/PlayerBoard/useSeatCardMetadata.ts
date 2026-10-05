@@ -18,6 +18,9 @@ export interface SeatCardMeta {
   pt?: string;
   /** cards.xml `<cipt>`: played face up, the card comes in tapped. */
   cipt?: boolean;
+  /** cards.xml `<tablerow>`: the card's battlefield row, when the card
+   *  database has the card. */
+  tableRow?: number;
   manaCost?: string;
   cmc?: number;
   colors?: string[];
@@ -58,6 +61,7 @@ export function seatCardMetaFromLookup(r: LookupResult): SeatCardMeta {
     typeLine: r.typeLine ?? '',
     pt,
     cipt: r.cipt,
+    tableRow: r.tableRow,
     manaCost: r.manaCost,
     cmc: r.cmc,
     colors: r.colors,

@@ -16,21 +16,25 @@ import type { PlayerZoneCommands, SeatMoveCard, SeatMoveDestination } from './pl
 /** What moving a card onto the battlefield needs from its catalog entry. */
 export interface TableMoveMeta extends PlayedCardMeta {
   typeLine: string;
+  /** cards.xml `<tablerow>`, when the card database has the card. */
+  tableRow?: number;
 }
 
 /**
  * The Command_MoveCard that puts one card onto the battlefield from another
- * zone (desktop cmMoveToTable, player_actions.cpp:1925-1950): face up, in its
+ * zone (desktop cmMoveToTable, player_actions.cpp:1928-1951): face up, in its
  * table row, with its printed P/T, tapped when it comes into play tapped.
  * Unlike a play, an instant or sorcery lands on the battlefield too, in the
- * row tableRowToGridY folds row 3 into. The row comes from the type line, as
- * a play's does (cardPlacement.ts explains the two row policies).
+ * row tableRowToGridY folds row 3 into. The row is cards.xml's `tablerow`, as
+ * desktop reads it from the card database; a card the database lacks (a
+ * Scryfall-only card) falls back to the type-line rule (cardPlacement.ts).
  */
 export function tableMove(cardId: number, meta: TableMoveMeta | undefined): { card: SeatMoveCard; to: SeatMoveDestination } {
   const fields = playedCardFields(meta, false);
+  const tableRow = meta?.tableRow ?? legacyTableRowFromTypeLine(meta?.typeLine ?? '');
   return {
     card: fields.pt || fields.tapped ? { id: cardId, ...fields } : cardId,
-    to: { zone: ZoneName.TABLE, index: 'end', row: tableRowToGridY(legacyTableRowFromTypeLine(meta?.typeLine ?? '')) },
+    to: { zone: ZoneName.TABLE, index: 'end', row: tableRowToGridY(tableRow) },
   };
 }
 
