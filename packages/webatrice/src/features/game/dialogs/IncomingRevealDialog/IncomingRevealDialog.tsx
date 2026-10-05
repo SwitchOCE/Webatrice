@@ -14,6 +14,7 @@ import { useCardPreviewActions } from '../../components/ui/CardPreviewContext';
 import { useGameSelectionState } from '../../components/ui/GameSelectionContext';
 import { usePlayerCardCommands } from '../../components/ui/GameBoardCell/usePlayerCardCommands';
 import { useSeatDragSource } from '../../components/ui/SeatDragContext';
+import { useKeyboardMove } from '../../components/ui/KeyboardMoveContext';
 import { makeCardKey } from '../../utils/CardRegistry/CardRegistryContext';
 import { useCardCatalogMeta } from '../shared/useCardCatalogMeta';
 import { zoneLabel } from '../shared/zoneLabels';
@@ -215,12 +216,43 @@ function IncomingRevealPanel({
     { scope: ShortcutScope.GAME, enabled: readOnly },
   );
 
+  // A lent card (write access granted) is a button: Enter, Space or M opens
+  // the keyboard move, which, as the drag does, lands it on a battlefield
+  // from the lender's library.
+  const requestKeyboardMove = useKeyboardMove();
+  const lentInteraction = (card: { id: string; name: string }): HTMLAttributes<HTMLDivElement> | undefined => {
+    if (!canDragLent || !requestKeyboardMove || localPlayerId == null) {
+      return undefined;
+    }
+    return {
+      role: 'button',
+      tabIndex: 0,
+      'aria-label': t('IncomingRevealDialog.moveLent', { name: card.name }),
+      onKeyDown: (e) => {
+        if (e.ctrlKey || e.altKey || e.metaKey || e.shiftKey || !['Enter', ' ', 'm', 'M'].includes(e.key)) {
+          return;
+        }
+        e.preventDefault();
+        requestKeyboardMove({
+          source: {
+            kind: 'seat',
+            seatPlayerId: localPlayerId,
+            zone: 'library',
+            lenderPlayerId: reveal.sourceOwnerId,
+            cards: [{ id: card.id }],
+          },
+          name: card.name,
+        });
+      },
+    };
+  };
+
   // Click selects a card (Ctrl / Cmd toggles it); Space or Enter toggles the
   // focused card; right-click opens the revealed-card menu. A lent reveal
   // keeps its drag behaviour and no menu.
   const cardInteraction = (card: { id: string; name: string }): HTMLAttributes<HTMLDivElement> | undefined => {
     if (!readOnly) {
-      return undefined;
+      return lentInteraction(card);
     }
     const { id } = card;
     const select = (toggle: boolean) => setSelectedIds((prev) => {

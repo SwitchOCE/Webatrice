@@ -301,7 +301,10 @@ export function useGridRows({
       }
       event.preventDefault();
     },
-  }), [keys, tabStop, lines, orientation, keepFocusOnRemoval, moveTo, requestFocus, onSelect, onExtend, onActivate, onExpand, onCollapse]);
+  }), [
+    keys, tabStop, lines, orientation, keepFocusOnRemoval, focusOnlyWithCtrl,
+    moveTo, requestFocus, onSelect, onExtend, onActivate, onExpand, onCollapse,
+  ]);
 
   return { getRowProps, focusRow: moveTo, onRowsRendered };
 }

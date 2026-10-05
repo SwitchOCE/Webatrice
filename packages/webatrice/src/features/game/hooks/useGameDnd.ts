@@ -10,6 +10,7 @@ import {
   planSeatMove,
   seatDropAccepts,
   type SeatDragSource,
+  type SeatDropTarget,
 } from './seatDropPlan';
 import { seatDropPointOf } from '../components/ui/SeatDragContext';
 
@@ -20,6 +21,9 @@ export interface GameDnd {
   collisionDetection: CollisionDetection;
   /** The seat drag in progress, from activation until the drop. */
   activeSeatDrag: SeatDragSource | null;
+  /** Moves `source`'s cards to `target` as a drop there would: the keyboard
+   *  move (MoveCardsDialog) lands cards through the same plan and commands. */
+  moveSeatCards: (source: SeatDragSource, target: SeatDropTarget) => void;
 }
 
 export interface UseGameDndArgs {
@@ -123,20 +127,16 @@ export function useGameDnd({
     [cancelPendingArrow],
   );
 
-  // A seat drop: the zone under the pointer says where in it the cards land,
-  // planSeatMove turns that into the command set, and each command goes
-  // through the optimistic move path.
-  const handleSeatDragEnd = useCallback(
-    (event: DragEndEvent, source: SeatDragSource) => {
-      setActiveSeatDrag(null);
-      const zone = event.over?.data.current;
-      const target = isSeatDropZone(zone) ? zone.resolve(seatDropPointOf(event), source) : null;
-      if (target && moveCard && gameId) {
-        // A judge moving another player's cards acts as their owner (the
-        // move's start player) through Command_Judge, like desktop's
-        // PlayerActions::sendGameCommand, and waits for the server rather
-        // than moving optimistically. A lent zone is moved by its borrower
-        // under the lender's write permission.
+  // planSeatMove turns a move into the command set, and each command goes
+  // through the optimistic move path. A judge moving another player's cards
+  // acts as their owner (the move's start player) through Command_Judge,
+  // like desktop's PlayerActions::sendGameCommand, and waits for the server
+  // rather than moving optimistically. A lent zone is moved by its borrower
+  // under the lender's write permission. The selection that rode the move
+  // ends with it.
+  const moveSeatCards = useCallback(
+    (source: SeatDragSource, target: SeatDropTarget) => {
+      if (moveCard && gameId) {
         for (const params of planSeatMove(source, target)) {
           const judgeTargetId = source.lenderPlayerId == null ? judgeTarget(params.startPlayerId) : undefined;
           if (judgeTargetId != null) {
@@ -151,6 +151,21 @@ export function useGameDnd({
     [gameId, webClient, moveCard, clearSelection, judgeTarget],
   );
 
+  // A seat drop: the zone under the pointer says where in it the cards land.
+  const handleSeatDragEnd = useCallback(
+    (event: DragEndEvent, source: SeatDragSource) => {
+      setActiveSeatDrag(null);
+      const zone = event.over?.data.current;
+      const target = isSeatDropZone(zone) ? zone.resolve(seatDropPointOf(event), source) : null;
+      if (target) {
+        moveSeatCards(source, target);
+      } else {
+        clearSelection?.();
+      }
+    },
+    [moveSeatCards, clearSelection],
+  );
+
   const handleDragCancel = useCallback(() => setActiveSeatDrag(null), []);
 
   const handleDragEnd = useCallback(
@@ -163,5 +178,5 @@ export function useGameDnd({
     [handleSeatDragEnd],
   );
 
-  return { handleDragStart, handleDragEnd, handleDragCancel, collisionDetection, activeSeatDrag };
+  return { handleDragStart, handleDragEnd, handleDragCancel, collisionDetection, activeSeatDrag, moveSeatCards };
 }

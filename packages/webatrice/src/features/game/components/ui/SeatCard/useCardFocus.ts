@@ -26,6 +26,8 @@ export interface CardFocusOptions<C extends { id: string }> {
   /** Enter: desktop's click-to-play (tap, untap, play), or a pending target pick, on the card's
    *  element. Nothing when unset. */
   onActivate?: (card: C, element: HTMLElement) => void;
+  /** M: the keyboard move of the card (and the selection it is in). Nothing when unset. */
+  onMove?: (card: C) => void;
   /** Shift+F10 or the Menu key: the card's context menu, under the card. */
   onOpenMenu: (card: C, rect: DOMRect) => void;
   /** Keyboard focus came to a card of the zone (true) or left it (false): the hand expands, as on hover. */
@@ -49,6 +51,9 @@ export interface CardFocusProps {
 /** The key that zooms the focused card while held: the keyboard's middle-button hold. */
 export const ZOOM_KEY = 'z';
 
+/** The key that moves the focused card (and its selection) to a place chosen in MoveCardsDialog. */
+export const MOVE_KEY = 'm';
+
 /**
  * F6 and Shift+F6 leave a card zone: focus moves to the next (previous) tab
  * stop on the page, as Tab does anywhere else. On a card Tab stays desktop's
@@ -62,6 +67,26 @@ function tabStopPast(from: HTMLElement, backwards: boolean): HTMLElement | undef
   const stops = tabbableElements(document.body);
   const index = stops.indexOf(from);
   return backwards ? stops[index - 1] ?? stops[stops.length - 1] : stops[index + 1] ?? stops[0];
+}
+
+/**
+ * Where focus goes when a dialog opened from a card closes and the card has
+ * left (it moved): the nearest card of its zone that was not moved with it
+ * (not selected), else the next tab stop, never the page, where Tab is Next
+ * Phase. Worked out when the dialog opens, from the card as it was.
+ */
+export function cardFocusFallback(opener: HTMLElement): HTMLElement | null {
+  const zone = opener.closest('[role="listbox"]');
+  if (zone) {
+    const options = [...zone.querySelectorAll<HTMLElement>('[role="option"]')];
+    const index = options.indexOf(opener);
+    const stays = (option: HTMLElement) => option !== opener && option.getAttribute('aria-selected') !== 'true';
+    const near = options.slice(index + 1).find(stays) ?? options.slice(0, Math.max(index, 0)).reverse().find(stays);
+    if (near) {
+      return near;
+    }
+  }
+  return tabStopPast(opener, false) ?? null;
 }
 
 /**
@@ -84,6 +109,7 @@ export function useCardFocus<C extends { id: string }>({
   selectedIds,
   onSelectIds,
   onActivate,
+  onMove,
   onOpenMenu,
   onKeyboardFocus,
 }: CardFocusOptions<C>) {
@@ -202,6 +228,11 @@ export function useCardFocus<C extends { id: string }>({
         }
         // Shift+Enter is the chat's focus shortcut.
         if (event.key === 'Enter' && event.shiftKey) {
+          return;
+        }
+        if (onMove && event.key.toLowerCase() === MOVE_KEY && !event.ctrlKey && !event.altKey && !event.metaKey) {
+          event.preventDefault();
+          onMove(card);
           return;
         }
         // Ctrl+Space is Next Phase; plain Space toggles the card.
