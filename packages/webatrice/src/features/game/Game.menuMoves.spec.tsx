@@ -147,13 +147,13 @@ describe('seat menu moves on the wire', () => {
     ])).toMatchInlineSnapshot(`
       "
       Play
-        P1 stack [50] → P1 table {"x":-3,"y":0,"isReversed":false} + [null,{}]
+        P1 stack [50] → P1 table {"x":-1,"y":0,"isReversed":false} + [null,{}]
       Play Face Down
-        P1 stack [50/fd] → P1 table {"x":-3,"y":0} + [null,{}]
+        P1 stack [50/fd] → P1 table {"x":-1,"y":0} + [null,{}]
       Move to > Hand
         P1 stack [50] → P1 hand {"x":-1,"y":0,"isReversed":false} + [null,{}]
       Move to > Battlefield
-        P1 stack [50] → P1 table {"x":-3,"y":0,"isReversed":false} + [null,{}]
+        P1 stack [50] → P1 table {"x":-1,"y":0,"isReversed":false} + [null,{}]
       Move to > Graveyard
         P1 stack [50] → P1 grave {"x":0,"y":0,"isReversed":false} + [null,{}]
       Move to > Exile
@@ -182,7 +182,7 @@ describe('seat menu moves on the wire', () => {
       Top of library... > Play top card
         P1 deck [0] → P1 stack {"x":-1,"y":0}
       Top of library... > Play top card face down
-        P1 deck [0/fd] → P1 table {"x":-3,"y":0}
+        P1 deck [0/fd] → P1 table {"x":-1,"y":0}
       Top of library... > Put top card on bottom
         P1 deck [0] → P1 deck {"x":-1,"y":0}
       Top of library... > Move top card to graveyard
@@ -223,7 +223,7 @@ describe('seat menu moves on the wire', () => {
       Bottom of library... > Play bottom card
         P1 deck [39] → P1 stack {"x":-1,"y":0}
       Bottom of library... > Play bottom card face down
-        P1 deck [39/fd] → P1 table {"x":-3,"y":0}
+        P1 deck [39/fd] → P1 table {"x":-1,"y":0}
       Bottom of library... > Put bottom card on top
         P1 deck [39] → P1 deck {"x":0,"y":0}
       Bottom of library... > Move bottom card to graveyard

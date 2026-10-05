@@ -35,7 +35,9 @@ test('bulk tap and bulk move act on every selected battlefield card', async ({ n
   await game.setReady();
   await game.waitForBoard();
 
-  // Two cards onto the battlefield: draw 2, play each from hand.
+  // Two cards onto the battlefield: draw 2, play each from hand. The server
+  // stacks the second Forest on the first (a play sends x = -1), so the
+  // second one, on top, is the one to click.
   await game.drawCard();
   await game.drawCard();
   await game.playCardFromHand('Forest');
@@ -45,7 +47,7 @@ test('bulk tap and bulk move act on every selected battlefield card', async ({ n
   // 1. Bulk tap: select both, then double-click one — the double-click on a
   //    ≥2 selection taps the whole TABLE subset (batched SetCardAttr).
   await game.boxSelectBattlefield();
-  await game.cardsOnBoard().first().dblclick();
+  await game.cardsOnBoard().last().dblclick();
   // The seat renders tapped state as an inline `transform: rotate(90deg)`
   // on the card's inner style container — no `.card-slot--tapped` class in
   // the current DOM. Assert against the inline style instead.
@@ -55,7 +57,7 @@ test('bulk tap and bulk move act on every selected battlefield card', async ({ n
   // 2. Bulk move: re-select (don't rely on the tap preserving selection), then
   //    "Send to Graveyard" on a selected card → both move in one MoveCard.
   await game.boxSelectBattlefield();
-  await game.moveViaCardMenu(game.cardsOnBoard().first(), /send to graveyard/i);
+  await game.moveViaCardMenu(game.cardsOnBoard().last(), /send to graveyard/i);
   await expect.poll(() => game.zoneStackCount('grave')).toBe(2);
   await expect(game.cardsOnBoard()).toHaveCount(0);
 
