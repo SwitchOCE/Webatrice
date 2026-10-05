@@ -176,6 +176,8 @@ export default defineConfig({
     // an out-of-memory error instead of growing until CI kills the run.
     pool: 'vmForks',
     execArgv: ['--max-old-space-size=1024'],
+    // Recycle between files before coverage accumulation reaches the heap cap.
+    vmMemoryLimit: '600MB',
     maxWorkers: '75%',
     testTimeout: 15000,
     coverage: {
