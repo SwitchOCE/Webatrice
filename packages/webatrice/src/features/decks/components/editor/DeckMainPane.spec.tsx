@@ -1,19 +1,14 @@
 import { fireEvent, screen } from '@testing-library/react';
+import { useState } from 'react';
 
 import { renderWithProviders } from '../../../../__test-utils__';
 import { groupDeckCards } from '../../deckGrouping';
 import type { HydratedDeck } from '../../types';
 import { DeckMainPane, type DeckMainPaneProps } from './DeckMainPane';
-import type { QuickAddSearchProps } from './QuickAddSearch';
 
 vi.mock('../breakdown/DeckBreakdown', () => ({ DeckBreakdown: () => <div>breakdown</div> }));
 vi.mock('../search/AdvancedCardSearch', () => ({
   AdvancedCardSearch: ({ query }: { query: string }) => <div>advanced search for “{query}”</div>,
-}));
-vi.mock('./QuickAddSearch', () => ({
-  QuickAddSearch: ({ query, onQueryChange, inputRef }: QuickAddSearchProps) => (
-    <input ref={inputRef} aria-label="quick add" value={query} onChange={(e) => onQueryChange(e.target.value)} />
-  ),
 }));
 
 const deck: HydratedDeck = {
@@ -44,7 +39,21 @@ function renderPane(overrides: Partial<DeckMainPaneProps> = {}) {
     isCommander: false,
     ...overrides,
   };
-  renderWithProviders(<DeckMainPane {...props} />);
+  function StatefulPane() {
+    const [currentDeck, setDeck] = useState(props.deck);
+    return (
+      <DeckMainPane
+        {...props}
+        deck={currentDeck}
+        groups={groupDeckCards(currentDeck.cards, props.isCommander)}
+        onDelete={(index) => {
+          props.onDelete(index);
+          setDeck((current) => ({ ...current, cards: current.cards.filter((_, i) => i !== index) }));
+        }}
+      />
+    );
+  }
+  renderWithProviders(<StatefulPane />);
   return props;
 }
 
@@ -58,12 +67,12 @@ describe('DeckMainPane', () => {
 
   it('hands the quick-add text over to advanced search, and comes back to the deck', () => {
     renderPane();
-    fireEvent.change(screen.getByLabelText('quick add'), { target: { value: 'bolt' } });
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'bolt' } });
     fireEvent.click(screen.getByRole('button', { name: /DeckEditor.main.advancedSearch/ }));
     expect(screen.getByText('advanced search for “bolt”')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /DeckEditor.main.backToDeck/ }));
-    expect(screen.getByLabelText('quick add')).toHaveValue('');
+    expect(screen.getByRole('combobox')).toHaveValue('');
   });
 
   it('shows a plain list with name entry for non-MTG decks', () => {
@@ -87,7 +96,9 @@ describe('DeckMainPane', () => {
     row.focus();
     fireEvent.keyDown(row, { key: 'Delete' });
     expect(props.onDelete).toHaveBeenCalledWith(0);
-    expect(isMtg ? screen.getByLabelText('quick add') : screen.getByPlaceholderText('DeckEditor.list.addPlaceholder'))
+    expect(screen.queryByRole('row')).not.toBeInTheDocument();
+    expect(row).not.toBeInTheDocument();
+    expect(isMtg ? screen.getByRole('combobox') : screen.getByPlaceholderText('DeckEditor.list.addPlaceholder'))
       .toHaveFocus();
   });
 });
