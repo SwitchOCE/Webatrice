@@ -43,7 +43,8 @@ function renderGame() {
       .map((cell) => Number(cell.querySelector('[data-battlefield-owner]')?.getAttribute('data-battlefield-owner')));
   const rotate = (id: 'rotateViewCW' | 'rotateViewCCW') => {
     fireEvent.click(screen.getByRole('button', { name: /GameMenu.button/ }));
-    fireEvent.click(within(screen.getByTestId('game-menu')).getByTestId(`game-menu-${id}`));
+    fireEvent.click(within(screen.getByRole('menu', { name: 'GameMenu.button' }))
+      .getByRole('menuitem', { name: `GameMenu.item.${id}` }));
   };
   return { webClient, seatsTopToBottom, rotate };
 }

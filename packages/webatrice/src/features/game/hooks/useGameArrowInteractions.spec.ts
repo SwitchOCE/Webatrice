@@ -212,11 +212,7 @@ describe('useGameArrowInteractions', () => {
     vi.mocked(CardDTO.get).mockResolvedValueOnce(undefined);
 
     act(() => {
-      result.current.startPendingArrow({
-        sourcePlayerId: 1,
-        sourceZone: ZoneName.HAND,
-        sourceCardId: 5,
-      });
+      result.current.pendingTarget.startArrow({ playerId: 1, zone: ZoneName.HAND, cardId: 5, name: '' });
     });
     act(() => {
       result.current.pendingTarget.pick({ kind: 'card', playerId: 2, zone: ZoneName.TABLE, cardId: 99 });
@@ -374,7 +370,7 @@ describe('useGameArrowInteractions', () => {
     const { result } = setup();
 
     act(() => {
-      result.current.startPendingArrow({ sourcePlayerId: 1, sourceZone: ZoneName.TABLE, sourceCardId: 5 });
+      result.current.pendingTarget.startArrow({ playerId: 1, zone: ZoneName.TABLE, cardId: 5, name: '' });
     });
     expect(result.current.arrowSourceKey).not.toBeNull();
 
@@ -396,11 +392,7 @@ describe('useGameArrowInteractions', () => {
       const { result, webClient } = setup();
 
       act(() => {
-        result.current.startPendingAttach({
-          sourcePlayerId: 1,
-          sourceZone: ZoneName.TABLE,
-          sourceCardId: 5,
-        });
+        result.current.pendingTarget.startAttach({ playerId: 1, zone: ZoneName.TABLE, cardId: 5, name: '' });
       });
       expect(result.current.arrowSourceKey).not.toBeNull();
 
@@ -429,11 +421,7 @@ describe('useGameArrowInteractions', () => {
       const { result, webClient } = setup();
 
       act(() => {
-        result.current.startPendingAttach({
-          sourcePlayerId: 1,
-          sourceZone: ZoneName.TABLE,
-          sourceCardId: 5,
-        });
+        result.current.pendingTarget.startAttach({ playerId: 1, zone: ZoneName.TABLE, cardId: 5, name: '' });
       });
 
       act(() => {
@@ -454,7 +442,7 @@ describe('useGameArrowInteractions', () => {
     document.body.appendChild(dialog);
 
     act(() => {
-      result.current.startPendingArrow({ sourcePlayerId: 1, sourceZone: ZoneName.TABLE, sourceCardId: 5 });
+      result.current.pendingTarget.startArrow({ playerId: 1, zone: ZoneName.TABLE, cardId: 5, name: '' });
     });
     act(() => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));

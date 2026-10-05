@@ -4,10 +4,10 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Loader2, X } from 'lucide-react';
 
-import { ShortcutScope, useShortcut, useShortcutHints } from '@app/feature-widgets/shortcuts';
+import { ShortcutScope, useMenuShortcut, useShortcut } from '@app/feature-widgets/shortcuts';
 import { lookupCardsCached, type RelatedCardRef } from '@app/services';
 
-import { CardMenuPopup } from '../../components/context-menus/CardContextMenu/CardContextMenu';
+import { ContextMenuPopup } from '../../components/context-menus/ContextMenu/ContextMenu';
 import { buildRelatedViewItems } from '../../components/context-menus/CardContextMenu/relatedCardActions';
 import { buildRevealedCardMenu } from '../../components/context-menus/CardContextMenu/revealedCardMenu.model';
 import { useCardPreviewActions } from '../../components/ui/CardPreviewContext';
@@ -104,7 +104,7 @@ function IncomingRevealPanel({
   const { t } = useTranslation();
   const { groupBy, setGroupBy, sortBy, setSortBy, pileView, setPileView } = useZoneViewPreferences(STORAGE_KEY);
   const { showCardInfo } = useCardPreviewActions();
-  const shortcutHints = useShortcutHints();
+  const menuShortcut = useMenuShortcut();
   const readOnly = !reveal.grantWriteAccess;
   // Clone creates the token on our own battlefield (desktop actClone).
   const cardCommands = usePlayerCardCommands(localPlayerId ?? -1, true);
@@ -254,7 +254,7 @@ function IncomingRevealPanel({
   };
   const visibleIds = groups.flatMap((g) => g.cards.map((c) => c.handCard.id));
   const menuItems = cardMenu && buildRevealedCardMenu({
-    shortcutHints,
+    menuShortcut,
     onHide: () => {
       hideCards(selectedIds.has(cardMenu.id) ? [...selectedIds] : [cardMenu.id]);
       setCardMenu(null);
@@ -391,10 +391,10 @@ function IncomingRevealPanel({
         </div>
       </div>
       {menuItems && (
-        <CardMenuPopup
+        <ContextMenuPopup
           items={menuItems}
           anchor={{ x: cardMenu.x, y: cardMenu.y }}
-          disabled={false}
+          label={cardMenu.name}
           onClose={closeCardMenu}
         />
       )}

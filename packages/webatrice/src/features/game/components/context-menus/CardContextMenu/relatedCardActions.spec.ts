@@ -1,6 +1,6 @@
 import type { LookupResult, RelatedCardRef } from '@app/services';
 
-import type { CardMenuItem } from './cardContextMenu.model';
+import type { ContextMenuItem as CardMenuItem } from '../ContextMenu/ContextMenu';
 import {
   buildRelatedActionItems,
   buildRelatedTokenItems,
@@ -295,10 +295,12 @@ describe('create all related tokens', () => {
     ]);
   });
 
+  const CREATE_ALL = { shortcut: 'Ctrl+Shift+K', keyShortcuts: 'Control+Shift+K' };
+
   it('puts the create-all hint on the only item, or on "All tokens"', () => {
     const createAll = vi.fn();
-    const single = buildRelatedActionItems(source({ related: [ref('Soldier')] }), vi.fn(), 'Ctrl+Shift+K', createAll).map(row);
-    expect(single.map((i) => [i.label, i.shortcut])).toEqual([['Token: 1/1 Soldier', 'Ctrl+Shift+K']]);
+    const single = buildRelatedActionItems(source({ related: [ref('Soldier')] }), vi.fn(), CREATE_ALL, createAll).map(row);
+    expect(single.map((i) => [i.label, i.shortcut, i.keyShortcuts])).toEqual([['Token: 1/1 Soldier', 'Ctrl+Shift+K', 'Control+Shift+K']]);
     single[0].onClick!();
     expect(createAll).toHaveBeenCalledTimes(1);
     createAll.mockClear();
@@ -307,7 +309,7 @@ describe('create all related tokens', () => {
     const many = buildRelatedActionItems(
       source({ related: [ref('Soldier'), ref('Treasure', { count: 'x' })], parentMeta: { layout: 'transform', faces } }),
       create,
-      'Ctrl+Shift+K',
+      CREATE_ALL,
       createAll,
     ).map(row);
     expect(many.map((i) => [i.label, i.shortcut])).toEqual([
@@ -322,8 +324,9 @@ describe('create all related tokens', () => {
   });
 
   it('offers nothing for a card without relations, and no hint when unbound', () => {
-    expect(buildRelatedActionItems(source({}), vi.fn(), 'Ctrl+Shift+K', vi.fn())).toEqual([]);
-    expect(row(buildRelatedActionItems(source({ related: [ref('Soldier')] }), vi.fn(), '', vi.fn())[0]).shortcut).toBeUndefined();
+    expect(buildRelatedActionItems(source({}), vi.fn(), CREATE_ALL, vi.fn())).toEqual([]);
+    const unbound = { shortcut: '', keyShortcuts: '' };
+    expect(row(buildRelatedActionItems(source({ related: [ref('Soldier')] }), vi.fn(), unbound, vi.fn())[0]).shortcut).toBeUndefined();
   });
 });
 

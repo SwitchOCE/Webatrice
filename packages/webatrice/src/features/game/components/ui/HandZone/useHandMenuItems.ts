@@ -48,13 +48,13 @@ export function useHandMenuItems({
     revealTargets,
     (targetPlayerId) => zoneCommands.reveal(ZoneName.HAND, toRecipient(targetPlayerId)),
     handSize <= 0,
-    menuShortcut('game.revealHandToAll').shortcut,
+    menuShortcut('game.revealHandToAll'),
   );
   const revealRandomHandSubmenu = buildRevealToSubmenu(
     revealTargets,
     (targetPlayerId) => zoneCommands.reveal(ZoneName.HAND, toRecipient(targetPlayerId), 'random'),
     handSize <= 0,
-    menuShortcut('game.revealRandomHandCardToAll').shortcut,
+    menuShortcut('game.revealRandomHandCardToAll'),
   );
   // Helper: build a "move all cards from HAND to <target>" click
   // handler. Hand card ids are real numeric ids on the wire.

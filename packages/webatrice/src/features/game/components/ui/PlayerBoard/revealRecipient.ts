@@ -1,8 +1,12 @@
+import type { MenuShortcut } from '@app/feature-widgets/shortcuts';
+
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
-import { ALL_PLAYERS } from '../../../dialogs/RevealCardsDialog/revealRecipient';
 import type { RevealRecipient } from './playerBoard.types';
 
-/** The seat menus' reveal target, with the dialogs' "All players" sentinel, as a reveal recipient. */
+/** A reveal menu's "All players" choice (desktop's default recipient). */
+export const ALL_PLAYERS = -1;
+
+/** The seat menus' reveal target, with the "All players" sentinel, as a reveal recipient. */
 export const toRecipient = (targetPlayerId: number): RevealRecipient =>
   (targetPlayerId === ALL_PLAYERS ? 'all' : targetPlayerId);
 
@@ -15,10 +19,10 @@ export function buildRevealToSubmenu(
   revealTargets: readonly { playerId: number; name: string }[] | undefined,
   onPick: (targetPlayerId: number) => void,
   disabled = false,
-  allPlayersShortcut?: string,
+  allPlayersShortcut?: MenuShortcut,
 ): ContextMenuItem[] {
   return [
-    { label: 'All players', onClick: () => onPick(ALL_PLAYERS), disabled, shortcut: allPlayersShortcut },
+    { label: 'All players', onClick: () => onPick(ALL_PLAYERS), disabled, ...allPlayersShortcut },
     { divider: true },
     ...(revealTargets ?? []).map((t) => ({
       label: t.name,

@@ -46,7 +46,7 @@ function setup(args: SetupArgs = {}) {
     openRevealTopCardsPrompt: vi.fn(),
     openMoveTopUntilDialog: vi.fn(),
     onOpenDeckInEditor: undefined,
-    shortcutHints: {} as UseLibraryMenuItemsArgs['shortcutHints'],
+    menuShortcut: () => ({ shortcut: '', keyShortcuts: '' }),
     zoneCommands,
     ...args,
   };
@@ -139,8 +139,7 @@ describe('useLibraryMenuItems', () => {
   });
 
   it('shows the shortcut hint of every top and bottom card item', () => {
-    const hints = new Proxy({}, { get: (_target, key) => `<${String(key)}>` }) as UseLibraryMenuItemsArgs['shortcutHints'];
-    const { items } = setup({ shortcutHints: hints });
+    const { items } = setup({ menuShortcut: (id) => ({ shortcut: `<${id}>`, keyShortcuts: '' }) });
     const hinted = (path: string) =>
       find(items, path).submenu!.filter((i): i is Item => 'label' in i).map((i) => i.shortcut);
     expect(hinted('Top of library...')).toEqual([

@@ -1,35 +1,19 @@
-import { ZoneName } from '@cockatrice/sockatrice';
 import { renderHook } from '@testing-library/react';
 
 import { makeDialogTestEnv, makeDialogTestGame, makeSetterSpies } from '../../__test-utils__/dialogTestEnv';
-import type { PromptState, RevealState } from './gameDialogs.types';
+import type { PromptState } from './gameDialogs.types';
 import { useHandDialogActions } from './useHandDialogActions';
 
-function setup({ canOpenMenus = true, hand = [7, 8, 9] } = {}) {
+function setup({ hand = [7, 8, 9] } = {}) {
   const { env, webClient } = makeDialogTestEnv(makeDialogTestGame({ deckCount: 50, hand }));
   const set = makeSetterSpies();
-  const closeAllContextMenus = vi.fn();
-  const openZoneView = vi.fn();
   const { result } = renderHook(() =>
-    useHandDialogActions({ env, canOpenMenus, set, closeAllContextMenus, openZoneView }));
+    useHandDialogActions({ env, set }));
   const lastPrompt = () => set.setPrompt.mock.calls.at(-1)?.[0] as PromptState;
-  return { result, set, webClient, closeAllContextMenus, openZoneView, lastPrompt };
+  return { result, set, webClient, lastPrompt };
 }
 
-const event = () => ({ preventDefault: vi.fn(), clientX: 5, clientY: 6 }) as unknown as React.MouseEvent;
-
 describe('useHandDialogActions', () => {
-  it('opens the hand menu after closing the others, unless the user may not act', () => {
-    const open = setup();
-    open.result.current.handleHandContextMenu(event());
-    expect(open.closeAllContextMenus).toHaveBeenCalled();
-    expect(open.set.setHandMenu).toHaveBeenCalledWith({ top: 6, left: 5 });
-
-    const blocked = setup({ canOpenMenus: false });
-    blocked.result.current.handleHandContextMenu(event());
-    expect(blocked.set.setHandMenu).not.toHaveBeenCalled();
-  });
-
   it('bounds the mulligan prompt by hand + library and resolves 0 and below against the hand size', () => {
     const { result, webClient, lastPrompt } = setup();
 
@@ -41,34 +25,4 @@ describe('useHandDialogActions', () => {
     expect(webClient.request.game.mulligan).toHaveBeenCalledWith(1, { number: 2 });
   });
 
-  it('views the hand through the zone-view stack', () => {
-    const { result, openZoneView } = setup();
-    result.current.handleRequestViewHand();
-    expect(openZoneView).toHaveBeenCalledWith(1, ZoneName.HAND);
-  });
-
-  it('moves the whole hand to the bottom of the library one card at a time', () => {
-    const { result, webClient } = setup({ hand: [7, 8] });
-
-    result.current.handleRequestMoveHandToDeck(false);
-
-    expect(vi.mocked(webClient.request.game.moveCard).mock.calls.map(([, p]) => [p.cardsToMove, p.x])).toEqual([
-      [{ card: [{ cardId: 7 }] }, -1],
-      [{ card: [{ cardId: 8 }] }, -1],
-    ]);
-  });
-
-  it('reveals the hand to all players without a player id, or to the chosen player', () => {
-    const { result, set, webClient } = setup();
-
-    result.current.handleRequestRevealHand();
-    const reveal = set.setRevealState.mock.calls[0][0] as RevealState;
-    reveal.onSubmit({ targetPlayerId: -1, topCards: -1 });
-    reveal.onSubmit({ targetPlayerId: 2, topCards: -1 });
-
-    expect(vi.mocked(webClient.request.game.revealCards).mock.calls.map(([, p]) => p)).toEqual([
-      { zoneName: ZoneName.HAND, topCards: -1 },
-      { zoneName: ZoneName.HAND, playerId: 2, topCards: -1 },
-    ]);
-  });
 });

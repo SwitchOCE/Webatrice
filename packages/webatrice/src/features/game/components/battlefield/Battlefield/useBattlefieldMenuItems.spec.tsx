@@ -56,7 +56,7 @@ function setup(args: Partial<UseBattlefieldMenuItemsArgs> = {}) {
     battlefieldDisplayList: [bf(10, [{ id: 0, value: 1 }]), bf(11, [{ id: 1, value: 999 }]), bf(12)],
     lastToken: null,
     openCreateTokenDialog: vi.fn(),
-    shortcutHints: {} as UseBattlefieldMenuItemsArgs['shortcutHints'],
+    menuShortcut: () => ({ shortcut: '', keyShortcuts: '' }),
     cardCommands,
     counterCommands,
     ...args,
@@ -124,8 +124,7 @@ describe('useBattlefieldMenuItems', () => {
   });
 
   it('shows each counter\'s set, +1 and -1 shortcuts', () => {
-    const hints = new Proxy({}, { get: (_target, key) => `<${String(key)}>` }) as UseBattlefieldMenuItemsArgs['shortcutHints'];
-    const { battlefieldMenuItems } = setup({ shortcutHints: hints });
+    const { battlefieldMenuItems } = setup({ menuShortcut: (id) => ({ shortcut: `<${id}>`, keyShortcuts: '' }) });
     const hinted = (counter: string) =>
       ['Set counter...', '+1', '-1', '+2'].map((label) => find(battlefieldMenuItems, 'Counters', counter, label).shortcut);
     expect(hinted('Life')).toEqual(['<game.setLife>', '<game.incLife>', '<game.decLife>', undefined]);

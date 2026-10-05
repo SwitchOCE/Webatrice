@@ -1,14 +1,12 @@
 import { ZoneName } from '@cockatrice/sockatrice';
-import type { useShortcutHints } from '@app/feature-widgets/shortcuts';
 
-import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
+import type { ContextMenuItem, MenuShortcutFor } from '../../context-menus/ContextMenu/ContextMenu';
 import { useGameDialogsContext } from '../GameDialogsContext';
 import type { PlayerZoneCommands } from '../PlayerBoard/playerBoard.types';
 import { buildRevealToSubmenu, toRecipient } from '../PlayerBoard/revealRecipient';
 import type { LibraryOps } from '../PlayerBoard/useLibraryOps';
 import type { useSeatPrompts } from '../PlayerBoard/useSeatPrompts';
 
-type ShortcutHints = ReturnType<typeof useShortcutHints>;
 type SeatPrompts = ReturnType<typeof useSeatPrompts>;
 
 export interface UseLibraryMenuItemsArgs {
@@ -27,7 +25,7 @@ export interface UseLibraryMenuItemsArgs {
   openMoveTopUntilDialog: () => void;
   /** The deck-editor link; undefined when the deck matches no saved deck. */
   onOpenDeckInEditor: (() => void) | undefined;
-  shortcutHints: ShortcutHints;
+  menuShortcut: MenuShortcutFor;
   zoneCommands: PlayerZoneCommands;
 }
 
@@ -49,7 +47,7 @@ export function useLibraryMenuItems({
   openRevealTopCardsPrompt,
   openMoveTopUntilDialog,
   onOpenDeckInEditor,
-  shortcutHints,
+  menuShortcut,
   zoneCommands,
 }: UseLibraryMenuItemsArgs) {
   const { openZoneView } = useGameDialogsContext();
@@ -87,69 +85,69 @@ export function useLibraryMenuItems({
       label: 'Play top card',
       onClick: () => libraryOps.moveTopCard(ZoneName.STACK, 'end'),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.playTop'],
+      ...menuShortcut('game.playTop'),
     },
     {
       label: 'Play top card face down',
       onClick: () => libraryOps.moveTopCard(ZoneName.TABLE, 'end', true),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.moveTopToPlayFaceDown'],
+      ...menuShortcut('game.moveTopToPlayFaceDown'),
     },
     {
       label: 'Put top card on bottom',
       onClick: () => libraryOps.moveTopCard(ZoneName.DECK, 'end'),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.moveTopToBottom'],
+      ...menuShortcut('game.moveTopToBottom'),
     },
     { divider: true },
     {
       label: 'Move top card to graveyard',
       onClick: () => libraryOps.moveTopCard(ZoneName.GRAVE, 0),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.moveTopToGrave'],
+      ...menuShortcut('game.moveTopToGrave'),
     },
     {
       label: 'Move top cards to graveyard...',
       onClick: () => libraryOps.promptMoveTopCards(ZoneName.GRAVE),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.moveTopNToGrave'],
+      ...menuShortcut('game.moveTopNToGrave'),
     },
     {
       label: 'Move top cards to graveyard face down...',
       onClick: () => libraryOps.promptMoveTopCards(ZoneName.GRAVE, true),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.moveTopNToGraveFaceDown'],
+      ...menuShortcut('game.moveTopNToGraveFaceDown'),
     },
     {
       label: 'Move top card to exile',
       onClick: () => libraryOps.moveTopCard(ZoneName.EXILE, 0),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.moveTopToExile'],
+      ...menuShortcut('game.moveTopToExile'),
     },
     {
       label: 'Move top cards to exile...',
       onClick: () => libraryOps.promptMoveTopCards(ZoneName.EXILE),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.moveTopNToExile'],
+      ...menuShortcut('game.moveTopNToExile'),
     },
     {
       label: 'Move top cards to exile face down...',
       onClick: () => libraryOps.promptMoveTopCards(ZoneName.EXILE, true),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.moveTopNToExileFaceDown'],
+      ...menuShortcut('game.moveTopNToExileFaceDown'),
     },
     {
       label: 'Put top cards on stack until…',
       onClick: openMoveTopUntilDialog,
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.moveTopUntil'],
+      ...menuShortcut('game.moveTopUntil'),
     },
     { divider: true },
     {
       label: 'Shuffle top cards...',
       onClick: libraryOps.promptShuffleTopCards,
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.shuffleTopCards'],
+      ...menuShortcut('game.shuffleTopCards'),
     },
   ];
   // Desktop's bottomLibraryMenu (library_menu.cpp:64-78).
@@ -158,76 +156,76 @@ export function useLibraryMenuItems({
       label: 'Draw bottom card',
       onClick: () => libraryOps.moveBottomCard(ZoneName.HAND, 0),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.drawBottomCard'],
+      ...menuShortcut('game.drawBottomCard'),
     },
     {
       label: 'Draw bottom cards...',
       onClick: () => libraryOps.promptMoveBottomCards(ZoneName.HAND),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.drawBottomCards'],
+      ...menuShortcut('game.drawBottomCards'),
     },
     { divider: true },
     {
       label: 'Play bottom card',
       onClick: () => libraryOps.moveBottomCard(ZoneName.STACK, 'end'),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.moveBottomToPlay'],
+      ...menuShortcut('game.moveBottomToPlay'),
     },
     {
       label: 'Play bottom card face down',
       onClick: () => libraryOps.moveBottomCard(ZoneName.TABLE, 'end', true),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.moveBottomToPlayFaceDown'],
+      ...menuShortcut('game.moveBottomToPlayFaceDown'),
     },
     {
       label: 'Put bottom card on top',
       onClick: () => libraryOps.moveBottomCard(ZoneName.DECK, 0),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.moveBottomToTop'],
+      ...menuShortcut('game.moveBottomToTop'),
     },
     { divider: true },
     {
       label: 'Move bottom card to graveyard',
       onClick: () => libraryOps.moveBottomCard(ZoneName.GRAVE, 0),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.moveBottomToGrave'],
+      ...menuShortcut('game.moveBottomToGrave'),
     },
     {
       label: 'Move bottom cards to graveyard...',
       onClick: () => libraryOps.promptMoveBottomCards(ZoneName.GRAVE),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.moveBottomNToGrave'],
+      ...menuShortcut('game.moveBottomNToGrave'),
     },
     {
       label: 'Move bottom cards to graveyard face down...',
       onClick: () => libraryOps.promptMoveBottomCards(ZoneName.GRAVE, true),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.moveBottomNToGraveFaceDown'],
+      ...menuShortcut('game.moveBottomNToGraveFaceDown'),
     },
     {
       label: 'Move bottom card to exile',
       onClick: () => libraryOps.moveBottomCard(ZoneName.EXILE, 0),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.moveBottomToExile'],
+      ...menuShortcut('game.moveBottomToExile'),
     },
     {
       label: 'Move bottom cards to exile...',
       onClick: () => libraryOps.promptMoveBottomCards(ZoneName.EXILE),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.moveBottomNToExile'],
+      ...menuShortcut('game.moveBottomNToExile'),
     },
     {
       label: 'Move bottom cards to exile face down...',
       onClick: () => libraryOps.promptMoveBottomCards(ZoneName.EXILE, true),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.moveBottomNToExileFaceDown'],
+      ...menuShortcut('game.moveBottomNToExileFaceDown'),
     },
     { divider: true },
     {
       label: 'Shuffle bottom cards...',
       onClick: libraryOps.promptShuffleBottomCards,
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.shuffleBottomCards'],
+      ...menuShortcut('game.shuffleBottomCards'),
     },
   ];
   const libraryMenuItems: ContextMenuItem[] = [
@@ -235,48 +233,48 @@ export function useLibraryMenuItems({
       label: 'Draw card',
       onClick: () => draw(1),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.drawCard'],
+      ...menuShortcut('game.drawCard'),
     },
     {
       label: 'Draw cards...',
       onClick: () => openDrawCardsPrompt({ deckSize: deckCount }),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.drawMultipleCards'],
+      ...menuShortcut('game.drawMultipleCards'),
     },
     {
       label: 'Undo last draw',
       onClick: () => zoneCommands.undoDraw(),
       // Cockatrice always shows this enabled; server rejects when
       // nothing to undo.
-      shortcut: shortcutHints['game.undoDraw'],
+      ...menuShortcut('game.undoDraw'),
     },
     { divider: true },
     {
       label: 'Shuffle',
       onClick: () => zoneCommands.shuffleLibrary(),
       disabled: deckCount <= 1,
-      shortcut: shortcutHints['game.shuffleLibrary'],
+      ...menuShortcut('game.shuffleLibrary'),
     },
     { divider: true },
     {
       label: 'View library',
       onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.DECK }),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.viewLibrary'],
+      ...menuShortcut('game.viewLibrary'),
     },
     {
       label: 'View top cards of library...',
       onClick: () =>
         openViewLibraryCountPrompt({ isReversed: false, deckSize: deckCount }),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.viewTopCards'],
+      ...menuShortcut('game.viewTopCards'),
     },
     {
       label: 'View bottom cards of library...',
       onClick: () =>
         openViewLibraryCountPrompt({ isReversed: true, deckSize: deckCount }),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.viewBottomCards'],
+      ...menuShortcut('game.viewBottomCards'),
     },
     { divider: true },
     { label: 'Reveal library to...', submenu: revealLibraryItems },
@@ -286,13 +284,13 @@ export function useLibraryMenuItems({
       label: 'Always reveal top card',
       checked: alwaysRevealTopCard ?? false,
       onClick: () => zoneCommands.setAlwaysRevealTopCard(!alwaysRevealTopCard),
-      shortcut: shortcutHints['game.alwaysRevealTopCard'],
+      ...menuShortcut('game.alwaysRevealTopCard'),
     },
     {
       label: 'Always look at top card',
       checked: alwaysLookAtTopCard ?? false,
       onClick: () => zoneCommands.setAlwaysLookAtTopCard(!alwaysLookAtTopCard),
-      shortcut: shortcutHints['game.alwaysLookAtTopCard'],
+      ...menuShortcut('game.alwaysLookAtTopCard'),
     },
     { divider: true },
     {

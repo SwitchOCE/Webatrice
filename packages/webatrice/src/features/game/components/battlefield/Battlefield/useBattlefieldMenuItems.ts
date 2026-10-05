@@ -1,7 +1,7 @@
-import type { ActionId, useShortcutHints } from '@app/feature-widgets/shortcuts';
+import type { ActionId, MenuShortcut } from '@app/feature-widgets/shortcuts';
 import { useMessageMacros } from '@app/hooks';
 
-import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
+import type { ContextMenuItem, MenuShortcutFor } from '../../context-menus/ContextMenu/ContextMenu';
 import { MANA_COLORS } from '../../right-sidebar/PlayerInfoPanel/manaColors';
 import { useTallyType } from '../../../hooks/useTallyType';
 import { useGameDialogActions } from '../../ui/GameDialogActionsContext';
@@ -17,7 +17,6 @@ import { buildCustomZonesMenu } from './customZonesMenu';
 import { buildSayMenu } from './sayMenu';
 import { buildTallyMenu } from './tallyMenu';
 
-type ShortcutHints = ReturnType<typeof useShortcutHints>;
 type SeatPrompts = ReturnType<typeof useSeatPrompts>;
 
 export interface UseBattlefieldMenuItemsArgs {
@@ -41,7 +40,7 @@ export interface UseBattlefieldMenuItemsArgs {
   battlefieldDisplayList: readonly BattlefieldCardViewModel[];
   lastToken: SeatPrompts['lastToken'];
   openCreateTokenDialog: () => void;
-  shortcutHints: ShortcutHints;
+  menuShortcut: MenuShortcutFor;
   cardCommands: PlayerCardCommands;
   counterCommands: PlayerCounterCommands;
 }
@@ -72,7 +71,7 @@ export function useBattlefieldMenuItems({
   battlefieldDisplayList,
   lastToken,
   openCreateTokenDialog,
-  shortcutHints,
+  menuShortcut,
   cardCommands,
   counterCommands,
 }: UseBattlefieldMenuItemsArgs) {
@@ -96,26 +95,26 @@ export function useBattlefieldMenuItems({
   // The +1 / -1 rows show the counter's add / remove shortcut.
   const buildDeltaItems = (
     apply: (delta: number) => void,
-    hints: { inc: string; dec: string },
+    hints: { inc: MenuShortcut; dec: MenuShortcut },
   ): ContextMenuItem[] => {
     const items: ContextMenuItem[] = [];
     // +10 down to +1
     for (let i = 10; i >= 1; i--) {
-      items.push({ label: `+${i}`, onClick: () => apply(i), shortcut: i === 1 ? hints.inc : undefined });
+      items.push({ label: `+${i}`, onClick: () => apply(i), ...(i === 1 ? hints.inc : null) });
     }
     items.push({ divider: true });
     // -1 down to -10
     for (let i = 1; i <= 10; i++) {
-      items.push({ label: `-${i}`, onClick: () => apply(-i), shortcut: i === 1 ? hints.dec : undefined });
+      items.push({ label: `-${i}`, onClick: () => apply(-i), ...(i === 1 ? hints.dec : null) });
     }
     return items;
   };
   // Each counter's [add, remove, set] shortcuts: desktop's aInc / aDec / aSet
   // for life, aIncCounter_* / aDecCounter_* / aSetCounter_* for the pool.
   const counterHints = (inc: ActionId, dec: ActionId, set: ActionId) => ({
-    inc: shortcutHints[inc],
-    dec: shortcutHints[dec],
-    set: shortcutHints[set],
+    inc: menuShortcut(inc),
+    dec: menuShortcut(dec),
+    set: menuShortcut(set),
   });
   const manaHints: Record<(typeof MANA_COLORS)[number]['symbol'], ReturnType<typeof counterHints>> = {
     W: counterHints('game.incManaCounterW', 'game.decManaCounterW', 'game.setManaCounterW'),
@@ -132,7 +131,7 @@ export function useBattlefieldMenuItems({
       label: 'Set counter...',
       onClick: () => openLifePrompt(),
       disabled: !lifeControl,
-      shortcut: lifeHints.set,
+      ...lifeHints.set,
     },
     { divider: true },
     ...buildDeltaItems((d) => lifeControl?.onDelta(d), lifeHints),
@@ -163,7 +162,7 @@ export function useBattlefieldMenuItems({
             }
           },
           disabled: !canSet,
-          shortcut: manaHints[m.symbol].set,
+          ...manaHints[m.symbol].set,
         },
         { divider: true },
         ...buildDeltaItems((d) => {
@@ -221,7 +220,7 @@ export function useBattlefieldMenuItems({
           // dialog that "View library" opens (player_actions.cpp:232-234).
           label: 'View sideboard',
           onClick: onRequestViewSideboard,
-          shortcut: shortcutHints['game.viewSideboard'],
+          ...menuShortcut('game.viewSideboard'),
         },
       ],
     },
@@ -241,7 +240,7 @@ export function useBattlefieldMenuItems({
       // (player_actions.cpp:1588-1621), on the selection or the whole
       // battlefield. Disabled while the battlefield is empty.
       label: 'Increment all card counters',
-      shortcut: shortcutHints['game.incrementAllCardCounters'],
+      ...menuShortcut('game.incrementAllCardCounters'),
       onClick: incrementAllCardCounters,
       disabled:
         battlefieldDisplayList.length === 0,
@@ -258,13 +257,13 @@ export function useBattlefieldMenuItems({
       // Not phase-gated here — the menu action is always available.
       label: 'Untap all permanents',
       onClick: () => cardCommands.untapAll(),
-      shortcut: shortcutHints['game.untapAll'],
+      ...menuShortcut('game.untapAll'),
     },
     { divider: true },
     {
       label: 'Roll die...',
       onClick: () => onRequestRollDie?.(),
-      shortcut: shortcutHints['game.rollDice'],
+      ...menuShortcut('game.rollDice'),
     },
     {
       // "Flip coin" — port of actFlipCoin (player_actions.cpp:866-872).
@@ -273,7 +272,7 @@ export function useBattlefieldMenuItems({
       // renders the heads/tails outcome.
       label: 'Flip coin',
       onClick: () => counterCommands.flipCoin(),
-      shortcut: shortcutHints['game.flipCoin'],
+      ...menuShortcut('game.flipCoin'),
     },
     { divider: true },
     {
@@ -284,7 +283,7 @@ export function useBattlefieldMenuItems({
       // stores lastTokenInfo, then chains into actCreateAnotherToken.
       label: 'Create token...',
       onClick: () => openCreateTokenDialog(),
-      shortcut: shortcutHints['game.createToken'],
+      ...menuShortcut('game.createToken'),
     },
     {
       // "Create another token" — direct re-fire with the last submitted
@@ -299,7 +298,7 @@ export function useBattlefieldMenuItems({
         }
       },
       disabled: !lastToken,
-      shortcut: shortcutHints['game.createAnotherToken'],
+      ...menuShortcut('game.createAnotherToken'),
     },
     {
       label: 'Create predefined token',
@@ -312,7 +311,7 @@ export function useBattlefieldMenuItems({
       onClick: () => onRequestGameInfo?.(),
     },
     tallyMenu,
-    ...(onSay ? [buildSayMenu(messageMacros, shortcutHints, onSay)] : []),
+    ...(onSay ? [buildSayMenu(messageMacros, menuShortcut, onSay)] : []),
   ];
 
   // Opponent battlefield right-click menu. Ports Cockatrice's

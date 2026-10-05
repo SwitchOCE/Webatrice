@@ -1724,6 +1724,7 @@
     "life": "{name}'s life",
     "lifeHint": "Click or Up arrow: gain 1. Right-click or Down arrow: lose 1. Enter or Ctrl+L: set.",
     "manaPool": "Mana pool",
+    "playerMenu": "{name}'s player menu",
     "mana": {
       "W": "White",
       "U": "Blue",
@@ -1783,11 +1784,17 @@
     "button": "Hand — {count, plural, one {# card} other {# cards}}",
     "menu": "Hand"
   },
+  "PendingTargetAnnouncer": {
+    "arrow": "Choose a target for the arrow from {name}: press Enter on a card, or on a player's life. Escape cancels.",
+    "attach": "Choose a battlefield card to attach {name} to, and press Enter on it. Escape cancels.",
+    "thisCard": "this card"
+  },
   "PlayerBoard": {
     "seat": "{name}'s seat",
     "battlefield": "{name}'s battlefield, {count, plural, one {# card} other {# cards}}",
     "stack": "{name}'s stack, {count, plural, one {# card} other {# cards}}",
     "hand": "{name}'s hand, {count, plural, one {# card} other {# cards}}",
+    "playerMenu": "Player \"{name}\"",
     "cardKeys": "Arrow keys move between cards and select; Shift and an arrow extends the selection. Enter plays or taps, Shift+F10 opens the card menu, hold Z to zoom. Tab is Next phase; F6 moves on to the next control."
   },
   "SeatCard": {
@@ -1799,6 +1806,13 @@
     "counter": "{count, plural, one {# counter {letter}} other {# counters {letter}}}",
     "annotation": "note: {text}",
     "counterBadge": "Counter {letter}: {count}"
+  },
+  "ZoneStack": {
+    "library": "Library",
+    "graveyard": "Graveyard",
+    "exile": "Exile",
+    "pile": "{zone}, {count, plural, one {# card} other {# cards}}",
+    "pileWithTop": "{zone}, {count, plural, one {# card} other {# cards}}, top: {top}"
   },
   "GameInfoDialog": {
     "title": "Game info",

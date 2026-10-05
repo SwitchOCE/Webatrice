@@ -27,7 +27,7 @@ function setup(args: Partial<UsePileMenusArgs> = {}) {
     exileDisplayList: pile(42),
     displayedGraveyardCount: 2,
     displayedExileCount: 1,
-    shortcutHints: {} as UsePileMenusArgs['shortcutHints'],
+    menuShortcut: () => ({ shortcut: '', keyShortcuts: '' }),
     zoneCommands,
     ...args,
   }), { wrapper });

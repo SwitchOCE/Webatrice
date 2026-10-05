@@ -3,10 +3,11 @@
 // addRelatedCardView / addRelatedCardActions (card_menu.cpp:371-479); the
 // items fire the caller's handlers and never construct a request themselves.
 
+import type { MenuShortcut } from '@app/feature-widgets/shortcuts';
 import type { LookupCardFace, LookupResult, RelatedCardRef } from '@app/services';
 
 import type { CreateTokenRequest } from '../../ui/PlayerBoard/playerBoard.types';
-import type { CardMenuItem } from './cardContextMenu.model';
+import type { ContextMenuItem } from '../ContextMenu/ContextMenu';
 
 /**
  * The "View related cards" submenu, led by its separator. Ports desktop
@@ -20,7 +21,7 @@ export function buildRelatedViewItems(
   related: readonly RelatedCardRef[],
   resolvable: (name: string) => boolean,
   onView: (ref: RelatedCardRef) => void,
-): CardMenuItem[] {
+): ContextMenuItem[] {
   if (!related.some((ref) => resolvable(ref.name))) {
     return [];
   }
@@ -102,7 +103,7 @@ function relatedTokenAction(ref: RelatedCardRef, tok: LookupResult | undefined, 
   };
 }
 
-const actionItem = (action: RelatedTokenAction, onCreateToken: CreateTokenHandler | undefined): CardMenuItem => ({
+const actionItem = (action: RelatedTokenAction, onCreateToken: CreateTokenHandler | undefined): ContextMenuItem => ({
   label: action.label,
   onClick: () => {
     if (onCreateToken) {
@@ -121,7 +122,7 @@ export function buildRelatedTokenItems(
   tokenMeta: ReadonlyMap<string, LookupResult>,
   onCreateToken: CreateTokenHandler | undefined,
   annotate = false,
-): CardMenuItem[] {
+): ContextMenuItem[] {
   return related.map((ref) => actionItem(relatedTokenAction(ref, tokenMeta.get(ref.name), annotate), onCreateToken));
 }
 
@@ -210,7 +211,7 @@ export function buildTransformItems(
   parentName: string,
   onCreateToken: CreateTokenHandler | undefined,
   annotate = false,
-): CardMenuItem[] {
+): ContextMenuItem[] {
   const action = onCreateToken ? transformAction(parentMeta, sourceCardId, parentName, annotate) : null;
   return action ? [actionItem(action, onCreateToken)] : [];
 }
@@ -334,18 +335,18 @@ export function createAllRelated(source: RelatedCardSource): CreateAllRelated {
 export function buildRelatedActionItems(
   source: RelatedCardSource,
   onCreateToken: CreateTokenHandler | undefined,
-  createAllShortcut: string,
+  createAllShortcut: MenuShortcut,
   onCreateAll: () => void,
-): CardMenuItem[] {
+): ContextMenuItem[] {
   const items = [
     ...buildRelatedTokenItems(source.related, source.tokenMeta, onCreateToken, source.annotate),
     ...buildTransformItems(source.parentMeta, source.sourceCardId, source.parentName, onCreateToken, source.annotate),
   ];
-  const shortcut = createAllShortcut || undefined;
+  const shortcut = createAllShortcut.shortcut ? createAllShortcut : null;
   // The only item is what create-all runs, so it runs it the same way (the
   // count prompt for an "x" relation).
   if (items.length === 1) {
-    return [{ ...items[0], shortcut, onClick: onCreateAll }];
+    return [{ ...items[0], ...shortcut, onClick: onCreateAll }];
   }
   if (items.length === 0) {
     return items;
@@ -354,7 +355,7 @@ export function buildRelatedActionItems(
     ...items,
     {
       label: 'All tokens',
-      shortcut,
+      ...shortcut,
       onClick: onCreateAll,
     },
   ];

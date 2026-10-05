@@ -8,9 +8,7 @@ describe('useGameDialogState', () => {
     const { result } = renderHook(() => useGameDialogState());
 
     expect(result.current.state).toMatchObject({
-      cardMenu: null,
-      zoneMenu: null,
-      handMenu: null,
+      seatCardMenu: null,
       zoneViews: [],
       prompt: null,
       moveTopUntil: null,
@@ -20,7 +18,6 @@ describe('useGameDialogState', () => {
       createTokenOpen: false,
       concedeConfirm: null,
       leaveConfirm: false,
-      revealState: null,
     });
   });
 
@@ -64,33 +61,14 @@ describe('useGameDialogState', () => {
     expect(result.current.state.gameInfoOpen).toBe(false);
   });
 
-  it('closeAllContextMenus closes every menu, the seat card menus included', () => {
-    const { result } = renderHook(() => useGameDialogState());
-    act(() => {
-      result.current.set.setSeatCardMenu({ kind: 'stack', playerId: 1, cardId: '5', x: 0, y: 0 });
-      result.current.set.setZoneMenu({ playerId: 1, zoneName: 'grave', anchorPosition: { top: 0, left: 0 } });
-      result.current.set.setHandMenu({ top: 0, left: 0 });
-    });
-
-    act(() => result.current.closeAllContextMenus());
-
-    expect(result.current.state).toMatchObject({
-      cardMenu: null,
-      seatCardMenu: null,
-      zoneMenu: null,
-      handMenu: null,
-    });
-  });
-
   it('keeps its setters and toggles stable while the state changes', () => {
     const { result } = renderHook(() => useGameDialogState());
-    const { set, toggles, closeAllContextMenus, state } = result.current;
+    const { set, toggles, state } = result.current;
 
     act(() => toggles.openRollDie());
 
     expect(result.current.state).not.toBe(state);
     expect(result.current.set).toBe(set);
     expect(result.current.toggles).toBe(toggles);
-    expect(result.current.closeAllContextMenus).toBe(closeAllContextMenus);
   });
 });

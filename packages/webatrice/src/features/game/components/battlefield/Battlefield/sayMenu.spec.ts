@@ -1,9 +1,11 @@
+import type { ActionId } from '@app/feature-widgets/shortcuts';
+
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
-import { buildSayMenu, SAY_MACRO_ACTIONS } from './sayMenu';
+import { buildSayMenu } from './sayMenu';
 
 type Item = Extract<ContextMenuItem, { label: string }>;
 
-const hints = Object.fromEntries(SAY_MACRO_ACTIONS.map((id) => [id, `<${id}>`])) as Parameters<typeof buildSayMenu>[1];
+const hints = (id: ActionId) => ({ shortcut: `<${id}>`, keyShortcuts: '' });
 
 describe('buildSayMenu', () => {
   it('is disabled without macros', () => {

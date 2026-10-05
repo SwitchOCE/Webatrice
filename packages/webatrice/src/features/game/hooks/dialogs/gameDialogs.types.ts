@@ -1,15 +1,9 @@
-import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
-
 import type { CreateTokenSubmit } from '../../dialogs/CreateTokenDialog/CreateTokenDialog';
 import type { MoveTopUntilRequest } from '../useMoveTopUntil';
 
 // The game dialog and menu contract. `useGameDialogs` is the façade that builds
 // it; the hooks beside this file each own one domain of it.
 
-export interface AnchorPosition {
-  top: number;
-  left: number;
-}
 
 /**
  * One open zone view (desktop ZoneViewWidget): a player's zone and, for a
@@ -24,19 +18,13 @@ export interface ZoneViewTarget {
   isReversed?: boolean;
 }
 
-export interface CardMenuState {
-  card: ServerInfo_Card;
-  sourcePlayerId: number;
-  sourceZone: string;
-  anchorPosition: AnchorPosition;
-}
 
 /**
  * A card menu opened on a seat: the battlefield, stack, hand or zone-view card
  * it belongs to and where it opens. `pile` is a graveyard / exile view card,
  * `zoneView` a library / sideboard view card (desktop's hand-or-custom-zone
  * menu). The seat builds the items from its live state and renders them
- * through `CardMenuPopup`; keeping the open menu here makes it one of the
+ * through `ContextMenuPopup`; keeping the open menu here makes it one of the
  * game's mutually exclusive context menus.
  */
 export type SeatCardMenuState =
@@ -55,11 +43,6 @@ export type SeatCardMenuState =
     columnCardIds: string[];
   };
 
-export interface ZoneMenuState {
-  playerId: number;
-  zoneName: string;
-  anchorPosition: AnchorPosition;
-}
 
 /** The game's one text prompt, rendered by the root PromptDialog (see its props). */
 export interface PromptState {
@@ -94,22 +77,9 @@ export interface MoveTopUntilState {
   onSubmit: (request: MoveTopUntilRequest) => void;
 }
 
-export interface RevealState {
-  title: string;
-  zoneName: string;
-  zoneLabel: string;
-  showCountInput: boolean;
-  defaultCount: number;
-  onSubmit: (args: { targetPlayerId: number; topCards: number }) => void;
-}
 
 export type ConcedeConfirm = 'concede' | 'unconcede' | null;
 
-export interface StartPendingSource {
-  sourcePlayerId: number;
-  sourceZone: string;
-  sourceCardId: number;
-}
 
 // The dialogs slice splits into STATE (the open/closed flags + payloads that
 // change as the user opens/closes dialogs) and ACTIONS (the stable open/close/
@@ -118,10 +88,7 @@ export interface StartPendingSource {
 // one source instead of hand-syncing ~70 fields in three places. `GameDialogs`
 // (their intersection) stays the single type every consumer reads.
 export interface GameDialogsState {
-  cardMenu: CardMenuState | null;
   seatCardMenu: SeatCardMenuState | null;
-  zoneMenu: ZoneMenuState | null;
-  handMenu: AnchorPosition | null;
   zoneViews: ZoneViewTarget[];
   prompt: PromptState | null;
   moveTopUntil: MoveTopUntilState | null;
@@ -138,33 +105,16 @@ export interface GameDialogsState {
    *  action, so accidental clicks on the sidebar Leave button don't
    *  drop the user out of a game they meant to stay in. */
   leaveConfirm: boolean;
-  revealState: RevealState | null;
 }
 
 export interface GameDialogsActions {
-  // Card/zone/player/hand menus
-  closeCardMenu: () => void;
+  // The seats' card menus (one open at a time)
   openSeatCardMenu: (menu: SeatCardMenuState) => void;
   closeSeatCardMenu: () => void;
-  closeZoneMenu: () => void;
-  closeHandMenu: () => void;
-  handleCardContextMenu: (
-    sourcePlayerId: number | undefined,
-    sourceZone: string | undefined,
-    card: ServerInfo_Card,
-    event: React.MouseEvent,
-  ) => void;
-  handleZoneContextMenu: (
-    playerId: number,
-    zoneName: string,
-    event: React.MouseEvent,
-  ) => void;
-  handleHandContextMenu: (event: React.MouseEvent) => void;
 
   // Zone-view dialog stack
   /** Opens a zone view (see ZoneViewTarget), dumping a local hidden zone. */
   openZoneView: (view: ZoneViewTarget) => void;
-  handleZoneClick: (playerId: number, zoneName: string) => void;
   handleCloseZoneView: (playerId: number, zoneName: string, shuffleOnClose?: boolean) => void;
 
   // Prompt dialog
@@ -195,7 +145,6 @@ export interface GameDialogsActions {
     providerId?: string;
   }) => void;
 
-
   /** Open the local seat's own sideboard / library / graveyard view. */
   openViewSideboard: () => void;
   openViewLibrary: () => void;
@@ -214,50 +163,14 @@ export interface GameDialogsActions {
   closeLeaveConfirm: () => void;
   confirmLeave: () => void;
 
-  // Reveal-cards dialog
-  closeReveal: () => void;
-
-  // Card context menu action handlers
-  handleRequestSetPT: () => void;
-  handleRequestSetAnnotation: () => void;
-  handleRequestSetCardCounter: (counterId: number) => void;
-  handleRequestDrawArrow: () => void;
-  handleRequestAttach: () => void;
-  handleRequestPlayFromCardMenu: (faceDown: boolean) => void;
-  handleRequestMoveToLibraryAt: () => void;
-
-  // Zone context menu action handlers
+  // Library and hand actions behind the game shortcuts and the hand menu
   handleRequestDrawN: () => void;
-  handleRequestDumpN: () => void;
-  handleRequestRevealTopN: () => void;
-  handleRequestRevealZone: () => void;
-
-  // Library extended actions
   handleRequestUndoDraw: () => void;
-  handleRequestDrawBottom: () => void;
   handleRequestMoveTopCardToZone: (zone: string, options?: { x?: number }) => void;
   handleRequestPlayTop: (faceDown: boolean) => void;
   handleRequestMoveTopNToZone: (zone: string) => void;
-  handleRequestShuffleTopN: () => void;
-  handleRequestShuffleBottomN: () => void;
-
-  // View the current zoneMenu's zone (deck / grave / exile) — reuses the
-  // existing zone-view dialog stack.
-  handleRequestViewZone: () => void;
-
-  // Graveyard / Exile actions (sourceZone resolved from current zoneMenu)
-  handleRequestMoveAllFromZoneToDeck: (top: boolean) => void;
-  handleRequestMoveAllFromZoneTo: (targetZone: string) => void;
-  handleRequestRevealRandomFromZone: () => void;
-
-  // Hand context menu action handlers
   handleRequestChooseMulligan: () => void;
-  handleRequestRevealHand: () => void;
-  handleRequestRevealRandom: () => void;
-  handleRequestViewHand: () => void;
   handleRequestSortHandBy: (key: HandSortKey) => void;
-  handleRequestMoveHandToDeck: (top: boolean) => void;
-  handleRequestMoveHandToZone: (zone: string) => void;
 }
 
 export type GameDialogs = GameDialogsState & GameDialogsActions;
@@ -270,16 +183,9 @@ export type HandSortKey = 'name' | 'maintype' | 'manacost';
 // the ~55 callbacks. Tree-shaken out of production bundles.
 const noopDialogAction = (): void => undefined;
 export const NOOP_GAME_DIALOGS_ACTIONS: GameDialogsActions = {
-  closeCardMenu: noopDialogAction,
   openSeatCardMenu: noopDialogAction,
   closeSeatCardMenu: noopDialogAction,
-  closeZoneMenu: noopDialogAction,
-  closeHandMenu: noopDialogAction,
-  handleCardContextMenu: noopDialogAction,
-  handleZoneContextMenu: noopDialogAction,
-  handleHandContextMenu: noopDialogAction,
   openZoneView: noopDialogAction,
-  handleZoneClick: noopDialogAction,
   handleCloseZoneView: noopDialogAction,
   openPrompt: noopDialogAction,
   closePrompt: noopDialogAction,
@@ -304,34 +210,11 @@ export const NOOP_GAME_DIALOGS_ACTIONS: GameDialogsActions = {
   openLeaveConfirm: noopDialogAction,
   closeLeaveConfirm: noopDialogAction,
   confirmLeave: noopDialogAction,
-  closeReveal: noopDialogAction,
-  handleRequestSetPT: noopDialogAction,
-  handleRequestSetAnnotation: noopDialogAction,
-  handleRequestSetCardCounter: noopDialogAction,
-  handleRequestDrawArrow: noopDialogAction,
-  handleRequestAttach: noopDialogAction,
-  handleRequestPlayFromCardMenu: noopDialogAction,
-  handleRequestMoveToLibraryAt: noopDialogAction,
   handleRequestDrawN: noopDialogAction,
-  handleRequestDumpN: noopDialogAction,
-  handleRequestRevealTopN: noopDialogAction,
-  handleRequestRevealZone: noopDialogAction,
   handleRequestUndoDraw: noopDialogAction,
-  handleRequestDrawBottom: noopDialogAction,
   handleRequestMoveTopCardToZone: noopDialogAction,
   handleRequestPlayTop: noopDialogAction,
   handleRequestMoveTopNToZone: noopDialogAction,
-  handleRequestShuffleTopN: noopDialogAction,
-  handleRequestShuffleBottomN: noopDialogAction,
-  handleRequestViewZone: noopDialogAction,
-  handleRequestMoveAllFromZoneToDeck: noopDialogAction,
-  handleRequestMoveAllFromZoneTo: noopDialogAction,
-  handleRequestRevealRandomFromZone: noopDialogAction,
   handleRequestChooseMulligan: noopDialogAction,
-  handleRequestRevealHand: noopDialogAction,
-  handleRequestRevealRandom: noopDialogAction,
-  handleRequestViewHand: noopDialogAction,
   handleRequestSortHandBy: noopDialogAction,
-  handleRequestMoveHandToDeck: noopDialogAction,
-  handleRequestMoveHandToZone: noopDialogAction,
 };

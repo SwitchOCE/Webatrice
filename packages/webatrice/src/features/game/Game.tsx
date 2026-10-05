@@ -11,9 +11,6 @@ import GameErrorBoundary from './GameErrorBoundary';
 import { useCurrentGame } from './hooks/useCurrentGame';
 import GameArrowOverlay from './components/arrows/GameArrowOverlay/GameArrowOverlay';
 import BoxSelectOverlay from './components/ui/BoxSelectOverlay/BoxSelectOverlay';
-import CardContextMenu from './components/context-menus/CardContextMenu/CardContextMenu';
-import HandContextMenu from './components/context-menus/HandContextMenu/HandContextMenu';
-import ZoneContextMenu from './components/context-menus/ZoneContextMenu/ZoneContextMenu';
 import PhaseTrack from './components/PhaseTrack/PhaseTrack';
 import BattlefieldSidebar from './components/BattlefieldSidebar/BattlefieldSidebar';
 import SidebarResizer from './components/SidebarResizer/SidebarResizer';
@@ -28,7 +25,6 @@ import CreateTokenDialog from './dialogs/CreateTokenDialog/CreateTokenDialog';
 import MoveTopUntilDialog from './dialogs/MoveTopUntilDialog/MoveTopUntilDialog';
 import DeckSelectDialog from './dialogs/DeckSelectDialog/DeckSelectDialog';
 import GameInfoDialog from './dialogs/GameInfoDialog/GameInfoDialog';
-import RevealCardsDialog from './dialogs/RevealCardsDialog/RevealCardsDialog';
 import RollDieDialog from './dialogs/RollDieDialog/RollDieDialog';
 import ZoneViewDialog from './dialogs/ZoneViewDialog/ZoneViewDialog';
 import { useGame } from './hooks/useGame';
@@ -36,6 +32,7 @@ import { CardRegistryContext } from './utils/CardRegistry/CardRegistryContext';
 import { keepFocusOnBoardPress } from './utils/keepChatFocus';
 import { CardVisualStateProvider } from './components/ui/CardVisualStateContext';
 import { PendingTargetProvider } from './components/ui/PendingTargetContext';
+import PendingTargetAnnouncer from './components/ui/PendingTargetAnnouncer/PendingTargetAnnouncer';
 import { GameDialogActionsProvider } from './components/ui/GameDialogActionsContext';
 import { GameIdProvider } from './components/ui/GameIdContext';
 import { CardPreviewProvider } from './components/ui/CardPreviewContext';
@@ -210,6 +207,7 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                     >
                       <ActiveSeatDragProvider value={dnd.activeSeatDrag}>
                         <PendingTargetProvider value={arrows.pendingTarget}>
+                          <PendingTargetAnnouncer />
                           <CardVisualStateProvider
                             arrowSourceKey={arrows.arrowSourceKey}
                             arrowTargetKey={arrows.arrowTargetKey}
@@ -301,12 +299,6 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                                     />
                                   ))}
 
-                                  <CardContextMenu />
-
-                                  <ZoneContextMenu />
-
-                                  <HandContextMenu />
-
                                   {dialogs.prompt && (
                                     <PromptDialog
                                       isOpen
@@ -320,8 +312,6 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                                   <CreateTokenDialog />
 
                                   <MoveTopUntilDialog />
-
-                                  <RevealCardsDialog />
 
                                   {/* Receiver-side popup: opens whenever an
                               Event_RevealCards arrives with a populated
