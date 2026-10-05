@@ -55,10 +55,13 @@ export const ZOOM_KEY = 'z';
  * Next Phase.
  */
 export function focusPastZone(from: HTMLElement, backwards: boolean): void {
+  tabStopPast(from, backwards)?.focus();
+}
+
+function tabStopPast(from: HTMLElement, backwards: boolean): HTMLElement | undefined {
   const stops = tabbableElements(document.body);
   const index = stops.indexOf(from);
-  const next = backwards ? stops[index - 1] ?? stops[stops.length - 1] : stops[index + 1] ?? stops[0];
-  next?.focus();
+  return backwards ? stops[index - 1] ?? stops[stops.length - 1] : stops[index + 1] ?? stops[0];
 }
 
 /**
@@ -127,7 +130,10 @@ export function useCardFocus<C extends { id: string }>({
     orientation,
     lines,
     onExtend: extend,
-    keepFocusOnRemoval: true,
+    // The zone's last card leaving (the hand played out) moves focus on to
+    // the next tab stop, as F6 would, rather than dropping it to the page,
+    // where Tab is Next Phase.
+    keepFocusOnRemoval: (removed) => tabStopPast(removed, false),
   });
 
   const endZoom = () => {

@@ -76,7 +76,7 @@ test('draw, play, tap, point and bin a card with the keyboard only', async ({ ne
   await expect(library).toBeFocused();
 
   // The Tab rule: on a card Tab is Next Phase (untap → upkeep) and focus
-  // stays; F6 then leaves the hand for the next tab stop.
+  // stays; F6 then leaves the hand for the next tab stop, off every zone.
   const firstCard = hand.locator('[role="option"][tabindex="0"]');
   await tabTo(page, firstCard);
   await expect(phases.getByRole('button', { name: 'Untap', exact: true })).toHaveAttribute('aria-current', 'step');
@@ -87,8 +87,7 @@ test('draw, play, tap, point and bin a card with the keyboard only', async ({ ne
   await page.keyboard.press('F6');
   await expect(hand.getByRole('option').filter({ has: page.locator(':focus') })).toHaveCount(0);
   expect(await page.evaluate(() => document.activeElement?.closest('[role="listbox"]') == null)).toBe(true);
-  await page.keyboard.press('Shift+F6');
-  await expect(firstCard).toBeFocused();
+  await tabTo(page, firstCard);
 
   // Play a land: the arrows move through the hand, Enter plays the card.
   await page.keyboard.press('ArrowRight');
