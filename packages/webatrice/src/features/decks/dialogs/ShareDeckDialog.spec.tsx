@@ -74,12 +74,19 @@ describe('ShareDeckDialog', () => {
     const writeText = vi.fn().mockRejectedValue(new Error('denied'));
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
     renderDialog({ status: 'created', link: 'https://x/#share=t', expiresAt: 1n, itemCount: 1, copied: false });
-    const link = screen.getByRole('textbox', { name: 'DeckSharing.linkLabel' });
-    fireEvent.click(screen.getByRole('button', { name: /DeckSharing.copy/ }));
+    const link = screen.getByRole<HTMLInputElement>('textbox', { name: 'DeckSharing.linkLabel' });
+    const copyButton = screen.getByRole('button', { name: /DeckSharing.copy/ });
+    copyButton.focus();
+    link.setSelectionRange(link.value.length, link.value.length);
+    expect(copyButton).toHaveFocus();
+    expect(link.selectionStart).toBe(link.value.length);
+    fireEvent.click(copyButton);
 
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('DeckSharing.copyFailed'));
     expect(screen.getAllByText('DeckSharing.copyFailed')).toHaveLength(2);
     expect(link).toHaveFocus();
+    expect(link.selectionStart).toBe(0);
+    expect(link.selectionEnd).toBe(link.value.length);
     expect(screen.queryByRole('button', { name: /DeckSharing.copied/ })).toBeNull();
   });
 
