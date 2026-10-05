@@ -23,12 +23,12 @@ function insertAtPath(
   item: ServerInfo_DeckStorage_TreeItem,
 ): ServerInfo_DeckStorage_Folder {
   if (pathSegments.length === 0 || (pathSegments.length === 1 && pathSegments[0] === '')) {
-    return create(ServerInfo_DeckStorage_FolderSchema, { items: [...folder.items, item] });
+    return cloneWith(ServerInfo_DeckStorage_FolderSchema, folder, { items: [...folder.items, item] });
   }
   const [head, ...tail] = pathSegments;
   const match = folder.items.find(child => child.name === head && child.folder);
   if (match) {
-    return create(ServerInfo_DeckStorage_FolderSchema, {
+    return cloneWith(ServerInfo_DeckStorage_FolderSchema, folder, {
       items: folder.items.map(child =>
         child === match
           ? { ...child, folder: insertAtPath(child.folder!, tail, item) }
@@ -39,11 +39,11 @@ function insertAtPath(
   const created: ServerInfo_DeckStorage_TreeItem = create(ServerInfo_DeckStorage_TreeItemSchema, {
     id: 0, name: head, folder: insertAtPath(create(ServerInfo_DeckStorage_FolderSchema, { items: [] }), tail, item)
   });
-  return create(ServerInfo_DeckStorage_FolderSchema, { items: [...folder.items, created] });
+  return cloneWith(ServerInfo_DeckStorage_FolderSchema, folder, { items: [...folder.items, created] });
 }
 
 function removeById(folder: ServerInfo_DeckStorage_Folder, id: number): ServerInfo_DeckStorage_Folder {
-  return create(ServerInfo_DeckStorage_FolderSchema, {
+  return cloneWith(ServerInfo_DeckStorage_FolderSchema, folder, {
     items: folder.items
       .filter(item => item.id !== id)
       .map(item =>
@@ -57,7 +57,7 @@ function replaceFileById(
   id: number,
   replacement: ServerInfo_DeckStorage_TreeItem,
 ): ServerInfo_DeckStorage_Folder {
-  return create(ServerInfo_DeckStorage_FolderSchema, {
+  return cloneWith(ServerInfo_DeckStorage_FolderSchema, folder, {
     items: folder.items.map(item => {
       if (item.folder) {
         return { ...item, folder: replaceFileById(item.folder, id, replacement) };
@@ -73,11 +73,11 @@ function removeByPath(folder: ServerInfo_DeckStorage_Folder, pathSegments: strin
   }
   const [head, ...tail] = pathSegments;
   if (tail.length === 0) {
-    return create(ServerInfo_DeckStorage_FolderSchema, {
+    return cloneWith(ServerInfo_DeckStorage_FolderSchema, folder, {
       items: folder.items.filter(item => !(item.name === head && item.folder != null))
     });
   }
-  return create(ServerInfo_DeckStorage_FolderSchema, {
+  return cloneWith(ServerInfo_DeckStorage_FolderSchema, folder, {
     items: folder.items.map(item =>
       item.name === head && item.folder
         ? { ...item, folder: removeByPath(item.folder, tail) }
