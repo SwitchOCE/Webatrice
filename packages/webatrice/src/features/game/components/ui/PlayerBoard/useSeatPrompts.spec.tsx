@@ -2,7 +2,12 @@ import { act, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { ZoneName } from '@cockatrice/sockatrice';
 
+import editTokens from '../../../../../feature-widgets/card-import/EditTokens.i18n.json';
+import { catalogT } from '../../../__test-utils__/catalogT';
+import menus from '../../context-menus/menus.i18n.json';
+import moveTopUntil from '../../../dialogs/MoveTopUntilDialog/MoveTopUntilDialog.i18n.json';
 import { NOOP_GAME_DIALOGS_ACTIONS, type GameDialogs, type PromptState } from '../../../hooks/dialogs/gameDialogs.types';
+import gamePrompt from '../../../hooks/dialogs/GamePrompt.i18n.json';
 import { GameDialogsProvider } from '../GameDialogsContext';
 import type {
   BattlefieldCardViewModel,
@@ -12,6 +17,10 @@ import type {
 } from './playerBoard.types';
 import { useSeatPrompts, type LifeControl, type UseSeatPromptsArgs } from './useSeatPrompts';
 import type { SeatCardMeta } from './useSeatCardMetadata';
+
+const t = catalogT(gamePrompt, editTokens, menus, moveTopUntil);
+
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t }) }));
 
 const bf = (id: number, name: string, pt?: string): BattlefieldCardViewModel => ({
   id: String(id),

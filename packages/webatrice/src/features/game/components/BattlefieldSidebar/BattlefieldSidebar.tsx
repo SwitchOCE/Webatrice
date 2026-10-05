@@ -275,6 +275,17 @@ export default function BattlefieldSidebar() {
       : undefined;
   const displayLoyalty = face?.loyalty ?? detail?.loyalty;
 
+  const previewModeOptions = [
+    { mode: 'image', Icon: ImageIcon, title: t('BattlefieldSidebar.showImage'), divider: true },
+    { mode: 'text', Icon: FileText, title: t('BattlefieldSidebar.showDescription'), divider: true },
+    { mode: 'both', Icon: LayoutList, title: t('BattlefieldSidebar.showBoth'), divider: false },
+  ] as const satisfies ReadonlyArray<{
+    mode: PreviewMode;
+    Icon: typeof ImageIcon;
+    title: string;
+    divider: boolean;
+  }>;
+
   return (
     <aside
       data-testid="right-panel"
@@ -334,11 +345,7 @@ export default function BattlefieldSidebar() {
              *  three buttons narrow enough to fit next to the Pop out
              *  toggle. `aria-pressed` marks the active option. */}
             <div className="inline-flex rounded-md border border-border-subtle overflow-hidden">
-              {([
-                { mode: 'image', Icon: ImageIcon, title: t('BattlefieldSidebar.showImage') },
-                { mode: 'text', Icon: FileText, title: t('BattlefieldSidebar.showDescription') },
-                { mode: 'both', Icon: LayoutList, title: t('BattlefieldSidebar.showBoth') },
-              ] as const).map(({ mode, Icon, title }) => {
+              {previewModeOptions.map(({ mode, Icon, title, divider }) => {
                 const active = previewMode === mode;
                 return (
                   <button
@@ -351,7 +358,7 @@ export default function BattlefieldSidebar() {
                       'inline-flex items-center justify-center px-2 py-1 text-[11px] font-medium transition-colors',
                       // Subtle divider between segments; last button
                       // doesn't need one on the right edge.
-                      mode !== 'both' ? 'border-r border-border-subtle' : '',
+                      divider ? 'border-r border-border-subtle' : '',
                       active
                         ? 'text-accent bg-accent/15'
                         : 'text-text-primary bg-bg-elevated hover:bg-border-subtle',

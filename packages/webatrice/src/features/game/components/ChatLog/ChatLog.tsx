@@ -62,6 +62,10 @@ const SEGMENT_CLASS: Record<LogSegment['kind'], string> = {
   number: 'font-semibold text-cyan-300 light:text-cyan-700 tabular-nums',
 };
 
+function logRowBackground(index: number): string {
+  return index % 2 === 0 ? 'bg-transparent' : 'bg-black/15';
+}
+
 /**
  * Shared chat + event log used both in the pre-game lobby and inside
  * the game screen sidebar. Reads its gameId from `useGameId()` context
@@ -181,11 +185,11 @@ function ChatLogView() {
         )}
         {messages.map((m, idx) => {
           const isEvent = m.kind === 'event';
-          const rowClass = idx % 2 === 0
-            ? 'bg-transparent'
-            : 'bg-black/15';
+          const rowClass = logRowBackground(idx);
           const name =
-            m.senderName ?? players?.[m.playerId]?.properties.userInfo?.name ?? `p${m.playerId}`;
+            m.senderName
+            ?? players?.[m.playerId]?.properties.userInfo?.name
+            ?? t('GameLog.player.number', { id: m.playerId });
           // Per-message stamp, Cockatrice-style `[HH:MM:SS]`: the user's
           // local clock (desktop's `QDateTime::currentDateTime()`), or with
           // "Use game time instead of local time in game logs" the game time

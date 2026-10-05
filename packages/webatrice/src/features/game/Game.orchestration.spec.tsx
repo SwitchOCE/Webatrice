@@ -68,9 +68,9 @@ describe('Game orchestration', () => {
 
     openContextMenu(battlefieldEl(1));
     chooseMenuPath('Roll die...');
-    const dialog = screen.getByRole('dialog', { name: /roll die/i });
-    fireEvent.change(within(dialog).getByLabelText('Sides'), { target: { value: '20' } });
-    fireEvent.change(within(dialog).getByLabelText('Count'), { target: { value: '2' } });
+    const dialog = screen.getByRole('dialog', { name: 'Roll Dice' });
+    fireEvent.change(within(dialog).getByLabelText('Number of sides'), { target: { value: '20' } });
+    fireEvent.change(within(dialog).getByLabelText('Number of dice'), { target: { value: '2' } });
     fireEvent.click(within(dialog).getByRole('button', { name: /^roll$/i }));
 
     expect(game.rollDie).toHaveBeenCalledWith(1, { sides: 20, count: 2 });
@@ -158,7 +158,7 @@ describe('Game orchestration', () => {
     const game = renderGame();
 
     fireEvent.click(screen.getByTitle('Concede this game'));
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Concede' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'GameLink.yes' }));
 
     expect(game.concede).toHaveBeenCalledWith(1);
   });
@@ -174,7 +174,7 @@ describe('Game orchestration', () => {
       numberCards: -1,
       isReversed: false,
     });
-    expect(screen.getByText('ZoneLabel.title.sb — P1')).toBeInTheDocument();
+    expect(screen.getByText('Sideboard — P1')).toBeInTheDocument();
   });
 
   it('Game info: battlefield menu → GameInfoDialog', () => {

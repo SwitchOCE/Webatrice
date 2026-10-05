@@ -130,6 +130,10 @@ function ManaPip({
 
 const NO_MODIFIERS = (event: KeyboardEvent) => !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey;
 
+function menuAnchorBelow(button: HTMLElement): MenuAnchor {
+  return { rect: button.getBoundingClientRect(), placement: 'below', align: 'end' };
+}
+
 /**
  * The keyboard's way to the player menu that right-clicking the battlefield
  * opens (desktop's Player "name" menu): a button on the player's block.
@@ -140,7 +144,7 @@ function PlayerMenuButton() {
   const { isSelf, name, battlefieldMenuItems, opponentBattlefieldMenuItems } = usePlayerSeatContext();
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
-  const openBelow = (button: HTMLElement) => setAnchor({ rect: button.getBoundingClientRect(), placement: 'below', align: 'end' });
+  const openBelow = (button: HTMLElement) => setAnchor(menuAnchorBelow(button));
   return (
     <>
       <button

@@ -1,4 +1,5 @@
 import { ReactNode, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 import { DndContext } from '@dnd-kit/core';
 
@@ -44,12 +45,6 @@ import { GameDialogsProvider } from './components/ui/GameDialogsContext';
 import { useGameReadOnly } from './components/ui/GameReadOnlyContext';
 
 import './Game.css';
-
-const CONCEDE_CONFIRM_MESSAGE =
-  'You\'ll stay seated as a spectator until you click Unconcede or Leave Game. Others will see you as conceded.';
-
-const LEAVE_CONFIRM_MESSAGE =
-  'You\'ll be removed from the game entirely. To rejoin, you\'ll need a re-invite or to join as a spectator (if allowed).';
 
 /**
  * Top-level game route. Splits the render into two paths:
@@ -114,6 +109,7 @@ export interface GameBoardProps {
  * the game removed.
  */
 export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardProps = {}) {
+  const { t } = useTranslation();
   const readOnly = useGameReadOnly();
   const g = useGame({ gameId: boardGameId, readOnly });
   const {
@@ -256,7 +252,7 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                                   >
                                     {!game && (
                                       <div className="game__empty" data-testid="game-empty">
-                    No active game. Join a game from a room to see the board.
+                                        {t('Game.empty')}
                                       </div>
                                     )}
 
@@ -326,9 +322,10 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
 
                                   <ConfirmDialog
                                     isOpen={dialogs.concedeConfirm === 'concede'}
-                                    title="Concede this game?"
-                                    message={CONCEDE_CONFIRM_MESSAGE}
-                                    confirmLabel="Concede"
+                                    title={t('BattlefieldSidebar.concede')}
+                                    message={t('Game.confirm.concede.message')}
+                                    confirmLabel={t('GameLink.yes')}
+                                    cancelLabel={t('GameLink.no')}
                                     destructive
                                     onConfirm={dialogs.confirmConcede}
                                     onCancel={dialogs.closeConcedeConfirm}
@@ -336,18 +333,20 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
 
                                   <ConfirmDialog
                                     isOpen={dialogs.concedeConfirm === 'unconcede'}
-                                    title="Rejoin the game?"
-                                    message="This undoes your concede and puts you back into the active player rotation."
-                                    confirmLabel="Unconcede"
+                                    title={t('Game.confirm.unconcede.title')}
+                                    message={t('Game.confirm.unconcede.message')}
+                                    confirmLabel={t('GameLink.yes')}
+                                    cancelLabel={t('GameLink.no')}
                                     onConfirm={dialogs.confirmUnconcede}
                                     onCancel={dialogs.closeConcedeConfirm}
                                   />
 
                                   <ConfirmDialog
                                     isOpen={dialogs.leaveConfirm}
-                                    title="Leave this game?"
-                                    message={LEAVE_CONFIRM_MESSAGE}
-                                    confirmLabel="Leave"
+                                    title={t('ShortcutsTab.action.game.leaveGame')}
+                                    message={t('Game.confirm.leave.message')}
+                                    confirmLabel={t('GameLink.yes')}
+                                    cancelLabel={t('GameLink.no')}
                                     destructive
                                     onConfirm={dialogs.confirmLeave}
                                     onCancel={dialogs.closeLeaveConfirm}

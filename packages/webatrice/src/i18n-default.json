@@ -3272,6 +3272,13 @@
       "title": "End step / cleanup"
     }
   },
+  "CardPreviewPopup": {
+    "title": "Card Preview",
+    "receiving": "Receiving updates from the main window.",
+    "reconnectingDescription": "Waiting for the main window to reconnect…",
+    "live": "● Live",
+    "reconnecting": "○ Reconnecting…"
+  },
   "CardMenu": {
     "tapUntap": "Tap / Untap",
     "skipUntapping": "Skip untapping",
@@ -3390,6 +3397,10 @@
     "topLibrary": "Top of library",
     "bottomLibrary": "Bottom of library"
   },
+  "SidebarResizer": {
+    "label": "Resize sidebar",
+    "title": "Drag to resize the sidebar (Arrow keys for keyboard)"
+  },
   "CreateTokenDialog": {
     "title": "Create token",
     "search": "Search tokens",
@@ -3474,6 +3485,25 @@
       "other": "Other",
       "mana": "Mana {value}",
       "colorless": "Colorless"
+    }
+  },
+  "Game": {
+    "empty": "No active game. Join a game from a room to see the board.",
+    "confirm": {
+      "concede": {
+        "message": "Are you sure you want to concede this game?"
+      },
+      "unconcede": {
+        "title": "Unconcede",
+        "message": "You have already conceded.  Do you want to return to this game?"
+      },
+      "leave": {
+        "message": "Are you sure you want to leave this game?"
+      }
+    },
+    "toast": {
+      "kicked": "You were kicked from the game",
+      "closed": "The game was closed by the host"
     }
   },
   "GamePrompt": {
