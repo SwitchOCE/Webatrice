@@ -7,6 +7,9 @@ const META = new Map([
   ['Ogre', { typeLine: 'Creature — Ogre', pt: '3/3' }],
   ['Shock', { typeLine: 'Instant' }],
   ['Sol Ring', { typeLine: 'Artifact' }],
+  // cards.xml puts this creature in the lands' row; its type line alone
+  // would put it with the creatures.
+  ['Dryad Arbor', { typeLine: 'Land Creature — Forest Dryad', pt: '1/1', tableRow: 0 }],
 ]);
 const meta = (name: string) => META.get(name);
 const card = (id: string, name: string) => ({ id, name });
@@ -21,6 +24,12 @@ describe('tableMove', () => {
     // Row 3 folds into the middle row (table_zone.cpp:409-415), not the stack.
     expect(tableMove(4, meta('Shock'))).toEqual({ card: 4, to: { zone: ZoneName.TABLE, index: 'end', row: 1 } });
     expect(tableMove(5, undefined)).toEqual({ card: 5, to: { zone: ZoneName.TABLE, index: 'end', row: 1 } });
+  });
+
+  // Desktop reads the row from the card database (player_actions.cpp:1942-1951);
+  // the type line is the fallback for a card cards.xml does not have.
+  it('takes the row from cards.xml tablerow over the type line', () => {
+    expect(tableMove(6, meta('Dryad Arbor'))).toEqual({ card: { id: 6, pt: '1/1' }, to: { zone: ZoneName.TABLE, index: 'end', row: 2 } });
   });
 });
 

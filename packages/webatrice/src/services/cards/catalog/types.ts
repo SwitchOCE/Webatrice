@@ -12,6 +12,9 @@ export interface LookupResult {
   toughness?: string;
   /** cards.xml `<cipt>1</cipt>`: the card comes into play tapped. */
   cipt?: boolean;
+  /** cards.xml `<tablerow>`: the battlefield row the card goes to (desktop
+   *  CardInfo::UiAttributes::tableRow; 0 lands, 3 instants and sorceries). */
+  tableRow?: number;
   /** All known printings. Cards from Dexie may have many; a Scryfall
    *  `/cards/named` lookup returns a single (default) printing. */
   printings: PrintingSummary[];

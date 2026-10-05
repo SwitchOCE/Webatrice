@@ -97,6 +97,7 @@ export function dexieToLookup(card: Card, preferences?: CardDataPreferences): Lo
     power: readStringProp(prop.power),
     toughness: readStringProp(prop.toughness),
     ...(card.cipt?.value === '1' && { cipt: true }),
+    ...readTableRow(card.tablerow?.value),
     printings,
     related: relatedList.length > 0 ? relatedList : undefined,
     text: card.text?.value || undefined,
@@ -104,6 +105,12 @@ export function dexieToLookup(card: Card, preferences?: CardDataPreferences): Lo
     properties: readProperties(prop),
     legalities: readLegalities(prop),
   };
+}
+
+/** cards.xml `<tablerow>`, when it holds a row number. */
+function readTableRow(raw: string | undefined): { tableRow?: number } {
+  const value = raw?.trim();
+  return value && /^\d+$/.test(value) ? { tableRow: Number(value) } : {};
 }
 
 function readProperties(prop: Record<string, { value?: unknown } | undefined>): Record<string, string> {

@@ -7,7 +7,9 @@
 //
 //   - the card-database policy reads cards.xml `<tablerow>`
 //     (0 land, 1 creature, 2 other permanent, 3 instant/sorcery), and drives
-//     playCardViaTableRow and token creation;
+//     playCardViaTableRow, token creation and "Move to > Table"
+//     (selectionMoves.tableMove, which falls back to the type line for a card
+//     the database lacks);
 //   - the legacy type-line policy classifies a type line itself and puts
 //     creatures in row 2, and drives the seat's double-click play.
 //
