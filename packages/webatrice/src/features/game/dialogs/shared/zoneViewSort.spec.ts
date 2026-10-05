@@ -7,6 +7,10 @@ import {
   type SortMode,
   type ZoneViewCardMetadata,
 } from './zoneViewSort';
+import { catalogT } from '../../__test-utils__/catalogT';
+import zoneView from './ZoneView.i18n.json';
+
+const t = catalogT(zoneView);
 
 const card = (name: string, overrides: Partial<ZoneViewCardMetadata> = {}): ZoneViewCardMetadata => ({
   name,
@@ -79,11 +83,11 @@ describe('zoneViewSort', () => {
 
   describe('groupCards', () => {
     const groups = (mode: Parameters<typeof groupCards>[1]) =>
-      groupCards(enrich(ALL), mode).map((g) => [g.label, g.cards.map((c) => c.meta.name)]);
+      groupCards(enrich(ALL), mode, t).map((g) => [g.label, g.cards.map((c) => c.meta.name)]);
 
     it('keeps one unlabeled group, or none for an empty view', () => {
       expect(groups('none')).toEqual([['', ALL.map((c) => c.name)]]);
-      expect(groupCards([], 'none')).toEqual([]);
+      expect(groupCards([], 'none', t)).toEqual([]);
     });
 
     it('groups by primary type in desktop order, unknown types under Other', () => {
@@ -124,10 +128,15 @@ describe('buildCardGroups', () => {
   const cards = [hand('1', 'Forest'), hand('2', 'Bears'), hand('3', 'Mystery')];
 
   it('filters by the query, sorts, then groups, treating an unanswered name as unknown', () => {
-    expect(buildCardGroups(cards, meta, { sortBy: 'name', groupBy: 'type' }).map((g) => [g.label, g.cards.map((c) => c.handCard.id)]))
+    expect(buildCardGroups(cards, meta, { sortBy: 'name', groupBy: 'type' }, t).map((g) => [g.label, g.cards.map((c) => c.handCard.id)]))
       .toEqual([['Creature', ['2']], ['Land', ['1']], ['Other', ['3']]]);
-    expect(buildCardGroups(cards, meta, { query: 't:land', sortBy: 'none', groupBy: 'none' }).map((g) => g.cards.map((c) => c.handCard.id)))
+    expect(buildCardGroups(
+      cards,
+      meta,
+      { query: 't:land', sortBy: 'none', groupBy: 'none' },
+      t,
+    ).map((g) => g.cards.map((c) => c.handCard.id)))
       .toEqual([['1']]);
-    expect(buildCardGroups(cards, meta, { query: 'nothing', sortBy: 'none', groupBy: 'type' })).toEqual([]);
+    expect(buildCardGroups(cards, meta, { query: 'nothing', sortBy: 'none', groupBy: 'type' }, t)).toEqual([]);
   });
 });

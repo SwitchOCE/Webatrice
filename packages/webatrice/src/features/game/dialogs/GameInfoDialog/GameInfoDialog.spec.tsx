@@ -78,7 +78,7 @@ describe('GameInfoDialog', () => {
     });
 
     // The footer's Close; the header's X is DialogShell's own (Common.action.close).
-    fireEvent.click(screen.getByRole('button', { name: 'GameInfoDialog.close' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Common.action.close' })[1]);
     expect(closeGameInfo).toHaveBeenCalled();
   });
 
@@ -100,7 +100,7 @@ describe('GameInfoDialog', () => {
     });
     const dialog = screen.getByRole('dialog', { name: 'GameInfoDialog.title' });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(screen.getByRole('button', { name: 'GameInfoDialog.close' })).toHaveFocus();
+    expect(screen.getAllByRole('button', { name: 'Common.action.close' })[1]).toHaveFocus();
     await user.tab();
     await user.tab();
     expect(dialog).toContainElement(document.activeElement as HTMLElement);

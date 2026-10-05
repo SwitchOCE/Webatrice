@@ -1,5 +1,6 @@
 import { ZoneName } from '@cockatrice/sockatrice';
 import { useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { GameDialogsActions } from './gameDialogs.types';
 import type { GameDialogEnv } from './gameDialogEnv';
@@ -23,6 +24,7 @@ export interface UseLibraryDialogActionsArgs {
 
 /** The local library's prompts and top-card moves, behind the game shortcuts. */
 export function useLibraryDialogActions({ env, set }: UseLibraryDialogActionsArgs): LibraryDialogActions {
+  const { t } = useTranslation();
   const { gameId, webClient, readGame } = env;
   const { setPrompt } = set;
 
@@ -31,16 +33,16 @@ export function useLibraryDialogActions({ env, set }: UseLibraryDialogActionsArg
       return;
     }
     setPrompt({
-      title: 'Draw N cards',
-      label: 'Number of cards',
+      title: t('GamePrompt.draw.cardsTitle'),
+      label: t('GamePrompt.library.numberOfCards'),
       initialValue: '1',
-      validate: (v) => (/^[1-9]\d*$/.test(v) ? null : 'Enter a positive integer'),
+      validate: (v) => (/^[1-9]\d*$/.test(v) ? null : t('GamePrompt.validation.positiveInteger')),
       onSubmit: (value) => {
         webClient.request.game.drawCards(gameId, { number: Number(value) });
         setPrompt(null);
       },
     });
-  }, [gameId, webClient, setPrompt]);
+  }, [gameId, webClient, setPrompt, t]);
 
   const handleRequestUndoDraw = useCallback(() => {
     if (gameId == null) {
@@ -108,14 +110,13 @@ export function useLibraryDialogActions({ env, set }: UseLibraryDialogActionsArg
         return;
       }
       const localPlayerId = game.localPlayerId;
-      const zoneLabel =
-        targetZone === ZoneName.GRAVE ? 'graveyard'
-          : targetZone === ZoneName.EXILE ? 'exile' : targetZone;
+      const zoneLabelKey = targetZone === ZoneName.GRAVE ? 'grave' : targetZone;
+      const zoneLabel = t(`ZoneLabel.inline.${zoneLabelKey}`);
       setPrompt({
-        title: `Move top N cards to ${zoneLabel}`,
-        label: 'Number of cards',
+        title: t('ZoneMenu.promptMoveTop', { target: zoneLabel }),
+        label: t('GamePrompt.library.numberOfCards'),
         initialValue: '1',
-        validate: (v) => (/^[1-9]\d*$/.test(v) ? null : 'Enter a positive integer'),
+        validate: (v) => (/^[1-9]\d*$/.test(v) ? null : t('GamePrompt.validation.positiveInteger')),
         onSubmit: (value) => {
           const requested = Number(value);
           const deck = game.players[localPlayerId]?.zones[ZoneName.DECK];
@@ -144,7 +145,7 @@ export function useLibraryDialogActions({ env, set }: UseLibraryDialogActionsArg
         },
       });
     },
-    [readGame, gameId, webClient, setPrompt],
+    [readGame, gameId, webClient, setPrompt, t],
   );
 
   return useMemo(

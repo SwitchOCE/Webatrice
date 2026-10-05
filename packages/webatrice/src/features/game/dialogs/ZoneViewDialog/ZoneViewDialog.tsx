@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForkRef } from '@mui/material/utils';
 import { ZoneName } from '@cockatrice/sockatrice';
 
@@ -63,6 +64,7 @@ const CARD_MENU_KIND: Partial<Record<string, 'pile' | 'zoneView'>> = {
  * selection is the game's (useGameSelection), keyed like every other card.
  */
 function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
+  const { t } = useTranslation();
   const gameId = useGameId();
   const { playerId, zoneName } = view;
   const { cards, count, title, isLocal } = useZoneViewDialog(gameId, view);
@@ -187,10 +189,10 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
             return '';
           }
           if (libraryPos <= 0) {
-            return 'Top';
+            return t('ZoneView.position.top');
           }
           if (libraryPos >= count - 1) {
-            return 'Bottom';
+            return t('ZoneView.position.bottom');
           }
           return String(libraryPos);
         })}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { usePreference } from '@app/hooks';
 import { TokenDTO, dexieService } from '@app/services';
@@ -81,6 +82,7 @@ export function useCreateTokenDialog({
   initial,
   predefinedTokenNames,
 }: UseCreateTokenDialogArgs): CreateTokenDialogState {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [color, setColor] = useState(CREATE_TOKEN_DEFAULT_COLOR);
   const [pt, setPT] = useState('');
@@ -178,7 +180,7 @@ export function useCreateTokenDialog({
   const handleSubmit = (e?: React.FormEvent<HTMLFormElement>) => {
     e?.preventDefault();
     if (name.trim().length === 0) {
-      setError('Name is required');
+      setError(t('CreateTokenDialog.validation.nameRequired'));
       return;
     }
     const payload: CreateTokenSubmit = {

@@ -115,7 +115,7 @@ const CASES: Record<string, PromptCase> = {
       openContextMenu(cardEl(BEAR.id, 'battlefield'));
       chooseMenuPath('Power / toughness', 'Set power and toughness...');
     },
-    dialog: /^set power and toughness$/i,
+    dialog: /^change power\/toughness$/i,
     initial: '2/2',
     answer: '+1/+1',
   },
@@ -173,7 +173,7 @@ const CASES: Record<string, PromptCase> = {
       openContextMenu(pileEl('Library', 0));
       chooseMenuPath('Top of library...', 'Shuffle top cards...');
     },
-    dialog: /^shuffle top cards$/i,
+    dialog: /^shuffle top cards of library$/i,
     initial: '3',
     invalid: '0',
     answer: '4',
@@ -183,7 +183,7 @@ const CASES: Record<string, PromptCase> = {
       openContextMenu(cardEl(BEAR.id, 'battlefield'));
       chooseMenuPath('Move to', 'X cards from the top of library...');
     },
-    dialog: /^move x cards from the top of library$/i,
+    dialog: /^place card x cards from top of library$/i,
     initial: '3',
     invalid: '-1',
     answer: '99',
@@ -302,7 +302,7 @@ describe('seat create-token dialog', () => {
     const dialog = tokenDialog();
     fireEvent.change(nameInput(dialog), { target: { value: name } });
     act(() => {
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Common.action.create' }));
     });
   }
 
@@ -339,7 +339,7 @@ describe('seat create-token dialog', () => {
     });
     expect(tokenDialog()).toBeInTheDocument();
 
-    fireEvent.click(within(tokenDialog()).getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(within(tokenDialog()).getByRole('button', { name: 'Common.action.cancel' }));
     await waitFor(() => expect(screen.queryByRole('dialog', { name: /^create token$/i })).not.toBeInTheDocument());
     expect(wire(game)).toEqual([]);
   });
@@ -352,7 +352,7 @@ describe('seat create-token dialog', () => {
     openContextMenu(battlefieldEl(1));
     chooseMenuPath('Create token...');
     expect(nameInput(tokenDialog())).toHaveValue('Soldier');
-    fireEvent.click(within(tokenDialog()).getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(within(tokenDialog()).getByRole('button', { name: 'Common.action.cancel' }));
 
     openContextMenu(battlefieldEl(1));
     chooseMenuPath('Create another token');

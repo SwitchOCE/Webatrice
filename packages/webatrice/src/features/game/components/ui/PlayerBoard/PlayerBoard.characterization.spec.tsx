@@ -96,16 +96,16 @@ describe('PlayerBoard characterization — seats and hidden zones', () => {
   it('renders library counts from cardCount, never from the (empty) hidden order', () => {
     renderSeats();
 
-    expect(pileEl('Library', 0)).toHaveAttribute('title', 'Library — 40');
-    expect(pileEl('Library', 1)).toHaveAttribute('title', 'Library — 33');
+    expect(pileEl('Library', 0)).toHaveAttribute('title', 'Library, 40 cards');
+    expect(pileEl('Library', 1)).toHaveAttribute('title', 'Library, 33 cards');
   });
 
   it('renders public piles with their top card and every battlefield with owner and mirroring', () => {
     renderSeats();
 
-    expect(pileEl('Graveyard', 0)).toHaveAttribute('title', 'Graveyard — 1 (top: Duress)');
-    expect(pileEl('Graveyard', 1)).toHaveAttribute('title', 'Graveyard — 1 (top: Thoughtseize)');
-    expect(pileEl('Exile', 0)).toHaveAttribute('title', 'Exile — 0');
+    expect(pileEl('Graveyard', 0)).toHaveAttribute('title', 'Graveyard, 1 card, top: Duress');
+    expect(pileEl('Graveyard', 1)).toHaveAttribute('title', 'Graveyard, 1 card, top: Thoughtseize');
+    expect(pileEl('Exile', 0)).toHaveAttribute('title', 'Exile, 0 cards');
 
     expect(battlefieldEl(1)).toHaveAttribute('data-battlefield-mirrored', 'false');
     expect(battlefieldEl(2)).toHaveAttribute('data-battlefield-mirrored', 'true');
@@ -361,9 +361,9 @@ describe('PlayerBoard characterization — commands from menus and dialogs', () 
     chooseMenuPath('Create token...');
     const dialog = screen.getByRole('dialog', { name: 'Create token' });
     // The game's CreateTokenDialog since Phase 6 (was the seat's own modal).
-    fireEvent.change(within(dialog).getByLabelText('Token name'), { target: { value: 'Soldier' } });
+    fireEvent.change(within(dialog).getByLabelText('Name'), { target: { value: 'Soldier' } });
     await act(async () => {
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Common.action.create' }));
     });
 
     expect(game.createToken).toHaveBeenCalledWith(1, expect.objectContaining({
@@ -437,7 +437,7 @@ describe('PlayerBoard characterization — commands from menus and dialogs', () 
 
     openContextMenu(battlefieldEl(1));
     chooseMenuPath('Roll die...');
-    expect(screen.getByRole('dialog', { name: /roll die/i })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Roll Dice' })).toBeInTheDocument();
   });
 });
 
@@ -644,7 +644,7 @@ describe('PlayerBoard characterization — drag and drop destinations', () => {
       isReversed: false,
     });
 
-    const dialog = screen.getByText('ZoneLabel.title.sb — P1').closest<HTMLElement>('.pointer-events-auto.resize');
+    const dialog = screen.getByText('Sideboard — P1').closest<HTMLElement>('.pointer-events-auto.resize');
     expect(dialog).not.toBeNull();
     const ownBf = battlefieldEl(1);
     layoutBoxes([

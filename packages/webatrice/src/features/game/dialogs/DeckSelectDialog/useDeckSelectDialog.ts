@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useGameDeckCommands, useLeaveGame } from '@app/hooks';
 import { trackEvent, validateCod } from '@app/services';
@@ -26,9 +27,8 @@ export interface DeckSelectDialog {
   handleLeave: () => void;
 }
 
-const INVALID_COD_MESSAGE = 'Not a valid Cockatrice deck (.cod) file';
-
 export function useDeckSelectDialog(gameId: number | undefined): DeckSelectDialog {
+  const { t } = useTranslation();
   const commands = useGameDeckCommands(gameId);
   const leaveGame = useLeaveGame();
   // useCurrentGame falls back to the first active game when gameId is undefined;
@@ -85,7 +85,7 @@ export function useDeckSelectDialog(gameId: number | undefined): DeckSelectDialo
       setValidationError(null);
     };
     reader.onerror = () => {
-      setValidationError('Could not read the selected file');
+      setValidationError(t('DeckSelectDialog.error.readFile'));
     };
     reader.readAsText(file);
   };
@@ -96,7 +96,7 @@ export function useDeckSelectDialog(gameId: number | undefined): DeckSelectDialo
     }
     const xml = fileXml ?? deckText.trim();
     if (!validateCod(xml)) {
-      setValidationError(INVALID_COD_MESSAGE);
+      setValidationError(t('DeckSelectDialog.error.invalidCod'));
       return;
     }
     setValidationError(null);

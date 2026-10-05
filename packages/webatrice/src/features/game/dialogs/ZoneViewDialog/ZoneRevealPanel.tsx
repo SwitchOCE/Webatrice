@@ -2,6 +2,7 @@ import type { PointerEvent as ReactPointerEvent, Ref } from 'react';
 import { createPortal } from 'react-dom';
 import { setRef } from '@mui/material/utils';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { CARD_WIDTH } from '../../components/ui/SeatCard/cardSize';
 import { useFloatingPanelGeometry } from '../shared/useFloatingPanelGeometry';
@@ -75,6 +76,7 @@ export default function ZoneRevealPanel({
   draggingCardIds,
   onClose,
 }: ZoneRevealPanelProps) {
+  const { t } = useTranslation();
   const { panelRef, panelStyle, dragging, onHeaderPointerDown } = useFloatingPanelGeometry({
     storageKey: STORAGE_KEY,
     minSize: MIN_SIZE,
@@ -125,7 +127,7 @@ export default function ZoneRevealPanel({
             type="button"
             onClick={onClose}
             className="p-1 rounded hover:bg-bg-elevated text-text-muted hover:text-text-primary"
-            aria-label="Close"
+            aria-label={t('Common.action.close')}
           >
             <X size={18} />
           </button>
@@ -135,7 +137,7 @@ export default function ZoneRevealPanel({
         <div className="flex-1 min-h-0 overflow-auto p-4">
           {cards.length === 0 ? (
             <div className="text-sm text-text-muted italic">
-              No cards to show.
+              {t('ZoneView.status.noCards')}
             </div>
           ) : (
             <div className="flex flex-wrap gap-3">
@@ -176,7 +178,7 @@ export default function ZoneRevealPanel({
               'text-white hover:bg-accent-hover shadow-glow transition-colors',
             ].join(' ')}
           >
-            Close
+            {t('Common.action.close')}
           </button>
         </div>
       </div>

@@ -51,7 +51,7 @@ describe('ZoneRevealPanel', () => {
   it('closes from the header and the footer', () => {
     const onClose = vi.fn();
     renderPanel({ onClose });
-    screen.getAllByRole('button', { name: 'Close' }).forEach((button) => fireEvent.click(button));
+    screen.getAllByRole('button', { name: 'Common.action.close' }).forEach((button) => fireEvent.click(button));
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 

@@ -1687,7 +1687,6 @@
   },
   "GameInfoDialog": {
     "title": "Game info",
-    "close": "Close",
     "gameName": "Game {id}",
     "noDescription": "(no description)",
     "none": "(none)",
@@ -1719,14 +1718,12 @@
     "filter": "Card name (or search expressions)",
     "hits": "Number of hits",
     "autoPlay": "Auto play hits",
-    "cancel": "Cancel",
     "start": "Start"
   },
   "ZoneViewPanel": {
     "expand": "Expand the card view",
     "close": "Close the card view",
     "search": "Search the cards",
-    "searchPlaceholder": "Search — try t:creature, c:blue, cmc:3",
     "shuffleOnClose": "shuffle when closing",
     "noMatch": "No cards match the current filter."
   },
@@ -3392,5 +3389,147 @@
     "move": "Move hand to...",
     "topLibrary": "Top of library",
     "bottomLibrary": "Bottom of library"
+  },
+  "CreateTokenDialog": {
+    "title": "Create token",
+    "search": "Search tokens",
+    "noTokens": "No predefined tokens available.",
+    "placeholder": {
+      "powerToughness": "e.g. 3/3"
+    },
+    "destroyOnZoneChange": "Destroy token when it leaves the table",
+    "faceDown": "Create face-down (Only hides name)",
+    "validation": {
+      "nameRequired": "Name is required"
+    }
+  },
+  "DeckSelectDialog": {
+    "title": "Select Deck",
+    "instructions": "Pick a .cod file from your computer or paste its XML below, then click Submit Deck. After the server accepts the deck, the Ready button unlocks.",
+    "deckFile": "Deck file",
+    "chooseFile": "Choose .cod file",
+    "noFile": "No file selected",
+    "pasteDivider": "— or paste XML below —",
+    "deckList": "Deck list",
+    "deckListPlaceholder": "<?xml version=\"1.0\"?>\n<cockatrice_deck version=\"1\">\n  ...\n</cockatrice_deck>",
+    "deckHash": "Deck hash: {hash}",
+    "leave": "Leave Game",
+    "submit": "Submit Deck",
+    "ready": "Ready",
+    "unready": "Unready",
+    "error": {
+      "readFile": "Could not read the selected file",
+      "invalidCod": "Not a valid Cockatrice deck (.cod) file"
+    }
+  },
+  "RollDieDialog": {
+    "title": "Roll Dice",
+    "sides": "Number of sides",
+    "count": "Number of dice",
+    "roll": "Roll",
+    "validation": {
+      "positiveInteger": "Enter an integer ≥ 1"
+    }
+  },
+  "ZoneView": {
+    "groupBy": {
+      "label": "Group by",
+      "none": "Ungrouped",
+      "type": "Group by Type",
+      "cmc": "Group by Mana Value",
+      "color": "Group by Color"
+    },
+    "sortBy": {
+      "label": "Sort by",
+      "none": "Unsorted",
+      "name": "Sort by Name",
+      "cmc": "Sort by Mana Cost",
+      "type": "Sort by Type",
+      "color": "Sort by Colors",
+      "set": "Sort by Set",
+      "pt": "Sort by P/T"
+    },
+    "pileView": "pile view",
+    "pileViewRequiresGrouping": "Pile view requires a grouping",
+    "pileViewDescription": "Stack cards within each group",
+    "searchPlaceholder": "Search by card name (or search expressions)",
+    "position": {
+      "top": "Top",
+      "bottom": "Bottom"
+    },
+    "status": {
+      "writeAccess": "write access granted (drag a card onto your battlefield)",
+      "loadingCardDetails": "Loading card details…",
+      "noCards": "No cards to show."
+    },
+    "group": {
+      "creature": "Creature",
+      "planeswalker": "Planeswalker",
+      "battle": "Battle",
+      "instant": "Instant",
+      "sorcery": "Sorcery",
+      "enchantment": "Enchantment",
+      "artifact": "Artifact",
+      "land": "Land",
+      "other": "Other",
+      "mana": "Mana {value}",
+      "colorless": "Colorless"
+    }
+  },
+  "GamePrompt": {
+    "action": {
+      "save": "Save",
+      "set": "Set"
+    },
+    "life": {
+      "title": "Set life total",
+      "label": "Life total",
+      "description": "Numbers or math (e.g. 40+10)",
+      "invalid": "Enter a number or a sum like 40+10"
+    },
+    "powerToughness": {
+      "title": "Change power/toughness",
+      "label": "Change stats to",
+      "placeholder": "e.g. 3/4, +1/+1, or blank to clear"
+    },
+    "annotation": {
+      "title": "Set annotation",
+      "label": "Please enter the new annotation",
+      "placeholder": "Leave blank to clear"
+    },
+    "counter": {
+      "title": "Set counter {counter}",
+      "label": "Counter value"
+    },
+    "library": {
+      "numberOfCards": "Number of cards",
+      "empty": "The library is empty",
+      "moveFromTopTitle": "Place card X cards from top of library",
+      "position": "Place at position (0 = top, {count} = bottom)"
+    },
+    "mulligan": {
+      "title": "Draw hand",
+      "helper": "0 and lower are in comparison to current hand size"
+    },
+    "draw": {
+      "cardsTitle": "Draw cards"
+    },
+    "view": {
+      "topLibrary": "View top cards of library",
+      "bottomLibrary": "View bottom cards of library",
+      "revealTopTo": "Reveal top cards of library to {player}",
+      "action": "View"
+    },
+    "playerCounter": {
+      "title": "Set {counter} counter",
+      "current": "Current: {count}"
+    },
+    "validation": {
+      "integer": "Enter an integer.",
+      "integerRange": "Enter an integer between {min} and {max}.",
+      "positiveInteger": "Enter a positive integer",
+      "zeroOrMore": "Enter 0 or more",
+      "oneOrMore": "Enter 1 or more"
+    }
   }
 }

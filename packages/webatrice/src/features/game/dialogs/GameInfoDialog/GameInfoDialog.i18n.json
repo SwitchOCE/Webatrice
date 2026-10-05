@@ -1,7 +1,6 @@
 {
   "GameInfoDialog": {
     "title": "Game info",
-    "close": "Close",
     "gameName": "Game {id}",
     "noDescription": "(no description)",
     "none": "(none)",

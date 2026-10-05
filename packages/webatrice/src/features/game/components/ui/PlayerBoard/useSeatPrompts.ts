@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 
 import {
@@ -66,6 +67,7 @@ export function useSeatPrompts({
   cardCommands,
   counterCommands,
 }: UseSeatPromptsArgs) {
+  const { t } = useTranslation();
   const { openZoneView, openPrompt, openCreateToken } = useGameDialogsContext();
 
   // Life total — starts at Commander 40. Only mutable by the owning
@@ -102,16 +104,16 @@ export function useSeatPrompts({
   // Set life (Ctrl+L, Counters → Life) and the mana / storm counters'
   // "Set counter..." share the game's sum prompt. Command_SetCounter takes
   // the absolute value; Servatrice clamps it, and player counters floor at 0.
-  const openLifePrompt = () => openPrompt(expressionPrompt({ current: life, onSubmit: (value) => setLife(value) }));
+  const openLifePrompt = () => openPrompt(expressionPrompt(t, { current: life, onSubmit: (value) => setLife(value) }));
   const openCounterPrompt = ({ counterId, label, currentValue }: {
     counterId: number;
     label: string;
     currentValue: number;
-  }) => openPrompt(expressionPrompt({
+  }) => openPrompt(expressionPrompt(t, {
     current: currentValue,
-    title: `Set ${label.toLowerCase()} counter`,
+    title: t('GamePrompt.playerCounter.title', { counter: label.toLowerCase() }),
     label,
-    description: `Current: ${currentValue}`,
+    description: t('GamePrompt.playerCounter.current', { count: currentValue }),
     onSubmit: (value) => counterCommands.set(counterId, Math.max(0, value)),
   }));
   // Set annotation / Set P/T prompts. The target ids are snapshotted when
@@ -126,7 +128,7 @@ export function useSeatPrompts({
   // The card-op prompt openers keep their identity across renders, so the
   // seat's card ops (useBattlefieldCardOps) stay memoised.
   const openAnnotationPrompt = useCallback(({ targetIds, cardName, current }: PromptTargets) =>
-    openPrompt(annotationPrompt({
+    openPrompt(annotationPrompt(t, {
       cardName,
       current,
       // No bulk-annotation wire: one Command_SetCardAttr per card, as
@@ -136,9 +138,9 @@ export function useSeatPrompts({
           cardCommands.setAnnotation(id, value);
         }
       },
-    })), [openPrompt, cardCommands]);
+    })), [openPrompt, cardCommands, t]);
   const openPTPrompt = useCallback(({ targetIds, cardName, current }: PromptTargets) =>
-    openPrompt(powerToughnessPrompt({
+    openPrompt(powerToughnessPrompt(t, {
       cardName,
       current,
       onSubmit: (value) => {
@@ -152,7 +154,7 @@ export function useSeatPrompts({
           cardCommands.setPT(entries);
         }
       },
-    })), [openPrompt, cardCommands]);
+    })), [openPrompt, cardCommands, t]);
   // "X cards from the top of library..." prompt: Command_MoveCard with x = N
   // puts the card at position N of the library. The library size is
   // snapshotted when it opens, so a draw meanwhile doesn't move the clamp.
@@ -162,12 +164,12 @@ export function useSeatPrompts({
     deckSize: number;
     fromZone?: ZoneNameValue;
   }) =>
-    openPrompt(moveXFromTopPrompt({
+    openPrompt(moveXFromTopPrompt(t, {
       cardName,
       deckSize,
       initial: Math.min(3, Math.max(0, deckSize)),
       onSubmit: (position) => zoneCommands.moveCards(fromZone, cardIds, { zone: ZoneName.DECK, index: position, reversed: false }),
-    })), [openPrompt, zoneCommands]);
+    })), [openPrompt, zoneCommands, t]);
   // Library count prompts: Draw cards..., View top / bottom cards..., Reveal
   // top cards to..., and the Top / Bottom of library "N cards" items. Each
   // snapshots the library size when it opens and clamps the answer to it, so
@@ -179,15 +181,21 @@ export function useSeatPrompts({
     submitLabel: string;
     deckSize: number;
     onSubmit: (n: number) => void;
-  }) => openPrompt(libraryCountPrompt({ title, submitLabel, deckSize, initial: countDefault(deckSize), onSubmit }));
+  }) => openPrompt(libraryCountPrompt(t, { title, submitLabel, deckSize, initial: countDefault(deckSize), onSubmit }));
   const openDrawCardsPrompt = ({ deckSize }: { deckSize: number }) =>
-    openPrompt(libraryCountPrompt({ title: 'Draw cards', submitLabel: 'Draw', deckSize, initial: 1, onSubmit: (n) => draw(n) }));
+    openPrompt(libraryCountPrompt(t, {
+      title: t('GamePrompt.draw.cardsTitle'),
+      submitLabel: t('ZoneMenu.actionDraw'),
+      deckSize,
+      initial: 1,
+      onSubmit: (n) => draw(n),
+    }));
   // View top / bottom: Command_DumpZone for N cards, then the zone view opens
   // on the revealed snapshot (desktop actViewTopCards / actViewBottomCards).
   const openViewLibraryCountPrompt = ({ isReversed, deckSize }: { isReversed: boolean; deckSize: number }) =>
     openCountPrompt({
-      title: isReversed ? 'View bottom cards of library' : 'View top cards of library',
-      submitLabel: 'View',
+      title: isReversed ? t('GamePrompt.view.bottomLibrary') : t('GamePrompt.view.topLibrary'),
+      submitLabel: t('GamePrompt.view.action'),
       deckSize,
       onSubmit: (n) => openZoneView({ playerId: seatId, zoneName: ZoneName.DECK, numberCards: n, isReversed }),
     });
@@ -198,8 +206,8 @@ export function useSeatPrompts({
     targetName: string;
     deckSize: number;
   }) => openCountPrompt({
-    title: `Reveal top cards of library to ${targetName}`,
-    submitLabel: 'View',
+    title: t('GamePrompt.view.revealTopTo', { player: targetName }),
+    submitLabel: t('GamePrompt.view.action'),
     deckSize,
     onSubmit: (n) => zoneCommands.reveal(ZoneName.DECK, toRecipient(targetPlayerId), { top: n }),
   });
@@ -213,14 +221,14 @@ export function useSeatPrompts({
     cardName: string;
     counterId: number;
     currentValue: number;
-  }) => openPrompt(cardCounterPrompt({
+  }) => openPrompt(cardCounterPrompt(t, {
     cardName,
     counterLetter: COUNTER_LETTERS[counterId] ?? String(counterId),
     current: currentValue,
     onSubmit: (value) => {
       counterCommands.setCardCounters(targetIds.map((id) => ({ cardId: id, counterId, value: Math.max(0, value) })));
     },
-  })), [openPrompt, counterCommands]);
+  })), [openPrompt, counterCommands, t]);
   // Last successfully-submitted token — powers "Create another token"
   // (Cockatrice's actCreateAnotherToken, player_actions.cpp:894-916).
   // Persisted across the dialog's open/close cycle so a subsequent

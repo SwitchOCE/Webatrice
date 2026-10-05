@@ -88,7 +88,7 @@ describe('useCreateTokenDialog', () => {
     act(() => result.current.handleSubmit());
 
     expect(onSubmit).not.toHaveBeenCalled();
-    expect(result.current.error).toMatch(/name is required/i);
+    expect(result.current.error).toBe('CreateTokenDialog.validation.nameRequired');
   });
 
   it('invokes onSubmit with trimmed payload fields on a valid submit', () => {

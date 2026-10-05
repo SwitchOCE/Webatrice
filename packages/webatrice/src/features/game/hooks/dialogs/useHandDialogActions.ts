@@ -1,5 +1,6 @@
 import { ZoneName } from '@cockatrice/sockatrice';
 import { useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { CardDTO } from '../../../../services/dexie/DexieDTOs/CardDTO';
 import type { GameDialogsActions, HandSortKey } from './gameDialogs.types';
@@ -22,6 +23,7 @@ export function useHandDialogActions({
   env,
   set,
 }: UseHandDialogActionsArgs): HandDialogActions {
+  const { t } = useTranslation();
   const { gameId, webClient, readGame, readLocalPlayer } = env;
   const { setPrompt } = set;
 
@@ -36,17 +38,17 @@ export function useHandDialogActions({
     const min = -handSize;
     const max = handSize + deckSize;
     setPrompt({
-      title: 'Take mulligan',
-      label: 'New hand size',
+      title: t('GamePrompt.mulligan.title'),
+      label: t('GamePrompt.library.numberOfCards'),
       initialValue: '7',
-      helperText: '0 and lower are in comparison to current hand size.',
+      helperText: t('GamePrompt.mulligan.helper'),
       validate: (v) => {
         if (!/^-?\d+$/.test(v)) {
-          return 'Enter an integer.';
+          return t('GamePrompt.validation.integer');
         }
         const n = Number(v);
         if (n < min || n > max) {
-          return `Enter an integer between ${min} and ${max}.`;
+          return t('GamePrompt.validation.integerRange', { min, max });
         }
         return null;
       },
@@ -57,7 +59,7 @@ export function useHandDialogActions({
         setPrompt(null);
       },
     });
-  }, [gameId, readLocalPlayer, webClient, setPrompt]);
+  }, [gameId, readLocalPlayer, webClient, setPrompt, t]);
 
   // Sort-hand: per-card moveCard dispatches (desktop hand_menu.cpp parity); async for Dexie metadata lookups.
   const handleRequestSortHandBy = useCallback(

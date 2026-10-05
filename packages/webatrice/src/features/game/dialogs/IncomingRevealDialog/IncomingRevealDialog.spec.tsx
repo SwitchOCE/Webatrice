@@ -58,8 +58,6 @@ function renderReveal({
   return { ...utils, reveal, game: webClient.request.game };
 }
 
-// The test i18n has the title's English but not the zones', so the zone reads as its key;
-// incomingRevealTitle's spec pins the whole English title.
 const TITLE = /reveals their/;
 
 function popup() {
@@ -70,7 +68,7 @@ describe('IncomingRevealDialog', () => {
   it('names the sender and the zone and shows every revealed card', () => {
     renderReveal();
 
-    expect(screen.getByRole('heading', { name: 'P2 reveals their ZoneLabel.inline.deck' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'P2 reveals their library' })).toBeInTheDocument();
     expect(within(popup()).getByText(/^2 cards/)).toBeInTheDocument();
     expect(within(popup()).getByTitle('Island')).toBeInTheDocument();
     expect(within(popup()).getByTitle('Forest')).toBeInTheDocument();
@@ -85,7 +83,7 @@ describe('IncomingRevealDialog', () => {
     const { reveal } = renderReveal();
 
     // The header's close button (the first; card previews add their own).
-    fireEvent.click(within(popup()).getAllByRole('button', { name: 'Close' })[0]);
+    fireEvent.click(within(popup()).getAllByRole('button', { name: 'Common.action.close' })[0]);
 
     expect(reveal().incomingReveal).toBeNull();
     expect(reveal().games[1].players[2].zones[ZoneName.DECK].revealedCards ?? []).toEqual([]);
@@ -94,7 +92,7 @@ describe('IncomingRevealDialog', () => {
 
   it('closes on Escape', () => {
     const { reveal } = renderReveal({ zoneName: ZoneName.HAND });
-    expect(screen.getByRole('heading', { name: 'P2 reveals their ZoneLabel.inline.hand' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'P2 reveals their hand' })).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: 'Escape' });
 
@@ -196,9 +194,9 @@ describe('IncomingRevealDialog', () => {
 
   it('says it is loading until the catalog answers, then groups by type', async () => {
     renderReveal();
-    expect(within(popup()).getByText('Loading card details…')).toBeInTheDocument();
+    expect(within(popup()).getAllByText('Loading card details…')).not.toHaveLength(0);
     expect(await within(popup()).findByText('Other')).toBeInTheDocument();
-    expect(within(popup()).queryByText('Loading card details…')).not.toBeInTheDocument();
+    expect(within(popup()).queryAllByText('Loading card details…')).toHaveLength(0);
   });
 
   describe('its own stored choices', () => {
@@ -264,7 +262,7 @@ describe('IncomingRevealDialog', () => {
           }));
         });
 
-        expect(screen.getByRole('heading', { name: 'P2 reveals their ZoneLabel.inline.hand' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'P2 reveals their hand' })).toBeInTheDocument();
         expect(popup().style.width).toBe('900px');
         // The 400×300 popup centres on the 1024×768 viewport.
         expect(popup().style.left).toBe('312px');
