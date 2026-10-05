@@ -1,8 +1,6 @@
-import type { ActionId, useShortcutHints } from '@app/feature-widgets/shortcuts';
+import type { ActionId } from '@app/feature-widgets/shortcuts';
 
-import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
-
-type ShortcutHints = ReturnType<typeof useShortcutHints>;
+import type { ContextMenuItem, MenuShortcutFor } from '../../context-menus/ContextMenu/ContextMenu';
 
 /** The Say shortcut of each of the first ten macros (desktop's Ctrl+1 … Ctrl+0). */
 export const SAY_MACRO_ACTIONS = [
@@ -24,7 +22,7 @@ export const SAY_MACRO_ACTIONS = [
  */
 export function buildSayMenu(
   macros: readonly string[],
-  shortcutHints: ShortcutHints,
+  menuShortcut: MenuShortcutFor,
   onSay: (message: string) => void,
 ): ContextMenuItem {
   return {
@@ -32,7 +30,7 @@ export function buildSayMenu(
     disabled: macros.length === 0,
     submenu: macros.map((message, i) => ({
       label: message,
-      shortcut: i < SAY_MACRO_ACTIONS.length ? shortcutHints[SAY_MACRO_ACTIONS[i]] : undefined,
+      ...(i < SAY_MACRO_ACTIONS.length ? menuShortcut(SAY_MACRO_ACTIONS[i]) : {}),
       onClick: () => onSay(message),
     })),
   };

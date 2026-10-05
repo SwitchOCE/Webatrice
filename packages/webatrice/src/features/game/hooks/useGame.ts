@@ -1,6 +1,6 @@
 import { RefObject, useCallback, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { useSensor, useSensors } from '@dnd-kit/core';
 
 import { usePreference } from '@app/hooks';
 import { createCardPreviewStore, type CardPreviewStore } from '../components/ui/CardPreviewContext';
@@ -8,7 +8,6 @@ import { createSeatShortcutRegistry, type SeatShortcutRegistry } from '../compon
 import { useMoveCard } from '../components/ui/GameBoardCell/useMoveCard';
 import { GamePointerSensor } from './gamePointerSensor';
 import { createCardRegistry, type CardRegistry } from '../utils/CardRegistry/CardRegistryContext';
-import { resolveSelectedCards, type SelectedCard } from '../utils/selection';
 import { useCurrentGame, type CurrentGame } from './useCurrentGame';
 import { useGameAccess, type GameAccess } from './useGameAccess';
 import { useGameArrowInteractions, type GameArrowInteractions } from './useGameArrowInteractions';
@@ -32,8 +31,6 @@ export interface Game extends CurrentGame {
   seatShortcuts: SeatShortcutRegistry;
   selectedCardKeys: ReadonlySet<string>;
   setSelectedCardKeys: GameSelection['setSelectedCardKeys'];
-  selectedCards: readonly SelectedCard[];
-  collapseUnlessSelected: GameSelection['collapseUnlessSelected'];
   handleGameMouseDown: (e: React.MouseEvent<HTMLDivElement>) => void;
   boxSelectPreview: BoxSelectPreview | null;
   localAccess: GameAccess;
@@ -69,24 +66,13 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
   const gameRef = useRef<HTMLDivElement>(null);
   const cardRegistry = useMemo(() => createCardRegistry(), []);
   // See .github/instructions/webatrice-game.instructions.md#pointer--click-vs-drag.
-  const sensors = useSensors(
-    useSensor(GamePointerSensor, { activationDistance: 0 }),
-    useSensor(KeyboardSensor),
-  );
+  // Pointer only: seat drags hand dnd-kit just their pointerdown, so a
+  // keyboard sensor never activated. The keyboard moves cards through the
+  // card menu's "Move to" and the zone shortcuts instead.
+  const sensors = useSensors(useSensor(GamePointerSensor, { activationDistance: 0 }));
   const previewStore = useMemo(() => createCardPreviewStore(), []);
   const seatShortcuts = useMemo(() => createSeatShortcutRegistry(), []);
   const selection = useGameSelection();
-  const selectedCards = useMemo(
-    () => (game ? resolveSelectedCards(game, selection.selectedCardKeys) : []),
-    [game, selection.selectedCardKeys],
-  );
-  // Call-time getter for the live selection. Lets the dialog/dnd hooks read the
-  // current multi-selection without taking `selectedCards` as a dep (which would
-  // churn their memoized callbacks on every selection change). Mirrors the
-  // readGame/readLocalPlayer store-read pattern in useGameDialogs.
-  const selectedCardsRef = useRef(selectedCards);
-  selectedCardsRef.current = selectedCards;
-  const getSelectedCards = useCallback(() => selectedCardsRef.current, []);
 
   // Desktop keeps the view rotation per game scene and never persists it.
   const [rotation, setRotation] = useState({ gameId, steps: 0 });
@@ -110,15 +96,7 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
     clearSelection: selection.clearSelection,
     pendingActive: arrows.pending,
   });
-  const dialogs = useGameDialogs({
-    gameId,
-    localAccess,
-    isSpectator,
-    startPendingArrow: arrows.startPendingArrow,
-    startPendingAttach: arrows.startPendingAttach,
-    collapseUnlessSelected: selection.collapseUnlessSelected,
-    getSelectedCards,
-  });
+  const dialogs = useGameDialogs({ gameId, isSpectator });
   const moveCard = useMoveCard(gameId);
   const dnd = useGameDnd({
     gameId,
@@ -167,8 +145,6 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
     seatShortcuts,
     selectedCardKeys: selection.selectedCardKeys,
     setSelectedCardKeys: selection.setSelectedCardKeys,
-    selectedCards,
-    collapseUnlessSelected: selection.collapseUnlessSelected,
     handleGameMouseDown: box.handleGameMouseDown,
     boxSelectPreview: box.previewRect,
     localAccess,

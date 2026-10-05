@@ -29,7 +29,7 @@ describe('buildRevealToSubmenu', () => {
   });
 
   it('disables every entry together and hints the shortcut on "All players"', () => {
-    const items = buildRevealToSubmenu([{ playerId: 2, name: 'Bob' }], vi.fn(), true, 'Ctrl+R');
+    const items = buildRevealToSubmenu([{ playerId: 2, name: 'Bob' }], vi.fn(), true, { shortcut: 'Ctrl+R', keyShortcuts: 'Control+R' });
     expect(items[0]).toMatchObject({ disabled: true, shortcut: 'Ctrl+R' });
     expect(items[2]).toMatchObject({ disabled: true });
   });

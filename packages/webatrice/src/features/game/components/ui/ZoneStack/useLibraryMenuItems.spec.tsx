@@ -42,7 +42,7 @@ function setup(args: Partial<UseLibraryMenuItemsArgs> = {}) {
     openRevealTopCardsPrompt: vi.fn(),
     openMoveTopUntilDialog: vi.fn(),
     onOpenDeckInEditor: undefined,
-    shortcutHints: {} as UseLibraryMenuItemsArgs['shortcutHints'],
+    menuShortcut: () => ({ shortcut: '', keyShortcuts: '' }),
     zoneCommands,
     ...args,
   };

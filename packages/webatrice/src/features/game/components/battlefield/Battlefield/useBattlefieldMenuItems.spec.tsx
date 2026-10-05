@@ -56,7 +56,7 @@ function setup(args: Partial<UseBattlefieldMenuItemsArgs> = {}) {
     battlefieldDisplayList: [bf(10, [{ id: 0, value: 1 }]), bf(11, [{ id: 1, value: 999 }]), bf(12)],
     lastToken: null,
     openCreateTokenDialog: vi.fn(),
-    shortcutHints: {} as UseBattlefieldMenuItemsArgs['shortcutHints'],
+    menuShortcut: () => ({ shortcut: '', keyShortcuts: '' }),
     cardCommands,
     counterCommands,
     ...args,

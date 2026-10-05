@@ -1,6 +1,6 @@
 import type { LookupResult, RelatedCardRef } from '@app/services';
 
-import type { CardMenuItem } from './cardContextMenu.model';
+import type { ContextMenuItem as CardMenuItem } from '../ContextMenu/ContextMenu';
 import { buildRelatedTokenItems, buildRelatedViewItems, buildTransformItems } from './relatedCardActions';
 
 const lookup = (name: string, overrides: Partial<LookupResult> = {}): LookupResult => ({

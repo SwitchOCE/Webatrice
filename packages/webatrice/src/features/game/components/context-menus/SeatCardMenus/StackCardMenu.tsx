@@ -3,9 +3,8 @@ import { usePreference } from '@app/hooks';
 
 import type { SeatMoveDestination } from '../../ui/PlayerBoard/playerBoard.types';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
-import { CardMenuPopup } from '../CardContextMenu/CardContextMenu';
-import { type CardMenuItem } from '../CardContextMenu/cardContextMenu.model';
 import { buildRelatedTokenItems, buildTransformItems } from '../CardContextMenu/relatedCardActions';
+import { ContextMenuPopup, type ContextMenuItem } from '../ContextMenu/ContextMenu';
 
 /**
  * Stack-card context menu — ports Cockatrice's
@@ -28,7 +27,7 @@ export default function StackCardMenu() {
     startAttach,
     startDrawArrow,
     setSelection,
-    shortcutHints,
+    menuShortcut,
     stackCardMenu,
     stackDisplayList,
     tokenMetaByName,
@@ -60,10 +59,10 @@ export default function StackCardMenu() {
           .filter((n) => Number.isFinite(n));
         if (!isSelf) {
           // Opponent stack — Draw arrow / Clone / Select All only.
-          const opponentItems: CardMenuItem[] = [
+          const opponentItems: ContextMenuItem[] = [
             {
               label: 'Draw arrow...',
-              shortcut: shortcutHints['game.drawArrow'],
+              ...menuShortcut('game.drawArrow'),
               onClick: () => {
                 if (numeric && card) {
                   startDrawArrow({
@@ -78,7 +77,7 @@ export default function StackCardMenu() {
             { divider: true },
             {
               label: 'Clone',
-              shortcut: shortcutHints['game.cloneCard'],
+              ...menuShortcut('game.cloneCard'),
               onClick: () => {
                 if (targets.length > 0) {
                   for (const sc of targets) {
@@ -101,7 +100,7 @@ export default function StackCardMenu() {
             { divider: true },
             {
               label: 'Select All',
-              shortcut: shortcutHints['game.selectAllBattlefield'],
+              ...menuShortcut('game.selectAllBattlefield'),
               onClick: () => {
                 const ids = new Set(stackDisplayList.map((sc) => sc.id));
                 if (ids.size > 0) {
@@ -135,15 +134,15 @@ export default function StackCardMenu() {
                 ),
               ];
               return tokens.length > 0
-                ? [{ divider: true } as CardMenuItem, ...tokens]
+                ? [{ divider: true } as ContextMenuItem, ...tokens]
                 : [];
             })(),
           ];
           return (
-            <CardMenuPopup
+            <ContextMenuPopup
               items={opponentItems}
               anchor={{ x: stackCardMenu.x, y: stackCardMenu.y }}
-              disabled={!numeric}
+              label={card?.name ?? ''}
               onClose={closeSeatCardMenu}
             />
           );
@@ -155,7 +154,7 @@ export default function StackCardMenu() {
           }
           zoneCommands.moveCards(ZoneName.STACK, targetIds, { reversed: false, ...to });
         };
-        const items: CardMenuItem[] = [
+        const items: ContextMenuItem[] = [
           {
             label: 'Play',
             onClick: () => {
@@ -181,7 +180,7 @@ export default function StackCardMenu() {
           { divider: true },
           {
             label: 'Clone',
-            shortcut: shortcutHints['game.cloneCard'],
+            ...menuShortcut('game.cloneCard'),
             onClick: () => {
               if (targets.length > 0) {
                 for (const sc of targets) {
@@ -252,7 +251,7 @@ export default function StackCardMenu() {
           { divider: true },
           {
             label: 'Attach to card...',
-            shortcut: shortcutHints['game.attachCard'],
+            ...menuShortcut('game.attachCard'),
             onClick: () => {
               if (numeric && card) {
                 const extras = targets
@@ -266,7 +265,7 @@ export default function StackCardMenu() {
           },
           {
             label: 'Draw arrow...',
-            shortcut: shortcutHints['game.drawArrow'],
+            ...menuShortcut('game.drawArrow'),
             onClick: () => {
               if (numeric && card) {
                 startDrawArrow({
@@ -281,7 +280,7 @@ export default function StackCardMenu() {
           { divider: true },
           {
             label: 'Select All',
-            shortcut: shortcutHints['game.selectAllBattlefield'],
+            ...menuShortcut('game.selectAllBattlefield'),
             onClick: () => {
               const ids = new Set(stackDisplayList.map((sc) => sc.id));
               if (ids.size > 0) {
@@ -314,15 +313,15 @@ export default function StackCardMenu() {
               ),
             ];
             return tokens.length > 0
-              ? [{ divider: true } as CardMenuItem, ...tokens]
+              ? [{ divider: true } as ContextMenuItem, ...tokens]
               : [];
           })(),
         ];
         return (
-          <CardMenuPopup
+          <ContextMenuPopup
             items={items}
             anchor={{ x: stackCardMenu.x, y: stackCardMenu.y }}
-            disabled={!numeric}
+            label={card?.name ?? ''}
             onClose={closeSeatCardMenu}
           />
         );

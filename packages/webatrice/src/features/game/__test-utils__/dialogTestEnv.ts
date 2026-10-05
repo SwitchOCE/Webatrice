@@ -36,16 +36,11 @@ type SetterSpies = { [K in keyof GameDialogSetters]: Mock<GameDialogSetters[K]> 
 
 const SETTER_NAMES: ReadonlyArray<keyof GameDialogSetters> = [
   'setZoneViews',
-  'setCardMenu',
-  'setSeatCardMenu',
-  'setZoneMenu',
-  'setHandMenu',
   'setPrompt',
   'setRollDieOpen',
   'setLastDieSides',
   'setLastDieCount',
   'setCreateTokenRequest',
-  'setRevealState',
   'setConcedeConfirm',
   'setLeaveConfirm',
 ];

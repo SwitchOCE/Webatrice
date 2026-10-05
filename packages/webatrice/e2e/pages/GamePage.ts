@@ -27,10 +27,9 @@ import { dragTo } from '../fixtures/dnd';
 //         cards are `[data-card][data-zone="battlefield"]`, and hand
 //         cards are `[data-card][data-zone="hand"]`. Card DOM wraps a
 //         `<Card>` whose outer div carries `title="{cardName}"`.
-//       - The seat context menus are portal-rendered `<div>`s tagged
-//         `[data-card-context-menu]` (per-card) or `[data-context-menu]`
-//         (per-zone/player). Items are plain `<button>` elements (no
-//         `role="menuitem"`).
+//       - The seat context menus (card, pile, hand, player) are the
+//         shared `Menu`: portal-rendered `[role="menu"]`, one per open
+//         level, with `role="menuitem"` buttons.
 //   • Pile-view popup: opening the Library / Graveyard / Exile view
 //     from the seat's context menu mounts a ZoneViewDialog, which
 //     lists the zone through ZoneViewPanel. That renders an `<h2>` with
@@ -151,8 +150,7 @@ export class GamePage {
 
   async drawCard(): Promise<void> {
     // The seat's library pile: right-click → "Draw card" (ports the
-    // Cockatrice LibraryMenu order). No `zone-context-menu` testid on
-    // the new menu — it's a plain `<div data-context-menu>` portal.
+    // Cockatrice LibraryMenu order).
     const deckStack = this.zoneStack('deck');
     await deckStack.click({ button: 'right' });
     // Label span contains just "Draw card" (no shortcut); anchor
@@ -210,12 +208,11 @@ export class GamePage {
   }
 
   // BattlefieldSidebar's "Game" button opens the game menu (desktop's Game
-  // menu: phase and turn actions). An MUI Menu, so items carry
-  // role="menuitem"; their names end in the shortcut hint, so callers
-  // anchor the regex at the start only.
+  // menu: phase and turn actions), on the shared `Menu` named "Game";
+  // items are `menuitem`s named by their label alone.
   async clickGameMenuItem(name: RegExp): Promise<void> {
     await this.rightPanel.getByRole('button', { name: /^game$/i }).click();
-    const menu = this.page.getByTestId('game-menu');
+    const menu = this.page.getByRole('menu', { name: /^game$/i });
     const item = menu.getByRole('menuitem', { name });
     await expect(item).toBeEnabled({ timeout: 10_000 });
     await item.click();
@@ -344,8 +341,7 @@ export class GamePage {
   }
 
   // Right-click a card and pick a move item from its context menu.
-  // The card context menu is a portal `<div data-card-context-menu>`
-  // whose items are plain `<button>` elements — no MUI menuitem role.
+  // The card context menu is the shared `Menu` (`[role="menu"]`).
   // Handles the "Move to" submenu path: specs pass regexes like
   // `/send to graveyard/i` that resolve to "Move to → Graveyard".
   //
@@ -420,12 +416,12 @@ export class GamePage {
     await card.click({ button: 'right' });
     for (const [i, label] of path.entries()) {
       if (i < path.length - 1) {
-        const menu = this.page.locator('[data-card-context-menu]').last();
+        const menu = this.page.locator('[role="menu"]').last();
         await expect(menu).toBeVisible({ timeout: 5_000 });
-        const before = await this.page.locator('[data-card-context-menu]').count();
+        const before = await this.page.locator('[role="menu"]').count();
         await this.menuItemButton(menu, label).first().hover();
         await expect
-          .poll(() => this.page.locator('[data-card-context-menu]').count(), { timeout: 5_000 })
+          .poll(() => this.page.locator('[role="menu"]').count(), { timeout: 5_000 })
           .toBeGreaterThan(before);
       } else {
         await this.clickCardContextMenuItem(label);
@@ -458,8 +454,8 @@ export class GamePage {
 
   // ---- Internal: seat context-menu helpers ----
 
-  // Zone / player context menu (`<div data-context-menu>`). Items are
-  // plain `<button>` whose label lives in a `<span class="flex-1">`
+  // Zone / player context menu (`[role="menu"]`). Items are `menuitem`
+  // buttons whose label lives in a `<span class="flex-1">`
   // sibling to a `<span>{shortcut}</span>`. We match against the label
   // span alone so shortcut hints (rendered adjacent with no whitespace,
   // so `textContent` reads "Draw cardCtrl+D") don't interfere.
@@ -470,31 +466,31 @@ export class GamePage {
   }
 
   private async clickContextMenuItem(name: RegExp): Promise<void> {
-    const menu = this.page.locator('[data-context-menu]').last();
+    const menu = this.page.locator('[role="menu"]').last();
     await expect(menu).toBeVisible({ timeout: 5_000 });
     await this.menuItemButton(menu, name).first().click();
   }
 
-  // Card context menu (`<div data-card-context-menu>`). Same shape.
+  // Card context menu: the same `Menu`.
   private async clickCardContextMenuItem(name: RegExp): Promise<void> {
     // Card menu opens as a portal and a submenu is a SECOND portal.
     // When clicking a leaf we want to hit the most-recently-opened one
     // (submenu wins over parent), so grab `.last()`.
-    const menu = this.page.locator('[data-card-context-menu]').last();
+    const menu = this.page.locator('[role="menu"]').last();
     await expect(menu).toBeVisible({ timeout: 5_000 });
     await this.menuItemButton(menu, name).first().click();
   }
 
   // Hover a card-menu item to open its submenu (the seat opens
-  // submenus on hover — see CardContextMenuPopup.renderItems). Waits
+  // submenus after a pointer rest — see Menu's MenuSubmenu). Waits
   // for the submenu portal to mount so the next click hits its leaf.
   private async hoverCardContextMenuItem(name: RegExp): Promise<void> {
-    const parentMenu = this.page.locator('[data-card-context-menu]').first();
+    const parentMenu = this.page.locator('[role="menu"]').first();
     await expect(parentMenu).toBeVisible({ timeout: 5_000 });
-    const before = await this.page.locator('[data-card-context-menu]').count();
+    const before = await this.page.locator('[role="menu"]').count();
     await this.menuItemButton(parentMenu, name).first().hover();
     await expect
-      .poll(() => this.page.locator('[data-card-context-menu]').count(), { timeout: 5_000 })
+      .poll(() => this.page.locator('[role="menu"]').count(), { timeout: 5_000 })
       .toBeGreaterThan(before);
   }
 }

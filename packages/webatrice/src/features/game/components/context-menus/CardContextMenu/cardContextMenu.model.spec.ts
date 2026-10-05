@@ -6,16 +6,16 @@ import {
   buildOpponentCardMenu,
   type BuildCardContextMenuArgs,
   type BuildOpponentCardMenuArgs,
-  type CardMenuItem,
 } from './cardContextMenu.model';
+import type { ContextMenuItem as CardMenuItem } from '../ContextMenu/ContextMenu';
 
 // Every hint renders as its action id, so the tree pins which binding each row shows.
-const hints = new Proxy({}, { get: (_target, key) => `<${String(key)}>` }) as Record<ActionId, string>;
+const menuShortcut = (id: ActionId) => ({ shortcut: `<${id}>`, keyShortcuts: '' });
 
 function makeArgs(overrides: Partial<BuildCardContextMenuArgs> = {}): BuildCardContextMenuArgs {
   const handler = () => vi.fn();
   return {
-    shortcutHints: hints,
+    menuShortcut,
     faceDown: false,
     doesntUntap: false,
     isAttached: false,
@@ -179,7 +179,7 @@ describe('buildCardContextMenu', () => {
 
 describe('buildOpponentCardMenu', () => {
   const opponentArgs = (overrides: Partial<BuildOpponentCardMenuArgs> = {}): BuildOpponentCardMenuArgs => ({
-    shortcutHints: hints,
+    menuShortcut,
     onDrawArrow: vi.fn(),
     onClone: vi.fn(),
     onReduceLifeByPower: vi.fn(),

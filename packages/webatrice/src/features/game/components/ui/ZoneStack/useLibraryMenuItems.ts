@@ -1,13 +1,11 @@
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
-import type { useShortcutHints } from '@app/feature-widgets/shortcuts';
 
-import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
+import type { ContextMenuItem, MenuShortcutFor } from '../../context-menus/ContextMenu/ContextMenu';
 import { useGameDialogsContext } from '../GameDialogsContext';
 import type { SeatMoveCard, SeatMoveDestination, PlayerZoneCommands } from '../PlayerBoard/playerBoard.types';
 import { buildRevealToSubmenu, toRecipient } from '../PlayerBoard/revealRecipient';
 import type { useSeatPrompts } from '../PlayerBoard/useSeatPrompts';
 
-type ShortcutHints = ReturnType<typeof useShortcutHints>;
 type SeatPrompts = ReturnType<typeof useSeatPrompts>;
 
 export interface UseLibraryMenuItemsArgs {
@@ -26,7 +24,7 @@ export interface UseLibraryMenuItemsArgs {
   openMoveTopUntilDialog: () => void;
   /** The deck-editor link; undefined when the deck matches no saved deck. */
   onOpenDeckInEditor: (() => void) | undefined;
-  shortcutHints: ShortcutHints;
+  menuShortcut: MenuShortcutFor;
   zoneCommands: PlayerZoneCommands;
 }
 
@@ -48,7 +46,7 @@ export function useLibraryMenuItems({
   openRevealTopCardsPrompt,
   openMoveTopUntilDialog,
   onOpenDeckInEditor,
-  shortcutHints,
+  menuShortcut,
   zoneCommands,
 }: UseLibraryMenuItemsArgs) {
   const { openZoneView } = useGameDialogsContext();
@@ -167,48 +165,48 @@ export function useLibraryMenuItems({
       label: 'Draw card',
       onClick: () => draw(1),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.drawCard'],
+      ...menuShortcut('game.drawCard'),
     },
     {
       label: 'Draw cards...',
       onClick: () => openDrawCardsPrompt({ deckSize: deckCount }),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.drawMultipleCards'],
+      ...menuShortcut('game.drawMultipleCards'),
     },
     {
       label: 'Undo last draw',
       onClick: () => zoneCommands.undoDraw(),
       // Cockatrice always shows this enabled; server rejects when
       // nothing to undo.
-      shortcut: shortcutHints['game.undoDraw'],
+      ...menuShortcut('game.undoDraw'),
     },
     { divider: true },
     {
       label: 'Shuffle',
       onClick: () => zoneCommands.shuffleLibrary(),
       disabled: deckCount <= 1,
-      shortcut: shortcutHints['game.shuffleLibrary'],
+      ...menuShortcut('game.shuffleLibrary'),
     },
     { divider: true },
     {
       label: 'View library',
       onClick: () => openZoneView({ playerId: seatId, zoneName: ZoneName.DECK }),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.viewLibrary'],
+      ...menuShortcut('game.viewLibrary'),
     },
     {
       label: 'View top cards of library...',
       onClick: () =>
         openViewLibraryCountPrompt({ isReversed: false, deckSize: deckCount }),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.viewTopCards'],
+      ...menuShortcut('game.viewTopCards'),
     },
     {
       label: 'View bottom cards of library...',
       onClick: () =>
         openViewLibraryCountPrompt({ isReversed: true, deckSize: deckCount }),
       disabled: deckCount <= 0,
-      shortcut: shortcutHints['game.viewBottomCards'],
+      ...menuShortcut('game.viewBottomCards'),
     },
     { divider: true },
     { label: 'Reveal library to...', submenu: revealLibraryItems },
@@ -218,13 +216,13 @@ export function useLibraryMenuItems({
       label: 'Always reveal top card',
       checked: alwaysRevealTopCard ?? false,
       onClick: () => zoneCommands.setAlwaysRevealTopCard(!alwaysRevealTopCard),
-      shortcut: shortcutHints['game.alwaysRevealTopCard'],
+      ...menuShortcut('game.alwaysRevealTopCard'),
     },
     {
       label: 'Always look at top card',
       checked: alwaysLookAtTopCard ?? false,
       onClick: () => zoneCommands.setAlwaysLookAtTopCard(!alwaysLookAtTopCard),
-      shortcut: shortcutHints['game.alwaysLookAtTopCard'],
+      ...menuShortcut('game.alwaysLookAtTopCard'),
     },
     { divider: true },
     {
@@ -235,7 +233,7 @@ export function useLibraryMenuItems({
           label: 'Play top card',
           onClick: buildMoveTopCardTo(ZoneName.STACK, 'end'),
           disabled: deckCount <= 0,
-          shortcut: shortcutHints['game.playTop'],
+          ...menuShortcut('game.playTop'),
         },
         {
           label: 'Play top card face down',
@@ -252,13 +250,13 @@ export function useLibraryMenuItems({
           label: 'Move top card to graveyard',
           onClick: buildMoveTopCardTo(ZoneName.GRAVE, 0),
           disabled: deckCount <= 0,
-          shortcut: shortcutHints['game.moveTopToGrave'],
+          ...menuShortcut('game.moveTopToGrave'),
         },
         {
           label: 'Move top cards to graveyard...',
           onClick: promptMoveTopNTo('Move top cards to graveyard', ZoneName.GRAVE),
           disabled: deckCount <= 0,
-          shortcut: shortcutHints['game.moveTopNToGrave'],
+          ...menuShortcut('game.moveTopNToGrave'),
         },
         {
           label: 'Move top cards to graveyard face down...',
@@ -292,7 +290,7 @@ export function useLibraryMenuItems({
           label: 'Put top cards on stack until…',
           onClick: openMoveTopUntilDialog,
           disabled: deckCount <= 0,
-          shortcut: shortcutHints['game.moveTopUntil'],
+          ...menuShortcut('game.moveTopUntil'),
         },
         { divider: true },
         {

@@ -6,7 +6,7 @@
 import type { LookupCardFace, LookupResult, RelatedCardRef } from '@app/services';
 
 import type { CreateTokenRequest } from '../../ui/PlayerBoard/playerBoard.types';
-import type { CardMenuItem } from './cardContextMenu.model';
+import type { ContextMenuItem } from '../ContextMenu/ContextMenu';
 
 /**
  * The "View related cards" submenu, led by its separator. Ports desktop
@@ -20,7 +20,7 @@ export function buildRelatedViewItems(
   related: readonly RelatedCardRef[],
   resolvable: (name: string) => boolean,
   onView: (ref: RelatedCardRef) => void,
-): CardMenuItem[] {
+): ContextMenuItem[] {
   if (!related.some((ref) => resolvable(ref.name))) {
     return [];
   }
@@ -63,8 +63,8 @@ export function buildRelatedTokenItems(
   tokenMeta: Map<string, LookupResult>,
   onCreateToken: CreateTokenHandler | undefined,
   annotate = false,
-): CardMenuItem[] {
-  const out: CardMenuItem[] = [];
+): ContextMenuItem[] {
+  const out: ContextMenuItem[] = [];
   for (const ref of related) {
     const tok = tokenMeta.get(ref.name);
     const tokPT = tok?.power != null && tok.toughness != null
@@ -141,7 +141,7 @@ export function buildTransformItems(
   parentName: string,
   onCreateToken: CreateTokenHandler | undefined,
   annotate = false,
-): CardMenuItem[] {
+): ContextMenuItem[] {
   // Servatrice numbers cards from 0 (server_player.cpp newCardId), so 0 is a real id.
   if (!parentMeta || sourceCardId == null || !onCreateToken) {
     return [];

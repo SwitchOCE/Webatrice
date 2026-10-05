@@ -3,7 +3,7 @@ import type { ActionId } from '@app/feature-widgets/shortcuts';
 
 import type { SeatCardMenuState } from '../../../hooks/dialogs/gameDialogs.types';
 import { makeCardKey } from '../../../utils/CardRegistry/CardRegistryContext';
-import type { CardMenuItem } from './cardContextMenu.model';
+import type { ContextMenuItem as CardMenuItem } from '../ContextMenu/ContextMenu';
 import {
   playCardMove,
   resolveHandOrZoneCardMenu,
@@ -11,7 +11,7 @@ import {
   type HandOrZoneCardMenuDeps,
 } from './handCardMenu.actions';
 
-const hints = new Proxy({}, { get: (_target, key) => `<${String(key)}>` }) as Record<ActionId, string>;
+const menuShortcut = (id: ActionId) => ({ shortcut: `<${id}>`, keyShortcuts: '' });
 
 const OWNER = 1;
 const card = (id: string, name: string) => ({ id, name, scryfallId: `sf-${id}` });
@@ -42,7 +42,7 @@ function makeDeps(overrides: Partial<HandOrZoneCardMenuDeps> = {}): HandOrZoneCa
   return {
     menu: handMenu('11'),
     ownerId: OWNER,
-    shortcutHints: hints,
+    menuShortcut,
     canModify: true,
     revealTargets: [{ playerId: 2, name: 'Bob' }],
     handCards: HAND,
@@ -99,11 +99,10 @@ describe('resolveHandOrZoneCardMenu', () => {
     }))).toBeNull();
   });
 
-  it('anchors at the click and disables the rows of a card without a server id', () => {
+  it('anchors at the click and names the menu after the card', () => {
     const popup = resolveHandOrZoneCardMenu(makeDeps())!;
     expect(popup.anchor).toEqual({ x: 5, y: 6 });
-    expect(popup.disabled).toBe(false);
-    expect(resolveHandOrZoneCardMenu(makeDeps({ menu: handMenu('pending') }))!.disabled).toBe(true);
+    expect(popup.label).toBe('Grizzly Bears');
   });
 
   it('acts on the clicked card when it is outside the hand selection', () => {

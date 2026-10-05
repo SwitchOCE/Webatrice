@@ -3,8 +3,8 @@ import { usePreference } from '@app/hooks';
 
 import type { BattlefieldCardOps } from '../../ui/PlayerBoard/useBattlefieldCardOps';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
-import { CardMenuPopup } from '../CardContextMenu/CardContextMenu';
-import { buildCardContextMenu, buildOpponentCardMenu, type CardMenuItem } from '../CardContextMenu/cardContextMenu.model';
+import { buildCardContextMenu, buildOpponentCardMenu } from '../CardContextMenu/cardContextMenu.model';
+import { ContextMenuPopup, type ContextMenuItem } from '../ContextMenu/ContextMenu';
 import { buildRelatedTokenItems, buildTransformItems } from '../CardContextMenu/relatedCardActions';
 
 /**
@@ -23,7 +23,7 @@ export default function BattlefieldCardMenu() {
     closeSeatCardMenu,
     isSelf,
     relatedViewItemsFor,
-    shortcutHints,
+    menuShortcut,
     tokenMetaByName,
   } = usePlayerSeatContext();
   // Desktop's "Annotate card text on tokens".
@@ -34,7 +34,6 @@ export default function BattlefieldCardMenu() {
   }
   const card = battlefieldDisplayList.find((bc) => bc.id === cardContextMenu.cardId);
   const cardIdNum = Number(cardContextMenu.cardId);
-  const numeric = Number.isFinite(cardIdNum) && card != null;
   const ops = cardOps.forCard(cardContextMenu.cardId);
   const run = (op: (cardOps: BattlefieldCardOps) => void) => () => {
     if (ops) {
@@ -51,7 +50,7 @@ export default function BattlefieldCardMenu() {
   // into …" for a double-faced card (desktop addRelatedCardActions,
   // card_menu.cpp:407-479). On another player's card the token is still
   // created by the local player, so it lands on the local battlefield.
-  const tokenItems: CardMenuItem[] = card
+  const tokenItems: ContextMenuItem[] = card
     ? [
       ...buildRelatedTokenItems(cardMetaByName.get(card.name)?.related ?? [], tokenMetaByName, cardCommands.createToken, annotateTokens),
       ...buildTransformItems(
@@ -67,7 +66,7 @@ export default function BattlefieldCardMenu() {
 
   const items = isSelf
     ? buildCardContextMenu({
-      shortcutHints,
+      menuShortcut,
       faceDown: card?.faceDown ?? false,
       doesntUntap: card?.doesntUntap ?? false,
       isAttached: card?.attachTargetCardId != null && card.attachTargetCardId >= 0,
@@ -106,7 +105,7 @@ export default function BattlefieldCardMenu() {
       relatedViewItems,
     })
     : buildOpponentCardMenu({
-      shortcutHints,
+      menuShortcut,
       onDrawArrow: run((o) => o.drawArrow()),
       onClone: run((o) => o.clone()),
       onReduceLifeByPower: run((o) => o.reduceLifeByPower()),
@@ -117,10 +116,10 @@ export default function BattlefieldCardMenu() {
     });
 
   return (
-    <CardMenuPopup
+    <ContextMenuPopup
       items={items}
       anchor={{ x: cardContextMenu.x, y: cardContextMenu.y }}
-      disabled={!numeric}
+      label={card?.name ?? ''}
       onClose={closeSeatCardMenu}
     />
   );

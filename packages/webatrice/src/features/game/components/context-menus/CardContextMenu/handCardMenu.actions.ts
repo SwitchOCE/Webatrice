@@ -4,7 +4,6 @@
 // handler logic lives here and not in the seat's JSX.
 
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
-import type { ActionId } from '@app/feature-widgets/shortcuts';
 
 import type { SeatCardMenuState } from '../../../hooks/dialogs/gameDialogs.types';
 import type { SeatSelection } from '../../../hooks/useSeatSelection';
@@ -20,7 +19,7 @@ import type {
   SeatMoveCard,
   SeatMoveDestination,
 } from '../../ui/PlayerBoard/playerBoard.types';
-import type { CardMenuItem } from './cardContextMenu.model';
+import type { ContextMenuItem, MenuShortcutFor } from '../ContextMenu/ContextMenu';
 import { buildHandOrZoneCardMenu } from './handCardMenu.model';
 
 /** What playing a card needs from its catalog entry. */
@@ -93,7 +92,7 @@ export interface HandOrZoneCardMenuDeps {
   menu: SeatCardMenuState | null;
   /** The player whose cards the menu shows (card keys use it). */
   ownerId: number;
-  shortcutHints: Record<ActionId, string>;
+  menuShortcut: MenuShortcutFor;
   canModify: boolean;
   revealTargets: readonly { playerId: number; name: string }[];
   handCards: readonly PlayerCardViewModel[];
@@ -119,16 +118,17 @@ export interface HandOrZoneCardMenuDeps {
   }) => void;
   promptMoveXFromTop: (args: { cardIds: number[]; cardName: string; deckSize: number; fromZone: ZoneNameValue }) => void;
   startArrow: (source: { sourceCardId: number; sourceCardName: string; sourceZone: ZoneNameValue }) => void;
-  relatedViewItems: (cardName: string) => CardMenuItem[];
-  tokenItems: (cardName: string) => CardMenuItem[];
+  relatedViewItems: (cardName: string) => ContextMenuItem[];
+  tokenItems: (cardName: string) => ContextMenuItem[];
   close: () => void;
 }
 
-/** What CardMenuPopup renders, without its onClose. */
-export interface CardMenuPopupModel {
-  items: CardMenuItem[];
+/** What ContextMenuPopup renders, without its onClose. */
+export interface SeatCardMenuModel {
+  items: ContextMenuItem[];
   anchor: { x: number; y: number };
-  disabled: boolean;
+  /** The menu's name: the card's. */
+  label: string;
 }
 
 /**
@@ -137,7 +137,7 @@ export interface CardMenuPopupModel {
  * part of it (desktop's selectedCards), else to the clicked card. Null when no
  * hand or zone-view menu is open.
  */
-export function resolveHandOrZoneCardMenu(deps: HandOrZoneCardMenuDeps): CardMenuPopupModel | null {
+export function resolveHandOrZoneCardMenu(deps: HandOrZoneCardMenuDeps): SeatCardMenuModel | null {
   const { menu } = deps;
   if (menu?.kind !== 'hand' && menu?.kind !== 'zoneView') {
     return null;
@@ -185,7 +185,7 @@ export function resolveHandOrZoneCardMenu(deps: HandOrZoneCardMenuDeps): CardMen
   });
 
   const items = buildHandOrZoneCardMenu({
-    shortcutHints: deps.shortcutHints,
+    menuShortcut: deps.menuShortcut,
     source: zoneView ? 'zoneView' : 'hand',
     canModify: deps.canModify,
     revealTargets: deps.revealTargets,
@@ -240,5 +240,5 @@ export function resolveHandOrZoneCardMenu(deps: HandOrZoneCardMenuDeps): CardMen
     relatedViewItems: deps.relatedViewItems(cardName),
     tokenItems: deps.tokenItems(cardName),
   });
-  return { items, anchor: { x: menu.x, y: menu.y }, disabled: !numeric };
+  return { items, anchor: { x: menu.x, y: menu.y }, label: cardName };
 }

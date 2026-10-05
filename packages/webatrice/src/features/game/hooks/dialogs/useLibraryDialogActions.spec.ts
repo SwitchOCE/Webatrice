@@ -33,23 +33,4 @@ describe('useLibraryDialogActions', () => {
     });
   });
 
-  it('draws the bottom card by its position, and does nothing on an empty library', () => {
-    const { result, webClient } = setup(30);
-    result.current.handleRequestDrawBottom();
-    expect(vi.mocked(webClient.request.game.moveCard).mock.calls[0][1].cardsToMove).toEqual({ card: [{ cardId: 29 }] });
-
-    const empty = setup(0);
-    empty.result.current.handleRequestDrawBottom();
-    expect(empty.webClient.request.game.moveCard).not.toHaveBeenCalled();
-  });
-
-  it('shuffles the bottom N with a negative start', () => {
-    const { result, webClient, lastPrompt } = setup();
-
-    result.current.handleRequestShuffleBottomN();
-    expect(lastPrompt().validate?.('0')).toBe('Enter a positive integer');
-    lastPrompt().onSubmit('3');
-
-    expect(webClient.request.game.shuffle).toHaveBeenCalledWith(1, { zoneName: ZoneName.DECK, start: -3, end: -1 });
-  });
 });

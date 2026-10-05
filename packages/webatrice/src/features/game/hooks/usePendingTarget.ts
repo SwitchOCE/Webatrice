@@ -32,6 +32,10 @@ export interface PendingTargetPicker {
    *  nothing). False, leaving any pick pending, when nothing is pending or
    *  the game id (and so the target port) is not known yet. */
   pick(target: ArrowTarget): boolean;
+  /** Resolve a pending arrow pick against what `element` shows, by the
+   *  rule a click uses (arrowTargetAt): a card or player that can take an
+   *  arrow, else a cancel. False when no arrow pick is pending. */
+  pickArrowAt(element: Element | null): boolean;
   /** As `pick`, for a press on a battlefield card, which only resolves an attach. */
   pickAttachTarget(target: ArrowTarget): boolean;
 }
@@ -127,6 +131,18 @@ export function usePendingTarget(gameId: number | undefined): PendingTargetPicke
     cancel: () => setPending(null),
     pick: (target: ArrowTarget) => resolve(target),
     pickAttachTarget: (target: ArrowTarget) => resolve(target, 'attach'),
+    pickArrowAt: (element: Element | null) => {
+      if (pendingRef.current?.kind !== 'arrow') {
+        return false;
+      }
+      const target = arrowTargetAt(element);
+      if (target) {
+        resolve(target);
+      } else {
+        setPending(null);
+      }
+      return true;
+    },
   }), [resolve, setPending]);
 
   return useMemo(() => ({ pending, pointer, ...actions }), [pending, pointer, actions]);

@@ -1,4 +1,3 @@
-import type { ZoneNameValue } from '@cockatrice/sockatrice';
 import { RefObject, useCallback } from 'react';
 
 import type { ColorRGBA } from '@app/types';
@@ -12,12 +11,6 @@ import { usePendingTarget, type PendingTargetPicker } from './usePendingTarget';
 
 export type { ArrowDragPreview };
 
-interface CardSource {
-  sourcePlayerId: number;
-  sourceZone: string;
-  sourceCardId: number;
-}
-
 export interface GameArrowInteractions {
   arrowSourceKey: string | null;
   arrowTargetKey: string | null;
@@ -27,8 +20,6 @@ export interface GameArrowInteractions {
   // True while an arrow/attach is pending (used to gate box-select + clicks).
   pending: boolean;
   handleBoardMouseDown: (e: React.MouseEvent<HTMLDivElement>) => void;
-  startPendingArrow: (source: CardSource) => void;
-  startPendingAttach: (source: CardSource) => void;
   cancelPendingOnDragStart: () => void;
 }
 
@@ -37,9 +28,6 @@ export interface UseGameArrowInteractionsArgs {
   containerRef: RefObject<HTMLDivElement>;
   cardRegistry: CardRegistry;
 }
-
-const pendingSource = ({ sourcePlayerId, sourceZone, sourceCardId }: CardSource) =>
-  ({ playerId: sourcePlayerId, zone: sourceZone as ZoneNameValue, cardId: sourceCardId, name: '' });
 
 /**
  * The game-level card pointer interactions: the right-button arrow drag
@@ -63,9 +51,7 @@ export function useGameArrowInteractions({
   }, [targetCommandsFor, localPlayerId]);
   const drag = useArrowDrag({ containerRef, cardRegistry, onDrop });
 
-  const { startArrow, startAttach, cancel } = pendingTarget;
-  const startPendingArrow = useCallback((source: CardSource) => startArrow(pendingSource(source)), [startArrow]);
-  const startPendingAttach = useCallback((source: CardSource) => startAttach(pendingSource(source)), [startAttach]);
+  const { cancel } = pendingTarget;
 
   return {
     arrowSourceKey: pending
@@ -76,8 +62,6 @@ export function useGameArrowInteractions({
     pendingTarget,
     pending: pending != null,
     handleBoardMouseDown: drag.handleBoardMouseDown,
-    startPendingArrow,
-    startPendingAttach,
     cancelPendingOnDragStart: cancel,
   };
 }

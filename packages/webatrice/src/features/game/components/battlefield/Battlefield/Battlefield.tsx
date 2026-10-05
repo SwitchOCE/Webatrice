@@ -260,6 +260,7 @@ export default function Battlefield() {
   return (
     <ContextMenu
       items={isSelf ? battlefieldMenuItems : opponentBattlefieldMenuItems}
+      label={t('PlayerBoard.playerMenu', { name })}
       wrapperClassName="min-h-0 relative isolate"
       wrapperStyle={seatGrid.battlefield}
     >

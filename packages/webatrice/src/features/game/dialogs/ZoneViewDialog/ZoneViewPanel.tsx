@@ -94,6 +94,9 @@ type Props = {
     card: HandCard,
     scope: ZoneViewCardScope,
   ) => void;
+  /** Enter on a focused card, on its element: the game's pending arrow pick
+   *  takes it, as a click would. */
+  onCardActivate?: (card: HandCard, element: HTMLElement) => void;
   /** IDs of library cards currently being dragged by the parent. Those
    *  cards render at opacity 0 in the dialog so the user only sees the
    *  drag ghost. */
@@ -120,6 +123,7 @@ export default function ZoneViewPanel({
   showShuffleOnClose = true,
   onCardPointerDown,
   onCardContextMenu,
+  onCardActivate,
   draggingCardIds,
   dropRef,
   selectedIds,
@@ -287,6 +291,7 @@ export default function ZoneViewPanel({
     previewOf: (card) => ({ name: card.name, scryfallId: card.scryfallId }),
     selectedIds,
     onSelectIds: onSelectedIdsChange,
+    onActivate: onCardActivate,
     onOpenMenu: (card, rect) => onCardContextMenu?.({ x: rect.left, y: rect.bottom }, card, scopeOf(card.id)),
   });
 

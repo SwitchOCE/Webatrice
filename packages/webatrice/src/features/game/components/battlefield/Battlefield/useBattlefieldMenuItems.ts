@@ -1,7 +1,6 @@
-import type { useShortcutHints } from '@app/feature-widgets/shortcuts';
 import { useMessageMacros } from '@app/hooks';
 
-import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
+import type { ContextMenuItem, MenuShortcutFor } from '../../context-menus/ContextMenu/ContextMenu';
 import { MANA_COLORS } from '../../right-sidebar/PlayerInfoPanel/manaColors';
 import { useTallyType } from '../../../hooks/useTallyType';
 import { useGameDialogActions } from '../../ui/GameDialogActionsContext';
@@ -17,7 +16,6 @@ import { buildCustomZonesMenu } from './customZonesMenu';
 import { buildSayMenu } from './sayMenu';
 import { buildTallyMenu } from './tallyMenu';
 
-type ShortcutHints = ReturnType<typeof useShortcutHints>;
 type SeatPrompts = ReturnType<typeof useSeatPrompts>;
 
 export interface UseBattlefieldMenuItemsArgs {
@@ -41,7 +39,7 @@ export interface UseBattlefieldMenuItemsArgs {
   battlefieldDisplayList: readonly BattlefieldCardViewModel[];
   lastToken: SeatPrompts['lastToken'];
   openCreateTokenDialog: () => void;
-  shortcutHints: ShortcutHints;
+  menuShortcut: MenuShortcutFor;
   cardCommands: PlayerCardCommands;
   counterCommands: PlayerCounterCommands;
 }
@@ -72,7 +70,7 @@ export function useBattlefieldMenuItems({
   battlefieldDisplayList,
   lastToken,
   openCreateTokenDialog,
-  shortcutHints,
+  menuShortcut,
   cardCommands,
   counterCommands,
 }: UseBattlefieldMenuItemsArgs) {
@@ -200,7 +198,7 @@ export function useBattlefieldMenuItems({
           // dialog that "View library" opens (player_actions.cpp:232-234).
           label: 'View sideboard',
           onClick: onRequestViewSideboard,
-          shortcut: shortcutHints['game.viewSideboard'],
+          ...menuShortcut('game.viewSideboard'),
         },
       ],
     },
@@ -220,7 +218,7 @@ export function useBattlefieldMenuItems({
       // (player_actions.cpp:1588-1621), on the selection or the whole
       // battlefield. Disabled while the battlefield is empty.
       label: 'Increment all card counters',
-      shortcut: shortcutHints['game.incrementAllCardCounters'],
+      ...menuShortcut('game.incrementAllCardCounters'),
       onClick: incrementAllCardCounters,
       disabled:
         battlefieldDisplayList.length === 0,
@@ -237,13 +235,13 @@ export function useBattlefieldMenuItems({
       // Not phase-gated here — the menu action is always available.
       label: 'Untap all permanents',
       onClick: () => cardCommands.untapAll(),
-      shortcut: shortcutHints['game.untapAll'],
+      ...menuShortcut('game.untapAll'),
     },
     { divider: true },
     {
       label: 'Roll die...',
       onClick: () => onRequestRollDie?.(),
-      shortcut: shortcutHints['game.rollDice'],
+      ...menuShortcut('game.rollDice'),
     },
     {
       // "Flip coin" — port of actFlipCoin (player_actions.cpp:866-872).
@@ -252,7 +250,7 @@ export function useBattlefieldMenuItems({
       // renders the heads/tails outcome.
       label: 'Flip coin',
       onClick: () => counterCommands.flipCoin(),
-      shortcut: shortcutHints['game.flipCoin'],
+      ...menuShortcut('game.flipCoin'),
     },
     { divider: true },
     {
@@ -263,7 +261,7 @@ export function useBattlefieldMenuItems({
       // stores lastTokenInfo, then chains into actCreateAnotherToken.
       label: 'Create token...',
       onClick: () => openCreateTokenDialog(),
-      shortcut: shortcutHints['game.createToken'],
+      ...menuShortcut('game.createToken'),
     },
     {
       // "Create another token" — direct re-fire with the last submitted
@@ -278,7 +276,7 @@ export function useBattlefieldMenuItems({
         }
       },
       disabled: !lastToken,
-      shortcut: shortcutHints['game.createAnotherToken'],
+      ...menuShortcut('game.createAnotherToken'),
     },
     {
       label: 'Create predefined token',
@@ -291,7 +289,7 @@ export function useBattlefieldMenuItems({
       onClick: () => onRequestGameInfo?.(),
     },
     tallyMenu,
-    ...(onSay ? [buildSayMenu(messageMacros, shortcutHints, onSay)] : []),
+    ...(onSay ? [buildSayMenu(messageMacros, menuShortcut, onSay)] : []),
   ];
 
   // Opponent battlefield right-click menu. Ports Cockatrice's

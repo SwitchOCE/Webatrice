@@ -8,6 +8,7 @@ import { useCanActFor } from '../../components/ui/CardVisualStateContext';
 import { useGameDialogsContext } from '../../components/ui/GameDialogsContext';
 import { useGameId } from '../../components/ui/GameIdContext';
 import { useGameSelectionState } from '../../components/ui/GameSelectionContext';
+import { usePendingTargetContext } from '../../components/ui/PendingTargetContext';
 import { useActiveSeatDrag, useSeatDragSource, useSeatDropZone } from '../../components/ui/SeatDragContext';
 import type { ZoneViewTarget } from '../../hooks/dialogs/gameDialogs.types';
 import {
@@ -154,6 +155,8 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
   const { selectedIds, setSelectedIds } = useZoneViewSelection(playerId, zoneName, cards);
 
   const { openSeatCardMenu } = useGameDialogsContext();
+  // Enter on a card while an arrow pick is pending takes it, by the click rule.
+  const { pickArrowAt } = usePendingTargetContext();
   const cardMenuKind = CARD_MENU_KIND[zoneName];
   const onCardContextMenu = cardMenuKind
     ? (at: { x: number; y: number }, card: { id: string; name: string }, scope: ZoneViewCardScope) => {
@@ -207,6 +210,7 @@ function ZoneViewDialog({ view, handleClose }: ZoneViewDialogProps) {
       onClose={handleClose}
       onCardPointerDown={onCardPointerDown}
       onCardContextMenu={onCardContextMenu}
+      onCardActivate={(_card, element) => pickArrowAt(element)}
       dropRef={panelDropRef}
       draggingCardIds={draggingCardIds}
       selectedIds={selectedIds}
