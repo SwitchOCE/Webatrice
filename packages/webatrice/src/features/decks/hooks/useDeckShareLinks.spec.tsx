@@ -43,8 +43,11 @@ describe('useDeckShareLinks', () => {
     ['deckShareRemove', 'DeckShareLinks.revokeFailed'],
   ] as const)('reports a failed %s', (command, message) => {
     const { store } = setup();
+    if (command === 'deckShareRemove') {
+      act(() => links.revoke(4));
+    }
     act(() => {
-      store.dispatch(server.Actions.sessionCommandFailed({ command, target: '', responseCode: 15 }));
+      store.dispatch(server.Actions.sessionCommandFailed({ command, target: command === 'deckShareRemove' ? '4' : '', responseCode: 15 }));
     });
     expect(links.error).toBe(message);
   });
