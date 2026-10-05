@@ -12,8 +12,8 @@ import { GamePage } from '../pages';
 // the pool's single tab stop, a phase change from the phase bar, the player
 // list's "More actions" menu, and a library view opened with F3 and closed
 // with Escape, focus going back where it came from each time. Two accounts,
-// the game and the decks are mouse-driven setup; nothing after the board
-// appears is clicked.
+// the game and the decks are mouse-driven setup. One battlefield click also
+// checks the desktop flow "click the table, press Tab".
 
 const DECK_PATH = resolve(__dirname, '..', 'fixtures', 'decks', 'forest-60.cod');
 
@@ -75,13 +75,45 @@ test('play a turn of the board controls with the keyboard only', async ({ newCon
   await page.keyboard.press('ArrowDown');
   await expect(green).toHaveAttribute('aria-valuenow', '0', { timeout: 15_000 });
 
+  // Board Tab advances from untap to upkeep. Shift+Tab advances again with
+  // the draw step's action, confirmed by the other client's library count.
+  const active = hostActive ? hostGame : joinerGame;
+  const phases = page.getByRole('navigation', { name: 'Turn phases' });
+  await expect(phases.getByRole('button', { name: 'Untap', exact: true })).toHaveAttribute('aria-current', 'step');
+  const battlefield = active.localBoard.locator('[data-battlefield-owner]');
+  await battlefield.click();
+  await expect(battlefield).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(phases.getByRole('button', { name: 'Upkeep' })).toHaveAttribute('aria-current', 'step', { timeout: 15_000 });
+  await expect(watcher.logLine('It is now the upkeep step.')).toBeVisible({ timeout: 15_000 });
+
+  const libraryBefore = await watcher.zoneStackCount('deck', watcher.opponentBoard);
+  await page.keyboard.press('Shift+Tab');
+  const draw = phases.getByRole('button', { name: 'Draw', exact: true });
+  await expect(draw).toHaveAttribute('aria-current', 'step', { timeout: 15_000 });
+  await expect(watcher.logLine('It is now the draw step.')).toBeVisible({ timeout: 15_000 });
+  await expect.poll(() => watcher.zoneStackCount('deck', watcher.opponentBoard), { timeout: 15_000 })
+    .toBe(libraryBefore - 1);
+
+  // Focused sidebar tab stops keep browser navigation and leave the phase
+  // unchanged. Start from chat so tabTo does not invoke the board shortcut.
+  await page.keyboard.press('Shift+Enter');
+  for (const control of [page.getByRole('log'), page.getByRole('separator', { name: 'Resize sidebar' })]) {
+    await tabTo(page, control);
+    await expect(control).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(control).not.toBeFocused();
+    await expect(draw).toHaveAttribute('aria-current', 'step');
+    await expect(watcher.container.getByRole('button', { name: 'Draw', exact: true })).toHaveAttribute('aria-current', 'step');
+  }
+
   // Phase: the phase bar's buttons are named while collapsed; Enter on Upkeep
   // changes phase and marks it current.
   const upkeep = page.getByRole('navigation', { name: 'Turn phases' }).getByRole('button', { name: 'Upkeep' });
   await tabTo(page, upkeep);
   await page.keyboard.press('Enter');
   await expect(upkeep).toHaveAttribute('aria-current', 'step', { timeout: 15_000 });
-  await expect(watcher.logLine('It is now the upkeep step.')).toBeVisible({ timeout: 15_000 });
+  await expect(watcher.logLine('It is now the upkeep step.')).toHaveCount(2, { timeout: 15_000 });
 
   // Player list: the row's "More actions" button opens its menu with focus in
   // it; Escape closes it and focus goes back to the button.
