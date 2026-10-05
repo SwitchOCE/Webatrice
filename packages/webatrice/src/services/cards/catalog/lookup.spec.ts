@@ -83,6 +83,20 @@ describe('lookupCard', () => {
     expect(await lookupCard('Swan Song')).not.toHaveProperty('cipt');
   });
 
+  // Desktop's battlefield row (CardInfo::UiAttributes::tableRow,
+  // cockatrice_xml_4.cpp:342-343), kept through the Scryfall merge.
+  it('reads cards.xml tablerow as a number', async () => {
+    cards.get.mockResolvedValue({ ...XML_SWAN_SONG, tablerow: { value: '3' } });
+    await expect(lookupCard('Swan Song')).resolves.toMatchObject({ tableRow: 3 });
+
+    fetchMock.mockImplementation(() => respond(SCRYFALL_SWAN_SONG));
+    cache.get.mockResolvedValue(undefined);
+    await expect(lookupCard('Swan Song')).resolves.toMatchObject({ source: 'dexie+scryfall', tableRow: 3 });
+
+    cards.get.mockResolvedValue({ ...XML_SWAN_SONG, tablerow: { value: '' } });
+    expect(await lookupCard('Swan Song')).not.toHaveProperty('tableRow');
+  });
+
   // Desktop reads `exclude` as present / absent (cockatrice_xml_4.cpp:408-410);
   // "Create all related tokens" skips such a relation.
   it('carries cards.xml exclude on related and reverse-related cards, and through the Scryfall overlay', async () => {

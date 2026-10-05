@@ -73,6 +73,7 @@ describe('seatCardMetaFromLookup', () => {
       scryfallId: 'Bear-id',
     });
     expect(seatCardMetaFromLookup(record('Shock'))).toMatchObject({ typeLine: '', pt: undefined });
+    expect(seatCardMetaFromLookup({ ...BEAR, tableRow: 0 })).toMatchObject({ tableRow: 0 });
   });
 });
 
