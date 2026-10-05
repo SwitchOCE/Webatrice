@@ -1,6 +1,6 @@
 // The tally overlay end to end through <Game />: the player menu's Tally
 // submenu picks the tally, and the overlay shows it over the selection.
-import { act, renderHook, screen, within } from '@testing-library/react';
+import { act, fireEvent, renderHook, screen, within } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
 
 import { PREFERENCE_DEFAULTS } from '@app/types';
@@ -17,6 +17,23 @@ import Game from '../../Game';
 import { useTallyType } from '../../hooks/useTallyType';
 
 vi.mock('../../../../hooks/useSettings');
+
+vi.mock('react-i18next', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-i18next')>();
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string, options?: { count?: number }) => {
+        if (key === 'TallyOverlay.selectedCount') {
+          return options?.count === 1
+            ? '1 card selected'
+            : `${options?.count ?? 0} cards selected`;
+        }
+        return key;
+      },
+    }),
+  };
+});
 
 vi.mock('../../../../services/cards/cardCatalog', () => {
   const unknown = (name: string) => ({ found: false, source: 'unknown', name, printings: [] });
@@ -48,6 +65,12 @@ function renderGame() {
 
 function tally() {
   return screen.queryByRole('status', { name: 'TallyOverlay.tally' });
+}
+
+function selectCard(cardId: number, ctrlKey = false) {
+  const card = cardEl(cardId, 'battlefield');
+  act(() => fireEvent.pointerDown(card, { button: 0, clientX: 50, clientY: 50 }));
+  act(() => fireEvent.pointerUp(window, { button: 0, clientX: 50, clientY: 50, ctrlKey }));
 }
 
 beforeEach(() => {
@@ -85,16 +108,21 @@ describe('TallyOverlay', () => {
     expect(within(tally()!).getByText('4')).toBeInTheDocument();
   });
 
-  it('shows the selection count from two selected cards, with no tally chosen', () => {
+  it('announces selection changes from a stable live region with no tally chosen', () => {
     renderGame();
-    expect(screen.queryByRole('status', { name: 'TallyOverlay.selectedCount' })).not.toBeInTheDocument();
+    const announcement = screen.getByText('0 cards selected', { selector: '[role="status"]' });
+    expect(announcement).toHaveClass('sr-only');
+    expect(announcement).toHaveAttribute('aria-live', 'polite');
+    expect(announcement).toHaveTextContent('0 cards selected');
 
-    openContextMenu(cardEl(OGRE.id, 'battlefield'));
-    chooseMenuPath('Select All');
+    selectCard(OGRE.id);
+    expect(screen.getByText('1 card selected', { selector: '[role="status"]' })).toBe(announcement);
 
-    expect(screen.getByRole('status', { name: 'TallyOverlay.selectedCount' })).toHaveTextContent('2');
-    // Not announced on every selection change; the tally region is.
-    expect(screen.getByRole('status', { name: 'TallyOverlay.selectedCount' })).toHaveAttribute('aria-live', 'off');
+    selectCard(ELF.id, true);
+
+    expect(screen.getByText('2 cards selected', { selector: '[role="status"]' })).toBe(announcement);
+    expect(announcement).toHaveTextContent('2 cards selected');
+    expect(screen.getByText('2', { selector: '[aria-hidden="true"]' })).toBeInTheDocument();
     expect(tally()).not.toBeInTheDocument();
   });
 
@@ -105,7 +133,8 @@ describe('TallyOverlay', () => {
     openContextMenu(cardEl(OGRE.id, 'battlefield'));
     chooseMenuPath('Select All');
 
-    expect(screen.queryByRole('status', { name: 'TallyOverlay.selectedCount' })).not.toBeInTheDocument();
+    expect(screen.getByText('2 cards selected', { selector: '[role="status"]' })).toBeInTheDocument();
+    expect(screen.queryByText('2', { selector: '[aria-hidden="true"]' })).not.toBeInTheDocument();
     vi.mocked(usePreferences).mockReturnValue(PREFERENCE_DEFAULTS);
   });
 });
