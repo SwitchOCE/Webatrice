@@ -32,6 +32,9 @@ export interface UseGameDndArgs {
   // judge drags a foreign card, else undefined → bare). Passed in to keep this hook
   // store-decoupled. See useJudgeTarget.
   judgeTarget: (ownerPlayerId: number) => number | undefined;
+  // Whether the local client judges the game: a judge may move a lent card to
+  // any battlefield (planSeatMove), as Servatrice allows.
+  isJudge?: boolean;
   cancelPendingArrow: () => void;
   // A seat drop ends the selection that rode it, like PlayerBox always did.
   clearSelection?: () => void;
@@ -84,6 +87,7 @@ function useGrabbingCursor(active: boolean) {
 export function useGameDnd({
   gameId,
   judgeTarget,
+  isJudge = false,
   cancelPendingArrow,
   clearSelection,
   moveCard,
@@ -115,7 +119,7 @@ export function useGameDnd({
   const moveSeatCards = useCallback(
     (source: SeatDragSource, target: SeatDropTarget) => {
       if (moveCard && gameId) {
-        for (const params of planSeatMove(source, target)) {
+        for (const params of planSeatMove(source, target, { judge: isJudge })) {
           const judgeTargetId = source.lenderPlayerId == null ? judgeTarget(params.startPlayerId) : undefined;
           if (judgeTargetId != null) {
             webClient.request.game.moveCard(gameId, params, judgeTargetId);
@@ -126,7 +130,7 @@ export function useGameDnd({
       }
       clearSelection?.();
     },
-    [gameId, webClient, moveCard, clearSelection, judgeTarget],
+    [gameId, webClient, moveCard, clearSelection, judgeTarget, isJudge],
   );
 
   // A seat drop: the zone under the pointer says where in it the cards land.
