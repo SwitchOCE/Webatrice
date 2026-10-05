@@ -256,9 +256,29 @@ export interface CreateAllRelated {
   /**
    * What "Create another token" repeats afterwards: the first relation run,
    * unless it attaches (desktop setLastToken when getCanCreateAnother,
-   * player_actions.cpp:1053-1061).
+   * player_actions.cpp:1053-1061), built from its card (repeatTokenRequest).
    */
   lastToken?: CreateTokenRequest;
+}
+
+/**
+ * The token "Create another token" repeats after a related token, as desktop
+ * setLastTokenInfo (player_actions.cpp:929-943) rebuilds it from the token's
+ * card rather than from the relation: its first color, its printed P/T, its
+ * rules text when annotating, and always destroyed on a zone change. The
+ * printing is the one the token items use (desktop sends the user's printing
+ * override, which the web client does not have).
+ */
+function repeatTokenRequest(ref: RelatedCardRef, tok: LookupResult | undefined, annotate: boolean): CreateTokenRequest {
+  return {
+    name: tok?.name ?? ref.name,
+    color: tok?.colors?.[0]?.toLowerCase() ?? '',
+    pt: tok?.power != null && tok.toughness != null ? `${tok.power}/${tok.toughness}` : '',
+    annotation: annotate ? tok?.text ?? '' : '',
+    destroyOnZoneChange: true,
+    faceDown: false,
+    providerId: tok?.printings?.[0]?.scryfallId,
+  };
 }
 
 /**
@@ -275,19 +295,21 @@ export interface CreateAllRelated {
  */
 export function createAllRelated(source: RelatedCardSource): CreateAllRelated {
   const annotate = source.annotate ?? false;
+  const repeatToken = (ref: RelatedCardRef) => repeatTokenRequest(ref, source.tokenMeta.get(ref.name), annotate);
   const runOne = (ref: RelatedCardRef): CreateAllRelated => {
     const { requests } = relatedTokenAction(ref, source.tokenMeta.get(ref.name), annotate);
     const { variable, count } = relationCount(ref);
-    const lastToken = isSet(ref.attach) ? undefined : requests[0];
+    const lastToken = isSet(ref.attach) ? undefined : repeatToken(ref);
     return variable
       ? { requests: [], prompt: { request: requests[0], defaultCount: count }, lastToken }
       : { requests, lastToken };
   };
   const createEach = (refs: readonly RelatedCardRef[]): CreateAllRelated => {
-    const perRef = refs
-      .filter((ref) => !isSet(ref.attach) && !relationCount(ref).variable)
-      .map((ref) => relatedTokenAction(ref, source.tokenMeta.get(ref.name), annotate).requests);
-    return { requests: perRef.flat(), lastToken: perRef[0]?.[0] };
+    const created = refs.filter((ref) => !isSet(ref.attach) && !relationCount(ref).variable);
+    return {
+      requests: created.flatMap((ref) => relatedTokenAction(ref, source.tokenMeta.get(ref.name), annotate).requests),
+      lastToken: created.length > 0 ? repeatToken(created[0]) : undefined,
+    };
   };
 
   const transform = transformAction(source.parentMeta, source.sourceCardId, source.parentName, annotate);
