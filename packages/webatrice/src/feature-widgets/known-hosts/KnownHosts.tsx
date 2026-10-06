@@ -96,6 +96,13 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
   const typeahead = useRef({ text: '', at: 0 });
   const activeHost = hosts.find((h) => h.id === activeId) ?? selectedHost ?? hosts[0];
   const optionId = (id: number) => `${popupId}-host-${id}`;
+  const activeOptionId = activeHost?.id != null ? optionId(activeHost.id) : undefined;
+
+  useEffect(() => {
+    if (open && activeOptionId) {
+      document.getElementById(activeOptionId)?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [open, activeOptionId]);
 
   const pick = (host: HostDTO) => {
     if (host.id != null) {
@@ -248,7 +255,7 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
           <button
             type="button"
             onClick={() => {
-              setOpen(false);
+              close();
               openAddKnownHostDialog();
             }}
             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-accent hover:bg-bg-elevated transition-colors"
@@ -313,7 +320,7 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
             <button
               type="button"
               onClick={() => {
-                setOpen(false);
+                close();
                 openEditKnownHostDialog(selectedHost);
               }}
               className={[
@@ -358,7 +365,7 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
                   disabled={Boolean(reason)}
                   title={reason || server.site}
                   onClick={() => {
-                    setOpen(false);
+                    close();
                     void onPickPublicServer(server);
                   }}
                   className={[
