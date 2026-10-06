@@ -7,19 +7,19 @@ import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 
 import { CountryDropdown, InputField } from '@app/components';
-import { DialogShell } from '@app/dialogs';
+import { AlertDialog, DialogShell } from '@app/dialogs';
 
 import { buildEditUserFormSchema, needsPasswordCheck, type EditUserFormValues } from './editUserFormSchema';
-import { useEditUser } from './useEditUser';
+import { useEditUser, type EditUser, type EditUserProfile } from './useEditUser';
 
 interface EditUserDialogProps {
   isOpen: boolean;
   handleClose: () => void;
 }
 
-const EditUserForm = ({ handleClose }: { handleClose: () => void }) => {
+const EditUserForm = ({ profile, supportsPasswordHash, pending, error, submit, handleClose }:
+  EditUser & { profile: EditUserProfile; handleClose: () => void }) => {
   const { t } = useTranslation();
-  const { profile, supportsPasswordHash, pending, error, submit } = useEditUser(handleClose);
   const originalEmail = profile.email;
 
   const resolver = useMemo(
@@ -35,9 +35,6 @@ const EditUserForm = ({ handleClose }: { handleClose: () => void }) => {
 
   const { control, handleSubmit, watch, formState: { isSubmitted } } = useForm<EditUserFormValues>({
     defaultValues: values,
-    // The fetched profile can land after the dialog opens; fill it in without clobbering edits.
-    values,
-    resetOptions: { keepDirtyValues: true },
     resolver,
   });
 
@@ -107,14 +104,24 @@ const EditUserForm = ({ handleClose }: { handleClose: () => void }) => {
 };
 
 /** Desktop `DlgEditUser`: edit email, country and real name. */
-const EditUserDialog = ({ isOpen, handleClose }: EditUserDialogProps) => {
+const EditUserContent = ({ handleClose }: { handleClose: () => void }) => {
   const { t } = useTranslation();
+  const edit = useEditUser(handleClose);
+
+  if (!edit.profile) {
+    return edit.error ? (
+      <AlertDialog isOpen title={t('EditUserDialog.title')} message={edit.error} onDismiss={handleClose} />
+    ) : null;
+  }
 
   return (
-    <DialogShell isOpen={isOpen} handleClose={handleClose} title={t('EditUserDialog.title')}>
-      <EditUserForm handleClose={handleClose} />
+    <DialogShell isOpen handleClose={handleClose} title={t('EditUserDialog.title')}>
+      <EditUserForm {...edit} profile={edit.profile} handleClose={handleClose} />
     </DialogShell>
   );
 };
+
+const EditUserDialog = ({ isOpen, handleClose }: EditUserDialogProps) =>
+  isOpen ? <EditUserContent handleClose={handleClose} /> : null;
 
 export default EditUserDialog;

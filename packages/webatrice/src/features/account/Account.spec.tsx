@@ -1,5 +1,6 @@
 import { vi } from 'vitest';
 import { act, fireEvent, screen } from '@testing-library/react';
+import { server } from '@cockatrice/datatrice';
 
 const flush = async () => {
   await act(async () => {
@@ -119,10 +120,17 @@ describe('Account', () => {
     ['Account.action.edit', 'EditUserDialog.title'],
     ['Account.action.changePassword', 'ChangePasswordDialog.title'],
     ['Account.action.changeAvatar', 'ChangeAvatarDialog.title'],
-  ])('%s opens its dialog without sending anything until confirmed', (button, title) => {
-    renderWithProviders(<Account />, { preloadedState: connectedState });
+  ])('%s opens its dialog without changing the account until confirmed', (button, title) => {
+    const { store } = renderWithProviders(<Account />, { preloadedState: connectedState });
 
     fireEvent.click(screen.getByRole('button', { name: button }));
+    if (button === 'Account.action.edit') {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(hoisted.mockWebClient.request.session.getUserInfo).toHaveBeenCalledWith('');
+      act(() => {
+        store.dispatch(server.Actions.getUserInfo({ userInfo: makeUser() }));
+      });
+    }
 
     expect(screen.getByRole('dialog', { name: title })).toBeInTheDocument();
     expect(hoisted.mockWebClient.request.session.accountEdit).not.toHaveBeenCalled();

@@ -593,7 +593,8 @@
     "label": {
       "passwordCheck": "Current password (required to change your email)"
     },
-    "success": "User information updated."
+    "success": "User information updated.",
+    "fetchFailed": "Failed to load your user information. Please try again."
   },
   "DeckEditor": {
     "downloadFailed": "Failed to download this deck from the server.",
