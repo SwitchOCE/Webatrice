@@ -519,6 +519,33 @@ describe('Private chat notices', () => {
     expect(result.privateChatNotices['Alice']).toEqual([{ id: expect.any(Number), kind, position: 2 }]);
   });
 
+  it('RespNameNotFound marks only the recipient offline until they rejoin', () => {
+    const state = makeServerState({
+      users: { Alice: makeUser({ name: 'Alice' }), Carol: makeUser({ name: 'Carol' }) },
+      messages: { Alice: [msg('hello')] },
+    });
+    const result = serverReducer(state, Actions.privateMessageFailed({
+      userName: 'Alice', message: 'unsent', responseCode: Response_ResponseCode.RespNameNotFound,
+    }));
+    expect(result.users.Alice).toBeUndefined();
+    expect(result.users.Carol).toBe(state.users.Carol);
+    expect(state.users.Alice).toBeDefined();
+    expect(result.messages.Alice).toEqual(state.messages.Alice);
+    expect(result.privateChatNotices.Alice).toEqual([
+      { id: expect.any(Number), kind: 'recipientOffline', position: 1 },
+    ]);
+    const rejoined = serverReducer(result, Actions.userJoined({ user: makeUser({ name: 'Alice' }) }));
+    expect(rejoined.users.Alice).toBeDefined();
+  });
+
+  it.each([Response_ResponseCode.RespChatFlood, Response_ResponseCode.RespInIgnoreList])(
+    'rejection %i does not mark the recipient offline', (responseCode) => {
+      const state = makeServerState({ users: { Alice: makeUser({ name: 'Alice' }) } });
+      const result = serverReducer(state, Actions.privateMessageFailed({ userName: 'Alice', message: 'unsent', responseCode }));
+      expect(result.users.Alice).toBe(state.users.Alice);
+    },
+  );
+
   it('PRIVATE_MESSAGE_FAILED for an unmapped code → no notice', () => {
     const state = makeServerState();
     const result = serverReducer(state, Actions.privateMessageFailed({
