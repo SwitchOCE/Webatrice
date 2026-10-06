@@ -88,6 +88,30 @@ describe('ReportQueue', () => {
     }
   });
 
+  it('clears the previous action result on refresh and exposes a later list failure', () => {
+    const { load, store } = renderQueue();
+    load();
+    fireEvent.click(screen.getByTestId('report-row-1'));
+    fireEvent.click(button('Reports.queue.assign'));
+    act(() => store.dispatch(server.Actions.reportAssigned({ reportId: 1 })));
+    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.queue.assignedDone');
+    load();
+    fireEvent.click(button('Reports.refresh'));
+    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.loading');
+    act(() => store.dispatch(failed('reportList')));
+    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.loadFailed');
+  });
+
+  it('exposes a failed post-action list load despite the action success message', () => {
+    const { load, store } = renderQueue();
+    load();
+    fireEvent.click(screen.getByTestId('report-row-1'));
+    fireEvent.click(button('Reports.queue.assign'));
+    act(() => store.dispatch(server.Actions.reportAssigned({ reportId: 1 })));
+    act(() => store.dispatch(failed('reportList')));
+    expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.loadFailed');
+  });
+
   it('loads the unresolved queue and the stats on open, and re-queries when the switch flips', () => {
     const { moderator } = renderQueue();
     expect(moderator.reportList).toHaveBeenCalledWith(true);

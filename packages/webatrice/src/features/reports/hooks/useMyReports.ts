@@ -8,7 +8,9 @@ import { useAppSelector } from '@app/store';
 import { useReportListLoad, type ReportListLoadState } from './useReportListLoad';
 import { useReportThread, type ReportThread } from './useReportThread';
 
-const MY_LIST_FAILURE = { type: server.Types.SESSION_COMMAND_FAILED, command: 'reportMyList' };
+const MY_LIST_FAILURE = {
+  type: server.Types.SESSION_COMMAND_FAILED, command: 'reportMyList', successType: server.Actions.reportMyList.type,
+};
 
 export interface MyReports {
   reports: ServerInfo_Report[];

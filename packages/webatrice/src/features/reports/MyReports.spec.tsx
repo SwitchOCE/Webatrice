@@ -75,7 +75,7 @@ describe('MyReports', () => {
     act(() => {
       store.dispatch(server.Actions.sessionCommandFailed({ command: 'reportDetails', responseCode: 20, target: '4' }));
     });
-    expect(screen.getByText('Reports.thread.detailsFailed')).toBeTruthy();
+    expect(screen.getByTestId('report-thread')).toHaveTextContent('Reports.thread.detailsFailed');
   });
 
   it('loads details for the selected report and sends a comment, then refreshes', () => {

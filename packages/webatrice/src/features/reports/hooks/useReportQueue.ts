@@ -65,7 +65,9 @@ export interface ReportQueue {
   statsState: ReportListLoadState;
 }
 
-const QUEUE_LIST_FAILURE = { type: server.Types.MODERATOR_COMMAND_FAILED, command: 'reportList' };
+const QUEUE_LIST_FAILURE = {
+  type: server.Types.MODERATOR_COMMAND_FAILED, command: 'reportList', successType: server.Actions.reportList.type,
+};
 
 /** The assign or resolve waiting for its answer, matched by report id. */
 interface PendingMutation {
@@ -151,6 +153,7 @@ export function useReportQueue(): ReportQueue {
   const { reloadDetails } = thread;
 
   const refresh = useCallback(() => {
+    setActionMessage(null);
     refreshList();
     reloadDetails();
     if (statsOpenRef.current) {
@@ -160,6 +163,7 @@ export function useReportQueue(): ReportQueue {
 
   // Initial load, and again when "unresolved only" flips (a new server query).
   useEffect(() => {
+    setActionMessage(null);
     refreshList();
     if (statsOpenRef.current) {
       requestStats();
@@ -239,10 +243,10 @@ export function useReportQueue(): ReportQueue {
       return;
     }
     setActionBusy(false);
-    setActionMessage(message);
     if (reload) {
       refresh();
     }
+    setActionMessage(message);
   }, [refresh]);
 
   // Desktop refreshes the queue once an assign or resolve succeeds; the answer

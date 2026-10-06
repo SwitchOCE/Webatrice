@@ -115,7 +115,9 @@ const ReportQueueContent = () => {
           </button>
           <div className="flex-1" />
           <span className="text-sm text-text-muted" role="status" data-testid="report-queue-status">
-            {q.actionMessage ? t(`Reports.queue.${q.actionMessage}`) : listStatusText(t, q.loadState, q.reports.length)}
+            {q.actionMessage && q.loadState !== 'failed'
+              ? t(`Reports.queue.${q.actionMessage}`)
+              : listStatusText(t, q.loadState, q.reports.length)}
           </span>
         </div>
 
