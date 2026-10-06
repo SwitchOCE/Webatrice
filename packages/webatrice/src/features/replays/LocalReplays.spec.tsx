@@ -164,15 +164,20 @@ describe('Local replays', () => {
   });
 
   it('reports a rename that clashes with a sibling', async () => {
-    vi.spyOn(ReplayFileDTO, 'rename').mockRejectedValue(new ReplayNameTakenError('alpha.cor'));
+    const rename = vi.spyOn(ReplayFileDTO, 'rename').mockImplementation(async (_id, name) => {
+      if (name === 'alpha.cor') {
+        throw new ReplayNameTakenError(name);
+      }
+    });
     renderReplays();
 
     fireEvent.click(await localPane().findByTestId('local-replay-zeta.cor'));
     fireEvent.click(localPane().getByRole('button', { name: 'Replays.action.rename' }));
-    fireEvent.change(screen.getByLabelText('Replays.local.newName'), { target: { value: 'alpha.cor' } });
+    fireEvent.change(screen.getByLabelText('Replays.local.newName'), { target: { value: 'alpha' } });
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'OK' }));
 
     expect(await screen.findByText('Replays.local.nameTaken')).toBeInTheDocument();
+    expect(rename).toHaveBeenCalledWith(1, 'alpha.cor');
   });
 
   it('deletes the selection only after confirming', async () => {
