@@ -114,6 +114,31 @@ describe('fetchGameChangers', () => {
 });
 
 describe('fetchOracleText', () => {
+  it('reports omitted identifiers as partial and retries only the omitted card', async () => {
+    fetchMock.mockResolvedValueOnce(json({ data: [{ name: 'Sol Ring', oracle_text: 'Add mana.' }] }));
+    expect(await fetchOracleText(['Sol Ring', 'Negate'])).toEqual({
+      status: 'partial', data: new Map([['sol ring', 'Add mana.']]),
+      failure: { kind: 'malformed' }, missing: 1, total: 2,
+    });
+    fetchMock.mockResolvedValueOnce(json({ data: [{ name: 'Negate', oracle_text: 'Counter it.' }] }));
+    expect(await fetchOracleText(['Sol Ring', 'Negate'])).toEqual({
+      status: 'ok', data: new Map([['sol ring', 'Add mana.'], ['negate', 'Counter it.']]),
+    });
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1].body)).identifiers).toEqual([{ name: 'Negate' }]);
+  });
+
+  it('does not cache a completely omitted result as empty oracle text', async () => {
+    fetchMock.mockResolvedValue(json({ data: [] }));
+    expect(await fetchOracleText(['Negate'])).toEqual({ status: 'unavailable', failure: { kind: 'malformed' } });
+    await fetchOracleText(['Negate']);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('accepts a returned card with no oracle text', async () => {
+    fetchMock.mockResolvedValue(json({ data: [{ name: 'Forest' }] }));
+    expect(await fetchOracleText(['Forest'])).toEqual({ status: 'ok', data: new Map([['forest', '']]) });
+  });
+
   function collectionResponder(failChunkContaining?: string) {
     return async (_url: unknown, init?: RequestInit) => {
       const { identifiers } = JSON.parse(String(init?.body)) as { identifiers: Array<{ name: string }> };
@@ -121,6 +146,7 @@ describe('fetchOracleText', () => {
         return json({}, 503);
       }
       return json({
+        not_found: identifiers.filter((i) => i.name === 'Unknown Card'),
         data: identifiers
           .filter((i) => i.name !== 'Unknown Card')
           .map((i) => ({ name: i.name, oracle_text: `${i.name} text` })),
@@ -141,7 +167,7 @@ describe('fetchOracleText', () => {
       { name: 'Sol Ring' },
       { name: 'Unknown Card' },
     ]);
-    await fetchOracleText(['sol ring']);
+    await fetchOracleText(['sol ring', 'unknown card']);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 

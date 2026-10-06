@@ -133,9 +133,8 @@ interface ScryfallCollectionCard {
   card_faces?: Array<{ oracle_text?: string }>;
 }
 
-// Session cache keyed by lower-cased name. A name Scryfall answered
-// without a match caches as '' (it genuinely has no oracle text); a name
-// whose request failed is not cached, so a retry asks again.
+// Session cache keyed by lower-cased name. Only an explicit not_found
+// answer caches as ''; omitted identifiers remain uncached for retry.
 const oracleCache = new Map<string, string>();
 const oracleInFlight = new Map<string, Promise<SourceFailure | null>>();
 
@@ -247,13 +246,19 @@ async function fetchOracleChunk(
         returned.add(firstFace);
       }
     }
-    // Answered without a match: there is no oracle text to find.
-    for (const k of chunk) {
-      if (!returned.has(k)) {
-        oracleCache.set(k, '');
+    // Only an explicit not_found entry answers an unmatched identifier.
+    if (Array.isArray(body.not_found)) {
+      for (const identifier of body.not_found) {
+        if (isRecord(identifier) && typeof identifier.name === 'string') {
+          const key = identifier.name.toLowerCase();
+          if (chunk.includes(key) && !returned.has(key)) {
+            oracleCache.set(key, '');
+            returned.add(key);
+          }
+        }
       }
     }
-    return null;
+    return chunk.every((key) => returned.has(key)) ? null : MALFORMED;
   } catch (e) {
     return failureOf(e);
   }
