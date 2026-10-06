@@ -25,6 +25,12 @@ function renderThread(overrides: Partial<ReportThreadProps> = {}) {
 }
 
 describe('ReportThread', () => {
+  it('shows a failed reload even when older details are cached', () => {
+    renderThread({ detailsFailed: true, details: makeReport({ reportId: 1, chatLog: 'old evidence' }) });
+    expect(screen.getByTestId('report-thread').textContent).toBe('Reports.thread.detailsFailed');
+    expect(screen.getByTestId('report-chat-log').textContent).toBe('Reports.thread.detailsFailed');
+  });
+
   it('shows the description and loading placeholders until details arrive', () => {
     renderThread();
     expect(screen.getByTestId('report-description').textContent).toBe('he was rude');

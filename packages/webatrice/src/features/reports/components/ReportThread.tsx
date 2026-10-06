@@ -52,7 +52,7 @@ export default function ReportThread({
 
   let chatLog: string;
   let thread: React.ReactNode;
-  if (details) {
+  if (details && !detailsFailed) {
     chatLog = details.chatLog;
     thread = details.comments.length === 0
       ? <span className="text-text-muted">{t('Reports.thread.noComments')}</span>
@@ -66,7 +66,7 @@ export default function ReportThread({
       ));
   } else {
     const placeholder = detailsFailed ? t('Reports.thread.detailsFailed') : t('Reports.loading');
-    chatLog = detailsFailed ? '' : placeholder;
+    chatLog = placeholder;
     thread = <span className="text-text-muted">{placeholder}</span>;
   }
 
