@@ -2,11 +2,10 @@ import { NavLink, generatePath } from 'react-router-dom';
 import { Fragment, useMemo, type ReactNode } from 'react';
 
 import { CALLOUT_BOUNDARY_REGEX, CARD_CALLOUT_REGEX, RouteEnum, URL_REGEX } from '@app/types';
-import { parseMention, segmentText, tokenizeChat, type ChatHighlight } from '@app/utils';
+import { GAME_LINK_REGEX, containsGameLink, parseMention, segmentText, tokenizeChat, type ChatHighlight } from '@app/utils';
 import UserActionsMenu from '../UserDisplay/UserActionsMenu';
 import { useUserDisplay } from '../UserDisplay/useUserDisplay';
-import { containsGameLink } from '@app/utils';
-import { renderGameLinks } from '../GameLink/GameLinkButton';
+import { GameLinkButton } from '../GameLink/GameLinkButton';
 import CardCallout from './CardCallout';
 import { useParsedMessage } from './useMessage';
 import './Message.css';
@@ -119,7 +118,11 @@ function parseChunk(chunk: string, index: number, highlight?: MessageHighlight):
 
   // Desktop renders cockatrice://joingame words as join anchors (ChatView::appendGameLinkTag).
   if (containsGameLink(chunk)) {
-    return <span key={index}>{renderGameLinks(chunk)}</span>;
+    return <Fragment key={index}>{chunk.split(GAME_LINK_REGEX).filter(Boolean).map((part, partIndex) => (
+      containsGameLink(part)
+        ? <GameLinkButton key={partIndex} url={part} />
+        : <Fragment key={partIndex}>{parseChunk(part, partIndex, highlight)}</Fragment>
+    ))}</Fragment>;
   }
 
   if (chunk.match(URL_REGEX)) {
@@ -141,7 +144,9 @@ function parseUrlChunk(chunk: string, highlight?: MessageHighlight): ReactNode {
         return (<a className='link' href={urlChunk} key={index} target='_blank' rel='noopener noreferrer'>{urlChunk}</a>);
       }
 
-      return <Fragment key={index}>{parseText(urlChunk, highlight)}</Fragment>;
+      return <Fragment key={index}>{
+        highlight?.mentions !== false ? parseMentionChunk(urlChunk, highlight) : parseText(urlChunk, highlight)
+      }</Fragment>;
     });
 }
 
