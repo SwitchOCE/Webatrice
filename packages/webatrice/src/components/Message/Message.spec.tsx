@@ -68,6 +68,21 @@ describe('Message', () => {
       expect(word).toHaveClass('message__highlight');
     });
 
+    it('resolves complete directory names and leading punctuation when rendering', () => {
+      renderWithProviders(
+        <Message message={{ message: 'Bob: (@alice_) (@alice) (cube)' }} highlight={{ ...highlight, userNames: ['Alice', 'alice_'] }} />,
+      );
+      expect(screen.getByRole('link', { name: '@alice_' })).toBeInTheDocument();
+      expect(screen.getByText('@alice').tagName).toBe('MARK');
+      expect(screen.getByText('cube').tagName).toBe('MARK');
+    });
+
+    it('leaves a standalone mention marker as text', () => {
+      renderWithProviders(<Message message={{ message: '@' }} highlight={highlight} />);
+      expect(screen.getByText('@')).toBeInTheDocument();
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    });
+
     it('draws mentions as plain text when chat mentions are off', () => {
       renderWithProviders(
         <Message message={{ message: 'Bob: hi @alice and @carol' }} highlight={{ ...highlight, mentions: false }} />,

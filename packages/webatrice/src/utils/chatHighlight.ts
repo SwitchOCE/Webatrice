@@ -1,7 +1,5 @@
 import type { CSSProperties } from 'react';
 
-import { MENTION_REGEX } from '@app/types';
-
 /**
  * Chat mention and alert-word matching, after desktop's ChatView (chat_view.cpp checkMention /
  * checkWord). Shared by the chat renderer, which highlights matches, and the chat alert watcher,
@@ -15,6 +13,8 @@ export type ChatAlertKind = 'mention' | 'allMention' | 'word';
 
 export interface ChatAlertContext {
   selfName: string | null;
+  /** Full online directory; resolve a complete name before stripping punctuation. */
+  userNames?: readonly string[];
   /** The "Enable chat mentions" preference. */
   mentions: boolean;
   highlightWords: readonly string[];
@@ -28,6 +28,8 @@ export interface ChatAlertContext {
  */
 export interface ChatHighlight {
   selfName: string | null;
+  /** Full online directory; resolve a complete name before stripping punctuation. */
+  userNames?: readonly string[];
   /** "Enable chat mentions": off draws every @name as plain text. */
   mentions: boolean;
   mentionStyle: CSSProperties;
@@ -62,6 +64,19 @@ function splitTrailing(word: string): [core: string, rest: string] {
   return match ? [word.slice(0, match.index), match[0]] : [word, ''];
 }
 
+/** ChatView::appendMessage (chat_view.cpp:385) consumes punctuation before starting a word.
+ * Once a word or mention starts, extractNextWord/checkMention consume through the next space.
+ * This keeps email addresses and punctuation inside names intact.
+ */
+export function tokenizeChat(text: string): { kind: 'plain' | 'word' | 'mention'; text: string }[] {
+  const tokens: { kind: 'plain' | 'word' | 'mention'; text: string }[] = [];
+  for (const part of text.matchAll(/[^\p{L}\p{N}@]+|[@\p{L}\p{N}][^ ]*/gu)) {
+    const value = part[0];
+    tokens.push({ kind: value.startsWith('@') ? 'mention' : /^[\p{L}\p{N}]/u.test(value) ? 'word' : 'plain', text: value });
+  }
+  return tokens;
+}
+
 export function isOwnMention(name: string, selfName: string | null): boolean {
   return selfName != null && name.toLowerCase() === selfName.toLowerCase();
 }
@@ -77,14 +92,15 @@ export interface Mention {
 
 /**
  * Reads a `@token` (without the `@`), after desktop's checkMention (chat_view.cpp), which cuts
- * characters off the end of the token until it names a user: here, until it names the reader.
+ * characters off the end only after checking the complete name in the online directory.
  * `@foo.bar` mentions `foo.bar`, never `foo`; `@foo.` mentions `foo`. Any other name loses its
  * trailing punctuation.
  */
-export function parseMention(token: string, selfName: string | null): Mention {
+export function parseMention(token: string, selfName: string | null, userNames: readonly string[] = []): Mention {
+  const directory = new Set(userNames.map((name) => name.toLowerCase()));
   for (let name = token; name; name = name.slice(0, -1)) {
-    if (isOwnMention(name, selfName)) {
-      return { name, rest: token.slice(name.length), own: true };
+    if (directory.has(name.toLowerCase()) || isOwnMention(name, selfName)) {
+      return { name, rest: token.slice(name.length), own: isOwnMention(name, selfName) };
     }
     if (!TRAILING_PUNCTUATION.test(name)) {
       break;
@@ -120,12 +136,12 @@ export function segmentText(
     }
   };
 
-  for (const token of text.split(/(\s+)/)) {
+  for (const { text: token, kind } of tokenizeChat(text)) {
     const [core, rest] = splitTrailing(token);
     if (allMention && core.toLowerCase() === ALL_MENTION) {
       push('allMention', core);
       push('plain', rest);
-    } else if (core && words.has(core.toLowerCase())) {
+    } else if (kind === 'word' && core && words.has(core.toLowerCase())) {
       push('word', core);
       push('plain', rest);
     } else {
@@ -142,8 +158,8 @@ export function segmentText(
  */
 export function findChatAlert(text: string, ctx: ChatAlertContext): ChatAlertKind | null {
   if (ctx.mentions) {
-    for (const [, , mention] of text.matchAll(MENTION_REGEX)) {
-      if (parseMention(mention.slice(1), ctx.selfName).own) {
+    for (const token of tokenizeChat(text)) {
+      if (token.kind === 'mention' && parseMention(token.text.slice(1), ctx.selfName, ctx.userNames).own) {
         return 'mention';
       }
     }

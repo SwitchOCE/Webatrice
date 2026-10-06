@@ -6,6 +6,7 @@ import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { renderWithProviders, connectedState } from '../../__test-utils__';
 import PrivateChat from './PrivateChat';
+import { getSettings, settingsStore } from '../../hooks/useSettings';
 
 const message = (senderName: string, text: string): PrivateConversationEntry => ({
   type: 'message',
@@ -35,6 +36,18 @@ function renderChat(props: Partial<React.ComponentProps<typeof PrivateChat>> = {
 }
 
 describe('PrivateChat', () => {
+  it('highlights mentions and alert words without consuming a sender-like body prefix', async () => {
+    settingsStore.reset();
+    const settings = await getSettings();
+    settings.chatHighlightWords = 'cube';
+    settings.chatMention = true;
+    settingsStore.setValue(settings);
+    const { container } = renderChat({ entries: [message('bob', 'note: (@testUser) (cube)')] });
+    expect(screen.getByText('@testUser').tagName).toBe('MARK');
+    expect(screen.getByText('cube').tagName).toBe('MARK');
+    expect(container).toHaveTextContent('note: (@testUser) (cube)');
+  });
+
   it('renders messages and notices in conversation order', () => {
     const { container } = renderChat({
       entries: [message('bob', 'hey'), notice(1, 'userLeft'), message('me', 'still there?'), notice(2, 'recipientOffline')],

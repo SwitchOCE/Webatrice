@@ -2,8 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare, Send } from 'lucide-react';
 
+import { MessageText } from '@app/components';
+import { useAppSelector } from '@app/store';
+import { isPrivilegedUser } from '@app/utils';
+
 import { server, type PrivateConversationEntry } from '@cockatrice/datatrice';
-import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
+import { useChatHighlight, useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 
 interface PrivateChatProps {
   peerName: string;
@@ -36,6 +40,8 @@ interface PrivateChatProps {
 export default function PrivateChat({ peerName, selfName, entries, isOnline, isIgnored, onSend }: PrivateChatProps) {
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
+  const highlights = useChatHighlight();
+  const users = useAppSelector(server.Selectors.getUsers);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState('');
 
@@ -119,7 +125,7 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
                     : 'bg-bg-elevated text-text-primary border border-border-subtle',
                 ].join(' ')}
               >
-                {m.message}
+                <MessageText text={m.message} highlight={isPrivilegedUser(users[m.senderName]) ? highlights.moderator : highlights.user} />
               </div>
             </div>
           );
