@@ -74,6 +74,7 @@ export class SoundEngine {
 
   play(name: SoundName, options: SoundOptions): void {
     if (!options.enabled) {
+      this.stop();
       return;
     }
     const url = soundUrl(options.theme, name);

@@ -118,6 +118,14 @@ describe('PrivateMessageNotifier', () => {
     expect(screen.queryByText('are you there?')).not.toBeInTheDocument();
   });
 
+  it('notifies for the open conversation when the visible window loses focus', () => {
+    vi.spyOn(document, 'hidden', 'get').mockReturnValue(false);
+    vi.spyOn(document, 'hasFocus').mockReturnValue(false);
+    const { store } = renderNotifier('/player/alice');
+    receive(store, 'alice', 'window is inactive');
+    expect(FakeNotification.instances[0]?.options.body).toBe('window is inactive');
+  });
+
   it('falls back to the toast when desktop notifications for private messages are off', async () => {
     vi.spyOn(document, 'hidden', 'get').mockReturnValue(true);
     const settings = await getSettings();

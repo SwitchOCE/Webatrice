@@ -1,7 +1,7 @@
 /**
  * Browser counterpart of desktop's tray-icon popups (`QSystemTrayIcon::showMessage`) and taskbar
  * alerts (`QApplication::alert`). Desktop shows a popup only while its window is inactive; here
- * that is "the tab is hidden". Callers fall back to an in-app toast when this declines to show.
+ * that includes a visible but unfocused window. Callers fall back to an in-app toast when this declines to show.
  */
 
 export type NotificationPermissionState = NotificationPermission | 'unsupported';
@@ -18,7 +18,7 @@ export interface SystemNotificationOptions {
 /** Longest body text sent to the OS; long chat lines are cut like the in-app toast preview. */
 export const NOTIFICATION_BODY_LIMIT = 100;
 
-/** Prepended to the tab title while a hidden tab has something new. */
+/** Prepended to the tab title while an inactive window has something new. */
 export const ATTENTION_MARKER = '(*) ';
 
 const isSupported = (): boolean => typeof window !== 'undefined' && 'Notification' in window;
@@ -73,12 +73,14 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
 
 export const isPageHidden = (): boolean => typeof document !== 'undefined' && document.hidden;
 
+export const isPageInactive = (): boolean => typeof document !== 'undefined' && (document.hidden || !document.hasFocus());
+
 /**
- * Shows an OS notification if the tab is hidden and permission was granted. Returns whether one
+ * Shows an OS notification if the window is inactive and permission was granted. Returns whether one
  * was shown, so the caller can fall back to an in-app toast.
  */
 export function showSystemNotification({ title, body, tag, onClick }: SystemNotificationOptions): boolean {
-  if (!isPageHidden() || getNotificationPermission() !== 'granted') {
+  if (!isPageInactive() || getNotificationPermission() !== 'granted') {
     return false;
   }
   try {
@@ -101,11 +103,11 @@ export function showSystemNotification({ title, body, tag, onClick }: SystemNoti
 let attentionListening = false;
 
 /**
- * Marks the tab title while the tab is hidden — the browser's nearest equivalent of desktop's
- * taskbar flash. The marker is removed as soon as the tab becomes visible again.
+ * Marks the tab title while the window is inactive — the browser's nearest equivalent of desktop's
+ * taskbar flash. The marker is removed when the window regains focus.
  */
 export function requestAttention(): void {
-  if (!isPageHidden()) {
+  if (!isPageInactive()) {
     return;
   }
   if (!document.title.startsWith(ATTENTION_MARKER)) {
@@ -114,17 +116,19 @@ export function requestAttention(): void {
   if (!attentionListening) {
     attentionListening = true;
     document.addEventListener('visibilitychange', clearAttention);
+    window.addEventListener('focus', clearAttention);
   }
 }
 
 function clearAttention(): void {
-  if (document.hidden) {
+  if (isPageInactive()) {
     return;
   }
   if (document.title.startsWith(ATTENTION_MARKER)) {
     document.title = document.title.slice(ATTENTION_MARKER.length);
   }
   document.removeEventListener('visibilitychange', clearAttention);
+  window.removeEventListener('focus', clearAttention);
   attentionListening = false;
 }
 
