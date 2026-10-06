@@ -42,6 +42,19 @@ afterEach(() => {
 });
 
 describe('fetchGameChangers', () => {
+  it.each([null, {}, { name: 42 }, { name: '' }, { name: '  ' }])(
+    'keeps valid names but retries a list containing %j', async (invalid) => {
+      fetchMock.mockResolvedValue(json({ data: [{ name: 'Sol Ring' }, invalid] }));
+      expect(await fetchGameChangers()).toEqual({
+        status: 'partial', data: new Set(['Sol Ring']),
+        failure: { kind: 'malformed' }, missing: 1, total: 2,
+      });
+      fetchMock.mockResolvedValue(json({ data: [{ name: 'Sol Ring' }, { name: 'Rhystic Study' }] }));
+      expect(await fetchGameChangers()).toEqual({ status: 'ok', data: new Set(['Sol Ring', 'Rhystic Study']) });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    },
+  );
+
   it('returns the list and caches it for the session', async () => {
     fetchMock.mockResolvedValue(json({ data: [{ name: 'Sol Ring' }, { name: 'Rhystic Study' }] }));
 
@@ -179,6 +192,26 @@ describe('fetchOracleText', () => {
 });
 
 describe('fetchSpellbookCombos', () => {
+  it.each([
+    null, {}, { id: '' }, { id: 7 }, { id: 'bad', uses: {} },
+    { id: 'bad', uses: [null] }, { id: 'bad', uses: [{ card: {} }] },
+    { id: 'bad', uses: [{ card: { name: 'Sol Ring' }, quantity: '1' }] },
+    { id: 'bad', uses: [{ card: { name: 'Sol Ring' }, zoneLocations: [1] }] },
+    { id: 'bad', produces: [{ feature: { id: '1' } }] },
+    { id: 'bad', requires: [{ template: { id: '1' } }] },
+    { id: 'bad', manaValueNeeded: '0' }, { id: 'bad', notablePrerequisites: [] },
+  ])('reports malformed combo %j as partial without losing valid combos', async (invalid) => {
+    fetchMock.mockResolvedValue(json({ results: { included: [{ id: 'valid' }, invalid] } }));
+    expect(await fetchSpellbookCombos(cards)).toEqual({
+      status: 'partial', data: [{ id: 'valid' }], failure: { kind: 'malformed' }, missing: 1, total: 2,
+    });
+  });
+
+  it('reports an entirely malformed combo list as unavailable', async () => {
+    fetchMock.mockResolvedValue(json({ results: { included: [null] } }));
+    expect(await fetchSpellbookCombos(cards)).toEqual({ status: 'unavailable', failure: { kind: 'malformed' } });
+  });
+
   const cards: DeckCard[] = [
     { name: 'Sol Ring', quantity: 1, category: 'main', lookupSource: 'scryfall', set: 'c21' },
     { name: 'Negate', quantity: 1, category: 'main', lookupSource: 'scryfall' },
@@ -194,6 +227,17 @@ describe('fetchSpellbookCombos', () => {
     expect(JSON.parse(String(init.body))).toEqual({
       main: [{ card: 'Sol Ring', quantity: 1 }, { card: 'Negate', quantity: 3 }],
     });
+  });
+
+  it('preserves valid nested assessment fields and accepts omitted legacy fields', async () => {
+    const combo = {
+      id: 'full', uses: [{ card: { name: 'Sol Ring' }, quantity: 1, zoneLocations: ['B'] }],
+      produces: [{ feature: { id: 1 }, quantity: 2 }],
+      requires: [{ template: { id: 2 }, quantity: 1, zoneLocations: ['H'] }],
+      manaValueNeeded: 3, notablePrerequisites: 'A prerequisite',
+    };
+    fetchMock.mockResolvedValue(json({ results: { included: [combo, { id: 'legacy' }] } }));
+    expect(await fetchSpellbookCombos(cards)).toEqual({ status: 'ok', data: [combo, { id: 'legacy' }] });
   });
 
   it('returns an empty included list as no combos', async () => {

@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 import type { DeckCard } from './types';
 
 /**
@@ -96,15 +98,21 @@ export async function fetchGameChangers(): Promise<SourceResult<Set<string>>> {
         return { status: 'unavailable', failure: MALFORMED };
       }
       const names = new Set<string>();
-      for (const c of body.data as Array<{ name?: unknown }>) {
-        if (typeof c?.name === 'string') {
+      let missing = 0;
+      for (const c of body.data) {
+        if (isRecord(c) && typeof c.name === 'string' && c.name.trim()) {
           names.add(c.name);
+        } else {
+          missing++;
         }
       }
       // The list is never empty; no names means a shape we don't understand,
       // and caching it would hide every Game Changer for the session.
       if (names.size === 0) {
         return { status: 'unavailable', failure: MALFORMED };
+      }
+      if (missing > 0) {
+        return { status: 'partial', data: names, failure: MALFORMED, missing, total: body.data.length };
       }
       gameChangersCache = names;
       return { status: 'ok', data: names };
@@ -272,6 +280,27 @@ export interface SpellbookCombo {
   notablePrerequisites?: string;
 }
 
+// Validate the fields consumed by the assessment, preserving optional legacy fields.
+const spellbookComboSchema = z.object({
+  id: z.string().refine((value) => value.trim().length > 0),
+  uses: z.array(z.object({
+    card: z.object({ name: z.string().refine((value) => value.trim().length > 0) }),
+    quantity: z.number().optional(),
+    zoneLocations: z.array(z.string()).optional(),
+  })).optional(),
+  produces: z.array(z.object({
+    feature: z.object({ id: z.number() }).optional(),
+    quantity: z.number().optional(),
+  })).optional(),
+  requires: z.array(z.object({
+    template: z.object({ id: z.number() }).optional(),
+    quantity: z.number().optional(),
+    zoneLocations: z.array(z.string()).optional(),
+  })).optional(),
+  manaValueNeeded: z.number().optional(),
+  notablePrerequisites: z.string().optional(),
+});
+
 /**
  * Every Spellbook combo fully present in the deck. Sends only card names
  * and quantities, merged across main and sideboard (Spellbook ignores
@@ -297,7 +326,20 @@ export async function fetchSpellbookCombos(cards: DeckCard[]): Promise<SourceRes
     if (!Array.isArray(included)) {
       return { status: 'unavailable', failure: MALFORMED };
     }
-    return { status: 'ok', data: included as SpellbookCombo[] };
+    const data: SpellbookCombo[] = [];
+    for (const entry of included) {
+      const parsed = spellbookComboSchema.safeParse(entry);
+      if (parsed.success) {
+        data.push(parsed.data);
+      }
+    }
+    const missing = included.length - data.length;
+    if (missing > 0) {
+      return data.length > 0
+        ? { status: 'partial', data, failure: MALFORMED, missing, total: included.length }
+        : { status: 'unavailable', failure: MALFORMED };
+    }
+    return { status: 'ok', data };
   } catch (e) {
     return { status: 'unavailable', failure: failureOf(e) };
   }
