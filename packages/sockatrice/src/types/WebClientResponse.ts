@@ -213,7 +213,7 @@ export interface IGameResponse {
   gameStateChanged(gameId: number, data: Event_GameStateChanged): void;
   playerJoined(gameId: number, playerProperties: ServerInfo_PlayerProperties): void;
   playerLeft(gameId: number, playerId: number, reason: number): void;
-  playerPropertiesChanged(gameId: number, playerId: number, properties: ServerInfo_PlayerProperties): void;
+  playerPropertiesChanged(gameId: number, playerId: number, properties: ServerInfo_PlayerProperties, isDeckSelect?: boolean): void;
   gameClosed(gameId: number): void;
   gameHostChanged(gameId: number, hostId: number): void;
   kicked(gameId: number): void;

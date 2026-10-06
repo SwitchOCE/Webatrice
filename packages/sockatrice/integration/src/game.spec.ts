@@ -1,7 +1,7 @@
-﻿// Game scenarios — game join, state initialization, card operations,
+// Game scenarios — game join, state initialization, card operations,
 // player counters, game chat, game close, and outbound game commands.
 
-import { create } from '@bufbuild/protobuf';
+import { create, setExtension, toBinary } from '@bufbuild/protobuf';
 import { describe, expect, it } from 'vitest';
 
 import * as Data from '../../src/generated';
@@ -81,6 +81,34 @@ function setupGameState(gameId: number): void {
 }
 
 describe('game', () => {
+  it('preserves deck-select context on repeated identical wire events, but not playmat announcements', () => {
+    connectAndLogin();
+    const context = create(Data.GameEventContextSchema);
+    setExtension(context, Data.Context_DeckSelect_ext, create(Data.Context_DeckSelectSchema, { deckHash: 'same-deck' }));
+    const properties = create(Data.ServerInfo_PlayerPropertiesSchema, {
+      deckHash: 'same-deck', playmatParams: { cardName: 'Forest' },
+    });
+    const event = create(Data.GameEventSchema, { playerId: 1 });
+    setExtension(event, Data.Event_PlayerPropertiesChanged_ext,
+      create(Data.Event_PlayerPropertiesChangedSchema, { playerProperties: properties }));
+    const message = create(Data.ServerMessageSchema, {
+      messageType: Data.ServerMessage_MessageType.GAME_EVENT_CONTAINER,
+      gameEventContainer: { gameId: 42, context, eventList: [event] },
+    });
+    const selected = toBinary(Data.ServerMessageSchema, message);
+    deliverMessage(selected);
+    deliverMessage(selected);
+    deliverMessage(buildGameEventMessage({
+      gameId: 42, playerId: 1, ext: Data.Event_PlayerPropertiesChanged_ext,
+      value: create(Data.Event_PlayerPropertiesChangedSchema, { playerProperties: properties }),
+    }));
+    const response = getMockResponse().game.playerPropertiesChanged;
+    expect(response).toHaveBeenCalledTimes(3);
+    expect(response).toHaveBeenNthCalledWith(1, 42, 1, properties, true);
+    expect(response).toHaveBeenNthCalledWith(2, 42, 1, properties, true);
+    expect(response).toHaveBeenNthCalledWith(3, 42, 1, properties, false);
+  });
+
   it('dispatches gameJoined and gameStateChanged on Event_GameJoined + Event_GameStateChanged', () => {
     connectAndLogin();
     joinGame(42);

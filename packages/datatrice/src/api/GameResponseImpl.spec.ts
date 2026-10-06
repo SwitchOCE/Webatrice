@@ -87,6 +87,22 @@ describe('GameResponseImpl', () => {
     expect(dispatch).toHaveBeenCalledWith(GameActions.gameClosed({ gameId: 7 }));
   });
 
+  it('preserves explicit deck selections separately from ordinary properties announcements', () => {
+    const { impl, dispatch } = setup();
+    const properties = create(ServerInfo_PlayerPropertiesSchema, {
+      playerId: 3, deckHash: 'same-deck', playmatParams: { cardName: 'Forest' },
+    });
+    impl.playerPropertiesChanged(7, 3, properties, true);
+    impl.playerPropertiesChanged(7, 3, properties, true);
+    impl.playerPropertiesChanged(7, 3, properties, false);
+    expect(dispatch).toHaveBeenNthCalledWith(1,
+      GameActions.playerPropertiesChanged({ gameId: 7, playerId: 3, properties, isDeckSelect: true }));
+    expect(dispatch).toHaveBeenNthCalledWith(2,
+      GameActions.playerPropertiesChanged({ gameId: 7, playerId: 3, properties, isDeckSelect: true }));
+    expect(dispatch).toHaveBeenNthCalledWith(3,
+      GameActions.playerPropertiesChanged({ gameId: 7, playerId: 3, properties, isDeckSelect: false }));
+  });
+
   it('gameHostChanged dispatches the gameHostChanged action', () => {
     const { impl, dispatch } = setup();
     impl.gameHostChanged(7, 5);
