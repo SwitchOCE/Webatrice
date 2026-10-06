@@ -24,6 +24,7 @@ function Example({ onPick = vi.fn() }: { onPick?: (item: string) => void }) {
   const trigger = useRef<HTMLButtonElement>(null);
   return (
     <>
+      <button type="button">Before</button>
       <button ref={trigger} type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         Options
       </button>
@@ -174,7 +175,7 @@ describe('Menu', () => {
     await user.tab();
 
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Options' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'After' })).toHaveFocus();
   });
 
   it('closes on a press outside, but not on its own trigger', async () => {
@@ -236,10 +237,11 @@ describe('useContextMenu', () => {
 });
 
 function Rich({ onSelect = vi.fn() }: { onSelect?: (value: string) => void }) {
+  const [open, setOpen] = useState(true);
   const [zone, setZone] = useState('hand');
   const [reveal, setReveal] = useState(false);
-  return (
-    <Menu anchor={{ x: 10, y: 10 }} label="Card" onClose={vi.fn()}>
+  return open ? (
+    <Menu anchor={{ x: 10, y: 10 }} label="Card" onClose={() => setOpen(false)}>
       <MenuItem onSelect={() => onSelect('tap')} shortcut="Ctrl+T" keyShortcuts="Control+T">Tap</MenuItem>
       <MenuItem onSelect={() => onSelect('keep')} closeOnSelect={false}>Keep open</MenuItem>
       <MenuCheckboxItem checked={reveal} onChange={setReveal} shortcut="Ctrl+R" keyShortcuts="Control+R">Reveal</MenuCheckboxItem>
@@ -252,7 +254,7 @@ function Rich({ onSelect = vi.fn() }: { onSelect?: (value: string) => void }) {
       <MenuItem onSelect={() => onSelect('move')}>Move top card</MenuItem>
       <MenuItem onSelect={() => onSelect('morph')}>Morph</MenuItem>
     </Menu>
-  );
+  ) : null;
 }
 
 describe('Menu entries', () => {
@@ -590,4 +592,45 @@ describe('isContextMenuKey', () => {
     expect(isContextMenuKey(key({ key: 'F10', shiftKey: true, altKey: true }))).toBe(false);
     expect(isContextMenuKey(key({ key: 'F10', shiftKey: true, metaKey: true }))).toBe(false);
   });
+});
+
+it('restores a removed menu opener to its landmark', async () => {
+  const user = userEvent.setup();
+  function Page() {
+    const [shown, setShown] = useState(true);
+    const menu = useContextMenu();
+    return <main aria-label="Users">
+      {shown && <button type="button" {...menu.getTriggerProps()}>User</button>}
+      {menu.anchor && <Menu anchor={menu.anchor} triggerRef={menu.triggerRef} label="User" onClose={menu.close}>
+        <MenuItem closeOnSelect={false} onSelect={() => setShown(false)}>Remove</MenuItem>
+      </Menu>}
+    </main>;
+  }
+  render(<Page />);
+  screen.getByRole('button', { name: 'User' }).focus();
+  await user.keyboard('{ContextMenu}{Enter}{Escape}');
+  expect(screen.getByRole('main', { name: 'Users' })).toHaveFocus();
+});
+
+it('does not steal focus from another menu on cleanup', () => {
+  const opener = document.createElement('button');
+  document.body.append(opener);
+  const first = render(
+    <Menu label="First" anchor={{ x: 0, y: 0 }} onClose={vi.fn()} triggerRef={{ current: opener }}>
+      <MenuItem onSelect={vi.fn()}>One</MenuItem>
+    </Menu>,
+  );
+  render(<Menu label="Second" anchor={{ x: 0, y: 0 }} onClose={vi.fn()}><MenuItem onSelect={vi.fn()}>Two</MenuItem></Menu>);
+  const focus = vi.spyOn(opener, 'focus');
+  first.unmount();
+  expect(focus).not.toHaveBeenCalled();
+  expect(screen.getByRole('menuitem', { name: 'Two' })).toHaveFocus();
+  opener.remove();
+});
+
+it('closes on Shift+Tab and moves to the preceding tab stop', async () => {
+  const user = await openExample();
+  await user.tab({ shift: true });
+  expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Before' })).toHaveFocus();
 });

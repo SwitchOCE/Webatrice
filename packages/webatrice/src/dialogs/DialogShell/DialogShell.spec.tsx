@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { Menu, MenuItem } from '@app/components';
@@ -188,4 +188,75 @@ describe('DialogShell', () => {
 
     expect(screen.getByRole('button', { name: 'Actions' })).toHaveFocus();
   });
+});
+
+it('isolates background and lower dialogs, then releases them in stack order', async () => {
+  const user = userEvent.setup();
+  function Stack() {
+    const [first, setFirst] = useState(false);
+    const [second, setSecond] = useState(false);
+    return <>
+      <button type="button" onClick={() => setFirst(true)}>Start</button>
+      <DialogShell isOpen={first} handleClose={() => setFirst(false)} title="First">
+        <button type="button" onClick={() => setSecond(true)}>Next</button>
+      </DialogShell>
+      <DialogShell isOpen={second} handleClose={() => setSecond(false)} title="Second">Top</DialogShell>
+    </>;
+  }
+  renderWithProviders(<Stack />);
+  const start = screen.getByRole('button', { name: 'Start' });
+  await user.click(start);
+  expect(start.closest('[inert]')).not.toBeNull();
+  const next = screen.getByRole('button', { name: 'Next' });
+  await user.click(next);
+  expect(next.closest('[inert]')).not.toBeNull();
+  start.focus();
+  expect(screen.getByRole('dialog', { name: 'Second' }).contains(document.activeElement)).toBe(true);
+  await user.keyboard('{Escape}');
+  expect(next.closest('[inert]')).toBeNull();
+  expect(next).toHaveFocus();
+  await user.keyboard('{Escape}');
+  expect(start.closest('[inert]')).toBeNull();
+  expect(start).toHaveFocus();
+});
+
+it('isolates late portals and preserves their original inert state on close', async () => {
+  const user = userEvent.setup();
+  renderWithProviders(<Opener />);
+  await user.click(screen.getByRole('button', { name: 'Open' }));
+  const notification = document.createElement('button');
+  const alreadyInert = document.createElement('div');
+  alreadyInert.setAttribute('inert', '');
+  document.body.append(notification, alreadyInert);
+  try {
+    await waitFor(() => expect(notification).toHaveAttribute('inert'));
+    await user.keyboard('{Escape}');
+    expect(notification).not.toHaveAttribute('inert');
+    expect(alreadyInert).toHaveAttribute('inert');
+  } finally {
+    notification.remove();
+    alreadyInert.remove();
+  }
+});
+
+it('allows a menu opened inside the active dialog to take focus', async () => {
+  const user = userEvent.setup();
+  function Content() {
+    const [open, setOpen] = useState(false);
+    const trigger = useRef<HTMLButtonElement>(null);
+    return <DialogShell isOpen title="Modal">
+      <button ref={trigger} type="button" onClick={() => setOpen(true)}>Actions</button>
+      {open && <Menu anchor={{ x: 0, y: 0 }} label="Actions" onClose={() => setOpen(false)} triggerRef={trigger}>
+        <MenuItem onSelect={vi.fn()}>Choose</MenuItem>
+      </Menu>}
+    </DialogShell>;
+  }
+  renderWithProviders(<Content />);
+  await user.keyboard('{Enter}');
+  const item = screen.getByRole('menuitem', { name: 'Choose' });
+  expect(item.closest('[inert]')).toBeNull();
+  expect(item).toHaveFocus();
+  await user.keyboard('{Escape}');
+  expect(screen.getByRole('button', { name: 'Actions' })).toHaveFocus();
+  expect(screen.getByRole('dialog', { name: 'Modal' })).toBeInTheDocument();
 });

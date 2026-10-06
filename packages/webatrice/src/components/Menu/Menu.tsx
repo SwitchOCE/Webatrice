@@ -15,6 +15,8 @@ import {
 import { createPortal } from 'react-dom';
 import { ChevronRight } from 'lucide-react';
 
+import { closestList, focusFallback, tabbableElements, useDialogReturnFocus } from '../../hooks/useDialogFocus';
+
 /** A viewport rectangle, as `getBoundingClientRect` returns it. */
 export interface MenuRect {
   left: number;
@@ -76,6 +78,8 @@ export const MENU_ITEM_CLASS =
   + 'aria-disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:hover:bg-transparent';
 
 interface MenuLevel {
+  ancestors: string[];
+  portalTarget: HTMLElement;
   /** The submenu of this menu that is open, by id. */
   openSubmenu: string | null;
   setOpenSubmenu: (id: string | null) => void;
@@ -149,6 +153,13 @@ function anchorKey(anchor: MenuAnchor): string {
  */
 export function Menu({ anchor, label, onClose, triggerRef, autoFocus = true, id, className, children }: MenuProps) {
   const parent = useContext(MenuLevelContext);
+  const menuIdentity = useId();
+  const [portalTarget] = useState(() => parent?.portalTarget
+    ?? (triggerRef?.current ?? document.activeElement)?.closest<HTMLElement>('[data-modal-layer],.MuiModal-root')
+    ?? document.body);
+  const ancestors = [...(parent?.ancestors ?? []), menuIdentity];
+  const returnFocusTo = useDialogReturnFocus();
+  const tabDirection = useRef<number | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
   const placement = anchorKey(anchor);
@@ -180,13 +191,30 @@ export function Menu({ anchor, label, onClose, triggerRef, autoFocus = true, id,
     const menu = ref.current;
     const opener = triggerRef?.current
       ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+    const fallback = opener ? (returnFocusTo ?? closestList)(opener) : null;
     return () => {
       const active = document.activeElement;
       // Focus is ours to hand back while it is on <body>, in this menu or in a submenu of it.
       const ours = active == null || active === document.body || menu?.contains(active)
-        || active.closest('[role="menu"]') != null;
-      if (opener?.isConnected && ours) {
-        opener.focus();
+        || active.closest('[role="menu"]')?.getAttribute('data-menu-ancestors')?.split(' ').includes(menuIdentity);
+      if (!ours) {
+        return;
+      }
+      if (opener?.isConnected) {
+        if (tabDirection.current != null) {
+          const stops = tabbableElements(document.body).filter((item) => !item.closest('[role="menu"]'));
+          const index = stops.indexOf(opener);
+          const next = stops[index + tabDirection.current];
+          if (next) {
+            next.focus();
+          } else {
+            focusFallback(document.body);
+          }
+        } else {
+          opener.focus();
+        }
+      } else if (fallback?.isConnected) {
+        focusFallback(fallback);
       }
     };
     // Mount/unmount only: re-anchoring an open menu must not pull focus back to its first item.
@@ -225,10 +253,11 @@ export function Menu({ anchor, label, onClose, triggerRef, autoFocus = true, id,
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const menu = ref.current;
     // Leaving the menu closes every level: Tab from a submenu bubbles up to the root menu through
-    // the React tree, and focus goes back to the opener.
+    // the React tree, and focus advances from the opener in the requested direction.
     if (event.key === 'Tab') {
       if (!parent) {
         event.preventDefault();
+        tabDirection.current = event.shiftKey ? -1 : 1;
         onClose();
       }
       return;
@@ -328,6 +357,8 @@ export function Menu({ anchor, label, onClose, triggerRef, autoFocus = true, id,
   };
 
   const level: MenuLevel = {
+    ancestors,
+    portalTarget,
     openSubmenu,
     setOpenSubmenu: (submenu) => {
       window.clearTimeout(closeTimer.current);
@@ -342,6 +373,7 @@ export function Menu({ anchor, label, onClose, triggerRef, autoFocus = true, id,
         ref={ref}
         id={id}
         role="menu"
+        data-menu-ancestors={ancestors.join(' ')}
         aria-label={label}
         tabIndex={-1}
         style={position ?? { left: 0, top: 0 }}
@@ -357,7 +389,7 @@ export function Menu({ anchor, label, onClose, triggerRef, autoFocus = true, id,
         {children}
       </div>
     </MenuLevelContext.Provider>,
-    document.body,
+    portalTarget,
   );
 }
 
