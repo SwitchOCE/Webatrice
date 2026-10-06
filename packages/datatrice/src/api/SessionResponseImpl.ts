@@ -258,24 +258,29 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.replayDeleteMatch({ gameId }));
   }
 
-  downloadServerDeck(deckId: number, response: Response_DeckDownload): void {
-    this.store.dispatch(ServerActions.deckDownloaded({ deckId, deck: response.deck }));
+  downloadServerDeck(deckId: number, response: Response_DeckDownload, requestId?: string): void {
+    this.store.dispatch(ServerActions.deckDownloaded({ deckId, deck: response.deck, requestId }));
   }
 
   replayDownloaded(replayId: number, response: Response_ReplayDownload): void {
     this.store.dispatch(ServerActions.replayDownloaded({ replayId, replayData: response.replayData }));
   }
 
-  commandFailed(command: WebsocketTypes.SessionCommandName, responseCode: number, target: string): void {
-    this.store.dispatch(ServerActions.sessionCommandFailed({ command, responseCode, target }));
+  commandFailed(
+    command: WebsocketTypes.SessionCommandName, responseCode: number, target: string,
+    failure?: WebsocketTypes.CommandFailure, requestId?: string,
+  ): void {
+    this.store.dispatch(ServerActions.sessionCommandFailed({ command, responseCode, target, failure, requestId }));
   }
 
   deckListFailed(responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
     this.store.dispatch(ServerActions.deckListFailed({ responseCode, failure }));
   }
 
-  deckDownloadFailed(deckId: number, responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
-    this.store.dispatch(ServerActions.deckDownloadFailed({ deckId, responseCode, failure }));
+  deckDownloadFailed(
+    deckId: number, responseCode: number, failure?: WebsocketTypes.CommandFailure, requestId?: string,
+  ): void {
+    this.store.dispatch(ServerActions.deckDownloadFailed({ deckId, responseCode, failure, requestId }));
   }
 
   deckUploadFailed(path: string, responseCode: number, failure?: WebsocketTypes.CommandFailure): void {

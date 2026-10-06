@@ -17,6 +17,8 @@ export type TestConnectionStatus = 'testing' | 'success' | 'failed' | null;
 
 export interface ServerState {
   initialized: boolean;
+  /** Monotonic session generation; never reset by clearing server data. */
+  sessionEpoch: number;
   testConnectionStatus: TestConnectionStatus;
   buddyList: { [userName: string]: ServerInfo_User };
   ignoreList: { [userName: string]: ServerInfo_User };
@@ -71,6 +73,8 @@ export interface ServerState {
 
 // Payload of every `*Failed` command-outcome signal action.
 export interface CommandFailedPayload {
+  /** Signal-only identity of the originating request, when supplied. */
+  requestId?: string;
   responseCode: number;
   failure?: WebsocketTypes.CommandFailure;
 }

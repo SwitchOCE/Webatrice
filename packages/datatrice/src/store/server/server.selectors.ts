@@ -18,7 +18,11 @@ const EMPTY_USERS: ServerInfo_User[] = [];
 const EMPTY_REPLAYS: ServerInfo_ReplayMatch[] = [];
 const EMPTY_MESSAGES: Event_UserMessage[] = [];
 
+/** Legacy/preloaded states without an epoch belong to generation zero. */
+export const selectSessionEpoch = ({ server }: State): number => server.sessionEpoch ?? 0;
+
 export const Selectors = {
+  selectSessionEpoch,
   getInitialized: ({ server }: State) => server.initialized,
   getMessage: ({ server }: State) => server.info.message,
   getName: ({ server }: State) => server.info.name,
