@@ -1,7 +1,9 @@
 import { act, fireEvent, screen, within } from '@testing-library/react';
 
-import { DEFAULT_PLAYMAT_SETTINGS, getPlaymatSettings, setPlaymatSettings } from '@app/hooks';
+import { DEFAULT_PLAYMAT_SETTINGS, getPlaymatSettings, setPlaymatSettings, settingsStore } from '@app/hooks';
 import { renderWithProviders } from '../../../__test-utils__';
+
+import { CardDTO, SettingDTO } from '@app/services';
 
 import PlaymatSettingsPanel from './PlaymatSettingsPanel';
 
@@ -15,8 +17,15 @@ function chooseOption(label: string, option: string) {
 }
 
 describe('PlaymatSettingsPanel', () => {
+  beforeEach(async () => {
+    await settingsStore.whenReady();
+    settingsStore.setValue(new SettingDTO('*app'));
+    vi.spyOn(CardDTO, 'get').mockResolvedValue({ name: { value: 'Island' }, set: [] } as unknown as CardDTO);
+  });
   afterEach(() => {
-    act(() => setPlaymatSettings(DEFAULT_PLAYMAT_SETTINGS));
+    act(() => {
+      void setPlaymatSettings(DEFAULT_PLAYMAT_SETTINGS);
+    });
   });
 
   it('shows desktop\'s defaults', () => {
@@ -55,6 +64,32 @@ describe('PlaymatSettingsPanel', () => {
     expect(screen.getByRole('group', { name: 'PlaymatSettings.crop.title' })).toBeInTheDocument();
   });
 
+  it.each([
+    ['Not a real card', 'PlaymatSettings.validation.unknownCard'],
+    ['x'.repeat(256), 'PlaymatSettings.validation.tooLong'],
+  ])('rejects invalid card %s', async (cardName, message) => {
+    vi.mocked(CardDTO.get).mockResolvedValue(undefined);
+    renderWithProviders(<PlaymatSettingsPanel />);
+    fireEvent.change(screen.getByRole('textbox', { name: 'PlaymatSettings.collection.cardName' }), { target: { value: cardName } });
+    await act(async () => {
+      fireEvent.submit(screen.getByRole('button', { name: 'PlaymatSettings.collection.add' }).closest('form')!);
+    });
+    expect(screen.getByText(message)).toBeInTheDocument();
+    expect(getPlaymatSettings().fallbackList).toEqual([]);
+  });
+
+  it('reports lookup failure without losing the entered name', async () => {
+    vi.mocked(CardDTO.get).mockRejectedValue(new Error('database unavailable'));
+    renderWithProviders(<PlaymatSettingsPanel />);
+    fireEvent.change(screen.getByRole('textbox', { name: 'PlaymatSettings.collection.cardName' }), { target: { value: 'Island' } });
+    await act(async () => {
+      fireEvent.submit(screen.getByRole('button', { name: 'PlaymatSettings.collection.add' }).closest('form')!);
+    });
+    expect(screen.getByText('PlaymatSettings.validation.lookupFailed')).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveValue('Island');
+    expect(getPlaymatSettings().fallbackList).toEqual([]);
+  });
+
   it('requires a card name', async () => {
     renderWithProviders(<PlaymatSettingsPanel />);
 
@@ -67,7 +102,9 @@ describe('PlaymatSettingsPanel', () => {
   });
 
   it('reorders and removes entries', () => {
-    act(() => setPlaymatSettings({ fallbackList: [mat('A'), mat('B'), mat('C')] }));
+    act(() => {
+      void setPlaymatSettings({ fallbackList: [mat('A'), mat('B'), mat('C')] });
+    });
     renderWithProviders(<PlaymatSettingsPanel />);
 
     const rows = () => screen.getAllByRole('listitem');
@@ -85,7 +122,9 @@ describe('PlaymatSettingsPanel', () => {
   });
 
   it('edits an entry\'s crop', () => {
-    act(() => setPlaymatSettings({ fallbackList: [mat('A')] }));
+    act(() => {
+      void setPlaymatSettings({ fallbackList: [mat('A')] });
+    });
     renderWithProviders(<PlaymatSettingsPanel />);
 
     fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.edit' }));
@@ -96,7 +135,9 @@ describe('PlaymatSettingsPanel', () => {
   });
 
   it('announces the margins as percentages', () => {
-    act(() => setPlaymatSettings({ fallbackList: [mat('A')] }));
+    act(() => {
+      void setPlaymatSettings({ fallbackList: [mat('A')] });
+    });
     renderWithProviders(<PlaymatSettingsPanel />);
 
     fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.edit' }));
@@ -108,7 +149,9 @@ describe('PlaymatSettingsPanel', () => {
   });
 
   it('saves a dragged crop once, on release', () => {
-    act(() => setPlaymatSettings({ fallbackList: [mat('A')] }));
+    act(() => {
+      void setPlaymatSettings({ fallbackList: [mat('A')] });
+    });
     renderWithProviders(<PlaymatSettingsPanel />);
     fireEvent.click(screen.getByRole('button', { name: 'PlaymatSettings.collection.edit' }));
     const slider = screen.getByRole('slider', { name: 'PlaymatSettings.crop.zoom' });

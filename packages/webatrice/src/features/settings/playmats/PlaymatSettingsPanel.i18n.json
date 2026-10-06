@@ -38,6 +38,12 @@
       "rightMargin": "Right margin (%):",
       "verticalOffset": "Vertical offset:",
       "zoom": "Zoom:"
+    },
+    "validation": {
+      "unknownCard": "Choose a card from your card database.",
+      "tooLong": "Card names must be at most {max} characters.",
+      "lookupFailed": "Could not check the card name. Try again.",
+      "saveFailed": "Could not save playmat settings. Try again."
     }
   }
 }
