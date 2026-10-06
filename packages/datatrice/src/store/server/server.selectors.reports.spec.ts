@@ -32,6 +32,20 @@ describe('report selectors', () => {
     expect(Selectors.getReportQueueLoaded(state)).toBe(false);
   });
 
+  it.each(['mine', 'queue'] as const)('distinguishes unloaded and successive empty %s responses', (list) => {
+    const select = list === 'mine' ? Selectors.getMyReports : Selectors.getReportQueue;
+    const reports = makeReportsState();
+    const unloaded = select(rootState(makeServerState({ reports })));
+    const loaded = { ...reports, [list]: [] };
+    const first = select(rootState(makeServerState({ reports: loaded })));
+    expect(first).toEqual([]);
+    expect(first).not.toBe(unloaded);
+    expect(select(rootState(makeServerState({ reports: loaded, banUser: 'x' })))).toBe(first);
+    const refreshed = select(rootState(makeServerState({ reports: { ...loaded, [list]: [] } })));
+    expect(refreshed).toEqual([]);
+    expect(refreshed).not.toBe(first);
+  });
+
   it('memoizes the list across unrelated state changes', () => {
     const reports = makeReportsState({ mine: [1], byId: { 1: a } });
     const first = Selectors.getMyReports(rootState(makeServerState({ reports })));

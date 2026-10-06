@@ -76,6 +76,18 @@ describe('ReportQueue gating', () => {
 });
 
 describe('ReportQueue', () => {
+  it('completes initial and repeated empty loads and enables refresh', () => {
+    const { load, moderator } = renderQueue();
+    for (let request = 1; request <= 2; request++) {
+      expect(button('Reports.refresh').disabled).toBe(true);
+      load([]);
+      expect(screen.getByTestId('report-queue-status').textContent).toBe('Reports.count');
+      expect(button('Reports.refresh').disabled).toBe(false);
+      fireEvent.click(button('Reports.refresh'));
+      expect(moderator.reportList).toHaveBeenCalledTimes(request + 1);
+    }
+  });
+
   it('loads the unresolved queue and the stats on open, and re-queries when the switch flips', () => {
     const { moderator } = renderQueue();
     expect(moderator.reportList).toHaveBeenCalledWith(true);
