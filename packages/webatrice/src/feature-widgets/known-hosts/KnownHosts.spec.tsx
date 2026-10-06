@@ -87,12 +87,14 @@ describe('KnownHosts public servers', () => {
     await openPicker();
 
     await act(async () => {
+      screen.getByRole('button', { name: /Fresh/ }).focus();
       fireEvent.click(screen.getByRole('button', { name: /Fresh/ }));
     });
 
     expect(hook.add).toHaveBeenCalledWith({ name: 'Fresh', host: 'fresh.example/servatrice', port: '443', editable: true });
     expect(hook.select).toHaveBeenCalledWith(created.id);
     expect(onChange).toHaveBeenCalledWith(created);
+    expect(screen.getByRole('button', { name: 'KnownHosts.label' })).toHaveFocus();
   });
 
   it('explains when the list cannot be downloaded', async () => {
@@ -157,6 +159,32 @@ describe('KnownHosts keyboard and screen-reader access', () => {
 
   const activeOption = (listbox: HTMLElement) =>
     document.getElementById(listbox.getAttribute('aria-activedescendant') ?? '');
+
+  it('scrolls the active option into view on opening and keyboard navigation', async () => {
+    const scroll = vi.spyOn(HTMLElement.prototype, 'scrollIntoView');
+    setupMany();
+    await openPicker();
+    const listbox = screen.getByRole('listbox');
+    expect(scroll).toHaveBeenCalledWith({ block: 'nearest' });
+    expect(scroll.mock.instances.at(-1)).toBe(activeOption(listbox));
+    for (const key of ['End', 'Home', 'ArrowDown', 'c']) {
+      scroll.mockClear();
+      fireEvent.keyDown(listbox, { key });
+      expect(scroll.mock.instances.at(-1)).toBe(activeOption(listbox));
+    }
+    scroll.mockRestore();
+  });
+
+  it.each(['KnownHosts.add', 'KnownHosts.edit'])('returns focus to the picker after closing %s', async (name) => {
+    const user = userEvent.setup();
+    setupMany(0);
+    await openPicker();
+    await user.click(screen.getByRole('button', { name }));
+    expect(screen.getByRole('dialog')).toContainElement(document.activeElement as HTMLElement);
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'KnownHosts.label' })).toHaveFocus();
+  });
 
   it('is a single tab stop whose options are not themselves focusable', async () => {
     setupMany();
