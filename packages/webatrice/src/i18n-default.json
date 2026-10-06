@@ -567,8 +567,9 @@
     },
     "password": {
       "title": "Password required",
-      "label": "Password",
-      "submit": "Join"
+      "label": "Password for \"{name}\":",
+      "submit": "Join",
+      "gameIdLabel": "Password for game #{gameId}:"
     }
   },
   "UserMenu": {

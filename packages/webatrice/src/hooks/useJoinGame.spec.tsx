@@ -16,6 +16,21 @@ import { rootReducerMap, type RootState } from '../store';
 import { createMockWebClient, connectedState } from '../__test-utils__';
 import { useJoinGame, useNavigateOnGameJoined } from './useJoinGame';
 
+const navigateSpy = vi.hoisted(() => vi.fn());
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>();
+  return {
+    ...actual,
+    useNavigate: () => {
+      const navigate = actual.useNavigate();
+      return (...args: Parameters<typeof navigate>) => {
+        navigateSpy(...args);
+        return navigate(...args);
+      };
+    },
+  };
+});
+
 const reducer = combineReducers(rootReducerMap);
 
 function setup<T>(hook: () => T, preloadedState: Partial<RootState> = connectedState) {
@@ -91,7 +106,8 @@ describe('useJoinGame', () => {
   it('routes to a game that is already open instead of joining it again', () => {
     const state = { ...connectedState, games: { games: { 7: {} as never }, pings: {} } } as Partial<RootState>;
     const { result, webClient, location } = setup(() => useJoinGame(), state);
-    act(() => result.current.beginJoin(2, makeGame(), false, false));
+    act(() => result.current.beginJoin(2, makeGame({ withPassword: true }), false, false));
+    expect(result.current.passwordRequired).toBe(false);
     expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
     expect(location.pathname).toBe('/game/7');
   });
@@ -134,6 +150,8 @@ describe('useNavigateOnGameJoined', () => {
       }) as never);
     });
     expect(location.pathname).toBe('/game/9');
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect(navigateSpy).toHaveBeenCalledWith('/game/9');
     expect(onJoined).toHaveBeenCalledWith(9);
   });
 });

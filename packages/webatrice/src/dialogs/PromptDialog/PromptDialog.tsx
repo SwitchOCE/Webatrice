@@ -29,6 +29,7 @@ export interface PromptDialogProps {
   title: string;
   label: string;
   initialValue?: string;
+  inputType?: 'text' | 'password';
   submitLabel?: string;
   helperText?: string;
   validate?: (value: string) => string | null;
@@ -41,6 +42,7 @@ function PromptDialog({
   title,
   label,
   initialValue = '',
+  inputType = 'text',
   submitLabel = 'OK',
   helperText,
   validate,
@@ -69,6 +71,7 @@ function PromptDialog({
       <form onSubmit={handleSubmit}>
         <DialogContent className="dialog-content">
           <TextField
+            type={inputType}
             autoFocus
             fullWidth
             variant="outlined"

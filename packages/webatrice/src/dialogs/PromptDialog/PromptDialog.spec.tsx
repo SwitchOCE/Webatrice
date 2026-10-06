@@ -31,9 +31,19 @@ describe('PromptDialog', () => {
     );
 
     expect(screen.getByText('Set P/T')).toBeInTheDocument();
-    expect(screen.getByLabelText('P/T')).toBeInTheDocument();
+    expect(screen.getByLabelText('P/T')).toHaveAttribute('type', 'text');
     expect(screen.getByRole('button', { name: /ok/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
+  });
+
+  it('masks passwords and submits their unchanged value', () => {
+    const onSubmit = vi.fn();
+    render(<PromptDialog isOpen title="Join" label="Password" inputType="password" onSubmit={onSubmit} onCancel={vi.fn()} />);
+    const input = screen.getByLabelText('Password');
+    expect(input).toHaveAttribute('type', 'password');
+    fireEvent.change(input, { target: { value: 'hunter2' } });
+    fireEvent.submit(input);
+    expect(onSubmit).toHaveBeenCalledWith('hunter2');
   });
 
   it('seeds the input with initialValue', () => {

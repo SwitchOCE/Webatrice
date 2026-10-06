@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { rooms, server } from '@cockatrice/datatrice';
+import { games, rooms, server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { Response_ResponseCode, type ServerInfo_Game } from '@cockatrice/sockatrice/generated';
 import { AlertDialog, DialogShell, PromptDialog } from '@app/dialogs';
@@ -45,12 +45,13 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
   const status = useAppSelector((state) => server.Selectors.getGamesOfUserStatus(state, userName));
   const gameList = useAppSelector((state) => server.Selectors.getGamesOfUser(state, userName));
   const allRooms = useAppSelector(rooms.Selectors.getRooms);
+  const activeGameIds = useAppSelector(games.Selectors.getActiveGameIds);
   const joinedRoomIds = useAppSelector(rooms.Selectors.getJoinedRoomIds);
   const isJudgeUser = useAppSelector(server.Selectors.getIsUserJudge);
   const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
   const [roomNotJoined, setRoomNotJoined] = useState(false);
-  const { beginJoin, passwordRequired, submitPassword, cancelPassword, joinPending, joinError, clearJoinError } =
-    useJoinGame();
+  const { beginJoin, passwordRequired, passwordGame, submitPassword, cancelPassword, joinPending, joinError, clearJoinError } =
+    useJoinGame(onClose);
 
   useEffect(() => {
     webClient.request.session.getGamesOfUser(userName);
@@ -74,13 +75,13 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
       if (!game) {
         return;
       }
-      if (!joinedRoomIds[game.roomId]) {
+      if (!activeGameIds.includes(game.gameId) && !joinedRoomIds[game.roomId]) {
         setRoomNotJoined(true);
         return;
       }
       beginJoin(game.roomId, game, asSpectator, asJudge);
     },
-    [beginJoin, joinedRoomIds],
+    [activeGameIds, beginJoin, joinedRoomIds],
   );
 
   // The rows form a grid with one roving tab stop; Enter joins like a double-click.
@@ -185,7 +186,10 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
       <PromptDialog
         isOpen={passwordRequired}
         title={t('UserGamesDialog.password.title')}
-        label={t('UserGamesDialog.password.label')}
+        inputType="password"
+        label={passwordGame?.description
+          ? t('UserGamesDialog.password.label', { name: passwordGame.description })
+          : t('UserGamesDialog.password.gameIdLabel', { gameId: passwordGame?.gameId })}
         submitLabel={t('UserGamesDialog.password.submit')}
         onSubmit={submitPassword}
         onCancel={cancelPassword}
