@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Slider from '@mui/material/Slider';
 
-import { ScryfallImageSize, type games } from '@cockatrice/datatrice';
-import { getScryfallUrl } from '@app/services';
-import { playmatImageBox, type Size } from '@app/utils';
+import { type games } from '@cockatrice/datatrice';
+import { PlaymatImage } from '@app/components';
+import { type Size } from '@app/utils';
 
 const PREVIEW: Size = { width: 320, height: 120 };
 
@@ -24,12 +24,9 @@ interface PlaymatCropEditorProps {
  */
 export default function PlaymatCropEditor({ playmat, onChange }: PlaymatCropEditorProps) {
   const { t } = useTranslation();
-  const [card, setCard] = useState<Size | null>(null);
   // The values being dragged; the preview follows them, the collection is saved on release.
   const [draft, setDraft] = useState<games.PlaymatParams | null>(null);
   const params = draft ?? playmat.params;
-  const box = card ? playmatImageBox(card, params, PREVIEW) : null;
-  const src = getScryfallUrl({ providerId: playmat.cardProviderId, name: playmat.cardName }, ScryfallImageSize.Large);
 
   const sliders: {
     key: keyof games.PlaymatParams;
@@ -48,20 +45,7 @@ export default function PlaymatCropEditor({ playmat, onChange }: PlaymatCropEdit
   return (
     <div className="playmat-settings__crop" role="group" aria-label={t('PlaymatSettings.crop.title')}>
       <div className="playmat-settings__preview" style={PREVIEW} aria-label={t('PlaymatSettings.crop.preview')} role="img">
-        {src && (
-          <img
-            src={src}
-            alt=""
-            draggable={false}
-            onLoad={(event) => setCard({
-              width: event.currentTarget.naturalWidth,
-              height: event.currentTarget.naturalHeight,
-            })}
-            style={box
-              ? { position: 'absolute', maxWidth: 'none', left: box.x, top: box.y, width: box.width, height: box.height }
-              : { visibility: 'hidden' }}
-          />
-        )}
+        <PlaymatImage playmat={{ ...playmat, params }} area={PREVIEW} />
       </div>
       {sliders.map(({ key, label, min, max, step, format }) => (
         <label key={key} className="playmat-settings__slider">
