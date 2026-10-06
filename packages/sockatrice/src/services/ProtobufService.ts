@@ -79,19 +79,26 @@ export class ProtobufService {
     private commandTimeoutMs = DEFAULT_COMMAND_TIMEOUT_MS,
   ) {}
 
-  // Fails every in-flight command as disconnected, then restarts the cmdId
-  // sequence for the next session. Mirrors RemoteClient::doDisconnectFromServer,
+  // Fails every in-flight command as disconnected without reusing command IDs.
+  // Mirrors RemoteClient::doDisconnectFromServer,
   // which answers each pending command RespNotConnected rather than dropping it.
   // The map is emptied before any callback runs, so a callback that re-enters
   // (sends a command, or triggers another reset) sees a clean slate.
   public resetCommands() {
     const pending = [...this.pendingCommands.values()];
-    this.cmdId = 0;
     this.pendingCommands.clear();
 
+    // Cancel all deadlines before user code can throw or re-enter. IDs remain
+    // monotonic so late responses cannot settle a later session's work.
     for (const command of pending) {
       clearTimeout(command.timer);
-      command.onFailure?.(CommandFailure.Disconnected);
+    }
+    for (const command of pending) {
+      try {
+        command.onFailure?.(CommandFailure.Disconnected);
+      } catch (error) {
+        console.error('Command reset callback failed:', error);
+      }
     }
   }
 

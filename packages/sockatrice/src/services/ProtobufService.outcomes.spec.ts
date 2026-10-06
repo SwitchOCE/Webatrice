@@ -234,7 +234,7 @@ describe('connection reset', () => {
     expect(onError).toHaveBeenCalledWith(expect.anything(), expect.anything(), CommandFailure.Timeout);
   });
 
-  it('restarts the cmdId sequence before callbacks run, so a re-entrant send starts fresh', () => {
+  it('keeps command identities distinct across re-entrant resets', () => {
     const service = makeService();
     const resend = vi.fn(() => service.sendSessionCommand(pingExt, {}, { onSuccess: vi.fn() }));
     service.sendSessionCommand(pingExt, {}, { onError: resend });
@@ -242,12 +242,11 @@ describe('connection reset', () => {
     service.resetCommands();
 
     expect(resend).toHaveBeenCalledTimes(1);
-    // The resend took cmdId 1 of the new sequence and is still pending, so the
-    // next command is cmdId 2.
+    // The resend took cmdId 2; the next command must use cmdId 3.
     const onError = vi.fn();
     service.sendSessionCommand(pingExt, {}, { onError });
     service.resetCommands();
-    expect(onError).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ cmdId: 2n }), CommandFailure.Disconnected);
+    expect(onError).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ cmdId: 3n }), CommandFailure.Disconnected);
   });
 
   it('tolerates a re-entrant reset from inside a failure callback', () => {
@@ -300,5 +299,40 @@ describe('raw sendCommand', () => {
     vi.advanceTimersByTime(100);
     expect(onFailure).toHaveBeenCalledWith(CommandFailure.Timeout);
     expect(onResponse).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('reset isolation', () => {
+  it('cancels all deadlines before a throwing callback and still settles its siblings', () => {
+    const service = makeService();
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const timersSeen: number[] = [];
+    const second = vi.fn();
+    service.sendSessionCommand(pingExt, {}, { onError: () => {
+      timersSeen.push(vi.getTimerCount());
+      throw new Error('consumer failed');
+    } });
+    service.sendSessionCommand(pingExt, {}, { onError: second });
+    expect(() => service.resetCommands()).not.toThrow();
+    expect(timersSeen).toEqual([0]);
+    expect(second).toHaveBeenCalledExactlyOnceWith(
+      Response_ResponseCode.RespNotConnected, expect.anything(), CommandFailure.Disconnected,
+    );
+    vi.advanceTimersByTime(DEFAULT_COMMAND_TIMEOUT_MS);
+    expect(second).toHaveBeenCalledTimes(1);
+    expect(log).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not let an old response settle the first command after a reset', () => {
+    const service = makeService();
+    service.sendSessionCommand(pingExt, {}, { onError: vi.fn() });
+    service.resetCommands();
+    const success = vi.fn();
+    service.sendSessionCommand(pingExt, {}, { onSuccess: success });
+    deliverResponse(service, 1);
+    expect(success).not.toHaveBeenCalled();
+    deliverResponse(service, 2);
+    expect(success).toHaveBeenCalledTimes(1);
   });
 });

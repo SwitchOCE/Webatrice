@@ -45,17 +45,30 @@ export class WebClient {
   // Sanctioned reset path: tests, SPA hot-reload, explicit logout.
   // See .github/instructions/sockatrice-transport.instructions.md#webclient-lifecycle.
   public static dispose(): void {
-    if (!WebClient._instance) {
+    if (!WebClient._instance || WebClient._instance.disposed) {
       return;
     }
-    WebClient._instance.disconnect();
-    WebClient._instance = null;
+    const client = WebClient._instance;
+    client.disposed = true;
+    try {
+      client.socket.dispose();
+      client.retireTestSocket();
+      // Keep the originating singleton available until every callback settles.
+      client.protobuf.resetCommands();
+      client.status = StatusEnum.DISCONNECTED;
+      client.response.session.updateStatus(StatusEnum.DISCONNECTED, 'Connection Closed');
+    } finally {
+      WebClient._instance = null;
+    }
   }
 
   protobuf: ProtobufService;
   socket: WebSocketService;
   status: StatusEnum;
   private testSocket: WebSocket | null = null;
+  private clearTestTimer: (() => void) | undefined;
+  private disposed = false;
+  private resetting = false;
 
   request = {
     authentication: AuthenticationCommands,
@@ -80,8 +93,11 @@ export class WebClient {
       keepAliveFn: SessionCommands.ping,
       keepalive: clientOptions.keepalive,
       onStatusChange: (status, description) => {
-        this.response.session.updateStatus(status, description);
+        if (this.disposed) {
+          return;
+        }
         this.updateStatus(status);
+        this.response.session.updateStatus(status, description);
       },
       onConnectionFailed: () => {
         this.response.session.connectionFailed();
@@ -105,7 +121,9 @@ export class WebClient {
     this.protobuf = new ProtobufService(
       {
         send: (data) => this.socket.send(data),
-        isOpen: () => this.socket.checkReadyState(WebSocket.OPEN),
+        isOpen: () => !this.disposed && !this.resetting
+          && this.status !== StatusEnum.DISCONNECTED && this.status !== StatusEnum.RECONNECTING
+          && this.socket.checkReadyState(WebSocket.OPEN),
       },
       { game: GameEvents, room: RoomEvents, session: SessionEvents },
     );
@@ -116,24 +134,34 @@ export class WebClient {
   }
 
   public connect(target: ConnectTarget): void {
+    if (this.disposed || this.resetting) {
+      return;
+    }
     // connect() over an open socket retires it without an onclose, so no
     // DISCONNECTED/RECONNECTING status resets the old session's commands. Fail
     // them here, as desktop's doConnectToServer calls doDisconnectFromServer
     // first; otherwise their deadlines fire into the new session.
-    this.protobuf.resetCommands();
-    this.response.session.connectionAttempted();
-    this.socket.connect(target);
+    this.resetting = true;
+    try {
+      this.protobuf.resetCommands();
+      if (!this.disposed) {
+        this.response.session.connectionAttempted();
+        this.socket.connect(target);
+      }
+    } finally {
+      this.resetting = false;
+    }
   }
 
   public testConnect(target: ConnectTarget): void {
+    if (this.disposed) {
+      return;
+    }
     // Retire any in-flight test socket via the safe terminate (a superseded probe
     // is usually still CONNECTING, and close() on a CONNECTING socket strands a
     // half-open upstream against Servatrice's per-IP cap).
     // See .github/instructions/sockatrice-transport.instructions.md#webclient-lifecycle.
-    if (this.testSocket) {
-      terminateSocket(this.testSocket);
-      this.testSocket = null;
-    }
+    this.retireTestSocket();
 
     const socket = new WebSocket(buildWebSocketUrl(target.host, target.port));
     socket.binaryType = 'arraybuffer';
@@ -171,6 +199,7 @@ export class WebClient {
     const resolveUnreachable = (): void => resolve(false, false, true);
 
     const timeout = setTimeout(resolveUnreachable, this.clientOptions.keepalive);
+    this.clearTestTimer = () => clearTimeout(timeout);
 
     socket.onmessage = (event: MessageEvent) => {
       try {
@@ -195,6 +224,17 @@ export class WebClient {
 
     socket.onerror = resolveUnreachable;
     socket.onclose = resolveUnreachable;
+  }
+
+  private retireTestSocket(): void {
+    this.clearTestTimer?.();
+    this.clearTestTimer = undefined;
+    const socket = this.testSocket;
+    this.testSocket = null;
+    if (socket) {
+      socket.onopen = socket.onclose = socket.onerror = socket.onmessage = null;
+      terminateSocket(socket);
+    }
   }
 
   public disconnect(): void {

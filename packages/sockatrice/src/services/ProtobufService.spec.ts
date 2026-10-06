@@ -80,12 +80,12 @@ describe('ProtobufService', () => {
   const developerExt = {} as GenExtension<DeveloperCommand, Record<string, never>>;
 
   describe('resetCommands', () => {
-    it('resets cmdId and pendingCommands', () => {
+    it('clears pendingCommands without reusing cmdId', () => {
       const service = makeService();
       service.sendSessionCommand(sessionExt, vi.fn());
       expect((service as ProtobufInternal).cmdId).toBe(1);
       service.resetCommands();
-      expect((service as ProtobufInternal).cmdId).toBe(0);
+      expect((service as ProtobufInternal).cmdId).toBe(1);
       expect((service as ProtobufInternal).pendingCommands).toEqual(new Map());
     });
   });
