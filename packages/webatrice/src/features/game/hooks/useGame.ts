@@ -1,4 +1,4 @@
-import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { RefObject, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { KeyboardSensor, useSensor, useSensors } from '@dnd-kit/core';
 
@@ -24,6 +24,7 @@ import { useGameLifecycleNavigation } from './useGameLifecycleNavigation';
 import { useGameBoardLayout, type GameBoardLayout, type RotationStep } from './useGameBoardLayout';
 import { useGameSelection, type GameSelection } from './useGameSelection';
 import { useGameShortcuts } from './useGameShortcuts';
+import { useGameRotation } from './useGameRotation';
 
 export interface Game extends CurrentGame {
   boardRef: RefObject<HTMLDivElement>;
@@ -111,13 +112,7 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
   selectedCardsRef.current = selectedCards;
   const getSelectedCards = useCallback(() => selectedCardsRef.current, []);
 
-  // Desktop keeps the view rotation per game scene and never persists it.
-  const [rotation, setRotation] = useState({ gameId, steps: 0 });
-  const rotationSteps = rotation.gameId === gameId ? rotation.steps : 0;
-  const rotateView = useCallback(
-    (step: RotationStep) => setRotation((r) => ({ gameId, steps: (r.gameId === gameId ? r.steps : 0) + step })),
-    [gameId],
-  );
+  const { rotationSteps, rotateView } = useGameRotation(gameId);
   const layout = useGameBoardLayout(game, rotationSteps);
   const localAccess = useGameAccess(gameId, game?.localPlayerId);
   const judgeTarget = useJudgeTarget(gameId);
