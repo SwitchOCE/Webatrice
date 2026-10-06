@@ -105,11 +105,33 @@ function scopeToPointerLayer(
   return { ...args, droppableContainers };
 }
 
-// Seat zones are hit-tested at the pointer, the way PlayerBox always resolved
-// drops: of the seat zones under the pointer that accept the drag, the one with
-// the highest priority wins (a seat dialog over the board beneath it). Seat and
-// structured droppables never compete for each other's drags.
+// Seat zones are hit-tested in paint order so the visible panel owns the drop.
+// Priority is only a fallback in environments without DOM hit testing.
+// Seat and structured droppables never compete for each other's drags.
 function seatCollision(args: Parameters<CollisionDetection>[0], source: SeatDragSource): Collision[] {
+  // Browser paint order includes floating panels' stacking contexts and DOM
+  // order. Fixed zone priorities cannot distinguish overlapping zone views.
+  const pointer = args.pointerCoordinates;
+  const doc = args.droppableContainers.find((c) => c.node.current)?.node.current?.ownerDocument;
+  if (pointer && doc?.elementsFromPoint) {
+    const hits = pointerWithin(args);
+    for (const element of doc.elementsFromPoint(pointer.x, pointer.y)) {
+      const front = args.droppableContainers.find((container) =>
+        isSeatDropZone(container.data.current) &&
+        hits.some((hit) => hit.id === container.id) &&
+        container.node.current?.contains(element),
+      );
+      if (front) {
+        // A view which refuses this source must not drop through to a hidden
+        // accepting view/board behind it.
+        const zone = front.data.current;
+        return isSeatDropZone(zone) && seatDropAccepts(zone, source)
+          ? hits.filter((hit) => hit.id === front.id)
+          : [];
+      }
+    }
+    return [];
+  }
   const accepting = args.droppableContainers.filter((container) => {
     const zone = container.data.current;
     return isSeatDropZone(zone) && seatDropAccepts(zone, source);
