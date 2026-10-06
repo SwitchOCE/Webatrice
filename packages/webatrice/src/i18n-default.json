@@ -992,6 +992,11 @@
     },
     "validation": {
       "tooLong": "At most {max} characters"
+    },
+    "error": {
+      "list": "Failed to load card art rules.",
+      "add": "Failed to add the card art rule.",
+      "remove": "Failed to remove the card art rule."
     }
   },
   "DeckEditor": {
@@ -1625,6 +1630,12 @@
       "rightMargin": "Right margin (%):",
       "verticalOffset": "Vertical offset:",
       "zoom": "Zoom:"
+    },
+    "validation": {
+      "unknownCard": "Choose a card from your card database.",
+      "tooLong": "Card names must be at most {max} characters.",
+      "lookupFailed": "Could not check the card name. Try again.",
+      "saveFailed": "Could not save playmat settings. Try again."
     }
   },
   "SettingsAppearance": {
