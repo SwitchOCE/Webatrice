@@ -770,6 +770,46 @@ describe('useGameDnd', () => {
       expect(collisions.map((c) => c.id)).toEqual(['dialog', 'board']);
     });
 
+    it.each([[false, true], [true, true], [false, false]])('respects the front panel (%s, %s)', (reversed, accepting) => {
+      const { result, moveCard } = setupSeat();
+      const rect = clientRect(0, 0, 100, 100);
+      const graveNode = document.createElement('div');
+      const exileNode = document.createElement('div');
+      const card = document.createElement('span');
+      exileNode.append(card);
+      const grave = { ...seatZone('grave', 100), node: { current: graveNode } };
+      const exile = {
+        ...seatZone('exile', 90, { seatPlayerId: accepting ? 2 : 3, resolve: () => ({ zone: 'exile' }) }),
+        node: { current: exileNode },
+      };
+      // jsdom has no paint order; model the browser's front-to-back hit list.
+      const original = Object.getOwnPropertyDescriptor(document, 'elementsFromPoint');
+      Object.defineProperty(document, 'elementsFromPoint', { configurable: true, value: () => [card, exileNode, graveNode] });
+      try {
+        const containers = reversed ? [exile, grave] : [grave, exile];
+        const collisions = result.current.collisionDetection({
+          active: { id: 'a', data: { current: seatSource() } },
+          collisionRect: rect,
+          droppableRects: new Map([['grave', rect], ['exile', rect]]),
+          droppableContainers: containers,
+          pointerCoordinates: { x: 50, y: 50 },
+        } as any);
+        if (!accepting) {
+          expect(collisions).toEqual([]);
+          return;
+        }
+        expect(collisions.map((c) => c.id)).toEqual(['exile']);
+        result.current.handleDragEnd(seatDrop(seatSource(), containers.find((c) => c.id === collisions[0].id)!));
+        expect(moveCard).toHaveBeenCalledWith(expect.objectContaining({ targetZone: ZoneName.EXILE }));
+      } finally {
+        if (original) {
+          Object.defineProperty(document, 'elementsFromPoint', original);
+        } else {
+          Reflect.deleteProperty(document, 'elementsFromPoint');
+        }
+      }
+    });
+
     it('sends the planned move through the move path and ends the selection', () => {
       const { result, moveCard, clearSelection } = setupSeat();
 
