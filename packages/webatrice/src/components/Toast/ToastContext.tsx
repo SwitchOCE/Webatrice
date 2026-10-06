@@ -144,7 +144,10 @@ export const ToastProvider: FC<PropsWithChildren> = ({ children }) => {
         createPortal(
           <section
             aria-label={t('Toast.region')}
-            className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 items-end pointer-events-none"
+            className={[
+              'fixed bottom-6 right-6 z-40 max-h-[calc(100dvh-3rem)] overflow-y-auto',
+              'flex flex-col gap-2 items-end pointer-events-none',
+            ].join(' ')}
           >
             {folded > 0 && (
               <button
