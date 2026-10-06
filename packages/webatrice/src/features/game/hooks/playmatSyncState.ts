@@ -52,3 +52,8 @@ export function prunePlaymatSyncState(liveGameIds: readonly number[]): void {
     }
   }
 }
+
+/** S1 registration seam: the later session pass registers this with onSessionEnd. */
+export function clearPlaymatSyncState(): void {
+  states.clear();
+}
