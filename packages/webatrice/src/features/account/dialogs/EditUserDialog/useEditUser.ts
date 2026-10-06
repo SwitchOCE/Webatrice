@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { usePushToast } from '@app/components';
-import { useCommandFailureMessage } from '@app/hooks';
+import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
+import type { ServerInfo_User } from '@cockatrice/sockatrice/generated';
 
 import { editUserErrorMessage } from '../accountResponseMessages';
 import { needsPasswordCheck, type EditUserFormValues } from './editUserFormSchema';
@@ -13,8 +14,8 @@ import { needsPasswordCheck, type EditUserFormValues } from './editUserFormSchem
 export type EditUserProfile = Omit<EditUserFormValues, 'passwordCheck'>;
 
 export interface EditUser {
-  /** Profile values the form starts from; refreshed when the server's copy arrives. */
-  profile: EditUserProfile;
+  /** Fresh snapshot for this edit; null until the self-info response arrives. */
+  profile: EditUserProfile | null;
   supportsPasswordHash: boolean | undefined;
   pending: boolean;
   error: string | null;
@@ -28,25 +29,44 @@ export function useEditUser(onDone: () => void): EditUser {
   const failureMessage = useCommandFailureMessage();
   const user = useAppSelector(server.Selectors.getUser);
   const supportsPasswordHash = useAppSelector(server.Selectors.getSupportsPasswordHash);
-  const fetched = useAppSelector((state) => server.Selectors.getUserInfoByName(state, user?.name ?? ''));
+  const [profile, setProfile] = useState<EditUserProfile | null>(null);
+  const waitingForProfile = useRef(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Desktop actEdit re-fetches the caller's own record first: an empty user name asks Servatrice for
-  // the complete session info, email included.
+  useReduxEffect<{ userInfo: ServerInfo_User }>(({ payload: { userInfo } }) => {
+    if (!waitingForProfile.current || userInfo.name !== user?.name) {
+      return;
+    }
+    waitingForProfile.current = false;
+    setProfile({
+      email: userInfo.email ?? '',
+      country: (userInfo.country ?? '').toUpperCase(),
+      realName: userInfo.realName ?? '',
+    });
+  }, server.Types.GET_USER_INFO);
+
+  useReduxEffect<{ userName: string }>(({ payload: { userName } }) => {
+    if (!waitingForProfile.current || (userName !== '' && userName !== user?.name)) {
+      return;
+    }
+    waitingForProfile.current = false;
+    setError(t('EditUserDialog.fetchFailed'));
+  }, server.Types.GET_USER_INFO_FAILED);
+
+  // user_info_box.cpp:204-223 waits for fresh self info before opening the editor.
   useEffect(() => {
+    waitingForProfile.current = true;
     webClient.request.session.getUserInfo('');
+    return () => {
+      waitingForProfile.current = false;
+    };
   }, [webClient]);
 
-  const source = fetched ?? user;
-  const profile: EditUserProfile = {
-    email: source?.email ?? '',
-    // Servatrice stores desktop's lowercase ISO codes; the dropdown is keyed by uppercase codes.
-    country: (source?.country ?? '').toUpperCase(),
-    realName: source?.realName ?? '',
-  };
-
   const submit = ({ email, country, realName, passwordCheck }: EditUserFormValues) => {
+    if (!profile || pending) {
+      return;
+    }
     const emailEdit = supportsPasswordHash === false
       // Servers without password hashing take the full record, as desktop sends it.
       ? { email }

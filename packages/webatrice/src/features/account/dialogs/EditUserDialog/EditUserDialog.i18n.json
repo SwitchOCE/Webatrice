@@ -1,6 +1,7 @@
 {
   "EditUserDialog": {
     "title": "Edit user profile",
+    "fetchFailed": "Failed to load your user information. Please try again.",
     "label": {
       "passwordCheck": "Current password (required to change your email)"
     },

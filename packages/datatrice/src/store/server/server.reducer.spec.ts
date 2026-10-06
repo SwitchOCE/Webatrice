@@ -292,6 +292,20 @@ describe('User', () => {
     expect(result.user.country).toBe('de');
   });
 
+  it('ACCOUNT_EDIT_CHANGED invalidates only the cached self profile without mutating the previous state', () => {
+    const alice = makeUser({ name: 'Alice', email: 'old@example.com', realName: 'Old' });
+    const bob = makeUser({ name: 'Bob' });
+    const state = makeServerState({ user: alice, userInfo: { Alice: alice, Bob: bob } });
+    const result = serverReducer(state, Actions.accountEditChanged({ user: { realName: 'New' } }));
+
+    expect(result.user.realName).toBe('New');
+    expect(result.user.email).toBe('old@example.com');
+    expect(result.userInfo.Alice).toBeUndefined();
+    expect(result.userInfo.Bob).toBe(bob);
+    expect(state.userInfo.Alice).toBe(alice);
+    expect(state.user.realName).toBe('Old');
+  });
+
   it('ACCOUNT_IMAGE_CHANGED → merges action.payload.user into state.user', () => {
     const state = makeServerState({ user: makeUser({ name: 'Alice' }) });
     const result = serverReducer(state, Actions.accountImageChanged({ user: { country: 'US' } }));

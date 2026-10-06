@@ -18,12 +18,17 @@ function stateWith(options: { supportsPasswordHash?: boolean | undefined }) {
   };
 }
 
-function setup(options: { supportsPasswordHash?: boolean | undefined } = {}) {
+function setup(options: { supportsPasswordHash?: boolean | undefined } = {}, resolveProfile = true) {
   const handleClose = vi.fn();
   const view = renderWithProviders(<EditUserDialog isOpen handleClose={handleClose} />, {
     preloadedState: stateWith(options),
   });
   const accountEdit = vi.mocked(view.webClient.request.session.accountEdit);
+  if (resolveProfile) {
+    act(() => {
+      view.store.dispatch(server.Actions.getUserInfo({ userInfo: stateWith(options).server.user }));
+    });
+  }
   return { ...view, handleClose, accountEdit };
 }
 
@@ -43,8 +48,18 @@ describe('EditUserDialog', () => {
     expect((screen.getByLabelText('Common.label.realName') as HTMLInputElement).value).toBe('Alice');
   });
 
-  it('fills in the fetched profile when it arrives after the dialog opened', () => {
-    const { store } = setup();
+  it('waits for fresh self info before opening, even with an existing cached profile', () => {
+    const state = stateWith({});
+    const { store, webClient } = renderWithProviders(<EditUserDialog isOpen handleClose={vi.fn()} />, {
+      preloadedState: { ...state, server: { ...state.server, userInfo: { [state.server.user.name]: state.server.user } } },
+    });
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(webClient.request.session.accountEdit).not.toHaveBeenCalled();
+    act(() => {
+      store.dispatch(server.Actions.getUserInfo({ userInfo: makeUser({ name: 'someone-else' }) }));
+    });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     act(() => {
       store.dispatch(server.Actions.getUserInfo({
@@ -53,6 +68,26 @@ describe('EditUserDialog', () => {
     });
 
     expect(emailInput().value).toBe('fresh@example.com');
+  });
+
+  it('shows a failed refresh without allowing cached values to be submitted', () => {
+    const { store, accountEdit } = setup({}, false);
+    act(() => {
+      store.dispatch(server.Actions.getUserInfoFailed({ userName: '', responseCode: Response_ResponseCode.RespNotConnected }));
+    });
+    expect(screen.getByText('EditUserDialog.fetchFailed')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Common.label.realName')).not.toBeInTheDocument();
+    expect(accountEdit).not.toHaveBeenCalled();
+  });
+
+  it('does not replace an editing snapshot with later user-info broadcasts', () => {
+    const { store } = setup();
+    fireEvent.change(emailInput(), { target: { value: 'draft@example.com' } });
+    act(() => {
+      store.dispatch(server.Actions.getUserInfo({ userInfo: makeUser({ email: 'later@example.com', realName: 'Later' }) }));
+    });
+    expect(emailInput()).toHaveValue('draft@example.com');
+    expect(screen.getByLabelText('Common.label.realName')).toHaveValue('Alice');
   });
 
   it('sends the full record, country lowercased, to servers without password hashing', async () => {

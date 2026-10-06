@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { create } from '@bufbuild/protobuf';
 import {
   Command_AccountEdit_ext,
   Command_AccountPassword_ext,
+  Command_GetUserInfo_ext,
+  Response_GetUserInfo_ext,
+  Response_GetUserInfoSchema,
   Response_ResponseCode,
+  ServerInfo_UserSchema,
 } from '@cockatrice/sockatrice/generated';
 import { server } from '@cockatrice/datatrice';
 
@@ -52,18 +57,46 @@ describe('Account (integration)', () => {
     });
 
     it('edits the profile through Command_AccountEdit and updates the current user on RespOk', async () => {
+      store.dispatch(server.Actions.getUserInfo({
+        userInfo: create(ServerInfo_UserSchema, { name: 'alice', realName: 'Stale', email: 'stale@example.com', country: 'us' }),
+      }));
       renderFeatureScreen(<Account />);
 
       fireEvent.click(screen.getByRole('button', { name: 'Account.action.edit' }));
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      const info = findLastSessionCommand(Command_GetUserInfo_ext);
+      expect(info.value.userName).toBe('');
+      act(() => {
+        deliverMessage(buildResponseMessage(buildResponse({
+          cmdId: info.cmdId,
+          ext: Response_GetUserInfo_ext,
+          value: create(Response_GetUserInfoSchema, {
+            userInfo: { name: 'alice', realName: 'Fresh', email: 'fresh@example.com', country: 'de' },
+          }),
+        })));
+      });
+      expect(screen.getByLabelText('Common.label.realName')).toHaveValue('Fresh');
       fireEvent.change(screen.getByLabelText('Common.label.realName'), { target: { value: 'Alice Liddell' } });
       await confirm();
 
       const edit = findLastSessionCommand(Command_AccountEdit_ext);
       expect(edit.value.realName).toBe('Alice Liddell');
+      expect(edit.value.country).toBe('de');
+      expect(edit.value.email).toBe('fresh@example.com');
       respond(edit.cmdId, Response_ResponseCode.RespOk);
 
       await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
       expect(server.Selectors.getUser(store.getState())?.realName).toBe('Alice Liddell');
+      expect(server.Selectors.getUserInfoByName(store.getState(), 'alice')).toBeUndefined();
+    });
+
+    it('keeps the edit form closed when refreshing self info fails', () => {
+      renderFeatureScreen(<Account />);
+      fireEvent.click(screen.getByRole('button', { name: 'Account.action.edit' }));
+      const info = findLastSessionCommand(Command_GetUserInfo_ext);
+      respond(info.cmdId, Response_ResponseCode.RespNotConnected);
+      expect(screen.getByText('EditUserDialog.fetchFailed')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Common.label.realName')).not.toBeInTheDocument();
     });
 
     it('changes the password through Command_AccountPassword and explains a wrong old password', async () => {
