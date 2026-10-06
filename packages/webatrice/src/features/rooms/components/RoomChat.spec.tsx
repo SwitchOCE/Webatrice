@@ -13,8 +13,17 @@ import { getSettings, settingsStore } from '../../../hooks/useSettings';
 import type { Preferences } from '../../../types';
 import RoomChat from './RoomChat';
 
+const reportScope = vi.hoisted(() => ({ getChatContext: undefined as (() => string) | undefined }));
+vi.mock('@app/dialogs', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@app/dialogs')>(),
+  ReportChatScope: ({ children, getChatContext }: { children: React.ReactNode; getChatContext: () => string }) => {
+    reportScope.getChatContext = getChatContext;
+    return children;
+  },
+}));
+
 const makeMessage = (overrides: Partial<Message> = {}): Message => ({
-  ...create(Event_RoomSaySchema, { message: 'alice: hello' }),
+  ...create(Event_RoomSaySchema, { name: 'alice', message: 'alice: hello' }),
   timeReceived: 1,
   id: 1,
   ...overrides,
@@ -147,6 +156,15 @@ describe('RoomChat', () => {
       expect(screen.queryByText(/earlier/)).not.toBeInTheDocument();
       expect(screen.getByText(/guest says hi/)).toBeInTheDocument();
       expect(screen.getByText('RoomChat.notice.chatFlood')).toBeInTheDocument();
+    });
+
+    it('attaches only visible messages to a report', async () => {
+      await setPreferences({ ignoreUnregisteredUsers: true, roomHistory: false });
+      renderWithUsers();
+      const context = reportScope.getChatContext?.();
+      expect(context).toContain('hello');
+      expect(context).not.toContain('guest says hi');
+      expect(context).not.toContain('earlier');
     });
 
     it('hides unregistered senders when asked, keeping notices', async () => {
