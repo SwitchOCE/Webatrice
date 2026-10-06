@@ -12,6 +12,7 @@ import { ModerationProvider } from '@app/feature-widgets/moderation';
 import { UserGamesProvider } from '@app/feature-widgets/user-games';
 import { loadPersistedLastRoute, ShellLifecycleProvider } from '@app/feature-wrappers/layout';
 import { DeckShareLinkRedirect } from '@app/features/decks';
+import { LobbyDeckStateProvider } from '@app/features/game';
 import { PrivateMessageNotifier } from '@app/features/player';
 import { ReportNotifier } from '@app/features/reports';
 import { AppAlerts, CommandFailureNotices, FeatureDetection, ServerNotices } from '@app/features/shell';
@@ -72,9 +73,11 @@ function AppShell() {
               <ReportUserProvider>
                 <ModerationProvider>
                   <UserGamesProvider>
-                    <RouteErrorBoundary>
-                      <Routes />
-                    </RouteErrorBoundary>
+                    <LobbyDeckStateProvider>
+                      <RouteErrorBoundary>
+                        <Routes />
+                      </RouteErrorBoundary>
+                    </LobbyDeckStateProvider>
                     {/* Opens a deck share link the page was loaded with, after
                      *  login. After the routes so it navigates after the login
                      *  page's own redirect. */}

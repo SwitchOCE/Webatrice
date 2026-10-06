@@ -1,8 +1,7 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { games } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
-import { useReduxEffect } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 
 import {
@@ -12,8 +11,8 @@ import {
   parseDeckView,
   type DeckView,
   type DeckZone,
-  type SideboardPlanMove,
 } from './deckViewModel';
+import { useLobbyDeckState } from './LobbyDeckStateProvider';
 
 export interface LobbyDeckView {
   /** Desktop's "deck loaded" state: the server returned a deck and it wasn't unloaded. */
@@ -34,11 +33,6 @@ export interface LobbyDeckView {
   unloadDeck: () => void;
 }
 
-interface PlanOverride {
-  deckList: string;
-  plan: SideboardPlanMove[];
-}
-
 /**
  * State and commands behind the pre-game deck view — desktop's
  * `DeckViewContainer` deck-loaded state (`deck_view_container.cpp`).
@@ -48,8 +42,8 @@ interface PlanOverride {
  * the lock state): the user's edits since the deck arrived, else the plan
  * stored in the deck string (`DeckViewScene::setDeck`). Selecting a deck locks
  * the sideboard but keeps its stored plan (`Server_Player::cmdDeckSelect`);
- * only an explicit lock clears it (`cmdSetSideboardLock`), so only a lock
- * transition on the same deck resets the view to the bare deck
+ * an explicit lock clears it (`cmdSetSideboardLock`), so a lock
+ * echo resets the view to the bare deck
  * (`DeckViewContainer::setSideboardLocked` → `resetSideboardPlan`).
  */
 export function useLobbyDeckView(gameId: number): LobbyDeckView {
@@ -62,43 +56,14 @@ export function useLobbyDeckView(gameId: number): LobbyDeckView {
 
   const parsed = useMemo(() => parseDeckView(deckList), [deckList]);
 
-  const [override, setOverride] = useState<PlanOverride | null>(null);
-  const [unloaded, setUnloaded] = useState(false);
-
-  // A deck-select response re-enters the deck-loaded view even when the
-  // server returned the same string (desktop's deckSelectFinished). It also
-  // drops any plan reset: the server broadcasts the deck select's own lock
-  // event before this response, and that lock keeps the deck's stored plan.
-  useReduxEffect<{ gameId: number }>(({ payload }) => {
-    if (payload.gameId === gameId) {
-      setUnloaded(false);
-      setOverride(null);
-    }
-  }, games.Types.DECK_SELECTED, [gameId]);
-
-  // An explicit lock clears the server's plan. Handled as the event arrives,
-  // not on a re-render, so a deck select's lock event followed by its
-  // response in the same batch still ends on the stored plan.
-  const lockState = useRef({ sideboardLocked, deckList });
-  lockState.current = { sideboardLocked, deckList };
-  useReduxEffect<{ gameId: number; playerId: number; properties: { sideboardLocked?: boolean } }>(({ payload }) => {
-    const current = lockState.current;
-    if (
-      payload.gameId === gameId
-      && payload.playerId === localPlayerId
-      && payload.properties.sideboardLocked
-      && !current.sideboardLocked
-    ) {
-      setOverride({ deckList: current.deckList, plan: [] });
-    }
-  }, games.Types.PLAYER_PROPERTIES_CHANGED, [gameId, localPlayerId]);
+  const { state, setState } = useLobbyDeckState(gameId, localPlayerId, deckList);
 
   const plan = useMemo(() => {
     if (!parsed) {
       return [];
     }
-    return override?.deckList === deckList ? override.plan : parsed.currentPlan;
-  }, [parsed, override, deckList]);
+    return state?.plan ?? parsed.currentPlan;
+  }, [parsed, state]);
 
   const view = useMemo(() => (parsed ? applySideboardPlan(parsed.view, plan) : null), [parsed, plan]);
   const editable = !!view && !ready && !sideboardLocked;
@@ -110,10 +75,10 @@ export function useLobbyDeckView(gameId: number): LobbyDeckView {
       }
       const moved = applySideboardPlan(view, [{ cardName, startZone: zone, targetZone: otherDeckZone(zone) }]);
       const moveList = getSideboardPlan(moved);
-      setOverride({ deckList, plan: moveList });
+      setState({ plan: moveList });
       webClient.request.game.setSideboardPlan(gameId, { moveList });
     },
-    [view, editable, deckList, gameId, webClient],
+    [view, editable, setState, gameId, webClient],
   );
 
   const toggleSideboardLock = useCallback(() => {
@@ -128,14 +93,12 @@ export function useLobbyDeckView(gameId: number): LobbyDeckView {
   }, [ready, gameId, webClient]);
 
   const unloadDeck = useCallback(() => {
-    setUnloaded(true);
-    if (ready) {
-      webClient.request.game.readyStart(gameId, { ready: false });
-    }
-  }, [ready, gameId, webClient]);
+    setState({ unloaded: true });
+    webClient.request.game.readyStart(gameId, { ready: false });
+  }, [setState, gameId, webClient]);
 
   return {
-    deckLoaded: !!view && !unloaded,
+    deckLoaded: !!view && !state?.unloaded,
     view,
     ready,
     sideboardLocked,
