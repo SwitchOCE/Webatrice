@@ -70,10 +70,13 @@ describe('forceActivateUser', () => {
     );
   });
 
-  it('onSuccess calls response.moderator.forceActivateUser', () => {
+  it('reports RespOk as a failure instead of claiming activation succeeded', () => {
     forceActivateUser('alice', 'mod1');
-    invokeOnSuccess();
-    expect(WebClient.instance.response.moderator.forceActivateUser).toHaveBeenCalledWith('alice', 'mod1');
+    invokeOnSuccess({}, { responseCode: Response_ResponseCode.RespOk });
+    expect(WebClient.instance.response.moderator.forceActivateUser).not.toHaveBeenCalled();
+    expect(WebClient.instance.response.moderator.commandFailed).toHaveBeenCalledWith(
+      'forceActivateUser', Response_ResponseCode.RespOk, 'alice',
+    );
   });
 });
 

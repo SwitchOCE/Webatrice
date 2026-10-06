@@ -174,7 +174,6 @@ const moderator = {
   reportStats: vi.fn(),
   commandFailed: vi.fn(),
   replayDownloadedByGameId: vi.fn(),
-  commandFailed: vi.fn(),
 };
 
 const developer = {

@@ -9,7 +9,10 @@ export function forceActivateUser(usernameToActivate: string, moderatorName: str
     WebClient.instance.response.moderator.forceActivateUser(usernameToActivate, moderatorName);
   };
   WebClient.instance.protobuf.sendModeratorCommand(Command_ForceActivateUser_ext, cmd, {
-    onSuccess: activated,
+    // Desktop accepts only RespActivationAccepted (tab_admin.cpp:219-233).
+    onSuccess: () => {
+      WebClient.instance.response.moderator.commandFailed?.('forceActivateUser', Response_ResponseCode.RespOk, usernameToActivate);
+    },
     // Servatrice runs the activation through cmdActivateAccount, which answers
     // RespActivationAccepted (not RespOk) on success — the code desktop's
     // tab_admin.cpp treats as "User successfully activated".
