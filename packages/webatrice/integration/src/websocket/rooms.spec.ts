@@ -330,7 +330,7 @@ describe('rooms', () => {
     expect(messages[0]).toMatchObject({ notice: 'chatFlood', message: '' });
   });
 
-  it('drops room chat from ignored users, live and history', () => {
+  it('drops live chat from ignored users but retains history with an embedded sender', () => {
     connectAndHandshake();
     setupJoinedRoom(1);
     deliverMessage(buildSessionEventMessage(Event_AddToList_ext, create(Event_AddToListSchema, {
@@ -342,17 +342,18 @@ describe('rooms', () => {
       name: 'troll', message: 'live', messageType: Event_RoomSay_RoomMessageType.UserMessage,
     })));
     deliverMessage(buildRoomEventMessage(1, Event_RoomSay_ext, create(Event_RoomSaySchema, {
-      name: 'troll', message: 'old', messageType: Event_RoomSay_RoomMessageType.ChatHistory, timeOf: 1n,
+      message: 'troll: old', messageType: Event_RoomSay_RoomMessageType.ChatHistory, timeOf: 1n,
     })));
     deliverMessage(buildRoomEventMessage(1, Event_RoomSay_ext, create(Event_RoomSaySchema, {
-      name: 'bob', message: 'from history', messageType: Event_RoomSay_RoomMessageType.ChatHistory,
+      message: 'bob: from history', messageType: Event_RoomSay_RoomMessageType.ChatHistory,
       timeOf: 1791000000000n,
     })));
 
     const messages = store.getState().rooms.messages[1];
-    expect(messages.map((m) => m.message)).toEqual(['bob: from history']);
+    expect(messages.map((m) => m.message)).toEqual(['troll: old', 'bob: from history']);
     // The history line keeps its server time for the chat to render.
-    expect(messages[0].timeOf).toBe(1791000000000n);
+    expect(messages[0].name).toBeUndefined();
+    expect(messages[1].timeOf).toBe(1791000000000n);
   });
 
   it('leaves no failure from commands pending at a disconnect in the reset store', () => {

@@ -14,8 +14,7 @@ interface MessagePayload {
 
 interface MessageProps {
   message: MessagePayload;
-  // Server time of a chat-history line, shown in brackets after the sender as
-  // desktop's TabRoom::processRoomSayEvent prefixes it to the message text.
+  // Server time of a chat-history line, shown before the sender as on desktop.
   timestamp?: string;
 }
 
@@ -37,8 +36,8 @@ const ParsedMessage = ({ message, timestamp }: ParsedMessageProps) => {
 
   return (
     <div>
-      {name && (<strong><PlayerLink name={name} />:</strong>)}
       {timestamp && (<time className='message__timestamp'>[{timestamp}] </time>)}
+      {name && (<strong><PlayerLink name={name} />:</strong>)}
       {chunks}
     </div>
   );
