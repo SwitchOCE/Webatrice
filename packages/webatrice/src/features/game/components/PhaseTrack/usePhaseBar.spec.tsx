@@ -144,6 +144,21 @@ describe('usePhaseBar', () => {
     expect(webClient.request.game.reverseTurn).toHaveBeenCalledWith(1);
   });
 
+  it.each([true, false])('reverse turn exempts a conceded judge: %s', (judge) => {
+    const state = stateWith();
+    state.games[1].judge = judge;
+    state.games[1].players[1].properties.conceded = true;
+    const { result, webClient } = setup({ gamesState: state });
+
+    act(() => {
+      result.current.handleReverseTurn();
+      result.current.handlePass();
+    });
+
+    expect(webClient.request.game.reverseTurn).toHaveBeenCalledTimes(judge ? 1 : 0);
+    expect(webClient.request.game.nextTurn).not.toHaveBeenCalled();
+  });
+
   it('handleReverseTurn sends nothing before the game starts', () => {
     const { result, webClient } = setup({ gamesState: stateWith({ started: false }) });
 

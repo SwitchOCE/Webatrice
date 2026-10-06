@@ -81,6 +81,7 @@ describe('useGameAffordances', () => {
       hasLiveGame: false,
       isParticipant: false,
       canPassTurn: false,
+      canReverseTurn: false,
       canAdvancePhase: false,
       canConcede: false,
       canUnconcede: false,
