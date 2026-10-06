@@ -31,6 +31,13 @@ function typeName(value: string) {
 }
 
 describe('EditTokens', () => {
+  it('disables adding tokens until the source has loaded', () => {
+    hoisted.useEditTokens.mockReturnValue(makeHook({ loading: true, tokens: [] }));
+    renderWithProviders(<EditTokens />);
+    expect(screen.getByLabelText('EditTokens.label.newName')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'EditTokens.button.add' })).toBeDisabled();
+  });
+
   it('lists custom tokens and selects one on click', () => {
     const hook = makeHook();
     hoisted.useEditTokens.mockReturnValue(hook);

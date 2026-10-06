@@ -106,7 +106,7 @@ const EditTokens = () => {
   const { t } = useTranslation();
   const editor = useEditTokens();
   const resolver = useMemo(() => zodResolver(buildAddTokenSchema(t)), [t]);
-  const { control, handleSubmit, reset, setError, formState: { isSubmitted } } = useForm<AddTokenValues>({
+  const { control, handleSubmit, reset, setError, formState: { isSubmitted, isSubmitting } } = useForm<AddTokenValues>({
     defaultValues: { name: '' },
     resolver,
   });
@@ -157,12 +157,13 @@ const EditTokens = () => {
               <InputField
                 {...field}
                 label={t('EditTokens.label.newName')}
+                disabled={editor.loading || isSubmitting}
                 error={fieldState.error?.message}
                 touched={fieldState.isTouched || isSubmitted}
               />
             )}
           />
-          <Button type="submit">{t('EditTokens.button.add')}</Button>
+          <Button type="submit" disabled={editor.loading || isSubmitting}>{t('EditTokens.button.add')}</Button>
         </form>
         <Button
           disabled={editor.tokens.length === 0}

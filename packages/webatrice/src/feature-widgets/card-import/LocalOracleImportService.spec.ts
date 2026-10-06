@@ -5,6 +5,7 @@ vi.mock('./CardDatabaseService', () => ({
 }));
 
 import { localOracleImportService } from './LocalOracleImportService';
+import { MAX_IMPORT_BYTES, MAX_LOCAL_XML_BYTES } from './cardImportLimits';
 
 const oracleCardsXml = `<?xml version="1.0" encoding="UTF-8"?>
 <cockatrice_carddatabase version="4">
@@ -51,6 +52,27 @@ function fakeFile(name: string, content: string): File {
 
 describe('LocalOracleImportService', () => {
   describe('ingest', () => {
+    it('rejects an oversized file before reading it', async () => {
+      const file = fakeFile('cards.xml', oracleCardsXml);
+      Object.defineProperty(file, 'size', { value: MAX_LOCAL_XML_BYTES + 1 });
+      const read = vi.spyOn(file, 'text');
+      await expect(localOracleImportService.ingest([file])).rejects.toThrow('size limit');
+      expect(read).not.toHaveBeenCalled();
+    });
+
+    it('checks the aggregate budget before reading any accepted file', async () => {
+      const files = ['cards.xml', 'tokens.xml', 'spoiler.xml'].map(name => {
+        const file = fakeFile(name, oracleCardsXml);
+        Object.defineProperty(file, 'size', { value: Math.floor(MAX_IMPORT_BYTES / 3) + 1 });
+        vi.spyOn(file, 'text');
+        return file;
+      });
+      await expect(localOracleImportService.ingest(files)).rejects.toThrow('size limit');
+      for (const file of files) {
+        expect(file.text).not.toHaveBeenCalled();
+      }
+    });
+
     it('reads an accepted file by filename and parses its content', async () => {
       const result = await localOracleImportService.ingest([fakeFile('cards.xml', oracleCardsXml)]);
 

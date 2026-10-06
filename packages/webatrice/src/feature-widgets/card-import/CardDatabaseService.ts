@@ -81,16 +81,7 @@ function countsOf(records: CardSourceRecords) {
   };
 }
 
-function parseRecords(xml: string): CardSourceRecords {
-  const parsed = cockatriceXmlParser.parse(xml);
-  return {
-    cards: parsed.cards ?? [],
-    sets: parsed.sets ?? [],
-    tokens: parsed.tokens ?? [],
-    formats: parsed.formats ?? [],
-    info: parsed.info,
-  };
-}
+export class TokenNameConflictError extends Error {}
 
 /**
  * Owns the card database the way desktop's `CardDatabaseLoader` does: a list
@@ -107,7 +98,7 @@ class CardDatabaseService {
   createSource(input: NewSourceInput, existing: readonly CardSource[]): PendingSource {
     const kind = input.kind ?? sourceKindForFile(input.fileName);
     const order = kind === 'custom' ? nextCustomOrder(existing) : 0;
-    const records = input.records ?? parseRecords(input.xml);
+    const records = cockatriceXmlParser.parseSource(input.xml, input.records);
     const importedAt = new Date().toISOString();
     const id = sourceIdFor(kind, input.fileName, order);
     this.parsedCache.set(id, { importedAt, records });
@@ -152,12 +143,9 @@ class CardDatabaseService {
 
   /** Parse and add files/downloads, replacing same-named sources, then rebuild. */
   async addSources(inputs: readonly NewSourceInput[]): Promise<RebuildResult> {
-    const existing = await CardSourceDTO.getAll();
-    const added: PendingSource[] = [];
-    for (const input of inputs) {
-      added.push(this.createSource(input, [...existing, ...added.map((pending) => pending.source)]));
-    }
-    return this.applySources(added, []);
+    // Parse before opening the transaction; allocate custom identities from its live snapshot.
+    const parsed = inputs.map(input => ({ ...input, records: cockatriceXmlParser.parseSource(input.xml, input.records) }));
+    return this.applySources(parsed, []);
   }
 
   async removeSource(id: string): Promise<RebuildResult> {
@@ -191,7 +179,7 @@ class CardDatabaseService {
       const records = await this.readLegacyTables();
       return { records, materialized: { id: source.id, records } };
     }
-    const records = payload?.records ?? parseRecords(payload?.xml ?? '');
+    const records = payload?.records ?? cockatriceXmlParser.parseSource(payload?.xml ?? '');
     this.parsedCache.set(source.id, { importedAt: source.importedAt, records });
     return { records };
   }
@@ -220,13 +208,18 @@ class CardDatabaseService {
    * same-id sources and `removedIds` dropped. Reads, merge and writes share one
    * transaction, so two quick changes cannot overwrite each other's sources.
    */
-  private async applySources(added: readonly PendingSource[], removedIds: readonly string[]): Promise<RebuildResult> {
+  private async applySources(inputs: readonly NewSourceInput[], removedIds: readonly string[]): Promise<RebuildResult> {
     const result = await dexieService.cardDataTransaction(async () => {
       const [stored, preferences, settings] = await Promise.all([
         CardSourceDTO.getAll(),
         SetPreferenceDTO.getAll(),
         CardDataSettingsDTO.get(),
       ]);
+
+      const added: PendingSource[] = [];
+      for (const input of inputs) {
+        added.push(this.createSource(input, [...stored, ...added.map(pending => pending.source)]));
+      }
 
       const replaced = new globalThis.Set<string>([...removedIds, ...added.map((pending) => pending.source.id)]);
       let sources = sortSourcesByLoadOrder([
@@ -368,26 +361,43 @@ class CardDatabaseService {
   }
 
   /**
-   * Replace the editor-token source. Editor tokens load last and never share
+   * Apply token deltas to the current editor-token source. Editor tokens load last and never share
    * a name with another card (the editor refuses that), so writing them
    * straight into `tokens` gives the same result as a full rebuild.
    */
-  async saveCustomTokens(tokens: readonly Token[], removedNames: readonly string[] = []): Promise<void> {
-    const sets = tokens.length ? [CUSTOM_TOKEN_SET] : [];
-    const records: CardSourceRecords = { cards: [], sets, tokens: [...tokens], formats: [] };
-    const source: CardSource = {
-      id: CardSourceId.USER_TOKENS,
-      kind: 'user-tokens',
-      fileName: 'TK.xml',
-      origin: 'editor',
-      order: 0,
-      importedAt: new Date().toISOString(),
-      counts: countsOf(records),
-    };
-    const code = CUSTOM_TOKEN_SET.name.value;
-    await dexieService.cardDataTransaction(async () => {
+  async saveCustomTokens(
+    changed: readonly Token[], removedNames: readonly string[] = [], mode: 'upsert' | 'add' | 'update' = 'upsert',
+  ): Promise<Token[]> {
+    const tokens = await dexieService.cardDataTransaction(async () => {
+      const current = await this.getCustomTokens();
+      const byName = new Map(current.map(token => [token.name.value, token]));
+      for (const token of changed) {
+        if (mode === 'add' && await this.isNameTaken(token.name.value)) {
+          throw new TokenNameConflictError(token.name.value);
+        }
+        if (mode === 'update' && !byName.has(token.name.value)) {
+          throw new Error('The token was removed');
+        }
+        byName.set(token.name.value, token);
+      }
+      for (const name of removedNames) {
+        byName.delete(name);
+      }
+      const tokens = [...byName.values()];
+      const sets = tokens.length ? [CUSTOM_TOKEN_SET] : [];
+      const records: CardSourceRecords = { cards: [], sets, tokens, formats: [] };
+      const source: CardSource = {
+        id: CardSourceId.USER_TOKENS,
+        kind: 'user-tokens',
+        fileName: 'TK.xml',
+        origin: 'editor',
+        order: 0,
+        importedAt: new Date().toISOString(),
+        counts: countsOf(records),
+      };
+      const code = CUSTOM_TOKEN_SET.name.value;
       await dexieService.tokens.bulkDelete([...removedNames]);
-      await dexieService.tokens.bulkPut([...tokens]);
+      await dexieService.tokens.bulkPut(changed.filter(token => !removedNames.includes(token.name.value)));
       if (tokens.length && !(await dexieService.sets.get(code))) {
         await dexieService.sets.put(CUSTOM_TOKEN_SET);
       }
@@ -398,9 +408,11 @@ class CardDatabaseService {
       }
       await dexieService.cardSources.put(source);
       await dexieService.cardSourcePayloads.put({ id: source.id, records } satisfies CardSourcePayload);
+      this.parsedCache.delete(source.id);
+      return tokens;
     });
-    this.parsedCache.delete(source.id);
     await refreshCardDataPreferences();
+    return tokens;
   }
 }
 
