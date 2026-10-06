@@ -5,7 +5,7 @@ import { server } from '@cockatrice/datatrice';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { onSessionEnd } from '@app/services/session';
 import { useRequestTracker, type RequestTracker } from '@app/hooks';
-import { renderWithProviders, disconnectedState } from './__test-utils__';
+import { renderWithProviders, connectedState, disconnectedState } from './__test-utils__';
 import { ModerationProvider } from './feature-widgets/moderation/ModerationProvider';
 import { useModerationMenu } from './feature-widgets/moderation/useModerationMenu';
 import { SessionScope } from './SessionScope';
@@ -77,4 +77,29 @@ it('remounts the real moderation provider with no dialog after a session reset',
   expect(screen.getByRole('dialog', { name: 'Moderation.common.loading' })).toBeInTheDocument();
   act(() => store.dispatch(server.Actions.clearStore()));
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
+
+
+it('removes an open private admin-notes dialog and its text on DISCONNECTED', () => {
+  function Trigger() {
+    const { open } = useModerationMenu('alice');
+    return <button onClick={() => open('adminNotes')}>notes</button>;
+  }
+  const { store, webClient } = renderWithProviders(
+    <SessionScope><ModerationProvider><Trigger /></ModerationProvider></SessionScope>,
+    { preloadedState: connectedState },
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'notes' }));
+  const requestId = vi.mocked(webClient.request.moderator.getAdminNotes).mock.lastCall?.[1];
+  act(() => store.dispatch(server.Actions.getAdminNotes({ userName: 'alice', notes: 'Private investigation notes', requestId })));
+  expect(screen.getByRole('dialog', { name: 'Moderation.adminNotes.title' })).toBeInTheDocument();
+  expect(screen.getByDisplayValue('Private investigation notes')).toBeVisible();
+  fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Unsaved private notes' } });
+  act(() => store.dispatch(server.Actions.updateStatus({
+    status: { state: WebsocketTypes.StatusEnum.DISCONNECTED, description: 'Connection Closed' },
+  })));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(screen.queryByDisplayValue('Private investigation notes')).not.toBeInTheDocument();
+  expect(screen.queryByDisplayValue('Unsaved private notes')).not.toBeInTheDocument();
+  expect(store.getState().server.adminNotes).toEqual({});
 });
