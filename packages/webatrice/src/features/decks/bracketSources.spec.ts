@@ -55,10 +55,21 @@ describe('Scryfall request shapes (characterization)', () => {
   });
 
   it('posts oracle-text names 75 to a request, one request at a time', async () => {
-    fetchMock.mockImplementation(async () => json({ data: [] }));
+    let resolveFirst!: (response: Response) => void;
+    const firstResponse = new Promise<Response>((resolve) => {
+      resolveFirst = resolve;
+    });
+    fetchMock.mockReturnValueOnce(firstResponse).mockResolvedValue(json({ data: [] }));
     const names = Array.from({ length: 76 }, (_, i) => `Card ${i}`);
 
-    await fetchOracleText(names);
+    const result = fetchOracleText(names);
+    try {
+      await Promise.resolve();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      resolveFirst(json({ data: [] }));
+      await result;
+    }
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     const [url, init] = fetchMock.mock.calls[0];
