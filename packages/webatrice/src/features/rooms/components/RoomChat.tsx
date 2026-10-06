@@ -5,25 +5,15 @@ import { Send, Hash } from 'lucide-react';
 import { Message as MessageBubble } from '@app/components';
 import { ReportChatScope } from '@app/dialogs';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
-import { formatChatHistoryTime } from '@app/utils';
 import { rooms, type Message } from '@cockatrice/datatrice';
-import { Event_RoomSay_RoomMessageType } from '@cockatrice/sockatrice/generated';
 
-import { roomChatContext } from './roomChatContext';
+import { historyTimestamp, roomChatContext } from './roomChatContext';
 
 interface RoomChatProps {
   roomId: number;
   roomName: string;
   messages: Message[] | undefined;
   onSay: (args: { message: string }) => void;
-}
-
-// Desktop prefixes chat-history lines (sent on room join) with their server time.
-function historyTimestamp(message: Message): string | undefined {
-  if (message.messageType !== Event_RoomSay_RoomMessageType.ChatHistory || !message.timeOf) {
-    return undefined;
-  }
-  return formatChatHistoryTime(Number(message.timeOf));
 }
 
 /**
