@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, UserPlus } from 'lucide-react';
 
@@ -26,6 +26,7 @@ export default function GameInviteControls({ gameId, className }: GameInviteCont
   const invite = useGameInvite(gameId);
   const [dialogOpen, setDialogOpen] = useState(false);
   const disabled = !invite.link;
+  const unavailableReasonId = useId();
 
   return (
     <div className={['flex items-center gap-1.5', className ?? ''].join(' ')}>
@@ -33,8 +34,9 @@ export default function GameInviteControls({ gameId, className }: GameInviteCont
         type="button"
         onClick={invite.copyLink}
         disabled={disabled}
-        title={t('GameInvite.copyLink')}
+        title={invite.unavailableReason ?? t('GameInvite.copyLink')}
         aria-label={t('GameInvite.copyLink')}
+        aria-describedby={invite.unavailableReason ? unavailableReasonId : undefined}
         className={BUTTON_CLASS}
       >
         <Link size={12} />
@@ -43,12 +45,18 @@ export default function GameInviteControls({ gameId, className }: GameInviteCont
         type="button"
         onClick={() => setDialogOpen(true)}
         disabled={disabled}
-        title={t('GameInvite.inviteToGame')}
+        title={invite.unavailableReason ?? t('GameInvite.inviteToGame')}
         aria-label={t('GameInvite.inviteToGame')}
+        aria-describedby={invite.unavailableReason ? unavailableReasonId : undefined}
         className={BUTTON_CLASS}
       >
         <UserPlus size={12} /> {t('GameInvite.invite')}
       </button>
+      {invite.unavailableReason && (
+        <span id={unavailableReasonId} className="max-w-48 text-[10px] leading-tight text-text-muted">
+          {invite.unavailableReason}
+        </span>
+      )}
       <InviteToGameDialog
         isOpen={dialogOpen}
         onlyBuddies={invite.onlyBuddies}

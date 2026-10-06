@@ -1,8 +1,8 @@
 import {
   GAME_LINK_REGEX,
   containsGameLink,
-  gameLinkServer,
-  isSameServerHost,
+  findLiveGameServer,
+  isSameGameServer,
   makeGameJoinLink,
   parseGameJoinLink,
 } from './gameLink';
@@ -43,9 +43,52 @@ describe('parseGameJoinLink', () => {
     ['cockatrice://joingame?hostname=h&roomid=1&gameid=1', 'port'],
     ['cockatrice://joingame?hostname=h&port=99999&roomid=1&gameid=1', 'port'],
     ['cockatrice://joingame?hostname=h&port=1&roomid=x&gameid=1', 'roomId'],
+    ['cockatrice://joingame?hostname=h&port=1&roomid=2147483648&gameid=1', 'roomId'],
+    ['cockatrice://joingame?hostname=h&port=1&roomid=-2147483649&gameid=1', 'roomId'],
     ['cockatrice://joingame?hostname=h&port=1&roomid=1', 'gameId'],
+    ['cockatrice://joingame?hostname=h&port=1&roomid=1&gameid=4294967296', 'gameId'],
   ])('reports the first invalid field of %s', (url, error) => {
     expect(parseGameJoinLink(url)).toEqual({ ok: false, error });
+  });
+});
+
+describe('live game server identity', () => {
+  const hosts = [
+    { host: 'live.example:5748/server-b', port: '5748', desktopPort: '8888' },
+    { host: 'live.example:5748/server-a', port: '5748', desktopPort: '4747' },
+  ];
+
+  it('uses the desktop port only from the known host for the exact live endpoint', () => {
+    expect(findLiveGameServer('wss://live.example:5748/server-a', hosts)).toEqual({
+      hostname: 'live.example',
+      port: '5748',
+      desktopPort: '4747',
+    });
+    expect(findLiveGameServer('wss://live.example:5748/other-path', hosts)).toEqual({
+      hostname: 'live.example',
+      port: '5748',
+      desktopPort: undefined,
+    });
+  });
+
+  it('matches an incoming link by hostname and configured desktop port', () => {
+    const live = findLiveGameServer('wss://live.example:5748/server-a', hosts)!;
+    expect(isSameGameServer({ hostname: 'LIVE.EXAMPLE', port: '4747' }, live)).toBe(true);
+    expect(isSameGameServer({ hostname: 'live.example', port: '5748' }, live)).toBe(false);
+    expect(isSameGameServer({ hostname: 'live.example', port: '8888' }, live)).toBe(false);
+  });
+
+  it('fails closed when the live endpoint has no known desktop port', () => {
+    const live = findLiveGameServer('wss://unknown.example:5748/server-a', hosts)!;
+    expect(isSameGameServer({ hostname: 'unknown.example', port: '5748' }, live)).toBe(false);
+  });
+
+  it.each([undefined, '0', '65536', 'abc'])('rejects invalid desktop port %s', (desktopPort) => {
+    const live = findLiveGameServer('wss://live.example:5748/server-a', [
+      { host: 'live.example:5748/server-a', port: '5748', desktopPort },
+    ]);
+    expect(live?.desktopPort).toBeUndefined();
+    expect(isSameGameServer({ hostname: 'live.example', port: '4747' }, live)).toBe(false);
   });
 });
 
@@ -60,34 +103,5 @@ describe('GAME_LINK_REGEX / containsGameLink', () => {
     expect(containsGameLink('cockatrice://opendeck?share=x')).toBe(false);
     expect(containsGameLink('cockatrice://joingamefoo?x')).toBe(false);
     expect(containsGameLink(`see ${link}`)).toBe(true);
-  });
-});
-
-describe('gameLinkServer', () => {
-  it('uses the connect target as-is when the host has no path', () => {
-    expect(gameLinkServer({ host: 'mtg.example', port: '4748' })).toEqual({ hostname: 'mtg.example', port: '4748' });
-  });
-
-  it('strips a path and uses the default port the socket actually dialed', () => {
-    expect(gameLinkServer({ host: 'server.example/servatrice', port: '4748' })).toEqual({
-      hostname: 'server.example',
-      port: '443',
-    });
-    expect(gameLinkServer({ host: 'localhost/servatrice', port: '4748' })).toEqual({ hostname: 'localhost', port: '80' });
-  });
-
-  it('uses the port written before the path, which the socket dials', () => {
-    expect(gameLinkServer({ host: 'example.com:8443/servatrice', port: '4748' })).toEqual({
-      hostname: 'example.com',
-      port: '8443',
-    });
-    expect(gameLinkServer({ host: '[::1]:4747/servatrice', port: '4748' })).toEqual({ hostname: '[::1]', port: '4747' });
-  });
-});
-
-describe('isSameServerHost', () => {
-  it('compares hostnames case-insensitively', () => {
-    expect(isSameServerHost('Server.Example', 'server.example')).toBe(true);
-    expect(isSameServerHost('a.example', 'b.example')).toBe(false);
   });
 });

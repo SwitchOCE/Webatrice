@@ -19,6 +19,18 @@ import {
 } from '../../../../__test-utils__';
 import GameInviteControls from './GameInviteControls';
 
+const liveServer = vi.hoisted(() => ({
+  value: { hostname: 'localhost', port: '4748', desktopPort: '4747' } as {
+    hostname: string;
+    port: string;
+    desktopPort?: string;
+  } | null,
+}));
+
+vi.mock('@app/feature-widgets/known-hosts', () => ({
+  useLiveServerEndpoint: () => liveServer.value,
+}));
+
 // react-window sizes its viewport via ResizeObserver, which the jsdom harness
 // stubs to a no-op (zero rows). Emit a size so the invite list mounts rows.
 type RoCallback = (entries: { contentRect: { height: number; width: number }; target: Element }[]) => void;
@@ -66,7 +78,7 @@ function state({ onlyBuddies = false, description = 'Friday modern' } = {}) {
   });
 }
 
-const LINK = 'cockatrice://joingame?hostname=localhost&port=4748&roomid=3&gameid=5&game=Friday%20modern';
+const LINK = 'cockatrice://joingame?hostname=localhost&port=4747&roomid=3&gameid=5&game=Friday%20modern';
 
 function renderControls(options: Parameters<typeof state>[0] = {}) {
   const webClient = createMockWebClient() as unknown as WebClient;
@@ -76,6 +88,7 @@ function renderControls(options: Parameters<typeof state>[0] = {}) {
 
 describe('GameInviteControls (GAME-033)', () => {
   beforeEach(() => {
+    liveServer.value = { hostname: 'localhost', port: '4748', desktopPort: '4747' };
     originalRo = globalThis.ResizeObserver;
     observers = [];
     globalThis.ResizeObserver = class {
@@ -110,10 +123,25 @@ describe('GameInviteControls (GAME-033)', () => {
   });
 
   it('is disabled until the client knows its server', () => {
-    const webClient = { ...createMockWebClient(), connectTarget: null } as unknown as WebClient;
-    renderWithProviders(<GameInviteControls gameId={5} />, { preloadedState: state(), webClient, gameId: 5 });
+    liveServer.value = null;
+    renderControls();
     expect(screen.getByRole('button', { name: 'GameInvite.copyLink' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'GameInvite.inviteToGame' })).toBeDisabled();
+  });
+
+  it('is disabled when the live endpoint has no configured desktop port', () => {
+    liveServer.value = { hostname: 'localhost', port: '4748' };
+    renderControls();
+    expect(screen.getByRole('button', { name: 'GameInvite.copyLink' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'GameInvite.inviteToGame' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'GameInvite.copyLink' })).toHaveAttribute(
+      'title',
+      'GameInvite.desktopPortRequired',
+    );
+    expect(screen.getByRole('button', { name: 'GameInvite.copyLink' })).toHaveAccessibleDescription(
+      'GameInvite.desktopPortRequired',
+    );
+    expect(screen.getByText('GameInvite.desktopPortRequired')).toBeVisible();
   });
 
   it('is disabled once the game is closed (desktop disables Invite to Game for a closed game)', () => {
@@ -166,7 +194,7 @@ describe('GameInviteControls (GAME-033)', () => {
     fireEvent.doubleClick(within(screen.getByTestId('invite-user-list')).getByText('alice'));
     expect(webClient.request.session.message).toHaveBeenCalledWith(
       'alice',
-      'GameInvite.message cockatrice://joingame?hostname=localhost&port=4748&roomid=3&gameid=5',
+      'GameInvite.message cockatrice://joingame?hostname=localhost&port=4747&roomid=3&gameid=5',
     );
   });
 

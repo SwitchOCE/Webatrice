@@ -1036,6 +1036,11 @@
     },
     "validation": {
       "tooLong": "At most {max} characters"
+    },
+    "error": {
+      "list": "Failed to load card art rules.",
+      "add": "Failed to add the card art rule.",
+      "remove": "Failed to remove the card art rule."
     }
   },
   "DeckBracket": {
@@ -1420,7 +1425,8 @@
       "empty": "No one to invite",
       "invite": "Invite",
       "cancel": "Cancel"
-    }
+    },
+    "desktopPortRequired": "Set this server's desktop port in server settings to copy links or send invites."
   },
   "GameReplay": {
     "missing": "This replay is no longer open. Replays are kept only until the page is reloaded.",
