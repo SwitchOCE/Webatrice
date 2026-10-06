@@ -96,6 +96,20 @@ describe('PrivateChat', () => {
     expect(screen.getByRole('textbox')).toHaveValue('are you there?');
   });
 
+  it('restores a draft when sending fails synchronously with NotSent', () => {
+    const { store, onSend } = renderChat();
+    onSend.mockImplementation((message: string) => {
+      store.dispatch(server.Actions.privateMessageFailed({
+        userName: 'bob', message, responseCode: Response_ResponseCode.RespNotConnected,
+        failure: WebsocketTypes.CommandFailure.NotSent,
+      }));
+    });
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: 'hello' } });
+    fireEvent.submit(input);
+    expect(input).toHaveValue('hello');
+  });
+
   it('does not overwrite text typed since the failed send', () => {
     const { store } = renderChat();
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'newer' } });

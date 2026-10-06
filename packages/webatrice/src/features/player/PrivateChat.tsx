@@ -68,8 +68,8 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
     if (!trimmed || blockedReason) {
       return;
     }
-    onSend(trimmed);
     setDraft('');
+    onSend(trimmed);
   };
 
   return (
