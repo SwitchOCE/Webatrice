@@ -52,7 +52,7 @@ export const PALETTES: Readonly<Record<ColorScheme, Palette>> = {
     'border-strong': '#B4A6CF',
     'accent-primary': '#6B46C1',
     'accent-primary-hover': '#553C9A',
-    'accent-secondary': '#9F7AEA',
+    'accent-secondary': '#6B46C1',
     'text-primary': '#1D1630',
     'text-secondary': '#463C5C',
     'text-muted': '#675D7E',

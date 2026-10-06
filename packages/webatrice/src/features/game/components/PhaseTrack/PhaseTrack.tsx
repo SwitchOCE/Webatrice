@@ -275,7 +275,7 @@ export default function PhaseTrack() {
         title="Pass to the next turn"
         className={[
           'relative shrink-0 overflow-hidden w-full transition-all duration-200',
-          'bg-accent-secondary hover:bg-accent text-white',
+          'bg-accent-secondary hover:bg-accent-secondary/90 text-white',
           'disabled:opacity-50 disabled:cursor-not-allowed',
           expanded
             ? 'mt-1 rounded-md px-2 py-3 flex flex-col items-center gap-1 text-xs font-bold uppercase tracking-wider shadow-glow'

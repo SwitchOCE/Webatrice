@@ -45,7 +45,7 @@
   --border-strong: 180 166 207;     /* #B4A6CF */
   --accent-primary: 107 70 193;     /* #6B46C1 */
   --accent-primary-hover: 85 60 154; /* #553C9A */
-  --accent-secondary: 159 122 234;  /* #9F7AEA */
+  --accent-secondary: 107 70 193;   /* #6B46C1; white action labels meet AA */
   --text-primary: 29 22 48;         /* #1D1630 */
   --text-secondary: 70 60 92;       /* #463C5C */
   --text-muted: 103 93 126;         /* #675D7E */
