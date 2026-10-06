@@ -120,6 +120,9 @@ export const userReducers = {
       appendPrivateChatNotice(state, userName, 'notSent', failure);
       return;
     }
+    if (responseCode === Response_ResponseCode.RespNameNotFound) {
+      delete state.users[userName];
+    }
     const kind = PRIVATE_MESSAGE_FAILURE_NOTICES[responseCode as Response_ResponseCode];
     if (kind) {
       appendPrivateChatNotice(state, userName, kind);
