@@ -44,6 +44,31 @@ describe.each(Object.keys(PALETTES) as ColorScheme[])('the %s palette', (scheme)
     expect(cssPalette(css, SELECTORS[scheme])).toEqual(palette);
   });
 
+  test('keeps white text on secondary action buttons at AA contrast', () => {
+    expect(contrast('#FFFFFF', palette['accent-secondary'])).toBeGreaterThanOrEqual(4.5);
+  });
+
+  test('keeps white action labels at AA in DeckEditor and PhaseTrack, including hover', () => {
+    for (const file of ['features/decks/DeckEditor.tsx', 'features/game/components/PhaseTrack/PhaseTrack.tsx']) {
+      const source = fs.readFileSync(path.resolve(__dirname, '../..', file), 'utf8');
+      const actions = source.split('\n').filter((line) => line.includes('bg-accent-secondary') && line.includes('text-white'));
+      expect(actions.length).toBeGreaterThan(0);
+      for (const action of actions) {
+        for (const [, secondary, opacity] of action.matchAll(/(?:hover:)?bg-accent(-secondary)?(?:\/(\d+))?(?=\s)/g)) {
+          const background = palette[secondary ? 'accent-secondary' : 'accent-primary'];
+          const alpha = opacity ? Number(opacity) / 100 : 1;
+          for (const surface of SURFACES) {
+            const blended = '#' + [1, 3, 5].map((index) => Math.round(
+              parseInt(background.slice(index, index + 2), 16) * alpha
+              + parseInt(palette[surface].slice(index, index + 2), 16) * (1 - alpha),
+            ).toString(16).padStart(2, '0')).join('');
+            expect(contrast('#FFFFFF', blended), `${file} on ${surface}: ${action.trim()}`).toBeGreaterThanOrEqual(4.5);
+          }
+        }
+      }
+    }
+  });
+
   test.each(SURFACES)('keeps primary and secondary text at AAA contrast on %s', (surface) => {
     expect(contrast(palette['text-primary'], palette[surface])).toBeGreaterThanOrEqual(7);
     expect(contrast(palette['text-secondary'], palette[surface])).toBeGreaterThanOrEqual(7);

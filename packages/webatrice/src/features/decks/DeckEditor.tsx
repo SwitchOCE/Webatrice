@@ -596,7 +596,7 @@ function DeckBuyButton({
         target="_blank"
         rel="noopener noreferrer"
         title="Open the full deck in TCGplayer's mass-entry cart (opens in a new tab)"
-        className={`${shared} bg-accent-secondary/50 hover:bg-accent-secondary border-accent/40 hover:border-accent text-white shadow-glow`}
+        className={`${shared} bg-accent-secondary hover:bg-accent-secondary/90 border-accent/40 hover:border-accent text-white shadow-glow`}
       >
         {inner}
       </a>
@@ -739,7 +739,7 @@ function CardPricePill({
       target="_blank"
       rel="noopener noreferrer"
       title="Buy on TCGplayer (opens in a new tab)"
-      className={`${shared} bg-accent-secondary/50 hover:bg-accent-secondary border-accent/40 hover:border-accent text-white shadow-glow`}
+      className={`${shared} bg-accent-secondary hover:bg-accent-secondary/90 border-accent/40 hover:border-accent text-white shadow-glow`}
     >
       {inner}
     </a>
