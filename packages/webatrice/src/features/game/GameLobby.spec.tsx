@@ -132,6 +132,28 @@ describe('GameLobby — force start (GAME-013)', () => {
 });
 
 describe('GameLobby — deck states (GAME-014)', () => {
+  it('unload cancels a ready command even before its echo arrives', () => {
+    const { webClient } = renderLobby({ ready: false });
+    fireEvent.click(button('GameLobby.action.readyStart'));
+    fireEvent.click(button('GameLobby.action.unloadDeck'));
+    expect(webClient.request.game.readyStart).toHaveBeenNthCalledWith(1, 1, { ready: true });
+    expect(webClient.request.game.readyStart).toHaveBeenNthCalledWith(2, 1, { ready: false });
+  });
+
+  it('keeps the unloaded view across route navigation and observes deck selection while away', () => {
+    const { rerender, store } = renderLobby();
+    fireEvent.click(button('GameLobby.action.unloadDeck'));
+    rerender(<div>Another route</div>);
+    rerender(<GameLobby gameId={1} />);
+    expect(screen.queryByTestId('lobby-deck-view')).not.toBeInTheDocument();
+    rerender(<div>Another route</div>);
+    act(() => {
+      store.dispatch(games.Actions.deckSelected({ gameId: 1, deckList: DECK }));
+    });
+    rerender(<GameLobby gameId={1} />);
+    expect(screen.getByTestId('lobby-deck-view')).toBeInTheDocument();
+  });
+
   it('without a deck shows the deck picker and none of the deck-loaded buttons', () => {
     renderLobby({ deckList: '' });
     expect(screen.getByText('Upload a .cod file')).toBeInTheDocument();
@@ -218,6 +240,49 @@ describe('GameLobby — deck states (GAME-014)', () => {
 });
 
 describe('GameLobby — sideboarding before ready (GAME-014)', () => {
+  it('preserves the complete plan when returning to a route and moving another card', () => {
+    const { webClient, rerender } = renderLobby({ sideboardLocked: false });
+    fireEvent.click(screen.getByRole('button', { name: '2 Lightning Bolt' }));
+    rerender(<div>Another route</div>);
+    rerender(<GameLobby gameId={1} />);
+    expect(within(screen.getByTestId('lobby-deck-side')).getByText('Lightning Bolt')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '1 Smash to Smithereens' }));
+    expect(webClient.request.game.setSideboardPlan).toHaveBeenLastCalledWith(1, {
+      moveList: [
+        { cardName: 'Smash to Smithereens', startZone: 'side', targetZone: 'main' },
+        { cardName: 'Lightning Bolt', startZone: 'main', targetZone: 'side' },
+      ],
+    });
+  });
+
+  it('keeps lock resets received while away, including a same-deck reselection', () => {
+    const { store, rerender } = renderLobby({ deckList: WITH_PLAN, sideboardLocked: false });
+    rerender(<div>Another route</div>);
+    act(() => {
+      store.dispatch(setLocalSideboardLock(true));
+    });
+    rerender(<GameLobby gameId={1} />);
+    expect(within(screen.getByTestId('lobby-deck-side')).queryByText('Mountain')).not.toBeInTheDocument();
+    rerender(<div>Another route</div>);
+    act(() => {
+      store.dispatch(games.Actions.deckSelected({ gameId: 1, deckList: WITH_PLAN }));
+    });
+    rerender(<GameLobby gameId={1} />);
+    expect(within(screen.getByTestId('lobby-deck-side')).getByText('Mountain')).toBeInTheDocument();
+  });
+
+  it('isolates plans and unloaded state between games with identical decks', () => {
+    const state = lobbyState({ sideboardLocked: false });
+    state.games.games[2] = { ...state.games.games[1] };
+    const { rerender } = renderWithProviders(<GameLobby gameId={1} />, { preloadedState: state });
+    fireEvent.click(screen.getByRole('button', { name: '2 Lightning Bolt' }));
+    rerender(<GameLobby gameId={2} />);
+    expect(within(screen.getByTestId('lobby-deck-side')).queryByText('Lightning Bolt')).not.toBeInTheDocument();
+    fireEvent.click(button('GameLobby.action.unloadDeck'));
+    rerender(<GameLobby gameId={1} />);
+    expect(within(screen.getByTestId('lobby-deck-side')).getByText('Lightning Bolt')).toBeInTheDocument();
+  });
+
   it('while locked, cards cannot move and the lock button unlocks', () => {
     const { webClient } = renderLobby({ sideboardLocked: true });
     const main = screen.getByTestId('lobby-deck-main');

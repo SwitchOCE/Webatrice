@@ -1,6 +1,7 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 import { describe, expect, it } from 'vitest';
+import { useState } from 'react';
 
 import { games } from '@cockatrice/datatrice';
 import {
@@ -34,9 +35,17 @@ const UPLOADED = `<?xml version="1.0" encoding="UTF-8"?>
 <zone name="side"><card number="2" name="Smash to Smithereens"/></zone>
 </cockatrice_deck>`;
 
+function LobbyRouteHarness() {
+  const [visible, setVisible] = useState(true);
+  return <>
+    <button onClick={() => setVisible(value => !value)}>{visible ? 'Other route' : 'Lobby route'}</button>
+    {visible && <GameLobby gameId={GAME_ID} />}
+  </>;
+}
+
 function enterLobby() {
   connectRaw();
-  renderFeatureScreen(<GameLobby gameId={GAME_ID} />);
+  renderFeatureScreen(<LobbyRouteHarness />);
   act(() => {
     store.dispatch(games.Actions.gameJoined({ data: buildEventGameJoined({ gameId: GAME_ID, localPlayerId: 1, hostId: 1 }) }));
     store.dispatch(games.Actions.gameStateChanged({
@@ -87,6 +96,31 @@ async function loadDeck() {
 }
 
 describe('GameLobby integration (GAME-013 / GAME-014)', () => {
+  it('retains edits across route navigation and unload sends unready before the ready echo', async () => {
+    enterLobby();
+    await loadDeck();
+    setLocalProperties({ sideboardLocked: false });
+    const bolt = await waitFor(() => {
+      const row = screen.getByRole('button', { name: '4 Lightning Bolt' });
+      expect(row).toBeEnabled();
+      return row;
+    });
+    fireEvent.click(bolt);
+    fireEvent.click(screen.getByRole('button', { name: 'Other route' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lobby route' }));
+    expect(within(screen.getByTestId('lobby-deck-side')).getByText('Lightning Bolt')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '2 Smash to Smithereens' }));
+    expect(findLastGameCommand(Command_SetSideboardPlan_ext).value.moveList.map(({ cardName, startZone, targetZone }) => (
+      { cardName, startZone, targetZone }
+    ))).toEqual([
+      { cardName: 'Smash to Smithereens', startZone: 'side', targetZone: 'main' },
+      { cardName: 'Lightning Bolt', startZone: 'main', targetZone: 'side' },
+    ]);
+    fireEvent.click(screen.getByRole('button', { name: 'GameLobby.action.readyStart' }));
+    fireEvent.click(screen.getByRole('button', { name: 'GameLobby.action.unloadDeck' }));
+    expect(findAllGameCommands(Command_ReadyStart_ext).map(command => command.value.ready)).toEqual([true, false]);
+  });
+
   it('builds the deck view from the Response_DeckDownload to Command_DeckSelect', async () => {
     enterLobby();
     await loadDeck();

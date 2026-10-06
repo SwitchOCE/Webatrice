@@ -39,6 +39,7 @@ import { GameDialogActionsProvider, type GameDialogActions } from '../features/g
 import { GameIdProvider } from '../features/game/components/ui/GameIdContext';
 import { CardPreviewProvider, createCardPreviewStore, type CardPreviewStore } from '../features/game/components/ui/CardPreviewContext';
 import { GameDialogsProvider } from '../features/game/components/ui/GameDialogsContext';
+import { LobbyDeckStateProvider } from '../features/game/components/lobby/LobbyDeckStateProvider';
 import { NOOP_GAME_DIALOGS_ACTIONS, type GameDialogs } from '../features/game/hooks/useGameDialogs';
 import { createMockWebClient } from './mockWebClient';
 
@@ -228,11 +229,13 @@ export function renderWithProviders(
                           <GameDialogActionsProvider value={dialogActions}>
                             <CardPreviewProvider store={previewStore}>
                               <GameDialogsProvider value={dialogs}>
-                                {shellLifecycle ? (
-                                  <ShellLifecycleProvider value={shellLifecycle}>{children}</ShellLifecycleProvider>
-                                ) : (
-                                  children
-                                )}
+                                <LobbyDeckStateProvider>
+                                  {shellLifecycle ? (
+                                    <ShellLifecycleProvider value={shellLifecycle}>{children}</ShellLifecycleProvider>
+                                  ) : (
+                                    children
+                                  )}
+                                </LobbyDeckStateProvider>
                               </GameDialogsProvider>
                             </CardPreviewProvider>
                           </GameDialogActionsProvider>
