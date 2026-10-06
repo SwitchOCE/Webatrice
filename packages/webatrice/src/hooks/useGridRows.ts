@@ -66,7 +66,16 @@ export function useGridRows({ keys, selectedKey, onSelect, onActivate, onExpand,
       pendingFocus.current = null;
       element.focus();
     }
-  }, [focusRequest]);
+    // A keyed row can move outside the rendered window after a live update.
+    // Ask the caller to scroll that identity back into view before focusing it.
+    if (key != null && !element) {
+      if (keys.includes(key)) {
+        onSelect(key);
+      } else {
+        pendingFocus.current = null;
+      }
+    }
+  }, [focusRequest, keys, onSelect]);
 
   const moveTo = useCallback((key: string | undefined) => {
     if (key != null) {
@@ -76,7 +85,7 @@ export function useGridRows({ keys, selectedKey, onSelect, onActivate, onExpand,
     }
   }, [onSelect]);
 
-  const getRowProps = (key: string): GridRowProps => ({
+  const getRowProps = useCallback((key: string): GridRowProps => ({
     ref: (element) => {
       if (element) {
         elements.current.set(key, element);
@@ -85,6 +94,9 @@ export function useGridRows({ keys, selectedKey, onSelect, onActivate, onExpand,
           element.focus();
         }
       } else {
+        if (document.activeElement === elements.current.get(key) && pendingFocus.current == null) {
+          pendingFocus.current = key;
+        }
         elements.current.delete(key);
       }
     },
@@ -130,7 +142,7 @@ export function useGridRows({ keys, selectedKey, onSelect, onActivate, onExpand,
       }
       event.preventDefault();
     },
-  });
+  }), [keys, tabStop, moveTo, onSelect, onActivate, onExpand, onCollapse]);
 
   return { getRowProps, focusRow: moveTo, onRowsRendered };
 }

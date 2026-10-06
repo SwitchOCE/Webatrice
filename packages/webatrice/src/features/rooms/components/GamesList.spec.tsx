@@ -4,6 +4,12 @@ import { create } from '@bufbuild/protobuf';
 
 import { ServerInfo_GameSchema, ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 import { rooms as roomsSlice, type Room } from '@cockatrice/datatrice';
+import { VirtualRows } from '@app/components';
+
+vi.mock('@app/components', async (original) => {
+  const components = await original<typeof import('@app/components')>();
+  return { ...components, VirtualRows: vi.fn(components.VirtualRows) };
+});
 
 import { connectedWithRoomsState, createMockWebClient, makeUser, renderWithProviders } from '../../../__test-utils__';
 import type { RootState } from '../../../store';
@@ -130,6 +136,24 @@ describe('GamesList', () => {
     fireEvent.doubleClick(row('Charlie'));
 
     expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(1, expect.objectContaining({ gameId: 3 }), expect.any(String));
+  });
+
+  it('does not redraw virtual rows when opening an unrelated toolbar dialog', () => {
+    setup();
+    const renderRow = vi.mocked(VirtualRows).mock.calls.at(-1)![0].renderRow;
+    fireEvent.click(screen.getByRole('button', { name: /^Create$/ }));
+    expect(vi.mocked(VirtualRows).mock.calls.at(-1)![0].renderRow).toBe(renderRow);
+  });
+
+  it('keeps keyboard focus on the same game when a newer game is inserted above it', () => {
+    const { store, webClient } = setup();
+    row('Bravo').focus();
+    act(() => {
+      store.dispatch(roomsSlice.Actions.updateGames({ roomId: 1, games: [makeGame(4, 'Delta').info] }));
+    });
+    expect(row('Bravo')).toHaveFocus();
+    fireEvent.keyDown(document.activeElement!, { key: 'Enter' });
+    expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(1, expect.objectContaining({ gameId: 2 }));
   });
 
   it('sorts from a header button and reports the sort direction', () => {

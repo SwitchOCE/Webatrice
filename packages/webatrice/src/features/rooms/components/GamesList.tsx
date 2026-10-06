@@ -65,10 +65,15 @@ export default function GamesList({ room }: GamesListProps) {
   const joinErrorMessage = useJoinGameErrorMessage(joinError);
   useNavigateOnGameJoined();
 
-  const { sortBy, games: gameList, selectedGameId, handleSort, handleSelect, handleActivate } =
-    useOpenGames({ roomId, onActivateGame: (gameId) => joinById(gameId, false, false) });
-
   const roomGames = useAppSelector((state) => rooms.Selectors.getRoomGames(state, roomId));
+  const activateGame = useCallback((gameId: number) => {
+    const game = roomGames[gameId];
+    if (game) {
+      joinGame(roomId, game.info, false, false);
+    }
+  }, [roomGames, joinGame, roomId]);
+  const { sortBy, games: gameList, selectedGameId, handleSort, handleSelect, handleActivate } =
+    useOpenGames({ roomId, onActivateGame: activateGame });
   const selectedGame = selectedGameId != null ? roomGames[selectedGameId] : undefined;
   const counts = useAppSelector((state) => rooms.Selectors.getRoomGameCounts(state, roomId));
   const isFilterActive = useAppSelector((state) => rooms.Selectors.isGameFilterActive(state, roomId));
@@ -101,11 +106,12 @@ export default function GamesList({ room }: GamesListProps) {
     handleSelect(Number(key));
     listRef.current?.scrollToRow({ index: keys.indexOf(key), align: 'smart' });
   }, [handleSelect, keys]);
+  const activateRow = useCallback((key: string) => handleActivate(Number(key)), [handleActivate]);
   const { getRowProps, onRowsRendered } = useGridRows({
     keys,
     selectedKey: selectedGameId != null ? String(selectedGameId) : null,
     onSelect: selectRow,
-    onActivate: (key) => handleActivate(Number(key)),
+    onActivate: activateRow,
   });
 
   const canJoin =
@@ -132,6 +138,7 @@ export default function GamesList({ room }: GamesListProps) {
     const isSelected = info.gameId === selectedGameId;
     return (
       <div
+        key={info.gameId}
         role="row"
         style={style}
         {...getRowProps(String(info.gameId))}
