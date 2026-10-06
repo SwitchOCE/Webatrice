@@ -1,4 +1,5 @@
 import { cardDatabaseService, type RebuildResult } from './CardDatabaseService';
+import { MAX_DOWNLOAD_BYTES, MAX_METADATA_BYTES, MAX_SEASON_BYTES } from './cardImportLimits';
 import { CardSourceId } from './mergeCardSources';
 
 /**
@@ -24,24 +25,80 @@ export class UpdateFetchError extends Error {
   }
 }
 
-async function fetchText(url: string, fetchImpl: typeof fetch): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+async function readBoundedText(response: Response, maxBytes: number, signal: AbortSignal): Promise<string> {
+  if (Number(response.headers.get('content-length')) > maxBytes) {
+    void response.body?.cancel().catch(() => undefined);
+    throw new Error('Card download exceeds the size limit');
+  }
+  if (!response.body) {
+    return '';
+  }
+  const reader = response.body.getReader();
+  const cancel = () => {
+    void reader.cancel().catch(() => undefined);
+  };
+  signal.addEventListener('abort', cancel, { once: true });
+  const decoder = new TextDecoder();
+  const chunks: string[] = [];
+  let bytes = 0;
   try {
-    return await fetchImpl(url, { cache: 'no-cache', signal: controller.signal });
+    while (true) {
+      signal.throwIfAborted();
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+      bytes += value.byteLength;
+      if (bytes > maxBytes) {
+        cancel();
+        throw new Error('Card download exceeds the size limit');
+      }
+      chunks.push(decoder.decode(value, { stream: true }));
+    }
+    chunks.push(decoder.decode());
+    return chunks.join('');
+  } finally {
+    signal.removeEventListener('abort', cancel);
+    reader.releaseLock();
+  }
+}
+
+async function fetchText(url: string, fetchImpl: typeof fetch, maxBytes: number): Promise<{ status: number; ok: boolean; text: string }> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new UpdateFetchError(url));
+      controller.abort();
+    }, FETCH_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([
+      timeout,
+      (async () => {
+        const response = await fetchImpl(url, { cache: 'no-cache', signal: controller.signal });
+        if (!response.ok) {
+          void response.body?.cancel().catch(() => undefined);
+          return { status: response.status, ok: false, text: '' };
+        }
+        const text = await readBoundedText(response, maxBytes, controller.signal);
+        return { status: response.status, ok: true, text };
+      })(),
+    ]);
   } catch {
+    controller.abort();
     throw new UpdateFetchError(url);
   } finally {
     clearTimeout(timer);
   }
 }
 
-async function download(url: string, fetchImpl: typeof fetch): Promise<string> {
-  const response = await fetchText(url, fetchImpl);
+async function download(url: string, fetchImpl: typeof fetch, maxBytes = MAX_DOWNLOAD_BYTES): Promise<string> {
+  const response = await fetchText(url, fetchImpl, maxBytes);
   if (!response.ok) {
     throw new UpdateFetchError(url, response.status);
   }
-  return response.text();
+  return response.text;
 }
 
 export type SpoilerUpdateResult =
@@ -80,7 +137,7 @@ class CardUpdateService {
    * when it changed.
    */
   async updateSpoilers(): Promise<SpoilerUpdateResult> {
-    const season = await fetchText(UpstreamUrl.SPOILER_SEASON, this.fetchImpl);
+    const season = await fetchText(UpstreamUrl.SPOILER_SEASON, this.fetchImpl, MAX_SEASON_BYTES);
     if (season.status === 404) {
       const sources = await cardDatabaseService.listSources();
       const hasSpoilers = sources.some((s) => s.id === CardSourceId.SPOILER);
@@ -105,11 +162,8 @@ class CardUpdateService {
 
   /** Desktop's "Check for Card Updates": compare the MTGJSON build Oracle would use. */
   async checkCardDatabase(): Promise<CardDatabaseVersionCheck> {
-    const response = await fetchText(UpstreamUrl.MTGJSON_META, this.fetchImpl);
-    if (!response.ok) {
-      throw new UpdateFetchError(UpstreamUrl.MTGJSON_META, response.status);
-    }
-    const meta = await response.json() as { data?: { version?: string }; meta?: { version?: string } };
+    const text = await download(UpstreamUrl.MTGJSON_META, this.fetchImpl, MAX_METADATA_BYTES);
+    const meta = JSON.parse(text) as { data?: { version?: string }; meta?: { version?: string } };
     const latestVersion = meta.data?.version ?? meta.meta?.version;
     const sources = await cardDatabaseService.listSources();
     const installedVersion = sources.find((s) => s.kind === 'main' || s.kind === 'legacy')?.sourceVersion;
