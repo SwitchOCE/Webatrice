@@ -43,7 +43,7 @@ export const userReducers = {
   getUserInfo: ((state, action) => {
     const { userInfo } = action.payload;
     state.userInfo[userInfo.name] = userInfo;
-  }) as CaseReducer<ServerState, PayloadAction<{ userInfo: ServerInfo_User }>>,
+  }) as CaseReducer<ServerState, PayloadAction<{ userInfo: ServerInfo_User; requestId?: string }>>,
 
   userMessage: ((state, action) => {
     if (!state.user) {
