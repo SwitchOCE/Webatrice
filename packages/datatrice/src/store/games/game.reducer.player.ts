@@ -39,5 +39,7 @@ export const playerReducers = {
     gameId: number;
     playerId: number;
     properties: ServerInfo_PlayerProperties;
+    /** Protocol Context_DeckSelect; remains true when selecting the same deck again. */
+    isDeckSelect?: boolean;
   }>>,
 };
