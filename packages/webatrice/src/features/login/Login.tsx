@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
@@ -71,6 +71,9 @@ const Login = () => {
                   disableSubmitButton={submitButtonDisabled}
                 />
               </div>
+              <Link className="login-content__replays" to={RouteEnum.REPLAYS}>
+                {t('Login.action.watchReplay')}
+              </Link>
 
               {showDescription() && (
                 <Paper className="login-content__connectionStatus">

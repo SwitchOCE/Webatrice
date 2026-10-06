@@ -17,6 +17,7 @@ import { makeSettings, makeSettingsHook } from '../../hooks/__mocks__/useSetting
 import { makeHost, makeKnownHostsHook } from '../../feature-widgets/known-hosts/__mocks__/useKnownHosts';
 import { autoLoginGate } from './useAutoLogin';
 import { LoadingState } from '@app/hooks';
+import { RouteEnum } from '@app/types';
 import Login from './Login';
 
 const hoisted = vi.hoisted(() => ({
@@ -208,6 +209,14 @@ describe('Login — refresh cycle', () => {
     await waitFor(() => {
       expect(hoisted.mockWebClient.request.authentication.login).toHaveBeenCalledTimes(1);
     });
+  });
+});
+
+describe('Login — signed-out actions', () => {
+  test('offers an offline entry point to the replay library', () => {
+    const { getByRole } = renderWithProviders(<Login />, { preloadedState: disconnectedState });
+
+    expect(getByRole('link', { name: 'Login.action.watchReplay' })).toHaveAttribute('href', RouteEnum.REPLAYS);
   });
 });
 

@@ -871,6 +871,9 @@
       "title": "Login",
       "subtitle": "A cross-platform virtual tabletop for multiplayer card games."
     },
+    "action": {
+      "watchReplay": "Watch replay"
+    },
     "footer": {
       "registerPrompt": "Not registered yet?",
       "registerAction": "Create an account",

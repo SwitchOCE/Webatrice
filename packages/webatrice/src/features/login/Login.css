@@ -109,6 +109,32 @@
   margin-top: 30px;
 }
 
+.login-content__replays {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 12px;
+  padding: 9px 20px;
+  border: 1px solid rgb(var(--border-strong));
+  border-radius: 8px;
+  color: rgb(var(--text-secondary));
+  font-size: 14px;
+  font-weight: 600;
+  transition: border-color 150ms, color 150ms, background-color 150ms;
+}
+
+.login-content__replays:hover {
+  border-color: rgb(var(--accent-primary));
+  background-color: rgb(var(--accent-primary) / 0.1);
+  color: rgb(var(--accent-primary-hover));
+}
+
+.login-content__replays:focus-visible {
+  outline: 2px solid rgb(var(--accent-primary));
+  outline-offset: 2px;
+}
+
 /* --- Right description panel --- */
 /* Replaces MUI's primary.main blue with fancy's accent gradient. */
 .login-content__description {
