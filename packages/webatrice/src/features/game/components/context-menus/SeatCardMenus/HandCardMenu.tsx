@@ -1,3 +1,5 @@
+import { usePreference } from '@app/hooks';
+
 import { useCanActFor } from '../../ui/CardVisualStateContext';
 import { EMPTY_CARD_KEYS } from '../../ui/GameSelectionContext';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
@@ -13,6 +15,7 @@ import { buildRelatedTokenItems } from '../CardContextMenu/relatedCardActions';
  * state and ports.
  */
 export default function HandCardMenu() {
+  const playToStack = usePreference('playToStack');
   const {
     cardCommands,
     cardMetaByName,
@@ -52,6 +55,7 @@ export default function HandCardMenu() {
     setSelectedCardKeys: (keys) => gameSelection?.setSelectedCardKeys(keys),
     cardMeta: (name) => cardMetaByName.get(name),
     deckSize: deckCount,
+    playToStack,
     moveCards: zoneCommands.moveCards,
     revealCards: (zone, targetPlayerId, cardIds) => zoneCommands.reveal(zone, toRecipient(targetPlayerId), { cardIds }),
     cloneCard: cardCommands.clone,
