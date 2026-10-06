@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { ScryfallImageSize, ServerCapability, games, server } from '@cockatrice/datatrice';
+import { ServerCapability, games, server } from '@cockatrice/datatrice';
 import { PlaymatVisibility, usePlaymatSettings } from '@app/hooks';
-import { getScryfallUrl } from '@app/services';
+import { PlaymatImage } from '@app/components';
 import { useAppSelector } from '@app/store';
 
 import { useGameId } from '../ui/GameIdContext';
-import { playmatImageBox, type Size } from '@app/utils';
+import { type Size } from '@app/utils';
 
 interface PlayerPlaymatProps {
   playerId: number;
@@ -33,16 +33,6 @@ export default function PlayerPlaymat({ playerId, isSelf }: PlayerPlaymatProps) 
 
   const areaRef = useRef<HTMLDivElement>(null);
   const [area, setArea] = useState<Size | null>(null);
-  const [card, setCard] = useState<Size | null>(null);
-
-  const src = playmat
-    ? getScryfallUrl({ providerId: playmat.cardProviderId, name: playmat.cardName }, ScryfallImageSize.Large)
-    : null;
-
-  useEffect(() => {
-    setCard(null);
-  }, [src]);
-
   useEffect(() => {
     const el = areaRef.current;
     if (!el || typeof ResizeObserver === 'undefined') {
@@ -55,11 +45,10 @@ export default function PlayerPlaymat({ playerId, isSelf }: PlayerPlaymatProps) 
     return () => ro.disconnect();
   }, [visible]);
 
-  if (!visible || !src) {
+  if (!visible) {
     return null;
   }
 
-  const box = card && area ? playmatImageBox(card, playmat.params, area) : null;
 
   return (
     <div
@@ -68,20 +57,7 @@ export default function PlayerPlaymat({ playerId, isSelf }: PlayerPlaymatProps) 
       className="absolute inset-0 overflow-hidden pointer-events-none"
       aria-hidden="true"
     >
-      <img
-        src={src}
-        alt=""
-        draggable={false}
-        onLoad={(event) => {
-          const { naturalWidth, naturalHeight } = event.currentTarget;
-          setCard({ width: naturalWidth, height: naturalHeight });
-        }}
-        className="absolute max-w-none"
-        style={box
-          ? { left: box.x, top: box.y, width: box.width, height: box.height }
-          // Hidden until the art's natural size is known and the crop can be placed.
-          : { visibility: 'hidden' }}
-      />
+      <PlaymatImage playmat={playmat} area={area} />
     </div>
   );
 }

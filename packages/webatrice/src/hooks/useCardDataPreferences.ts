@@ -1,3 +1,4 @@
+import { ScryfallImageSize } from '@cockatrice/datatrice';
 import { useMemo, useState } from 'react';
 
 import {
@@ -56,7 +57,9 @@ export function useImageCandidates(urls: readonly string[]): { src: string | nul
  * user's set priority and picture URL templates. Empty while preferences load
  * so the first request already goes to the right source.
  */
-export function useCardImageUrls(card: CardImageSubject | null | undefined, preferredSet?: string): string[] {
+export function useCardImageUrls(
+  card: CardImageSubject | null | undefined, preferredSet?: string, fallbackSize = ScryfallImageSize.Normal,
+): string[] {
   const preferences = useCardDataPreferences();
   return useMemo(() => {
     if (!card || preferences.status === LoadingState.LOADING) {
@@ -68,6 +71,7 @@ export function useCardImageUrls(card: CardImageSubject | null | undefined, pref
       setPreferences: value?.setPreferences ?? new Map(),
       setLongNames: value?.setLongNames,
       preferredSet,
+      fallbackSize,
     });
-  }, [card, preferences, preferredSet]);
+  }, [card, preferences, preferredSet, fallbackSize]);
 }
