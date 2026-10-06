@@ -5,7 +5,7 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import { server, normalizeLogs, type ServerStateLogs } from '@cockatrice/datatrice';
 import type { ServerInfo_ChatMessage, ViewLogHistoryParams } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { useCommandFailureMessage, useReduxEffect, useRequestTracker } from '@app/hooks';
+import { useCommandFailureMessage, useReduxEffect, useRequestTracker, useUserCapabilities } from '@app/hooks';
 import { useAppDispatch, useAppSelector } from '@app/store';
 
 import { logDateRangeHours, type LogSearchFormValues } from './LogSearchForm/logSearchFormSchema';
@@ -57,10 +57,9 @@ export function useLogs(): Logs {
   const webClient = useWebClient();
   const [notices, setNotices] = useState<LogsNotice[]>([]);
   const requests = useRequestTracker();
-  // Desktop TabSupervisor::openTabLog: the developer bit selects the narrowed developer family only
-  // when the user is not also a moderator.
-  const isModerator = useAppSelector(server.Selectors.getIsUserModerator);
-  const developer = useAppSelector(server.Selectors.getIsUserDeveloper) && !isModerator;
+  // Desktop TabSupervisor::openTabLog: a developer who is not also a moderator searches the
+  // narrowed developer family.
+  const { developerOnlyLogs: developer } = useUserCapabilities();
 
   useEffect(() => {
     return () => {
