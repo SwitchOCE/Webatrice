@@ -169,7 +169,7 @@ export function serializeCod(deck: {
   // Element order matches Cockatrice desktop verbatim so diffs stay
   // minimal on round-trip:
   //   lastLoadedTimestamp → deckname → format → bannerCard →
-  //   playmatCard → comments → tags → zones
+  //   playmatCard → comments → tags → zones → sideboard plans
   if (deck.lastLoadedTimestamp && deck.lastLoadedTimestamp.trim()) {
     appendTextElement(doc, root, 'lastLoadedTimestamp', deck.lastLoadedTimestamp.trim());
   }
