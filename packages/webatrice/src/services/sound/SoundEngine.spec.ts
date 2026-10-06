@@ -40,6 +40,29 @@ describe('SoundEngine', () => {
     expect(FakeAudio.instances).toHaveLength(0);
   });
 
+  it('stops an outstanding play when sound is disabled', () => {
+    const engine = new SoundEngine();
+    engine.play('shuffle', on);
+    engine.play('shuffle', { ...on, enabled: false });
+    expect(FakeAudio.instances[0].pause).toHaveBeenCalledTimes(1);
+  });
+
+  it('cancels pending playback without surfacing the media abort rejection', async () => {
+    let rejectPlay!: (error: DOMException) => void;
+    const pending = new Promise<void>((_resolve, reject) => {
+      rejectPlay = reject;
+    });
+    vi.stubGlobal('Audio', class extends FakeAudio {
+      play = vi.fn(() => pending);
+    });
+    const engine = new SoundEngine();
+    engine.play('shuffle', on);
+    engine.play('shuffle', { ...on, enabled: false });
+    expect(FakeAudio.instances[0].pause).toHaveBeenCalledTimes(1);
+    rejectPlay(new DOMException('Playback interrupted', 'AbortError'));
+    await Promise.resolve();
+  });
+
   it('is silent for an event the active theme has no file for', () => {
     new SoundEngine().play('roll_dice', on);
     expect(FakeAudio.instances).toHaveLength(0);

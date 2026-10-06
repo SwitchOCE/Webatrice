@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { generatePath, matchPath, useLocation, useNavigate } from 'react-router-dom';
 import { AtSign, UserCheck } from 'lucide-react';
@@ -6,8 +6,8 @@ import { games, rooms, server, type GamesState, type Message } from '@cockatrice
 import { Event_RoomSay_RoomMessageType, type ServerInfo_User } from '@cockatrice/sockatrice/generated';
 
 import { useNotify } from '@app/components';
-import { getPreferencesSnapshot, playSound, useActionFeed } from '@app/hooks';
-import { isPageHidden, requestAttention } from '@app/services';
+import { getPreferencesSnapshot, playSound, settingsStore, useActionFeed } from '@app/hooks';
+import { isPageInactive, requestAttention, soundEngine } from '@app/services';
 import type { RootState } from '@app/store';
 import { RouteEnum } from '@app/types';
 import { chatFilterVerdicts, findChatAlert, isPrivilegedUser, isRoomMessageVisible, parseHighlightWords } from '@app/utils';
@@ -30,6 +30,12 @@ export default function AppAlerts() {
   const location = useLocation();
   const pathnameRef = useRef(location.pathname);
   pathnameRef.current = location.pathname;
+
+  useEffect(() => settingsStore.subscribe(() => {
+    if (!getPreferencesSnapshot().soundEnabled) {
+      soundEngine.stop();
+    }
+  }), []);
 
   useActionFeed((action, before, after) => {
     if (action.type?.startsWith(GAME_ACTION_PREFIX)) {
@@ -95,7 +101,7 @@ export default function AppAlerts() {
     const roomPath = generatePath(RouteEnum.ROOM, { roomId: String(roomId) });
     const onRoomPage = matchPath({ path: RouteEnum.ROOM, end: true }, pathnameRef.current)
       ?.params.roomId === String(roomId);
-    if (!prefs.showMentionPopups || (onRoomPage && !isPageHidden())) {
+    if (!prefs.showMentionPopups || (onRoomPage && !isPageInactive())) {
       return;
     }
     notify({
@@ -114,7 +120,8 @@ export default function AppAlerts() {
       return;
     }
     playSound('buddy_join');
-    if (!getPreferencesSnapshot().buddyConnectNotificationsEnabled) {
+    const prefs = getPreferencesSnapshot();
+    if (!prefs.notificationsEnabled || !prefs.buddyConnectNotificationsEnabled) {
       return;
     }
     requestAttention();

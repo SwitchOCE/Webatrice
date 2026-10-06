@@ -7,6 +7,7 @@ import { Event_RoomSay_RoomMessageType, Event_RoomSaySchema } from '@cockatrice/
 import { connectedWithRoomsState, makeUser, renderWithProviders } from '../../../__test-utils__';
 import { playSound } from '../../../hooks/playSound';
 import { getSettings, settingsStore } from '../../../hooks/useSettings';
+import { soundEngine } from '../../../services/sound/SoundEngine';
 import { ATTENTION_MARKER } from '../../../services/notifications/NotificationService';
 import type { Preferences } from '../../../types';
 import AppAlerts from './AppAlerts';
@@ -48,6 +49,7 @@ const roomSay = (name: string, message: string, messageType = Event_RoomSay_Room
 
 describe('AppAlerts', () => {
   beforeEach(async () => {
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true);
     document.title = 'Webatrice';
     settingsStore.reset();
     await getSettings();
@@ -166,7 +168,27 @@ describe('AppAlerts', () => {
     });
   });
 
+  it('stops audio immediately when sound is disabled in settings', async () => {
+    const stop = vi.spyOn(soundEngine, 'stop');
+    await setPreferences({ soundEnabled: true });
+    renderAlerts();
+    await act(async () => {
+      await setPreferences({ soundEnabled: false });
+    });
+    expect(stop).toHaveBeenCalled();
+  });
+
   describe('buddies', () => {
+    it('requires the parent notification preference for buddy popups', async () => {
+      await setPreferences({ notificationsEnabled: false, buddyConnectNotificationsEnabled: true });
+      const { store } = renderAlerts();
+      act(() => {
+        store.dispatch(server.Actions.userJoined({ user: makeUser({ name: 'alice' }) }));
+      });
+      expect(playSound).toHaveBeenCalledWith('buddy_join');
+      expect(screen.queryByText(/AppAlerts\.buddySignedOn/)).not.toBeInTheDocument();
+    });
+
     it('plays the buddy sounds and announces a buddy signing on', () => {
       const { store } = renderAlerts();
       act(() => {

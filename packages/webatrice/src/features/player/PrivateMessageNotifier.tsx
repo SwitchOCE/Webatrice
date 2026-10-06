@@ -7,7 +7,7 @@ import type { Event_UserMessage } from '@cockatrice/sockatrice/generated';
 
 import { useNotify } from '@app/components';
 import { getPreferencesSnapshot, playSound, useActionFeed } from '@app/hooks';
-import { isPageHidden } from '@app/services';
+import { isPageInactive } from '@app/services';
 import { RouteEnum } from '@app/types';
 import { chatFilterVerdicts, visiblePrivateMessages } from '@app/utils';
 
@@ -61,7 +61,7 @@ export default function PrivateMessageNotifier() {
     const peerPath = generatePath(RouteEnum.PLAYER, { name: entry.senderName });
     const onPeerPage = matchPath({ path: RouteEnum.PLAYER, end: true }, pathnameRef.current)
       ?.params.name === entry.senderName;
-    if (onPeerPage && !isPageHidden()) {
+    if (onPeerPage && !isPageInactive()) {
       return;
     }
     if (!onPeerPage) {

@@ -22,6 +22,7 @@ const setHidden = (hidden: boolean) => vi.spyOn(document, 'hidden', 'get').mockR
 
 describe('NotificationService', () => {
   beforeEach(() => {
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true);
     FakeNotification.instances = [];
     FakeNotification.permission = 'granted';
     vi.stubGlobal('Notification', FakeNotification);
@@ -85,6 +86,11 @@ describe('NotificationService', () => {
   });
 
   describe('showSystemNotification', () => {
+    it('shows a notification in a visible but unfocused window', () => {
+      setHidden(false);
+      vi.spyOn(document, 'hasFocus').mockReturnValue(false);
+      expect(showSystemNotification({ title: 'hi' })).toBe(true);
+    });
     it('shows nothing while the tab is visible, so the caller falls back to a toast', () => {
       setHidden(false);
       expect(showSystemNotification({ title: 'hi' })).toBe(false);
@@ -137,6 +143,17 @@ describe('NotificationService', () => {
   describe('requestAttention', () => {
     beforeEach(() => {
       document.title = 'Webatrice';
+    });
+
+    it('keeps attention in a visible unfocused window until focus returns', () => {
+      setHidden(false);
+      const focus = vi.spyOn(document, 'hasFocus').mockReturnValue(false);
+      requestAttention();
+      document.dispatchEvent(new Event('visibilitychange'));
+      expect(document.title).toBe(`${ATTENTION_MARKER}Webatrice`);
+      focus.mockReturnValue(true);
+      window.dispatchEvent(new Event('focus'));
+      expect(document.title).toBe('Webatrice');
     });
 
     it('does nothing while the tab is visible', () => {
