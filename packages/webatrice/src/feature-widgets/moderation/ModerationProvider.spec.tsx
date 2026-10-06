@@ -38,7 +38,15 @@ function setup(action: ModerationAction, localUserLevel = MODERATOR) {
     { preloadedState, webClient },
   );
   fireEvent.click(screen.getByRole('button', { name: `trigger ${action}` }));
-  return { ...result, webClient };
+  const ids = {
+    user: () => vi.mocked(webClient.request.session.getUserInfo).mock.lastCall?.[1],
+    warnings: () => vi.mocked(webClient.request.moderator.getWarnList).mock.lastCall?.[3],
+    bans: () => vi.mocked(webClient.request.moderator.getBanHistory).mock.lastCall?.[1],
+    warns: () => vi.mocked(webClient.request.moderator.getWarnHistory).mock.lastCall?.[1],
+    notes: () => vi.mocked(webClient.request.moderator.getAdminNotes).mock.lastCall?.[1],
+    role: () => vi.mocked(webClient.request.admin.adjustMod).mock.lastCall?.[4],
+  };
+  return { ...result, webClient, ids };
 }
 
 const alice = makeUser({ name: 'alice', address: '10.0.0.7', clientid: 'cid-alice', userLevel: Flag.IsRegistered });
@@ -46,17 +54,17 @@ const alice = makeUser({ name: 'alice', address: '10.0.0.7', clientid: 'cid-alic
 describe('ModerationProvider', () => {
   describe('warn user', () => {
     it('fetches user info, then the official warnings, then opens the warning dialog', () => {
-      const { store, webClient } = setup('warnUser');
-      expect(webClient.request.session.getUserInfo).toHaveBeenCalledWith('alice');
+      const { store, webClient, ids } = setup('warnUser');
+      expect(webClient.request.session.getUserInfo).toHaveBeenCalledWith('alice', expect.any(String));
       expect(screen.getByRole('dialog', { name: 'Moderation.common.loading' })).toBeInTheDocument();
 
       act(() => {
-        store.dispatch(server.Actions.getUserInfo({ userInfo: alice }));
+        store.dispatch(server.Actions.getUserInfo({ requestId: ids.user(), userInfo: alice }));
       });
-      expect(webClient.request.moderator.getWarnList).toHaveBeenCalledWith('mod', 'alice', 'cid-alice');
+      expect(webClient.request.moderator.getWarnList).toHaveBeenCalledWith('mod', 'alice', 'cid-alice', expect.any(String));
 
       act(() => {
-        store.dispatch(server.Actions.warnListOptions({
+        store.dispatch(server.Actions.warnListOptions({ requestId: ids.warnings(),
           warnList: [create(Response_WarnListSchema, {
             warning: ['Spamming', 'Flaming', 'Cheating'],
             // 3.1 servers send each reason's starting intervention level; a short list defaults to 1.
@@ -74,12 +82,12 @@ describe('ModerationProvider', () => {
     });
 
     it('sends Command_WarnUser with the chosen warning, client id and the redact-all amount', async () => {
-      const { store, webClient } = setup('warnUser');
+      const { store, webClient, ids } = setup('warnUser');
       act(() => {
-        store.dispatch(server.Actions.getUserInfo({ userInfo: alice }));
+        store.dispatch(server.Actions.getUserInfo({ requestId: ids.user(), userInfo: alice }));
       });
       act(() => {
-        store.dispatch(server.Actions.warnListOptions({
+        store.dispatch(server.Actions.warnListOptions({ requestId: ids.warnings(),
           warnList: [create(Response_WarnListSchema, { warning: ['Spamming'], userName: 'alice' })],
         }));
       });
@@ -95,14 +103,14 @@ describe('ModerationProvider', () => {
     });
 
     it('still asks for the warning list, with an empty client id, when the user info fails', () => {
-      const { store, webClient } = setup('warnUser');
+      const { store, webClient, ids } = setup('warnUser');
       act(() => {
-        store.dispatch(server.Actions.getUserInfoFailed({ userName: 'alice', responseCode: 34 }));
+        store.dispatch(server.Actions.getUserInfoFailed({ requestId: ids.user(), userName: 'alice', responseCode: 34 }));
       });
-      expect(webClient.request.moderator.getWarnList).toHaveBeenCalledWith('mod', 'alice', '');
+      expect(webClient.request.moderator.getWarnList).toHaveBeenCalledWith('mod', 'alice', '', expect.any(String));
 
       act(() => {
-        store.dispatch(server.Actions.warnListOptions({
+        store.dispatch(server.Actions.warnListOptions({ requestId: ids.warnings(),
           warnList: [create(Response_WarnListSchema, { warning: ['Spamming'], userName: 'alice' })],
         }));
       });
@@ -110,12 +118,12 @@ describe('ModerationProvider', () => {
     });
 
     it('refuses to send without a warning, with desktop\'s message', async () => {
-      const { store, webClient } = setup('warnUser');
+      const { store, webClient, ids } = setup('warnUser');
       act(() => {
-        store.dispatch(server.Actions.getUserInfo({ userInfo: alice }));
+        store.dispatch(server.Actions.getUserInfo({ requestId: ids.user(), userInfo: alice }));
       });
       act(() => {
-        store.dispatch(server.Actions.warnListOptions({
+        store.dispatch(server.Actions.warnListOptions({ requestId: ids.warnings(),
           warnList: [create(Response_WarnListSchema, { warning: ['Spamming'], userName: 'alice' })],
         }));
       });
@@ -127,9 +135,9 @@ describe('ModerationProvider', () => {
 
   describe('ban user', () => {
     it('opens with only the name filled in when the user info fails', () => {
-      const { store } = setup('banUser');
+      const { store, ids } = setup('banUser');
       act(() => {
-        store.dispatch(server.Actions.getUserInfoFailed({ userName: 'alice', responseCode: 34 }));
+        store.dispatch(server.Actions.getUserInfoFailed({ requestId: ids.user(), userName: 'alice', responseCode: 34 }));
       });
       const dialog = screen.getByRole('dialog', { name: 'Moderation.ban.title' });
       expect(within(dialog).getByRole('textbox', { name: 'Moderation.ban.byName' })).toHaveValue('alice');
@@ -137,18 +145,18 @@ describe('ModerationProvider', () => {
     });
 
     it('ignores a user info failure for another user', () => {
-      const { store } = setup('banUser');
+      const { store, ids } = setup('banUser');
       act(() => {
-        store.dispatch(server.Actions.getUserInfoFailed({ userName: 'bob', responseCode: 34 }));
+        store.dispatch(server.Actions.getUserInfoFailed({ requestId: ids.user(), userName: 'bob', responseCode: 34 }));
       });
       expect(screen.getByRole('dialog', { name: 'Moderation.common.loading' })).toBeInTheDocument();
     });
 
     it('pre-fills name, IP and client id from the user info and sends a 5-minute temporary ban by default', async () => {
-      const { store, webClient } = setup('banUser');
-      expect(webClient.request.session.getUserInfo).toHaveBeenCalledWith('alice');
+      const { store, webClient, ids } = setup('banUser');
+      expect(webClient.request.session.getUserInfo).toHaveBeenCalledWith('alice', expect.any(String));
       act(() => {
-        store.dispatch(server.Actions.getUserInfo({ userInfo: alice }));
+        store.dispatch(server.Actions.getUserInfo({ requestId: ids.user(), userInfo: alice }));
       });
       const dialog = screen.getByRole('dialog', { name: 'Moderation.ban.title' });
       expect(within(dialog).getByRole('textbox', { name: 'Moderation.ban.byIp' })).toHaveValue('10.0.0.7');
@@ -164,10 +172,10 @@ describe('ModerationProvider', () => {
 
   describe('histories', () => {
     it('shows the ban history table when the server returns bans', () => {
-      const { store, webClient } = setup('banHistory');
-      expect(webClient.request.moderator.getBanHistory).toHaveBeenCalledWith('alice');
+      const { store, webClient, ids } = setup('banHistory');
+      expect(webClient.request.moderator.getBanHistory).toHaveBeenCalledWith('alice', expect.any(String));
       act(() => {
-        store.dispatch(server.Actions.banHistory({
+        store.dispatch(server.Actions.banHistory({ requestId: ids.bans(),
           userName: 'alice',
           banHistory: [create(ServerInfo_BanSchema, { adminName: 'mod', banTime: '2026-01-01', banLength: '60', banReason: 'spam' })],
         }));
@@ -177,26 +185,29 @@ describe('ModerationProvider', () => {
     });
 
     it('says the user has never been banned for an empty history', () => {
-      const { store } = setup('banHistory');
+      const { store, ids } = setup('banHistory');
       act(() => {
-        store.dispatch(server.Actions.banHistory({ userName: 'alice', banHistory: [] }));
+        store.dispatch(server.Actions.banHistory({ requestId: ids.bans(), userName: 'alice', banHistory: [] }));
       });
       expect(screen.getByText('Moderation.banHistory.empty')).toBeInTheDocument();
     });
 
     it('reports a failed ban history request', () => {
-      const { store } = setup('banHistory');
+      const { store, ids } = setup('banHistory');
       act(() => {
-        store.dispatch(server.Actions.moderatorCommandFailed({ command: 'banHistory', responseCode: 3, target: 'alice' }));
+        store.dispatch(server.Actions.moderatorCommandFailed({
+          requestId: ids.bans(), command: 'banHistory', responseCode: 3, target: 'alice'
+        }));
       });
       expect(screen.getByText('Moderation.banHistory.failed')).toBeInTheDocument();
     });
 
     it('explains a ban history request cut off by a disconnect', () => {
-      const { store } = setup('banHistory');
+      const { store, ids } = setup('banHistory');
       act(() => {
         store.dispatch(server.Actions.moderatorCommandFailed({
-          command: 'banHistory', responseCode: -1, target: 'alice', failure: WebsocketTypes.CommandFailure.Disconnected,
+          requestId: ids.bans(), command: 'banHistory', responseCode: -1, target: 'alice',
+          failure: WebsocketTypes.CommandFailure.Disconnected,
         }));
       });
       expect(screen.getByText('Moderation.banHistory.title')).toBeInTheDocument();
@@ -204,10 +215,10 @@ describe('ModerationProvider', () => {
     });
 
     it('shows the warn history table with desktop\'s four columns', () => {
-      const { store, webClient } = setup('warnHistory');
-      expect(webClient.request.moderator.getWarnHistory).toHaveBeenCalledWith('alice');
+      const { store, webClient, ids } = setup('warnHistory');
+      expect(webClient.request.moderator.getWarnHistory).toHaveBeenCalledWith('alice', expect.any(String));
       act(() => {
-        store.dispatch(server.Actions.warnHistory({
+        store.dispatch(server.Actions.warnHistory({ requestId: ids.warns(),
           userName: 'alice',
           warnHistory: [create(ServerInfo_WarningSchema, { userName: 'alice', adminName: 'mod', reason: 'Flaming', timeOf: 't' })],
         }));
@@ -218,9 +229,9 @@ describe('ModerationProvider', () => {
     });
 
     it('says the user has never been warned for an empty history', () => {
-      const { store } = setup('warnHistory');
+      const { store, ids } = setup('warnHistory');
       act(() => {
-        store.dispatch(server.Actions.warnHistory({ userName: 'alice', warnHistory: [] }));
+        store.dispatch(server.Actions.warnHistory({ requestId: ids.warns(), userName: 'alice', warnHistory: [] }));
       });
       expect(screen.getByText('Moderation.warnHistory.empty')).toBeInTheDocument();
     });
@@ -228,10 +239,10 @@ describe('ModerationProvider', () => {
 
   describe('admin notes', () => {
     it('opens the editor with the stored notes and saves an edit', () => {
-      const { store, webClient } = setup('adminNotes');
-      expect(webClient.request.moderator.getAdminNotes).toHaveBeenCalledWith('alice');
+      const { store, webClient, ids } = setup('adminNotes');
+      expect(webClient.request.moderator.getAdminNotes).toHaveBeenCalledWith('alice', expect.any(String));
       act(() => {
-        store.dispatch(server.Actions.getAdminNotes({ userName: 'alice', notes: 'watch' }));
+        store.dispatch(server.Actions.getAdminNotes({ requestId: ids.notes(), userName: 'alice', notes: 'watch' }));
       });
       const editor = screen.getByRole('textbox', { name: 'Moderation.adminNotes.title' });
       expect(editor).toHaveValue('watch');
@@ -247,9 +258,11 @@ describe('ModerationProvider', () => {
     });
 
     it('reports a failed notes lookup', () => {
-      const { store } = setup('adminNotes');
+      const { store, ids } = setup('adminNotes');
       act(() => {
-        store.dispatch(server.Actions.moderatorCommandFailed({ command: 'getAdminNotes', responseCode: 6, target: 'alice' }));
+        store.dispatch(server.Actions.moderatorCommandFailed({
+          requestId: ids.notes(), command: 'getAdminNotes', responseCode: 6, target: 'alice'
+        }));
       });
       expect(screen.getByText('Moderation.adminNotes.failed')).toBeInTheDocument();
     });
@@ -257,24 +270,26 @@ describe('ModerationProvider', () => {
 
   describe('role changes', () => {
     it('sends only should_be_mod for a promotion and reports success', () => {
-      const { store, webClient } = setup('promoteMod', ADMIN);
-      expect(webClient.request.admin.adjustMod).toHaveBeenCalledWith('alice', true, undefined, undefined);
+      const { store, webClient, ids } = setup('promoteMod', ADMIN);
+      expect(webClient.request.admin.adjustMod).toHaveBeenCalledWith('alice', true, undefined, undefined, expect.any(String));
       act(() => {
-        store.dispatch(server.Actions.adjustMod({ userName: 'alice', shouldBeMod: true }));
+        store.dispatch(server.Actions.adjustMod({ requestId: ids.role(), userName: 'alice', shouldBeMod: true }));
       });
       expect(screen.getByText('Moderation.adjustMod.promoted')).toBeInTheDocument();
     });
 
     it('sends only should_be_developer for a developer promotion', () => {
       const { webClient } = setup('promoteDeveloper', ADMIN);
-      expect(webClient.request.admin.adjustMod).toHaveBeenCalledWith('alice', undefined, undefined, true);
+      expect(webClient.request.admin.adjustMod).toHaveBeenCalledWith('alice', undefined, undefined, true, expect.any(String));
     });
 
     it('sends only should_be_judge for a demotion and reports failure', () => {
-      const { store, webClient } = setup('demoteJudge', ADMIN);
-      expect(webClient.request.admin.adjustMod).toHaveBeenCalledWith('alice', undefined, false, undefined);
+      const { store, webClient, ids } = setup('demoteJudge', ADMIN);
+      expect(webClient.request.admin.adjustMod).toHaveBeenCalledWith('alice', undefined, false, undefined, expect.any(String));
       act(() => {
-        store.dispatch(server.Actions.adminCommandFailed({ command: 'adjustMod', responseCode: 3, target: 'alice' }));
+        store.dispatch(server.Actions.adminCommandFailed({
+          requestId: ids.role(), command: 'adjustMod', responseCode: 3, target: 'alice'
+        }));
       });
       expect(screen.getByText('Moderation.adjustMod.demoteFailed')).toBeInTheDocument();
     });
