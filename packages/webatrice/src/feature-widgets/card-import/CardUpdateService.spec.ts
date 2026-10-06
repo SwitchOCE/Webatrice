@@ -1,3 +1,5 @@
+import { ReadableStream } from 'node:stream/web';
+
 const hoisted = vi.hoisted(() => ({
   addSources: vi.fn(),
   removeSource: vi.fn(),
@@ -9,6 +11,7 @@ const hoisted = vi.hoisted(() => ({
 vi.mock('./CardDatabaseService', () => ({ cardDatabaseService: hoisted }));
 
 import { CardUpdateService, UpdateFetchError, UpstreamUrl } from './CardUpdateService';
+import { MAX_DOWNLOAD_BYTES, MAX_METADATA_BYTES } from './cardImportLimits';
 
 const rebuild = { summary: { cards: 0, sets: 0, tokens: 1, formats: 0 }, unknownSets: [], allNewSetsEnabled: false };
 
@@ -23,6 +26,8 @@ function respond(map: Record<string, { status?: number; body?: string }>) {
 }
 
 describe('CardUpdateService', () => {
+  afterEach(() => vi.useRealTimers());
+
   beforeEach(() => {
     hoisted.addSources.mockResolvedValue(rebuild);
     hoisted.removeSource.mockResolvedValue(rebuild);
@@ -49,6 +54,71 @@ describe('CardUpdateService', () => {
   it('reports offline as a network error', async () => {
     const service = new CardUpdateService(respond({}));
     await expect(service.updateTokens()).rejects.toMatchObject({ message: 'network', url: UpstreamUrl.TOKENS });
+  });
+
+  it('rejects an oversized advertised body without consuming it', async () => {
+    const cancel = vi.fn();
+    const response = new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('<tokens/>'));
+        controller.close();
+      },
+      cancel,
+    }), {
+      headers: { 'content-length': String(MAX_DOWNLOAD_BYTES + 1) },
+    });
+    const service = new CardUpdateService(vi.fn().mockResolvedValue(response));
+    await expect(service.updateTokens()).rejects.toBeInstanceOf(UpdateFetchError);
+    expect(cancel).toHaveBeenCalled();
+    expect(hoisted.addSources).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, '1'])('bounds streamed bytes even with content-length %s', async contentLength => {
+    const cancel = vi.fn();
+    const response = new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(new Uint8Array(MAX_METADATA_BYTES));
+        controller.enqueue(new Uint8Array(1));
+        controller.enqueue(new Uint8Array(1));
+        controller.close();
+      },
+      cancel,
+    }), { headers: contentLength ? { 'content-length': contentLength } : {} });
+    const service = new CardUpdateService(vi.fn().mockResolvedValue(response));
+    await expect(service.checkCardDatabase()).rejects.toBeInstanceOf(UpdateFetchError);
+    expect(cancel).toHaveBeenCalled();
+    expect(hoisted.recordUpdateCheck).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'updateTokens', 'checkCardDatabase', 'updateSpoilers',
+  ] as const)('times out a stalled body after headers in %s', async method => {
+    vi.useFakeTimers();
+    const cancel = vi.fn();
+    const response = new Response(new ReadableStream({ cancel }));
+    let signal: AbortSignal | null | undefined;
+    const fetchImpl = vi.fn<typeof fetch>(async (_input, init) => {
+      signal = init?.signal;
+      return response;
+    });
+    const service = new CardUpdateService(fetchImpl);
+    const pending = service[method]();
+    const rejected = expect(pending).rejects.toBeInstanceOf(UpdateFetchError);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(signal?.aborted).toBe(true);
+    await rejected;
+    expect(cancel).toHaveBeenCalled();
+    expect(hoisted.addSources).not.toHaveBeenCalled();
+    expect(hoisted.removeSource).not.toHaveBeenCalled();
+    expect(hoisted.recordUpdateCheck).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('clears the timeout after consuming a successful body', async () => {
+    vi.useFakeTimers();
+    const service = new CardUpdateService(respond({ [UpstreamUrl.TOKENS]: { body: '<tokens/>' } }));
+    await service.updateTokens();
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   describe('updateSpoilers', () => {
