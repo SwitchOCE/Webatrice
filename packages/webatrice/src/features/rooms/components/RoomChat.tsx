@@ -33,11 +33,16 @@ function historyTimestamp(message: Message): string | undefined {
  * desktop does for a report raised from a room's ChatView.
  */
 export default function RoomChat(props: RoomChatProps) {
-  const { messages } = props;
+  const { messages: allMessages, users } = props;
+  const filter = useRoomChatFilter();
+  const messages = useMemo(
+    () => allMessages?.filter((m) => isRoomMessageVisible(m, users, filter, chatFilterVerdicts)),
+    [allMessages, users, filter],
+  );
   const getChatContext = useCallback(() => roomChatContext(messages), [messages]);
   return (
     <ReportChatScope getChatContext={getChatContext}>
-      <RoomChatView {...props} />
+      <RoomChatView {...props} messages={messages} />
     </ReportChatScope>
   );
 }
@@ -48,7 +53,7 @@ export default function RoomChat(props: RoomChatProps) {
  * delegating each row to the `Message` component. Only chrome + input
  * are new; parsing logic is unchanged.
  */
-function RoomChatView({ roomId, roomName, messages: allMessages, users, onSay }: RoomChatProps) {
+function RoomChatView({ roomId, roomName, messages, users, onSay }: RoomChatProps) {
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
   const noticeText = (m: Message) =>
@@ -58,12 +63,7 @@ function RoomChatView({ roomId, roomName, messages: allMessages, users, onSay }:
   // Settings → Chat: room history and unregistered-sender filtering, and the reader's mention /
   // alert-word highlighting. Ignored senders never reach the store (Datatrice drops them). Each
   // line keeps the verdict AppAlerts gave it on arrival.
-  const filter = useRoomChatFilter();
   const highlights = useChatHighlight();
-  const messages = useMemo(
-    () => allMessages?.filter((m) => isRoomMessageVisible(m, users, filter, chatFilterVerdicts)),
-    [allMessages, users, filter],
-  );
 
   // A message was rejected as flooding or never answered: the chat shows a notice
   // line, and the unsent text comes back into an empty input so it isn't lost.
