@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, type FocusEvent, type KeyboardEvent } from 'react';
 
+import { registerModal } from './modalStack';
+
 /** Candidates for Tab. `tabbableElements` then drops the ones the browser skips for other reasons. */
 const TABBABLE = [
   'a[href]:not([tabindex="-1"])',
@@ -66,7 +68,7 @@ export const closestList: ReturnFocusTo = (opener) =>
 
 /** Focus an element that may not be focusable on its own (a landmark or a list). A `tabindex`
  *  added for it comes off again once focus leaves, so later clicks inside don't focus the container. */
-function focusFallback(element: HTMLElement) {
+export function focusFallback(element: HTMLElement) {
   if (!element.hasAttribute('tabindex') && element.tabIndex < 0) {
     element.setAttribute('tabindex', '-1');
     element.addEventListener('blur', () => element.removeAttribute('tabindex'), { once: true });
@@ -83,6 +85,8 @@ let handedOver: HTMLElement | null = null;
 export interface DialogFocusOptions {
   /** Focus moves in when this turns true and goes back to where it came from when it turns false. */
   isOpen: boolean;
+  /** Register this modal in the shared background-isolation stack. */
+  isolate?: boolean;
   /** Escape closes the dialog; without it Escape is left alone, like a dialog with no close button. */
   onEscape?: () => void;
   /** Where focus goes on close if the opener has unmounted meanwhile. Defaults to `closestLandmark`. */
@@ -109,7 +113,7 @@ export interface DialogFocusProps {
  * inner dialog stops Escape and ignores Tab from outside its own element, and the outer one in
  * turn ignores Tab from a portalled inner dialog.
  */
-export function useDialogFocus({ isOpen, onEscape, returnFocusTo }: DialogFocusOptions) {
+export function useDialogFocus({ isOpen, onEscape, returnFocusTo, isolate = false }: DialogFocusOptions) {
   const container = useRef<HTMLElement | null>(null);
   // The control focused before this dialog took focus. React focuses an `autoFocus` field in the
   // layout phase, before the effect below runs, so the focus event that brings focus in records it.
@@ -127,6 +131,7 @@ export function useDialogFocus({ isOpen, onEscape, returnFocusTo }: DialogFocusO
       ?? (active && active !== document.body && !element.contains(active) ? active : handedOver);
     handedOver = null;
     const fallback = opener ? (returnFocusToRef.current ?? closestLandmark)(opener) : null;
+    const releaseModal = isolate ? registerModal(element) : undefined;
     // A control with React's autoFocus is already focused by the time this runs; leave it there.
     if (!element.contains(document.activeElement)) {
       const content = element.querySelector<HTMLElement>('[data-dialog-content]');
@@ -158,6 +163,7 @@ export function useDialogFocus({ isOpen, onEscape, returnFocusTo }: DialogFocusO
     observer.observe(element, { childList: true, subtree: true });
 
     return () => {
+      releaseModal?.();
       element.removeEventListener('focusout', onFocusOut);
       observer.disconnect();
       focusedBefore.current = null;
@@ -182,7 +188,7 @@ export function useDialogFocus({ isOpen, onEscape, returnFocusTo }: DialogFocusO
         });
       }
     };
-  }, [isOpen]);
+  }, [isOpen, isolate]);
 
   const ref = useCallback((element: HTMLElement | null) => {
     container.current = element;

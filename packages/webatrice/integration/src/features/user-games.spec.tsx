@@ -1,3 +1,4 @@
+import userEvent from '@testing-library/user-event';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, screen, within } from '@testing-library/react';
@@ -176,7 +177,7 @@ it('keeps a closed selector rejection out of the reopened selector and backgroun
   setupLobby();
   fireEvent.doubleClick(await openUnprotectedGame());
   const oldJoin = findLastRoomCommand(Command_JoinGame_ext);
-  fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+  fireEvent.click(screen.getByRole('button', { name: 'DialogShell.close' }));
   await openUnprotectedGame();
   act(() => deliverMessage(buildResponseMessage(buildResponse({
     cmdId: oldJoin.cmdId, responseCode: Response_ResponseCode.RespWrongPassword,
@@ -207,4 +208,40 @@ it('leaves no old selector or join error after disconnect, re-login, and a late 
   }))));
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   expect(store.getState().rooms.joinGameError).toBeNull();
+});
+
+it('opens user games entirely by keyboard, traps focus, and restores the user link', async () => {
+  const user = userEvent.setup();
+  setupLobby();
+  const opener = screen.getByRole('link', { name: /bob/ });
+  opener.focus();
+  await user.keyboard('{Shift>}{F10}{/Shift}');
+  const menu = screen.getByRole('menu');
+  const showGames = within(menu).getByRole('menuitem', { name: /UserGamesDialog.menu.showGames/ });
+  const entries = within(menu).getAllByRole('menuitem');
+  await user.keyboard('{Home}');
+  for (let i = 0; i < entries.indexOf(showGames); i += 1) {
+    await user.keyboard('{ArrowDown}');
+  }
+  expect(showGames).toHaveFocus();
+  await user.keyboard('{Enter}');
+  const request = findLastSessionCommand(Command_GetGamesOfUser_ext);
+  expect(request.value.userName).toBe('bob');
+  deliverMessage(buildResponseMessage(buildResponse({
+    cmdId: request.cmdId,
+    ext: Response_GetGamesOfUser_ext,
+    value: create(Response_GetGamesOfUserSchema, { roomList: [room], gameList: [bobsGame] }),
+  })));
+  const dialog = screen.getByRole('dialog', { name: 'UserGamesDialog.title' });
+  expect(dialog.contains(document.activeElement)).toBe(true);
+  const stops = within(dialog).getAllByRole('button').filter((button) => !(button as HTMLButtonElement).disabled);
+  for (let i = 0; i <= stops.length + 2; i += 1) {
+    await user.tab();
+    expect(dialog.contains(document.activeElement)).toBe(true);
+  }
+  await user.tab({ shift: true });
+  expect(dialog.contains(document.activeElement)).toBe(true);
+  await user.keyboard('{Escape}');
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(opener).toHaveFocus();
 });

@@ -58,6 +58,7 @@ const DialogShell = ({
   const inheritedReturnFocusTo = useDialogReturnFocus();
   const { getDialogProps } = useDialogFocus({
     isOpen,
+    isolate: true,
     onEscape: handleClose,
     returnFocusTo: returnFocusTo ?? inheritedReturnFocusTo,
   });
@@ -68,7 +69,8 @@ const DialogShell = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      data-modal-layer
+      className="fixed inset-0 z-[1300] flex items-center justify-center p-4"
       // @critical React bubbles synthetic submit events along the React tree
       onSubmit={(e) => e.stopPropagation()}
     >
