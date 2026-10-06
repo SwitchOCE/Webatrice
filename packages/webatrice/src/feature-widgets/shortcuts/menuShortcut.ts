@@ -59,7 +59,13 @@ function ariaSequence(sequence: string): string {
 export function toMenuShortcut(sequences: readonly string[], isMac: boolean): MenuShortcut {
   return {
     shortcut: sequences.length > 0 ? displaySequenceForOs(sequences[0], isMac) : '',
-    keyShortcuts: sequences.map(ariaSequence).join(' '),
+    keyShortcuts: sequences.flatMap((sequence) => {
+      const { ctrl, meta } = parseSequence(sequence);
+      const alternatives = isMac && ctrl && !meta
+        ? [sequence, sequence.replace('Ctrl+', 'Meta+')]
+        : [sequence];
+      return alternatives.map(ariaSequence);
+    }).join(' '),
   };
 }
 

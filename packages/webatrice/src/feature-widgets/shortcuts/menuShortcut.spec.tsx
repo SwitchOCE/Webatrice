@@ -32,8 +32,8 @@ describe('toMenuShortcut', () => {
       .toBe('Control+= Plus 7 Shift+Space');
   });
 
-  it('uses the Mac symbols for the visible hint only', () => {
-    expect(toMenuShortcut(['Ctrl+Shift+KeyD'], true)).toEqual({ shortcut: '⌘⇧D', keyShortcuts: 'Control+Shift+D' });
+  it('exposes both accepted Control and Meta alternatives on Mac', () => {
+    expect(toMenuShortcut(['Ctrl+Shift+KeyD'], true)).toEqual({ shortcut: '⌘⇧D', keyShortcuts: 'Control+Shift+D Shift+Meta+D' });
   });
 
   it('is empty for an unbound action', () => {
