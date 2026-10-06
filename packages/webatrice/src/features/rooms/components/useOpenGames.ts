@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { rooms, SortUtil } from '@cockatrice/datatrice';
 import { useAppDispatch, useAppSelector } from '@app/store';
 import { Game, GameSortField } from '@cockatrice/datatrice';
@@ -26,14 +27,14 @@ export function useOpenGames({ roomId, onActivateGame }: UseOpenGamesArgs): Open
     dispatch(rooms.Actions.sortGames({ roomId, field, order }));
   };
 
-  const handleSelect = (gameId: number) => {
+  const handleSelect = useCallback((gameId: number) => {
     dispatch(rooms.Actions.selectGame({ roomId, gameId }));
-  };
+  }, [dispatch, roomId]);
 
-  const handleActivate = (gameId: number) => {
+  const handleActivate = useCallback((gameId: number) => {
     dispatch(rooms.Actions.selectGame({ roomId, gameId }));
     onActivateGame?.(gameId);
-  };
+  }, [dispatch, roomId, onActivateGame]);
 
   return { sortBy, games, selectedGameId, handleSort, handleSelect, handleActivate };
 }
