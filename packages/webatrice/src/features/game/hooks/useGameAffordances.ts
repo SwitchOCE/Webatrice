@@ -9,6 +9,7 @@ export interface GameAffordances {
   isConceded: boolean;
   isStarted: boolean;
   canPassTurn: boolean;
+  canReverseTurn: boolean;
   canAdvancePhase: boolean;
   canConcede: boolean;
   canUnconcede: boolean;
@@ -30,6 +31,9 @@ export function useGameAffordances(gameId: number | undefined): GameAffordances 
     const isConceded = localPlayer?.properties.conceded ?? false;
     const canPassTurn =
       hasLiveGame && isStarted && !isConceded && (isJudge || isParticipant);
+    // server_player.cpp:600 exempts judges from the conceded reverse-turn guard.
+    const canReverseTurn =
+      hasLiveGame && isStarted && (isJudge || (isParticipant && !isConceded));
     const canAdvancePhase =
       hasLiveGame && isStarted && (isJudge || game.activePlayerId === game.localPlayerId);
     const canConcede = isParticipant && !isConceded;
@@ -42,6 +46,7 @@ export function useGameAffordances(gameId: number | undefined): GameAffordances 
       isConceded,
       isStarted,
       canPassTurn,
+      canReverseTurn,
       canAdvancePhase,
       canConcede,
       canUnconcede,

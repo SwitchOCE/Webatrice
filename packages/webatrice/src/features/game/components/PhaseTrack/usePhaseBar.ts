@@ -23,7 +23,7 @@ export function usePhaseBar(gameId: number | undefined): PhaseBar {
   const webClient = useWebClient();
   const dispatch = useAppDispatch();
   const store = useStore<RootState>();
-  const { canPassTurn, canAdvancePhase } = useGameAffordances(gameId);
+  const { canPassTurn, canReverseTurn, canAdvancePhase } = useGameAffordances(gameId);
   const activePhase = useAppSelector((state) =>
     gameId != null ? games.Selectors.getActivePhase(state, gameId) : undefined,
   );
@@ -68,7 +68,7 @@ export function usePhaseBar(gameId: number | undefined): PhaseBar {
 
   // Desktop asks for no confirmation (tab_game.cpp aReverseTurn).
   const handleReverseTurn = () => {
-    if (!canPassTurn || gameId == null) {
+    if (!canReverseTurn || gameId == null) {
       return;
     }
     webClient.request.game.reverseTurn(gameId);
