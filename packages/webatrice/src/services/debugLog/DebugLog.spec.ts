@@ -161,6 +161,31 @@ describe('installConsoleCapture', () => {
     expect(log.getEntries()).toHaveLength(1);
   });
 
+  test('redacts nested protocol addresses and IP fields from captured and copied logs', () => {
+    const log = new DebugLog();
+    const target = makeConsole();
+    uninstall = installConsoleCapture(log, target);
+    const payload = {
+      userInfo: { name: 'alice', address: '192.0.2.45' },
+      results: [{ ip: '2001:db8::42', ipAddress: '198.51.100.7', ip_address: '203.0.113.8' }],
+      clientAddress: '2001:db8::55',
+      logMessages: [{ senderIp: '192.0.2.99', ship: 'kept ship', tip: 'kept tip' }],
+    };
+
+    target.debug('Response_GetUserInfo', payload);
+
+    const message = log.getEntries()[0].message;
+    expect(message).toContain('"name":"alice"');
+    expect(message).toContain('"ship":"kept ship"');
+    expect(message).toContain('"tip":"kept tip"');
+    expect(message.match(/\[redacted\]/g)).toHaveLength(6);
+    for (const value of ['192.0.2.45', '2001:db8::42', '198.51.100.7', '203.0.113.8', '2001:db8::55', '192.0.2.99']) {
+      expect(message).not.toContain(value);
+      expect(log.toText()).not.toContain(value);
+    }
+    expect(payload.userInfo.address).toBe('192.0.2.45');
+  });
+
   test('records uncaught errors and unhandled rejections', () => {
     const log = new DebugLog();
     uninstall = installConsoleCapture(log, makeConsole());

@@ -32,9 +32,11 @@ const LEVELS: readonly DebugLogLevel[] = ['debug', 'log', 'info', 'warn', 'error
  * Object keys whose values never reach the log, however deeply nested: passwords in every
  * spelling the protocol uses (`password`, `hashedPassword`, `newPassword`), salts, secrets,
  * `*Token`s and other credentials (`auth*`, `apiKey`), and the account PII protocol messages
- * carry (`email`, `realName`).
+ * carry (`email`, `realName`, addresses and IPs).
  */
-const SECRET_KEY = /password|passwd|secret|salt|^hash|token$|^auth(?!ors?$)|api_?key|e_?mail|real_?name/i;
+const SECRET_KEY = /password|passwd|secret|salt|^hash|token$|^auth(?!ors?$)|api_?key|e_?mail|real_?name|address|^ip(?:v[46])?$|(?:^|_)ip$/i;
+// Keep the camelCase boundary case-sensitive so ordinary words such as ship and tip survive.
+const CAMEL_CASE_IP_KEY = /[a-z]Ip$/;
 const REDACTED = '[redacted]';
 
 function describeValue(value: unknown): string {
@@ -50,7 +52,7 @@ function describeValue(value: unknown): string {
   const seen = new WeakSet<object>();
   try {
     return JSON.stringify(value, (key, nested: unknown) => {
-      if (key && SECRET_KEY.test(key)) {
+      if (key && (SECRET_KEY.test(key) || CAMEL_CASE_IP_KEY.test(key))) {
         return REDACTED;
       }
       if (typeof nested === 'bigint') {
