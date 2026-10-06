@@ -66,6 +66,12 @@ describe('replay playback of a recorded game', () => {
       .filter((name): name is string => name != null);
     expect(new Set(joined).size).toBe(2);
     expect(game.messages.some((m) => m.message === 'The game has started.')).toBe(true);
+    expect(screen.queryByTestId('game-log-timer')).not.toBeInTheDocument();
+    const rows = screen.getAllByTestId(/^player-list-item-/);
+    for (const row of rows) {
+      fireEvent.contextMenu(row);
+      expect(document.querySelector('[data-player-context-menu]')).toBeNull();
+    }
   });
 
   it('seeking back resets the game and replays only up to the target', () => {

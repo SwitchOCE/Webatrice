@@ -20,6 +20,7 @@ import { setAdminLocked } from '@app/hooks';
 import { connectedState } from '../../../../__test-utils__';
 import { makeReduxWebClientHookWrapper } from '../../../../__test-utils__/makeHookWrapper';
 import { formatElapsed, useGameLog } from './useGameLog';
+import { GameReadOnlyProvider } from '../ui/GameReadOnlyContext';
 
 function stateWith({
   messages = [] as GameMessage[],
@@ -41,6 +42,7 @@ interface SetupOpts {
   state?: GamesState;
   gameId?: number | undefined;
   userLevel?: number;
+  readOnly?: boolean;
 }
 
 function setupWithGame(opts: SetupOpts = {}) {
@@ -60,11 +62,24 @@ function setupWithGame(opts: SetupOpts = {}) {
   list.scrollTop = 0;
   (listRef as { current: HTMLDivElement | null }).current = list;
 
-  const { result } = renderHook(() => useGameLog({ gameId, listRef }), { wrapper: Wrapper });
+  const { result } = renderHook(() => useGameLog({ gameId, listRef }), {
+    wrapper: ({ children }) => <Wrapper><GameReadOnlyProvider value={opts.readOnly ?? false}>{children}</GameReadOnlyProvider></Wrapper>,
+  });
   return { result, webClient, listRef, list };
 }
 
 describe('useGameLog', () => {
+  it.each([false, true])('ticks only for a live game (readOnly=%s)', (readOnly) => {
+    vi.useFakeTimers();
+    try {
+      const { result } = setupWithGame({ state: stateWith({ secondsElapsed: 42 }), readOnly });
+      act(() => vi.advanceTimersByTime(3000));
+      expect(result.current.displaySeconds).toBe(readOnly ? 42 : 45);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('formatElapsed renders seconds in HH:MM:SS form', () => {
     expect(formatElapsed(0)).toBe('00:00:00');
     expect(formatElapsed(3723)).toBe('01:02:03');

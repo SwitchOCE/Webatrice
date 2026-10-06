@@ -88,6 +88,7 @@ describe('GameReplay route', () => {
     expect(screen.getByTestId('replay-time')).toHaveTextContent('0:00 / 0:02');
     expect(screen.getByTestId('game-container')).toHaveAttribute('data-readonly', 'true');
     expect(screen.getByTestId('spectating-tag')).toHaveTextContent('GameReplay.sidebar.tag');
+    expect(screen.queryByTestId('game-log-timer')).not.toBeInTheDocument();
     // Desktop's replay tab has no say box.
     expect(screen.getByLabelText('game chat input').closest('form')).not.toBeVisible();
 

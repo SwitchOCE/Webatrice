@@ -10,6 +10,7 @@ import {
 } from '@cockatrice/datatrice/testing';
 import { setAdminLocked } from '@app/hooks';
 import PlayerList from './PlayerList';
+import { GameReadOnlyProvider } from '../../ui/GameReadOnlyContext';
 
 function buildState(
   players: ReturnType<typeof makePlayerEntry>[],
@@ -34,6 +35,64 @@ function buildState(
 }
 
 describe('PlayerList', () => {
+  it('does not grant host actions when both host and local player use the -1 sentinel', () => {
+    const state = buildState([makePlayerEntry({
+      properties: makePlayerProperties({ playerId: 2, userInfo: makeUser({ name: 'Bob' }) }),
+    })], 2, -1);
+    state.games!.games[1].localPlayerId = -1;
+    renderWithProviders(<PlayerList />, { preloadedState: state });
+    fireEvent.contextMenu(screen.getByTestId('player-list-item-2'));
+    expect(screen.getByRole('button', { name: 'User details' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Kick from game' })).not.toBeInTheDocument();
+  });
+
+  it('removes an already-open live menu when the list becomes read-only', () => {
+    const state = buildState([makePlayerEntry({
+      properties: makePlayerProperties({ playerId: 2, userInfo: makeUser({ name: 'Bob' }) }),
+    })], 2);
+    const { rerender } = renderWithProviders(
+      <GameReadOnlyProvider value={false}><PlayerList /></GameReadOnlyProvider>, { preloadedState: state },
+    );
+    fireEvent.contextMenu(screen.getByTestId('player-list-item-2'));
+    expect(screen.getByRole('button', { name: 'User details' })).toBeInTheDocument();
+    rerender(<GameReadOnlyProvider value><PlayerList /></GameReadOnlyProvider>);
+    expect(screen.queryByRole('button', { name: 'User details' })).not.toBeInTheDocument();
+  });
+
+  it.each([Flag.IsRegistered, Flag.IsRegistered | Flag.IsModerator | Flag.IsAdmin])(
+    'offers no live user actions in a replay while connected with level %s', (userLevel) => {
+      const state = buildState([makePlayerEntry({
+        properties: makePlayerProperties({ playerId: 2, userInfo: makeUser({ name: 'Bob', userLevel: Flag.IsRegistered }) }),
+      })], 2, -1);
+      state.games!.games[1].localPlayerId = -1;
+      const { webClient } = renderWithProviders(
+        <ModerationProvider><GameReadOnlyProvider value><PlayerList /></GameReadOnlyProvider></ModerationProvider>,
+        { preloadedState: { ...state, server: { ...connectedState.server!, user: makeUser({ name: 'Alice', userLevel }) } } },
+      );
+      vi.clearAllMocks();
+      const row = screen.getByTestId('player-list-item-2');
+      fireEvent.contextMenu(row);
+      fireEvent.keyDown(row, { key: 'ContextMenu' });
+      fireEvent.keyDown(row, { key: 'F10', shiftKey: true });
+      fireEvent.click(row);
+      // Reopen for each action: selecting an item dismisses the popup.
+      for (const name of ['Add to buddy list', 'Add to ignore list', 'Kick from game', 'Moderation.menu.warnUser']) {
+        fireEvent.contextMenu(row);
+        const button = screen.queryByRole('button', { name });
+        if (button) {
+          fireEvent.click(button);
+        }
+      }
+      for (const scope of Object.values(webClient.request)) {
+        for (const request of Object.values(scope)) {
+          expect(request).not.toHaveBeenCalled();
+        }
+      }
+      expect(document.querySelector('[data-player-context-menu]')).toBeNull();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    },
+  );
+
   it('lists every player in the game', () => {
     // Post-rewrite: PlayerList no longer renders a ping dot or ping
     // seconds — the sidebar shows avatar + name + role only. Kept the
