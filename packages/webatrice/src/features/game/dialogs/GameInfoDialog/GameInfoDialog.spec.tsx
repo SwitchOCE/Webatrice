@@ -1,4 +1,4 @@
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { makeStoreState, renderWithProviders, makeUser } from '../../../../__test-utils__';
@@ -39,6 +39,13 @@ function stateWithGame(overrides: Partial<Parameters<typeof makeGameEntry>[0]> =
   });
 }
 
+function footerCloseButton() {
+  const dialog = screen.getByRole('dialog', { name: 'GameInfoDialog.title' });
+  const footer = dialog.querySelector('footer');
+  expect(footer).not.toBeNull();
+  return within(footer!).getByRole('button', { name: 'Common.action.close' });
+}
+
 // Self-sources gameInfoOpen + closeGameInfo from GameDialogsContext and the
 // gameId from GameIdContext (default 1 in the harness).
 describe('GameInfoDialog', () => {
@@ -77,8 +84,7 @@ describe('GameInfoDialog', () => {
       gameDialogs: { gameInfoOpen: true, closeGameInfo },
     });
 
-    // The footer's Close; the header's X is DialogShell's own (Common.action.close).
-    fireEvent.click(screen.getAllByRole('button', { name: 'Common.action.close' })[1]);
+    fireEvent.click(footerCloseButton());
     expect(closeGameInfo).toHaveBeenCalled();
   });
 
@@ -100,7 +106,7 @@ describe('GameInfoDialog', () => {
     });
     const dialog = screen.getByRole('dialog', { name: 'GameInfoDialog.title' });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(screen.getAllByRole('button', { name: 'Common.action.close' })[1]).toHaveFocus();
+    expect(footerCloseButton()).toHaveFocus();
     await user.tab();
     await user.tab();
     expect(dialog).toContainElement(document.activeElement as HTMLElement);

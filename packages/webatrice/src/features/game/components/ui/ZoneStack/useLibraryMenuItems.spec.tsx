@@ -87,7 +87,7 @@ describe('useLibraryMenuItems', () => {
     expect(zoneCommands.reveal).toHaveBeenCalledWith(ZoneName.DECK, 'all');
     expect(zoneCommands.lendLibrary).toHaveBeenCalledWith(2);
     find(items, 'Reveal top cards to...', 'Opp').onClick!();
-    expect(props.openRevealTopCardsPrompt).toHaveBeenCalledWith({ targetPlayerId: 2, targetName: 'Opp', deckSize: 30 });
+    expect(props.openRevealTopCardsPrompt).toHaveBeenCalledWith({ targetPlayerId: 2, deckSize: 30 });
   });
 
   it('still reveals to all players with no other players, as desktop does', () => {
@@ -99,7 +99,7 @@ describe('useLibraryMenuItems', () => {
     find(items, 'Reveal library to...', 'All players').onClick!();
     find(items, 'Reveal top cards to...', 'All players').onClick!();
     expect(zoneCommands.reveal).toHaveBeenCalledWith(ZoneName.DECK, 'all');
-    expect(props.openRevealTopCardsPrompt).toHaveBeenCalledWith({ targetPlayerId: -1, targetName: 'All players', deckSize: 30 });
+    expect(props.openRevealTopCardsPrompt).toHaveBeenCalledWith({ targetPlayerId: -1, deckSize: 30 });
   });
 
   it('shows the top-card toggles checked from the zone and flips them', () => {

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useEffect, useRef, useState, RefObject } from 'react';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { games, server } from '@cockatrice/datatrice';
@@ -39,6 +40,7 @@ export interface UseGameLogArgs {
 }
 
 export function useGameLog({ gameId, listRef }: UseGameLogArgs): GameLog {
+  const { t } = useTranslation();
   const webClient = useWebClient();
   const readOnly = useGameReadOnly();
   const messages = useAppSelector((state) =>
@@ -75,7 +77,7 @@ export function useGameLog({ gameId, listRef }: UseGameLogArgs): GameLog {
   const canChat = !(isSpectator && !spectatorsCanChat && !canOverride);
   const chatDisabledReason = canChat
     ? null
-    : 'Spectators are not allowed to chat in this game.';
+    : t('ChatLog.spectatorChatDisabled');
 
   // 1Hz ticker; resync to redux on each server `secondsElapsed`.
   const [displaySeconds, setDisplaySeconds] = useState(secondsElapsed);

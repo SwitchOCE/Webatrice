@@ -448,7 +448,8 @@ describe('GameLobby deck-pick request ownership', () => {
     });
     act(() => store.dispatch(games.Actions.deckSelectFailed({ gameId: 1, responseCode: 3, requestId: first })));
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(screen.getByText('Burn')).toBeInTheDocument();
+    // The row names the later pick's deck (keys render as themselves here).
+    expect(screen.getByText('GameLobby.player.waitingWithDeck')).toBeInTheDocument();
     expect(first).toEqual(expect.any(String));
     expect(second).not.toBe(first);
     act(() => store.dispatch(games.Actions.deckSelectFailed({ gameId: 1, responseCode: 3, requestId: second })));

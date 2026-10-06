@@ -78,7 +78,6 @@ export function useLibraryMenuItems({
   const revealTopCardsItems = buildRevealToSubmenu(t, revealTargets, (targetPlayerId) =>
     openRevealTopCardsPrompt({
       targetPlayerId,
-      targetName: revealTargets.find((target) => target.playerId === targetPlayerId)?.name ?? t('CardMenu.allPlayers'),
       deckSize: deckCount,
     }));
   // Desktop's topLibraryMenu (library_menu.cpp:50-62); the library pile's

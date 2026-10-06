@@ -49,7 +49,7 @@ export default function PlayerRow({
             <CheckCircle2
               size={18}
               className="text-success shrink-0"
-              aria-label={t('DeckSelectDialog.ready')}
+              aria-label={t('GameLobby.player.ready')}
             />
           )}
         </div>
@@ -63,7 +63,7 @@ export default function PlayerRow({
                 {bracket != null && <BracketBadge level={bracket} />}
               </>
             ) : (
-              <span>{t('DeckSelectDialog.ready')}</span>
+              <span>{t('GameLobby.player.ready')}</span>
             )
           ) : hasDeck ? (
             deckName ? (

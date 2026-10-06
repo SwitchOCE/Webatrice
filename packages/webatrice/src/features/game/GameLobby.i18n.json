@@ -24,7 +24,8 @@
       "kick": "Kick",
       "waiting": "Waiting for player…",
       "bracketTitle": "Commander Bracket {level} (from the deck's cached assessment)",
-      "bracketBadge": "B{level}"
+      "bracketBadge": "B{level}",
+      "ready": "Ready"
     },
     "action": {
       "unloadDeck": "Unload deck",

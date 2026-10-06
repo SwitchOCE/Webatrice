@@ -37,7 +37,7 @@ import { t } from '../fixtures/i18n';
 //     "<name>'s library") and cards keyed by `[data-card][data-card-id]`.
 //
 export type PileZone = 'deck' | 'grave' | 'rfg';
-export type CardMoveZone = PileZone | 'hand' | 'table';
+export type CardMoveZone = Exclude<PileZone, 'deck'> | 'hand' | 'table';
 
 const PILE_LABEL_KEYS: Record<PileZone, string> = {
   deck: 'ZoneStack.library',
@@ -46,11 +46,10 @@ const PILE_LABEL_KEYS: Record<PileZone, string> = {
 };
 
 const CARD_MOVE_LABEL_KEYS: Record<CardMoveZone, string> = {
-  deck: 'ZoneLabel.title.deck',
   grave: 'ZoneLabel.title.grave',
   rfg: 'ZoneLabel.title.rfg',
   hand: 'ZoneLabel.title.hand',
-  table: 'SettingsAppearance.zoneBackgrounds.zone.table',
+  table: 'CardMenu.table',
 };
 
 function escapeRegex(value: string): string {
@@ -243,10 +242,9 @@ export class GamePage {
     return board.locator('[data-card][data-zone="battlefield"]');
   }
 
-  // Read the visible count instead of parsing localized title text.
+  // Both pile renderers expose the count independently of their visible markup.
   async zoneStackCount(zoneName: PileZone, board: Locator = this.localBoard): Promise<number> {
-    const count = this.zoneStack(zoneName, board).locator('span').filter({ hasText: /^\d+$/ }).first();
-    return Number(await count.textContent());
+    return Number(await this.zoneStack(zoneName, board).getAttribute('data-pile-count'));
   }
 
   // Pile-view popup — ZoneViewPanel. Not a `role="dialog"` node,

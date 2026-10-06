@@ -103,7 +103,7 @@ describe('useSeatPrompts', () => {
   it('sets a player counter to a non-negative value', () => {
     const { result, counterCommands, answer } = setup();
     result.current.openCounterPrompt({ counterId: 7, label: 'Other', currentValue: 2 });
-    expect(answer('-4').title).toBe('Set other counter');
+    expect(answer('-4').title).toBe('Set counter');
     expect(counterCommands.set).toHaveBeenCalledWith(7, 0);
   });
 
@@ -147,9 +147,9 @@ describe('useSeatPrompts', () => {
     expect(answer('3').title).toBe('View bottom cards of library');
     expect(dialogs.openZoneView).toHaveBeenCalledWith({ playerId: 1, zoneName: ZoneName.DECK, numberCards: 3, isReversed: true });
 
-    result.current.openRevealTopCardsPrompt({ targetPlayerId: -1, targetName: 'all players', deckSize: 10 });
-    answer('4');
-    result.current.openRevealTopCardsPrompt({ targetPlayerId: 2, targetName: 'Opp', deckSize: 10 });
+    result.current.openRevealTopCardsPrompt({ targetPlayerId: -1, deckSize: 10 });
+    expect(answer('4').title).toBe('Reveal top cards of library');
+    result.current.openRevealTopCardsPrompt({ targetPlayerId: 2, deckSize: 10 });
     answer('1');
     expect(vi.mocked(zoneCommands.reveal).mock.calls).toEqual([
       [ZoneName.DECK, 'all', { top: 4 }],

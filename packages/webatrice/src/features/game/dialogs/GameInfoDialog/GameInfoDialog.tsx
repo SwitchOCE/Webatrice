@@ -17,12 +17,6 @@ function formatElapsed(totalSeconds: number): string {
 }
 
 type PlayerTag = 'host' | 'spectator' | 'judge' | 'you';
-const PLAYER_TAG = {
-  host: 'host',
-  spectator: 'spectator',
-  judge: 'judge',
-  you: 'you',
-} as const satisfies Record<PlayerTag, PlayerTag>;
 
 /**
  * Game info modal — read-only summary of the current game (id, name,
@@ -131,16 +125,16 @@ function GameInfoDialog() {
             const pname = playerName(p, t);
             const tags: PlayerTag[] = [];
             if (pid === game.hostId) {
-              tags.push(PLAYER_TAG.host);
+              tags.push('host');
             }
             if (p.properties.spectator) {
-              tags.push(PLAYER_TAG.spectator);
+              tags.push('spectator');
             }
             if (p.properties.judge) {
-              tags.push(PLAYER_TAG.judge);
+              tags.push('judge');
             }
             if (pid === game.localPlayerId) {
-              tags.push(PLAYER_TAG.you);
+              tags.push('you');
             }
             return (
               <li

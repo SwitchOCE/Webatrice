@@ -52,6 +52,9 @@ describe('ZoneStack', () => {
     expect(pileEl('Library')).toHaveAttribute('title', 'Library, 40 cards');
     expect(pileEl('Graveyard')).toHaveAttribute('title', 'Graveyard, 2 cards, top: Opt');
     expect(pileEl('Exile')).toHaveAttribute('title', 'Exile, 0 cards');
+    expect(pileEl('Library')).toHaveAttribute('data-pile-count', '40');
+    expect(pileEl('Graveyard')).toHaveAttribute('data-pile-count', '2');
+    expect(pileEl('Exile')).toHaveAttribute('data-pile-count', '0');
   });
 
   it('gives the owner the library menu, and its first item draws', () => {
