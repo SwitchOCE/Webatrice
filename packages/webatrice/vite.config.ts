@@ -46,6 +46,7 @@ export default defineConfig({
       '@app/dialogs': srcPath('dialogs/index.ts'),
       '@app/hooks': srcPath('hooks/index.ts'),
       '@app/images': srcPath('images/index.ts'),
+      '@app/services/session': srcPath('services/session/index.ts'),
       '@app/services': srcPath('services/index.ts'),
       '@app/feature-wrappers/layout': srcPath('feature-wrappers/layout/index.ts'),
       '@app/features/account': srcPath('features/account/index.ts'),
