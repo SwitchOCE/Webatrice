@@ -53,6 +53,12 @@ export class ReplayFileDTO extends ReplayFile {
   /** Stores a replay in `parentId`, renaming it `name (2)…` if the name is taken. */
   static addReplay(parentId: number, name: string, data: Uint8Array): Promise<number> {
     return dexieService.readWrite([dexieService.replays, dexieService.replayData], async () => {
+      if (parentId !== REPLAY_LIBRARY_ROOT) {
+        const parent = await ReplayFileDTO.get(parentId);
+        if (parent?.kind !== 'folder') {
+          throw new Error('Replay parent is not an available folder.');
+        }
+      }
       const siblings = await ReplayFileDTO.listFolder(parentId);
       const entry: ReplayFile = {
         parentId,
