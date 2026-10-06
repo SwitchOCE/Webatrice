@@ -15,9 +15,10 @@ const selectReports = ({ server }: State): ServerStateReports => server.reports 
 const selectById = (state: State) => selectReports(state).byId;
 
 function rowsFor(ids: number[] | null, byId: ServerStateReports['byId']): ServerInfo_Report[] {
-  if (!ids || ids.length === 0) {
+  if (!ids) {
     return EMPTY_REPORTS;
   }
+  // A loaded empty response needs its own identity so list loads can settle.
   const rows: ServerInfo_Report[] = [];
   for (const id of ids) {
     const row = byId[id];

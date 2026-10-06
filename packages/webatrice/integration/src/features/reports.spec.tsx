@@ -70,6 +70,23 @@ beforeEach(() => {
 });
 
 describe('Reports (integration)', () => {
+  it('settles an empty wire list and permits another empty refresh', () => {
+    loginTo31();
+    renderFeatureScreen(<MyReports />, RouteEnum.MY_REPORTS);
+    for (let request = 0; request < 2; request++) {
+      const list = findLastSessionCommand(Command_ReportMyList_ext);
+      act(() => deliverMessage(buildResponseMessage(buildResponse({
+        cmdId: list.cmdId, responseCode: Response_ResponseCode.RespOk,
+        ext: Response_ReportMyList_ext, value: create(Response_ReportMyListSchema),
+      }))));
+      expect(screen.getByTestId('report-list-status')).toHaveTextContent('Reports.count');
+      const refresh = screen.getByRole('button', { name: /Reports.refresh/ });
+      expect(refresh).toBeEnabled();
+      fireEvent.click(refresh);
+      expect(findLastSessionCommand(Command_ReportMyList_ext).cmdId).toBeGreaterThan(list.cmdId);
+    }
+  });
+
   it('submits a report over the wire and confirms it', async () => {
     loginTo31();
     renderFeatureScreen(<ReportUserProvider><ReportButton /></ReportUserProvider>);

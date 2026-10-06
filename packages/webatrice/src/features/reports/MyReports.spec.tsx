@@ -24,6 +24,19 @@ function renderMyReports(version?: string) {
 }
 
 describe('MyReports', () => {
+  it('completes initial and repeated empty loads and enables refresh', () => {
+    const { store, session } = renderMyReports();
+    for (let request = 1; request <= 2; request++) {
+      const refresh = screen.getByRole('button', { name: /Reports.refresh/ });
+      expect(refresh).toBeDisabled();
+      act(() => store.dispatch(server.Actions.reportMyList({ reports: [] })));
+      expect(screen.getByTestId('report-list-status').textContent).toBe('Reports.count');
+      expect(refresh).toBeEnabled();
+      fireEvent.click(refresh);
+      expect(session.reportMyList).toHaveBeenCalledTimes(request + 1);
+    }
+  });
+
   it('falls back to the lobby on a 3.0 server and sends nothing', () => {
     const { session } = renderMyReports(SERVER_30);
     expect(screen.getByText('lobby')).toBeTruthy();
