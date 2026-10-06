@@ -8,6 +8,10 @@ import { createStore, server } from '@cockatrice/datatrice';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { WebClientContext } from '@cockatrice/datatrice/react';
 
+import { create } from '@bufbuild/protobuf';
+import { ServerInfo_ChatMessageSchema } from '@cockatrice/sockatrice/generated';
+import { SessionScope } from '../../SessionScope';
+
 import { rootReducerMap, type RootState } from '../../store';
 import { ToastProvider } from '../../components/Toast/ToastContext';
 import { createMockWebClient, connectedState } from '../../__test-utils__';
@@ -32,7 +36,7 @@ function setup(preloadedState: Partial<RootState> = connectedState) {
       <Provider store={store}>
         <WebClientContext value={webClient}>
           <I18nextProvider i18n={testI18n}>
-            <ToastProvider>{children}</ToastProvider>
+            <ToastProvider><SessionScope>{children}</SessionScope></ToastProvider>
           </I18nextProvider>
         </WebClientContext>
       </Provider>
@@ -89,12 +93,13 @@ describe('useLogs', () => {
   });
 
   it('says there are no messages when a search comes back empty', () => {
-    const { result, store } = setup();
+    const { result, store, webClient } = setup();
     act(() => {
       result.current.onSubmit(search({ userName: 'alice' }));
     });
+    const requestId = vi.mocked(webClient.request.moderator.viewLogHistory).mock.lastCall?.[1];
     act(() => {
-      store.dispatch(server.Actions.viewLogs({ logs: [] }));
+      store.dispatch(server.Actions.viewLogs({ logs: [], requestId }));
     });
     expect(result.current.notice).toMatchObject({ message: 'Logs.notice.empty', severity: 'info' });
 
@@ -105,23 +110,25 @@ describe('useLogs', () => {
   });
 
   it('reports a failed search', () => {
-    const { result, store } = setup();
+    const { result, store, webClient } = setup();
     act(() => {
       result.current.onSubmit(search({ userName: 'alice' }));
     });
+    const requestId = vi.mocked(webClient.request.moderator.viewLogHistory).mock.lastCall?.[1];
     act(() => {
-      store.dispatch(server.Actions.moderatorCommandFailed({ command: 'viewLogHistory', responseCode: 3, target: 'alice' }));
+      store.dispatch(server.Actions.moderatorCommandFailed({ requestId, command: 'viewLogHistory', responseCode: 3, target: 'alice' }));
     });
     expect(result.current.notice).toMatchObject({ message: 'Logs.notice.failed', severity: 'error' });
   });
 
   it('explains a search the server never answered with the transport reason', () => {
-    const { result, store } = setup();
+    const { result, store, webClient } = setup();
     act(() => {
       result.current.onSubmit(search({ userName: 'alice' }));
     });
+    const requestId = vi.mocked(webClient.request.moderator.viewLogHistory).mock.lastCall?.[1];
     act(() => {
-      store.dispatch(server.Actions.moderatorCommandFailed({
+      store.dispatch(server.Actions.moderatorCommandFailed({ requestId,
         command: 'viewLogHistory', responseCode: -1, target: 'alice', failure: WebsocketTypes.CommandFailure.Timeout,
       }));
     });
@@ -153,5 +160,87 @@ describe('useLogs', () => {
     unmount();
 
     expect(store.getState().server.logs.room).toHaveLength(0);
+  });
+});
+
+
+describe('log request ownership', () => {
+  it('queues every overlapping search outcome, including replies received in one batch', () => {
+    const { result, store, webClient } = setup();
+    act(() => {
+      result.current.onSubmit(search({ userName: 'alice' }));
+      result.current.onSubmit(search({ userName: 'bob' }));
+    });
+    const [first, second] = vi.mocked(webClient.request.moderator.viewLogHistory).mock.calls;
+    act(() => {
+      store.dispatch(server.Actions.moderatorCommandFailed({
+        command: 'viewLogHistory', target: 'bob', responseCode: 3,
+        failure: WebsocketTypes.CommandFailure.Timeout, requestId: second[1],
+      }));
+      store.dispatch(server.Actions.viewLogs({ logs: [], requestId: first[1] }));
+    });
+    expect(result.current.notice?.message).toBe('CommandFailure.timeout');
+    act(() => result.current.dismissNotice());
+    expect(result.current.notice?.message).toBe('Logs.notice.empty');
+    act(() => result.current.dismissNotice());
+    expect(result.current.notice).toBeNull();
+    expect(first[1]).toEqual(expect.any(String));
+    expect(first[1]).not.toBe(second[1]);
+  });
+
+  it('ignores foreign and duplicate replies while another search is outstanding', () => {
+    const { result, store, webClient } = setup();
+    act(() => {
+      result.current.onSubmit(search({ userName: 'alice' }));
+      result.current.onSubmit(search({ userName: 'alice' }));
+    });
+    const [first, second] = vi.mocked(webClient.request.moderator.viewLogHistory).mock.calls;
+    act(() => {
+      store.dispatch(server.Actions.viewLogs({ logs: [], requestId: 'foreign' }));
+      store.dispatch(server.Actions.viewLogs({ logs: [] }));
+      store.dispatch(server.Actions.moderatorCommandFailed({
+        command: 'banHistory', target: 'alice', responseCode: 3, requestId: first[1],
+      }));
+    });
+    expect(result.current.notice).toBeNull();
+    act(() => store.dispatch(server.Actions.viewLogs({ logs: [], requestId: first[1] })));
+    expect(result.current.notice?.message).toBe('Logs.notice.empty');
+    act(() => result.current.dismissNotice());
+    act(() => store.dispatch(server.Actions.moderatorCommandFailed({
+      command: 'viewLogHistory', target: 'alice', responseCode: 3, requestId: first[1],
+    })));
+    expect(result.current.notice).toBeNull();
+    act(() => store.dispatch(server.Actions.moderatorCommandFailed({
+      command: 'viewLogHistory', target: 'alice', responseCode: 3, requestId: second[1],
+    })));
+    expect(result.current.notice?.message).toBe('Logs.notice.failed');
+  });
+
+  it('keeps owned result rows when a foreign search updates the shared logs slice', () => {
+    const { result, store, webClient } = setup();
+    act(() => result.current.onSubmit(search({ userName: 'alice' })));
+    const requestId = vi.mocked(webClient.request.moderator.viewLogHistory).mock.calls[0][1];
+    act(() => store.dispatch(server.Actions.viewLogs({
+      logs: [create(ServerInfo_ChatMessageSchema, { message: 'Owned row', targetType: 'room' })], requestId,
+    })));
+    expect(result.current.logs.room[0]?.message).toBe('Owned row');
+    act(() => store.dispatch(server.Actions.viewLogs({ logs: [], requestId: 'foreign' })));
+    expect(result.current.logs.room[0]?.message).toBe('Owned row');
+    expect(result.current.notice).toBeNull();
+  });
+
+  it('ignores old-session replies and still settles a new search', () => {
+    const { result, store, webClient } = setup();
+    act(() => result.current.onSubmit(search({ userName: 'alice' })));
+    const oldId = vi.mocked(webClient.request.moderator.viewLogHistory).mock.calls[0][1];
+    act(() => store.dispatch(server.Actions.clearStore()));
+    act(() => result.current.onSubmit(search({ userName: 'alice' })));
+    const requestId = vi.mocked(webClient.request.moderator.viewLogHistory).mock.calls[1][1];
+    act(() => store.dispatch(server.Actions.moderatorCommandFailed({
+      command: 'viewLogHistory', target: 'alice', responseCode: 3, requestId: oldId,
+    })));
+    expect(result.current.notice).toBeNull();
+    act(() => store.dispatch(server.Actions.viewLogs({ logs: [], requestId })));
+    expect(result.current.notice?.message).toBe('Logs.notice.empty');
   });
 });
