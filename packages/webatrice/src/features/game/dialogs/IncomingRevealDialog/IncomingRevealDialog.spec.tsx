@@ -2,7 +2,7 @@
 // (the lender as the move's start player, battlefield-only drops, no drag for
 // a spectator) are pinned in Game.dragdrop.spec.tsx.
 
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, renderHook, screen, within } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { games } from '@cockatrice/datatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
@@ -11,6 +11,7 @@ import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 import { createMockWebClient, renderWithProviders } from '../../../../__test-utils__';
 import { buildSeatGameState, chooseMenuPath, openMenus } from '../../__test-utils__/seatFixtures';
 import Game from '../../Game';
+import { useTallyType } from '../../hooks/useTallyType';
 
 vi.mock('../../../../hooks/useSettings');
 
@@ -28,7 +29,7 @@ vi.mock('../../../../services/cards/cardCatalog', () => {
   };
 });
 
-const REVEALED = [makeCard({ id: 0, name: 'Island' }), makeCard({ id: 1, name: 'Forest' })];
+const REVEALED = [makeCard({ id: 0, name: 'Island', pt: '1/2' }), makeCard({ id: 1, name: 'Forest', pt: '3/4' })];
 
 function renderReveal({ grantWriteAccess = false, zoneName = ZoneName.DECK as string } = {}) {
   const preloadedState = buildSeatGameState({
@@ -61,6 +62,42 @@ describe('IncomingRevealDialog', () => {
     expect(within(popup()).getByText(/^2 cards/)).toBeInTheDocument();
     expect(within(popup()).getByTitle('Island')).toBeInTheDocument();
     expect(within(popup()).getByTitle('Forest')).toBeInTheDocument();
+  });
+
+  it.each(['hide', 'close', 'source cleared'])('feeds reveal selection into the count and clears it on %s', async (action) => {
+    const { store } = renderReveal();
+    fireEvent.click(within(popup()).getByRole('button', { name: 'Island' }));
+    fireEvent.click(within(popup()).getByRole('button', { name: 'Forest' }), { ctrlKey: true });
+    expect(screen.getByRole('status', { name: 'TallyOverlay.selectedCount' })).toHaveTextContent('2');
+    if (action === 'hide') {
+      fireEvent.contextMenu(within(popup()).getByTitle('Forest'));
+      chooseMenuPath('Hide');
+    } else if (action === 'close') {
+      fireEvent.click(within(popup()).getAllByRole('button', { name: 'Close' })[0]);
+    } else {
+      act(() => store.dispatch(games.Actions.zoneViewCleared({ gameId: 1, playerId: 2, zoneName: ZoneName.DECK })));
+    }
+    await act(async () => {});
+    expect(screen.queryByRole('status', { name: 'TallyOverlay.selectedCount' })).not.toBeInTheDocument();
+  });
+
+  it('tallies revealed live P/T and removes the selection when a new reveal replaces it', async () => {
+    const { result } = renderHook(() => useTallyType());
+    const { store } = renderReveal();
+    try {
+      act(() => result.current[1]('power'));
+      fireEvent.click(within(popup()).getByRole('button', { name: 'Island' }));
+      fireEvent.click(within(popup()).getByRole('button', { name: 'Forest' }), { ctrlKey: true });
+      await act(async () => {});
+      expect(within(screen.getByRole('status', { name: 'TallyOverlay.tally' })).getByText('4')).toBeInTheDocument();
+      act(() => store.dispatch(games.Actions.incomingRevealShown({
+        gameId: 1, sourceOwnerId: 2, zoneName: ZoneName.DECK, cards: REVEALED, grantWriteAccess: false,
+      })));
+      expect(screen.queryByRole('status', { name: 'TallyOverlay.tally' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('status', { name: 'TallyOverlay.selectedCount' })).not.toBeInTheDocument();
+    } finally {
+      act(() => result.current[1]('none'));
+    }
   });
 
   it('says when the sender lent the zone', () => {
