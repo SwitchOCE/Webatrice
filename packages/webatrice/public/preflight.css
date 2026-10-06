@@ -1,0 +1,48 @@
+/* Pre-boot fallback tokens mirror src/styles/tokens.css. */
+.Unsupported {
+  --bg-base: 20 16 31;
+  --bg-surface: 31 24 48;
+  --border-subtle: 58 46 90;
+  --text-primary: 245 240 246;
+  --text-secondary: 199 191 212;
+  box-sizing: border-box;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  font-family: system-ui, sans-serif;
+  line-height: 1.5;
+  background: rgb(var(--bg-base));
+  color: rgb(var(--text-primary));
+}
+.Unsupported-paper {
+  width: 600px;
+  max-width: 100%;
+  padding: 40px;
+  text-align: center;
+  border-radius: 8px;
+  background: rgb(var(--bg-surface));
+  border: 1px solid rgb(var(--border-subtle));
+}
+.Unsupported-paper h1 {
+  margin: 0 0 8px;
+  font-size: 2rem;
+  font-weight: 500;
+}
+.Unsupported-paper__header {
+  margin-bottom: 40px;
+}
+.Unsupported-paper__missing {
+  margin-bottom: 40px;
+  text-align: left;
+}
+.Unsupported-paper__missing ul {
+  margin: 8px 0 0;
+  padding-left: 24px;
+  list-style: disc;
+  color: rgb(var(--text-secondary));
+}
+.Unsupported-paper__note {
+  color: rgb(var(--text-secondary));
+}
