@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState, type FocusEvent, type KeyboardEvent } from 'react';
 import { isContextMenuKey } from '@app/components';
+import { matchesEvent, useResolvedBinding } from '@app/feature-widgets/shortcuts';
 import { tabbableElements, useGridRows, type ListOrientation } from '@app/hooks';
 
 import { makeCardKey, useCardRegistry } from '../../../utils/CardRegistry/CardRegistryContext';
@@ -50,9 +51,6 @@ export interface CardFocusProps {
 
 /** The key that zooms the focused card while held: the keyboard's middle-button hold. */
 export const ZOOM_KEY = 'z';
-
-/** The key that moves the focused card (and its selection) to a place chosen in MoveCardsDialog. */
-export const MOVE_KEY = 'm';
 
 /**
  * F6 and Shift+F6 leave a card zone: focus moves to the next (previous) tab
@@ -115,6 +113,7 @@ export function useCardFocus<C extends { id: string }>({
 }: CardFocusOptions<C>) {
   const { setFocusedCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
   const registry = useCardRegistry();
+  const moveSequences = useResolvedBinding('game.moveCardDialog');
   const keys = lines ? lines.flat() : cards.map((card) => card.id);
   const byId = new Map(cards.map((card) => [card.id, card] as const));
   // The card focus was last on holds the zone's tab stop; before that, the
@@ -230,7 +229,7 @@ export function useCardFocus<C extends { id: string }>({
         if (event.key === 'Enter' && event.shiftKey) {
           return;
         }
-        if (onMove && event.key.toLowerCase() === MOVE_KEY && !event.ctrlKey && !event.altKey && !event.metaKey) {
+        if (onMove && moveSequences.some((sequence) => matchesEvent(sequence, event.nativeEvent))) {
           event.preventDefault();
           onMove(card);
           return;

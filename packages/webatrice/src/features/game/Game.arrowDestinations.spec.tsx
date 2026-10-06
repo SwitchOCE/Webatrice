@@ -28,8 +28,9 @@ vi.mock('../../services/dexie/DexieDTOs/CardDTO', () => ({
 }));
 
 const nonPublicZones = [ZoneName.DECK, ZoneName.SIDEBOARD, ZoneName.HAND];
+const picks = nonPublicZones.flatMap((zone) => [[zone, 'click'], [zone, 'Enter']] as const);
 
-it.each(nonPublicZones)('cancels a hand arrow on a non-public %s card without playing', async (zone) => {
+it.each(picks)('cancels a hand arrow on a non-public %s card (%s) without playing', async (zone, how) => {
   const webClient = createMockWebClient();
   const { store } = renderWithProviders(<Game />, {
     webClient,
@@ -61,7 +62,12 @@ it.each(nonPublicZones)('cancels a hand arrow on a non-public %s card without pl
   expect(target).not.toBeNull();
   // Flush the asynchronous card lookup/play chain before checking for no sends.
   await act(async () => {
-    fireEvent.click(target!);
+    if (how === 'click') {
+      fireEvent.click(target!);
+    } else {
+      (target as HTMLElement).focus();
+      fireEvent.keyDown(target!, { key: 'Enter', code: 'Enter' });
+    }
   });
   expect(webClient.request.game.moveCard).not.toHaveBeenCalled();
   expect(webClient.request.game.createArrow).not.toHaveBeenCalled();
