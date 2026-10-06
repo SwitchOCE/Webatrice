@@ -78,7 +78,9 @@ function asArray<T>(value: T | T[] | undefined): T[] {
 }
 
 function samePrinting(a: CardInSet, b: CardInSet): boolean {
-  return a.value === b.value && a.uuid === b.uuid && a.num === b.num;
+  // Desktop printing/printing_info.h:54 compares the entire properties hash.
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every(key => a[key] === b[key]);
 }
 
 /**
@@ -97,7 +99,12 @@ function mergeByName<T extends Card | Token>(target: Map<string, T>, records: re
       continue;
     }
     const printings = asArray(existing.set);
-    const added = asArray(record.set).filter((p) => !printings.some((q) => samePrinting(p, q)));
+    const added: CardInSet[] = [];
+    for (const printing of asArray(record.set)) {
+      if (![...printings, ...added].some(existing => samePrinting(printing, existing))) {
+        added.push(printing);
+      }
+    }
     if (added.length) {
       target.set(name, { ...existing, set: [...printings, ...added] });
     }
@@ -106,15 +113,21 @@ function mergeByName<T extends Card | Token>(target: Map<string, T>, records: re
 
 /** Fold sources (already in load order) into the rows the card tables hold. */
 export function mergeCardSources(layers: readonly CardSourceRecords[]): CardSourceRecords {
-  const cards = new Map<string, Card>();
-  const tokens = new Map<string, Token>();
+  const records = new Map<string, Card | Token>();
+  const tokenNames = new globalThis.Set<string>();
   const sets = new Map<string, Set>();
   const formats = new Map<string, Format>();
   let info: CardSourceRecords['info'];
 
   for (const layer of layers) {
-    mergeByName(cards, layer.cards);
-    mergeByName(tokens, layer.tokens);
+    // Desktop card_database.cpp:111 keeps cards and tokens in one name map.
+    mergeByName(records, layer.cards);
+    for (const token of layer.tokens) {
+      if (!records.has(token.name.value)) {
+        tokenNames.add(token.name.value);
+      }
+      mergeByName(records, [token]);
+    }
     for (const set of layer.sets) {
       const code = set.name?.value;
       if (code && !sets.has(code)) {
@@ -122,17 +135,24 @@ export function mergeCardSources(layers: readonly CardSourceRecords[]): CardSour
       }
     }
     for (const format of layer.formats) {
-      if (!formats.has(format.formatName)) {
-        formats.set(format.formatName, format);
-      }
+      // Desktop card_database.cpp:238 replaces formats on a lowercase key.
+      formats.set(format.formatName.toLowerCase(), format);
     }
     info ??= layer.info;
   }
 
+  for (const record of records.values()) {
+    for (const printing of asArray(record.set)) {
+      if (printing.value && !sets.has(printing.value)) {
+        sets.set(printing.value, { name: { value: printing.value } });
+      }
+    }
+  }
+
   return {
-    cards: [...cards.values()],
+    cards: [...records.values()].filter(record => !tokenNames.has(record.name.value)) as Card[],
     sets: [...sets.values()],
-    tokens: [...tokens.values()],
+    tokens: [...records.values()].filter(record => tokenNames.has(record.name.value)),
     formats: [...formats.values()],
     info,
   };
