@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import { ZoneName } from '@cockatrice/sockatrice';
 import { games } from '@cockatrice/datatrice';
 import { lookupCardsCached, type LookupResult } from '@app/services';
 import { useAppSelector } from '@app/store';
@@ -30,7 +31,7 @@ function typeLineOf(result: LookupResult): string {
  * of any seat (desktop GameView over gameScene->selectedCards()). Cards come
  * from the game state; type lines from the card catalog.
  *
- * A face-up card with no live P/T counts its printed P/T: web clients play
+ * A face-up battlefield card with no live P/T counts its printed P/T: web clients play
  * cards without sending one (desktop sets it from its card database when
  * playing, player_actions.cpp:88), so the board shows the printed value too.
  */
@@ -41,13 +42,13 @@ export function useSelectionTally(): SelectionTally {
   const game = useAppSelector((state) => (gameId != null ? games.Selectors.getGame(state, gameId) : undefined));
 
   const selected = useMemo(() => {
-    const out: TallyCard[] = [];
+    const out: (TallyCard & { battlefield: boolean })[] = [];
     for (const key of selection?.selectedCardKeys ?? []) {
       const parsed = parseCardKey(key);
       const zone = parsed ? game?.players[parsed.playerId]?.zones[parsed.zone] : undefined;
       const card = zone?.byId[parsed!.cardId] ?? zone?.revealedCards?.find((c) => c.id === parsed!.cardId);
       if (card) {
-        out.push({ name: card.name, pt: card.pt, faceDown: card.faceDown });
+        out.push({ name: card.name, pt: card.pt, faceDown: card.faceDown, battlefield: parsed!.zone === ZoneName.TABLE });
       }
     }
     return out;
@@ -79,7 +80,7 @@ export function useSelectionTally(): SelectionTally {
     }
     const cards = selected.map((c) => {
       const printed = catalog.get(c.name);
-      return !c.pt && !c.faceDown && printed?.power != null && printed.toughness != null
+      return c.battlefield && !c.pt && !c.faceDown && printed?.power != null && printed.toughness != null
         ? { ...c, pt: `${printed.power}/${printed.toughness}` }
         : c;
     });

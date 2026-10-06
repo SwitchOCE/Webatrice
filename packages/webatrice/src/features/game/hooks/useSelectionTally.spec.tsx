@@ -41,7 +41,7 @@ function renderTally(keys: string[]) {
   const preloadedState = buildSeatGameState({
     localPlayerId: 1,
     seats: [
-      { playerId: 1, table: [GUIDE], hand: [BOLT] },
+      { playerId: 1, table: [GUIDE], hand: [BOLT, BEAR] },
       { playerId: 2, table: [BEAR, MORPH] },
     ],
   });
@@ -82,6 +82,14 @@ describe('useSelectionTally', () => {
     act(() => latest.setType!('power'));
     // Guide's live 3, Bear's printed 2, the face-down card's live 2; Bolt has none.
     await waitFor(() => expect(latest.tally!.rows).toEqual([{ name: 'Total Power', value: '7' }]));
+  });
+
+  it('uses printed P/T only on the battlefield, while hand cards still count and have types', async () => {
+    renderTally([makeCardKey(1, ZoneName.HAND, 20), makeCardKey(2, ZoneName.TABLE, 20)]);
+    act(() => latest.setType!('subtypes'));
+    await waitFor(() => expect(latest.tally!.rows).toEqual([{ name: 'Bear', value: '2' }]));
+    act(() => latest.setType!('power'));
+    expect(latest.tally).toEqual({ rows: [{ name: 'Total Power', value: '2' }], count: 2 });
   });
 
   it('counts the subtypes of the face-up selected cards from the catalog', async () => {
