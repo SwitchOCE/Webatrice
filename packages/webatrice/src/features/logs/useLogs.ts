@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useWebClient } from '@cockatrice/datatrice/react';
-import { server, type ServerStateLogs } from '@cockatrice/datatrice';
+import { server, normalizeLogs, type ServerStateLogs } from '@cockatrice/datatrice';
 import type { ServerInfo_ChatMessage, ViewLogHistoryParams } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
+import { useCommandFailureMessage, useReduxEffect, useRequestTracker } from '@app/hooks';
 import { useAppDispatch, useAppSelector } from '@app/store';
 
 import { logDateRangeHours, type LogSearchFormValues } from './LogSearchForm/logSearchFormSchema';
@@ -49,11 +49,12 @@ export function useLogs(): Logs {
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
   const dispatch = useAppDispatch();
-  const logs = useAppSelector((state) => server.Selectors.getLogs(state));
+  const storedLogs = useAppSelector(server.Selectors.getLogs);
+  // Only owned replies replace this page's rows; unrelated actions may still update the shared cache.
+  const [logs, setLogs] = useState(() => storedLogs);
   const webClient = useWebClient();
-  const [notice, setNotice] = useState<LogsNotice | null>(null);
-  // Report outcomes only for searches sent from this page.
-  const searching = useRef(false);
+  const [notices, setNotices] = useState<LogsNotice[]>([]);
+  const requests = useRequestTracker();
 
   useEffect(() => {
     return () => {
@@ -63,36 +64,36 @@ export function useLogs(): Logs {
 
   // TabLog::viewLogHistory_processResponse: an empty result is a message box,
   // not an empty table.
-  useReduxEffect<{ logs: ServerInfo_ChatMessage[] }>(({ payload }) => {
-    if (!searching.current) {
+  useReduxEffect<{ logs: ServerInfo_ChatMessage[]; requestId?: string }>(({ payload }) => {
+    if (!requests.settle(payload.requestId)) {
       return;
     }
-    searching.current = false;
+    setLogs(normalizeLogs(payload.logs));
     if (payload.logs.length === 0) {
-      setNotice({ title: t('Logs.notice.title'), message: t('Logs.notice.empty'), severity: 'info' });
+      setNotices((queue) => [...queue, { title: t('Logs.notice.title'), message: t('Logs.notice.empty'), severity: 'info' }]);
     }
-  }, server.Types.VIEW_LOGS, [t]);
+  }, server.Types.VIEW_LOGS, [requests, t]);
 
   // A transport failure (timeout, lost connection) explains itself; a server
   // rejection gets desktop's message.
-  useReduxEffect<{ command: string; failure?: WebsocketTypes.CommandFailure }>(({ payload }) => {
-    if (payload.command !== 'viewLogHistory' || !searching.current) {
+  useReduxEffect<{ command: string; failure?: WebsocketTypes.CommandFailure; requestId?: string }>(({ payload }) => {
+    if (payload.command !== 'viewLogHistory' || !requests.settle(payload.requestId)) {
       return;
     }
-    searching.current = false;
-    setNotice({
+    setNotices((queue) => [...queue, {
       title: t('Logs.notice.title'),
       message: describeFailure(payload.failure, t('Logs.notice.failed')),
       severity: 'error',
-    });
-  }, server.Types.MODERATOR_COMMAND_FAILED, [describeFailure, t]);
+    }]);
+  }, server.Types.MODERATOR_COMMAND_FAILED, [describeFailure, requests, t]);
 
   const onSubmit = useCallback((values: LogSearchFormValues) => {
-    searching.current = true;
-    webClient.request.moderator.viewLogHistory(toViewLogHistoryParams(values));
-  }, [webClient]);
+    const requestId = requests.begin();
+    requests.track(requestId);
+    webClient.request.moderator.viewLogHistory(toViewLogHistoryParams(values), requestId);
+  }, [requests, webClient]);
 
-  const dismissNotice = useCallback(() => setNotice(null), []);
+  const dismissNotice = useCallback(() => setNotices((queue) => queue.slice(1)), []);
 
-  return { logs, notice, dismissNotice, onSubmit };
+  return { logs, notice: notices[0] ?? null, dismissNotice, onSubmit };
 }
