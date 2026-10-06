@@ -269,6 +269,7 @@ describe('ToastProvider + usePushToast', () => {
     expect(more).toHaveAttribute('aria-expanded', 'false');
 
     fireEvent.click(more);
+    expect(more.closest('section')).toHaveClass('max-h-[calc(100dvh-3rem)]', 'overflow-y-auto');
     expect(queryAlerts()).toHaveLength(6);
     fireEvent.click(screen.getByRole('button', { name: 'Toast.showFewer' }));
     expect(queryAlerts()).toHaveLength(4);
