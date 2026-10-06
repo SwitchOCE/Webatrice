@@ -52,23 +52,32 @@ export function useApplyLanguagePreference(): void {
   const ready = useSettings().status === LoadingState.READY;
   const preference = usePreference('language');
   const applied = useRef<Language | undefined | null>(null);
+  const version = useRef(0);
 
   useEffect(() => {
     if (!ready) {
       return;
     }
     const chosen = resolveSupportedLanguage(preference);
+    const current = ++version.current;
     const previous = applied.current;
     applied.current = chosen;
     mirrorForBoot(chosen);
 
     if (chosen) {
-      if (i18n.language !== chosen) {
-        void i18n.changeLanguage(chosen);
-      }
+      // Load without changing the active language; a newer choice supersedes this load.
+      // Apply even the current language: an earlier change may still be in flight.
+      void i18n.loadLanguages(chosen).then(() => {
+        if (current === version.current) {
+          return i18n.changeLanguage(chosen);
+        }
+      });
     } else if (previous) {
       // Back to "follow the browser": run detection again now that nothing is cached.
       void i18n.changeLanguage();
     }
+    return () => {
+      version.current = current + 1;
+    };
   }, [ready, preference, i18n]);
 }
