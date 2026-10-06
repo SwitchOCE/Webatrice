@@ -1,85 +1,87 @@
 import { useEffect } from 'react';
-
-import { ServerCapability, games, server } from '@cockatrice/datatrice';
+import { useStore } from 'react-redux';
+import { games, server, ServerCapability } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
-import { usePlaymatSettings } from '@app/hooks';
-import { useAppSelector } from '@app/store';
-
+import { getPlaymatSettings, settingsStore } from '@app/hooks';
+import type { RootState } from '@app/store';
 import { resolvePlaymat, sameCollectionSettings, samePlaymat } from '../utils/resolvePlaymat';
 import { getPlaymatSyncState, prunePlaymatSyncState } from './playmatSyncState';
 
-/**
- * Announces the local player's playmat (Cockatrice #7101), the web side of
- * desktop DeckViewContainer::resolveAndSendPlaymat.
- *
- * Desktop resolves right after Command_DeckSelect from the deck file it just
- * sent. The web client may select a server-stored deck it never parsed, so the
- * deck's own playmat is read back instead: Servatrice answers a deck select
- * with Event_PlayerPropertiesChanged carrying the new deck_hash together with
- * the deck's playmat_params. A new deck hash, or a playmat this client did not
- * send (reselecting the same deck), is taken as the deck's playmat.
- *
- * As on desktop, the playmat is resolved against the user's collection and
- * sent after a deck select, on every Ready, and when the collection settings
- * change; the round-robin cursor advances when a game of the match ends
- * (TabGame::stopGame). Nothing is sent when the result is already announced.
- * The per-game state lives in playmatSyncState, so it survives leaving the
- * game route.
- */
-export function usePlaymatSync(gameId: number | undefined): void {
+type PropertiesEvent = ReturnType<typeof games.Actions.playerPropertiesChanged>['payload'];
+
+/** Mounted once by AppShell: observes every joined game even while its route is absent. */
+export function usePlaymatSync(): void {
+  const store = useStore<RootState>();
   const webClient = useWebClient();
-  const settings = usePlaymatSettings();
-  const supported = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.PLAYMATS));
-  const liveGameIds = useAppSelector((state) => Object.keys(games.Selectors.getGames(state)).join(','));
-  const game = useAppSelector((state) => (gameId == null ? undefined : games.Selectors.getGame(state, gameId)));
-  const local = game && !game.spectator ? game.players[game.localPlayerId] : undefined;
-  const playerId = local?.properties.playerId;
-  const deckHash = local?.properties.deckHash ?? '';
-  const ready = local?.properties.readyStart ?? false;
-  const announced = useAppSelector((state) =>
-    gameId == null || playerId == null ? null : games.Selectors.getPlayerPlaymat(state, gameId, playerId));
-  const started = game?.started ?? false;
-
   useEffect(() => {
-    prunePlaymatSyncState(liveGameIds ? liveGameIds.split(',').map(Number) : []);
-  }, [liveGameIds]);
-
-  useEffect(() => {
-    if (!supported || gameId == null || playerId == null) {
-      return;
-    }
-    const sync = getPlaymatSyncState(gameId);
-    if (sync.wasStarted && !started) {
-      sync.rotation++;
-    }
-    sync.wasStarted = started;
-    const readied = ready && !sync.wasReady;
-    sync.wasReady = ready;
-    if (!deckHash) {
-      return;
-    }
-    const deckSelected = deckHash !== sync.deckHash
-      || sync.lastSent === undefined
-      || !samePlaymat(announced, sync.lastSent);
-    const settingsChanged = !sameCollectionSettings(sync.settings, settings);
-    if (!deckSelected && !settingsChanged && !readied) {
-      return;
-    }
-    if (deckSelected) {
-      sync.deckHash = deckHash;
-      sync.deckPlaymat = announced;
-    }
-    sync.settings = settings;
-    const resolved = resolvePlaymat(sync.deckPlaymat, settings, sync.rotation, sync.lastResolved);
-    sync.lastResolved = resolved;
-    sync.lastSent = resolved;
-    if (samePlaymat(resolved, announced)) {
-      return;
-    }
-    webClient.request.game.setPlaymat(gameId, {
-      playmatParams: resolved
-        ? { cardName: resolved.cardName, cardProviderId: resolved.cardProviderId, ...resolved.params }
-        : { cardName: '' },
-    });
-  }, [supported, gameId, playerId, deckHash, ready, started, announced, settings, webClient]);
+    let lastAction = store.getState().action?.count;
+    const syncGames = () => {
+      const state = store.getState();
+      const action = state.action;
+      const selected = action?.count !== lastAction && action?.type === games.Actions.playerPropertiesChanged.type
+        ? action.payload as PropertiesEvent : undefined;
+      lastAction = action?.count;
+      const liveGames = Object.entries(games.Selectors.getGames(state)).filter(([, game]) => !game.replay);
+      prunePlaymatSyncState(liveGames.map(([id]) => Number(id)));
+      if (!server.Selectors.supports(state, ServerCapability.PLAYMATS)) {
+        return;
+      }
+      const settings = getPlaymatSettings();
+      for (const [id, game] of liveGames) {
+        if (game.spectator) {
+          continue;
+        }
+        const gameId = Number(id);
+        const local = game.players[game.localPlayerId];
+        if (!local) {
+          continue;
+        }
+        const event = selected?.isDeckSelect && selected.gameId === gameId && selected.playerId === game.localPlayerId
+          ? selected : undefined;
+        const sync = getPlaymatSyncState(gameId);
+        if (sync.wasStarted && !game.started) {
+          sync.rotation++;
+        }
+        sync.wasStarted = game.started;
+        const ready = local.properties.readyStart;
+        const readied = ready && !sync.wasReady;
+        sync.wasReady = ready;
+        const received = event ? games.playmatFromParams(event.properties.playmatParams)
+          : games.Selectors.getPlayerPlaymat(state, gameId, game.localPlayerId);
+        // The action recorder clones protobuf messages and omits inherited defaults.
+        const announced = received ? { ...received, cardProviderId: received.cardProviderId ?? '' } : null;
+        const deckHash = event ? event.properties.deckHash : local.properties.deckHash;
+        const initialDeck = !sync.deckHash && !!deckHash;
+        if (event || initialDeck) {
+          sync.deckHash = deckHash;
+          sync.deckPlaymat = announced;
+        }
+        if (!sync.deckHash || !settingsStore.peek()) {
+          continue;
+        }
+        const settingsChanged = !sameCollectionSettings(sync.settings, settings);
+        if (!event && !initialDeck && !settingsChanged && !readied) {
+          continue;
+        }
+        sync.settings = settings;
+        const resolved = resolvePlaymat(sync.deckPlaymat, settings, sync.rotation, sync.lastResolved);
+        sync.lastResolved = resolved;
+        sync.lastSent = resolved;
+        if (samePlaymat(resolved, announced)) {
+          continue;
+        }
+        webClient.request.game.setPlaymat(gameId, {
+          playmatParams: resolved
+            ? { cardName: resolved.cardName, cardProviderId: resolved.cardProviderId, ...resolved.params }
+            : { cardName: '' },
+        });
+      }
+    };
+    const unsubscribeGames = store.subscribe(syncGames);
+    const unsubscribeSettings = settingsStore.subscribe(syncGames);
+    syncGames();
+    return () => {
+      unsubscribeGames(); unsubscribeSettings();
+    };
+  }, [store, webClient]);
 }

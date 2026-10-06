@@ -14,6 +14,7 @@ import { loadPersistedLastRoute, ShellLifecycleProvider } from '@app/feature-wra
 import { PrivateMessageNotifier } from '@app/features/player';
 import { ReportNotifier } from '@app/features/reports';
 import { AppAlerts, CommandFailureNotices, FeatureDetection, ServerNotices } from '@app/features/shell';
+import { usePlaymatSync } from './features/game/hooks/usePlaymatSync';
 import { appShellLifecycle } from './appShellLifecycle';
 import { SessionScope } from './SessionScope';
 
@@ -21,6 +22,7 @@ import { SessionScope } from './SessionScope';
 // background, box-sizing, anchor styles). The equivalent rules now
 // live in index.css so we control them without MUI's opinions.
 function AppShell() {
+  usePlaymatSync();
   useSyncLocaleToStore();
   useAdminLockSession();
   useApplyLanguagePreference();

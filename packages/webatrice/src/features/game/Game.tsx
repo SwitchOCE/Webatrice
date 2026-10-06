@@ -9,7 +9,6 @@ import { ConfirmDialog, PromptDialog } from '@app/dialogs';
 import GameLobby from './GameLobby';
 import GameErrorBoundary from './GameErrorBoundary';
 import { useCurrentGame } from './hooks/useCurrentGame';
-import { usePlaymatSync } from './hooks/usePlaymatSync';
 import GameArrowOverlay from './components/arrows/GameArrowOverlay/GameArrowOverlay';
 import BoxSelectOverlay from './components/ui/BoxSelectOverlay/BoxSelectOverlay';
 import CardContextMenu from './components/context-menus/CardContextMenu/CardContextMenu';
@@ -68,9 +67,6 @@ function Game() {
   const parsed = params.gameId != null ? Number(params.gameId) : NaN;
   const routeGameId = Number.isFinite(parsed) ? parsed : undefined;
   const { game, isStarted } = useCurrentGame(routeGameId);
-  // Lives above the lobby/board switch: decks are selected in the lobby and
-  // the round-robin cursor advances when a game ends.
-  usePlaymatSync(routeGameId);
 
   return (
     <GameErrorBoundary gameId={routeGameId}>
