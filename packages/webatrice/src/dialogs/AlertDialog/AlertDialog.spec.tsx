@@ -168,3 +168,18 @@ describe('AlertDialog', () => {
     expect(screen.getByRole('button', { name: /^ok$/i }).className).toMatch(/colorPrimary/);
   });
 });
+
+
+it('renders warning severity and keeps optional server details collapsed', () => {
+  renderWithProviders(<AlertDialog isOpen title="Warning" message="Explanation" severity="warning"
+    details="Server supplied details" onDismiss={() => {}} />);
+  expect(screen.getByRole('button', { name: /^ok$/i })).toHaveClass('MuiButton-colorWarning');
+  const details = screen.getByText('Server supplied details').closest('details')!;
+  expect(details.open).toBe(false);
+  expect(screen.getByText('AlertDialog.details').tagName).toBe('SUMMARY');
+  // Native disclosure; no HTML from the server is interpreted.
+  expect(screen.getByText('Server supplied details')).not.toBeVisible();
+  fireEvent.click(screen.getByText('AlertDialog.details'));
+  expect(details.open).toBe(true);
+  expect(screen.getByText('Server supplied details')).toBeVisible();
+});

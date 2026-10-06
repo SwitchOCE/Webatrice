@@ -1,13 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { rooms, server } from '@cockatrice/datatrice';
 import type { CommandFailedPayload, JoinRoomFailedPayload, RoomCommandFailedPayload } from '@cockatrice/datatrice';
 import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
-import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { AlertDialog } from '@app/dialogs';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
-import { useAppSelector } from '@app/store';
 
 interface Notice {
   title: string;
@@ -24,8 +22,8 @@ interface Notice {
  * its own notice on the Logs page.
  *
  * An autojoin that fails stays silent, as desktop's does (it passes
- * `setCurrent = false`). Once the connection is gone the queue is dropped, so
- * failures caused by the drop do not land on the login page.
+ * `setCurrent = false`). These are final outcomes, not pending operations:
+ * retain them until dismissed, including failures caused by disconnect itself.
  *
  * Renders nothing until a failure arrives. Mounted once in AppShell.
  */
@@ -34,15 +32,7 @@ export default function CommandFailureNotices() {
   const describeFailure = useCommandFailureMessage();
   const [notices, setNotices] = useState<Notice[]>([]);
 
-  const disconnected = useAppSelector(server.Selectors.getState) === WebsocketTypes.StatusEnum.DISCONNECTED;
-
   const push = (notice: Notice) => setNotices((queue) => [...queue, notice]);
-
-  useEffect(() => {
-    if (disconnected && notices.length > 0) {
-      setNotices([]);
-    }
-  }, [disconnected, notices.length]);
 
   useReduxEffect<JoinRoomFailedPayload>(({ payload: { responseCode, failure, userInitiated } }) => {
     if (!userInitiated) {
@@ -69,7 +59,7 @@ export default function CommandFailureNotices() {
   }, server.Types.DECK_UPLOAD_FAILED, [describeFailure, t]);
 
   const current = notices[0];
-  if (!current || disconnected) {
+  if (!current) {
     return null;
   }
 

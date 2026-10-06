@@ -39,7 +39,7 @@ describe('describeNotification', () => {
       .toEqual({
         title: 'ServerNotices.warning.title',
         message: 'ServerNotices.warning.message {"reason":"spamming chat"}',
-        severity: 'error',
+        severity: 'warning',
       });
   });
 
@@ -53,7 +53,8 @@ describe('describeNotification', () => {
       customContent: 'Round 2 starts now',
     }))).toEqual({
       title: 'Tournament',
-      message: 'ServerNotices.custom.message {"content":"Round 2 starts now"}',
+      message: 'ServerNotices.custom.message',
+      details: 'Round 2 starts now',
       severity: 'info',
     });
   });
