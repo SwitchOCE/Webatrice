@@ -32,6 +32,30 @@ function setup({ stack = [] as Stack, deckCount = 10, enabled = true } = {}) {
 }
 
 describe('useMoveTopUntil', () => {
+  it('a dialog callback starts against the current stack, not the stack at open', () => {
+    const moveCards = vi.fn();
+    const { result, rerender } = renderHook(
+      (stackCards: Stack) => useMoveTopUntil({ enabled: true, describeCard, moveCards, stackCards, deckCount: 10 }),
+      { initialProps: [] as Stack },
+    );
+    const submit = result.current;
+    rerender([{ id: '90', name: 'Island' }]);
+    act(() => submit({ filter: 'Bolt', hits: 1, autoPlay: false }));
+    expect(moveCards.mock.calls).toEqual([REVEAL]);
+  });
+
+  it.each([[10, 0], [0, 10]])('a dialog callback reads the current deck count (%i to %i)', (before, after) => {
+    const moveCards = vi.fn();
+    const { result, rerender } = renderHook(
+      (deckCount: number) => useMoveTopUntil({ enabled: true, describeCard, moveCards, stackCards: [], deckCount }),
+      { initialProps: before },
+    );
+    const submit = result.current;
+    rerender(after);
+    act(() => submit({ filter: 'Bolt', hits: 1, autoPlay: false }));
+    expect(moveCards.mock.calls).toEqual(after > 0 ? [REVEAL] : []);
+  });
+
   it('reveals the top card once on start, and the next only when it lands', () => {
     const { moveCards, lands, start } = setup();
 
