@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
+  type ProviderProps,
   type ReactNode,
 } from 'react';
 import { useDndContext, useDndMonitor, useDraggable, useDroppable, type DragMoveEvent } from '@dnd-kit/core';
@@ -31,9 +32,59 @@ import {
 export const SEAT_DRAG_THRESHOLD_PX = 4;
 
 const ActiveSeatDragContext = createContext<SeatDragSource | null>(null);
+type SeatDragActivator = (
+  event: ReactPointerEvent<HTMLElement>,
+  cards: readonly SeatDragCard[],
+  onRelease: ((event: PointerEvent) => void) | undefined,
+  options: SeatDragSourceOptions,
+) => void;
+const SeatDragActivatorContext = createContext<SeatDragActivator | null>(null);
 
 /** Provided by Game from useGameDnd. */
-export const ActiveSeatDragProvider = ActiveSeatDragContext.Provider;
+export function ActiveSeatDragProvider({ value, children }: ProviderProps<SeatDragSource | null>) {
+  // Keep dnd-kit's reactive draggable subscription at the game boundary. If
+  // each seat called useDraggable itself, every pointer update from dnd-kit
+  // would re-render that seat's entire PlayerBoard hook tree.
+  const data = useRef<SeatDragSource>({
+    kind: 'seat',
+    seatPlayerId: 0,
+    zone: 'battlefield',
+    cards: [],
+    activationDistance: SEAT_DRAG_THRESHOLD_PX,
+  }).current;
+  const { setNodeRef, listeners } = useDraggable({ id: 'active-seat-drag', data });
+  const activate = useCallback<SeatDragActivator>(
+    (event, cards, onRelease, options) => {
+      if (options.disabled || event.button !== 0 || cards.length === 0 || !listeners) {
+        return;
+      }
+      const canDrag = !options.canMoveFor || cards.every((card) =>
+        options.canMoveFor!(card.ownerPlayerId ?? options.seatPlayerId));
+      Object.assign(data, {
+        seatPlayerId: options.seatPlayerId,
+        zone: options.zone,
+        lenderPlayerId: options.lenderPlayerId,
+        cards,
+        onRelease,
+        activationDistance: canDrag ? SEAT_DRAG_THRESHOLD_PX : Number.POSITIVE_INFINITY,
+      });
+      setNodeRef(event.currentTarget);
+      listeners.onPointerDown(event);
+      // After dnd-kit has seen the press (it ignores prevented events): no
+      // text selection and no native HTML5 drag of the card art.
+      event.preventDefault();
+    },
+    [data, listeners, setNodeRef],
+  );
+
+  return (
+    <ActiveSeatDragContext.Provider value={value}>
+      <SeatDragActivatorContext.Provider value={activate}>
+        {children}
+      </SeatDragActivatorContext.Provider>
+    </ActiveSeatDragContext.Provider>
+  );
+}
 
 /** The seat drag in progress (after the threshold), or null. */
 export function useActiveSeatDrag(): SeatDragSource | null {
@@ -67,40 +118,16 @@ export type SeatDragStart = (
  * surface calls the returned `start` from its cards' pointerdown; the pressed
  * element becomes the drag's anchor, so the ghost stays where it was grabbed.
  */
-export function useSeatDragSource(id: string, options: SeatDragSourceOptions): SeatDragStart {
-  // One data object per surface, refreshed at each press: dnd-kit reads the
-  // data through a ref, and useGameDnd snapshots it when the drag starts.
-  const data = useRef<SeatDragSource>({
-    kind: 'seat',
-    seatPlayerId: options.seatPlayerId,
-    zone: options.zone,
-    cards: [],
-    activationDistance: SEAT_DRAG_THRESHOLD_PX,
-  }).current;
-  const { setNodeRef, listeners } = useDraggable({ id, data, disabled: options.disabled });
-  const { seatPlayerId, zone, lenderPlayerId, canMoveFor } = options;
-
+export function useSeatDragSource(_id: string, options: SeatDragSourceOptions): SeatDragStart {
+  const activate = useContext(SeatDragActivatorContext);
   return useCallback<SeatDragStart>(
     (event, cards, onRelease) => {
-      if (event.button !== 0 || cards.length === 0 || !listeners) {
+      if (!activate) {
         return;
       }
-      const canDrag = !canMoveFor || cards.every((card) => canMoveFor(card.ownerPlayerId ?? seatPlayerId));
-      Object.assign(data, {
-        seatPlayerId,
-        zone,
-        lenderPlayerId,
-        cards,
-        onRelease,
-        activationDistance: canDrag ? SEAT_DRAG_THRESHOLD_PX : Number.POSITIVE_INFINITY,
-      });
-      setNodeRef(event.currentTarget);
-      listeners.onPointerDown(event);
-      // After dnd-kit has seen the press (it ignores prevented events): no
-      // text selection and no native HTML5 drag of the card art.
-      event.preventDefault();
+      activate(event, cards, onRelease, options);
     },
-    [data, listeners, setNodeRef, seatPlayerId, zone, lenderPlayerId, canMoveFor],
+    [activate, options],
   );
 }
 
