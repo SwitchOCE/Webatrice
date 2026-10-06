@@ -46,9 +46,12 @@ export function useChatHighlight(): ChatHighlights {
   } = usePreferences();
   const selfName = useAppSelector((state) => server.Selectors.getUser(state)?.name ?? null);
 
+  const users = useAppSelector(server.Selectors.getUsers);
+
   return useMemo(() => {
     const user: ChatHighlight = {
       selfName,
+      userNames: Object.keys(users),
       mentions: chatMention,
       mentionStyle: highlightStyle(chatMentionColor, chatMentionForeground),
       highlightWords: parseHighlightWords(chatHighlightWords),
@@ -58,6 +61,7 @@ export function useChatHighlight(): ChatHighlights {
     return { user, moderator: { ...user, senderIsModerator: true } };
   }, [
     selfName,
+    users,
     chatMention,
     chatMentionColor,
     chatMentionForeground,

@@ -1,8 +1,8 @@
 import { NavLink, generatePath } from 'react-router-dom';
 import { Fragment, useMemo, type ReactNode } from 'react';
 
-import { CALLOUT_BOUNDARY_REGEX, CARD_CALLOUT_REGEX, MENTION_REGEX, RouteEnum, URL_REGEX } from '@app/types';
-import { parseMention, segmentText, type ChatHighlight } from '@app/utils';
+import { CALLOUT_BOUNDARY_REGEX, CARD_CALLOUT_REGEX, RouteEnum, URL_REGEX } from '@app/types';
+import { parseMention, segmentText, tokenizeChat, type ChatHighlight } from '@app/utils';
 import UserActionsMenu from '../UserDisplay/UserActionsMenu';
 import { useUserDisplay } from '../UserDisplay/useUserDisplay';
 import CardCallout from './CardCallout';
@@ -119,7 +119,7 @@ function parseChunk(chunk: string, index: number, highlight?: MessageHighlight):
     return parseUrlChunk(chunk, highlight);
   }
 
-  if (chunk.match(MENTION_REGEX) && highlight?.mentions !== false) {
+  if (tokenizeChat(chunk).some((token) => token.kind === 'mention') && highlight?.mentions !== false) {
     return parseMentionChunk(chunk, highlight);
   }
 
@@ -139,26 +139,24 @@ function parseUrlChunk(chunk: string, highlight?: MessageHighlight): ReactNode {
 }
 
 function parseMentionChunk(chunk: string, highlight?: MessageHighlight): ReactNode {
-  return chunk.split(MENTION_REGEX)
-    .filter((mentionChunk) => !!mentionChunk)
-    .map((mentionChunk, index) => {
-      const mention = mentionChunk.match(MENTION_REGEX);
-
-      if (mention) {
-        const { name, rest, own } = parseMention(mention[0].slice(1), highlight?.selfName ?? null);
-        const label = `@${name}`;
-        return (
-          <Fragment key={index}>
-            {highlight && own
-              ? <mark className='message__mention' style={highlight.mentionStyle}>{label}</mark>
-              : <PlayerLink name={name} label={label} />}
-            {rest && parseText(rest, highlight)}
-          </Fragment>
-        );
-      }
-
-      return <Fragment key={index}>{parseText(mentionChunk, highlight)}</Fragment>;
-    });
+  return tokenizeChat(chunk).map((token, index) => {
+    if (token.kind !== 'mention' || token.text.startsWith('@/all')) {
+      return <Fragment key={index}>{parseText(token.text, highlight)}</Fragment>;
+    }
+    const { name, rest, own } = parseMention(token.text.slice(1), highlight?.selfName ?? null, highlight?.userNames);
+    if (!name) {
+      return token.text;
+    }
+    const label = `@${name}`;
+    return (
+      <Fragment key={index}>
+        {highlight && own
+          ? <mark className='message__mention' style={highlight.mentionStyle}>{label}</mark>
+          : <PlayerLink name={name} label={label} />}
+        {rest && parseText(rest, highlight)}
+      </Fragment>
+    );
+  });
 }
 
 function parseText(text: string, highlight?: MessageHighlight): ReactNode {
@@ -182,6 +180,12 @@ function parseText(text: string, highlight?: MessageHighlight): ReactNode {
         return segment.text;
     }
   });
+}
+
+/** Message body without the room-chat sender-prefix convention. */
+export function MessageText({ text, highlight }: { text: string; highlight: MessageHighlight }) {
+  const chunks = useMemo(() => text.split(CARD_CALLOUT_REGEX).filter(Boolean).map(makeChunkParser(highlight)), [text, highlight]);
+  return <>{chunks}</>;
 }
 
 export default Message;

@@ -18,9 +18,10 @@ describe('segmentText', () => {
     ]);
   });
 
-  it('only matches whole words', () => {
+  it('starts words after leading punctuation', () => {
     expect(segmentText('(edh', { highlightWords: ['edh'], allMention: false })).toEqual([
-      { kind: 'plain', text: '(edh' },
+      { kind: 'plain', text: '(' },
+      { kind: 'word', text: 'edh' },
     ]);
   });
 
@@ -49,6 +50,15 @@ describe('parseMention', () => {
 });
 
 describe('findChatAlert', () => {
+  it('resolves the complete username before treating punctuation as a suffix', () => {
+    expect(findChatAlert('@alice_', { ...ctx, userNames: ['Alice', 'alice_'] })).toBeNull();
+    expect(findChatAlert('@alice_.', { ...ctx, userNames: ['Alice', 'alice_'] })).toBeNull();
+  });
+
+  it('recognizes mentions and alert words inside punctuation', () => {
+    expect(findChatAlert('(@alice)', ctx)).toBe('mention');
+    expect(findChatAlert('(cube)', { ...ctx, highlightWords: ['cube'] })).toBe('word');
+  });
   it('finds a mention of the reader, ignoring case and trailing punctuation', () => {
     expect(findChatAlert('hey @alice, ready?', ctx)).toBe('mention');
     expect(findChatAlert('hey @alicex', ctx)).toBeNull();

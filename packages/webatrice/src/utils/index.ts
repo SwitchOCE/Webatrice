@@ -6,7 +6,7 @@ export {
   visiblePrivateMessages,
 } from './chatFilters';
 export type { ChatFilterVerdicts, PrivateConversation, PrivateMessageFilter, RoomChatFilter, RoomChatLine } from './chatFilters';
-export { ALL_MENTION, findChatAlert, highlightStyle, parseHighlightWords, parseMention, segmentText } from './chatHighlight';
+export { ALL_MENTION, findChatAlert, highlightStyle, parseHighlightWords, parseMention, segmentText, tokenizeChat } from './chatHighlight';
 export type { ChatAlertContext, ChatAlertKind, ChatHighlight, Mention, TextSegment, TextSegmentKind } from './chatHighlight';
 export { cx } from './cx';
 export type { CxArg } from './cx';

@@ -78,6 +78,7 @@ export default function AppAlerts() {
     }
     const alert = findChatAlert(message.message, {
       selfName,
+      userNames: Object.keys(state.server.users),
       mentions: prefs.chatMention,
       highlightWords: parseHighlightWords(prefs.chatHighlightWords),
       senderIsModerator: isPrivilegedUser(users[message.name]),
