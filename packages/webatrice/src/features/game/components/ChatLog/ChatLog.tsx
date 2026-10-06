@@ -116,7 +116,7 @@ export default function ChatLog() {
         <div className="flex items-center gap-1">
           <MessageSquare size={11} /> Chat &amp; log
         </div>
-        {gameId != null && (
+        {gameId != null && !readOnly && (
           <span
             data-testid="game-log-timer"
             className="tabular-nums normal-case tracking-normal"

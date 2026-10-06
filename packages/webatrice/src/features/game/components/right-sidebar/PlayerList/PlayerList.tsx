@@ -13,6 +13,7 @@ import { RouteEnum } from '@app/types';
 import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 
 import { useGameId } from '../../ui/GameIdContext';
+import { useGameReadOnly } from '../../ui/GameReadOnlyContext';
 import type { ContextMenuItem } from '../../PlayerBox/ContextMenu';
 import PlayerListContextMenu, {
   type PlayerListMenuActions,
@@ -36,6 +37,7 @@ import { UserDetailsModal } from './PlayerListDialogs';
 function PlayerList() {
   const { t } = useTranslation();
   const gameId = useGameId();
+  const readOnly = useGameReadOnly();
   const webClient = useWebClient();
   const navigate = useNavigate();
   const players = useAppSelector((state) =>
@@ -153,7 +155,7 @@ function PlayerList() {
           const pid = p.properties.playerId;
           const name = p.properties.userInfo?.name ?? '(unknown)';
           const isActive = pid === activePlayerId;
-          const isHost = pid === hostId;
+          const isHost = pid >= 0 && pid === hostId;
           const isSpectator = !!p.properties.spectator;
           const isJudge = !!p.properties.judge;
           const isConceded = !!p.properties.conceded;
@@ -179,7 +181,8 @@ function PlayerList() {
               key={pid}
               data-testid={`player-list-item-${pid}`}
               onContextMenu={(e) => {
-                if (!name || name === '(unknown)') {
+                // Desktop tab_game.cpp:1323 gives replay user lists no live client.
+                if (readOnly || !name || name === '(unknown)') {
                   return;
                 }
                 e.preventDefault();
@@ -242,11 +245,11 @@ function PlayerList() {
         })}
       </ul>
 
-      <PlayerListContextMenu
+      {!readOnly && <PlayerListContextMenu
         anchor={menuAnchor}
         target={menuTarget}
         local={{
-          isHost: hostId != null && hostId === localPlayerId,
+          isHost: hostId != null && hostId >= 0 && hostId === localPlayerId,
           isRegistered,
           isModerator: isModerator && !adminLocked,
         }}
@@ -255,9 +258,9 @@ function PlayerList() {
         moderationItems={moderationItems}
         actions={actions}
         onDismiss={dismissMenu}
-      />
+      />}
 
-      {userDetailsTarget && userDetailsResolved && (
+      {!readOnly && userDetailsTarget && userDetailsResolved && (
         <UserDetailsModal
           user={userDetailsResolved}
           onClose={() => setUserDetailsTarget(null)}

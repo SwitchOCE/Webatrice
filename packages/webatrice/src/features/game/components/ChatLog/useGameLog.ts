@@ -4,6 +4,7 @@ import { games, server } from '@cockatrice/datatrice';
 import { useAdminLocked } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 import { GameMessage, PlayerEntry } from '@cockatrice/datatrice';
+import { useGameReadOnly } from '../ui/GameReadOnlyContext';
 const EMPTY_MESSAGES: GameMessage[] = [];
 
 export function formatElapsed(totalSeconds: number): string {
@@ -39,6 +40,7 @@ export interface UseGameLogArgs {
 
 export function useGameLog({ gameId, listRef }: UseGameLogArgs): GameLog {
   const webClient = useWebClient();
+  const readOnly = useGameReadOnly();
   // Selector's EMPTY_ARRAY fallback is typed ServerInfo_Card[]; cast is safe at runtime.
   const messages = useAppSelector((state) =>
     gameId != null ? games.Selectors.getMessages(state, gameId) : EMPTY_MESSAGES,
@@ -84,14 +86,14 @@ export function useGameLog({ gameId, listRef }: UseGameLogArgs): GameLog {
   }, [secondsElapsed]);
 
   useEffect(() => {
-    if (gameId == null) {
+    if (gameId == null || readOnly) {
       return undefined;
     }
     const id = window.setInterval(() => {
       setDisplaySeconds((prev) => prev + 1);
     }, 1000);
     return () => window.clearInterval(id);
-  }, [gameId]);
+  }, [gameId, readOnly]);
 
   const [draft, setDraft] = useState('');
 
