@@ -96,4 +96,20 @@ describe('Message', () => {
     expect(screen.getByRole('button', { name: /GameLink\.anchor\.withId/ })).toHaveAttribute('title', url);
     expect(screen.getByText(/Join my game \(#7\):/)).toBeInTheDocument();
   });
+
+  it('formats game links, URLs, mentions and alert words together without interpreting link contents', () => {
+    const url = 'cockatrice://joingame?hostname=h&port=4747&roomid=1&gameid=7&game=https://example.com/@carol';
+    renderWithProviders(<Message
+      message={{ message: `alice: @bob https://example.org ${url} @carol cube` }}
+      highlight={{
+        selfName: 'bob', mentions: true, mentionStyle: {}, highlightStyle: {}, highlightWords: ['cube'], senderIsModerator: false,
+      }}
+    />);
+    expect(screen.getByRole('button', { name: /GameLink\.anchor\.withDescription/ })).toHaveAttribute('title', url);
+    expect(screen.getByRole('link', { name: 'https://example.org' })).toHaveAttribute('href', 'https://example.org');
+    expect(screen.getByText('@bob').tagName).toBe('MARK');
+    expect(screen.getByRole('link', { name: '@carol' })).toBeInTheDocument();
+    expect(screen.getByText('cube').tagName).toBe('MARK');
+    expect(screen.queryByRole('link', { name: 'https://example.com/@carol' })).not.toBeInTheDocument();
+  });
 });
