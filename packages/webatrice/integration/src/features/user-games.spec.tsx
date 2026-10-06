@@ -104,7 +104,9 @@ describe('Show games of a user (integration)', () => {
     expect(row).toHaveTextContent('Standard');
 
     fireEvent.doubleClick(row);
-    fireEvent.change(await screen.findByLabelText('UserGamesDialog.password.label'), { target: { value: 'hunter2' } });
+    const password = await screen.findByLabelText('UserGamesDialog.password.label');
+    expect(password).toHaveAttribute('type', 'password');
+    fireEvent.change(password, { target: { value: 'hunter2' } });
     fireEvent.click(screen.getByRole('button', { name: 'UserGamesDialog.password.submit' }));
 
     const joinGame = findLastRoomCommand(Command_JoinGame_ext);
@@ -118,6 +120,23 @@ describe('Show games of a user (integration)', () => {
 
     expect(await screen.findByText('/game/7')).toBeInTheDocument();
     expect(screen.queryByRole('dialog', { name: 'UserGamesDialog.title' })).not.toBeInTheDocument();
+  });
+
+  it('switches to an already-open protected game and closes the selector', async () => {
+    setupLobby();
+    deliverMessage(buildSessionEventMessage(Event_GameJoined_ext, create(Event_GameJoinedSchema, {
+      gameInfo: bobsGame, playerId: 1, hostId: 1,
+    })));
+    const request = openShowGames();
+    deliverMessage(buildResponseMessage(buildResponse({
+      cmdId: request.cmdId,
+      ext: Response_GetGamesOfUser_ext,
+      value: create(Response_GetGamesOfUserSchema, { roomList: [room], gameList: [bobsGame] }),
+    })));
+    fireEvent.doubleClick(await screen.findByText('Friday casual'));
+    expect(await screen.findByText('/game/7')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'UserGamesDialog.title' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('UserGamesDialog.password.label')).not.toBeInTheDocument();
   });
 
   it('explains why the games of a user who ignores you cannot be shown', async () => {

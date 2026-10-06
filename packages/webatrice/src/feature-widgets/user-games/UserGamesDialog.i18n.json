@@ -30,7 +30,8 @@
     },
     "password": {
       "title": "Password required",
-      "label": "Password",
+      "label": "Password for \"{name}\":",
+      "gameIdLabel": "Password for game #{gameId}:",
       "submit": "Join"
     }
   }

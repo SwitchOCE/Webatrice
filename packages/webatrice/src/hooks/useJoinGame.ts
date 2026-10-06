@@ -18,6 +18,7 @@ let joinErrorOwner: symbol | null = null;
 interface PendingJoin {
   roomId: number;
   gameId: number;
+  description: string;
   asSpectator: boolean;
   asJudge: boolean;
 }
@@ -27,6 +28,7 @@ export interface JoinGameFlow {
   beginJoin: (roomId: number, game: ServerInfo_Game, asSpectator: boolean, asJudge: boolean) => void;
   /** True while a password prompt for the requested join is open. */
   passwordRequired: boolean;
+  passwordGame: Pick<ServerInfo_Game, 'gameId' | 'description'> | null;
   submitPassword: (password: string) => void;
   cancelPassword: () => void;
   joinPending: boolean;
@@ -42,7 +44,7 @@ export interface JoinGameFlow {
  * `rooms.joinGameError` (desktop GameSelector::checkResponse messages); only
  * the list that sent the last join reports it (see `joinErrorOwner`).
  */
-export function useJoinGame(): JoinGameFlow {
+export function useJoinGame(onAlreadyOpen?: () => void): JoinGameFlow {
   const webClient = useWebClient();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -66,6 +68,7 @@ export function useJoinGame(): JoinGameFlow {
     ({ roomId, gameId, asSpectator, asJudge }: PendingJoin, password: string) => {
       if (activeGameIds.includes(gameId)) {
         navigate(generatePath(RouteEnum.GAME, { gameId: gameId.toString() }));
+        onAlreadyOpen?.();
         return;
       }
       joinErrorOwner = owner;
@@ -77,13 +80,17 @@ export function useJoinGame(): JoinGameFlow {
         joinAsJudge: asJudge,
       });
     },
-    [activeGameIds, navigate, owner, webClient],
+    [activeGameIds, navigate, onAlreadyOpen, owner, webClient],
   );
 
   const beginJoin = useCallback(
     (roomId: number, game: ServerInfo_Game, asSpectator: boolean, asJudge: boolean) => {
       const effectiveSpectator = asSpectator || game.playerCount >= game.maxPlayers;
-      const join = { roomId, gameId: game.gameId, asSpectator: effectiveSpectator, asJudge };
+      const join = { roomId, gameId: game.gameId, description: game.description, asSpectator: effectiveSpectator, asJudge };
+      if (activeGameIds.includes(game.gameId)) {
+        sendJoin(join, '');
+        return;
+      }
       const needsPassword = game.withPassword && !(effectiveSpectator && !game.spectatorsNeedPassword);
       if (needsPassword) {
         setPendingPasswordJoin(join);
@@ -91,7 +98,7 @@ export function useJoinGame(): JoinGameFlow {
       }
       sendJoin(join, '');
     },
-    [sendJoin],
+    [activeGameIds, sendJoin],
   );
 
   const submitPassword = useCallback(
@@ -110,6 +117,7 @@ export function useJoinGame(): JoinGameFlow {
   return {
     beginJoin,
     passwordRequired: pendingPasswordJoin !== null,
+    passwordGame: pendingPasswordJoin,
     submitPassword,
     cancelPassword,
     joinPending,

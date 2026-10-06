@@ -1,3 +1,7 @@
+import i18next from 'i18next';
+import ICU from 'i18next-icu';
+import { I18nextProvider } from 'react-i18next';
+import translations from './UserGamesDialog.i18n.json';
 import { act, fireEvent, screen } from '@testing-library/react';
 import { create, type MessageInitShape } from '@bufbuild/protobuf';
 import { games, type Game } from '@cockatrice/datatrice';
@@ -42,13 +46,17 @@ interface StateOptions {
   gameList?: Game[];
   joinedRoom?: boolean;
   judge?: boolean;
+  alreadyOpen?: boolean;
 }
 
-function stateWith({ status, gameList = [], joinedRoom = true, judge = false }: StateOptions = {}): Partial<RootState> {
+function stateWith({
+  status, gameList = [], joinedRoom = true, judge = false, alreadyOpen = false,
+}: StateOptions = {}): Partial<RootState> {
   const server = connectedState.server as RootState['server'];
   const rooms = connectedState.rooms as RootState['rooms'];
   return {
     ...connectedState,
+    ...(alreadyOpen ? { games: { games: { 7: {} as never }, pings: {} } } : {}),
     server: {
       ...server,
       user: judge ? makeUser({ name: 'testUser', userLevel: ServerInfo_User_UserLevelFlag.IsJudge }) : server.user,
@@ -197,6 +205,32 @@ describe('UserGamesDialog', () => {
     fireEvent.doubleClick(screen.getByText('Friday casual'));
     expect(mockWebClient.request.rooms.joinGame).not.toHaveBeenCalled();
     expect(screen.getByText('UserGamesDialog.password.title')).toBeInTheDocument();
+    expect(screen.getByLabelText('UserGamesDialog.password.label')).toHaveAttribute('type', 'password');
+  });
+
+  it.each([true, false])('closes for an already-open protected game (room joined: %s)', (joinedRoom) => {
+    const { onClose } = renderDialog({
+      status: loaded, gameList: [makeGame({ withPassword: true })], alreadyOpen: true, joinedRoom,
+    });
+    fireEvent.doubleClick(screen.getByText('Friday casual'));
+    expect(onClose).toHaveBeenCalledTimes(1);
+    expect(mockWebClient.request.rooms.joinGame).not.toHaveBeenCalled();
+    expect(screen.queryByText('UserGamesDialog.password.title')).not.toBeInTheDocument();
+    expect(screen.queryByText('UserGamesDialog.error.joinRoomFirst')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['Friday casual', 'Password for "Friday casual":'],
+    ['', 'Password for game #7:'],
+  ])('names the password target when its description is %s', async (description, label) => {
+    const i18n = i18next.createInstance().use(ICU);
+    await i18n.init({ lng: 'en', resources: { en: { translation: translations } } });
+    renderWithProviders(
+      <I18nextProvider i18n={i18n}><UserGamesDialog userName="bob" onClose={vi.fn()} /></I18nextProvider>,
+      { preloadedState: stateWith({ status: loaded, gameList: [makeGame({ description, withPassword: true })] }) },
+    );
+    fireEvent.doubleClick(screen.getAllByRole('row')[1]);
+    expect(screen.getByLabelText(label)).toHaveAttribute('type', 'password');
   });
 
   it('asks the user to join the room first, as desktop does', () => {
