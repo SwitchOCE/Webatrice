@@ -9,9 +9,9 @@ import { E2E_HOST, registerAndReachRooms } from '../fixtures/flows';
 //
 // Desktop parity (ConnectionController::onSocketError): a lost connection
 // shows "Socket error: …", stops the tabs and reopens the Connect dialog.
-// It never reconnects on its own; the user logs in again. Webatrice mirrors
-// that: the session ends, the app returns to the login screen with the
-// "Connection Closed" status, and stays disconnected until the user logs in.
+// Desktop never retries the socket automatically. Webatrice deliberately keeps
+// transport retries (up to five failed attempts); a successful socket retry
+// does not re-authenticate the session. The user must log in again.
 //
 // The drop is made in the network path, not in app code: every socket to the
 // docker Servatrice is routed through Playwright (`routeWebSocket` +
@@ -35,18 +35,19 @@ test('a dropped connection returns to login and needs an explicit re-login', asy
   const status = new ConnectionStatus(page);
   await status.expectConnected();
 
-  for (const server of servers) {
+  const socketsBeforeDrop = servers.length;
+  for (const server of [...servers]) {
     await server.close();
   }
 
-  // The disconnect notice: back on the login screen with the closed status.
+  // A transport retry opens a new socket, but does not restore the session.
+  await expect.poll(() => servers.length, { timeout: 15_000 }).toBe(socketsBeforeDrop + 1);
   await expect(login.hostPicker).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByText('Connection Closed', { exact: true })).toBeVisible();
   await expect(status.indicator).toBeHidden();
 
-  // No automatic reconnect: well past the keep-alive interval, still
-  // disconnected and still asking for a login.
+  // The successful retry stays open, with no automatic session re-authentication.
   await page.waitForTimeout(10_000);
+  expect(servers).toHaveLength(socketsBeforeDrop + 1);
   await expect(status.indicator).toBeHidden();
   await expect(login.loginButton).toBeVisible();
 
