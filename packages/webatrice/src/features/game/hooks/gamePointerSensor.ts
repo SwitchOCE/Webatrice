@@ -26,6 +26,8 @@ export interface Coordinates {
 export interface GamePointerSensorOptions {
   /** Activation distance for draggables whose data doesn't set one. */
   activationDistance: number;
+  /** Sensors owned by this board; disposed when it leaves the game. */
+  instances?: Set<GamePointerSensor>;
 }
 
 /** Optional fields a draggable's data may carry to tune its gesture. */
@@ -69,6 +71,7 @@ export class GamePointerSensor implements SensorInstance {
   private readonly window: Window;
 
   constructor(private readonly props: SensorProps<GamePointerSensorOptions>) {
+    props.options.instances?.add(this);
     const event = props.event as PointerEvent;
     const data = gestureData(props);
     this.initial = coordinatesOf(event);
@@ -84,7 +87,13 @@ export class GamePointerSensor implements SensorInstance {
     this.window.addEventListener('dragstart', preventDefault);
   }
 
+  /** Unmount is not a release: never call the old board's click/drop handlers. */
+  dispose() {
+    this.detach();
+  }
+
   private detach() {
+    this.props.options.instances?.delete(this);
     this.window.removeEventListener('pointermove', this.handleMove);
     this.window.removeEventListener('pointerup', this.handleEnd);
     this.window.removeEventListener('pointercancel', this.handleCancel);
