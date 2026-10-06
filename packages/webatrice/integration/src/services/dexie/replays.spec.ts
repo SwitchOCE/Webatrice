@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { REPLAY_LIBRARY_ROOT, ReplayFileDTO, ReplayNameTakenError } from '@app/services';
+import { dexieService, REPLAY_LIBRARY_ROOT, ReplayFileDTO, ReplayNameTakenError } from '@app/services';
 import { resetDexie } from './resetDexie';
 
 const bytes = (...values: number[]) => new Uint8Array(values);
@@ -40,6 +40,24 @@ describe('ReplayFileDTO (real Dexie)', () => {
 
     expect((await ReplayFileDTO.listFolder(folder)).map((e) => e.name)).toEqual(['round1.cor']);
     expect((await ReplayFileDTO.listFolder()).map((e) => e.name).sort()).toEqual(['Tournament', 'casual.cor']);
+  });
+
+  it.each([
+    ['deleted', async () => {
+      const folder = await ReplayFileDTO.addFolder(REPLAY_LIBRARY_ROOT, 'Deleted');
+      await ReplayFileDTO.delete([folder]);
+      return folder;
+    }],
+    ['non-folder', () => ReplayFileDTO.addReplay(REPLAY_LIBRARY_ROOT, 'parent.cor', bytes(1))],
+  ])('does not store a replay beneath a %s parent', async (_kind, makeParent) => {
+    const parentId = await makeParent();
+    const entriesBefore = await ReplayFileDTO.getAll();
+    const dataBefore = await dexieService.replayData.count();
+
+    await expect(ReplayFileDTO.addReplay(parentId, 'orphan.cor', bytes(2))).rejects.toThrow();
+
+    expect(await ReplayFileDTO.getAll()).toEqual(entriesBefore);
+    expect(await dexieService.replayData.count()).toBe(dataBefore);
   });
 
   it('refuses a folder or rename that would clash with a sibling', async () => {
