@@ -13,8 +13,17 @@ let dbName: string;
 const openAt = async (latest: 4 | 6) => {
   const db = new Dexie(dbName);
   schemaV1(db);
-  schemaV2(db);
-  if (latest === 6) {
+  if (latest === 4) {
+    // Historical v4 schema, before schemaV2 also began registering replay schema v5.
+    db.version(4).stores({
+      [Stores.CARDS]: 'name.value',
+      [Stores.SETS]: 'name.value',
+      [Stores.FORMATS]: 'formatName',
+      [Stores.INFO]: 'id',
+      [Stores.SCRYFALL_CACHE]: 'name',
+    });
+  } else {
+    schemaV2(db);
     schemaV6(db);
   }
   await db.open();
@@ -33,6 +42,8 @@ afterEach(async () => {
 describe('settings schema v6 upgrade (real Dexie)', () => {
   it('keeps a v4 row\'s values and shortcut overrides and backfills every new preference', async () => {
     const v4 = await openAt(4);
+    expect(v4.verno).toBe(4);
+    expect(v4.tables.map((table) => table.name)).not.toContain(Stores.REPLAYS);
     await v4.table(Stores.SETTINGS).put({
       user: '*app',
       autoConnect: true,
@@ -57,6 +68,8 @@ describe('settings schema v6 upgrade (real Dexie)', () => {
 
   it('leaves other tables alone', async () => {
     const v4 = await openAt(4);
+    expect(v4.verno).toBe(4);
+    expect(v4.tables.map((table) => table.name)).not.toContain(Stores.REPLAYS);
     await v4.table(Stores.HOSTS).add({ name: 'Rooster', host: 'server.cockatrice.us', port: '4748' });
     v4.close();
 
