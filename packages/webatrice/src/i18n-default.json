@@ -903,6 +903,7 @@
       "game.moveSelectedToHand": "Move selection to hand",
       "game.moveSelectedToLibraryTop": "Move selection to top of library",
       "game.moveSelectedToBattlefield": "Move selection to battlefield",
+      "game.moveCardDialog": "Move focused card…",
       "game.viewHand": "View hand",
       "game.viewExile": "View exile",
       "game.sortHandByName": "Sort hand by name",

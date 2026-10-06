@@ -240,6 +240,9 @@ export const defaults: Record<ActionId, ShortcutDef> = {
   'game.moveSelectedToHand': { scope: ShortcutScope.GAME, group: 'gameMoveSelected', sequences: [] },
   'game.moveSelectedToLibraryTop': { scope: ShortcutScope.GAME, group: 'gameMoveSelected', sequences: [] },
   'game.moveSelectedToBattlefield': { scope: ShortcutScope.GAME, group: 'gameMoveSelected', sequences: [] },
+  // Web only: M on a focused card opens the Move cards dialog, the keyboard's
+  // way to drag a card (and its selection) to any zone and position.
+  'game.moveCardDialog': { scope: ShortcutScope.GAME, group: 'gameMoveSelected', sequences: ['KeyM'] },
 
   // View (desktop ShortcutGroup::View).
   'game.viewHand': { scope: ShortcutScope.GAME, group: 'gameView', sequences: [] },

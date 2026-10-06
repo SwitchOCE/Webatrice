@@ -117,6 +117,7 @@ export type ActionId =
   | 'game.playCardFaceDown'
   | 'game.createRelatedTokens'
   | 'game.moveSelectedToExile'
+  | 'game.moveCardDialog'
   | 'game.moveSelectedToHand'
   | 'game.moveSelectedToLibraryTop'
   | 'game.moveSelectedToBattlefield'

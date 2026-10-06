@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
+
+import { renderWithProviders } from '../../../../../__test-utils__';
 
 import { CardRegistryContext, createCardRegistry, makeCardKey } from '../../../utils/CardRegistry/CardRegistryContext';
 import { CardPreviewProvider, createCardPreviewStore } from '../CardPreviewContext';
@@ -41,7 +43,7 @@ function renderZone(props: ZoneProps = {}) {
   vi.spyOn(preview, 'setFocusedCard');
   vi.spyOn(preview, 'openBigPreview');
   vi.spyOn(preview, 'closeBigPreview');
-  render(
+  renderWithProviders(
     <CardRegistryContext.Provider value={registry}>
       <CardPreviewProvider store={preview}>
         <Zone {...props} />
@@ -57,6 +59,16 @@ const focus = (id: string) => act(() => card(id).focus());
 describe('useCardFocus', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('opens the move dialog on the game.moveCardDialog key (M), not on Ctrl+M', () => {
+    const onMove = vi.fn();
+    renderZone({ onMove });
+    focus('2');
+    fireEvent.keyDown(card('2'), { key: 'm', code: 'KeyM', ctrlKey: true });
+    expect(onMove).not.toHaveBeenCalled();
+    fireEvent.keyDown(card('2'), { key: 'm', code: 'KeyM' });
+    expect(onMove).toHaveBeenCalledWith(CARDS[1]);
   });
 
   it('makes the cards named options with one tab stop, on the first selected card', () => {
