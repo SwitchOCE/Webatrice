@@ -139,7 +139,9 @@ export interface ParsedDeck {
    *  margin/offset/zoom attributes. Not edited here; kept as the raw XML of
    *  the whole element so a web save doesn't drop it. */
   playmatXml?: string;
-  /** Opaque desktop named/current sideboard plans, in document order. */
+  /** Desktop's `<sideboard_plan>` elements (the current plan is the one
+   *  named ""), each kept as raw XML so a web save writes them back after
+   *  the zones, where desktop's `DeckList::write` puts them. */
   sideboardPlansXml?: string[];
   /** Optional `<tags>` element — Cockatrice desktop's tag list.
    *  Stored as the raw XML string of the whole element so we can

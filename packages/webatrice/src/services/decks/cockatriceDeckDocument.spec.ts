@@ -173,6 +173,38 @@ describe('serializeCod → parseCod round-trip', () => {
     expect(serializeCod({ name: 'X', meta: defaultMeta(), cards: [] })).not.toContain('playmatCard');
   });
 
+  it('keeps desktop\'s <sideboard_plan>s verbatim, after the zones', () => {
+    const plan = (name: string, card: string) => '<sideboard_plan>'
+      + `<name>${name}</name>`
+      + `<move_card_to_zone><card_name>${card}</card_name><start_zone>main</start_zone>`
+      + '<target_zone>side</target_zone></move_card_to_zone>'
+      + '</sideboard_plan>';
+    const desktop = '<?xml version="1.0" encoding="UTF-8"?>'
+      + '<cockatrice_deck version="1"><deckname>Plans</deckname><comments/>'
+      + '<zone name="main"><card number="4" name="Opt"/></zone>'
+      + '<zone name="side"><card number="2" name="Negate"/></zone>'
+      + plan('', 'Opt') + plan('vs. control', 'Opt')
+      + '</cockatrice_deck>';
+
+    const parsed = parseCod(desktop);
+    const xml = serializeCod(parsed);
+
+    const root = new DOMParser().parseFromString(xml, 'application/xml').documentElement;
+    expect(Array.from(root.children).map((el) => el.tagName).slice(-4))
+      .toEqual(['zone', 'zone', 'sideboard_plan', 'sideboard_plan']);
+    const plans = Array.from(root.querySelectorAll('sideboard_plan'));
+    expect(plans.map((el) => el.querySelector('name')?.textContent)).toEqual(['', 'vs. control']);
+    expect(plans[1].querySelector('move_card_to_zone > card_name')?.textContent).toBe('Opt');
+    expect(parseCod(xml).sideboardPlansXml).toEqual(parsed.sideboardPlansXml);
+    expect(parsed.sideboardPlansXml).toHaveLength(2);
+  });
+
+  it('writes no <sideboard_plan> for a deck without one', () => {
+    const parsed = parseCod(serializeCod({ name: 'X', meta: defaultMeta(), cards: [] }));
+    expect(parsed.sideboardPlansXml).toEqual([]);
+    expect(serializeCod(parsed)).not.toContain('sideboard_plan');
+  });
+
   it('serializeCod starts with an XML declaration and cockatrice_deck root', () => {
     const xml = serializeCod({ name: 'X', meta: defaultMeta(), cards: [] });
     expect(xml).toMatch(/^<\?xml version="1\.0" encoding="UTF-8"\?>/);
