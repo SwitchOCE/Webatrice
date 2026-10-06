@@ -27,6 +27,20 @@ const submit = async () => {
 };
 
 describe('ChangePasswordDialog', () => {
+  it('settles a hashing rejection without exposing the error and permits retry', async () => {
+    const { accountPassword, handleClose } = setup();
+    accountPassword.mockRejectedValueOnce(new Error('hash failed: secret input'));
+    fill('oldpassword', 'newpassword');
+    await submit();
+
+    expect(screen.getByRole('alert')).toHaveTextContent('AccountDialogs.error.updateFailed');
+    expect(screen.queryByText(/secret input/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'AccountDialogs.label.ok' })).toBeEnabled();
+    expect(handleClose).not.toHaveBeenCalled();
+    await submit();
+    expect(accountPassword).toHaveBeenCalledTimes(2);
+  });
+
   it('sends the old and new password through the web client', async () => {
     const { accountPassword } = setup();
 
