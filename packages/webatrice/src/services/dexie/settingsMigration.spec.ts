@@ -114,3 +114,20 @@ describe('v2: theme palette and language', () => {
     expect(PREFERENCE_DEFAULTS.themeMode).toBe(ThemeMode.System);
   });
 });
+
+
+describe('playmat migration', () => {
+  afterEach(() => localStorage.removeItem('webatrice.playmatSettings'));
+  it('adopts the legacy collection once, then respects restored defaults', () => {
+    const legacy = { visibility: 0, mode: 2, fallbackBehavior: 1, fallbackList: [{ cardName: 'Island' }] };
+    localStorage.setItem('webatrice.playmatSettings', JSON.stringify(legacy));
+    const row = migrateSetting({ user: '*app', version: 2 });
+    expect(row.playmatSettings).toMatchObject(legacy);
+    row.playmatSettings = structuredClone(PREFERENCE_DEFAULTS.playmatSettings);
+    expect(migrateSetting(row).playmatSettings).toEqual(PREFERENCE_DEFAULTS.playmatSettings);
+  });
+  it('does not adopt the app collection into another user row', () => {
+    localStorage.setItem('webatrice.playmatSettings', JSON.stringify({ visibility: 0 }));
+    expect(migrateSetting({ user: 'another', version: 2 }).playmatSettings).toEqual(PREFERENCE_DEFAULTS.playmatSettings);
+  });
+});

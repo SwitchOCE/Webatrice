@@ -6,3 +6,4 @@ export * from './regex-patterns';
 export * from './routes';
 export * from './server';
 export * from './settings';
+export * from './playmats';

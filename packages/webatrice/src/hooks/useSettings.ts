@@ -2,15 +2,28 @@ import { useMemo, useSyncExternalStore } from 'react';
 
 import { migrateSetting, SettingDTO } from '@app/services';
 import { APP_USER, PREFERENCE_DEFAULTS, PreferenceKey, Preferences } from '@app/types';
+import { LEGACY_PLAYMAT_SETTINGS_KEY } from '../services/dexie/playmatSettings';
 import { createSharedStore, Loadable, LoadingState, useSharedStore } from './useSharedStore';
 
 export const settingsStore = createSharedStore<SettingDTO>(async () => {
   let loaded: SettingDTO | undefined = await SettingDTO.get(APP_USER);
   if (!loaded) {
     loaded = new SettingDTO(APP_USER);
+    // Adopt the legacy playmat key even when this is the first typed settings row.
+    loaded.version = 2;
+    migrateSetting(loaded);
     await loaded.save();
   }
-  return migrateSetting(loaded);
+  const version = loaded.version;
+  const migrated = migrateSetting(loaded);
+  if (version !== migrated.version) {
+    await migrated.save();
+  }
+  // Remove the old copy only after the typed row has been persisted successfully.
+  try {
+    globalThis.localStorage?.removeItem(LEGACY_PLAYMAT_SETTINGS_KEY);
+  } catch { /* storage unavailable */ }
+  return migrated;
 });
 const store = settingsStore;
 

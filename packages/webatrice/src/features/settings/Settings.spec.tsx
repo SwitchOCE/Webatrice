@@ -3,6 +3,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { renderWithProviders, connectedState } from '../../__test-utils__';
 import { getPreferencesSnapshot, getSettings, settingsStore } from '../../hooks/useSettings';
 import { shortcuts } from '../../store';
+import { DEFAULT_PLAYMAT_SETTINGS, setPlaymatSettings } from '@app/hooks';
 import { soundEngine } from '../../services';
 import Settings from './Settings';
 
@@ -272,4 +273,19 @@ describe('Settings', () => {
       await waitFor(() => expect(store.getState().shortcuts.overrides).toEqual({}));
     });
   });
+});
+
+
+it('restores the playmat preferences and collection from Appearance', async () => {
+  await renderSettings();
+  await act(async () => {
+    await setPlaymatSettings({ visibility: 0, mode: 2, fallbackBehavior: 1,
+      fallbackList: [{ cardName: 'Island', cardProviderId: '', params: { marginPctL: 0, marginPctR: 0, verticalOffset: 0, zoom: 1 } }] });
+  });
+  openSection(/Settings\.section\.appearance/);
+  fireEvent.click(screen.getByRole('button', { name: /^Settings\.restoreDefaults$/ }));
+  await act(async () => {
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^Settings\.restoreDefaults$/ }));
+  });
+  expect(getPreferencesSnapshot().playmatSettings).toEqual(DEFAULT_PLAYMAT_SETTINGS);
 });
