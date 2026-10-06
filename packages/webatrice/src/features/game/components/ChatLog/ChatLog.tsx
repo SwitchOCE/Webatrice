@@ -2,6 +2,7 @@ import { useCallback, useRef } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { classifyLogTone, games, type LogSegment, type LogTone } from '@cockatrice/datatrice';
 
+import { PlayerLink } from '@app/components';
 import { ReportChatScope } from '@app/dialogs';
 import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 import { useAppSelector } from '@app/store';
@@ -159,8 +160,8 @@ function ChatLogView() {
           const rowClass = idx % 2 === 0
             ? 'bg-transparent'
             : 'bg-black/15';
-          const name =
-            m.senderName ?? players?.[m.playerId]?.properties.userInfo?.name ?? `p${m.playerId}`;
+          const senderName = m.senderName ?? players?.[m.playerId]?.properties.userInfo?.name;
+          const name = senderName || `p${m.playerId}`;
           // Per-message wall-clock stamp, Cockatrice-style `[HH:MM:SS]`.
           // Matches desktop's `QDateTime::currentDateTime()` — the log
           // is annotated with the user's local clock, not the game
@@ -230,7 +231,9 @@ function ChatLogView() {
                   {stamp}
                 </span>
               )}
-              <span className="font-semibold text-accent">{name}:</span>{' '}
+              <span className="font-semibold text-accent">
+                {!readOnly && senderName ? <PlayerLink name={senderName} /> : name}:
+              </span>{' '}
               <span>{m.message}</span>
             </div>
           );
