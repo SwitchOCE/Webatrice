@@ -5,7 +5,7 @@ import { Filter, FilterX, Plus, LogIn, Eye, Gavel, ArrowUp, ArrowDown } from 'lu
 import { server, rooms, games, type GameFilters, type Room, type Game } from '@cockatrice/datatrice';
 import { useAppDispatch, useAppSelector } from '@app/store';
 import { VirtualRows } from '@app/components';
-import { useReduxEffect } from '@app/hooks';
+import { useJoinGameErrorMessage, useReduxEffect } from '@app/hooks';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { CreateGameParams, Event_GameJoined, JoinGameParams, ServerInfo_Game } from '@cockatrice/sockatrice/generated';
 import { RouteEnum } from '@app/types';
@@ -105,6 +105,7 @@ export default function GamesList({ room }: GamesListProps) {
   const isJudgeUser = useAppSelector(server.Selectors.getIsUserJudge);
   const joinPending = useAppSelector(rooms.Selectors.getJoinGamePending);
   const joinError = useAppSelector(rooms.Selectors.getJoinGameError);
+  const joinErrorMessage = useJoinGameErrorMessage(joinError);
   const activeGameIds = useAppSelector(games.Selectors.getActiveGameIds);
 
   useReduxEffect<{ data: Event_GameJoined }>((action) => {
@@ -386,7 +387,7 @@ export default function GamesList({ room }: GamesListProps) {
       <AlertDialog
         isOpen={joinError !== null}
         title="Error"
-        message={joinError?.message ?? ''}
+        message={joinErrorMessage}
         onDismiss={() => dispatch(rooms.Actions.clearJoinGameError())}
       />
     </section>

@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CircleAlert } from 'lucide-react';
 
@@ -18,6 +18,7 @@ export interface ErrorFallbackProps {
  */
 export default function ErrorFallback({ title, message, retryLabel, onRetry }: ErrorFallbackProps) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { t } = useTranslation();
 
   return (
@@ -35,9 +36,13 @@ export default function ErrorFallback({ title, message, retryLabel, onRetry }: E
         </button>
         <button
           type="button"
-          // Leaving the crashed route unmounts it (or changes the boundary's
-          // resetKey), which clears the error; no explicit reset needed.
-          onClick={() => navigate(RouteEnum.SERVER)}
+          onClick={() => {
+            if (pathname === RouteEnum.SERVER) {
+              onRetry();
+            } else {
+              navigate(RouteEnum.SERVER);
+            }
+          }}
           className="px-4 py-2 rounded-md text-sm border border-border-subtle text-text-primary hover:bg-bg-elevated transition-colors"
         >
           {t('ErrorFallback.returnToLobby')}

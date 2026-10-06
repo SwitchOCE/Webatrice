@@ -204,11 +204,11 @@ describe('GameSelector', () => {
     const room = makeRoomEntry([]);
     renderWithProviders(<GameSelector room={room as any} />, {
       preloadedState: buildState(room, makeUser(), undefined, {
-        joinGameError: { code: 10, message: 'The game is already full.' },
+        joinGameError: { code: 10, message: '' },
       }),
     });
     expect(screen.getByText('Error')).toBeInTheDocument();
-    expect(screen.getByText('The game is already full.')).toBeInTheDocument();
+    expect(screen.getByText('JoinGameError.full')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^ok$/i })).toBeInTheDocument();
   });
 

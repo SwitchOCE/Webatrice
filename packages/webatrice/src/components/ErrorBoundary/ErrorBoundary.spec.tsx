@@ -90,7 +90,7 @@ describe('RouteErrorBoundary', () => {
     expect(consoleError).toHaveBeenCalledWith('[ErrorBoundary:route] render failed:', expect.any(Error), expect.any(String));
   });
 
-  it('reloads the page in place', () => {
+  it('retries rendering the page in place', () => {
     renderRoutes();
     crash.on = false;
     fireEvent.click(screen.getByRole('button', { name: 'ErrorFallback.route.retry' }));
@@ -103,4 +103,14 @@ describe('RouteErrorBoundary', () => {
     expect(screen.getByTestId('path')).toHaveTextContent('/server');
     expect(screen.getByText('lobby')).toBeInTheDocument();
   });
+});
+
+
+it('recovers when Return to lobby is clicked from an already-crashed lobby', () => {
+  renderWithProviders(<RouteErrorBoundary><Thrower /></RouteErrorBoundary>, {
+    preloadedState: disconnectedState, route: '/server',
+  });
+  crash.on = false;
+  fireEvent.click(screen.getByRole('button', { name: 'ErrorFallback.returnToLobby' }));
+  expect(screen.getByText('recovered')).toBeInTheDocument();
 });

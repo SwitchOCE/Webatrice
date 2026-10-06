@@ -43,7 +43,7 @@ describe('CommandFailureNotices', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('drops queued notices once the connection is gone', () => {
+  it('retains queued notices and disconnect failures until dismissed', () => {
     const { store } = setup();
     act(() => {
       store.dispatch(rooms.Actions.joinRoomFailed({
@@ -63,7 +63,12 @@ describe('CommandFailureNotices', () => {
         failure: WebsocketTypes.CommandFailure.Disconnected,
       }));
     });
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByText('CommandFailureNotices.joinRoom.title')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByText('CommandFailureNotices.createGame.title')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button'));
+    expect(screen.getByText('CommandFailure.disconnected')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button'));
 
     act(() => {
       store.dispatch(server.Actions.updateStatus({ status: { state: WebsocketTypes.StatusEnum.LOGGED_IN, description: null } }));

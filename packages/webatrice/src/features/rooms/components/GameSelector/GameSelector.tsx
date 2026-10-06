@@ -5,7 +5,7 @@ import Typography from '@mui/material/Typography';
 
 import { server, rooms, games, type GameFilters } from '@cockatrice/datatrice';
 import { useAppDispatch, useAppSelector } from '@app/store';
-import { useReduxEffect } from '@app/hooks';
+import { useJoinGameErrorMessage, useReduxEffect } from '@app/hooks';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { CreateGameParams, Event_GameJoined, JoinGameParams } from '@cockatrice/sockatrice/generated';
 import { Room } from '@cockatrice/datatrice';
@@ -45,6 +45,7 @@ const GameSelector = ({ room }: GameSelectorProps) => {
   const isJudgeUser = useAppSelector(server.Selectors.getIsUserJudge);
   const joinPending = useAppSelector(rooms.Selectors.getJoinGamePending);
   const joinError = useAppSelector(rooms.Selectors.getJoinGameError);
+  const joinErrorMessage = useJoinGameErrorMessage(joinError);
   const activeGameIds = useAppSelector(games.Selectors.getActiveGameIds);
 
   // On Event_GameJoined: route to /game/:gameId.
@@ -175,7 +176,7 @@ const GameSelector = ({ room }: GameSelectorProps) => {
       <AlertDialog
         isOpen={joinError !== null}
         title="Error"
-        message={joinError?.message ?? ''}
+        message={joinErrorMessage}
         onDismiss={() => dispatch(rooms.Actions.clearJoinGameError())}
       />
     </Paper>

@@ -1,5 +1,9 @@
 import { act, fireEvent, waitFor } from '@testing-library/react';
 
+import { server } from '@cockatrice/datatrice';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
+import { SessionScope } from '../../SessionScope';
+
 import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
 
 import { renderWithProviders, createMockWebClient, disconnectedState } from '../../__test-utils__';
@@ -327,4 +331,24 @@ describe('Login — password change required', () => {
 
     expect(queryByRole('button', { name: 'Login.status.passwordChangeRequiredAction' })).toBeNull();
   });
+});
+
+
+test('keeps a connection-closed ban reason visible after DISCONNECTED and CLEAR_STORE', async () => {
+  const { store, getByText } = renderWithProviders(<SessionScope><Login /></SessionScope>, {
+    preloadedState: disconnectedState,
+  });
+  await flushEffects();
+  act(() => {
+    // Event_ConnectionClosed publishes this status before the socket drops.
+    store.dispatch(server.Actions.updateStatus({
+      status: { state: WebsocketTypes.StatusEnum.DISCONNECTED, description: 'You are banned until tomorrow' },
+    }));
+  });
+  expect(getByText('You are banned until tomorrow')).toBeVisible();
+  act(() => {
+    store.dispatch(server.Actions.disconnected());
+    store.dispatch(server.Actions.clearStore());
+  });
+  expect(getByText('You are banned until tomorrow')).toBeVisible();
 });

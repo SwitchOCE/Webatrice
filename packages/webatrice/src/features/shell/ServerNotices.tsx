@@ -2,15 +2,23 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { server } from '@cockatrice/datatrice';
-import { Event_NotifyUser_NotificationType, type Event_NotifyUser } from '@cockatrice/sockatrice/generated';
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
+import { Event_NotifyUser_NotificationType, type Event_NotifyUser, type Event_ServerShutdown } from '@cockatrice/sockatrice/generated';
 
 import { AlertDialog, type AlertDialogSeverity } from '@app/dialogs';
 import { useAppSelector } from '@app/store';
+import { useReduxEffect } from '@app/hooks';
+import { onSessionEnd } from '@app/services/session';
+
+type QueuedNotice =
+  | { kind: 'notification'; event: Event_NotifyUser }
+  | { kind: 'closed'; reason: string };
 
 export interface NotificationNotice {
   title: string;
   message: string;
   severity: AlertDialogSeverity;
+  details?: string;
 }
 
 /**
@@ -30,14 +38,14 @@ export function describeNotification(t: TFunction, notification: Event_NotifyUse
     case Event_NotifyUser_NotificationType.WARNING: {
       const reason = simplified(notification.warningReason);
       return reason
-        ? { title: t('ServerNotices.warning.title'), message: t('ServerNotices.warning.message', { reason }), severity: 'error' }
+        ? { title: t('ServerNotices.warning.title'), message: t('ServerNotices.warning.message', { reason }), severity: 'warning' }
         : null;
     }
     case Event_NotifyUser_NotificationType.CUSTOM: {
       const title = simplified(notification.customTitle);
       const content = simplified(notification.customContent);
       return title && content
-        ? { title, message: t('ServerNotices.custom.message', { content }), severity: 'info' }
+        ? { title, message: t('ServerNotices.custom.message'), details: content, severity: 'info' }
         : null;
     }
     default:
@@ -58,7 +66,7 @@ function formatCountdown(ms: number): string {
 }
 
 /**
- * Server-pushed notices, mirroring desktop:
+ * Server-pushed notices adapted from desktop (browser reload replaces Help > Check for Updates):
  *   • Event_ServerShutdown → the "Scheduled server shutdown" box
  *     (ConnectionController::onServerShutdownEvent), here with a live
  *     countdown. Servatrice re-sends the event as the deadline nears; each one
@@ -66,27 +74,61 @@ function formatCountdown(ms: number): string {
  *   • Event_NotifyUser → one message box per notification, in arrival order
  *     (TabSupervisor::processNotifyUserEvent).
  *
- * Reads both from Datatrice selectors; dismissal is local UI state. Mounted
- * once in AppShell.
+ * Captures messages synchronously from action signals, before a same-tick
+ * disconnect can clear Redux. Final messages survive session boundaries until
+ * dismissed; only the obsolete idle warning clears on session end. Mounted
+ * once in AppShell, outside SessionScope. Connection-closed reasons from an
+ * active login are retained too; later generic socket status cannot erase them.
  */
 export default function ServerNotices() {
   const { t } = useTranslation();
-  const shutdown = useAppSelector(server.Selectors.getServerShutdown);
-  const notifications = useAppSelector(server.Selectors.getNotifications);
-
-  // --- Shutdown ---
-  const [shutdownDeadline, setShutdownDeadline] = useState<number | null>(null);
+  const connectionState = useAppSelector(server.Selectors.getState);
+  const previousStatus = useRef(connectionState);
+  const storedShutdown = useAppSelector(server.Selectors.getServerShutdown);
+  const storedNotifications = useAppSelector(server.Selectors.getNotifications);
+  const [shutdown, setShutdown] = useState(() => storedShutdown);
+  const [shutdownDeadline, setShutdownDeadline] = useState<number | null>(() =>
+    storedShutdown ? Date.now() + storedShutdown.minutes * 60_000 : null);
   const [now, setNow] = useState(() => Date.now());
+  const [notices, setNotices] = useState<QueuedNotice[]>(() =>
+    storedNotifications.map((event) => ({ kind: 'notification', event })));
+  // Prevent replay of the last Redux action on mount/StrictMode effect replay.
+  const received = useRef(new WeakSet(storedNotifications));
 
-  useEffect(() => {
-    if (!shutdown) {
-      setShutdownDeadline(null);
+  useReduxEffect<{ notification: Event_NotifyUser }>(({ payload: { notification } }) => {
+    if (received.current.has(notification)) {
       return;
     }
+    received.current.add(notification);
+    if (describeNotification(t, notification)) {
+      setNotices((queue) => [...queue, { kind: 'notification', event: notification }]);
+    }
+  }, server.Types.NOTIFY_USER, [t]);
+
+  useReduxEffect<{ data: Event_ServerShutdown }>(({ payload: { data } }) => {
     const at = Date.now();
+    setShutdown(data);
     setNow(at);
-    setShutdownDeadline(at + shutdown.minutes * 60_000);
-  }, [shutdown]);
+    setShutdownDeadline(at + data.minutes * 60_000);
+  }, server.Types.SERVER_SHUTDOWN);
+
+  useReduxEffect<ReturnType<typeof server.Actions.updateStatus>['payload']>(({ payload: { status } }) => {
+    const wasLoggedIn = previousStatus.current === WebsocketTypes.StatusEnum.LOGGED_IN;
+    previousStatus.current = status.state;
+    // Event_ConnectionClosed arrives through UPDATE_STATUS. Capture the first
+    // reason before the physical socket reports its generic close/failure text.
+    // Login rejections stay with Login; ordinary logout needs no extra dialog.
+    const reason = status.description;
+    if (wasLoggedIn && status.state === WebsocketTypes.StatusEnum.DISCONNECTED && reason
+      && reason !== 'Connection Closed' && reason !== 'Connection Failed') {
+      setNotices((queue) => [...queue, { kind: 'closed', reason }]);
+    }
+  }, server.Types.UPDATE_STATUS);
+
+  useEffect(() => onSessionEnd(() => {
+    setNotices((queue) => queue.filter((n) =>
+      n.kind !== 'notification' || n.event.type !== Event_NotifyUser_NotificationType.IDLEWARNING));
+  }), []);
 
   useEffect(() => {
     if (shutdownDeadline == null) {
@@ -96,16 +138,11 @@ export default function ServerNotices() {
     return () => window.clearInterval(timer);
   }, [shutdownDeadline]);
 
-  // --- Notifications ---
-  // Stored messages are immutable, so identity marks the ones already shown.
-  const dismissed = useRef(new WeakSet<Event_NotifyUser>());
-  const [, setDismissCount] = useState(0);
-  // Recomputed every render (the list is capped at MAX_NOTIFICATIONS):
-  // dismissing bumps local state, which re-renders past the dismissed entry.
-  const current = notifications
-    .filter((n) => !dismissed.current.has(n))
-    .map((n) => ({ notification: n, notice: describeNotification(t, n) }))
-    .find((entry): entry is { notification: Event_NotifyUser; notice: NotificationNotice } => entry.notice !== null);
+  const current = notices
+    .map((entry) => ({ entry, notice: entry.kind === 'closed'
+      ? { title: t('ServerNotices.closed.title'), message: entry.reason, severity: 'error' as const }
+      : describeNotification(t, entry.event) }))
+    .find((item): item is { entry: QueuedNotice; notice: NotificationNotice } => item.notice !== null);
 
   if (shutdown && shutdownDeadline != null) {
     return (
@@ -132,9 +169,9 @@ export default function ServerNotices() {
       severity={current.notice.severity}
       title={current.notice.title}
       message={current.notice.message}
+      details={current.notice.details}
       onDismiss={() => {
-        dismissed.current.add(current.notification);
-        setDismissCount((count) => count + 1);
+        setNotices((queue) => queue.filter((n) => n !== current.entry));
       }}
     />
   );
