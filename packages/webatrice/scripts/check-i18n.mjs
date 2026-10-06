@@ -11,7 +11,8 @@
 //   2. every template key `t(`A.b.${x}`)` has at least one key under its prefix;
 //   3. every catalogue key is reached from source (allowlist: i18n-allowlist.json);
 //   4. every English message is valid ICU;
-//   5. the committed `src/i18n-default.json` equals a fresh merge;
+//   5. the committed `src/i18n-default.json` is byte for byte a fresh merge in
+//      prebuild.js's sorted path order, so key-order drift fails too;
 //   6. the `public/locales/*` folders are exactly the `Language` enum values.
 
 import fs from 'node:fs';
@@ -38,6 +39,16 @@ export function flattenCatalog(json, prefix = '', out = {}) {
     }
   }
   return out;
+}
+
+/** The order prebuild.js merges catalogues in: by POSIX path, compared by code unit. */
+export function compareCatalogPaths(a, b) {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+/** The rollup exactly as prebuild.js writes it. */
+export function serializeRollup(merged) {
+  return JSON.stringify(merged, null, 2);
 }
 
 /** Merges catalogue files the way prebuild.js does: a repeated top-level namespace is an error. */
@@ -162,23 +173,11 @@ export function readLanguageEnum(text) {
   return values;
 }
 
-function isDeepEqual(a, b) {
-  if (a === b) {
-    return true;
-  }
-  if (typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) {
-    return false;
-  }
-  const aKeys = Object.keys(a);
-  const bKeys = Object.keys(b);
-  return aKeys.length === bKeys.length && aKeys.every((k) => k in b && isDeepEqual(a[k], b[k]));
-}
-
 /**
  * Runs every check over already-loaded inputs and returns one message per problem.
  * Pure, so the spec drives it without touching the file system.
  */
-export function checkI18n({ catalogFiles, sources, allowlist = [], rollup, localeDirs, languages }) {
+export function checkI18n({ catalogFiles, sources, allowlist = [], rollupText, localeDirs, languages }) {
   const problems = [];
   const { merged, problems: mergeProblems } = mergeCatalogs(catalogFiles);
   problems.push(...mergeProblems);
@@ -251,7 +250,8 @@ export function checkI18n({ catalogFiles, sources, allowlist = [], rollup, local
     }
   }
 
-  if (rollup !== undefined && !isDeepEqual(rollup, merged)) {
+  // Git may check the file out with CRLF line endings; the generator writes LF.
+  if (rollupText !== undefined && rollupText.replace(/\r\n/g, '\n') !== serializeRollup(merged)) {
     problems.push('src/i18n-default.json is stale; run `npm run translate` and commit the result');
   }
 
@@ -291,19 +291,19 @@ function main() {
   const rel = (file) => path.relative(root, file).split(path.sep).join('/');
 
   const catalogFiles = walk(src, (f) => CATALOG_FILE.test(f))
-    .sort()
-    .map((file) => ({ file: rel(file), json: JSON.parse(fs.readFileSync(file, 'utf8')) }));
+    .map((file) => ({ file: rel(file), json: JSON.parse(fs.readFileSync(file, 'utf8')) }))
+    .sort((a, b) => compareCatalogPaths(a.file, b.file));
   const sources = walk(src, (f) => SOURCE_EXTENSIONS.test(f) && !SKIPPED_SOURCES.test(f.split(path.sep).join('/')))
     .map((file) => ({ file: rel(file), text: fs.readFileSync(file, 'utf8') }));
   // `{ "<key>": "<why no source references it>" }`
   const allowlist = Object.keys(JSON.parse(fs.readFileSync(path.join(root, 'scripts/i18n-allowlist.json'), 'utf8')));
-  const rollup = JSON.parse(fs.readFileSync(path.join(src, 'i18n-default.json'), 'utf8'));
+  const rollupText = fs.readFileSync(path.join(src, 'i18n-default.json'), 'utf8');
   const localeDirs = fs.readdirSync(path.join(root, 'public/locales'), { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name);
   const languages = readLanguageEnum(fs.readFileSync(path.join(src, 'types/languages.ts'), 'utf8'));
 
-  const problems = checkI18n({ catalogFiles, sources, allowlist, rollup, localeDirs, languages });
+  const problems = checkI18n({ catalogFiles, sources, allowlist, rollupText, localeDirs, languages });
   if (problems.length > 0) {
     console.error(`i18n:check found ${problems.length} problem(s):\n${problems.map((p) => `  ${p}`).join('\n')}`);
     process.exitCode = 1;

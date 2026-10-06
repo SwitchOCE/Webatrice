@@ -1098,157 +1098,9 @@
       "tooLong": "At most {max} characters"
     }
   },
-  "DeckBracket": {
-    "assessing": "Assessing bracket…",
-    "failed": "Couldn’t assess bracket: {message}",
-    "title": "Bracket {level} · {label}",
-    "partialTitle": "At least bracket {level} · {label}",
-    "methodology": "Minimum bracket per <0>edhpowerlevel</0>’s algorithm: Game Changers, MLD, extra turns, and early game-defining combos.",
-    "provenance": "Card data from Scryfall; combos from Commander Spellbook, which receives the main deck’s card names and quantities.",
-    "consent": {
-      "prompt": "Estimating the bracket sends this deck’s card names to Scryfall (Game Changers list and card text), and the main deck’s card names and quantities to Commander Spellbook (combos). Nothing is sent until you allow it.",
-      "allow": "Allow online lookups",
-      "revoke": "Turn off online lookups"
-    },
-    "partialNotice": "Partial estimate: this deck may sit in a higher bracket. It isn’t saved with the deck until every source answers.",
-    "sourceUnavailable": "{source} unavailable ({reason})",
-    "sourcePartial": "{source}: {missing} of {total} cards missing ({reason})",
-    "retry": "Retry",
-    "source": {
-      "gameChangers": "Scryfall Game Changers list",
-      "oracleText": "Scryfall card text",
-      "combos": "Commander Spellbook combos"
-    },
-    "failure": {
-      "timeout": "timed out",
-      "network": "network error",
-      "http": "HTTP {status}",
-      "malformed": "unexpected response"
-    },
-    "level": {
-      "1": "Exhibition",
-      "2": "Core",
-      "3": "Upgraded",
-      "4": "Optimized",
-      "5": "cEDH"
-    },
-    "signal": {
-      "gameChangers": "Game Changers",
-      "denial": "MLD",
-      "turns": "Extra turns",
-      "earlyCombos": "Early combos",
-      "lateCombos": "Late combos"
-    },
-    "chainable": "— chain-able:"
-  },
-  "DeckLink": {
-    "label": "Load deck from online service",
-    "placeholder": "Paste a link to a deck on Archidekt, Deckstats, Moxfield or TappedOut",
-    "unsupported": "Not a supported deck link. (Archidekt, Deckstats, Moxfield, and TappedOut are supported.)",
-    "copyText": "Browsers can't read decks from {provider} directly. Open its text export, copy the list and paste it below.",
-    "copyFromPage": "Browsers can't read decks from {provider} directly. Open the deck, use its Export option to copy the list, and paste it below.",
-    "open": "Open on {provider}"
-  },
-  "DeckBanner": {
-    "label": "Banner Card"
-  },
-  "DeckHistory": {
-    "undo": "Undo",
-    "redo": "Redo",
-    "history": "Undo/Redo history",
-    "hint": "Click on an entry to revert to that point in the history.",
-    "undoEntry": "[undo] {reason}",
-    "redoEntry": "[redo] {reason}",
-    "zone": {
-      "main": "Mainboard",
-      "sideboard": "Sideboard"
-    },
-    "reason": {
-      "rename": "Rename deck to \"{to}\" from \"{from}\"",
-      "description": "Updated comments (was {before} chars, now {after} chars)",
-      "format": "Set format to {format}",
-      "banner": "Set banner card to {name}",
-      "bannerCleared": "Cleared banner card",
-      "tags": "Tags changed",
-      "addCard": "Added ({zone}): {name}",
-      "added": "Added {count} × \"{name}\"",
-      "removed": "Removed {count} × \"{name}\"",
-      "removeCard": "Removed \"{name}\" (all copies)",
-      "moveCard": "Moved {count} × \"{name}\" to {zone}",
-      "setCommander": "Set \"{name}\" as commander",
-      "unsetCommander": "Unset \"{name}\" as commander",
-      "changePrinting": "Changed printing of \"{name}\" to {set}"
-    }
-  },
-  "DeckLegality": {
-    "checking": "Checking legality…",
-    "legal": "Legal in {format}",
-    "illegal": "{count, plural, one {# card isn't} other {# cards aren't}} legal in {format}",
-    "unavailable": "Legality can't be checked for {format}",
-    "unchecked": "{count, plural, one {# card couldn't be checked} other {# cards couldn't be checked}}",
-    "reason": {
-      "banned": "Banned in this format",
-      "notLegal": "Not legal in this format",
-      "tooMany": "Too many copies (at most {max})"
-    }
-  },
-  "DeckTools": {
-    "print": "Print deck...",
-    "sendTo": "Send deck to online service",
-    "decklistOrg": "Create decklist (decklist.org)",
-    "decklistXyz": "Create decklist (decklist.xyz)",
-    "deckstats": "Analyze deck (deckstats.net)",
-    "tappedout": "Analyze deck (tappedout.net)",
-    "empty": "There are no cards in your deck to be exported",
-    "zone": {
-      "main": "Mainboard",
-      "sideboard": "Sideboard"
-    }
-  },
-  "DeckSidebar": {
-    "saveFailed": "The deck could not be saved.",
-    "retrySave": "Retry",
-    "saveFailedHint": "Your last change was not saved. It will be sent again with your next change, or now with Retry."
-  },
-  "DeckTags": {
-    "label": "Tags",
-    "add": "Add Tag",
-    "placeholder": "Add a new tag (e.g., Aggro)",
-    "remove": "Remove tag {tag}",
-    "empty": "Tag name cannot be empty!",
-    "duplicate": "This tag already exists."
-  },
-  "SampleHand": {
-    "title": "Sample hand",
-    "redraw": "Draw a new sample hand",
-    "size": "Sample hand size",
-    "empty": "Add cards to the main deck to draw a sample hand."
-  },
-  "DeckFolders": {
-    "location": "Folder",
-    "root": "Server deck storage",
-    "newFolder": "New folder",
-    "deckCount": "{count, plural, one {# deck} other {# decks}}",
-    "downloadFolder": "Download all decks as .cod files",
-    "downloadFolderNamed": "Download the decks in {name}",
-    "deleteFolder": "Delete folder",
-    "deleteFolderNamed": "Delete {name}",
-    "moveDeck": "Move to folder",
-    "moveDeckNamed": "Move {name} to another folder",
-    "downloadDeck": "Download .cod file",
-    "downloadDeckNamed": "Download {name}",
-    "empty": "This folder is empty."
-  },
   "DeckEditor": {
     "downloadFailed": "Failed to download this deck from the server.",
     "loadFailedTitle": "Deck could not be loaded"
-  },
-  "Decks": {
-    "listError": "Failed to load your decks from the server.",
-    "retry": "Retry",
-    "moveFailed": "Couldn’t move {name}. The original deck is unchanged.",
-    "uploadFailed": "Couldn’t save {name} to the server.",
-    "dismiss": "Dismiss"
   },
   "DeckSharing": {
     "shareDeck": "Share deck...",
@@ -1346,6 +1198,154 @@
     "close": "Close",
     "cardCount": "{count, plural, one {# card} other {# cards}}"
   },
+  "Decks": {
+    "listError": "Failed to load your decks from the server.",
+    "retry": "Retry",
+    "moveFailed": "Couldn’t move {name}. The original deck is unchanged.",
+    "uploadFailed": "Couldn’t save {name} to the server.",
+    "dismiss": "Dismiss"
+  },
+  "DeckLink": {
+    "label": "Load deck from online service",
+    "placeholder": "Paste a link to a deck on Archidekt, Deckstats, Moxfield or TappedOut",
+    "unsupported": "Not a supported deck link. (Archidekt, Deckstats, Moxfield, and TappedOut are supported.)",
+    "copyText": "Browsers can't read decks from {provider} directly. Open its text export, copy the list and paste it below.",
+    "copyFromPage": "Browsers can't read decks from {provider} directly. Open the deck, use its Export option to copy the list, and paste it below.",
+    "open": "Open on {provider}"
+  },
+  "DeckBracket": {
+    "assessing": "Assessing bracket…",
+    "failed": "Couldn’t assess bracket: {message}",
+    "title": "Bracket {level} · {label}",
+    "partialTitle": "At least bracket {level} · {label}",
+    "methodology": "Minimum bracket per <0>edhpowerlevel</0>’s algorithm: Game Changers, MLD, extra turns, and early game-defining combos.",
+    "provenance": "Card data from Scryfall; combos from Commander Spellbook, which receives the main deck’s card names and quantities.",
+    "consent": {
+      "prompt": "Estimating the bracket sends this deck’s card names to Scryfall (Game Changers list and card text), and the main deck’s card names and quantities to Commander Spellbook (combos). Nothing is sent until you allow it.",
+      "allow": "Allow online lookups",
+      "revoke": "Turn off online lookups"
+    },
+    "partialNotice": "Partial estimate: this deck may sit in a higher bracket. It isn’t saved with the deck until every source answers.",
+    "sourceUnavailable": "{source} unavailable ({reason})",
+    "sourcePartial": "{source}: {missing} of {total} cards missing ({reason})",
+    "retry": "Retry",
+    "source": {
+      "gameChangers": "Scryfall Game Changers list",
+      "oracleText": "Scryfall card text",
+      "combos": "Commander Spellbook combos"
+    },
+    "failure": {
+      "timeout": "timed out",
+      "network": "network error",
+      "http": "HTTP {status}",
+      "malformed": "unexpected response"
+    },
+    "level": {
+      "1": "Exhibition",
+      "2": "Core",
+      "3": "Upgraded",
+      "4": "Optimized",
+      "5": "cEDH"
+    },
+    "signal": {
+      "gameChangers": "Game Changers",
+      "denial": "MLD",
+      "turns": "Extra turns",
+      "earlyCombos": "Early combos",
+      "lateCombos": "Late combos"
+    },
+    "chainable": "— chain-able:"
+  },
+  "DeckBanner": {
+    "label": "Banner Card"
+  },
+  "DeckHistory": {
+    "undo": "Undo",
+    "redo": "Redo",
+    "history": "Undo/Redo history",
+    "hint": "Click on an entry to revert to that point in the history.",
+    "undoEntry": "[undo] {reason}",
+    "redoEntry": "[redo] {reason}",
+    "zone": {
+      "main": "Mainboard",
+      "sideboard": "Sideboard"
+    },
+    "reason": {
+      "rename": "Rename deck to \"{to}\" from \"{from}\"",
+      "description": "Updated comments (was {before} chars, now {after} chars)",
+      "format": "Set format to {format}",
+      "banner": "Set banner card to {name}",
+      "bannerCleared": "Cleared banner card",
+      "tags": "Tags changed",
+      "addCard": "Added ({zone}): {name}",
+      "added": "Added {count} × \"{name}\"",
+      "removed": "Removed {count} × \"{name}\"",
+      "removeCard": "Removed \"{name}\" (all copies)",
+      "moveCard": "Moved {count} × \"{name}\" to {zone}",
+      "setCommander": "Set \"{name}\" as commander",
+      "unsetCommander": "Unset \"{name}\" as commander",
+      "changePrinting": "Changed printing of \"{name}\" to {set}"
+    }
+  },
+  "DeckLegality": {
+    "checking": "Checking legality…",
+    "legal": "Legal in {format}",
+    "illegal": "{count, plural, one {# card isn't} other {# cards aren't}} legal in {format}",
+    "unavailable": "Legality can't be checked for {format}",
+    "unchecked": "{count, plural, one {# card couldn't be checked} other {# cards couldn't be checked}}",
+    "reason": {
+      "banned": "Banned in this format",
+      "notLegal": "Not legal in this format",
+      "tooMany": "Too many copies (at most {max})"
+    }
+  },
+  "DeckTools": {
+    "print": "Print deck...",
+    "sendTo": "Send deck to online service",
+    "decklistOrg": "Create decklist (decklist.org)",
+    "decklistXyz": "Create decklist (decklist.xyz)",
+    "deckstats": "Analyze deck (deckstats.net)",
+    "tappedout": "Analyze deck (tappedout.net)",
+    "empty": "There are no cards in your deck to be exported",
+    "zone": {
+      "main": "Mainboard",
+      "sideboard": "Sideboard"
+    }
+  },
+  "DeckSidebar": {
+    "saveFailed": "The deck could not be saved.",
+    "retrySave": "Retry",
+    "saveFailedHint": "Your last change was not saved. It will be sent again with your next change, or now with Retry."
+  },
+  "DeckTags": {
+    "label": "Tags",
+    "add": "Add Tag",
+    "placeholder": "Add a new tag (e.g., Aggro)",
+    "remove": "Remove tag {tag}",
+    "empty": "Tag name cannot be empty!",
+    "duplicate": "This tag already exists."
+  },
+  "SampleHand": {
+    "title": "Sample hand",
+    "redraw": "Draw a new sample hand",
+    "size": "Sample hand size",
+    "empty": "Add cards to the main deck to draw a sample hand."
+  },
+  "DeckFolders": {
+    "location": "Folder",
+    "root": "Server deck storage",
+    "newFolder": "New folder",
+    "deckCount": "{count, plural, one {# deck} other {# decks}}",
+    "downloadFolder": "Download all decks as .cod files",
+    "downloadFolderNamed": "Download the decks in {name}",
+    "deleteFolder": "Delete folder",
+    "deleteFolderNamed": "Delete {name}",
+    "moveDeck": "Move to folder",
+    "moveDeckNamed": "Move {name} to another folder",
+    "downloadDeck": "Download .cod file",
+    "downloadDeckNamed": "Download {name}",
+    "empty": "This folder is empty."
+  },
   "CreateFolder": {
     "title": "New folder",
     "label": "Name of new folder:",
@@ -1428,6 +1428,35 @@
       "refresh": "Refresh server stats"
     }
   },
+  "GameErrorBoundary": {
+    "title": "The game board hit an unexpected error",
+    "message": "You are still in the game. Reload the board to pick up where you left off.",
+    "retry": "Reload board"
+  },
+  "GameLobby": {
+    "action": {
+      "unloadDeck": "Unload deck",
+      "readyStart": "Ready to start",
+      "sideboardLocked": "Sideboard locked",
+      "sideboardUnlocked": "Sideboard unlocked",
+      "forceStart": "Force start"
+    },
+    "deck": {
+      "heading": "Your deck",
+      "maindeck": "Maindeck: {count}",
+      "sideboard": "Sideboard: {count}",
+      "moveToSideboard": "Move {name} to the sideboard",
+      "moveToMaindeck": "Move {name} to the maindeck",
+      "lockedHint": "Unlock the sideboard to change which cards you play this game."
+    },
+    "forceStart": {
+      "title": "Are you sure you want to force start?",
+      "message": "This will kick all non-ready players from the game.",
+      "confirm": "Yes",
+      "cancel": "No"
+    },
+    "deckSelectFailed": "The server did not accept this deck."
+  },
   "GameInvite": {
     "copyLink": "Copy game link",
     "inviteToGame": "Invite to Game...",
@@ -1470,35 +1499,6 @@
     "tally": "Tally",
     "selectedCount": "{count, plural, one {# card selected} other {# cards selected}}"
   },
-  "GameErrorBoundary": {
-    "title": "The game board hit an unexpected error",
-    "message": "You are still in the game. Reload the board to pick up where you left off.",
-    "retry": "Reload board"
-  },
-  "GameLobby": {
-    "action": {
-      "unloadDeck": "Unload deck",
-      "readyStart": "Ready to start",
-      "sideboardLocked": "Sideboard locked",
-      "sideboardUnlocked": "Sideboard unlocked",
-      "forceStart": "Force start"
-    },
-    "deck": {
-      "heading": "Your deck",
-      "maindeck": "Maindeck: {count}",
-      "sideboard": "Sideboard: {count}",
-      "moveToSideboard": "Move {name} to the sideboard",
-      "moveToMaindeck": "Move {name} to the maindeck",
-      "lockedHint": "Unlock the sideboard to change which cards you play this game."
-    },
-    "forceStart": {
-      "title": "Are you sure you want to force start?",
-      "message": "This will kick all non-ready players from the game.",
-      "confirm": "Yes",
-      "cancel": "No"
-    },
-    "deckSelectFailed": "The server did not accept this deck."
-  },
   "GameReplay": {
     "missing": "This replay is no longer open. Replays are kept only until the page is reloaded.",
     "backToReplays": "Back to replays",
@@ -1523,6 +1523,36 @@
     "settings": {
       "fastForwardSpeed": "Fast forward speed",
       "skipEmptySections": "Skip empty sections"
+    }
+  },
+  "Login": {
+    "header": {
+      "title": "Login",
+      "subtitle": "A cross-platform virtual tabletop for multiplayer card games."
+    },
+    "action": {
+      "watchReplay": "Watch replay"
+    },
+    "footer": {
+      "registerPrompt": "Not registered yet?",
+      "registerAction": "Create an account",
+      "credit": "Cockatrice is an open source project",
+      "version": "Version",
+      "debugLog": "View debug log"
+    },
+    "content": {
+      "subtitle1": "Play multiplayer card games online.",
+      "subtitle2": "Cross-platform virtual tabletop for multiplayer card games. Forever free."
+    },
+    "toasts": {
+      "accountActivationSuccess": "Account Activated Successfully",
+      "passwordResetSuccess": "Password Reset Successfully"
+    },
+    "status": {
+      "serverUnreachable": "Trouble reaching the server. Wait a minute and try again.",
+      "passwordChangeRequired": "An administrator has reset your password. The server will not log you in until you choose a new one: use Forgot Password to set it, then log in with the new password.",
+      "passwordChangeRequiredAction": "Reset password",
+      "serverFull": "The server has reached its maximum number of users. Please check back later."
     }
   },
   "AccountActivationDialog": {
@@ -1576,57 +1606,6 @@
       "reset": "Reset Password"
     }
   },
-  "Login": {
-    "header": {
-      "title": "Login",
-      "subtitle": "A cross-platform virtual tabletop for multiplayer card games."
-    },
-    "action": {
-      "watchReplay": "Watch replay"
-    },
-    "footer": {
-      "registerPrompt": "Not registered yet?",
-      "registerAction": "Create an account",
-      "credit": "Cockatrice is an open source project",
-      "version": "Version",
-      "debugLog": "View debug log"
-    },
-    "content": {
-      "subtitle1": "Play multiplayer card games online.",
-      "subtitle2": "Cross-platform virtual tabletop for multiplayer card games. Forever free."
-    },
-    "toasts": {
-      "accountActivationSuccess": "Account Activated Successfully",
-      "passwordResetSuccess": "Password Reset Successfully"
-    },
-    "status": {
-      "serverUnreachable": "Trouble reaching the server. Wait a minute and try again.",
-      "passwordChangeRequired": "An administrator has reset your password. The server will not log you in until you choose a new one: use Forgot Password to set it, then log in with the new password.",
-      "passwordChangeRequiredAction": "Reset password",
-      "serverFull": "The server has reached its maximum number of users. Please check back later."
-    }
-  },
-  "Logs": {
-    "tab": {
-      "rooms": "Room Logs",
-      "games": "Game Logs",
-      "chats": "Chat Logs"
-    },
-    "column": {
-      "time": "Time",
-      "senderName": "Sender Name",
-      "senderIp": "Sender IP",
-      "message": "Message",
-      "targetId": "Target ID",
-      "targetName": "Target Name"
-    },
-    "notice": {
-      "title": "Message History",
-      "empty": "There are no messages for the selected filters.",
-      "failed": "Failed to collect message history information."
-    },
-    "title": "Log Results"
-  },
   "LogSearchForm": {
     "group": {
       "filters": "Filters",
@@ -1658,6 +1637,27 @@
       "search": "Get User Logs",
       "clear": "Clear Filters"
     }
+  },
+  "Logs": {
+    "tab": {
+      "rooms": "Room Logs",
+      "games": "Game Logs",
+      "chats": "Chat Logs"
+    },
+    "column": {
+      "time": "Time",
+      "senderName": "Sender Name",
+      "senderIp": "Sender IP",
+      "message": "Message",
+      "targetId": "Target ID",
+      "targetName": "Target Name"
+    },
+    "notice": {
+      "title": "Message History",
+      "empty": "There are no messages for the selected filters.",
+      "failed": "Failed to collect message history information."
+    },
+    "title": "Log Results"
   },
   "ModerationPage": {
     "search": {
@@ -2025,6 +2025,30 @@
       "unknown": "Failed to join the server room due to an unknown error: {code}."
     }
   },
+  "Settings": {
+    "title": "Settings",
+    "searchLabel": "Search settings",
+    "searchPlaceholder": "Search settings...",
+    "searchResults": "Search results",
+    "noResults": "No settings match \"{query}\".",
+    "openSection": "Open {section}",
+    "restoreDefaults": "Restore defaults",
+    "restoreDefaultsConfirm": {
+      "title": "Restore {section} defaults?",
+      "message": "Every setting on this page goes back to its default. This cannot be undone.",
+      "cancel": "Cancel"
+    },
+    "section": {
+      "appearance": "Appearance",
+      "userInterface": "User Interface",
+      "chat": "Chat",
+      "sound": "Sound",
+      "shortcuts": "Shortcuts",
+      "general": "General",
+      "cardSources": "Card Sources",
+      "storage": "Storage"
+    }
+  },
   "PlaymatSettings": {
     "title": "Playmat settings",
     "label": "Playmats",
@@ -2293,34 +2317,6 @@
       "label": "Tap/untap animation"
     }
   },
-  "Settings": {
-    "title": "Settings",
-    "searchLabel": "Search settings",
-    "searchPlaceholder": "Search settings...",
-    "searchResults": "Search results",
-    "noResults": "No settings match \"{query}\".",
-    "openSection": "Open {section}",
-    "restoreDefaults": "Restore defaults",
-    "restoreDefaultsConfirm": {
-      "title": "Restore {section} defaults?",
-      "message": "Every setting on this page goes back to its default. This cannot be undone.",
-      "cancel": "Cancel"
-    },
-    "section": {
-      "appearance": "Appearance",
-      "userInterface": "User Interface",
-      "chat": "Chat",
-      "sound": "Sound",
-      "shortcuts": "Shortcuts",
-      "general": "General",
-      "cardSources": "Card Sources",
-      "storage": "Storage"
-    }
-  },
-  "AppAlerts": {
-    "mention": "{sender} mentioned you.",
-    "buddySignedOn": "Your buddy {name} has signed on!"
-  },
   "BrowserFeature": {
     "syntax": "Modern JavaScript, used by the whole client",
     "esModules": "JavaScript modules, used to load the client",
@@ -2387,6 +2383,10 @@
     "subtitle1": "Please update your browser and/or check your permissions.",
     "subtitle2": "Note: Private browsing causes some browsers to disable certain permissions or features.",
     "missing": "This browser does not provide:"
+  },
+  "AppAlerts": {
+    "mention": "{sender} mentioned you.",
+    "buddySignedOn": "Your buddy {name} has signed on!"
   },
   "CommandFailure": {
     "notSent": "You are not connected to the server.",

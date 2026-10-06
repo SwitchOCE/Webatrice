@@ -36,7 +36,11 @@ async function createVersionFile() {
 
 async function createI18NDefault() {
   try {
-    const files = getAllFiles(ROOT_DIR, i18nFileRegex);
+    // readdirSync order is alphabetical on NTFS and APFS but hash order on ext4, so sort the
+    // catalogues by path: the rollup's key order is then the same on every OS.
+    // check-i18n.mjs merges in the same order and compares the committed file byte for byte.
+    const files = getAllFiles(ROOT_DIR, i18nFileRegex)
+      .sort((a, b) => comparePosixPaths(toPosixRelative(a), toPosixRelative(b)));
     const allJson = await Promise.all(files.map(file => fse.readJson(file)));
 
     const rollup = allJson.reduce((acc, json) => {
@@ -62,6 +66,15 @@ async function createI18NDefault() {
 
 async function getCommitHash() {
   return (await exec('git rev-parse HEAD')).stdout.trim();
+}
+
+function toPosixRelative(file) {
+  return path.relative(__dirname, file).split(path.sep).join('/');
+}
+
+// A locale-independent comparison (UTF-16 code units), unlike localeCompare.
+function comparePosixPaths(a, b) {
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 function getAllFiles(dirPath, regex = /./, allFiles = []) {
