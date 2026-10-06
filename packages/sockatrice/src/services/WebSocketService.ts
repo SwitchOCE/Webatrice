@@ -37,6 +37,7 @@ export class WebSocketService {
 
   private intentionalDisconnect = false;
   private reconnectAttempts = 0;
+  private clearConnectionTimer: (() => void) | undefined;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   /**
    * True after first successful `onopen`; gates reconnect.
@@ -76,6 +77,13 @@ export class WebSocketService {
     this.closeActiveSocket(false);
   }
 
+  /** Retire synchronously without later status or message callbacks. */
+  public dispose(): void {
+    this.intentionalDisconnect = true;
+    this.clearReconnectTimer();
+    this.closeActiveSocket(true);
+  }
+
   public checkReadyState(state: number): boolean {
     return this.socket?.readyState === state;
   }
@@ -103,6 +111,7 @@ export class WebSocketService {
     // wait for an onopen that never comes and hang reconnect.
     const connectionTimer = setTimeout(() => socket.close(), this.keepalive);
     const clearConnectionTimer = (): void => clearTimeout(connectionTimer);
+    this.clearConnectionTimer = clearConnectionTimer;
 
     socket.onopen = () => {
       this.hasEverOpened = true;
@@ -201,6 +210,9 @@ export class WebSocketService {
   }
 
   private closeActiveSocket(retiringForReconnect: boolean): void {
+    this.clearConnectionTimer?.();
+    this.clearConnectionTimer = undefined;
+    this.keepAliveService.endPingLoop();
     if (!this.socket) {
       return;
     }
@@ -226,6 +238,7 @@ export class WebSocketService {
       // emit DISCONNECTED, or corrupt hasReportedError against the live replacement.
       // Not done on an intentional disconnect(), whose onclose must still emit
       // DISCONNECTED. terminateSocket owns close timing only.
+      socket.onopen = null;
       socket.onclose = null;
       socket.onerror = null;
     }

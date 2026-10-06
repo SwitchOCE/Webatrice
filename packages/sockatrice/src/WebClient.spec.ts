@@ -9,6 +9,7 @@ vi.mock('./services/WebSocketService', () => ({
     return {
       connect: vi.fn(),
       disconnect: vi.fn(),
+      dispose: vi.fn(),
       send: vi.fn(),
       checkReadyState: vi.fn().mockReturnValue(true),
     };
@@ -115,6 +116,7 @@ describe('WebClient', () => {
       return {
         connect: vi.fn(),
         disconnect: vi.fn(),
+        dispose: vi.fn(),
         send: vi.fn(),
         checkReadyState: vi.fn().mockReturnValue(true),
       };
@@ -173,7 +175,7 @@ describe('WebClient', () => {
     });
 
     it('closes any open socket before clearing the instance', () => {
-      const disconnectSpy = client.socket.disconnect as Mock;
+      const disconnectSpy = client.socket.dispose as Mock;
       WebClient.dispose();
       expect(disconnectSpy).toHaveBeenCalled();
     });
@@ -371,18 +373,29 @@ describe('WebClient', () => {
       // First testConnect: capture socket A (the one set up in beforeEach).
       client.testConnect(target);
       const socketA = wsMockInstance;
+      const lateMessage = socketA.onmessage!;
+      expect(lateMessage).toEqual(expect.any(Function));
 
       // Second testConnect: a fresh installMockWebSocketHarness gives us socket B,
       // and the WebClient's testSocket is now B (not A).
       const { mockInstance: socketB } = installMockWebSocketHarness();
       client.testConnect(target);
       expect(socketB).not.toBe(socketA);
+      expect(socketA.onmessage).toBeNull();
 
-      // A's onmessage now arrives late with a valid identification — the
-      // dispatch should be suppressed because testSocket !== socketA.
+      // Invoke the captured callback as if delivery was already queued before
+      // detachment. The identity guard must still suppress A's valid reply.
       const data = buildServerIdentificationMessage();
-      socketA.onmessage({ data: data.buffer });
+      const message = new MessageEvent('message', { data: data.buffer });
+      lateMessage(message);
       expect(mockResponse.session.testConnectionSuccessful).not.toHaveBeenCalled();
+      expect(mockResponse.session.testConnectionFailed).not.toHaveBeenCalled();
+      expect(mockResponse.session.connectionUnreachable).not.toHaveBeenCalled();
+
+      // The same reply still succeeds for the current probe: the assertion
+      // above must not pass merely because identification handling is broken.
+      socketB.onmessage!(message);
+      expect(mockResponse.session.testConnectionSuccessful).toHaveBeenCalledExactlyOnceWith(false);
     });
 
     it('ignores non-SESSION_EVENT messages', () => {
