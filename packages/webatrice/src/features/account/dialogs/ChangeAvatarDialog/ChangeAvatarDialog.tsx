@@ -33,7 +33,7 @@ interface ChangeAvatarDialogProps {
 
 const ChangeAvatarForm = ({ handleClose }: { handleClose: () => void }) => {
   const { t } = useTranslation();
-  const { preview, pending, error, pick, submit } = useChangeAvatar(handleClose);
+  const { preview, pending, decoding, error, pick, submit } = useChangeAvatar(handleClose);
   const resolver = useMemo(() => zodResolver(buildChangeAvatarFormSchema(t)), [t]);
 
   const { handleSubmit, setValue, trigger, formState: { errors } } = useForm<ChangeAvatarFormValues>({
@@ -43,6 +43,9 @@ const ChangeAvatarForm = ({ handleClose }: { handleClose: () => void }) => {
 
   const onFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const readable = await pick(e.target.files?.[0] ?? null);
+    if (readable === undefined) {
+      return;
+    }
     setValue('unreadable', !readable);
     await trigger('unreadable');
   };
@@ -61,12 +64,13 @@ const ChangeAvatarForm = ({ handleClose }: { handleClose: () => void }) => {
       </div>
       <div className="flex items-center justify-between gap-3">
         <span>{t('ChangeAvatarDialog.instructions')}</span>
-        <Button component="label" variant="outlined">
+        <Button component="label" variant="outlined" disabled={pending}>
           {t('ChangeAvatarDialog.browse')}
           <input
             type="file"
             accept={ACCEPTED_TYPES}
             hidden
+            disabled={pending}
             aria-label={t('ChangeAvatarDialog.browse')}
             onChange={onFileChange}
           />
@@ -78,7 +82,7 @@ const ChangeAvatarForm = ({ handleClose }: { handleClose: () => void }) => {
       {error && <Typography color="error" role="alert">{error}</Typography>}
       <div className="flex justify-end gap-2">
         <Button onClick={handleClose}>{t('AccountDialogs.label.cancel')}</Button>
-        <Button type="submit" variant="contained" color="primary" disabled={pending}>
+        <Button type="submit" variant="contained" color="primary" disabled={pending || decoding}>
           {t('AccountDialogs.label.ok')}
         </Button>
       </div>

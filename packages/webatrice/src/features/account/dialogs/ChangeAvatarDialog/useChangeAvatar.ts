@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { usePushToast } from '@app/components';
@@ -16,9 +16,10 @@ export interface AvatarPreview {
 export interface ChangeAvatar {
   preview: AvatarPreview | null;
   pending: boolean;
+  decoding: boolean;
   error: string | null;
-  /** Decodes a picked file into the preview; resolves false when it isn't a readable image. */
-  pick: (file: File | null) => Promise<boolean>;
+  /** False for an unreadable image; undefined for a superseded selection. */
+  pick: (file: File | null) => Promise<boolean | undefined>;
   /** Uploads the previewed image, or an empty image (removing the avatar) when none is chosen. */
   submit: () => Promise<void>;
 }
@@ -30,6 +31,9 @@ export function useChangeAvatar(onDone: () => void): ChangeAvatar {
   const failureMessage = useCommandFailureMessage();
   const [preview, setPreview] = useState<AvatarPreview | null>(null);
   const [pending, setPending] = useState(false);
+  const [decoding, setDecoding] = useState(false);
+  const selection = useRef(0);
+  const readable = useRef(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => () => {
@@ -38,23 +42,48 @@ export function useChangeAvatar(onDone: () => void): ChangeAvatar {
     }
   }, [preview]);
 
+  useEffect(() => () => {
+    selection.current += 1;
+  }, []);
+
   const pick = async (file: File | null) => {
+    if (pending) {
+      return undefined;
+    }
+    const version = ++selection.current;
+    readable.current = !file;
+    setPreview(null);
+    setDecoding(!!file);
     if (!file) {
-      setPreview(null);
       return true;
     }
     const url = URL.createObjectURL(file);
     try {
-      setPreview({ url, image: await loadImage(url) });
+      const image = await loadImage(url);
+      if (version !== selection.current) {
+        URL.revokeObjectURL(url);
+        return undefined;
+      }
+      readable.current = true;
+      setPreview({ url, image });
       return true;
     } catch {
       URL.revokeObjectURL(url);
-      setPreview(null);
+      if (version !== selection.current) {
+        return undefined;
+      }
       return false;
+    } finally {
+      if (version === selection.current) {
+        setDecoding(false);
+      }
     }
   };
 
   const submit = async () => {
+    if (pending || decoding || !readable.current) {
+      return;
+    }
     setPending(true);
     setError(null);
     let image: Uint8Array;
@@ -79,5 +108,5 @@ export function useChangeAvatar(onDone: () => void): ChangeAvatar {
     );
   };
 
-  return { preview, pending, error, pick, submit };
+  return { preview, pending, decoding, error, pick, submit };
 }
