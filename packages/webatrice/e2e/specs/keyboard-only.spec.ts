@@ -1,7 +1,7 @@
 import type { Locator, Page } from '@playwright/test';
 
 import { expect, test } from '../fixtures/test';
-import { E2E_HOST_LABEL, registerAndJoinFirstRoom, registerAndReachRooms } from '../fixtures/flows';
+import { E2E_HOST_LABEL, joinFirstRoom, registerAndJoinFirstRoom, registerAndReachRooms } from '../fixtures/flows';
 import { randomSuffix } from '../fixtures/users';
 import { GamePage, LoginPage } from '../pages';
 
@@ -35,13 +35,28 @@ async function tabTo(page: Page, target: Locator, maxPresses = 60): Promise<void
 }
 
 test('log in, join a room and join a game with the keyboard only', async ({ newContext }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(240_000);
   const hostPage = await (await newContext()).newPage();
   const page = await (await newContext()).newPage();
 
   const host = await registerAndJoinFirstRoom(hostPage);
-  const gameDescription = `kbd-${randomSuffix()}`;
+  const prefix = `kbd-${randomSuffix()}`;
+  const gameDescription = `${prefix}-00`;
   await host.rooms.createGame(gameDescription, { maxPlayers: 2 });
+
+  // Fifteen live games exceed the viewport plus react-window's overscan.
+  // Use three hosts to stay within Servatrice's five-games-per-user limit.
+  for (let owner = 0; owner < 3; owner++) {
+    const ownerPage = owner === 0 ? hostPage : await (await newContext()).newPage();
+    const session = owner === 0 ? host : await registerAndJoinFirstRoom(ownerPage);
+    for (let slot = owner === 0 ? 1 : 0; slot < 5; slot++) {
+      if (owner === 0 || slot > 0) {
+        await session.rooms.waitForRoomList();
+        await joinFirstRoom(ownerPage, session.rooms);
+      }
+      await session.rooms.createGame(`${prefix}-${String(owner * 5 + slot).padStart(2, '0')}`, { maxPlayers: 2 });
+    }
+  }
 
   // Setup: an account and a saved host, then back to a fresh login screen.
   const { user } = await registerAndReachRooms(page);
@@ -81,11 +96,32 @@ test('log in, join a room and join a game with the keyboard only', async ({ newC
   // Tab into the games grid, arrow to the host's game and join it with Enter.
   const grid = page.getByRole('grid', { name: /^games in/i });
   const gameRow = grid.getByRole('row').filter({ hasText: gameDescription });
-  await expect(gameRow).toBeVisible({ timeout: 15_000 });
-  await tabTo(page, grid.locator('[role="row"][tabindex="0"]'));
-  for (let i = 0; i < 50 && !(await gameRow.evaluate((row) => row === document.activeElement)); i++) {
-    await page.keyboard.press('ArrowDown');
+  await page.setViewportSize({ width: 1280, height: 720 });
+  // Sort descending by description so our target follows all fourteen fillers,
+  // even when several games were created in the same second.
+  const descriptionSort = grid.getByRole('button', { name: /^description$/i });
+  await tabTo(page, descriptionSort);
+  await page.keyboard.press('Enter');
+  const descriptionHeader = grid.getByRole('columnheader', { name: /description/i });
+  if (await descriptionHeader.getAttribute('aria-sort') !== 'descending') {
+    await page.keyboard.press('Enter');
   }
+  await expect(descriptionHeader).toHaveAttribute('aria-sort', 'descending');
+  await expect(gameRow).toHaveCount(0);
+  const scroller = grid.locator('.virtual-list__list');
+  await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBe(0);
+  await tabTo(page, grid.locator('[role="row"][tabindex="0"]'));
+  let moves = 0;
+  while (moves < 100) {
+    if (await gameRow.count() && await gameRow.evaluate((row) => row === document.activeElement)) {
+      break;
+    }
+    await page.keyboard.press('ArrowDown');
+    moves++;
+  }
+  expect(moves).toBeGreaterThanOrEqual(14);
+  await expect.poll(() => scroller.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await expect(gameRow).toBeInViewport();
   await expect(gameRow).toBeFocused();
   // Tabbing in only focuses the row; Space selects it, which enables Join.
   await page.keyboard.press('Space');
