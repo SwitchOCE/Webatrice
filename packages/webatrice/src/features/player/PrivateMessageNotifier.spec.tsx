@@ -7,6 +7,7 @@ import { connectedState, makeUser, renderWithProviders } from '../../__test-util
 import { playSound } from '../../hooks/playSound';
 import { getSettings, settingsStore } from '../../hooks/useSettings';
 import PrivateMessageNotifier from './PrivateMessageNotifier';
+import { chatFilterVerdicts } from '../../utils/chatFilters';
 
 vi.mock('../../hooks/playSound');
 
@@ -41,10 +42,35 @@ const renderNotifier = (route = '/') => renderWithProviders(<PrivateMessageNotif
 
 describe('PrivateMessageNotifier', () => {
   beforeEach(async () => {
+    vi.spyOn(document, 'hasFocus').mockReturnValue(true);
     FakeNotification.instances = [];
     vi.stubGlobal('Notification', FakeNotification);
     settingsStore.reset();
     await getSettings();
+  });
+
+  it.each([
+    { level: 1, preferences: { ignoreUnregisteredUserMessages: true }, visible: false },
+    { level: 7, preferences: { ignoreAllPrivateMessages: true }, visible: true },
+  ])('pins the ingress verdict before a batched departure: $visible', async ({ level, preferences, visible }) => {
+    const settings = await getSettings();
+    Object.assign(settings, preferences);
+    settingsStore.setValue(settings);
+    const { store } = renderWithProviders(<PrivateMessageNotifier />, {
+      preloadedState: {
+        ...state,
+        server: { ...state.server, messages: {}, users: { alice: makeUser({ name: 'alice', userLevel: level }) } },
+      },
+    });
+    act(() => {
+      store.dispatch(server.Actions.userMessage({ messageData: create(Event_UserMessageSchema, {
+        senderName: 'alice', receiverName: 'me', message: 'arrival',
+      }) }));
+      const stored = store.getState().server.messages.alice[0];
+      expect(chatFilterVerdicts.get(stored)).toBe(visible);
+      store.dispatch(server.Actions.userLeft({ name: 'alice' }));
+    });
+    expect(Boolean(screen.queryByText('arrival'))).toBe(visible);
   });
 
   afterEach(() => {

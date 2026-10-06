@@ -6,14 +6,13 @@ import { games, rooms, server, type GamesState, type Message } from '@cockatrice
 import { Event_RoomSay_RoomMessageType, type ServerInfo_User } from '@cockatrice/sockatrice/generated';
 
 import { useNotify } from '@app/components';
-import { getPreferencesSnapshot, playSound } from '@app/hooks';
+import { getPreferencesSnapshot, playSound, useActionFeed } from '@app/hooks';
 import { isPageHidden, requestAttention } from '@app/services';
 import type { RootState } from '@app/store';
 import { RouteEnum } from '@app/types';
 import { chatFilterVerdicts, findChatAlert, isPrivilegedUser, isRoomMessageVisible, parseHighlightWords } from '@app/utils';
 
 import { gameEventSound, isGameAttentionEvent, type ObservedAction } from './gameEventSound';
-import { useActionFeed } from './useActionFeed';
 
 const GAME_ACTION_PREFIX = `${games.Types.GAME_JOINED.split('/')[0]}/`;
 
