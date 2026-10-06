@@ -31,7 +31,7 @@ type Stage = 'loading' | 'ready';
  *  - warnHistory / banHistory / adminNotes: one moderator command → table or editor
  */
 export type ModerationFlow =
-  | { kind: 'warnUser'; userName: string; stage: Stage; clientId: string | null }
+  | { kind: 'warnUser'; userName: string; stage: Stage; clientId: string | null; noWarnList?: boolean }
   | { kind: 'banUser'; userName: string; stage: Stage; noUserInfo: boolean }
   | { kind: 'warnHistory' | 'banHistory' | 'adminNotes'; userName: string; stage: Stage };
 
@@ -162,7 +162,7 @@ export function useModerationFlow(): ModerationFlowState {
 
   useReduxEffect<{ warnList: Response_WarnList[] }>(({ payload }) => {
     if (flow?.kind === 'warnUser' && flow.clientId !== null && payload.warnList.some((list) => list.userName === flow.userName)) {
-      setFlow({ ...flow, stage: 'ready' });
+      setFlow({ ...flow, stage: 'ready', noWarnList: false });
     }
   }, server.Types.WARN_LIST_OPTIONS, [flow]);
 
@@ -203,7 +203,7 @@ export function useModerationFlow(): ModerationFlowState {
     const command = payload.command as WebsocketTypes.ModeratorCommandName;
     if (command === 'warnList' && flow.kind === 'warnUser') {
       // Desktop opens the warning dialog regardless; it just has no reasons to offer.
-      setFlow({ ...flow, stage: 'ready' });
+      setFlow({ ...flow, stage: 'ready', noWarnList: true });
       return;
     }
     const failures: Partial<Record<WebsocketTypes.ModeratorCommandName, ModerationNotice>> = {
@@ -282,7 +282,7 @@ export function useModerationFlow(): ModerationFlowState {
     flow,
     notice,
     userInfo,
-    warnList,
+    warnList: flow?.kind === 'warnUser' && flow.noWarnList ? undefined : warnList,
     banHistory,
     warnHistory,
     adminNotes,

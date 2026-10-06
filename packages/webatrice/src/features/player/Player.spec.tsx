@@ -82,7 +82,8 @@ describe('Player', () => {
       },
     };
     renderPlayer(state, 'alice');
-    expect(screen.getByRole('button', { name: 'Moderation.menu.warnUser' })).toBeEnabled();
+    const moderation = screen.getByRole('group', { name: 'Player.moderation' });
+    expect(within(moderation).getByRole('button', { name: 'Moderation.menu.warnUser' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Moderation.menu.banHistory' })).toBeEnabled();
     expect(screen.queryByRole('button', { name: 'Moderation.menu.promoteMod' })).not.toBeInTheDocument();
 
