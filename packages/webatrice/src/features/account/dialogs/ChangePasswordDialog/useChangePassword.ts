@@ -27,22 +27,27 @@ export function useChangePassword(onDone: () => void): ChangePassword {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const submit = ({ oldPassword, newPassword }: ChangePasswordFormValues) => {
+  const submit = async ({ oldPassword, newPassword }: ChangePasswordFormValues) => {
     setPending(true);
     setError(null);
-    void webClient.request.session.accountPassword(
-      oldPassword,
-      newPassword,
-      () => {
-        setPending(false);
-        pushToast(t('ChangePasswordDialog.success'));
-        onDone();
-      },
-      (responseCode, failure) => {
-        setPending(false);
-        setError(failureMessage(failure, changePasswordErrorMessage(t, responseCode)));
-      },
-    );
+    try {
+      await webClient.request.session.accountPassword(
+        oldPassword,
+        newPassword,
+        () => {
+          setPending(false);
+          pushToast(t('ChangePasswordDialog.success'));
+          onDone();
+        },
+        (responseCode, failure) => {
+          setPending(false);
+          setError(failureMessage(failure, changePasswordErrorMessage(t, responseCode)));
+        },
+      );
+    } catch {
+      setPending(false);
+      setError(t('AccountDialogs.error.updateFailed'));
+    }
   };
 
   return { pending, error, submit };
