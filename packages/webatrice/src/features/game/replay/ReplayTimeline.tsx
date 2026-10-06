@@ -23,7 +23,7 @@ function ReplayTimeline({ timeline, currentTime, maxTime, onSeek }: ReplayTimeli
 
   const silhouette = useMemo(() => {
     const histogram = createTimelineHistogram(timeline);
-    const peak = Math.max(1, ...histogram);
+    const peak = histogram.reduce((max, count) => Math.max(max, count), 1);
     const points = histogram.map((count, i) => `${i},${100 - (count / peak) * 100}`);
     return { width: histogram.length, path: `M0,100 L${points.join(' L')} L${histogram.length},100 Z` };
   }, [timeline]);

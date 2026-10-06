@@ -48,28 +48,25 @@ export function hasMeaningfulEvent(container: GameEventContainer): boolean {
 
 /** Width of one timeline histogram bin (desktop `BIN_LENGTH`). */
 export const TIMELINE_BIN_MS = 5000;
+/** A timestamp must never determine an unbounded allocation or SVG path. */
+export const MAX_TIMELINE_BINS = 2048;
 
 /**
  * Event counts per 5-second bin, drawn as the activity silhouette behind the
- * timeline. Port of `ReplayTimelineWidget::setTimeline`.
+ * timeline. Long recordings use wider bins to keep memory and rendering bounded.
  */
 export function createTimelineHistogram(timeline: readonly number[]): number[] {
-  const histogram: number[] = [];
-  let binEndTime = TIMELINE_BIN_MS - 1;
-  let binValue = 0;
+  let maxTime = 0;
   for (const time of timeline) {
-    if (time > binEndTime) {
-      histogram.push(binValue);
-      while (time > binEndTime + TIMELINE_BIN_MS) {
-        histogram.push(0);
-        binEndTime += TIMELINE_BIN_MS;
-      }
-      binValue = 1;
-      binEndTime += TIMELINE_BIN_MS;
-    } else {
-      ++binValue;
+    if (!Number.isFinite(time) || time < 0) {
+      throw new RangeError('Invalid replay timestamp.');
     }
+    maxTime = Math.max(maxTime, time);
   }
-  histogram.push(binValue);
+  const binWidth = Math.max(TIMELINE_BIN_MS, Math.floor(maxTime / MAX_TIMELINE_BINS) + 1);
+  const histogram = new Array<number>(Math.floor(maxTime / binWidth) + 1).fill(0);
+  for (const time of timeline) {
+    ++histogram[Math.floor(time / binWidth)];
+  }
   return histogram;
 }

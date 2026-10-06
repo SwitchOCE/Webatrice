@@ -2,9 +2,11 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { create, hasExtension, toBinary } from '@bufbuild/protobuf';
+import { BinaryWriter, WireType } from '@bufbuild/protobuf/wire';
 import {
   Event_GameClosed_ext,
   Event_Join_ext,
+  GameEventContainerSchema,
   GameReplaySchema,
   ServerInfo_GameSchema,
 } from '@cockatrice/sockatrice/generated';
@@ -13,6 +15,39 @@ import { buildReplay, sayContainer } from './__mocks__/fixtures';
 import { ReplayParseError, parseReplay, replayFileName } from './parseReplay';
 
 describe('parseReplay', () => {
+  it('rejects oversized bytes at the decoder boundary, including server downloads', () => {
+    const bytes = new Uint8Array(32 * 1024 * 1024 + 2);
+    // Valid repeated duration fields: the old decoder accepts this tiny-object bomb.
+    for (let i = 0; i < bytes.length; i += 2) {
+      bytes[i] = 32;
+    }
+    bytes.set(toBinary(GameReplaySchema, buildReplay([sayContainer(0)])));
+    expect(() => parseReplay(bytes)).toThrow(/too large/);
+  });
+
+  it('rejects too many containers before constructing protobuf objects', () => {
+    const writer = new BinaryWriter();
+    writer.tag(GameReplaySchema.field.gameInfo.number, WireType.LengthDelimited).bytes(new Uint8Array());
+    for (let i = 0; i <= 100_000; ++i) {
+      writer.tag(GameReplaySchema.field.eventList.number, WireType.LengthDelimited).bytes(new Uint8Array());
+    }
+    expect(() => parseReplay(writer.finish())).toThrow(/too many event containers/);
+  });
+
+  it('bounds events inside containers too, including many events in a small file', () => {
+    const container = new BinaryWriter();
+    for (let i = 0; i <= 50_000; ++i) {
+      container.tag(GameEventContainerSchema.field.eventList.number, WireType.LengthDelimited).bytes(new Uint8Array());
+    }
+    const payload = container.finish();
+    const writer = new BinaryWriter();
+    writer.tag(GameReplaySchema.field.gameInfo.number, WireType.LengthDelimited).bytes(new Uint8Array());
+    for (let i = 0; i < 2; ++i) {
+      writer.tag(GameReplaySchema.field.eventList.number, WireType.LengthDelimited).bytes(payload);
+    }
+    expect(() => parseReplay(writer.finish())).toThrow(/too many events/);
+  });
+
   it('decodes a .cor recorded by Servatrice', () => {
     // Saved from the replays tab after e2e/specs/replays.spec.ts played a game.
     const bytes = new Uint8Array(readFileSync(resolve(__dirname, '__mocks__/two-player-game.cor')));
