@@ -10,16 +10,23 @@ import { connectAndLogin, connectRaw, store } from '../../helpers/setup';
 import { findLastGameCommand } from '../../helpers/command-capture';
 import { renderFeatureScreen } from '../helpers';
 import { buildEventGameJoined, buildEventGameStateChanged, registerGameBoardHooks } from './helpers';
+import { testI18n } from '../../../../src/__test-utils__/renderWithProviders';
 
 registerGameBoardHooks();
+
+function localLibrary(): HTMLElement {
+  return screen.getByRole('button', {
+    name: testI18n.t('ZoneStack.pile', { zone: testI18n.t('ZoneStack.library'), count: 40 }),
+  });
+}
 
 /** The local library's "Reveal library to..." menu, choosing `recipient`. */
 function revealLibraryTo(recipient: string) {
   act(() => {
-    fireEvent.contextMenu(screen.getAllByRole('button', { name: 'ZoneStack.pile' })[0], { clientX: 10, clientY: 10 });
+    fireEvent.contextMenu(localLibrary(), { clientX: 10, clientY: 10 });
   });
   act(() => {
-    fireEvent.click(screen.getByRole('menuitem', { name: 'ZoneMenu.revealLibrary' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: testI18n.t('ZoneMenu.revealLibrary') }));
   });
   act(() => {
     fireEvent.click(screen.getByRole('menuitem', { name: recipient }));
@@ -46,9 +53,9 @@ describe('Command_RevealCards wire shape', () => {
       store.dispatch(games.Actions.gameJoined({ data: buildEventGameJoined({ gameId: 42, localPlayerId: 1, hostId: 1 }) }));
       store.dispatch(games.Actions.gameStateChanged({ gameId: 42, data: buildEventGameStateChanged([1, 2], 1) }));
     });
-    await waitFor(() => screen.getAllByRole('button', { name: 'ZoneStack.pile' })[0]);
+    await waitFor(() => expect(localLibrary()).toHaveAttribute('data-pile-count', '40'));
 
-    revealLibraryTo('CardMenu.allPlayers');
+    revealLibraryTo(testI18n.t('CardMenu.allPlayers'));
     const toAll = lastReveal();
     expect(toAll.zoneName).toBe('deck');
     expect(isFieldSet(toAll, Command_RevealCardsSchema.field.playerId)).toBe(false);

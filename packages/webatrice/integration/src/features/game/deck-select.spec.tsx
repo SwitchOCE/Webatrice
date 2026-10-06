@@ -14,6 +14,7 @@ import { games } from '@cockatrice/datatrice';
 import { Game } from '@app/features/game';
 import { renderFeatureScreen } from '../helpers';
 import { buildEventGameJoined, registerGameBoardHooks } from './helpers';
+import { testI18n } from '../../../../src/__test-utils__/renderWithProviders';
 
 registerGameBoardHooks();
 
@@ -43,7 +44,7 @@ describe('Game deck select', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByRole('textbox', { name: 'DeckSelectDialog.deckList' })).toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: testI18n.t('DeckSelectDialog.deckList') })).toBeInTheDocument();
     });
   });
 });

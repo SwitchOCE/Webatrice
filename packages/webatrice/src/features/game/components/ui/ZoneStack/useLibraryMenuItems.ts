@@ -160,7 +160,6 @@ export function useLibraryMenuItems({
   const revealTopCardsItems = buildRevealToSubmenu(t, revealTargets, (targetPlayerId) =>
     openRevealTopCardsPrompt({
       targetPlayerId,
-      targetName: revealTargets.find((target) => target.playerId === targetPlayerId)?.name ?? t('CardMenu.allPlayers'),
       deckSize: deckCount,
     }));
   const libraryMenuItems: ContextMenuItem[] = [

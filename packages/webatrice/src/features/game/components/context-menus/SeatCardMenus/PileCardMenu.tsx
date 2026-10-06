@@ -5,11 +5,6 @@ import { makeCardKey } from '../../../utils/CardRegistry/CardRegistryContext';
 import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import { ContextMenuPopup, type ContextMenuItem } from '../ContextMenu/ContextMenu';
 
-const DRAW_ARROW_ACTION = 'game.drawArrow';
-const CLONE_CARD_ACTION = 'game.cloneCard';
-const SELECT_ALL_ACTION = 'game.selectAllBattlefield';
-const SELECT_COLUMN_ACTION = 'game.selectColumnBattlefield';
-
 /**
  * Pile-view card context menu — right-click a card inside a
  * graveyard / exile zone view. View-only shape: Draw arrow /
@@ -68,7 +63,7 @@ export default function PileCardMenu() {
             // battlefield cards / player anchors are valid targets
             // — Cockatrice never lets you target grave/exile cards.
             label: t('CardMenu.drawArrow'),
-            ...menuShortcut(DRAW_ARROW_ACTION),
+            ...menuShortcut('game.drawArrow'),
             onClick: () => {
               if (numeric) {
                 startDrawArrow({
@@ -89,7 +84,7 @@ export default function PileCardMenu() {
             // resetCardState), so pass empties. Only wired when we
             // have a real numeric card id (mock-id no-op).
             label: t('CardMenu.clone'),
-            ...menuShortcut(CLONE_CARD_ACTION),
+            ...menuShortcut('game.cloneCard'),
             onClick: () => {
               if (numeric) {
                 for (const id of cloneIds) {
@@ -111,12 +106,12 @@ export default function PileCardMenu() {
           },
           {
             label: t('CardMenu.selectAll'),
-            ...menuShortcut(SELECT_ALL_ACTION),
+            ...menuShortcut('game.selectAllBattlefield'),
             onClick: () => selectPileCards(pileCardMenu.viewCardIds),
           },
           {
             label: t('CardMenu.selectColumn'),
-            ...menuShortcut(SELECT_COLUMN_ACTION),
+            ...menuShortcut('game.selectColumnBattlefield'),
             onClick: () => selectPileCards(pileCardMenu.columnCardIds),
           },
           ...relatedViewItemsFor(pileCardMenu.cardName),

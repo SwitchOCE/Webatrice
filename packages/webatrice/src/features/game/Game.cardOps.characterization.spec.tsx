@@ -159,7 +159,7 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
   // What each of the 46 seat actions does from that selection: the requests
   // it sends, the dialog it opens, or the selection it leaves.
   const EXPECTED: Record<SeatShortcutActionId, { wire?: unknown[]; dialogs?: unknown[]; selected?: string[] }> = {
-    'game.mulligan': { dialogs: ['Take mulligan'] },
+    'game.mulligan': { dialogs: ['Draw hand'] },
     'game.setLife': { dialogs: ['Set life total'] },
     'game.removeLocalArrows': { wire: [['deleteArrow', { arrowId: 7 }]] },
     'game.doesntUntap': {
@@ -177,7 +177,7 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     'game.reduceLifeByPower': { wire: [['incCounter', { counterId: LIFE_COUNTER_ID, delta: -3 }, 'options']] },
     'game.addStormCounter': { wire: [['incCounter', { counterId: MANA_COUNTER_IDS.storm, delta: 1 }, 'options']] },
     'game.removeStormCounter': { wire: [['incCounter', { counterId: MANA_COUNTER_IDS.storm, delta: -1 }, 'options']] },
-    'game.setStormCounter': { dialogs: ['Set other counter'] },
+    'game.setStormCounter': { dialogs: ['Set counter'] },
     'game.attachCard': {},
     'game.peekCard': { wire: [['bulkPeek', [{ ownerPlayerId: 1, zone: ZoneName.TABLE, card: { id: 11 } }], 1]] },
     'game.flipCard': {
@@ -193,7 +193,7 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
       ],
     },
     'game.moveSelectedToGrave': { wire: [['moveCard', moveFromTable([10, 11], ZoneName.GRAVE, 0, false)]] },
-    'game.setCardPT': { dialogs: ['Set power and toughness'] },
+    'game.setCardPT': { dialogs: ['Change power/toughness'] },
     'game.incP': { wire: [setPT(10, '4/3'), setPT(11, '1/0')] },
     'game.decP': { wire: [setPT(10, '2/3'), setPT(11, '-1/0')] },
     'game.incT': { wire: [setPT(10, '3/4'), setPT(11, '0/1')] },
@@ -303,7 +303,7 @@ describe('battlefield card menu actions', () => {
     [['Turn Over'], { wire: [['flipCard', { ...table(10), faceDown: true }], ['flipCard', { ...table(11), faceDown: true }]] }],
     [['Clone'], { wire: [['createToken', clone('Ogre', '3/3')], ['createToken', clone('Morph', '')]] }],
     [['Move to', 'Top of library in random order'], { wire: [['moveCard', moveFromTable([10, 11], ZoneName.DECK, 0, false)]] }],
-    [['Move to', 'X cards from the top of library...'], { dialogs: ['Move X cards from the top of library'] }],
+    [['Move to', 'X cards from the top of library...'], { dialogs: ['Place card X cards from top of library'] }],
     [['Move to', 'Bottom of library in random order'], { wire: [['moveCard', moveFromTable([10, 11], ZoneName.DECK, 0, true)]] }],
     [['Move to', 'Table'], { wire: [['moveCard', moveFromTable([10, 11], ZoneName.TABLE, 0, false)]] }],
     [['Move to', 'Hand'], { wire: [['moveCard', moveFromTable([10, 11], ZoneName.HAND, 0, false)]] }],
@@ -317,7 +317,7 @@ describe('battlefield card menu actions', () => {
     [['Power / toughness', 'Decrease power and increase toughness'], { wire: [setPT(10, '2/4'), setPT(11, '-1/1')] }],
     [['Power / toughness', 'Increase power and toughness'], { wire: [setPT(10, '4/4'), setPT(11, '1/1')] }],
     [['Power / toughness', 'Decrease power and toughness'], { wire: [setPT(10, '2/2'), setPT(11, '-1/-1')] }],
-    [['Power / toughness', 'Set power and toughness...'], { dialogs: ['Set power and toughness'] }],
+    [['Power / toughness', 'Set power and toughness...'], { dialogs: ['Change power/toughness'] }],
     [['Power / toughness', 'Reset power and toughness'], { wire: [setPT(10, '')] }],
     [['Set annotation...'], { dialogs: ['Set annotation'] }],
     [['Reduce life by power'], { wire: [['incCounter', { counterId: LIFE_COUNTER_ID, delta: -3 }, 'options']] }],

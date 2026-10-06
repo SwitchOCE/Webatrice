@@ -62,10 +62,6 @@ const SEGMENT_CLASS: Record<LogSegment['kind'], string> = {
   number: 'font-semibold text-cyan-300 light:text-cyan-700 tabular-nums',
 };
 
-function logRowBackground(index: number): string {
-  return index % 2 === 0 ? 'bg-transparent' : 'bg-black/15';
-}
-
 /**
  * Shared chat + event log used both in the pre-game lobby and inside
  * the game screen sidebar. Reads its gameId from `useGameId()` context
@@ -185,7 +181,6 @@ function ChatLogView() {
         )}
         {messages.map((m, idx) => {
           const isEvent = m.kind === 'event';
-          const rowClass = logRowBackground(idx);
           const name =
             m.senderName
             ?? players?.[m.playerId]?.properties.userInfo?.name
@@ -207,7 +202,11 @@ function ChatLogView() {
                 key={logRowKey(m)}
                 data-tone={tone}
                 data-log-kind={m.descriptor?.kind}
-                className={`px-3 py-0.5 leading-snug break-words ${TONE_CLASS[tone]} ${rowClass}`}
+                className={[
+                  'px-3 py-0.5 leading-snug break-words',
+                  TONE_CLASS[tone],
+                  idx % 2 === 0 ? 'bg-transparent' : 'bg-black/15',
+                ].join(' ')}
               >
                 {stamp && (
                   <span className="text-text-muted font-normal not-italic tabular-nums mr-1.5">
@@ -256,7 +255,10 @@ function ChatLogView() {
           return (
             <div
               key={logRowKey(m)}
-              className={`px-3 py-0.5 text-text-primary leading-snug break-words ${rowClass}`}
+              className={[
+                'px-3 py-0.5 text-text-primary leading-snug break-words',
+                idx % 2 === 0 ? 'bg-transparent' : 'bg-black/15',
+              ].join(' ')}
             >
               {stamp && (
                 <span className="text-text-muted font-normal tabular-nums mr-1.5">

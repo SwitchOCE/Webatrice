@@ -7,13 +7,6 @@ import { usePlayerSeatContext } from '../../ui/PlayerBoard/PlayerSeatContext';
 import { buildRelatedTokenItems, buildTransformItems } from '../CardContextMenu/relatedCardActions';
 import { ContextMenuPopup, type ContextMenuItem } from '../ContextMenu/ContextMenu';
 
-const DRAW_ARROW_ACTION = 'game.drawArrow';
-const CLONE_CARD_ACTION = 'game.cloneCard';
-const SELECT_ALL_ACTION = 'game.selectAllBattlefield';
-const ATTACH_CARD_ACTION = 'game.attachCard';
-const STACK_SELECTION_ZONE = 'stack' as const;
-const END_INDEX = 'end' as const;
-
 /**
  * Stack-card context menu — ports Cockatrice's
  * `CardMenu::createStackMenu` (card_menu.cpp:201-227). Own-stack
@@ -71,7 +64,7 @@ export default function StackCardMenu() {
           const opponentItems: ContextMenuItem[] = [
             {
               label: t('CardMenu.drawArrow'),
-              ...menuShortcut(DRAW_ARROW_ACTION),
+              ...menuShortcut('game.drawArrow'),
               onClick: () => {
                 if (numeric && card) {
                   startDrawArrow({
@@ -86,7 +79,7 @@ export default function StackCardMenu() {
             { divider: true },
             {
               label: t('CardMenu.clone'),
-              ...menuShortcut(CLONE_CARD_ACTION),
+              ...menuShortcut('game.cloneCard'),
               onClick: () => {
                 if (targets.length > 0) {
                   for (const sc of targets) {
@@ -109,11 +102,11 @@ export default function StackCardMenu() {
             { divider: true },
             {
               label: t('CardMenu.selectAll'),
-              ...menuShortcut(SELECT_ALL_ACTION),
+              ...menuShortcut('game.selectAllBattlefield'),
               onClick: () => {
                 const ids = new Set(stackDisplayList.map((sc) => sc.id));
                 if (ids.size > 0) {
-                  setSelection({ zone: STACK_SELECTION_ZONE, ids });
+                  setSelection({ zone: 'stack', ids });
                 }
                 close();
               },
@@ -169,7 +162,7 @@ export default function StackCardMenu() {
           {
             label: t('CardMenu.play'),
             onClick: () => {
-              moveFromStack({ zone: ZoneName.TABLE, index: END_INDEX });
+              moveFromStack({ zone: ZoneName.TABLE, index: 'end' });
               close();
             },
           },
@@ -183,7 +176,7 @@ export default function StackCardMenu() {
               zoneCommands.moveCards(
                 ZoneName.STACK,
                 targetIds.map((id) => ({ id, faceDown: true as const })),
-                { zone: ZoneName.TABLE, index: END_INDEX },
+                { zone: ZoneName.TABLE, index: 'end' },
               );
               close();
             },
@@ -191,7 +184,7 @@ export default function StackCardMenu() {
           { divider: true },
           {
             label: t('CardMenu.clone'),
-            ...menuShortcut(CLONE_CARD_ACTION),
+            ...menuShortcut('game.cloneCard'),
             onClick: () => {
               if (targets.length > 0) {
                 for (const sc of targets) {
@@ -217,14 +210,14 @@ export default function StackCardMenu() {
               {
                 label: t('ZoneLabel.title.hand'),
                 onClick: () => {
-                  moveFromStack({ zone: ZoneName.HAND, index: END_INDEX });
+                  moveFromStack({ zone: ZoneName.HAND, index: 'end' });
                   close();
                 },
               },
               {
-                label: t('SettingsAppearance.zoneBackgrounds.zone.table'),
+                label: t('CardMenu.table'),
                 onClick: () => {
-                  moveFromStack({ zone: ZoneName.TABLE, index: END_INDEX });
+                  moveFromStack({ zone: ZoneName.TABLE, index: 'end' });
                   close();
                 },
               },
@@ -253,7 +246,7 @@ export default function StackCardMenu() {
               {
                 label: t('HandMenu.bottomLibrary'),
                 onClick: () => {
-                  moveFromStack({ zone: ZoneName.DECK, index: END_INDEX });
+                  moveFromStack({ zone: ZoneName.DECK, index: 'end' });
                   close();
                 },
               },
@@ -262,7 +255,7 @@ export default function StackCardMenu() {
           { divider: true },
           {
             label: t('CardMenu.attach'),
-            ...menuShortcut(ATTACH_CARD_ACTION),
+            ...menuShortcut('game.attachCard'),
             onClick: () => {
               if (numeric && card) {
                 const extras = targets
@@ -276,7 +269,7 @@ export default function StackCardMenu() {
           },
           {
             label: t('CardMenu.drawArrow'),
-            ...menuShortcut(DRAW_ARROW_ACTION),
+            ...menuShortcut('game.drawArrow'),
             onClick: () => {
               if (numeric && card) {
                 startDrawArrow({
@@ -291,11 +284,11 @@ export default function StackCardMenu() {
           { divider: true },
           {
             label: t('CardMenu.selectAll'),
-            ...menuShortcut(SELECT_ALL_ACTION),
+            ...menuShortcut('game.selectAllBattlefield'),
             onClick: () => {
               const ids = new Set(stackDisplayList.map((sc) => sc.id));
               if (ids.size > 0) {
-                setSelection({ zone: STACK_SELECTION_ZONE, ids });
+                setSelection({ zone: 'stack', ids });
               }
               close();
             },

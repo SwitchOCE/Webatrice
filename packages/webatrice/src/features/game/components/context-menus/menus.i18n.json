@@ -39,7 +39,8 @@
     "hide": "Hide",
     "viewRelated": "View related cards",
     "token": "Token: {description}",
-    "transform": "Token: Transform into \"{name}\""
+    "transform": "Token: Transform into \"{name}\"",
+    "table": "Table"
   },
   "PlayerMenu": {
     "setCounter": "Set counter...",

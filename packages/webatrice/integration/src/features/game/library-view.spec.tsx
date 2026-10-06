@@ -17,6 +17,7 @@ import { findAllGameCommands, findLastGameCommand } from '../../helpers/command-
 import { buildResponse, buildResponseMessage, deliverMessage } from '../../helpers/protobuf-builders';
 import { renderFeatureScreen } from '../helpers';
 import { buildEventGameJoined, buildEventGameStateChanged, registerGameBoardHooks } from './helpers';
+import { testI18n } from '../../../../src/__test-utils__/renderWithProviders';
 
 registerGameBoardHooks();
 
@@ -31,7 +32,13 @@ async function renderBoard() {
     store.dispatch(games.Actions.gameJoined({ data: buildEventGameJoined({ gameId: 42, localPlayerId: 1, hostId: 1 }) }));
     store.dispatch(games.Actions.gameStateChanged({ gameId: 42, data: buildEventGameStateChanged([1, 2], 1) }));
   });
-  return waitFor(() => screen.getAllByRole('button', { name: 'ZoneStack.pile' })[0]);
+  return waitFor(() => {
+    const library = screen.getByRole('button', {
+      name: testI18n.t('ZoneStack.pile', { zone: testI18n.t('ZoneStack.library'), count: 40 }),
+    });
+    expect(library).toHaveAttribute('data-pile-count', '40');
+    return library;
+  });
 }
 
 function openViewLibrary(library: HTMLElement) {
@@ -39,7 +46,7 @@ function openViewLibrary(library: HTMLElement) {
     fireEvent.contextMenu(library, { clientX: 10, clientY: 10 });
   });
   act(() => {
-    fireEvent.click(screen.getByRole('menuitem', { name: 'ShortcutsTab.action.game.viewLibrary' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: testI18n.t('ShortcutsTab.action.game.viewLibrary') }));
   });
 }
 
@@ -59,8 +66,14 @@ function answerDump(names: string[]) {
   }))));
 }
 
+function isLibraryHeading(name: string): boolean {
+  return name.startsWith(testI18n.t('ZoneViewTitle.library', { player: 'P1' }));
+}
+
 function libraryView(): HTMLElement {
-  return screen.getByRole('heading', { name: 'ZoneViewTitle.library' }).closest<HTMLElement>('.pointer-events-auto.resize')!;
+  return screen
+    .getByRole('heading', { name: isLibraryHeading })
+    .closest<HTMLElement>('.pointer-events-auto.resize')!;
 }
 
 describe('View library', () => {
@@ -84,13 +97,13 @@ describe('View library', () => {
     await waitFor(() => expect(libraryView()).toBeInTheDocument());
 
     act(() => {
-      fireEvent.click(within(libraryView()).getByRole('button', { name: 'ZoneViewPanel.close' }));
+      fireEvent.click(within(libraryView()).getByRole('button', { name: testI18n.t('ZoneViewPanel.close') }));
     });
 
     const shuffles = findAllGameCommands(Command_Shuffle_ext);
     expect(shuffles).toHaveLength(1);
     expect(shuffles[0].value).toMatchObject({ zoneName: 'deck', start: 0, end: -1 });
     expect(games.Selectors.getZone(store.getState(), 42, 1, 'deck')?.revealedCards ?? []).toEqual([]);
-    expect(screen.queryByRole('heading', { name: 'ZoneViewTitle.library' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: isLibraryHeading })).not.toBeInTheDocument();
   });
 });

@@ -65,7 +65,6 @@ import editTokensText from '../feature-widgets/card-import/EditTokens.i18n.json'
 import deckSharingText from '../features/decks/DeckSharing.i18n.json';
 import shortcutsText from '../feature-widgets/shortcuts/SettingsTab/ShortcutsTab.i18n.json';
 import gamePhaseText from '../features/game/components/PhaseTrack/phaseLabels.i18n.json';
-import appearanceText from '../features/settings/sections/appearance.i18n.json';
 import tallyText from '../features/game/components/TallyOverlay/TallyOverlay.i18n.json';
 
 // The game's pending target pick, as Game provides it, for seats rendered
@@ -147,9 +146,6 @@ testI18n.use(ICU).use(initReactI18next).init({
         ...pendingTargetText,
         ...gameLogText,
         ...gameMenus,
-        SettingsAppearance: {
-          zoneBackgrounds: { zone: { table: appearanceText.SettingsAppearance.zoneBackgrounds.zone.table } },
-        },
         TallyOverlay: { tally: tallyText.TallyOverlay.tally },
         ...gamePrompts,
         ...createTokenText,

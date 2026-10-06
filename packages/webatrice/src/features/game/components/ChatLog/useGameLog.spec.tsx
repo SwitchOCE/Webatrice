@@ -143,6 +143,7 @@ describe('useGameLog', () => {
     it('stops a spectator from chatting when the game forbids it', () => {
       const { result } = setupWithGame({ state: spectating(), userLevel: IsRegistered });
       expect(result.current.canChat).toBe(false);
+      expect(result.current.chatDisabledReason).toBe('ChatLog.spectatorChatDisabled');
     });
 
     it('lets a moderator chat as a spectator while the admin lock is off', () => {

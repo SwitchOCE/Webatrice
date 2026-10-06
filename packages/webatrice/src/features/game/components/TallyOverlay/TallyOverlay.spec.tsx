@@ -47,7 +47,7 @@ function renderGame() {
 }
 
 function tally() {
-  return screen.queryByRole('status', { name: 'TallyOverlay.tally' });
+  return screen.queryByRole('status', { name: 'Tally' });
 }
 
 beforeEach(() => {

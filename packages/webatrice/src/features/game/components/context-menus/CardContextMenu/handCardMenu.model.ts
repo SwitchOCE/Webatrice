@@ -84,7 +84,7 @@ export function buildHandOrZoneCardMenu(args: BuildHandOrZoneCardMenuArgs): Cont
           onClick: () => args.onMove('libraryBottom'),
         },
         { divider: true },
-        { label: args.t('SettingsAppearance.zoneBackgrounds.zone.table'), onClick: () => args.onMove('table') },
+        { label: args.t('CardMenu.table'), onClick: () => args.onMove('table') },
         { divider: true },
         { label: args.t('ZoneLabel.title.hand'), onClick: () => args.onMove('hand') },
         { divider: true },

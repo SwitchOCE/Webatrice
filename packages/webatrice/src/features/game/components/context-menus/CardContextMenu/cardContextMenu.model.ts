@@ -176,7 +176,7 @@ export function buildCardContextMenu(args: BuildCardContextMenuArgs): ContextMen
           onClick: args.onMoveToBottom,
         },
         { divider: true },
-        { label: args.t('SettingsAppearance.zoneBackgrounds.zone.table'), onClick: args.onMoveToTable },
+        { label: args.t('CardMenu.table'), onClick: args.onMoveToTable },
         { label: args.t('ZoneLabel.title.hand'), onClick: args.onMoveToHand },
         { divider: true },
         {

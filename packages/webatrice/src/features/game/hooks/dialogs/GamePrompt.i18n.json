@@ -40,11 +40,11 @@
     "view": {
       "topLibrary": "View top cards of library",
       "bottomLibrary": "View bottom cards of library",
-      "revealTopTo": "Reveal top cards of library to {player}",
-      "action": "View"
+      "action": "View",
+      "revealTop": "Reveal top cards of library"
     },
     "playerCounter": {
-      "title": "Set {counter} counter",
+      "title": "Set counter",
       "current": "Current: {count}"
     },
     "validation": {

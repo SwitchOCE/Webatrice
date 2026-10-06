@@ -90,8 +90,8 @@ describe('Game orchestration', () => {
       const game = renderGame();
       openContextMenu(pileEl('Hand', 0));
       chooseMenuPath('Take mulligan (Choose hand size)');
-      expect(screen.getByText('0 and lower are in comparison to current hand size.')).toBeInTheDocument();
-      fireEvent.change(screen.getByLabelText('New hand size'), { target: { value } });
+      expect(screen.getByText('0 and lower are in comparison to current hand size')).toBeInTheDocument();
+      fireEvent.change(screen.getByLabelText('Number of cards'), { target: { value } });
       fireEvent.click(screen.getByRole('button', { name: /ok/i }));
       return game;
     }

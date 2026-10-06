@@ -1557,7 +1557,8 @@
       "kick": "Kick",
       "waiting": "Waiting for player…",
       "bracketTitle": "Commander Bracket {level} (from the deck's cached assessment)",
-      "bracketBadge": "B{level}"
+      "bracketBadge": "B{level}",
+      "ready": "Ready"
     }
   },
   "ChatLog": {
@@ -1565,7 +1566,8 @@
     "empty": "no messages",
     "inputLabel": "Game chat message",
     "placeholder": "Say something…",
-    "unavailable": "Chat unavailable"
+    "unavailable": "Chat unavailable",
+    "spectatorChatDisabled": "Spectators are not allowed to chat in this game."
   },
   "GameInvite": {
     "copyLink": "Copy game link",
@@ -3343,7 +3345,8 @@
     "hide": "Hide",
     "viewRelated": "View related cards",
     "token": "Token: {description}",
-    "transform": "Token: Transform into \"{name}\""
+    "transform": "Token: Transform into \"{name}\"",
+    "table": "Table"
   },
   "PlayerMenu": {
     "setCounter": "Set counter...",
@@ -3571,11 +3574,11 @@
     "view": {
       "topLibrary": "View top cards of library",
       "bottomLibrary": "View bottom cards of library",
-      "revealTopTo": "Reveal top cards of library to {player}",
-      "action": "View"
+      "action": "View",
+      "revealTop": "Reveal top cards of library"
     },
     "playerCounter": {
-      "title": "Set {counter} counter",
+      "title": "Set counter",
       "current": "Current: {count}"
     },
     "validation": {

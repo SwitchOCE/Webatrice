@@ -83,6 +83,7 @@ const LargeZoneBox = forwardRef<
           <div className="flex justify-center">
             <div
               ref={ref}
+              data-pile-count={count}
               data-drag-source
               data-arrow-anchor-owner={
                 arrowAnchorPlayerId != null ? String(arrowAnchorPlayerId) : undefined
@@ -167,6 +168,7 @@ const CardBackZone = forwardRef<
           <div className="flex justify-center">
             <div
               ref={ref}
+              data-pile-count={count}
               data-drag-source
               {...pileProps}
               onPointerDown={onPointerDown}

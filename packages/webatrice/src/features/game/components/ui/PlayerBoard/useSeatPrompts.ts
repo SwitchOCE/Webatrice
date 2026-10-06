@@ -111,7 +111,7 @@ export function useSeatPrompts({
     currentValue: number;
   }) => openPrompt(expressionPrompt(t, {
     current: currentValue,
-    title: t('GamePrompt.playerCounter.title', { counter: label.toLowerCase() }),
+    title: t('GamePrompt.playerCounter.title'),
     label,
     description: t('GamePrompt.playerCounter.current', { count: currentValue }),
     onSubmit: (value) => counterCommands.set(counterId, Math.max(0, value)),
@@ -201,12 +201,11 @@ export function useSeatPrompts({
     });
   // Reveal top N to a player: Command_RevealCards via onRevealTopCards
   // (`-1` = all players, sent with no player_id).
-  const openRevealTopCardsPrompt = ({ targetPlayerId, targetName, deckSize }: {
+  const openRevealTopCardsPrompt = ({ targetPlayerId, deckSize }: {
     targetPlayerId: number;
-    targetName: string;
     deckSize: number;
   }) => openCountPrompt({
-    title: t('GamePrompt.view.revealTopTo', { player: targetName }),
+    title: t('GamePrompt.view.revealTop'),
     submitLabel: t('GamePrompt.view.action'),
     deckSize,
     onSubmit: (n) => zoneCommands.reveal(ZoneName.DECK, toRecipient(targetPlayerId), { top: n }),

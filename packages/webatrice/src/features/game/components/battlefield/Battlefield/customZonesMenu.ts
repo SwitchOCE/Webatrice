@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 import type { ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 
 /**
@@ -21,4 +23,3 @@ export function buildCustomZonesMenu(
     })),
   }];
 }
-import type { TFunction } from 'i18next';

@@ -105,7 +105,7 @@ const CASES: Record<string, PromptCase> = {
       openContextMenu(battlefieldEl(1));
       chooseMenuPath('Counters', 'White', 'Set counter...');
     },
-    dialog: /^set white counter$/i,
+    dialog: /^set counter$/i,
     initial: '0',
     invalid: 'w',
     answer: '3',

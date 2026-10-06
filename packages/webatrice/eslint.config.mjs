@@ -167,8 +167,29 @@ export default tseslint.config(
         },
         // File paths and other technical text shown in <code>.
         'jsx-components': { exclude: ['Trans', 'code'] },
-        // `kind` / `type` carry discriminators, not text.
-        'object-properties': { exclude: ['[A-Z_-]+', 'kind', 'type'] },
+        // Technical helpers whose string arguments are action IDs or internal zone names.
+        callees: {
+          exclude: [
+            'i18n(ext)?',
+            't',
+            'require',
+            'addEventListener',
+            'removeEventListener',
+            'postMessage',
+            'getElementById',
+            'dispatch',
+            'commit',
+            'includes',
+            'indexOf',
+            'endsWith',
+            'startsWith',
+            'menuShortcut',
+            'isDragging',
+            'tags\\.push',
+          ],
+        },
+        // These properties carry discriminators, layout values or wire destinations, not text.
+        'object-properties': { exclude: ['[A-Z_-]+', 'kind', 'type', 'zone', 'index', 'placement', 'align'] },
         // No letters (separators, arrows, dashes), and brand names.
         words: { exclude: ['[^a-zA-Z]+', 'COCKATRICE', 'Webatrice', 'TCGplayer'] },
         'should-validate-template': true,
