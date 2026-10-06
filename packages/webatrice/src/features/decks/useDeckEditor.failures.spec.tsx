@@ -23,7 +23,7 @@ function setup(deckId = 5) {
   const webClient = createMockWebClient() as WebClient & { protobuf: { sendSessionCommand: ReturnType<typeof vi.fn> } };
   (webClient as unknown as { protobuf: unknown }).protobuf = { sendSessionCommand: vi.fn() };
   const result = renderWithProviders(<Probe deckId={deckId} />, { preloadedState: connectedState, webClient });
-  return { ...result, webClient };
+  return { ...result, webClient, requestId: vi.mocked(webClient.request.session.deckDownload).mock.calls.at(-1)![1] };
 }
 
 beforeEach(() => {
@@ -33,12 +33,12 @@ beforeEach(() => {
 
 describe('useDeckEditor download failure', () => {
   it('stops loading and explains a timed-out download', () => {
-    const { store } = setup(5);
+    const { store, requestId } = setup(5);
     expect(editor.current!.loading).toBe(true);
 
     act(() => {
       store.dispatch(server.Actions.deckDownloadFailed({
-        deckId: 5,
+        deckId: 5, requestId,
         responseCode: Response_ResponseCode.RespNotConnected,
         failure: WebsocketTypes.CommandFailure.Timeout,
       }));
@@ -50,17 +50,17 @@ describe('useDeckEditor download failure', () => {
   });
 
   it('uses the generic download message for a server rejection', () => {
-    const { store } = setup(5);
+    const { store, requestId } = setup(5);
     act(() => {
-      store.dispatch(server.Actions.deckDownloadFailed({ deckId: 5, responseCode: Response_ResponseCode.RespNameNotFound }));
+      store.dispatch(server.Actions.deckDownloadFailed({ deckId: 5, requestId, responseCode: Response_ResponseCode.RespNameNotFound }));
     });
     expect(editor.current!.loadError).toBe('DeckEditor.downloadFailed');
   });
 
   it('ignores a failure for a different deck', () => {
-    const { store } = setup(5);
+    const { store, requestId } = setup(5);
     act(() => {
-      store.dispatch(server.Actions.deckDownloadFailed({ deckId: 6, responseCode: Response_ResponseCode.RespNameNotFound }));
+      store.dispatch(server.Actions.deckDownloadFailed({ deckId: 6, requestId, responseCode: Response_ResponseCode.RespNameNotFound }));
     });
     expect(editor.current!.loading).toBe(true);
     expect(editor.current!.loadError).toBeNull();
@@ -71,7 +71,7 @@ describe('useDeckEditor autosave failure', () => {
   async function loadDeck() {
     const ctx = setup(5);
     act(() => {
-      ctx.store.dispatch(server.Actions.deckDownloaded({ deckId: 5, deck: emptyCod('Test', 'commander') }));
+      ctx.store.dispatch(server.Actions.deckDownloaded({ deckId: 5, deck: emptyCod('Test', 'commander'), requestId: ctx.requestId }));
     });
     await waitFor(() => expect(editor.current!.loading).toBe(false));
     return ctx;

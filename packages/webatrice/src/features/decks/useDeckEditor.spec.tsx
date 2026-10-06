@@ -38,7 +38,10 @@ function setup(initialDeckId: number) {
   });
   const download = async (deckId: number, name: string, format: string) => {
     act(() => {
-      store.dispatch(server.Actions.deckDownloaded({ deckId, deck: emptyCod(name, format) }));
+      store.dispatch(server.Actions.deckDownloaded({
+        deckId, deck: emptyCod(name, format),
+        requestId: vi.mocked(webClient.request.session.deckDownload).mock.calls.at(-1)![1],
+      }));
     });
     await waitFor(() => expect(hook.result.current.deck?.name).toBe(name));
   };

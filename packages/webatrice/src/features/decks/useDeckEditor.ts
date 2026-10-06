@@ -11,8 +11,9 @@ import {
   Response_DeckUpload_ext,
 } from '@cockatrice/sockatrice/generated';
 import { useAppSelector } from '@app/store';
-import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
+import { useCommandFailureMessage, useReduxEffect, useRequestTracker } from '@app/hooks';
 import { trackEvent } from '@app/services';
+import { onSessionEnd } from '@app/services/session';
 import { useWebClient } from '@cockatrice/datatrice/react';
 
 import { lookupCard } from './cardLookup';
@@ -29,10 +30,9 @@ import type { BracketAssessment, DeckCard, DeckMeta, HydratedDeck } from './type
  *
  * Data flow on mount:
  *   1. `deckDownload(deckId)` fires.
- *   2. `useReduxEffect(DECK_DOWNLOADED)` catches the response, checks
- *      the payload's deckId matches (guards against opening a
- *      different deck while an earlier request is in flight), and
- *      parses + hydrates the XML.
+ *   2. `useReduxEffect(DECK_DOWNLOADED)` checks the deck and request
+ *      identities, parses + hydrates the XML, then checks ownership again.
+ *      Background downloads and superseded lookups cannot replace this deck.
  *   3. `deck` state is populated, `loading` flips to false.
  *
  * Auto-save:
@@ -122,6 +122,8 @@ const deckCache: Map<number, CachedDeck> = new Map();
 export function clearDeckEditorCache(): void {
   deckCache.clear();
 }
+onSessionEnd(clearDeckEditorCache);
+
 export function deleteCachedDeck(deckId: number): void {
   deckCache.delete(deckId);
 }
@@ -129,6 +131,7 @@ export function deleteCachedDeck(deckId: number): void {
 export function useDeckEditor(deckId: number | null): UseDeckEditor {
   const webClient = useWebClient();
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
+  const requests = useRequestTracker();
 
   // Hydrate initial state from the module cache if we've already
   // loaded this deck this session — avoids the "Loading…" flash and
@@ -173,6 +176,7 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
 
   // --- Load ---
   useEffect(() => {
+    requests.cancel();
     if (deckId == null) {
       return;
     }
@@ -193,18 +197,26 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
     setLoadError(null);
     setDeck(null);
     savedSignatureRef.current = null;
-    webClient.request.session.deckDownload(deckId);
-  }, [isConnected, deckId, webClient]);
+    const requestId = requests.begin();
+    requests.track(requestId);
+    webClient.request.session.deckDownload(deckId, requestId);
+    return requests.cancel;
+  }, [isConnected, deckId, webClient, requests]);
 
-  useReduxEffect<{ deckId: number; deck: string }>(
+  useReduxEffect<{ deckId: number; deck: string; requestId?: string }>(
     ({ payload }) => {
-      if (payload.deckId !== deckId) {
+      if (payload.deckId !== deckId || !requests.isCurrent(payload.requestId) || !requests.settle(payload.requestId)) {
         return;
       }
       (async () => {
         try {
           const parsed = parseCod(payload.deck);
           const hydrated = await hydrateDeck(parsed);
+          // Parsing/hydration may outlive navigation, unmount or session end.
+          if (!requests.isCurrent(payload.requestId)) {
+            return;
+          }
+          requests.cancel();
           setDeck(hydrated);
           savedSignatureRef.current = payload.deck;
           // Analytics: capture the format distribution across opened
@@ -237,6 +249,10 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
             scheduleSave();
           }
         } catch (err) {
+          if (!requests.isCurrent(payload.requestId)) {
+            return;
+          }
+          requests.cancel();
           console.error('Failed to parse deck XML', err);
           setNotFound(true);
           setLoading(false);
@@ -244,21 +260,22 @@ export function useDeckEditor(deckId: number | null): UseDeckEditor {
       })();
     },
     server.Types.DECK_DOWNLOADED,
-    [deckId],
+    [deckId, requests],
   );
 
   // A failed download would otherwise leave the editor skeleton up forever.
   useReduxEffect<CommandFailedPayload & { deckId: number }>(
     ({ payload }) => {
-      if (payload.deckId !== deckId) {
+      if (payload.deckId !== deckId || !requests.isCurrent(payload.requestId) || !requests.settle(payload.requestId)) {
         return;
       }
+      requests.cancel();
       setLoadError(describeFailure(payload.failure, t('DeckEditor.downloadFailed')));
       setNotFound(true);
       setLoading(false);
     },
     server.Types.DECK_DOWNLOAD_FAILED,
-    [deckId, describeFailure, t],
+    [deckId, describeFailure, t, requests],
   );
 
   // --- Save (debounced) ---
