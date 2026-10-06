@@ -1,7 +1,9 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 
-import { checkI18n, flattenCatalog, mergeCatalogs, readLanguageEnum, scanSource } from './check-i18n.mjs';
+import {
+  checkI18n, compareCatalogPaths, flattenCatalog, mergeCatalogs, readLanguageEnum, scanSource, serializeRollup,
+} from './check-i18n.mjs';
 
 const catalog = (json) => [{ file: 'src/A.i18n.json', json }];
 
@@ -123,10 +125,30 @@ describe('checkI18n', () => {
   });
 
   it('reports a stale rollup', () => {
-    expect(run({ rollup: { A: { title: 'Old title' } } })).toEqual([
+    expect(run({ rollupText: serializeRollup({ A: { title: 'Old title' } }) })).toEqual([
       'src/i18n-default.json is stale; run `npm run translate` and commit the result',
     ]);
-    expect(run({ rollup: { A: { title: 'Title' } } })).toEqual([]);
+    expect(run({ rollupText: serializeRollup({ A: { title: 'Title' } }) })).toEqual([]);
+  });
+
+  it('reports a rollup whose keys are in another order, though nothing else changed', () => {
+    const catalogFiles = [
+      { file: 'src/A.i18n.json', json: { A: { title: 'Title' } } },
+      { file: 'src/B.i18n.json', json: { B: { title: 'Other' } } },
+    ];
+    const sources = [{ file: 'src/A.tsx', text: 't(\'A.title\'); t(\'B.title\');' }];
+    const reordered = serializeRollup({ B: { title: 'Other' }, A: { title: 'Title' } });
+    expect(checkI18n({ catalogFiles, sources, rollupText: reordered })).toEqual([
+      'src/i18n-default.json is stale; run `npm run translate` and commit the result',
+    ]);
+    const inOrder = serializeRollup({ A: { title: 'Title' }, B: { title: 'Other' } });
+    expect(checkI18n({ catalogFiles, sources, rollupText: inOrder })).toEqual([]);
+    expect(checkI18n({ catalogFiles, sources, rollupText: inOrder.replace(/\n/g, '\r\n') })).toEqual([]);
+  });
+
+  it('orders catalogue paths by code unit, not by locale', () => {
+    expect(['src/b.i18n.json', 'src/B.i18n.json', 'src/a/z.i18n.json'].sort(compareCatalogPaths))
+      .toEqual(['src/B.i18n.json', 'src/a/z.i18n.json', 'src/b.i18n.json']);
   });
 
   it('reports locale folders and Language values that do not match', () => {
