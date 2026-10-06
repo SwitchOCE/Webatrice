@@ -11,6 +11,7 @@ const makeUser: typeof makeUpstreamUser = (overrides = {}) =>
 export const disconnectedState: Partial<RootState> = {
   server: {
     initialized: false,
+    sessionEpoch: 0,
     testConnectionStatus: null,
     buddyList: {},
     ignoreList: {},

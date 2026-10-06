@@ -12,6 +12,7 @@ import { loadPersistedLastRoute, ShellLifecycleProvider } from '@app/feature-wra
 import { PrivateMessageNotifier } from '@app/features/player';
 import { CommandFailureNotices, FeatureDetection, ServerNotices } from '@app/features/shell';
 import { appShellLifecycle } from './appShellLifecycle';
+import { SessionScope } from './SessionScope';
 
 // CssBaseline removed: it was MUI's global body reset (font, color,
 // background, box-sizing, anchor styles). The equivalent rules now
@@ -43,24 +44,23 @@ function AppShell() {
           <ShellLifecycleProvider value={appShellLifecycle}>
             <ShortcutProvider>
               <FeatureDetection />
-              {/* Global listener for incoming private-chat messages —
-               *  renders nothing, dispatches Toast pills whose
-               *  onClick navigates to the sender's /player/:name
-               *  tab. Mounted inside the Router so useNavigate /
-               *  useLocation work; inside ToastProvider so pushToast
-               *  is available. */}
-              <PrivateMessageNotifier />
-              {/* Error dialogs for commands whose UI has moved on before the
-               *  server answers (join room, create game, deck upload). Renders
-               *  nothing until one fails. */}
+              {/* Final outcomes must survive session teardown until dismissed. */}
               <CommandFailureNotices />
-              {/* Server shutdown countdown and Event_NotifyUser messages. */}
               <ServerNotices />
-              <ModerationProvider>
-                <RouteErrorBoundary>
-                  <Routes />
-                </RouteErrorBoundary>
-              </ModerationProvider>
+              <SessionScope>
+                {/* Global listener for incoming private-chat messages —
+                 *  renders nothing, dispatches Toast pills whose
+                 *  onClick navigates to the sender's /player/:name
+                 *  tab. Mounted inside the Router so useNavigate /
+                 *  useLocation work; inside ToastProvider so pushToast
+                 *  is available. */}
+                <PrivateMessageNotifier />
+                <ModerationProvider>
+                  <RouteErrorBoundary>
+                    <Routes />
+                  </RouteErrorBoundary>
+                </ModerationProvider>
+              </SessionScope>
             </ShortcutProvider>
           </ShellLifecycleProvider>
         </Router>
