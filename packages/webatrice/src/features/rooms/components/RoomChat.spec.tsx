@@ -64,6 +64,21 @@ describe('RoomChat', () => {
     expect(screen.getByRole('textbox')).toHaveValue('too fast');
   });
 
+  it('restores a draft when sending fails synchronously with NotSent', () => {
+    const onSay = vi.fn();
+    const { store } = renderChat([], onSay);
+    onSay.mockImplementation(({ message }: { message: string }) => {
+      store.dispatch(rooms.Actions.roomSayFailed({
+        roomId: 1, message, responseCode: -1, timeReceived: 2,
+        failure: WebsocketTypes.CommandFailure.NotSent,
+      }));
+    });
+    const input = screen.getByRole('textbox');
+    fireEvent.change(input, { target: { value: 'hi all' } });
+    fireEvent.submit(input);
+    expect(input).toHaveValue('hi all');
+  });
+
   it('keeps what the user has typed since the flooded send', () => {
     const { store } = renderChat();
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'newer' } });

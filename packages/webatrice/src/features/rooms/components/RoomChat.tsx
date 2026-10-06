@@ -58,8 +58,8 @@ export default function RoomChat({ roomId, roomName, messages, onSay }: RoomChat
     if (!trimmed) {
       return;
     }
-    onSay({ message: trimmed });
     setDraft('');
+    onSay({ message: trimmed });
   };
 
   return (
