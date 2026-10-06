@@ -602,7 +602,12 @@
     "help": "Need help adding a new host?",
     "label": {
       "add": "Add Host",
-      "find": "Find Host"
+      "find": "Find Host",
+      "desktopPort": "Desktop port (optional)"
+    },
+    "desktopPortHelp": "Optional TCP port used by desktop clients. Set this to open desktop share links for this server.",
+    "validation": {
+      "desktopPort": "Enter a whole number from 1 to 65535, or leave this empty."
     }
   },
   "KnownHosts": {
@@ -1021,6 +1026,11 @@
     },
     "validation": {
       "tooLong": "At most {max} characters"
+    },
+    "error": {
+      "list": "Failed to load card art rules.",
+      "add": "Failed to add the card art rule.",
+      "remove": "Failed to remove the card art rule."
     }
   },
   "DeckEditor": {
@@ -1102,7 +1112,8 @@
     "unreadable": "The shared deck could not be loaded",
     "openDeck": "Open",
     "openDeckNamed": "Open {name}",
-    "back": "My Decks"
+    "back": "My Decks",
+    "desktopPortRequired": "To open this desktop or legacy share link, set the desktop port for this server in its settings."
   },
   "PublicDecks": {
     "title": "Public decks of {name}",
@@ -1404,7 +1415,8 @@
       "empty": "No one to invite",
       "invite": "Invite",
       "cancel": "Cancel"
-    }
+    },
+    "desktopPortRequired": "Set this server's desktop port in server settings to copy links or send invites."
   },
   "GameReplay": {
     "missing": "This replay is no longer open. Replays are kept only until the page is reloaded.",

@@ -1,5 +1,3 @@
-import { isLocalTargetHost } from '@cockatrice/sockatrice';
-
 /**
  * Desktop's game join link: `cockatrice://joingame?hostname=…&port=…&roomid=…&gameid=…[&game=…]`
  * (`cockatrice/src/interface/widgets/server/game_link.cpp` makeGameJoinLink, parsed by
@@ -17,6 +15,21 @@ export interface GameJoinLink {
   gameId: number;
   /** The game description, when the sender's client embedded one. */
   description: string;
+}
+
+export interface LiveGameServer {
+  /** Hostname of the live WebSocket endpoint, normalized by URL. */
+  hostname: string;
+  /** Port used by the browser's live WebSocket connection. */
+  port: string;
+  /** Configured TCP port used by Cockatrice desktop for this exact endpoint. */
+  desktopPort?: string;
+}
+
+export interface GameLinkKnownHost {
+  host: string;
+  port: string;
+  desktopPort?: string;
 }
 
 export type GameJoinLinkError = 'hostname' | 'port' | 'roomId' | 'gameId';
@@ -61,6 +74,14 @@ function parseInteger(value: string | undefined): number | null {
   return Number.parseInt(value, 10);
 }
 
+const INT32_MIN = -2_147_483_648;
+const INT32_MAX = 2_147_483_647;
+
+function parseInt32(value: string | undefined): number | null {
+  const parsed = parseInteger(value);
+  return parsed !== null && parsed >= INT32_MIN && parsed <= INT32_MAX ? parsed : null;
+}
+
 /** Reads a link with desktop's validation order and rules (createJoinGameIntent). */
 export function parseGameJoinLink(url: string): ParsedGameJoinLink {
   const match = /^cockatrice:\/\/joingame\/?(?:\?([^#]*))?/i.exec(url.trim());
@@ -85,35 +106,15 @@ export function parseGameJoinLink(url: string): ParsedGameJoinLink {
   if (portNumber === null || portNumber < 0 || portNumber > 65535) {
     return { ok: false, error: 'port' };
   }
-  const roomId = parseInteger(params.get('roomid'));
+  const roomId = parseInt32(params.get('roomid'));
   if (roomId === null) {
     return { ok: false, error: 'roomId' };
   }
-  const gameId = parseInteger(params.get('gameid'));
+  const gameId = parseInt32(params.get('gameid'));
   if (gameId === null) {
     return { ok: false, error: 'gameId' };
   }
   return { ok: true, link: { hostname, port, roomId, gameId, description: params.get('game') ?? '' } };
-}
-
-/**
- * The hostname/port a desktop client would dial for a Webatrice connect target. A target host
- * with a path (`server.example/servatrice`) is dialled as written by Sockatrice's
- * buildWebSocketUrl: on the port before the path when it names one (`server.example:8443/…`),
- * else on the scheme's default port (wss → 443, ws → 80 for local hosts); desktop treats 443 and
- * 80 as WebSocket ports too (`RemoteClient::connectToHost`).
- */
-export function gameLinkServer(target: { host: string; port: string | number }): { hostname: string; port: string } {
-  const slash = target.host.indexOf('/');
-  if (slash < 0) {
-    return { hostname: target.host, port: String(target.port) };
-  }
-  const authority = target.host.slice(0, slash);
-  const portMatch = /^(.+):(\d+)$/.exec(authority);
-  if (portMatch) {
-    return { hostname: portMatch[1], port: portMatch[2] };
-  }
-  return { hostname: authority, port: isLocalTargetHost(target.host) ? '80' : '443' };
 }
 
 /** True when the text holds at least one game link. */
@@ -122,6 +123,63 @@ export function containsGameLink(text: string): boolean {
 }
 
 /** Hostnames compare case-insensitively, as desktop's IntentJoinServerGame does. */
-export function isSameServerHost(a: string, b: string): boolean {
+function isSameServerHost(a: string, b: string): boolean {
   return a.toLowerCase() === b.toLowerCase();
+}
+
+function parseWebSocketEndpoint(endpoint: string | null | undefined): URL | null {
+  if (!endpoint) {
+    return null;
+  }
+  try {
+    const url = new URL(endpoint);
+    if (!['ws:', 'wss:'].includes(url.protocol) || url.username || url.password || url.hash) {
+      return null;
+    }
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+function validDesktopPort(port: string | undefined): string | undefined {
+  if (!port || !/^\d+$/.test(port)) {
+    return undefined;
+  }
+  const numeric = Number(port);
+  return numeric >= 1 && numeric <= 65535 ? String(numeric) : undefined;
+}
+
+/**
+ * Resolve the live socket to the exact saved host that created it. Paths and
+ * WebSocket ports are part of that identity; a TCP alias from another entry
+ * on the same hostname must never be borrowed.
+ */
+export function findLiveGameServer(
+  connectedEndpoint: string | null | undefined,
+  knownHosts: readonly GameLinkKnownHost[],
+): LiveGameServer | null {
+  const live = parseWebSocketEndpoint(connectedEndpoint);
+  if (!live) {
+    return null;
+  }
+  const known = knownHosts.find((candidate) => {
+    const address = candidate.host.includes('/') ? candidate.host : `${candidate.host}:${candidate.port}`;
+    return parseWebSocketEndpoint(`${live.protocol}//${address}`)?.href === live.href;
+  });
+  return {
+    hostname: live.hostname,
+    port: live.port || (live.protocol === 'wss:' ? '443' : '80'),
+    desktopPort: validDesktopPort(known?.desktopPort),
+  };
+}
+
+/** A desktop link identifies the live server only through its configured TCP alias. */
+export function isSameGameServer(
+  link: Pick<GameJoinLink, 'hostname' | 'port'>,
+  live: LiveGameServer | null,
+): boolean {
+  return !!live?.desktopPort
+    && isSameServerHost(link.hostname, live.hostname)
+    && Number(link.port) === Number(live.desktopPort);
 }

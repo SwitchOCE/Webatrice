@@ -20,7 +20,9 @@ import {
 } from '@cockatrice/sockatrice/generated';
 import { GameLinkJoinHost, Message } from '@app/components';
 import { Room } from '@app/features/rooms';
+import type { HostDTO } from '@app/services';
 import GameInviteControls from '../../../../src/features/game/components/GameInviteControls/GameInviteControls';
+import { knownHostsStore } from '../../../../src/feature-widgets/known-hosts/useKnownHosts';
 import { connectRaw, store } from '../../helpers/setup';
 import { findLastRoomCommand, findLastSessionCommand } from '../../helpers/command-capture';
 import {
@@ -67,7 +69,7 @@ function renderRoomWithLink() {
         <Route path="/room/:roomId" element={<Room />} />
         <Route path="*" element={null} />
       </Routes>
-      <GameLinkJoinHost />
+      <GameLinkJoinHost endpoint={{ hostname: 'localhost', port: '4748', desktopPort: '4747' }} />
       <LocationProbe />
       <BackButton />
     </>,
@@ -97,11 +99,18 @@ describe('Game invites and links (GAME-033)', () => {
     } as unknown as typeof ResizeObserver;
     try {
       connectRaw();
+      simulateConnected();
       act(() => {
         store.dispatch(server.Actions.updateUser({ user: user('alice') }));
         store.dispatch(server.Actions.updateUsers({ users: [user('alice'), user('bob')] }));
         store.dispatch(games.Actions.gameJoined({ data: buildEventGameJoined({ gameId: 42, localPlayerId: 1, hostId: 1 }) }));
       });
+      const localHost = {
+        host: 'localhost',
+        port: '4748',
+        desktopPort: '4747',
+      } as HostDTO;
+      knownHostsStore.setValue({ hosts: [localHost], selectedHost: localHost });
       renderFeatureScreen(<GameInviteControls gameId={42} />);
 
       fireEvent.click(screen.getByRole('button', { name: 'GameInvite.inviteToGame' }));
@@ -121,7 +130,7 @@ describe('Game invites and links (GAME-033)', () => {
       expect(sent.userName).toBe('bob');
       expect(sent.message).toBe(
         'GameInvite.messageWithDescription '
-          + 'cockatrice://joingame?hostname=localhost&port=4748&roomid=1&gameid=42&game=Integration%20Test%20Game',
+          + 'cockatrice://joingame?hostname=localhost&port=4747&roomid=1&gameid=42&game=Integration%20Test%20Game',
       );
     } finally {
       globalThis.ResizeObserver = originalRo;
@@ -144,7 +153,7 @@ describe('Game invites and links (GAME-033)', () => {
     renderFeatureScreen(
       <>
         <Message message={{ message: `bob: Join my game "Bo3" (#77): ${url}` }} />
-        <GameLinkJoinHost />
+        <GameLinkJoinHost endpoint={{ hostname: 'localhost', port: '4748', desktopPort: '4747' }} />
         <LocationProbe />
       </>,
     );

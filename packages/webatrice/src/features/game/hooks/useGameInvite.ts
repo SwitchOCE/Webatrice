@@ -7,13 +7,16 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import { Response_ResponseCode } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { usePushToast } from '@app/components';
+import { useLiveServerEndpoint } from '@app/feature-widgets/known-hosts';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { useAppSelector } from '@app/store';
-import { gameLinkServer, makeGameJoinLink } from '@app/utils';
+import { makeGameJoinLink } from '@app/utils';
 
 export interface GameInvite {
   /** The desktop join link for this game; null when the game or server is unknown. */
   link: string | null;
+  /** Why link actions are unavailable, when endpoint configuration is the cause. */
+  unavailableReason: string | null;
   onlyBuddies: boolean;
   /** Self, players and spectators — never offered in the invite list. */
   excludeNames: ReadonlySet<string>;
@@ -31,6 +34,7 @@ export interface GameInvite {
 export function useGameInvite(gameId: number): GameInvite {
   const { t } = useTranslation();
   const webClient = useWebClient();
+  const liveServer = useLiveServerEndpoint();
   const pushToast = usePushToast();
   const game = useAppSelector((state) => games.Selectors.getGame(state, gameId));
   const selfName = useAppSelector((state) => server.Selectors.getUser(state)?.name ?? null);
@@ -38,15 +42,20 @@ export function useGameInvite(gameId: number): GameInvite {
   // The invite text sent to each user, so a failure is reported only for invites.
   const sentInvites = useRef(new Map<string, string>());
 
-  const target = webClient.connectTarget;
   const roomId = game?.info.roomId;
   const description = game?.info.description ?? '';
   const link = useMemo(() => {
-    if (!target || roomId == null) {
+    if (!liveServer?.desktopPort || roomId == null) {
       return null;
     }
-    return makeGameJoinLink({ ...gameLinkServer(target), roomId, gameId, description });
-  }, [target, roomId, gameId, description]);
+    return makeGameJoinLink({
+      hostname: liveServer.hostname,
+      port: liveServer.desktopPort,
+      roomId,
+      gameId,
+      description,
+    });
+  }, [liveServer, roomId, gameId, description]);
 
   const players = game?.players;
   const excludeNames = useMemo(() => {
@@ -113,6 +122,7 @@ export function useGameInvite(gameId: number): GameInvite {
 
   return {
     link,
+    unavailableReason: liveServer && !liveServer.desktopPort ? t('GameInvite.desktopPortRequired') : null,
     onlyBuddies: game?.info.onlyBuddies ?? false,
     excludeNames,
     copyLink,

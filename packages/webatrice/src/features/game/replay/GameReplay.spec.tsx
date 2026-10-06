@@ -90,6 +90,8 @@ describe('GameReplay route', () => {
     expect(screen.getByTestId('spectating-tag')).toHaveTextContent('GameReplay.sidebar.tag');
     // Desktop's replay tab has no say box.
     expect(screen.getByLabelText('game chat input').closest('form')).not.toBeVisible();
+    expect(screen.queryByRole('button', { name: 'GameInvite.copyLink' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'GameInvite.inviteToGame' })).not.toBeInTheDocument();
 
     const replayGames = Object.values(store.getState().games.games).filter((g) => g.replay);
     expect(replayGames).toHaveLength(1);

@@ -20,6 +20,8 @@ import { makeGameJoinLink } from '@app/utils';
 import { GameLinkButton } from './GameLinkButton';
 import GameLinkJoinHost, { GAME_LINK_WAIT_MS } from './GameLinkJoinHost';
 
+const LIVE_SERVER = { hostname: 'localhost', port: '4748', desktopPort: '4747' };
+
 function LocationProbe() {
   return <div data-testid="location">{useLocation().pathname}</div>;
 }
@@ -47,14 +49,14 @@ function stateWith(game: ServerInfo_Game | null) {
 }
 
 const link = (overrides: Partial<Parameters<typeof makeGameJoinLink>[0]> = {}) =>
-  makeGameJoinLink({ hostname: 'localhost', port: '4748', roomId: 1, gameId: 7, description: 'Friday modern', ...overrides });
+  makeGameJoinLink({ hostname: 'localhost', port: '4747', roomId: 1, gameId: 7, description: 'Friday modern', ...overrides });
 
 function renderHost(url: string, game: ServerInfo_Game | null = listedGame()) {
   const webClient = createMockWebClient() as unknown as WebClient;
   const utils = renderWithProviders(
     <>
       <GameLinkButton url={url} />
-      <GameLinkJoinHost />
+      <GameLinkJoinHost endpoint={LIVE_SERVER} />
       <LocationProbe />
     </>,
     { preloadedState: stateWith(game), webClient },
@@ -163,6 +165,31 @@ describe('GameLinkJoinHost (GAME-033 incoming links)', () => {
 
   it('explains a link for another server instead of joining', () => {
     const { webClient } = renderHost(link({ hostname: 'other.example' }));
+    fireEvent.click(dialogButton('GameLink.yes'));
+    expect(within(screen.getByRole('dialog')).getByText('GameLink.otherServer')).toBeInTheDocument();
+    expect(webClient.request.session.joinRoom).not.toHaveBeenCalled();
+    expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
+  });
+
+  it('rejects a link for another port on the same hostname', () => {
+    const { webClient } = renderHost(link({ port: '4748' }), listedGame({ withPassword: true }));
+    fireEvent.click(dialogButton('GameLink.yes'));
+    expect(within(screen.getByRole('dialog')).getByText('GameLink.otherServer')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(webClient.request.session.joinRoom).not.toHaveBeenCalled();
+    expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
+  });
+
+  it('rejects every incoming endpoint when the live host has no desktop port mapping', () => {
+    const webClient = createMockWebClient() as unknown as WebClient;
+    renderWithProviders(
+      <>
+        <GameLinkButton url={link({ port: '4748' })} />
+        <GameLinkJoinHost endpoint={{ hostname: 'localhost', port: '4748' }} />
+      </>,
+      { preloadedState: stateWith(listedGame()), webClient },
+    );
+    fireEvent.click(screen.getByRole('button', { name: /GameLink\.anchor/ }));
     fireEvent.click(dialogButton('GameLink.yes'));
     expect(within(screen.getByRole('dialog')).getByText('GameLink.otherServer')).toBeInTheDocument();
     expect(webClient.request.session.joinRoom).not.toHaveBeenCalled();

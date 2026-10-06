@@ -10,6 +10,7 @@ import { useAdminLockSession, useApplyLanguagePreference, useSyncLocaleToStore }
 import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 import { ModerationProvider } from '@app/feature-widgets/moderation';
 import { UserGamesProvider } from '@app/feature-widgets/user-games';
+import { useLiveServerEndpoint } from '@app/feature-widgets/known-hosts';
 import { loadPersistedLastRoute, ShellLifecycleProvider } from '@app/feature-wrappers/layout';
 import { DeckShareLinkRedirect } from '@app/features/decks';
 import { LobbyDeckStateProvider } from '@app/features/game';
@@ -25,6 +26,7 @@ function AppShell() {
   useSyncLocaleToStore();
   useAdminLockSession();
   useApplyLanguagePreference();
+  const liveServer = useLiveServerEndpoint();
 
   useEffect(() => {
     window.onbeforeunload = () => true;
@@ -60,7 +62,7 @@ function AppShell() {
               {/* Sounds and notifications for game, room and buddy events. */}
               <AppAlerts />
               {/* Runs the join flow for game links clicked in any chat. */}
-              <GameLinkJoinHost />
+              <GameLinkJoinHost endpoint={liveServer} />
               {/* Error dialogs for commands whose UI has moved on before the
                *  server answers (join room, create game, deck upload). Renders
                *  nothing until one fails. */}

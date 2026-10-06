@@ -23,9 +23,15 @@ export type { Rect, Size } from './playmatCrop';
 export {
   GAME_LINK_REGEX,
   containsGameLink,
-  gameLinkServer,
-  isSameServerHost,
+  findLiveGameServer,
+  isSameGameServer,
   makeGameJoinLink,
   parseGameJoinLink,
 } from './gameLink';
-export type { GameJoinLink, GameJoinLinkError, ParsedGameJoinLink } from './gameLink';
+export type {
+  GameJoinLink,
+  GameJoinLinkError,
+  GameLinkKnownHost,
+  LiveGameServer,
+  ParsedGameJoinLink,
+} from './gameLink';

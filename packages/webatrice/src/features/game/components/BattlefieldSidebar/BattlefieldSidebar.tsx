@@ -591,7 +591,7 @@ export default function BattlefieldSidebar() {
           <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
             Players
           </span>
-          {gameId != null && <GameInviteControls gameId={gameId} className="ml-auto mr-1.5" />}
+          {!readOnly && gameId != null && <GameInviteControls gameId={gameId} className="ml-auto mr-1.5" />}
           <button
             type="button"
             onClick={handleLeave}

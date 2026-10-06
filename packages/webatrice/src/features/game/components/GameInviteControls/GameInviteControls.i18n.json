@@ -5,6 +5,7 @@
     "invite": "Invite",
     "linkCopied": "Game link copied",
     "linkCopyFailed": "Could not copy the game link",
+    "desktopPortRequired": "Set this server's desktop port in server settings to copy links or send invites.",
     "inviteSent": "Invitation sent to {name}",
     "inviteFailed": {
       "ignoring": "{name} is ignoring you, so the invitation was not delivered",

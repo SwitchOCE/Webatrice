@@ -7,7 +7,7 @@ import type { ServerInfo_Game } from '@cockatrice/sockatrice/generated';
 import { AlertDialog, ConfirmDialog, PromptDialog } from '@app/dialogs';
 import { useJoinGame, useNavigateOnGameJoined } from '@app/hooks';
 import { useAppSelector } from '@app/store';
-import { gameLinkServer, isSameServerHost, parseGameJoinLink, type GameJoinLink } from '@app/utils';
+import { isSameGameServer, parseGameJoinLink, type GameJoinLink, type LiveGameServer } from '@app/utils';
 
 import { clearGameLinkRequest, useGameLinkRequest } from './gameLinkRequests';
 
@@ -44,7 +44,7 @@ function NavigateOnLinkJoin({ onJoined }: { onJoined: (gameId: number) => void }
  * sends, so it reports that join's rejection on every page (useJoinGame shows
  * a rejection only in the flow that sent the join).
  */
-export default function GameLinkJoinHost() {
+export default function GameLinkJoinHost({ endpoint }: { endpoint: LiveGameServer | null }) {
   const { t } = useTranslation();
   const webClient = useWebClient();
   const request = useGameLinkRequest();
@@ -58,7 +58,6 @@ export default function GameLinkJoinHost() {
   const room = useAppSelector((state) => (roomId != null ? rooms.Selectors.getRoom(state, roomId) : undefined));
   const awaitedGame = flow.step === 'awaitGame' ? room?.games[flow.link.gameId]?.info : undefined;
 
-  const target = webClient.connectTarget;
   const serverLabel = (link: GameJoinLink) => `${link.hostname}:${link.port}`;
   const close = useCallback(() => setFlow(IDLE), []);
 
@@ -99,7 +98,7 @@ export default function GameLinkJoinHost() {
 
   const confirmJoin = useCallback(
     (link: GameJoinLink) => {
-      if (!isConnected || !target || !isSameServerHost(gameLinkServer(target).hostname, link.hostname)) {
+      if (!isConnected || !isSameGameServer(link, endpoint)) {
         setFlow({
           step: 'notice',
           title: t('GameLink.confirm.title'),
@@ -112,7 +111,7 @@ export default function GameLinkJoinHost() {
       }
       setFlow({ step: 'awaitGame', link });
     },
-    [isConnected, target, joinedRoomIds, webClient, t],
+    [isConnected, endpoint, joinedRoomIds, webClient, t],
   );
 
   // IntentJoinServerGame::tryJoinGame / waitForGame.
