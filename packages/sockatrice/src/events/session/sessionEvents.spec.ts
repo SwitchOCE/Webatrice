@@ -581,6 +581,17 @@ describe('serverIdentification', () => {
       );
     });
 
+    it.each([CommandFailure.Timeout, CommandFailure.NotSent, CommandFailure.Disconnected])(
+      'forwards the activation salt failure reason %s', (failure) => {
+        setup();
+        const [, , onFailure] = (SessionCmds.requestPasswordSalt as Mock).mock.calls[0];
+        onFailure(failure);
+        expect(WebClient.instance.response.session.accountActivationFailed).toHaveBeenCalledWith(failure);
+        expect(SessionCmds.activate).not.toHaveBeenCalled();
+        expect(SessionCmds.disconnect).toHaveBeenCalledTimes(failure === CommandFailure.Disconnected ? 0 : 1);
+      },
+    );
+
     it('failure callback dispatches accountActivationFailed and disconnects', () => {
       setup();
       const [, , onFailure] = (SessionCmds.requestPasswordSalt as Mock).mock.calls[0];
