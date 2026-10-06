@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from 'react';
+import { useSyncExternalStore } from 'react';
 
 import {
   countStoredRecords,
@@ -24,7 +24,11 @@ let generation = 0;
 const listeners = new Set<() => void>();
 
 const subscribe = (listener: () => void) => {
+  const first = listeners.size === 0;
   listeners.add(listener);
+  if (first) {
+    void refreshStorageStatus();
+  }
   return () => {
     listeners.delete(listener);
   };
@@ -43,22 +47,19 @@ export function refreshStorageStatus(): Promise<void> {
       listeners.forEach((listener) => listener());
     }
   };
-  return Promise.all([estimateStorage(), countStoredRecords(), isStoragePersisted()]).then(
-    ([usage, counts, persisted]) => apply({ loaded: true, usage, counts, persisted }),
-    // IndexedDB unavailable (private mode in some browsers): show what is known, nothing more.
-    () => apply({ ...status, loaded: true }),
+  return Promise.allSettled([estimateStorage(), countStoredRecords(), isStoragePersisted()]).then(
+    ([usage, counts, persisted]) => apply({
+      loaded: true,
+      usage: usage.status === 'fulfilled' ? usage.value : status.usage,
+      counts: counts.status === 'fulfilled' ? counts.value : status.counts,
+      persisted: persisted.status === 'fulfilled' ? persisted.value : status.persisted,
+    }),
   );
 }
 
-/** The shared storage status; reads it when the first control mounts. */
+/** The shared storage status; refreshed when the first control mounts on each visit. */
 export function useStorageStatus(): StorageStatus {
-  const current = useSyncExternalStore(subscribe, () => status);
-  useEffect(() => {
-    if (!status.loaded) {
-      void refreshStorageStatus();
-    }
-  }, []);
-  return current;
+  return useSyncExternalStore(subscribe, () => status);
 }
 
 /** Test hook: forget the cached status. */
