@@ -207,30 +207,6 @@
     },
   };
 
-  // The tokens the screen uses, copied from src/styles/tokens.css (bundled, so
-  // not loaded yet), under the same names so the rules read like the app's CSS.
-  var TOKENS = {
-    '--bg-base': '20 16 31',
-    '--bg-surface': '31 24 48',
-    '--border-subtle': '58 46 90',
-    '--text-primary': '245 240 246',
-    '--text-secondary': '199 191 212',
-  };
-
-  var STYLE = [
-    '.Unsupported { box-sizing: border-box; min-height: 100vh; display: flex; align-items: center;',
-    '  justify-content: center; padding: 20px; font-family: system-ui, sans-serif; line-height: 1.5;',
-    '  background: rgb(var(--bg-base)); color: rgb(var(--text-primary)); }',
-    '.Unsupported-paper { width: 600px; max-width: 100%; padding: 40px; text-align: center; border-radius: 8px;',
-    '  background: rgb(var(--bg-surface)); border: 1px solid rgb(var(--border-subtle)); }',
-    '.Unsupported-paper h1 { margin: 0 0 8px; font-size: 2rem; font-weight: 500; }',
-    '.Unsupported-paper__header { margin-bottom: 40px; }',
-    '.Unsupported-paper__missing { margin-bottom: 40px; text-align: left; }',
-    '.Unsupported-paper__missing ul { margin: 8px 0 0; padding-left: 24px; list-style: disc;',
-    '  color: rgb(var(--text-secondary)); }',
-    '.Unsupported-paper__note { color: rgb(var(--text-secondary)); }',
-  ].join('\n');
-
   function element(tag, className, text) {
     var node = document.createElement(tag);
     if (className) {
@@ -245,11 +221,6 @@
   // Builds the screen from `strings`; returns the root node.
   function buildScreen(missing, strings) {
     var main = element('main', 'Unsupported');
-    for (var token in TOKENS) {
-      if (Object.prototype.hasOwnProperty.call(TOKENS, token)) {
-        main.style.setProperty(token, TOKENS[token]);
-      }
-    }
 
     var paper = element('div', 'Unsupported-paper');
     var header = element('div', 'Unsupported-paper__header');
@@ -305,20 +276,29 @@
     } catch (error) {
       language = null;
     }
-    language = (language || (root.navigator && root.navigator.language) || '').replace('-', '_');
-    var locales = [];
-    if (language) {
-      locales.push(language);
-      if (language.indexOf('_') > 0) {
-        locales.push(language.split('_')[0]);
+    language = (language || (root.navigator && root.navigator.language) || '')
+      .replace(/^\s+|\s+$/g, '').replace(/-/g, '_').toLowerCase();
+    // Keep in sync with Language and resolveSupportedLanguage. This classic
+    // script runs before the bundle; browserSupport.spec.ts checks their parity.
+    var supported = ['en_US', 'de', 'es', 'fi', 'fr', 'it', 'nl', 'pl', 'pt_BR', 'ru', 'tok', 'yue'];
+    var i;
+    for (i = 0; i < supported.length; i++) {
+      if (supported[i].toLowerCase() === language) {
+        return [supported[i]];
       }
     }
-    return locales;
+    var base = language.split('_')[0];
+    for (i = 0; i < supported.length; i++) {
+      if (supported[i].toLowerCase().split('_')[0] === base) {
+        return [supported[i]];
+      }
+    }
+    return [];
   }
 
-  function localesBaseUrl() {
+  function assetsBaseUrl() {
     var script = document.currentScript;
-    return script && script.src ? script.src.replace(/[^/]*$/, '') + 'locales/' : '/locales/';
+    return script && script.src ? script.src.replace(/[^/]*$/, '') : '/';
   }
 
   // Best effort: the English screen is already up, a translation replaces it
@@ -353,13 +333,16 @@
   root.Cockatrice.browserSupport = support;
 
   if (support.missingRequired.length > 0) {
-    var style = element('style', null, STYLE);
+    var baseUrl = assetsBaseUrl();
+    var style = element('link');
+    style.rel = 'stylesheet';
+    style.href = baseUrl + 'preflight.css';
     (document.head || document.documentElement).appendChild(style);
     render(support.missingRequired, STRINGS);
 
     var locales = preferredLocales();
     if (locales.length > 0 && locales[0].indexOf('en') !== 0) {
-      loadTranslation(locales, localesBaseUrl(), function showTranslated(translation, locale) {
+      loadTranslation(locales, baseUrl + 'locales/', function showTranslated(translation, locale) {
         document.documentElement.lang = locale.replace('_', '-');
         render(support.missingRequired, translate(translation));
       });

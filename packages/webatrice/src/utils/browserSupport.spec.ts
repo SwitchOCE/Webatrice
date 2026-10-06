@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import { Language } from '../types/languages';
+import { resolveSupportedLanguage } from './locale';
+
 import browserFeatureI18n from '../features/shell/BrowserFeature.i18n.json';
 import unsupportedI18n from '../features/shell/Unsupported.i18n.json';
 import { getBrowserSupport, type BrowserFeature } from './browserSupport';
@@ -9,6 +12,7 @@ import { getBrowserSupport, type BrowserFeature } from './browserSupport';
 // tested as one: evaluated against a stand-in `window` whose globals each test
 // controls, rendering into jsdom's document.
 const PREFLIGHT = readFileSync(resolve(__dirname, '../../public/preflight.js'), 'utf8');
+const PREFLIGHT_CSS = readFileSync(resolve(__dirname, '../../public/preflight.css'), 'utf8');
 const TOKENS_CSS = readFileSync(resolve(__dirname, '../styles/tokens.css'), 'utf8');
 
 class Stub {}
@@ -67,7 +71,7 @@ describe('public/preflight.js', () => {
   });
 
   afterEach(() => {
-    document.head.querySelectorAll('style').forEach((style) => style.remove());
+    document.head.querySelectorAll('style, link[rel="stylesheet"]').forEach((style) => style.remove());
   });
 
   it('reports full support and leaves the page alone in a supported browser', () => {
@@ -164,14 +168,51 @@ describe('public/preflight.js', () => {
     it('carries the app theme tokens with their tokens.css values', () => {
       runPreflight(supportedBrowser({ WebSocket: undefined }));
 
-      const main = document.querySelector<HTMLElement>('main.Unsupported')!;
-      const tokens = [...main.style].filter((name) => name.startsWith('--'));
+      const tokens = [...PREFLIGHT_CSS.matchAll(/(--[\w-]+):\s*([^;]+);/g)];
       expect(tokens.length).toBeGreaterThan(0);
-      for (const token of tokens) {
+      for (const [, token, value] of tokens) {
         const declared = new RegExp(`${token}:\\s*([^;]+);`).exec(TOKENS_CSS);
-        expect(declared?.[1].trim(), token).toBe(main.style.getPropertyValue(token));
+        expect(declared?.[1].trim(), token).toBe(value);
       }
-      expect(document.head.querySelector('style')!.textContent).toContain('rgb(var(--bg-base))');
+      expect(PREFLIGHT_CSS).toContain('rgb(var(--bg-base))');
+    });
+
+    it('loads an external stylesheet beside the preflight script without inline styles', () => {
+      const script = document.createElement('script');
+      script.src = 'https://example.test/client/preflight.js';
+      runPreflight(supportedBrowser({
+        WebSocket: undefined,
+        document: {
+          ...documentWithModules(),
+          getElementById: (id: string) => document.getElementById(id),
+          currentScript: script,
+        },
+      }));
+      expect(document.head.querySelector('link[rel="stylesheet"]')?.getAttribute('href'))
+        .toBe('https://example.test/client/preflight.css');
+      expect(document.querySelector('style, #root [style]')).toBeNull();
+    });
+
+    it.each([
+      ...Object.values(Language), 'pt-PT', 'PT-br', ' pt_pt ', 'DE-at', 'fr-CA', 'en-GB', 'unknown',
+    ])('resolves %s like the app for browser and saved preferences', (language) => {
+      for (const saved of [false, true]) {
+        const urls: string[] = [];
+        class FakeXhr {
+          open(_method: string, url: string) {
+            urls.push(url);
+          }
+          send() { /* Keep the request pending. */ }
+        }
+        runPreflight(supportedBrowser({
+          WebSocket: undefined,
+          XMLHttpRequest: FakeXhr,
+          navigator: { language: saved ? 'en-US' : language },
+          localStorage: { getItem: () => saved ? language : null },
+        }));
+        const locale = resolveSupportedLanguage(language);
+        expect(urls).toEqual(locale && locale !== Language.en_US ? [`/locales/${locale}/translation.json`] : []);
+      }
     });
 
     it('swaps in the user\'s language when its translation loads', () => {
@@ -206,14 +247,11 @@ describe('public/preflight.js', () => {
       expect(document.querySelector('h1')!.textContent).toBe(unsupportedI18n.Unsupported.title);
       expect(requests.map((request) => request.url)).toEqual(['/locales/pt_BR/translation.json']);
 
-      requests[0].respond(404, '');
-      expect(requests[1].url).toBe('/locales/pt/translation.json');
-
-      requests[1].respond(200, JSON.stringify({ Unsupported: { title: 'Navegador não suportado' } }));
+      requests[0].respond(200, JSON.stringify({ Unsupported: { title: 'Navegador não suportado' } }));
       expect(document.querySelector('h1')!.textContent).toBe('Navegador não suportado');
       // Keys the translation lacks stay English.
       expect(document.querySelector('li')!.textContent).toBe(browserFeatureI18n.BrowserFeature.webSocket);
-      expect(document.documentElement.lang).toBe('pt');
+      expect(document.documentElement.lang).toBe('pt-BR');
       document.documentElement.lang = 'en';
     });
   });
