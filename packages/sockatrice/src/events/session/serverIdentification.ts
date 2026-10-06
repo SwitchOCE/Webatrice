@@ -11,9 +11,9 @@ import { CommandFailure } from '../../types/CommandFailure';
 // socket must not disconnect: the transport is already reconnecting (or has
 // reported why it closed), and disconnect() would cancel that reconnect.
 // Desktop's passwordSaltResponse likewise ignores RespNotConnected.
-function onSaltFailure(settle: () => void) {
+function onSaltFailure(settle: (failure?: CommandFailure) => void) {
   return (failure?: CommandFailure) => {
-    settle();
+    settle(failure);
     if (failure !== CommandFailure.Disconnected) {
       SessionCommands.disconnect();
     }
@@ -86,7 +86,7 @@ export async function serverIdentification(info: Event_ServerIdentification): Pr
             const hashedPassword = salt ? await hashPassword(salt, password) : undefined;
             SessionCommands.activate(rest, password, hashedPassword);
           },
-          onSaltFailure(() => response.session.accountActivationFailed()),
+          onSaltFailure((failure) => response.session.accountActivationFailed(failure)),
         );
       } else {
         SessionCommands.activate(rest, password);
