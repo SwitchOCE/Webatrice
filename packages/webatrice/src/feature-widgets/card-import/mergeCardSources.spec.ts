@@ -62,7 +62,7 @@ describe('mergeCardSources', () => {
     ]);
   });
 
-  it('dedupes sets and formats first-wins and takes info from the first source that has one', () => {
+  it('keeps first set metadata and info, but the last format on a case-insensitive key', () => {
     const info = { id: 'singleton' as const, source: 'oracle-local-fs' as const, importedAt: 'x', author: 'main' };
     const merged = mergeCardSources([
       layer({
@@ -72,14 +72,54 @@ describe('mergeCardSources', () => {
       }),
       layer({
         sets: [{ name: { value: 'NEO' }, longname: { value: 'Custom' } }, { name: { value: 'CUS' } }],
-        formats: [{ formatName: 'Standard', minDeckSize: 40 }],
+        formats: [{ formatName: 'STANDARD', minDeckSize: 40 }],
         info: { ...info, author: 'custom' },
       }),
     ]);
 
     expect(merged.sets.map((s) => s.longname?.value ?? s.name.value)).toEqual(['Main', 'CUS']);
-    expect(merged.formats).toEqual([{ formatName: 'Standard', minDeckSize: 60 }]);
+    expect(merged.formats).toEqual([{ formatName: 'STANDARD', minDeckSize: 40 }]);
     expect(merged.info?.author).toBe('main');
+  });
+
+  it('includes printing-only sets in the inventory and prefers explicit metadata', () => {
+    const merged = mergeCardSources([
+      layer({ cards: [{ name: { value: 'Card' }, set: [{ value: 'IMPLICIT' }, { value: 'LATER' }] }] }),
+      layer({
+        tokens: [{ name: { value: 'Token' }, set: { value: 'TOKEN' } }],
+        sets: [{ name: { value: 'LATER' }, longname: { value: 'Declared' } }],
+      }),
+    ]);
+    expect(merged.sets).toEqual(expect.arrayContaining([
+      { name: { value: 'IMPLICIT' } }, { name: { value: 'TOKEN' } }, { name: { value: 'LATER' }, longname: { value: 'Declared' } },
+    ]));
+    expect(merged.sets).toHaveLength(3);
+  });
+
+  it('deduplicates full printing records, including duplicates in the incoming source', () => {
+    const original = { value: 'SET', uuid: 'id', num: '1', picurl: 'first', rarity: 'common' };
+    const alternate = { ...original, picurl: 'second' };
+    const rare = { ...original, rarity: 'rare' };
+    const merged = mergeCardSources([
+      layer({ cards: [{ name: { value: 'Card' }, set: original }] }),
+      layer({ cards: [{ name: { value: 'Card' }, set: [original, alternate, alternate, rare] }] }),
+    ]);
+    expect(merged.cards[0].set).toEqual([original, alternate, rare]);
+  });
+
+  it('shares first-wins names across cards and tokens, retaining later printings', () => {
+    const merged = mergeCardSources([
+      layer({
+        cards: [{ name: { value: 'Card first' }, set: { value: 'A' } }],
+        tokens: [{ name: { value: 'Token first' }, token: { value: '1' }, set: { value: 'A' } }],
+      }),
+      layer({
+        cards: [{ name: { value: 'Token first' }, set: { value: 'B' } }],
+        tokens: [{ name: { value: 'Card first' }, token: { value: '1' }, set: { value: 'B' } }],
+      }),
+    ]);
+    expect(merged.cards).toEqual([{ name: { value: 'Card first' }, set: [{ value: 'A' }, { value: 'B' }] }]);
+    expect(merged.tokens).toEqual([{ name: { value: 'Token first' }, token: { value: '1' }, set: [{ value: 'A' }, { value: 'B' }] }]);
   });
 
   it('merges tokens separately from cards', () => {
