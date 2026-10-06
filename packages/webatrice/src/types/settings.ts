@@ -1,3 +1,5 @@
+import { DEFAULT_PLAYMAT_SETTINGS, type PlaymatSettings } from './playmats';
+
 /**
  * The persisted settings row (Dexie `settings` table, one row per `user`; the app-wide row is
  * `APP_USER`). Preference fields mirror desktop's `libcockatrice_settings` and keep its defaults
@@ -27,6 +29,7 @@ export class Setting {
 
   // Appearance — theme palette
   themeMode: ThemeMode;
+  playmatSettings: PlaymatSettings;
 
   // Appearance — table grid layout
   invertVerticalCoordinate: boolean;
@@ -89,6 +92,7 @@ export const DEFAULT_CHAT_COLOR = 'A6120D';
 /** Desktop defaults, so a fresh browser behaves like a fresh desktop install. */
 export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
   autoConnect: false,
+  playmatSettings: DEFAULT_PLAYMAT_SETTINGS,
 
   language: '',
 
@@ -130,4 +134,4 @@ export const PREFERENCE_DEFAULTS: Readonly<Preferences> = Object.freeze({
 });
 
 /** Current settings-row schema version. See `services/dexie/settingsMigration.ts`. */
-export const SETTINGS_VERSION = 2;
+export const SETTINGS_VERSION = 3;

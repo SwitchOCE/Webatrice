@@ -3,11 +3,7 @@ import { Palette } from 'lucide-react';
 import PlaymatSettingsPanel from '../playmats/PlaymatSettingsPanel';
 import { SettingsSectionId, type SettingsSection } from '../registry';
 
-/**
- * Appearance › Playmat settings (desktop appearance_settings_page.cpp "Playmat settings" and its
- * "Default Playmats" dialog). The panel keeps its own storage and saves each change itself, so
- * "Restore defaults" leaves it alone.
- */
+/** Appearance playmat controls, including the preferences reset by Restore defaults. */
 export const playmatsSection: SettingsSection = {
   id: SettingsSectionId.Appearance,
   titleKey: 'Settings.section.appearance',
@@ -20,7 +16,7 @@ export const playmatsSection: SettingsSection = {
         {
           id: 'playmats',
           labelKey: 'PlaymatSettings.label',
-          control: { kind: 'custom', component: PlaymatSettingsPanel, layout: 'block' },
+          control: { kind: 'custom', component: PlaymatSettingsPanel, keys: ['playmatSettings'], layout: 'block' },
         },
       ],
     },

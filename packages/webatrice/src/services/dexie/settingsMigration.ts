@@ -1,6 +1,8 @@
 import { PREFERENCE_DEFAULTS, PreferenceKey, Preferences, SETTINGS_VERSION, Setting, ThemeMode } from '@app/types';
 import { LANGUAGE_STORAGE_KEY, resolveSupportedLanguage } from '@app/utils';
 
+import { LEGACY_PLAYMAT_SETTINGS_KEY, parsePlaymatSettings } from './playmatSettings';
+
 type SettingRow = Partial<Setting> & { user: string };
 
 /**
@@ -20,6 +22,16 @@ const MIGRATIONS: Record<number, (row: SettingRow) => void> = {
   2: (row) => {
     row.themeMode = ThemeMode.Dark;
     row.language = legacyLanguageChoice() ?? '';
+  },
+  3: (row) => {
+    if (row.user !== '*app') {
+      return;
+    }
+    try {
+      row.playmatSettings = parsePlaymatSettings(globalThis.localStorage?.getItem(LEGACY_PLAYMAT_SETTINGS_KEY) ?? null);
+    } catch {
+      row.playmatSettings = structuredClone(PREFERENCE_DEFAULTS.playmatSettings);
+    }
   },
 };
 
@@ -42,6 +54,9 @@ function browserLanguage(): string | undefined {
 
 /** Whether a stored value has the type of the preference's default (a list for a list). */
 function hasDefaultType(key: PreferenceKey, value: unknown): boolean {
+  if (key === 'playmatSettings') {
+    return value != null && typeof value === 'object' && !Array.isArray(value);
+  }
   const fallback = PREFERENCE_DEFAULTS[key];
   return Array.isArray(fallback) ? Array.isArray(value) : typeof value === typeof fallback;
 }
@@ -71,6 +86,7 @@ export function migrateSetting<T extends SettingRow>(row: T): T & Setting {
     MIGRATIONS[version]?.(row);
   }
   fillPreferenceDefaults(row);
+  row.playmatSettings = parsePlaymatSettings(JSON.stringify(row.playmatSettings));
   row.version = Math.max(from, SETTINGS_VERSION);
   return row as T & Setting;
 }
