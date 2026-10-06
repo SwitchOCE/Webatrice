@@ -6,6 +6,9 @@ import { games } from '@cockatrice/datatrice';
 import { ShortcutScope, useShortcut, useShortcutHints } from '@app/feature-widgets/shortcuts';
 import { useAppDispatch, useAppSelector } from '@app/store';
 
+import { useGameSelectionState } from '../../components/ui/GameSelectionContext';
+import { makeCardKey } from '../../utils/CardRegistry/CardRegistryContext';
+
 import Card from '../../components/ui/SeatCard/SeatCard';
 import { CARD_HEIGHT, CARD_WIDTH } from '../../components/ui/SeatCard/cardSize';
 import { useSeatDragSource } from '../../components/ui/SeatDragContext';
@@ -227,17 +230,34 @@ export default function IncomingRevealDialog() {
   const shortcutHints = useShortcutHints();
 
   // A read-only reveal gets desktop's revealed-card menu (Hide, Clone, Select
-  // All, View related cards; card_menu.cpp:132-151). Hide and the selection
-  // are local to this window: hiding never touches the shared revealedCards
+  // All, View related cards; card_menu.cpp:132-151). Selection feeds the game
+  // tally; hiding never touches the shared revealedCards
   // snapshot (the source's own zone view reads it too) and sends nothing, and
   // a new reveal starts with nothing hidden or selected.
   const [hiddenIds, setHiddenIds] = useState<ReadonlySet<string>>(() => new Set());
-  const [selectedIds, setSelectedIds] = useState<ReadonlySet<string>>(() => new Set());
+  const selection = useGameSelectionState();
+  const setSelectedCardKeys = selection?.setSelectedCardKeys;
+  const revealKey = useCallback((id: string) => reveal
+    ? makeCardKey(reveal.sourceOwnerId, reveal.zoneName, Number(id)) : '', [reveal]);
+  const selectedIds = useMemo(() => new Set(
+    (reveal?.cards ?? []).map((card) => String(card.id))
+      .filter((id) => selection?.selectedCardKeys.has(revealKey(id))),
+  ), [reveal, revealKey, selection?.selectedCardKeys]);
+  const setSelectedIds = (next: ReadonlySet<string> | ((prev: ReadonlySet<string>) => ReadonlySet<string>)) => {
+    const ids = typeof next === 'function' ? next(selectedIds) : next;
+    setSelectedCardKeys?.(new Set([...ids].map(revealKey)));
+  };
+  useEffect(() => () => {
+    const keys = new Set((reveal?.cards ?? []).map((card) => revealKey(String(card.id))));
+    setSelectedCardKeys?.((prev) => {
+      const remaining = new Set([...prev].filter((key) => !keys.has(key)));
+      return remaining.size === prev.size ? prev : remaining;
+    });
+  }, [reveal, revealKey, setSelectedCardKeys]);
   const [cardMenu, setCardMenu] = useState<{ x: number; y: number; id: string; name: string } | null>(null);
   const closeCardMenu = useCallback(() => setCardMenu(null), []);
   useEffect(() => {
     setHiddenIds(new Set());
-    setSelectedIds(new Set());
     setCardMenu(null);
   }, [reveal]);
 
@@ -271,6 +291,17 @@ export default function IncomingRevealDialog() {
       : undefined,
   );
   const revealCards = useMemo(() => liveCards ?? reveal?.cards ?? [], [liveCards, reveal?.cards]);
+  useEffect(() => {
+    const liveIds = new Set(revealCards.map((card) => card.id));
+    const removedKeys = new Set((reveal?.cards ?? [])
+      .filter((card) => !liveIds.has(card.id)).map((card) => revealKey(String(card.id))));
+    if (removedKeys.size > 0) {
+      setSelectedCardKeys?.((prev) => {
+        const remaining = new Set([...prev].filter((key) => !removedKeys.has(key)));
+        return remaining.size === prev.size ? prev : remaining;
+      });
+    }
+  }, [reveal, revealCards, revealKey, setSelectedCardKeys]);
 
   // Our own seat's playerId in this game. Needed to name the target
   // side of Command_MoveCard when we (the lend recipient) pull a card
