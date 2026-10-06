@@ -6,7 +6,11 @@ import { PREFERENCE_DEFAULTS } from '@app/types';
 
 import { usePreference } from '../../../../../hooks/useSettings';
 import { lookupCard } from '../../../../../services/cards/cardCatalog';
-import { cardEl, menuLabels, openContextMenu, renderSeatCell, type SeatGameSpec } from '../../../__test-utils__/seatFixtures';
+import {
+  buildSeatGameState, cardEl, chooseMenuPath, menuLabels, openContextMenu, renderSeatCell, type SeatGameSpec,
+} from '../../../__test-utils__/seatFixtures';
+import { createMockWebClient, renderWithProviders } from '../../../../../__test-utils__';
+import Game from '../../../Game';
 import { CARD_BACK_URL } from '../SeatCard/cardSize';
 
 vi.mock('../../../../../hooks/useSettings');
@@ -60,6 +64,22 @@ describe('HandZone', () => {
   it('opens the hand menu from the hand button', () => {
     renderSeatCell(SPEC);
     expect(menuLabels(openContextMenu(handButton())).slice(0, 2)).toEqual(['View hand', 'Sort hand by...']);
+  });
+
+  it.each([true, false])('menu Play reads playToStack=%s from preferences', async (playToStack) => {
+    vi.mocked(usePreference).mockImplementation(((key: keyof typeof PREFERENCE_DEFAULTS) =>
+      key === 'playToStack' ? playToStack : PREFERENCE_DEFAULTS[key]) as never);
+    const client = createMockWebClient();
+    const game = client.request.game;
+    renderWithProviders(<Game />, { preloadedState: buildSeatGameState(SPEC), webClient: client, route: '/game/1' });
+    await act(async () => {});
+    openContextMenu(cardEl(SHOCK.id, 'hand'));
+    chooseMenuPath('Play');
+    await act(async () => {});
+    expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
+      startZone: ZoneName.HAND,
+      targetZone: playToStack ? ZoneName.STACK : ZoneName.TABLE,
+    });
   });
 
   it('plays a land straight to the battlefield and anything else onto the stack on double-click', async () => {

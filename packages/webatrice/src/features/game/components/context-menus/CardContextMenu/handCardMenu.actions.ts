@@ -29,10 +29,8 @@ export interface PlayCardMeta {
 
 /**
  * The Command_MoveCard a play sends; desktop PlayerActions::playCard
- * (player_actions.cpp:51-98). The hand menu's Play sends only row 3 to the
- * stack. With `playToStack`, everything but a land goes there: the HandZone
- * double-click passes the "Play all nonlands onto the stack" preference as
- * `playToStack`.
+ * (player_actions.cpp:51-98). With `playToStack`, everything but a land
+ * goes to the stack; both the hand menu and double-click pass the preference.
  * From the stack (`fromStack`), an instant or sorcery goes to the graveyard
  * and anything else to the battlefield. Face down always lands in row 2. A
  * card that reaches the battlefield face up carries its printed P/T, and
@@ -108,6 +106,7 @@ export interface HandOrZoneCardMenuDeps {
   cardMeta: (name: string) => PlayCardMeta | undefined;
   /** Library size for "X cards from the top of library...". */
   deckSize: number;
+  playToStack?: boolean;
   moveCards?: (from: ZoneNameValue, cards: readonly SeatMoveCard[], to: SeatMoveDestination) => void;
   revealCards?: (zone: ZoneNameValue, targetPlayerId: number, cardIds: readonly number[]) => void;
   cloneCard?: (source: {
@@ -179,8 +178,9 @@ export function resolveHandOrZoneCardMenu(deps: HandOrZoneCardMenuDeps): CardMen
   const selectInView = (ids: readonly string[]) => deps.setSelectedCardKeys(new Set(ids.map(viewKey)));
   // One Command_MoveCard per card, as desktop's playCard sends.
   const play = (faceDown: boolean) => run(() => {
-    for (const c of targets) {
-      const { card, to } = playCardMove(Number(c.id), deps.cardMeta(c.name), { faceDown });
+    // Positional ids shift as cards leave hidden zones (player_actions.cpp:1633-1644).
+    for (const c of [...targets].sort((a, b) => Number(b.id) - Number(a.id))) {
+      const { card, to } = playCardMove(Number(c.id), deps.cardMeta(c.name), { faceDown, playToStack: deps.playToStack });
       deps.moveCards?.(zone, [card], to);
     }
   });

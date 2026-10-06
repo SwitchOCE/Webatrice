@@ -138,10 +138,30 @@ describe('resolveHandOrZoneCardMenu', () => {
     const deps = makeDeps({ handSelection: { zone: 'hand', ids: new Set(['10', '11', '12']) } });
     click(itemsOf(deps), 'Play');
     expect(vi.mocked(deps.moveCards!).mock.calls).toEqual([
-      [ZoneName.HAND, [10], { zone: ZoneName.TABLE, index: 'end', row: 2 }],
-      [ZoneName.HAND, [11], { zone: ZoneName.TABLE, index: 'end', row: 0 }],
       [ZoneName.HAND, [12], { zone: ZoneName.STACK, index: 'end' }],
+      [ZoneName.HAND, [11], { zone: ZoneName.TABLE, index: 'end', row: 0 }],
+      [ZoneName.HAND, [10], { zone: ZoneName.TABLE, index: 'end', row: 2 }],
     ]);
+  });
+
+  it.each([ZoneName.DECK, ZoneName.SIDEBOARD])('plays positional cards descending from %s', (zone) => {
+    const deps = makeDeps({
+      menu: libraryViewMenu('21', zone),
+      sideboardCards: LIBRARY,
+      selectedCardKeys: new Set([makeCardKey(OWNER, zone, 20), makeCardKey(OWNER, zone, 21)]),
+    });
+    click(itemsOf(deps), 'Play');
+    expect(vi.mocked(deps.moveCards!).mock.calls.map((call) => call[1])).toEqual([[21], [20]]);
+  });
+
+  it('honours playToStack for menu Play while lands and face-down cards stay on the table', () => {
+    const deps = makeDeps({ playToStack: true, handSelection: { zone: 'hand', ids: new Set(['10', '11']) } });
+    click(itemsOf(deps), 'Play');
+    expect(deps.moveCards).toHaveBeenCalledWith(ZoneName.HAND, [11], { zone: ZoneName.STACK, index: 'end' });
+    expect(deps.moveCards).toHaveBeenCalledWith(ZoneName.HAND, [10], { zone: ZoneName.TABLE, index: 'end', row: 2 });
+    vi.mocked(deps.moveCards!).mockClear();
+    click(itemsOf(deps), 'Play Face Down');
+    expect(vi.mocked(deps.moveCards!).mock.calls.every((call) => call[2].zone === ZoneName.TABLE)).toBe(true);
   });
 
   it('plays a creature with its printed P/T', () => {
