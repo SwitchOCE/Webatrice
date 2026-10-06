@@ -54,6 +54,8 @@ export function useMoveTopUntil({
   moveCards,
 }: UseMoveTopUntilOptions): (request: MoveTopUntilRequest) => void {
   const [loop, setLoop] = useState<LoopState | null>(null);
+  const currentRef = useRef({ enabled, stackCards, deckCount, moveCards });
+  currentRef.current = { enabled, stackCards, deckCount, moveCards };
   const seenStackIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -102,6 +104,8 @@ export function useMoveTopUntil({
 
   return useCallback(
     ({ filter, hits, autoPlay }: MoveTopUntilRequest) => {
+      // A dialog may retain this callback while cards move before submission.
+      const { enabled, stackCards, deckCount, moveCards } = currentRef.current;
       if (!enabled || !moveCards || deckCount <= 0) {
         return;
       }
@@ -115,6 +119,6 @@ export function useMoveTopUntil({
       setLoop({ filter: parsed, remainingHits: hits, autoPlay });
       moveCards(ZoneName.DECK, [0], { zone: ZoneName.STACK, index: 'end' });
     },
-    [enabled, moveCards, deckCount, stackCards],
+    [],
   );
 }
