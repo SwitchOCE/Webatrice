@@ -225,6 +225,47 @@ describe('ReportQueue', () => {
     expect(panel.textContent).toContain('Reports.userContext.noRecent');
   });
 
+  it('switches the queue investigation and ignores a stray result for the previous user', () => {
+    const { load, store, moderator } = renderQueue();
+    load();
+    fireEvent.click(screen.getByTestId('report-row-1'));
+    fireEvent.click(screen.getByTestId('report-row-2'));
+    expect(moderator.reportUserInfo).toHaveBeenLastCalledWith('eve');
+    act(() => store.dispatch(server.Actions.userInfoReport({
+      info: create(Response_ReportUserInfoSchema, { userName: 'eve', adminNotes: 'current investigation' }),
+    })));
+    expect(screen.getByTestId('report-user-context')).toHaveTextContent('current investigation');
+    const active = store.getState().server.staff.investigation;
+    act(() => store.dispatch(server.Actions.userInfoReport({
+      info: create(Response_ReportUserInfoSchema, { userName: 'mallory', adminNotes: 'stray result' }),
+    })));
+    expect(store.getState().server.staff.investigation).toBe(active);
+    expect(server.Selectors.getUserInvestigation(store.getState(), 'mallory')).toBeUndefined();
+    expect(screen.getByTestId('report-user-context')).toHaveTextContent('current investigation');
+    expect(screen.getByTestId('report-user-context')).not.toHaveTextContent('stray result');
+  });
+
+  it('does not reclaim an investigation another surface started when a queue result arrives', () => {
+    const { load, store, moderator } = renderQueue();
+    load();
+    fireEvent.click(screen.getByTestId('report-row-1'));
+    act(() => {
+      store.dispatch(server.Actions.userInvestigationStarted({ userName: 'eve' }));
+      store.dispatch(server.Actions.userInfoReport({
+        info: create(Response_ReportUserInfoSchema, { userName: 'eve', adminNotes: 'other surface' }),
+      }));
+    });
+    const active = store.getState().server.staff.investigation;
+    act(() => store.dispatch(server.Actions.userInfoReport({
+      info: create(Response_ReportUserInfoSchema, { userName: 'mallory', adminNotes: 'late queue result' }),
+    })));
+    expect(store.getState().server.staff.investigation).toBe(active);
+    expect(server.Selectors.getUserInvestigation(store.getState(), 'eve')?.info?.adminNotes).toBe('other surface');
+    expect(server.Selectors.getUserInvestigation(store.getState(), 'mallory')).toBeUndefined();
+    expect(screen.getByTestId('report-user-context')).not.toHaveTextContent('late queue result');
+    expect(moderator.reportUserInfo).toHaveBeenCalledTimes(1);
+  });
+
   it('says the reported user context failed when the shared lookup fails', () => {
     const { load, store } = renderQueue();
     load();

@@ -6,7 +6,7 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import type { ServerInfo_Report } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { useReduxEffect, useWatchReplay, type ReduxEffectAction } from '@app/hooks';
-import { useAppSelector } from '@app/store';
+import { useAppDispatch, useAppSelector } from '@app/store';
 
 import { useJoinReportGame } from './useJoinReportGame';
 import { useReportListLoad, type ReportListLoadState } from './useReportListLoad';
@@ -85,6 +85,7 @@ const NO_ACTIONS: ReportQueueActions = { canAssign: false, canResolve: false, ca
  */
 export function useReportQueue(): ReportQueue {
   const webClient = useWebClient();
+  const dispatch = useAppDispatch();
   const { t } = useTranslation();
   const watchReplay = useWatchReplay();
   const [search, setSearch] = useState('');
@@ -201,8 +202,12 @@ export function useReportQueue(): ReportQueue {
       return;
     }
     setUserInfoFailedFor(null);
+    // TabReport::requestUserInfo/userInfoResponse (tab_report.cpp:780-818)
+    // clears context for the selected user and rejects another user's reply.
+    // Start before sending so Datatrice's single-investigation guard accepts it.
+    dispatch(server.Actions.userInvestigationStarted({ userName: reportedUser }));
     webClient.request.moderator.reportUserInfo(reportedUser);
-  }, [reportedUser, webClient]);
+  }, [dispatch, reportedUser, webClient]);
 
 
   // Desktop TabReport::viewReplayResponse: once the replay answering this
