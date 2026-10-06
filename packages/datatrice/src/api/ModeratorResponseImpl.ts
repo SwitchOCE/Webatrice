@@ -11,20 +11,20 @@ export class ModeratorResponseImpl implements WebsocketTypes.IModeratorResponse 
     this.store.dispatch(ServerActions.banFromServer({ userName }));
   }
 
-  banHistory(userName: string, banHistory: ServerInfo_Ban[]): void {
-    this.store.dispatch(ServerActions.banHistory({ userName, banHistory }));
+  banHistory(userName: string, banHistory: ServerInfo_Ban[], requestId?: string): void {
+    this.store.dispatch(ServerActions.banHistory({ userName, banHistory, requestId }));
   }
 
-  viewLogs(logs: ServerInfo_ChatMessage[]): void {
-    this.store.dispatch(ServerActions.viewLogs({ logs }));
+  viewLogs(logs: ServerInfo_ChatMessage[], requestId?: string): void {
+    this.store.dispatch(ServerActions.viewLogs({ logs, requestId }));
   }
 
-  warnHistory(userName: string, warnHistory: ServerInfo_Warning[]): void {
-    this.store.dispatch(ServerActions.warnHistory({ userName, warnHistory }));
+  warnHistory(userName: string, warnHistory: ServerInfo_Warning[], requestId?: string): void {
+    this.store.dispatch(ServerActions.warnHistory({ userName, warnHistory, requestId }));
   }
 
-  warnListOptions(warnList: Response_WarnList[]): void {
-    this.store.dispatch(ServerActions.warnListOptions({ warnList }));
+  warnListOptions(warnList: Response_WarnList[], requestId?: string): void {
+    this.store.dispatch(ServerActions.warnListOptions({ warnList, requestId }));
   }
 
   warnUser(userName: string): void {
@@ -39,8 +39,8 @@ export class ModeratorResponseImpl implements WebsocketTypes.IModeratorResponse 
     this.store.dispatch(ServerActions.forceActivateUser({ usernameToActivate, moderatorName }));
   }
 
-  getAdminNotes(userName: string, notes: string): void {
-    this.store.dispatch(ServerActions.getAdminNotes({ userName, notes }));
+  getAdminNotes(userName: string, notes: string, requestId?: string): void {
+    this.store.dispatch(ServerActions.getAdminNotes({ userName, notes, requestId }));
   }
 
   updateAdminNotes(userName: string, notes: string): void {
@@ -52,7 +52,8 @@ export class ModeratorResponseImpl implements WebsocketTypes.IModeratorResponse 
     responseCode: number,
     target: string,
     failure?: WebsocketTypes.CommandFailure,
+    requestId?: string,
   ): void {
-    this.store.dispatch(ServerActions.moderatorCommandFailed({ command, responseCode, target, failure }));
+    this.store.dispatch(ServerActions.moderatorCommandFailed({ command, responseCode, target, failure, requestId }));
   }
 }

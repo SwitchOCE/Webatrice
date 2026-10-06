@@ -110,9 +110,10 @@ export interface ISessionResponse {
   accountPasswordChange(): void;
   accountEditChanged(realName?: string, email?: string, country?: string): void;
   accountImageChanged(avatarBmp: Uint8Array): void;
-  getUserInfo(userInfo: ServerInfo_User): void;
+  /** Optional request identities are client-only and echoed on the matching outcome. */
+  getUserInfo(userInfo: ServerInfo_User, requestId?: RequestId): void;
   /** Command_GetUserInfo for `userName` failed (e.g. RespNameNotFound for a guest who has left). */
-  getUserInfoFailed?(userName: string, responseCode: number): void;
+  getUserInfoFailed?(userName: string, responseCode: number, requestId?: RequestId): void;
   getGamesOfUser(userName: string, response: Response_GetGamesOfUser): void;
   gameJoined(gameJoinedData: Event_GameJoined): void;
   notifyUser(notification: Event_NotifyUser): void;
@@ -281,13 +282,14 @@ export type DeveloperCommandName = 'getServerStats';
 
 export interface IAdminResponse {
   /** Each flag is `undefined` when the command left that role unchanged (proto2 presence). */
-  adjustMod(userName: string, shouldBeMod?: boolean, shouldBeJudge?: boolean, shouldBeDeveloper?: boolean): void;
+  adjustMod(userName: string, shouldBeMod?: boolean, shouldBeJudge?: boolean, shouldBeDeveloper?: boolean, requestId?: RequestId): void;
   /**
    * A command failed; `target` names what it acted on (the user name). `failure`
    * is set when the server never answered (see CommandFailure) and undefined for
-   * a server rejection. Optional for backward compatibility.
+   * a server rejection. `requestId` echoes the client-only identity when supplied.
+   * Optional for backward compatibility.
    */
-  commandFailed?(command: AdminCommandName, responseCode: number, target: string, failure?: CommandFailure): void;
+  commandFailed?(command: AdminCommandName, responseCode: number, target: string, failure?: CommandFailure, requestId?: RequestId): void;
   reloadConfig(): void;
   shutdownServer(): void;
   updateServerMessage(): void;
@@ -295,14 +297,15 @@ export interface IAdminResponse {
 
 export interface IModeratorResponse {
   banFromServer(userName: string): void;
-  banHistory(userName: string, banHistory: ServerInfo_Ban[]): void;
-  viewLogs(logs: ServerInfo_ChatMessage[]): void;
-  warnHistory(userName: string, warnHistory: ServerInfo_Warning[]): void;
-  warnListOptions(warnList: Response_WarnList[]): void;
+  /** Query outcomes echo the optional client-only request identity. */
+  banHistory(userName: string, banHistory: ServerInfo_Ban[], requestId?: RequestId): void;
+  viewLogs(logs: ServerInfo_ChatMessage[], requestId?: RequestId): void;
+  warnHistory(userName: string, warnHistory: ServerInfo_Warning[], requestId?: RequestId): void;
+  warnListOptions(warnList: Response_WarnList[], requestId?: RequestId): void;
   warnUser(userName: string): void;
   grantReplayAccess(replayId: number, moderatorName: string): void;
   forceActivateUser(usernameToActivate: string, moderatorName: string): void;
-  getAdminNotes(userName: string, notes: string): void;
+  getAdminNotes(userName: string, notes: string, requestId?: RequestId): void;
   updateAdminNotes(userName: string, notes: string): void;
 
   // ── Cockatrice 3.1 protocol additions (optional; see ISessionResponse) ────
@@ -328,10 +331,12 @@ export interface IModeratorResponse {
    * A command failed; `target` names what it acted on (a user name, card name,
    * or the report, replay or game id as a string; '' for a list). `failure` is
    * set when the server never answered (see CommandFailure) and undefined for a
-   * server rejection. Optional for
-   * backward compatibility.
+   * server rejection. `requestId` echoes the optional client-only identity.
+   * Optional for backward compatibility.
    */
-  commandFailed?(command: ModeratorCommandName, responseCode: number, target: string, failure?: CommandFailure): void;
+  commandFailed?(
+    command: ModeratorCommandName, responseCode: number, target: string, failure?: CommandFailure, requestId?: RequestId
+  ): void;
 }
 
 /** Developer staff role (#7211, #7212). Developer log lookups route to IModeratorResponse.viewLogs. */

@@ -180,12 +180,12 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.accountImageChanged({ user: { avatarBmp } }));
   }
 
-  getUserInfo(userInfo: ServerInfo_User): void {
-    this.store.dispatch(ServerActions.getUserInfo({ userInfo }));
+  getUserInfo(userInfo: ServerInfo_User, requestId?: string): void {
+    this.store.dispatch(ServerActions.getUserInfo({ userInfo, requestId }));
   }
 
-  getUserInfoFailed(userName: string, responseCode: number): void {
-    this.store.dispatch(ServerActions.getUserInfoFailed({ userName, responseCode }));
+  getUserInfoFailed(userName: string, responseCode: number, requestId?: string): void {
+    this.store.dispatch(ServerActions.getUserInfoFailed({ userName, responseCode, requestId }));
   }
 
   getGamesOfUser(userName: string, response: Response_GetGamesOfUser): void {

@@ -18,15 +18,15 @@ export const moderationReducers = {
 
   banHistory: ((state, action) => {
     state.banHistory[action.payload.userName] = action.payload.banHistory;
-  }) as CaseReducer<ServerState, PayloadAction<{ userName: string; banHistory: ServerInfo_Ban[] }>>,
+  }) as CaseReducer<ServerState, PayloadAction<{ userName: string; banHistory: ServerInfo_Ban[]; requestId?: string }>>,
 
   warnHistory: ((state, action) => {
     state.warnHistory[action.payload.userName] = action.payload.warnHistory;
-  }) as CaseReducer<ServerState, PayloadAction<{ userName: string; warnHistory: ServerInfo_Warning[] }>>,
+  }) as CaseReducer<ServerState, PayloadAction<{ userName: string; warnHistory: ServerInfo_Warning[]; requestId?: string }>>,
 
   warnListOptions: ((state, action) => {
     state.warnListOptions = action.payload.warnList;
-  }) as CaseReducer<ServerState, PayloadAction<{ warnList: Response_WarnList[] }>>,
+  }) as CaseReducer<ServerState, PayloadAction<{ warnList: Response_WarnList[]; requestId?: string }>>,
 
   warnUser: ((state, action) => {
     state.warnUser = action.payload.userName;
@@ -34,7 +34,7 @@ export const moderationReducers = {
 
   getAdminNotes: ((state, action) => {
     state.adminNotes[action.payload.userName] = action.payload.notes;
-  }) as CaseReducer<ServerState, PayloadAction<{ userName: string; notes: string }>>,
+  }) as CaseReducer<ServerState, PayloadAction<{ userName: string; notes: string; requestId?: string }>>,
 
   updateAdminNotes: ((state, action) => {
     state.adminNotes[action.payload.userName] = action.payload.notes;
@@ -70,11 +70,12 @@ export const moderationReducers = {
     shouldBeMod?: boolean;
     shouldBeJudge?: boolean;
     shouldBeDeveloper?: boolean;
+    requestId?: string;
   }>>,
 
   viewLogs: ((state, action) => {
     state.logs = normalizeLogs(action.payload.logs);
-  }) as CaseReducer<ServerState, PayloadAction<{ logs: ServerInfo_ChatMessage[] }>>,
+  }) as CaseReducer<ServerState, PayloadAction<{ logs: ServerInfo_ChatMessage[]; requestId?: string }>>,
 
   clearLogs: ((state) => {
     state.logs = { room: [], game: [], chat: [] };
