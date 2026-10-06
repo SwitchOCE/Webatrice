@@ -44,6 +44,41 @@ const alice = makeUser({ name: 'alice', address: '10.0.0.7', clientid: 'cid-alic
 
 describe('ModerationProvider', () => {
   describe('warn user', () => {
+    it('opens without cached reasons after a failed lookup, then uses fresh reasons on retry', () => {
+      const { store } = setup('warnUser');
+      act(() => {
+        store.dispatch(server.Actions.getUserInfo({ userInfo: alice }));
+      });
+      act(() => {
+        store.dispatch(server.Actions.warnListOptions({
+          warnList: [create(Response_WarnListSchema, { warning: ['Old reason'], userName: 'alice' })],
+        }));
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Moderation.common.cancel' }));
+      fireEvent.click(screen.getByRole('button', { name: 'trigger warnUser' }));
+      act(() => {
+        store.dispatch(server.Actions.getUserInfo({ userInfo: alice }));
+      });
+      act(() => {
+        store.dispatch(server.Actions.moderatorCommandFailed({ command: 'warnList', responseCode: 3, target: 'alice' }));
+      });
+      const dialog = screen.getByRole('dialog', { name: 'Moderation.warn.title' });
+      expect(within(dialog).queryByRole('option', { name: 'Old reason' })).not.toBeInTheDocument();
+      expect(within(dialog).getAllByRole('option')).toHaveLength(1);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Moderation.common.cancel' }));
+      fireEvent.click(screen.getByRole('button', { name: 'trigger warnUser' }));
+      act(() => {
+        store.dispatch(server.Actions.getUserInfo({ userInfo: alice }));
+      });
+      act(() => {
+        store.dispatch(server.Actions.warnListOptions({
+          warnList: [create(Response_WarnListSchema, { warning: ['Fresh reason'], userName: 'alice' })],
+        }));
+      });
+      expect(screen.getByRole('option', { name: 'Fresh reason' })).toBeInTheDocument();
+    });
+
     it('fetches user info, then the official warnings, then opens the warning dialog', () => {
       const { store, webClient } = setup('warnUser');
       expect(webClient.request.session.getUserInfo).toHaveBeenCalledWith('alice');
