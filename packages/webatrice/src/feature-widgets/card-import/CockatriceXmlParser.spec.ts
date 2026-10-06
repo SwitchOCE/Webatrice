@@ -44,9 +44,10 @@ describe('CockatriceXmlParser', () => {
       expect(result.set.map(s => s.value)).toEqual(['A', 'B', 'C']);
     });
 
-    it('reads innerHTML as value for leaf elements without children', () => {
-      const result = parseFragment('<card><text>Some card text</text></card>') as { text: { value: string } };
-      expect(result.text.value).toBe('Some card text');
+    it('decodes XML entities and CDATA into leaf text', () => {
+      const result = parseFragment('<card><name>A &amp; B &#x26; C</name><text><![CDATA[<rules> & text]]></text></card>');
+      expect(result.name).toEqual({ value: 'A & B & C' });
+      expect(result.text).toEqual({ value: '<rules> & text' });
     });
   });
 
@@ -107,6 +108,29 @@ describe('CockatriceXmlParser', () => {
       expect(() => cockatriceXmlParser.parse('<not valid')).toThrow();
     });
 
+    it.each([
+      '<html/>', '<cockatrice_carddatabase/>', '<cockatrice_carddatabase version="5"/>',
+    ])('rejects an unsupported document: %s', xml => {
+      expect(() => cockatriceXmlParser.parse(xml)).toThrow();
+    });
+
+    it.each([
+      '<cards><card><name><nested/></name></card></cards>',
+      '<cards><card><name>A</name><name>B</name></card></cards>',
+      '<sets><set><name> </name></set></sets>',
+      '<formats><format/></formats>',
+      '<cards><card><name>A</name><set/></card></cards>',
+    ])('rejects invalid record shapes: %s', content => {
+      expect(() => cockatriceXmlParser.parse(`<cockatrice_carddatabase version="4">${content}</cockatrice_carddatabase>`)).toThrow();
+    });
+
+    it('reuses a validated preview only for the XML it came from', () => {
+      const preview = cockatriceXmlParser.parseSource(cockatriceXml);
+      expect(cockatriceXmlParser.parseSource(cockatriceXml, preview)).toBe(preview);
+      expect(() => cockatriceXmlParser.parseSource('<html/>', preview)).toThrow();
+      expect(() => cockatriceXmlParser.parseSource('<html/>', { cards: [], sets: [], tokens: [], formats: [] })).toThrow();
+    });
+
     it('parses the <info> block into an Info DTO with import provenance', () => {
       const result = cockatriceXmlParser.parse(cockatriceXml);
       expect(result.info).toBeDefined();
@@ -145,6 +169,16 @@ describe('CockatriceXmlParser', () => {
       expect(result.tokens).toHaveLength(1);
       expect(result.cards![0].name.value).toBe('Counterspell');
       expect(result.tokens![0].name.value).toBe('Soldier Token');
+    });
+
+    it('keeps the first classification when a file defines a token before a card of the same name', () => {
+      const parsed = cockatriceXmlParser.parse(`<cockatrice_carddatabase version="4"><cards>
+        <card><name>Shared</name><token>1</token><set>A</set></card>
+        <card><name>Shared</name><set>B</set></card>
+      </cards></cockatrice_carddatabase>`);
+      expect(parsed.cards).toBeUndefined();
+      expect(parsed.tokens).toHaveLength(2);
+      expect(parsed.tokens?.[0].token?.value).toBe('1');
     });
 
     it('passes <prop> through structurally without enumerating its keys', () => {

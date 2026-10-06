@@ -1,4 +1,4 @@
-import { AllowedCount, Card, Format, Info, Set, Token, XmlNode } from '@app/services';
+import { AllowedCount, Card, CardSourceRecords, Format, Info, Set, Token, XmlNode } from '@app/services';
 export interface ParsedCockatriceXml {
   info?: Info;
   formats?: Format[];
@@ -8,6 +8,21 @@ export interface ParsedCockatriceXml {
 }
 
 class CockatriceXmlParser {
+  private parsedSources = new WeakMap<CardSourceRecords, string>();
+
+  /** Reuse only records produced by this parser for these exact XML bytes. */
+  parseSource(text: string, preview?: CardSourceRecords): CardSourceRecords {
+    if (preview && this.parsedSources.get(preview) === text) {
+      return preview;
+    }
+    const parsed = this.parse(text);
+    const records: CardSourceRecords = {
+      cards: parsed.cards ?? [], sets: parsed.sets ?? [], tokens: parsed.tokens ?? [], formats: parsed.formats ?? [], info: parsed.info,
+    };
+    this.parsedSources.set(records, text);
+    return records;
+  }
+
   parse(text: string): ParsedCockatriceXml {
     const dom = new DOMParser().parseFromString(text, 'application/xml');
 
@@ -18,6 +33,13 @@ class CockatriceXmlParser {
     const root = dom.documentElement;
     if (!root) {
       throw new Error('Cockatrice XML has no root element');
+    }
+    const isLegacyTokenRoot = root.tagName === 'cockatrice_tokens';
+    if (!isLegacyTokenRoot && root.tagName !== 'cockatrice_carddatabase') {
+      throw new Error('Cockatrice XML has an unsupported root element');
+    }
+    if (!isLegacyTokenRoot && root.getAttribute('version') !== '4') {
+      throw new Error('Cockatrice XML has an unsupported version');
     }
 
     const result: ParsedCockatriceXml = {};
@@ -37,7 +59,11 @@ class CockatriceXmlParser {
 
     const setsEl = this.directChild(root, 'sets');
     if (setsEl) {
-      const sets = this.directChildren(setsEl, 'set').map(el => this.parseElement(el) as unknown as Set);
+      const sets = this.directChildren(setsEl, 'set').map(el => {
+        const set = this.parseElement(el) as unknown as Set;
+        this.requireName(set);
+        return set;
+      });
       if (sets.length) {
         result.sets = sets;
       }
@@ -51,13 +77,20 @@ class CockatriceXmlParser {
     cardElements.push(...this.directChildren(root, 'card'));
 
     if (cardElements.length) {
-      const isLegacyTokenRoot = root.tagName === 'cockatrice_tokens';
       const cards: Card[] = [];
       const tokens: Token[] = [];
+      const tokenByName = new Map<string, boolean>();
 
       cardElements.forEach(el => {
         const parsed = this.parseElement(el) as unknown as Card & { token?: XmlNode<string> };
-        const isToken = isLegacyTokenRoot || parsed.token?.value === '1';
+        this.requireName(parsed);
+        const printings = Array.isArray(parsed.set) ? parsed.set : parsed.set ? [parsed.set] : [];
+        if (printings.some(printing => typeof printing.value !== 'string' || !printing.value.trim())) {
+          throw new Error('Cockatrice XML contains an invalid printing');
+        }
+        // Preserve first-definition ownership even before sources are merged.
+        const isToken = tokenByName.get(parsed.name.value) ?? (isLegacyTokenRoot || parsed.token?.value === '1');
+        tokenByName.set(parsed.name.value, isToken);
         if (isToken) {
           tokens.push(parsed as unknown as Token);
         } else {
@@ -76,10 +109,16 @@ class CockatriceXmlParser {
     return result;
   }
 
+  private requireName(record: { name?: XmlNode<string> }): void {
+    if (typeof record.name?.value !== 'string' || !record.name.value.trim()) {
+      throw new Error('Cockatrice XML contains a record without a valid name');
+    }
+  }
+
   // @critical Output shape (leaf = `{ value, ...attrs }`, siblings collapse to arrays) is load-bearing — Dexie indexes `name.value`.
   parseElement(dom: Element): Record<string, unknown> {
     return Array.from(dom.children).reduce<Record<string, unknown>>((attributes, child) => {
-      const value = child.children.length ? this.parseElement(child) : child.innerHTML;
+      const value = child.children.length ? this.parseElement(child) : child.textContent ?? '';
 
       let parsedAttributes: Record<string, unknown> = { value };
 
@@ -122,6 +161,9 @@ class CockatriceXmlParser {
 
   private parseFormat(formatEl: Element): Format {
     const formatName = formatEl.getAttribute('formatName') ?? '';
+    if (!formatName.trim()) {
+      throw new Error('Cockatrice XML contains a format without a valid name');
+    }
     const fields = this.parseElement(formatEl) as Record<string, unknown>;
 
     const minDeckSize = this.toInt(fields.minDeckSize);

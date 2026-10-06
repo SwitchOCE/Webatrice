@@ -22,6 +22,7 @@ describe('writeCockatriceXml', () => {
     expect(parsed.sets?.[0].name.value).toBe('TK');
     expect(parsed.tokens).toHaveLength(1);
     const [read] = parsed.tokens!;
+    expect(read).toEqual(token);
     expect(read.prop?.value.pt.value).toBe('1/1');
     expect(read.set).toEqual({ value: 'TK', picurl: 'https://img.example/spirit.jpg' });
   });

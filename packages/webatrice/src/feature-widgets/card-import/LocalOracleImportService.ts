@@ -1,6 +1,7 @@
 import type { Card, CardSourceRecords, Format, Info, Set, Token } from '@app/services';
 
 import { cardDatabaseService, type RebuildResult } from './CardDatabaseService';
+import { MAX_IMPORT_BYTES, MAX_LOCAL_XML_BYTES } from './cardImportLimits';
 import { cockatriceXmlParser } from './CockatriceXmlParser';
 
 const ACCEPTED_FILENAME = /^(cards|tokens|spoiler)\.xml$/i;
@@ -36,6 +37,15 @@ export interface IngestOptions {
 class LocalOracleImportService {
   async ingest(files: File[], options: IngestOptions = {}): Promise<IngestResult> {
     const accepted = options.allowCustomSets ? XML_FILENAME : ACCEPTED_FILENAME;
+    let totalBytes = 0;
+    for (const file of files) {
+      if (accepted.test(file.name)) {
+        totalBytes += file.size;
+        if (file.size > MAX_LOCAL_XML_BYTES || totalBytes > MAX_IMPORT_BYTES) {
+          throw new Error('Card import exceeds the size limit');
+        }
+      }
+    }
     const result: IngestResult = {
       cards: [],
       sets: [],
@@ -53,19 +63,13 @@ class LocalOracleImportService {
       }
 
       const text = await file.text();
-      const parsed = cockatriceXmlParser.parse(text);
+      const parsed = cockatriceXmlParser.parseSource(text);
 
       result.acceptedFiles.push(file.name);
       result.files.push({
         name: file.name,
         xml: text,
-        records: {
-          cards: parsed.cards ?? [],
-          sets: parsed.sets ?? [],
-          tokens: parsed.tokens ?? [],
-          formats: parsed.formats ?? [],
-          info: parsed.info,
-        },
+        records: parsed,
       });
 
       if (parsed.info) {

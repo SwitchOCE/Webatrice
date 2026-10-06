@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { Token } from '@app/services';
 
-import { cardDatabaseService, CUSTOM_TOKEN_SET } from './CardDatabaseService';
+import { cardDatabaseService, CUSTOM_TOKEN_SET, TokenNameConflictError } from './CardDatabaseService';
 import { toCardDataError, type CardDataError } from './cardDataError';
 import { writeCockatriceXml } from './CockatriceXmlWriter';
 import { applyTokenData, createCustomToken, type TokenData } from './customTokens';
@@ -54,13 +54,15 @@ export function useEditTokens(): EditTokens {
     };
   }, []);
 
-  const persist = useCallback(async (next: Token[], removed: string[] = []) => {
+  const persist = useCallback(async (changed: Token[], removed: string[] = [], mode: 'add' | 'update' | 'upsert' = 'upsert') => {
     setError(null);
     try {
-      await cardDatabaseService.saveCustomTokens(next, removed);
-      setTokens(next);
+      const saved = await cardDatabaseService.saveCustomTokens(changed, removed, mode);
+      setTokens([...saved].sort(byName));
     } catch (e) {
-      setError(toCardDataError('save', e));
+      if (!(e instanceof TokenNameConflictError)) {
+        setError(toCardDataError('save', e));
+      }
       throw e;
     }
   }, []);
@@ -71,30 +73,40 @@ export function useEditTokens(): EditTokens {
   );
 
   const addToken = async (rawName: string): Promise<AddTokenOutcome> => {
+    if (loading) {
+      throw new Error('Custom tokens are still loading');
+    }
     const name = rawName.trim();
     const local = tokens.some((token) => token.name.value.toLowerCase() === name.toLowerCase());
     if (local || await cardDatabaseService.isNameTaken(name)) {
       return 'conflict';
     }
-    await persist([...tokens, createCustomToken(name)].sort(byName));
+    try {
+      await persist([createCustomToken(name)], [], 'add');
+    } catch (e) {
+      if (e instanceof TokenNameConflictError) {
+        return 'conflict';
+      }
+      throw e;
+    }
     setSelectedName(name);
     return 'added';
   };
 
   const updateSelected = async (data: TokenData) => {
-    if (!selected) {
+    if (loading || !selected) {
       return;
     }
-    await persist(tokens.map((token) => (token === selected ? applyTokenData(token, data) : token)));
+    await persist([applyTokenData(selected, data)], [], 'update');
   };
 
   const removeSelected = async () => {
-    if (!selected) {
+    if (loading || !selected) {
       return;
     }
     const name = selected.name.value;
     setSelectedName(null);
-    await persist(tokens.filter((token) => token !== selected), [name]);
+    await persist([], [name]);
   };
 
   return {
