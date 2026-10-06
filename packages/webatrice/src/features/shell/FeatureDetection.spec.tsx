@@ -1,4 +1,7 @@
 import { vi } from 'vitest';
+import i18next from 'i18next';
+import ICU from 'i18next-icu';
+import { I18nextProvider } from 'react-i18next';
 import { waitFor, act, screen } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 
@@ -24,6 +27,8 @@ vi.mock('@app/components', () => ({
 }));
 
 import FeatureDetection from './FeatureDetection';
+import featureMessages from './FeatureDetection.i18n.json';
+import browserMessages from './BrowserFeature.i18n.json';
 
 const flush = async () => {
   await act(async () => {
@@ -78,10 +83,23 @@ describe('FeatureDetection', () => {
       missingOptional: ['worker', 'clipboard'],
     });
 
-    renderWithProviders(<FeatureDetection />, { preloadedState: disconnectedState, route: '/' });
+    const i18n = i18next.createInstance();
+    await i18n.use(ICU).init({
+      lng: 'en',
+      resources: { en: { translation: { ...featureMessages, ...browserMessages } } },
+      interpolation: { escapeValue: false },
+    });
+    renderWithProviders(
+      <I18nextProvider i18n={i18n}><FeatureDetection /></I18nextProvider>,
+      { preloadedState: disconnectedState, route: '/' },
+    );
     await flush();
 
     expect(hoisted.pushToast).toHaveBeenCalledTimes(1);
-    expect(hoisted.pushToast).toHaveBeenCalledWith('FeatureDetection.degraded', { severity: 'warning' });
+    expect(hoisted.pushToast).toHaveBeenCalledWith(
+      'Some features are unavailable in this browser: '
+        + `${browserMessages.BrowserFeature.worker}; ${browserMessages.BrowserFeature.clipboard}.`,
+      { severity: 'warning' },
+    );
   });
 });
