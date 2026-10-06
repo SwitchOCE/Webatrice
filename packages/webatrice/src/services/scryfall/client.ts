@@ -8,10 +8,10 @@ import type { ScryfallCard, ScryfallCardHint, ScryfallIdentifier } from './types
  * the deck editor's autocomplete and card search
  * (`features/decks/search.ts`), which move onto the client in PR 31.
  *
- * Rate limiting: Scryfall asks for no more than about ten requests a
- * second. The client stays inside that by batching (75 identifiers per
- * collection request) and by capping per-name fallbacks at
- * `SCRYFALL_NAMED_RETRY_CAP`; it does not throttle or queue requests.
+ * Batching (75 identifiers per collection request) and capping per-name
+ * fallbacks at `SCRYFALL_NAMED_RETRY_CAP` reduce request volume, but do
+ * not enforce a request rate. This client does not throttle or queue
+ * requests; a shared rate-limit scheduler remains future work.
  */
 
 export const SCRYFALL_API = 'https://api.scryfall.com';
