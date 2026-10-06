@@ -161,7 +161,7 @@ function isCard(value: unknown): value is ServerInfo_Card {
   return !!value && typeof value === 'object' && (value as { $typeName?: string }).$typeName === 'ServerInfo_Card';
 }
 
-/** Payload without gameId, unset/false/empty fields, or proto type names; cards and log entries as one-liners. */
+/** Payload without gameId, undefined fields, or proto type names; cards and log entries as one-liners. */
 function compact(value: unknown): unknown {
   if (isCard(value)) {
     return describeCard(value);
@@ -175,8 +175,7 @@ function compact(value: unknown): unknown {
     }
     const out: Record<string, unknown> = {};
     for (const [key, field] of Object.entries(value)) {
-      if (key === '$typeName' || key === 'gameId' || field === false || field === '' || field === undefined
-        || (Array.isArray(field) && field.length === 0)) {
+      if (key === '$typeName' || key === 'gameId' || field === undefined) {
         continue;
       }
       out[key] = compact(field);
@@ -227,6 +226,22 @@ function move(init: MessageInitShape<typeof Event_MoveCardSchema>) {
     ...init,
   });
 }
+
+describe('game listeners: recorder', () => {
+  it.each([
+    ['untap', { tapped: false }],
+    ['clear annotation', { annotation: '' }],
+    ['remove counters', { counterList: [] }],
+  ])('distinguishes %s from an omitted patch field', (_label, fields) => {
+    const payload = { gameId: 1, playerId: ALICE, zoneName: 'table', cardId: 10 };
+    const recorded = describeAction(Actions.cardFieldsUpdated({ ...payload, fields }));
+
+    expect(recorded).toEqual({
+      cardFieldsUpdated: { playerId: ALICE, zoneName: 'table', cardId: 10, fields },
+    });
+    expect(recorded).not.toEqual(describeAction(Actions.cardFieldsUpdated({ ...payload, fields: {} })));
+  });
+});
 
 describe('game listeners: registration', () => {
   // Each inbound event has exactly one listener, so splitting the registrations
@@ -591,7 +606,9 @@ describe('game listeners: scripted event stream', () => {
             "cardAttrChanged",
             {
               "cardFieldsUpdatedBulk": {
-                "fields": {},
+                "fields": {
+                  "tapped": false,
+                },
                 "playerId": 1,
                 "zoneName": "table",
               },
@@ -638,7 +655,9 @@ describe('game listeners: scripted event stream', () => {
             {
               "cardFieldsUpdated": {
                 "cardId": 40,
-                "fields": {},
+                "fields": {
+                  "counterList": [],
+                },
                 "playerId": 1,
                 "zoneName": "table",
               },
@@ -660,6 +679,7 @@ describe('game listeners: scripted event stream', () => {
                 "cards": [
                   "#5 Shock",
                 ],
+                "isReversed": false,
                 "playerId": 2,
                 "zoneName": "hand",
               },
@@ -669,6 +689,7 @@ describe('game listeners: scripted event stream', () => {
                 "cards": [
                   "#5 Shock",
                 ],
+                "grantWriteAccess": false,
                 "sourceOwnerId": 2,
                 "zoneName": "hand",
               },
@@ -709,6 +730,7 @@ describe('game listeners: scripted event stream', () => {
                 "fields": {
                   "attachCardId": -1,
                   "attachPlayerId": -1,
+                  "attachZone": "",
                 },
                 "playerId": 1,
                 "zoneName": "table",
@@ -814,8 +836,13 @@ describe('game listeners: scripted event stream', () => {
                 "playerId": 2,
                 "properties": {
                   "conceded": true,
+                  "deckHash": "",
+                  "judge": false,
                   "pingSeconds": 0,
                   "playerId": 2,
+                  "readyStart": false,
+                  "sideboardLocked": false,
+                  "spectator": false,
                 },
               },
             },
@@ -1070,6 +1097,7 @@ describe('game listeners: branch recordings', () => {
             "cardFieldsUpdated": {
               "cardId": 20,
               "fields": {
+                "faceDown": false,
                 "x": 1,
                 "y": 0,
               },
@@ -1449,6 +1477,7 @@ describe('game listeners: branch recordings', () => {
               "cards": [
                 "#5 Shock",
               ],
+              "isReversed": false,
               "playerId": 2,
               "zoneName": "hand",
             },
