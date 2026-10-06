@@ -57,7 +57,7 @@ interface PlayerLinkProps {
  * across the app. Cockatrice-parity: right-click on a name anywhere
  * in the desktop client also brings up this menu.
  */
-const PlayerLink = ({ name, label = name }: PlayerLinkProps) => {
+export const PlayerLink = ({ name, label = name }: PlayerLinkProps) => {
   const {
     position,
     isABuddy,

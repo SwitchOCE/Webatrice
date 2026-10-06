@@ -24,15 +24,23 @@ import {
   ServerInfo_User_UserLevelFlag,
 } from '@cockatrice/sockatrice/generated';
 import { PROTOCOL_VERSION } from '@cockatrice/sockatrice';
+import { games } from '@cockatrice/datatrice';
+import { Event_GameSaySchema, Event_GameSay_ext, Event_LeaveSchema, Event_Leave_ext } from '@cockatrice/sockatrice/generated';
 
 import { ReportUserProvider, useReportUser } from '@app/dialogs';
 import { MyReports } from '@app/features/reports';
 import { RouteEnum } from '@app/types';
+import ChatLog from '../../../src/features/game/components/ChatLog/ChatLog';
+import { GameIdProvider } from '../../../src/features/game/components/ui/GameIdContext';
+import { GameReadOnlyProvider } from '../../../src/features/game/components/ui/GameReadOnlyContext';
 
-import { connectRaw } from '../helpers/setup';
-import { buildResponse, buildResponseMessage, buildSessionEventMessage, deliverMessage } from '../helpers/protobuf-builders';
+import { connectRaw, store } from '../helpers/setup';
+import {
+  buildGameEventMessage, buildResponse, buildResponseMessage, buildSessionEventMessage, deliverMessage,
+} from '../helpers/protobuf-builders';
 import { findLastSessionCommand } from '../helpers/command-capture';
 import { renderFeatureScreen } from './helpers';
+import { buildEventGameJoined, buildEventGameStateChanged } from './game/helpers';
 
 // Log in to a server that reports itself as Cockatrice 3.1, so the report UI
 // (gated on ServerCapability.REPORTS) is live.
@@ -70,6 +78,48 @@ beforeEach(() => {
 });
 
 describe('Reports (integration)', () => {
+  function renderGameChat(readOnly = false) {
+    loginTo31();
+    store.dispatch(games.Actions.gameJoined({ data: buildEventGameJoined({ gameId: 42, localPlayerId: 1, hostId: 1 }) }));
+    store.dispatch(games.Actions.gameStateChanged({ gameId: 42, data: buildEventGameStateChanged([1, 2], 1) }));
+    renderFeatureScreen(
+      <ReportUserProvider>
+        <GameReadOnlyProvider value={readOnly}>
+          <GameIdProvider value={42}><ChatLog /></GameIdProvider>
+        </GameReadOnlyProvider>
+      </ReportUserProvider>,
+    );
+    act(() => deliverMessage(buildGameEventMessage({
+      gameId: 42, playerId: 2, ext: Event_GameSay_ext,
+      value: create(Event_GameSaySchema, { message: 'rude message' }),
+    })));
+  }
+
+  it('reports from a game-chat author through the real menu and wire command, even after departure', async () => {
+    renderGameChat();
+    act(() => deliverMessage(buildGameEventMessage({
+      gameId: 42, playerId: 2, ext: Event_Leave_ext, value: create(Event_LeaveSchema),
+    })));
+    fireEvent.contextMenu(screen.getByRole('link', { name: 'P2' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /ReportUserDialog.menuItem/ }));
+    fireEvent.change(screen.getByLabelText('ReportUserDialog.descriptionGroup'), { target: { value: 'abusive game chat' } });
+    fireEvent.click(screen.getByRole('button', { name: 'ReportUserDialog.submit' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'ReportUserDialog.confirmYes' }));
+    const { cmdId, value } = findLastSessionCommand(Command_Report_ext);
+    expect(value).toMatchObject({ reportedUser: 'P2', gameId: 42, description: 'abusive game chat' });
+    expect(value.chatLog).toMatch(/^\[\d{2}:\d{2}:\d{2}\] P2: rude message$/);
+    ok(cmdId);
+    expect(await screen.findByText('ReportUserDialog.submittedMessage')).toBeInTheDocument();
+  });
+
+  it('keeps replay chat authors inert', () => {
+    renderGameChat(true);
+    expect(screen.getByText('rude message')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'P2' })).not.toBeInTheDocument();
+    fireEvent.contextMenu(screen.getByText('P2:'));
+    expect(screen.queryByRole('menuitem', { name: /ReportUserDialog.menuItem/ })).not.toBeInTheDocument();
+  });
+
   it('settles an empty wire list and permits another empty refresh', () => {
     loginTo31();
     renderFeatureScreen(<MyReports />, RouteEnum.MY_REPORTS);
