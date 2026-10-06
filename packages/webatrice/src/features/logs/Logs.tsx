@@ -1,10 +1,9 @@
 import { Navigate } from 'react-router-dom';
 
-import { server } from '@cockatrice/datatrice';
 import { AuthGuard } from '@app/components';
 import { AlertDialog } from '@app/dialogs';
 import { ModeratorFunctions } from '@app/feature-widgets/moderation';
-import { useAppSelector } from '@app/store';
+import { useUserCapabilities } from '@app/hooks';
 import { RouteEnum } from '@app/types';
 
 import LogResults from './LogResults';
@@ -15,9 +14,7 @@ import './Logs.css';
 
 const Logs = () => {
   const { developer, logs, notice, dismissNotice, onSubmit } = useLogs();
-  // Desktop offers Logs to moderators and to developers (tab_supervisor.cpp).
-  const isModerator = useAppSelector(server.Selectors.getIsUserModerator);
-  const canReadLogs = isModerator || developer;
+  const { isModerator, canReadLogs } = useUserCapabilities();
 
   return (
     <div className="moderator-logs scrollable">

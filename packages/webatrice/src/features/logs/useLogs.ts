@@ -5,7 +5,7 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import { server, type ServerStateLogs } from '@cockatrice/datatrice';
 import type { ServerInfo_ChatMessage, ViewLogHistoryParams } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
+import { useCommandFailureMessage, useReduxEffect, useUserCapabilities } from '@app/hooks';
 import { useAppDispatch, useAppSelector } from '@app/store';
 
 import { logDateRangeHours, type LogSearchFormValues } from './LogSearchForm/logSearchFormSchema';
@@ -53,10 +53,7 @@ export function useLogs(): Logs {
   const dispatch = useAppDispatch();
   const logs = useAppSelector((state) => server.Selectors.getLogs(state));
   const webClient = useWebClient();
-  // Desktop TabSupervisor::openTabLog: the developer bit selects the narrowed developer family only
-  // when the user is not also a moderator.
-  const isModerator = useAppSelector(server.Selectors.getIsUserModerator);
-  const developer = useAppSelector(server.Selectors.getIsUserDeveloper) && !isModerator;
+  const { developerOnlyLogs: developer } = useUserCapabilities();
   const [notice, setNotice] = useState<LogsNotice | null>(null);
   // Report outcomes only for searches sent from this page.
   const searching = useRef(false);

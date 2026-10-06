@@ -1,10 +1,9 @@
 import { Navigate } from 'react-router-dom';
 
-import { server } from '@cockatrice/datatrice';
-import { useAppSelector } from '@app/store';
+import { useUserCapabilities } from '@app/hooks';
 import { RouteEnum } from '@app/types';
 const ModGuard = () => {
-  const isModerator = useAppSelector(server.Selectors.getIsUserModerator);
+  const { isModerator } = useUserCapabilities();
   return !isModerator
     ? <Navigate to={RouteEnum.SERVER} />
     : <></>;

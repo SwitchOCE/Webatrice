@@ -1,10 +1,11 @@
 import { FileText, Keyboard, Settings as SettingsIcon, UserCircle2, type LucideIcon } from 'lucide-react';
 
-import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
+import { canReadLogs, type UserLevelPredicate } from '@app/hooks';
 import { RouteEnum } from '@app/types';
 
 /** Predicate over the signed-in user's `userLevel` bitmask deciding whether an entry is offered. */
-export type UserLevelPredicate = (userLevel: number) => boolean;
+export type { UserLevelPredicate } from '@app/hooks';
+export { isModerator, isAdmin, isDeveloper, canReadLogs } from '@app/hooks';
 
 export interface UserMenuEntry {
   /** i18n key of the menu label. */
@@ -14,14 +15,6 @@ export interface UserMenuEntry {
   /** Omitted: every signed-in user sees the entry. */
   visibleTo?: UserLevelPredicate;
 }
-
-const hasLevel = (flag: ServerInfo_User_UserLevelFlag): UserLevelPredicate => (userLevel) => (userLevel & flag) !== 0;
-
-export const isModerator = hasLevel(ServerInfo_User_UserLevelFlag.IsModerator);
-export const isAdmin = hasLevel(ServerInfo_User_UserLevelFlag.IsAdmin);
-export const isDeveloper = hasLevel(ServerInfo_User_UserLevelFlag.IsDeveloper);
-/** Desktop TabSupervisor offers Logs to moderators and, separately, to developers. */
-export const canReadLogs: UserLevelPredicate = (userLevel) => isModerator(userLevel) || isDeveloper(userLevel);
 
 /**
  * Navigation offered from the TopBar user menu, in desktop Tabs-menu order and with TabSupervisor's
