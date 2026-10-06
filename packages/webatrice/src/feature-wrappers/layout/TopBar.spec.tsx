@@ -79,6 +79,13 @@ describe('TopBar shell lifecycle port', () => {
 });
 
 describe('TopBar user menu', () => {
+  it('focuses a surviving tab after closing the focused tab', () => {
+    renderTopBar(RouteEnum.SETTINGS);
+    const close = screen.getByRole('button', { name: 'TopBar.tabs.close' });
+    close.focus();
+    fireEvent.click(close);
+    expect(screen.getByRole('link', { name: /Lobby|Server/ })).toHaveFocus();
+  });
   const moderatorState = {
     ...connectedState,
     server: {

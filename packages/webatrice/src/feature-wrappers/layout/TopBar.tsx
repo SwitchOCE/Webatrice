@@ -443,6 +443,15 @@ interface TabListProps {
  */
 function TabList({ tabs, activeKey, onClose }: TabListProps) {
   const { t } = useTranslation();
+  const links = useRef(new Map<string, HTMLAnchorElement>());
+  const closeTab = (tab: Tab) => {
+    const index = tabs.indexOf(tab);
+    const successor = tabs[index + 1] ?? tabs[index - 1];
+    if (successor) {
+      links.current.get(successor.key)?.focus();
+    }
+    onClose(tab);
+  };
   return (
     <nav aria-label={t('TopBar.tabs.label')} className="h-full">
       <ul className="flex items-end h-full gap-0.5 overflow-x-auto overflow-y-hidden min-w-0">
@@ -469,6 +478,13 @@ function TabList({ tabs, activeKey, onClose }: TabListProps) {
               ].join(' ')}
             >
               <Link
+                ref={(element) => {
+                  if (element) {
+                    links.current.set(tab.key, element);
+                  } else {
+                    links.current.delete(tab.key);
+                  }
+                }}
                 to={tab.route}
                 aria-current={active ? 'page' : undefined}
                 className={[
@@ -482,7 +498,7 @@ function TabList({ tabs, activeKey, onClose }: TabListProps) {
               {tab.closeable ? (
                 <button
                   type="button"
-                  onClick={() => onClose(tab)}
+                  onClick={() => closeTab(tab)}
                   // Never dimmed: the icon needs its full 3:1 against the tab.
                   className="p-0.5 rounded hover:bg-border-subtle text-text-muted hover:text-text-primary"
                   title={t('TopBar.tabs.close', { title: tab.title })}
