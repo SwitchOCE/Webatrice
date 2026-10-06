@@ -17,6 +17,7 @@ export interface RoomsState {
 // Payload of the rooms `*Failed` command-outcome signal actions. `failure` is
 // set when the server never answered and undefined for a server rejection.
 export interface RoomCommandFailedPayload {
+  requestId?: string;
   roomId: number;
   responseCode: number;
   failure?: WebsocketTypes.CommandFailure;
@@ -28,6 +29,7 @@ export interface JoinRoomFailedPayload extends RoomCommandFailedPayload {
 }
 
 export interface JoinGameError {
+  failure?: WebsocketTypes.CommandFailure;
   code: number;
   message: string;
 }

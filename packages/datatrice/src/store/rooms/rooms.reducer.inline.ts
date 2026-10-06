@@ -4,7 +4,7 @@ import { ServerInfo_Game, ServerInfo_Room, ServerInfo_User } from '@cockatrice/s
 
 import { normalizeRoomInfo, normalizeUserMessage } from '../../common';
 
-import type { GameFilters, RoomsState } from './rooms.interfaces';
+import type { GameFilters, JoinGameError, RoomsState } from './rooms.interfaces';
 import { DEFAULT_GAME_FILTERS } from './gameFilters';
 
 export const MAX_ROOM_MESSAGES = 1000;
@@ -202,9 +202,9 @@ export const setJoinGamePending: CaseReducer<
 
 export const setJoinGameError: CaseReducer<
   RoomsState,
-  PayloadAction<{ code: number; message: string }>
+  PayloadAction<JoinGameError>
 > = (state, action) => {
-  state.joinGameError = { code: action.payload.code, message: action.payload.message };
+  state.joinGameError = action.payload;
   state.joinGamePending = false;
 };
 

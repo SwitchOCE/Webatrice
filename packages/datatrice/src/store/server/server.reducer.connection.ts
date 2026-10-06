@@ -15,6 +15,7 @@ export const HEALTHY_CONNECTION_HEALTH: ServerConnectionHealth = {
 
 export const initialState: ServerState = {
   initialized: false,
+  sessionEpoch: 0,
   testConnectionStatus: null,
   buddyList: {},
   ignoreList: {},
@@ -69,6 +70,7 @@ export const connectionReducers = {
   initialized: ((state) => ({
     ...initialState,
     initialized: true,
+    sessionEpoch: state.sessionEpoch ?? 0,
     locale: state.locale,
   })) as CaseReducer<ServerState>,
 
@@ -117,6 +119,7 @@ export const connectionReducers = {
   clearStore: ((state) => ({
     ...initialState,
     status: { ...state.status },
+    sessionEpoch: (state.sessionEpoch ?? 0) + 1,
     locale: state.locale,
     testConnectionStatus: state.testConnectionStatus,
   })) as CaseReducer<ServerState>,
@@ -124,6 +127,7 @@ export const connectionReducers = {
   disconnected: ((state) => ({
     ...initialState,
     status: { ...state.status },
+    sessionEpoch: (state.sessionEpoch ?? 0) + 1,
     locale: state.locale,
     testConnectionStatus: state.testConnectionStatus,
     // Load-bearing: the failure sets connectUnreachable just before the same-tick
@@ -146,6 +150,11 @@ export const connectionReducers = {
 
   updateStatus: ((state, action) => {
     const { status } = action.payload;
+    if (status.state === WebsocketTypes.StatusEnum.LOGGED_IN && state.status.state !== status.state) {
+      state.sessionEpoch = (state.sessionEpoch ?? 0) + 1;
+    }
+    // DISCONNECTED increments in the disconnected action dispatched by the
+    // server listener, once for the entire status/reset sequence.
     state.status.state = status.state;
     state.status.description = status.description;
     // Any status transition is a socket lifecycle change; stale degraded

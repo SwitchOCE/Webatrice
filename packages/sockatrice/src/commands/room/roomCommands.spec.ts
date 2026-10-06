@@ -84,23 +84,16 @@ describe('joinGame', () => {
     expect(WebClient.instance.response.room.joinedGame).toHaveBeenCalledWith(7, 42);
   });
 
-  // Desktop GameSelector::checkResponse — matching message strings from
-  // cockatrice/src/interface/widgets/server/game_selector.cpp:234-260.
-  const errorCases: Array<[number, string]> = [
-    [Response_ResponseCode.RespNotInRoom, 'Please join the appropriate room first.'],
-    [Response_ResponseCode.RespNameNotFound, 'The game does not exist any more.'],
-    [Response_ResponseCode.RespGameFull, 'The game is already full.'],
-    [Response_ResponseCode.RespWrongPassword, 'Wrong password.'],
-    [Response_ResponseCode.RespSpectatorsNotAllowed, 'Spectators are not allowed in this game.'],
-    [Response_ResponseCode.RespOnlyBuddies, 'This game is only open to its creator\'s buddies.'],
-    [Response_ResponseCode.RespUserLevelTooLow, 'This game is only open to registered users.'],
-    [Response_ResponseCode.RespInIgnoreList, 'You are being ignored by the creator of this game.'],
+  const errorCodes = [
+    Response_ResponseCode.RespNotInRoom, Response_ResponseCode.RespNameNotFound,
+    Response_ResponseCode.RespGameFull, Response_ResponseCode.RespWrongPassword,
+    Response_ResponseCode.RespSpectatorsNotAllowed, Response_ResponseCode.RespOnlyBuddies,
+    Response_ResponseCode.RespUserLevelTooLow, Response_ResponseCode.RespInIgnoreList,
   ];
-
-  it.each(errorCases)('code %i dispatches setJoinGameError with desktop-matching message', (code, message) => {
+  it.each(errorCodes)('code %i reaches the UI without protocol-owned presentation text', (code) => {
     joinGame(7, create(Command_JoinGameSchema, { gameId: 42 }));
     invokeResponseCode(code);
-    expect(WebClient.instance.response.room.setJoinGameError).toHaveBeenCalledWith(code, message);
+    expect(WebClient.instance.response.room.setJoinGameError).toHaveBeenCalledWith(code, '');
     expect(WebClient.instance.response.room.joinedGame).not.toHaveBeenCalled();
   });
 
@@ -121,17 +114,15 @@ describe('joinGame', () => {
     expect(WebClient.instance.response.room.setJoinGamePending).toHaveBeenLastCalledWith(false);
   });
 
-  it.each([
-    [CommandFailure.Timeout, 'The server did not respond. Please try again.'],
-    [CommandFailure.Disconnected, 'The connection to the server has been lost.'],
-    [CommandFailure.NotSent, 'You are not connected to the server.'],
-  ])('a %s failure settles the join dialog with a visible error', (failure, message) => {
-    joinGame(7, create(Command_JoinGameSchema, { gameId: 42 }));
-    invokeOnError(Response_ResponseCode.RespNotConnected, {}, failure);
-    expect(WebClient.instance.response.room.setJoinGameError).toHaveBeenCalledWith(
-      Response_ResponseCode.RespNotConnected, message,
-    );
-  });
+  it.each([CommandFailure.Timeout, CommandFailure.Disconnected, CommandFailure.NotSent])(
+    'a %s failure carries its reason for UI translation', (failure) => {
+      joinGame(7, create(Command_JoinGameSchema, { gameId: 42 }));
+      invokeOnError(Response_ResponseCode.RespNotConnected, {}, failure);
+      expect(WebClient.instance.response.room.setJoinGameError).toHaveBeenCalledWith(
+        Response_ResponseCode.RespNotConnected, '', failure,
+      );
+    },
+  );
 });
 
 describe('leaveRoom', () => {

@@ -161,6 +161,7 @@ export function makePendingActivationContext(
 export function makeServerState(overrides: Partial<ServerState> = {}): ServerState {
   return {
     initialized: false,
+    sessionEpoch: 0,
     testConnectionStatus: null,
     buddyList: {},
     ignoreList: {},

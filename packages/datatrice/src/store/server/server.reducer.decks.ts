@@ -113,6 +113,7 @@ export const deckReducers = {
   }) as CaseReducer<ServerState, PayloadAction<{ path: string }>>,
 
   deckDownloaded: ((state, action) => {
-    state.downloadedDeck = action.payload;
-  }) as CaseReducer<ServerState, PayloadAction<{ deckId: number; deck: string }>>,
+    const { deckId, deck } = action.payload;
+    state.downloadedDeck = { deckId, deck };
+  }) as CaseReducer<ServerState, PayloadAction<{ deckId: number; deck: string; requestId?: string }>>,
 };

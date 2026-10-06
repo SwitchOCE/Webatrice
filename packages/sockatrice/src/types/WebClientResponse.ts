@@ -1,3 +1,5 @@
+import type { RequestId } from './RequestId';
+
 import type {
   Response_GetGamesOfUser,
   Response_DeckList,
@@ -122,7 +124,7 @@ export interface ISessionResponse {
   deleteServerDeck(deckId: number): void;
   updateServerDecks(deckList: Response_DeckList): void;
   uploadServerDeck(path: string, treeItem: ServerInfo_DeckStorage_TreeItem): void;
-  downloadServerDeck(deckId: number, response: Response_DeckDownload): void;
+  downloadServerDeck(deckId: number, response: Response_DeckDownload, requestId?: RequestId): void;
   createServerDeckDir(path: string, dirName: string): void;
   deleteServerDeckDir(path: string): void;
   replayList(matchList: ServerInfo_ReplayMatch[]): void;
@@ -153,16 +155,19 @@ export interface ISessionResponse {
 
   /**
    * A query above failed; `target` names what it acted on (a share token, deck,
-   * share or report id as a string, a user name, or '' for a list). Optional for
-   * backward compatibility.
+   * share or report id as a string, a user name, or '' for a list). `failure`
+   * marks a transport failure; `requestId` echoes a client-only request identity.
+   * Optional for backward compatibility.
    */
-  commandFailed?(command: SessionCommandName, responseCode: number, target: string): void;
+  commandFailed?(
+    command: SessionCommandName, responseCode: number, target: string, failure?: CommandFailure, requestId?: RequestId
+  ): void;
 
   // Command failure outcomes. `failure` is set for a transport failure (no
   // server answer) and undefined for a server-sent rejection. Optional for
   // backward compatibility with existing consumers.
   deckListFailed?(responseCode: number, failure?: CommandFailure): void;
-  deckDownloadFailed?(deckId: number, responseCode: number, failure?: CommandFailure): void;
+  deckDownloadFailed?(deckId: number, responseCode: number, failure?: CommandFailure, requestId?: RequestId): void;
   deckUploadFailed?(path: string, responseCode: number, failure?: CommandFailure): void;
 }
 
@@ -179,11 +184,12 @@ export interface IRoomResponse<T extends RoomEventMap = WebSocketRoomResponseOve
   gameCreated(roomId: number): void;
   joinedGame(roomId: number, gameId: number): void;
   setJoinGamePending(pending: boolean): void;
-  setJoinGameError(code: number, message: string): void;
+  /** `message` is a legacy fallback; current commands send an empty string for UI translation. */
+  setJoinGameError(code: number, message: string, failure?: CommandFailure): void;
   // Command failure outcomes; see ISessionResponse.
   /** `userInitiated` is false for an autojoin, which desktop fails silently. */
-  joinRoomFailed?(roomId: number, responseCode: number, failure?: CommandFailure, userInitiated?: boolean): void;
-  createGameFailed?(roomId: number, responseCode: number, failure?: CommandFailure): void;
+  joinRoomFailed?(roomId: number, responseCode: number, failure?: CommandFailure, userInitiated?: boolean, requestId?: RequestId): void;
+  createGameFailed?(roomId: number, responseCode: number, failure?: CommandFailure, requestId?: RequestId): void;
 }
 
 export interface IGameResponse {

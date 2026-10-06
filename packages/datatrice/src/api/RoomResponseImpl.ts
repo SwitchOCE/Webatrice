@@ -57,15 +57,19 @@ export class RoomResponseImpl implements WebsocketTypes.IRoomResponse<WebsocketT
     this.store.dispatch(RoomsActions.setJoinGamePending({ pending }));
   }
 
-  setJoinGameError(code: number, message: string): void {
-    this.store.dispatch(RoomsActions.setJoinGameError({ code, message }));
+  setJoinGameError(code: number, message: string, failure?: WebsocketTypes.CommandFailure): void {
+    this.store.dispatch(RoomsActions.setJoinGameError({ code, message, ...(failure === undefined ? {} : { failure }) }));
   }
 
-  joinRoomFailed(roomId: number, responseCode: number, failure?: WebsocketTypes.CommandFailure, userInitiated = true): void {
-    this.store.dispatch(RoomsActions.joinRoomFailed({ roomId, responseCode, failure, userInitiated }));
+  joinRoomFailed(
+    roomId: number, responseCode: number, failure?: WebsocketTypes.CommandFailure, userInitiated = true, requestId?: string,
+  ): void {
+    this.store.dispatch(RoomsActions.joinRoomFailed({ roomId, responseCode, failure, userInitiated, requestId }));
   }
 
-  createGameFailed(roomId: number, responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
-    this.store.dispatch(RoomsActions.createGameFailed({ roomId, responseCode, failure }));
+  createGameFailed(
+    roomId: number, responseCode: number, failure?: WebsocketTypes.CommandFailure, requestId?: string,
+  ): void {
+    this.store.dispatch(RoomsActions.createGameFailed({ roomId, responseCode, failure, requestId }));
   }
 }
