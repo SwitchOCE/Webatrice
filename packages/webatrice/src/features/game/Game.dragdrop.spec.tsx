@@ -9,7 +9,7 @@
 // cross seats: gifts onto another battlefield, lent-library drags carrying the
 // lender's id, and what an opponent's card does when dragged.
 
-import { screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 import { createMockWebClient, renderWithProviders } from '../../__test-utils__';
@@ -96,6 +96,29 @@ afterEach(() => {
 });
 
 describe('Game drag-drop across seats', () => {
+  it('disposes an active drag when the board unmounts before release', () => {
+    const game = renderGame();
+    fireEvent.pointerDown(cardEl(BOLT.id, 'battlefield'), { button: 0, clientX: 10, clientY: 510 });
+    fireEvent.pointerMove(window, { clientX: 920, clientY: 520 });
+    cleanup();
+    fireEvent.pointerUp(window, { button: 0, clientX: 920, clientY: 520 });
+    expect(game.moveCard).not.toHaveBeenCalled();
+  });
+
+  it('removes pending pointer listeners on board unmount without waiting for release', () => {
+    renderGame();
+    const add = vi.spyOn(window, 'addEventListener');
+    const remove = vi.spyOn(window, 'removeEventListener');
+    fireEvent.pointerDown(cardEl(BOLT.id, 'battlefield'), { button: 0, clientX: 10, clientY: 510 });
+    const listeners = add.mock.calls.filter(([type]) => ['pointermove', 'pointerup', 'pointercancel'].includes(type));
+    expect(listeners.length).toBe(3);
+    cleanup();
+    for (const [type, listener] of listeners) {
+      expect(remove).toHaveBeenCalledWith(type, listener);
+    }
+    fireEvent.pointerUp(window, { button: 0, clientX: 10, clientY: 510 });
+  });
+
   it('gifts a battlefield card onto an opponent battlefield, resolved against their board', () => {
     const game = renderGame();
 

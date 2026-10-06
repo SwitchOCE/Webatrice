@@ -6,7 +6,11 @@ function pointer(type: string, x: number, y: number, init: PointerEventInit = {}
   return new PointerEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true, ...init });
 }
 
-function start(data: PointerGestureData | undefined, at = { x: 100, y: 100 }) {
+function start(
+  data: PointerGestureData | undefined,
+  at = { x: 100, y: 100 },
+  instances?: Set<GamePointerSensor>,
+) {
   const target = document.createElement('div');
   document.body.appendChild(target);
   const event = pointer('pointerdown', at.x, at.y);
@@ -15,7 +19,7 @@ function start(data: PointerGestureData | undefined, at = { x: 100, y: 100 }) {
     active: 'card',
     activeNode: { data: { current: data } },
     event,
-    options: { activationDistance: 0 },
+    options: { activationDistance: 0, instances },
     onStart: vi.fn(),
     onMove: vi.fn(),
     onEnd: vi.fn(),
@@ -28,6 +32,28 @@ function start(data: PointerGestureData | undefined, at = { x: 100, y: 100 }) {
 }
 
 describe('GamePointerSensor', () => {
+  it('disposes only its board sensors and forgets sensors after a normal release', () => {
+    const first = new Set<GamePointerSensor>();
+    const second = new Set<GamePointerSensor>();
+    const onRelease = vi.fn();
+    const old = start({ activationDistance: 4, onRelease }, undefined, first);
+    const live = start({ activationDistance: 4 }, undefined, second);
+    expect(first.size).toBe(1);
+    expect(second.size).toBe(1);
+
+    for (const sensor of first) {
+      sensor.dispose();
+    }
+    window.dispatchEvent(pointer('pointerup', 100, 100));
+
+    expect(old.props.onEnd).not.toHaveBeenCalled();
+    expect(old.props.onCancel).not.toHaveBeenCalled();
+    expect(onRelease).not.toHaveBeenCalled();
+    expect(live.props.onEnd).toHaveBeenCalledTimes(1);
+    expect(first.size).toBe(0);
+    expect(second.size).toBe(0);
+  });
+
   it('starts a seat drag only once the pointer leaves the four-pixel box on either axis', () => {
     const { props } = start({ activationDistance: 4 });
 

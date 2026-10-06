@@ -74,9 +74,15 @@ export function useGame({ gameId: boardGameId, readOnly = false }: UseGameOption
   const boardRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<HTMLDivElement>(null);
   const cardRegistry = useMemo(() => createCardRegistry(), []);
+  const pointerSensors = useMemo(() => new Set<GamePointerSensor>(), []);
+  useEffect(() => () => {
+    for (const sensor of pointerSensors) {
+      sensor.dispose();
+    }
+  }, [pointerSensors, gameId, readOnly]);
   // See .github/instructions/webatrice-game.instructions.md#pointer--click-vs-drag.
   const sensors = useSensors(
-    useSensor(GamePointerSensor, { activationDistance: 0 }),
+    useSensor(GamePointerSensor, { activationDistance: 0, instances: pointerSensors }),
     useSensor(KeyboardSensor),
   );
   const previewStore = useMemo(() => createCardPreviewStore(), []);
