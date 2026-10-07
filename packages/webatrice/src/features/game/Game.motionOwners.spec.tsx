@@ -12,12 +12,18 @@ import ZoneRevealPanel from './dialogs/ZoneViewDialog/ZoneRevealPanel';
 import IncomingRevealDialog from './dialogs/IncomingRevealDialog/IncomingRevealDialog';
 import PhaseTrack from './components/PhaseTrack/PhaseTrack';
 
-// While `pending`, every catalogue lookup stays unresolved (several panels look cards up).
 const catalog = vi.hoisted(() => ({ pending: false }));
-vi.mock('../../services/cards/cardCatalog', () => ({
-  lookupCardsCached: vi.fn(async (names: string[]) => (catalog.pending
-    ? new Promise(() => {})
-    : new Map(names.map((name) => [name, { found: false, source: 'unknown', name, printings: [] }])))),
+
+vi.mock('@app/services', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@app/services')>(),
+  lookupCardsCached: vi.fn(async (names: string[]) => {
+    if (catalog.pending) {
+      return new Promise(() => {});
+    }
+    return new Map(names.map((name) => [name, {
+      found: false, source: 'unknown', name, printings: [],
+    }]));
+  }),
 }));
 
 let styles: HTMLStyleElement;
@@ -25,6 +31,7 @@ beforeEach(async () => {
   styles = await mountBoardStyles();
 });
 afterEach(() => {
+  catalog.pending = false;
   cleanup();
   styles?.remove();
   settingsStore.reset();
@@ -78,7 +85,7 @@ describe('rendered board motion owners', () => {
   it('stops the phase track, phase and pass buttons, hover wrappers and reveal fade', async () => {
     await setPolicy(true);
     await renderOwners();
-    const track = screen.getByRole('navigation', { name: 'Turn phases' });
+    const track = screen.getByTestId('phase-bar');
     fireEvent.mouseEnter(track);
     const owners = [track, ...track.querySelectorAll('button'),
       screen.getByTitle('Island').parentElement!, screen.getByTitle('Forest').parentElement!,
