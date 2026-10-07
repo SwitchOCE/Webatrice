@@ -580,7 +580,7 @@ describe('TopBar without local storage', () => {
 
     const lifecycle = renderTopBar(RouteEnum.SETTINGS);
 
-    expect(screen.getByRole('link', { name: /UserMenu\.settings/ })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { current: 'page' })).toHaveAttribute('href', RouteEnum.SETTINGS);
     expect(lifecycle.onIdentityChanged).not.toHaveBeenCalled();
   });
 });
