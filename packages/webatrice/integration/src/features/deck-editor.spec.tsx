@@ -425,7 +425,7 @@ describe('DeckEditor (integration)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Export deck/ }));
     expect(screen.getAllByRole('textbox').some((el) => (el as HTMLTextAreaElement).value
-      === '// Deck\n1 Lightning Bolt\n1 Sol Ring\n10 Forest\n\n// Sideboard\n1 Llanowar Elves')).toBe(true);
+      === '// Deck\n1 Lightning Bolt\n1 Sol Ring\n10 Forest\n\n// Sideboard\nSB: 1 Llanowar Elves')).toBe(true);
 
     fireEvent.click(screen.getByRole('button', { name: /Cockatrice \(\.cod\)/ }));
     const cod = screen.getAllByRole('textbox')

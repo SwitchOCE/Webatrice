@@ -188,8 +188,16 @@ describe('Decks (integration)', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'DeckFolders.moveDeckNamed' }));
       fireEvent.change(screen.getByRole('combobox', { name: 'MoveDeck.target' }), { target: { value: 'Tournament/Old' } });
+      const listRequestsBefore = findAllSessionCommands(Command_DeckList_ext).length;
       fireEvent.click(screen.getByRole('button', { name: /MoveDeck.move/ }));
 
+      // Unknown colour identity is refreshed from the tree before copying.
+      await waitFor(() => expect(findAllSessionCommands(Command_DeckList_ext)).toHaveLength(listRequestsBefore + 1));
+      expect(sentDeckDownloadIds()).toEqual([1]);
+      expect(findAllSessionCommands(Command_DeckUpload_ext)).toHaveLength(0);
+      act(() => {
+        respondToDeckList(NESTED_TREE);
+      });
       await waitFor(() => expect(sentDeckDownloadIds()).toEqual([1, 1]));
       expect(findAllSessionCommands(Command_DeckUpload_ext)).toHaveLength(0);
       act(() => {
@@ -361,6 +369,7 @@ describe('Decks (integration)', () => {
     expect(screen.getByText('$99.00 cached from source')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Import file/ }));
 
+    await waitFor(() => expect(findAllSessionCommands(Command_DeckUpload_ext)).toHaveLength(1));
     const { value } = findLastSessionCommand(Command_DeckUpload_ext);
     const parsed = parseCod(value.deckList);
     expect(parsed.name).toBe('From Desktop');
