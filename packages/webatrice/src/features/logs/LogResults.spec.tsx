@@ -1,8 +1,12 @@
 import { fireEvent, screen } from '@testing-library/react';
 import type { ServerStateLogs } from '@cockatrice/datatrice';
+import { createInstance } from 'i18next';
+import ICU from 'i18next-icu';
+import { I18nextProvider } from 'react-i18next';
 
 import { renderWithProviders, disconnectedState } from '../../__test-utils__';
 import LogResults from './LogResults';
+import catalog from './Logs.i18n.json';
 
 const makeMessage = (overrides = {}) =>
   ({
@@ -35,16 +39,25 @@ describe('LogResults', () => {
     expect(screen.getByText('room-log-entry')).toBeInTheDocument();
   });
 
-  it('includes a count badge in the tab label when logs are present', () => {
+  it('includes a count badge in the tab label when logs are present', async () => {
+    const i18n = createInstance();
+    await i18n.use(ICU).init({
+      lng: 'en-US',
+      resources: { 'en-US': { translation: catalog } },
+      interpolation: { escapeValue: false },
+    });
     const logs: ServerStateLogs = {
       room: [makeMessage(), makeMessage()],
       game: [],
       chat: [],
     };
-    renderWithProviders(<LogResults logs={logs} />, { preloadedState: disconnectedState });
-    // The test i18n instance echoes keys, so the counted label shows as its key.
-    expect(screen.getAllByRole('tab')[0]).toHaveAccessibleName('Logs.tabWithCount');
-    expect(screen.getAllByRole('tab')[1]).toHaveAccessibleName('Logs.tab.games');
+    renderWithProviders(
+      <I18nextProvider i18n={i18n}><LogResults logs={logs} /></I18nextProvider>,
+      { preloadedState: disconnectedState },
+    );
+    expect(screen.getAllByRole('tab')[0]).toHaveAccessibleName('Room Logs [2]');
+    expect(screen.getAllByRole('tab')[1]).toHaveAccessibleName('Game Logs');
+    expect(screen.getAllByRole('tab')[2]).toHaveAccessibleName('Chat Logs');
   });
 
   it('switches to the games tab when clicked', () => {
