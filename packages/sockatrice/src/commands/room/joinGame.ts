@@ -3,6 +3,8 @@ import { WebClient } from '../../WebClient';
 
 import { Command_JoinGame_ext, Command_JoinGameSchema, Response_ResponseCode } from '../../generated';
 import type { JoinGameParams } from '../../generated';
+import type { RequestId } from '../../types/RequestId';
+import { outlivedSession } from '../outlivedSession';
 
 // Codes handled by GameSelector::checkResponse (game_selector.cpp:228-270).
 // Presentation belongs to the UI; unrecognized rejections remain silent.
@@ -17,16 +19,23 @@ const ERROR_CODES = [
   Response_ResponseCode.RespInIgnoreList,
 ];
 
-export function joinGame(roomId: number, joinGameParams: JoinGameParams): void {
+export function joinGame(roomId: number, joinGameParams: JoinGameParams, ...correlation: [requestId?: RequestId]): void {
   const response = WebClient.instance.response.room;
-  response.setJoinGamePending(true);
+  response.setJoinGamePending(true, ...correlation);
 
   const onResponseCode: { [code: number]: () => void } = {
     // Match desktop default:; — acknowledge silently, no user dialog.
-    [Response_ResponseCode.RespContextError]: () => response.setJoinGamePending(false),
+    [Response_ResponseCode.RespContextError]: () => response.setJoinGamePending(false, ...correlation),
   };
   for (const code of ERROR_CODES) {
-    onResponseCode[code] = () => response.setJoinGameError(code, '');
+    onResponseCode[code] = () => {
+      // Preserve legacy callback arity when the caller did not supply an identity.
+      if (correlation.length) {
+        response.setJoinGameError(code, '', undefined, ...correlation);
+      } else {
+        response.setJoinGameError(code, '');
+      }
+    };
   }
 
   WebClient.instance.protobuf.sendRoomCommand(
@@ -35,15 +44,18 @@ export function joinGame(roomId: number, joinGameParams: JoinGameParams): void {
     create(Command_JoinGameSchema, joinGameParams),
     {
       onSuccess: () => {
-        response.setJoinGamePending(false);
-        response.joinedGame(roomId, joinGameParams.gameId);
+        response.setJoinGamePending(false, ...correlation);
+        response.joinedGame(roomId, joinGameParams.gameId, ...correlation);
       },
       onResponseCode,
       onError: (_responseCode, _raw, failure) => {
+        if (outlivedSession(failure)) {
+          return;
+        }
         if (failure) {
-          response.setJoinGameError(Response_ResponseCode.RespNotConnected, '', failure);
+          response.setJoinGameError(Response_ResponseCode.RespNotConnected, '', failure, ...correlation);
         } else {
-          response.setJoinGamePending(false);
+          response.setJoinGamePending(false, ...correlation);
         }
       },
     },

@@ -189,10 +189,10 @@ export interface IRoomResponse<T extends RoomEventMap = WebSocketRoomResponseOve
   userLeft(roomId: number, name: string): void;
   removeMessages(roomId: number, name: string, amount: number): void;
   gameCreated(roomId: number): void;
-  joinedGame(roomId: number, gameId: number): void;
-  setJoinGamePending(pending: boolean): void;
+  joinedGame(roomId: number, gameId: number, requestId?: RequestId): void;
+  setJoinGamePending(pending: boolean, requestId?: RequestId): void;
   /** `message` is a legacy fallback; current commands send an empty string for UI translation. */
-  setJoinGameError(code: number, message: string, failure?: CommandFailure): void;
+  setJoinGameError(code: number, message: string, failure?: CommandFailure, requestId?: RequestId): void;
   // Command failure outcomes; see ISessionResponse.
   /** Only a user-initiated join reports here; a failed autojoin stays silent, as on desktop. */
   /** `userInitiated` is false for an autojoin, which desktop fails silently. */

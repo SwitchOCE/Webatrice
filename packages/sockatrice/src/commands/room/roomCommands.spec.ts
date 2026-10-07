@@ -117,6 +117,7 @@ describe('joinGame', () => {
 
   it.each([CommandFailure.Timeout, CommandFailure.Disconnected, CommandFailure.NotSent])(
     'a %s failure carries its reason for UI translation', (failure) => {
+      WebClient.instance.status = StatusEnum.RECONNECTING;
       joinGame(7, create(Command_JoinGameSchema, { gameId: 42 }));
       invokeOnError(Response_ResponseCode.RespNotConnected, {}, failure);
       expect(WebClient.instance.response.room.setJoinGameError).toHaveBeenCalledWith(
