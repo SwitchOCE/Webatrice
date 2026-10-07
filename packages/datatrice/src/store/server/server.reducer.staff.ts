@@ -38,7 +38,7 @@ export const staffReducers = {
     if (active) {
       active.info = action.payload.info;
     }
-  }) as CaseReducer<ServerState, PayloadAction<{ info: Response_ReportUserInfo }>>,
+  }) as CaseReducer<ServerState, PayloadAction<{ info: Response_ReportUserInfo; requestId?: string }>>,
 
   userAlts: ((state, action) => {
     const active = investigation(state, action.payload.userName);

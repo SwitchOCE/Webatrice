@@ -59,14 +59,14 @@ export const reportReducers = {
   reportMyList: ((state, action) => {
     state.reports.mine = storeRows(state.reports, action.payload.reports);
     pruneRows(state.reports);
-  }) as CaseReducer<ServerState, PayloadAction<{ reports: ServerInfo_Report[] }>>,
+  }) as CaseReducer<ServerState, PayloadAction<{ reports: ServerInfo_Report[]; requestId?: string }>>,
 
   // Command_ReportList: one page of the moderator queue, newest first.
   reportList: ((state, action) => {
     state.reports.queue = storeRows(state.reports, action.payload.reports);
     state.reports.queueTotalCount = action.payload.totalCount;
     pruneRows(state.reports);
-  }) as CaseReducer<ServerState, PayloadAction<{ reports: ServerInfo_Report[]; totalCount: number }>>,
+  }) as CaseReducer<ServerState, PayloadAction<{ reports: ServerInfo_Report[]; totalCount: number; requestId?: string }>>,
 
   // Command_ReportDetails adds the chat log and comment thread the lists omit.
   // It is also the freshest copy of the row, so a listed row is replaced too.
@@ -76,7 +76,7 @@ export const reportReducers = {
     if (state.reports.byId[report.reportId]) {
       state.reports.byId[report.reportId] = report;
     }
-  }) as CaseReducer<ServerState, PayloadAction<{ report: ServerInfo_Report }>>,
+  }) as CaseReducer<ServerState, PayloadAction<{ report: ServerInfo_Report; requestId?: string }>>,
 
   // Servatrice cmdReportAssign: status 'assigned', assigned_to = the caller.
   reportAssigned: ((state, action) => {
@@ -84,17 +84,17 @@ export const reportReducers = {
       status: ReportStatus.ASSIGNED,
       assignedModName: state.user?.name ?? '',
     });
-  }) as CaseReducer<ServerState, PayloadAction<{ reportId: number }>>,
+  }) as CaseReducer<ServerState, PayloadAction<{ reportId: number; requestId?: string }>>,
 
   // Servatrice cmdReportResolve: status 'resolved', or 'dismissed' when dismissed.
   reportResolved: ((state, action) => {
     const { reportId, dismissed } = action.payload;
     patchReport(state.reports, reportId, { status: dismissed ? ReportStatus.DISMISSED : ReportStatus.RESOLVED });
-  }) as CaseReducer<ServerState, PayloadAction<{ reportId: number; dismissed: boolean }>>,
+  }) as CaseReducer<ServerState, PayloadAction<{ reportId: number; dismissed: boolean; requestId?: string }>>,
 
   reportStats: ((state, action) => {
     state.reports.stats = action.payload.stats;
-  }) as CaseReducer<ServerState, PayloadAction<{ stats: Response_ReportStats }>>,
+  }) as CaseReducer<ServerState, PayloadAction<{ stats: Response_ReportStats; requestId?: string }>>,
 
   // A new request drops the stored replay, so a second download of the same
   // game can only match the replay that answers it.
@@ -106,8 +106,9 @@ export const reportReducers = {
   // The bytes travel bare, not inside the response message: the dev freeze
   // guard can't freeze a message holding a byte array (like replayDownloaded).
   reportReplayDownloaded: ((state, action) => {
-    state.reports.replay = action.payload;
-  }) as CaseReducer<ServerState, PayloadAction<{ gameId: number; replayId: number; replayData: Uint8Array }>>,
+    const { gameId, replayId, replayData } = action.payload;
+    state.reports.replay = { gameId, replayId, replayData };
+  }) as CaseReducer<ServerState, PayloadAction<{ gameId: number; replayId: number; replayData: Uint8Array; requestId?: string }>>,
 
   // REPORT_RESOLVED / REPORT_COMMENT, also kept in `notifications`. Each notice
   // is a new object, so a view tells a new one from the one it last handled by

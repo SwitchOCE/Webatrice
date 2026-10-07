@@ -306,12 +306,12 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.replayListFailed({ responseCode, failure, requestId }));
   }
 
-  reportMyList(reports: ServerInfo_Report[]): void {
-    this.store.dispatch(ServerActions.reportMyList({ reports }));
+  reportMyList(reports: ServerInfo_Report[], requestId?: string): void {
+    this.store.dispatch(ServerActions.reportMyList({ reports, requestId }));
   }
 
-  reportDetails(report: ServerInfo_Report): void {
-    this.store.dispatch(ServerActions.reportDetails({ report }));
+  reportDetails(report: ServerInfo_Report, requestId?: string): void {
+    this.store.dispatch(ServerActions.reportDetails({ report, requestId }));
   }
 
   commandFailed(

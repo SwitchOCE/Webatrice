@@ -73,12 +73,12 @@ export class ModeratorResponseImpl implements WebsocketTypes.IModeratorResponse 
 
   // ── Staff tools (Cockatrice 3.1: TabModeration, TabCardArtRules) ──────────
 
-  reportUserInfo(info: Response_ReportUserInfo): void {
+  reportUserInfo(info: Response_ReportUserInfo, requestId?: string): void {
     // Drop stale private payloads before dispatch, including action-observer snapshots.
     if (!ServerSelectors.getUserInvestigation(this.store.getState(), info.userName)) {
       return;
     }
-    this.store.dispatch(ServerActions.userInfoReport({ info }));
+    this.store.dispatch(ServerActions.userInfoReport({ info, requestId }));
   }
 
   userAlts(userName: string, alts: ServerInfo_UserAlt[]): void {
@@ -117,31 +117,32 @@ export class ModeratorResponseImpl implements WebsocketTypes.IModeratorResponse 
     this.store.dispatch(ServerActions.cardArtRuleRemoved({ cardName, cardProviderId }));
   }
 
-  reportList(reports: ServerInfo_Report[], totalCount: number): void {
-    this.store.dispatch(ServerActions.reportList({ reports, totalCount }));
+  reportList(reports: ServerInfo_Report[], totalCount: number, requestId?: string): void {
+    this.store.dispatch(ServerActions.reportList({ reports, totalCount, requestId }));
   }
 
-  reportAssigned(reportId: number): void {
-    this.store.dispatch(ServerActions.reportAssigned({ reportId }));
+  reportAssigned(reportId: number, requestId?: string): void {
+    this.store.dispatch(ServerActions.reportAssigned({ reportId, requestId }));
   }
 
-  reportResolved(reportId: number, dismissed: boolean): void {
-    this.store.dispatch(ServerActions.reportResolved({ reportId, dismissed }));
+  reportResolved(reportId: number, dismissed: boolean, requestId?: string): void {
+    this.store.dispatch(ServerActions.reportResolved({ reportId, dismissed, requestId }));
   }
 
-  reportStats(stats: Response_ReportStats): void {
-    this.store.dispatch(ServerActions.reportStats({ stats }));
+  reportStats(stats: Response_ReportStats, requestId?: string): void {
+    this.store.dispatch(ServerActions.reportStats({ stats, requestId }));
   }
 
   replayDownloadByGameIdPending(): void {
     this.store.dispatch(ServerActions.reportReplayRequested());
   }
 
-  replayDownloadedByGameId(gameId: number, response: Response_ReplayDownloadByGameId): void {
+  replayDownloadedByGameId(gameId: number, response: Response_ReplayDownloadByGameId, requestId?: string): void {
     this.store.dispatch(ServerActions.reportReplayDownloaded({
       gameId,
       replayId: response.replayId,
       replayData: response.replayData,
+      requestId,
     }));
   }
 }
