@@ -5,6 +5,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   Command_Login_ext,
+  Command_ReportList_ext,
+  Command_ReportAssign_ext,
+  Response_ReportList_ext,
+  Response_ReportListSchema,
   Command_ReportAddComment_ext,
   Command_ReportDetails_ext,
   Command_ReportMyList_ext,
@@ -24,21 +28,21 @@ import {
   ServerInfo_User_UserLevelFlag,
 } from '@cockatrice/sockatrice/generated';
 import { PROTOCOL_VERSION } from '@cockatrice/sockatrice';
-import { games } from '@cockatrice/datatrice';
+import { games, server } from '@cockatrice/datatrice';
 import { Event_GameSaySchema, Event_GameSay_ext, Event_LeaveSchema, Event_Leave_ext } from '@cockatrice/sockatrice/generated';
 
 import { ReportUserProvider, useReportUser } from '@app/dialogs';
-import { MyReports } from '@app/features/reports';
+import { MyReports, ReportQueue } from '@app/features/reports';
 import { RouteEnum } from '@app/types';
 import ChatLog from '../../../src/features/game/components/ChatLog/ChatLog';
 import { GameIdProvider } from '../../../src/features/game/components/ui/GameIdContext';
 import { GameReadOnlyProvider } from '../../../src/features/game/components/ui/GameReadOnlyContext';
 
-import { connectRaw, store } from '../helpers/setup';
+import { connectRaw, getWebClient, store } from '../helpers/setup';
 import {
   buildGameEventMessage, buildResponse, buildResponseMessage, buildSessionEventMessage, deliverMessage,
 } from '../helpers/protobuf-builders';
-import { findLastSessionCommand } from '../helpers/command-capture';
+import { findLastModeratorCommand, findLastSessionCommand } from '../helpers/command-capture';
 import { renderFeatureScreen } from './helpers';
 import { buildEventGameJoined, buildEventGameStateChanged } from './game/helpers';
 
@@ -199,4 +203,83 @@ describe('Reports (integration)', () => {
     ok(comment.cmdId);
     expect(findLastSessionCommand(Command_ReportMyList_ext).cmdId).toBeGreaterThan(list.cmdId);
   });
+});
+
+
+it('keeps a reopened report list loading while the previous view reply populates the store', () => {
+  loginTo31();
+  const oldView = renderFeatureScreen(<MyReports />, RouteEnum.MY_REPORTS);
+  const oldList = findLastSessionCommand(Command_ReportMyList_ext);
+  oldView.unmount();
+  renderFeatureScreen(<MyReports />, RouteEnum.MY_REPORTS);
+  const currentList = findLastSessionCommand(Command_ReportMyList_ext);
+  act(() => deliverMessage(buildResponseMessage(buildResponse({
+    cmdId: oldList.cmdId, responseCode: Response_ResponseCode.RespOk,
+    ext: Response_ReportMyList_ext, value: create(Response_ReportMyListSchema, {
+      reports: [create(ServerInfo_ReportSchema, { reportId: 5, reportedUserName: 'mallory', status: 'open' })],
+    }),
+  }))));
+  expect(screen.getByTestId('report-row-5')).toBeInTheDocument();
+  expect(screen.getByTestId('report-list-status')).toHaveTextContent('Reports.loading');
+  act(() => deliverMessage(buildResponseMessage(buildResponse({
+    cmdId: currentList.cmdId, responseCode: Response_ResponseCode.RespOk,
+    ext: Response_ReportMyList_ext, value: create(Response_ReportMyListSchema),
+  }))));
+  expect(screen.getByTestId('report-list-status')).toHaveTextContent('Reports.count');
+  expect(screen.queryByTestId('report-row-5')).not.toBeInTheDocument();
+  expect(findLastSessionCommand(Command_ReportMyList_ext).cmdId).toBe(currentList.cmdId);
+});
+
+it('ignores another caller details failure for the same report before settling the selected thread', () => {
+  loginTo31();
+  renderFeatureScreen(<MyReports />, RouteEnum.MY_REPORTS);
+  const list = findLastSessionCommand(Command_ReportMyList_ext);
+  act(() => deliverMessage(buildResponseMessage(buildResponse({
+    cmdId: list.cmdId, responseCode: Response_ResponseCode.RespOk,
+    ext: Response_ReportMyList_ext, value: create(Response_ReportMyListSchema, {
+      reports: [create(ServerInfo_ReportSchema, { reportId: 5, reportedUserName: 'mallory', status: 'open' })],
+    }),
+  }))));
+  getWebClient().request.session.reportDetails(5, 'other-caller');
+  const other = findLastSessionCommand(Command_ReportDetails_ext);
+  fireEvent.click(screen.getByTestId('report-row-5'));
+  const current = findLastSessionCommand(Command_ReportDetails_ext);
+  act(() => deliverMessage(buildResponseMessage(buildResponse({
+    cmdId: other.cmdId, responseCode: Response_ResponseCode.RespAccessDenied,
+  }))));
+  expect(screen.getByTestId('report-thread')).not.toHaveTextContent('Reports.thread.detailsFailed');
+  act(() => deliverMessage(buildResponseMessage(buildResponse({
+    cmdId: current.cmdId, responseCode: Response_ResponseCode.RespAccessDenied,
+  }))));
+  expect(screen.getByTestId('report-thread')).toHaveTextContent('Reports.thread.detailsFailed');
+  expect(findLastSessionCommand(Command_ReportDetails_ext).cmdId).toBe(current.cmdId);
+});
+
+it('keeps another caller assignment outcome out of the queue notice and sends no extra refresh', () => {
+  loginTo31();
+  act(() => store.dispatch(server.Actions.updateUser({ user: create(ServerInfo_UserSchema, {
+    name: 'alice', userLevel: ServerInfo_User_UserLevelFlag.IsRegistered | ServerInfo_User_UserLevelFlag.IsModerator,
+  }) })));
+  renderFeatureScreen(<ReportQueue />, RouteEnum.REPORT_QUEUE);
+  const list = findLastModeratorCommand(Command_ReportList_ext);
+  act(() => deliverMessage(buildResponseMessage(buildResponse({
+    cmdId: list.cmdId, responseCode: Response_ResponseCode.RespOk,
+    ext: Response_ReportList_ext, value: create(Response_ReportListSchema, {
+      reports: [create(ServerInfo_ReportSchema, { reportId: 5, reportedUserName: 'mallory', status: 'open' })], totalCount: 1,
+    }),
+  }))));
+  fireEvent.click(screen.getByTestId('report-row-5'));
+  getWebClient().request.moderator.reportAssign(5, 'other-caller');
+  const other = findLastModeratorCommand(Command_ReportAssign_ext);
+  fireEvent.click(screen.getByRole('button', { name: 'Reports.queue.assign' }));
+  const current = findLastModeratorCommand(Command_ReportAssign_ext);
+  ok(other.cmdId);
+  expect(server.Selectors.getReport(store.getState(), 5)?.status).toBe('assigned');
+  expect(screen.getByTestId('report-queue-status')).toHaveTextContent('Reports.queue.assigning');
+  expect(findLastModeratorCommand(Command_ReportList_ext).cmdId).toBe(list.cmdId);
+  act(() => deliverMessage(buildResponseMessage(buildResponse({
+    cmdId: current.cmdId, responseCode: Response_ResponseCode.RespInvalidData,
+  }))));
+  expect(screen.getByTestId('report-queue-status')).toHaveTextContent('Reports.queue.assignFailed');
+  expect(findLastModeratorCommand(Command_ReportList_ext).cmdId).toBe(list.cmdId);
 });

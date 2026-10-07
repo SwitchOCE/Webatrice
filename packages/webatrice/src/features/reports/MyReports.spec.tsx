@@ -20,16 +20,17 @@ function renderMyReports(version?: string) {
     { preloadedState: reportsRootState({ version }), webClient, route: RouteEnum.MY_REPORTS },
   );
   const session = webClient.request.session as unknown as Record<string, Mock>;
-  return { ...utils, session };
+  const requestId = (command: string): string | undefined => session[command].mock.lastCall?.at(-1);
+  return { ...utils, session, requestId };
 }
 
 describe('MyReports', () => {
   it('completes initial and repeated empty loads and enables refresh', () => {
-    const { store, session } = renderMyReports();
+    const { store, session, requestId } = renderMyReports();
     for (let request = 1; request <= 2; request++) {
       const refresh = screen.getByRole('button', { name: /Reports.refresh/ });
       expect(refresh).toBeDisabled();
-      act(() => store.dispatch(server.Actions.reportMyList({ reports: [] })));
+      act(() => store.dispatch(server.Actions.reportMyList({ requestId: requestId('reportMyList'), reports: [] })));
       expect(screen.getByTestId('report-list-status').textContent).toBe('Reports.count');
       expect(refresh).toBeEnabled();
       fireEvent.click(refresh);
@@ -44,49 +45,55 @@ describe('MyReports', () => {
   });
 
   it('requests the list on open and shows it with a count once it lands', () => {
-    const { session, store } = renderMyReports();
+    const { session, store, requestId } = renderMyReports();
     expect(session.reportMyList).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('report-list-status').textContent).toBe('Reports.loading');
     act(() => {
-      store.dispatch(server.Actions.reportMyList({ reports: [makeReport({ reportId: 4, reportedUserName: 'mallory' })] }));
+      store.dispatch(server.Actions.reportMyList({ requestId: requestId('reportMyList'),
+        reports: [makeReport({ reportId: 4, reportedUserName: 'mallory' })] }));
     });
     expect(screen.getByTestId('report-row-4')).toBeTruthy();
     expect(screen.getByTestId('report-list-status').textContent).toBe('Reports.count');
   });
 
   it('shows the failure line when the list cannot be loaded', () => {
-    const { store } = renderMyReports();
+    const { store, requestId } = renderMyReports();
     act(() => {
-      store.dispatch(server.Actions.sessionCommandFailed({ command: 'reportMyList', responseCode: 20, target: '' }));
+      store.dispatch(server.Actions.sessionCommandFailed({ requestId: requestId('reportMyList'),
+        command: 'reportMyList', responseCode: 20, target: '' }));
     });
     expect(screen.getByTestId('report-list-status').textContent).toBe('Reports.loadFailed');
   });
 
   it('says the details failed only for the report whose lookup failed', () => {
-    const { store } = renderMyReports();
+    const { store, requestId } = renderMyReports();
     act(() => {
-      store.dispatch(server.Actions.reportMyList({ reports: [makeReport({ reportId: 4 })] }));
+      store.dispatch(server.Actions.reportMyList({ requestId: requestId('reportMyList'), reports: [makeReport({ reportId: 4 })] }));
     });
     fireEvent.click(screen.getByTestId('report-row-4'));
     act(() => {
-      store.dispatch(server.Actions.sessionCommandFailed({ command: 'reportDetails', responseCode: 20, target: '5' }));
+      store.dispatch(server.Actions.sessionCommandFailed({ requestId: requestId('reportDetails'),
+        command: 'reportDetails', responseCode: 20, target: '5' }));
     });
     expect(screen.queryByText('Reports.thread.detailsFailed')).toBeNull();
     act(() => {
-      store.dispatch(server.Actions.sessionCommandFailed({ command: 'reportDetails', responseCode: 20, target: '4' }));
+      store.dispatch(server.Actions.sessionCommandFailed({ requestId: requestId('reportDetails'),
+        command: 'reportDetails', responseCode: 20, target: '4' }));
     });
     expect(screen.getByTestId('report-thread')).toHaveTextContent('Reports.thread.detailsFailed');
   });
 
   it('loads details for the selected report and sends a comment, then refreshes', () => {
-    const { session, store } = renderMyReports();
+    const { session, store, requestId } = renderMyReports();
     act(() => {
-      store.dispatch(server.Actions.reportMyList({ reports: [makeReport({ reportId: 4, status: 'assigned' })] }));
+      store.dispatch(server.Actions.reportMyList({ requestId: requestId('reportMyList'),
+        reports: [makeReport({ reportId: 4, status: 'assigned' })] }));
     });
     fireEvent.click(screen.getByTestId('report-row-4'));
-    expect(session.reportDetails).toHaveBeenCalledWith(4);
+    expect(session.reportDetails).toHaveBeenCalledWith(4, expect.any(String));
     act(() => {
-      store.dispatch(server.Actions.reportDetails({ report: makeReport({ reportId: 4, status: 'assigned', chatLog: 'log' }) }));
+      store.dispatch(server.Actions.reportDetails({ requestId: requestId('reportDetails'),
+        report: makeReport({ reportId: 4, status: 'assigned', chatLog: 'log' }) }));
     });
     expect(screen.getByTestId('report-chat-log').textContent).toBe('log');
 
@@ -100,9 +107,9 @@ describe('MyReports', () => {
   });
 
   it('keeps the draft and says so when a comment fails', () => {
-    const { session, store } = renderMyReports();
+    const { session, store, requestId } = renderMyReports();
     act(() => {
-      store.dispatch(server.Actions.reportMyList({ reports: [makeReport({ reportId: 4 })] }));
+      store.dispatch(server.Actions.reportMyList({ requestId: requestId('reportMyList'), reports: [makeReport({ reportId: 4 })] }));
     });
     fireEvent.click(screen.getByTestId('report-row-4'));
     fireEvent.change(screen.getByLabelText('Reports.thread.addComment'), { target: { value: 'x' } });

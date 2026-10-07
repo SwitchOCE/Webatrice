@@ -3,8 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { ServerInfo_Report } from '@cockatrice/sockatrice/generated';
-import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { useReduxEffect, type ReduxEffectAction } from '@app/hooks';
+import type { RequestId, WebsocketTypes } from '@cockatrice/sockatrice/types';
+import { useReduxEffect, useRequestTracker, type ReduxEffectAction } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 
 export interface ReportThread {
@@ -35,35 +35,43 @@ export function useReportThread(selectedId: number | null, onCommentAdded: () =>
   const [commentBusy, setCommentBusy] = useState(false);
   const [commentFailed, setCommentFailed] = useState(false);
 
-  // Server answers can land after the page is gone; ignore them then.
-  const mounted = useRef(true);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
+  const detailsRequest = useRequestTracker();
+  const commentRequest = useRequestTracker();
 
   const reloadDetails = useCallback(() => {
-    if (selectedId == null) {
-      return;
-    }
+    detailsRequest.cancel();
+    commentRequest.cancel();
+    setCommentBusy(false);
+    setCommentFailed(false);
     setFailedId(null);
-    webClient.request.session.reportDetails(selectedId);
-  }, [selectedId, webClient]);
+    if (selectedId != null) {
+      webClient.request.session.reportDetails(selectedId, detailsRequest.begin());
+    }
+  }, [selectedId, webClient, detailsRequest, commentRequest]);
 
-  // Command_ReportDetails fails through the session scope's commandFailed;
-  // the target is the report id.
-  useReduxEffect((action: ReduxEffectAction<{ command: WebsocketTypes.SessionCommandName; target: string }>) => {
-    if (action.payload.command === 'reportDetails') {
+  useReduxEffect((action: ReduxEffectAction<{ requestId?: RequestId }>) => {
+    if (detailsRequest.isCurrent(action.payload.requestId)) {
+      detailsRequest.cancel();
+    }
+  }, server.Actions.reportDetails.type, [detailsRequest]);
+
+  useReduxEffect((action: ReduxEffectAction<{
+    command: WebsocketTypes.SessionCommandName; target: string; requestId?: RequestId;
+  }>) => {
+    if (action.payload.command === 'reportDetails' && action.payload.target === String(selectedId)
+      && detailsRequest.isCurrent(action.payload.requestId)) {
+      detailsRequest.cancel();
       setFailedId(Number(action.payload.target));
     }
-  }, server.Types.SESSION_COMMAND_FAILED, []);
+  }, server.Types.SESSION_COMMAND_FAILED, [selectedId, detailsRequest]);
 
   useEffect(() => {
-    setCommentFailed(false);
     reloadDetails();
-  }, [reloadDetails]);
+    return () => {
+      detailsRequest.cancel();
+      commentRequest.cancel();
+    };
+  }, [reloadDetails, detailsRequest, commentRequest]);
 
   const onAddedRef = useRef(onCommentAdded);
   useEffect(() => {
@@ -75,26 +83,29 @@ export function useReportThread(selectedId: number | null, onCommentAdded: () =>
     if (selectedId == null || !text) {
       return;
     }
+    const requestId = commentRequest.begin();
     setCommentBusy(true);
     setCommentFailed(false);
     webClient.request.session.reportAddComment(
       selectedId,
       text,
       () => {
-        if (mounted.current) {
+        if (commentRequest.isCurrent(requestId)) {
+          commentRequest.cancel();
           setCommentBusy(false);
           setCommentDraft('');
           onAddedRef.current();
         }
       },
       () => {
-        if (mounted.current) {
+        if (commentRequest.isCurrent(requestId)) {
+          commentRequest.cancel();
           setCommentBusy(false);
           setCommentFailed(true);
         }
       },
     );
-  }, [commentDraft, selectedId, webClient]);
+  }, [commentDraft, selectedId, webClient, commentRequest]);
 
   return {
     details,

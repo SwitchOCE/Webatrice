@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
+import type { RequestId } from '@cockatrice/sockatrice/types';
 import type { ServerInfo_Report } from '@cockatrice/sockatrice/generated';
 import { useAppSelector } from '@app/store';
 
@@ -36,8 +37,8 @@ export function useMyReports(): MyReports {
   const selected = useAppSelector((state) =>
     (selectedId != null ? server.Selectors.getReport(state, selectedId) : undefined));
 
-  const send = useCallback(() => webClient.request.session.reportMyList(), [webClient]);
-  const { loadState, refresh: refreshList } = useReportListLoad(reports, send, MY_LIST_FAILURE);
+  const send = useCallback((requestId: RequestId) => webClient.request.session.reportMyList(requestId), [webClient]);
+  const { loadState, refresh: refreshList } = useReportListLoad(send, MY_LIST_FAILURE);
 
   const thread = useReportThread(selectedId, () => refresh());
   const { reloadDetails } = thread;

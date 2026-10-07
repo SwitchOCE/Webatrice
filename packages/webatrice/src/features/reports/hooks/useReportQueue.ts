@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { ReportStatus, server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { ServerInfo_Report } from '@cockatrice/sockatrice/generated';
-import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { useReduxEffect, useWatchReplay, type ReduxEffectAction } from '@app/hooks';
+import type { RequestId, WebsocketTypes } from '@cockatrice/sockatrice/types';
+import { useReduxEffect, useRequestTracker, useWatchReplay, type ReduxEffectAction } from '@app/hooks';
 import { useAppDispatch, useAppSelector } from '@app/store';
 
 import { useJoinReportGame } from './useJoinReportGame';
@@ -95,7 +95,7 @@ export function useReportQueue(): ReportQueue {
   const [actionMessage, setActionMessage] = useState<QueueActionMessage | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
   const [resolvePrompt, setResolvePrompt] = useState<ResolvePrompt | null>(null);
-  // The game whose replay download is in flight; its answer is matched by id.
+  // Target metadata complements request identity for the shared action signals.
   const pendingReplayGameId = useRef<number | null>(null);
   const [userInfoFailedFor, setUserInfoFailedFor] = useState<string | null>(null);
   const [statsOpen, setStatsOpen] = useState(true);
@@ -103,17 +103,21 @@ export function useReportQueue(): ReportQueue {
 
   const queue = useAppSelector(server.Selectors.getReportQueue);
   const totalCount = useAppSelector(server.Selectors.getReportQueueTotalCount);
-  const stats = useAppSelector(server.Selectors.getReportStats);
   const lastNotice = useAppSelector(server.Selectors.getLastReportNotice);
   const joinReportGame = useJoinReportGame();
 
-  const mounted = useRef(true);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
+  const statsRequest = useRequestTracker();
+  const userInfoRequest = useRequestTracker();
+  const actionRequest = useRequestTracker();
+  const pendingMutation = useRef<PendingMutation | null>(null);
+  const cancelAction = useCallback(() => {
+    actionRequest.cancel();
+    pendingMutation.current = null;
+    pendingReplayGameId.current = null;
+    setActionBusy(false);
+    setActionMessage(null);
+    setResolvePrompt(null);
+  }, [actionRequest]);
 
   const reports = useMemo(
     () => server.filterReports(queue, search, statusFilter),
@@ -123,27 +127,28 @@ export function useReportQueue(): ReportQueue {
   const selected = useMemo(() => reports.find((r) => r.reportId === selectedId), [reports, selectedId]);
 
   const send = useCallback(
-    () => webClient.request.moderator.reportList(unresolvedOnly),
+    (requestId: RequestId) => webClient.request.moderator.reportList(unresolvedOnly, undefined, undefined, requestId),
     [webClient, unresolvedOnly],
   );
-  const { loadState, refresh: refreshList } = useReportListLoad(queue, send, QUEUE_LIST_FAILURE);
+  const { loadState, refresh: refreshList } = useReportListLoad(send, QUEUE_LIST_FAILURE);
 
-  // Like the list: stats are "loading" until a new stats message lands.
-  const statsAtRequest = useRef<typeof stats | undefined>(undefined);
-  const statsRef = useRef(stats);
-  useEffect(() => {
-    statsRef.current = stats;
-    if (statsAtRequest.current !== undefined && stats !== statsAtRequest.current) {
-      statsAtRequest.current = undefined;
+  useReduxEffect((action: ReduxEffectAction<{ requestId?: RequestId }>) => {
+    if (statsRequest.isCurrent(action.payload.requestId)) {
+      statsRequest.cancel();
       setStatsState('ready');
     }
-  }, [stats]);
+  }, server.Actions.reportStats.type, [statsRequest]);
 
   const requestStats = useCallback(() => {
-    statsAtRequest.current = statsRef.current;
+    const requestId = statsRequest.begin();
     setStatsState('loading');
-    webClient.request.moderator.reportStats();
-  }, [webClient]);
+    webClient.request.moderator.reportStats(requestId);
+  }, [webClient, statsRequest]);
+
+  const selectedReportId = selected?.reportId;
+  useEffect(() => {
+    cancelAction();
+  }, [selectedReportId, cancelAction]);
 
   const statsOpenRef = useRef(statsOpen);
   useEffect(() => {
@@ -154,29 +159,35 @@ export function useReportQueue(): ReportQueue {
   const { reloadDetails } = thread;
 
   const refresh = useCallback(() => {
-    setActionMessage(null);
+    cancelAction();
+    userInfoRequest.cancel();
+    setUserInfoFailedFor(null);
     refreshList();
     reloadDetails();
     if (statsOpenRef.current) {
       requestStats();
     }
-  }, [refreshList, reloadDetails, requestStats]);
+  }, [refreshList, reloadDetails, requestStats, cancelAction, userInfoRequest]);
 
   // Initial load, and again when "unresolved only" flips (a new server query).
   useEffect(() => {
-    setActionMessage(null);
+    cancelAction();
+    userInfoRequest.cancel();
+    setUserInfoFailedFor(null);
     refreshList();
     if (statsOpenRef.current) {
       requestStats();
     }
-  }, [refreshList, requestStats]);
+  }, [refreshList, requestStats, cancelAction, userInfoRequest]);
 
   const setStatsOpenAndLoad = useCallback((open: boolean) => {
     setStatsOpen(open);
     if (open) {
       requestStats();
+    } else {
+      statsRequest.cancel();
     }
-  }, [requestStats]);
+  }, [requestStats, statsRequest]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -198,27 +209,35 @@ export function useReportQueue(): ReportQueue {
   // Reported user's history for the selected report (desktop requestUserInfo).
   const reportedUser = selected?.reportedUserName ?? '';
   useEffect(() => {
+    userInfoRequest.cancel();
+    setUserInfoFailedFor(null);
     if (!reportedUser) {
       return;
     }
-    setUserInfoFailedFor(null);
     // TabReport::requestUserInfo/userInfoResponse (tab_report.cpp:780-818)
     // clears context for the selected user and rejects another user's reply.
     // Start before sending so Datatrice's single-investigation guard accepts it.
     dispatch(server.Actions.userInvestigationStarted({ userName: reportedUser }));
-    webClient.request.moderator.reportUserInfo(reportedUser);
-  }, [dispatch, reportedUser, webClient]);
+    webClient.request.moderator.reportUserInfo(reportedUser, userInfoRequest.begin());
+    return userInfoRequest.cancel;
+  }, [dispatch, reportedUser, webClient, userInfoRequest]);
 
+  useReduxEffect((action: ReduxEffectAction<{ requestId?: RequestId }>) => {
+    if (userInfoRequest.isCurrent(action.payload.requestId)) {
+      userInfoRequest.cancel();
+    }
+  }, server.Types.USER_INFO_REPORT, [userInfoRequest]);
 
   // Desktop TabReport::viewReplayResponse: once the replay answering this
   // request arrives, parse it and open it in a replay tab. Keyed on the
   // arrival, not the stored replay, so an earlier download of the same game
   // can't stand in for it.
-  useReduxEffect((action: ReduxEffectAction<{ gameId: number; replayData: Uint8Array }>) => {
+  useReduxEffect((action: ReduxEffectAction<{ gameId: number; replayData: Uint8Array; requestId?: RequestId }>) => {
     const { gameId, replayData } = action.payload;
-    if (pendingReplayGameId.current === null || gameId !== pendingReplayGameId.current) {
+    if (!actionRequest.isCurrent(action.payload.requestId) || gameId !== pendingReplayGameId.current) {
       return;
     }
+    actionRequest.cancel();
     pendingReplayGameId.current = null;
     setActionBusy(false);
     try {
@@ -227,7 +246,7 @@ export function useReportQueue(): ReportQueue {
     } catch {
       setActionMessage('replayParseFailed');
     }
-  }, server.Types.REPORT_REPLAY_DOWNLOADED, [watchReplay, t]);
+  }, server.Types.REPORT_REPLAY_DOWNLOADED, [watchReplay, t, actionRequest]);
 
   const actions = useMemo<ReportQueueActions>(() => {
     if (!selected || actionBusy) {
@@ -244,53 +263,56 @@ export function useReportQueue(): ReportQueue {
   }, [selected, actionBusy]);
 
   const finish = useCallback((message: QueueActionMessage, reload: boolean) => {
-    if (!mounted.current) {
-      return;
-    }
+    actionRequest.cancel();
     setActionBusy(false);
     if (reload) {
       refresh();
     }
     setActionMessage(message);
-  }, [refresh]);
+  }, [refresh, actionRequest]);
 
   // Desktop refreshes the queue once an assign or resolve succeeds; the answer
   // reaches the view as the store's reportAssigned / reportResolved signal.
-  const pendingMutation = useRef<PendingMutation | null>(null);
-  useReduxEffect((action: ReduxEffectAction<{ reportId: number }>) => {
+  useReduxEffect((action: ReduxEffectAction<{ reportId: number; requestId?: RequestId }>) => {
     const pending = pendingMutation.current;
     const command = action.type === server.Types.REPORT_ASSIGNED ? 'reportAssign' : 'reportResolve';
-    if (pending?.command === command && pending.reportId === action.payload.reportId) {
+    if (actionRequest.isCurrent(action.payload.requestId)
+      && pending?.command === command && pending.reportId === action.payload.reportId) {
       pendingMutation.current = null;
       finish(command === 'reportAssign' ? 'assignedDone' : 'done', true);
     }
-  }, [server.Types.REPORT_ASSIGNED, server.Types.REPORT_RESOLVED], [finish]);
+  }, [server.Types.REPORT_ASSIGNED, server.Types.REPORT_RESOLVED], [finish, actionRequest]);
 
   // Every queue command reports failure through the moderator scope's
   // commandFailed signal (Command_ReportUserInfo's is shared with the
   // Moderation page); the list's is handled by useReportListLoad.
-  useReduxEffect((action: ReduxEffectAction<{ command: WebsocketTypes.ModeratorCommandName; target: string }>) => {
-    const { command, target } = action.payload;
+  useReduxEffect((action: ReduxEffectAction<{
+    command: WebsocketTypes.ModeratorCommandName; target: string; requestId?: RequestId;
+  }>) => {
+    const { command, target, requestId } = action.payload;
     const pending = pendingMutation.current;
     switch (command) {
       case 'reportUserInfo':
-        setUserInfoFailedFor(target);
+        if (target === reportedUser && userInfoRequest.isCurrent(requestId)) {
+          userInfoRequest.cancel();
+          setUserInfoFailedFor(target);
+        }
         break;
       case 'reportStats':
-        if (statsAtRequest.current !== undefined) {
-          statsAtRequest.current = undefined;
+        if (statsRequest.isCurrent(requestId)) {
+          statsRequest.cancel();
           setStatsState('failed');
         }
         break;
       case 'reportAssign':
       case 'reportResolve':
-        if (pending?.command === command && String(pending.reportId) === target) {
+        if (actionRequest.isCurrent(requestId) && pending?.command === command && String(pending.reportId) === target) {
           pendingMutation.current = null;
           finish(command === 'reportAssign' ? 'assignFailed' : 'actionFailed', false);
         }
         break;
       case 'replayDownloadByGameId':
-        if (pendingReplayGameId.current !== null && String(pendingReplayGameId.current) === target) {
+        if (actionRequest.isCurrent(requestId) && pendingReplayGameId.current !== null && String(pendingReplayGameId.current) === target) {
           pendingReplayGameId.current = null;
           finish('noReplay', false);
         }
@@ -298,7 +320,7 @@ export function useReportQueue(): ReportQueue {
       default:
         break;
     }
-  }, server.Types.MODERATOR_COMMAND_FAILED, [finish]);
+  }, server.Types.MODERATOR_COMMAND_FAILED, [finish, reportedUser, userInfoRequest, statsRequest, actionRequest]);
 
   const assign = useCallback(() => {
     if (!selected) {
@@ -307,8 +329,8 @@ export function useReportQueue(): ReportQueue {
     setActionBusy(true);
     setActionMessage('assigning');
     pendingMutation.current = { command: 'reportAssign', reportId: selected.reportId };
-    webClient.request.moderator.reportAssign(selected.reportId);
-  }, [selected, webClient]);
+    webClient.request.moderator.reportAssign(selected.reportId, actionRequest.begin());
+  }, [selected, webClient, actionRequest]);
 
   const sendResolve = useCallback((dismissed: boolean, note: string) => {
     if (!selected) {
@@ -317,8 +339,8 @@ export function useReportQueue(): ReportQueue {
     setActionBusy(true);
     setActionMessage(dismissed ? 'dismissing' : 'resolving');
     pendingMutation.current = { command: 'reportResolve', reportId: selected.reportId };
-    webClient.request.moderator.reportResolve(selected.reportId, note || undefined, dismissed);
-  }, [selected, webClient]);
+    webClient.request.moderator.reportResolve(selected.reportId, note || undefined, dismissed, actionRequest.begin());
+  }, [selected, webClient, actionRequest]);
 
   const viewReplay = useCallback(() => {
     if (!selected || selected.gameId <= 0) {
@@ -327,10 +349,8 @@ export function useReportQueue(): ReportQueue {
     setActionBusy(true);
     setActionMessage('loadingReplay');
     pendingReplayGameId.current = selected.gameId;
-    // Sockatrice clears the stored replay before sending, so only the answer
-    // to this request can match the game id below.
-    webClient.request.moderator.replayDownloadByGameId(selected.gameId);
-  }, [selected, webClient]);
+    webClient.request.moderator.replayDownloadByGameId(selected.gameId, actionRequest.begin());
+  }, [selected, webClient, actionRequest]);
 
   const joinGame = useCallback(() => {
     if (!selected || selected.gameId <= 0) {
