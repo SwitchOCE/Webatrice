@@ -254,8 +254,8 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.deckDelDir({ path }));
   }
 
-  replayList(matchList: ServerInfo_ReplayMatch[]): void {
-    this.store.dispatch(ServerActions.replayList({ matchList }));
+  replayList(matchList: ServerInfo_ReplayMatch[], requestId?: string): void {
+    this.store.dispatch(ServerActions.replayList({ matchList, requestId }));
   }
 
   replayAdded(matchInfo: ServerInfo_ReplayMatch): void {
@@ -299,7 +299,7 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
     this.store.dispatch(ServerActions.deckUploadFailed({ path, responseCode, failure }));
   }
 
-  replayListFailed(responseCode: number, failure?: WebsocketTypes.CommandFailure): void {
-    this.store.dispatch(ServerActions.replayListFailed({ responseCode, failure }));
+  replayListFailed(responseCode: number, failure?: WebsocketTypes.CommandFailure, requestId?: string): void {
+    this.store.dispatch(ServerActions.replayListFailed({ responseCode, failure, requestId }));
   }
 }
