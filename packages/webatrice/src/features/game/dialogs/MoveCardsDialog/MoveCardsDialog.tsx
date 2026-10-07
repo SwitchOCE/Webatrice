@@ -32,7 +32,7 @@ export interface MoveCardsRequest {
 
 const SUBMIT_BUTTON_CLASS =
   'px-3 py-1.5 rounded-md text-sm font-semibold bg-accent text-white hover:bg-accent-hover '
-  + 'shadow-glow transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
+  + 'shadow-glow board-motion transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
 
 const FIELD_CLASS = [
   'w-full bg-bg-base border border-border-subtle rounded-md',
@@ -159,7 +159,7 @@ export default function MoveCardsDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:bg-bg-base transition-colors"
+            className="px-3 py-1.5 rounded-md text-sm font-medium text-text-secondary hover:bg-bg-base board-motion transition-colors"
           >
             {t('MoveCardsDialog.cancel')}
           </button>
