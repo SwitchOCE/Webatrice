@@ -5,7 +5,7 @@ import { server, type CommandFailedPayload } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { Response_ResponseCode, type ServerInfo_ReplayMatch } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { useCommandFailureMessage, useReduxEffect, useWatchReplay } from '@app/hooks';
+import { useCommandFailureMessage, useReduxEffect, useRequestTracker, useWatchReplay } from '@app/hooks';
 import { ReplayFileDTO, ReplayNameTakenError, replayFileName } from '@app/services';
 import { useAppSelector } from '@app/store';
 
@@ -90,6 +90,10 @@ export function useServerReplays(): ServerReplays {
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
   const isRegistered = useAppSelector(server.Selectors.getIsUserRegistered);
   const matches = useAppSelector(server.Selectors.getReplaysList);
+  // The list itself lives in the store (Datatrice's replay reducers); the tracker only
+  // decides which reply settles this pane's refresh, so a superseded one can't end the
+  // loading state or raise a notice.
+  const requests = useRequestTracker();
 
   const [loading, setLoading] = useState(false);
   const [selection, setSelection] = useState<ServerReplaySelection | null>(null);
@@ -107,19 +111,26 @@ export function useServerReplays(): ServerReplays {
 
   const refresh = useCallback(() => {
     setLoading(true);
-    webClient.request.session.replayList();
-  }, [webClient]);
+    setNotice(null);
+    webClient.request.session.replayList(requests.begin());
+  }, [webClient, requests]);
 
   useEffect(() => {
     if (availability === 'available') {
       refresh();
     } else {
+      requests.cancel();
       setLoading(false);
       setSelection(null);
     }
-  }, [availability, refresh]);
+  }, [availability, refresh, requests]);
 
-  useReduxEffect(() => setLoading(false), server.Types.REPLAY_LIST, []);
+  useReduxEffect<ReturnType<typeof server.Actions.replayList>['payload']>(({ payload }) => {
+    if (requests.isCurrent(payload.requestId)) {
+      requests.cancel();
+      setLoading(false);
+    }
+  }, server.Types.REPLAY_LIST, [requests]);
 
   const selectedMatch = useMemo(
     () => (selection ? matches.find((m) => m.gameId === selection.gameId) : undefined),
@@ -137,10 +148,14 @@ export function useServerReplays(): ServerReplays {
     setNotice({ title, message, severity: 'error' });
   }, []);
 
-  useReduxEffect<CommandFailedPayload>(({ payload: { failure } }) => {
+  useReduxEffect<CommandFailedPayload>(({ payload: { failure, requestId } }) => {
+    if (availability !== 'available' || !requests.isCurrent(requestId)) {
+      return;
+    }
+    requests.cancel();
     setLoading(false);
     showError(t('Replays.notice.failed'), describeFailure(failure, t('Replays.server.listFailed')));
-  }, server.Types.REPLAY_LIST_FAILED, [showError, describeFailure, t]);
+  }, server.Types.REPLAY_LIST_FAILED, [availability, requests, showError, describeFailure, t]);
 
   const failed = useCallback(
     (message: string) => (_responseCode: number, failure?: WebsocketTypes.CommandFailure) =>

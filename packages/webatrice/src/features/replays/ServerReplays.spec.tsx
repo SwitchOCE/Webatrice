@@ -114,11 +114,13 @@ describe('Server replay storage', () => {
   });
 
   it('shows loading until the list arrives, then an empty state for an account without replays', () => {
-    const { store } = renderReplays(stateWith({ matches: [] }));
+    const { store, webClient } = renderReplays(stateWith({ matches: [] }));
     expect(serverPane().getByText('Replays.server.loading')).toBeInTheDocument();
 
     act(() => {
-      store.dispatch(server.Actions.replayList({ matchList: [] }));
+      store.dispatch(server.Actions.replayList({
+        matchList: [], requestId: lastCallArg<string>(webClient.request.session.replayList, 0),
+      }));
     });
     expect(serverPane().getByText('Replays.server.empty')).toBeInTheDocument();
   });
@@ -195,13 +197,14 @@ describe('Server replay storage', () => {
   });
 
   it('stops loading and explains a replay list the server never answered', () => {
-    const { store } = renderReplays(stateWith({ matches: [] }));
+    const { store, webClient } = renderReplays(stateWith({ matches: [] }));
     expect(serverPane().getByText('Replays.server.loading')).toBeInTheDocument();
 
     act(() => {
       store.dispatch(server.Actions.replayListFailed({
         responseCode: Response_ResponseCode.RespNotConnected,
         failure: WebsocketTypes.CommandFailure.Disconnected,
+        requestId: lastCallArg<string>(webClient.request.session.replayList, 0),
       }));
     });
 
