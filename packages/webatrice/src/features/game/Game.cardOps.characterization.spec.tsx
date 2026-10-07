@@ -8,7 +8,7 @@
 // pending-target owner; a failure here means it changed behaviour, not that the
 // spec needs updating. Assertions are on the wire (`webClient.request.game.*`).
 
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { Phase } from '@cockatrice/datatrice';
 import { makeArrow, makeCard } from '@cockatrice/datatrice/testing';
 import { ZoneName } from '@cockatrice/sockatrice';
@@ -76,17 +76,6 @@ const MORPH = makeCard({ id: 11, name: 'Morph', x: 3, y: 0, faceDown: true });
 const WALL = makeCard({ id: 12, name: 'Wall', x: 0, y: 2, pt: '0/4', annotation: 'note', doesntUntap: true });
 const SHOCK = makeCard({ id: 30, name: 'Shock' });
 const BEAR = makeCard({ id: 20, name: 'Bear', x: 0, y: 0, pt: '2/2' });
-
-const SORTED_SHOCK = {
-  startPlayerId: 1,
-  startZone: ZoneName.HAND,
-  cardsToMove: { card: [{ cardId: SHOCK.id }] },
-  targetPlayerId: 1,
-  targetZone: ZoneName.HAND,
-  x: 0,
-  y: 0,
-  isReversed: false,
-};
 
 const SPEC: SeatGameSpec = {
   localPlayerId: 1,
@@ -186,7 +175,13 @@ afterEach(() => {
 describe('seat shortcut actions, with Ogre and the face-down Morph selected', () => {
   // What each seat action does from that selection: the requests
   // it sends, the dialog it opens, or the selection it leaves.
-  const EXPECTED: Record<SeatShortcutActionId, { wire?: unknown[]; dialogs?: unknown[]; selected?: string[] }> = {
+  const EXPECTED: Record<SeatShortcutActionId, {
+    wire?: unknown[];
+    dialogs?: unknown[];
+    selected?: string[];
+    promptLabel?: string;
+    afterMove?: unknown[];
+  }> = {
     'game.mulligan': { dialogs: ['Draw hand'] },
     'game.setLife': { dialogs: ['Set life total'] },
     'game.removeLocalArrows': { wire: [['deleteArrow', { arrowId: 7 }]] },
@@ -270,28 +265,47 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     // The zone views open as non-modal dialogs titled by zone and owner.
     'game.viewHand': { dialogs: ['Hand — P1'] },
     'game.viewExile': { dialogs: ['Exile — P1'] },
-    // Each sort re-sends the hand's cards to the front, one moveCard each. Desktop sorts the
-    // hand locally (hand_zone.cpp:119); see the backlog.
-    'game.sortHandByName': { wire: [['moveCard', SORTED_SHOCK]] },
-    'game.sortHandByManaValue': { wire: [['moveCard', SORTED_SHOCK]] },
+    'game.sortHandByName': {},
+    'game.sortHandByManaValue': {},
     'game.revealHandToAll': { wire: [['revealCards', { zoneName: ZoneName.HAND }]] },
     'game.revealRandomHandCardToAll': { wire: [['revealCards', { zoneName: ZoneName.HAND, cardId: [-2] }]] },
     // The library holds 40 cards: the top one is 0, the bottom one 39.
     // A battlefield "end" placement goes out as desktop's x = -1.
     'game.moveTopToPlayFaceDown': { wire: [['moveCard', moveFromDeck({ cardId: 0, faceDown: true }, ZoneName.TABLE, -1)]] },
-    'game.moveTopNToGraveFaceDown': { dialogs: ['Move top cards to Graveyard'] },
+    'game.moveTopNToGraveFaceDown': {
+      dialogs: ['Move top cards to Graveyard'],
+      afterMove: [['moveCard', moveFromDeck([{ cardId: 1, faceDown: true }, { cardId: 0, faceDown: true }], ZoneName.GRAVE, 0)]],
+    },
     'game.moveTopToExile': { wire: [['moveCard', moveFromDeck({ cardId: 0 }, ZoneName.EXILE, 0)]] },
-    'game.moveTopNToExile': { dialogs: ['Move top cards to Exile'] },
-    'game.moveTopNToExileFaceDown': { dialogs: ['Move top cards to Exile'] },
+    'game.moveTopNToExile': {
+      dialogs: ['Move top cards to Exile'],
+      afterMove: [['moveCard', moveFromDeck([{ cardId: 1 }, { cardId: 0 }], ZoneName.EXILE, 0)]],
+    },
+    'game.moveTopNToExileFaceDown': {
+      dialogs: ['Move top cards to Exile'],
+      afterMove: [['moveCard', moveFromDeck([{ cardId: 1, faceDown: true }, { cardId: 0, faceDown: true }], ZoneName.EXILE, 0)]],
+    },
     'game.moveTopToBottom': { wire: [['moveCard', moveFromDeck({ cardId: 0 }, ZoneName.DECK, -1)]] },
     'game.moveBottomToPlay': { wire: [['moveCard', moveFromDeck({ cardId: 39 }, ZoneName.STACK, -1)]] },
     'game.moveBottomToPlayFaceDown': { wire: [['moveCard', moveFromDeck({ cardId: 39, faceDown: true }, ZoneName.TABLE, -1)]] },
     'game.moveBottomToGrave': { wire: [['moveCard', moveFromDeck({ cardId: 39 }, ZoneName.GRAVE, 0)]] },
-    'game.moveBottomNToGrave': { dialogs: ['Move bottom cards to Graveyard'] },
-    'game.moveBottomNToGraveFaceDown': { dialogs: ['Move bottom cards to Graveyard'] },
+    'game.moveBottomNToGrave': {
+      dialogs: ['Move bottom cards to Graveyard'],
+      afterMove: [['moveCard', moveFromDeck([{ cardId: 38 }, { cardId: 39 }], ZoneName.GRAVE, 0)]],
+    },
+    'game.moveBottomNToGraveFaceDown': {
+      dialogs: ['Move bottom cards to Graveyard'],
+      afterMove: [['moveCard', moveFromDeck([{ cardId: 38, faceDown: true }, { cardId: 39, faceDown: true }], ZoneName.GRAVE, 0)]],
+    },
     'game.moveBottomToExile': { wire: [['moveCard', moveFromDeck({ cardId: 39 }, ZoneName.EXILE, 0)]] },
-    'game.moveBottomNToExile': { dialogs: ['Move bottom cards to Exile'] },
-    'game.moveBottomNToExileFaceDown': { dialogs: ['Move bottom cards to Exile'] },
+    'game.moveBottomNToExile': {
+      dialogs: ['Move bottom cards to Exile'],
+      afterMove: [['moveCard', moveFromDeck([{ cardId: 38 }, { cardId: 39 }], ZoneName.EXILE, 0)]],
+    },
+    'game.moveBottomNToExileFaceDown': {
+      dialogs: ['Move bottom cards to Exile'],
+      afterMove: [['moveCard', moveFromDeck([{ cardId: 38, faceDown: true }, { cardId: 39, faceDown: true }], ZoneName.EXILE, 0)]],
+    },
     'game.moveBottomToTop': { wire: [['moveCard', moveFromDeck({ cardId: 39 }, ZoneName.DECK, 0)]] },
     'game.drawBottomCard': { wire: [['moveCard', moveFromDeck({ cardId: 39 }, ZoneName.HAND, 0)]] },
     'game.drawBottomCards': { dialogs: ['Draw bottom cards'] },
@@ -311,22 +325,22 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     'game.decLife': { wire: [['incCounter', { counterId: LIFE_COUNTER_ID, delta: -1 }, 'options']] },
     'game.incManaCounterW': { wire: [['incCounter', { counterId: MANA_COUNTER_IDS.w, delta: 1 }, 'options']] },
     'game.decManaCounterW': { wire: [['incCounter', { counterId: MANA_COUNTER_IDS.w, delta: -1 }, 'options']] },
-    'game.setManaCounterW': { dialogs: ['Set counter'] },
+    'game.setManaCounterW': { dialogs: ['Set counter'], promptLabel: 'White' },
     'game.incManaCounterU': { wire: [['incCounter', { counterId: MANA_COUNTER_IDS.u, delta: 1 }, 'options']] },
     'game.decManaCounterU': { wire: [['incCounter', { counterId: MANA_COUNTER_IDS.u, delta: -1 }, 'options']] },
-    'game.setManaCounterU': { dialogs: ['Set counter'] },
+    'game.setManaCounterU': { dialogs: ['Set counter'], promptLabel: 'Blue' },
     'game.incManaCounterB': { wire: [['incCounter', { counterId: MANA_COUNTER_IDS.b, delta: 1 }, 'options']] },
     'game.decManaCounterB': { wire: [['incCounter', { counterId: MANA_COUNTER_IDS.b, delta: -1 }, 'options']] },
-    'game.setManaCounterB': { dialogs: ['Set counter'] },
+    'game.setManaCounterB': { dialogs: ['Set counter'], promptLabel: 'Black' },
     'game.incManaCounterR': { wire: [['incCounter', { counterId: MANA_COUNTER_IDS.r, delta: 1 }, 'options']] },
     'game.decManaCounterR': { wire: [['incCounter', { counterId: MANA_COUNTER_IDS.r, delta: -1 }, 'options']] },
-    'game.setManaCounterR': { dialogs: ['Set counter'] },
+    'game.setManaCounterR': { dialogs: ['Set counter'], promptLabel: 'Red' },
     'game.incManaCounterG': { wire: [['incCounter', { counterId: MANA_COUNTER_IDS.g, delta: 1 }, 'options']] },
     'game.decManaCounterG': { wire: [['incCounter', { counterId: MANA_COUNTER_IDS.g, delta: -1 }, 'options']] },
-    'game.setManaCounterG': { dialogs: ['Set counter'] },
+    'game.setManaCounterG': { dialogs: ['Set counter'], promptLabel: 'Green' },
     'game.incManaCounterX': { wire: [['incCounter', { counterId: MANA_COUNTER_IDS.x, delta: 1 }, 'options']] },
     'game.decManaCounterX': { wire: [['incCounter', { counterId: MANA_COUNTER_IDS.x, delta: -1 }, 'options']] },
-    'game.setManaCounterX': { dialogs: ['Set counter'] },
+    'game.setManaCounterX': { dialogs: ['Set counter'], promptLabel: 'Colorless' },
     'game.flowP': { wire: [setPT(10, '4/2'), setPT(11, '1/-1')] },
     'game.flowT': { wire: [setPT(10, '2/4'), setPT(11, '-1/1')] },
   };
@@ -355,6 +369,10 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     });
 
     const expected = EXPECTED[id];
+    if (expected.promptLabel) {
+      expect(within(screen.getByRole('dialog', { name: 'Set counter' }))
+        .getByRole('textbox', { name: expected.promptLabel })).toBeInTheDocument();
+    }
     expect({
       wire: wire(game),
       dialogs: dialogNames(),
@@ -364,6 +382,14 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
       dialogs: expected.dialogs ?? [],
       selected: expected.selected ?? ['battlefield:10', 'battlefield:11'],
     });
+    if (expected.afterMove) {
+      // Desktop omits face-down from the prompt title; keep checking that distinction on the wire.
+      const dialog = screen.getByRole('dialog');
+      fireEvent.change(within(dialog).getByRole('spinbutton'), { target: { value: '2' } });
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Move' }));
+      expect(wire(game)).toEqual(expected.afterMove);
+      expect(dialogNames()).toEqual([]);
+    }
   });
 
   it('covers every seat action', () => {
@@ -460,12 +486,16 @@ function moveFromTable(cardIds: number[], targetZone: string, x: number, isRever
   };
 }
 
-/** A Command_MoveCard of one library card, addressed by position. */
-function moveFromDeck(card: { cardId: number; faceDown?: boolean }, targetZone: string, x: number) {
+/** A Command_MoveCard of library cards, addressed by position. */
+function moveFromDeck(
+  card: { cardId: number; faceDown?: boolean } | Array<{ cardId: number; faceDown?: boolean }>,
+  targetZone: string,
+  x: number,
+) {
   return {
     startPlayerId: 1,
     startZone: ZoneName.DECK,
-    cardsToMove: { card: [card] },
+    cardsToMove: { card: Array.isArray(card) ? card : [card] },
     targetPlayerId: 1,
     targetZone,
     x,

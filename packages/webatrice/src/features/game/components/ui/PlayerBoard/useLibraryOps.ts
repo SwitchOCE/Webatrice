@@ -119,14 +119,14 @@ export function useLibraryOps({ deckCount, openCountPrompt, zoneCommands }: UseL
       // 0..N-1 (player_actions.cpp:267-268).
       promptShuffleTopCards: () => promptCount(
         { title: t('ZoneMenu.promptShuffleTop'), submitLabel: t('ZoneMenu.actionShuffle') },
-        (count) => zoneCommands.shuffleLibrary({ start: 0, end: count - 1 }),
-      ),
+        (count) =>
+          zoneCommands.shuffleLibrary({ start: 0, end: count - 1 })),
       // `[-N, -1]`: negative positions count from the bottom (desktop always
       // sends negative for the bottom, player_actions.cpp:298-299).
       promptShuffleBottomCards: () => promptCount(
         { title: t('ZoneMenu.promptShuffleBottom'), submitLabel: t('ZoneMenu.actionShuffle') },
-        (count) => zoneCommands.shuffleLibrary({ start: -count, end: -1 }),
-      ),
+        (count) =>
+          zoneCommands.shuffleLibrary({ start: -count, end: -1 })),
     };
   }, [deckCount, openCountPrompt, t, zoneCommands]);
 }

@@ -332,8 +332,9 @@ describe('create all related tokens', () => {
 
   it('offers nothing for a card without relations, and no hint when unbound', () => {
     expect(buildRelatedActionItems(t, source({}), vi.fn(), CREATE_ALL, vi.fn())).toEqual([]);
-    const unbound = { shortcut: '', keyShortcuts: '' };
-    expect(row(buildRelatedActionItems(t, source({ related: [ref('Soldier')] }), vi.fn(), unbound, vi.fn())[0]).shortcut).toBeUndefined();
+    const noShortcut = { shortcut: '', keyShortcuts: '' };
+    const [item] = buildRelatedActionItems(t, source({ related: [ref('Soldier')] }), vi.fn(), noShortcut, vi.fn());
+    expect(row(item).shortcut).toBeUndefined();
   });
 });
 

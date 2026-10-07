@@ -5,6 +5,8 @@ import { makeCard } from '@cockatrice/datatrice/testing';
 
 import { PREFERENCE_DEFAULTS } from '@app/types';
 import { createMockWebClient, renderWithProviders } from '../../../../__test-utils__';
+import { testI18n } from '../../../../__test-utils__/renderWithProviders';
+import tallyText from './TallyOverlay.i18n.json';
 import { usePreferences } from '../../../../hooks/useSettings';
 import {
   battlefieldEl,
@@ -17,28 +19,6 @@ import Game from '../../Game';
 import { useTallyType } from '../../hooks/useTallyType';
 
 vi.mock('../../../../hooks/useSettings');
-
-vi.mock('react-i18next', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('react-i18next')>();
-  return {
-    ...actual,
-    // The selection count is spelled out; everything else answers as the test i18n does.
-    useTranslation: () => {
-      const real = actual.useTranslation();
-      return {
-        ...real,
-        t: ((key: string, options?: { count?: number }) => {
-          if (key === 'TallyOverlay.selectedCount') {
-            return options?.count === 1
-              ? '1 card selected'
-              : `${options?.count ?? 0} cards selected`;
-          }
-          return real.t(key, options);
-        }) as typeof real.t,
-      };
-    },
-  };
-});
 
 vi.mock('../../../../services/cards/catalog/lookup', () => {
   const unknown = (name: string) => ({ found: false, source: 'unknown', name, printings: [] });
@@ -79,6 +59,7 @@ function selectCard(cardId: number, ctrlKey = false) {
 }
 
 beforeEach(() => {
+  testI18n.addResourceBundle('en-US', 'translation', tallyText, true, true);
   // The choice is a per-user preference; start every test at None.
   const { result } = renderHook(() => useTallyType());
   act(() => result.current[1]('none'));
