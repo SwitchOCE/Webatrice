@@ -1,12 +1,13 @@
 import type { games } from '@cockatrice/datatrice';
 import type { PlaymatSettings } from '@app/hooks';
+import { onSessionEnd } from '@app/services/session';
 
 /**
  * What desktop's DeckViewContainer keeps per match for #7101: the deck's own
  * playmat, the last playmat resolved and sent, and the round-robin cursor
  * (deck_view_container.h). The web Game route unmounts whenever the user
  * leaves `/game/:id` (Settings included), so this lives outside the component,
- * keyed by game, and is dropped once the game leaves the store.
+ * keyed by game, and is dropped when the game leaves the store or the session ends.
  */
 export interface PlaymatSyncState {
   /** The deck the playmat below was read for; empty before a deck select. */
@@ -53,7 +54,9 @@ export function prunePlaymatSyncState(liveGameIds: readonly number[]): void {
   }
 }
 
-/** S1 registration seam: the later session pass registers this with onSessionEnd. */
+/** Forgets every game at a session boundary. */
 export function clearPlaymatSyncState(): void {
   states.clear();
 }
+
+onSessionEnd(clearPlaymatSyncState);
