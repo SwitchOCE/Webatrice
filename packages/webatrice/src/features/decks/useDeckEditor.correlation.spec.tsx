@@ -5,7 +5,7 @@ import { endSession } from '@app/services/session';
 import { rootReducerMap, type RootState } from '@app/store';
 import { connectedState, createMockWebClient } from '../../__test-utils__';
 import { makeReduxWebClientHookWrapper } from '../../__test-utils__/makeHookWrapper';
-import { emptyCod } from './cod';
+import { emptyCod } from '@app/services';
 import { hydrateDeck } from './hydrate';
 import { clearDeckEditorCache, useDeckEditor } from './useDeckEditor';
 import type { HydratedDeck } from './types';
