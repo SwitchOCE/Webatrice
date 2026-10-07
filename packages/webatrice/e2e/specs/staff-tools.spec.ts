@@ -1,7 +1,6 @@
 import { execFileSync } from 'node:child_process';
 
 import { expect, test, type Page } from '@playwright/test';
-import { server, ServerCapability } from '@cockatrice/datatrice';
 
 import { E2E_ADMIN, E2E_MODERATOR, reachRoomsAs, registerAndReachRooms } from '../fixtures/flows';
 import { randomSuffix } from '../fixtures/users';
@@ -66,6 +65,8 @@ test('a moderator looks up the alts of an account from Moderation', async ({ bro
   await openUserMenu(page, E2E_MODERATOR.username);
 
   expect(ADVERTISED_VERSION, 'global setup must capture the advertised server version').toBeTruthy();
+  // import(): Playwright compiles specs to CommonJS, and datatrice only exports `import`.
+  const { server, ServerCapability } = await import('@cockatrice/datatrice');
   if (!server.serverSupports(ADVERTISED_VERSION ?? null, ServerCapability.MODERATION_TOOLS)) {
     test.info().annotations.push({
       type: 'unsupported',
