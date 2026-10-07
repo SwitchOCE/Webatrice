@@ -156,8 +156,8 @@ export interface ISessionResponse {
   deckVisibilityChanged?(params: DeckSetVisibilityParams): void;
   publicDeckDownloaded?(deckId: number, deck: string): void;
   /** The caller's own reports (#7091). */
-  reportMyList?(reports: ServerInfo_Report[]): void;
-  reportDetails?(report: ServerInfo_Report): void;
+  reportMyList?(reports: ServerInfo_Report[], requestId?: RequestId): void;
+  reportDetails?(report: ServerInfo_Report, requestId?: RequestId): void;
 
   /**
    * A query above failed; `target` names what it acted on (a share token, deck,
@@ -343,14 +343,14 @@ export interface IModeratorResponse {
   moderatorLastLogins?(logins: ServerInfo_ModeratorLogin[]): void;
   userAvatarRemoved?(userName: string): void;
   /** Moderation queue (#7091). */
-  reportList?(reports: ServerInfo_Report[], totalCount: number): void;
-  reportAssigned?(reportId: number): void;
-  reportResolved?(reportId: number, dismissed: boolean): void;
-  reportUserInfo?(info: Response_ReportUserInfo): void;
-  reportStats?(stats: Response_ReportStats): void;
+  reportList?(reports: ServerInfo_Report[], totalCount: number, requestId?: RequestId): void;
+  reportAssigned?(reportId: number, requestId?: RequestId): void;
+  reportResolved?(reportId: number, dismissed: boolean, requestId?: RequestId): void;
+  reportUserInfo?(info: Response_ReportUserInfo, requestId?: RequestId): void;
+  reportStats?(stats: Response_ReportStats, requestId?: RequestId): void;
   /** Sent before the request, so a stored replay of the same game can't stand in for the answer. */
   replayDownloadByGameIdPending?(gameId: number): void;
-  replayDownloadedByGameId?(gameId: number, response: Response_ReplayDownloadByGameId): void;
+  replayDownloadedByGameId?(gameId: number, response: Response_ReplayDownloadByGameId, requestId?: RequestId): void;
 
   /**
    * A command failed; `target` names what it acted on (a user name, card name,

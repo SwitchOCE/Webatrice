@@ -160,6 +160,7 @@ const admin = {
 };
 
 const moderator = {
+  commandFailed: vi.fn(),
   banFromServer: vi.fn(),
   banHistory: vi.fn(),
   viewLogs: vi.fn(),

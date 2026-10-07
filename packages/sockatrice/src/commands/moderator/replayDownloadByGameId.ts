@@ -1,5 +1,6 @@
 import { create } from '@bufbuild/protobuf';
 import { WebClient } from '../../WebClient';
+import type { RequestId } from '../../types/RequestId';
 
 import {
   Command_ReplayDownloadByGameId_ext,
@@ -9,7 +10,7 @@ import {
 
 // RespNameNotFound means the game left no replay; desktop TabReport shows
 // "No replay available for this game." for any failure.
-export function replayDownloadByGameId(gameId: number): void {
+export function replayDownloadByGameId(gameId: number, ...correlation: [requestId?: RequestId]): void {
   WebClient.instance.response.moderator.replayDownloadByGameIdPending?.(gameId);
   WebClient.instance.protobuf.sendModeratorCommand(
     Command_ReplayDownloadByGameId_ext,
@@ -17,10 +18,12 @@ export function replayDownloadByGameId(gameId: number): void {
     {
       responseExt: Response_ReplayDownloadByGameId_ext,
       onSuccess: (response) => {
-        WebClient.instance.response.moderator.replayDownloadedByGameId?.(gameId, response);
+        WebClient.instance.response.moderator.replayDownloadedByGameId?.(gameId, response, ...correlation);
       },
       onError: (responseCode, _raw, failure) => {
-        WebClient.instance.response.moderator.commandFailed?.('replayDownloadByGameId', responseCode, String(gameId), failure);
+        WebClient.instance.response.moderator.commandFailed?.(
+          'replayDownloadByGameId', responseCode, String(gameId), failure, ...correlation,
+        );
       },
     },
   );
