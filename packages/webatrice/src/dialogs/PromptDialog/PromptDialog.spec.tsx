@@ -38,7 +38,7 @@ describe('PromptDialog', () => {
 
   it('masks passwords and submits their unchanged value', () => {
     const onSubmit = vi.fn();
-    render(<PromptDialog isOpen title="Join" label="Password" inputType="password" onSubmit={onSubmit} onCancel={vi.fn()} />);
+    render(<PromptDialog isOpen title="Join" label="Password" type="password" onSubmit={onSubmit} onCancel={vi.fn()} />);
     const input = screen.getByLabelText('Password');
     expect(input).toHaveAttribute('type', 'password');
     fireEvent.change(input, { target: { value: 'hunter2' } });

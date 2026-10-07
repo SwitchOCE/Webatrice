@@ -190,7 +190,7 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
       <PromptDialog
         isOpen={passwordRequired}
         title={t('UserGamesDialog.password.title')}
-        inputType="password"
+        type="password"
         label={passwordGame?.description
           ? t('UserGamesDialog.password.label', { name: passwordGame.description })
           : t('UserGamesDialog.password.gameIdLabel', { gameId: passwordGame?.gameId })}

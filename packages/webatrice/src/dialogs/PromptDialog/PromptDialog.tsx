@@ -30,14 +30,13 @@ export interface PromptDialogProps {
   title: string;
   label: string;
   initialValue?: string;
-  inputType?: 'text' | 'password';
   submitLabel?: string;
   helperText?: string;
   /** A line under the title: what is being edited, or the input's range. */
   description?: string;
   placeholder?: string;
-  /** `number` for whole-number answers (arrow keys step the value). */
-  type?: 'text' | 'number';
+  /** `number` for whole-number answers (arrow keys step the value); `password` masks the answer. */
+  type?: 'text' | 'number' | 'password';
   /** `numeric` brings up a number keypad without restricting what can be typed. */
   inputMode?: 'text' | 'numeric';
   /** Select the seeded value on focus, so typing replaces it. */
@@ -54,7 +53,6 @@ function PromptDialog({
   title,
   label,
   initialValue = '',
-  inputType = 'text',
   submitLabel = 'OK',
   helperText,
   description,
@@ -92,7 +90,6 @@ function PromptDialog({
             <DialogContentText className="PromptDialog__description">{description}</DialogContentText>
           )}
           <TextField
-            type={inputType}
             autoFocus
             fullWidth
             variant="outlined"
