@@ -117,8 +117,8 @@ describe('GamesList restriction gating', () => {
     const room = makeRoomEntry([makeGame({ playerCount: 4, spectatorsAllowed: false, withPassword: true,
       spectatorsNeedPassword: true })]);
     renderWithProviders(<GamesList room={room} />, { preloadedState: buildState(room, makeUser({ userLevel }), 1) });
-    const join = screen.getByRole('button', { name: /^Join$/ });
-    const spectate = screen.getByRole('button', { name: /^(Join as Spectator|Spectate)$/i });
+    const join = screen.getByRole('button', { name: 'Common.action.join' });
+    const spectate = screen.getByRole('button', { name: 'GamesList.action.spectate' });
     expect(join).toHaveProperty('disabled', !override);
     expect(spectate).toHaveProperty('disabled', !override);
     if (override) {
