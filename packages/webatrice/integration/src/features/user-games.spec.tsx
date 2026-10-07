@@ -1,8 +1,11 @@
 import { Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
 
+import { SessionScope } from '../../../src/SessionScope';
+import { useAppSelector } from '@app/store';
+import GamesList from '../../../src/features/rooms/components/GamesList';
 import { UserDisplay } from '@app/components';
 import { UserGamesProvider } from '@app/feature-widgets/user-games';
 import {
@@ -26,7 +29,7 @@ import {
   ServerInfo_UserSchema,
 } from '@cockatrice/sockatrice/generated';
 
-import { connectAndLogin } from '../helpers/setup';
+import { connectAndLogin, getWebClient, store } from '../helpers/setup';
 import { buildResponse, buildResponseMessage, buildSessionEventMessage, deliverMessage } from '../helpers/protobuf-builders';
 import { findLastRoomCommand, findLastSessionCommand } from '../helpers/command-capture';
 import { renderFeatureScreen, simulateLoggedIn } from './helpers';
@@ -51,6 +54,11 @@ const bobsGame = create(ServerInfo_GameSchema, {
   creatorInfo: { name: 'bob' },
 });
 
+function BackgroundGames() {
+  const joinedRoom = useAppSelector((state) => state.rooms.rooms[2]);
+  return joinedRoom ? <GamesList room={joinedRoom} /> : null;
+}
+
 function LocationProbe() {
   return <div data-testid="location">{useLocation().pathname}</div>;
 }
@@ -70,7 +78,9 @@ function setupLobby() {
 
   renderFeatureScreen(
     <Routes>
-      <Route path="*" element={<UserGamesProvider><UserDisplay user={bob} /><LocationProbe /></UserGamesProvider>} />
+      <Route path="*" element={<SessionScope><UserGamesProvider>
+        <UserDisplay user={bob} /><BackgroundGames /><LocationProbe />
+      </UserGamesProvider></SessionScope>} />
     </Routes>,
     '/server',
   );
@@ -149,4 +159,52 @@ describe('Show games of a user (integration)', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('UserGamesDialog.error.ignored');
   });
+});
+
+async function openUnprotectedGame() {
+  const request = openShowGames();
+  act(() => deliverMessage(buildResponseMessage(buildResponse({
+    cmdId: request.cmdId, ext: Response_GetGamesOfUser_ext,
+    value: create(Response_GetGamesOfUserSchema, {
+      roomList: [room], gameList: [create(ServerInfo_GameSchema, { ...bobsGame, withPassword: false })],
+    }),
+  }))));
+  return screen.findByText('Friday casual');
+}
+
+it('keeps a closed selector rejection out of the reopened selector and background list', async () => {
+  setupLobby();
+  fireEvent.doubleClick(await openUnprotectedGame());
+  const oldJoin = findLastRoomCommand(Command_JoinGame_ext);
+  fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+  await openUnprotectedGame();
+  act(() => deliverMessage(buildResponseMessage(buildResponse({
+    cmdId: oldJoin.cmdId, responseCode: Response_ResponseCode.RespWrongPassword,
+  }))));
+  expect(screen.queryByText('JoinGameError.wrongPassword')).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'UserGamesDialog.error.title' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('dialog', { name: 'Error' })).not.toBeInTheDocument();
+
+  fireEvent.doubleClick(screen.getByText('Friday casual'));
+  const currentJoin = findLastRoomCommand(Command_JoinGame_ext);
+  act(() => deliverMessage(buildResponseMessage(buildResponse({
+    cmdId: currentJoin.cmdId, responseCode: Response_ResponseCode.RespWrongPassword,
+  }))));
+  expect(screen.getAllByText('JoinGameError.wrongPassword')).toHaveLength(1);
+  expect(screen.getByRole('dialog', { name: 'UserGamesDialog.error.title' })).toBeInTheDocument();
+});
+
+it('leaves no old selector or join error after disconnect, re-login, and a late response', async () => {
+  setupLobby();
+  fireEvent.doubleClick(await openUnprotectedGame());
+  const oldJoin = findLastRoomCommand(Command_JoinGame_ext);
+  act(() => getWebClient().disconnect());
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(store.getState().rooms.joinGameError).toBeNull();
+  act(() => connectAndLogin('alice'));
+  act(() => deliverMessage(buildResponseMessage(buildResponse({
+    cmdId: oldJoin.cmdId, responseCode: Response_ResponseCode.RespWrongPassword,
+  }))));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(store.getState().rooms.joinGameError).toBeNull();
 });

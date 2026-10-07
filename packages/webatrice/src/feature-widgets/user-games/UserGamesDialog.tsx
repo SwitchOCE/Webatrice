@@ -5,7 +5,7 @@ import { games, rooms, server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { Response_ResponseCode, type ServerInfo_Game } from '@cockatrice/sockatrice/generated';
 import { AlertDialog, DialogShell, PromptDialog } from '@app/dialogs';
-import { useCommandFailureMessage, useGridRows, useJoinGame, useNavigateOnGameJoined } from '@app/hooks';
+import { useCommandFailureMessage, useGridRows, useJoinGame, useJoinGameErrorMessage, useNavigateOnGameJoined } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 import { formatRestrictions, formatSpectators } from '@app/utils';
 
@@ -52,6 +52,7 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
   const [roomNotJoined, setRoomNotJoined] = useState(false);
   const { beginJoin, passwordRequired, passwordGame, submitPassword, cancelPassword, joinPending, joinError, clearJoinError } =
     useJoinGame(onClose);
+  const joinErrorMessage = useJoinGameErrorMessage(joinError);
 
   useEffect(() => {
     webClient.request.session.getGamesOfUser(userName);
@@ -197,7 +198,7 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
       <AlertDialog
         isOpen={joinError !== null || roomNotJoined}
         title={t('UserGamesDialog.error.title')}
-        message={roomNotJoined ? t('UserGamesDialog.error.joinRoomFirst') : (joinError?.message ?? '')}
+        message={roomNotJoined ? t('UserGamesDialog.error.joinRoomFirst') : joinErrorMessage}
         onDismiss={() => (roomNotJoined ? setRoomNotJoined(false) : clearJoinError())}
       />
     </>

@@ -12,6 +12,8 @@ import {
   type ServerInfo_Game,
 } from '@cockatrice/sockatrice/generated';
 
+import { WebsocketTypes } from '@cockatrice/sockatrice/types';
+import { endSession } from '@app/services/session';
 import { rootReducerMap, type RootState } from '../store';
 import { createMockWebClient, connectedState } from '../__test-utils__';
 import { useJoinGame, useNavigateOnGameJoined } from './useJoinGame';
@@ -53,8 +55,8 @@ function setup<T>(hook: () => T, preloadedState: Partial<RootState> = connectedS
       </Provider>
     );
   }
-  const { result } = renderHook(hook, { wrapper: Wrapper });
-  return { result, store, webClient, location };
+  const view = renderHook(hook, { wrapper: Wrapper });
+  return { ...view, store, webClient, location, Wrapper };
 }
 
 const makeGame = (overrides: MessageInitShape<typeof ServerInfo_GameSchema> = {}): ServerInfo_Game =>
@@ -66,13 +68,13 @@ describe('useJoinGame', () => {
     act(() => result.current.beginJoin(2, makeGame(), false, false));
     expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(2, {
       gameId: 7, password: '', spectator: false, overrideRestrictions: false, joinAsJudge: false,
-    });
+    }, expect.any(String));
   });
 
   it('joins a full game as a spectator', () => {
     const { result, webClient } = setup(() => useJoinGame());
     act(() => result.current.beginJoin(2, makeGame({ playerCount: 2 }), false, false));
-    expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(2, expect.objectContaining({ spectator: true }));
+    expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(2, expect.objectContaining({ spectator: true }), expect.any(String));
   });
 
   it('asks for the password first and sends it with the join', () => {
@@ -85,7 +87,7 @@ describe('useJoinGame', () => {
     expect(result.current.passwordRequired).toBe(false);
     expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(2, expect.objectContaining({
       password: 'hunter2', joinAsJudge: true,
-    }));
+    }), expect.any(String));
   });
 
   it('does not ask spectators for a password the game does not require of them', () => {
@@ -113,27 +115,101 @@ describe('useJoinGame', () => {
   });
 });
 
-describe('useJoinGame with several lists mounted', () => {
-  const setupTwoLists = () => setup(() => ({ roomList: useJoinGame(), userGames: useJoinGame() }));
-  const rejectJoin = (store: ReturnType<typeof setup>['store']) => act(() => {
-    store.dispatch(rooms.Actions.setJoinGameError({ code: 12, message: 'Wrong password.' }));
+describe('useJoinGame request ownership', () => {
+  const requestId = (webClient: ReturnType<typeof createMockWebClient>) =>
+    vi.mocked(webClient.request.rooms.joinGame).mock.lastCall?.[2];
+  const rejectJoin = (store: ReturnType<typeof setup>['store'], id?: string) => act(() => {
+    store.dispatch(rooms.Actions.setJoinGameError({ code: 12, message: '', requestId: id }));
   });
 
   it('reports a rejected join only in the list that sent it', () => {
-    const { result, store } = setupTwoLists();
+    const { result, store, webClient } = setup(() => ({ roomList: useJoinGame(), userGames: useJoinGame() }));
     act(() => result.current.userGames.beginJoin(2, makeGame(), false, false));
-    rejectJoin(store);
-    expect(result.current.userGames.joinError).toEqual({ code: 12, message: 'Wrong password.' });
+    const id = requestId(webClient);
+    rejectJoin(store, id);
+    expect(result.current.userGames.joinError).toEqual({ code: 12, message: '', requestId: id });
     expect(result.current.roomList.joinError).toBeNull();
+    expect(id).toEqual(expect.any(String));
   });
 
-  it('moves the error to whichever list sent the latest join', () => {
-    const { result, store } = setupTwoLists();
-    act(() => result.current.userGames.beginJoin(2, makeGame(), false, false));
-    act(() => result.current.roomList.beginJoin(2, makeGame(), false, false));
+  it('owns a synchronous not-sent failure before the command returns', () => {
+    const { result, store, webClient } = setup(() => useJoinGame());
+    vi.mocked(webClient.request.rooms.joinGame).mockImplementationOnce((_roomId, _params, requestId) => {
+      store.dispatch(rooms.Actions.setJoinGameError({
+        code: -1, message: '', failure: WebsocketTypes.CommandFailure.NotSent, requestId,
+      }));
+    });
+    act(() => result.current.beginJoin(2, makeGame(), false, false));
+    expect(result.current.joinError).toMatchObject({
+      failure: WebsocketTypes.CommandFailure.NotSent, requestId: expect.any(String),
+    });
+  });
+
+  it('ignores an ownerless error in every mounted list', () => {
+    const { result, store } = setup(() => ({ a: useJoinGame(), b: useJoinGame() }));
     rejectJoin(store);
-    expect(result.current.roomList.joinError).not.toBeNull();
-    expect(result.current.userGames.joinError).toBeNull();
+    expect(result.current.a.joinError).toBeNull();
+    expect(result.current.b.joinError).toBeNull();
+  });
+
+  it('ignores an old rejection after its list closes and reopens', () => {
+    const old = setup(() => useJoinGame());
+    const background = renderHook(() => useJoinGame(), { wrapper: old.Wrapper });
+    act(() => old.result.current.beginJoin(2, makeGame(), false, false));
+    const id = requestId(old.webClient);
+    old.unmount();
+    const reopened = renderHook(() => useJoinGame(), { wrapper: old.Wrapper });
+    rejectJoin(old.store, id);
+    expect(reopened.result.current.joinError).toBeNull();
+    expect(background.result.current.joinError).toBeNull();
+  });
+
+  it('retains the latest accepted error when an older same-game request rejects later', () => {
+    const { result, store, webClient } = setup(() => useJoinGame());
+    act(() => result.current.beginJoin(2, makeGame(), false, false));
+    const oldId = requestId(webClient);
+    act(() => result.current.beginJoin(2, makeGame(), false, false));
+    const newId = requestId(webClient);
+    rejectJoin(store, newId);
+    const accepted = result.current.joinError;
+    rejectJoin(store, newId);
+    expect(result.current.joinError).toBe(accepted);
+    rejectJoin(store, oldId);
+    expect(result.current.joinError).toBe(accepted);
+    expect(result.current.joinError?.requestId).toBe(newId);
+    expect(newId).not.toBe(oldId);
+  });
+
+  it('keeps each list error when another list receives or dismisses its own error', () => {
+    const { result, store, webClient } = setup(() => ({ a: useJoinGame(), b: useJoinGame() }));
+    act(() => result.current.a.beginJoin(2, makeGame(), false, false));
+    const aId = requestId(webClient);
+    act(() => result.current.b.beginJoin(2, makeGame(), false, false));
+    const bId = requestId(webClient);
+    rejectJoin(store, aId);
+    expect(result.current.a.joinError?.requestId).toBe(aId);
+    expect(result.current.b.joinError).toBeNull();
+    rejectJoin(store, bId);
+    const bError = result.current.b.joinError;
+    act(() => result.current.a.clearJoinError());
+    expect(result.current.a.joinError).toBeNull();
+    expect(result.current.b.joinError).toBe(bError);
+    expect(store.getState().rooms.joinGameError?.requestId).toBe(bId);
+  });
+
+  it('ignores duplicate failures after dismissal and cancels ownership at session end', () => {
+    const { result, store, webClient } = setup(() => useJoinGame());
+    act(() => result.current.beginJoin(2, makeGame(), false, false));
+    const first = requestId(webClient);
+    rejectJoin(store, first);
+    act(() => result.current.clearJoinError());
+    rejectJoin(store, first);
+    expect(result.current.joinError).toBeNull();
+    act(() => result.current.beginJoin(2, makeGame(), false, false));
+    const next = requestId(webClient);
+    act(() => endSession());
+    rejectJoin(store, next);
+    expect(result.current.joinError).toBeNull();
   });
 });
 

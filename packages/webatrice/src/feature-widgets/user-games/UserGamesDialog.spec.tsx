@@ -4,7 +4,7 @@ import { I18nextProvider } from 'react-i18next';
 import translations from './UserGamesDialog.i18n.json';
 import { act, fireEvent, screen } from '@testing-library/react';
 import { create, type MessageInitShape } from '@bufbuild/protobuf';
-import { games, type Game } from '@cockatrice/datatrice';
+import { games, rooms, type Game } from '@cockatrice/datatrice';
 import {
   Event_GameJoinedSchema,
   Response_ResponseCode,
@@ -135,7 +135,7 @@ describe('UserGamesDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'UserGamesDialog.action.join' }));
     expect(mockWebClient.request.rooms.joinGame).toHaveBeenCalledWith(2, expect.objectContaining({
       gameId: 7, spectator: false, joinAsJudge: false,
-    }));
+    }), expect.any(String));
   });
 
   it('spectates on request, and only where spectators are allowed', () => {
@@ -145,7 +145,9 @@ describe('UserGamesDialog', () => {
 
     fireEvent.click(screen.getByText('Friday casual'));
     fireEvent.click(screen.getByRole('button', { name: 'UserGamesDialog.action.spectate' }));
-    expect(mockWebClient.request.rooms.joinGame).toHaveBeenCalledWith(2, expect.objectContaining({ gameId: 7, spectator: true }));
+    expect(mockWebClient.request.rooms.joinGame).toHaveBeenCalledWith(
+      2, expect.objectContaining({ gameId: 7, spectator: true }), expect.any(String),
+    );
   });
 
   it('offers judge joins to judges only', () => {
@@ -157,7 +159,9 @@ describe('UserGamesDialog', () => {
     renderDialog({ status: loaded, gameList: [makeGame()], judge: true });
     fireEvent.click(screen.getByText('Friday casual'));
     fireEvent.click(screen.getByRole('button', { name: 'UserGamesDialog.action.joinAsJudge' }));
-    expect(mockWebClient.request.rooms.joinGame).toHaveBeenCalledWith(2, expect.objectContaining({ joinAsJudge: true }));
+    expect(mockWebClient.request.rooms.joinGame).toHaveBeenCalledWith(
+      2, expect.objectContaining({ joinAsJudge: true }), expect.any(String),
+    );
   });
 
   describe('keyboard', () => {
@@ -188,7 +192,7 @@ describe('UserGamesDialog', () => {
       renderDialog({ status: loaded, gameList: twoGames() });
       fireEvent.keyDown(rows()[1], { key: ' ' });
       fireEvent.click(screen.getByRole('button', { name: 'UserGamesDialog.action.join' }));
-      expect(mockWebClient.request.rooms.joinGame).toHaveBeenCalledWith(2, expect.objectContaining({ gameId: 8 }));
+      expect(mockWebClient.request.rooms.joinGame).toHaveBeenCalledWith(2, expect.objectContaining({ gameId: 8 }), expect.any(String));
     });
 
     it('joins the row with Enter', () => {
@@ -196,7 +200,7 @@ describe('UserGamesDialog', () => {
       fireEvent.keyDown(rows()[0], { key: 'Enter' });
       expect(mockWebClient.request.rooms.joinGame).toHaveBeenCalledWith(2, expect.objectContaining({
         gameId: 7, spectator: false,
-      }));
+      }), expect.any(String));
     });
   });
 
@@ -249,4 +253,17 @@ describe('UserGamesDialog', () => {
     });
     expect(onClose).toHaveBeenCalled();
   });
+});
+
+it.each([
+  [Response_ResponseCode.RespWrongPassword, undefined, 'JoinGameError.wrongPassword'],
+  [Response_ResponseCode.RespNotConnected, WebsocketTypes.CommandFailure.Timeout, 'CommandFailure.timeout'],
+] as const)('translates its own join failure %s/%s with an empty legacy message', (code, failure, message) => {
+  const { store } = renderDialog({ status: loaded, gameList: [makeGame()] });
+  fireEvent.doubleClick(screen.getByText('Friday casual'));
+  const requestId = vi.mocked(mockWebClient.request.rooms.joinGame).mock.lastCall?.[2];
+  act(() => store.dispatch(rooms.Actions.setJoinGameError({ code, message: '', failure, requestId })));
+  expect(screen.getByText(message)).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: /^ok$/i }));
+  expect(screen.queryByText(message)).not.toBeInTheDocument();
 });
