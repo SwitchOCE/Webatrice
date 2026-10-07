@@ -54,6 +54,8 @@ describe('integration: report handlers', () => {
     response.moderator.reportResolved?.(1, true);
     expect(server.Selectors.getReport(store.getState(), 1)?.status).toBe('dismissed');
 
+    // Results land only on the investigation the moderator opened (one at a time).
+    store.dispatch(server.Actions.userInvestigationStarted({ userName: 'mallory' }));
     response.moderator.reportUserInfo?.(create(Response_ReportUserInfoSchema, { userName: 'mallory', totalReports: 2 }));
     response.moderator.reportStats?.(create(Response_ReportStatsSchema, { totalReports: 2 }));
     response.moderator.replayDownloadedByGameId?.(5, create(Response_ReplayDownloadByGameIdSchema, {
