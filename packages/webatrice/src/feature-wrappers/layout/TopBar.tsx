@@ -517,10 +517,12 @@ function UserMenu({
   const cardArt = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.CARD_ART));
   const moderation = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.MODERATION_TOOLS));
   const developer = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.DEVELOPER_ROLE));
+  const reports = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.REPORTS));
   const capabilities: Partial<Record<ServerCapability, boolean>> = {
     [ServerCapability.CARD_ART]: cardArt,
     [ServerCapability.MODERATION_TOOLS]: moderation,
     [ServerCapability.DEVELOPER_ROLE]: developer,
+    [ServerCapability.REPORTS]: reports,
   };
   const supports: CapabilityCheck = (capability) => capabilities[capability] ?? false;
   const [open, setOpen] = useState(false);
