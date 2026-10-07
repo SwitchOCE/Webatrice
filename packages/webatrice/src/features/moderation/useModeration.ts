@@ -8,6 +8,7 @@ import {
   useCommandFailureMessage,
   useReduxEffect,
   userInvestigationPath,
+  useUserCapabilities,
   type ReduxEffectAction,
 } from '@app/hooks';
 import { server, type UserInvestigation } from '@cockatrice/datatrice';
@@ -80,7 +81,7 @@ export function useModeration(): Moderation {
   const [searchParams] = useSearchParams();
   const requestedUser = simplified(searchParams.get(INVESTIGATE_USER_PARAM) ?? '');
 
-  const isAdmin = useAppSelector(server.Selectors.getIsUserAdmin);
+  const { isAdmin } = useUserCapabilities();
   const storedLogins = useAppSelector(server.Selectors.getModeratorLastLogins);
 
   const [currentUser, setCurrentUser] = useState('');

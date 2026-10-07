@@ -3,11 +3,10 @@ import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { usePushToast } from '@app/components';
-import { useAdminLock, useCommandFailureMessage, useReduxEffect } from '@app/hooks';
+import { useAdminLock, useCommandFailureMessage, useReduxEffect, useUserCapabilities } from '@app/hooks';
 import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
-import { useAppSelector } from '@app/store';
 
 import { useModeratorFunctions } from './useModeratorFunctions';
 
@@ -49,7 +48,7 @@ export function useAdministration(): Administration {
   const webClient = useWebClient();
   const pushToast = usePushToast();
   const describeFailure = useCommandFailureMessage();
-  const isAdmin = useAppSelector(server.Selectors.getIsUserAdmin);
+  const { isAdmin } = useUserCapabilities();
   const [locked, setLocked] = useAdminLock();
   const [shutdownDialogOpen, setShutdownDialogOpen] = useState(false);
   const [notice, setNotice] = useState<AlertDialogNotice | null>(null);
