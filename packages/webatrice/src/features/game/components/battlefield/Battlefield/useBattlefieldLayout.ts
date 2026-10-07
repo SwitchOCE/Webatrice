@@ -17,6 +17,7 @@ import {
   SEAT_CARD_HEIGHT_PX as CARD_H_PX_BASE,
   SEAT_CARD_WIDTH_PX as CARD_W_PX_BASE,
   slotOriginPx,
+  snapPxToSlot,
   STACK_OFFSET_PX as STACK_OFFSET_PX_BASE,
   STACK_OFFSET_Y_PX as STACK_OFFSET_Y_PX_BASE,
   type BattlefieldLayoutOpts,
@@ -204,6 +205,18 @@ export function useBattlefieldLayout({ cards, playerId, mirrored }: UseBattlefie
     { ...battlefieldLayout, minCols: effectiveMinCols },
   );
   const naturalContentH = computeContentHeight(battlefieldLayout) + stackExtPx;
+  // The scroll viewport is the drop surface, including blank space beyond
+  // the content. Every row shares its width, but stacks change where that
+  // row snaps (desktop table_zone.cpp:413). Count reachable slots with the
+  // pointer resolver, not the shorter row's drawn overlay.
+  const dropWidth = Math.max(naturalContentW, fitSize.w);
+  const colsByWireRow = Array.from({ length: BATTLEFIELD_ROWS }, (_, row) => {
+    const displayRow = mirrored ? BATTLEFIELD_ROWS - 1 - row : row;
+    return snapPxToSlot(
+      Math.max(0, dropWidth - 0.001), rowTopY(displayRow, battlefieldLayout),
+      cellWidths, battlefieldLayout,
+    ).col + 1;
+  });
   // Legacy slot-bound shims — group drops / nearest-available-slot search
   // originally iterated a rectangular `grid.cols × grid.rows` space; with
   // per-row column counts we use the widest row as the effective width.
@@ -321,6 +334,7 @@ export function useBattlefieldLayout({ cards, playerId, mirrored }: UseBattlefie
     battlefieldRef,
     cellWidths,
     colsByRow,
+    colsByWireRow,
     naturalContentW,
     naturalContentH,
     gridRows,

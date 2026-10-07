@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect } from 'react';
 /**
  * A battlefield's drop grid as its board lays it out (useBattlefieldLayout):
  * the grid a drop on it resolves against, and how many columns each wire row
- * offers, a free one past the last card or the board's minimum included.
+ * can reach across the shared drop surface, including its blank space.
  */
 export interface BattlefieldGeometry {
   rows: number;

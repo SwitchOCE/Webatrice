@@ -180,6 +180,7 @@ export default function Battlefield() {
     battlefieldRef,
     cellWidths,
     colsByRow,
+    colsByWireRow,
     naturalContentW,
     naturalContentH,
     gridRows,
@@ -191,10 +192,7 @@ export default function Battlefield() {
   usePublishBattlefieldGeometry(seatId, {
     rows: gridRows,
     cols: gridCols,
-    colsByWireRow: Array.from(
-      { length: BATTLEFIELD_ROWS },
-      (_, row) => colsByRow[handOnTop ? BATTLEFIELD_ROWS - 1 - row : row] ?? gridCols,
-    ),
+    colsByWireRow,
   });
 
   // The board is a seat drop zone of its own: it resolves a drop against its

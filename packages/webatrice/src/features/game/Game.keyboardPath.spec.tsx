@@ -57,7 +57,7 @@ function renderGame() {
 
 const key = (el: Element, init: { key: string; shiftKey?: boolean }) => {
   act(() => {
-    fireEvent.keyDown(el, init);
+    fireEvent.keyDown(el, { code: init.key === 'm' ? 'KeyM' : init.key, ...init });
   });
 };
 const focus = (el: HTMLElement) => act(() => el.focus());
@@ -347,7 +347,7 @@ describe('piles from the keyboard (G5)', () => {
 
 describe('moving cards from the keyboard (M, aud.md G3)', () => {
   const moveDialog = () => screen.getByRole('dialog', { name: /^Move / });
-  const choose = (label: string, value: string) => {
+  const choose = (label: string | RegExp, value: string) => {
     act(() => {
       fireEvent.change(within(moveDialog()).getByLabelText(label), { target: { value } });
     });
@@ -371,7 +371,7 @@ describe('moving cards from the keyboard (M, aud.md G3)', () => {
     expect(within(moveDialog()).getByLabelText('To')).toHaveFocus();
     choose('To', optionValue('To', 'Bob\'s battlefield'));
     choose('Row', optionValue('Row', 'Creatures row'));
-    choose('Column (1 to 5)', '1');
+    choose(/^Column \(1 to /, '1');
     submit();
     expect(game.moveCard).toHaveBeenCalledTimes(1);
     expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
@@ -379,6 +379,25 @@ describe('moving cards from the keyboard (M, aud.md G3)', () => {
       targetPlayerId: 2, targetZone: ZoneName.TABLE, x: 0, y: 1,
     });
     expect(screen.queryByRole('dialog', { name: /^Move / })).not.toBeInTheDocument();
+  });
+
+  it.each([1, 2])('offers the shared board width on an empty row of seat %s', (playerId) => {
+    const { game } = renderGameWithStore({
+      ...SPEC,
+      seats: SPEC.seats.map((seat) => seat.playerId === playerId
+        ? { ...seat, table: [makeCard({ id: 90, name: 'Wide row', x: 18, y: 0 })] }
+        : seat),
+    });
+    const forest = cardEl(FOREST.id, 'hand');
+    focus(forest);
+    key(forest, { key: 'm' });
+    choose('To', `battlefield:${playerId}`);
+    choose('Row', '2');
+    choose('Column (1 to 8)', '8');
+    submit();
+    expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
+      targetPlayerId: playerId, targetZone: ZoneName.TABLE, x: 21, y: 2,
+    });
   });
 
   it('inserts a battlefield card into the hand at the position chosen, and keeps focus on the board', () => {
