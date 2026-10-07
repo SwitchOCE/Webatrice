@@ -151,6 +151,7 @@ export default function ZoneRevealPanel({
             >
               {cards.map((c, i) => {
                 const label = labels?.[i];
+                const interaction = cardInteraction?.(c);
                 return (
                   <div
                     key={`${c.id}-${i}`}
@@ -161,7 +162,8 @@ export default function ZoneRevealPanel({
                       card={c}
                       marked
                       hidden={draggingCardIds?.has(c.id)}
-                      interaction={cardInteraction?.(c)}
+                      interaction={interaction}
+                      selected={interaction?.['aria-selected'] === true || interaction?.['aria-selected'] === 'true'}
                       onPointerDown={onCardPointerDown && ((e) => onCardPointerDown(e, c))}
                       className="board-motion transition-opacity duration-100 ease-out"
                     />
