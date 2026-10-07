@@ -60,7 +60,8 @@ describe('command outcomes', () => {
     expect(getMockResponse().room.setJoinGameError).toHaveBeenCalledTimes(1);
     expect(getMockResponse().room.setJoinGameError).toHaveBeenCalledWith(
       Data.Response_ResponseCode.RespNotConnected,
-      'The connection to the server has been lost.',
+      '',
+      WebsocketTypes.CommandFailure.Disconnected,
     );
 
     // The deadline was cancelled with the command: no second outcome later.
