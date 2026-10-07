@@ -14,7 +14,9 @@ vi.mock('react-i18next', async (importOriginal) => ({
   ...await importOriginal<typeof import('react-i18next')>(),
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en-US' } }),
 }));
-vi.mock('./features/shell', () => ({ FeatureDetection: () => null, CommandFailureNotices: () => null, ServerNotices: () => null }));
+vi.mock('./features/shell', () => ({
+  AppAlerts: () => null, FeatureDetection: () => null, CommandFailureNotices: () => null, ServerNotices: () => null,
+}));
 vi.mock('./features/player', () => ({ PrivateMessageNotifier: () => null }));
 vi.mock('./feature-widgets/shortcuts/useShortcutsHydration', () => ({ useShortcutsHydration: () => {} }));
 vi.mock('./feature-widgets/shortcuts/useShortcutsPersistence', () => ({ useShortcutsPersistence: () => {} }));
