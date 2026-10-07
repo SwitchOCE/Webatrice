@@ -77,6 +77,22 @@ describe('checkI18n', () => {
     expect(run({ sources: [{ file: 'src/A.ts', text: 't(\'A.title\'); const s = { storageKey: \'webatrice.x\' };' }] })).toEqual([]);
   });
 
+  it.each(['\'A.missing\'', '`A.missing`'])('reports an expression-wrapped JSX key: %s', (expression) => {
+    const sources = [{
+      file: 'src/A.tsx',
+      text: `t('A.title');\nconst el = <Trans i18nKey={${expression}} />;`,
+    }];
+    expect(run({ sources })).toEqual(['src/A.tsx:2: missing key "A.missing" (i18nKey)']);
+  });
+
+  it('checks expression-wrapped *Key props and accepts defined and dynamic JSX keys', () => {
+    const sources = [{
+      file: 'src/A.tsx',
+      text: 'const el = <><Trans i18nKey={\'A.title\'} /><Label labelKey={\'A.missing\'} /><Trans i18nKey={key} /><Trans i18nKey /></>;',
+    }];
+    expect(run({ sources })).toEqual(['src/A.tsx:1: missing key "A.missing" (labelKey)']);
+  });
+
   it('rejects a defaultValue on a catalogue key', () => {
     const problems = run({ sources: [{ file: 'src/A.tsx', text: 't(\'A.title\', { defaultValue: \'Title\' });' }] });
     expect(problems).toEqual([
