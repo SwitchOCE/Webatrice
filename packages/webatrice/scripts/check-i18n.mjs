@@ -141,12 +141,13 @@ export function scanSource(file, text) {
       }
     }
 
-    if (ts.isJsxAttribute(node) && node.initializer && ts.isStringLiteral(node.initializer)) {
+    if (ts.isJsxAttribute(node) && node.initializer) {
       const name = node.name.getText(sourceFile);
-      if (name === 'i18nKey') {
-        addKey(node.initializer.text, node.initializer, 'i18nKey');
-      } else if (KEY_PROPERTY.test(name)) {
-        addKey(node.initializer.text, node.initializer, name);
+      const value = ts.isJsxExpression(node.initializer) ? node.initializer.expression : node.initializer;
+      if (value && (ts.isStringLiteral(value) || ts.isNoSubstitutionTemplateLiteral(value))) {
+        if (name === 'i18nKey' || KEY_PROPERTY.test(name)) {
+          addKey(value.text, value, name);
+        }
       }
     }
 
