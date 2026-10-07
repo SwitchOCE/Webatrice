@@ -133,7 +133,7 @@ export interface ISessionResponse {
   downloadServerDeck(deckId: number, response: Response_DeckDownload, requestId?: RequestId): void;
   createServerDeckDir(path: string, dirName: string): void;
   deleteServerDeckDir(path: string): void;
-  replayList(matchList: ServerInfo_ReplayMatch[]): void;
+  replayList(matchList: ServerInfo_ReplayMatch[], requestId?: RequestId): void;
   replayAdded(matchInfo: ServerInfo_ReplayMatch): void;
   replayModifyMatch(gameId: number, doNotHide: boolean): void;
   replayDeleteMatch(gameId: number): void;
@@ -175,7 +175,7 @@ export interface ISessionResponse {
   deckListFailed?(responseCode: number, failure?: CommandFailure): void;
   deckDownloadFailed?(deckId: number, responseCode: number, failure?: CommandFailure, requestId?: RequestId): void;
   deckUploadFailed?(path: string, responseCode: number, failure?: CommandFailure): void;
-  replayListFailed?(responseCode: number, failure?: CommandFailure): void;
+  replayListFailed?(responseCode: number, failure?: CommandFailure, requestId?: RequestId): void;
 }
 
 export interface IRoomResponse<T extends RoomEventMap = WebSocketRoomResponseOverrides> {
