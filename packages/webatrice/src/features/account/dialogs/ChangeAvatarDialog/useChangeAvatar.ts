@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { usePushToast } from '@app/components';
-import { useCommandFailureMessage } from '@app/hooks';
+import { useCommandFailureMessage, useRequestTracker } from '@app/hooks';
 import { useWebClient } from '@cockatrice/datatrice/react';
 
 import { changeAvatarErrorMessage } from '../accountResponseMessages';
@@ -29,6 +29,8 @@ export function useChangeAvatar(onDone: () => void): ChangeAvatar {
   const webClient = useWebClient();
   const pushToast = usePushToast();
   const failureMessage = useCommandFailureMessage();
+  // Per-call closures own the outcome; SessionScope resets local state on session end.
+  const request = useRequestTracker();
   const [preview, setPreview] = useState<AvatarPreview | null>(null);
   const [pending, setPending] = useState(false);
   const [decoding, setDecoding] = useState(false);
@@ -84,24 +86,40 @@ export function useChangeAvatar(onDone: () => void): ChangeAvatar {
     if (pending || decoding || !readable.current) {
       return;
     }
+    const requestId = request.begin();
     setPending(true);
     setError(null);
     let image: Uint8Array;
     try {
       image = preview ? await encodeAvatar(preview.image) : new Uint8Array();
     } catch {
+      if (!request.isCurrent(requestId)) {
+        return;
+      }
+      request.cancel();
       setPending(false);
       setError(t('AccountDialogs.error.avatarFailed'));
+      return;
+    }
+    if (!request.isCurrent(requestId)) {
       return;
     }
     webClient.request.session.accountImage(
       image,
       () => {
+        if (!request.isCurrent(requestId)) {
+          return;
+        }
+        request.cancel();
         setPending(false);
         pushToast(t('ChangeAvatarDialog.success'));
         onDone();
       },
       (responseCode, failure) => {
+        if (!request.isCurrent(requestId)) {
+          return;
+        }
+        request.cancel();
         setPending(false);
         setError(failureMessage(failure, changeAvatarErrorMessage(t, responseCode)));
       },

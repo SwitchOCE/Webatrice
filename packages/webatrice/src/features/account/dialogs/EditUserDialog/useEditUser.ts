@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { usePushToast } from '@app/components';
-import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
+import { useCommandFailureMessage, useReduxEffect, useRequestTracker } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 import { server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
@@ -27,6 +27,8 @@ export function useEditUser(onDone: () => void): EditUser {
   const webClient = useWebClient();
   const pushToast = usePushToast();
   const failureMessage = useCommandFailureMessage();
+  // Per-call closures own the outcome; SessionScope resets local state on session end.
+  const request = useRequestTracker();
   const user = useAppSelector(server.Selectors.getUser);
   const supportsPasswordHash = useAppSelector(server.Selectors.getSupportsPasswordHash);
   const [profile, setProfile] = useState<EditUserProfile | null>(null);
@@ -72,16 +74,25 @@ export function useEditUser(onDone: () => void): EditUser {
       ? { email }
       : (needsPasswordCheck(email, { originalEmail: profile.email, supportsPasswordHash }) ? { email, passwordCheck } : {});
 
+    const requestId = request.begin();
     setPending(true);
     setError(null);
     webClient.request.session.accountEdit(
       { realName, country: country.toLowerCase(), ...emailEdit },
       () => {
+        if (!request.isCurrent(requestId)) {
+          return;
+        }
+        request.cancel();
         setPending(false);
         pushToast(t('EditUserDialog.success'));
         onDone();
       },
       (responseCode, failure) => {
+        if (!request.isCurrent(requestId)) {
+          return;
+        }
+        request.cancel();
         setPending(false);
         setError(failureMessage(failure, editUserErrorMessage(t, responseCode)));
       },

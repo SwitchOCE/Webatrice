@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { usePushToast } from '@app/components';
-import { useCommandFailureMessage } from '@app/hooks';
+import { useCommandFailureMessage, useRequestTracker } from '@app/hooks';
 import { useWebClient } from '@cockatrice/datatrice/react';
 
 import { changePasswordErrorMessage } from '../accountResponseMessages';
@@ -24,10 +24,13 @@ export function useChangePassword(onDone: () => void): ChangePassword {
   const webClient = useWebClient();
   const pushToast = usePushToast();
   const failureMessage = useCommandFailureMessage();
+  // Per-call closures own the outcome; SessionScope resets local state on session end.
+  const request = useRequestTracker();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submit = async ({ oldPassword, newPassword }: ChangePasswordFormValues) => {
+    const requestId = request.begin();
     setPending(true);
     setError(null);
     try {
@@ -35,16 +38,28 @@ export function useChangePassword(onDone: () => void): ChangePassword {
         oldPassword,
         newPassword,
         () => {
+          if (!request.isCurrent(requestId)) {
+            return;
+          }
+          request.cancel();
           setPending(false);
           pushToast(t('ChangePasswordDialog.success'));
           onDone();
         },
         (responseCode, failure) => {
+          if (!request.isCurrent(requestId)) {
+            return;
+          }
+          request.cancel();
           setPending(false);
           setError(failureMessage(failure, changePasswordErrorMessage(t, responseCode)));
         },
       );
     } catch {
+      if (!request.isCurrent(requestId)) {
+        return;
+      }
+      request.cancel();
       setPending(false);
       setError(t('AccountDialogs.error.updateFailed'));
     }
