@@ -42,8 +42,10 @@ export function OpenShareLinkDialog({ open, onClose, onOpen }: OpenShareLinkDial
     resolver: zodResolver(schema),
   });
 
+  // Cleared on close, not on open: an effect after opening could wipe what
+  // the user already typed into the autofocused field.
   useEffect(() => {
-    if (open) {
+    if (!open) {
       reset({ link: '' });
     }
   }, [open, reset]);
