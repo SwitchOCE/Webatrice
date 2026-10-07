@@ -32,6 +32,17 @@ describe('ZoneRevealPanel', () => {
     expect(screen.getByText('top of library is leftmost')).toBeInTheDocument();
   });
 
+  it('paints the keyboard selection and removes it when the selection changes', () => {
+    const interaction = (selected: boolean) => (card: typeof CARDS[number]) => ({
+      role: 'option', 'aria-selected': card.id === '0' && selected,
+    });
+    const { rerender } = renderPanel({ cardInteraction: interaction(true) });
+    expect(cells()[0].style.boxShadow).not.toBe('');
+    expect(cells()[1].style.boxShadow).toBe('');
+    rerender(<ZoneRevealPanel title="Top 2" cards={CARDS} onClose={() => undefined} cardInteraction={interaction(false)} />);
+    expect(cells()[0].style.boxShadow).toBe('');
+  });
+
   it('says when there is nothing to show', () => {
     renderPanel({ cards: [] });
     expect(screen.getByText('No cards to show.')).toBeInTheDocument();
