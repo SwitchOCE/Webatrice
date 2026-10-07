@@ -8,7 +8,9 @@ const frame = vi.hoisted(() => ({ bytes: new Uint8Array() }));
 vi.mock('ws', () => ({ default: class {
   close() {}
   on(event: string, callback: (data: Uint8Array) => void) {
-    if (event === 'message') queueMicrotask(() => callback(frame.bytes));
+    if (event === 'message') {
+      queueMicrotask(() => callback(frame.bytes));
+    }
     return this;
   }
 } }));
@@ -27,7 +29,8 @@ it.each([
   vi.stubEnv('SERVATRICE_ADVERTISED_VERSION', undefined);
   const sessionEvent = create(SessionEventSchema);
   setExtension(sessionEvent, Event_ServerIdentification_ext, create(Event_ServerIdentificationSchema, { serverVersion: version }));
-  frame.bytes = toBinary(ServerMessageSchema, create(ServerMessageSchema, { messageType: ServerMessage_MessageType.SESSION_EVENT, sessionEvent }));
+  const message = create(ServerMessageSchema, { messageType: ServerMessage_MessageType.SESSION_EVENT, sessionEvent });
+  frame.bytes = toBinary(ServerMessageSchema, message);
   await globalSetup();
   expect(process.env.SERVATRICE_ADVERTISED_VERSION).toBe(version);
 });
