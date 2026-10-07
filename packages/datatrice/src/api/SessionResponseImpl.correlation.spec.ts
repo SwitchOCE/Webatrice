@@ -1,6 +1,8 @@
 import { create } from '@bufbuild/protobuf';
 import type { Store } from '@reduxjs/toolkit';
-import { Response_DeckDownloadSchema, Response_DeckShareCreateSchema, ServerInfo_DeckStorage_TreeItemSchema } from '@cockatrice/sockatrice/generated';
+import {
+  Response_DeckDownloadSchema, Response_DeckShareCreateSchema, ServerInfo_DeckStorage_TreeItemSchema,
+} from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { SessionResponseImpl } from './SessionResponseImpl';
 import { RoomResponseImpl } from './RoomResponseImpl';
