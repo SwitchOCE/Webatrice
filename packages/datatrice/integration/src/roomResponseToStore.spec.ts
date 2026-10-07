@@ -308,3 +308,16 @@ describe('integration: room chat and users', () => {
     }).not.toThrow();
   });
 });
+
+it('retains each join error identity through the response bridge and shared-store selector', () => {
+  const store = createStore();
+  const response = attachResponseHandlers(store);
+  response.room.setJoinGamePending(true, 'join-old');
+  response.room.setJoinGamePending(true, 'join-new');
+  response.room.setJoinGameError(12, '', undefined, 'join-new');
+  const acceptedError = rooms.Selectors.getJoinGameError(store.getState());
+  expect(acceptedError).toEqual({ code: 12, message: '', requestId: 'join-new' });
+  response.room.setJoinGameError(12, '', undefined, 'join-old');
+  expect(rooms.Selectors.getJoinGameError(store.getState())).toEqual({ code: 12, message: '', requestId: 'join-old' });
+  expect(acceptedError?.requestId).toBe('join-new');
+});

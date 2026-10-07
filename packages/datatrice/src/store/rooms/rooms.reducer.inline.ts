@@ -182,7 +182,7 @@ export const gameCreated: CaseReducer<RoomsState, PayloadAction<{ roomId: number
 
 export const joinedGame: CaseReducer<
   RoomsState,
-  PayloadAction<{ gameId: number; roomId: number }>
+  PayloadAction<{ gameId: number; roomId: number; requestId?: string }>
 > = (state, action) => {
   const { gameId, roomId } = action.payload;
 
@@ -218,7 +218,7 @@ export const clearGameFilters: CaseReducer<
 
 export const setJoinGamePending: CaseReducer<
   RoomsState,
-  PayloadAction<{ pending: boolean }>
+  PayloadAction<{ pending: boolean; requestId?: string }>
 > = (state, action) => {
   state.joinGamePending = action.payload.pending;
 };

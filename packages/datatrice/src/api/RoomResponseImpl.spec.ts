@@ -131,3 +131,25 @@ describe('RoomResponseImpl', () => {
     );
   });
 });
+
+describe('join-game request correlation', () => {
+  it('carries a successful request identity on its action', () => {
+    const { impl, dispatch } = setup();
+    impl.joinedGame(3, 42, 'join-a');
+    expect(dispatch).toHaveBeenCalledWith(RoomsActions.joinedGame({ roomId: 3, gameId: 42, requestId: 'join-a' }));
+  });
+
+  it('carries the identity on pending settlement actions', () => {
+    const { impl, dispatch } = setup();
+    impl.setJoinGamePending(false, 'join-a');
+    expect(dispatch).toHaveBeenCalledWith(RoomsActions.setJoinGamePending({ pending: false, requestId: 'join-a' }));
+  });
+
+  it.each([undefined, WebsocketTypes.CommandFailure.Timeout])('carries the identity on a rejection or %s failure', (failure) => {
+    const { impl, dispatch } = setup();
+    impl.setJoinGameError(12, '', failure, 'join-a');
+    expect(dispatch).toHaveBeenCalledWith(RoomsActions.setJoinGameError({
+      code: 12, message: '', ...(failure === undefined ? {} : { failure }), requestId: 'join-a',
+    }));
+  });
+});

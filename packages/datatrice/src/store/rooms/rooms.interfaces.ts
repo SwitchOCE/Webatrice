@@ -32,6 +32,8 @@ export interface JoinRoomFailedPayload extends RoomCommandFailedPayload {
 }
 
 export interface JoinGameError {
+  /** Client-only identity of the join whose failure this snapshot describes. */
+  requestId?: string;
   failure?: WebsocketTypes.CommandFailure;
   code: number;
   message: string;
