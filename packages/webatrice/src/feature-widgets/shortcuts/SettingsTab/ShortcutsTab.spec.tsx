@@ -1,7 +1,9 @@
 import { act, fireEvent, screen, within } from '@testing-library/react';
 
 import { renderWithProviders } from '../../../__test-utils__';
+import { allActionIds, defaults } from '../defaults';
 import ShortcutsTab from './ShortcutsTab';
+import shortcutsText from './ShortcutsTab.i18n.json';
 
 describe('ShortcutsTab', () => {
   it('lists the game groups in desktop order, then the other scopes', () => {
@@ -30,20 +32,21 @@ describe('ShortcutsTab', () => {
 
   it('shows each new action under its desktop group, unbound ones as having no binding', () => {
     renderWithProviders(<ShortcutsTab />);
+    const action = shortcutsText.ShortcutsTab.action;
     const section = (group: string) =>
       screen.getByRole('button', { name: new RegExp(`ShortcutsTab\\.group\\.${group}\\d`) }).closest('section')!;
-    expect(within(section('gamePlayingArea')).getByText('ShortcutsTab.action.game.tapCard')).toBeInTheDocument();
-    expect(within(section('gameMoveSelected')).getByText('ShortcutsTab.action.game.moveSelectedToExile')).toBeInTheDocument();
-    expect(within(section('gameView')).getByText('ShortcutsTab.action.game.viewHand')).toBeInTheDocument();
-    expect(within(section('gameHand')).getByText('ShortcutsTab.action.game.revealHandToAll')).toBeInTheDocument();
-    expect(within(section('gameMoveTop')).getByText('ShortcutsTab.action.game.moveTopToExile')).toBeInTheDocument();
-    expect(within(section('gameMoveBottom')).getByText('ShortcutsTab.action.game.drawBottomCard')).toBeInTheDocument();
-    expect(within(section('gameplay')).getByText('ShortcutsTab.action.game.shuffleTopCards')).toBeInTheDocument();
-    expect(within(section('gameCardCounters')).getByText('ShortcutsTab.action.game.addCounterD')).toBeInTheDocument();
-    expect(within(section('gamePlayerCounters')).getByText('ShortcutsTab.action.game.incManaCounterW')).toBeInTheDocument();
-    expect(within(section('gamePowerToughness')).getByText('ShortcutsTab.action.game.flowP')).toBeInTheDocument();
-    expect(within(section('gamePhases')).getByText('ShortcutsTab.action.game.setPhase10')).toBeInTheDocument();
-    const tapRow = within(section('gamePlayingArea')).getByText('ShortcutsTab.action.game.tapCard').closest('div')!.parentElement!;
+    expect(within(section('gamePlayingArea')).getByText(action['game.tapCard'])).toBeInTheDocument();
+    expect(within(section('gameMoveSelected')).getByText(action['game.moveSelectedToExile'])).toBeInTheDocument();
+    expect(within(section('gameView')).getByText(action['game.viewHand'])).toBeInTheDocument();
+    expect(within(section('gameHand')).getByText(action['game.revealHandToAll'])).toBeInTheDocument();
+    expect(within(section('gameMoveTop')).getByText(action['game.moveTopToExile'])).toBeInTheDocument();
+    expect(within(section('gameMoveBottom')).getByText(action['game.drawBottomCard'])).toBeInTheDocument();
+    expect(within(section('gameplay')).getByText(action['game.shuffleTopCards'])).toBeInTheDocument();
+    expect(within(section('gameCardCounters')).getByText(action['game.addCounterD'])).toBeInTheDocument();
+    expect(within(section('gamePlayerCounters')).getByText(action['game.incManaCounterW'])).toBeInTheDocument();
+    expect(within(section('gamePowerToughness')).getByText(action['game.flowP'])).toBeInTheDocument();
+    expect(within(section('gamePhases')).getByText(action['game.setPhase10'])).toBeInTheDocument();
+    const tapRow = within(section('gamePlayingArea')).getByText(action['game.tapCard']).closest('div')!.parentElement!;
     expect(within(tapRow).getByText('ShortcutsTab.noBinding')).toBeInTheDocument();
   });
 
@@ -58,11 +61,11 @@ describe('ShortcutsTab', () => {
     expect(header).toHaveAttribute('aria-expanded', 'true');
     fireEvent.click(header);
     expect(header).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByText('ShortcutsTab.action.game.sortHandByName')).not.toBeInTheDocument();
+    expect(screen.queryByText(shortcutsText.ShortcutsTab.action['game.sortHandByName'])).not.toBeInTheDocument();
     // One focusable edit button per visible row.
-    const rows = screen.getAllByText(/^ShortcutsTab\.action\./);
     const edits = screen.getAllByRole('button', { name: 'ShortcutsTab.editAction' });
-    expect(edits).toHaveLength(rows.length);
+    const visibleActionCount = allActionIds.filter((id) => defaults[id].group !== 'gameHand').length;
+    expect(edits).toHaveLength(visibleActionCount);
     expect(edits.filter((b) => b.tagName !== 'BUTTON' || b.tabIndex < 0)).toEqual([]);
   });
 });

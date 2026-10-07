@@ -55,7 +55,7 @@ function renderGame() {
   return renderGameWithStore().game;
 }
 
-const key = (el: Element, init: { key: string; shiftKey?: boolean }) => {
+const key = (el: Element, init: { key: string; code?: string; shiftKey?: boolean }) => {
   act(() => {
     fireEvent.keyDown(el, { code: init.key === 'm' ? 'KeyM' : init.key, ...init });
   });
@@ -366,7 +366,7 @@ describe('moving cards from the keyboard (M, aud.md G3)', () => {
     const game = renderGame();
     const forest = cardEl(FOREST.id, 'hand');
     focus(forest);
-    key(forest, { key: 'm' });
+    key(forest, { key: 'm', code: 'KeyM' });
     expect(moveDialog()).toHaveAccessibleName('Move Forest');
     expect(within(moveDialog()).getByLabelText('To')).toHaveFocus();
     choose('To', optionValue('To', 'Bob\'s battlefield'));
@@ -404,7 +404,7 @@ describe('moving cards from the keyboard (M, aud.md G3)', () => {
     const game = renderGame();
     const ogre = cardEl(OGRE.id, 'battlefield');
     focus(ogre);
-    key(ogre, { key: 'm' });
+    key(ogre, { key: 'm', code: 'KeyM' });
     choose('To', 'hand');
     choose('Position (1 to 3; 3 is the end)', '1');
     submit();
@@ -418,7 +418,7 @@ describe('moving cards from the keyboard (M, aud.md G3)', () => {
     const game = renderGame();
     const ogre = cardEl(OGRE.id, 'battlefield');
     focus(ogre);
-    key(ogre, { key: 'm' });
+    key(ogre, { key: 'm', code: 'KeyM' });
     act(() => {
       fireEvent.keyDown(within(moveDialog()).getByLabelText('To'), { key: 'Escape' });
     });
@@ -447,7 +447,7 @@ describe('moving cards from the keyboard (M, aud.md G3)', () => {
     chooseMenuPath('View graveyard');
     const duress = screen.getByRole('option', { name: 'Duress' });
     focus(duress);
-    key(duress, { key: 'm' });
+    key(duress, { key: 'm', code: 'KeyM' });
     expect(layer(moveDialog())).toBeGreaterThan(layer(duress));
     choose('To', 'exile');
     submit();
@@ -473,7 +473,7 @@ describe('moving cards from the keyboard (M, aud.md G3)', () => {
     key(forest, { key: ' ' });
     focus(island);
     key(island, { key: ' ' });
-    key(island, { key: 'm' });
+    key(island, { key: 'm', code: 'KeyM' });
     expect(moveDialog()).toHaveAccessibleName('Move 2 cards');
     choose('To', 'hand');
     choose('Position (1 to 3; 3 is the end)', '3');
@@ -506,7 +506,7 @@ describe('moving cards from the keyboard (M, aud.md G3)', () => {
     });
     const beta = screen.getByRole('option', { name: 'Beta' });
     focus(beta);
-    key(beta, { key: 'm' });
+    key(beta, { key: 'm', code: 'KeyM' });
     expect(layer(moveDialog())).toBeGreaterThan(layer(beta));
     choose('To', 'graveyard');
     submit();
@@ -520,7 +520,7 @@ describe('moving cards from the keyboard (M, aud.md G3)', () => {
     renderGame();
     const bear = cardEl(BEAR.id, 'battlefield');
     focus(bear);
-    key(bear, { key: 'm' });
+    key(bear, { key: 'm', code: 'KeyM' });
     expect(screen.queryByRole('dialog', { name: /^Move / })).not.toBeInTheDocument();
   });
 });
