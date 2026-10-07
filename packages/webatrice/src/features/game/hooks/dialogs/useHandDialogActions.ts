@@ -75,6 +75,11 @@ export function useHandDialogActions({
         return;
       }
       const cards = handZone.order.map((id) => handZone.byId[id]).filter(Boolean);
+      // A singleton hand is already sorted; desktop only reorganizes it locally.
+      // Do not send a redundant move for a sort that cannot change its order.
+      if (cards.length < 2) {
+        return;
+      }
       void (async () => {
         const lookups = await Promise.all(
           cards.map(async (card) => {
