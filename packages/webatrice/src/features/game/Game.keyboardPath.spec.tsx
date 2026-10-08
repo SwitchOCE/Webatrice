@@ -408,6 +408,35 @@ describe('moving cards from the keyboard (M, aud.md G3)', () => {
     expect(ogre).toHaveFocus();
   });
 
+  /** The z-index of the outermost layer around `el`, the portal it sits in (Tailwind z-N / z-[N]). */
+  const layer = (el: Element): number => {
+    let z = 0;
+    for (let node: Element | null = el; node; node = node.parentElement) {
+      const match = /(?:^|\s)z-(?:\[(\d+)\]|(\d+))(?:\s|$)/.exec(node.getAttribute('class') ?? '');
+      if (match) {
+        z = Number(match[1] ?? match[2]);
+      }
+    }
+    return z;
+  };
+
+  it('opens over the card view it was opened from, and moves a view card from the keyboard', () => {
+    const game = renderGame();
+    const grave = pileEl('Graveyard');
+    focus(grave);
+    key(grave, { key: 'Enter' });
+    chooseMenuPath('View graveyard');
+    const duress = screen.getByRole('option', { name: 'Duress' });
+    focus(duress);
+    key(duress, { key: 'm' });
+    expect(layer(moveDialog())).toBeGreaterThan(layer(duress));
+    choose('To', 'exile');
+    submit();
+    expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
+      startZone: ZoneName.GRAVE, cardsToMove: { card: [{ cardId: DURESS.id }] }, targetZone: ZoneName.EXILE,
+    });
+  });
+
   it('reorders two cards picked in the hand view by the hand order a drag on the strip uses', () => {
     const SWAMP = makeCard({ id: 32, name: 'Swamp' });
     const PLAINS = makeCard({ id: 33, name: 'Plains' });
