@@ -278,6 +278,7 @@ export default function BattlefieldSidebar() {
   return (
     <aside
       data-testid="right-panel"
+      aria-label={t('BattlefieldSidebar.label')}
       // Width comes from the parent `.game` grid's `--sidebar-width`
       // column (user-resizable via SidebarResizer). `w-full` fills
       // that column; the old fixed `w-72` fought the CSS grid.
@@ -543,9 +544,9 @@ export default function BattlefieldSidebar() {
            because spectators can use some of its items. */}
       <div className="shrink-0 border-b border-border-subtle">
         <div className="px-3 py-2 flex items-center justify-between">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
-            Players
-          </span>
+          <h2 className="text-[10px] font-semibold uppercase tracking-widest text-text-muted">
+            {t('BattlefieldSidebar.players')}
+          </h2>
           {!readOnly && gameId != null && <GameInviteControls gameId={gameId} className="ml-auto mr-1.5" />}
           <div className="flex items-center gap-2">
             {!readOnly && <GameMenu className={SIDEBAR_HEADER_BUTTON_CLASS} />}

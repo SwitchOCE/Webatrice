@@ -1615,6 +1615,10 @@
     },
     "deckSelectFailed": "The server did not accept this deck."
   },
+  "BattlefieldSidebar": {
+    "label": "Game sidebar",
+    "players": "Players"
+  },
   "ChatLog": {
     "heading": "Chat & log",
     "empty": "no messages",
@@ -1758,6 +1762,12 @@
   "HandZone": {
     "button": "Hand — {count, plural, one {# card} other {# cards}}",
     "menu": "Hand"
+  },
+  "PlayerBoard": {
+    "seat": "{name}'s seat",
+    "battlefield": "{name}'s battlefield, {count, plural, one {# card} other {# cards}}",
+    "stack": "{name}'s stack, {count, plural, one {# card} other {# cards}}",
+    "hand": "{name}'s hand, {count, plural, one {# card} other {# cards}}"
   },
   "GameInfoDialog": {
     "title": "Game info",

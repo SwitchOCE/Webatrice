@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 import Battlefield from '../../battlefield/Battlefield/Battlefield';
 import { DragSelectionCount } from '../../SelectionCount/SelectionCount';
@@ -33,12 +34,14 @@ import { MARQUEE_BORDER, MARQUEE_FILL } from '../seatColors/seatColors';
  */
 function PlayerBoard(props: PlayerSeatProps) {
   const controller = usePlayerSeat(props);
+  const { t } = useTranslation();
   const {
     DRAW_ANIMATION_MS,
     boxRef,
     flights,
     isActive,
     marquee,
+    name,
     onPointerDownBox,
     playerId,
     seatDrag,
@@ -48,8 +51,12 @@ function PlayerBoard(props: PlayerSeatProps) {
 
   return (
     <PlayerSeatProvider value={controller}>
+      {/* A landmark per seat, named for its player, so a screen reader can jump between seats;
+        its zones are labelled groups inside it. */}
       <div
         ref={boxRef}
+        role="region"
+        aria-label={t('PlayerBoard.seat', { name })}
         onPointerDown={onPointerDownBox}
         className={[
           'h-full min-h-0 rounded-lg border overflow-hidden bg-bg-surface/60 backdrop-blur-sm board-motion transition-shadow select-none',

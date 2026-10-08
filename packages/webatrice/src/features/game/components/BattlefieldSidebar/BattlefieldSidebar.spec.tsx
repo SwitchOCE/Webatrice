@@ -1,4 +1,4 @@
-import { act, render } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 
 import { CardPreviewProvider, createCardPreviewStore } from '../ui/CardPreviewContext';
 import BattlefieldSidebar from './BattlefieldSidebar';
@@ -49,5 +49,17 @@ describe('BattlefieldSidebar card preview image', () => {
   it('previews a name-only card by its exact name', () => {
     expect(hover({ name: 'Rhino, Warrior Token' }))
       .toBe('https://api.scryfall.com/cards/named?exact=Rhino%2C%20Warrior%20Token&format=image&version=png');
+  });
+});
+
+describe('BattlefieldSidebar structure', () => {
+  it('is a named complementary landmark with a Players heading', () => {
+    render(
+      <CardPreviewProvider store={createCardPreviewStore()}>
+        <BattlefieldSidebar />
+      </CardPreviewProvider>,
+    );
+    const sidebar = screen.getByRole('complementary', { name: 'BattlefieldSidebar.label' });
+    expect(within(sidebar).getByRole('heading', { name: 'BattlefieldSidebar.players' })).toBeInTheDocument();
   });
 });

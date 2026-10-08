@@ -1,4 +1,5 @@
 import { useForkRef } from '@mui/material/utils';
+import { useTranslation } from 'react-i18next';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { useAnimationPreference, useSnapGridVisible } from '@app/hooks';
 
@@ -133,6 +134,7 @@ function BattlefieldSlotOverlay({
  * Cockatrice hides every utility item behind the isLocal gate.
  */
 export default function Battlefield() {
+  const { t } = useTranslation();
   const {
     attachExtraSourceIds,
     attachPending,
@@ -144,6 +146,7 @@ export default function Battlefield() {
     isSelf,
     lifeControl,
     menuOwnerId,
+    name,
     onCardDoubleClick,
     openSeatCardMenu,
     opponentBattlefieldMenuItems,
@@ -242,6 +245,8 @@ export default function Battlefield() {
       <div
         ref={battlefieldScrollRef}
         data-battlefield-owner={String(playerId)}
+        role="group"
+        aria-label={t('PlayerBoard.battlefield', { name, count: battlefieldDisplayList.length })}
         data-battlefield-mirrored={handOnTop ? 'true' : 'false'}
         // Cockatrice-style layout: the outer scroll container has no
         // padding. Left/right/top margins are already baked into the
