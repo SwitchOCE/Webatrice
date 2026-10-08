@@ -26,6 +26,7 @@ import { useAppSelector } from '@app/store';
 import { useCommandFailureMessage, useLeaveGame, useReduxEffect, useRequestTracker } from '@app/hooks';
 import type { ServerInfo_DeckStorage_Folder, ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
 import { parseCod } from '@app/services';
+import { onSessionEnd } from '@app/services/session';
 import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat } from '@app/types';
 
 import { useCurrentGame } from './hooks/useCurrentGame';
@@ -127,8 +128,10 @@ interface DeckSummary {
 // the app) calls deckDownload — a Redux effect below parses each
 // response's <format> and <comments>-meta blob and drops the digest
 // here. Keyed by the server-side numeric deckId. Persists across
-// lobby remounts so a repeated visit doesn't re-hit the server.
+// lobby remounts so a repeated visit doesn't re-hit the server, and is
+// dropped at a session boundary: deck ids belong to one account on one server.
 const deckSummaryCache = new Map<number, DeckSummary>();
+onSessionEnd(() => deckSummaryCache.clear());
 
 export default function GameLobby({ gameId }: { gameId: number }) {
   const { t } = useTranslation();

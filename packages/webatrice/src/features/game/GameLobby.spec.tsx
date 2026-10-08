@@ -16,6 +16,7 @@ import {
   makeStoreState,
   renderWithProviders,
 } from '../../__test-utils__';
+import { endSession } from '@app/services/session';
 import GameLobby from './GameLobby';
 
 const DECK = `<?xml version="1.0" encoding="UTF-8"?>
@@ -436,5 +437,26 @@ describe('GameLobby deck-pick request ownership', () => {
     expect(uploaded).not.toBe(first);
     act(() => store.dispatch(games.Actions.deckSelectFailed({ gameId: 1, responseCode: 3, requestId: uploaded })));
     expect(screen.getByRole('alert')).toHaveTextContent('GameLobby.deckSelectFailed');
+  });
+});
+
+describe('GameLobby deck summaries', () => {
+  it('reuses summaries across lobby visits but not across sessions', () => {
+    endSession();
+    const downloadsOf = (webClient: WebClient, deckId: number) =>
+      vi.mocked(webClient.request.session.deckDownload).mock.calls.filter(([id]) => id === deckId).length;
+
+    const first = renderPicker();
+    expect(downloadsOf(first.webClient, 101)).toBe(1);
+    act(() => first.store.dispatch(server.Actions.deckDownloaded({ deckId: 101, deck: DECK })));
+    first.unmount();
+
+    const again = renderPicker();
+    expect(downloadsOf(again.webClient, 101)).toBe(0);
+    again.unmount();
+
+    endSession();
+    const nextSession = renderPicker();
+    expect(downloadsOf(nextSession.webClient, 101)).toBe(1);
   });
 });
