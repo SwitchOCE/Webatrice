@@ -194,7 +194,7 @@ describe('GameLinkJoinHost (GAME-033 incoming links)', () => {
     expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
   });
 
-  it('rejects every incoming endpoint when the live host has no desktop port mapping', () => {
+  it('asks for the desktop port when the live host has no desktop port mapping', () => {
     const webClient = createMockWebClient() as unknown as WebClient;
     renderWithProviders(
       <>
@@ -205,7 +205,7 @@ describe('GameLinkJoinHost (GAME-033 incoming links)', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: /GameLink\.anchor/ }));
     fireEvent.click(dialogButton('GameLink.yes'));
-    expect(within(screen.getByRole('dialog')).getByText('GameLink.otherServer')).toBeInTheDocument();
+    expect(within(screen.getByRole('dialog')).getByText('GameLink.desktopPortRequired')).toBeInTheDocument();
     expect(webClient.request.session.joinRoom).not.toHaveBeenCalled();
     expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
   });

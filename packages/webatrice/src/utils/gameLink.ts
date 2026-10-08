@@ -183,3 +183,14 @@ export function isSameGameServer(
     && isSameServerHost(link.hostname, live.hostname)
     && Number(link.port) === Number(live.desktopPort);
 }
+
+/**
+ * True when a link names the live server's host but that server has no desktop port saved, so the
+ * link's desktop port cannot be matched: the user must set it rather than log in elsewhere.
+ */
+export function needsDesktopPort(
+  link: Pick<GameJoinLink, 'hostname'>,
+  live: LiveGameServer | null,
+): boolean {
+  return !!live && !live.desktopPort && isSameServerHost(link.hostname, live.hostname);
+}

@@ -4,6 +4,7 @@ import {
   findLiveGameServer,
   isSameGameServer,
   makeGameJoinLink,
+  needsDesktopPort,
   parseGameJoinLink,
 } from './gameLink';
 
@@ -89,6 +90,14 @@ describe('live game server identity', () => {
     ]);
     expect(live?.desktopPort).toBeUndefined();
     expect(isSameGameServer({ hostname: 'live.example', port: '4747' }, live)).toBe(false);
+  });
+
+  it('asks for a desktop port only for a link to the live host when none is saved', () => {
+    const unmapped = { hostname: 'live.example', port: '5748' };
+    expect(needsDesktopPort({ hostname: 'LIVE.example' }, unmapped)).toBe(true);
+    expect(needsDesktopPort({ hostname: 'other.example' }, unmapped)).toBe(false);
+    expect(needsDesktopPort({ hostname: 'live.example' }, { ...unmapped, desktopPort: '4747' })).toBe(false);
+    expect(needsDesktopPort({ hostname: 'live.example' }, null)).toBe(false);
   });
 });
 

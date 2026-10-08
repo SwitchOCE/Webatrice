@@ -323,6 +323,7 @@
       "gameId": "Invalid or missing game id in the game link"
     },
     "otherServer": "This game is on {server}. Log in to that server to join it.",
+    "desktopPortRequired": "To join game links for this server, set its desktop port in the server's settings.",
     "notFound": "Game {gameId} not found in the room",
     "full": "The game is full. Join as a spectator instead?",
     "password": {

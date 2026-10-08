@@ -7,7 +7,7 @@ import type { ServerInfo_Game } from '@cockatrice/sockatrice/generated';
 import { AlertDialog, ConfirmDialog, PromptDialog } from '@app/dialogs';
 import { useJoinGame, useJoinGameErrorMessage, useNavigateOnGameJoined } from '@app/hooks';
 import { useAppSelector } from '@app/store';
-import { isSameGameServer, parseGameJoinLink, type GameJoinLink, type LiveGameServer } from '@app/utils';
+import { isSameGameServer, needsDesktopPort, parseGameJoinLink, type GameJoinLink, type LiveGameServer } from '@app/utils';
 
 import { clearGameLinkRequest, useGameLinkRequest } from './gameLinkRequests';
 
@@ -104,7 +104,9 @@ export default function GameLinkJoinHost({ endpoint }: { endpoint: LiveGameServe
         setFlow({
           step: 'notice',
           title: t('GameLink.confirm.title'),
-          message: t('GameLink.otherServer', { server: serverLabel(link) }),
+          message: isConnected && needsDesktopPort(link, endpoint)
+            ? t('GameLink.desktopPortRequired')
+            : t('GameLink.otherServer', { server: serverLabel(link) }),
         });
         return;
       }

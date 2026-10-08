@@ -26,6 +26,7 @@ export {
   findLiveGameServer,
   isSameGameServer,
   makeGameJoinLink,
+  needsDesktopPort,
   parseGameJoinLink,
 } from './gameLink';
 export type {
