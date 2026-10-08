@@ -5,6 +5,9 @@ import { CardAttribute } from '@cockatrice/sockatrice/generated';
 import { Phase, games, type GamesState } from '@cockatrice/datatrice';
 import { makeGameEntry, makePlayerEntry, makePlayerProperties } from '@cockatrice/datatrice/testing';
 
+import { actionReducer } from '../../../../store/actions';
+import { endSession } from '@app/services/session';
+
 import { makeReduxWebClientHookWrapper } from '../../../../__test-utils__/makeHookWrapper';
 import { useNextPhaseAction } from './useNextPhaseAction';
 
@@ -19,10 +22,10 @@ function setup({ activePhase = Phase.Upkeep as number, activePlayerId = 1, conce
   });
   const gamesState: GamesState = { games: { 1: game }, pings: {} };
   const { Wrapper, webClient, store } = makeReduxWebClientHookWrapper({
-    reducer: combineReducers({ games: games.gamesReducer }),
-    preloadedState: { games: gamesState },
+    reducer: combineReducers({ games: games.gamesReducer, action: actionReducer }),
+    preloadedState: { games: gamesState, action: actionReducer(undefined, { type: 'init' }) },
   });
-  const { result } = renderHook(() => useNextPhaseAction(1), { wrapper: Wrapper });
+  const { result, unmount } = renderHook(() => useNextPhaseAction(1), { wrapper: Wrapper });
   const order = () => {
     const sent: Array<[string, number]> = [];
     for (const name of ['setActivePhase', 'nextTurn', 'drawCards', 'setCardAttr'] as const) {
@@ -32,7 +35,7 @@ function setup({ activePhase = Phase.Upkeep as number, activePlayerId = 1, conce
     }
     return sent.sort((a, b) => a[1] - b[1]).map(([name]) => name);
   };
-  return { result, webClient, store, order };
+  return { result, webClient, store, order, Wrapper, unmount };
 }
 
 describe('useNextPhaseAction', () => {
@@ -100,20 +103,106 @@ describe('useNextPhaseAction', () => {
     expect(order()).toEqual(['nextTurn', 'setCardAttr']);
   });
 
-  it('End: wraps again once the server has moved the turn on and back', () => {
-    const { result, store, order } = setup({ activePhase: Phase.EndCleanup });
-
+  // Mutation: restoring release-on-phase/player-change lets a second wrap through.
+  it.each(['phase', 'player'])('End: another player changing the %s does not release the wrap', (change) => {
+    const { result, store, order } = setup({ activePhase: Phase.EndCleanup, activePlayerId: 2 });
     act(() => result.current.run());
     act(() => {
-      store.dispatch(games.Actions.activePlayerSet({ gameId: 1, activePlayerId: 2 }));
+      store.dispatch(change === 'phase'
+        ? games.Actions.activePhaseSet({ gameId: 1, phase: Phase.Upkeep })
+        : games.Actions.activePlayerSet({ gameId: 1, activePlayerId: 3 }));
+    });
+    act(() => store.dispatch(games.Actions.activePhaseSet({ gameId: 1, phase: Phase.EndCleanup })));
+    act(() => result.current.run());
+    expect(order()).toEqual(['nextTurn', 'setCardAttr']);
+  });
+
+  // Mutations: omit either outcome listener, or stop forwarding its request ID.
+  it.each(['success', 'failure'])('End: its own %s releases the wrap', (outcome) => {
+    const { result, store, webClient } = setup({ activePhase: Phase.EndCleanup });
+    act(() => result.current.run());
+    const requestId = vi.mocked(webClient.request.game.nextTurn).mock.calls[0][1];
+    act(() => store.dispatch(outcome === 'success'
+      ? games.Actions.nextTurnAnswered({ gameId: 1, requestId })
+      : games.Actions.nextTurnFailed({ gameId: 1, responseCode: 3, requestId })));
+    act(() => result.current.run());
+    expect(webClient.request.game.nextTurn).toHaveBeenCalledTimes(2);
+    const nextId = vi.mocked(webClient.request.game.nextTurn).mock.calls[1][1];
+    expect(requestId).toEqual(expect.any(String));
+    expect(nextId).toEqual(expect.any(String));
+    expect(nextId).not.toBe(requestId);
+  });
+
+  // Mutation: releasing on any outcome instead of matching both game and request.
+  it.each(['success', 'failure'])('End: unrelated or older %s outcomes do not release a newer wrap', (outcome) => {
+    const { result, store, webClient } = setup({ activePhase: Phase.EndCleanup });
+    const answer = (gameId: number, requestId?: string) => store.dispatch(outcome === 'success'
+      ? games.Actions.nextTurnAnswered({ gameId, requestId })
+      : games.Actions.nextTurnFailed({ gameId, responseCode: 3, requestId }));
+    act(() => result.current.run());
+    const firstId = vi.mocked(webClient.request.game.nextTurn).mock.calls[0][1];
+    act(() => answer(1, firstId));
+    act(() => result.current.run());
+    expect(webClient.request.game.nextTurn).toHaveBeenCalledTimes(2);
+    const currentId = vi.mocked(webClient.request.game.nextTurn).mock.calls[1][1];
+    for (const [gameId, requestId] of [[1, firstId], [1, 'unrelated'], [1, undefined], [2, currentId]] as const) {
+      act(() => answer(gameId, requestId));
+      act(() => result.current.run());
+      expect(webClient.request.game.nextTurn).toHaveBeenCalledTimes(2);
+    }
+  });
+
+  // Mutation: omit the module-level onSessionEnd reset.
+  it('End: session end releases the wrap and an old-session answer cannot release its replacement', () => {
+    const { result, store, webClient } = setup({ activePhase: Phase.EndCleanup });
+    act(() => result.current.run());
+    const oldId = vi.mocked(webClient.request.game.nextTurn).mock.calls[0][1];
+    act(() => endSession());
+    act(() => result.current.run());
+    expect(webClient.request.game.nextTurn).toHaveBeenCalledTimes(2);
+    act(() => store.dispatch(games.Actions.nextTurnAnswered({ gameId: 1, requestId: oldId })));
+    act(() => result.current.run());
+    expect(webClient.request.game.nextTurn).toHaveBeenCalledTimes(2);
+  });
+
+  it('End: a sibling hook shares the guard and can release it after the sender unmounts', () => {
+    const { result, store, webClient, Wrapper, unmount } = setup({ activePhase: Phase.EndCleanup });
+    act(() => result.current.run());
+    const requestId = vi.mocked(webClient.request.game.nextTurn).mock.calls[0][1];
+    const sibling = renderHook(() => useNextPhaseAction(1), { wrapper: Wrapper });
+    act(() => sibling.result.current.run());
+    expect(webClient.request.game.nextTurn).toHaveBeenCalledTimes(1);
+    unmount();
+    act(() => store.dispatch(games.Actions.nextTurnAnswered({ gameId: 1, requestId })));
+    act(() => sibling.result.current.run());
+    expect(webClient.request.game.nextTurn).toHaveBeenCalledTimes(2);
+  });
+
+  it('End: simultaneous hooks consume an answer once and keep the replacement wrap guarded', () => {
+    const { result, store, webClient, Wrapper } = setup({ activePhase: Phase.EndCleanup });
+    const sibling = renderHook(() => useNextPhaseAction(1), { wrapper: Wrapper });
+    act(() => result.current.run());
+    const requestId = vi.mocked(webClient.request.game.nextTurn).mock.calls[0][1];
+    act(() => {
+      store.dispatch(games.Actions.nextTurnAnswered({ gameId: 1, requestId }));
+      result.current.run();
+      sibling.result.current.run();
+      store.dispatch(games.Actions.nextTurnAnswered({ gameId: 1, requestId }));
+      sibling.result.current.run();
+    });
+    expect(webClient.request.game.nextTurn).toHaveBeenCalledTimes(2);
+  });
+
+  it('End: a synchronous rejection releases the guard registered before sending', () => {
+    const { result, store, webClient } = setup({ activePhase: Phase.EndCleanup });
+    vi.mocked(webClient.request.game.nextTurn).mockImplementationOnce((gameId, requestId) => {
+      store.dispatch(games.Actions.nextTurnFailed({ gameId, requestId, responseCode: 3 }));
     });
     act(() => {
-      store.dispatch(games.Actions.activePlayerSet({ gameId: 1, activePlayerId: 1 }));
-      store.dispatch(games.Actions.activePhaseSet({ gameId: 1, phase: Phase.EndCleanup }));
+      result.current.run();
+      result.current.run();
     });
-    act(() => result.current.run());
-
-    expect(order()).toEqual(['nextTurn', 'setCardAttr', 'nextTurn', 'setCardAttr']);
+    expect(webClient.request.game.nextTurn).toHaveBeenCalledTimes(2);
   });
 
   it.each([

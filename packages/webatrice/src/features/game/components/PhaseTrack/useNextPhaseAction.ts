@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
 import { useStore } from 'react-redux';
 import { games } from '@cockatrice/datatrice';
-import { useAppSelector, type RootState } from '@app/store';
+import type { RequestId } from '@cockatrice/sockatrice/types';
+import type { RootState } from '@app/store';
+import { useReduxEffect, useRequestTracker } from '@app/hooks';
+import { onSessionEnd } from '@app/services/session';
 
 import { nextPhaseActionPlan } from './phaseActions';
 import { usePhaseBar } from './usePhaseBar';
@@ -17,9 +19,12 @@ export interface NextPhaseAction {
  * store. Command_NextTurn is not optimistic, so without this a second press
  * before the answer would pass the turn again (skipping a seat at 3+ players).
  * Module-level so the menu and the shortcut, which each hold their own hook,
- * share it; cleared when the active player or phase next changes.
+ * share it; only its own outcome or session end releases a pending wrap.
  */
-const pendingWraps = new WeakMap<object, Set<number>>();
+let pendingWraps = new WeakMap<object, Map<number, RequestId>>();
+onSessionEnd(() => {
+  pendingWraps = new WeakMap();
+});
 
 /**
  * "Next phase with action" (desktop TabGame::actNextPhaseAction), shared by the
@@ -37,15 +42,16 @@ export function useNextPhaseAction(gameId: number | undefined): NextPhaseAction 
   const store = useStore<RootState>();
   const { activePhase, canPassTurn, canAdvancePhase, handlePhaseClick, handlePassAndUntap, handleUntapAll, handleDrawOne } =
     usePhaseBar(gameId);
-  const activePlayerId = useAppSelector((state) =>
-    gameId != null ? games.Selectors.getActivePlayerId(state, gameId) : undefined,
-  );
+  const requests = useRequestTracker();
 
-  useEffect(() => {
-    if (gameId != null) {
-      pendingWraps.get(store)?.delete(gameId);
+  useReduxEffect<{ gameId: number; requestId?: RequestId }>(({ payload }) => {
+    const pending = pendingWraps.get(store);
+    if (payload.requestId !== undefined && pending?.get(payload.gameId) === payload.requestId) {
+      // Any mounted hook may consume the outcome, even after the sender unmounts.
+      // Delete once so the menu and shortcut cannot handle the same wrap twice.
+      pending.delete(payload.gameId);
     }
-  }, [store, gameId, activePlayerId, activePhase]);
+  }, [games.Types.NEXT_TURN_ANSWERED, games.Types.NEXT_TURN_FAILED], [store]);
 
   const allowed = (current: number) =>
     nextPhaseActionPlan(current).advance === 'nextTurn' ? canPassTurn : canAdvancePhase;
@@ -64,15 +70,19 @@ export function useNextPhaseAction(gameId: number | undefined): NextPhaseAction 
     if (plan.advance === 'nextTurn') {
       let pending = pendingWraps.get(store);
       if (!pending) {
-        pending = new Set();
+        pending = new Map();
         pendingWraps.set(store, pending);
       }
       if (pending.has(gameId)) {
         return;
       }
-      pending.add(gameId);
+      const requestId = requests.begin();
+      pending.set(gameId, requestId);
       // The untap is the Untap step's action, so it rides on the pass's gate.
-      handlePassAndUntap();
+      // A pass that was not sent has no outcome to release the guard.
+      if (handlePassAndUntap(requestId) === undefined) {
+        pending.delete(gameId);
+      }
       return;
     }
     handlePhaseClick(plan.advance.phase);

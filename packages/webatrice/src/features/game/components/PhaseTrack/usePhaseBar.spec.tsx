@@ -100,6 +100,14 @@ describe('usePhaseBar', () => {
     expect(webClient.request.game.drawCards).toHaveBeenCalledWith(1, { number: 1 });
   });
 
+  it('handlePassAndUntap forwards and returns the caller request ID', () => {
+    const { result, webClient } = setup();
+    act(() => {
+      expect(result.current.handlePassAndUntap('wrap-request')).toBe('wrap-request');
+    });
+    expect(webClient.request.game.nextTurn).toHaveBeenCalledWith(1, 'wrap-request');
+  });
+
   it('handleUntapAll emits a single bulk setCardAttr with cardId -1', () => {
     const { result, webClient } = setup();
 

@@ -1,5 +1,6 @@
 import { useStore } from 'react-redux';
 import { ZoneName } from '@cockatrice/sockatrice';
+import type { RequestId } from '@cockatrice/sockatrice/types';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { games } from '@cockatrice/datatrice';
 import { useAppDispatch, useAppSelector, type RootState } from '@app/store';
@@ -15,7 +16,7 @@ export interface PhaseBar {
   handlePass: () => void;
   handleUntapAll: () => void;
   handleDrawOne: () => void;
-  handlePassAndUntap: () => void;
+  handlePassAndUntap: (...correlation: [requestId?: RequestId]) => RequestId | undefined;
   handleReverseTurn: () => void;
 }
 
@@ -50,11 +51,16 @@ export function usePhaseBar(gameId: number | undefined): PhaseBar {
     });
   };
 
-  const handlePass = () => {
+  const sendPass = (...correlation: [requestId?: RequestId]): RequestId | undefined => {
     if (!canPassTurn || gameId == null) {
       return;
     }
-    webClient.request.game.nextTurn(gameId);
+    webClient.request.game.nextTurn(gameId, ...correlation);
+    return correlation[0];
+  };
+
+  const handlePass = () => {
+    sendPass();
   };
 
   const sendUntapAll = (id: number) => {
@@ -86,12 +92,13 @@ export function usePhaseBar(gameId: number | undefined): PhaseBar {
   // run the Untap step's action on the local table. Both halves need only
   // canPassTurn: the server takes Command_NextTurn from any player
   // (server_player.cpp:544-556) and the untap touches only our own cards.
-  const handlePassAndUntap = () => {
+  const handlePassAndUntap = (...correlation: [requestId?: RequestId]): RequestId | undefined => {
     if (!canPassTurn || gameId == null) {
       return;
     }
-    webClient.request.game.nextTurn(gameId);
+    const requestId = sendPass(...correlation);
     sendUntapAll(gameId);
+    return requestId;
   };
 
   const handleDrawOne = () => {
