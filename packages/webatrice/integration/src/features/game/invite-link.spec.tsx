@@ -191,7 +191,7 @@ describe('Game invites and links (GAME-033)', () => {
     act(() => {
       deliverMessage(buildResponseMessage(buildResponse({ cmdId: join.cmdId, responseCode: Response_ResponseCode.RespGameFull })));
     });
-    const { message } = rooms.Selectors.getJoinGameError(store.getState())!;
+    const message = 'JoinGameError.full';
     await screen.findByText(message);
     // Count hidden dialogs too: MUI marks every modal under the top one aria-hidden.
     const errorDialogs = screen.getAllByRole('dialog', { hidden: true }).filter((dialog) => dialog.textContent?.includes(message));

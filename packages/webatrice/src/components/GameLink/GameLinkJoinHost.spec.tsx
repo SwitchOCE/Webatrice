@@ -4,6 +4,7 @@ import { create, type MessageInitShape } from '@bufbuild/protobuf';
 import { games, rooms } from '@cockatrice/datatrice';
 import {
   Event_GameJoinedSchema,
+  Response_ResponseCode,
   ServerInfo_GameSchema,
   ServerInfo_RoomSchema,
   type ServerInfo_Game,
@@ -139,7 +140,9 @@ describe('GameLinkJoinHost (GAME-033 incoming links)', () => {
   it('asks for the password of a protected game', () => {
     const { webClient } = renderHost(link(), listedGame({ withPassword: true }));
     fireEvent.click(dialogButton('GameLink.yes'));
-    fireEvent.change(within(screen.getByRole('dialog')).getByRole('textbox'), { target: { value: 'hunter2' } });
+    const password = within(screen.getByRole('dialog')).getByLabelText('GameLink.password.description');
+    expect(password).toHaveAttribute('type', 'password');
+    fireEvent.change(password, { target: { value: 'hunter2' } });
     fireEvent.click(dialogButton('GameLink.join'));
     expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(1, expect.objectContaining({ password: 'hunter2' }), expect.any(String));
   });
@@ -154,6 +157,16 @@ describe('GameLinkJoinHost (GAME-033 incoming links)', () => {
     expect(within(screen.getByRole('dialog')).getByText('The game is full.')).toBeInTheDocument();
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button'));
     expect(rooms.Selectors.getJoinGameError(store.getState())).toBeNull();
+  });
+
+  it('translates a correlated server rejection with no raw message', () => {
+    const { store, webClient } = renderHost(link());
+    fireEvent.click(dialogButton('GameLink.yes'));
+    const requestId = vi.mocked(webClient.request.rooms.joinGame).mock.lastCall?.[2];
+    act(() => store.dispatch(rooms.Actions.setJoinGameError({
+      code: Response_ResponseCode.RespGameFull, message: '', requestId,
+    })));
+    expect(within(screen.getByRole('dialog')).getByText('JoinGameError.full')).toBeInTheDocument();
   });
 
   it('cancelling the password prompt sends nothing', async () => {

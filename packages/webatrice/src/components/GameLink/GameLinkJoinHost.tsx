@@ -5,7 +5,7 @@ import { games, rooms, server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { ServerInfo_Game } from '@cockatrice/sockatrice/generated';
 import { AlertDialog, ConfirmDialog, PromptDialog } from '@app/dialogs';
-import { useJoinGame, useNavigateOnGameJoined } from '@app/hooks';
+import { useJoinGame, useJoinGameErrorMessage, useNavigateOnGameJoined } from '@app/hooks';
 import { useAppSelector } from '@app/store';
 import { isSameGameServer, parseGameJoinLink, type GameJoinLink, type LiveGameServer } from '@app/utils';
 
@@ -50,6 +50,8 @@ export default function GameLinkJoinHost({ endpoint }: { endpoint: LiveGameServe
   const request = useGameLinkRequest();
   const [flow, setFlow] = useState<Flow>(IDLE);
   const { beginJoin, passwordRequired, submitPassword, cancelPassword, joinError, clearJoinError } = useJoinGame();
+
+  const joinErrorMessage = useJoinGameErrorMessage(joinError);
 
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
   const joinedRoomIds = useAppSelector(rooms.Selectors.getJoinedRoomIds);
@@ -194,6 +196,7 @@ export default function GameLinkJoinHost({ endpoint }: { endpoint: LiveGameServe
             : t('GameLink.password.id', { gameId: joining?.link.gameId ?? 0 })
         }
         submitLabel={t('GameLink.join')}
+        type="password"
         onSubmit={submitPassword}
         onCancel={cancelJoinPassword}
       />
@@ -207,7 +210,7 @@ export default function GameLinkJoinHost({ endpoint }: { endpoint: LiveGameServe
       <AlertDialog
         isOpen={joinFailed}
         title={t('GameLink.confirm.title')}
-        message={joinError?.message ?? ''}
+        message={joinErrorMessage}
         onDismiss={dismissJoinError}
       />
     </>
