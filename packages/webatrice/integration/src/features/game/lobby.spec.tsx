@@ -220,5 +220,5 @@ it('ignores an earlier upload rejection after a later deck selection succeeds', 
     cmdId: first.cmdId, responseCode: Response_ResponseCode.RespContextError,
   }))));
   expect(screen.queryByText('GameLobby.deckSelectFailed')).not.toBeInTheDocument();
-  expect(screen.getByText('Upload a .cod file')).toBeInTheDocument();
+  expect(screen.getByText('GameLobby.upload.heading')).toBeInTheDocument();
 });
