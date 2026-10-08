@@ -7,7 +7,7 @@ fragment. Matching uses that exact endpoint, not the selected known host.
 
 Desktop links and older Webatrice links contain only a hostname and port.
 To enable them, open the server's settings in the known-hosts picker and set
-**Desktop port (optional)** to its Servatrice TCP port (1?65535), as provided
+**Desktop port (optional)** to its Servatrice TCP port (1–65535), as provided
 by the server operator. The setting is saved locally with the host in IndexedDB;
 clearing it disables these links. Built-in hosts also expose this setting,
 while keeping their address fields locked. No default host has a desktop port
