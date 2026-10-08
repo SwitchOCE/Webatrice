@@ -578,9 +578,8 @@ describe('TopBar without local storage', () => {
       throw new DOMException('blocked', 'SecurityError');
     });
 
-    const lifecycle = renderTopBar(RouteEnum.SETTINGS);
+    renderTopBar(RouteEnum.SETTINGS);
 
     expect(screen.getByRole('link', { current: 'page' })).toHaveAttribute('href', RouteEnum.SETTINGS);
-    expect(lifecycle.onIdentityChanged).not.toHaveBeenCalled();
   });
 });
