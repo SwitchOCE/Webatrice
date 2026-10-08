@@ -24,7 +24,9 @@ function Layout({ children, className, showNav = true, noHeightLimit = false }: 
   return (
     <div className={['flex h-full flex-col bg-bg-base', noHeightLimit ? '' : 'min-h-0'].join(' ')}>
       {showNav && <TopBar />}
-      <main className="flex-1 min-h-0 overflow-hidden">
+      {/* Clip, not hidden: an overflow-hidden box is still a scroll container, and WebKit scrolls
+          it to reveal a focused card, sliding the page under the top bar. */}
+      <main className="flex-1 min-h-0 overflow-clip">
         <div className={`h-full ${className ?? ''}`}>{children}</div>
       </main>
     </div>
