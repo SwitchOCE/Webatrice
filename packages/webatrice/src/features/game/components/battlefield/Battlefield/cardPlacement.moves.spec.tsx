@@ -94,13 +94,14 @@ describe.each(cases)('placement: $typeLine, database row $tableRow', (fixture) =
     await act(async () => {
       const args = {
         webClient, gameId: 1, sourcePlayerId: 1, sourceZone: ZoneName.HAND,
-        card, faceDown: false, isInverted: false, tableZone: undefined, playToStack: false,
+        card, faceDown: false, isInverted: false, playToStack: false,
       };
       await (entry === 'direct' ? playCardViaTableRow : autoPlayCard)(args);
     });
     expect(game.moveCard).toHaveBeenCalledTimes(1);
     expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
-      targetZone: playZone, x: 0, y: playY,
+      // The server picks a table column, as for desktop's playCard; the stack takes the card at 0.
+      targetZone: playZone, x: playZone === ZoneName.TABLE ? -1 : 0, y: playY,
     });
   });
 
@@ -169,9 +170,9 @@ it.each(['direct', 'auto'] as const)('%s face-down play overrides a spell databa
   });
   await (entry === 'direct' ? playCardViaTableRow : autoPlayCard)({
     webClient, gameId: 1, sourcePlayerId: 1, sourceZone: ZoneName.HAND,
-    card, faceDown: true, isInverted: false, tableZone: undefined,
+    card, faceDown: true, isInverted: false,
   });
   expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
-    targetZone: ZoneName.TABLE, x: 0, y: 0, cardsToMove: { card: [{ cardId: 7, faceDown: true }] },
+    targetZone: ZoneName.TABLE, x: -1, y: 0, cardsToMove: { card: [{ cardId: 7, faceDown: true }] },
   });
 });

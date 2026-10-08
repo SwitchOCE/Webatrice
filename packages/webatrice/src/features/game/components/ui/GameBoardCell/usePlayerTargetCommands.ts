@@ -94,7 +94,6 @@ export function useTargetCommandsFor(gameId: number | undefined): TargetCommands
             card,
             faceDown: false,
             isInverted: invertVerticalCoordinate,
-            tableZone: zone(ZoneName.TABLE),
             judgeTargetId: judgeTarget(playerId),
             playToStack,
           }).then((playedZone) => createArrow(handCardId, playedZone, target, color));

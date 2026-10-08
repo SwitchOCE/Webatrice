@@ -1,7 +1,6 @@
 import { ZoneName, type ZoneNameValue } from '@cockatrice/sockatrice';
 import type { WebClient } from '@cockatrice/sockatrice';
 import { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
-import { ZoneEntry } from '@cockatrice/datatrice';
 import {
   placementForCard,
   playedCardFields,
@@ -9,17 +8,12 @@ import {
   STACK_TABLE_ROW,
 } from '../components/battlefield/Battlefield/cardPlacement';
 import { readCardPlacement } from '../components/battlefield/Battlefield/readCardPlacement';
-import {
-  applyInvertY,
-  gridXFromColumn,
-  nextAvailableColumn,
-} from '../components/battlefield/Battlefield/gridMath';
+import { applyInvertY } from '../components/battlefield/Battlefield/gridMath';
 
 // Oracle importer: 0 = land, 1 = other permanent, 2 = creature, 3 = instant/sorcery.
 const TABLEROW_LAND = 0;
 
-// tableRow=3 → stack; 0/1/2 → battlefield with per-row default.
-// tableZone picks fresh column (undefined → col 0). isInverted = useBattlefield's flag.
+// tableRow=3 → stack; 0/1/2 → battlefield with per-row default. isInverted = useBattlefield's flag.
 export async function playCardViaTableRow({
   webClient,
   gameId,
@@ -28,7 +22,6 @@ export async function playCardViaTableRow({
   card,
   faceDown,
   isInverted,
-  tableZone,
   judgeTargetId,
 }: {
   webClient: WebClient;
@@ -38,7 +31,6 @@ export async function playCardViaTableRow({
   card: ServerInfo_Card;
   faceDown: boolean;
   isInverted: boolean;
-  tableZone: ZoneEntry | undefined;
   // Owner to run the play as when a judge plays a foreign card (Command_Judge);
   // undefined for own cards (sent bare). See useJudgeTarget.
   judgeTargetId?: number;
@@ -66,19 +58,15 @@ export async function playCardViaTableRow({
   // Visual row from the owner's view; inverted once for a mirrored board.
   const wireY = applyInvertY(placement.visualY, isInverted);
 
-  // Fresh stack column at the right edge of the target row.
-  const rowCards = tableZone
-    ? tableZone.order.map((id) => tableZone.byId[id]).filter((c): c is ServerInfo_Card => !!c)
-    : [];
-  const nextCol = nextAvailableColumn(rowCards, wireY);
-
   webClient.request.game.moveCard(gameId, {
     startPlayerId: sourcePlayerId,
     startZone: sourceZone,
     cardsToMove: { card: [{ cardId: card.id, faceDown, ...playedCardFields(cardDatabase, faceDown) }] },
     targetPlayerId: sourcePlayerId,
     targetZone: ZoneName.TABLE,
-    x: gridXFromColumn(nextCol),
+    // Desktop's PlayerActions::playCard sends x = -1: the server picks the column
+    // (getFreeGridColumn), stacking a card onto a same-named one.
+    x: -1,
     y: wireY,
     isReversed: false,
   }, judgeTargetId);
@@ -105,7 +93,6 @@ export async function autoPlayCard(args: {
   card: ServerInfo_Card;
   faceDown: boolean;
   isInverted: boolean;
-  tableZone: ZoneEntry | undefined;
   judgeTargetId?: number;
   /** The "Play all nonlands onto the stack" preference; desktop's default is on. */
   playToStack?: boolean;

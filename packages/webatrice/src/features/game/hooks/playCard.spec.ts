@@ -23,7 +23,6 @@ const baseArgs = {
   card: { id: 7, name: 'Bear' } as never,
   faceDown: false,
   isInverted: false,
-  tableZone: undefined,
 };
 
 describe('playCardViaTableRow — owner routing + judge wrap', () => {
@@ -126,7 +125,9 @@ describe('playCardViaTableRow — row placement (card-database policy)', () => {
 
     await playCardViaTableRow({ ...baseArgs, isInverted, webClient, sourcePlayerId: 1 });
 
-    expect(moveCard).toHaveBeenCalledWith(1, expect.objectContaining({ targetZone: zone, x: 0, y }), undefined);
+    // A table play leaves the column to the server (x = -1), as desktop's playCard does.
+    const x = zone === ZoneName.TABLE ? -1 : 0;
+    expect(moveCard).toHaveBeenCalledWith(1, expect.objectContaining({ targetZone: zone, x, y }), undefined);
   });
 });
 

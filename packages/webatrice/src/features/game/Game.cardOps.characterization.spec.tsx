@@ -735,9 +735,9 @@ describe('arrows and attachments', () => {
           // The card database's printed P/T rides on the play (desktop playCard).
           cardsToMove: { card: [{ cardId: 30, faceDown: false, pt: '2/2' }] },
           targetPlayerId: 1,
-          // A creature (tablerow 1) lands in the first free column of the middle row.
+          // A creature (tablerow 1) lands in the middle row; the server picks the column (x = -1).
           targetZone: ZoneName.TABLE,
-          x: 0,
+          x: -1,
           y: 1,
           isReversed: false,
         }],

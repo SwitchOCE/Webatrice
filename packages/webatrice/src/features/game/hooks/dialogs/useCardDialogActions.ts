@@ -189,7 +189,6 @@ export function useCardDialogActions({
         card: menu.card,
         faceDown,
         isInverted: invertVerticalCoordinate,
-        tableZone: game.players[menu.sourcePlayerId]?.zones[ZoneName.TABLE],
         judgeTargetId: judgeTarget(menu.sourcePlayerId),
       });
     },

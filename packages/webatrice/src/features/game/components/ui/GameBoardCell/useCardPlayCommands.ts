@@ -1,12 +1,8 @@
 import { useMemo } from 'react';
-import { useStore } from 'react-redux';
 
-import { games } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
-import { ZoneName } from '@cockatrice/sockatrice';
 import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
 import { usePreference, useSettings } from '@app/hooks';
-import type { RootState } from '@app/store';
 
 import { autoPlayCard } from '../../../hooks/playCard';
 import { useJudgeTarget } from '../../../hooks/useJudgeTarget';
@@ -29,7 +25,6 @@ export interface CardPlayCommands {
  */
 export function useCardPlayCommands(gameId: number | undefined): CardPlayCommands | undefined {
   const webClient = useWebClient();
-  const store = useStore<RootState>();
   const judgeTarget = useJudgeTarget(gameId);
   const { value: settings } = useSettings();
   const invertVerticalCoordinate = settings?.invertVerticalCoordinate ?? false;
@@ -50,11 +45,10 @@ export function useCardPlayCommands(gameId: number | undefined): CardPlayCommand
           card,
           faceDown: false,
           isInverted: invertVerticalCoordinate,
-          tableZone: games.Selectors.getZone(store.getState(), gameId, ownerPlayerId, ZoneName.TABLE),
           judgeTargetId: judgeTarget(ownerPlayerId),
           playToStack,
         });
       },
     };
-  }, [gameId, webClient, store, judgeTarget, invertVerticalCoordinate, playToStack]);
+  }, [gameId, webClient, judgeTarget, invertVerticalCoordinate, playToStack]);
 }
