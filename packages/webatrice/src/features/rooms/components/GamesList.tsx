@@ -300,6 +300,7 @@ export default function GamesList({ room }: GamesListProps) {
         isOpen={passwordRequired}
         title="Password required"
         label="Password"
+        inputType="password"
         submitLabel="Join"
         onSubmit={submitPassword}
         onCancel={cancelPassword}

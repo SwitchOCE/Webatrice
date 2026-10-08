@@ -24,3 +24,12 @@ it('shows translated join codes and transport reasons in the live games list', a
   })));
   expect(screen.getByText('CommandFailure.timeout')).toBeInTheDocument();
 });
+
+it('asks for a game password in a masked field, as desktop does', async () => {
+  const room = makeRoom({ games: { 1: makeGame({ playerCount: 1, maxPlayers: 2, withPassword: true }) } });
+  renderWithProviders(<GamesList room={room} />, { preloadedState: {
+    ...connectedWithRoomsState, rooms: makeRoomsState({ rooms: { 1: room }, selectedGameIds: { 1: 1 } }),
+  } });
+  fireEvent.click(await screen.findByRole('button', { name: /^Join$/ }));
+  expect(await screen.findByLabelText('Password')).toHaveAttribute('type', 'password');
+});
