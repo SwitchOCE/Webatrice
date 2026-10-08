@@ -3,7 +3,6 @@ import type { WebClient } from '@cockatrice/sockatrice';
 export function createMockWebClient() {
   return {
     socket: { connectedEndpoint: 'wss://server.example:4748/' },
-    connectTarget: { host: 'localhost', port: '4748' },
     replayGameEventContainer: vi.fn(),
     loadReplayGame: vi.fn(),
     unloadReplayGame: vi.fn(),
