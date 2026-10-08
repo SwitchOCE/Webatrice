@@ -43,10 +43,15 @@ export function deleteCachedDeck(deckId: number): void {
 /**
  * Unsaved drafts by handoff token (services/decks deckHandoff): the staged
  * deck document, kept once taken so a remount (a tab switch, StrictMode)
- * hydrates it again, and the draft's latest in-editor state.
+ * hydrates it again, and the draft's latest in-editor state. Both are
+ * discarded at session end, independently of the stored-deck refresh cache.
  */
 const draftDocuments: Map<string, string> = new Map();
 const draftCache: Map<string, HydratedDeck> = new Map();
+onSessionEnd(() => {
+  draftDocuments.clear();
+  draftCache.clear();
+});
 
 export function getDraftDocument(token: string): string | undefined {
   return draftDocuments.get(token);

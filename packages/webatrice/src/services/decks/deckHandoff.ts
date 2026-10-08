@@ -1,3 +1,5 @@
+import { onSessionEnd } from '@app/services/session';
+
 /**
  * Hands a deck document (`.cod` XML) from one feature to another through a
  * route, without a stored deck: the game stages the deck it is playing and
@@ -8,6 +10,7 @@
  */
 
 const staged = new Map<string, string>();
+onSessionEnd(() => staged.clear());
 let nextToken = 0;
 
 /** Stages a deck document; the returned token reads it back once. */
@@ -19,7 +22,7 @@ export function stageDeckDocument(cod: string): string {
 }
 
 /** The staged deck document for `token`, removed as it is read; undefined
- *  for an unknown or already-read token. */
+ *  for an unknown, already-read or previous-session token. */
 export function takeStagedDeck(token: string): string | undefined {
   const cod = staged.get(token);
   staged.delete(token);
