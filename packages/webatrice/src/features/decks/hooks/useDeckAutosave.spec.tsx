@@ -526,7 +526,11 @@ describe('useDeckAutosave save prompt support (desktop confirmOpen)', () => {
     clients.set(view.store, webClient);
     let saved!: Promise<boolean>;
     const settled = vi.fn();
-    act(() => { saved = latest.saveNow().then((value) => { settled(value); return value; }); });
+    act(() => {
+      saved = latest.saveNow().then((value) => {
+        settled(value); return value;
+      });
+    });
     current = { ...EDITED, name: 'Held through handoff' };
     act(() => {
       latest.scheduleSave();
@@ -546,7 +550,9 @@ describe('useDeckAutosave save prompt support (desktop confirmOpen)', () => {
     expect(latest.isModified).toBe(true);
     expect(webClient.request.session.deckUpdate).not.toHaveBeenCalled();
     act(() => {
-      if (choice === 'discard') latest.discardChanges();
+      if (choice === 'discard') {
+        latest.discardChanges();
+      }
       latest.resumeAutosave();
       vi.advanceTimersByTime(AUTOSAVE_DEBOUNCE_MS * 2);
     });
