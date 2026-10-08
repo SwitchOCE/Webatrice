@@ -9,6 +9,7 @@ import {
   ServerInfo_DeckStorage_TreeItemSchema,
 } from '@cockatrice/sockatrice/generated';
 import { parseCod } from '@app/services';
+import { endSession } from '@app/services/session';
 
 import { connectedState, createMockWebClient, disconnectedState, renderWithProviders } from '../../../__test-utils__';
 import { getCachedDeck, setCachedDeck } from '../deckEditorCache';
@@ -71,6 +72,33 @@ beforeEach(() => {
 });
 
 describe('useDeckList', () => {
+  it('clears cached summaries and download requests at session end', () => {
+    const webClient = createMockWebClient();
+    const preloadedState = {
+      ...connectedState,
+      server: { ...connectedState.server, backendDecks: deckTree() },
+    };
+    const first = renderWithProviders(<Probe onDeckCreated={vi.fn()} />, { preloadedState, webClient });
+    act(() => {
+      first.store.dispatch(server.Actions.deckDownloaded({ deckId: 1, deck: COD('modern') }));
+    });
+    expect(latest.summaries.get(1)?.format).toBe('modern');
+    expect(webClient.request.session.deckDownload).toHaveBeenCalledTimes(2);
+    first.unmount();
+
+    // Normal tab navigation must retain both caches.
+    const returning = renderWithProviders(<Probe onDeckCreated={vi.fn()} />, { preloadedState, webClient });
+    expect(latest.summaries.get(1)?.format).toBe('modern');
+    expect(webClient.request.session.deckDownload).toHaveBeenCalledTimes(2);
+    returning.unmount();
+
+    endSession();
+
+    renderWithProviders(<Probe onDeckCreated={vi.fn()} />, { preloadedState, webClient });
+    expect.soft(latest.summaries.size).toBe(0);
+    expect.soft(vi.mocked(webClient.request.session.deckDownload).mock.calls).toEqual([[2], [1], [2], [1]]);
+  });
+
   it('requests the tree when connected without one', () => {
     const { webClient } = setup();
     expect(webClient.request.session.deckList).toHaveBeenCalledTimes(1);

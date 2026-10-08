@@ -46,8 +46,8 @@ const rules = [
   // Feature-wrappers are page-chrome wrappers (currently just `layout/`, holding Layout
   // and TopBar). They compose feature-widgets for top-level affordances (e.g.
   // card-import dialog accessible from any page) and are consumed by features (below) for
-  // wrapping their route content. Feature work triggered by the chrome goes through
-  // `ShellLifecycleContext`, implemented by AppShell.
+  // wrapping their route content. Module-level feature caches register their own
+  // cleanup with services/session; AppShell hosts the session boundary.
   {
     from: { type: 'feature-wrappers' },
     allow: types('components', 'dialogs', 'feature-widgets', 'hooks', 'images', 'services', 'store', 'types', 'utils')

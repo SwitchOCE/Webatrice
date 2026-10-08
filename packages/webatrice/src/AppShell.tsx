@@ -11,14 +11,13 @@ import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 import { ModerationProvider } from '@app/feature-widgets/moderation';
 import { UserGamesProvider } from '@app/feature-widgets/user-games';
 import { useLiveServerEndpoint } from '@app/feature-widgets/known-hosts';
-import { loadPersistedLastRoute, ShellLifecycleProvider } from '@app/feature-wrappers/layout';
+import { loadPersistedLastRoute } from '@app/feature-wrappers/layout';
 import { DeckShareLinkRedirect } from '@app/features/decks';
 import { LobbyDeckStateProvider } from '@app/features/game';
 import { PrivateMessageNotifier } from '@app/features/player';
 import { ReportNotifier } from '@app/features/reports';
 import { AppAlerts, CommandFailureNotices, FeatureDetection, ServerNotices } from '@app/features/shell';
 import { usePlaymatSync } from './features/game/hooks/usePlaymatSync';
-import { appShellLifecycle } from './appShellLifecycle';
 import { SessionScope } from './SessionScope';
 
 // CssBaseline removed: it was MUI's global body reset (font, color,
@@ -52,46 +51,44 @@ function AppShell() {
     <ToastProvider>
       <div className="AppShell">
         <Router initialEntries={initialEntries}>
-          <ShellLifecycleProvider value={appShellLifecycle}>
-            <ShortcutProvider>
-              <FeatureDetection />
-              {/* Final outcomes must survive session teardown until dismissed. */}
-              <CommandFailureNotices />
-              <ServerNotices />
-              <SessionScope>
-                {/* Global listener for incoming private-chat messages —
-                 *  renders nothing, dispatches Toast pills whose
-                 *  onClick navigates to the sender's /player/:name
-                 *  tab. Mounted inside the Router so useNavigate /
-                 *  useLocation work; inside ToastProvider so pushToast
-                 *  is available. */}
-                <PrivateMessageNotifier />
-                {/* Sounds and notifications for game, room and buddy events. */}
-                <AppAlerts />
-                {/* Runs the join flow for game links clicked in any chat. */}
-                <GameLinkJoinHost endpoint={liveServer} />
-                {/* REPORT_RESOLVED / REPORT_COMMENT popups (desktop processNotifyUserEvent). */}
-                <ReportNotifier />
-                {/* Hosts the report-user dialog for useReportUser().openReportUser. */}
-                <ReportUserProvider>
-                  <ModerationProvider>
-                    <UserGamesProvider>
-                      <LobbyDeckStateProvider>
-                        <RouteErrorBoundary>
-                          <Routes />
-                        </RouteErrorBoundary>
-                      </LobbyDeckStateProvider>
-                    </UserGamesProvider>
-                  </ModerationProvider>
-                </ReportUserProvider>
-              </SessionScope>
-              {/* Opens a deck share link the page was loaded with, after
-               *  login. After the routes so it navigates after the login
-               *  page's own redirect. Outside SessionScope: it reads the
-               *  page-load address once and keeps the link in session storage. */}
-              <DeckShareLinkRedirect />
-            </ShortcutProvider>
-          </ShellLifecycleProvider>
+          <ShortcutProvider>
+            <FeatureDetection />
+            {/* Final outcomes must survive session teardown until dismissed. */}
+            <CommandFailureNotices />
+            <ServerNotices />
+            <SessionScope>
+              {/* Global listener for incoming private-chat messages —
+               *  renders nothing, dispatches Toast pills whose
+               *  onClick navigates to the sender's /player/:name
+               *  tab. Mounted inside the Router so useNavigate /
+               *  useLocation work; inside ToastProvider so pushToast
+               *  is available. */}
+              <PrivateMessageNotifier />
+              {/* Sounds and notifications for game, room and buddy events. */}
+              <AppAlerts />
+              {/* Runs the join flow for game links clicked in any chat. */}
+              <GameLinkJoinHost endpoint={liveServer} />
+              {/* REPORT_RESOLVED / REPORT_COMMENT popups (desktop processNotifyUserEvent). */}
+              <ReportNotifier />
+              {/* Hosts the report-user dialog for useReportUser().openReportUser. */}
+              <ReportUserProvider>
+                <ModerationProvider>
+                  <UserGamesProvider>
+                    <LobbyDeckStateProvider>
+                      <RouteErrorBoundary>
+                        <Routes />
+                      </RouteErrorBoundary>
+                    </LobbyDeckStateProvider>
+                  </UserGamesProvider>
+                </ModerationProvider>
+              </ReportUserProvider>
+            </SessionScope>
+            {/* Opens a deck share link the page was loaded with, after
+             *  login. After the routes so it navigates after the login
+             *  page's own redirect. Outside SessionScope: it reads the
+             *  page-load address once and keeps the link in session storage. */}
+            <DeckShareLinkRedirect />
+          </ShortcutProvider>
         </Router>
       </div>
     </ToastProvider>

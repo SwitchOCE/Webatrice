@@ -7,9 +7,9 @@ import { RouteEnum } from '@app/types';
 import { closeReplay, getOpenedReplay, getOpenedReplays, openReplay } from '@app/services';
 import { buildReplay, sayContainer } from '../../services/replay/__mocks__/fixtures';
 
-import { ShellLifecycleProvider, type ShellLifecycle } from './ShellLifecycleContext';
 import TopBar from './TopBar';
 
+const TABS_KEY = 'webatrice.stickyTabs';
 const OWNER_KEY = 'webatrice.stickyTabs.owner';
 // `${serverName}::${userName}` for connectedState.
 const IDENTITY = 'Test Server::testUser';
@@ -19,62 +19,58 @@ function LocationProbe() {
 }
 
 function renderTopBar(route: string = RouteEnum.SERVER, preloadedState = connectedState) {
-  const lifecycle: ShellLifecycle = { onIdentityChanged: vi.fn() };
-  renderWithProviders(
-    <ShellLifecycleProvider value={lifecycle}>
+  return renderWithProviders(
+    <>
       <TopBar />
       <LocationProbe />
-    </ShellLifecycleProvider>,
+    </>,
     { preloadedState, route },
   );
-  return lifecycle;
 }
 
-describe('TopBar shell lifecycle port', () => {
+describe('TopBar identity changes', () => {
   afterEach(() => {
     window.localStorage.clear();
   });
 
-  it('reports an identity change when the persisted owner is someone else', () => {
-    window.localStorage.setItem(OWNER_KEY, 'Other Server::someoneElse');
+  it.each(['/decks', '/deck/1', '/deck/draft/old'])(
+    'strips persisted deck tabs and redirects from %s for a different identity', (route) => {
+      renderTopBar(RouteEnum.DECKS).unmount();
+      renderTopBar('/deck/1').unmount();
+      expect(JSON.parse(window.localStorage.getItem(TABS_KEY)!)).toEqual(expect.arrayContaining([
+        expect.objectContaining({ type: 'decks' }),
+        expect.objectContaining({ type: 'deck' }),
+      ]));
+      window.localStorage.setItem(OWNER_KEY, 'Other Server::someoneElse');
 
-    const lifecycle = renderTopBar();
+      renderTopBar(route);
 
-    expect(lifecycle.onIdentityChanged).toHaveBeenCalledTimes(1);
-    expect(window.localStorage.getItem(OWNER_KEY)).toBe(IDENTITY);
-  });
+      expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
+      expect(JSON.parse(window.localStorage.getItem(TABS_KEY)!)).not.toEqual(expect.arrayContaining([
+        expect.objectContaining({ type: 'deck' }),
+      ]));
+      expect(JSON.parse(window.localStorage.getItem(TABS_KEY)!)).not.toEqual(expect.arrayContaining([
+        expect.objectContaining({ type: 'decks' }),
+      ]));
+      expect(window.localStorage.getItem(OWNER_KEY)).toBe(IDENTITY);
+    },
+  );
 
-  it('bounces off a deck route that belonged to the previous identity', () => {
-    window.localStorage.setItem(OWNER_KEY, 'Other Server::someoneElse');
-
-    renderTopBar(RouteEnum.DECKS);
-
-    expect(screen.getByTestId('location')).toHaveTextContent(RouteEnum.SERVER);
-  });
-
-  it('does not report a change when the same identity signs in again', () => {
+  it('keeps the deck tab and route when the same identity signs in again', () => {
     window.localStorage.setItem(OWNER_KEY, IDENTITY);
 
-    const lifecycle = renderTopBar();
+    renderTopBar('/deck/1');
 
-    expect(lifecycle.onIdentityChanged).not.toHaveBeenCalled();
+    expect(screen.getByTestId('location')).toHaveTextContent('/deck/1');
+    expect(JSON.parse(window.localStorage.getItem(TABS_KEY)!)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'deck', route: '/deck/1' }),
+    ]));
   });
 
-  it('does not report a change on the first sign-in, and records the owner', () => {
-    const lifecycle = renderTopBar();
+  it('records the owner on the first sign-in', () => {
+    renderTopBar();
 
-    expect(lifecycle.onIdentityChanged).not.toHaveBeenCalled();
     expect(window.localStorage.getItem(OWNER_KEY)).toBe(IDENTITY);
-  });
-
-  it('throws when rendered without a ShellLifecycleProvider', () => {
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-
-    expect(() =>
-      renderWithProviders(<TopBar />, { preloadedState: connectedState, route: RouteEnum.SERVER, shellLifecycle: null }),
-    ).toThrow('useShellLifecycle must be used inside <ShellLifecycleProvider>');
-
-    consoleError.mockRestore();
   });
 });
 

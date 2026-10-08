@@ -32,7 +32,6 @@ const testTheme = createTheme({
 
 import { rootReducerMap, type RootState } from '../store';
 import { ToastProvider } from '../components/Toast/ToastContext';
-import { ShellLifecycleProvider, type ShellLifecycle } from '../feature-wrappers/layout';
 import { GameInteractionProvider, type GameInteractionHandlers } from '../features/game/components/ui/GameInteractionContext';
 import { CardVisualStateProvider, type CanActFor } from '../features/game/components/ui/CardVisualStateContext';
 import { GameDialogActionsProvider, type GameDialogActions } from '../features/game/components/ui/GameDialogActionsContext';
@@ -95,10 +94,6 @@ interface CardVisualStateOverride {
   canActFor?: CanActFor;
 }
 
-const NOOP_SHELL_LIFECYCLE: ShellLifecycle = {
-  onIdentityChanged: () => {},
-};
-
 const EMPTY_SELECTION: ReadonlySet<string> = new Set();
 const DENY_ALL: CanActFor = () => false;
 
@@ -155,9 +150,6 @@ interface ExtendedRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   // Partial overrides for the dialogs slice (defaults to a closed/no-op slice).
   // Set the relevant menu state + handlers a dialog spec asserts against.
   gameDialogs?: Partial<GameDialogs>;
-  // The shell lifecycle port page chrome (TopBar) reports to. Defaults to
-  // no-ops; pass `null` to render without the provider.
-  shellLifecycle?: ShellLifecycle | null;
 }
 
 export function renderWithProviders(
@@ -174,7 +166,6 @@ export function renderWithProviders(
     gameDialogActions,
     gameDialogs,
     previewStore = createCardPreviewStore(),
-    shellLifecycle = NOOP_SHELL_LIFECYCLE,
     ...renderOptions
   } = options;
   // Distinguish "omitted" (default game 1) from an explicit `gameId: undefined`
@@ -231,11 +222,7 @@ export function renderWithProviders(
                             <CardPreviewProvider store={previewStore}>
                               <GameDialogsProvider value={dialogs}>
                                 <LobbyDeckStateProvider>
-                                  {shellLifecycle ? (
-                                    <ShellLifecycleProvider value={shellLifecycle}>{children}</ShellLifecycleProvider>
-                                  ) : (
-                                    children
-                                  )}
+                                  {children}
                                 </LobbyDeckStateProvider>
                               </GameDialogsProvider>
                             </CardPreviewProvider>

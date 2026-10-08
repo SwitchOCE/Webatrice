@@ -7,6 +7,7 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import type { Response_DeckList, ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
 import { useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 import { emptyCod, parseCod } from '@app/services';
+import { onSessionEnd } from '@app/services/session';
 import { useAppSelector } from '@app/store';
 
 import { clearDeckEditorCache, deleteCachedDeck } from '../deckEditorCache';
@@ -17,9 +18,8 @@ import type { FlatDeck } from '../deckTree';
 /**
  * Session caches for the MyDecks list, so navigating away and back
  * doesn't re-download every deck's XML (and flash "Loading…" on every
- * row). Cleared by Refresh and, through `clearDecksListCache`, by the
- * shell when the server / user identity changes — deck ids are per-user
- * on Servatrice.
+ * row). Cleared by Refresh and at every session boundary through
+ * `onSessionEnd`; deck ids are per-user on Servatrice.
  */
 const summaryCache: Map<number, DeckSummary> = new Map();
 const summaryRequestedCache: Set<number> = new Set();
@@ -28,6 +28,7 @@ export function clearDecksListCache(): void {
   summaryCache.clear();
   summaryRequestedCache.clear();
 }
+onSessionEnd(clearDecksListCache);
 
 /** Forget everything cached about a deck that left storage. */
 function forgetDeck(deckId: number): void {

@@ -22,7 +22,6 @@ import { RouteEnum } from '@app/types';
 import { CardImportDialog } from '@app/feature-widgets/card-import';
 
 import LatencyStatus from './LatencyStatus';
-import { useShellLifecycle } from './ShellLifecycleContext';
 import { UserMenuDialog, visibleUserMenuEntries, type CapabilityCheck } from './userMenuEntries';
 
 const USER_MENU_ITEM_CLASS =
@@ -101,7 +100,6 @@ export default function TopBar() {
   const backendDecks = useAppSelector(server.Selectors.getBackendDecks);
   const [snapGridVisible, setSnapGridVisible] = useSnapGridSetting();
   const [phaseTrackPinned, setPhaseTrackPinned] = usePhaseTrackPinnedSetting();
-  const { onIdentityChanged } = useShellLifecycle();
   const [openDialog, setOpenDialog] = useState<UserMenuDialog | null>(null);
 
   // Sticky tabs = the deck-related routes the user has visited and not
@@ -170,12 +168,11 @@ export default function TopBar() {
   }, [isConnected, backendDecks, webClient]);
 
   // Server/user identity change — deck ids are per-user on servatrice,
-  // so any deck tab / cache from a previous login is stale after
+  // so any deck tab from a previous login is stale after
   // signing into a different server or as a different user. Watch
   // `(serverName, userName)`; when it transitions to a new non-null
   // value that doesn't match the last known owner, purge deck sticky
-  // tabs and report the change so features drop their server-scoped
-  // caches (AppShell wires the deck caches). If the user is on a
+  // tabs. SessionScope handles module-cache cleanup separately. On a
   // now-stale deck route, bounce them to the lobby so the editor
   // doesn't try to load an id that doesn't exist here.
   const identity = useMemo(() => {
@@ -191,7 +188,6 @@ export default function TopBar() {
     const previous = window.localStorage.getItem(STICKY_OWNER_KEY);
     if (previous && previous !== identity) {
       setStickyTabs((prev) => prev.filter((t) => t.type !== 'deck' && t.type !== 'decks'));
-      onIdentityChanged();
       if (
         location.pathname.startsWith('/deck/')
         || location.pathname === RouteEnum.DECKS
@@ -206,7 +202,7 @@ export default function TopBar() {
     // same identity are no-ops. Depending on pathname would rerun
     // this effect on every route hop.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run on identity change only (see above)
-  }, [identity, setStickyTabs, onIdentityChanged]);
+  }, [identity, setStickyTabs]);
 
   // Enrich a deck-editor sticky tab with the actual deck name once
   // backendDecks has loaded it. Falls back to `Deck #N` before that.
@@ -767,7 +763,7 @@ const STICKY_STORAGE_KEY = 'webatrice.stickyTabs';
 /** Owner (`${serverName}::${userName}`) of the currently-persisted
  *  sticky tabs. Written after every non-null identity settles; a
  *  mismatch on next login means we jumped servers or logged in as
- *  someone else and need to wipe stale deck tabs + caches. */
+ *  someone else and need to wipe stale deck tabs. */
 const STICKY_OWNER_KEY = 'webatrice.stickyTabs.owner';
 const VALID_TAB_TYPES: TabType[] = [
   'server', 'room', 'game', 'decks', 'deck',
