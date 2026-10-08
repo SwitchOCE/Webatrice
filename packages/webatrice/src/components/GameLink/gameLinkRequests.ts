@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { onSessionEnd } from '@app/services/session';
 
 /**
  * Hand-off from a clicked game link (anywhere in chat) to the single
@@ -33,6 +34,8 @@ export function clearGameLinkRequest(): void {
     notify();
   }
 }
+
+onSessionEnd(clearGameLinkRequest);
 
 function subscribe(listener: () => void): () => void {
   listeners.add(listener);
