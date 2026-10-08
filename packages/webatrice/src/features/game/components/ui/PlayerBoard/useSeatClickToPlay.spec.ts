@@ -47,7 +47,7 @@ function setup(args: Partial<Parameters<typeof useSeatClickToPlay>[0]> = {}) {
   const zoneCommands = { moveCards: vi.fn() } as unknown as PlayerZoneCommands;
   const cardCommands = { setTapped: vi.fn() } as unknown as PlayerCardCommands;
   const setCardMetaByName = vi.fn();
-  const { result } = renderHook(() => useSeatClickToPlay({
+  const { result, unmount } = renderHook(() => useSeatClickToPlay({
     canAct: true,
     selection: null,
     handDisplayList: [FOREST, SHOCK, BEAR],
@@ -59,7 +59,9 @@ function setup(args: Partial<Parameters<typeof useSeatClickToPlay>[0]> = {}) {
     cardCommands,
     ...args,
   }));
-  return { result, moveCards: vi.mocked(zoneCommands.moveCards), setTapped: vi.mocked(cardCommands.setTapped), setCardMetaByName };
+  return {
+    result, unmount, moveCards: vi.mocked(zoneCommands.moveCards), setTapped: vi.mocked(cardCommands.setTapped), setCardMetaByName,
+  };
 }
 
 describe('useSeatClickToPlay', () => {
@@ -162,6 +164,23 @@ describe('useSeatClickToPlay', () => {
     expect(moveCards).toHaveBeenCalledWith(ZoneName.HAND, [33], { zone: ZoneName.TABLE, index: 'end', row: tableRowToGridY(0) });
     const update = setCardMetaByName.mock.calls[0][0] as (prev: Map<string, SeatCardMeta>) => Map<string, SeatCardMeta>;
     expect(update(new Map()).get('Island')).toMatchObject({ typeLine: 'Basic Land — Island' });
+  });
+
+  it('sends nothing when the seat unmounts while the card is still being looked up', async () => {
+    let resolveLookup!: (value: Awaited<ReturnType<typeof lookupCard>>) => void;
+    vi.mocked(lookupCard).mockReturnValueOnce(new Promise((resolve) => {
+      resolveLookup = resolve;
+    }));
+    const island = card(33, 'Island');
+    const { result, unmount, moveCards } = setup({ handDisplayList: [island] });
+    result.current.onCardDoubleClick('hand', island, click);
+    unmount();
+    await act(async () => {
+      resolveLookup({
+        found: true, source: 'scryfall', name: 'Island', typeLine: 'Basic Land — Island', printings: [],
+      } as Awaited<ReturnType<typeof lookupCard>>);
+    });
+    expect(moveCards).not.toHaveBeenCalled();
   });
 
   describe('clicking plays all selected cards', () => {

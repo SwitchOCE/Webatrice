@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from 'react';
+import { useEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { usePreference } from '@app/hooks';
 import { lookupCard } from '@app/services';
@@ -76,6 +76,14 @@ export function useSeatClickToPlay({
   const doubleClickToPlay = usePreference('doubleClickToPlay');
   const clickPlaysAllSelected = usePreference('clickPlaysAllSelected');
   const playToStack = usePreference('playToStack');
+  // A play waits for the card's metadata; a seat that unmounted meanwhile (the game closed) sends nothing.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   // The card's metadata from the prefetched cache; on a miss, a fresh lookup (cached for next
   // time) so the first click routes correctly even before the prefetch lands.
@@ -106,6 +114,9 @@ export function useSeatClickToPlay({
     const from = zone === 'hand' ? ZoneName.HAND : ZoneName.STACK;
     // A face-down play needs no type line: it always lands in row 2.
     const meta = faceDown ? undefined : await metaOf(card.name);
+    if (!mounted.current) {
+      return;
+    }
     const play = playCardMove(cardId, meta, { faceDown, playToStack: zone === 'hand' && playToStack, fromStack: zone === 'stack' });
     zoneCommands.moveCards(from, [play.card], play.to);
   };
