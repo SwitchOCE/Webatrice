@@ -2,7 +2,7 @@ import type { ServerInfo_Card } from '@cockatrice/sockatrice/generated';
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import type { Enriched } from '../../types';
 
-// A failed Command_DeckSelect: the raw Response.ResponseCode, and `failure`
+// A failed game command: the raw Response.ResponseCode, and `failure`
 // when the server never answered.
 export interface GameCommandFailedPayload {
   gameId: number;

@@ -260,6 +260,10 @@ export interface IGameResponse {
   deckSelected?(gameId: number, deckList: string, requestId?: RequestId): void;
   /** Command_DeckSelect failed; `failure` is set when the server never answered (see CommandFailure). */
   deckSelectFailed?(gameId: number, responseCode: number, failure?: CommandFailure, requestId?: RequestId): void;
+  /** Command_NextTurn succeeded; turn state still arrives through game events. */
+  nextTurnAnswered?(gameId: number, requestId?: RequestId): void;
+  /** Command_NextTurn failed; `failure` is set when the server never answered. */
+  nextTurnFailed?(gameId: number, responseCode: number, failure?: CommandFailure, requestId?: RequestId): void;
 }
 
 /**

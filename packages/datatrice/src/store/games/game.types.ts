@@ -39,6 +39,8 @@ export const Types = {
   DIE_ROLLED: a.dieRolled.type,
   ACTIVE_PLAYER_SET: a.activePlayerSet.type,
   ACTIVE_PHASE_SET: a.activePhaseSet.type,
+  NEXT_TURN_ANSWERED: a.nextTurnAnswered.type,
+  NEXT_TURN_FAILED: a.nextTurnFailed.type,
   TURN_REVERSED: a.turnReversed.type,
   ZONE_DUMPED: a.zoneDumped.type,
   ZONE_PROPERTIES_CHANGED: a.zonePropertiesChanged.type,

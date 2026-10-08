@@ -248,7 +248,10 @@ describe('Game commands — delegate to WebClient.instance.protobuf.sendGameComm
 
   it('nextTurn sends Command_NextTurn with empty object', () => {
     nextTurn(gameId);
-    expect(WebClient.instance.protobuf.sendGameCommand).toHaveBeenCalledWith(gameId, Command_NextTurn_ext, expect.any(Object));
+    expect(WebClient.instance.protobuf.sendGameCommand).toHaveBeenCalledWith(
+      gameId, Command_NextTurn_ext, expect.any(Object),
+      expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+    );
   });
 
   it('readyStart sends Command_ReadyStart', () => {

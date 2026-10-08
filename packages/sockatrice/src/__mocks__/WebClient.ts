@@ -153,6 +153,8 @@ const game = {
   gameLogNotice: vi.fn(),
   deckSelected: vi.fn(),
   deckSelectFailed: vi.fn(),
+  nextTurnAnswered: vi.fn(),
+  nextTurnFailed: vi.fn(),
 };
 
 const admin = {

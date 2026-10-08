@@ -52,3 +52,42 @@ describe('deck-select outcome identity', () => {
     expect(dispatch).toHaveBeenLastCalledWith(Actions.deckSelectFailed({ gameId: 7, responseCode: 3, failure: undefined }));
   });
 });
+
+describe('next-turn outcome identity', () => {
+  // Catches dropped/swapped IDs and storing response metadata in game state.
+  it('carries out-of-order success identities as signals without changing game state', () => {
+    const { dispatch, game } = setup();
+    game.nextTurnAnswered(7, 'second');
+    game.nextTurnAnswered(7, 'first');
+    expect(dispatch).toHaveBeenNthCalledWith(1, Actions.nextTurnAnswered({ gameId: 7, requestId: 'second' }));
+    expect(dispatch).toHaveBeenNthCalledWith(2, Actions.nextTurnAnswered({ gameId: 7, requestId: 'first' }));
+    const state = gameState();
+    for (const [action] of dispatch.mock.calls) {
+      expect(gamesReducer(state, action)).toBe(state);
+    }
+  });
+
+  // Catches losing the failure reason/ID or mutating state on either outcome.
+  it.each([undefined, ...Object.values(WebsocketTypes.CommandFailure)])(
+    'carries a late failure %s identity without changing game state', (failure) => {
+      const { dispatch, game } = setup();
+      game.nextTurnAnswered(7, 'second');
+      game.nextTurnFailed(7, 3, failure, 'first');
+      expect(dispatch).toHaveBeenLastCalledWith(
+        Actions.nextTurnFailed({ gameId: 7, responseCode: 3, failure, requestId: 'first' }),
+      );
+      const state = gameState();
+      for (const [action] of dispatch.mock.calls) {
+        expect(gamesReducer(state, action)).toBe(state);
+      }
+    },
+  );
+
+  it('keeps response calls without correlation valid', () => {
+    const { dispatch, game } = setup();
+    game.nextTurnAnswered(7);
+    expect(dispatch).toHaveBeenLastCalledWith(Actions.nextTurnAnswered({ gameId: 7 }));
+    game.nextTurnFailed(7, 3);
+    expect(dispatch).toHaveBeenLastCalledWith(Actions.nextTurnFailed({ gameId: 7, responseCode: 3, failure: undefined }));
+  });
+});
