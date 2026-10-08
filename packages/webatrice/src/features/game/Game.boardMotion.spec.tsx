@@ -59,7 +59,7 @@ describe('production board motion wiring', () => {
     expect(visualElementStore.get(hand)?.shouldReduceMotion).toBe(true);
     const card = screen.getByTitle('Opt');
     expect(getComputedStyle(card).transition).toBe('none');
-    const track = screen.getByRole('navigation', { name: 'Turn phases' });
+    const track = screen.getByRole('navigation', { name: 'PhaseTrack.label' });
     fireEvent.mouseEnter(track);
     expect(track.style.width).toBe('112px');
     expect(getComputedStyle(track).transition).toBe('none');
