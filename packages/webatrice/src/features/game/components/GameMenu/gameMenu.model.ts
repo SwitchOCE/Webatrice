@@ -22,6 +22,8 @@ export type GameMenuEntry =
 export interface GameMenuModelArgs {
   canAdvancePhase: boolean;
   canPassTurn: boolean;
+  /** Wider than canPassTurn: a judge who has conceded may still reverse the turn order. */
+  canReverseTurn: boolean;
   canRunNextPhaseAction: boolean;
   onNextPhase: () => void;
   onNextPhaseAction: () => void;
@@ -51,7 +53,7 @@ export function buildGameMenuItems(args: GameMenuModelArgs): GameMenuEntry[] {
     },
     { kind: 'divider', id: 'phases' },
     { kind: 'item', id: 'nextTurn', shortcut: 'game.endTurn', disabled: !args.canPassTurn, onClick: args.onNextTurn },
-    { kind: 'item', id: 'reverseTurn', shortcut: 'game.reverseTurn', disabled: !args.canPassTurn, onClick: args.onReverseTurn },
+    { kind: 'item', id: 'reverseTurn', shortcut: 'game.reverseTurn', disabled: !args.canReverseTurn, onClick: args.onReverseTurn },
     { kind: 'divider', id: 'turns' },
     { kind: 'item', id: 'rotateViewCW', shortcut: 'game.rotateViewCW', disabled: false, onClick: args.onRotateViewCW },
     { kind: 'item', id: 'rotateViewCCW', shortcut: 'game.rotateViewCCW', disabled: false, onClick: args.onRotateViewCCW },

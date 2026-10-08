@@ -11,6 +11,7 @@ import { useGameAffordances } from '../../hooks/useGameAffordances';
 export interface PhaseBar {
   activePhase: Phase | undefined;
   canPassTurn: boolean;
+  canReverseTurn: boolean;
   canAdvancePhase: boolean;
   handlePhaseClick: (phase: Phase) => void;
   handlePass: () => void;
@@ -111,6 +112,7 @@ export function usePhaseBar(gameId: number | undefined): PhaseBar {
   return {
     activePhase,
     canPassTurn,
+    canReverseTurn,
     canAdvancePhase,
     handlePhaseClick,
     handlePass,

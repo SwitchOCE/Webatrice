@@ -7,7 +7,7 @@ import { buildGameMenuItems, type GameMenuEntry } from './gameMenu.model';
 
 /** The game menu's entries for `gameId`, wired to the phase bar, Command_ReverseTurn and the board rotation. */
 export function useGameMenu(gameId: number | undefined): GameMenuEntry[] {
-  const { activePhase, canAdvancePhase, canPassTurn, handlePhaseClick, handlePass, handleReverseTurn } =
+  const { activePhase, canAdvancePhase, canPassTurn, canReverseTurn, handlePhaseClick, handlePass, handleReverseTurn } =
     usePhaseBar(gameId);
   const nextPhaseAction = useNextPhaseAction(gameId);
   const { onRotateView } = useGameDialogActions();
@@ -15,6 +15,7 @@ export function useGameMenu(gameId: number | undefined): GameMenuEntry[] {
   return buildGameMenuItems({
     canAdvancePhase,
     canPassTurn,
+    canReverseTurn,
     canRunNextPhaseAction: nextPhaseAction.canRun,
     onNextPhase: () => handlePhaseClick(nextPhase(activePhase ?? -1)),
     onNextPhaseAction: nextPhaseAction.run,

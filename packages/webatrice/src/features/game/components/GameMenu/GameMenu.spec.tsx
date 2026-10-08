@@ -5,7 +5,9 @@ import { makeGameEntry, makePlayerEntry, makePlayerProperties } from '@cockatric
 import { createMockWebClient, renderWithProviders } from '../../../../__test-utils__';
 import GameMenu from './GameMenu';
 
-function renderMenu({ activePlayerId = 1, spectator = false, conceded = false, activePhase = Phase.Upkeep as number } = {}) {
+function renderMenu({
+  activePlayerId = 1, spectator = false, conceded = false, judge = false, activePhase = Phase.Upkeep as number,
+} = {}) {
   const webClient = createMockWebClient();
   const onRotateView = vi.fn();
   const game = makeGameEntry({
@@ -14,6 +16,7 @@ function renderMenu({ activePlayerId = 1, spectator = false, conceded = false, a
     localPlayerId: 1,
     activePlayerId,
     spectator,
+    judge,
     players: { 1: makePlayerEntry({ properties: makePlayerProperties({ playerId: 1, conceded }) }) },
   });
   renderWithProviders(<GameMenu className="" />, {
@@ -36,6 +39,15 @@ describe('GameMenu', () => {
     for (let i = 1; i < order.length; i++) {
       expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
+  });
+
+  it('lets a conceded judge reverse the turn order but not pass the turn', () => {
+    const { webClient, item } = renderMenu({ judge: true, conceded: true });
+
+    expect(isDisabled(item('nextTurn'))).toBe(true);
+    expect(isDisabled(item('reverseTurn'))).toBe(false);
+    fireEvent.click(item('reverseTurn'));
+    expect(webClient.request.game.reverseTurn).toHaveBeenCalledWith(1);
   });
 
   it('sends one Command_ReverseTurn, without confirmation', () => {
