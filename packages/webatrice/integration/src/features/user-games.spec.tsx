@@ -177,7 +177,7 @@ it('keeps a closed selector rejection out of the reopened selector and backgroun
   setupLobby();
   fireEvent.doubleClick(await openUnprotectedGame());
   const oldJoin = findLastRoomCommand(Command_JoinGame_ext);
-  fireEvent.click(screen.getByRole('button', { name: 'DialogShell.close' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Common.action.close' }));
   await openUnprotectedGame();
   act(() => deliverMessage(buildResponseMessage(buildResponse({
     cmdId: oldJoin.cmdId, responseCode: Response_ResponseCode.RespWrongPassword,
