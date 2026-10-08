@@ -1,6 +1,8 @@
-import { useEffect, useId, useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Loader2, Search, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
+import { useListboxCombobox } from '@app/hooks';
 
 import { useQuickAddSuggestions } from '../../hooks/useQuickAddSuggestions';
 
@@ -29,12 +31,9 @@ export function QuickAddSearch({ query, onQueryChange, onAdd, inputRef: external
   const rootRef = useRef<HTMLDivElement>(null);
   const ownInputRef = useRef<HTMLInputElement>(null);
   const inputRef = externalInputRef ?? ownInputRef;
-  const listboxId = useId();
-  const optionId = (index: number) => `${listboxId}-option-${index}`;
 
   const searching = open && query.trim().length >= 2;
-  const expanded = searching && !loading && suggestions.length > 0;
-  const activeOption = expanded && highlight >= 0 && highlight < suggestions.length ? optionId(highlight) : undefined;
+  const listed = searching && !loading;
   const status = !searching
     ? ''
     : loading
@@ -67,34 +66,28 @@ export function QuickAddSearch({ query, onQueryChange, onAdd, inputRef: external
     inputRef.current?.focus();
   };
 
-  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setOpen(true);
-      setHighlight((h) => (suggestions.length ? (h + 1) % suggestions.length : -1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setHighlight((h) => (suggestions.length ? (h - 1 + suggestions.length) % suggestions.length : -1));
-    } else if (e.key === 'Enter') {
-      e.preventDefault();
-      // Only an option the combobox announces counts: with the list closed,
-      // Enter adds what was typed, not a suggestion the user can't see.
-      if (activeOption) {
-        handleAdd(suggestions[highlight].name);
-      } else if (query.trim()) {
+  const { listboxId, inputProps, getOptionProps } = useListboxCombobox({
+    count: suggestions.length,
+    open: listed,
+    highlight,
+    onHighlightChange: setHighlight,
+    onAccept: (index) => handleAdd(suggestions[index].name),
+    // A searching or no-matches panel closes like the list.
+    popupShown: searching,
+    onClose: () => {
+      setOpen(false);
+      setHighlight(-1);
+    },
+    onOpen: () => setOpen(true),
+    // With the list closed, Enter adds what was typed, not a suggestion the user can't see.
+    onEnterWithoutOption: () => {
+      if (query.trim()) {
         handleAdd(query.trim());
       }
-    } else if (e.key === 'Escape') {
-      // APG combobox: the first Escape closes the popup (list, searching or
-      // no matches) and drops the highlight, the next clears the field.
-      if (searching) {
-        setOpen(false);
-        setHighlight(-1);
-      } else {
-        setQuery('');
-      }
-    }
-  };
+    },
+    onEscapeClosed: () => setQuery(''),
+    highlightOnHover: true,
+  });
 
   return (
     // Width + surface color match fancy webatrice's QuickAddSearch:
@@ -109,12 +102,8 @@ export function QuickAddSearch({ query, onQueryChange, onAdd, inputRef: external
         <input
           ref={inputRef}
           type="text"
-          role="combobox"
+          {...inputProps}
           aria-label={t('DeckEditor.quickAdd.label')}
-          aria-autocomplete="list"
-          aria-expanded={expanded}
-          aria-controls={expanded ? listboxId : undefined}
-          aria-activedescendant={activeOption}
           autoComplete="off"
           value={query}
           onChange={(e) => {
@@ -122,7 +111,6 @@ export function QuickAddSearch({ query, onQueryChange, onAdd, inputRef: external
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          onKeyDown={onKeyDown}
           placeholder={t('DeckEditor.quickAdd.placeholder')}
           className={[
             'w-full pl-8 pr-8 py-1.5 rounded-md bg-bg-base border',
@@ -148,45 +136,45 @@ export function QuickAddSearch({ query, onQueryChange, onAdd, inputRef: external
 
       <p role="status" className="sr-only">{status}</p>
 
-      {searching && (
-        <div
-          className={[
-            'absolute right-0 left-0 top-full mt-1 z-20 rounded-md',
-            'bg-bg-surface border border-border-subtle shadow-glow overflow-hidden',
-          ].join(' ')}
+      {/* Always rendered, hidden while closed: the combobox's aria-controls points at the listbox. */}
+      <div
+        hidden={!searching}
+        className={[
+          'absolute right-0 left-0 top-full mt-1 z-20 rounded-md',
+          'bg-bg-surface border border-border-subtle shadow-glow overflow-hidden',
+        ].join(' ')}
+      >
+        {searching && loading && (
+          <div className="flex items-center gap-2 px-3 py-2 text-xs text-text-muted">
+            <Loader2 size={11} className="animate-spin" /> {t('DeckEditor.quickAdd.searching')}
+          </div>
+        )}
+        {listed && suggestions.length === 0 && (
+          <div className="px-3 py-2 text-xs text-text-muted italic">{t('DeckEditor.quickAdd.noMatches')}</div>
+        )}
+        <ul
+          id={listboxId}
+          role="listbox"
+          hidden={!inputProps['aria-expanded']}
+          aria-label={t('DeckEditor.quickAdd.listLabel')}
         >
-          {loading && (
-            <div className="flex items-center gap-2 px-3 py-2 text-xs text-text-muted">
-              <Loader2 size={11} className="animate-spin" /> {t('DeckEditor.quickAdd.searching')}
-            </div>
-          )}
-          {!loading && suggestions.length === 0 && (
-            <div className="px-3 py-2 text-xs text-text-muted italic">{t('DeckEditor.quickAdd.noMatches')}</div>
-          )}
-          {expanded && (
-            <ul id={listboxId} role="listbox" aria-label={t('DeckEditor.quickAdd.listLabel')}>
-              {suggestions.map((s, i) => (
-                <li
-                  key={s.name}
-                  id={optionId(i)}
-                  role="option"
-                  aria-selected={i === highlight}
-                  onMouseEnter={() => setHighlight(i)}
-                  // Keep focus in the input, which owns the combobox.
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => handleAdd(s.name)}
-                  className={[
-                    'px-3 py-1.5 text-sm text-text-primary truncate cursor-pointer transition-colors',
-                    i === highlight ? 'bg-bg-elevated' : 'hover:bg-bg-elevated',
-                  ].join(' ')}
-                >
-                  {s.name}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
+          {suggestions.map((s, i) => {
+            const option = getOptionProps(i);
+            return (
+              <li
+                key={s.name}
+                {...option}
+                className={[
+                  'px-3 py-1.5 text-sm text-text-primary truncate cursor-pointer transition-colors',
+                  option['aria-selected'] ? 'bg-bg-elevated' : 'hover:bg-bg-elevated',
+                ].join(' ')}
+              >
+                {s.name}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
     </div>
   );
 }

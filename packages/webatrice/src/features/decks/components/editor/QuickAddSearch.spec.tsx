@@ -60,16 +60,59 @@ describe('QuickAddSearch', () => {
     expect(onAdd).toHaveBeenLastCalledWith('Unknown Card');
   });
 
-  it('moves the highlight with the arrow keys, wrapping around', () => {
-    const state = suggestions();
-    vi.mocked(useQuickAddSuggestions).mockReturnValue(state);
-    render(<Harness onAdd={vi.fn()} initial="sol" />);
-    fireEvent.keyDown(screen.getByRole('combobox'), { key: 'ArrowDown' });
-    fireEvent.keyDown(screen.getByRole('combobox'), { key: 'ArrowUp' });
+  // Three suggestions with a real highlight, as useQuickAddSuggestions keeps it.
+  function liveSuggestions(initialHighlight = 0) {
+    vi.mocked(useQuickAddSuggestions).mockImplementation(function useLive() {
+      const [highlight, setHighlight] = useState(initialHighlight);
+      return suggestions({
+        suggestions: [
+          { name: 'Sol Ring', source: 'scryfall' },
+          { name: 'Sol Talisman', source: 'scryfall' },
+          { name: 'Solemn Simulacrum', source: 'scryfall' },
+        ],
+        highlight,
+        setHighlight,
+      });
+    });
+  }
+  const activeName = () =>
+    document.getElementById(screen.getByRole('combobox').getAttribute('aria-activedescendant') ?? '')?.textContent;
 
-    const [down, up] = vi.mocked(state.setHighlight).mock.calls.map(([update]) => update as (h: number) => number);
-    expect(down(1)).toBe(0);
-    expect(up(0)).toBe(1);
+  it('moves the highlight with the arrow keys, wrapping around', () => {
+    liveSuggestions(2);
+    render(<Harness onAdd={vi.fn()} initial="sol" />);
+    const input = screen.getByRole('combobox');
+    fireEvent.focus(input);
+    expect(activeName()).toBe('Solemn Simulacrum');
+
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    expect(activeName()).toBe('Sol Ring');
+    fireEvent.keyDown(input, { key: 'ArrowUp' });
+    expect(activeName()).toBe('Solemn Simulacrum');
+    fireEvent.keyDown(input, { key: 'ArrowUp' });
+    expect(activeName()).toBe('Sol Talisman');
+  });
+
+  it('reopens a closed list with the down arrow on the first suggestion, not the one after it', () => {
+    liveSuggestions(-1);
+    const onAdd = vi.fn();
+    render(<Harness onAdd={onAdd} initial="sol" />);
+    const input = screen.getByRole('combobox');
+    expect(input).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    expect(input).toHaveAttribute('aria-expanded', 'true');
+    expect(activeName()).toBe('Sol Ring');
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onAdd).toHaveBeenCalledWith('Sol Ring');
+  });
+
+  it('highlights the suggestion under the pointer', () => {
+    liveSuggestions(0);
+    render(<Harness onAdd={vi.fn()} initial="sol" />);
+    fireEvent.focus(screen.getByRole('combobox'));
+    fireEvent.mouseEnter(screen.getByRole('option', { name: 'Solemn Simulacrum' }));
+    expect(activeName()).toBe('Solemn Simulacrum');
   });
 
   it('shows searching and empty states, and clears on Escape', () => {

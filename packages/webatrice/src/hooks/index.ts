@@ -25,6 +25,7 @@ export * from './useUserCapabilities';
 export * from './useJoinGame';
 export * from './gridNavigation';
 export * from './useGridRows';
+export * from './useListboxCombobox';
 export * from './useCanOverrideGameRestrictions';
 export * from './useDialogFocus';
 export * from './useDocumentLanguage';

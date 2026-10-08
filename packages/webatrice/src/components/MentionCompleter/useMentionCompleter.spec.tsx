@@ -93,6 +93,18 @@ describe('useMentionCompleter', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it('keeps the keyboard choice when the mouse rests on another name', () => {
+    render(<ChatInput names={NAMES} />);
+    type('hi @al');
+
+    press('ArrowDown');
+    fireEvent.mouseEnter(screen.getByRole('option', { name: '@Alice' }));
+    expect(screen.getByRole('option', { name: '@albert' })).toHaveAttribute('aria-selected', 'true');
+    press('Enter');
+
+    expect(screen.getByRole('combobox')).toHaveValue('hi @albert ');
+  });
+
   it('inserts the active name with Tab and keeps the caret after it', () => {
     render(<ChatInput names={NAMES} />);
     type('@b');
