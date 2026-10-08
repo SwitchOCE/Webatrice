@@ -59,19 +59,17 @@ function fireMouseMove(clientX: number, clientY: number) {
 function setup(overrides: Partial<UseGameBoxSelectionArgs> = {}) {
   const setSelectedCardKeys = vi.fn();
   const clearSelection = vi.fn();
-  const clearFocused = vi.fn();
   const args: UseGameBoxSelectionArgs = {
     selectedCardKeys: EMPTY_SELECTION,
     setSelectedCardKeys,
     clearSelection,
-    clearFocused,
     pendingActive: false,
     ...overrides,
   };
   const { result, rerender } = renderHook((a: UseGameBoxSelectionArgs) => useGameBoxSelection(a), {
     initialProps: args,
   });
-  return { result, rerender, setSelectedCardKeys, clearSelection, clearFocused };
+  return { result, rerender, setSelectedCardKeys, clearSelection };
 }
 
 // The last Set the hook pushed to setSelectedCardKeys.
@@ -121,12 +119,11 @@ describe('useGameBoxSelection', () => {
 
   it('clears the selection at drag-start for a non-additive press', () => {
     const battlefield = makeZone();
-    const { result, clearSelection, clearFocused } = setup();
+    const { result, clearSelection } = setup();
     act(() => {
       result.current.handleGameMouseDown(mouseDownOn(battlefield, { clientX: 10, clientY: 10 }));
     });
     expect(clearSelection).toHaveBeenCalledTimes(1);
-    expect(clearFocused).toHaveBeenCalledTimes(1);
   });
 
   it('does not start a drag when the press lands on a card', () => {

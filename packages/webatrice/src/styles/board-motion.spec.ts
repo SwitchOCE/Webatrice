@@ -7,9 +7,7 @@ const read = (file: string) => fs.readFileSync(path.resolve(__dirname, file), 'u
 // specificity, not order. SeatCard's transition is a Tailwind utility, stood in for here.
 const css = [
   read('board-motion.css'),
-  read('card-flip.css'),
   read('../features/game/Game.css'),
-  read('../features/game/components/ui/CardSlot/CardSlot.css'),
   '.seat-card { transition: transform 150ms ease-out; }',
 ].join('\n');
 
@@ -20,7 +18,7 @@ function mountBoard(): Record<string, HTMLElement> {
   document.head.appendChild(style);
   const elements: Record<string, HTMLElement> = {};
   for (const className of [
-    'card-slot', 'seat-card', 'cardflip--animate-to-front', 'cardflip--animate-to-back', 'phase-endstep-flash',
+    'seat-card', 'phase-endstep-flash',
   ]) {
     elements[className] = document.createElement('div');
     elements[className].className = className;
@@ -36,21 +34,17 @@ afterEach(() => {
 });
 
 describe('board-motion.css', () => {
-  it('stops the slot and hover transitions, the card flip and the phase flash when the policy is off', () => {
+  it('stops the card hover transition and the phase flash when the policy is off', () => {
     const elements = mountBoard();
     document.documentElement.dataset.animations = 'off';
-    expect(getComputedStyle(elements['card-slot']).transition).toBe('none');
     expect(getComputedStyle(elements['seat-card']).transition).toBe('none');
-    expect(getComputedStyle(elements['cardflip--animate-to-front']).animation).toBe('none');
-    expect(getComputedStyle(elements['cardflip--animate-to-back']).animation).toBe('none');
     expect(getComputedStyle(elements['phase-endstep-flash']).animation).toBe('none');
   });
 
   it('leaves them alone when the policy is on, whatever the system setting', () => {
     const elements = mountBoard();
     document.documentElement.dataset.animations = 'on';
-    expect(getComputedStyle(elements['card-slot']).transition).not.toBe('none');
-    expect(getComputedStyle(elements['cardflip--animate-to-front']).animation).toContain('cardflip-to-front');
+    expect(getComputedStyle(elements['seat-card']).transition).not.toBe('none');
     expect(getComputedStyle(elements['phase-endstep-flash']).animation).toContain('phase-endstep-flash');
   });
 });

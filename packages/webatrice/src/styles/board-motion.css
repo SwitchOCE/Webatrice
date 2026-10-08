@@ -3,14 +3,11 @@
    setting until the user chooses. The draw flights and the hand slide are gated in script.
    Mark the element that owns a transition/keyframe with board-motion, including portal content. */
 :root[data-animations='off'] .board-motion,
-:root[data-animations='off'] .card-slot,
 :root[data-animations='off'] .seat-card {
   transition: none;
 }
 
 :root[data-animations='off'] .board-motion,
-:root[data-animations='off'] .cardflip--animate-to-front,
-:root[data-animations='off'] .cardflip--animate-to-back,
 :root[data-animations='off'] .phase-endstep-flash {
   animation: none;
 }

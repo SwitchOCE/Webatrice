@@ -38,7 +38,6 @@ export interface UseGameBoxSelectionArgs {
   selectedCardKeys: ReadonlySet<string>;
   setSelectedCardKeys: Dispatch<SetStateAction<ReadonlySet<string>>>;
   clearSelection: () => void;
-  clearFocused: () => void;
   // True while an arrow/attach is pending — box-select yields the pointer.
   pendingActive: boolean;
 }
@@ -96,7 +95,6 @@ export function useGameBoxSelection({
   selectedCardKeys,
   setSelectedCardKeys,
   clearSelection,
-  clearFocused,
   pendingActive,
 }: UseGameBoxSelectionArgs): GameBoxSelection {
   // dragRef is read synchronously by the window mousemove handler so it can call
@@ -123,11 +121,10 @@ export function useGameBoxSelection({
       }
       endDrag();
       clearSelection();
-      clearFocused();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [endDrag, clearSelection, clearFocused]);
+  }, [endDrag, clearSelection]);
 
   const dragActive = drag !== null;
   useEffect(() => {
@@ -176,7 +173,6 @@ export function useGameBoxSelection({
       // threshold therefore clears the selection (falls out of this).
       if (!additive) {
         clearSelection();
-        clearFocused();
       }
       const next: BoxDragState = {
         startX: e.clientX,
@@ -191,7 +187,7 @@ export function useGameBoxSelection({
       dragRef.current = next;
       setDrag(next);
     },
-    [clearSelection, clearFocused],
+    [clearSelection],
   );
 
   const previewRect = clampToZone(drag);

@@ -5,7 +5,7 @@ import { CardImage } from '@app/components';
 import { cleanScryfallName, getScryfallUrlByIdOrExactName } from '@app/services';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from './cardSize';
 import { useCardPreviewActions } from '../CardPreviewContext';
-import { counterColorForId } from '../CardSlot/counterColors';
+import { counterColorForId } from './counterColors';
 
 
 /**
