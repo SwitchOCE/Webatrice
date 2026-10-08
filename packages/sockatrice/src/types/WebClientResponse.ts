@@ -256,9 +256,9 @@ export interface IGameResponse {
    * Response_DeckDownload to Command_DeckSelect: the server's copy of the deck.
    * Optional so existing IGameResponse implementations keep compiling.
    */
-  deckSelected?(gameId: number, deckList: string): void;
+  deckSelected?(gameId: number, deckList: string, requestId?: RequestId): void;
   /** Command_DeckSelect failed; `failure` is set when the server never answered (see CommandFailure). */
-  deckSelectFailed?(gameId: number, responseCode: number, failure?: CommandFailure): void;
+  deckSelectFailed?(gameId: number, responseCode: number, failure?: CommandFailure, requestId?: RequestId): void;
 }
 
 /**

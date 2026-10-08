@@ -8,6 +8,7 @@ export interface GameCommandFailedPayload {
   gameId: number;
   responseCode: number;
   failure?: WebsocketTypes.CommandFailure;
+  requestId?: string;
 }
 
 /** A pending "someone revealed their zone to us" notification. Set when

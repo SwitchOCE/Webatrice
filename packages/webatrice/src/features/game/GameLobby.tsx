@@ -23,7 +23,7 @@ import { useWebClient } from '@cockatrice/datatrice/react';
 import { games, rooms, server } from '@cockatrice/datatrice';
 import type { GameCommandFailedPayload } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
-import { useCommandFailureMessage, useLeaveGame, useReduxEffect } from '@app/hooks';
+import { useCommandFailureMessage, useLeaveGame, useReduxEffect, useRequestTracker } from '@app/hooks';
 import type { ServerInfo_DeckStorage_Folder, ServerInfo_DeckStorage_TreeItem } from '@cockatrice/sockatrice/generated';
 import { parseCod } from '@app/services';
 import { MTG_FORMAT_LABELS, MTG_FORMATS, normalizeFormat } from '@app/types';
@@ -134,6 +134,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
   const { t } = useTranslation();
   const webClient = useWebClient();
   const leaveGame = useLeaveGame();
+  const deckSelectRequest = useRequestTracker();
   const { game, localPlayer, isHost, isSpectator, isJudge } = useCurrentGame(gameId);
   const backendDecks = useAppSelector(server.Selectors.getBackendDecks);
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
@@ -304,7 +305,7 @@ export default function GameLobby({ gameId }: { gameId: number }) {
       }
       setMyPickedDeckId(null);
       setDeckSelectError(null);
-      webClient.request.game.deckSelect(gameId, { deck: xml });
+      webClient.request.game.deckSelect(gameId, { deck: xml }, deckSelectRequest.begin());
       // No gameSay: Cockatrice already emits an event message
       // ("X has loaded a deck (…)") when the server processes deckSelect.
     };
@@ -334,21 +335,32 @@ export default function GameLobby({ gameId }: { gameId: number }) {
   const describeFailure = useCommandFailureMessage();
   useReduxEffect<GameCommandFailedPayload>(
     ({ payload }) => {
-      if (payload.gameId !== gameId) {
+      if (payload.gameId !== gameId || !deckSelectRequest.isCurrent(payload.requestId)) {
         return;
       }
+      deckSelectRequest.cancel();
       setMyPickedDeckId(null);
       setDeckSelectError(describeFailure(payload.failure, t('GameLobby.deckSelectFailed')));
     },
     games.Types.DECK_SELECT_FAILED,
-    [gameId, describeFailure, t],
+    [gameId, describeFailure, t, deckSelectRequest],
+  );
+
+  useReduxEffect<{ gameId: number; requestId?: string }>(
+    ({ payload }) => {
+      if (payload.gameId === gameId && deckSelectRequest.isCurrent(payload.requestId)) {
+        deckSelectRequest.cancel();
+      }
+    },
+    games.Types.DECK_SELECTED,
+    [gameId, deckSelectRequest],
   );
 
   const handleSelectDeck = (deckId: number) => {
     setMyPickedDeckId(deckId);
     setUploadError(null);
     setDeckSelectError(null);
-    webClient.request.game.deckSelect(gameId, { deckId });
+    webClient.request.game.deckSelect(gameId, { deckId }, deckSelectRequest.begin());
     // No gameSay: Cockatrice emits its own event
     // ("X has loaded a deck (…)") on the deckHash property update.
   };

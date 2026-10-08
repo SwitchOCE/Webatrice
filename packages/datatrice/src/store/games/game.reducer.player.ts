@@ -47,7 +47,7 @@ export const playerReducers = {
       return;
     }
     player.deckList = deckList;
-  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; deckList: string }>>,
+  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; deckList: string; requestId?: string }>>,
 
   // Signal only: the lobby reports a failed Command_DeckSelect and stays on the deck picker.
   deckSelectFailed: (() => {}) as CaseReducer<GamesState, PayloadAction<GameCommandFailedPayload>>,

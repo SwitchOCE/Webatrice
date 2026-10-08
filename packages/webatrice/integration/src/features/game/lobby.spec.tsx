@@ -13,6 +13,7 @@ import {
   Event_GameStateChangedSchema,
   Event_PlayerPropertiesChanged_ext,
   Event_PlayerPropertiesChangedSchema,
+  Response_ResponseCode,
   Response_DeckDownload_ext,
   Response_DeckDownloadSchema,
   ServerInfo_PlayerPropertiesSchema,
@@ -79,9 +80,10 @@ function setLocalProperties(properties: Partial<{ sideboardLocked: boolean; read
 
 /** Uploads a .cod through the lobby and answers Command_DeckSelect like Servatrice. */
 async function loadDeck() {
+  const previousCount = findAllGameCommands(Command_DeckSelect_ext).length;
   const input = document.querySelector<HTMLInputElement>('input[type="file"][accept*=".cod"]')!;
   fireEvent.change(input, { target: { files: [new File([UPLOADED], 'burn.cod', { type: 'text/xml' })] } });
-  await waitFor(() => expect(() => findLastGameCommand(Command_DeckSelect_ext)).not.toThrow());
+  await waitFor(() => expect(findAllGameCommands(Command_DeckSelect_ext)).toHaveLength(previousCount + 1));
   const deckSelect = findLastGameCommand(Command_DeckSelect_ext);
   expect(deckSelect.value.deck).toBe(UPLOADED);
   act(() => {
@@ -203,4 +205,20 @@ describe('GameLobby integration (GAME-013 / GAME-014)', () => {
     expect(readyStarts[0].gameId).toBe(GAME_ID);
     expect(findAllGameCommands(Command_KickFromGame_ext)).toHaveLength(0);
   });
+});
+
+it('ignores an earlier upload rejection after a later deck selection succeeds', async () => {
+  enterLobby();
+  const input = document.querySelector<HTMLInputElement>('input[type="file"][accept*=".cod"]')!;
+  fireEvent.change(input, { target: { files: [new File([UPLOADED], 'first.cod', { type: 'text/xml' })] } });
+  await waitFor(() => expect(findAllGameCommands(Command_DeckSelect_ext)).toHaveLength(1));
+  const first = findLastGameCommand(Command_DeckSelect_ext);
+  await loadDeck();
+  expect(findAllGameCommands(Command_DeckSelect_ext)).toHaveLength(2);
+  fireEvent.click(screen.getByRole('button', { name: 'GameLobby.action.unloadDeck' }));
+  act(() => deliverMessage(buildResponseMessage(buildResponse({
+    cmdId: first.cmdId, responseCode: Response_ResponseCode.RespContextError,
+  }))));
+  expect(screen.queryByText('GameLobby.deckSelectFailed')).not.toBeInTheDocument();
+  expect(screen.getByText('Upload a .cod file')).toBeInTheDocument();
 });

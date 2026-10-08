@@ -1,13 +1,13 @@
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { create } from '@bufbuild/protobuf';
-import { games } from '@cockatrice/datatrice';
+import { games, server } from '@cockatrice/datatrice';
 import {
   makeGameEntry,
   makePlayerEntry,
   makePlayerProperties,
 } from '@cockatrice/datatrice/testing';
 import type { WebClient } from '@cockatrice/sockatrice';
-import { Response_ResponseCode, ServerInfo_PlayerPropertiesSchema } from '@cockatrice/sockatrice/generated';
+import { Response_ResponseCode, Response_DeckListSchema, ServerInfo_PlayerPropertiesSchema } from '@cockatrice/sockatrice/generated';
 import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import {
@@ -86,6 +86,20 @@ function renderLobby(spec?: LobbySpec) {
   const webClient = createMockWebClient() as unknown as WebClient;
   const utils = renderWithProviders(<GameLobby gameId={1} />, { preloadedState: lobbyState(spec), webClient });
   return { ...utils, webClient };
+}
+
+function renderPicker() {
+  const webClient = createMockWebClient() as unknown as WebClient;
+  const state = lobbyState({ deckList: '' });
+  state.server.backendDecks = create(Response_DeckListSchema, {
+    root: { items: [{ id: 101, name: 'First deck', file: {} }, { id: 102, name: 'Second deck', file: {} }] },
+  });
+  const utils = renderWithProviders(<GameLobby gameId={1} />, { preloadedState: state, webClient });
+  const pick = (name: string) => {
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(name) }));
+    return vi.mocked(webClient.request.game.deckSelect).mock.lastCall?.[2];
+  };
+  return { ...utils, webClient, pick };
 }
 
 // Event_PlayerPropertiesChanged for the local player's sideboard lock.
@@ -208,9 +222,10 @@ describe('GameLobby — deck states (GAME-014)', () => {
   });
 
   it('a failed deck select keeps the picker and says why', () => {
-    const { store } = renderLobby({ deckList: '' });
+    const { store, pick } = renderPicker();
+    const requestId = pick('First deck');
     act(() => {
-      store.dispatch(games.Actions.deckSelectFailed({ gameId: 1, responseCode: Response_ResponseCode.RespContextError }));
+      store.dispatch(games.Actions.deckSelectFailed({ gameId: 1, responseCode: Response_ResponseCode.RespContextError, requestId }));
     });
     // Reported under the deck heading, not inside the .cod upload card.
     expect(screen.getByRole('alert')).toHaveTextContent('GameLobby.deckSelectFailed');
@@ -218,9 +233,11 @@ describe('GameLobby — deck states (GAME-014)', () => {
   });
 
   it('reports a deck select the server never answered with the transport reason', () => {
-    const { store } = renderLobby({ deckList: '' });
+    const { store, pick } = renderPicker();
+    const requestId = pick('First deck');
     act(() => {
       store.dispatch(games.Actions.deckSelectFailed({
+        requestId,
         gameId: 1,
         responseCode: Response_ResponseCode.RespNotConnected,
         failure: WebsocketTypes.CommandFailure.Timeout,
@@ -231,9 +248,10 @@ describe('GameLobby — deck states (GAME-014)', () => {
   });
 
   it('ignores a failed deck select for another game', () => {
-    const { store } = renderLobby({ deckList: '' });
+    const { store, pick } = renderPicker();
+    const requestId = pick('First deck');
     act(() => {
-      store.dispatch(games.Actions.deckSelectFailed({ gameId: 2, responseCode: Response_ResponseCode.RespContextError }));
+      store.dispatch(games.Actions.deckSelectFailed({ gameId: 2, responseCode: Response_ResponseCode.RespContextError, requestId }));
     });
     expect(screen.queryByText('GameLobby.deckSelectFailed')).not.toBeInTheDocument();
   });
@@ -363,5 +381,60 @@ describe('GameLobby — sideboarding before ready (GAME-014)', () => {
       store.dispatch(games.Actions.deckSelected({ gameId: 1, deckList: WITH_PLAN }));
     });
     expect(within(screen.getByTestId('lobby-deck-side')).getByText('Mountain')).toBeInTheDocument();
+  });
+});
+
+describe('GameLobby deck-pick request ownership', () => {
+  it('keeps the later pick when an earlier same-game pick fails', () => {
+    const { store, pick } = renderPicker();
+    const first = pick('First deck');
+    const second = pick('Second deck');
+    act(() => {
+      store.dispatch(server.Actions.deckDownloaded({ deckId: 102, deck: DECK }));
+      store.dispatch(games.Actions.playerPropertiesChanged({
+        gameId: 1, playerId: 1, properties: create(ServerInfo_PlayerPropertiesSchema, { deckHash: 'abc' }),
+      }));
+    });
+    act(() => store.dispatch(games.Actions.deckSelectFailed({ gameId: 1, responseCode: 3, requestId: first })));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByText('Burn')).toBeInTheDocument();
+    expect(first).toEqual(expect.any(String));
+    expect(second).not.toBe(first);
+    act(() => store.dispatch(games.Actions.deckSelectFailed({ gameId: 1, responseCode: 3, requestId: second })));
+    expect(screen.getByRole('alert')).toHaveTextContent('GameLobby.deckSelectFailed');
+    act(() => store.dispatch(games.Actions.deckSelectFailed({
+      gameId: 1, responseCode: 3, requestId: second, failure: WebsocketTypes.CommandFailure.Timeout,
+    })));
+    expect(screen.getByRole('alert')).toHaveTextContent('GameLobby.deckSelectFailed');
+  });
+
+  it('settles only its current success and ignores failures after settlement', () => {
+    const { store, pick } = renderPicker();
+    const first = pick('First deck');
+    const second = pick('Second deck');
+    act(() => store.dispatch(games.Actions.deckSelected({ gameId: 1, deckList: DECK, requestId: first })));
+    fireEvent.click(button('GameLobby.action.unloadDeck'));
+    act(() => store.dispatch(games.Actions.deckSelectFailed({ gameId: 1, responseCode: 3, requestId: second })));
+    expect(screen.getByRole('alert')).toHaveTextContent('GameLobby.deckSelectFailed');
+    const third = pick('Second deck');
+    act(() => store.dispatch(games.Actions.deckSelected({ gameId: 1, deckList: DECK, requestId: third })));
+    fireEvent.click(button('GameLobby.action.unloadDeck'));
+    act(() => store.dispatch(games.Actions.deckSelectFailed({ gameId: 1, responseCode: 3, requestId: third })));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('correlates uploaded decks as well as server picks', async () => {
+    const { store, webClient, pick } = renderPicker();
+    const first = pick('First deck');
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    fireEvent.change(input, { target: { files: [new File([DECK], 'burn.cod', { type: 'text/xml' })] } });
+    await waitFor(() => expect(webClient.request.game.deckSelect).toHaveBeenCalledTimes(2));
+    const uploaded = vi.mocked(webClient.request.game.deckSelect).mock.lastCall?.[2];
+    act(() => store.dispatch(games.Actions.deckSelectFailed({ gameId: 1, responseCode: 3, requestId: first })));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(uploaded).toEqual(expect.any(String));
+    expect(uploaded).not.toBe(first);
+    act(() => store.dispatch(games.Actions.deckSelectFailed({ gameId: 1, responseCode: 3, requestId: uploaded })));
+    expect(screen.getByRole('alert')).toHaveTextContent('GameLobby.deckSelectFailed');
   });
 });

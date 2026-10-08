@@ -6,6 +6,7 @@ import {
   type DeckSelectParams,
 } from '../../generated';
 import { WebClient } from '../../WebClient';
+import type { RequestId } from '../../types/RequestId';
 
 /**
  * Selects a deck for the local seat. Servatrice answers with Response_DeckDownload carrying the
@@ -13,16 +14,16 @@ import { WebClient } from '../../WebClient';
  * `DeckViewContainer::deckSelectFinished` builds its pre-game deck view from that string, so it is
  * routed into the store. Other players only see the Event_PlayerPropertiesChanged deck hash.
  */
-export function deckSelect(gameId: number, params: DeckSelectParams): void {
+export function deckSelect(gameId: number, params: DeckSelectParams, ...correlation: [requestId?: RequestId]): void {
   WebClient.instance.protobuf.sendGameCommand(
     gameId,
     Command_DeckSelect_ext,
     create(Command_DeckSelectSchema, params),
     {
       responseExt: Response_DeckDownload_ext,
-      onSuccess: (resp) => WebClient.instance.response.game.deckSelected?.(gameId, resp.deck),
+      onSuccess: (resp) => WebClient.instance.response.game.deckSelected?.(gameId, resp.deck, ...correlation),
       onError: (responseCode, _raw, failure) => {
-        WebClient.instance.response.game.deckSelectFailed?.(gameId, responseCode, failure);
+        WebClient.instance.response.game.deckSelectFailed?.(gameId, responseCode, failure, ...correlation);
       },
     },
   );
