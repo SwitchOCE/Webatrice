@@ -194,7 +194,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().session.commandFailed, target: '9',
   },
   {
-    name: 'listCardArtRules returns entries', command: 'listCardArtRules',
+    name: 'listCardArtRules returns entries', command: 'listCardArtRules', forwardsFailureReason: true,
     send: () => ModeratorCommands.listCardArtRules(),
     capture: () => findLastModeratorCommand(Data.Command_ListCardArtRules_ext),
     wire: {},
@@ -204,7 +204,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().moderator.commandFailed, target: '',
   },
   {
-    name: 'addCardArtRule defaults the reason', command: 'addCardArtRule',
+    name: 'addCardArtRule defaults the reason', command: 'addCardArtRule', forwardsFailureReason: true,
     send: () => ModeratorCommands.addCardArtRule('Island', 'provider', 'DENY'),
     capture: () => findLastModeratorCommand(Data.Command_AddCardArtRule_ext),
     wire: { cardName: 'Island', cardProviderId: 'provider', mode: 'DENY', reason: '' },
@@ -213,7 +213,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().moderator.commandFailed, target: 'Island',
   },
   {
-    name: 'removeCardArtRule identifies the card and provider', command: 'removeCardArtRule',
+    name: 'removeCardArtRule identifies the card and provider', command: 'removeCardArtRule', forwardsFailureReason: true,
     send: () => ModeratorCommands.removeCardArtRule('Island', 'provider'),
     capture: () => findLastModeratorCommand(Data.Command_RemoveCardArtRule_ext),
     wire: { cardName: 'Island', cardProviderId: 'provider' },
@@ -222,7 +222,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().moderator.commandFailed, target: 'Island',
   },
   {
-    name: 'getUserSessions returns sessions for the named user', command: 'getUserSessions',
+    name: 'getUserSessions returns sessions for the named user', command: 'getUserSessions', forwardsFailureReason: true,
     send: () => ModeratorCommands.getUserSessions('alice', 20),
     capture: () => findLastModeratorCommand(Data.Command_GetUserSessions_ext),
     wire: { userName: 'alice', limit: 20 },
@@ -232,7 +232,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().moderator.commandFailed, target: 'alice',
   },
   {
-    name: 'getUserAlts returns alternate accounts', command: 'getUserAlts',
+    name: 'getUserAlts returns alternate accounts', command: 'getUserAlts', forwardsFailureReason: true,
     send: () => ModeratorCommands.getUserAlts('alice'),
     capture: () => findLastModeratorCommand(Data.Command_GetUserAlts_ext),
     wire: { userName: 'alice' },
@@ -242,7 +242,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().moderator.commandFailed, target: 'alice',
   },
   {
-    name: 'getModeratorLastLogins returns login timestamps', command: 'getModeratorLastLogins',
+    name: 'getModeratorLastLogins returns login timestamps', command: 'getModeratorLastLogins', forwardsFailureReason: true,
     send: () => ModeratorCommands.getModeratorLastLogins(),
     capture: () => findLastModeratorCommand(Data.Command_GetModeratorLastLogins_ext),
     wire: {},
@@ -252,7 +252,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().moderator.commandFailed, target: '',
   },
   {
-    name: 'removeUserAvatar uses the canonical name', command: 'removeUserAvatar',
+    name: 'removeUserAvatar uses the canonical name', command: 'removeUserAvatar', forwardsFailureReason: true,
     send: () => ModeratorCommands.removeUserAvatar('alice'),
     capture: () => findLastModeratorCommand(Data.Command_RemoveUserAvatar_ext),
     wire: { userName: 'alice' },
@@ -262,7 +262,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().moderator.commandFailed, target: 'alice',
   },
   {
-    name: 'removeUserAvatar falls back to the requested name', command: 'removeUserAvatar',
+    name: 'removeUserAvatar falls back to the requested name', command: 'removeUserAvatar', forwardsFailureReason: true,
     send: () => ModeratorCommands.removeUserAvatar('alice'),
     capture: () => findLastModeratorCommand(Data.Command_RemoveUserAvatar_ext),
     wire: { userName: 'alice' },
@@ -309,7 +309,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().moderator.commandFailed, target: '',
   },
   {
-    name: 'reportUserInfo returns the named account', command: 'reportUserInfo',
+    name: 'reportUserInfo returns the named account', command: 'reportUserInfo', forwardsFailureReason: true,
     send: () => ModeratorCommands.reportUserInfo('alice'),
     capture: () => findLastModeratorCommand(Data.Command_ReportUserInfo_ext),
     wire: { userName: 'alice' },
@@ -339,7 +339,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().moderator.commandFailed, target: '77',
   },
   {
-    name: 'getServerStats returns a developer snapshot', command: 'getServerStats',
+    name: 'getServerStats returns a developer snapshot', command: 'getServerStats', forwardsFailureReason: true,
     send: () => DeveloperCommands.getServerStats(),
     capture: () => findLastDeveloperCommand(Data.Command_GetServerStats_ext),
     wire: {},

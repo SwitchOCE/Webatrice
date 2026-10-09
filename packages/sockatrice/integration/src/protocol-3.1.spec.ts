@@ -84,9 +84,8 @@ describe('Cockatrice 3.1 protocol', () => {
     AdminCommands.resetUserPassword('alice', onReset, onFailure);
     const { cmdId, value } = findLastAdminCommand(Data.Command_ResetUserPassword_ext);
     expect(value.userName).toBe('alice');
-    const raw = buildResponse({ cmdId, responseCode: Data.Response_ResponseCode.RespAccessDenied });
-    deliverMessage(buildResponseMessage(raw));
-    expect(onFailure).toHaveBeenCalledExactlyOnceWith(Data.Response_ResponseCode.RespAccessDenied, raw);
+    deliverMessage(buildResponseMessage(buildResponse({ cmdId, responseCode: Data.Response_ResponseCode.RespAccessDenied })));
+    expect(onFailure).toHaveBeenCalledExactlyOnceWith(Data.Response_ResponseCode.RespAccessDenied, undefined);
     expect(onReset).not.toHaveBeenCalled();
   });
 
