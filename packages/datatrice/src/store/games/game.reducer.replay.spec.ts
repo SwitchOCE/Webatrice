@@ -14,7 +14,7 @@ import { registerGameListeners } from './game.listeners';
 import { gamesReducer } from './game.reducer';
 import { GamesState } from './game.interfaces';
 import { Selectors } from './game.selectors';
-import { makeGameEntry, makePlayerEntry, makeState, makeZoneEntry } from '../../testing/fixtures/games';
+import { makeGameEntry, makePlayerEntry, makePlayerProperties, makeState, makeZoneEntry } from '../../testing/fixtures/games';
 
 registerGameListeners(listenerMiddleware);
 
@@ -110,56 +110,94 @@ describe('replay games and the active-game selectors', () => {
 });
 
 describe('replay games and incoming reveals', () => {
-  function revealInto(replay: boolean, replayOptions?: WebsocketTypes.ReplayEventOptions) {
-    const card = create(ServerInfo_CardSchema, { id: 4, name: 'Island' });
+  const playerId = 1;
+  const cardId = 4;
+  const liveGameId = 55;
+  const liveCardId = 9;
+  const firstPosition = 0;
+  const liveReveal = {
+    gameId: liveGameId,
+    sourceOwnerId: playerId,
+    zoneName: 'deck',
+    cards: [create(ServerInfo_CardSchema, { id: liveCardId, name: 'Mountain' })],
+    grantWriteAccess: true,
+  };
+  const playbackReveal = {
+    gameId: REPLAY_ID,
+    sourceOwnerId: playerId,
+    zoneName: 'hand',
+    cards: [create(ServerInfo_CardSchema, { id: cardId, name: 'Island' })],
+    grantWriteAccess: false,
+  };
+
+  function revealInto(
+    replay: boolean,
+    replayOptions?: WebsocketTypes.ReplayEventOptions,
+    initialReveal: typeof liveReveal | null = liveReveal,
+  ) {
+    const card = create(ServerInfo_CardSchema, { id: cardId });
     const game = makeGameEntry({
       replay,
-      players: { 1: makePlayerEntry({ zones: { hand: makeZoneEntry({ name: 'hand', cards: [card], cardCount: 1 }) } }) },
+      players: {
+        [playerId]: makePlayerEntry({
+          properties: makePlayerProperties({ playerId, userInfo: { name: 'Alice' } }),
+          zones: { hand: makeZoneEntry({ name: 'hand', cards: [card], cardCount: 1 }) },
+        }),
+      },
     });
     const store = configureStore({
-      preloadedState: { games: makeState({ games: { [REPLAY_ID]: game } }) },
+      preloadedState: { games: makeState({ games: { [REPLAY_ID]: game }, incomingReveal: initialReveal }) },
       reducer: { games: gamesReducer },
       middleware: (getDefault) => getDefault({ serializableCheck: false, immutableCheck: false })
         .prepend(listenerMiddleware.middleware),
     });
-    store.dispatch(Actions.cardsRevealed({
-      gameId: REPLAY_ID,
-      playerId: 1,
-      data: create(Event_RevealCardsSchema, { zoneName: 'hand', cards: [card] }),
-      replayOptions,
-    }));
-    return store.getState().games;
+    expect(store.getState().games.incomingReveal).toEqual(initialReveal);
+    expect(store.getState().games.games[REPLAY_ID].players[playerId].zones.hand.byId).toEqual({
+      [cardId]: create(ServerInfo_CardSchema, { id: cardId }),
+    });
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      store.dispatch(Actions.cardsRevealed({
+        gameId: REPLAY_ID,
+        playerId,
+        data: create(Event_RevealCardsSchema, {
+          zoneName: 'hand', cards: [{ id: cardId, name: 'Island' }],
+        }),
+        replayOptions,
+      }));
+      expect(errorSpy.mock.calls).toEqual([]);
+      return store.getState().games;
+    } finally {
+      errorSpy.mockRestore();
+    }
   }
 
   it.each([undefined, {}, { skipRevealWindow: false }])('shows a replay reveal with options %j', (options) => {
-    expect(revealInto(true, options).incomingReveal).toMatchObject({
-      gameId: REPLAY_ID,
-      sourceOwnerId: 1,
-      zoneName: 'hand',
-      cards: [expect.objectContaining({ id: 4, name: 'Island' })],
-    });
+    expect(revealInto(true, options).incomingReveal).toEqual(playbackReveal);
   });
 
-  it('skips the replay reveal window when requested', () => {
-    expect(revealInto(true, { skipRevealWindow: true }).incomingReveal ?? null).toBeNull();
+  it.each([
+    { options: undefined, expected: playbackReveal },
+    { options: { skipRevealWindow: true }, expected: null },
+  ])('starting without a dialog, options $options leave $expected', ({ options, expected }) => {
+    expect(revealInto(true, options, null).incomingReveal).toEqual(expected);
+  });
+
+  it('skips the replay reveal window when requested and preserves the live dialog', () => {
+    expect(revealInto(true, { skipRevealWindow: true }).incomingReveal).toEqual(liveReveal);
   });
 
   it.each([undefined, { skipRevealWindow: true }])('keeps live reveal windows unchanged with options %j', (options) => {
-    expect(revealInto(false, options).incomingReveal).toMatchObject({
-      gameId: REPLAY_ID,
-      sourceOwnerId: 1,
-      cards: [expect.objectContaining({ id: 4, name: 'Island' })],
-    });
+    expect(revealInto(false, options).incomingReveal).toEqual(playbackReveal);
   });
 
   it.each([false, true])('keeps reveal logging and zone seeding when skipRevealWindow=%s', (skipRevealWindow) => {
     const state = revealInto(true, { skipRevealWindow });
     const game = state.games[REPLAY_ID];
-    expect(game.messages).toHaveLength(1);
-    expect(game.messages[0].message).toContain('reveals their hand');
-    const zone = game.players[1].zones.hand;
-    expect(zone.byId[4].name).toBe('Island');
-    expect(zone.revealedCards).toEqual([expect.objectContaining({ id: 0, name: 'Island' })]);
+    expect(game.messages.map(({ message }) => message)).toEqual(['Alice reveals their hand.']);
+    const zone = game.players[playerId].zones.hand;
+    expect(zone.byId).toEqual({ [cardId]: create(ServerInfo_CardSchema, { id: cardId, name: 'Island' }) });
+    expect(zone.revealedCards).toEqual([create(ServerInfo_CardSchema, { id: firstPosition, name: 'Island' })]);
     expect(zone.revealedIsReversed).toBe(false);
   });
 });

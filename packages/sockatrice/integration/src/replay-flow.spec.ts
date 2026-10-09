@@ -11,6 +11,7 @@ import { SessionCommands } from '../../src';
 
 import { connectAndLogin, connectRaw, getMockResponse, getMockWebSocket, getWebClient } from '../../src/testing/setup';
 import {
+  buildGameEventMessage,
   buildResponse,
   buildResponseMessage,
   buildSessionEventMessage,
@@ -281,4 +282,61 @@ describe('replay game clock', () => {
       errors.mockRestore();
     }
   });
+});
+
+describe('replay reveal options', () => {
+  it.each([undefined, {}, { skipRevealWindow: false }, { skipRevealWindow: true }])(
+    'forwards options %j to recorded reveals and leaves subsequent live and playback events unchanged',
+    (options) => {
+      const recordedGameId = 42;
+      const replayGameId = -1000;
+      const firstPlayerId = 3;
+      const secondPlayerId = 4;
+      const cardId = 17;
+      const secondsElapsed = 12;
+      connectRaw();
+      const client = getWebClient();
+      const response = getMockResponse().game;
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        const payload = create(Data.Event_RevealCardsSchema, {
+          zoneName: 'hand',
+          cards: [{ id: cardId, name: 'Island' }],
+          grantWriteAccess: true,
+        });
+        const events = [firstPlayerId, secondPlayerId].map((playerId) => {
+          const event = create(Data.GameEventSchema, { playerId });
+          setExtension(event, Data.Event_RevealCards_ext, payload);
+          return event;
+        });
+        const container = create(Data.GameEventContainerSchema, {
+          gameId: recordedGameId, secondsElapsed, eventList: events,
+        });
+
+        client.replayGameEventContainer(container, replayGameId, options);
+        deliverMessage(buildGameEventMessage({
+          gameId: recordedGameId, playerId: firstPlayerId, ext: Data.Event_RevealCards_ext, value: payload,
+        }));
+        client.replayGameEventContainer(container, replayGameId);
+
+        const expectedPayload = create(Data.Event_RevealCardsSchema, {
+          zoneName: 'hand', cards: [{ id: cardId, name: 'Island' }], grantWriteAccess: true,
+        });
+        expect(vi.mocked(response.cardsRevealed).mock.calls).toEqual([
+          [replayGameId, firstPlayerId, expectedPayload, options],
+          [replayGameId, secondPlayerId, expectedPayload, options],
+          [recordedGameId, firstPlayerId, expectedPayload, undefined],
+          [replayGameId, firstPlayerId, expectedPayload, undefined],
+          [replayGameId, secondPlayerId, expectedPayload, undefined],
+        ]);
+        expect(vi.mocked(response.replayGameTimeSynced!).mock.calls).toEqual([
+          [replayGameId, secondsElapsed], [replayGameId, secondsElapsed],
+        ]);
+        expect(getMockWebSocket().send.mock.calls).toEqual([]);
+        expect(errorSpy.mock.calls).toEqual([]);
+      } finally {
+        errorSpy.mockRestore();
+      }
+    },
+  );
 });
