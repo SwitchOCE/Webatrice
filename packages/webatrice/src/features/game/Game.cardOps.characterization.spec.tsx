@@ -77,6 +77,17 @@ const WALL = makeCard({ id: 12, name: 'Wall', x: 0, y: 2, pt: '0/4', annotation:
 const SHOCK = makeCard({ id: 30, name: 'Shock' });
 const BEAR = makeCard({ id: 20, name: 'Bear', x: 0, y: 0, pt: '2/2' });
 
+const SORTED_SHOCK = {
+  startPlayerId: 1,
+  startZone: ZoneName.HAND,
+  cardsToMove: { card: [{ cardId: SHOCK.id }] },
+  targetPlayerId: 1,
+  targetZone: ZoneName.HAND,
+  x: 0,
+  y: 0,
+  isReversed: false,
+};
+
 const SPEC: SeatGameSpec = {
   localPlayerId: 1,
   seats: [
@@ -259,8 +270,10 @@ describe('seat shortcut actions, with Ogre and the face-down Morph selected', ()
     // The zone views open as non-modal dialogs titled by zone and owner.
     'game.viewHand': { dialogs: ['ZoneLabel.title.hand — P1'] },
     'game.viewExile': { dialogs: ['ZoneLabel.title.rfg — P1'] },
-    'game.sortHandByName': {},
-    'game.sortHandByManaValue': {},
+    // Each sort re-sends the hand's cards to the front, one moveCard each. Desktop sorts the
+    // hand locally (hand_zone.cpp:119); see the backlog.
+    'game.sortHandByName': { wire: [['moveCard', SORTED_SHOCK]] },
+    'game.sortHandByManaValue': { wire: [['moveCard', SORTED_SHOCK]] },
     'game.revealHandToAll': { wire: [['revealCards', { zoneName: ZoneName.HAND }]] },
     'game.revealRandomHandCardToAll': { wire: [['revealCards', { zoneName: ZoneName.HAND, cardId: [-2] }]] },
     // The library holds 40 cards: the top one is 0, the bottom one 39.
