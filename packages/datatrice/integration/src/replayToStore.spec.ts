@@ -125,7 +125,7 @@ describe('replay response bridge', () => {
     });
   });
 
-  it('records revealed cards without replacing the live reveal dialog', () => {
+  it('records revealed cards while seeking without replacing the live reveal dialog', () => {
     const { store, response } = setup();
     const card = create(Data.ServerInfo_CardSchema, { id: 4, name: 'Island' });
     response.game.gameStateChanged(-1000, create(Data.Event_GameStateChangedSchema, {
@@ -139,7 +139,7 @@ describe('replay response bridge', () => {
     });
     response.game.cardsRevealed(-1000, 3, create(Data.Event_RevealCardsSchema, {
       zoneName: 'hand', cardId: [4], cards: [card], grantWriteAccess: false,
-    }));
+    }), { skipRevealWindow: true });
     expect(store.getState().games.games[-1000].players[3].zones.hand.revealedCards).toEqual([
       create(Data.ServerInfo_CardSchema, { id: 0, name: 'Island' }),
     ]);

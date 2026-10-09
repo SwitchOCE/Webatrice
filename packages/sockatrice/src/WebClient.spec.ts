@@ -514,7 +514,7 @@ describe('WebClient', () => {
     it('forwards a recorded container and the local replay id to protobuf', () => {
       const container = create(GameEventContainerSchema, { gameId: 7, secondsElapsed: 12 });
       client.replayGameEventContainer(container, -1001);
-      expect(vi.mocked(client.protobuf.replayGameEventContainer).mock.calls).toEqual([[container, -1001]]);
+      expect(vi.mocked(client.protobuf.replayGameEventContainer).mock.calls).toEqual([[container, -1001, undefined]]);
       expect(vi.mocked(client.socket.send).mock.calls).toEqual([]);
     });
 
@@ -569,7 +569,7 @@ describe('WebClient', () => {
 
       client.replayGameEventContainer(container, -1001);
 
-      expect(vi.mocked(client.protobuf.replayGameEventContainer).mock.calls).toEqual([[container, -1001]]);
+      expect(vi.mocked(client.protobuf.replayGameEventContainer).mock.calls).toEqual([[container, -1001, undefined]]);
     });
   });
 
