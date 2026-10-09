@@ -1,7 +1,10 @@
+import { games } from '@cockatrice/datatrice';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useAppDispatch } from '@app/store';
+import { sortHandCards } from './sortHandCards';
 import { CardDTO } from '../../../../services/dexie/DexieDTOs/CardDTO';
 import type { GameDialogsActions, HandSortKey } from './gameDialogs.types';
 import type { GameDialogEnv } from './gameDialogEnv';
@@ -24,6 +27,7 @@ export function useHandDialogActions({
   set,
 }: UseHandDialogActionsArgs): HandDialogActions {
   const { t } = useTranslation();
+  const dispatch = useAppDispatch();
   const { gameId, webClient, readGame, readLocalPlayer } = env;
   const { setPrompt } = set;
 
@@ -61,7 +65,6 @@ export function useHandDialogActions({
     });
   }, [gameId, readLocalPlayer, webClient, setPrompt, t]);
 
-  // Sort-hand: per-card moveCard dispatches (desktop hand_menu.cpp parity); async for Dexie metadata lookups.
   const handleRequestSortHandBy = useCallback(
     (key: HandSortKey) => {
       const game = readGame();
@@ -69,69 +72,28 @@ export function useHandDialogActions({
       if (gameId == null || game == null || localPlayer == null) {
         return;
       }
-      const localPlayerId = game.localPlayerId;
       const handZone = localPlayer.zones[ZoneName.HAND];
-      if (!handZone) {
+      if (!handZone || handZone.order.length < 2) {
         return;
       }
       const cards = handZone.order.map((id) => handZone.byId[id]).filter(Boolean);
-      // A singleton hand is already sorted; desktop only reorganizes it locally.
-      // Do not send a redundant move for a sort that cannot change its order.
       if (cards.length < 2) {
         return;
       }
       void (async () => {
-        const lookups = await Promise.all(
-          cards.map(async (card) => {
-            const meta = await CardDTO.get(card.name).catch(() => undefined);
-            const maintype = meta?.prop?.value?.maintype?.value ?? '';
-            const manacost = meta?.prop?.value?.manacost?.value ?? '';
-            // CMC approximated from mana-symbol string; needs to be monotonic, not exact.
-            const cmc = (() => {
-              if (!manacost) {
-                return 0;
-              }
-              const groups = manacost.match(/\{[^}]+\}/g) ?? [];
-              let total = 0;
-              for (const g of groups) {
-                const inner = g.slice(1, -1);
-                const n = Number(inner);
-                total += Number.isFinite(n) ? n : 1;
-              }
-              return total;
-            })();
-            return { card, name: card.name ?? '', maintype, cmc };
-          }),
-        );
-        const sorted = lookups.slice().sort((a, b) => {
-          if (key === 'name') {
-            return a.name.localeCompare(b.name);
-          }
-          if (key === 'maintype') {
-            const t = a.maintype.localeCompare(b.maintype);
-            return t !== 0 ? t : a.name.localeCompare(b.name);
-          }
-          // manacost
-          const c = a.cmc - b.cmc;
-          return c !== 0 ? c : a.name.localeCompare(b.name);
-        });
-        // Reverse dispatch so the first sorted card ends up at index 0.
-        for (let i = sorted.length - 1; i >= 0; i--) {
-          const entry = sorted[i];
-          webClient.request.game.moveCard(gameId, {
-            startPlayerId: localPlayerId,
-            startZone: ZoneName.HAND,
-            cardsToMove: { card: [{ cardId: entry.card.id }] },
-            targetPlayerId: localPlayerId,
-            targetZone: ZoneName.HAND,
-            x: 0,
-            y: 0,
-            isReversed: false,
-          });
-        }
+        const entries = await Promise.all(cards.map(async (card) => ({
+          card,
+          metadata: key === 'name' ? undefined : await CardDTO.get(card.name).catch(() => undefined),
+        })));
+        dispatch(games.Actions.zoneOrderReplacedLocally({
+          gameId,
+          playerId: game.localPlayerId,
+          zoneName: ZoneName.HAND,
+          order: sortHandCards(entries, key),
+        }));
       })();
     },
-    [readGame, gameId, readLocalPlayer, webClient],
+    [readGame, gameId, readLocalPlayer, dispatch],
   );
 
   return useMemo(

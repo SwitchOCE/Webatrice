@@ -944,3 +944,26 @@ describe('arrows and attachments', () => {
     });
   });
 });
+
+describe('local hand sorting', () => {
+  it.each(['Name', 'Type', 'Mana Value'])('renders the %s sort without sending a game command', async (label) => {
+    const alpha = makeCard({ id: 31, name: 'Alpha' });
+    const beta = makeCard({ id: 32, name: 'Beta' });
+    const { game, store } = renderGame({
+      ...SPEC,
+      seats: [{ ...SPEC.seats[0], hand: [SHOCK, beta, alpha] }, SPEC.seats[1]],
+    });
+    const renderedOrder = () => Array.from(document.querySelectorAll('[data-card][data-zone="hand"]'))
+      .map((el) => Number(el.getAttribute('data-card-id')));
+    expect(renderedOrder()).toEqual([30, 32, 31]);
+    await act(async () => {});
+    act(() => {
+      fireEvent.click(screen.getByTitle(/^Hand .*3 cards$/));
+    });
+    chooseMenuPath('Sort hand by...', label);
+    await act(async () => {});
+    await vi.waitFor(() => expect(renderedOrder()).toEqual([31, 32, 30]));
+    expect(store.getState().games.games[1].players[1].zones.hand.order).toEqual([31, 32, 30]);
+    expect(wire(game)).toEqual([]);
+  });
+});

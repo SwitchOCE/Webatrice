@@ -87,9 +87,6 @@ export function useHandMenuItems({
       ...menuShortcut('game.viewHand'),
     },
     {
-      // Sort hand by ... — dispatches per-card moveCard reorders
-      // in the calculated order. Matches Cockatrice's
-      // hand_menu.cpp; async lookup for maintype / manacost keys.
       label: t('HandMenu.sort'),
       submenu: [
         {
