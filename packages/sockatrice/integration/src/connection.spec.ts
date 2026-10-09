@@ -60,6 +60,19 @@ function serverIdentification(
 }
 
 describe('connection lifecycle', () => {
+  it('exposes the most recent connect target before and after replacing the socket', () => {
+    const client = getWebClient();
+    expect(client.socket.target).toBeNull();
+
+    connectWithOptions(loginOptions());
+    expect(client.socket.target).toEqual({ host: 'localhost', port: '4748' });
+    expect(getMockWebSocket().url).toBe('ws://localhost:4748');
+
+    connectWithOptions({ ...loginOptions(), host: 'server.example', port: '8443' });
+    expect(client.socket.target).toEqual({ host: 'server.example', port: '8443' });
+    expect(getMockWebSocket().url).toBe('wss://server.example:8443');
+  });
+
   it('flips status through CONNECTING → CONNECTED on socket open', () => {
     connectWithOptions(loginOptions());
 

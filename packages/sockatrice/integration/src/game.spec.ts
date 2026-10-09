@@ -2,12 +2,12 @@
 // player counters, game chat, game close, and outbound game commands.
 
 import { create, setExtension, toBinary } from '@bufbuild/protobuf';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import * as Data from '../../src/generated';
 import { GameCommands, RoomCommands } from '../../src';
 
-import { connectAndHandshake, connectAndLogin, getMockResponse } from '../../src/testing/setup';
+import { connectAndHandshake, connectAndLogin, getMockResponse, getMockWebSocket } from '../../src/testing/setup';
 import {
   buildResponse,
   buildResponseMessage,
@@ -486,6 +486,32 @@ describe('game', () => {
       value: create(Data.Response_DeckDownloadSchema, { deck: serverDeck }),
     })));
     expect(getMockResponse().game.deckSelected).toHaveBeenCalledWith(42, serverDeck);
+  });
+
+  it('pre-game: a rejected deck selection reports its game, response code and request identity', () => {
+    connectAndLogin();
+    getMockWebSocket().send.mockClear();
+    const error = vi.spyOn(console, 'error');
+    try {
+      GameCommands.deckSelect(42, { deckId: 7 }, 'rejected-pick');
+      expect(getMockWebSocket().send.mock.calls).toHaveLength(1);
+      const command = findLastGameCommand(Data.Command_DeckSelect_ext);
+      expect(command.gameId).toBe(42);
+      expect({ ...command.value }).toEqual({ $typeName: 'Command_DeckSelect', deckId: 7 });
+
+      deliverMessage(buildResponseMessage(buildResponse({
+        cmdId: command.cmdId,
+        responseCode: Data.Response_ResponseCode.RespInvalidData,
+      })));
+
+      expect(vi.mocked(getMockResponse().game.deckSelectFailed!).mock.calls).toEqual([
+        [42, Data.Response_ResponseCode.RespInvalidData, undefined, 'rejected-pick'],
+      ]);
+      expect(vi.mocked(getMockResponse().game.deckSelected!).mock.calls).toEqual([]);
+      expect(error.mock.calls).toEqual([]);
+    } finally {
+      error.mockRestore();
+    }
   });
 
   it('pre-game: force start is one Command_ReadyStart carrying ready and force_start', () => {
