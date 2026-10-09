@@ -377,3 +377,59 @@ describe('deck operations: update acknowledgements', () => {
     }
   });
 });
+
+describe('deck upload response identity', () => {
+  it.each([[] as [string?], ['import-a'] as [string?]])(
+    'keeps request identity client-side and tolerates an acknowledgement without a file (%s)', (...correlation) => {
+      connectAndLogin();
+      getMockWebSocket().send.mockClear();
+      const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        SessionCommands.deckUpload('/imports', 0, '<deck/>', undefined, undefined, ...correlation);
+        const empty = findLastSessionCommand(Data.Command_DeckUpload_ext);
+        expect({ ...empty.value }).toEqual({
+          $typeName: 'Command_DeckUpload', path: '/imports', deckId: 0, deckList: '<deck/>',
+        });
+        deliverMessage(buildResponseMessage(buildResponse({
+          cmdId: empty.cmdId, responseCode: Data.Response_ResponseCode.RespOk,
+          ext: Data.Response_DeckUpload_ext, value: create(Data.Response_DeckUploadSchema),
+        })));
+        expect(vi.mocked(getMockResponse().session.uploadServerDeck).mock.calls).toEqual([]);
+        expect(vi.mocked(getMockResponse().session.deckUploadFailed!).mock.calls).toEqual([]);
+
+        SessionCommands.deckUpload('/imports', 0, '<deck/>', true, 'WU', ...correlation);
+        const uploaded = findLastSessionCommand(Data.Command_DeckUpload_ext);
+        expect({ ...uploaded.value }).toEqual({
+          $typeName: 'Command_DeckUpload', path: '/imports', deckId: 0, deckList: '<deck/>', isPublic: true, colorIdentity: 'WU',
+        });
+        deliverMessage(buildResponseMessage(buildResponse({
+          cmdId: uploaded.cmdId, responseCode: Data.Response_ResponseCode.RespOk,
+          ext: Data.Response_DeckUpload_ext,
+          value: create(Data.Response_DeckUploadSchema, { newFile: { id: 42, name: 'Server-assigned' } }),
+        })));
+        expect(vi.mocked(getMockResponse().session.uploadServerDeck).mock.calls).toEqual([
+          ['/imports', create(Data.ServerInfo_DeckStorage_TreeItemSchema, { id: 42, name: 'Server-assigned' }), ...correlation],
+        ]);
+
+        SessionCommands.deckUpload('/imports', 0, '<deck/>', undefined, undefined, ...correlation);
+        const failed = findLastSessionCommand(Data.Command_DeckUpload_ext);
+        expect({ ...failed.value }).toEqual({
+          $typeName: 'Command_DeckUpload', path: '/imports', deckId: 0, deckList: '<deck/>',
+        });
+        deliverMessage(buildResponseMessage(buildResponse({
+          cmdId: failed.cmdId, responseCode: Data.Response_ResponseCode.RespFunctionNotAllowed,
+        })));
+        expect(vi.mocked(getMockResponse().session.deckUploadFailed!).mock.calls).toEqual([
+          ['/imports', Data.Response_ResponseCode.RespFunctionNotAllowed, undefined, ...correlation],
+        ]);
+        expect(vi.mocked(getMockResponse().session.uploadServerDeck).mock.calls).toEqual([
+          ['/imports', create(Data.ServerInfo_DeckStorage_TreeItemSchema, { id: 42, name: 'Server-assigned' }), ...correlation],
+        ]);
+        expect(getMockWebSocket().send.mock.calls).toHaveLength(3);
+        expect(errors.mock.calls).toEqual([]);
+      } finally {
+        errors.mockRestore();
+      }
+    },
+  );
+});

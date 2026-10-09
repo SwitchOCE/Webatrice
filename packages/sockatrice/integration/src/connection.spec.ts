@@ -198,3 +198,24 @@ describe('connection lifecycle', () => {
     expect(findLastSessionCommand(Data.Command_Login_ext).value.userName).toBe('alice');
   });
 });
+
+describe('connected endpoint identity', () => {
+  it.each([
+    ['example.com', '4748', 'wss://example.com:4748'],
+    ['example.com/server-a', '4748', 'wss://example.com/server-a'],
+  ])('only exposes the live socket URL for %s', (host, port, endpoint) => {
+    const client = getWebClient();
+    expect(client.socket.connectedEndpoint).toBeNull();
+    client.connect({ host, port });
+    expect(client.socket.connectedEndpoint).toBeNull();
+    openMockWebSocket();
+    expect(client.socket.connectedEndpoint).toBe(endpoint);
+    getMockWebSocket().readyState = WebSocket.CLOSED;
+    expect(client.socket.connectedEndpoint).toBeNull();
+    getMockWebSocket().readyState = WebSocket.OPEN;
+    expect(client.socket.connectedEndpoint).toBe(endpoint);
+    client.disconnect();
+    expect(client.socket.connectedEndpoint).toBeNull();
+    expect(getMockWebSocket().close.mock.calls).toEqual([[]]);
+  });
+});

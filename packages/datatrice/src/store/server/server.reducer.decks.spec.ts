@@ -86,6 +86,18 @@ describe('deckVisibilityChanged', () => {
     const state = makeServerState({ backendDecks: null });
     expect(serverReducer(state, Actions.deckVisibilityChanged({ deckId: 1, isPublic: true })).backendDecks).toBeNull();
   });
+
+  it('leaves every folder private when the requested path is absent', () => {
+    const result = serverReducer(storage(), Actions.deckVisibilityChanged({ folderPath: 'missing', isPublic: true }));
+    expect(result.backendDecks!.root!.items.map((item) => ({
+      name: item.name,
+      isPublic: item.folder?.isPublic ?? item.file?.isPublic,
+    }))).toEqual([
+      { name: 'Burn', isPublic: false },
+      { name: 'outer', isPublic: false },
+    ]);
+    expect(result.backendDecks!.root!.items[1].folder!.items[0].folder!.isPublic).toBe(false);
+  });
 });
 
 describe('published folders after tree mutations', () => {

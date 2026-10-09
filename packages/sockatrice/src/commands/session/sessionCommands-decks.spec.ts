@@ -12,6 +12,7 @@ import {
   Command_DeckListOtherUser_ext,
   Command_DeckSetVisibility_ext,
   Command_DeckShareCreate_ext,
+  DeckShareItemSchema,
   Command_DeckShareDownload_ext,
   Command_DeckShareList_ext,
   Command_DeckShareListMine_ext,
@@ -217,5 +218,36 @@ describe.each(Object.values(CommandFailure))('deck sharing transport failures: %
     expect(WebClient.instance.response.session.commandFailed).toHaveBeenCalledWith(
       command, Response_ResponseCode.RespNotConnected, target, failure,
     );
+  });
+});
+
+describe('deck sharing outcome boundaries', () => {
+  it('reports an item share failure with an empty target and no request identity', () => {
+    deckShareCreate({ name: 'Cube', items: [{ deckId: 4 }] });
+    const calls = (WebClient.instance.protobuf.sendSessionCommand as Mock).mock.calls;
+    expect(calls).toHaveLength(1);
+    expect(calls[0][0]).toBe(Command_DeckShareCreate_ext);
+    expect({ ...calls[0][1] }).toEqual({
+      $typeName: 'Command_DeckShareCreate', name: 'Cube',
+      items: [create(DeckShareItemSchema, { deckId: 4 })],
+    });
+    invokeOnError(Response_ResponseCode.RespFunctionNotAllowed);
+    expect(vi.mocked(WebClient.instance.response.session.commandFailed!).mock.calls).toEqual([
+      ['deckShareCreate', Response_ResponseCode.RespFunctionNotAllowed, '', undefined],
+    ]);
+    expect(vi.mocked(WebClient.instance.response.session.deckShareCreated!).mock.calls).toEqual([]);
+  });
+
+  it('does not invent an uploaded file when a successful response omits newFile', () => {
+    deckUpload('/imports', 0, '<deck/>', undefined, undefined, 'import-a');
+    const calls = (WebClient.instance.protobuf.sendSessionCommand as Mock).mock.calls;
+    expect(calls).toHaveLength(1);
+    expect(calls[0][0]).toBe(Command_DeckUpload_ext);
+    expect({ ...calls[0][1] }).toEqual({
+      $typeName: 'Command_DeckUpload', path: '/imports', deckId: 0, deckList: '<deck/>',
+    });
+    invokeOnSuccess({});
+    expect(vi.mocked(WebClient.instance.response.session.uploadServerDeck).mock.calls).toEqual([]);
+    expect(vi.mocked(WebClient.instance.response.session.deckUploadFailed!).mock.calls).toEqual([]);
   });
 });

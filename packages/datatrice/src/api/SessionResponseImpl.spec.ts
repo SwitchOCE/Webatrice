@@ -684,6 +684,18 @@ describe('SessionResponseImpl deck sharing (#7241)', () => {
     );
   });
 
+  it('deckVisibilityChanged defaults an omitted visibility bit to private', () => {
+    const { impl, dispatch } = setup();
+    try {
+      impl.deckVisibilityChanged({ deckId: 8 });
+      expect(dispatch.mock.calls).toEqual([[
+        ServerActions.deckVisibilityChanged({ deckId: 8, folderPath: undefined, isPublic: false }),
+      ]]);
+    } finally {
+      dispatch.mockRestore();
+    }
+  });
+
   it('publicDeckDownloaded dispatches the deck text', () => {
     const { impl, dispatch } = setup();
     impl.publicDeckDownloaded(7, '<deck/>');
