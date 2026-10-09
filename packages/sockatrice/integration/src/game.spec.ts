@@ -7,7 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 import * as Data from '../../src/generated';
 import { GameCommands, RoomCommands } from '../../src';
 
-import { connectAndHandshake, connectAndLogin, getMockResponse, getMockWebSocket } from '../../src/testing/setup';
+import { connectAndHandshake, connectAndLogin, getMockResponse, getMockWebSocket, getWebClient } from '../../src/testing/setup';
 import {
   buildResponse,
   buildResponseMessage,
@@ -889,5 +889,93 @@ describe('game', () => {
       value: create(Data.Event_LeaveSchema, { reason: Data.Event_Leave_LeaveReason.USER_LEFT }),
     }));
     expect(getMockResponse().game.playerLeft).toHaveBeenCalledWith(99, 1, expect.any(Number));
+  });
+});
+
+describe('next-turn outcomes over the transport', () => {
+  function sendNextTurn(...correlation: [requestId?: string]): number {
+    GameCommands.nextTurn(42, ...correlation);
+    const { container, value, cmdId } = findLastGameCommand(Data.Command_NextTurn_ext);
+    expect({ ...value }).toEqual({ $typeName: Data.Command_NextTurnSchema.typeName });
+    const command = create(Data.GameCommandSchema);
+    setExtension(command, Data.Command_NextTurn_ext, create(Data.Command_NextTurnSchema));
+    expect(container).toEqual(create(Data.CommandContainerSchema, {
+      cmdId: BigInt(cmdId), gameId: 42, gameCommand: [command],
+    }));
+    return cmdId;
+  }
+
+  function answer(cmdId: number, responseCode: Data.Response_ResponseCode): void {
+    deliverMessage(buildResponseMessage(buildResponse({ cmdId, responseCode })));
+  }
+
+  it('delivers reordered success and failure responses with their original request identities', () => {
+    connectAndLogin();
+    getMockWebSocket().send.mockClear();
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const first = sendNextTurn('turn-a');
+      const second = sendNextTurn('turn-b');
+      const third = sendNextTurn('turn-c');
+      const fourth = sendNextTurn('turn-d');
+      expect(new Set([first, second, third, fourth]).size).toBe(4);
+      expect(getMockWebSocket().send.mock.calls).toHaveLength(4);
+
+      answer(second, Data.Response_ResponseCode.RespOk);
+      answer(fourth, Data.Response_ResponseCode.RespContextError);
+      answer(third, Data.Response_ResponseCode.RespOk);
+      answer(first, Data.Response_ResponseCode.RespOk);
+
+      expect(vi.mocked(getMockResponse().game.nextTurnAnswered!).mock.calls).toEqual([
+        [42, 'turn-b'], [42, 'turn-c'], [42, 'turn-a'],
+      ]);
+      expect(vi.mocked(getMockResponse().game.nextTurnFailed!).mock.calls).toEqual([
+        [42, Data.Response_ResponseCode.RespContextError, undefined, 'turn-d'],
+      ]);
+      expect(vi.mocked(getMockResponse().game.activePlayerSet).mock.calls).toEqual([]);
+      expect(error.mock.calls).toEqual([]);
+    } finally {
+      error.mockRestore();
+    }
+  });
+
+  it('preserves callback arity for success and failure when the request identity is omitted', () => {
+    connectAndLogin();
+    getMockWebSocket().send.mockClear();
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      answer(sendNextTurn(), Data.Response_ResponseCode.RespOk);
+      answer(sendNextTurn(), Data.Response_ResponseCode.RespContextError);
+
+      expect(getMockWebSocket().send.mock.calls).toHaveLength(2);
+      expect(vi.mocked(getMockResponse().game.nextTurnAnswered!).mock.calls).toEqual([[42]]);
+      expect(vi.mocked(getMockResponse().game.nextTurnFailed!).mock.calls).toEqual([
+        [42, Data.Response_ResponseCode.RespContextError, undefined],
+      ]);
+      expect(error.mock.calls).toEqual([]);
+    } finally {
+      error.mockRestore();
+    }
+  });
+
+  it('settles responses without logging handler exceptions when optional outcome callbacks are absent', () => {
+    connectAndLogin();
+    getMockWebSocket().send.mockClear();
+    const client = getWebClient();
+    const game = client.response.game;
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      client.response.game = { ...game, nextTurnAnswered: undefined, nextTurnFailed: undefined };
+      answer(sendNextTurn('turn-success'), Data.Response_ResponseCode.RespOk);
+      answer(sendNextTurn('turn-failure'), Data.Response_ResponseCode.RespContextError);
+
+      expect(getMockWebSocket().send.mock.calls).toHaveLength(2);
+      expect(vi.mocked(game.nextTurnAnswered!).mock.calls).toEqual([]);
+      expect(vi.mocked(game.nextTurnFailed!).mock.calls).toEqual([]);
+      expect(error.mock.calls).toEqual([]);
+    } finally {
+      client.response.game = game;
+      error.mockRestore();
+    }
   });
 });

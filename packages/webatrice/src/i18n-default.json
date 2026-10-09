@@ -1041,11 +1041,6 @@
     },
     "validation": {
       "tooLong": "At most {max} characters"
-    },
-    "error": {
-      "list": "Failed to load card art rules.",
-      "add": "Failed to add the card art rule.",
-      "remove": "Failed to remove the card art rule."
     }
   },
   "DeckBracket": {
@@ -1378,6 +1373,44 @@
       "refresh": "Refresh server stats"
     }
   },
+  "GameInvite": {
+    "copyLink": "Copy game link",
+    "inviteToGame": "Invite to Game...",
+    "invite": "Invite",
+    "linkCopied": "Game link copied",
+    "linkCopyFailed": "Could not copy the game link",
+    "desktopPortRequired": "Set this server's desktop port in server settings to copy links or send invites.",
+    "inviteSent": "Invitation sent to {name}",
+    "inviteFailed": {
+      "ignoring": "{name} is ignoring you, so the invitation was not delivered",
+      "offline": "{name} is no longer online, so the invitation was not delivered",
+      "rejected": "The server did not deliver the invitation to {name}",
+      "notSent": "The invitation to {name} was not sent: {reason}"
+    },
+    "message": "Join my game (#{gameId}):",
+    "messageWithDescription": "Join my game \"{description}\" (#{gameId}):",
+    "dialog": {
+      "title": "Invite to Game",
+      "search": "Search users...",
+      "buddies": "Buddies",
+      "online": "Online",
+      "empty": "No one to invite",
+      "invite": "Invite",
+      "cancel": "Cancel"
+    }
+  },
+  "GameMenu": {
+    "button": "Game",
+    "title": "Game actions",
+    "item": {
+      "nextPhase": "Next phase",
+      "nextPhaseAction": "Next phase with action",
+      "nextTurn": "Next turn",
+      "reverseTurn": "Reverse turn order",
+      "rotateViewCW": "Rotate view clockwise",
+      "rotateViewCCW": "Rotate view counterclockwise"
+    }
+  },
   "GameErrorBoundary": {
     "title": "The game board hit an unexpected error",
     "message": "You are still in the game. Reload the board to pick up where you left off.",
@@ -1406,44 +1439,6 @@
       "cancel": "No"
     },
     "deckSelectFailed": "The server did not accept this deck."
-  },
-  "GameInvite": {
-    "copyLink": "Copy game link",
-    "inviteToGame": "Invite to Game...",
-    "invite": "Invite",
-    "linkCopied": "Game link copied",
-    "linkCopyFailed": "Could not copy the game link",
-    "inviteSent": "Invitation sent to {name}",
-    "inviteFailed": {
-      "ignoring": "{name} is ignoring you, so the invitation was not delivered",
-      "offline": "{name} is no longer online, so the invitation was not delivered",
-      "rejected": "The server did not deliver the invitation to {name}",
-      "notSent": "The invitation to {name} was not sent: {reason}"
-    },
-    "message": "Join my game (#{gameId}):",
-    "messageWithDescription": "Join my game \"{description}\" (#{gameId}):",
-    "dialog": {
-      "title": "Invite to Game",
-      "search": "Search users...",
-      "buddies": "Buddies",
-      "online": "Online",
-      "empty": "No one to invite",
-      "invite": "Invite",
-      "cancel": "Cancel"
-    },
-    "desktopPortRequired": "Set this server's desktop port in server settings to copy links or send invites."
-  },
-  "GameMenu": {
-    "button": "Game",
-    "title": "Game actions",
-    "item": {
-      "nextPhase": "Next phase",
-      "nextPhaseAction": "Next phase with action",
-      "nextTurn": "Next turn",
-      "reverseTurn": "Reverse turn order",
-      "rotateViewCW": "Rotate view clockwise",
-      "rotateViewCCW": "Rotate view counterclockwise"
-    }
   },
   "GameReplay": {
     "missing": "This replay is no longer open. Replays are kept only until the page is reloaded.",
