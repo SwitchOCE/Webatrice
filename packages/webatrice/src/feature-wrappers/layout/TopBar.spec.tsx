@@ -77,10 +77,16 @@ describe('TopBar identity changes', () => {
 describe('TopBar user menu', () => {
   it('focuses a surviving tab after closing the focused tab', () => {
     renderTopBar(RouteEnum.SETTINGS);
-    const close = screen.getByRole('button', { name: 'TopBar.tabs.close' });
+    // Tabs opened by earlier tests stay open (sticky tabs), so close the active Settings tab by its own button.
+    const settings = screen.getAllByRole('link').find((link) => link.getAttribute('aria-current') === 'page')!;
+    const close = within(settings.parentElement!).getByRole('button', { name: 'TopBar.tabs.close' });
     close.focus();
     fireEvent.click(close);
-    expect(screen.getByRole('link', { name: /Lobby|Server/ })).toHaveFocus();
+    // Focus moves to a surviving tab (the next one, else the previous), not to the document body.
+    const focused = document.activeElement;
+    expect(focused?.tagName).toBe('A');
+    expect(screen.getAllByRole('link')).toContain(focused);
+    expect(focused).not.toHaveAttribute('href', RouteEnum.SETTINGS);
   });
   const moderatorState = {
     ...connectedState,

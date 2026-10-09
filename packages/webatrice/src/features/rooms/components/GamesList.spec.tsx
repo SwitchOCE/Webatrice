@@ -153,7 +153,7 @@ describe('GamesList', () => {
     });
     expect(row('Bravo')).toHaveFocus();
     fireEvent.keyDown(document.activeElement!, { key: 'Enter' });
-    expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(1, expect.objectContaining({ gameId: 2 }));
+    expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(1, expect.objectContaining({ gameId: 2 }), expect.any(String));
   });
 
   it('sorts from a header button and reports the sort direction', () => {
