@@ -115,8 +115,8 @@ export function ZoneCardCell({
       {pile ? (
         <div
           className={[
-            'absolute left-0 top-0 pointer-events-none board-motion',
-            'transition-transform duration-150 ease-out group-hover:scale-[var(--card-hover-scale,1.1)]',
+            'absolute left-0 top-0 pointer-events-none',
+            'board-motion transition-transform duration-150 ease-out group-hover:scale-[var(--card-hover-scale,1.1)]',
           ].join(' ')}
           style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}
         >
