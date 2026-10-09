@@ -412,3 +412,51 @@ describe('integration: session replays', () => {
     expect(server.Selectors.getDownloadedReplay(store.getState())).toEqual({ replayId: 4, replayData: bytes });
   });
 });
+
+
+describe('account auth bridge regressions', () => {
+  it('preserves omitted profile fields and evicts only the cached self profile', () => {
+    const store = createStore();
+    const response = attachResponseHandlers(store);
+    const alice = create(ServerInfo_UserSchema, { name: 'alice', realName: 'Old', email: 'alice@example.com', country: 'AU' });
+    const bob = makeUser('bob');
+    response.session.updateUser(alice);
+    response.session.getUserInfo(alice);
+    response.session.getUserInfo(bob);
+    const before = store.getState().server;
+    expect(before.userInfo.alice).toEqual(alice);
+    expect(before.userInfo.bob).toEqual(bob);
+    response.session.accountEditChanged('', undefined, 'NZ');
+    const after = store.getState().server;
+    expect(after.user).toEqual(create(ServerInfo_UserSchema, { ...alice, realName: '', country: 'NZ' }));
+    expect(after.userInfo.alice).toBeUndefined();
+    expect(after.userInfo.bob).toEqual(bob);
+    expect(before.userInfo.alice).toEqual(alice);
+    expect(before.user).toEqual(alice);
+  });
+
+  it('clears a previously advertised hash capability when the next report omits it', () => {
+    const store = createStore();
+    const response = attachResponseHandlers(store);
+    response.session.updateInfo('First', '1', true);
+    expect(store.getState().server.info.supportsPasswordHash).toBe(true);
+    response.session.updateInfo('Next', '2');
+    expect(store.getState().server.info).toEqual({ name: 'Next', version: '2', message: null, supportsPasswordHash: undefined });
+  });
+
+  it.each([undefined, WebsocketTypes.CommandFailure.Timeout, WebsocketTypes.CommandFailure.Disconnected])(
+    'dispatches the exact activation failure action for %s', (failure) => {
+      const store = createStore();
+      const response = attachResponseHandlers(store);
+      const dispatch = vi.spyOn(store, 'dispatch');
+      try {
+        response.session.accountActivationFailed(failure);
+        expect(dispatch).toHaveBeenCalledExactlyOnceWith({
+          type: 'server/accountActivationFailed', payload: failure === undefined ? undefined : { failure },
+        });
+      } finally {
+        dispatch.mockRestore();
+      }
+    },
+  );
+});

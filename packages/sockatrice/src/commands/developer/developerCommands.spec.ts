@@ -96,3 +96,16 @@ describe('viewLogHistory (developer family)', () => {
     );
   });
 });
+
+
+it('reports an unfiltered developer log failure with an empty target', () => {
+  viewLogHistory({ dateRange: 1 });
+  const [ext, cmd] = (WebClient.instance.protobuf.sendDeveloperCommand as Mock).mock.calls[0];
+  expect(ext).toBe(Command_ViewLogHistory_dev_ext);
+  expect({ ...cmd }).toEqual({ $typeName: cmd.$typeName, dateRange: 1, logLocation: [] });
+  invokeOnError(Response_ResponseCode.RespFunctionNotAllowed);
+  expect(WebClient.instance.response.moderator.commandFailed).toHaveBeenCalledExactlyOnceWith(
+    'viewLogHistory', Response_ResponseCode.RespFunctionNotAllowed, '', undefined,
+  );
+  expect(WebClient.instance.response.moderator.viewLogs).not.toHaveBeenCalled();
+});

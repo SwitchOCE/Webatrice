@@ -652,3 +652,16 @@ describe('replayDownload', () => {
     expect(WebClient.instance.response.session.replayDownloaded).toHaveBeenCalledWith(99, resp);
   });
 });
+
+
+describe('deprecated account password credentials', () => {
+  it('omits an empty caller hash while preserving the plaintext password', () => {
+    expect(accountPassword('old', 'new', '')).toBeUndefined();
+    const [ext, cmd] = (WebClient.instance.protobuf.sendSessionCommand as Mock).mock.calls[0];
+    expect(ext).toBe(Command_AccountPassword_ext);
+    expect({ ...cmd }).toEqual({ $typeName: cmd.$typeName, oldPassword: 'old', newPassword: 'new' });
+    expect(hashPassword).not.toHaveBeenCalled();
+    invokeOnSuccess();
+    expect(WebClient.instance.response.session.accountPasswordChange).toHaveBeenCalledExactlyOnceWith();
+  });
+});
