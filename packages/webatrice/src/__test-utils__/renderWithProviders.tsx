@@ -65,7 +65,6 @@ import zoneViewText from '../features/game/dialogs/shared/ZoneView.i18n.json';
 import zoneLabelText from '../features/game/dialogs/shared/zoneLabels.i18n.json';
 import editTokensText from '../feature-widgets/card-import/EditTokens.i18n.json';
 import deckSharingText from '../features/decks/DeckSharing.i18n.json';
-import shortcutsText from '../feature-widgets/shortcuts/SettingsTab/ShortcutsTab.i18n.json';
 import gamePhaseText from '../features/game/components/PhaseTrack/phaseLabels.i18n.json';
 import tallyText from '../features/game/components/TallyOverlay/TallyOverlay.i18n.json';
 
@@ -165,9 +164,6 @@ testI18n.use(ICU).use(initReactI18next).init({
           color: editTokensText.EditTokens.color,
         },
         ReadOnlyDeck: { cardCount: deckSharingText.ReadOnlyDeck.cardCount },
-        ShortcutsTab: {
-          action: Object.fromEntries(Object.entries(shortcutsText.ShortcutsTab.action).filter(([key]) => key.startsWith('game.'))),
-        },
         ...gamePhaseText,
         ...moveTopUntilText,
         ...handZoneText,
