@@ -1,4 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
+import { createElement } from 'react';
+import { GameReadOnlyProvider } from '../../components/ui/GameReadOnlyContext';
 import { combineReducers } from '@reduxjs/toolkit';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { games, type GamesState } from '@cockatrice/datatrice';
@@ -19,13 +21,16 @@ const FOREST = makeCard({ id: 1, name: 'Forest' });
 
 interface Spec {
   grantWriteAccess?: boolean;
+  readOnly?: boolean;
   sourceOwnerId?: number;
   spectator?: boolean;
   snapshot?: ReturnType<typeof makeCard>[];
   noReveal?: boolean;
 }
 
-function setup({ grantWriteAccess = false, sourceOwnerId = 2, spectator = false, snapshot, noReveal = false }: Spec = {}) {
+function setup({
+  grantWriteAccess = false, readOnly = false, sourceOwnerId = 2, spectator = false, snapshot, noReveal = false,
+}: Spec = {}) {
   const seat = (playerId: number, name: string) => {
     const deck = makeZoneEntry({ name: ZoneName.DECK, cardCount: 30 });
     deck.revealedCards = playerId === sourceOwnerId ? snapshot : undefined;
@@ -43,7 +48,9 @@ function setup({ grantWriteAccess = false, sourceOwnerId = 2, spectator = false,
       : { gameId: 1, sourceOwnerId, zoneName: ZoneName.DECK, cards: [ISLAND, FOREST], grantWriteAccess },
   } as unknown as GamesState;
   const { Wrapper, store } = makeReduxHookWrapper(combineReducers({ games: games.gamesReducer }), { games: gamesState });
-  const { result } = renderHook(() => useIncomingReveal(), { wrapper: Wrapper });
+  const { result } = renderHook(() => useIncomingReveal(), {
+    wrapper: ({ children }) => createElement(Wrapper, null, createElement(GameReadOnlyProvider, { value: readOnly }, children)),
+  });
   return { result, store };
 }
 
@@ -62,6 +69,13 @@ describe('useIncomingReveal', () => {
 
   it('lists no cards for a snapshot that was never seeded', () => {
     expect(setup({ snapshot: undefined }).result.current.cards).toEqual([]);
+  });
+
+  it('makes a replay reveal read-only even when the recorded event grants write access', () => {
+    const { result } = setup({ grantWriteAccess: true, readOnly: true, snapshot: [ISLAND] });
+    expect(result.current.canDragLent).toBe(false);
+    expect(result.current.readOnly).toBe(true);
+    expect(result.current.cards).toHaveLength(1);
   });
 
   it('lets a seated receiver drag from a lent zone only', () => {

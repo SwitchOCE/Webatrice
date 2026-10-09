@@ -61,6 +61,18 @@ describe('openedReplays', () => {
     vi.useRealTimers();
   });
 
+  it('forwards the engine reveal options to the replay target', () => {
+    const target = makeTarget();
+    const containers = [sayContainer(0), sayContainer(10), sayContainer(20)];
+    const key = openReplay(buildReplay(containers), 'reveals.cor', target);
+    const { engine, gameId } = getOpenedReplay(key)!;
+
+    engine.seek(20000);
+
+    expect(target.replayGameEventContainer).toHaveBeenNthCalledWith(1, containers[0], gameId, { skipRevealWindow: true });
+    expect(target.replayGameEventContainer).toHaveBeenNthCalledWith(2, containers[1], gameId, { skipRevealWindow: false });
+  });
+
   it('notifies subscribers with a new snapshot on open and close only', () => {
     const listener = vi.fn();
     const unsubscribe = subscribeOpenedReplays(listener);

@@ -1,4 +1,5 @@
 import type { GameEventContainer, GameReplay } from '@cockatrice/sockatrice/generated';
+import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 import { createReplayTimeline, hasMeaningfulEvent } from './replayTimeline';
 
@@ -26,7 +27,7 @@ export const MIN_TICK_INTERVAL_MS = 50;
  */
 export interface ReplaySink {
   rewind(): void;
-  apply(container: GameEventContainer): void;
+  apply(container: GameEventContainer, options?: WebsocketTypes.ReplayEventOptions): void;
 }
 
 export interface ReplayEngineOptions {
@@ -187,7 +188,7 @@ export class ReplayEngine {
     if (isBackwardsSkip) {
       this.handleBackwardsSkip(doRewindBuffering);
     } else {
-      this.processNewEvents();
+      this.processNewEvents('forward');
     }
     this.emit();
   }
@@ -215,7 +216,7 @@ export class ReplayEngine {
     this.currentEvent = 0;
     this.finished = false;
     this.sink.rewind();
-    this.processNewEvents();
+    this.processNewEvents('rewind');
   }
 
   private tick = (): void => {
@@ -236,11 +237,13 @@ export class ReplayEngine {
     this.emit();
   };
 
-  private processNewEvents(): void {
+  private processNewEvents(mode: 'playback' | 'forward' | 'rewind' = 'playback'): void {
     this.currentProcessedTime = this.currentVisualTime;
 
     while (this.currentEvent < this.timeline.length && this.timeline[this.currentEvent] < this.currentProcessedTime) {
-      this.sink.apply(this.containers[this.currentEvent]);
+      const skipRevealWindow = mode === 'rewind' ||
+        (mode === 'forward' && this.currentProcessedTime - this.timeline[this.currentEvent] > BIG_SKIP_MS);
+      this.sink.apply(this.containers[this.currentEvent], { skipRevealWindow });
       ++this.currentEvent;
     }
     if (this.currentEvent === this.timeline.length) {

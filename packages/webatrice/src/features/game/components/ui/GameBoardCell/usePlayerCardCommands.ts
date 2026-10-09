@@ -14,6 +14,7 @@ import { useAppDispatch, type RootState } from '@app/store';
 import { resolveCardTableRow, tableRowToGridY } from '../../battlefield/Battlefield/cardPlacement';
 import { readCardPlacement } from '../../battlefield/Battlefield/readCardPlacement';
 import { useGameId } from '../GameIdContext';
+import { useGameReadOnly } from '../GameReadOnlyContext';
 import type { PlayerCardCommands } from '../PlayerBoard/playerBoard.types';
 
 /**
@@ -26,12 +27,13 @@ import type { PlayerCardCommands } from '../PlayerBoard/playerBoard.types';
  */
 export function usePlayerCardCommands(playerId: number, isLocal: boolean): PlayerCardCommands | undefined {
   const gameId = useGameId();
+  const readOnly = useGameReadOnly();
   const webClient = useWebClient();
   const dispatch = useAppDispatch();
   const store = useStore<RootState>();
 
   return useMemo(() => {
-    if (gameId == null) {
+    if (gameId == null || readOnly) {
       return undefined;
     }
     const game = webClient.request.game;
@@ -169,5 +171,5 @@ export function usePlayerCardCommands(playerId: number, isLocal: boolean): Playe
       };
     }
     return commands;
-  }, [gameId, webClient, dispatch, store, playerId, isLocal]);
+  }, [gameId, readOnly, webClient, dispatch, store, playerId, isLocal]);
 }

@@ -33,6 +33,13 @@ describe('buildRevealedCardMenu', () => {
     ]);
   });
 
+  it('disables Clone when replay commands are unavailable', () => {
+    const menu = buildRevealedCardMenu({
+      t, menuShortcut, onHide: vi.fn(), onClone: vi.fn(), onSelectAll: vi.fn(), canClone: false,
+    });
+    expect(menu[2]).toMatchObject({ label: 'Clone', disabled: true });
+  });
+
   it('wires Hide, Clone and Select All', () => {
     const args = { t, menuShortcut, onHide: vi.fn(), onClone: vi.fn(), onSelectAll: vi.fn() };
     const menu = buildRevealedCardMenu(args);

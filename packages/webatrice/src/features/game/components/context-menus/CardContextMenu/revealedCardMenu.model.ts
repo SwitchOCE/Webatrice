@@ -13,6 +13,7 @@ export interface BuildRevealedCardMenuArgs {
   /** Hide the cards from this window only (desktop actHide); sends nothing. */
   onHide: () => void;
   onClone: () => void;
+  canClone?: boolean;
   onSelectAll: () => void;
   /** "View related cards" with its separator (buildRelatedViewItems). */
   relatedViewItems?: ContextMenuItem[];
@@ -22,7 +23,10 @@ export function buildRevealedCardMenu(args: BuildRevealedCardMenuArgs): ContextM
   return [
     { label: args.t('CardMenu.hide'), ...args.menuShortcut('game.hideRevealedCard'), onClick: args.onHide },
     { divider: true },
-    { label: args.t('CardMenu.clone'), ...args.menuShortcut('game.cloneCard'), onClick: args.onClone },
+    {
+      label: args.t('CardMenu.clone'), ...args.menuShortcut('game.cloneCard'),
+      onClick: args.onClone, disabled: args.canClone === false,
+    },
     { divider: true },
     { label: args.t('CardMenu.selectAll'), ...args.menuShortcut('game.selectAllBattlefield'), onClick: args.onSelectAll },
     ...(args.relatedViewItems ?? []),

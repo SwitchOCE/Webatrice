@@ -311,7 +311,7 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                               card list (someone revealed a zone to us,
                               or "to all players" including us). Reads /
                               dismisses via the incomingReveal slice. */}
-                                    {!readOnly && <IncomingRevealDialog />}
+                                    <IncomingRevealDialog />
 
                                     <ConfirmDialog
                                       isOpen={dialogs.concedeConfirm === 'concede'}

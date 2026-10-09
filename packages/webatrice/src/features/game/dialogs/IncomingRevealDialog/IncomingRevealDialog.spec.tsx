@@ -12,6 +12,7 @@ import { createMockWebClient, renderWithProviders } from '../../../../__test-uti
 import { catalogT } from '../../__test-utils__/catalogT';
 import { buildSeatGameState, chooseMenuPath, openMenus } from '../../__test-utils__/seatFixtures';
 import Game from '../../Game';
+import { GameReadOnlyProvider } from '../../components/ui/GameReadOnlyContext';
 import { useTallyType } from '../../hooks/useTallyType';
 import zoneLabels from '../shared/zoneLabels.i18n.json';
 import incomingRevealTitles from './IncomingRevealDialog.i18n.json';
@@ -37,6 +38,7 @@ const REVEALED = [makeCard({ id: 0, name: 'Island', pt: '1/2' }), makeCard({ id:
 
 function renderReveal({
   grantWriteAccess = false,
+  readOnly = false,
   zoneName = ZoneName.DECK as string,
   // null: no snapshot was seeded.
   snapshot = REVEALED as typeof REVEALED | null,
@@ -54,7 +56,10 @@ function renderReveal({
   } as typeof preloadedState.games;
   preloadedState.games!.games![1]!.players![2]!.zones![zoneName]!.revealedCards = snapshot ?? undefined;
   const webClient = createMockWebClient();
-  const utils = renderWithProviders(<ShortcutProvider><Game /></ShortcutProvider>, { preloadedState, webClient, route: '/game/1' });
+  const utils = renderWithProviders(
+    <ShortcutProvider><GameReadOnlyProvider value={readOnly}><Game /></GameReadOnlyProvider></ShortcutProvider>,
+    { preloadedState, webClient, route: '/game/1' },
+  );
   const reveal = () => utils.store.getState().games;
   return { ...utils, reveal, game: webClient.request.game };
 }
@@ -72,6 +77,33 @@ function selectionCount(): string | null {
 }
 
 describe('IncomingRevealDialog', () => {
+  it.each([false, true])('shows a replay reveal with write access=%s but sends no commands', async (grantWriteAccess) => {
+    const { game } = renderReveal({ readOnly: true, grantWriteAccess });
+    const panel = screen.getByRole('dialog', { name: TITLE });
+    const island = within(panel).getByRole('button', { name: 'Island' });
+    expect(within(panel).queryByRole('button', { name: /Move .* to a battlefield/ })).not.toBeInTheDocument();
+    fireEvent.pointerDown(island, { button: 0, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(window, { clientX: 200, clientY: 200 });
+    fireEvent.pointerUp(window);
+    for (const key of ['Enter', ' ', 'm']) {
+      fireEvent.keyDown(island, { key });
+    }
+    fireEvent.doubleClick(island);
+    fireEvent.keyDown(island, { key: 'Enter', code: 'Enter', ctrlKey: true });
+    fireEvent.keyDown(island, { key: ' ', code: 'Space', ctrlKey: true });
+    fireEvent.contextMenu(island);
+    const clone = screen.getByRole('menuitem', { name: /^Clone/ });
+    expect(clone).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(clone);
+    chooseMenuPath('Hide');
+    fireEvent.click(within(panel).getAllByRole('button', { name: 'Common.action.close' })[0]);
+    await act(async () => {});
+
+    for (const send of Object.values(game)) {
+      expect(send).not.toHaveBeenCalled();
+    }
+  });
+
   it('names the sender and the zone and shows every revealed card', () => {
     renderReveal();
 

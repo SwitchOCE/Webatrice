@@ -3,6 +3,8 @@ import { useCallback, useMemo } from 'react';
 import { games } from '@cockatrice/datatrice';
 import { useAppDispatch, useAppSelector } from '@app/store';
 
+import { useGameReadOnly } from '../../components/ui/GameReadOnlyContext';
+
 type HandCard = { id: string; name: string; scryfallId: string };
 
 /**
@@ -15,6 +17,8 @@ type HandCard = { id: string; name: string; scryfallId: string };
 export function useIncomingReveal() {
   const reveal = useAppSelector(games.Selectors.getIncomingReveal);
   const dispatch = useAppDispatch();
+  const gameReadOnly = useGameReadOnly();
+  const readOnly = gameReadOnly || !reveal?.grantWriteAccess;
 
   const sourceName = useAppSelector((state) =>
     reveal
@@ -48,7 +52,7 @@ export function useIncomingReveal() {
   // self-directed reveal is the player's own library view.
   const canDragLent =
     reveal != null &&
-    reveal.grantWriteAccess &&
+    !readOnly &&
     localPlayerId != null &&
     !isSpectator &&
     reveal.sourceOwnerId !== localPlayerId;
@@ -67,5 +71,5 @@ export function useIncomingReveal() {
     dispatch(games.Actions.incomingRevealDismissed());
   }, [dispatch, reveal]);
 
-  return { reveal, sourceName, cards, localPlayerId, canDragLent, close };
+  return { reveal, sourceName, cards, localPlayerId, canDragLent, readOnly, close };
 }

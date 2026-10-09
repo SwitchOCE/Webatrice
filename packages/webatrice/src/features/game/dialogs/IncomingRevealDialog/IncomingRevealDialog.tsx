@@ -100,13 +100,13 @@ function IncomingRevealPanel({
   cards,
   localPlayerId,
   canDragLent,
+  readOnly,
   close,
 }: IncomingReveal & { reveal: NonNullable<IncomingReveal['reveal']> }) {
   const { t } = useTranslation();
   const { groupBy, setGroupBy, sortBy, setSortBy, pileView, setPileView } = useZoneViewPreferences(STORAGE_KEY);
   const { showCardInfo } = useCardPreviewActions();
   const menuShortcut = useMenuShortcut();
-  const readOnly = !reveal.grantWriteAccess;
   // Clone creates the token on our own battlefield (desktop actClone).
   const cardCommands = usePlayerCardCommands(localPlayerId ?? -1, true);
 
@@ -287,6 +287,7 @@ function IncomingRevealPanel({
   };
   const visibleIds = groups.flatMap((g) => g.cards.map((c) => c.handCard.id));
   const menuItems = cardMenu && buildRevealedCardMenu({
+    canClone: cardCommands != null,
     t,
     menuShortcut,
     onHide: () => {

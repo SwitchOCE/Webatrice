@@ -51,7 +51,7 @@ export function openReplay(replay: GameReplay, title: string, target: ReplayGame
   const gameInfo = replay.gameInfo!;
   const engine = new ReplayEngine(replay, {
     rewind: () => target.loadReplayGame(gameId, gameInfo),
-    apply: (container) => target.replayGameEventContainer(container, gameId),
+    apply: (container, options) => target.replayGameEventContainer(container, gameId, options),
   });
   engine.load();
   opened.set(key, { entry: { key, gameId, title, replay, engine }, target });

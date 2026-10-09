@@ -287,6 +287,61 @@ describe('ReplayEngine skip-empty', () => {
   });
 });
 
+describe('ReplayEngine reveal windows', () => {
+  it('shows every reveal during playback, even when one tick advances more than ten seconds', () => {
+    const containers = [sayContainer(0), sayContainer(1), sayContainer(20)];
+    const { engine, sink } = makeEngine(containers);
+    const apply = vi.spyOn(sink, 'apply');
+    engine.setTimeScaleFactor(1000);
+    engine.play();
+    vi.advanceTimersByTime(50);
+
+    expect(apply.mock.calls).toEqual(containers.map((container) => [container, { skipRevealWindow: false }]));
+  });
+
+  it('shows reveals during a small forward seek', () => {
+    const containers = [sayContainer(0), sayContainer(1), sayContainer(20)];
+    const { engine, sink } = makeEngine(containers);
+    const apply = vi.spyOn(sink, 'apply');
+    engine.seek(2000);
+
+    expect(apply.mock.calls).toEqual(containers.slice(0, 2).map((container) => [container, { skipRevealWindow: false }]));
+  });
+
+  it('skips only events strictly more than ten seconds before a forward seek target', () => {
+    const containers = [sayContainer(0), sayContainer(9), sayContainer(10), sayContainer(11), sayContainer(20)];
+    const { engine, sink } = makeEngine(containers);
+    const apply = vi.spyOn(sink, 'apply');
+    engine.seek(20000);
+
+    expect(apply.mock.calls).toEqual([
+      [containers[0], { skipRevealWindow: true }],
+      [containers[1], { skipRevealWindow: true }],
+      [containers[2], { skipRevealWindow: false }],
+      [containers[3], { skipRevealWindow: false }],
+    ]);
+  });
+
+  it.each([false, true])('skips every reveal on a rewind (buffered=%s), then shows playback reveals', (buffered) => {
+    const containers = [sayContainer(0), sayContainer(1), sayContainer(5), sayContainer(20)];
+    const { engine, sink } = makeEngine(containers);
+    engine.seek(20000);
+    const apply = vi.spyOn(sink, 'apply');
+    if (buffered) {
+      engine.skipBy(-18000);
+      expect(apply).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(200);
+    } else {
+      engine.seek(2000);
+    }
+    expect(apply.mock.calls).toEqual(containers.slice(0, 2).map((container) => [container, { skipRevealWindow: true }]));
+    engine.play();
+    vi.advanceTimersByTime(3200);
+    expect(apply).toHaveBeenLastCalledWith(containers[2], { skipRevealWindow: false });
+    engine.dispose();
+  });
+});
+
 describe('ReplayEngine disposal', () => {
   it('stops the clock and drops subscribers', () => {
     const { engine, applied } = makeEngine([sayContainer(0), sayContainer(3)]);
