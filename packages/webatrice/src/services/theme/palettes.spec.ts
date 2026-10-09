@@ -49,7 +49,11 @@ describe.each(Object.keys(PALETTES) as ColorScheme[])('the %s palette', (scheme)
   });
 
   test('keeps white action labels at AA in DeckEditor and PhaseTrack, including hover', () => {
-    for (const file of ['features/decks/DeckEditor.tsx', 'features/game/components/PhaseTrack/PhaseTrack.tsx']) {
+    for (const file of [
+      'features/decks/components/editor/DeckBuyButton.tsx',
+      'features/decks/components/editor/DeckCardPreview.tsx',
+      'features/game/components/PhaseTrack/PhaseTrack.tsx',
+    ]) {
       const source = fs.readFileSync(path.resolve(__dirname, '../..', file), 'utf8');
       const actions = source.split('\n').filter((line) => line.includes('bg-accent-secondary') && line.includes('text-white'));
       expect(actions.length).toBeGreaterThan(0);
