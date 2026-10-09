@@ -64,11 +64,14 @@ describe('IncomingRevealDialog', () => {
     expect(within(popup()).getByTitle('Forest')).toBeInTheDocument();
   });
 
+  // TallyOverlay's visible selection count (shown from two cards; aria-hidden, as its live region announces it).
+  const selectionCount = () => screen.queryByText(/^\d+$/, { selector: 'div[aria-hidden="true"]' });
+
   it.each(['hide', 'close', 'source cleared'])('feeds reveal selection into the count and clears it on %s', async (action) => {
     const { store } = renderReveal();
     fireEvent.click(within(popup()).getByRole('button', { name: 'Island' }));
     fireEvent.click(within(popup()).getByRole('button', { name: 'Forest' }), { ctrlKey: true });
-    expect(screen.getByRole('status', { name: 'TallyOverlay.selectedCount' })).toHaveTextContent('2');
+    expect(selectionCount()).toHaveTextContent('2');
     if (action === 'hide') {
       fireEvent.contextMenu(within(popup()).getByTitle('Forest'));
       chooseMenuPath('Hide');
@@ -78,7 +81,7 @@ describe('IncomingRevealDialog', () => {
       act(() => store.dispatch(games.Actions.zoneViewCleared({ gameId: 1, playerId: 2, zoneName: ZoneName.DECK })));
     }
     await act(async () => {});
-    expect(screen.queryByRole('status', { name: 'TallyOverlay.selectedCount' })).not.toBeInTheDocument();
+    expect(selectionCount()).not.toBeInTheDocument();
   });
 
   it('tallies revealed live P/T and removes the selection when a new reveal replaces it', async () => {
@@ -94,7 +97,7 @@ describe('IncomingRevealDialog', () => {
         gameId: 1, sourceOwnerId: 2, zoneName: ZoneName.DECK, cards: REVEALED, grantWriteAccess: false,
       })));
       expect(screen.queryByRole('status', { name: 'TallyOverlay.tally' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('status', { name: 'TallyOverlay.selectedCount' })).not.toBeInTheDocument();
+      expect(selectionCount()).not.toBeInTheDocument();
     } finally {
       act(() => result.current[1]('none'));
     }
