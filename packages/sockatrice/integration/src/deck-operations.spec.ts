@@ -6,12 +6,13 @@
 // surrounding behavior.
 
 import { create } from '@bufbuild/protobuf';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import * as Data from '../../src/generated';
 import { SessionCommands } from '../../src';
 
-import { connectAndLogin, getMockResponse } from '../../src/testing/setup';
+import { connectAndLogin, getMockResponse, getMockWebSocket, getWebClient } from '../../src/testing/setup';
+import { WebsocketTypes } from '../../src/types';
 import {
   buildResponse,
   buildResponseMessage,
@@ -254,5 +255,125 @@ describe('deck operations: multi-step flows', () => {
       '/folder',
       expect.objectContaining({ id: 13 }),
     );
+  });
+});
+
+describe('deck operations: update acknowledgements', () => {
+  function sendUpdate(onSettled?: Parameters<typeof SessionCommands.deckUpdate>[4]) {
+    const socket = getMockWebSocket();
+    socket.send.mockClear();
+    SessionCommands.deckUpdate(7, '<updated/>', false, '', onSettled);
+    const command = findLastSessionCommand(Data.Command_DeckUpload_ext);
+    expect(socket.send.mock.calls).toHaveLength(1);
+    expect({ ...command.value }).toEqual({
+      $typeName: 'Command_DeckUpload', deckId: 7, deckList: '<updated/>', isPublic: false, colorIdentity: '',
+    });
+    return command.cmdId;
+  }
+
+  function acknowledge(cmdId: number, responseCode: Data.Response_ResponseCode, newFile?: Data.ServerInfo_DeckStorage_TreeItem) {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      deliverMessage(buildResponseMessage(buildResponse({
+        cmdId, responseCode, ext: Data.Response_DeckUpload_ext,
+        value: create(Data.Response_DeckUploadSchema, { newFile }),
+      })));
+      expect(consoleError.mock.calls).toEqual([]);
+    } finally {
+      consoleError.mockRestore();
+    }
+  }
+
+  it('routes out-of-order saves to their own settlement callbacks after updating server state', () => {
+    connectAndLogin();
+    const session = getMockResponse().session;
+    const first = vi.fn();
+    const second = vi.fn();
+    const firstId = sendUpdate(first);
+    const secondId = sendUpdate(second);
+
+    acknowledge(secondId, Data.Response_ResponseCode.RespOk,
+      create(Data.ServerInfo_DeckStorage_TreeItemSchema, { id: 7, name: 'Saved', file: { creationTime: 20 } }));
+    expect(vi.mocked(session.updateServerDeck!).mock.calls).toEqual([
+      [7, create(Data.ServerInfo_DeckStorage_TreeItemSchema, { id: 7, name: 'Saved', file: { creationTime: 20 } })],
+    ]);
+    expect(second.mock.calls).toEqual([[null]]);
+    expect(first.mock.calls).toEqual([]);
+    expect(vi.mocked(session.updateServerDeck!).mock.invocationCallOrder[0]).toBeLessThan(second.mock.invocationCallOrder[0]);
+
+    acknowledge(firstId, Data.Response_ResponseCode.RespContextError);
+    expect(vi.mocked(session.updateServerDeckFailed!).mock.calls).toEqual([
+      [7, Data.Response_ResponseCode.RespContextError, undefined],
+    ]);
+    expect(first.mock.calls).toEqual([[{ responseCode: Data.Response_ResponseCode.RespContextError, failure: undefined }]]);
+    expect(second.mock.calls).toEqual([[null]]);
+    expect(vi.mocked(session.updateServerDeck!).mock.calls).toEqual([
+      [7, create(Data.ServerInfo_DeckStorage_TreeItemSchema, { id: 7, name: 'Saved', file: { creationTime: 20 } })],
+    ]);
+    expect(vi.mocked(session.updateServerDeckFailed!).mock.invocationCallOrder[0]).toBeLessThan(first.mock.invocationCallOrder[0]);
+    expect(vi.mocked(session.uploadServerDeck).mock.calls).toEqual([]);
+  });
+
+  it('routes success without a file and failure when no settlement callback was supplied', () => {
+    connectAndLogin();
+    const session = getMockResponse().session;
+    const socket = getMockWebSocket();
+    socket.send.mockClear();
+    SessionCommands.deckUpdate(7, '<updated/>');
+    const command = findLastSessionCommand(Data.Command_DeckUpload_ext);
+    expect(socket.send.mock.calls).toHaveLength(1);
+    expect({ ...command.value }).toEqual({ $typeName: 'Command_DeckUpload', deckId: 7, deckList: '<updated/>' });
+
+    acknowledge(command.cmdId, Data.Response_ResponseCode.RespOk);
+    expect(vi.mocked(session.updateServerDeck!).mock.calls).toEqual([[7, undefined]]);
+    expect(vi.mocked(session.updateServerDeckFailed!).mock.calls).toEqual([]);
+
+    acknowledge(sendUpdate(), Data.Response_ResponseCode.RespContextError);
+    expect(vi.mocked(session.updateServerDeck!).mock.calls).toEqual([[7, undefined]]);
+    expect(vi.mocked(session.updateServerDeckFailed!).mock.calls).toEqual([
+      [7, Data.Response_ResponseCode.RespContextError, undefined],
+    ]);
+  });
+
+  it('settles success and failure when the response implementation omits optional update handlers', () => {
+    connectAndLogin();
+    const client = getWebClient();
+    const original = client.response.session;
+    const first = vi.fn();
+    const second = vi.fn();
+    client.response.session = Object.assign(Object.create(original), {
+      updateServerDeck: undefined, updateServerDeckFailed: undefined,
+    });
+    try {
+      acknowledge(sendUpdate(first), Data.Response_ResponseCode.RespOk);
+      acknowledge(sendUpdate(second), Data.Response_ResponseCode.RespContextError);
+      expect(first.mock.calls).toEqual([[null]]);
+      expect(second.mock.calls).toEqual([[{ responseCode: Data.Response_ResponseCode.RespContextError, failure: undefined }]]);
+      expect(vi.mocked(original.updateServerDeck!).mock.calls).toEqual([]);
+      expect(vi.mocked(original.updateServerDeckFailed!).mock.calls).toEqual([]);
+    } finally {
+      client.response.session = original;
+    }
+  });
+
+  it('forwards a transport failure to the response handler and the originating save', () => {
+    connectAndLogin();
+    const session = getMockResponse().session;
+    const settled = vi.fn();
+    sendUpdate(settled);
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      getMockWebSocket().close();
+      expect(vi.mocked(session.updateServerDeckFailed!).mock.calls).toEqual([
+        [7, Data.Response_ResponseCode.RespNotConnected, WebsocketTypes.CommandFailure.Disconnected],
+      ]);
+      expect(settled.mock.calls).toEqual([[
+        { responseCode: Data.Response_ResponseCode.RespNotConnected, failure: WebsocketTypes.CommandFailure.Disconnected },
+      ]]);
+      expect(vi.mocked(session.updateServerDeck!).mock.calls).toEqual([]);
+      expect(consoleError.mock.calls).toEqual([]);
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });
