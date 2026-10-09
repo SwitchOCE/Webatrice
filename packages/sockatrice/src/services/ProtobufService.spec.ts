@@ -592,6 +592,36 @@ describe('ProtobufService', () => {
       expect(handler).toHaveBeenCalledWith(payload, expect.objectContaining({ gameId: -1, playerId: -1 }));
     });
 
+    it.each([true, false])('passes skipRevealWindow=%s to every replay event without leaking into live events', (skipRevealWindow) => {
+      const handler = vi.fn();
+      const mockExt = {} as GenExtension<GameEvent, unknown>;
+      const payload = { someData: 1 };
+      gameEvents.push([mockExt, handler]);
+      const service = makeService();
+      vi.mocked(hasExtension).mockReturnValue(true);
+      vi.mocked(getExtension).mockReturnValue(payload);
+      const container = {
+        gameId: 42,
+        secondsElapsed: 12,
+        eventList: [{ playerId: 3 }, { playerId: 4 }],
+      } as unknown as GameEventContainer;
+      const options = { skipRevealWindow };
+
+      service.replayGameEventContainer(container, -1000, options);
+
+      expect(handler).toHaveBeenNthCalledWith(1, payload, expect.objectContaining({
+        gameId: -1000, playerId: 3, replayOptions: options,
+      }));
+      expect(handler).toHaveBeenNthCalledWith(2, payload, expect.objectContaining({
+        gameId: -1000, playerId: 4, replayOptions: options,
+      }));
+      (service as ProtobufInternal).processGameEvent(container);
+      expect(handler.mock.calls[2][1].replayOptions).toBeUndefined();
+      service.replayGameEventContainer(container, -1000);
+      expect(handler.mock.calls[4][1].replayOptions).toBeUndefined();
+      expect(mockSocket.send).not.toHaveBeenCalled();
+    });
+
     it('addresses a replayed container to the supplied local game id', () => {
       const handler = vi.fn();
       const mockExt = {} as GenExtension<GameEvent, unknown>;

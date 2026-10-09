@@ -30,7 +30,7 @@ import {
 import type { GameExtensionRegistry } from '../events/game';
 import type { RoomExtensionRegistry } from '../events/room';
 import type { SessionExtensionRegistry } from '../events/session';
-import type { GameEventMeta } from '../types/WebSocketConfig';
+import type { GameEventMeta, ReplayEventOptions } from '../types/WebSocketConfig';
 import type { LatencyStats } from '../types/LatencyStats';
 import { CommandFailure, type CommandOptions, handleFailure, handleResponse } from './command-options';
 import { LatencyTracker } from './LatencyTracker';
@@ -394,8 +394,8 @@ export class ProtobufService {
    * Mirrors desktop feeding ReplayManager events into
    * GameEventHandler::processGameEventContainer.
    */
-  public replayGameEventContainer(container: GameEventContainer, gameId: number): void {
-    this.dispatchGameEvents(container, gameId);
+  public replayGameEventContainer(container: GameEventContainer, gameId: number, options?: ReplayEventOptions): void {
+    this.dispatchGameEvents(container, gameId, options);
   }
 
   private processGameEvent(container: GameEventContainer | undefined): void {
@@ -405,7 +405,7 @@ export class ProtobufService {
     this.dispatchGameEvents(container, container.gameId ?? -1);
   }
 
-  private dispatchGameEvents(container: GameEventContainer, gameId: number): void {
+  private dispatchGameEvents(container: GameEventContainer, gameId: number, replayOptions?: ReplayEventOptions): void {
     if (!container.eventList?.length) {
       return;
     }
@@ -419,6 +419,7 @@ export class ProtobufService {
         context,
         secondsElapsed: secondsElapsed ?? 0,
         forcedByJudge: forcedByJudge ?? 0,
+        replayOptions,
       };
 
       for (const [ext, handler] of this.events.game) {

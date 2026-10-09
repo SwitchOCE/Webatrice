@@ -25,6 +25,7 @@ import type { ClientConfig } from './types/ClientConfig';
 import type { ClientOptions } from './types/ClientOptions';
 import type { ConnectTarget } from './types/WebClientConfig';
 import type { IWebClientResponse } from './types/WebClientResponse';
+import type { ReplayEventOptions } from './types/WebSocketConfig';
 import { StatusEnum } from './types/StatusEnum';
 import { DEFAULT_COMMAND_TIMEOUT_MS, ProtobufService } from './services/ProtobufService';
 import { WebSocketService } from './services/WebSocketService';
@@ -271,14 +272,14 @@ export class WebClient {
    * the handlers, reducers and message-log formatting a live game uses. Works
    * while disconnected: nothing is sent to the server.
    */
-  public replayGameEventContainer(container: GameEventContainer, gameId: number): void {
+  public replayGameEventContainer(container: GameEventContainer, gameId: number, options?: ReplayEventOptions): void {
     // A recorded container carries the game time it was played at (Servatrice sets
     // seconds_elapsed only on the copy it stores); live containers never do. The field
     // is proto2 optional, which protobuf-es reads as 0 when unset, so test presence.
     if (isFieldSet(container, GameEventContainerSchema.field.secondsElapsed)) {
       this.response.game.replayGameTimeSynced?.(gameId, container.secondsElapsed);
     }
-    this.protobuf.replayGameEventContainer(container, gameId);
+    this.protobuf.replayGameEventContainer(container, gameId, options);
   }
 
   /**

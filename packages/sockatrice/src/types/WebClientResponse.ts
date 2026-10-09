@@ -64,6 +64,7 @@ import type { LatencyStats } from './LatencyStats';
 import type { LoginSuccessContext, PendingActivationContext } from './SignalContexts';
 import type {
   KeyOf,
+  ReplayEventOptions,
   WebSocketRoomResponseOverrides,
 } from './WebSocketConfig';
 
@@ -233,7 +234,7 @@ export interface IGameResponse {
   counterSet(gameId: number, playerId: number, data: Event_SetCounter): void;
   counterDeleted(gameId: number, playerId: number, data: Event_DelCounter): void;
   cardsDrawn(gameId: number, playerId: number, data: Event_DrawCards): void;
-  cardsRevealed(gameId: number, playerId: number, data: Event_RevealCards): void;
+  cardsRevealed(gameId: number, playerId: number, data: Event_RevealCards, replayOptions?: ReplayEventOptions): void;
   zoneViewRevealed(gameId: number, playerId: number, zoneName: string, cards: ServerInfo_Card[], isReversed: boolean): void;
   zoneShuffled(gameId: number, playerId: number, data: Event_Shuffle): void;
   dieRolled(gameId: number, playerId: number, data: Event_RollDie): void;

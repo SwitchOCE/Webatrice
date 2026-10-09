@@ -524,6 +524,16 @@ describe('WebClient', () => {
       expect(mockResponse.game.replayGameLoaded).toHaveBeenCalledWith(-1001, gameInfo);
     });
 
+    it.each([true, false])('forwards skipRevealWindow=%s to replay dispatch', (skipRevealWindow) => {
+      const container = create(GameEventContainerSchema, { secondsElapsed: 12 });
+      const options = { skipRevealWindow };
+      client.protobuf.replayGameEventContainer = vi.fn();
+
+      client.replayGameEventContainer(container, -1001, options);
+
+      expect(client.protobuf.replayGameEventContainer).toHaveBeenCalledWith(container, -1001, options);
+    });
+
     it('unloadReplayGame hands the closed replay game to the game response', () => {
       client.unloadReplayGame(-1001);
       expect(mockResponse.game.replayGameUnloaded).toHaveBeenCalledWith(-1001);
@@ -534,7 +544,7 @@ describe('WebClient', () => {
       client.protobuf.replayGameEventContainer = vi.fn();
       client.replayGameEventContainer(container, -1001);
       expect(mockResponse.game.replayGameTimeSynced).toHaveBeenCalledWith(-1001, 95);
-      expect(client.protobuf.replayGameEventContainer).toHaveBeenCalledWith(container, -1001);
+      expect(client.protobuf.replayGameEventContainer).toHaveBeenCalledWith(container, -1001, undefined);
       expect(vi.mocked(mockResponse.game.replayGameTimeSynced!).mock.invocationCallOrder[0])
         .toBeLessThan(vi.mocked(client.protobuf.replayGameEventContainer).mock.invocationCallOrder[0]);
     });
