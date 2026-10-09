@@ -75,7 +75,7 @@ describe('3.1 query failure reporting', () => {
     DeveloperCommands.viewLogHistory({ dateRange: 1 });
     answer('developer', Response_ResponseCode.RespAccessDenied);
     expect(responseScope('moderator').commandFailed).toHaveBeenCalledExactlyOnceWith(
-      'viewLogHistory', Response_ResponseCode.RespAccessDenied, '',
+      'viewLogHistory', Response_ResponseCode.RespAccessDenied, '', undefined,
     );
     expect(responseScope('moderator').viewLogs).not.toHaveBeenCalled();
   });

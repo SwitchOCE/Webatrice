@@ -15,6 +15,7 @@ interface QueryCase {
   send: () => void;
   capture: () => { cmdId: number; value: unknown };
   wire: object;
+  forwardsFailureReason?: boolean;
   response?: (cmdId: number) => Data.Response;
   success: () => Mock;
   successArgs: unknown[];
@@ -348,7 +349,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().developer.commandFailed, target: '',
   },
   {
-    name: 'viewLogHistory for a named user', command: 'viewLogHistory',
+    name: 'viewLogHistory for a named user', command: 'viewLogHistory', forwardsFailureReason: true,
     send: () => DeveloperCommands.viewLogHistory({ userName: 'alice', dateRange: 1 }),
     capture: () => findLastDeveloperCommand(Data.Command_ViewLogHistory_dev_ext),
     wire: { userName: 'alice', dateRange: 1, logLocation: [] },
@@ -358,7 +359,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().moderator.commandFailed, target: 'alice',
   },
   {
-    name: 'viewLogHistory without a user filter', command: 'viewLogHistory',
+    name: 'viewLogHistory without a user filter', command: 'viewLogHistory', forwardsFailureReason: true,
     send: () => DeveloperCommands.viewLogHistory({ dateRange: 1 }),
     capture: () => findLastDeveloperCommand(Data.Command_ViewLogHistory_dev_ext),
     wire: { dateRange: 1, logLocation: [] },
@@ -395,6 +396,7 @@ describe('protocol query outcomes', () => {
       })));
       expect(testCase.failure()).toHaveBeenCalledExactlyOnceWith(
         testCase.command, Data.Response_ResponseCode.RespFunctionNotAllowed, testCase.target,
+        ...(testCase.forwardsFailureReason ? [undefined] : []),
       );
       expect(testCase.success()).not.toHaveBeenCalled();
     });

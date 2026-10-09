@@ -40,7 +40,9 @@ const cases = [
     capture: () => findLastSessionCommand(Data.Command_Activate_ext),
     wire: create(Data.Command_ActivateSchema, { ...CLIENT_CONFIG, userName: 'alice', token: 'token' }),
     callback: () => getMockResponse().session.accountActivationFailed,
-    args: (_code: number, _outcome: string) => [],
+    args: (_code: number, outcome: string) => [
+      outcome === 'rejected' ? undefined : outcome === 'timeout' ? CommandFailure.Timeout : CommandFailure.Disconnected,
+    ],
     status: () => 'Account Activation Failed',
   },
 ];
@@ -114,7 +116,7 @@ it.each([WebSocketConnectReason.ACTIVATE_ACCOUNT, WebSocketConnectReason.PASSWOR
     getWebClient().disconnect();
     const session = getMockResponse().session;
     if (reason === WebSocketConnectReason.ACTIVATE_ACCOUNT) {
-      expect(session.accountActivationFailed).toHaveBeenCalledExactlyOnceWith();
+      expect(session.accountActivationFailed).toHaveBeenCalledExactlyOnceWith(CommandFailure.Disconnected);
       expect(session.resetPasswordFailed).not.toHaveBeenCalled();
     } else {
       expect(session.resetPasswordFailed).toHaveBeenCalledExactlyOnceWith();
