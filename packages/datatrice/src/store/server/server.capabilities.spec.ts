@@ -17,6 +17,15 @@ describe('parseServerVersion', () => {
 });
 
 describe('serverSupports', () => {
+  it.each([
+    ['3.1.0-1', false],
+    ['3.1.0-alpha', false],
+    ['3.1.0-rc', true],
+    ['3.1.0-beta.preview', true],
+    ['3.1.0-beta.8', true],
+  ])('orders mixed prerelease identifiers in %s against the reports minimum', (raw, expected) => {
+    expect(serverSupports(raw, ServerCapability.REPORTS)).toBe(expected);
+  });
   const capabilities = Object.values(ServerCapability);
   const beta = (n: number) => `3.1.0-beta.${n} (2026-09-01)`;
 

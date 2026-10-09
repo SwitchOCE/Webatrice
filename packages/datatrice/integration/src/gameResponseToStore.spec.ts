@@ -16,6 +16,7 @@ import {
   Event_DumpZoneSchema,
   Event_FlipCardSchema,
   Event_GameJoinedSchema,
+  Event_GameLogNotice_NoticeType,
   Event_GameStateChangedSchema,
   Event_MoveCardSchema,
   Event_RevealCardsSchema,
@@ -117,6 +118,20 @@ function tableCard(id: number, name: string, overrides: Partial<ServerInfo_Card>
 // --- lifecycle -----------------------------------------------------------
 
 describe('integration: game lifecycle', () => {
+  it('logs undo draw failures and drops unknown notices or games', () => {
+    const { store, response } = seedGame();
+    const before = store.getState().games.games[GAME_ID].messages;
+    response.game.gameLogNotice!(GAME_ID, 1, Event_GameLogNotice_NoticeType.UNDO_DRAW_FAILED);
+    const messages = store.getState().games.games[GAME_ID].messages;
+    expect(messages).toHaveLength(before.length + 1);
+    expect(messages.at(-1)).toMatchObject({ kind: 'event', playerId: 1, message: 'Alice failed to undo their last draw.' });
+    const state = store.getState();
+    response.game.gameLogNotice!(GAME_ID, 1, 99 as Event_GameLogNotice_NoticeType);
+    expect(store.getState()).toBe(state);
+    response.game.gameLogNotice!(999, 1, Event_GameLogNotice_NoticeType.UNDO_DRAW_FAILED);
+    expect(store.getState()).toBe(state);
+  });
+
   it('gameJoined seeds a GameEntry the selectors can read', () => {
     const store = createStore();
     const response = attachResponseHandlers(store);

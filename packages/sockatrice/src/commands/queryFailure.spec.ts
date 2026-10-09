@@ -60,6 +60,26 @@ function answer(scope: Scope, responseCode: Response_ResponseCode): void {
 }
 
 describe('3.1 query failure reporting', () => {
+  it.each([
+    ['deckShareCreate', 'for a deck selection, which has no folder', () => SessionCommands.deckShareCreate({ items: [{ deckId: 7 }] })],
+    ['deckSetVisibility', 'with neither a deck nor a folder', () => SessionCommands.deckSetVisibility({ isPublic: false })],
+  ] as const)('%s %s reports an empty target', (command, _case, run) => {
+    run();
+    answer('session', Response_ResponseCode.RespInvalidData);
+    expect(responseScope('session').commandFailed).toHaveBeenCalledExactlyOnceWith(command, Response_ResponseCode.RespInvalidData, '');
+    expect(responseScope('session').deckShareCreated).not.toHaveBeenCalled();
+    expect(responseScope('session').deckVisibilityChanged).not.toHaveBeenCalled();
+  });
+
+  it('viewLogHistory reports an empty target for an unfiltered lookup', () => {
+    DeveloperCommands.viewLogHistory({ dateRange: 1 });
+    answer('developer', Response_ResponseCode.RespAccessDenied);
+    expect(responseScope('moderator').commandFailed).toHaveBeenCalledExactlyOnceWith(
+      'viewLogHistory', Response_ResponseCode.RespAccessDenied, '',
+    );
+    expect(responseScope('moderator').viewLogs).not.toHaveBeenCalled();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
   });

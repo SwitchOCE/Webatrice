@@ -122,6 +122,17 @@ describe('updateServerMessage', () => {
 });
 
 describe('resetUserPassword', () => {
+  it.each([
+    ['Alice', 'Alice'],
+    ['', ' alice '],
+  ])('uses the returned username %j or the requested name for the temporary password', (returnedName, expectedName) => {
+    const onReset = vi.fn();
+    const onFailure = vi.fn();
+    resetUserPassword(' alice ', onReset, onFailure);
+    invokeOnSuccess({ userName: returnedName, temporaryPassword: 'one-time-secret' });
+    expect(onReset).toHaveBeenCalledExactlyOnceWith(expectedName, 'one-time-secret');
+    expect(onFailure).not.toHaveBeenCalled();
+  });
 
   it('calls sendAdminCommand with Command_ResetUserPassword', () => {
     resetUserPassword('alice');

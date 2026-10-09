@@ -6,7 +6,8 @@ import { create } from '@bufbuild/protobuf';
 import { describe, expect, it, vi } from 'vitest';
 
 import * as Data from '../../src/generated';
-import { DeveloperCommands, ModeratorCommands, SessionCommands } from '../../src';
+import { AdminCommands, DeveloperCommands, GameCommands, ModeratorCommands, SessionCommands } from '../../src';
+import { StatusEnum } from '../../src/types/StatusEnum';
 
 import { connectAndLogin, getMockResponse } from '../../src/testing/setup';
 import {
@@ -17,11 +18,100 @@ import {
 } from '../../src/testing/protobuf-builders';
 import {
   findLastDeveloperCommand,
+  findLastAdminCommand,
+  findLastGameCommand,
   findLastModeratorCommand,
   findLastSessionCommand,
 } from '../../src/testing/command-capture';
 
 describe('Cockatrice 3.1 protocol', () => {
+  it('setPlaymat encodes the game target and independent playmat parameters', () => {
+    connectAndLogin();
+    GameCommands.setPlaymat(12, { playmatParams: { cardName: 'Island', cardProviderId: 'provider', zoom: 1.5 } });
+    const { gameId, value } = findLastGameCommand(Data.Command_SetPlaymat_ext);
+    expect(gameId).toBe(12);
+    expect(value.playmatParams).toMatchObject({ cardName: 'Island', cardProviderId: 'provider', zoom: 1.5 });
+  });
+
+  describe.each([
+    {
+      name: 'setCardArtParams for a profile card',
+      send: (onSuccess: () => void, onFailure: (code: number) => void) =>
+        SessionCommands.setCardArtParams({ cardName: 'Island', zoom: 1.5 }, onSuccess, onFailure),
+      capture: () => findLastSessionCommand(Data.Command_SetCardArtParams_ext),
+      wire: { cardName: 'Island', zoom: 1.5 },
+      refusal: Data.Response_ResponseCode.RespFunctionNotAllowed,
+    },
+    {
+      name: 'reportAddComment for report evidence',
+      send: (onSuccess: () => void, onFailure: (code: number) => void) =>
+        SessionCommands.reportAddComment(9, 'Evidence', onSuccess, onFailure),
+      capture: () => findLastSessionCommand(Data.Command_ReportAddComment_ext),
+      wire: { reportId: 9, comment: 'Evidence' },
+      refusal: Data.Response_ResponseCode.RespAccessDenied,
+    },
+  ])('$name', (testCase) => {
+    it('reports success only to the success callback', () => {
+      connectAndLogin();
+      const onSuccess = vi.fn();
+      const onFailure = vi.fn();
+      testCase.send(onSuccess, onFailure);
+      const { cmdId, value } = testCase.capture();
+      expect(value).toMatchObject(testCase.wire);
+      deliverMessage(buildResponseMessage(buildResponse({ cmdId, responseCode: Data.Response_ResponseCode.RespOk })));
+      expect(onSuccess).toHaveBeenCalledExactlyOnceWith();
+      expect(onFailure).not.toHaveBeenCalled();
+    });
+
+    it('reports refusal only to the failure callback with the raw response', () => {
+      connectAndLogin();
+      const onSuccess = vi.fn();
+      const onFailure = vi.fn();
+      testCase.send(onSuccess, onFailure);
+      const { cmdId, value } = testCase.capture();
+      expect(value).toMatchObject(testCase.wire);
+      const raw = buildResponse({ cmdId, responseCode: testCase.refusal });
+      deliverMessage(buildResponseMessage(raw));
+      expect(onFailure).toHaveBeenCalledExactlyOnceWith(testCase.refusal, raw);
+      expect(onSuccess).not.toHaveBeenCalled();
+    });
+  });
+
+  it('resetUserPassword forwards an access denial without exposing a password', () => {
+    connectAndLogin();
+    const onReset = vi.fn();
+    const onFailure = vi.fn();
+    AdminCommands.resetUserPassword('alice', onReset, onFailure);
+    const { cmdId, value } = findLastAdminCommand(Data.Command_ResetUserPassword_ext);
+    expect(value.userName).toBe('alice');
+    const raw = buildResponse({ cmdId, responseCode: Data.Response_ResponseCode.RespAccessDenied });
+    deliverMessage(buildResponseMessage(raw));
+    expect(onFailure).toHaveBeenCalledExactlyOnceWith(Data.Response_ResponseCode.RespAccessDenied, raw);
+    expect(onReset).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [Data.Response_ResponseCode.RespAccountNotActivated, 'Login failed: account not activated'],
+    [Data.Response_ResponseCode.RespServerFull, 'Login failed: server is full'],
+    [Data.Response_ResponseCode.RespInvalidData, `Login failed: unknown error: ${Data.Response_ResponseCode.RespInvalidData}`],
+  ] as const)('login preserves rejection code %s and its status message', (responseCode, message) => {
+    connectAndLogin();
+    vi.clearAllMocks();
+    SessionCommands.login({ host: 'localhost', port: '4748', userName: 'alice' }, 'password');
+    const { cmdId } = findLastSessionCommand(Data.Command_Login_ext);
+    deliverMessage(buildResponseMessage(buildResponse({ cmdId, responseCode })));
+    expect(getMockResponse().session.loginFailed).toHaveBeenCalledExactlyOnceWith(responseCode);
+    expect(getMockResponse().session.loginSuccessful).not.toHaveBeenCalled();
+    expect(getMockResponse().session.updateStatus).toHaveBeenCalledWith(StatusEnum.DISCONNECTED, message);
+    if (responseCode === Data.Response_ResponseCode.RespAccountNotActivated) {
+      expect(getMockResponse().session.accountAwaitingActivation).toHaveBeenCalledExactlyOnceWith({
+        host: 'localhost', port: '4748', userName: 'alice'
+      });
+    } else {
+      expect(getMockResponse().session.accountAwaitingActivation).not.toHaveBeenCalled();
+    }
+  });
+
   it('getServerStats travels in CommandContainer.developer_command and dispatches serverStats', () => {
     connectAndLogin();
 
