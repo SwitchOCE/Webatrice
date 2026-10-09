@@ -194,7 +194,7 @@ describe('IncomingRevealDialog', () => {
       } else if (action === 'phase') {
         expect(game.setActivePhase).toHaveBeenCalled();
       } else {
-        expect(screen.getByRole('textbox', { name: 'game chat input' })).toHaveFocus();
+        expect(screen.getByRole('combobox', { name: 'ChatLog.inputLabel' })).toHaveFocus();
       }
       expect(island).toHaveAttribute('aria-pressed', 'false');
     });
