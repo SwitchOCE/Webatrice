@@ -31,6 +31,32 @@ const isPingOnlyUpdate = (properties: ServerInfo_PlayerProperties): boolean =>
   );
 
 export const primitiveReducers = {
+  zoneOrderReplacedLocally: ((state, action) => {
+    const { gameId, playerId, zoneName, order } = action.payload;
+    const zone = state.games[gameId]?.players[playerId]?.zones[zoneName];
+    if (!zone || order.length !== zone.order.length) {
+      return;
+    }
+    const remaining = new Set(zone.order);
+    if (remaining.size !== order.length) {
+      return;
+    }
+    for (const id of order) {
+      if (!remaining.delete(id)) {
+        return;
+      }
+    }
+    if (order.every((id, index) => id === zone.order[index])) {
+      return;
+    }
+    zone.order = [...order];
+  }) as CaseReducer<GamesState, PayloadAction<{
+    gameId: number;
+    playerId: number;
+    zoneName: string;
+    order: number[];
+  }>>,
+
   gamePlayersReplaced: ((state, action) => {
     const { gameId, players, order } = action.payload;
     const game = state.games[gameId];
