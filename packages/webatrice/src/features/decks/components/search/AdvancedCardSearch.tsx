@@ -68,7 +68,13 @@ export function AdvancedCardSearch({
         {/* Mounted with the search, so screen readers hear each new count or failure. */}
         <div role="status" className="text-xs text-text-muted h-4">
           {loading && t('CardSearch.searching')}
-          {error !== null && <span className="text-danger">{error || t('CardSearch.searchFailed')}</span>}
+          {error !== null && (
+            <span className="text-danger">
+              {error.kind === 'badQuery'
+                ? t('CardSearch.badQuery', { details: error.details })
+                : t('CardSearch.searchFailed')}
+            </span>
+          )}
           {!loading && error === null && composedQuery && (
             <span>
               {t('CardSearch.resultCount', { count: results.length })} · <span className="font-mono">{composedQuery}</span>
@@ -78,7 +84,7 @@ export function AdvancedCardSearch({
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto p-6">
-        {results.length === 0 && !loading && (
+        {results.length === 0 && !loading && error === null && (
           <div className="h-full flex items-center justify-center text-sm text-text-muted text-center max-w-md mx-auto">
             {composedQuery ? t('CardSearch.noResults') : (
               <div>

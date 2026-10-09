@@ -1,8 +1,12 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { I18nextProvider } from 'react-i18next';
+import i18n from 'i18next';
+import ICU from 'i18next-icu';
 
 import { EMPTY_FILTERS } from '../../cardSearchQuery';
 import { useScryfallCardSearch } from '../../hooks/useScryfallCardSearch';
 import { AdvancedCardSearch } from './AdvancedCardSearch';
+import translations from './AdvancedCardSearch.i18n.json';
 
 vi.mock('../../hooks/useScryfallCardSearch', () => ({ useScryfallCardSearch: vi.fn() }));
 
@@ -76,17 +80,28 @@ describe('AdvancedCardSearch', () => {
     expect(screen.getByText('CardSearch.searching')).toBeInTheDocument();
     unmount();
 
-    vi.mocked(useScryfallCardSearch).mockReturnValue({ results: [], loading: false, error: 'Search failed' });
+    vi.mocked(useScryfallCardSearch).mockReturnValue({ results: [], loading: false, error: { kind: 'failed' } });
     renderSearch();
-    expect(screen.getByText('Search failed')).toBeInTheDocument();
+    expect(screen.getByText('CardSearch.searchFailed')).toBeInTheDocument();
     expect(screen.queryByText('CardSearch.resultCount')).toBeNull();
+    expect(screen.queryByText('CardSearch.noResults')).toBeNull();
   });
 
-  it('falls back to a generic message for a failure without one', () => {
-    vi.mocked(useScryfallCardSearch).mockReturnValue({ results: [], loading: false, error: '' });
-    renderSearch();
-    expect(screen.getByText('CardSearch.searchFailed')).toHaveClass('text-danger');
-    expect(screen.queryByText('CardSearch.resultCount')).toBeNull();
+  it('renders a translated bad-query message with Scryfall details', async () => {
+    vi.mocked(useScryfallCardSearch).mockReturnValue({
+      results: [], loading: false, error: { kind: 'badQuery', details: 'Unknown color: purple' },
+    });
+    const testI18n = i18n.createInstance();
+    await testI18n.use(ICU).init({ lng: 'en', resources: { en: { translation: translations } } });
+    render(
+      <I18nextProvider i18n={testI18n}>
+        <AdvancedCardSearch query="c:purple" filters={EMPTY_FILTERS} onQueryChange={vi.fn()}
+          onFiltersChange={vi.fn()} onAddByName={vi.fn()} onPreviewCard={vi.fn()} />
+      </I18nextProvider>,
+    );
+    expect(screen.getByText('Search failed: Unknown color: purple')).toHaveClass('text-danger');
+    expect(screen.getAllByRole('status')[0]).not.toHaveTextContent('Showing');
+    expect(screen.queryByText('No results.')).toBeNull();
   });
 
   it('prompts for a query when there is none, and passes typing up', () => {

@@ -62,6 +62,15 @@ export interface ScryfallSearchCard {
   card_faces?: Array<{ image_uris?: { small?: string; normal?: string } }>;
 }
 
+export type ScryfallSearchFailure = { kind: 'failed' } | { kind: 'badQuery'; details: string };
+
+export class ScryfallSearchError extends Error {
+  constructor(readonly failure: ScryfallSearchFailure) {
+    super();
+    this.name = 'ScryfallSearchError';
+  }
+}
+
 /**
  * Full-fat Scryfall search (as opposed to `/cards/autocomplete` used by
  * QuickAdd). Accepts Scryfall's full query syntax so filter clauses
@@ -83,15 +92,28 @@ export async function searchScryfallCards(
   try {
     const res = await fetch(url, { signal });
     if (!res.ok) {
-      return [];
-    } // 404 = zero matches; treat as empty
+      if (res.status === 404 || res.status === 400) {
+        const body = await res.json() as { object?: string; code?: string; details?: string } | null;
+        if (res.status === 404 && body?.object === 'error' && body.code === 'not_found') {
+          return [];
+        }
+        if (res.status === 400 && body?.object === 'error' && body.code === 'bad_request'
+          && typeof body.details === 'string') {
+          throw new ScryfallSearchError({ kind: 'badQuery', details: body.details });
+        }
+      }
+      throw new ScryfallSearchError({ kind: 'failed' });
+    }
     const body = (await res.json()) as { data?: ScryfallSearchCard[] };
     return body.data ?? [];
   } catch (e) {
     if ((e as { name?: string })?.name === 'AbortError') {
       throw e;
     }
-    return [];
+    if (e instanceof ScryfallSearchError) {
+      throw e;
+    }
+    throw new ScryfallSearchError({ kind: 'failed' });
   }
 }
 

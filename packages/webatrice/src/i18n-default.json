@@ -1735,7 +1735,8 @@
         "short": "M"
       }
     },
-    "added": "Added {name} to the deck"
+    "added": "Added {name} to the deck",
+    "badQuery": "Search failed: {details}"
   },
   "DeckImport": {
     "defaultName": "Imported deck",
