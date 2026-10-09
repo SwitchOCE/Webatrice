@@ -28,6 +28,26 @@ function withReplay(state: GamesState = makeState()): GamesState {
 }
 
 describe('replay game lifecycle', () => {
+  it.each([Actions.clearStore(), ServerActions.disconnected()])(
+    'retains replay pings and initializes missing replay pings on $type', (action) => {
+      const replay = makeGameEntry({ replay: true });
+      const state = makeState({
+        games: { 1: makeGameEntry(), [-1000]: replay, [-1001]: replay },
+        pings: { 1: { 2: 9 }, [-1000]: { 3: 17 } },
+        incomingReveal: { gameId: 1, sourceOwnerId: 2, zoneName: 'hand', cards: [], grantWriteAccess: true },
+      });
+      expect(state.pings).toEqual({ 1: { 2: 9 }, [-1000]: { 3: 17 } });
+      expect(state.incomingReveal).toEqual({
+        gameId: 1, sourceOwnerId: 2, zoneName: 'hand', cards: [], grantWriteAccess: true,
+      });
+      expect(gamesReducer(state, action)).toEqual({
+        games: { [-1000]: replay, [-1001]: replay },
+        pings: { [-1000]: { 3: 17 }, [-1001]: {} },
+        ...(action.type === ServerActions.disconnected.type ? { incomingReveal: null } : {}),
+      });
+    },
+  );
+
   it('replayGameLoaded creates an omniscient, player-less spectator game flagged as a replay', () => {
     const game = withReplay().games[REPLAY_ID];
 
@@ -47,6 +67,8 @@ describe('replay game lifecycle', () => {
     let state = withReplay();
     state = gamesReducer(state, Actions.gameSay({ gameId: REPLAY_ID, playerId: 0, message: 'gg', timeReceived: 1 }));
     expect(state.games[REPLAY_ID].messages).toHaveLength(2);
+    state = { ...state, pings: { ...state.pings, [REPLAY_ID]: { 3: 19 } } };
+    expect(state.pings[REPLAY_ID]).toEqual({ 3: 19 });
 
     state = withReplay(state);
     // Desktop's resetForRewind clears the log; the notice was logged once, at open.
@@ -74,15 +96,6 @@ describe('replay game lifecycle', () => {
     state = gamesReducer(state, Actions.replayGameUnloaded({ gameId: REPLAY_ID }));
     expect(state.games[REPLAY_ID]).toBeUndefined();
     expect(state.pings[REPLAY_ID]).toBeUndefined();
-  });
-
-  it('clearStore and disconnect drop server games but keep a replay being watched', () => {
-    const cleared = gamesReducer(withReplay(), Actions.clearStore());
-    expect(Object.keys(cleared.games).map(Number)).toEqual([REPLAY_ID]);
-
-    const disconnected = gamesReducer(withReplay(), ServerActions.disconnected());
-    expect(Object.keys(disconnected.games).map(Number)).toEqual([REPLAY_ID]);
-    expect(disconnected.incomingReveal).toBeNull();
   });
 });
 

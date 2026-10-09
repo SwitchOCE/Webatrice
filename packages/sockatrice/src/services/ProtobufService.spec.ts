@@ -539,6 +539,16 @@ describe('ProtobufService', () => {
   });
 
   describe('processGameEvent', () => {
+    it.each([undefined, []])('ignores a replay container with eventList %s', (eventList) => {
+      const handler = vi.fn();
+      const mockExt = {} as GenExtension<GameEvent, unknown>;
+      (gameEvents as Array<[GenExtension<GameEvent, unknown>, typeof handler]>).push([mockExt, handler]);
+      const service = makeService();
+      service.replayGameEventContainer({ eventList } as GameEventContainer, -1000);
+      expect(handler.mock.calls).toEqual([]);
+      expect(vi.mocked(hasExtension).mock.calls).toEqual([]);
+    });
+
     it('returns early when container has no eventList', () => {
       const service = makeService();
       vi.mocked(hasExtension).mockReturnValue(false);
@@ -599,10 +609,9 @@ describe('ProtobufService', () => {
         eventList: [{ playerId: 3 }],
       } as unknown as GameEventContainer, -1000);
 
-      expect(handler).toHaveBeenCalledWith(
-        payload,
-        expect.objectContaining({ gameId: -1000, playerId: 3, secondsElapsed: 12 }),
-      );
+      expect(handler.mock.calls).toEqual([[payload, {
+        gameId: -1000, playerId: 3, secondsElapsed: 12, context: undefined, forcedByJudge: 0,
+      }]]);
     });
   });
 

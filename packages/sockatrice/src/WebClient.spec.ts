@@ -22,6 +22,7 @@ vi.mock('./services/ProtobufService', () => ({
     return {
       handleMessageEvent: vi.fn(),
       resetCommands: vi.fn(),
+      replayGameEventContainer: vi.fn(),
     };
   }),
 }));
@@ -45,6 +46,7 @@ import {
   Event_ServerIdentificationSchema,
   ServerMessageSchema,
   ServerInfo_GameSchema,
+  GameEventContainerSchema,
   ServerMessage_MessageType,
   SessionEventSchema,
 } from './generated';
@@ -110,6 +112,7 @@ describe('WebClient', () => {
       return {
         handleMessageEvent: vi.fn(),
         resetCommands: vi.fn(),
+        replayGameEventContainer: vi.fn(),
       };
     });
     (WebSocketService as Mock).mockImplementation(function WebSocketServiceImpl(options: WebSocketServiceConfig) {
@@ -497,6 +500,13 @@ describe('WebClient', () => {
   });
 
   describe('replay games', () => {
+    it('forwards a recorded container and the local replay id to protobuf', () => {
+      const container = create(GameEventContainerSchema, { gameId: 7, secondsElapsed: 12 });
+      client.replayGameEventContainer(container, -1001);
+      expect(vi.mocked(client.protobuf.replayGameEventContainer).mock.calls).toEqual([[container, -1001]]);
+      expect(vi.mocked(client.socket.send).mock.calls).toEqual([]);
+    });
+
     it('loadReplayGame hands the replay game to the game response', () => {
       const gameInfo = create(ServerInfo_GameSchema, { gameId: 7, description: 'recorded' });
       client.loadReplayGame(-1001, gameInfo);
