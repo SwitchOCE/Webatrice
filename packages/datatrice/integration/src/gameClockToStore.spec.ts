@@ -95,6 +95,7 @@ describe('game clocks through the WebClient and store', () => {
         {
           playerId: -1, message: 'The game has been closed.', timeReceived: 9_000,
           gameSeconds: 95, kind: 'event', segments: [{ text: 'The game has been closed.', kind: 'plain' }],
+          descriptor: { kind: 'gameClosed', params: {} },
         },
         {
           playerId: 7, message: 'Back at the start', timeReceived: 12_000,

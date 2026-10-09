@@ -24,12 +24,12 @@ import {
 import { makeCard, makeGameEntry, makePlayerEntry, makePlayerProperties, makeZoneEntry } from '../../testing/fixtures/games';
 
 describe('pushEventMessage', () => {
-  it('uses one wall-clock reading for the event timestamp and elapsed game time', () => {
-    const now = vi.spyOn(Date, 'now').mockReturnValueOnce(8_900).mockReturnValue(99_000);
+  it('stamps the event and its game seconds with the given time, not the wall clock', () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(99_000);
     try {
       const game = makeGameEntry({ secondsElapsed: 42, secondsElapsedAt: 5_000, messages: [] });
 
-      pushEventMessage(game, 7, 'A recorded event.');
+      pushEventMessage(game, 7, 'A recorded event.', 8_900);
 
       expect(game.messages).toEqual([{
         playerId: 7,
@@ -39,7 +39,7 @@ describe('pushEventMessage', () => {
         gameSeconds: 45,
         kind: 'event',
       }]);
-      expect(now.mock.calls).toEqual([[]]);
+      expect(now.mock.calls).toEqual([]);
     } finally {
       now.mockRestore();
     }
