@@ -2,7 +2,6 @@ import { act, cleanup, fireEvent, screen } from '@testing-library/react';
 import { ZoneName } from '@cockatrice/sockatrice';
 import { makeCard } from '@cockatrice/datatrice/testing';
 import { PREFERENCE_DEFAULTS } from '@app/types';
-import { lookupCardsCached } from '@app/services';
 import AppThemeProvider from '../../components/AppThemeProvider/AppThemeProvider';
 import { renderWithProviders } from '../../__test-utils__';
 import { mountBoardStyles } from '../../__test-utils__/boardStyles';
@@ -13,10 +12,12 @@ import ZoneRevealPanel from './dialogs/ZoneViewDialog/ZoneRevealPanel';
 import IncomingRevealDialog from './dialogs/IncomingRevealDialog/IncomingRevealDialog';
 import PhaseTrack from './components/PhaseTrack/PhaseTrack';
 
+// While `pending`, every catalogue lookup stays unresolved (several panels look cards up).
+const catalog = vi.hoisted(() => ({ pending: false }));
 vi.mock('../../services/cards/cardCatalog', () => ({
-  lookupCardsCached: vi.fn(async (names: string[]) => new Map(names.map((name) => [name, {
-    found: false, source: 'unknown', name, printings: [],
-  }]))),
+  lookupCardsCached: vi.fn(async (names: string[]) => (catalog.pending
+    ? new Promise(() => {})
+    : new Map(names.map((name) => [name, { found: false, source: 'unknown', name, printings: [] }])))),
 }));
 
 let styles: HTMLStyleElement;
@@ -62,12 +63,14 @@ async function renderOwners() {
 
 describe('rendered board motion owners', () => {
   it('stops the real reveal loading indicator while leaving its status visible', async () => {
-    vi.mocked(lookupCardsCached).mockImplementationOnce(() => new Promise(() => {}));
-    vi.mocked(lookupCardsCached).mockImplementationOnce(() => new Promise(() => {}));
+    catalog.pending = true;
     await setPolicy(true);
     await renderOwners();
-    const label = screen.getByText(/loading card details/);
-    const spinner = label.querySelector('svg')!;
+    catalog.pending = false;
+    const label = screen.getAllByText(/^loading card details…$/i)
+      .find((element) => element.querySelector('svg'));
+    expect(label).toBeDefined();
+    const spinner = label!.querySelector('svg')!;
     expect(spinner).toBeInTheDocument();
     expect(getComputedStyle(spinner).animation).toBe('none');
   });
