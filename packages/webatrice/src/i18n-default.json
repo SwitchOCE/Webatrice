@@ -293,6 +293,9 @@
       "retry": "Try again"
     }
   },
+  "AlertDialog": {
+    "details": "Show details"
+  },
   "CardImportForm": {
     "steps": {
       "importFiles": "Import files",
@@ -568,8 +571,8 @@
     "password": {
       "title": "Password required",
       "label": "Password for \"{name}\":",
-      "submit": "Join",
-      "gameIdLabel": "Password for game #{gameId}:"
+      "gameIdLabel": "Password for game #{gameId}:",
+      "submit": "Join"
     }
   },
   "UserMenu": {
@@ -626,11 +629,11 @@
   },
   "EditUserDialog": {
     "title": "Edit user profile",
+    "fetchFailed": "Failed to load your user information. Please try again.",
     "label": {
       "passwordCheck": "Current password (required to change your email)"
     },
-    "success": "User information updated.",
-    "fetchFailed": "Failed to load your user information. Please try again."
+    "success": "User information updated."
   },
   "DeckEditor": {
     "downloadFailed": "Failed to download this deck from the server.",
@@ -646,32 +649,6 @@
     "title": "The game board hit an unexpected error",
     "message": "You are still in the game. Reload the board to pick up where you left off.",
     "retry": "Reload board"
-  },
-  "Login": {
-    "header": {
-      "title": "Login",
-      "subtitle": "A cross-platform virtual tabletop for multiplayer card games."
-    },
-    "footer": {
-      "registerPrompt": "Not registered yet?",
-      "registerAction": "Create an account",
-      "credit": "Cockatrice is an open source project",
-      "version": "Version"
-    },
-    "content": {
-      "subtitle1": "Play multiplayer card games online.",
-      "subtitle2": "Cross-platform virtual tabletop for multiplayer card games. Forever free."
-    },
-    "toasts": {
-      "passwordResetSuccessToast": "Password Reset Successfully",
-      "accountActivationSuccess": "Account Activated Successfully"
-    },
-    "status": {
-      "serverUnreachable": "Trouble reaching the server. Wait a minute and try again.",
-      "passwordChangeRequired": "An administrator has reset your password. The server will not log you in until you choose a new one: use Forgot Password to set it, then log in with the new password.",
-      "passwordChangeRequiredAction": "Reset password",
-      "serverFull": "The server has reached its maximum number of users. Please check back later."
-    }
   },
   "AccountActivationDialog": {
     "title": "Account Activation",
@@ -724,6 +701,52 @@
       "reset": "Reset Password"
     }
   },
+  "Login": {
+    "header": {
+      "title": "Login",
+      "subtitle": "A cross-platform virtual tabletop for multiplayer card games."
+    },
+    "footer": {
+      "registerPrompt": "Not registered yet?",
+      "registerAction": "Create an account",
+      "credit": "Cockatrice is an open source project",
+      "version": "Version"
+    },
+    "content": {
+      "subtitle1": "Play multiplayer card games online.",
+      "subtitle2": "Cross-platform virtual tabletop for multiplayer card games. Forever free."
+    },
+    "toasts": {
+      "passwordResetSuccessToast": "Password Reset Successfully",
+      "accountActivationSuccess": "Account Activated Successfully"
+    },
+    "status": {
+      "serverUnreachable": "Trouble reaching the server. Wait a minute and try again.",
+      "passwordChangeRequired": "An administrator has reset your password. The server will not log you in until you choose a new one: use Forgot Password to set it, then log in with the new password.",
+      "passwordChangeRequiredAction": "Reset password",
+      "serverFull": "The server has reached its maximum number of users. Please check back later."
+    }
+  },
+  "Logs": {
+    "tab": {
+      "rooms": "Room Logs",
+      "games": "Game Logs",
+      "chats": "Chat Logs"
+    },
+    "column": {
+      "time": "Time",
+      "senderName": "Sender Name",
+      "senderIp": "Sender IP",
+      "message": "Message",
+      "targetId": "Target ID",
+      "targetName": "Target Name"
+    },
+    "notice": {
+      "title": "Message History",
+      "empty": "There are no messages for the selected filters.",
+      "failed": "Failed to collect message history information."
+    }
+  },
   "LogSearchForm": {
     "group": {
       "filters": "Filters",
@@ -754,26 +777,6 @@
     "button": {
       "search": "Get User Logs",
       "clear": "Clear Filters"
-    }
-  },
-  "Logs": {
-    "tab": {
-      "rooms": "Room Logs",
-      "games": "Game Logs",
-      "chats": "Chat Logs"
-    },
-    "column": {
-      "time": "Time",
-      "senderName": "Sender Name",
-      "senderIp": "Sender IP",
-      "message": "Message",
-      "targetId": "Target ID",
-      "targetName": "Target Name"
-    },
-    "notice": {
-      "title": "Message History",
-      "empty": "There are no messages for the selected filters.",
-      "failed": "Failed to collect message history information."
     }
   },
   "Player": {
@@ -861,6 +864,9 @@
     "subtitle": "<1>Cockatrice is run by volunteers</1><2>that love card games!</2>"
   },
   "ServerNotices": {
+    "closed": {
+      "title": "Connection closed"
+    },
     "shutdown": {
       "title": "Scheduled server shutdown",
       "message": "The server is going to be restarted in {countdown}.\nAll running games will be lost.\nReason for shutdown: {reason}"
@@ -883,9 +889,6 @@
     },
     "custom": {
       "message": "You have received the following message from the server.\n(custom messages like these could be untranslated)"
-    },
-    "closed": {
-      "title": "Connection closed"
     }
   },
   "Unsupported": {
@@ -897,9 +900,6 @@
     "notSent": "You are not connected to the server.",
     "timeout": "The server did not respond. Please try again.",
     "disconnected": "The connection to the server has been lost."
-  },
-  "AlertDialog": {
-    "details": "Show details"
   },
   "JoinGameError": {
     "notInRoom": "Please join the appropriate room first.",

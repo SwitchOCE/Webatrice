@@ -789,3 +789,46 @@ describe('deprecated account password credentials', () => {
     expect(WebClient.instance.response.session.accountPasswordChange).toHaveBeenCalledExactlyOnceWith();
   });
 });
+
+describe('room join settlement boundaries', () => {
+  it('keeps a pending user join user-initiated when an autojoin arrives', () => {
+    joinRoom(5);
+    joinRoom(5, false);
+    expect(WebClient.instance.protobuf.sendSessionCommand).toHaveBeenCalledTimes(1);
+    invokeOnError(Response_ResponseCode.RespNameNotFound);
+    expect(WebClient.instance.response.room.joinRoomFailed).toHaveBeenCalledExactlyOnceWith(
+      5, Response_ResponseCode.RespNameNotFound, undefined, true,
+    );
+  });
+
+  it('settles a successful response without room info so a later join can send', () => {
+    joinRoom(5);
+    invokeOnSuccess({});
+    expect(WebClient.instance.response.room.joinRoom).not.toHaveBeenCalled();
+    joinRoom(5);
+    expect(WebClient.instance.protobuf.sendSessionCommand).toHaveBeenCalledTimes(2);
+    invokeOnError(Response_ResponseCode.RespNameNotFound);
+    expect(WebClient.instance.response.room.joinRoomFailed).toHaveBeenCalledExactlyOnceWith(
+      5, Response_ResponseCode.RespNameNotFound, undefined, true,
+    );
+  });
+
+  it('ignores a healing leave rejection and still accepts the rejoin', () => {
+    joinRoom(5);
+    invokeResponseCode(Response_ResponseCode.RespContextError);
+    const [roomId, extension, value, options] = (WebClient.instance.protobuf.sendRoomCommand as Mock).mock.calls[0];
+    expect(roomId).toBe(5);
+    expect(extension).toBe(Command_LeaveRoom_ext);
+    expect({ ...value }).toEqual({ $typeName: value.$typeName });
+    options.onError(Response_ResponseCode.RespContextError);
+    expect(WebClient.instance.response.room.joinRoomFailed).not.toHaveBeenCalled();
+    const send = WebClient.instance.protobuf.sendSessionCommand as Mock;
+    expect(send).toHaveBeenCalledTimes(2);
+    const [retryExtension, retryValue, retryOptions] = send.mock.calls[1];
+    expect(retryExtension).toBe(Command_JoinRoom_ext);
+    expect({ ...retryValue }).toEqual({ $typeName: retryValue.$typeName, roomId: 5 });
+    const roomInfo = { roomId: 5 };
+    retryOptions.onSuccess({ roomInfo });
+    expect(WebClient.instance.response.room.joinRoom).toHaveBeenCalledExactlyOnceWith(roomInfo);
+  });
+});

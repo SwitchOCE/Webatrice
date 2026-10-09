@@ -532,3 +532,10 @@ describe('Selectors', () => {
     expect(a).toBe(b);
   });
 });
+
+it('returns an empty conversation when neither messages nor notices exist', () => {
+  const state = rootState(makeServerState());
+  expect(Selectors.getPrivateConversation(state, 'unknown')).toEqual([]);
+  expect(state.server.messages.unknown).toBeUndefined();
+  expect(state.server.privateChatNotices.unknown).toBeUndefined();
+});

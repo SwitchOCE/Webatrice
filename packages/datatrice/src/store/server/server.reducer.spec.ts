@@ -1154,3 +1154,17 @@ describe('malformed input', () => {
     expect(result.users).toEqual({});
   });
 });
+
+it.each([199, 200])('retains the newest 200 private-chat notices when starting with %s', (count) => {
+  const notices = Array.from({ length: count }, (_, id) => ({ id, kind: 'chatFlood' as const, position: 0 }));
+  const state = makeServerState({ privateChatNotices: { Alice: notices } });
+  const result = serverReducer(state, Actions.privateMessageFailed({
+    userName: 'Alice', message: 'unsent', responseCode: Response_ResponseCode.RespInIgnoreList,
+  }));
+  expect(result.privateChatNotices.Alice).toEqual([
+    ...notices.slice(count === 200 ? 1 : 0),
+    { id: expect.any(Number), kind: 'ignoredByRecipient', position: 0 },
+  ]);
+  expect(result.privateChatNotices.Alice).toHaveLength(200);
+  expect(result.messages.Alice).toBeUndefined();
+});

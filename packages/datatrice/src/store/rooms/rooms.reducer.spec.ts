@@ -666,3 +666,24 @@ describe('malformed input', () => {
     expect(result.joinedGameIds[5]?.[11]).toBe(true);
   });
 });
+
+it.each(['Alice', ''])('stores room chat from %s when no server slice is installed', (name) => {
+  const message = makeMessage({ name, message: 'hello', timeReceived: 123 });
+  const result = dispatchThroughStore(makeRoomsState(), Actions.roomSayReceived({ roomId: 7, message }));
+  expect(result.messages[7]).toEqual([{ ...message, message: name ? 'Alice: hello' : 'hello', id: expect.any(Number) }]);
+});
+
+it.each([false, true])('filters a named room sender when ignored: %s', (ignored) => {
+  const message = makeMessage({ name: 'Alice', message: 'hello', timeReceived: 123 });
+  const store = configureStore({
+    reducer: {
+      rooms: roomsReducer,
+      server: () => ({ ignoreList: ignored ? { Alice: makeUser({ name: 'Alice' }) } : {} }),
+    },
+    middleware: (getDefault) => getDefault().prepend(listenerMiddleware.middleware),
+  });
+  store.dispatch(Actions.roomSayReceived({ roomId: 7, message }));
+  expect(store.getState().rooms.messages[7]).toEqual(ignored ? undefined : [
+    { ...message, message: 'Alice: hello', id: expect.any(Number) },
+  ]);
+});
