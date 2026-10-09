@@ -552,6 +552,16 @@ describe('WebClient', () => {
       client.replayGameEventContainer(create(GameEventContainerSchema, { secondsElapsed: 0 }), -1001);
       expect(mockResponse.game.replayGameTimeSynced).toHaveBeenCalledWith(-1001, 0);
     });
+
+    it('replayGameEventContainer forwards timed containers when the clock callback is absent', () => {
+      delete mockResponse.game.replayGameTimeSynced;
+      const container = create(GameEventContainerSchema, { secondsElapsed: 95 });
+      client.protobuf.replayGameEventContainer = vi.fn();
+
+      client.replayGameEventContainer(container, -1001);
+
+      expect(vi.mocked(client.protobuf.replayGameEventContainer).mock.calls).toEqual([[container, -1001]]);
+    });
   });
 
   describe('updateStatus', () => {

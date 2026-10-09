@@ -2,6 +2,7 @@
 import { ServerInfo_CardCounterSchema, ServerInfo_PlayerSchema } from '@cockatrice/sockatrice/generated';
 import {
   formatLeaveMessage,
+  gameSecondsNow,
   MAX_GAME_MESSAGES,
   normalizePlayers,
   pushEventMessage,
@@ -30,6 +31,27 @@ describe('formatLeaveMessage', () => {
 });
 
 describe('pushEventMessage', () => {
+  it('uses one wall-clock reading for the event timestamp and elapsed game time', () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValueOnce(8_900).mockReturnValue(99_000);
+    try {
+      const game = makeGameEntry({ secondsElapsed: 42, secondsElapsedAt: 5_000, messages: [] });
+
+      pushEventMessage(game, 7, 'A recorded event.');
+
+      expect(game.messages).toEqual([{
+        playerId: 7,
+        message: 'A recorded event.',
+        segments: undefined,
+        timeReceived: 8_900,
+        gameSeconds: 45,
+        kind: 'event',
+      }]);
+      expect(now.mock.calls).toEqual([[]]);
+    } finally {
+      now.mockRestore();
+    }
+  });
+
   it('no-ops when the message is null or empty', () => {
     const game = makeGameEntry({ messages: [] });
     pushEventMessage(game, 1, null);
@@ -84,6 +106,19 @@ describe('pushEventMessage', () => {
     expect(game.messages).toHaveLength(MAX_GAME_MESSAGES);
     expect(game.messages[MAX_GAME_MESSAGES - 1].message).toBe('overflow');
     expect(game.messages[0].message).not.toBe('msg-0');
+  });
+});
+
+describe('gameSecondsNow', () => {
+  it.each([
+    { anchor: undefined, now: 8_900, expected: 42 },
+    { anchor: 5_000, now: 8_900, expected: 45 },
+    { anchor: 5_000, now: 4_000, expected: 42 },
+    { anchor: 0, now: 1_900, expected: 43 },
+  ])('returns $expected at $now with clock anchor $anchor', ({ anchor, now, expected }) => {
+    const game = makeGameEntry({ secondsElapsed: 42, secondsElapsedAt: anchor });
+
+    expect(gameSecondsNow(game, now)).toBe(expected);
   });
 });
 
