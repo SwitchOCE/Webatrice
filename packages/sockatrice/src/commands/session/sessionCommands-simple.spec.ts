@@ -844,6 +844,6 @@ describe('room join settlement boundaries', () => {
     expect({ ...retryValue }).toEqual({ $typeName: retryValue.$typeName, roomId: 5 });
     const roomInfo = { roomId: 5 };
     retryOptions.onSuccess({ roomInfo });
-    expect(WebClient.instance.response.room.joinRoom).toHaveBeenCalledExactlyOnceWith(roomInfo);
+    expect(WebClient.instance.response.room.joinRoom).toHaveBeenCalledExactlyOnceWith(roomInfo, true);
   });
 });
