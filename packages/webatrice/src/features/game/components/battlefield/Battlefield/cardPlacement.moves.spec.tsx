@@ -100,8 +100,7 @@ describe.each(cases)('placement: $typeLine, database row $tableRow', (fixture) =
     });
     expect(game.moveCard).toHaveBeenCalledTimes(1);
     expect(vi.mocked(game.moveCard).mock.calls[0][1]).toMatchObject({
-      // The server picks a table column, as for desktop's playCard; the stack takes the card at 0.
-      targetZone: playZone, x: playZone === ZoneName.TABLE ? -1 : 0, y: playY,
+      targetZone: playZone, x: -1, y: playY,
     });
   });
 

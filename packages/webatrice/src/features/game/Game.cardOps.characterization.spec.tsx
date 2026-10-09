@@ -704,10 +704,8 @@ describe('arrows and attachments', () => {
           startZone: ZoneName.HAND,
           cardsToMove: { card: [{ cardId: 30, faceDown: false }] },
           targetPlayerId: 1,
-          // Desktop playCard(false): with playToStack on (the default), a
-          // creature (tablerow 1) goes onto the stack.
           targetZone: ZoneName.STACK,
-          x: 0,
+          x: -1,
           y: 0,
           isReversed: false,
         }],

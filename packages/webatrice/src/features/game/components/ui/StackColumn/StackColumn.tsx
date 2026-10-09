@@ -84,10 +84,6 @@ export default function StackColumn() {
     >
       <ZoneBackground zone="stack" />
       <span id={keysHintId} hidden>{t('PlayerBoard.cardKeys')}</span>
-      {/* Stack — spells/abilities waiting to resolve: desktop's vertical
-        pile (overlapping by the card layout setting, zig-zagging); index 0
-        renders topmost. Dropping between two existing cards inserts at that
-        position. */}
       <div ref={stackRef} className="flex-1 min-h-0 relative">
         {(() => {
           const { positions } = layoutVerticalPile(

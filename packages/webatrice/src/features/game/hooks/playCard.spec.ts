@@ -95,7 +95,7 @@ describe('autoPlayCard — "Play all nonlands onto the stack"', () => {
 
     await expect(autoPlayCard({ ...baseArgs, webClient, sourcePlayerId: 1, playToStack })).resolves.toBe(zone);
 
-    expect(moveCard).toHaveBeenCalledWith(1, expect.objectContaining({ targetZone: zone }), undefined);
+    expect(moveCard).toHaveBeenCalledWith(1, expect.objectContaining({ targetZone: zone, x: -1 }), undefined);
   });
 
   it('defaults to playing nonlands onto the stack', async () => {
@@ -125,9 +125,7 @@ describe('playCardViaTableRow — row placement (card-database policy)', () => {
 
     await playCardViaTableRow({ ...baseArgs, isInverted, webClient, sourcePlayerId: 1 });
 
-    // A table play leaves the column to the server (x = -1), as desktop's playCard does.
-    const x = zone === ZoneName.TABLE ? -1 : 0;
-    expect(moveCard).toHaveBeenCalledWith(1, expect.objectContaining({ targetZone: zone, x, y }), undefined);
+    expect(moveCard).toHaveBeenCalledWith(1, expect.objectContaining({ targetZone: zone, x: -1, y }), undefined);
   });
 });
 

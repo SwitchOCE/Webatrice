@@ -40,15 +40,13 @@ export async function playCardViaTableRow({
   const placement = placementForCard(cardDatabase, faceDown);
 
   if (placement.zone === 'stack') {
-    // A card is played onto its owner's own stack; for own cards
-    // sourcePlayerId === localPlayerId, so this is unchanged for non-judge plays.
     webClient.request.game.moveCard(gameId, {
       startPlayerId: sourcePlayerId,
       startZone: sourceZone,
       cardsToMove: { card: [{ cardId: card.id, faceDown }] },
       targetPlayerId: sourcePlayerId,
       targetZone: ZoneName.STACK,
-      x: 0,
+      x: -1,
       y: 0,
       isReversed: false,
     }, judgeTargetId);
@@ -114,7 +112,7 @@ export async function autoPlayCard(args: {
       cardsToMove: { card: [{ cardId: card.id, faceDown }] },
       targetPlayerId: sourcePlayerId,
       targetZone: ZoneName.STACK,
-      x: 0,
+      x: -1,
       y: 0,
       isReversed: false,
     }, judgeTargetId);
