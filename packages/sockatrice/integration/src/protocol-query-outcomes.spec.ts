@@ -174,7 +174,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().session.commandFailed, target: '7',
   },
   {
-    name: 'reportMyList returns reports', command: 'reportMyList',
+    name: 'reportMyList returns reports', command: 'reportMyList', forwardsFailureReason: true,
     send: () => SessionCommands.reportMyList(),
     capture: () => findLastSessionCommand(Data.Command_ReportMyList_ext),
     wire: {},
@@ -184,7 +184,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().session.commandFailed, target: '',
   },
   {
-    name: 'reportDetails returns the requested report', command: 'reportDetails',
+    name: 'reportDetails returns the requested report', command: 'reportDetails', forwardsFailureReason: true,
     send: () => SessionCommands.reportDetails(9),
     capture: () => findLastSessionCommand(Data.Command_ReportDetails_ext),
     wire: { reportId: 9 },
@@ -272,7 +272,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().moderator.commandFailed, target: 'alice',
   },
   {
-    name: 'reportAssign identifies the assigned report', command: 'reportAssign',
+    name: 'reportAssign identifies the assigned report', command: 'reportAssign', forwardsFailureReason: true,
     send: () => ModeratorCommands.reportAssign(9),
     capture: () => findLastModeratorCommand(Data.Command_ReportAssign_ext),
     wire: { reportId: 9 },
@@ -281,7 +281,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().moderator.commandFailed, target: '9',
   },
   {
-    name: 'reportResolve defaults dismissal to false', command: 'reportResolve',
+    name: 'reportResolve defaults dismissal to false', command: 'reportResolve', forwardsFailureReason: true,
     send: () => ModeratorCommands.reportResolve(9),
     capture: () => findLastModeratorCommand(Data.Command_ReportResolve_ext),
     wire: { reportId: 9, dismissed: false },
@@ -290,7 +290,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().moderator.commandFailed, target: '9',
   },
   {
-    name: 'reportResolve explicitly dismisses a report', command: 'reportResolve',
+    name: 'reportResolve explicitly dismisses a report', command: 'reportResolve', forwardsFailureReason: true,
     send: () => ModeratorCommands.reportResolve(9, 'dismissed', true),
     capture: () => findLastModeratorCommand(Data.Command_ReportResolve_ext),
     wire: { reportId: 9, resolutionNote: 'dismissed', dismissed: true },
@@ -299,7 +299,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().moderator.commandFailed, target: '9',
   },
   {
-    name: 'reportList returns a page and total count', command: 'reportList',
+    name: 'reportList returns a page and total count', command: 'reportList', forwardsFailureReason: true,
     send: () => ModeratorCommands.reportList(true, 0, 25),
     capture: () => findLastModeratorCommand(Data.Command_ReportList_ext),
     wire: { unresolvedOnly: true, offset: 0, limit: 25 },
@@ -319,7 +319,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().moderator.commandFailed, target: 'alice',
   },
   {
-    name: 'reportStats returns queue totals', command: 'reportStats',
+    name: 'reportStats returns queue totals', command: 'reportStats', forwardsFailureReason: true,
     send: () => ModeratorCommands.reportStats(),
     capture: () => findLastModeratorCommand(Data.Command_ReportStats_ext),
     wire: {},
@@ -329,7 +329,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().moderator.commandFailed, target: '',
   },
   {
-    name: 'replayDownloadByGameId returns replay bytes', command: 'replayDownloadByGameId',
+    name: 'replayDownloadByGameId returns replay bytes', command: 'replayDownloadByGameId', forwardsFailureReason: true,
     send: () => ModeratorCommands.replayDownloadByGameId(77),
     capture: () => findLastModeratorCommand(Data.Command_ReplayDownloadByGameId_ext),
     wire: { gameId: 77 },
