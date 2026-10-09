@@ -48,7 +48,6 @@ import {
   ServerMessageSchema,
   GameEventContainerSchema,
   ServerInfo_GameSchema,
-  GameEventContainerSchema,
   ServerMessage_MessageType,
   SessionEventSchema,
 } from './generated';

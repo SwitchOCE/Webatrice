@@ -37,7 +37,7 @@ describe('replay response bridge', () => {
     };
     expect(store.getState().games.games[-1000]).toEqual({
       ...expectedGame, messages: [{
-        playerId: -1, message: 'You are watching a replay of game #77.', timeReceived: expect.any(Number), kind: 'event',
+        playerId: -1, message: 'You are watching a replay of game #77.', timeReceived: expect.any(Number), gameSeconds: 0, kind: 'event',
         segments: [{ text: 'You are watching a replay of game #77.', kind: 'plain' }],
       }],
     });
@@ -98,11 +98,11 @@ describe('replay response bridge', () => {
       seatOrder: [3],
       messages: [
         {
-          playerId: -1, message: 'You are watching a replay of game #77.', timeReceived: expect.any(Number), kind: 'event',
+          playerId: -1, message: 'You are watching a replay of game #77.', timeReceived: expect.any(Number), gameSeconds: 0, kind: 'event',
           segments: [{ text: 'You are watching a replay of game #77.', kind: 'plain' }],
         },
         {
-          playerId: 3, message: 'Player 3 has joined the game.', timeReceived: expect.any(Number), kind: 'event',
+          playerId: 3, message: 'Player 3 has joined the game.', timeReceived: expect.any(Number), gameSeconds: 0, kind: 'event',
           segments: [{ text: 'Player 3', kind: 'player' }, { text: ' has joined the game.', kind: 'plain' }],
         },
       ],
