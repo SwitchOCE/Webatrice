@@ -197,3 +197,25 @@ describe('admin staff failures', () => {
     expect(onFailure).toHaveBeenCalledWith(Response_ResponseCode.RespNotConnected, CommandFailure.Timeout);
   });
 });
+
+describe('password reset response names', () => {
+  it.each([
+    { behaviour: 'the echoed name', echoed: 'canonical', expected: 'canonical' },
+    { behaviour: 'the requested name as fallback', echoed: '', expected: 'requested' },
+  ])('returns $behaviour with the temporary password', ({ echoed, expected }) => {
+    const onReset = vi.fn();
+    const onFailure = vi.fn();
+    resetUserPassword('requested', onReset, onFailure);
+    const send = WebClient.instance.protobuf.sendAdminCommand as Mock;
+    expect(send.mock.calls).toHaveLength(1);
+    expect(send.mock.calls[0][0]).toBe(Command_ResetUserPassword_ext);
+    expect({ ...send.mock.calls[0][1] }).toEqual({
+      $typeName: 'Command_ResetUserPassword', userName: 'requested',
+    });
+    expect(send.mock.calls[0][2].responseExt).toBe(Response_ResetUserPassword_ext);
+    send.mock.calls[0][2].onSuccess({ userName: echoed, temporaryPassword: 'one-time-secret' });
+    expect(onReset.mock.calls).toEqual([[expected, 'one-time-secret']]);
+    expect(onFailure.mock.calls).toEqual([]);
+    expect(send.mock.calls).toHaveLength(1);
+  });
+});

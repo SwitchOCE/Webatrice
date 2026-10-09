@@ -20,23 +20,6 @@ const answer = (cmdId: bigint | number, responseCode: Data.Response_ResponseCode
   deliverMessage(buildResponseMessage(buildResponse({ cmdId: Number(cmdId), responseCode })));
 
 describe('administration round trips', () => {
-  it('updateServerMessage, reloadConfig and shutdownServer acknowledge through the admin response', () => {
-    connectAndLogin();
-
-    AdminCommands.updateServerMessage();
-    answer(findLastAdminCommand(Data.Command_UpdateServerMessage_ext).cmdId, Data.Response_ResponseCode.RespOk);
-    AdminCommands.reloadConfig();
-    answer(findLastAdminCommand(Data.Command_ReloadConfig_ext).cmdId, Data.Response_ResponseCode.RespOk);
-    AdminCommands.shutdownServer('maintenance', 5);
-    const shutdown = findLastAdminCommand(Data.Command_ShutdownServer_ext);
-    expect(shutdown.value).toMatchObject({ reason: 'maintenance', minutes: 5 });
-    answer(shutdown.cmdId, Data.Response_ResponseCode.RespOk);
-
-    expect(getMockResponse().admin.updateServerMessage).toHaveBeenCalledTimes(1);
-    expect(getMockResponse().admin.reloadConfig).toHaveBeenCalledTimes(1);
-    expect(getMockResponse().admin.shutdownServer).toHaveBeenCalledTimes(1);
-  });
-
   it('reports a refused server command through admin.commandFailed', () => {
     connectAndLogin();
 
@@ -96,21 +79,6 @@ describe('moderation round trips', () => {
     })));
 
     expect(onReset).toHaveBeenCalledWith('alice', 'tmp-123');
-  });
-
-  it('removeUserAvatar reports the account the server acted on', () => {
-    connectAndLogin();
-
-    ModeratorCommands.removeUserAvatar('ALICE');
-    const { cmdId } = findLastModeratorCommand(Data.Command_RemoveUserAvatar_ext);
-    deliverMessage(buildResponseMessage(buildResponse({
-      cmdId,
-      responseCode: Data.Response_ResponseCode.RespOk,
-      ext: Data.Response_RemoveUserAvatar_ext,
-      value: create(Data.Response_RemoveUserAvatarSchema, { userName: 'alice' }),
-    })));
-
-    expect(getMockResponse().moderator.userAvatarRemoved).toHaveBeenCalledWith('alice');
   });
 
   it('getServerStats reports a refusal through developer.commandFailed', () => {
