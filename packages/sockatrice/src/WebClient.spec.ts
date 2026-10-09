@@ -133,6 +133,55 @@ describe('WebClient', () => {
   });
 
   describe('constructor', () => {
+    it('forwards live status callbacks and ignores them after disposal', () => {
+      captured.wsOptions!.onStatusChange(StatusEnum.CONNECTED, 'Connected');
+      expect(mockResponse.session.updateStatus).toHaveBeenCalledExactlyOnceWith(StatusEnum.CONNECTED, 'Connected');
+      expect(client.status).toBe(StatusEnum.CONNECTED);
+      WebClient.dispose();
+      vi.mocked(mockResponse.session.updateStatus).mockClear();
+      captured.wsOptions!.onStatusChange(StatusEnum.CONNECTED, 'Late connection');
+      expect(mockResponse.session.updateStatus).not.toHaveBeenCalled();
+      expect(client.status).toBe(StatusEnum.DISCONNECTED);
+    });
+
+    it('connects once and rejects reentrant and disposed connection attempts', () => {
+      const target = { host: 'localhost', port: '4748' };
+      vi.mocked(client.protobuf.resetCommands).mockImplementationOnce(() => client.connect(target));
+      client.connect(target);
+      expect(client.socket.connect).toHaveBeenCalledExactlyOnceWith(target);
+      expect(mockResponse.session.connectionAttempted).toHaveBeenCalledExactlyOnceWith();
+      WebClient.dispose();
+      client.connect(target);
+      expect(client.socket.connect).toHaveBeenCalledTimes(1);
+      expect(mockResponse.session.connectionAttempted).toHaveBeenCalledTimes(1);
+    });
+
+    it('abandons reconnect when a settlement callback disposes its owner', () => {
+      vi.mocked(client.protobuf.resetCommands).mockImplementationOnce(() => WebClient.dispose());
+      client.connect({ host: 'localhost', port: '4748' });
+      expect(client.socket.connect).not.toHaveBeenCalled();
+      expect(mockResponse.session.connectionAttempted).not.toHaveBeenCalled();
+      expect(mockResponse.session.updateStatus).toHaveBeenCalledExactlyOnceWith(StatusEnum.DISCONNECTED, 'Connection Closed');
+      expect(() => WebClient.instance).toThrow('WebClient has not been initialized');
+    });
+
+    it('allows a live probe but creates no probe after disposal', () => {
+      const harness = installMockWebSocketHarness();
+      vi.useFakeTimers();
+      try {
+        client.testConnect({ host: 'localhost', port: '4748' });
+        expect(harness.MockWS).toHaveBeenCalledExactlyOnceWith('ws://localhost:4748');
+        WebClient.dispose();
+        client.testConnect({ host: 'elsewhere', port: '4749' });
+        expect(harness.MockWS).toHaveBeenCalledTimes(1);
+        expect(mockResponse.session.testConnectionSuccessful).not.toHaveBeenCalled();
+        expect(mockResponse.session.testConnectionFailed).not.toHaveBeenCalled();
+        expect(vi.getTimerCount()).toBe(0);
+      } finally {
+        harness.restore();
+      }
+    });
+
     it('stores the response, clientConfig, clientOptions, and protocolVersion on the instance', () => {
       expect(client.response).toBe(mockResponse);
       expect(client.clientConfig).toBe(CLIENT_CONFIG);

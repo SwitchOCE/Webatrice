@@ -32,4 +32,6 @@ it('accepts preloaded state predating session epochs', () => {
   expect(selectSessionEpoch({ server: state })).toBe(0);
   expect(serverReducer(state, Actions.clearStore()).sessionEpoch).toBe(1);
   expect(serverReducer(state, status(LOGGED_IN)).sessionEpoch).toBe(1);
+  expect(serverReducer(state, Actions.initialized()).sessionEpoch).toBe(0);
+  expect(serverReducer(state, Actions.disconnected()).sessionEpoch).toBe(1);
 });

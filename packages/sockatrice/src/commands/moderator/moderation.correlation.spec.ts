@@ -24,6 +24,20 @@ const session = WebClient.instance.response.session;
 const user = create(ServerInfo_UserSchema, { name: 'alice' });
 const warnings = create(Response_WarnListSchema, { userName: 'alice', warning: ['Reason'] });
 const filters = create(Command_ViewLogHistorySchema, { userName: 'alice' });
+it.each([undefined, 'alice'])('uses the log filter target %s on correlated failure', (userName) => {
+  const sender = WebClient.instance.protobuf.sendModeratorCommand as Mock;
+  viewLogHistory({ userName }, 'logs');
+  expect(sender).toHaveBeenCalledExactlyOnceWith(
+    expect.objectContaining({ typeName: 'Command_ViewLogHistory.ext' }),
+    create(Command_ViewLogHistorySchema, { userName }),
+    expect.objectContaining({ onError: expect.any(Function) }),
+  );
+  makeCallbackHelpers(sender).getLastSendOpts().onError(3, {}, CommandFailure.Timeout);
+  expect(moderator.commandFailed).toHaveBeenCalledExactlyOnceWith(
+    'viewLogHistory', 3, userName ?? '', CommandFailure.Timeout, 'logs',
+  );
+});
+
 const cases = [
   {
     name: 'banHistory', send: (...id: [requestId?: RequestId]) => getBanHistory('alice', ...id),
