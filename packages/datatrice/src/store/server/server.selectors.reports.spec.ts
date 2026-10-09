@@ -87,4 +87,15 @@ describe('report selectors', () => {
     expect(Selectors.getMyReports(rootState(server as ServerState))).toEqual([]);
     expect(Selectors.getReportStats(rootState(server as ServerState))).toBeNull();
   });
+
+  it.each(['mine', 'queue'] as const)('skips absent rows in the %s list while retaining order', (list) => {
+    const first = makeReport({ reportId: 1 });
+    const last = makeReport({ reportId: 3 });
+    const state = rootState(makeServerState({
+      reports: makeReportsState({ [list]: [3, 404, 1], byId: { 1: first, 3: last } }),
+    }));
+    const select = list === 'mine' ? Selectors.getMyReports : Selectors.getReportQueue;
+    expect(select(state)).toEqual([last, first]);
+    expect(state.server.reports[list]).toEqual([3, 404, 1]);
+  });
 });
