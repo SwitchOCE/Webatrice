@@ -208,7 +208,7 @@ export function registerZonesListeners(mw: ListenerMiddlewareInstance<unknown>):
   mw.startListening({
     actionCreator: Actions.cardsRevealed,
     effect: (action, api) => {
-      const { gameId, playerId, data } = action.payload;
+      const { gameId, playerId, data, replayOptions } = action.payload;
       const state = api.getState() as { games: GamesState };
       const game = state.games.games[gameId];
       if (!game) {
@@ -290,9 +290,7 @@ export function registerZonesListeners(mw: ListenerMiddlewareInstance<unknown>):
         cards: data.cards,
         isReversed: false,
       }));
-      // A replay has no viewer to reveal to; the reveal is already logged and
-      // seeded into the zone view above.
-      if (game.replay) {
+      if (game.replay && replayOptions?.skipRevealWindow) {
         return;
       }
       api.dispatch(Actions.incomingRevealShown({

@@ -127,8 +127,8 @@ export class GameResponseImpl implements WebsocketTypes.IGameResponse {
     this.store.dispatch(GameActions.cardsDrawn({ gameId, playerId, data }));
   }
 
-  cardsRevealed(gameId: number, playerId: number, data: Event_RevealCards): void {
-    this.store.dispatch(GameActions.cardsRevealed({ gameId, playerId, data }));
+  cardsRevealed(gameId: number, playerId: number, data: Event_RevealCards, replayOptions?: WebsocketTypes.ReplayEventOptions): void {
+    this.store.dispatch(GameActions.cardsRevealed({ gameId, playerId, data, replayOptions }));
   }
 
   zoneViewRevealed(gameId: number, playerId: number, zoneName: string, cards: ServerInfo_Card[], isReversed: boolean): void {

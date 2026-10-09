@@ -1460,7 +1460,35 @@ describe('game listeners: branch recordings', () => {
       `);
     });
 
-    it('seeds the zone view but opens no dialog during a replay', () => {
+    it('seeds the zone view but skips the replay dialog only when requested', () => {
+      const state = scriptedState();
+      game(state).replay = true;
+      const { play } = makeRecordingStore(state);
+
+      expect(play(Actions.cardsRevealed({
+        gameId: 1, playerId: BOB,
+        replayOptions: { skipRevealWindow: true },
+        data: create(Event_RevealCardsSchema, {
+          zoneName: 'hand', cardId: [-1], otherPlayerId: ALICE, cards: [{ id: 5, name: 'Shock' }],
+        }),
+      }))).toMatchInlineSnapshot(`
+        [
+          "cardsRevealed",
+          {
+            "zoneViewRevealed": {
+              "cards": [
+                "#5 Shock",
+              ],
+              "isReversed": false,
+              "playerId": 2,
+              "zoneName": "hand",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('seeds the zone view and opens the dialog during replay playback', () => {
       const state = scriptedState();
       game(state).replay = true;
       const { play } = makeRecordingStore(state);
@@ -1480,6 +1508,16 @@ describe('game listeners: branch recordings', () => {
               ],
               "isReversed": false,
               "playerId": 2,
+              "zoneName": "hand",
+            },
+          },
+          {
+            "incomingRevealShown": {
+              "cards": [
+                "#5 Shock",
+              ],
+              "grantWriteAccess": false,
+              "sourceOwnerId": 2,
               "zoneName": "hand",
             },
           },

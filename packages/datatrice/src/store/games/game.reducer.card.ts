@@ -16,6 +16,7 @@ import {
   ServerInfo_Card,
   ServerInfo_CardSchema,
 } from '@cockatrice/sockatrice/generated';
+import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { cloneWith } from '../../common';
 import { GamesState, IncomingReveal } from './game.interfaces';
 import { pushEventMessage } from './game.reducer.helpers';
@@ -151,7 +152,12 @@ export const cardReducers = {
     if (isAutoTopReveal) {
       zone.topRevealedCard = clone(ServerInfo_CardSchema, cards[0]);
     }
-  }) as CaseReducer<GamesState, PayloadAction<{ gameId: number; playerId: number; data: Event_RevealCards }>>,
+  }) as CaseReducer<GamesState, PayloadAction<{
+    gameId: number;
+    playerId: number;
+    data: Event_RevealCards;
+    replayOptions?: WebsocketTypes.ReplayEventOptions;
+  }>>,
 
   zoneViewRevealed: ((state, action) => {
     const { gameId, playerId, zoneName, cards, isReversed } = action.payload;

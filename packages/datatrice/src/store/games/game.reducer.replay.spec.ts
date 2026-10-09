@@ -1,5 +1,6 @@
 import { create } from '@bufbuild/protobuf';
 import { configureStore } from '@reduxjs/toolkit';
+import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import {
   Event_RevealCardsSchema,
   ServerInfo_CardSchema,
@@ -109,7 +110,7 @@ describe('replay games and the active-game selectors', () => {
 });
 
 describe('replay games and incoming reveals', () => {
-  function revealInto(replay: boolean) {
+  function revealInto(replay: boolean, replayOptions?: WebsocketTypes.ReplayEventOptions) {
     const card = create(ServerInfo_CardSchema, { id: 4, name: 'Island' });
     const game = makeGameEntry({
       replay,
@@ -124,13 +125,41 @@ describe('replay games and incoming reveals', () => {
     store.dispatch(Actions.cardsRevealed({
       gameId: REPLAY_ID,
       playerId: 1,
-      data: create(Event_RevealCardsSchema, { zoneName: 'hand', cardId: [4], cards: [card] }),
+      data: create(Event_RevealCardsSchema, { zoneName: 'hand', cards: [card] }),
+      replayOptions,
     }));
-    return store.getState().games.incomingReveal ?? null;
+    return store.getState().games;
   }
 
-  it('does not raise the receiver dialog for a recorded reveal', () => {
-    expect(revealInto(false)).not.toBeNull();
-    expect(revealInto(true)).toBeNull();
+  it.each([undefined, {}, { skipRevealWindow: false }])('shows a replay reveal with options %j', (options) => {
+    expect(revealInto(true, options).incomingReveal).toMatchObject({
+      gameId: REPLAY_ID,
+      sourceOwnerId: 1,
+      zoneName: 'hand',
+      cards: [expect.objectContaining({ id: 4, name: 'Island' })],
+    });
+  });
+
+  it('skips the replay reveal window when requested', () => {
+    expect(revealInto(true, { skipRevealWindow: true }).incomingReveal ?? null).toBeNull();
+  });
+
+  it.each([undefined, { skipRevealWindow: true }])('keeps live reveal windows unchanged with options %j', (options) => {
+    expect(revealInto(false, options).incomingReveal).toMatchObject({
+      gameId: REPLAY_ID,
+      sourceOwnerId: 1,
+      cards: [expect.objectContaining({ id: 4, name: 'Island' })],
+    });
+  });
+
+  it.each([false, true])('keeps reveal logging and zone seeding when skipRevealWindow=%s', (skipRevealWindow) => {
+    const state = revealInto(true, { skipRevealWindow });
+    const game = state.games[REPLAY_ID];
+    expect(game.messages).toHaveLength(1);
+    expect(game.messages[0].message).toContain('reveals their hand');
+    const zone = game.players[1].zones.hand;
+    expect(zone.byId[4].name).toBe('Island');
+    expect(zone.revealedCards).toEqual([expect.objectContaining({ id: 0, name: 'Island' })]);
+    expect(zone.revealedIsReversed).toBe(false);
   });
 });

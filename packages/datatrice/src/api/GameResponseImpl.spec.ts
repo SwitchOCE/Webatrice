@@ -225,11 +225,21 @@ describe('GameResponseImpl', () => {
     expect(dispatch).toHaveBeenCalledWith(GameActions.cardsDrawn({ gameId: 7, playerId: 3, data }));
   });
 
+  it.each([true, false])('cardsRevealed forwards skipRevealWindow=%s to the store', (skipRevealWindow) => {
+    const { impl, dispatch } = setup();
+    const data = create(Event_RevealCardsSchema, { zoneName: 'hand' });
+    const replayOptions = { skipRevealWindow };
+
+    impl.cardsRevealed(7, 3, data, replayOptions);
+
+    expect(dispatch).toHaveBeenCalledWith(GameActions.cardsRevealed({ gameId: 7, playerId: 3, data, replayOptions }));
+  });
+
   it('cardsRevealed dispatches the cardsRevealed action', () => {
     const { impl, dispatch } = setup();
     const data = create(Event_RevealCardsSchema, {});
     impl.cardsRevealed(7, 3, data);
-    expect(dispatch).toHaveBeenCalledWith(GameActions.cardsRevealed({ gameId: 7, playerId: 3, data }));
+    expect(dispatch).toHaveBeenCalledWith(GameActions.cardsRevealed({ gameId: 7, playerId: 3, data, replayOptions: undefined }));
   });
 
   it('zoneViewRevealed dispatches the zoneViewRevealed action', () => {
