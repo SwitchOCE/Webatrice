@@ -68,7 +68,7 @@ const payloads = {
 
 const cases: QueryCase[] = [
   {
-    name: 'deckShareCreate for a deck selection', command: 'deckShareCreate',
+    name: 'deckShareCreate for a deck selection', command: 'deckShareCreate', forwardsFailureReason: true,
     send: () => SessionCommands.deckShareCreate({ items: [{ deckId: 7 }] }),
     capture: () => findLastSessionCommand(Data.Command_DeckShareCreate_ext),
     wire: { items: [create(Data.DeckShareItemSchema, { deckId: 7 })] },
@@ -78,7 +78,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().session.commandFailed, target: '',
   },
   {
-    name: 'deckShareCreate for a folder', command: 'deckShareCreate',
+    name: 'deckShareCreate for a folder', command: 'deckShareCreate', forwardsFailureReason: true,
     send: () => SessionCommands.deckShareCreate({ folderPath: 'Cube' }),
     capture: () => findLastSessionCommand(Data.Command_DeckShareCreate_ext),
     wire: { folderPath: 'Cube', items: [] },
@@ -88,7 +88,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().session.commandFailed, target: 'Cube',
   },
   {
-    name: 'deckShareList by token', command: 'deckShareList',
+    name: 'deckShareList by token', command: 'deckShareList', forwardsFailureReason: true,
     send: () => SessionCommands.deckShareList('token'),
     capture: () => findLastSessionCommand(Data.Command_DeckShareList_ext),
     wire: { token: 'token' },
@@ -98,7 +98,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().session.commandFailed, target: 'token',
   },
   {
-    name: 'deckShareDownload for a shared item', command: 'deckShareDownload',
+    name: 'deckShareDownload for a shared item', command: 'deckShareDownload', forwardsFailureReason: true,
     send: () => SessionCommands.deckShareDownload('token', 7),
     capture: () => findLastSessionCommand(Data.Command_DeckShareDownload_ext),
     wire: { token: 'token', itemId: 7 },
@@ -108,7 +108,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().session.commandFailed, target: 'token',
   },
   {
-    name: 'deckShareListMine returns share summaries', command: 'deckShareListMine',
+    name: 'deckShareListMine returns share summaries', command: 'deckShareListMine', forwardsFailureReason: true,
     send: () => SessionCommands.deckShareListMine(),
     capture: () => findLastSessionCommand(Data.Command_DeckShareListMine_ext),
     wire: {},
@@ -118,7 +118,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().session.commandFailed, target: '',
   },
   {
-    name: 'deckShareRemove by share ID', command: 'deckShareRemove',
+    name: 'deckShareRemove by share ID', command: 'deckShareRemove', forwardsFailureReason: true,
     send: () => SessionCommands.deckShareRemove(8),
     capture: () => findLastSessionCommand(Data.Command_DeckShareRemove_ext),
     wire: { shareId: 8 },
@@ -127,7 +127,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().session.commandFailed, target: '8',
   },
   {
-    name: 'deckListOtherUser returns a public folder', command: 'deckListOtherUser',
+    name: 'deckListOtherUser returns a public folder', command: 'deckListOtherUser', forwardsFailureReason: true,
     send: () => SessionCommands.deckListOtherUser('alice'),
     capture: () => findLastSessionCommand(Data.Command_DeckListOtherUser_ext),
     wire: { userName: 'alice' },
@@ -137,7 +137,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().session.commandFailed, target: 'alice',
   },
   {
-    name: 'deckSetVisibility for deck ID zero', command: 'deckSetVisibility',
+    name: 'deckSetVisibility for deck ID zero', command: 'deckSetVisibility', forwardsFailureReason: true,
     send: () => SessionCommands.deckSetVisibility({ deckId: 0, isPublic: false }),
     capture: () => findLastSessionCommand(Data.Command_DeckSetVisibility_ext),
     wire: { deckId: 0, isPublic: false },
@@ -146,7 +146,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().session.commandFailed, target: '0',
   },
   {
-    name: 'deckSetVisibility for a folder', command: 'deckSetVisibility',
+    name: 'deckSetVisibility for a folder', command: 'deckSetVisibility', forwardsFailureReason: true,
     send: () => SessionCommands.deckSetVisibility({ folderPath: 'Cube', isPublic: true }),
     capture: () => findLastSessionCommand(Data.Command_DeckSetVisibility_ext),
     wire: { folderPath: 'Cube', isPublic: true },
@@ -155,7 +155,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().session.commandFailed, target: 'Cube',
   },
   {
-    name: 'deckSetVisibility without a target', command: 'deckSetVisibility',
+    name: 'deckSetVisibility without a target', command: 'deckSetVisibility', forwardsFailureReason: true,
     send: () => SessionCommands.deckSetVisibility({ isPublic: false }),
     capture: () => findLastSessionCommand(Data.Command_DeckSetVisibility_ext),
     wire: { isPublic: false },
@@ -164,7 +164,7 @@ const cases: QueryCase[] = [
     failure: () => getMockResponse().session.commandFailed, target: '',
   },
   {
-    name: 'deckDownloadPublic returns deck text', command: 'deckDownloadPublic',
+    name: 'deckDownloadPublic returns deck text', command: 'deckDownloadPublic', forwardsFailureReason: true,
     send: () => SessionCommands.deckDownloadPublic(7),
     capture: () => findLastSessionCommand(Data.Command_DeckDownloadPublic_ext),
     wire: { deckId: 7 },

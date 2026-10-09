@@ -66,7 +66,9 @@ describe('3.1 query failure reporting', () => {
   ] as const)('%s %s reports an empty target', (command, _case, run) => {
     run();
     answer('session', Response_ResponseCode.RespInvalidData);
-    expect(responseScope('session').commandFailed).toHaveBeenCalledExactlyOnceWith(command, Response_ResponseCode.RespInvalidData, '');
+    expect(responseScope('session').commandFailed).toHaveBeenCalledExactlyOnceWith(
+      command, Response_ResponseCode.RespInvalidData, '', undefined,
+    );
     expect(responseScope('session').deckShareCreated).not.toHaveBeenCalled();
     expect(responseScope('session').deckVisibilityChanged).not.toHaveBeenCalled();
   });
