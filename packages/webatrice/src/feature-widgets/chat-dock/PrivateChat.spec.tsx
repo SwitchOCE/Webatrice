@@ -7,6 +7,11 @@ import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { renderWithProviders, connectedState } from '../../__test-utils__';
 import PrivateChat from './PrivateChat';
 import { getSettings, settingsStore } from '../../hooks/useSettings';
+import { dispatchChatDock } from '../../hooks/useChatDock';
+
+afterEach(() => {
+  dispatchChatDock({ type: 'reset' });
+});
 
 const message = (senderName: string, text: string): PrivateConversationEntry => ({
   type: 'message',

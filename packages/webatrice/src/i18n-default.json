@@ -3655,8 +3655,9 @@
     },
     "conversation": {
       "open": "Open chat with {name}, {presence}",
-      "you": "You:",
-      "unread": "unread"
+      "openUnread": "Open chat with {name}, {presence}, {count} unread",
+      "details": "{preview}, {time}",
+      "you": "You:"
     },
     "buddies": {
       "title": "Buddies",

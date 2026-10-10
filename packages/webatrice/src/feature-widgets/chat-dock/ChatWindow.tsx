@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Minus, X } from 'lucide-react';
 
@@ -6,7 +6,7 @@ import { server } from '@cockatrice/datatrice';
 
 import { Avatar, IconButton } from '@app/components';
 import { ReportChatScope } from '@app/dialogs';
-import { dispatchChatDock, useMarkRead } from '@app/hooks';
+import { useChatVisible, useMarkRead } from '@app/hooks';
 import { useAppDispatch } from '@app/store';
 import { cx } from '@app/utils';
 
@@ -20,14 +20,28 @@ interface ChatWindowProps {
   name: string;
   focusSeq: number | null;
   above?: ReactNode;
+  registerInput: (name: string, el: HTMLInputElement | null) => void;
+  onMinimise: (name: string) => void;
+  onClose: (name: string) => void;
 }
 
-export default function ChatWindow({ name, focusSeq, above }: ChatWindowProps) {
+const CARD_GAP_PX = 14;
+
+export default function ChatWindow({ name, focusSeq, above, registerInput, onMinimise, onClose }: ChatWindowProps) {
   const { t } = useTranslation();
   const peer = usePeer(name);
   const { markChatRead } = useMarkRead();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const cardBoxRef = useRef<HTMLDivElement>(null);
+  const [cardInside, setCardInside] = useState(false);
   const profile = usePopover();
+  const visible = useChatVisible(name);
+  const latest = peer.conversation.at(-1);
+  const setInput = useCallback((el: HTMLInputElement | null) => {
+    inputRef.current = el;
+    registerInput(name, el);
+  }, [name, registerInput]);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -35,8 +49,20 @@ export default function ChatWindow({ name, focusSeq, above }: ChatWindowProps) {
   }, [dispatch, name]);
 
   useEffect(() => {
-    markChatRead(name);
-  }, [markChatRead, name, peer.conversation.length]);
+    if (visible) {
+      markChatRead(name);
+    }
+  }, [markChatRead, name, visible, latest]);
+
+  useLayoutEffect(() => {
+    const card = cardBoxRef.current;
+    const wrapper = wrapperRef.current;
+    if (!profile.open || !card || !wrapper) {
+      setCardInside(false);
+      return;
+    }
+    setCardInside(card.offsetHeight + CARD_GAP_PX > wrapper.getBoundingClientRect().top);
+  }, [profile.open]);
 
   useEffect(() => {
     if (focusSeq !== null) {
@@ -47,9 +73,12 @@ export default function ChatWindow({ name, focusSeq, above }: ChatWindowProps) {
   const status = peer.isOnline ? t('PrivateChat.presence.online') : t('PrivateChat.presence.offline');
 
   return (
-    <div className="relative flex w-[300px] flex-col gap-1.5">
+    <div ref={wrapperRef} className="relative flex w-[300px] flex-col gap-1.5">
       {profile.open && (
-        <div className="absolute bottom-full right-0 mb-1.5">
+        <div
+          ref={cardBoxRef}
+          className={cx('absolute right-0 z-10 max-h-full overflow-y-auto rounded-ui-lg', cardInside ? 'top-0' : 'bottom-full mb-1.5')}
+        >
           <ProfileCard ref={profile.popoverRef} name={name} peer={peer} onDone={profile.close} />
         </div>
       )}
@@ -100,10 +129,10 @@ export default function ChatWindow({ name, focusSeq, above }: ChatWindowProps) {
               className={cx('ml-auto shrink-0 text-text-muted transition-transform', profile.open && 'rotate-180')}
             />
           </button>
-          <IconButton label={t('ChatDock.minimise', { name })} size="sm" onClick={() => dispatchChatDock({ type: 'minimise', name })}>
+          <IconButton label={t('ChatDock.minimise', { name })} size="sm" onClick={() => onMinimise(name)}>
             <Minus size={15} />
           </IconButton>
-          <IconButton label={t('ChatDock.close', { name })} size="sm" onClick={() => dispatchChatDock({ type: 'close', name })}>
+          <IconButton label={t('ChatDock.close', { name })} size="sm" onClick={() => onClose(name)}>
             <X size={15} />
           </IconButton>
         </header>
@@ -111,7 +140,7 @@ export default function ChatWindow({ name, focusSeq, above }: ChatWindowProps) {
           <ReportChatScope getChatContext={peer.getChatContext}>
             <PrivateChat
               compact
-              inputRef={inputRef}
+              inputRef={setInput}
               peerName={name}
               selfName={peer.currentUser?.name ?? null}
               entries={peer.conversation}

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type Ref } from 'react';
+import { useEffect, useRef, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare, Send } from 'lucide-react';
 
@@ -7,7 +7,7 @@ import { useAppSelector } from '@app/store';
 import { cx, isPrivilegedUser } from '@app/utils';
 
 import { server, type PrivateConversationEntry } from '@cockatrice/datatrice';
-import { useChatHighlight, useCommandFailureMessage, useReduxEffect } from '@app/hooks';
+import { getChatDraft, useChatDraft, useChatHighlight, useCommandFailureMessage, useReduxEffect } from '@app/hooks';
 
 interface PrivateChatProps {
   peerName: string;
@@ -26,7 +26,7 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
   const highlights = useChatHighlight();
   const users = useAppSelector(server.Selectors.getUsers);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useChatDraft(peerName);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -37,7 +37,7 @@ export default function PrivateChat({ peerName, selfName, entries, isOnline, isI
 
   useReduxEffect<{ userName: string; message: string }>((action) => {
     if (action.payload.userName === peerName) {
-      setDraft((current) => current || action.payload.message);
+      setDraft(getChatDraft(peerName) || action.payload.message);
     }
   }, server.Types.PRIVATE_MESSAGE_FAILED, [peerName]);
 

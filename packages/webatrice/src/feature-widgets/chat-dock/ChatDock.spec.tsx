@@ -8,7 +8,27 @@ import { getSettings, settingsStore } from '../../hooks/useSettings';
 import { dispatchChatDock, getChatDockState } from '../../hooks/useChatDock';
 import { UserGamesProvider } from '../user-games';
 import ChatDock from './ChatDock';
-import { readBoardTrayHeight } from './useChatDockController';
+import { readBoardTrayHeight, watchBoardTray } from './useChatDockController';
+import { focusAfterClose } from './splitDock';
+import { notificationStore } from '../../services/notifications/notificationStore';
+import { getVisibleChats } from '../../hooks/useChatDock';
+
+const marks = vi.hoisted(() => ({ markChatRead: vi.fn() }));
+
+vi.mock('@app/hooks', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@app/hooks')>();
+  return {
+    ...actual,
+    useMarkRead: () => ({ ...actual.useMarkRead(), markChatRead: marks.markChatRead }),
+  };
+});
+
+const setVisibility = (value: 'visible' | 'hidden') => {
+  Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => value });
+  act(() => {
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+};
 
 const state = {
   ...connectedState,
@@ -40,6 +60,9 @@ describe('ChatDock', () => {
 
   afterEach(() => {
     act(() => dispatchChatDock({ type: 'reset' }));
+    act(() => notificationStore.dispatch({ type: 'setDrawer', open: false }));
+    setVisibility('visible');
+    marks.markChatRead.mockClear();
   });
 
   it('renders nothing until a chat is open', () => {
@@ -122,10 +145,105 @@ describe('ChatDock', () => {
     expect(screen.getByRole('dialog', { name: 'ChatDock.profile.label' })).toBeInTheDocument();
   });
 
+  it('keeps a draft when the window is minimised and reopened', () => {
+    renderWithProviders(<ChatDock />, { preloadedState: state });
+    open('alice');
+    fireEvent.change(screen.getByRole('textbox', { name: 'PrivateChat.input' }), { target: { value: 'half a thought' } });
+    fireEvent.click(screen.getByRole('button', { name: 'ChatDock.minimise' }));
+    fireEvent.click(screen.getByRole('button', { name: 'ChatDock.open' }));
+    expect(screen.getByRole('textbox', { name: 'PrivateChat.input' })).toHaveValue('half a thought');
+  });
+
+  it('keeps a draft when another chat pushes its window past the limit, and keeps open windows mounted', () => {
+    renderWithProviders(<ChatDock />, { preloadedState: state });
+    open('alice');
+    const input = screen.getByRole('textbox', { name: 'PrivateChat.input' });
+    fireEvent.change(input, { target: { value: 'typing' } });
+    act(() => dispatchChatDock({ type: 'open', name: 'bob', max: 2 }));
+    expect(input).toBeInTheDocument();
+    expect(input).toHaveValue('typing');
+    act(() => dispatchChatDock({ type: 'open', name: 'carol', max: 1 }));
+    act(() => dispatchChatDock({ type: 'open', name: 'alice', max: 1 }));
+    expect(screen.getByRole('textbox', { name: 'PrivateChat.input' })).toHaveValue('typing');
+  });
+
+  it('marks a chat read only while it can be seen, and again when it comes back into view', () => {
+    const { store } = renderWithProviders(<ChatDock />, { preloadedState: state });
+    open('alice');
+    expect(marks.markChatRead).toHaveBeenLastCalledWith('alice');
+    marks.markChatRead.mockClear();
+
+    setVisibility('hidden');
+    expect(getVisibleChats()).toEqual([]);
+    receive(store, 'alice', 'while away');
+    expect(marks.markChatRead).not.toHaveBeenCalled();
+    setVisibility('visible');
+    expect(marks.markChatRead).toHaveBeenCalledWith('alice');
+    marks.markChatRead.mockClear();
+
+    act(() => notificationStore.dispatch({ type: 'setDrawer', open: true }));
+    receive(store, 'alice', 'under the drawer');
+    expect(marks.markChatRead).not.toHaveBeenCalled();
+    act(() => notificationStore.dispatch({ type: 'setDrawer', open: false }));
+    expect(marks.markChatRead).toHaveBeenCalledWith('alice');
+    expect(getVisibleChats()).toEqual(['alice']);
+  });
+
+  it('marks read on every new message, even when the conversation length stays the same', () => {
+    const { store } = renderWithProviders(<ChatDock />, { preloadedState: state });
+    open('alice');
+    marks.markChatRead.mockClear();
+    receive(store, 'alice', 'one');
+    receive(store, 'alice', 'two');
+    expect(marks.markChatRead).toHaveBeenCalledTimes(2);
+  });
+
+  it('moves focus to the bar after minimising and back to the opener after closing', () => {
+    renderWithProviders(<><button type="button">opener</button><ChatDock /></>, { preloadedState: state });
+    const opener = screen.getByRole('button', { name: 'opener' });
+    opener.focus();
+    open('alice');
+    fireEvent.click(screen.getByRole('button', { name: 'ChatDock.minimise' }));
+    expect(screen.getByRole('button', { name: 'ChatDock.open' })).toHaveFocus();
+    fireEvent.click(screen.getByRole('button', { name: 'ChatDock.open' }));
+    fireEvent.click(screen.getByRole('button', { name: 'ChatDock.close' }));
+    expect(opener).toHaveFocus();
+  });
+
   it('collapses open windows when a game opens', () => {
     act(() => dispatchChatDock({ type: 'open', name: 'alice', max: 3 }));
     renderWithProviders(<ChatDock />, { preloadedState: state, route: '/game/7' });
     expect(getChatDockState().chats).toEqual([{ name: 'alice', expanded: false }]);
+  });
+});
+
+describe('focusAfterClose', () => {
+  const chat = (name: string, expanded: boolean) => ({ name, expanded });
+  it('prefers a neighbouring window, then a bar, then the opener', () => {
+    const windows = [chat('a', true), chat('b', true)];
+    expect(focusAfterClose(windows, [], 'b')).toEqual({ kind: 'input', name: 'a' });
+    expect(focusAfterClose([chat('a', true)], [chat('c', false)], 'a')).toEqual({ kind: 'bar', name: 'c' });
+    expect(focusAfterClose([chat('a', true)], [], 'a')).toBe('opener');
+    expect(focusAfterClose([], [chat('c', false), chat('d', false)], 'c')).toEqual({ kind: 'bar', name: 'd' });
+    expect(focusAfterClose([chat('a', true)], [chat('c', false)], 'c')).toEqual({ kind: 'input', name: 'a' });
+  });
+});
+
+describe('watchBoardTray', () => {
+  it('reports the tray height when the board appears and when it changes', async () => {
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    const heights: string[] = [];
+    const stop = watchBoardTray((height) => heights.push(height), root);
+    const board = document.createElement('div');
+    board.style.setProperty('--board-tray-h', '172px');
+    root.appendChild(board);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    board.style.setProperty('--board-tray-h', '200px');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    stop();
+    root.remove();
+    expect(heights).toEqual(['0px', '172px', '200px']);
   });
 });
 

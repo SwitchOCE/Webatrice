@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { matchPath, useLocation } from 'react-router-dom';
 
 import { server } from '@cockatrice/datatrice';
@@ -17,27 +17,69 @@ import { incomingChatPeer } from './incomingChat';
 import { splitDock } from './splitDock';
 
 const TRAY_SELECTOR = '[style*="--board-tray-h"], [data-board-tray-h]';
-const TRAY_POLL_MS = 500;
 
-export function readBoardTrayHeight(root: ParentNode = document): string {
-  const el = root.querySelector<HTMLElement>(TRAY_SELECTOR);
+function findTray(root: ParentNode): HTMLElement | null {
+  return root.querySelector<HTMLElement>(TRAY_SELECTOR);
+}
+
+function trayHeight(el: HTMLElement | null): string {
   if (!el) {
     return '0px';
   }
   return getComputedStyle(el).getPropertyValue('--board-tray-h').trim() || el.dataset.boardTrayH || '0px';
 }
 
+export function readBoardTrayHeight(root: ParentNode = document): string {
+  return trayHeight(findTray(root));
+}
+
+export function watchBoardTray(onChange: (height: string) => void, root: HTMLElement = document.body): () => void {
+  let tray: HTMLElement | null = null;
+  let resize: ResizeObserver | null = null;
+  const style = new MutationObserver(() => onChange(trayHeight(tray)));
+  const attach = (next: HTMLElement | null) => {
+    if (next === tray) {
+      return;
+    }
+    tray = next;
+    style.disconnect();
+    resize?.disconnect();
+    if (tray) {
+      style.observe(tray, { attributes: true, attributeFilter: ['style', 'data-board-tray-h'] });
+      if (typeof ResizeObserver !== 'undefined') {
+        resize = new ResizeObserver(() => onChange(trayHeight(tray)));
+        resize.observe(tray);
+      }
+    }
+    onChange(trayHeight(tray));
+  };
+  const finder = new MutationObserver(() => {
+    if (!tray?.isConnected) {
+      attach(findTray(root));
+    }
+  });
+  finder.observe(root, { childList: true, subtree: true });
+  const first = findTray(root);
+  if (first) {
+    attach(first);
+  } else {
+    onChange('0px');
+  }
+  return () => {
+    finder.disconnect();
+    style.disconnect();
+    resize?.disconnect();
+  };
+}
+
 function useBoardTrayOffset(active: boolean): string {
   const [offset, setOffset] = useState('0px');
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!active) {
       setOffset('0px');
       return undefined;
     }
-    const read = () => setOffset(readBoardTrayHeight());
-    read();
-    const id = window.setInterval(read, TRAY_POLL_MS);
-    return () => window.clearInterval(id);
+    return watchBoardTray(setOffset);
   }, [active]);
   return offset;
 }
@@ -85,8 +127,8 @@ export function useChatDockController(): ChatDockView {
     }
   });
 
-  const bottom = useBoardTrayOffset(gameId !== null);
   const { windows, bars } = useMemo(() => splitDock(dock.chats, selfName), [dock.chats, selfName]);
+  const bottom = useBoardTrayOffset(gameId !== null && windows.length + bars.length > 0);
 
   return {
     visible: Boolean(selfName) && !onPopup && windows.length + bars.length > 0,
