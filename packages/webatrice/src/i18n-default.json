@@ -3505,6 +3505,10 @@
       "filedCount": "{user}: {count} reports filed"
     }
   },
+  "Room": {
+    "title": "Games in <room>{room}</room>",
+    "createGame": "Create game"
+  },
   "GamesList": {
     "heading": "Games in {room}",
     "showing": "Showing {visible} / {total}",
@@ -3539,19 +3543,31 @@
     },
     "log": "{room} chat",
     "input": "Message {room}",
-    "subtitle": "room chat",
+    "subtitle": "Room chat",
     "empty": "No messages yet — say hi."
   },
   "RoomUsers": {
-    "buddies": {
-      "title": "Buddies",
-      "count": "{count, plural, other {# online}}",
-      "empty": "No buddies online right now."
+    "title": "People",
+    "count": "{count, plural, other {# in {room}}}",
+    "search": "Find a player",
+    "list": "People in {room}",
+    "online": "{count, plural, other {# online}}",
+    "section": {
+      "buddies": "Buddies",
+      "offline": "Offline buddies",
+      "staff": "Staff here",
+      "everyone": "Everyone in {room}"
     },
-    "online": {
-      "title": "Players Online",
-      "count": "{count, plural, other {# connected}}",
-      "empty": "No one else online."
+    "hosting": "Hosting {game}",
+    "untitledGame": "Game #{id}",
+    "inRoom": "In {room}",
+    "elsewhere": "Online, not in this room",
+    "showGames": "Show {name}’s games",
+    "message": "Message {name}",
+    "preview": "{count, plural, =0 {{names}. Show everyone} other {{names} and # more. Show everyone}}",
+    "empty": {
+      "buddies": "None of your buddies are online.",
+      "search": "No one here matches."
     }
   },
   "CreateGameDialog": {

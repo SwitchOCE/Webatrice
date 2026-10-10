@@ -4,7 +4,7 @@ import { useNavigate, useParams, generatePath } from 'react-router-dom';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { rooms } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
-import { ServerInfo_User } from '@cockatrice/sockatrice/generated';
+import type { CreateGameParams, ServerInfo_User } from '@cockatrice/sockatrice/generated';
 import type { Message, Room } from '@cockatrice/datatrice';
 import { RouteEnum } from '@app/types';
 
@@ -14,6 +14,7 @@ export interface UseRoomResult {
   roomMessages: Message[] | undefined;
   users: ServerInfo_User[];
   handleRoomSay: (args: { message: string }) => void;
+  handleCreateGame: (params: CreateGameParams) => void;
 }
 
 export function useRoom(): UseRoomResult {
@@ -42,5 +43,9 @@ export function useRoom(): UseRoomResult {
     }
   }, [webClient, roomId]);
 
-  return { roomId, room, roomMessages, users, handleRoomSay };
+  const handleCreateGame = useCallback((params: CreateGameParams) => {
+    webClient.request.rooms.createGame(roomId, params);
+  }, [webClient, roomId]);
+
+  return { roomId, room, roomMessages, users, handleRoomSay, handleCreateGame };
 }

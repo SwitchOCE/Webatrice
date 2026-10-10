@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Send, Hash } from 'lucide-react';
+import { Send } from 'lucide-react';
 
-import { Message as MessageBubble, useMentionCompleter } from '@app/components';
+import { Button, Message as MessageBubble, Panel, TextInput, useMentionCompleter } from '@app/components';
 import { ReportChatScope } from '@app/dialogs';
 import { useChatHighlight, useCommandFailureMessage, useReduxEffect, useRoomChatFilter } from '@app/hooks';
-import { chatFilterVerdicts, isPrivilegedUser, isRoomMessageVisible } from '@app/utils';
+import { chatFilterVerdicts, cx, isPrivilegedUser, isRoomMessageVisible } from '@app/utils';
 import { rooms, type Message } from '@cockatrice/datatrice';
 import type { ServerInfo_User } from '@cockatrice/sockatrice/generated';
 
-import { historyTimestamp, roomChatContext } from './roomChatContext';
+import { chatLineTime, isAlertLine, isBlankLine, isChatHistory, isWelcome, roomChatContext } from './roomChatContext';
 
 interface RoomChatProps {
   roomId: number;
@@ -23,7 +23,7 @@ export default function RoomChat(props: RoomChatProps) {
   const { messages: allMessages, users } = props;
   const filter = useRoomChatFilter();
   const messages = useMemo(
-    () => allMessages?.filter((m) => isRoomMessageVisible(m, users, filter, chatFilterVerdicts)),
+    () => allMessages?.filter((m) => !isBlankLine(m) && isRoomMessageVisible(m, users, filter, chatFilterVerdicts)),
     [allMessages, users, filter],
   );
   const getChatContext = useCallback(() => roomChatContext(messages), [messages]);
@@ -34,12 +34,6 @@ export default function RoomChat(props: RoomChatProps) {
   );
 }
 
-/**
- * Fancy-themed chat panel for the room page. Preserves og's rich
- * message parsing (card callouts, @mentions, URLs, Name: prefix) by
- * delegating each row to the `Message` component. Only chrome + input
- * are new; parsing logic is unchanged.
- */
 function RoomChatView({ roomId, roomName, messages, users, onSay }: RoomChatProps) {
   const { t } = useTranslation();
   const describeFailure = useCommandFailureMessage();
@@ -76,83 +70,92 @@ function RoomChatView({ roomId, roomName, messages, users, onSay }: RoomChatProp
   };
 
   return (
-    <section className="flex h-full flex-col bg-bg-surface border border-border-subtle rounded-lg overflow-hidden">
-      <div className="shrink-0 flex items-center gap-2 px-4 py-2 border-b border-border-subtle">
-        <Hash size={14} className="text-text-muted" />
-        <span className="text-sm font-semibold text-text-primary truncate">{roomName}</span>
-        <span className="text-xs text-text-muted">
-          <span aria-hidden>· </span>
-          {t('RoomChat.subtitle')}
+    <Panel
+      title={(
+        <span className="flex items-baseline gap-2">
+          {roomName}
+          <span className="text-[12px] font-normal text-text-muted">
+            <span aria-hidden>· </span>
+            {t('RoomChat.subtitle')}
+          </span>
         </span>
-      </div>
-
+      )}
+      flush
+      className="h-full"
+      bodyClassName="flex flex-col"
+    >
       <div
         ref={scrollRef}
         role="log"
         aria-label={t('RoomChat.log', { room: roomName })}
         tabIndex={0}
-        className="flex-1 min-h-0 overflow-y-auto px-4 py-2 space-y-1 bg-bg-base/40"
+        className={cx(
+          'flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-pad py-2',
+          'focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent',
+        )}
       >
         {(!messages || messages.length === 0) && (
-          <div className="h-full flex items-center justify-center text-xs text-text-muted italic">
+          <div className="flex h-full items-center justify-center text-[12px] italic text-text-muted">
             {t('RoomChat.empty')}
           </div>
         )}
-        {messages?.map((m, idx) => (
-          <div
-            key={`${m.timeReceived}-${idx}`}
-            className={[
-              'text-sm text-text-secondary [&_a.link]:text-accent [&_a.link]:hover:text-accent-hover',
-              '[&_strong]:text-text-primary [&_strong]:mr-1',
-            ].join(' ')}
-          >
-            {m.notice
-              ? <div className="italic text-text-muted">{noticeText(m)}</div>
-              : (
-                <MessageBubble
-                  message={m}
-                  timestamp={historyTimestamp(m)}
-                  highlight={isPrivilegedUser(users[m.name]) ? highlights.moderator : highlights.user}
-                />
+        {messages?.map((m, idx) => {
+          const privileged = isPrivilegedUser(users[m.name]);
+          const highlight = privileged ? highlights.moderator : highlights.user;
+          if (isWelcome(m)) {
+            return (
+              <div key={`${m.timeReceived}-${idx}`} className="whitespace-pre-line text-[13px] leading-relaxed text-accent">
+                <MessageBubble message={m} />
+              </div>
+            );
+          }
+          const time = chatLineTime(m);
+          return (
+            <div
+              key={`${m.timeReceived}-${idx}`}
+              className={cx(
+                'flex items-baseline gap-2 text-[13px] leading-relaxed text-text-primary',
+                '[&_a.link]:font-semibold [&_a.link]:text-accent [&_a.link:hover]:underline [&_strong]:mr-1',
+                isAlertLine(m, highlight) && '-mx-2 rounded-ui-sm bg-warning/10 px-2',
+                isChatHistory(m) && 'opacity-70',
               )}
-          </div>
-        ))}
+            >
+              <time dateTime={time.dateTime} title={time.full} className="shrink-0 text-[11px] tabular-nums text-text-muted">
+                {time.label}
+              </time>
+              <div className="min-w-0 flex-1 break-words">
+                {m.notice
+                  ? <div className="italic text-text-muted">{noticeText(m)}</div>
+                  : <MessageBubble message={m} highlight={highlight} />}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      <form
-        onSubmit={send}
-        className="shrink-0 flex items-center gap-2 px-3 py-2 border-t border-border-subtle bg-bg-surface"
-      >
-        <div className="relative flex-1 min-w-0">
-          <input
+      <form onSubmit={send} className="flex shrink-0 gap-2 border-t border-border-subtle p-2">
+        <div className="relative min-w-0 flex-1">
+          <TextInput
             ref={inputRef}
+            icon={null}
             type="text"
             value={draft}
             {...mention.inputProps}
             placeholder={t('RoomChat.input', { room: roomName })}
             aria-label={t('RoomChat.input', { room: roomName })}
-            className={[
-              'w-full px-3 py-2 rounded-md bg-bg-base border',
-              'border-border-control text-sm text-text-primary',
-              'placeholder:text-text-muted focus:outline-none',
-              'focus:border-accent focus:ring-1 focus:ring-accent transition-colors',
-            ].join(' ')}
           />
           {mention.popup}
         </div>
-        <button
+        <Button
           type="submit"
+          variant="primary"
           disabled={!draft.trim()}
-          className={[
-            'p-2 rounded-md bg-accent text-on-accent hover:bg-accent-hover',
-            'disabled:opacity-40 disabled:cursor-not-allowed transition-colors',
-          ].join(' ')}
+          className="w-9 shrink-0 px-0"
           title={t('Common.action.send')}
           aria-label={t('Common.action.send')}
-        >
-          <Send size={16} />
-        </button>
+          icon={<Send size={15} aria-hidden />}
+        />
       </form>
-    </section>
+    </Panel>
   );
 }
