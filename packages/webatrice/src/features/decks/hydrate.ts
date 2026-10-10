@@ -41,6 +41,7 @@ export async function hydrateDeck(parsed: ParsedDeck, signal?: AbortSignal): Pro
     lastLoadedTimestamp: parsed.lastLoadedTimestamp,
     playmatXml: parsed.playmatXml,
     sideboardPlansXml: parsed.sideboardPlansXml,
+    extraZonesXml: parsed.extraZonesXml,
     tagsXml: parsed.tagsXml,
     bracketAssessment: parsed.bracketAssessment,
   };
@@ -64,6 +65,7 @@ export function assembleDeckCard(
       set: row.set,
       collectorNumber: row.collectorNumber,
       scryfallId: row.scryfallId,
+      ...(row.zonePath ? { zonePath: row.zonePath } : {}),
       lookupSource: 'unknown',
     };
   }
@@ -92,6 +94,7 @@ export function assembleDeckCard(
     scryfallId: chosen?.scryfallId ?? row.scryfallId,
     imageUri: primaryImageUri({ imageUris }),
     imageUris,
+    ...(row.zonePath ? { zonePath: row.zonePath } : {}),
     lookupSource: lookup.source,
   };
 }

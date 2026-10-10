@@ -97,6 +97,38 @@ describe('parseCod', () => {
     expect(parseCod(xml).meta.description).toBe('Notes about this deck.');
   });
 
+  it('keeps desktop tokens, maybeboard and custom zones out of the deck and writes them back unchanged', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<cockatrice_deck version="1">
+  <deckname>Boros Burn</deckname>
+  <comments>Plan vs control: +2 Smash.
+Notes from FNM.</comments>
+  <zone name="main">
+    <card number="4" name="Lightning Bolt" setShortName="M11" collectorNumber="149"/>
+    <zone name="Burn spells"><card number="4" name="Lava Spike"/></zone>
+  </zone>
+  <zone name="side"><card number="2" name="Smash to Smithereens"/></zone>
+  <zone name="tokens"><card number="1" name="Goblin" setShortName="TM20"/></zone>
+  <zone name="maybeboard"><card number="2" name="Skewer the Critics"/></zone>
+</cockatrice_deck>`;
+    const parsed = parseCod(xml);
+    expect(parsed.cards.map((c) => [c.name, c.category, c.zonePath ?? []])).toEqual([
+      ['Lightning Bolt', 'main', []],
+      ['Lava Spike', 'main', ['Burn spells']],
+      ['Smash to Smithereens', 'sideboard', []],
+    ]);
+    expect(parsed.extraZonesXml).toHaveLength(2);
+    expect(parsed.meta.description).toBe('Plan vs control: +2 Smash.\nNotes from FNM.');
+
+    const doc = new DOMParser().parseFromString(serializeCod(parsed), 'application/xml');
+    const zones = Array.from(doc.documentElement.children).filter((el) => el.tagName === 'zone');
+    expect(zones.map((z) => z.getAttribute('name'))).toEqual(['main', 'side', 'tokens', 'maybeboard']);
+    expect(zones[0].querySelector(':scope > zone[name="Burn spells"] > card')?.getAttribute('name')).toBe('Lava Spike');
+    expect(zones[2].querySelector('card')?.getAttribute('name')).toBe('Goblin');
+    expect(doc.querySelector('comments')?.textContent).toBe('Plan vs control: +2 Smash.\nNotes from FNM.');
+    expect(parseCod(serializeCod(parsed)).cards).toEqual(parsed.cards);
+  });
+
   it('throws on malformed XML', () => {
     expect(() => parseCod('<not-really-xml')).toThrow();
   });

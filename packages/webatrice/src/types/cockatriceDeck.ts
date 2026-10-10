@@ -26,6 +26,7 @@ export interface ParsedCard {
   set?: string;
   collectorNumber?: string;
   scryfallId?: string;
+  zonePath?: string[];
 }
 
 export interface DeckMeta {
@@ -115,6 +116,7 @@ export interface ParsedDeck {
   lastLoadedTimestamp?: string;
   playmatXml?: string;
   sideboardPlansXml?: string[];
+  extraZonesXml?: string[];
   /** Optional `<tags>` element — Cockatrice desktop's tag list.
    *  Stored as the raw XML string of the whole element so we can
    *  round-trip whatever's inside without caring about its schema. */

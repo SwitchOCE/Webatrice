@@ -13,6 +13,7 @@ export function serializeDeckForSave(deck: HydratedDeck): string {
     lastLoadedTimestamp: deck.lastLoadedTimestamp,
     playmatXml: deck.playmatXml,
     sideboardPlansXml: deck.sideboardPlansXml,
+    extraZonesXml: deck.extraZonesXml,
     tagsXml: deck.tagsXml,
     bracketAssessment: deck.bracketAssessment,
   });
@@ -41,6 +42,7 @@ export function deckSaveSignature(deck: HydratedDeck): string {
     lastLoadedTimestamp: deck.lastLoadedTimestamp ?? null,
     playmatXml: deck.playmatXml ?? null,
     sideboardPlansXml: deck.sideboardPlansXml ?? [],
+    extraZonesXml: deck.extraZonesXml ?? [],
     tagsXml: deck.tagsXml ?? null,
     bracketAssessment: deck.bracketAssessment ?? null,
     cards: deck.cards.map((c) => [
@@ -51,6 +53,7 @@ export function deckSaveSignature(deck: HydratedDeck): string {
       c.set ?? '',
       c.collectorNumber ?? '',
       c.scryfallId ?? '',
+      c.zonePath?.join('/') ?? '',
     ]),
   });
 }

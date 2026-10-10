@@ -1,25 +1,5 @@
 import type { DeckMeta } from '@app/types';
 
-/**
- * Codec for the JSON metadata blob that lives inside a `.cod`'s
- * `<comments>` element. Webatrice owns the entire comments field:
- * on save we always write our JSON. On load we distinguish three
- * cases:
- *
- *   1. Empty comments        → default meta with `updatedAt = now`
- *   2. Our JSON (has `v` +   → parsed + migrated to the current
- *      matches our shape)      schema version
- *   3. Anything else         → treat the raw text as human-authored
- *      (a Cockatrice desktop   `description` and wrap it in default
- *      user's notes, plain     meta. First save then rewrites it as
- *      text, malformed JSON)   JSON — preserving the description.
- *
- * This "first-load rewrites the comments" behavior is intentional:
- * once webatrice touches a deck the comments become a machine-managed
- * JSON blob. Cockatrice desktop still opens the file fine — it just
- * sees a comment string it doesn't interpret.
- */
-
 const CURRENT_VERSION = 1 as const;
 
 export function defaultMeta(): DeckMeta {
@@ -29,41 +9,65 @@ export function defaultMeta(): DeckMeta {
   };
 }
 
-/**
- * Parse the raw contents of a `.cod` `<comments>` element into a
- * DeckMeta. Always returns a valid meta — the fallback paths just
- * fill in defaults. `commentsText` may be `null`/`undefined` if the
- * element didn't exist.
- */
+const TRAILER_PREFIX = '[webatrice] ';
+
 export function parseMeta(commentsText: string | null | undefined): DeckMeta {
-  const text = commentsText?.trim();
+  const raw = commentsText ?? '';
+  const text = raw.trim();
   if (!text) {
     return defaultMeta();
   }
 
-  // Case 2: our JSON blob.
   if (text.startsWith('{')) {
-    try {
-      const raw: unknown = JSON.parse(text);
-      const migrated = migrate(raw);
-      if (migrated) {
-        return migrated;
-      }
-    } catch {
-      // fallthrough — malformed JSON: treat as description
+    const legacy = parseJsonMeta(text);
+    if (legacy) {
+      return legacy;
     }
   }
 
-  // Case 3: human-authored comments. Preserve them as description so
-  // the next save doesn't destroy the user's notes.
-  return { ...defaultMeta(), description: text };
+  const lines = raw.replace(/\s+$/, '').split(/\r?\n/);
+  const last = lines[lines.length - 1];
+  if (last.startsWith(TRAILER_PREFIX)) {
+    const machine = parseJsonMeta(last.slice(TRAILER_PREFIX.length));
+    if (machine) {
+      const description = lines.slice(0, -1).join('\n').replace(/\s+$/, '');
+      const { description: _legacyDescription, ...rest } = machine;
+      return description ? { ...rest, description } : rest;
+    }
+  }
+
+  return { ...defaultMeta(), description: raw };
 }
 
-/** Serialize a DeckMeta to the string that will be written back into
- *  the `<comments>` element. Pretty-prints with 2-space indent so a
- *  human peeking at the raw file can read it. */
 export function serializeMeta(meta: DeckMeta): string {
-  return JSON.stringify(meta, null, 2);
+  const description = meta.description ?? '';
+  const machine: Partial<DeckMeta> = {};
+  if (meta.priceUsd !== undefined) {
+    machine.priceUsd = meta.priceUsd;
+  }
+  if (meta.priceMissingCount !== undefined) {
+    machine.priceMissingCount = meta.priceMissingCount;
+  }
+  if (meta.bracketLevel !== undefined) {
+    machine.bracketLevel = meta.bracketLevel;
+  }
+  if (meta.commanders?.length) {
+    machine.commanders = meta.commanders;
+  }
+  if (Object.keys(machine).length === 0) {
+    return description;
+  }
+  const trailer = TRAILER_PREFIX + JSON.stringify({ v: meta.v, updatedAt: meta.updatedAt, ...machine });
+  const body = description.replace(/\s+$/, '');
+  return body ? `${body}\n\n${trailer}` : trailer;
+}
+
+function parseJsonMeta(text: string): DeckMeta | null {
+  try {
+    return migrate(JSON.parse(text));
+  } catch {
+    return null;
+  }
 }
 
 /** Convenience: return a copy with `updatedAt` bumped to now. */

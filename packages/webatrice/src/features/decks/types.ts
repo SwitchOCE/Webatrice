@@ -91,6 +91,7 @@ export interface DeckCard {
   scryfallId?: string; // Scryfall UUID — Cockatrice's `set.uuid` for modern DBs
   imageUri?: string; // preferred picurl or Scryfall CDN URL
   imageUris?: string[];
+  zonePath?: string[];
 
   /** Where the lookup came from. `unknown` = card name wasn't in Dexie
    *  and Scryfall couldn't find it either (typo, retired card, etc.).
@@ -111,6 +112,7 @@ export interface HydratedDeck {
   lastLoadedTimestamp?: string;
   playmatXml?: string;
   sideboardPlansXml?: string[];
+  extraZonesXml?: string[];
   tagsXml?: string;
   bracketAssessment?: BracketAssessment;
 }

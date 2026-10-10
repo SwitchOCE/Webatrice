@@ -70,6 +70,7 @@ export function buildUploadedDeckCod(file: ParsedDeck, name: string, format: str
     lastLoadedTimestamp: file.lastLoadedTimestamp,
     playmatXml: file.playmatXml,
     sideboardPlansXml: file.sideboardPlansXml,
+    extraZonesXml: file.extraZonesXml,
     tagsXml: file.tagsXml,
   });
 }

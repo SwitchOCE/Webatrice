@@ -68,6 +68,7 @@ export function exportDeck(deck: HydratedDeck, format: DeckExportFormat): string
         lastLoadedTimestamp: deck.lastLoadedTimestamp,
         playmatXml: deck.playmatXml,
         sideboardPlansXml: deck.sideboardPlansXml,
+        extraZonesXml: deck.extraZonesXml,
         tagsXml: deck.tagsXml,
       });
     case 'plain':
