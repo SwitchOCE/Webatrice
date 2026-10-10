@@ -12,15 +12,20 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Cinzel', 'serif'],
-        modern: ['"Space Grotesk"', 'Inter', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-body)'],
+        display: ['var(--font-display)'],
+        modern: ['var(--font-display)'],
+        mono: ['var(--font-mono)'],
       },
+      borderRadius: { ui: 'var(--radius)', 'ui-sm': 'var(--radius-sm)', 'ui-lg': 'var(--radius-lg)' },
+      spacing: { row: 'var(--row-h)', pad: 'var(--pad)', gap: 'var(--gap)' },
+      fontSize: { ui: ['var(--fs-ui)', 'var(--lh-ui)'], 'ui-sm': ['var(--fs-ui-sm)', '1.35'] },
       colors: {
         bg: {
           base: 'rgb(var(--bg-base) / <alpha-value>)',
           surface: 'rgb(var(--bg-surface) / <alpha-value>)',
           elevated: 'rgb(var(--bg-elevated) / <alpha-value>)',
+          sunken: 'rgb(var(--bg-sunken) / <alpha-value>)',
         },
         border: {
           subtle: 'rgb(var(--border-subtle) / <alpha-value>)',
@@ -31,16 +36,32 @@ export default {
           DEFAULT: 'rgb(var(--accent-primary) / <alpha-value>)',
           hover: 'rgb(var(--accent-primary-hover) / <alpha-value>)',
           secondary: 'rgb(var(--accent-secondary) / <alpha-value>)',
+          soft: 'rgb(var(--accent-soft) / <alpha-value>)',
         },
         text: {
           primary: 'rgb(var(--text-primary) / <alpha-value>)',
           secondary: 'rgb(var(--text-secondary) / <alpha-value>)',
           muted: 'rgb(var(--text-muted) / <alpha-value>)',
+          disabled: 'rgb(var(--text-disabled) / <alpha-value>)',
         },
         'on-accent': 'rgb(var(--text-on-accent) / <alpha-value>)',
         danger: 'rgb(var(--status-danger) / <alpha-value>)',
         success: 'rgb(var(--status-success) / <alpha-value>)',
         warning: 'rgb(var(--status-warning) / <alpha-value>)',
+        info: 'rgb(var(--status-info) / <alpha-value>)',
+        table: {
+          felt: 'rgb(var(--table-felt) / <alpha-value>)',
+          rim: 'rgb(var(--table-rim) / <alpha-value>)',
+        },
+        mana: {
+          w: 'rgb(var(--mana-w) / <alpha-value>)',
+          u: 'rgb(var(--mana-u) / <alpha-value>)',
+          b: 'rgb(var(--mana-b) / <alpha-value>)',
+          r: 'rgb(var(--mana-r) / <alpha-value>)',
+          g: 'rgb(var(--mana-g) / <alpha-value>)',
+          c: 'rgb(var(--mana-c) / <alpha-value>)',
+          o: 'rgb(var(--mana-o) / <alpha-value>)',
+        },
         seat: {
           select: 'rgb(var(--seat-select) / <alpha-value>)',
           attach: 'rgb(var(--seat-attach) / <alpha-value>)',
@@ -55,6 +76,8 @@ export default {
       },
       boxShadow: {
         glow: '0 0 24px -4px rgb(var(--accent-primary) / 0.35)',
+        pop: 'var(--shadow-pop)',
+        panel: 'var(--shadow-panel)',
       },
       backgroundImage: {
         'purple-radial':

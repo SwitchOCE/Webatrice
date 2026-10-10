@@ -10,6 +10,7 @@ import { Game, GameReplay } from '@app/features/game';
 import { Logs } from '@app/features/logs';
 import { Moderation } from '@app/features/moderation';
 import { Player } from '@app/features/player';
+import { People } from '@app/features/people';
 import { Replays } from '@app/features/replays';
 import { MyReports, ReportQueue } from '@app/features/reports';
 import { Login } from '@app/features/login';
@@ -38,6 +39,7 @@ const AppShellRoutes = () => (
       <Route path={RouteEnum.LOGS} element={<Logs />} />
       <Route path={RouteEnum.MODERATION} element={<Moderation />} />
       <Route path={RouteEnum.PLAYER} element={<Player />} />
+      <Route path={RouteEnum.PEOPLE} element={<People />} />
       <Route path={RouteEnum.REPLAYS} element={<Replays />} />
       <Route path={RouteEnum.REPLAY} element={<GameReplay />} />
       <Route path={RouteEnum.ROOM} element={<Room />} />

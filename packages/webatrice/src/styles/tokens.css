@@ -15,6 +15,11 @@
   --bg-base: 20 16 31;              /* #14101F */
   --bg-surface: 31 24 48;           /* #1F1830 */
   --bg-elevated: 42 33 64;          /* #2A2140 */
+  --bg-sunken: 16 12 25;            /* #100C19 */
+  --accent-soft: 54 40 92;          /* #36285C */
+  --status-info: 96 165 250;        /* #60A5FA */
+  --table-felt: 27 21 43;           /* #1B152B */
+  --table-rim: 46 36 72;            /* #2E2448 */
   --border-subtle: 58 46 90;        /* #3A2E5A */
   --border-strong: 90 74 133;       /* #5A4A85 */
   /* Form-control edges (inputs, unchecked checkboxes): 3:1 against every
@@ -70,6 +75,11 @@
   --bg-base: 246 243 250;           /* #F6F3FA */
   --bg-surface: 255 255 255;        /* #FFFFFF */
   --bg-elevated: 238 233 245;       /* #EEE9F5 */
+  --bg-sunken: 236 231 244;         /* #ECE7F4 */
+  --accent-soft: 233 224 250;       /* #E9E0FA */
+  --status-info: 29 78 216;         /* #1D4ED8 */
+  --table-felt: 236 231 244;        /* #ECE7F4 */
+  --table-rim: 214 204 232;         /* #D6CCE8 */
   --border-subtle: 220 211 233;     /* #DCD3E9 */
   --border-strong: 180 166 207;     /* #B4A6CF */
   --border-control: 133 119 153;    /* #857799 */

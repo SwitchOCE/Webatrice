@@ -33,7 +33,12 @@ export type PaletteToken =
   | 'mana-r'
   | 'mana-g'
   | 'mana-c'
-  | 'mana-o';
+  | 'mana-o'
+  | 'bg-sunken'
+  | 'accent-soft'
+  | 'status-info'
+  | 'table-felt'
+  | 'table-rim';
 
 export type Palette = Readonly<Record<PaletteToken, string>>;
 
@@ -72,6 +77,11 @@ export const PALETTES: Readonly<Record<ColorScheme, Palette>> = {
     'mana-g': '#10B981',
     'mana-c': '#9CA3AF',
     'mana-o': '#F97316',
+    'bg-sunken': '#100C19',
+    'accent-soft': '#36285C',
+    'status-info': '#60A5FA',
+    'table-felt': '#1B152B',
+    'table-rim': '#2E2448',
   },
   light: {
     'bg-base': '#F6F3FA',
@@ -107,5 +117,10 @@ export const PALETTES: Readonly<Record<ColorScheme, Palette>> = {
     'mana-g': '#10B981',
     'mana-c': '#9CA3AF',
     'mana-o': '#F97316',
+    'bg-sunken': '#ECE7F4',
+    'accent-soft': '#E9E0FA',
+    'status-info': '#1D4ED8',
+    'table-felt': '#ECE7F4',
+    'table-rim': '#D6CCE8',
   },
 };

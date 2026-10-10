@@ -1,5 +1,6 @@
 export enum RouteEnum {
   PLAYER = '/player/:name',
+  PEOPLE = '/people',
   SERVER = '/server',
   ROOM = '/room/:roomId',
   LOGIN = '/login',

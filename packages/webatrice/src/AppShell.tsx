@@ -12,8 +12,10 @@ import { ShortcutProvider } from '@app/feature-widgets/shortcuts';
 import { ModerationProvider } from '@app/feature-widgets/moderation';
 import { UserGamesProvider } from '@app/feature-widgets/user-games';
 import { useLiveServerEndpoint } from '@app/feature-widgets/known-hosts';
+import { ChatDock } from '@app/features/chat-dock';
 import { DeckShareLinkRedirect } from '@app/features/decks';
 import { LobbyDeckStateProvider } from '@app/features/game';
+import { NotificationCentre } from '@app/features/notifications';
 import { PrivateMessageNotifier } from '@app/features/player';
 import { ReportNotifier } from '@app/features/reports';
 import { AppAlerts, CommandFailureNotices, FeatureDetection, MissingFeaturesNotice, ServerNotices } from '@app/features/shell';
@@ -75,6 +77,8 @@ function AppShell() {
                       <RouteErrorBoundary>
                         <Routes />
                       </RouteErrorBoundary>
+                      <ChatDock />
+                      <NotificationCentre />
                     </LobbyDeckStateProvider>
                   </UserGamesProvider>
                 </ModerationProvider>

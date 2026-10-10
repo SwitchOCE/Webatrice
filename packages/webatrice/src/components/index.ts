@@ -39,3 +39,5 @@ export type { NotifyOptions, NotifyResult } from './Notifications';
 export { default as PlaymatImage } from './PlaymatImage/PlaymatImage';
 export { GameLinkButton, GameLinkJoinHost, renderGameLinks, requestGameLinkJoin } from './GameLink';
 export { default as PlaymatCropEditor } from './PlaymatCropEditor/PlaymatCropEditor';
+
+export * from './ds';
