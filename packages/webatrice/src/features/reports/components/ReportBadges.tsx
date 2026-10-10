@@ -31,7 +31,7 @@ export function ReportStatusBadge({ status }: { status: string }) {
 export function ReportCategoryTag({ category, className }: { category: string; className?: string }) {
   const labels = useReportLabels();
   return (
-    <span className={cx('inline-flex min-w-0 items-center gap-1.5 text-[12px] text-text-primary', className)}>
+    <span className={cx('inline-flex min-w-0 max-w-full items-center gap-1.5 text-[12px] text-text-primary', className)}>
       <span className={cx('h-2 w-2 shrink-0 rounded-[2px]', SEVERITY_DOT[reportCategorySeverity(category)])} aria-hidden />
       <span className="truncate">{labels.category(category)}</span>
     </span>
