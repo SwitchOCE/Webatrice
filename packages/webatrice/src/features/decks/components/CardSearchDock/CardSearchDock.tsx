@@ -25,10 +25,16 @@ export type CardSearchDockZone = DockZone;
 export interface CardSearchDockProps {
   onAdd: (cardName: string, zone: CardSearchDockZone, providerId?: string) => void;
   onSelect?: (cardName: string) => void;
+  onPreview?: (card: ScryfallSearchCard, providerId?: string) => void;
+  onReady?: (api: CardSearchDockApi) => void;
   colorIdentity?: readonly string[];
   format?: string;
   deckCards?: readonly DeckCard[];
   className?: string;
+}
+
+export interface CardSearchDockApi {
+  focusSearch: () => void;
 }
 
 const FOCUS = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent';
@@ -233,11 +239,17 @@ function ListMessage({ children }: { children: ReactNode }) {
   return <div className="flex h-full items-center justify-center px-6 text-center text-[12.5px] text-text-muted">{children}</div>;
 }
 
-export default function CardSearchDock({ onAdd, onSelect, colorIdentity, format, deckCards, className }: CardSearchDockProps) {
+export default function CardSearchDock({
+  onAdd, onSelect, onPreview, onReady, colorIdentity, format, deckCards, className,
+}: CardSearchDockProps) {
   const { t } = useTranslation();
-  const dock = useCardSearchDock({ onAdd, onSelect, colorIdentity, format, deckCards });
+  const dock = useCardSearchDock({ onAdd, onSelect, onPreview, colorIdentity, format, deckCards });
   const menuShortcut = useMenuShortcut();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    onReady?.({ focusSearch: () => inputRef.current?.focus() });
+  }, [onReady]);
   const baseId = useId();
   const listId = `${baseId}-results`;
   const idFor = (i: number) => `${baseId}-result-${i}`;

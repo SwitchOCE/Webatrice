@@ -83,6 +83,7 @@ export function assembleDeckCard(
     manaCost: lookup.manaCost,
     cmc: lookup.cmc,
     colors: lookup.colors,
+    colorIdentity: lookup.colorIdentity,
     power: lookup.power,
     toughness: lookup.toughness,
     set: chosen?.set ?? row.set,

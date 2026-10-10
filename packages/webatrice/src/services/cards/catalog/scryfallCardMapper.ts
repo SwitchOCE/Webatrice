@@ -72,6 +72,7 @@ export function scryfallToLookup(card: ScryfallCard): LookupResult {
     manaCost: card.mana_cost,
     cmc: card.cmc,
     colors: card.colors && card.colors.length ? card.colors : card.color_identity,
+    colorIdentity: card.color_identity,
     power: card.power,
     toughness: card.toughness,
     printings: [

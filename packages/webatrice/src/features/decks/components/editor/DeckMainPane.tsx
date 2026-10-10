@@ -1,4 +1,4 @@
-import { useMemo, type RefObject } from 'react';
+import { useMemo } from 'react';
 
 import type { DeckCategory } from '@app/types';
 
@@ -8,13 +8,12 @@ import { useDeckCardGrid } from '../../hooks/useDeckCardGrid';
 import type { DeckCard, HydratedDeck } from '../../types';
 import { DeckCardGroup } from './DeckCardGroup';
 import { EmptyCardsHint } from './DeckEditorShells';
-import type { InspectedCard } from './editorSelection';
 import { PlainCardList } from './PlainCardList';
 
 export interface DeckMainPaneProps {
   deck: HydratedDeck;
   groups: DeckCardGroupData[];
-  selected: InspectedCard | null;
+  selectedIndex: number;
   onSelect: (card: DeckCard) => void;
   onInc: (index: number, delta: number) => void;
   onDelete: (index: number) => void;
@@ -22,7 +21,7 @@ export interface DeckMainPaneProps {
   onSetCommander: (index: number, isCommander: boolean) => void;
   onChangePrinting: (index: number, card: DeckCard) => void;
   onShowDetails?: (card: DeckCard) => void;
-  addFieldRef?: RefObject<HTMLInputElement | null>;
+  onLastRowRemoved?: () => void;
   isMtg: boolean;
   isCommander: boolean;
   legality?: readonly CardLegality[];
@@ -31,7 +30,7 @@ export interface DeckMainPaneProps {
 export function DeckMainPane({
   deck,
   groups,
-  selected,
+  selectedIndex,
   onSelect,
   onInc,
   onDelete,
@@ -39,7 +38,7 @@ export function DeckMainPane({
   onSetCommander,
   onChangePrinting,
   onShowDetails,
-  addFieldRef,
+  onLastRowRemoved,
   isMtg,
   isCommander,
   legality,
@@ -56,7 +55,7 @@ export function DeckMainPane({
     onInc,
     onDelete,
     onSetCategory,
-    onLastRowRemoved: () => addFieldRef?.current?.focus(),
+    onLastRowRemoved,
   });
 
   return (
@@ -71,7 +70,7 @@ export function DeckMainPane({
               label={label}
               indices={indices}
               deck={deck.cards}
-              selected={selected}
+              selectedIndex={selectedIndex}
               onSelect={onSelect}
               onInc={onInc}
               onDelete={onDelete}

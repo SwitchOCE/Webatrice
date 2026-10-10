@@ -148,17 +148,8 @@ describe('DeckEditorHeader', () => {
     expect(props.onTagsChange).toHaveBeenCalledWith(['Burn']);
   });
 
-  it('shows the cached bracket for commander decks', () => {
-    renderHeader({
-      deck: {
-        ...deck,
-        format: 'commander',
-        bracketAssessment: {
-          level: 3, fingerprint: 'x', gameChangers: [], turns: [], turnsRestricted: [], denial: [], denialRestricted: [],
-          earlyCombos: [], lateCombos: [],
-        },
-      },
-    });
+  it('shows the bracket the editor validated', () => {
+    renderHeader({ bracketLevel: 3 });
     expect(screen.getByTitle('DeckHeader.bracketHint')).toHaveTextContent('DeckBracket.bracket 3 · DeckBracket.level.3');
   });
 });

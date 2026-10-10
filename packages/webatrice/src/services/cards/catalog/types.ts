@@ -9,6 +9,7 @@ export interface LookupResult {
   manaCost?: string;
   cmc?: number;
   colors?: string[]; // ["W", "U", ...]
+  colorIdentity?: string[];
   power?: string;
   toughness?: string;
   cipt?: boolean;

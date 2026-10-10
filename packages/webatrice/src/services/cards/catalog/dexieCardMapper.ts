@@ -90,6 +90,7 @@ export function dexieToLookup(card: Card, preferences?: CardDataPreferences): Lo
     manaCost: readStringProp(prop.manacost),
     cmc: readNumberProp(prop.cmc),
     colors: splitColors(readStringProp(prop.colors) ?? readStringProp(prop.coloridentity)),
+    colorIdentity: splitIdentity(prop.coloridentity),
     power: readStringProp(prop.power),
     toughness: readStringProp(prop.toughness),
     ...(card.cipt?.value === '1' && { cipt: true }),
@@ -204,6 +205,13 @@ function splitColors(raw: string | undefined): string[] | undefined {
     .split('')
     .filter((c) => c === 'W' || c === 'U' || c === 'B' || c === 'R' || c === 'G');
   return out.length ? out : undefined;
+}
+
+function splitIdentity(node: unknown): string[] | undefined {
+  if (!isRecord(node) || typeof node.value !== 'string') {
+    return undefined;
+  }
+  return splitColors(node.value) ?? [];
 }
 
 function isRecord(x: unknown): x is Record<string, unknown> {

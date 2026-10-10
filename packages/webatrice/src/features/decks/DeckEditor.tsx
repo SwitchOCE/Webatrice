@@ -1,28 +1,29 @@
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PanelRight, X } from 'lucide-react';
 
-import { server } from '@cockatrice/datatrice';
+import { server, ScryfallImageSize } from '@cockatrice/datatrice';
 
 import { AuthGuard, IconButton, SectionLabel } from '@app/components';
 import { useRecordRecentDeck } from '@app/hooks';
-import { readDeckPlaymat } from '@app/services';
+import { getScryfallUrlById, readDeckPlaymat } from '@app/services';
 import { AlertDialog } from '@app/dialogs';
 import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 import { Layout } from '@app/feature-wrappers/layout';
 import { useAppSelector } from '@app/store';
 import { isCommanderFormat, isMtgFormat, RouteEnum } from '@app/types';
 
+import { deckFingerprint } from './bracket';
 import { DeckBreakdown } from './components/breakdown/DeckBreakdown';
-import CardSearchDock from './components/CardSearchDock/CardSearchDock';
+import CardSearchDock, { type CardSearchDockApi } from './components/CardSearchDock/CardSearchDock';
 import { DeckEditorHeader } from './components/editor/DeckEditorHeader';
 import { DeckEditorSkeleton, DeckNotFound } from './components/editor/DeckEditorShells';
 import { DeckHistoryControls } from './components/editor/DeckHistoryControls';
 import { DeckInspector } from './components/editor/DeckInspector';
 import { DeckLegalitySummary } from './components/editor/DeckLegalitySummary';
 import { DeckMainPane } from './components/editor/DeckMainPane';
-import { dockColorIdentity, type InspectedCard } from './components/editor/editorSelection';
+import { dockColorIdentity, inspectedRow, resolveInspectedRow, type InspectedCard } from './components/editor/editorSelection';
 import { PlainAddCard } from './components/editor/PlainCardList';
 import { SampleHandPanel } from './components/editor/SampleHandPanel';
 import { groupDeckCards } from './deckGrouping';
@@ -30,6 +31,7 @@ import { deckColorIdentity, serializeDeckForSave } from './deckPersistence';
 import { isBlankDeck } from './deckSharing';
 import type { DecksLocationState } from './deckShortcuts';
 import { readDeckTags } from './deckTags';
+import { searchCardAsPreview } from './search';
 import { CardDetailDialog } from './dialogs/CardDetailDialog';
 import { ExportDeckDialog } from './dialogs/ExportDeckDialog';
 import { DeckPlaymatDialog } from './dialogs/DeckPlaymatDialog';
@@ -61,6 +63,10 @@ const DeckEditor = () => {
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const wide = useMediaQuery(WIDE_EDITOR_QUERY);
   const addFieldRef = useRef<HTMLInputElement>(null);
+  const dockApi = useRef<CardSearchDockApi | null>(null);
+  const onDockReady = useCallback((api: CardSearchDockApi) => {
+    dockApi.current = api;
+  }, []);
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isConnected = useAppSelector(server.Selectors.getIsConnected);
@@ -95,9 +101,25 @@ const DeckEditor = () => {
     [editor.deck, isCommander],
   );
   const colorIdentity = useMemo(
-    () => dockColorIdentity(editor.deck?.cards ?? [], isCommander),
+    () => (isCommander ? dockColorIdentity(editor.deck?.cards ?? [], true) : undefined),
     [editor.deck, isCommander],
   );
+  const cards = editor.deck?.cards;
+  const fingerprint = useMemo(() => (cards ? deckFingerprint(cards) : ''), [cards]);
+  const assessment = editor.deck?.bracketAssessment;
+  const bracketLevel = isCommander && assessment?.fingerprint === fingerprint ? assessment.level : undefined;
+  const { setBracketAssessment } = editor;
+  useEffect(() => {
+    if (assessment && assessment.fingerprint !== fingerprint) {
+      setBracketAssessment(undefined);
+    }
+  }, [assessment, fingerprint, setBracketAssessment]);
+  const selectedIndex = useMemo(() => resolveInspectedRow(cards ?? [], selected), [cards, selected]);
+  useEffect(() => {
+    if (selected && !selected.preview && selectedIndex < 0) {
+      setSelected(null);
+    }
+  }, [selected, selectedIndex]);
 
   const preload = useDeckImagePreload(
     deckId ?? (draftToken != null ? `draft:${draftToken}` : null),
@@ -126,18 +148,31 @@ const DeckEditor = () => {
     });
   };
 
-  const selectCard = (card: DeckCard) =>
-    setSelected({ name: card.name, category: card.category, scryfallId: card.scryfallId });
+  const selectCard = (card: DeckCard) => setSelected(inspectedRow(card));
   const moveCard = (index: number, category: DeckCard['category']) => {
     const card = editor.deck?.cards[index];
     editor.setCategory(index, category);
     if (card) {
-      setSelected({ name: card.name, category, scryfallId: card.scryfallId });
+      setSelected(inspectedRow({ ...card, category }));
     }
   };
   const addCard = (name: string, zone: 'main' | 'side', scryfallId?: string) => {
     void editor.addCard(name, { zone, scryfallId });
-    setSelected({ name, category: zone === 'side' ? 'sideboard' : 'main', scryfallId });
+    const category = zone === 'side' ? 'sideboard' : 'main';
+    setSelected((current) => (current?.preview && current.name.toLowerCase() === name.toLowerCase()
+      ? { ...current, category, scryfallId }
+      : { name, category, scryfallId, preview: { name, quantity: 1, category, scryfallId, lookupSource: 'unknown' } }));
+  };
+  const previewSearchCard = (card: Parameters<typeof searchCardAsPreview>[0], providerId?: string) => {
+    const preview = searchCardAsPreview(card);
+    setSelected({
+      name: card.name,
+      category: 'main',
+      scryfallId: providerId,
+      preview: providerId && providerId !== card.id
+        ? { ...preview, scryfallId: providerId, imageUri: getScryfallUrlById(providerId, ScryfallImageSize.Normal), imageUris: undefined }
+        : preview,
+    });
   };
 
   if (editor.loading) {
@@ -171,6 +206,7 @@ const DeckEditor = () => {
         <>
           <DeckInspector
             selected={selected}
+            index={selectedIndex}
             deckCards={editor.deck.cards}
             prices={pricing.prices}
             isCommanderDeck={isCommander}
@@ -210,12 +246,8 @@ const DeckEditor = () => {
           {isMtg ? (
             <CardSearchDock
               onAdd={addCard}
-              onSelect={(name) => {
-                const existing = editor.deck?.cards.find((c) => c.name.toLowerCase() === name.toLowerCase());
-                setSelected(existing
-                  ? { name: existing.name, category: existing.category, scryfallId: existing.scryfallId }
-                  : { name, category: 'main' });
-              }}
+              onPreview={previewSearchCard}
+              onReady={onDockReady}
               colorIdentity={colorIdentity}
               format={editor.deck.format}
               deckCards={editor.deck.cards}
@@ -272,6 +304,7 @@ const DeckEditor = () => {
             prices={pricing.prices}
             pricesLoading={pricing.loading}
             isMtg={isMtg}
+            bracketLevel={bracketLevel}
             trailing={!wide && (
               <IconButton
                 label={t('DeckEditor.inspector.toggle')}
@@ -287,7 +320,7 @@ const DeckEditor = () => {
           <DeckMainPane
             deck={editor.deck}
             groups={groups}
-            selected={selected}
+            selectedIndex={selectedIndex}
             onSelect={selectCard}
             onInc={(i, d) => editor.incQuantity(i, d)}
             onDelete={(i) => editor.deleteCard(i)}
@@ -295,7 +328,7 @@ const DeckEditor = () => {
             onSetCommander={(i, v) => editor.setCommander(i, v)}
             onChangePrinting={(i, c) => setPrintingRequest({ index: i, card: c })}
             onShowDetails={isMtg ? setDetailSnapshot : undefined}
-            addFieldRef={addFieldRef}
+            onLastRowRemoved={() => (isMtg ? dockApi.current?.focusSearch() : addFieldRef.current?.focus())}
             isMtg={isMtg}
             isCommander={isCommander}
             legality={legality.rows}

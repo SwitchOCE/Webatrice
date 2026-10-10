@@ -318,6 +318,7 @@ function mergeLookup(
     ...xml!,
     source: 'dexie+scryfall',
     fetchedAt: scryfall!.fetchedAt,
+    colorIdentity: xml!.colorIdentity ?? scryfall!.colorIdentity,
     related: overlaid.length > 0 ? overlaid : undefined,
     // Layout + faces only live on Scryfall records (cards.xml
     // doesn't carry them), so pull directly from that side without

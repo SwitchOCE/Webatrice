@@ -26,6 +26,7 @@ describe('dexieToLookup', () => {
     expect(dexieToLookup(xmlCard())).toMatchObject({
       found: true,
       source: 'dexie',
+      colorIdentity: ['U'],
       name: 'Swan Song',
       typeLine: 'Instant',
       manaCost: 'U',
@@ -94,6 +95,10 @@ describe('dexieToLookup', () => {
       related: undefined,
       'reverse-related': undefined,
     }));
-    expect(result).toMatchObject({ cmc: undefined, colors: undefined, legalities: undefined, related: undefined, printings: [] });
+    expect(result).toMatchObject({
+      cmc: undefined, colors: undefined, colorIdentity: undefined, legalities: undefined, related: undefined, printings: [],
+    });
+    expect(dexieToLookup(xmlCard({ prop: { value: { coloridentity: { value: '' } } } })))
+      .toMatchObject({ colors: undefined, colorIdentity: [] });
   });
 });

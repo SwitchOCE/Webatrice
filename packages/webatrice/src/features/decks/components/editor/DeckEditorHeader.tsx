@@ -5,7 +5,7 @@ import { Check, CircleAlert, FolderOpen, Image as ImageIcon, Loader2, MoreHorizo
 
 import { Chip, Divider, IconButton, Menu, MenuItem, MenuSeparator, type MenuAnchor } from '@app/components';
 import { DialogShell } from '@app/dialogs';
-import { isCommanderFormat, RouteEnum } from '@app/types';
+import { RouteEnum } from '@app/types';
 
 import type { BannerCandidate } from '../../deckTags';
 import type { SaveState } from '../../hooks/useDeckAutosave';
@@ -39,6 +39,7 @@ export interface DeckEditorHeaderProps {
   prices: PriceLookup;
   pricesLoading: boolean;
   isMtg: boolean;
+  bracketLevel?: number;
   trailing?: ReactNode;
 }
 
@@ -62,6 +63,7 @@ export function DeckEditorHeader({
   prices,
   pricesLoading,
   isMtg,
+  bracketLevel,
   trailing,
 }: DeckEditorHeaderProps) {
   const { t } = useTranslation();
@@ -71,7 +73,6 @@ export function DeckEditorHeader({
   const [tagsOpen, setTagsOpen] = useState(false);
   const [bannerOpen, setBannerOpen] = useState(false);
   const openDeckFlow = useOpenDeck(openDeck);
-  const bracketLevel = isCommanderFormat(deck.format) ? deck.bracketAssessment?.level : undefined;
 
   return (
     <header className="flex shrink-0 flex-col gap-2.5 border-b border-border-subtle px-5 py-3.5">

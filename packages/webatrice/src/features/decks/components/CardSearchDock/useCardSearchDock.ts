@@ -31,6 +31,7 @@ export const PRINTINGS_DELAY_MS = 250;
 export interface CardSearchDockOptions {
   onAdd: (cardName: string, zone: DockZone, providerId?: string) => void;
   onSelect?: (cardName: string) => void;
+  onPreview?: (card: ScryfallSearchCard, providerId?: string) => void;
   colorIdentity?: readonly string[];
   format?: string;
   deckCards?: readonly DeckCard[];
@@ -77,7 +78,9 @@ function useDelayed<T>(value: T, ms: number): T {
   return delayed;
 }
 
-export function useCardSearchDock({ onAdd, onSelect, colorIdentity, format, deckCards }: CardSearchDockOptions): CardSearchDockState {
+export function useCardSearchDock({
+  onAdd, onSelect, onPreview, colorIdentity, format, deckCards,
+}: CardSearchDockOptions): CardSearchDockState {
   const [text, setText] = useState('');
   const [filters, setFiltersState] = useState<SearchFiltersState>(() => initialDockFilters(colorIdentity, format));
   const coloursTouched = useRef(false);
@@ -117,6 +120,15 @@ export function useCardSearchDock({ onAdd, onSelect, colorIdentity, format, deck
       onSelectRef.current?.(selectedName);
     }
   }, [selectedName]);
+
+  const onPreviewRef = useRef(onPreview);
+  onPreviewRef.current = onPreview;
+  const chosenForSelected = selectedName ? choices[selectedName] : undefined;
+  useEffect(() => {
+    if (selected) {
+      onPreviewRef.current?.(selected, chosenForSelected);
+    }
+  }, [selected, chosenForSelected]);
 
   const printingName = useDelayed(selectedName, PRINTINGS_DELAY_MS);
   const { printings: allPrintings, loading: printingsLoading, prices: printingPrices } = useCardPrintings(printingName ?? undefined);
