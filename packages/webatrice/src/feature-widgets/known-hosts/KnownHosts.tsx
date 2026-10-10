@@ -13,6 +13,7 @@ import {
   Globe,
 } from 'lucide-react';
 
+import { Button, IconButton } from '@app/components';
 import { HostDTO } from '@app/services';
 import { LoadingState } from '@app/hooks';
 import { getHostPort } from '@app/utils';
@@ -21,15 +22,22 @@ import KnownHostDialog from './KnownHostDialog';
 import { TestConnection, useKnownHostsComponent } from './useKnownHostsComponent';
 import { publicServerOptions, refreshPublicServers, usePublicServers } from './usePublicServers';
 
+const SUMMARY_STATUS_KEYS: Record<TestConnection, string> = {
+  [TestConnection.TESTING]: 'KnownHosts.summary.testing',
+  [TestConnection.SUCCESS]: 'KnownHosts.summary.success',
+  [TestConnection.FAILED]: 'KnownHosts.summary.failed',
+};
+
 interface KnownHostsProps {
   value: HostDTO | undefined;
   onChange: (host: HostDTO | undefined) => void;
   error?: string;
   touched?: boolean;
   disabled?: boolean;
+  variant?: 'field' | 'summary';
 }
 
-const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => {
+const KnownHosts = ({ onChange, error, touched, disabled, variant = 'field' }: KnownHostsProps) => {
   const { t } = useTranslation();
   const {
     hosts,
@@ -151,87 +159,137 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
 
   const showError = Boolean(touched && error);
 
-  return (
-    <div ref={rootRef} className="relative">
-      <div className="block">
-        <span className="flex items-center justify-between text-xs font-medium text-text-muted mb-1">
-          <span id={hostLabelId}>{t('KnownHosts.label')}</span>
-          {showError && (
-            <span className="flex items-center gap-1 text-[0.7rem] text-danger">
-              <AlertCircle size={11} />
-              {error}
-            </span>
-          )}
-        </span>
-        <div
+  const field = (
+    <div className="block">
+      <span className="flex items-center justify-between text-xs font-medium text-text-muted mb-1">
+        <span id={hostLabelId}>{t('KnownHosts.label')}</span>
+        {showError && (
+          <span className="flex items-center gap-1 text-[0.7rem] text-danger">
+            <AlertCircle size={11} />
+            {error}
+          </span>
+        )}
+      </span>
+      <div
+        className={[
+          'w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm bg-bg-elevated border transition-colors',
+          showError ? 'border-danger' : 'border-border-control hover:border-text-muted',
+          'focus-within:outline-none focus-within:ring-1 focus-within:border-accent focus-within:ring-accent',
+          disabled ? 'opacity-60' : '',
+        ].join(' ')}
+      >
+        <button
+          ref={triggerRef}
+          type="button"
+          disabled={disabled}
+          onClick={toggle}
+          aria-labelledby={hostLabelId}
+          aria-expanded={open}
+          aria-controls={open ? popupId : undefined}
           className={[
-            'w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm bg-bg-elevated border transition-colors',
-            showError ? 'border-danger' : 'border-border-control hover:border-text-muted',
-            'focus-within:outline-none focus-within:ring-1 focus-within:border-accent focus-within:ring-accent',
-            disabled ? 'opacity-60' : '',
+            'flex-1 min-w-0 flex items-center gap-2 text-left bg-transparent focus:outline-none',
+            disabled ? 'cursor-not-allowed' : 'cursor-pointer',
           ].join(' ')}
         >
-          <button
-            ref={triggerRef}
-            type="button"
-            disabled={disabled}
-            onClick={toggle}
-            aria-labelledby={hostLabelId}
-            aria-expanded={open}
-            aria-controls={open ? popupId : undefined}
-            className={[
-              'flex-1 min-w-0 flex items-center gap-2 text-left bg-transparent focus:outline-none',
-              disabled ? 'cursor-not-allowed' : 'cursor-pointer',
-            ].join(' ')}
-          >
-            {selectedHost ? (
-              <SelectedHost host={selectedHost} status={testConnectionStatus} />
-            ) : (
-              <span className="text-text-muted">—</span>
-            )}
-          </button>
-          {selectedHost && (
-            <button
-              type="button"
-              disabled={disabled || testConnectionStatus === TestConnection.TESTING}
-              onClick={(e) => {
-                e.stopPropagation();
-                refreshConnection();
-              }}
-              className={[
-                'shrink-0 p-1 rounded text-text-muted transition-colors',
-                disabled || testConnectionStatus === TestConnection.TESTING
-                  ? 'cursor-not-allowed'
-                  : 'hover:text-text-primary hover:bg-border-subtle cursor-pointer',
-              ].join(' ')}
-              title={t('KnownHosts.refresh')}
-              aria-label={t('KnownHosts.refresh')}
-            >
-              <RefreshCw
-                size={13}
-                className={testConnectionStatus === TestConnection.TESTING ? 'animate-spin' : ''}
-              />
-            </button>
+          {selectedHost ? (
+            <SelectedHost host={selectedHost} status={testConnectionStatus} />
+          ) : (
+            <span className="text-text-muted">—</span>
           )}
+        </button>
+        {selectedHost && (
           <button
             type="button"
-            disabled={disabled}
-            onClick={toggle}
-            aria-label={t('KnownHosts.toggle')}
-            aria-expanded={open}
-            aria-controls={open ? popupId : undefined}
+            disabled={disabled || testConnectionStatus === TestConnection.TESTING}
+            onClick={(e) => {
+              e.stopPropagation();
+              refreshConnection();
+            }}
             className={[
-              'shrink-0 text-text-muted focus:outline-none',
-              disabled ? 'cursor-not-allowed' : 'cursor-pointer',
+              'shrink-0 p-1 rounded text-text-muted transition-colors',
+              disabled || testConnectionStatus === TestConnection.TESTING
+                ? 'cursor-not-allowed'
+                : 'hover:text-text-primary hover:bg-border-subtle cursor-pointer',
             ].join(' ')}
+            title={t('KnownHosts.refresh')}
+            aria-label={t('KnownHosts.refresh')}
           >
-            <ChevronDown
-              size={14}
-              className={['transition-transform', open ? 'rotate-180' : ''].join(' ')}
+            <RefreshCw
+              size={13}
+              className={testConnectionStatus === TestConnection.TESTING ? 'animate-spin' : ''}
             />
           </button>
-        </div>
+        )}
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={toggle}
+          aria-label={t('KnownHosts.toggle')}
+          aria-expanded={open}
+          aria-controls={open ? popupId : undefined}
+          className={[
+            'shrink-0 text-text-muted focus:outline-none',
+            disabled ? 'cursor-not-allowed' : 'cursor-pointer',
+          ].join(' ')}
+        >
+          <ChevronDown
+            size={14}
+            className={['transition-transform', open ? 'rotate-180' : ''].join(' ')}
+          />
+        </button>
       </div>
+    </div>
+  );
+
+  const testing = testConnectionStatus === TestConnection.TESTING;
+  const summary = (
+    <div className="flex items-center gap-3 rounded-ui bg-bg-sunken py-2 pl-3 pr-1.5">
+      {selectedHost ? (
+        <>
+          <ConnectionIcon status={testConnectionStatus} size={16} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13.5px] font-semibold text-text-primary">{selectedHost.name}</p>
+            <p className="truncate text-[12px] text-text-muted">
+              <span className={testConnectionStatus === TestConnection.FAILED ? 'text-danger' : undefined}>
+                {t(SUMMARY_STATUS_KEYS[testConnectionStatus ?? TestConnection.TESTING])}
+              </span>
+              <span className="tabular-nums">
+                {' · '}
+                {getHostPort(selectedHost).host}:{getHostPort(selectedHost).port}
+              </span>
+            </p>
+          </div>
+          <IconButton
+            size="sm"
+            label={t('KnownHosts.refresh')}
+            disabled={disabled || testing}
+            onClick={refreshConnection}
+          >
+            <RefreshCw size={14} className={testing ? 'animate-spin' : ''} />
+          </IconButton>
+        </>
+      ) : (
+        <p className={['min-w-0 flex-1 text-[13px]', showError ? 'text-danger' : 'text-text-muted'].join(' ')}>
+          {showError ? error : t('KnownHosts.summary.none')}
+        </p>
+      )}
+      <Button
+        ref={triggerRef}
+        size="sm"
+        variant="ghost"
+        disabled={disabled}
+        onClick={toggle}
+        aria-expanded={open}
+        aria-controls={open ? popupId : undefined}
+      >
+        {t('KnownHosts.change')}
+      </Button>
+    </div>
+  );
+
+  return (
+    <div ref={rootRef} className="relative">
+      {variant === 'summary' ? summary : field}
 
       <span role="status" className="sr-only">
         {selectedHost && testConnectionStatus != null && t(`KnownHosts.status.${testConnectionStatus}`)}
@@ -390,6 +448,16 @@ const KnownHosts = ({ onChange, error, touched, disabled }: KnownHostsProps) => 
     </div>
   );
 };
+
+function ConnectionIcon({ status, size }: { status: TestConnection | null; size: number }) {
+  if (status === TestConnection.FAILED) {
+    return <WifiOff size={size} className="shrink-0 text-danger" aria-hidden />;
+  }
+  if (status === TestConnection.SUCCESS) {
+    return <Wifi size={size} className="shrink-0 text-success" aria-hidden />;
+  }
+  return <Loader2 size={size} className="shrink-0 animate-spin text-text-muted" aria-hidden />;
+}
 
 /** Compact "selected host" summary shown in the closed dropdown
  *  button — connection-status icon + `Name (host:port)`. Keeps the

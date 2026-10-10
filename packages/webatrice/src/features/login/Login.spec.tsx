@@ -233,6 +233,36 @@ describe('Login — signed-out actions', () => {
 
     expect(getByRole('link', { name: 'Login.action.watchReplay' })).toHaveAttribute('href', RouteEnum.REPLAYS);
   });
+
+  test('opens the registration dialog from the "Create an account" card, naming the selected server', () => {
+    const { getByRole, queryByRole } = renderWithProviders(<Login />, { preloadedState: disconnectedState });
+    const register = getByRole('button', { name: 'Login.action.register' });
+    expect(register).toHaveAccessibleDescription('Login.action.registerOn');
+    expect(queryByRole('dialog', { name: /RegistrationDialog\.title/ })).not.toBeInTheDocument();
+
+    fireEvent.click(register);
+
+    expect(getByRole('dialog', { name: /RegistrationDialog\.title/ })).toBeInTheDocument();
+  });
+
+  test('shows card art with its name, and shuffles to a different card', () => {
+    const { container, getByRole } = renderWithProviders(<Login />, { preloadedState: disconnectedState });
+    const firstSrc = container.querySelector('img[src*="art_crop"]')?.getAttribute('src');
+    expect(firstSrc).toBeTruthy();
+
+    fireEvent.click(getByRole('button', { name: 'Login.art.shuffle' }));
+
+    expect(container.querySelector('img[src*="art_crop"]')?.getAttribute('src')).not.toBe(firstSrc);
+  });
+
+  test('falls back to the bundled gradient when the art cannot load', () => {
+    const { container, getByRole } = renderWithProviders(<Login />, { preloadedState: disconnectedState });
+    fireEvent.error(container.querySelector('img[src*="art_crop"]')!);
+
+    expect(container.querySelector('img[src*="art_crop"]')).toBeNull();
+    expect(container.querySelector('.login-art-fallback')).not.toBeNull();
+    expect(getByRole('button', { name: 'Login.art.shuffle' })).toBeEnabled();
+  });
 });
 
 describe('Login — LOGIN_SUCCESSFUL → knownHosts persistence', () => {

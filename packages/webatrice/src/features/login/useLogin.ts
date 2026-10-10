@@ -27,6 +27,7 @@ export interface LoginDialogState {
 export interface Login {
   description: string | undefined;
   passwordChangeRequired: boolean;
+  loginFailed: boolean;
   isConnected: boolean;
   dialogState: LoginDialogState;
   userToResetPassword: string | null;
@@ -63,6 +64,7 @@ export function useLogin(): Login {
   const loginFailureKey = loginFailureCode === null ? undefined : LOGIN_FAILURE_MESSAGE_KEYS[loginFailureCode];
   const passwordChangeRequired =
     !isConnected && loginFailureCode === Response_ResponseCode.RespPasswordChangeRequired;
+  const loginFailed = !isConnected && (loginFailureCode !== null || connectUnreachable);
   let description = rawDescription;
   if (!isConnected && connectUnreachable) {
     description = t('Login.status.serverUnreachable');
@@ -264,6 +266,7 @@ export function useLogin(): Login {
   return {
     description,
     passwordChangeRequired,
+    loginFailed,
     isConnected,
     dialogState,
     userToResetPassword,
