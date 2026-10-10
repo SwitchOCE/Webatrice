@@ -16,8 +16,9 @@ import { topBarTab } from './TopBar';
 //                has a single `Join`/`Open` button)
 //   • GamesList (role=grid under /room/:id — rows are focusable
 //                role=rows the user clicks or arrows to select, Enter
-//                joins, and a toolbar below exposes Create / Join /
-//                Spectate / Judge buttons)
+//                joins, every row has its own Spectate / Join buttons
+//                and a More menu with the judge options, and a
+//                quick-filter bar sits above the grid)
 //
 // The pre-redo `LeftNav-server__indicator` and `games__row` class hooks
 // are gone; every selector below is grounded in the new DOM.
@@ -57,10 +58,10 @@ export class RoomsPage {
     await this.waitForGameList();
   }
 
-  // GamesList header shows "Showing X / Y" (see GamesList.tsx) — this
-  // caption is unique to the /room/:id view.
+  // The quick-filter bar shows "X of Y games" (QuickFilterBar.tsx) —
+  // this caption is unique to the /room/:id view.
   get gameListCaption(): Locator {
-    return this.page.getByText(/showing\s+\d+\s+\/\s+\d+/i);
+    return this.page.getByText(/^\d+\s+of\s+\d+\s+games?$/i);
   }
 
   async waitForGameList(): Promise<void> {
@@ -71,7 +72,7 @@ export class RoomsPage {
 
   async createGame(description: string, options: CreateGameOptions = {}): Promise<void> {
     // "Create" is a toolbar button inside the GamesList section.
-    await this.page.getByRole('button', { name: /^create$/i }).click();
+    await this.page.getByRole('button', { name: /^create( game)?$/i }).first().click();
     // CreateGameDialog is still an MUI <Dialog> — role="dialog" with
     // a "Create Game" title. Match on that title so the Confirm dialog
     // spawn (also role="dialog") from other flows doesn't shadow it.
@@ -111,24 +112,16 @@ export class RoomsPage {
   ): Promise<void> {
     const row = this.gameRow(description);
     await expect(row).toBeVisible({ timeout: 15_000 });
-    // Selecting the row enables the toolbar's Join/Spectate buttons.
-    await row.click();
-
-    // Toolbar labels (GamesList.tsx):
-    //   Join            → /^Join$/
-    //   Spectate        → /^Spectate$/
-    //   Judge           → /^Judge$/
-    //   Judge · Spectate → /Judge.*Spectate/  (middle dot separator)
-    const action = options.judgeSpectator
-      ? /judge.*spectate/i
-      : options.judge
-        ? /^judge$/i
-        : options.spectator
-          ? /^spectate$/i
-          : /^join$/i;
-    const btn = this.page.getByRole('button', { name: action });
-    await expect(btn).toBeEnabled({ timeout: 10_000 });
-    await btn.click();
+    if (options.judge || options.judgeSpectator) {
+      await row.getByRole('button', { name: /^more for /i }).click();
+      const item = this.page.getByRole('menuitem', { name: options.judgeSpectator ? /spectate as judge/i : /join as judge/i });
+      await expect(item).toBeEnabled({ timeout: 10_000 });
+      await item.click();
+    } else {
+      const btn = row.getByRole('button', { name: options.spectator ? /^spectate /i : /^join /i });
+      await expect(btn).toBeEnabled({ timeout: 10_000 });
+      await btn.click();
+    }
     // Pre-start: GameLobby (game-lobby testid) mounts. Post-start:
     // GameBoard (game-container testid) mounts. Wait for either.
     await expect(

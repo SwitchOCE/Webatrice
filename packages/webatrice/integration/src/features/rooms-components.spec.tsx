@@ -4,7 +4,6 @@ import { create } from '@bufbuild/protobuf';
 
 import GamesList from '../../../src/features/rooms/components/GamesList';
 import CreateGameDialog from '../../../src/features/rooms/dialogs/CreateGameDialog/CreateGameDialog';
-import FilterGamesDialog from '../../../src/features/rooms/dialogs/FilterGamesDialog/FilterGamesDialog';
 import { rooms } from '@cockatrice/datatrice';
 import { ServerInfo_RoomSchema } from '@cockatrice/sockatrice/generated';
 import type { Room as RoomType } from '@cockatrice/datatrice';
@@ -36,13 +35,13 @@ const makeRoom = (): RoomType => ({
 }) as unknown as RoomType;
 
 describe('Rooms components (integration)', () => {
-  it('mounts GamesList with an empty room as a games grid with sortable headers and a toolbar', () => {
+  it('mounts GamesList with an empty room as a games grid under the quick-filter bar', () => {
     renderFeatureScreen(<GamesList room={makeRoom()} />);
 
     expect(screen.getByRole('grid', { name: 'GamesList.heading' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'GamesList.column.age' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'GamesList.column.description' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Common.action.create' })).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'QuickFilterBar.search' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'QuickFilterBar.more' })).toBeInTheDocument();
+    expect(screen.getByText('GamesList.empty')).toBeInTheDocument();
   });
 
   it('mounts CreateGameDialog open', () => {
@@ -56,19 +55,5 @@ describe('Rooms components (integration)', () => {
     );
 
     expect(screen.getByText('CreateGameDialog.title')).toBeInTheDocument();
-  });
-
-  it('mounts FilterGamesDialog open with default filters', () => {
-    renderFeatureScreen(
-      <FilterGamesDialog
-        isOpen
-        initialFilters={rooms.DEFAULT_GAME_FILTERS}
-        gametypeMap={{}}
-        onCancel={vi.fn()}
-        onSubmit={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByText('FilterGamesDialog.title')).toBeInTheDocument();
   });
 });

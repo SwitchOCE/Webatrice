@@ -1,26 +1,20 @@
 {
   "GamesList": {
     "heading": "Games in {room}",
-    "showing": "Showing {visible} / {total}",
-    "empty": "No games open right now — click <create>Create</create> to start one.",
+    "empty": "No games open right now. Create one to start playing.",
+    "emptyFiltered": "No games match your filters.",
     "column": {
-      "age": "Age",
-      "description": "Description",
-      "creator": "Creator",
-      "type": "Type",
-      "restrictions": "Restrictions",
-      "players": "Players",
-      "spectators": "Spectators"
+      "game": "Game · {sort}",
+      "seats": "Seats",
+      "watching": "Watching",
+      "actions": "Actions"
     },
     "action": {
-      "filter": "Filter games",
-      "clearFilter": "Clear filter",
       "spectate": "Spectate",
-      "judge": "Judge",
-      "judgeSpectate": "Judge · Spectate"
-    },
-    "password": {
-      "title": "Password required"
+      "judge": "Join as judge",
+      "judgeSpectate": "Spectate as judge",
+      "info": "Game info",
+      "copyLink": "Copy game link"
     },
     "error": {
       "title": "Error"

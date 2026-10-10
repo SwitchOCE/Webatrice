@@ -1,6 +1,6 @@
 import { act } from 'react';
 import { fireEvent, screen, within } from '@testing-library/react';
-import { create } from '@bufbuild/protobuf';
+import { create, type MessageInitShape } from '@bufbuild/protobuf';
 
 import { ServerInfo_GameSchema, ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 import { rooms as roomsSlice, type Room } from '@cockatrice/datatrice';
@@ -22,7 +22,7 @@ let observers: RoHandle[] = [];
 function mountRows(container: HTMLElement): void {
   const list = container.querySelector('.virtual-list__list');
   if (!list) {
-    throw new Error('virtual-list__list element not found');
+    return;
   }
   for (const handle of observers) {
     if (handle.targets.has(list)) {
@@ -33,9 +33,15 @@ function mountRows(container: HTMLElement): void {
   }
 }
 
-const makeGame = (gameId: number, description: string, playerCount = 1, spectatorsAllowed = true) => ({
+const makeGame = (
+  gameId: number,
+  description: string,
+  playerCount = 1,
+  spectatorsAllowed = true,
+  extra: MessageInitShape<typeof ServerInfo_GameSchema> = {},
+) => ({
   info: create(ServerInfo_GameSchema, {
-    gameId, roomId: 1, description, playerCount, maxPlayers: 2, spectatorsAllowed, startTime: gameId,
+    gameId, roomId: 1, description, playerCount, maxPlayers: 2, spectatorsAllowed, startTime: gameId, ...extra,
   }),
   gameType: '',
 });
@@ -122,7 +128,6 @@ describe('GamesList', () => {
 
     expect(second).toHaveAttribute('aria-selected', 'true');
     expect(second).toHaveFocus();
-    expect(screen.getByRole('button', { name: 'Common.action.join' })).toBeEnabled();
   });
 
   it('joins the focused game on Enter, without a prior click', () => {
@@ -143,10 +148,11 @@ describe('GamesList', () => {
     expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(1, expect.objectContaining({ gameId: 3 }), expect.any(String));
   });
 
-  it('does not redraw virtual rows when opening an unrelated toolbar dialog', () => {
+  it('does not redraw virtual rows when opening the More filters panel', () => {
     setup();
     const renderRow = vi.mocked(VirtualRows).mock.calls.at(-1)![0].renderRow;
-    fireEvent.click(screen.getByRole('button', { name: 'Common.action.create' }));
+    fireEvent.click(screen.getByRole('button', { name: 'QuickFilterBar.more' }));
+    expect(screen.getByRole('dialog', { name: 'QuickFilterBar.more' })).toBeInTheDocument();
     expect(vi.mocked(VirtualRows).mock.calls.at(-1)![0].renderRow).toBe(renderRow);
   });
 
@@ -161,107 +167,167 @@ describe('GamesList', () => {
     expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(1, expect.objectContaining({ gameId: 2 }), expect.any(String));
   });
 
-  it('sorts from a header button and reports the sort direction', () => {
-    setup();
+  it('sorts from the sort menu and reports the direction on the game column', () => {
+    const { store } = setup();
 
-    const description = screen.getByRole('button', { name: 'GamesList.column.description' });
-    fireEvent.click(description);
+    fireEvent.click(screen.getByRole('button', { name: 'QuickFilterBar.sort.label' }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'QuickFilterBar.sort.description' }));
 
-    const header = screen.getByRole('columnheader', { name: 'GamesList.column.description' });
-    expect(header).toHaveAttribute('aria-sort');
-    expect(screen.queryByRole('button', { name: 'GamesList.column.restrictions' })).not.toBeInTheDocument();
+    expect(store.getState().rooms.sortGamesBy).toEqual({ field: 'info.description', order: 'ASC' });
+    expect(screen.getAllByRole('row').slice(1).map((r) => r.textContent)).toEqual([
+      expect.stringContaining('Alpha'), expect.stringContaining('Bravo'), expect.stringContaining('Charlie'),
+    ]);
+    expect(screen.getByRole('columnheader', { name: /GamesList\.column\.game/ })).toHaveAttribute('aria-sort', 'ascending');
   });
 
-  describe('toolbar', () => {
-    const join = () => screen.getByRole('button', { name: 'Common.action.join' });
-    const spectate = () => screen.getByRole('button', { name: 'GamesList.action.spectate' });
+  it('shows the game age in minutes rather than the raw start time', () => {
+    const startTime = Math.floor(Date.now() / 1000) - 5 * 60;
+    setup({ games: { 1: makeGame(1, 'Fresh', 1, true, { startTime }) } });
 
-    it('keeps Join disabled until a game is selected', () => {
-      setup();
+    expect(row('Fresh')).toHaveTextContent('GameRow.age.minutes');
+    expect(row('Fresh')).not.toHaveTextContent(String(startTime));
+  });
 
-      expect(join()).toBeDisabled();
-      fireEvent.click(row('Alpha'));
-      expect(join()).toBeEnabled();
+  describe('row actions', () => {
+    const join = (name: RegExp = /^GameRow\.join$/) => screen.getByRole('button', { name });
+    const spectate = () => screen.getByRole('button', { name: /^GameRow\.spectate/ });
+    const locked = () => ({ 1: makeGame(1, 'Locked', 1, true, { withPassword: true }) });
+
+    it('joins and spectates straight from the row', () => {
+      const { webClient } = setup({ games: { 1: makeGame(1, 'Alpha') } });
+
+      fireEvent.click(spectate());
+      expect(webClient.request.rooms.joinGame).toHaveBeenLastCalledWith(
+        1, expect.objectContaining({ gameId: 1, spectator: true }), expect.any(String),
+      );
+      fireEvent.click(join());
+      expect(webClient.request.rooms.joinGame).toHaveBeenLastCalledWith(
+        1, expect.objectContaining({ gameId: 1, spectator: false }), expect.any(String),
+      );
     });
 
     it('disables Join and Spectate while a join is pending', () => {
-      setup({ rooms: { joinGamePending: true } });
+      setup({ games: { 1: makeGame(1, 'Alpha') }, rooms: { joinGamePending: true } });
 
-      fireEvent.click(row('Alpha'));
-
-      expect(join()).toBeDisabled();
+      expect(join(/^GameRow\.joinBlocked/)).toBeDisabled();
       expect(spectate()).toBeDisabled();
     });
 
-    it('disables Join when the selected game is full', () => {
+    it('disables Join with a reason when the game is full', () => {
       setup({ games: { 1: makeGame(1, 'Full', 2) } });
 
-      fireEvent.click(row('Full'));
-
-      expect(join()).toBeDisabled();
+      expect(join(/^GameRow\.joinBlocked/)).toBeDisabled();
       expect(spectate()).toBeEnabled();
     });
 
     it('disables Spectate when the game allows no spectators', () => {
       setup({ games: { 1: makeGame(1, 'Closed', 1, false) } });
 
-      fireEvent.click(row('Closed'));
-
       expect(spectate()).toBeDisabled();
       expect(join()).toBeEnabled();
     });
 
-    it('shows the judge buttons only to a user with the IsJudge flag', () => {
-      setup({ userLevel: ServerInfo_User_UserLevelFlag.IsUser });
-      expect(screen.queryByRole('button', { name: /GamesList\.action\.judge/ })).not.toBeInTheDocument();
+    it('asks for the password in a popover under Join and sends it', () => {
+      const { webClient } = setup({ games: locked() });
+
+      fireEvent.click(join(/^GameRow\.joinWithPassword/));
+      const popover = screen.getByRole('dialog', { name: 'PasswordPopover.label' });
+      const field = within(popover).getByLabelText('PasswordPopover.label');
+      expect(field).toHaveAttribute('type', 'password');
+      expect(field).toHaveFocus();
+      fireEvent.change(field, { target: { value: 'hunter2' } });
+      fireEvent.click(within(popover).getByRole('button', { name: 'Common.action.join' }));
+
+      expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(
+        1, expect.objectContaining({ gameId: 1, password: 'hunter2' }), expect.any(String),
+      );
+      expect(screen.queryByRole('dialog', { name: 'PasswordPopover.label' })).not.toBeInTheDocument();
     });
 
-    it('shows both judge buttons to a judge', () => {
-      setup({ userLevel: ServerInfo_User_UserLevelFlag.IsUser | ServerInfo_User_UserLevelFlag.IsJudge });
+    it('closes the password popover on Escape without joining', () => {
+      const { webClient } = setup({ games: locked() });
 
-      expect(screen.getByRole('button', { name: 'GamesList.action.judge' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'GamesList.action.judgeSpectate' })).toBeInTheDocument();
+      fireEvent.click(join(/^GameRow\.joinWithPassword/));
+      const popover = screen.getByRole('dialog', { name: 'PasswordPopover.label' });
+      fireEvent.keyDown(within(popover).getByLabelText('PasswordPopover.label'), { key: 'Escape' });
+
+      expect(screen.queryByRole('dialog', { name: 'PasswordPopover.label' })).not.toBeInTheDocument();
+      expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
     });
 
-    it('applies the filter dialog to the room', () => {
-      const { store } = setup();
+    it('offers game info and the game link in the More menu, without judge items for non-judges', () => {
+      setup({ games: { 1: makeGame(1, 'Alpha') }, userLevel: ServerInfo_User_UserLevelFlag.IsUser });
 
-      fireEvent.click(screen.getByRole('button', { name: 'GamesList.action.filter' }));
-      fireEvent.click(screen.getByLabelText('FilterGamesDialog.hide.fullGames'));
-      fireEvent.click(screen.getByRole('button', { name: 'Common.action.apply' }));
+      fireEvent.click(screen.getByRole('button', { name: 'GameRow.more' }));
 
-      expect(store.getState().rooms.gameFilters[1]?.hideFullGames).toBe(true);
+      expect(screen.getByRole('menuitem', { name: /GamesList\.action\.copyLink/ })).toBeInTheDocument();
+      expect(screen.queryByRole('menuitem', { name: /GamesList\.action\.judge/ })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('menuitem', { name: 'GamesList.action.info' }));
+      expect(screen.getByRole('dialog', { name: 'Alpha' })).toBeInTheDocument();
     });
 
-    it('cancels the filter dialog without touching the filters', () => {
-      const { store } = setup();
-
-      fireEvent.click(screen.getByRole('button', { name: 'GamesList.action.filter' }));
-      fireEvent.click(screen.getByLabelText('FilterGamesDialog.hide.fullGames'));
-      fireEvent.click(screen.getByRole('button', { name: 'Common.action.cancel' }));
-
-      expect(store.getState().rooms.gameFilters[1]).toBeUndefined();
-    });
-
-    it('dispatches clearGameFilters from Clear filter', () => {
-      const { store } = setup({
-        rooms: { gameFilters: { 1: { ...roomsSlice.DEFAULT_GAME_FILTERS, hideFullGames: true } } },
+    it('lets a judge spectate as judge from the More menu', () => {
+      const { webClient } = setup({
+        games: { 1: makeGame(1, 'Alpha') },
+        userLevel: ServerInfo_User_UserLevelFlag.IsUser | ServerInfo_User_UserLevelFlag.IsJudge,
       });
 
-      fireEvent.click(screen.getByRole('button', { name: 'GamesList.action.clearFilter' }));
+      fireEvent.click(screen.getByRole('button', { name: 'GameRow.more' }));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'GamesList.action.judgeSpectate' }));
+
+      expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(
+        1, expect.objectContaining({ gameId: 1, spectator: true, joinAsJudge: true }), expect.any(String),
+      );
+    });
+  });
+
+  describe('quick filters', () => {
+    it('filters by description as you type and shows an honest count', () => {
+      const { store } = setup();
+
+      fireEvent.change(screen.getByRole('searchbox', { name: 'QuickFilterBar.search' }), { target: { value: 'brav' } });
+
+      expect(store.getState().rooms.gameFilters[1]?.gameNameFilter).toBe('brav');
+      expect(screen.getAllByRole('row').slice(1)).toHaveLength(1);
+      expect(screen.getByText('QuickFilterBar.count')).toBeInTheDocument();
+    });
+
+    it('hides full and started games with one toggle', () => {
+      const { store } = setup();
+
+      fireEvent.click(screen.getByRole('button', { name: 'QuickFilterBar.hideFullAndStarted' }));
+
+      expect(store.getState().rooms.gameFilters[1]).toMatchObject({ hideFullGames: true, hideGamesThatStarted: true });
+      expect(screen.getByRole('button', { name: 'QuickFilterBar.hideFullAndStarted' })).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('applies More filters live and lists them as removable chips', () => {
+      const { store } = setup();
+
+      fireEvent.click(screen.getByRole('button', { name: 'QuickFilterBar.more' }));
+      fireEvent.click(screen.getByRole('checkbox', { name: 'MoreFilters.hide.ignoredUsers' }));
+      expect(store.getState().rooms.gameFilters[1]?.hideIgnoredUserGames).toBe(true);
+
+      fireEvent.click(screen.getByRole('button', { name: 'MoreFilters.done' }));
+      fireEvent.click(screen.getByRole('button', { name: 'QuickFilterBar.removeChip' }));
+
+      expect(store.getState().rooms.gameFilters[1]?.hideIgnoredUserGames).toBe(false);
+    });
+
+    it('clears every filter from Clear all', () => {
+      const { store } = setup({
+        rooms: { gameFilters: { 1: { ...roomsSlice.DEFAULT_GAME_FILTERS, hideFullGames: true, gameNameFilter: 'x' } } },
+      });
+
+      fireEvent.click(screen.getAllByRole('button', { name: 'QuickFilterBar.clearAll' })[0]);
 
       expect(store.getState().rooms.gameFilters[1]).toEqual(roomsSlice.DEFAULT_GAME_FILTERS);
     });
 
-    it('submits createGame from the create dialog', () => {
-      const { webClient } = setup();
+    it('says when filters hide every game', () => {
+      setup({ rooms: { gameFilters: { 1: { ...roomsSlice.DEFAULT_GAME_FILTERS, gameNameFilter: 'zzz' } } } });
 
-      fireEvent.click(screen.getByRole('button', { name: 'Common.action.create' }));
-      const create = screen.getAllByRole('button', { name: 'Common.action.create' });
-      fireEvent.click(create[create.length - 1]);
-
-      expect(webClient.request.rooms.createGame).toHaveBeenCalledTimes(1);
-      expect(vi.mocked(webClient.request.rooms.createGame).mock.calls[0][0]).toBe(1);
+      expect(screen.getByText('GamesList.emptyFiltered')).toBeInTheDocument();
     });
   });
 });
