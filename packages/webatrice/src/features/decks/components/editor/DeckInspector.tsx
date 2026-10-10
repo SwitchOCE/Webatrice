@@ -122,35 +122,44 @@ function CardSummary({ card, prices, children }: { card: DeckCard; prices: Price
   const stats = card.power != null && card.toughness != null ? `${card.power}/${card.toughness}` : undefined;
 
   return (
-    <div className="flex gap-3">
-      <div className="aspect-[5/7] w-[132px] shrink-0 overflow-hidden rounded-[8px] border border-border-subtle bg-bg-elevated">
+    <div className="flex flex-col gap-3">
+      <div
+        className="aspect-[5/7] w-full overflow-hidden border border-border-subtle bg-bg-elevated"
+        style={{ borderRadius: '4.75% / 3.4%' }}
+      >
         {src ? (
           <img src={src} alt={card.name} className="h-full w-full object-cover" draggable={false} onError={onError} />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-2 px-3 text-center text-[11px] text-text-muted">
-            <ImageOff size={18} />
+          <div className="flex h-full flex-col items-center justify-center gap-2 px-3 text-center text-[12px] text-text-muted">
+            <ImageOff size={20} />
             {t('DeckInspector.noImage')}
           </div>
         )}
       </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <span className="text-[14px] font-semibold leading-snug text-text-primary">{card.name}</span>
-        {card.manaCost && <ManaSymbols cost={card.manaCost} size={14} />}
+      <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex items-start justify-between gap-2">
+          <span className="min-w-0 text-[15px] font-semibold leading-snug text-text-primary">{card.name}</span>
+          {card.manaCost && <ManaSymbols cost={card.manaCost} size={14} className="mt-0.5 shrink-0" />}
+        </div>
         {card.typeLine && <span className="text-[12px] leading-snug text-text-secondary">{card.typeLine}</span>}
-        {(card.set || stats) && (
-          <span className="text-[12px] text-text-muted">
-            {card.set && <span className="uppercase">{card.set}</span>}
-            {card.set && stats && ' Â· '}
-            {stats}
-          </span>
+        {(card.set || stats || price != null) && (
+          <div className="flex items-baseline gap-2 text-[12px] text-text-muted">
+            {(card.set || stats) && (
+              <span>
+                {card.set && <span className="uppercase">{card.set}</span>}
+                {card.set && stats && ' · '}
+                {stats}
+              </span>
+            )}
+            {price != null && (
+              <span className="ml-auto text-[13px] font-semibold tabular-nums text-success">
+                {t('DeckInspector.price', { price: price.toFixed(2) })}
+              </span>
+            )}
+          </div>
         )}
-        {price != null && (
-          <span className="text-[13px] font-semibold tabular-nums text-success">
-            {t('DeckInspector.price', { price: price.toFixed(2) })}
-          </span>
-        )}
-        <div className="mt-auto flex items-center gap-2 pt-1">{children}</div>
       </div>
+      <div className="flex items-center gap-2">{children}</div>
     </div>
   );
 }

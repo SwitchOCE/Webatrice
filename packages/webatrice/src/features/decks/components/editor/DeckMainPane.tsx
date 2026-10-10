@@ -15,6 +15,7 @@ export interface DeckMainPaneProps {
   groups: DeckCardGroupData[];
   selectedIndex: number;
   onSelect: (card: DeckCard) => void;
+  onPreview?: (card: DeckCard | null) => void;
   onInc: (index: number, delta: number) => void;
   onDelete: (index: number) => void;
   onSetCategory: (index: number, category: DeckCategory) => void;
@@ -32,6 +33,7 @@ export function DeckMainPane({
   groups,
   selectedIndex,
   onSelect,
+  onPreview,
   onInc,
   onDelete,
   onSetCategory,
@@ -72,6 +74,7 @@ export function DeckMainPane({
               deck={deck.cards}
               selectedIndex={selectedIndex}
               onSelect={onSelect}
+              onPreview={onPreview}
               onInc={onInc}
               onDelete={onDelete}
               onSetCategory={onSetCategory}

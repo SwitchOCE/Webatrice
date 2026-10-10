@@ -5,7 +5,7 @@ import { ScryfallImageSize } from '@cockatrice/datatrice';
 import { CardImage } from '@app/components';
 import { cleanScryfallName, getScryfallUrlByIdOrExactName } from '@app/services';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from './cardSize';
-import { useCardPreviewActions } from '../CardPreviewContext';
+import { anchorOf, useCardPreviewActions } from '../CardPreviewContext';
 import { counterLetter } from './cardLabel';
 import { counterColorForId } from './counterColors';
 
@@ -81,7 +81,7 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
   const [loadedImageUrl, setLoadedImageUrl] = useState<string | null>(null);
   const showName = displayCardNames || !!faceDown || !imageUrl || loadedImageUrl !== imageUrl;
 
-  const { setHoveredCard, openBigPreview, closeBigPreview } = useCardPreviewActions();
+  const { setHoveredCard, endHover, openBigPreview, closeBigPreview } = useCardPreviewActions();
   const { t } = useTranslation();
 
   return (
@@ -97,7 +97,7 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
       }}
       title={[displayName, ...(counters ?? []).map((c) => t('SeatCard.counterBadge', { letter: counterLetter(c.id), count: c.value }))]
         .join('\n')}
-      onMouseEnter={() => {
+      onMouseEnter={(e) => {
         // Face-down cards don't publish to the hover preview — the true
         // face isn't shown while the card is flipped down (matches
         // Cockatrice, which paints only the back until the card is
@@ -110,8 +110,9 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
         if (faceDown) {
           return;
         }
-        setHoveredCard({ name, scryfallId, imageUri, pt, annotation });
+        setHoveredCard({ name, scryfallId, imageUri, pt, annotation }, anchorOf(e.currentTarget));
       }}
+      onMouseLeave={endHover}
       // Press-and-hold middle mouse to zoom the card (image + full
       // description). Opens on mousedown, dismisses on release —
       // matches Cockatrice's `card_zone.cpp` middle-button hold
@@ -126,7 +127,7 @@ export default function Card({ name, scryfallId, pt, basePT, annotation, id, fac
           return;
         }
         e.preventDefault();
-        openBigPreview({ name, scryfallId, imageUri });
+        openBigPreview({ name, scryfallId, imageUri }, anchorOf(e.currentTarget));
         const handleUp = (ev: MouseEvent) => {
           if (ev.button !== 1) {
             return;

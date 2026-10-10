@@ -105,6 +105,21 @@ describe('CardSearchDock', () => {
     expect(screen.getByText('Added Orcish Bowmasters to the deck')).toBeInTheDocument();
   });
 
+  it('previews a result while the pointer is over it, in list and art views', () => {
+    const onHoverPreview = vi.fn();
+    renderDock({ onHoverPreview });
+    const results = screen.getByRole('region', { name: 'Search results' });
+    const row = within(results).getByText('Esper Sentinel').closest('li')!;
+    fireEvent.pointerEnter(row);
+    expect(onHoverPreview).toHaveBeenLastCalledWith(esper, undefined);
+    fireEvent.pointerLeave(row);
+    expect(onHoverPreview).toHaveBeenLastCalledWith(null, undefined);
+
+    fireEvent.click(screen.getByRole('radio', { name: /art/i }));
+    fireEvent.pointerEnter(screen.getByRole('button', { name: 'Orcish Bowmasters' }).closest('li')!);
+    expect(onHoverPreview).toHaveBeenLastCalledWith(bowmasters, undefined);
+  });
+
   it('moves the highlight with the arrows, adds with Enter and sends Ctrl+Enter to the sideboard', () => {
     const { input, onAdd, onSelect } = renderDock();
     expect(onSelect).toHaveBeenLastCalledWith('Orcish Bowmasters');

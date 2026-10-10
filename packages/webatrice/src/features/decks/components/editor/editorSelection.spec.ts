@@ -1,5 +1,12 @@
 import type { DeckCard } from '../../types';
-import { dockColorIdentity, inspectedRow, resolveInspectedRow } from './editorSelection';
+import type { ScryfallSearchCard } from '../../search';
+import {
+  dockColorIdentity,
+  inspectedRow,
+  resolveInspectedRow,
+  resolvePreviewTarget,
+  searchCardInspection,
+} from './editorSelection';
 
 const card = (name: string, category: DeckCard['category'] = 'main', extra: Partial<DeckCard> = {}): DeckCard =>
   ({ name, quantity: 1, category, lookupSource: 'scryfall', ...extra });
@@ -53,5 +60,45 @@ describe('dockColorIdentity', () => {
     expect(dockColorIdentity([unknown, bolt], true)).toBeUndefined();
     const tasigur = card('Tasigur', 'main', { isCommander: true, colors: ['B'], colorIdentity: ['B', 'G', 'U'] });
     expect(dockColorIdentity([tasigur, unknown], true)).toBeUndefined();
+  });
+});
+
+describe('searchCardInspection', () => {
+  const bolt: ScryfallSearchCard = { id: 'bolt-m11', name: 'Lightning Bolt', type_line: 'Instant', mana_cost: '{R}', set: 'm11' };
+
+  it('previews a search result as a main-deck card of its own printing', () => {
+    const inspected = searchCardInspection(bolt);
+    expect(inspected).toMatchObject({ name: 'Lightning Bolt', category: 'main', scryfallId: undefined });
+    expect(inspected.preview).toMatchObject({ name: 'Lightning Bolt', scryfallId: 'bolt-m11', typeLine: 'Instant' });
+  });
+
+  it('shows the printing picked in the strip', () => {
+    const inspected = searchCardInspection(bolt, 'bolt-2xm');
+    expect(inspected.scryfallId).toBe('bolt-2xm');
+    expect(inspected.preview?.scryfallId).toBe('bolt-2xm');
+    expect(inspected.preview?.imageUri).toContain('bolt-2xm');
+  });
+});
+
+describe('resolvePreviewTarget', () => {
+  const cards = [card('Sol Ring'), card('Ponder', 'sideboard')];
+  const selected = inspectedRow(cards[0]);
+
+  it('shows the hovered row over the selected one', () => {
+    expect(resolvePreviewTarget(cards, inspectedRow(cards[1]), selected)).toEqual({ card: inspectedRow(cards[1]), index: 1 });
+  });
+
+  it('falls back to the selection when nothing is hovered', () => {
+    expect(resolvePreviewTarget(cards, null, selected)).toEqual({ card: selected, index: 0 });
+    expect(resolvePreviewTarget(cards, null, null)).toEqual({ card: null, index: -1 });
+  });
+
+  it('shows a hovered search result even when the deck lacks it', () => {
+    const hovered = { name: 'Brainstorm', category: 'main' as const, preview: card('Brainstorm') };
+    expect(resolvePreviewTarget(cards, hovered, selected)).toEqual({ card: hovered, index: -1 });
+  });
+
+  it('ignores a hovered row that has since left the deck', () => {
+    expect(resolvePreviewTarget(cards, inspectedRow(card('Brainstorm')), selected)).toEqual({ card: selected, index: 0 });
   });
 });
