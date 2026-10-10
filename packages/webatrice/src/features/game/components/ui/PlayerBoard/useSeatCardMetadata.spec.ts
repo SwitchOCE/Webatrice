@@ -80,9 +80,9 @@ describe('seatCardMetaFromLookup', () => {
 describe('useSeatCardMetadata', () => {
   it('looks up the own deck list once per name, and none for another seat', async () => {
     const deckCards: SeatDeckCard[] = [
-      { name: 'Bear', scryfallId: 'b', sideboard: false },
-      { name: 'Bear', scryfallId: 'b', sideboard: false },
-      { name: 'Maker', scryfallId: '', sideboard: true },
+      { name: 'Bear', scryfallId: 'b', sideboard: false, commander: false },
+      { name: 'Bear', scryfallId: 'b', sideboard: false, commander: false },
+      { name: 'Maker', scryfallId: '', sideboard: true, commander: false },
     ];
     const { result } = renderMetadata({ deckCards });
     await waitFor(() => expect(result.current.cardMetaByName.get('Maker')?.typeLine).toBe('Creature'));
@@ -102,9 +102,9 @@ describe('useSeatCardMetadata', () => {
     } as unknown as () => HTMLImageElement);
     renderMetadata({
       deckCards: [
-        { name: 'Bear', scryfallId: 'b', sideboard: false },
-        { name: 'Maker', scryfallId: '', sideboard: false },
-        { name: 'Delver', scryfallId: 'd', sideboard: true },
+        { name: 'Bear', scryfallId: 'b', sideboard: false, commander: false },
+        { name: 'Maker', scryfallId: '', sideboard: false, commander: false },
+        { name: 'Delver', scryfallId: 'd', sideboard: true, commander: false },
       ],
     });
     expect(images).toEqual([

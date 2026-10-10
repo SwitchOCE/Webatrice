@@ -722,7 +722,7 @@ describe('PlayerBoard characterization — global listener cleanup', () => {
     const nonPassive = add.mock.calls
       .map((call, i) => ({ call, el: add.mock.contexts[i] }))
       .filter(({ call: [type, , options] }) => type === 'wheel' && (options as AddEventListenerOptions)?.passive === false);
-    expect(nonPassive.length).toBeGreaterThanOrEqual(3);
+    expect(nonPassive.length).toBeGreaterThanOrEqual(2);
 
     unmount();
     for (const { call: [, handler], el } of nonPassive) {

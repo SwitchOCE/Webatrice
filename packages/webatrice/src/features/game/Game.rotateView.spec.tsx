@@ -38,6 +38,7 @@ function renderGame() {
       .sort((a, b) => Number(a.style.gridRow) - Number(b.style.gridRow))
       .map((cell) => Number(cell.querySelector('[data-battlefield-owner]')?.getAttribute('data-battlefield-owner')));
   const rotate = (id: 'rotateViewCW' | 'rotateViewCCW') => {
+    fireEvent.click(screen.getByRole('tab', { name: /^Players/ }));
     fireEvent.click(screen.getByRole('button', { name: /GameMenu.button/ }));
     fireEvent.click(within(screen.getByRole('menu', { name: 'GameMenu.button' }))
       .getByRole('menuitem', { name: `GameMenu.item.${id}` }));

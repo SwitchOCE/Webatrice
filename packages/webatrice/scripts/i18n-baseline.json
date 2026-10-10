@@ -4104,6 +4104,16 @@
       "count": 1
     },
     {
+      "file": "src/features/game/components/BoardTray/TrayActions.tsx",
+      "prefix": "BoardTray.action.",
+      "count": 1
+    },
+    {
+      "file": "src/features/game/components/CardPreviewPane/CardPreviewPane.tsx",
+      "prefix": "CardPreviewPane.",
+      "count": 1
+    },
+    {
       "file": "src/features/game/components/ChatLog/logContext.ts",
       "prefix": "GameLog.",
       "count": 1
@@ -4137,6 +4147,11 @@
       "file": "src/features/game/components/ChatLog/logTranslation.ts",
       "expression": "key",
       "count": 1
+    },
+    {
+      "file": "src/features/game/components/GameDock/GameDock.tsx",
+      "prefix": "GameDock.tab.",
+      "count": 3
     },
     {
       "file": "src/features/game/components/GameMenu/GameMenu.tsx",

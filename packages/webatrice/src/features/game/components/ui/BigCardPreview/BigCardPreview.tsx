@@ -55,7 +55,7 @@ export function BigCardPreview() {
     : null;
 
   // Pick the face matching the hovered name — same logic as
-  // BattlefieldSidebar. Falls back to face-0 for classic single-face
+  // CardPreviewPane. Falls back to face-0 for classic single-face
   // records. Face-level fields win over top-level so a transformed
   // card shows its back-face oracle/PT instead of the front's.
   const face =
@@ -158,7 +158,7 @@ export function BigCardPreview() {
                 )}
 
                 {!detail && (
-                  <div className="text-text-muted italic">{t('BattlefieldSidebar.loading')}</div>
+                  <div className="text-text-muted italic">{t('CardPreviewPane.loading')}</div>
                 )}
 
                 {detail && (

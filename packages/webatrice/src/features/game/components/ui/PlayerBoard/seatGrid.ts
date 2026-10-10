@@ -17,7 +17,23 @@ const STACK_COLUMN = `calc((${CARD_WIDTH} + 1rem) * 1.2)`;
 const VERTICAL_HAND_COLUMN = `calc(${CARD_WIDTH} * 1.5)`;
 const HAND_ROW = `calc(${CARD_HEIGHT} * 0.6 + 0.5em)`;
 
-export function seatGrid({ horizontalHand, handOnTop }: { horizontalHand: boolean; handOnTop: boolean }): SeatGrid {
+export function seatGrid({
+  horizontalHand,
+  handOnTop,
+  inlineHand,
+}: { horizontalHand: boolean; handOnTop: boolean; inlineHand: boolean }): SeatGrid {
+  if (!inlineHand) {
+    return {
+      template: {
+        gridTemplateColumns: `${INFO_COLUMN} ${STACK_COLUMN} 1fr`,
+        gridTemplateRows: '1fr',
+      },
+      info: { gridColumn: 1, gridRow: 1 },
+      hand: {},
+      stack: { gridColumn: 2, gridRow: 1 },
+      battlefield: { gridColumn: 3, gridRow: 1 },
+    };
+  }
   if (!horizontalHand) {
     return {
       template: {

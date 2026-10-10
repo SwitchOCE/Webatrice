@@ -1,5 +1,4 @@
-import { act, cleanup, fireEvent, screen } from '@testing-library/react';
-import { visualElementStore } from 'motion/react';
+import { act, cleanup, screen } from '@testing-library/react';
 import { makeCard } from '@cockatrice/datatrice/testing';
 import { PREFERENCE_DEFAULTS } from '@app/types';
 import AppThemeProvider from '../../components/AppThemeProvider/AppThemeProvider';
@@ -54,13 +53,9 @@ describe('production board motion wiring', () => {
         ] }),
       });
     });
-    const hand = screen.getByTestId('hand-zone-1');
-    expect(visualElementStore.get(hand)?.shouldReduceMotion).toBe(true);
     const card = screen.getByTitle('Opt');
     expect(getComputedStyle(card).transition).toBe('none');
     const track = screen.getByRole('navigation', { name: 'PhaseTrack.label' });
-    fireEvent.mouseEnter(track);
-    expect(track.style.width).toBe('112px');
     expect(getComputedStyle(track).transition).toBe('none');
     const transitioning = screen.getByTestId('game-container').querySelectorAll('[class*="transition-"]');
     expect(transitioning.length).toBeGreaterThan(10);

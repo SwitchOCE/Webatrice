@@ -59,12 +59,12 @@ describe('PlayerBoard', () => {
 
   it('names an opponent\'s hand by the server\'s count, in either hand layout', async () => {
     renderSeatCell(SPEC, 2);
-    expect(screen.getByRole('group', { name: 'Bob\'s hand, 2 cards' })).toBeInTheDocument();
+    expect(screen.getByTitle('Hand — 2 cards')).toBeDisabled();
     cleanup();
     const settings = await getSettings();
     settingsStore.setValue(Object.assign(settings, { horizontalHand: false }));
     renderSeatCell(SPEC, 2);
-    expect(screen.getByRole('group', { name: 'Bob\'s hand, 2 cards' })).toBeInTheDocument();
+    expect(screen.getByTitle('Hand — 2 cards')).toBeDisabled();
     settingsStore.reset();
   });
 
@@ -74,10 +74,10 @@ describe('PlayerBoard', () => {
     expect(seatRoot()).toHaveClass('border-accent');
   });
 
-  it('puts the hand row on top of a mirrored seat', () => {
+  it('gives a mirrored opponent seat a single row with no hand strip', () => {
     renderSeatCell(SPEC, 2);
     const root = battlefieldEl(2).closest<HTMLElement>('.rounded-lg')!;
-    expect(root.style.gridTemplateRows).toMatch(/ 1fr$/);
+    expect(root.style.gridTemplateRows).toBe('1fr');
     expect(root).toHaveClass('border-border-subtle');
   });
 

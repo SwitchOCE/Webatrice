@@ -79,6 +79,7 @@ describe('Game orchestration', () => {
   it('Kick: player list context menu (host) → kickFromGame with that player', () => {
     const game = renderGame();
 
+    fireEvent.click(screen.getByRole('tab', { name: /^Players/ }));
     fireEvent.contextMenu(screen.getByTestId('player-list-item-3'));
     fireEvent.click(screen.getByRole('menuitem', { name: 'PlayerListContextMenu.kick' }));
 

@@ -14,6 +14,7 @@ import { useGameId } from '../GameIdContext';
 import { isHiddenZone } from '../../../utils/zones';
 import type {
   BattlefieldCardViewModel,
+  HandPlacement,
   ManaSymbol,
   PlayerBoardModel,
   PlayerCardViewModel,
@@ -174,16 +175,25 @@ export function deckListToSeatDeck(deckList: string | undefined): readonly SeatD
       name: c.name,
       scryfallId: c.scryfallId ?? '',
       sideboard: c.category === 'sideboard',
+      commander: c.isCommander === true,
     }));
   } catch {
     return EMPTY_DECK;
   }
 }
 
+export function handPlacementOf(cell: Pick<BoardCell, 'isLocal' | 'showHand'>): HandPlacement {
+  if (cell.showHand) {
+    return 'inline';
+  }
+  return cell.isLocal ? 'tray' : 'hidden';
+}
+
 export function usePlayerSeatViewModel(cell: BoardCell, totalPlayers: number): PlayerBoardModel {
   const { t } = useTranslation();
   const gameId = useGameId();
   const { playerId, isLocal, mirrored, canAct } = cell;
+  const handPlacement = handPlacementOf(cell);
 
   const player = useAppSelector((state) =>
     gameId != null ? games.Selectors.getPlayer(state, gameId, playerId) : undefined,
@@ -227,6 +237,7 @@ export function usePlayerSeatViewModel(cell: BoardCell, totalPlayers: number): P
       hydrated,
       isLocal,
       mirrored,
+      handPlacement,
       isActive,
       displayName: seatDisplayName(t, realName, isLocal, playerId),
       username: realName ?? (isLocal ? 'you' : `player-${playerId}`),
@@ -236,7 +247,10 @@ export function usePlayerSeatViewModel(cell: BoardCell, totalPlayers: number): P
       lastDrawCount,
       revealTargets,
     }),
-    [playerId, hydrated, isLocal, mirrored, isActive, realName, avatarUrl, flipHandCardBacks, drawSeq, lastDrawCount, revealTargets, t],
+    [
+      playerId, hydrated, isLocal, mirrored, handPlacement, isActive, realName, avatarUrl,
+      flipHandCardBacks, drawSeq, lastDrawCount, revealTargets, t,
+    ],
   );
 
   const deckList = player?.deckList;

@@ -54,6 +54,7 @@ describe('usePlayerSeatViewModel', () => {
       hydrated: true,
       isLocal: true,
       mirrored: false,
+      handPlacement: 'inline',
       isActive: false,
       displayName: 'P1',
       username: 'P1',
@@ -66,6 +67,7 @@ describe('usePlayerSeatViewModel', () => {
     expect(renderModel(OPP, { totalPlayers: 3 }).model().seat).toMatchObject({
       isActive: true,
       mirrored: true,
+      handPlacement: 'hidden',
       flipHandCardBacks: false,
       displayName: 'Opp',
     });
@@ -176,9 +178,9 @@ describe('usePlayerSeatViewModel', () => {
       state.games.games[1].players[1].deckList = list;
     };
     expect(renderModel(OWN, { mutate: withDeck(deckList) }).model().deck).toEqual([
-      { name: 'Lightning Bolt', scryfallId: 'bolt-uuid', sideboard: false },
-      { name: 'Mountain', scryfallId: '', sideboard: false },
-      { name: 'Smash to Smithereens', scryfallId: '', sideboard: true },
+      { name: 'Lightning Bolt', scryfallId: 'bolt-uuid', sideboard: false, commander: false },
+      { name: 'Mountain', scryfallId: '', sideboard: false, commander: false },
+      { name: 'Smash to Smithereens', scryfallId: '', sideboard: true, commander: false },
     ]);
     expect(renderModel(OWN, { mutate: withDeck('not a deck') }).model().deck).toEqual([]);
     expect(renderModel(OPP).model().deck).toEqual([]);

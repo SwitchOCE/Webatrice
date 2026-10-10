@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'motion/react';
 import { useForkRef } from '@mui/material/utils';
 import { Hand } from 'lucide-react';
-import { ZoneName } from '@cockatrice/sockatrice';
 import { Menu, isContextMenuKey, type MenuAnchor } from '@app/components';
 import { usePreference } from '@app/hooks';
 
@@ -12,12 +11,12 @@ import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
 import { useSeatCardFocus } from '../PlayerBoard/useSeatCardFocus';
 import { cardLabel } from '../SeatCard/cardLabel';
 import { CARD_BACK_URL, CARD_CORNER_RADIUS, CARD_HEIGHT, CARD_WIDTH } from '../SeatCard/cardSize';
-import Card from '../SeatCard/SeatCard';
 import type { PlayerCardViewModel } from '../PlayerBoard/playerBoard.types';
+import HandCardTile from './HandCardTile';
 import { layoutVerticalPile, type VerticalPileOptions } from '../VerticalPile/verticalPile';
 import ZoneBackground from '../ZoneBackground/ZoneBackground';
 import { GAME_FOCUS_RING } from '../focusRing';
-import { OVER_ART_SHADOW_SMALL, SELECTED_RING } from '../seatColors/seatColors';
+import { OVER_ART_SHADOW_SMALL } from '../seatColors/seatColors';
 
 export default function HandZone() {
   const {
@@ -72,45 +71,25 @@ export default function HandZone() {
     onKeyboardFocus: setHandFocused,
   });
 
-  const renderOwnCard = (c: PlayerCardViewModel) => {
-    const dragging = isDragging(c.id, 'hand');
-    const selected = selection?.zone === 'hand' && selection.ids.has(c.id);
-    return (
-      <div
-        key={c.id}
-        {...cardProps(c)}
-        className={GAME_FOCUS_RING}
-        data-card
-        data-zone="hand"
-        data-card-id={c.id}
-        data-selected={selected || undefined}
-        data-card-owner={playerId}
-        data-card-zone={ZoneName.HAND}
-        onPointerDown={(e) => startSeatCardDrag(e, c, 'hand', handDisplayList)}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          openSeatCardMenu({ kind: 'hand', playerId: menuOwnerId, cardId: c.id, x: e.clientX, y: e.clientY });
-        }}
-        onDoubleClick={(e) => onCardDoubleClick('hand', c, e)}
-        style={{
-          touchAction: 'none',
-          cursor: 'grab',
-          opacity: dragging ? 0 : 1,
-          boxShadow: selected
-            ? SELECTED_RING
-            : undefined,
-          borderRadius: CARD_CORNER_RADIUS,
-        }}
-      >
-        <Card
-          name={c.name}
-          scryfallId={c.scryfallId || cardMetaByName.get(c.name)?.scryfallId}
-          pt={cardMetaByName.get(c.name)?.pt}
-        />
-      </div>
-    );
-  };
+  const renderOwnCard = (c: PlayerCardViewModel) => (
+    <HandCardTile
+      key={c.id}
+      card={c}
+      ownerId={playerId}
+      scryfallId={c.scryfallId || cardMetaByName.get(c.name)?.scryfallId}
+      pt={cardMetaByName.get(c.name)?.pt}
+      dragging={isDragging(c.id, 'hand')}
+      selected={selection?.zone === 'hand' && selection.ids.has(c.id)}
+      focusProps={cardProps(c)}
+      onPointerDown={(e) => startSeatCardDrag(e, c, 'hand', handDisplayList)}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openSeatCardMenu({ kind: 'hand', playerId: menuOwnerId, cardId: c.id, x: e.clientX, y: e.clientY });
+      }}
+      onDoubleClick={(e) => onCardDoubleClick('hand', c, e)}
+    />
+  );
 
   const countBadge = isSelf ? (
     <>

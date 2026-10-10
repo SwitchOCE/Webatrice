@@ -49,7 +49,10 @@ import playerInfoLabels from '../features/game/components/right-sidebar/PlayerIn
 import moveTopUntilText from '../features/game/dialogs/MoveTopUntilDialog/MoveTopUntilDialog.i18n.json';
 import handZoneText from '../features/game/components/ui/HandZone/HandZone.i18n.json';
 import playerBoardLabels from '../features/game/components/ui/PlayerBoard/PlayerBoard.i18n.json';
-import battlefieldSidebarText from '../features/game/components/BattlefieldSidebar/BattlefieldSidebar.i18n.json';
+import gameDockText from '../features/game/components/GameDock/GameDock.i18n.json';
+import cardPreviewPaneText from '../features/game/components/CardPreviewPane/CardPreviewPane.i18n.json';
+import boardTrayText from '../features/game/components/BoardTray/BoardTray.i18n.json';
+import turnBarText from '../features/game/components/TurnBar/TurnBar.i18n.json';
 import seatCardLabels from '../features/game/components/ui/SeatCard/SeatCard.i18n.json';
 import zoneStackLabels from '../features/game/components/ui/ZoneStack/ZoneStack.i18n.json';
 import pendingTargetText from '../features/game/components/ui/PendingTargetAnnouncer/PendingTargetAnnouncer.i18n.json';
@@ -159,7 +162,10 @@ testI18n.use(ICU).use(initReactI18next).init({
         ...gamePhaseText,
         ...moveTopUntilText,
         ...handZoneText,
-        ...battlefieldSidebarText,
+        ...gameDockText,
+        ...cardPreviewPaneText,
+        ...boardTrayText,
+        ...turnBarText,
       },
     },
   },

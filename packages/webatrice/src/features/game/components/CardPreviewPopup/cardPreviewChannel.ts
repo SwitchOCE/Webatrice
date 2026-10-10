@@ -1,4 +1,4 @@
-import type { PreviewMode } from '../BattlefieldSidebar/BattlefieldSidebar';
+import type { PreviewMode } from '../CardPreviewPane/useCardPreviewPane';
 import type { PreviewCard } from '../ui/CardPreviewContext';
 
 // Fixed channel name so the popped-out window can find the main

@@ -35,11 +35,14 @@ export interface BattlefieldCardViewModel extends PlayerCardViewModel {
 
 export type ManaSymbol = 'W' | 'U' | 'B' | 'R' | 'G' | 'C' | 'O';
 
+export type HandPlacement = 'tray' | 'inline' | 'hidden';
+
 export interface PlayerSeatViewModel {
   playerId: number;
   hydrated: boolean;
   isLocal: boolean;
   mirrored: boolean;
+  handPlacement: HandPlacement;
   isActive: boolean;
   displayName: string;
   username: string;
@@ -86,6 +89,7 @@ export interface SeatDeckCard {
   name: string;
   scryfallId: string;
   sideboard: boolean;
+  commander: boolean;
 }
 
 export interface CustomZoneViewModel {

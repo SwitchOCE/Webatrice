@@ -1,17 +1,8 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 
 import { CardPreviewProvider, createCardPreviewStore } from '../ui/CardPreviewContext';
-import BattlefieldSidebar from './BattlefieldSidebar';
+import CardPreviewPane from './CardPreviewPane';
 
-vi.mock('../right-sidebar/PlayerList/PlayerList', () => ({ default: () => null }));
-vi.mock('../ChatLog/ChatLog', () => ({ default: () => null }));
-vi.mock('../GameInviteControls/GameInviteControls', () => ({ default: () => null }));
-vi.mock('../GameMenu/GameMenu', () => ({ default: () => null }));
-vi.mock('../ui/GameDialogActionsContext', () => ({ useGameDialogActions: () => ({}) }));
-vi.mock('../../hooks/useLocalIdentity', () => ({ useLocalIdentity: () => ({ isSpectator: false }) }));
-vi.mock('../../hooks/useGameAffordances', () => ({
-  useGameAffordances: () => ({ canConcede: false, canUnconcede: false }),
-}));
 vi.mock('../CardPreviewPopup/useCardPreviewPopup', () => ({
   useCardPreviewPopup: () => ({ isOpen: false, toggle: vi.fn() }),
 }));
@@ -22,20 +13,21 @@ function hover(card: { name: string; scryfallId?: string }) {
   const store = createCardPreviewStore();
   const { container } = render(
     <CardPreviewProvider store={store}>
-      <BattlefieldSidebar />
+      <CardPreviewPane />
     </CardPreviewProvider>,
   );
   act(() => store.setHoveredCard(card));
   return container.querySelector('img[src*="scryfall"]')?.getAttribute('src');
 }
 
-describe('BattlefieldSidebar card preview image', () => {
+describe('CardPreviewPane', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    window.localStorage.clear();
   });
 
   it('previews the hovered printing by Scryfall id', () => {
@@ -47,16 +39,15 @@ describe('BattlefieldSidebar card preview image', () => {
     expect(hover({ name: 'Rhino, Warrior Token' }))
       .toBe('https://api.scryfall.com/cards/named?exact=Rhino%2C%20Warrior%20Token&format=image&version=png');
   });
-});
 
-describe('BattlefieldSidebar structure', () => {
-  it('is a named complementary landmark with a Players heading', () => {
+  it('is a labelled region whose mode buttons are pressable toggles', () => {
     render(
       <CardPreviewProvider store={createCardPreviewStore()}>
-        <BattlefieldSidebar />
+        <CardPreviewPane />
       </CardPreviewProvider>,
     );
-    const sidebar = screen.getByRole('complementary', { name: 'BattlefieldSidebar.label' });
-    expect(within(sidebar).getByRole('heading', { name: 'BattlefieldSidebar.players' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'CardPreviewPane.label' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'CardPreviewPane.showImage' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('CardPreviewPane.hoverToPreview')).toBeInTheDocument();
   });
 });

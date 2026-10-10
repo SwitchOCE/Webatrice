@@ -16,14 +16,13 @@ type MarqueeStartZone =
 
 export interface UseSeatMarqueeArgs {
   playerId: number;
-  boxRef: RefObject<HTMLElement | null>;
   handRef: RefObject<HTMLElement | null>;
   stackRef: RefObject<HTMLElement | null>;
   setSelection: SeatSelectionApi['setSelection'];
   clearAllSelection: SeatSelectionApi['clearAllSelection'];
 }
 
-export function useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelection, clearAllSelection }: UseSeatMarqueeArgs) {
+export function useSeatMarquee({ playerId, handRef, stackRef, setSelection, clearAllSelection }: UseSeatMarqueeArgs) {
   const { marquee, begin } = useMarquee<MarqueeStartZone | null>((rect, startZone) => {
     if (!startZone) {
       return 0;
@@ -100,10 +99,11 @@ export function useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelecti
       byZone.set(key, b);
     };
 
-    const boxEl = boxRef.current;
-    if (boxEl) {
-      (['hand', 'stack'] as const).forEach((z) => {
-        const els = boxEl.querySelectorAll<HTMLElement>(
+    const zoneRoots = { hand: handRef.current, stack: stackRef.current } as const;
+    (['hand', 'stack'] as const).forEach((z) => {
+      const root = zoneRoots[z];
+      if (root) {
+        const els = root.querySelectorAll<HTMLElement>(
           `[data-card][data-zone="${z}"]`,
         );
         els.forEach((el) => {
@@ -116,8 +116,8 @@ export function useSeatMarquee({ playerId, boxRef, handRef, stackRef, setSelecti
           }
           addHit(z, id);
         });
-      });
-    }
+      }
+    });
     const bfEls = document.querySelectorAll<HTMLElement>(
       '[data-battlefield-owner]',
     );

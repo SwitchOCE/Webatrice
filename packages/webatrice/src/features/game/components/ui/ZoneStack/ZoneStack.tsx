@@ -1,17 +1,13 @@
-import { forwardRef, useRef, useState, type HTMLAttributes, type KeyboardEvent, type MouseEvent } from 'react';
+import { forwardRef, type HTMLAttributes } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Heart, Skull, Sparkles } from 'lucide-react';
 import { ScryfallImageSize } from '@cockatrice/datatrice';
-import { ZoneName } from '@cockatrice/sockatrice';
-import { CardImage, isContextMenuKey, type MenuAnchor } from '@app/components';
+import { CardImage } from '@app/components';
 import { getScryfallUrlByIdOrExactName } from '@app/services';
 
-import { ContextMenuPopup, contextMenuAnchor, type ContextMenuItem } from '../../context-menus/ContextMenu/ContextMenu';
 import { useCardPreviewActions } from '../CardPreviewContext';
-import type { PlayerCardViewModel } from '../PlayerBoard/playerBoard.types';
 import { usePlayerSeatContext } from '../PlayerBoard/PlayerSeatContext';
-import { useGameReadOnly } from '../GameReadOnlyContext';
-import { useGameDialogsContext } from '../GameDialogsContext';
+import { useSeatPiles } from './useSeatPiles';
 import {
   CARD_BACK_URL,
   CARD_CORNER_RADIUS,
@@ -23,12 +19,6 @@ import {
 import Card from '../SeatCard/SeatCard';
 import { GAME_FOCUS_RING } from '../focusRing';
 import { OVER_ART_SHADOW } from '../seatColors/seatColors';
-
-const LIBRARY_TOP_DRAG_PAYLOAD: PlayerCardViewModel = {
-  id: '__library_top__',
-  name: '',
-  scryfallId: '',
-};
 
 /**
  * Full-size zone box matching the Library footprint but WITHOUT the card back
@@ -236,148 +226,48 @@ const CardBackZone = forwardRef<
       }
       );
 
-type PileName = 'library' | 'graveyard' | 'exile';
-
-const NO_MODIFIERS = (event: KeyboardEvent) => !event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
-
-function usePile(pile: PileName, count: number, top: { name: string } | null | undefined, items?: readonly ContextMenuItem[]) {
-  const { t } = useTranslation();
-  const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
-  const triggerRef = useRef<HTMLElement | null>(null);
-  const zone = { library: t('ZoneStack.library'), graveyard: t('ZoneStack.graveyard'), exile: t('ZoneStack.exile') }[pile];
-  const label = top
-    ? t('ZoneStack.pileWithTop', { zone, count, top: top.name })
-    : t('ZoneStack.pile', { zone, count });
-  if (!items) {
-    return { pileProps: { role: 'img', 'aria-label': label } satisfies HTMLAttributes<HTMLDivElement>, popup: null };
-  }
-  const pileProps: HTMLAttributes<HTMLDivElement> = {
-    role: 'button',
-    tabIndex: 0,
-    'aria-label': label,
-    'aria-haspopup': 'menu',
-    'aria-expanded': anchor != null,
-    onContextMenu: (event: MouseEvent<HTMLDivElement>) => {
-      event.preventDefault();
-      triggerRef.current = event.currentTarget;
-      setAnchor(contextMenuAnchor(event));
-    },
-    onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
-      if (isContextMenuKey(event) || ((event.key === 'Enter' || event.key === ' ') && NO_MODIFIERS(event))) {
-        event.preventDefault();
-        event.stopPropagation();
-        triggerRef.current = event.currentTarget;
-        setAnchor({ rect: event.currentTarget.getBoundingClientRect(), placement: 'below' });
-      }
-    },
-  };
-  const popup = anchor && (
-    <ContextMenuPopup items={items} anchor={anchor} label={zone} onClose={() => setAnchor(null)} triggerRef={triggerRef} />
-  );
-  return { pileProps, popup };
-}
-
 export default function ZoneStack() {
-  const { t } = useTranslation();
-  const readOnly = useGameReadOnly();
-  const { openZoneView } = useGameDialogsContext();
-  const {
-    seatDrag,
-    deckTopCard,
-    displayedDeckCount,
-    displayedExileCount,
-    displayedGraveyardCount,
-    exileDisplayList,
-    exileMenuItemsOpponent,
-    exileMenuItemsSelf,
-    exileZoneRef,
-    graveDisplayList,
-    graveMenuItemsOpponent,
-    graveMenuItemsSelf,
-    graveyardZoneRef,
-    isSelf,
-    libraryMenuItems,
-    libraryZoneRef,
-    playerId,
-    startPileDrag,
-  } = usePlayerSeatContext();
-  const graveyardTopIdx =
-    graveDisplayList.length - 1 - (seatDrag?.zone === 'graveyard' ? 1 : 0);
-  const exileTopIdx =
-    exileDisplayList.length - 1 - (seatDrag?.zone === 'exile' ? 1 : 0);
-  const graveyardTop =
-    graveyardTopIdx >= 0 ? graveDisplayList[graveyardTopIdx] : null;
-  const exileTop = exileTopIdx >= 0 ? exileDisplayList[exileTopIdx] : null;
-
-  const library = usePile('library', displayedDeckCount, deckTopCard, !readOnly && isSelf ? libraryMenuItems : undefined);
-  const graveyard = usePile('graveyard', displayedGraveyardCount, graveyardTop,
-    readOnly ? undefined : isSelf ? graveMenuItemsSelf : graveMenuItemsOpponent);
-  const exile = usePile('exile', displayedExileCount, exileTop,
-    readOnly ? undefined : isSelf ? exileMenuItemsSelf : exileMenuItemsOpponent);
-  const replayViewProps = (zoneName: string) => ({
-    'data-replay-zone-view': zoneName,
-    role: 'button',
-    tabIndex: 0,
-    onClick: () => openZoneView({ playerId, zoneName }),
-    onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
-      if (event.key === 'Enter' && NO_MODIFIERS(event)) {
-        event.preventDefault();
-        event.stopPropagation();
-        openZoneView({ playerId, zoneName });
-      }
-    },
-  });
+  const { playerId } = usePlayerSeatContext();
+  const { library, graveyard, exile } = useSeatPiles();
 
   return (
     <>
       <div>
         <CardBackZone
-          ref={libraryZoneRef}
-          label={t('ZoneStack.library')}
-          count={displayedDeckCount}
+          ref={library.ref}
+          label={library.zoneLabel}
+          count={library.count}
           pileProps={library.pileProps}
-          topCard={deckTopCard ?? null}
-          onPointerDown={
-            !readOnly && isSelf && displayedDeckCount > 0
-              ? (e) => startPileDrag(e, LIBRARY_TOP_DRAG_PAYLOAD, 'library')
-              : undefined
-          }
+          topCard={library.topCard}
+          onPointerDown={library.onPointerDown}
         />
         {library.popup}
       </div>
       <div>
         <LargeZoneBox
-          ref={graveyardZoneRef}
+          ref={graveyard.ref}
           icon={Skull}
-          label={t('ZoneStack.graveyard')}
-          count={displayedGraveyardCount}
-          topCard={graveyardTop}
+          label={graveyard.zoneLabel}
+          count={graveyard.count}
+          topCard={graveyard.topCard}
           arrowAnchorPlayerId={playerId}
-          arrowAnchorZone={ZoneName.GRAVE}
-          pileProps={{ ...graveyard.pileProps, ...(readOnly && replayViewProps(ZoneName.GRAVE)) }}
-          onPointerDown={
-            !readOnly && isSelf && graveDisplayList.length > 0
-              ? (e) => startPileDrag(e, graveDisplayList[graveDisplayList.length - 1], 'graveyard')
-              : undefined
-          }
+          arrowAnchorZone={graveyard.arrowAnchorZone}
+          pileProps={graveyard.pileProps}
+          onPointerDown={graveyard.onPointerDown}
         />
         {graveyard.popup}
       </div>
       <div>
         <LargeZoneBox
-          ref={exileZoneRef}
+          ref={exile.ref}
           icon={Sparkles}
-          label={t('ZoneStack.exile')}
-          count={displayedExileCount}
-          topCard={exileTop}
+          label={exile.zoneLabel}
+          count={exile.count}
+          topCard={exile.topCard}
           arrowAnchorPlayerId={playerId}
-          arrowAnchorZone={ZoneName.EXILE}
-          pileProps={{ ...exile.pileProps, ...(readOnly && replayViewProps(ZoneName.EXILE)) }}
-          onPointerDown={
-            !readOnly && isSelf && exileDisplayList.length > 0
-              ? (e) => startPileDrag(e, exileDisplayList[exileDisplayList.length - 1], 'exile')
-              : undefined
-          }
+          arrowAnchorZone={exile.arrowAnchorZone}
+          pileProps={exile.pileProps}
+          onPointerDown={exile.onPointerDown}
         />
         {exile.popup}
       </div>

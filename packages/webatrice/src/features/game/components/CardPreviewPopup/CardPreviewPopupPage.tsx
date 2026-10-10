@@ -6,7 +6,7 @@ import { ScryfallImageSize } from '@cockatrice/datatrice';
 
 import { CardRelatedLinks, ManaSymbols, SymbolText } from '@app/components';
 import { getScryfallUrlByIdOrExactName } from '@app/services';
-import type { PreviewMode } from '../BattlefieldSidebar/BattlefieldSidebar';
+import type { PreviewMode } from '../CardPreviewPane/useCardPreviewPane';
 import type { PreviewCard } from '../ui/CardPreviewContext';
 import PreviewCardImage from '../ui/PreviewCardImage/PreviewCardImage';
 import {
@@ -199,7 +199,7 @@ export default function CardPreviewPopupPage() {
                 style={{ aspectRatio: '5 / 7' }}
               >
                 {connected
-                  ? t('BattlefieldSidebar.hoverToPreview')
+                  ? t('CardPreviewPane.hoverToPreview')
                   : t('CardPreviewPopup.reconnectingDescription')}
               </div>
             )}
@@ -232,11 +232,11 @@ export default function CardPreviewPopupPage() {
                     'text-xs font-medium text-text-secondary',
                     'hover:text-text-primary board-motion transition-colors',
                   ].join(' ')}
-                  title={t('BattlefieldSidebar.backTo', { name: previousName })}
+                  title={t('CardPreviewPane.backTo', { name: previousName })}
                 >
                   <ChevronLeft size={14} />
                   <span className="truncate max-w-[20rem]">
-                    {t('BattlefieldSidebar.backTo', { name: previousName })}
+                    {t('CardPreviewPane.backTo', { name: previousName })}
                   </span>
                 </button>
               )}
@@ -283,7 +283,7 @@ export default function CardPreviewPopupPage() {
                 </div>
               )}
               {fetchState === 'loading' && (
-                <div className="text-text-muted italic">{t('BattlefieldSidebar.loading')}</div>
+                <div className="text-text-muted italic">{t('CardPreviewPane.loading')}</div>
               )}
               {detail && (
                 // Related-card links (DFC faces, tokens, meld/combo
@@ -317,7 +317,7 @@ export default function CardPreviewPopupPage() {
                 ].join(' ')}
               >
                 {connected
-                  ? t('BattlefieldSidebar.hoverToPreview')
+                  ? t('CardPreviewPane.hoverToPreview')
                   : t('CardPreviewPopup.reconnectingDescription')}
               </div>
             )

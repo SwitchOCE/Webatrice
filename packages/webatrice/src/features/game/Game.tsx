@@ -1,20 +1,23 @@
-import { ReactNode, useMemo } from 'react';
+import { ReactNode, useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 import { DndContext } from '@dnd-kit/core';
 
 import { AuthGuard, isContextMenuKey } from '@app/components';
-import { usePhaseTrackPinned, usePreference } from '@app/hooks';
+import { usePreference } from '@app/hooks';
 import { Layout } from '@app/feature-wrappers/layout';
 import { ConfirmDialog, PromptDialog } from '@app/dialogs';
 import GameLobby from './GameLobby';
 import GameErrorBoundary from './GameErrorBoundary';
 import { useCurrentGame } from './hooks/useCurrentGame';
 import GameArrowOverlay from './components/arrows/GameArrowOverlay/GameArrowOverlay';
-import PhaseTrack from './components/PhaseTrack/PhaseTrack';
-import BattlefieldSidebar from './components/BattlefieldSidebar/BattlefieldSidebar';
+import TurnBar from './components/TurnBar/TurnBar';
+import GameDock from './components/GameDock/GameDock';
+import BoardTray from './components/BoardTray/BoardTray';
+import { BoardTrayHostProvider } from './components/BoardTray/BoardTrayContext';
 import SidebarResizer from './components/SidebarResizer/SidebarResizer';
 import { useSidebarWidth } from './hooks/useSidebarWidth';
+import { useDockState } from './hooks/useDockState';
 import GameBoardCell from './components/ui/GameBoardCell/GameBoardCell';
 import { BigCardPreview } from './components/ui/BigCardPreview/BigCardPreview';
 import { BoardMotionConfig } from './components/ui/BoardMotionConfig/BoardMotionConfig';
@@ -128,16 +131,16 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
     dnd,
   } = g;
 
-  // Persisted width for the right rail. `.game` reads it via the
-  // `--sidebar-width` CSS variable set inline below; SidebarResizer
-  // commits new values via `setSidebarWidth` from its pointer-move.
   const { width: sidebarWidth, setWidth: setSidebarWidth } = useSidebarWidth();
-  // Pinned mode grows the phase-track column from 8 px (HUD default)
-  // to 112 px so the always-expanded PhaseTrack takes real width
-  // instead of floating over the play area.
-  const phaseTrackPinned = usePhaseTrackPinned();
+  const dock = useDockState();
   const keepGameChatFocus = usePreference('keepGameChatFocus');
-  const phaseTrackColumnWidth = phaseTrackPinned ? 112 : 8;
+  const [trayHost, setTrayHost] = useState<HTMLDivElement | null>(null);
+  const handleBoardMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (keepGameChatFocus) {
+      keepFocusOnBoardPress(e);
+    }
+    arrows.handleBoardMouseDown(e);
+  }, [keepGameChatFocus, arrows]);
 
   // Maps each seated playerId to its canAct, reusing the layout's per-cell value
   // (the local seat in bottomHand carries the same computeCanAct result, so the
@@ -212,139 +215,139 @@ export function GameBoard({ gameId: boardGameId, footer, onLeave }: GameBoardPro
                             <GameDialogActionsProvider value={dialogActions}>
                               <GameDialogsProvider value={dialogs}>
                                 <KeyboardMoveProvider moveSeatCards={dnd.moveSeatCards}>
-                                  <div
-                                    className={footer ? 'game game--with-footer' : 'game'}
-                                    data-testid="game-container"
-                                    data-readonly={readOnly || undefined}
-                                    ref={gameRef}
-                                    style={{
-                                      '--sidebar-width': `${sidebarWidth}px`,
-                                      '--phase-track-width': `${phaseTrackColumnWidth}px`,
-                                    } as React.CSSProperties}
-                                  >
-                                    <PhaseTrack />
-
-                                    {/* Grid-column-1 placeholder — only rendered
-                               when PhaseTrack is in its default floating
-                               (position: absolute) mode. In pinned mode
-                               the PhaseTrack itself is `position:
-                               relative` and consumes column 1, so a
-                               placeholder here would displace every
-                               other cell one column to the right. */}
-                                    {!phaseTrackPinned && <div aria-hidden />}
-
+                                  <BoardTrayHostProvider host={trayHost}>
                                     <div
-                                      className="game__board"
-                                      data-game-board
-                                      ref={boardRef}
-                                      onMouseDown={(e) => {
-                                        if (keepGameChatFocus) {
-                                          keepFocusOnBoardPress(e);
-                                        }
-                                        arrows.handleBoardMouseDown(e);
-                                      }}
-                                      {...(readOnly ? READ_ONLY_BOARD_GUARD : undefined)}
+                                      className={footer ? 'game game--with-footer' : 'game'}
+                                      data-testid="game-container"
+                                      data-readonly={readOnly || undefined}
+                                      data-dock-collapsed={dock.collapsed || undefined}
+                                      ref={gameRef}
+                                      style={{
+                                        '--dock-width': dock.collapsed ? '44px' : `${sidebarWidth}px`,
+                                        '--dock-resizer-width': dock.collapsed ? '0px' : '8px',
+                                      } as React.CSSProperties}
                                     >
-                                      {!game && (
-                                        <div className="game__empty" data-testid="game-empty">
-                                          {t('Game.empty')}
-                                        </div>
+                                      <TurnBar />
+
+                                      <div
+                                        className="game__board"
+                                        data-game-board
+                                        ref={boardRef}
+                                        onMouseDown={handleBoardMouseDown}
+                                        {...(readOnly ? READ_ONLY_BOARD_GUARD : undefined)}
+                                      >
+                                        {!game && (
+                                          <div className="game__empty" data-testid="game-empty">
+                                            {t('Game.empty')}
+                                          </div>
+                                        )}
+
+                                        {game && layout.cells.length > 0 && (
+                                          <div
+                                            className="game__board-grid"
+                                            style={{
+                                              gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
+                                              gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
+                                            }}
+                                          >
+                                            {layout.cells.map((cell) => (
+                                              <GameBoardCell
+                                                key={cell.playerId}
+                                                cell={cell}
+                                                totalPlayers={layout.cells.length}
+                                              />
+                                            ))}
+                                          </div>
+                                        )}
+                                        <TallyOverlay />
+                                      </div>
+
+                                      <BoardTray gameRef={gameRef} hostRef={setTrayHost} onMouseDown={handleBoardMouseDown} />
+
+                                      <div className="game__resizer">
+                                        {!dock.collapsed && <SidebarResizer width={sidebarWidth} onResize={setSidebarWidth} />}
+                                      </div>
+
+                                      <div className="game__dock">
+                                        <GameDock
+                                          collapsed={dock.collapsed}
+                                          tab={dock.tab}
+                                          onCollapse={dock.setCollapsed}
+                                          onSelectTab={dock.setTab}
+                                        />
+                                      </div>
+
+                                      <GameArrowOverlay containerRef={gameRef} layoutVersion={layout} dragPreview={arrows.dragPreview} />
+
+                                      {!readOnly && <DeckSelectDialog />}
+
+                                      {dialogs.zoneViews.map((v) => (
+                                        <ZoneViewDialog
+                                          key={`${v.playerId}-${v.zoneName}`}
+                                          view={v}
+                                          handleClose={(shuffleOnClose) =>
+                                            dialogs.handleCloseZoneView(v.playerId, v.zoneName, shuffleOnClose)}
+                                        />
+                                      ))}
+
+                                      {dialogs.prompt && (
+                                        <PromptDialog
+                                          isOpen
+                                          {...dialogs.prompt}
+                                          onCancel={dialogs.closePrompt}
+                                        />
                                       )}
 
-                                      {game && layout.cells.length > 0 && (
-                                        <div
-                                          className="game__board-grid"
-                                          style={{
-                                            gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
-                                            gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
-                                          }}
-                                        >
-                                          {layout.cells.map((cell) => (
-                                            <GameBoardCell
-                                              key={cell.playerId}
-                                              cell={cell}
-                                              totalPlayers={layout.cells.length}
-                                            />
-                                          ))}
-                                        </div>
-                                      )}
-                                      <TallyOverlay />
-                                    </div>
+                                      <RollDieDialog />
 
-                                    <SidebarResizer width={sidebarWidth} onResize={setSidebarWidth} />
+                                      <CreateTokenDialog />
 
-                                    <BattlefieldSidebar />
+                                      <MoveTopUntilDialog />
 
-                                    <GameArrowOverlay containerRef={gameRef} layoutVersion={layout} dragPreview={arrows.dragPreview} />
-
-                                    {!readOnly && <DeckSelectDialog />}
-
-                                    {dialogs.zoneViews.map((v) => (
-                                      <ZoneViewDialog
-                                        key={`${v.playerId}-${v.zoneName}`}
-                                        view={v}
-                                        handleClose={(shuffleOnClose) =>
-                                          dialogs.handleCloseZoneView(v.playerId, v.zoneName, shuffleOnClose)}
-                                      />
-                                    ))}
-
-                                    {dialogs.prompt && (
-                                      <PromptDialog
-                                        isOpen
-                                        {...dialogs.prompt}
-                                        onCancel={dialogs.closePrompt}
-                                      />
-                                    )}
-
-                                    <RollDieDialog />
-
-                                    <CreateTokenDialog />
-
-                                    <MoveTopUntilDialog />
-
-                                    {/* Receiver-side popup: opens whenever an
+                                      {/* Receiver-side popup: opens whenever an
                               Event_RevealCards arrives with a populated
                               card list (someone revealed a zone to us,
                               or "to all players" including us). Reads /
                               dismisses via the incomingReveal slice. */}
-                                    <IncomingRevealDialog />
+                                      <IncomingRevealDialog />
 
-                                    <ConfirmDialog
-                                      isOpen={dialogs.concedeConfirm === 'concede'}
-                                      title={t('BattlefieldSidebar.concede')}
-                                      message={t('Game.confirm.concede.message')}
-                                      confirmLabel={t('GameLink.yes')}
-                                      cancelLabel={t('GameLink.no')}
-                                      destructive
-                                      onConfirm={dialogs.confirmConcede}
-                                      onCancel={dialogs.closeConcedeConfirm}
-                                    />
+                                      <ConfirmDialog
+                                        isOpen={dialogs.concedeConfirm === 'concede'}
+                                        title={t('GameDock.concede')}
+                                        message={t('Game.confirm.concede.message')}
+                                        confirmLabel={t('GameLink.yes')}
+                                        cancelLabel={t('GameLink.no')}
+                                        destructive
+                                        onConfirm={dialogs.confirmConcede}
+                                        onCancel={dialogs.closeConcedeConfirm}
+                                      />
 
-                                    <ConfirmDialog
-                                      isOpen={dialogs.concedeConfirm === 'unconcede'}
-                                      title={t('Game.confirm.unconcede.title')}
-                                      message={t('Game.confirm.unconcede.message')}
-                                      confirmLabel={t('GameLink.yes')}
-                                      cancelLabel={t('GameLink.no')}
-                                      onConfirm={dialogs.confirmUnconcede}
-                                      onCancel={dialogs.closeConcedeConfirm}
-                                    />
+                                      <ConfirmDialog
+                                        isOpen={dialogs.concedeConfirm === 'unconcede'}
+                                        title={t('Game.confirm.unconcede.title')}
+                                        message={t('Game.confirm.unconcede.message')}
+                                        confirmLabel={t('GameLink.yes')}
+                                        cancelLabel={t('GameLink.no')}
+                                        onConfirm={dialogs.confirmUnconcede}
+                                        onCancel={dialogs.closeConcedeConfirm}
+                                      />
 
-                                    <ConfirmDialog
-                                      isOpen={dialogs.leaveConfirm}
-                                      title={t('ShortcutsTab.action.game.leaveGame')}
-                                      message={t('Game.confirm.leave.message')}
-                                      confirmLabel={t('GameLink.yes')}
-                                      cancelLabel={t('GameLink.no')}
-                                      destructive
-                                      onConfirm={dialogs.confirmLeave}
-                                      onCancel={dialogs.closeLeaveConfirm}
-                                    />
+                                      <ConfirmDialog
+                                        isOpen={dialogs.leaveConfirm}
+                                        title={t('ShortcutsTab.action.game.leaveGame')}
+                                        message={t('Game.confirm.leave.message')}
+                                        confirmLabel={t('GameLink.yes')}
+                                        cancelLabel={t('GameLink.no')}
+                                        destructive
+                                        onConfirm={dialogs.confirmLeave}
+                                        onCancel={dialogs.closeLeaveConfirm}
+                                      />
 
-                                    <GameInfoDialog />
+                                      <GameInfoDialog />
 
-                                    {footer && <div className="game__footer">{footer}</div>}
-                                  </div>
+                                      {footer && <div className="game__footer">{footer}</div>}
+                                    </div>
+                                  </BoardTrayHostProvider>
                                 </KeyboardMoveProvider>
                               </GameDialogsProvider>
                             </GameDialogActionsProvider>

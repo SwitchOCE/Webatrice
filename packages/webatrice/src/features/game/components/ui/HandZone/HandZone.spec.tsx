@@ -14,7 +14,6 @@ import {
 } from '../../../__test-utils__/seatFixtures';
 import { createMockWebClient, renderWithProviders } from '../../../../../__test-utils__';
 import Game from '../../../Game';
-import { CARD_BACK_URL } from '../SeatCard/cardSize';
 
 vi.mock('../../../../../hooks/useSettings');
 vi.mock('../../../../../services/cards/catalog/lookup', async () =>
@@ -42,7 +41,6 @@ const setPreferences = (patch: Partial<Preferences>) => {
 };
 
 const handButton = () => screen.getByTitle(/^Hand — /);
-const handBacks = () => handButton().parentElement!.querySelectorAll(`img[src="${CARD_BACK_URL}"]`);
 
 afterEach(() => {
   vi.mocked(lookupCard).mockImplementation(async (name: string) =>
@@ -70,12 +68,12 @@ describe('HandZone', () => {
     expect(cardEl(SHOCK.id, 'hand')).toBeInTheDocument();
   });
 
-  it('shows another player\'s hand as card backs for the server\'s count, with no menu', () => {
+  it('shows another player\'s hand as a count only, with no cards and no menu', () => {
     renderSeatCell(SPEC, 2);
     expect(handButton()).toHaveAttribute('title', 'Hand — 3 cards');
     expect(handButton()).toBeDisabled();
     expect(document.querySelectorAll('[data-card][data-zone="hand"]')).toHaveLength(0);
-    expect(handBacks()).toHaveLength(3);
+    expect(screen.queryByTestId('hand-zone-2')).not.toBeInTheDocument();
   });
 
   it('opens the hand menu from the hand button', () => {
@@ -223,10 +221,11 @@ describe('HandZone', () => {
       expect(cardEl(SHOCK.id, 'hand')).toBe(shock);
     });
 
-    it('shows another player\'s hand as a column of card backs', async () => {
+    it('shows another player\'s hand as a count only, whatever the hand layout', async () => {
       setPreferences({ horizontalHand: false });
       renderSeatCell(SPEC, 2);
-      expect(screen.getByTestId('hand-zone-2').querySelectorAll(`img[src="${CARD_BACK_URL}"]`)).toHaveLength(3);
+      expect(screen.queryByTestId('hand-zone-2')).not.toBeInTheDocument();
+      expect(screen.getByTitle('Hand — 3 cards')).toBeDisabled();
     });
   });
 });

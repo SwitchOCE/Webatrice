@@ -64,6 +64,26 @@ export function useHandMenuItems({
     }
     zoneCommands.moveCards(ZoneName.HAND, cardIds, { zone: targetZone, index });
   };
+  const sortHandItems: ContextMenuItem[] = [
+    {
+      label: t('HandMenu.sortName'),
+      onClick: () => handleRequestSortHandBy('name'),
+      disabled: !isSelf || handSize <= 1,
+      ...menuShortcut('game.sortHandByName'),
+    },
+    {
+      label: t('HandMenu.sortType'),
+      onClick: () => handleRequestSortHandBy('maintype'),
+      disabled: !isSelf || handSize <= 1,
+      ...menuShortcut('game.sortHandByType'),
+    },
+    {
+      label: t('HandMenu.sortManaValue'),
+      onClick: () => handleRequestSortHandBy('manacost'),
+      disabled: !isSelf || handSize <= 1,
+      ...menuShortcut('game.sortHandByManaValue'),
+    },
+  ];
   const handMenuItems: ContextMenuItem[] = [
     {
       // View hand — the same zone view as View library /
@@ -77,26 +97,7 @@ export function useHandMenuItems({
     },
     {
       label: t('HandMenu.sort'),
-      submenu: [
-        {
-          label: t('HandMenu.sortName'),
-          onClick: () => handleRequestSortHandBy('name'),
-          disabled: !isSelf || handSize <= 1,
-          ...menuShortcut('game.sortHandByName'),
-        },
-        {
-          label: t('HandMenu.sortType'),
-          onClick: () => handleRequestSortHandBy('maintype'),
-          disabled: !isSelf || handSize <= 1,
-          ...menuShortcut('game.sortHandByType'),
-        },
-        {
-          label: t('HandMenu.sortManaValue'),
-          onClick: () => handleRequestSortHandBy('manacost'),
-          disabled: !isSelf || handSize <= 1,
-          ...menuShortcut('game.sortHandByManaValue'),
-        },
-      ],
+      submenu: sortHandItems,
     },
     {
       label: t('HandMenu.reveal'),
@@ -162,5 +163,7 @@ export function useHandMenuItems({
   return {
     handSize,
     handMenuItems,
+    sortHandItems,
+    revealHandItems: revealHandSubmenu,
   };
 }
