@@ -1,4 +1,6 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
+import type { i18n as I18n } from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
 import { connectedState, renderWithProviders } from '../../__test-utils__';
@@ -109,11 +111,49 @@ describe('UserMenu', () => {
     expect(within(board).getAllByRole('menuitemcheckbox')).toHaveLength(2);
   });
 
-  it('heads the menu with the account role and server', () => {
-    renderMenu({ serverName: 'Rooster Ranges' });
-    fireEvent.click(trigger());
+  describe('account identity', () => {
+    let i18n: I18n;
+    function I18nProbe() {
+      i18n = useTranslation().i18n;
+      return null;
+    }
 
-    expect(screen.getByRole('menu')).toHaveTextContent('UserMenu.roleOnServer');
+    afterEach(async () => {
+      await act(() => i18n.changeLanguage('en-US'));
+      i18n.removeResourceBundle('en-US', 'translation');
+      i18n.addResourceBundle('en-US', 'translation', {});
+    });
+
+    async function withCatalogue() {
+      renderWithProviders(<I18nProbe />);
+      i18n.addResourceBundle('en-US', 'translation', {
+        UserMenu: {
+          roleOnServer: '{role} · {server}',
+          role: { admin: 'Administrator', moderator: 'Moderator', registered: 'Registered user' },
+        },
+      });
+      await act(() => i18n.changeLanguage('en-US'));
+    }
+
+    it.each([
+      [Level.IsUser | Level.IsRegistered, 'Registered user · Rooster Ranges'],
+      [Level.IsUser | Level.IsRegistered | Level.IsModerator, 'Moderator · Rooster Ranges'],
+      [Level.IsUser | Level.IsRegistered | Level.IsModerator | Level.IsAdmin, 'Administrator · Rooster Ranges'],
+    ])('describes the menu with the role and server (level %i)', async (userLevel, description) => {
+      await withCatalogue();
+      renderMenu({ userLevel, serverName: 'Rooster Ranges' });
+      fireEvent.click(trigger());
+
+      expect(screen.getByRole('menu', { name: 'testUser' })).toHaveAccessibleDescription(description);
+    });
+
+    it('describes the menu with the role alone before the server is named', async () => {
+      await withCatalogue();
+      renderMenu({ serverName: null });
+      fireEvent.click(trigger());
+
+      expect(screen.getByRole('menu')).toHaveAccessibleDescription('Registered user');
+    });
   });
 
   it('signs out last', () => {

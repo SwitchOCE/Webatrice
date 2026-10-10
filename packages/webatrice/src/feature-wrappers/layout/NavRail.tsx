@@ -1,11 +1,6 @@
-import { useState } from 'react';
-import { generatePath, Link, useLocation, useNavigate } from 'react-router-dom';
+import { generatePath, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-import { server } from '@cockatrice/datatrice';
-import { useWebClient } from '@cockatrice/datatrice/react';
-import { useAppSelector } from '@app/store';
-import { usePhaseTrackPinnedSetting, useSnapGridSetting, useUnreadCounts } from '@app/hooks';
 import { Images } from '@app/images';
 import { DebugLogDialog } from '@app/dialogs';
 import { RouteEnum } from '@app/types';
@@ -14,25 +9,15 @@ import { CardImportDialog } from '@app/feature-widgets/card-import';
 import LatencyStatus from './LatencyStatus';
 import UnreadBadge from './UnreadBadge';
 import UserMenu from './UserMenu';
-import { useOwnAvatarUrl } from './hooks/useOwnAvatarUrl';
-import { NAV_PLACES, PLACE_LABEL_KEYS, placeBadges, placeForPath } from './navPlaces';
+import { useNavRailController } from './hooks/useNavRailController';
+import { NAV_PLACES, PLACE_LABEL_KEYS } from './navPlaces';
 import { UserMenuDialog } from './userMenuEntries';
 
 const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent';
 
 export default function NavRail() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const webClient = useWebClient();
-  const user = useAppSelector(server.Selectors.getUser);
-  const serverName = useAppSelector(server.Selectors.getName);
-  const avatarUrl = useOwnAvatarUrl();
-  const [snapGridVisible, setSnapGridVisible] = useSnapGridSetting();
-  const [phaseTrackPinned, setPhaseTrackPinned] = usePhaseTrackPinnedSetting();
-  const [openDialog, setOpenDialog] = useState<UserMenuDialog | null>(null);
-  const current = placeForPath(pathname);
-  const badges = placeBadges(useUnreadCounts());
+  const { current, badges, account, openDialog, closeDialog } = useNavRailController();
 
   return (
     <div
@@ -74,25 +59,13 @@ export default function NavRail() {
       </nav>
       <div className="mt-auto flex flex-col items-center gap-2">
         <LatencyStatus />
-        <UserMenu
-          userName={user?.name ?? null}
-          userLevel={user?.userLevel ?? 0}
-          avatarUrl={avatarUrl}
-          serverName={serverName}
-          snapGridVisible={snapGridVisible}
-          onToggleSnapGrid={() => setSnapGridVisible(!snapGridVisible)}
-          phaseTrackPinned={phaseTrackPinned}
-          onTogglePhaseTrackPinned={() => setPhaseTrackPinned(!phaseTrackPinned)}
-          onNavigate={(route) => navigate(generatePath(route))}
-          onOpenDialog={setOpenDialog}
-          onSignOut={() => webClient.request.authentication.disconnect()}
-        />
+        <UserMenu {...account} />
       </div>
       <CardImportDialog
         isOpen={openDialog === UserMenuDialog.CardImport}
-        handleClose={() => setOpenDialog(null)}
+        handleClose={closeDialog}
       />
-      <DebugLogDialog isOpen={openDialog === UserMenuDialog.DebugLog} onClose={() => setOpenDialog(null)} />
+      <DebugLogDialog isOpen={openDialog === UserMenuDialog.DebugLog} onClose={closeDialog} />
     </div>
   );
 }

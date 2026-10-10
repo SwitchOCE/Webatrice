@@ -66,6 +66,30 @@ describe('TabList', () => {
     expect(onClose).toHaveBeenCalledWith(deck);
   });
 
+  it('hands focus back when the last closeable tab goes', () => {
+    const onClose = vi.fn();
+    const onLastClosed = vi.fn();
+    renderWithProviders(
+      <TabList groups={[{ key: 'decks', tabs: [deck] }]} activeKey="" onClose={onClose} onLastClosed={onLastClosed} />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'TopBar.tabs.close' }));
+
+    expect(onLastClosed).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalledWith(deck);
+  });
+
+  it('focuses a neighbour instead while other tabs remain', () => {
+    const onLastClosed = vi.fn();
+    renderWithProviders(<TabList groups={groups} activeKey="account" onClose={vi.fn()} onLastClosed={onLastClosed} />);
+
+    const deckTab = screen.getByRole('link', { name: 'TopBar.tab.deck' }).closest('li')!;
+    fireEvent.click(within(deckTab).getByRole('button', { name: 'TopBar.tabs.close' }));
+
+    expect(onLastClosed).not.toHaveBeenCalled();
+    expect(screen.getByRole('link', { name: 'UserMenu.account' })).toHaveFocus();
+  });
+
   it('gives a pinned tab no Close button', () => {
     renderTabs();
 

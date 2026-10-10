@@ -376,6 +376,33 @@ describe('TopBar tab titles', () => {
   });
 });
 
+describe('TopBar document title', () => {
+  afterEach(() => {
+    window.localStorage.clear();
+  });
+
+  it.each([
+    [RouteEnum.SERVER, 'TopBar.tab.lobby', {}],
+    [RouteEnum.DECKS, 'TopBar.tab.myDecks', {}],
+    [RouteEnum.REPLAYS, 'TopBar.replays.tab', {}],
+    [RouteEnum.SETTINGS, 'UserMenu.settings', {}],
+    ['/decks/public/bob', 'TopBar.tab.publicDecks', { name: 'bob' }],
+  ])('names %s after its own page on a fresh profile', async (route, key, params) => {
+    vi.resetModules();
+    const { renderWithProviders: renderFresh } = await import('../../__test-utils__');
+    const { default: FreshTopBar } = await import('./TopBar');
+    let expected = '';
+    function TitleProbe() {
+      expected = useTranslation().t(key, params);
+      return null;
+    }
+
+    renderFresh(<><FreshTopBar /><TitleProbe /></>, { preloadedState: connectedState, route });
+
+    expect(document.title).toBe(`${expected} · Webatrice`);
+  });
+});
+
 describe('TopBar deck tabs', () => {
   const deckTab = () => screen
     .queryAllByRole('link', { name: 'TopBar.tab.deck' })
@@ -509,6 +536,23 @@ describe('TopBar sticky tabs', () => {
 
     expect(screen.getByRole('link', { name: /UserMenu\.account/ })).toHaveAttribute('aria-current', 'page');
     expect(persisted().map(({ key }) => key)).not.toContain('account');
+  });
+
+  it('moves focus to the rail toggle when the last session tab closes', async () => {
+    vi.resetModules();
+    const { renderWithProviders: renderFresh } = await import('../../__test-utils__');
+    const { default: FreshTopBar } = await import('./TopBar');
+    const { default: FreshNavRail } = await import('./NavRail');
+    renderFresh(<><FreshNavRail /><FreshTopBar /></>, { preloadedState: connectedState, route: '/player/zed' });
+    fireEvent.click(play());
+
+    const close = within(screen.getByRole('link', { name: 'zed' }).closest('li')!)
+      .getByRole('button', { name: 'TopBar.tabs.close' });
+    close.focus();
+    fireEvent.click(close);
+
+    expect(within(strip()).queryAllByRole('link')).toEqual([]);
+    expect(screen.getByRole('button', { name: 'TopBar.rail.hide' })).toHaveFocus();
   });
 
   it('drops a sticky tab from the strip and from storage when it closes', () => {

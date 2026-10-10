@@ -39,6 +39,7 @@ export type MenuAnchor =
 export interface MenuProps {
   anchor: MenuAnchor;
   label: string;
+  describedBy?: string;
   onClose: () => void;
   triggerRef?: RefObject<HTMLElement | null>;
   autoFocus?: boolean;
@@ -114,7 +115,7 @@ function anchorKey(anchor: MenuAnchor): string {
 }
 
 export function Menu({
-  anchor, label, onClose, triggerRef, autoFocus = true, id, className, onKeyDown: onShortcutKey, children,
+  anchor, label, describedBy, onClose, triggerRef, autoFocus = true, id, className, onKeyDown: onShortcutKey, children,
 }: MenuProps) {
   const parent = useContext(MenuLevelContext);
   const menuIdentity = useId();
@@ -318,6 +319,7 @@ export function Menu({
         role="menu"
         data-menu-ancestors={ancestors.join(' ')}
         aria-label={label}
+        aria-describedby={describedBy}
         tabIndex={-1}
         style={position ?? { left: 0, top: 0 }}
         onKeyDown={onKeyDown}
