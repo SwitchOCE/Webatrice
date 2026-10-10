@@ -69,6 +69,29 @@ function setupWithGame(opts: SetupOpts = {}) {
 }
 
 describe('useGameLog', () => {
+  it('re-pins the log to the bottom when it becomes visible again', () => {
+    const { Wrapper } = makeReduxWebClientHookWrapper({
+      reducer: combineReducers({ games: games.gamesReducer, server: server.serverReducer }),
+      preloadedState: {
+        games: stateWith(),
+        server: { ...(connectedState.server as any), user: makeUser({ name: 'Alice' }) },
+      },
+    });
+    const list = document.createElement('div');
+    let scrollHeight = 0;
+    Object.defineProperty(list, 'scrollHeight', { configurable: true, get: () => scrollHeight });
+    Object.defineProperty(list, 'clientHeight', { configurable: true, value: 200 });
+    const listRef = { current: list };
+    const { rerender } = renderHook(({ visible }) => useGameLog({ gameId: 1, listRef, visible }), {
+      wrapper: ({ children }) => <Wrapper>{children}</Wrapper>,
+      initialProps: { visible: false },
+    });
+    expect(list.scrollTop).toBe(0);
+    scrollHeight = 1000;
+    rerender({ visible: true });
+    expect(list.scrollTop).toBe(1000);
+  });
+
   it.each([false, true])('ticks only for a live game (readOnly=%s)', (readOnly) => {
     vi.useFakeTimers();
     try {
