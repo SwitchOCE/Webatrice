@@ -14,7 +14,7 @@ import {
   type OpenedReplay,
   type ReplayGameTarget,
 } from '@app/services';
-import { onSessionEnd } from '@app/services/session';
+import { onSessionEnd, sessionGeneration } from '@app/services/session';
 import { useAppSelector } from '@app/store';
 import { RouteEnum } from '@app/types';
 
@@ -88,8 +88,7 @@ export function useReplayPreview(): ReplayPreviewState {
   const [error, setError] = useState<string | null>(null);
   const openedRef = useRef<OpenedReplay | undefined>(undefined);
   const requestRef = useRef(0);
-  const scopeRef = useRef('');
-  scopeRef.current = previewScope(sessionEpoch, connectedEndpoint(webClient));
+  const scope = previewScope(sessionEpoch, connectedEndpoint(webClient));
 
   const dispose = useCallback(() => {
     const current = openedRef.current;
@@ -122,7 +121,7 @@ export function useReplayPreview(): ReplayPreviewState {
   const load = useCallback((source: PreviewSource) => {
     dispose();
     const request = requestRef.current;
-    const scope = scopeRef.current;
+    const generation = sessionGeneration();
     setOpened(undefined);
     setKey(source.key);
     setError(null);
@@ -144,7 +143,7 @@ export function useReplayPreview(): ReplayPreviewState {
     source.fetch()
       .then((bytes) => {
         const replay = parseReplay(bytes);
-        if (scopeRef.current === scope) {
+        if (sessionGeneration() === generation) {
           rememberReplay(scope, source.key, replay);
         }
         ready(replay);
@@ -156,7 +155,7 @@ export function useReplayPreview(): ReplayPreviewState {
         setError(err instanceof Error ? err.message : String(err));
         setStatus('error');
       });
-  }, [dispose, webClient]);
+  }, [dispose, scope, webClient]);
 
   const watchFrom = useCallback((time: number) => {
     const current = openedRef.current;

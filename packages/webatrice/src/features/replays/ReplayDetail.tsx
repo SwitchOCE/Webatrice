@@ -11,6 +11,7 @@ import { PlayerName, formatItemDate } from './ReplayList';
 import { isFullySaved, savedGameCount, type FileItem, type MatchItem } from './replayLibrary';
 import type { ReplayLibrary } from './useReplayLibrary';
 import type { ReplayPreviewState } from './useReplayPreview';
+import { useReplayShortcuts } from './useReplayShortcuts';
 
 const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';
 
@@ -254,7 +255,7 @@ function ReplayDetail({ library, preview }: ReplayDetailProps) {
               ? t('Replays.preview.loadedLocal', { name: selected.kind === 'file' ? selected.name : selectedGame?.name ?? '' })
               : t('Replays.preview.loadedServer', { id: selectedGame?.replayId ?? '' })}
           </span>
-          <ReplayPreview opened={preview.opened!} onWatchFrom={preview.watchFrom} />
+          <ReplayPreview opened={preview.opened!} onWatchFrom={preview.watchFrom} useShortcuts={useReplayShortcuts} />
         </>
       ) : (
         <PreviewPlaceholder library={library} preview={preview} />

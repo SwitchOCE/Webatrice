@@ -1,14 +1,9 @@
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 
-import { ShortcutScope, useShortcut } from '@app/feature-widgets/shortcuts';
 import { usePreference, useSettings } from '@app/hooks';
-import {
-  BIG_SKIP_MS,
-  DEFAULT_FAST_FORWARD_SPEED,
-  SMALL_SKIP_MS,
-  type OpenedReplay,
-  type ReplayPlaybackState,
-} from '@app/services';
+import { DEFAULT_FAST_FORWARD_SPEED, type OpenedReplay, type ReplayPlaybackState } from '@app/services';
+
+import { noReplayShortcuts, type ReplayShortcutBinder } from './replayShortcuts';
 
 export interface ReplayPlayback {
   state: ReplayPlaybackState;
@@ -37,7 +32,10 @@ const NO_TIMELINE: readonly number[] = [];
 const subscribeNothing = () => () => {};
 const getIdleState = () => IDLE_STATE;
 
-export function useReplayPlayback(opened: OpenedReplay | undefined): ReplayPlayback {
+export function useReplayPlayback(
+  opened: OpenedReplay | undefined,
+  useShortcuts: ReplayShortcutBinder = noReplayShortcuts,
+): ReplayPlayback {
   const settings = useSettings();
   const engine = opened?.engine ?? null;
   const [fastForward, setFastForward] = useState(() => (engine?.getState().timeScaleFactor ?? 1) !== 1);
@@ -75,13 +73,7 @@ export function useReplayPlayback(opened: OpenedReplay | undefined): ReplayPlayb
     [update],
   );
 
-  const scope = { scope: ShortcutScope.REPLAYS, enabled: engine != null };
-  useShortcut('replays.playPause', togglePlay, scope);
-  useShortcut('replays.toggleFastForward', toggleFastForward, scope);
-  useShortcut('replays.skipForward', () => skipBy(SMALL_SKIP_MS), scope);
-  useShortcut('replays.skipBackward', () => skipBy(-SMALL_SKIP_MS), scope);
-  useShortcut('replays.skipForwardBig', () => skipBy(BIG_SKIP_MS), scope);
-  useShortcut('replays.skipBackwardBig', () => skipBy(-BIG_SKIP_MS), scope);
+  useShortcuts({ togglePlay, toggleFastForward, skipBy }, engine != null);
 
   return {
     state,

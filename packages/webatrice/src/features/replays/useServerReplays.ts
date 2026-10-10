@@ -7,6 +7,7 @@ import { Response_ResponseCode, type ServerInfo_ReplayMatch } from '@cockatrice/
 import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { useCommandFailureMessage, useReduxEffect, useRequestTracker, useWatchReplay } from '@app/hooks';
 import { ReplayFileDTO, ReplayNameTakenError, replayFileName } from '@app/services';
+import { sessionGeneration } from '@app/services/session';
 import { useAppSelector } from '@app/store';
 
 import { saveReplayFile } from './replayFiles';
@@ -186,14 +187,21 @@ export function useServerReplays(): ServerReplays {
     }
     const endpoint = webClient.socket.connectedEndpoint ?? '';
     const gameId = selectedMatch.gameId;
+    const generation = sessionGeneration();
     const folder = selection?.kind === 'match'
       ? matchFolder(folderId, `${selectedMatch.gameId}_${selectedMatch.gameName}`)
       : Promise.resolve(folderId);
     folder.then((targetId) => {
+      if (sessionGeneration() !== generation) {
+        return;
+      }
       for (const replay of replays) {
         webClient.request.session.replayDownload(
           replay.replayId,
           (data) => {
+            if (sessionGeneration() !== generation) {
+              return;
+            }
             ReplayFileDTO.addReplay(targetId, replayFileName(replay.replayId), data, { endpoint, gameId, replayId: replay.replayId })
               .then(() => setLibrarySaves((n) => n + 1))
               .catch(() => showError(t('Replays.notice.failed'), t('Replays.local.saveFailed')));

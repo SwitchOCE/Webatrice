@@ -1,4 +1,14 @@
-import { endSession, onSessionEnd } from './index';
+import { endSession, onSessionEnd, sessionGeneration } from './index';
+
+it('advances the session generation once per session end, including re-entrant ends', () => {
+  const before = sessionGeneration();
+  endSession();
+  expect(sessionGeneration()).toBe(before + 1);
+  const unsubscribe = onSessionEnd(() => endSession());
+  endSession();
+  unsubscribe();
+  expect(sessionGeneration()).toBe(before + 2);
+});
 
 it('supports independent registrations, repeated boundaries and unsubscribe', () => {
   const handler = vi.fn();
