@@ -23,7 +23,7 @@ export interface DeckCardRowProps extends GridRowProps {
 }
 
 export function deckRowKey(card: DeckCard): string {
-  return `${card.category}:${card.name}`;
+  return `${card.category}:${card.name}:${card.scryfallId ?? ''}`;
 }
 
 function swappedCategory(card: DeckCard): DeckCategory | null {

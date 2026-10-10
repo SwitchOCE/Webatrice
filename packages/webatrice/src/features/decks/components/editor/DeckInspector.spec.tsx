@@ -19,6 +19,7 @@ const sideBolt: DeckCard = { ...bolt, category: 'sideboard', quantity: 1 };
 function renderInspector(overrides: Partial<DeckInspectorProps> = {}) {
   const props: DeckInspectorProps = {
     selected: { name: 'Lightning Bolt', category: 'main' },
+    index: 0,
     deckCards: [bolt, sideBolt],
     prices: emptyPriceLookup(),
     isCommanderDeck: false,
@@ -69,7 +70,7 @@ describe('DeckInspector', () => {
   });
 
   it('offers the way back to the main deck for a sideboard row', () => {
-    const props = renderInspector({ selected: { name: 'Lightning Bolt', category: 'sideboard' } });
+    const props = renderInspector({ selected: { name: 'Lightning Bolt', category: 'sideboard' }, index: 1 });
     expect(screen.getByRole('group', { name: 'DeckInspector.quantity' })).toHaveTextContent('1');
     fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.toMain' }));
     expect(props.onSetCategory).toHaveBeenCalledWith(1, 'main');
@@ -82,8 +83,18 @@ describe('DeckInspector', () => {
   });
 
   it('offers to add a card that is not in the deck yet', () => {
-    const props = renderInspector({ selected: { name: 'Ponder', category: 'main', scryfallId: 'p1' }, deckCards: [bolt] });
+    const props = renderInspector({
+      selected: {
+        name: 'Ponder',
+        category: 'main',
+        scryfallId: 'p1',
+        preview: { name: 'Ponder', quantity: 1, category: 'main', lookupSource: 'scryfall', typeLine: 'Sorcery', scryfallId: 'p1' },
+      },
+      index: -1,
+      deckCards: [bolt],
+    });
     expect(screen.getByText('DeckInspector.noImage')).toBeInTheDocument();
+    expect(screen.getByText('Sorcery')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.add' }));
     fireEvent.click(screen.getByRole('button', { name: 'DeckInspector.addToSideboard' }));
     expect(props.onAdd).toHaveBeenNthCalledWith(1, 'Ponder', 'main', 'p1');

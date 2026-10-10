@@ -63,10 +63,13 @@ export interface AddCardOptions {
 
 const ZONE_CATEGORY: Record<AddCardZone, DeckCard['category']> = { main: 'main', side: 'sideboard' };
 
-function findZoneRow(deck: HydratedDeck, name: string, category: DeckCard['category']): number {
-  return category === 'main'
-    ? findMainboardRow(deck, name)
-    : deck.cards.findIndex((c) => c.category === category && c.name.toLowerCase() === name.toLowerCase());
+function findZoneRow(deck: HydratedDeck, name: string, category: DeckCard['category'], scryfallId?: string): number {
+  const lower = name.toLowerCase();
+  const inZone = (c: DeckCard) => c.category === category && c.name.toLowerCase() === lower;
+  if (scryfallId) {
+    return deck.cards.findIndex((c) => inZone(c) && c.scryfallId === scryfallId);
+  }
+  return category === 'main' ? findMainboardRow(deck, name) : deck.cards.findIndex(inZone);
 }
 
 export interface UseDeckEditor {
@@ -472,7 +475,7 @@ export function useDeckEditor(deckId: number | null, draftToken: string | null =
       const category = ZONE_CATEGORY[zone];
       const current = deckRef.current;
       if (current) {
-        const existingIdx = findZoneRow(current, trimmed, category);
+        const existingIdx = findZoneRow(current, trimmed, category, options.scryfallId);
         if (existingIdx >= 0) {
           editCard(
             existingIdx,

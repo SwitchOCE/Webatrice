@@ -9,10 +9,11 @@ import type { DeckCategory } from '@app/types';
 import { priceForCard, type PriceLookup } from '../../pricing';
 import { upgradeScryfallImageSize } from '../../scryfallImage';
 import type { DeckCard } from '../../types';
-import { resolveInspectedRow, type InspectedCard } from './editorSelection';
+import type { InspectedCard } from './editorSelection';
 
 export interface DeckInspectorProps {
   selected: InspectedCard | null;
+  index: number;
   deckCards: DeckCard[];
   prices: PriceLookup;
   isCommanderDeck: boolean;
@@ -26,6 +27,7 @@ export interface DeckInspectorProps {
 
 export function DeckInspector({
   selected,
+  index,
   deckCards,
   prices,
   isCommanderDeck,
@@ -37,8 +39,7 @@ export function DeckInspector({
   onAdd,
 }: DeckInspectorProps) {
   const { t } = useTranslation();
-  const index = resolveInspectedRow(deckCards, selected);
-  const card = index >= 0 ? deckCards[index] : null;
+  const card = index >= 0 ? deckCards[index] ?? null : null;
 
   return (
     <section className="flex flex-col gap-3" aria-label={t('DeckInspector.title')}>
@@ -48,7 +49,7 @@ export function DeckInspector({
       ) : (
         <>
           <CardSummary
-            card={card ?? {
+            card={card ?? selected.preview ?? {
               name: selected.name, quantity: 0, category: selected.category, scryfallId: selected.scryfallId, lookupSource: 'unknown',
             }}
             prices={prices}

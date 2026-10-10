@@ -1,5 +1,5 @@
 import { fireEvent, screen } from '@testing-library/react';
-import { createRef, useState } from 'react';
+import { useState } from 'react';
 
 import { renderWithProviders } from '../../../../__test-utils__';
 import { groupDeckCards } from '../../deckGrouping';
@@ -17,11 +17,10 @@ const deck: HydratedDeck = {
 };
 
 function renderPane(overrides: Partial<DeckMainPaneProps> = {}) {
-  const addField = createRef<HTMLInputElement>();
   const props: DeckMainPaneProps = {
     deck,
     groups: groupDeckCards(deck.cards, false),
-    selected: null,
+    selectedIndex: -1,
     onSelect: vi.fn(),
     onInc: vi.fn(),
     onDelete: vi.fn(),
@@ -29,7 +28,7 @@ function renderPane(overrides: Partial<DeckMainPaneProps> = {}) {
     onSetCommander: vi.fn(),
     onChangePrinting: vi.fn(),
     onShowDetails: vi.fn(),
-    addFieldRef: addField,
+    onLastRowRemoved: vi.fn(),
     isMtg: true,
     isCommander: false,
     ...overrides,
@@ -38,7 +37,6 @@ function renderPane(overrides: Partial<DeckMainPaneProps> = {}) {
     const [currentDeck, setDeck] = useState(props.deck);
     return (
       <>
-        <input ref={addField} aria-label="add" />
         <DeckMainPane
           {...props}
           deck={currentDeck}
@@ -79,7 +77,7 @@ describe('DeckMainPane', () => {
     expect(screen.getByText('DeckEditor.shell.noCards')).toBeInTheDocument();
   });
 
-  it.each([true, false])('moves focus to the add field when the last card is removed (MTG: %s)', (isMtg) => {
+  it.each([true, false])('reports the last card being removed so focus can move on (MTG: %s)', (isMtg) => {
     const one = { ...deck, cards: [deck.cards[0]] };
     const props = renderPane({ deck: one, groups: groupDeckCards(one.cards, false), isMtg });
     const row = screen.getByRole('row');
@@ -87,6 +85,6 @@ describe('DeckMainPane', () => {
     fireEvent.keyDown(row, { key: 'Delete' });
     expect(props.onDelete).toHaveBeenCalledWith(0);
     expect(screen.queryByRole('row')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('add')).toHaveFocus();
+    expect(props.onLastRowRemoved).toHaveBeenCalled();
   });
 });

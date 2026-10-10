@@ -15,7 +15,7 @@ function renderGroup(overrides: Partial<DeckCardGroupProps> = {}) {
     label: 'Land',
     indices: [2, 0],
     deck: cards,
-    selected: null,
+    selectedIndex: -1,
     onSelect: vi.fn(),
     onInc: vi.fn(),
     onDelete: vi.fn(),
@@ -45,7 +45,7 @@ describe('DeckCardGroup', () => {
   });
 
   it('marks the selected row', () => {
-    renderGroup({ selected: { name: 'forest', category: 'main' } });
+    renderGroup({ selectedIndex: 0 });
     const rows = screen.getAllByRole('row');
     expect(rows.map((row) => row.getAttribute('aria-selected'))).toEqual(['false', 'true']);
   });

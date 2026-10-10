@@ -33,6 +33,7 @@ describe('scryfallToLookup', () => {
       source: 'scryfall',
       layout: 'transform',
       colors: ['U'],
+      colorIdentity: ['U'],
       printings: [{ set: 'isd', collectorNumber: '51', scryfallId: 'delver', imageUri: 'front.jpg' }],
       text: 'Front.\n//\nBack.\n//\nNameless.',
     });

@@ -252,6 +252,19 @@ describe('useDeckEditor', () => {
     expect(latest.totalSideboardCount).toBe(2);
   });
 
+  it('keeps a chosen printing as its own row instead of merging into another printing', async () => {
+    setCachedDeck(5, { deck: hydrated(), savedSignature: deckSaveSignature(hydrated()) });
+    vi.mocked(lookupCard).mockResolvedValue({ found: false, source: 'unknown', name: 'Sol Ring', printings: [] });
+    setup();
+
+    await act(() => latest.addCard('Sol Ring', { scryfallId: 'print-lea' }));
+    expect(latest.deck?.cards.map((c) => [c.quantity, c.scryfallId])).toEqual([[1, undefined], [1, 'print-lea']]);
+
+    await act(() => latest.addCard('Sol Ring', { scryfallId: 'print-lea' }));
+    await act(() => latest.addCard('Sol Ring'));
+    expect(latest.deck?.cards.map((c) => [c.quantity, c.scryfallId])).toEqual([[2, undefined], [2, 'print-lea']]);
+  });
+
   it('undoes and redoes edits in order, and a new edit clears redo', () => {
     setCachedDeck(5, { deck: hydrated(), savedSignature: deckSaveSignature(hydrated()) });
     setup();

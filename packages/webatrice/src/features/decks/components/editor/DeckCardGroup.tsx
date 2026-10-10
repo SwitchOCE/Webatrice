@@ -22,13 +22,12 @@ import type { CardLegality } from '../../deckLegality';
 import type { DeckCard } from '../../types';
 import { deckRowKey, type DeckCardGrid } from '../../hooks/useDeckCardGrid';
 import { DeckCardRow } from './DeckCardRow';
-import { isInspectedRow, type InspectedCard } from './editorSelection';
 
 export interface DeckCardGroupProps {
   label: string;
   indices: number[];
   deck: DeckCard[];
-  selected: InspectedCard | null;
+  selectedIndex: number;
   onSelect: (card: DeckCard) => void;
   onInc: (index: number, delta: number) => void;
   onDelete: (index: number) => void;
@@ -60,7 +59,7 @@ export function DeckCardGroup({
   label,
   indices,
   deck,
-  selected,
+  selectedIndex,
   onSelect,
   onInc,
   onDelete,
@@ -92,7 +91,7 @@ export function DeckCardGroup({
           <DeckCardRow
             key={deckRowKey(deck[i])}
             card={deck[i]}
-            selected={isInspectedRow(deck[i], selected)}
+            selected={i === selectedIndex}
             onSelect={() => onSelect(deck[i])}
             rowProps={grid?.getDeckRowProps(i)}
             onInc={(delta) => (delta < 0 && grid ? grid.decrementRow(i) : onInc(i, delta))}
