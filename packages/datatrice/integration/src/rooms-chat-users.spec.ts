@@ -96,20 +96,22 @@ describe('room and private chat state boundaries', () => {
         response.session.privateMessageFailed('bob', 'unsent', Code.RespInIgnoreList);
       }
     });
-    expect(store.getState().server.messages.bob).toEqual(messages);
+    const expectedMessages = messages.map(message => ({ ...message, timeReceived: expect.any(Number) }));
+    expect(store.getState().server.messages.bob).toEqual(expectedMessages);
     expect(store.getState().server.privateChatNotices.bob).toEqual(withNotices ? [
       { id: expect.any(Number), kind: 'chatFlood', position: 0 },
       { id: expect.any(Number), kind: 'ignoredByRecipient', position: 1 },
     ] : undefined);
     const newest = create(Data.Event_UserMessageSchema, { senderName: 'bob', receiverName: 'alice', message: 'newest' });
     response.session.userMessage(newest);
-    expect(store.getState().server.messages.bob).toEqual([...messages.slice(1), newest]);
+    const expectedRetained = [...expectedMessages.slice(1), { ...newest, timeReceived: expect.any(Number) }];
+    expect(store.getState().server.messages.bob).toEqual(expectedRetained);
     expect(store.getState().server.privateChatNotices.bob).toEqual(withNotices ? [
       { id: expect.any(Number), kind: 'ignoredByRecipient', position: 0 },
     ] : undefined);
     expect(server.Selectors.getPrivateConversation(store.getState(), 'bob')).toEqual([
       ...(withNotices ? [{ type: 'notice', notice: { id: expect.any(Number), kind: 'ignoredByRecipient', position: 0 } }] : []),
-      ...[...messages.slice(1), newest].map(message => ({ type: 'message', message })),
+      ...expectedRetained.map(message => ({ type: 'message', message })),
     ]);
   });
 

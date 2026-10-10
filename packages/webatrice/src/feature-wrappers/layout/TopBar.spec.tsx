@@ -20,6 +20,7 @@ import { buildReplay, sayContainer } from '../../services/replay/__mocks__/fixtu
 
 import { getSettings, settingsStore } from '../../hooks/useSettings';
 import TopBar from './TopBar';
+import { server } from '@cockatrice/datatrice';
 
 const TABS_KEY = 'webatrice.stickyTabs';
 const OWNER_KEY = 'webatrice.stickyTabs.owner';
@@ -40,6 +41,23 @@ function renderTopBar(route: InitialEntry = RouteEnum.SERVER, preloadedState = c
 }
 
 describe('TopBar identity changes', () => {
+  it('keeps an empty chat registered while navigating, then unregisters it on tab close', () => {
+    const { store } = renderTopBar('/player/empty-chat');
+    expect(store.getState().server.messages['empty-chat']).toEqual([]);
+    fireEvent.click(screen.getByRole('link', { name: 'TopBar.tab.lobby' }));
+    act(() => {
+      store.dispatch(server.Actions.userLeft({ name: 'empty-chat' }));
+    });
+    expect(store.getState().server.privateChatNotices['empty-chat']).toHaveLength(1);
+    const tab = screen.getByRole('link', { name: 'empty-chat' }).parentElement!;
+    fireEvent.click(within(tab).getByRole('button', { name: 'TopBar.tabs.close' }));
+    act(() => {
+      store.dispatch(server.Actions.userJoined({ user: makeUser({ name: 'empty-chat' }) }));
+    });
+    expect(store.getState().server.messages['empty-chat']).toBeUndefined();
+    expect(store.getState().server.privateChatNotices['empty-chat']).toBeUndefined();
+  });
+
   afterEach(() => {
     window.localStorage.clear();
   });

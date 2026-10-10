@@ -22,6 +22,7 @@ import { useBackendDeckNames } from './hooks/useBackendDeckNames';
 import { useIdentityChange } from './hooks/useIdentityChange';
 import { usePersistLastRoute } from './hooks/usePersistLastRoute';
 import { useStickyTabs } from './hooks/useStickyTabs';
+import { usePrivateChatRegistration } from './hooks/usePrivateChatRegistration';
 import {
   addStickyTab, detectTransientTab, isStickyTabType, routeMatches, tabTitle, withDeckNames,
   type Tab,
@@ -55,6 +56,7 @@ export default function TopBar() {
   const [openDialog, setOpenDialog] = useState<UserMenuDialog | null>(null);
 
   const [stickyTabs, setStickyTabs] = useStickyTabs();
+  const unregisterPrivateChat = usePrivateChatRegistration(stickyTabs);
   useEffect(() => {
     const transient = detectTransientTab(location.pathname);
     if (!transient || !isStickyTabType(transient.type)) {
@@ -168,6 +170,7 @@ export default function TopBar() {
 
   const handleClose = (tab: Tab) => {
     tab.onClose?.();
+    unregisterPrivateChat(tab);
     // Sticky (decks / deck editor / shortcuts / player) tabs need to be
     // removed from the sticky list too — otherwise the effect above
     // would leave them pinned even after the user navigates away.

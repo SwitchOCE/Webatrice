@@ -24,6 +24,8 @@ import type { WebsocketTypes } from '@cockatrice/sockatrice/types';
 
 export type TestConnectionStatus = 'testing' | 'success' | 'failed' | null;
 
+export type PrivateMessage = Event_UserMessage & { timeReceived: number };
+
 export interface ServerState {
   initialized: boolean;
   sessionEpoch: number;
@@ -42,7 +44,7 @@ export interface ServerState {
   sortUsersBy: ServerStateSortUsersBy;
   locale: string | undefined;
   messages: {
-    [userName: string]: Event_UserMessage[];
+    [userName: string]: PrivateMessage[];
   };
   privateChatNotices: {
     [userName: string]: PrivateChatNotice[];
@@ -69,6 +71,7 @@ export interface ServerState {
   publicDecks: { [userName: string]: Response_DeckList };
   downloadedReplay: { replayId: number; replayData: Uint8Array } | null;
   gamesOfUser: { [userName: string]: { [gameId: number]: Enriched.Game } };
+  gamesOfUserRoomNames: { [userName: string]: { [roomId: number]: string } };
   gamesOfUserStatus: { [userName: string]: GamesOfUserStatus };
   registrationError: string | null;
   staff: ServerStateStaff;
@@ -107,7 +110,7 @@ export interface PrivateChatNotice {
 }
 
 export type PrivateConversationEntry =
-  | { type: 'message'; message: Event_UserMessage }
+  | { type: 'message'; message: PrivateMessage }
   | { type: 'notice'; notice: PrivateChatNotice };
 
 export interface ServerStateStatus {

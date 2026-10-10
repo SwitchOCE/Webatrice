@@ -64,6 +64,18 @@ describe('useReportUser permissions', () => {
 });
 
 describe('ReportUserDialog', () => {
+  it.each(['  original log\nsecond line  ', '  \n  ', ''])('sends the trimmed read-only prefill %j', async (log) => {
+    const { report } = renderProbe(stateFor(SERVER_31), <Probe target="mallory" chatContext={log} />);
+    fireEvent.click(screen.getByText('open'));
+    const field = screen.getByLabelText('ReportUserDialog.chatGroup');
+    expect(field).toHaveAttribute('readonly');
+    expect(field).toHaveValue(log.trim());
+    expect(field).toHaveAttribute('placeholder', 'ReportUserDialog.chatEmpty');
+    submitDescription('Details');
+    fireEvent.click(await screen.findByRole('button', { name: 'ReportUserDialog.confirmYes' }));
+    expect(report.mock.calls[0][0].chatLog).toBe(log.trim() || undefined);
+  });
+
   function submitDescription(text: string) {
     fireEvent.change(screen.getByLabelText('ReportUserDialog.descriptionGroup'), { target: { value: text } });
     fireEvent.click(screen.getByRole('button', { name: 'ReportUserDialog.submit' }));

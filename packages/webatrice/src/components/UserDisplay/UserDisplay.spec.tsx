@@ -18,6 +18,51 @@ vi.mock('@app/images', () => ({
 }));
 
 describe('UserDisplay', () => {
+  it.each([
+    [0, Level.IsRegistered, false],
+    [Level.IsRegistered, 0, false],
+    [0, 0, false],
+    [Level.IsRegistered, Level.IsRegistered, true],
+  ])('requires both users registered for list actions (%i, %i)', (ownLevel, targetLevel, enabled) => {
+    const user = makeUser({ name: 'alice', userLevel: targetLevel });
+    const { rerender } = renderWithProviders(<UserDisplay user={user} />, { preloadedState: {
+      ...connectedState,
+      server: { ...connectedState.server!, user: makeUser({ name: 'testUser', userLevel: ownLevel }),
+        buddyList: { alice: user }, ignoreList: { alice: user } },
+    } });
+    fireEvent.contextMenu(screen.getByRole('link', { name: 'alice' }));
+    for (const action of ['removeBuddy', 'removeIgnore']) {
+      expect(screen.getByRole('menuitem', { name: `UserActionsMenu.${action}` }).getAttribute('aria-disabled') === 'true')
+        .toBe(!enabled);
+    }
+    rerender(<UserDisplay user={makeUser({ name: 'bob', userLevel: targetLevel })} />);
+    fireEvent.contextMenu(screen.getByRole('link', { name: 'bob' }));
+    for (const action of ['addBuddy', 'addIgnore']) {
+      expect(screen.getByRole('menuitem', { name: `UserActionsMenu.${action}` }).getAttribute('aria-disabled') === 'true')
+        .toBe(!enabled);
+    }
+  });
+
+  it.each(['self', 'offline', 'ignored', 'online'])('gates private chat for %s users', (kind) => {
+    const user = makeUser({ name: kind === 'self' ? 'testUser' : 'alice' });
+    renderWithProviders(<UserDisplay user={user} />, { preloadedState: {
+      ...connectedState,
+      server: { ...connectedState.server!, users: kind === 'offline' ? {} : { [user.name]: user },
+        ignoreList: kind === 'ignored' ? { [user.name]: user } : {} },
+    } });
+    fireEvent.contextMenu(screen.getByRole('link', { name: user.name }));
+    const chat = screen.getByRole('menuitem', { name: 'UserActionsMenu.privateChat' });
+    if (kind === 'online') {
+      expect(chat).toHaveAttribute('href', '/player/alice');
+    } else {
+      expect(chat).toHaveAttribute('aria-disabled', 'true');
+    }
+    if (kind === 'self') {
+      expect(screen.getByRole('menuitem', { name: 'UserActionsMenu.addBuddy' })).toHaveAttribute('aria-disabled', 'true');
+      expect(screen.getByRole('menuitem', { name: 'UserActionsMenu.addIgnore' })).toHaveAttribute('aria-disabled', 'true');
+    }
+  });
+
   it('renders user name', () => {
     const user = makeUser({ name: 'TestPlayer', country: 'us' });
     renderWithProviders(<UserDisplay user={user} />, {

@@ -2,11 +2,12 @@ import i18next from 'i18next';
 import ICU from 'i18next-icu';
 import { I18nextProvider } from 'react-i18next';
 import translations from './UserGamesDialog.i18n.json';
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { create, type MessageInitShape } from '@bufbuild/protobuf';
-import { games, rooms, type Game } from '@cockatrice/datatrice';
+import { games, rooms, server, type Game } from '@cockatrice/datatrice';
 import {
   Event_GameJoinedSchema,
+  Response_GetGamesOfUserSchema,
   Response_ResponseCode,
   ServerInfo_GameSchema,
   ServerInfo_RoomSchema,
@@ -64,6 +65,7 @@ function stateWith({
       ...server,
       user: judge ? makeUser({ name: 'testUser', userLevel: ServerInfo_User_UserLevelFlag.IsJudge }) : server.user,
       gamesOfUser: { bob: Object.fromEntries(gameList.map((game) => [game.info.gameId, game])) },
+      gamesOfUserRoomNames: { bob: { 2: 'Constructed' } },
       gamesOfUserStatus: status ? { bob: status } : {},
     },
     rooms: {
@@ -85,6 +87,34 @@ function renderDialog(options?: StateOptions) {
 const loaded = { state: 'loaded' } as const;
 
 describe('UserGamesDialog', () => {
+  it('returns to the games list when the default No answer is chosen', async () => {
+    renderDialog({ status: loaded, gameList: [makeGame({ playerCount: 2 })] });
+    fireEvent.doubleClick(screen.getByRole('row', { name: /Friday casual/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'GameLink.no' }));
+    await waitFor(() => expect(screen.getByRole('dialog', { name: 'UserGamesDialog.title' })).toBeVisible());
+    expect(screen.getByRole('row', { name: /Friday casual/ })).toBeInTheDocument();
+    expect(mockWebClient.request.rooms.joinGame).not.toHaveBeenCalled();
+  });
+
+  it('asks before a full-game row joins as spectator', () => {
+    renderDialog({ status: loaded, gameList: [makeGame({ playerCount: 2 })] });
+    fireEvent.doubleClick(screen.getByRole('row', { name: /Friday casual/ }));
+    expect(screen.getByRole('button', { name: 'GameLink.no' })).toHaveFocus();
+    expect(mockWebClient.request.rooms.joinGame).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'GameLink.yes' }));
+    expect(mockWebClient.request.rooms.joinGame).toHaveBeenCalledWith(2, expect.objectContaining({ spectator: true }), expect.any(String));
+  });
+
+  it('uses room names from the user games response instead of the room listing', () => {
+    const { store } = renderDialog();
+    act(() => {
+      store.dispatch(server.Actions.gamesOfUser({ userName: 'bob', response: create(Response_GetGamesOfUserSchema, {
+        roomList: [{ roomId: 2, name: 'Response room name' }], gameList: [makeGame().info],
+      }) }));
+    });
+    expect(screen.getByRole('gridcell', { name: 'Response room name' })).toBeInTheDocument();
+  });
+
   it('requests the games of the user when it opens', () => {
     renderDialog();
     expect(mockWebClient.request.session.getGamesOfUser).toHaveBeenCalledWith('bob');

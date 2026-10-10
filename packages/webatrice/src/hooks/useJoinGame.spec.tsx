@@ -68,6 +68,19 @@ const makeGame = (overrides: MessageInitShape<typeof ServerInfo_GameSchema> = {}
   create(ServerInfo_GameSchema, { gameId: 7, roomId: 2, playerCount: 1, maxPlayers: 2, spectatorsAllowed: true, ...overrides });
 
 describe('useJoinGame', () => {
+  it.each([
+    [ServerInfo_User_UserLevelFlag.IsModerator, false, true],
+    [ServerInfo_User_UserLevelFlag.IsRegistered, true, false],
+  ])('skips full-game confirmation for level %i joining as judge: %s', (userLevel, asJudge, overrideRestrictions) => {
+    const state = { ...connectedState, server: { ...connectedState.server!, user: makeUser({ userLevel }) } };
+    const { result, webClient } = setup(() => useJoinGame(), state);
+    act(() => result.current.beginJoin(2, makeGame({ playerCount: 2 }), false, asJudge));
+    expect(result.current.spectatorConfirmationRequired).toBe(false);
+    expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(2, expect.objectContaining({
+      spectator: true, joinAsJudge: asJudge, overrideRestrictions,
+    }), expect.any(String));
+  });
+
   it('sends Command_JoinGame to the room of the game', () => {
     const { result, webClient } = setup(() => useJoinGame());
     act(() => result.current.beginJoin(2, makeGame(), false, false));
@@ -76,10 +89,29 @@ describe('useJoinGame', () => {
     }, expect.any(String));
   });
 
-  it('joins a full game as a spectator', () => {
+  it('asks before joining a full game as a spectator and cancels without sending', () => {
     const { result, webClient } = setup(() => useJoinGame());
     act(() => result.current.beginJoin(2, makeGame({ playerCount: 2 }), false, false));
+    expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
+    expect(result.current.spectatorConfirmationRequired).toBe(true);
+    act(() => result.current.cancelSpectatorJoin());
+    expect(result.current.spectatorConfirmationRequired).toBe(false);
+    expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
+    act(() => result.current.beginJoin(2, makeGame({ playerCount: 2 }), false, false));
+    act(() => result.current.confirmSpectatorJoin());
     expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(2, expect.objectContaining({ spectator: true }), expect.any(String));
+  });
+
+  it('asks for a required spectator password only after accepting a full game', () => {
+    const { result, webClient } = setup(() => useJoinGame());
+    act(() => result.current.beginJoin(2, makeGame({ playerCount: 2, withPassword: true, spectatorsNeedPassword: true }), false, false));
+    expect(result.current.passwordRequired).toBe(false);
+    act(() => result.current.confirmSpectatorJoin());
+    expect(result.current.passwordRequired).toBe(true);
+    act(() => result.current.submitPassword('secret'));
+    expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(
+      2, expect.objectContaining({ spectator: true, password: 'secret' }), expect.any(String),
+    );
   });
 
   it('asks for the password first and sends it with the join', () => {

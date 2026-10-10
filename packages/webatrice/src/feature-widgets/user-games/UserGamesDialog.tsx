@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { games, rooms, server } from '@cockatrice/datatrice';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import { Response_ResponseCode, type ServerInfo_Game } from '@cockatrice/sockatrice/generated';
-import { AlertDialog, DialogShell, PromptDialog } from '@app/dialogs';
+import { AlertDialog, DialogShell, ConfirmDialog, PromptDialog } from '@app/dialogs';
 import {
   useCanOverrideGameRestrictions, useCommandFailureMessage, useGridRows, useJoinGame, useJoinGameErrorMessage, useNavigateOnGameJoined,
 } from '@app/hooks';
@@ -37,13 +37,14 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
   const overrideRestrictions = useCanOverrideGameRestrictions();
   const status = useAppSelector((state) => server.Selectors.getGamesOfUserStatus(state, userName));
   const gameList = useAppSelector((state) => server.Selectors.getGamesOfUser(state, userName));
-  const allRooms = useAppSelector(rooms.Selectors.getRooms);
+  const roomNames = useAppSelector((state) => server.Selectors.getGamesOfUserRoomNames(state, userName));
   const activeGameIds = useAppSelector(games.Selectors.getActiveGameIds);
   const joinedRoomIds = useAppSelector(rooms.Selectors.getJoinedRoomIds);
   const isJudgeUser = useAppSelector(server.Selectors.getIsUserJudge);
   const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
   const [roomNotJoined, setRoomNotJoined] = useState(false);
-  const { beginJoin, passwordRequired, passwordGame, submitPassword, cancelPassword, joinPending, joinError, clearJoinError } =
+  const { beginJoin, passwordRequired, passwordGame, submitPassword, cancelPassword, joinPending, joinError, clearJoinError,
+    spectatorConfirmationRequired, confirmSpectatorJoin, cancelSpectatorJoin } =
     useJoinGame(onClose);
   const joinErrorMessage = useJoinGameErrorMessage(joinError);
 
@@ -132,7 +133,7 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
                 info.gameId === selectedGameId ? 'bg-accent/20' : 'hover:bg-bg-elevated',
               ].join(' ')}
             >
-              <td role="gridcell" className={CELL_CLASS}>{allRooms[info.roomId]?.info.name ?? `#${info.roomId}`}</td>
+              <td role="gridcell" className={CELL_CLASS}>{roomNames[info.roomId] ?? `#${info.roomId}`}</td>
               <td role="gridcell" className={`${CELL_CLASS} text-text-primary`}>{info.description}</td>
               <td role="gridcell" className={CELL_CLASS}>{info.creatorInfo?.name ?? ''}</td>
               <td role="gridcell" className={CELL_CLASS}>{gameType}</td>
@@ -149,7 +150,7 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
   return (
     <>
       <DialogShell
-        isOpen
+        isOpen={!spectatorConfirmationRequired}
         title={t('UserGamesDialog.title', { name: userName })}
         handleClose={onClose}
         maxWidth="max-w-4xl"
@@ -177,6 +178,16 @@ export default function UserGamesDialog({ userName, onClose }: UserGamesDialogPr
           )}
         </div>
       </DialogShell>
+      <ConfirmDialog
+        cancelDefault
+        title={t('GameLink.confirm.title')}
+        message={t('GameLink.full')}
+        confirmLabel={t('GameLink.yes')}
+        cancelLabel={t('GameLink.no')}
+        isOpen={spectatorConfirmationRequired}
+        onConfirm={confirmSpectatorJoin}
+        onCancel={cancelSpectatorJoin}
+      />
       <PromptDialog
         isOpen={passwordRequired}
         title={t('UserGamesDialog.password.title')}

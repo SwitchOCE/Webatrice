@@ -1,16 +1,16 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 
 import { AuthGuard } from '@app/components';
-import { useReportUser } from '@app/dialogs';
+import { formatChatContext, ReportChatScope, useReportUser } from '@app/dialogs';
 import { Images } from '@app/images';
 import { Layout } from '@app/feature-wrappers/layout';
 import { MODERATION_MENU_LABEL_KEYS, useModerationMenu } from '@app/feature-widgets/moderation';
 import { useUserGames } from '@app/feature-widgets/user-games';
-import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
+import { formatAccountAge, formatUserLevel } from '@app/utils';
 import PrivateChat from './PrivateChat';
 import { usePlayer } from './usePlayer';
 
@@ -29,51 +29,8 @@ function avatarSrc(bmp: Uint8Array | undefined): string | null {
   return AVATAR_DATA_URI_PREFIX + btoa(binary);
 }
 
-function userLevelLabel(userLevel: number, t: (k: string) => string): string {
-  const Flag = ServerInfo_User_UserLevelFlag;
-  const parts: string[] = [];
-  if ((userLevel & Flag.IsAdmin) === Flag.IsAdmin) {
-    parts.push(t('Player.level.administrator'));
-  } else if ((userLevel & Flag.IsModerator) === Flag.IsModerator) {
-    parts.push(t('Player.level.moderator'));
-  } else if ((userLevel & Flag.IsRegistered) === Flag.IsRegistered) {
-    parts.push(t('Player.level.registered'));
-  } else {
-    parts.push(t('Player.level.unregistered'));
-  }
-  if ((userLevel & Flag.IsJudge) === Flag.IsJudge) {
-    parts.push(t('Player.level.judge'));
-  }
-  return parts.join(' | ');
-}
-
-function formatAccountAge(
-  accountageSecs: bigint | undefined,
-  userLevel: number,
-  t: (k: string, params?: Record<string, unknown>) => string,
-): string {
-  const Flag = ServerInfo_User_UserLevelFlag;
-  const isRegistered =
-    (userLevel & Flag.IsAdmin) === Flag.IsAdmin ||
-    (userLevel & Flag.IsModerator) === Flag.IsModerator ||
-    (userLevel & Flag.IsRegistered) === Flag.IsRegistered;
-  if (!isRegistered) {
-    return t('Player.level.unregistered');
-  }
-  if (!accountageSecs || accountageSecs <= 0n) {
-    return t('Player.age.unknown');
-  }
-  const totalDays = Number(accountageSecs / 86400n);
-  const years = Math.floor(totalDays / 365);
-  const days = totalDays - years * 365;
-  if (years > 0) {
-    return t('Player.age.daysWithYears', { years, days });
-  }
-  return t('Player.age.days', { count: days });
-}
-
 const Player = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     name,
     userInfo,
@@ -92,6 +49,13 @@ const Player = () => {
   const moderation = useModerationMenu(name ?? '', userInfo?.userLevel);
 
   const { canReportUser, openReportUser } = useReportUser();
+  const getChatContext = useCallback(() => formatChatContext(conversation.flatMap((entry) =>
+    entry.type === 'message' ? [{
+      userName: entry.message.senderName,
+      message: entry.message.message,
+      timeReceived: entry.message.timeReceived,
+    }] : [],
+  )), [conversation]);
   const userGames = useUserGames();
   const avatar = useMemo(() => avatarSrc(userInfo?.avatarBmp), [userInfo?.avatarBmp]);
   const countryCode = userInfo?.country?.toUpperCase() ?? '';
@@ -128,8 +92,7 @@ const Player = () => {
 
               <Typography variant="h6" className="player-view__name">{userInfo.name}</Typography>
               <Typography className="player-view__level-badge">
-                {userLevelLabel(userInfo.userLevel, t)}
-                {userInfo.privlevel && userInfo.privlevel !== 'NONE' ? ` | ${userInfo.privlevel}` : ''}
+                {formatUserLevel(t, userInfo.userLevel, userInfo.privlevel)}
               </Typography>
 
               <div className="player-view__details">
@@ -149,10 +112,10 @@ const Player = () => {
                 </span>
 
                 <span className="player-view__label">{t('Player.label.userLevel')}</span>
-                <span>{userLevelLabel(userInfo.userLevel, t)}</span>
+                <span>{formatUserLevel(t, userInfo.userLevel, userInfo.privlevel)}</span>
 
                 <span className="player-view__label">{t('Player.label.accountAge')}</span>
-                <span>{formatAccountAge(userInfo.accountageSecs, userInfo.userLevel, t)}</span>
+                <span>{formatAccountAge(t, userInfo.accountageSecs, userInfo.userLevel, i18n.language)}</span>
               </div>
 
               {!isSelf && (
@@ -169,7 +132,9 @@ const Player = () => {
                     </Button>
                   )}
                   {name && canReportUser(name) && (
-                    <Button variant="outlined" color="warning" onClick={() => openReportUser({ userName: name })}>
+                    <Button variant="outlined" color="warning"
+                      onClick={() => openReportUser({ userName: name, chatContext: getChatContext() })}
+                    >
                       {t('ReportUserDialog.menuItem')}
                     </Button>
                   )}
@@ -191,14 +156,16 @@ const Player = () => {
 
         {!isSelf && name && (
           <div className="flex-1 min-w-0 min-h-0">
-            <PrivateChat
-              peerName={name}
-              selfName={currentUser?.name ?? null}
-              entries={conversation}
-              isOnline={isOnline}
-              isIgnored={isIgnored}
-              onSend={onSendMessage}
-            />
+            <ReportChatScope getChatContext={getChatContext}>
+              <PrivateChat
+                peerName={name}
+                selfName={currentUser?.name ?? null}
+                entries={conversation}
+                isOnline={isOnline}
+                isIgnored={isIgnored}
+                onSend={onSendMessage}
+              />
+            </ReportChatScope>
           </div>
         )}
       </div>

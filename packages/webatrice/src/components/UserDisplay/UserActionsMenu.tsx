@@ -41,14 +41,18 @@ export default function UserActionsMenu({
   const Slot = useUserMenuSlot();
   const { t } = useTranslation();
   const { reportingAvailable, canReportUser, openReportUser } = useReportUser();
-  const ownName = useAppSelector((state) => server.Selectors.getUser(state)?.name);
+  const ownUser = useAppSelector(server.Selectors.getUser);
   const deckSharing = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.DECK_SHARING));
   const showPublicDecks = deckSharing && ((userLevel ?? 0) & ServerInfo_User_UserLevelFlag.IsRegistered) !== 0;
-  const isSelf = name === ownName;
+  const isSelf = name === ownUser?.name;
+  const canChangeLists = !isSelf && ((userLevel ?? 0) & ServerInfo_User_UserLevelFlag.IsRegistered) !== 0
+    && ((ownUser?.userLevel ?? 0) & ServerInfo_User_UserLevelFlag.IsRegistered) !== 0;
+  const isOnline = useAppSelector((state) => server.Selectors.getIsUserOnline(state, name));
+  const canChat = !isSelf && isOnline && !isIgnored;
 
   return (
     <Menu anchor={anchor} label={t('UserActionsMenu.label', { name })} onClose={onClose} triggerRef={triggerRef}>
-      <NavLink
+      {canChat ? <NavLink
         to={generatePath(RouteEnum.PLAYER, { name })}
         onClick={onClose}
         className={MENU_ITEM_CLASS}
@@ -56,7 +60,11 @@ export default function UserActionsMenu({
         tabIndex={-1}
       >
         <MessageSquare size={14} /> {t('UserActionsMenu.privateChat')}
-      </NavLink>
+      </NavLink> : (
+        <MenuItem disabled onSelect={onClose} icon={<MessageSquare size={14} />}>
+          {t('UserActionsMenu.privateChat')}
+        </MenuItem>
+      )}
       {showPublicDecks && isSelf && (
         <MenuItem
           onSelect={onClose}
@@ -80,20 +88,20 @@ export default function UserActionsMenu({
       )}
       <MenuSeparator />
       {!isABuddy ? (
-        <MenuItem onSelect={onAddBuddy} icon={<UserRoundPlus size={14} />}>
+        <MenuItem disabled={!canChangeLists} onSelect={onAddBuddy} icon={<UserRoundPlus size={14} />}>
           {t('UserActionsMenu.addBuddy')}
         </MenuItem>
       ) : (
-        <MenuItem onSelect={onRemoveBuddy} icon={<UserRoundMinus size={14} />}>
+        <MenuItem disabled={!canChangeLists} onSelect={onRemoveBuddy} icon={<UserRoundMinus size={14} />}>
           {t('UserActionsMenu.removeBuddy')}
         </MenuItem>
       )}
       {!isIgnored ? (
-        <MenuItem onSelect={onAddIgnore} icon={<VolumeX size={14} />}>
+        <MenuItem disabled={!canChangeLists} onSelect={onAddIgnore} icon={<VolumeX size={14} />}>
           {t('UserActionsMenu.addIgnore')}
         </MenuItem>
       ) : (
-        <MenuItem onSelect={onRemoveIgnore} icon={<Volume2 size={14} />}>
+        <MenuItem disabled={!canChangeLists} onSelect={onRemoveIgnore} icon={<Volume2 size={14} />}>
           {t('UserActionsMenu.removeIgnore')}
         </MenuItem>
       )}

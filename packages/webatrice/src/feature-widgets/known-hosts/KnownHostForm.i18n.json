@@ -5,7 +5,7 @@
       "find": "Find Host",
       "desktopPort": "Desktop port (optional)"
     },
-    "desktopPortHelp": "Optional TCP port used by desktop clients. Set this to open desktop share links for this server.",
+    "desktopPortHelp": "Optional TCP port used by desktop clients. Set this to open desktop share links and send game invites for this server.",
     "validation": {
       "desktopPort": "Enter a whole number from 1 to 65535, or leave this empty."
     }

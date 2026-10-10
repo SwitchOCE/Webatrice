@@ -25,6 +25,9 @@ export interface JoinGameFlow {
   passwordGame: Pick<ServerInfo_Game, 'gameId' | 'description'> | null;
   submitPassword: (password: string) => void;
   cancelPassword: () => void;
+  spectatorConfirmationRequired: boolean;
+  confirmSpectatorJoin: () => void;
+  cancelSpectatorJoin: () => void;
   joinPending: boolean;
   joinError: JoinGameError | null;
   clearJoinError: () => void;
@@ -39,6 +42,7 @@ export function useJoinGame(onAlreadyOpen?: () => void): JoinGameFlow {
   const joinPending = useAppSelector(rooms.Selectors.getJoinGamePending);
   const storedJoinError = useAppSelector(rooms.Selectors.getJoinGameError);
   const [pendingPasswordJoin, setPendingPasswordJoin] = useState<PendingJoin | null>(null);
+  const [pendingSpectatorJoin, setPendingSpectatorJoin] = useState<{ join: PendingJoin; needsPassword: boolean } | null>(null);
   const request = useRequestTracker();
   const [joinError, setJoinError] = useState<JoinGameError | null>(null);
 
@@ -71,13 +75,20 @@ export function useJoinGame(onAlreadyOpen?: () => void): JoinGameFlow {
 
   const beginJoin = useCallback(
     (roomId: number, game: ServerInfo_Game, asSpectator: boolean, asJudge: boolean) => {
-      const effectiveSpectator = asSpectator || game.playerCount >= game.maxPlayers;
+      setPendingSpectatorJoin(null);
+      setPendingPasswordJoin(null);
+      const gameFull = game.playerCount === game.maxPlayers;
+      const effectiveSpectator = asSpectator || gameFull;
       const join = { roomId, gameId: game.gameId, description: game.description, asSpectator: effectiveSpectator, asJudge };
       if (activeGameIds.includes(game.gameId)) {
         sendJoin(join, '');
         return;
       }
       const needsPassword = !overrideRestrictions && game.withPassword && !(effectiveSpectator && !game.spectatorsNeedPassword);
+      if (gameFull && !asSpectator && !asJudge && !overrideRestrictions) {
+        setPendingSpectatorJoin({ join, needsPassword });
+        return;
+      }
       if (needsPassword) {
         setPendingPasswordJoin(join);
         return;
@@ -86,6 +97,20 @@ export function useJoinGame(onAlreadyOpen?: () => void): JoinGameFlow {
     },
     [activeGameIds, overrideRestrictions, sendJoin],
   );
+
+  const confirmSpectatorJoin = useCallback(() => {
+    if (!pendingSpectatorJoin) {
+      return;
+    }
+    const { join, needsPassword } = pendingSpectatorJoin;
+    setPendingSpectatorJoin(null);
+    if (needsPassword) {
+      setPendingPasswordJoin(join);
+    } else {
+      sendJoin(join, '');
+    }
+  }, [pendingSpectatorJoin, sendJoin]);
+  const cancelSpectatorJoin = useCallback(() => setPendingSpectatorJoin(null), []);
 
   const submitPassword = useCallback(
     (password: string) => {
@@ -112,6 +137,9 @@ export function useJoinGame(onAlreadyOpen?: () => void): JoinGameFlow {
     passwordGame: pendingPasswordJoin,
     submitPassword,
     cancelPassword,
+    spectatorConfirmationRequired: pendingSpectatorJoin !== null,
+    confirmSpectatorJoin,
+    cancelSpectatorJoin,
     joinPending,
     joinError,
     clearJoinError,

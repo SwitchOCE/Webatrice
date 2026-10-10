@@ -211,7 +211,7 @@ export function useLogin(): Login {
       userName,
       password,
       email,
-      country,
+      country: country.toLowerCase(),
       realName,
     });
   };

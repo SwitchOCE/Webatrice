@@ -26,6 +26,8 @@ export const Types = {
   UPDATE_USERS: a.updateUsers.type,
   USER_JOINED: a.userJoined.type,
   USER_LEFT: a.userLeft.type,
+  PRIVATE_CHAT_OPENED: a.privateChatOpened.type,
+  PRIVATE_CHAT_CLOSED: a.privateChatClosed.type,
   VIEW_LOGS: a.viewLogs.type,
   CLEAR_LOGS: a.clearLogs.type,
   REGISTRATION_REQUIRES_EMAIL: a.registrationRequiresEmail.type,

@@ -25,6 +25,19 @@
     },
     "addUser": {
       "submit": "Add"
+    },
+    "level": {
+      "administrator": "Administrator",
+      "developer": "Developer",
+      "moderator": "Moderator",
+      "registered": "Registered user",
+      "unregistered": "Unregistered user",
+      "judge": "Judge"
+    },
+    "age": {
+      "unknown": "Unknown",
+      "days": "{count, plural, one {# Day} other {# Days}} {date}",
+      "yearsAndDays": "{years, plural, one {# Year} other {# Years}}, {days, plural, one {# Day} other {# Days}} {date}"
     }
   }
 }

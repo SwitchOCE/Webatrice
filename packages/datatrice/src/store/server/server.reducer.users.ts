@@ -1,9 +1,10 @@
 import { CaseReducer, PayloadAction } from '@reduxjs/toolkit';
-import { create } from '@bufbuild/protobuf';
+import { clone, create } from '@bufbuild/protobuf';
 import { Enriched } from '../../types';
 import {
   Event_NotifyUser,
   Event_UserMessage,
+  Event_UserMessageSchema,
   Response_GetGamesOfUser,
   Response_ResponseCode,
   ServerInfo_User,
@@ -44,6 +45,15 @@ function appendPrivateChatNotice(
 }
 
 export const userReducers = {
+  privateChatOpened: ((state, action) => {
+    state.messages[action.payload.userName] ??= [];
+  }) as CaseReducer<ServerState, PayloadAction<{ userName: string }>>,
+
+  privateChatClosed: ((state, action) => {
+    delete state.messages[action.payload.userName];
+    delete state.privateChatNotices[action.payload.userName];
+  }) as CaseReducer<ServerState, PayloadAction<{ userName: string }>>,
+
   updateUser: ((state, action) => {
     if (state.user) {
       state.user = create(ServerInfo_UserSchema, { ...state.user, ...action.payload.user });
@@ -101,8 +111,9 @@ export const userReducers = {
           .map((notice) => ({ ...notice, position: notice.position - trimmed }));
       }
     }
-    state.messages[userName].push(action.payload.messageData);
-  }) as CaseReducer<ServerState, PayloadAction<{ messageData: Event_UserMessage }>>,
+    const { messageData, timeReceived } = action.payload;
+    state.messages[userName].push(Object.assign(clone(Event_UserMessageSchema, messageData), { timeReceived }));
+  }) as CaseReducer<ServerState, PayloadAction<{ messageData: Event_UserMessage; timeReceived: number }>>,
 
   privateMessageFailed: ((state, action) => {
     const { userName, responseCode, failure } = action.payload;
@@ -131,13 +142,16 @@ export const userReducers = {
   gamesOfUserRequested: ((state, action) => {
     const { userName } = action.payload;
     delete state.gamesOfUser[userName];
+    delete state.gamesOfUserRoomNames[userName];
     state.gamesOfUserStatus[userName] = { state: 'loading' };
   }) as CaseReducer<ServerState, PayloadAction<{ userName: string }>>,
 
   gamesOfUser: ((state, action) => {
     const { userName, response } = action.payload;
     const gametypeMaps: { [roomId: number]: Enriched.GametypeMap } = {};
+    const roomNames: { [roomId: number]: string } = {};
     for (const room of response.roomList ?? []) {
+      roomNames[room.roomId] = room.name;
       gametypeMaps[room.roomId] = normalizeGametypeMap(room.gametypeList ?? []);
     }
     const games: { [gameId: number]: Enriched.Game } = {};
@@ -146,6 +160,7 @@ export const userReducers = {
       games[normalized.info.gameId] = normalized;
     }
     state.gamesOfUser[userName] = games;
+    state.gamesOfUserRoomNames[userName] = roomNames;
     state.gamesOfUserStatus[userName] = { state: 'loaded' };
   }) as CaseReducer<ServerState, PayloadAction<{ userName: string; response: Response_GetGamesOfUser }>>,
 

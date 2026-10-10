@@ -27,13 +27,16 @@ const state = {
     ...connectedState.server!,
     user: makeUser({ name: 'me' }),
     users: { alice: makeUser({ name: 'alice', userLevel: 3 }) },
-    messages: { alice: [create(Event_UserMessageSchema, { senderName: 'alice', receiverName: 'me', message: 'old' })] },
+    messages: { alice: [Object.assign(
+      create(Event_UserMessageSchema, { senderName: 'alice', receiverName: 'me', message: 'old' }), { timeReceived: 0 },
+    )] },
   },
 };
 
 const receive = (store: { dispatch: (action: unknown) => unknown }, senderName: string, message: string) =>
   act(() => {
     store.dispatch(server.Actions.userMessage({
+      timeReceived: 123,
       messageData: create(Event_UserMessageSchema, { senderName, receiverName: 'me', message }),
     }));
   });
@@ -63,7 +66,7 @@ describe('PrivateMessageNotifier', () => {
       },
     });
     act(() => {
-      store.dispatch(server.Actions.userMessage({ messageData: create(Event_UserMessageSchema, {
+      store.dispatch(server.Actions.userMessage({ timeReceived: 123, messageData: create(Event_UserMessageSchema, {
         senderName: 'alice', receiverName: 'me', message: 'arrival',
       }) }));
       const stored = store.getState().server.messages.alice[0];
@@ -92,6 +95,7 @@ describe('PrivateMessageNotifier', () => {
     const { store } = renderNotifier();
     act(() => {
       store.dispatch(server.Actions.userMessage({
+        timeReceived: 123,
         messageData: create(Event_UserMessageSchema, { senderName: 'me', receiverName: 'alice', message: 'mine' }),
       }));
     });

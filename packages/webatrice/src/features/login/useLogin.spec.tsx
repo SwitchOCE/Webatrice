@@ -60,6 +60,15 @@ const makeLoginValues = (overrides: any = {}) => ({
 });
 
 describe('useLogin', () => {
+  it('sends lowercase country codes during registration', () => {
+    const { result, webClient } = setup(disconnectedState);
+    act(() => result.current.handleRegistrationDialogSubmit({
+      userName: 'user', password: 'pw', passwordConfirm: 'pw', email: '', emailConfirm: '', realName: '',
+      country: 'US', selectedHost: makeHost(),
+    }));
+    expect(webClient.request.authentication.register).toHaveBeenCalledWith(expect.objectContaining({ country: 'us' }));
+  });
+
   it('exposes the description and disconnected isConnected flag from server state', () => {
     const { result } = setup({
       ...disconnectedState,

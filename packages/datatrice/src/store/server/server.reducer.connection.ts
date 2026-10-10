@@ -67,6 +67,7 @@ export const initialState: ServerState = {
   publicDecks: {},
   downloadedReplay: null,
   gamesOfUser: {},
+  gamesOfUserRoomNames: {},
   gamesOfUserStatus: {},
   registrationError: null,
   staff: initialStaffState,

@@ -1,7 +1,8 @@
 import { vi } from 'vitest';
 import { fireEvent, screen, within } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
-import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
+import { Event_UserMessageSchema, ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
+import { create } from '@bufbuild/protobuf';
 
 import { renderWithProviders, createMockWebClient, connectedState, makeUser } from '../../__test-utils__';
 
@@ -46,6 +47,13 @@ const stateWithPlayer = (user: ReturnType<typeof makeUser>, overrides = {}) => (
 });
 
 describe('Player', () => {
+  it('shares developer, privilege and calendar-age formatting with Account', () => {
+    const user = makeUser({ name: 'alice', userLevel: ServerInfo_User_UserLevelFlag.IsDeveloper
+      | ServerInfo_User_UserLevelFlag.IsRegistered | ServerInfo_User_UserLevelFlag.IsJudge, privlevel: 'GOLD', accountageSecs: 0n });
+    renderPlayer(stateWithPlayer(user));
+    expect(screen.getAllByText('Account.level.developer | Account.level.judge | GOLD')).toHaveLength(2);
+    expect(screen.getByText('Account.age.unknown')).toBeInTheDocument();
+  });
   it('shows the not-found message when the player is unknown', () => {
     renderPlayer(connectedState, 'ghost');
     expect(screen.getByText('Player.action.notFound')).toBeInTheDocument();
@@ -131,13 +139,13 @@ describe('Player', () => {
   it('labels a registered (non-mod, non-admin) user as Registered', () => {
     const user = makeUser({ name: 'alice', userLevel: ServerInfo_User_UserLevelFlag.IsRegistered });
     renderPlayer(stateWithPlayer(user), 'alice');
-    expect(screen.getAllByText(/Player\.level\.registered/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Account\.level\.registered/).length).toBeGreaterThan(0);
   });
 
   it('labels an admin user as Administrator', () => {
     const user = makeUser({ name: 'alice', userLevel: ServerInfo_User_UserLevelFlag.IsAdmin });
     renderPlayer(stateWithPlayer(user), 'alice');
-    expect(screen.getAllByText(/Player\.level\.administrator/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Account\.level\.administrator/).length).toBeGreaterThan(0);
   });
 
   it('marks a judge user with the Judge label alongside the base level', () => {
@@ -147,8 +155,8 @@ describe('Player', () => {
         ServerInfo_User_UserLevelFlag.IsRegistered | ServerInfo_User_UserLevelFlag.IsJudge,
     });
     renderPlayer(stateWithPlayer(user), 'alice');
-    expect(screen.getAllByText(/Player\.level\.judge/).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Player\.level\.registered/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Account\.level\.judge/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Account\.level\.registered/).length).toBeGreaterThan(0);
   });
 
   it('shows the privlevel suffix on the level badge when it is set and not NONE', () => {
@@ -158,7 +166,7 @@ describe('Player', () => {
       privlevel: 'GOLD',
     });
     renderPlayer(stateWithPlayer(user), 'alice');
-    expect(screen.getByText(/\|\s*GOLD$/)).toBeInTheDocument();
+    expect(screen.getAllByText('Account.level.registered | GOLD')).toHaveLength(2);
   });
 
   it('renders the Unknown account-age text when accountageSecs is missing on a registered user', () => {
@@ -168,7 +176,7 @@ describe('Player', () => {
       accountageSecs: 0n,
     });
     renderPlayer(stateWithPlayer(user), 'alice');
-    expect(screen.getByText(/Player\.age\.unknown/)).toBeInTheDocument();
+    expect(screen.getByText(/Account\.age\.unknown/)).toBeInTheDocument();
   });
 
   it('formats account age with years and days when over one year', () => {
@@ -179,7 +187,7 @@ describe('Player', () => {
       accountageSecs: oneYearAndOneDay,
     });
     renderPlayer(stateWithPlayer(user), 'alice');
-    expect(screen.getByText(/Player\.age\.daysWithYears/)).toBeInTheDocument();
+    expect(screen.getByText(/Account\.age\.yearsAndDays/)).toBeInTheDocument();
   });
 
   it('renders an inline avatar img when the user has an avatar bitmap', () => {
@@ -195,6 +203,22 @@ describe('Player', () => {
 });
 
 describe('Player report user (#7091)', () => {
+  it('prefills the latest 50 private messages from both senders using receipt times', () => {
+    const state = withServer('3.1.0 ()');
+    state.server.messages = { alice: Array.from({ length: 52 }, (_, index) => Object.assign(
+      create(Event_UserMessageSchema, { senderName: index % 2 ? 'testUser' : 'alice', message: `message ${index}` }),
+      { timeReceived: new Date(2026, 0, 1, 9, 5, index).getTime() },
+    )) };
+    renderWithProviders(<ReportUserProvider><Routes>
+      <Route path="/player/:name" element={<Player />} />
+    </Routes></ReportUserProvider>, { preloadedState: state, route: '/player/alice' });
+    fireEvent.click(screen.getByRole('button', { name: 'ReportUserDialog.menuItem' }));
+    const lines = (screen.getByLabelText('ReportUserDialog.chatGroup') as HTMLTextAreaElement).value.split('\n');
+    expect(lines).toHaveLength(50);
+    expect(lines[0]).toBe('[09:05:02] alice: message 2');
+    expect(lines[49]).toBe('[09:05:51] testUser: message 51');
+  });
+
   const withServer = (version: string) => stateWithPlayer(makeUser({ name: 'alice', userLevel: 0 }), {
     info: { message: null, name: 'Test Server', version },
     user: makeUser({ name: 'testUser', userLevel: ServerInfo_User_UserLevelFlag.IsRegistered }),

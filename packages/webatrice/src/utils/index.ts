@@ -39,3 +39,4 @@ export type {
 } from './gameLink';
 export { BRACKET_TONE, bracketToneClass } from './bracketTone';
 export type { BracketTone } from './bracketTone';
+export { formatAccountAge, formatUserLevel } from './accountDetails';

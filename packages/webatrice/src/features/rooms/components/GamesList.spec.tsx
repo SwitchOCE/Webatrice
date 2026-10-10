@@ -67,6 +67,15 @@ function setup({ games = GAMES, rooms: roomsOverrides = {}, userLevel }: SetupOp
 const row = (description: string) => screen.getByRole('row', { name: new RegExp(description) });
 
 describe('GamesList', () => {
+  it('asks before a full-game row joins as spectator, with No focused', () => {
+    const { webClient } = setup({ games: { 1: makeGame(1, 'Full game', 2) } });
+    fireEvent.doubleClick(row('Full game'));
+    expect(screen.getByRole('button', { name: 'GameLink.no' })).toHaveFocus();
+    expect(webClient.request.rooms.joinGame).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'GameLink.yes' }));
+    expect(webClient.request.rooms.joinGame).toHaveBeenCalledWith(1, expect.objectContaining({ spectator: true }), expect.any(String));
+  });
+
   let originalRo: typeof globalThis.ResizeObserver;
 
   beforeEach(() => {

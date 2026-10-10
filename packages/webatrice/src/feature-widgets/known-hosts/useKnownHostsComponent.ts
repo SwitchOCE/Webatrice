@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useToast } from '@app/components';
@@ -70,27 +70,45 @@ export function useKnownHostsComponent({
   const selectedHost =
     knownHosts.status === LoadingState.READY ? knownHosts.value?.selectedHost : undefined;
   const hosts = knownHosts.status === LoadingState.READY ? knownHosts.value?.hosts ?? [] : [];
+  const selection = useRef({ selectedHost, onChange });
+  selection.current = { selectedHost, onChange };
+  const lastProbe = useRef<{ id: number | undefined; host: string; port: string } | null>(null);
+  const selectedId = selectedHost?.id;
+  const selectedAddress = selectedHost?.host;
+  const selectedPort = selectedHost?.port;
 
-  const testConnection = (host: HostDTO) => {
+  const testConnection = useCallback((host: HostDTO, force = false) => {
+    const key = { id: host.id, host: host.host, port: host.port };
+    if (!force && lastProbe.current && lastProbe.current.id === key.id
+      && lastProbe.current.host === key.host && lastProbe.current.port === key.port) {
+      return;
+    }
+    lastProbe.current = key;
     pendingTestRef.current = host;
     dispatch(server.Actions.testConnectionStarted());
     webClient.request.authentication.testConnection({ ...getHostPort(host) });
-  };
+  }, [dispatch, webClient]);
 
   const refreshConnection = () => {
     if (!selectedHost) {
       return;
     }
-    testConnection(selectedHost);
+    testConnection(selectedHost, true);
   };
 
   useEffect(() => {
-    if (!selectedHost) {
+    const host = selection.current.selectedHost;
+    if (!host) {
+      lastProbe.current = null;
       return;
     }
-    onChange(selectedHost);
-    testConnection(selectedHost);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire on host selection only, not on parent re-renders
+    testConnection(host);
+  }, [selectedId, selectedAddress, selectedPort, testConnection]);
+
+  useEffect(() => {
+    if (selectedHost) {
+      selection.current.onChange(selectedHost);
+    }
   }, [selectedHost]);
 
   useReduxEffect<{ supportsHashedPassword: boolean }>(({ payload: { supportsHashedPassword } }) => {
@@ -113,6 +131,15 @@ export function useKnownHostsComponent({
     knownHostToast.openToast(t('KnownHosts.toast', { mode }));
   };
 
+  const selectAndProbeHost = async (host: HostDTO) => {
+    if (host.id == null) {
+      return;
+    }
+    onChange(host);
+    testConnection(host, true);
+    await knownHosts.select(host.id);
+  };
+
   const onPick = async (id: number) => {
     if (knownHosts.status !== LoadingState.READY) {
       return;
@@ -121,9 +148,7 @@ export function useKnownHostsComponent({
     if (!host) {
       return;
     }
-    onChange(host);
-    await knownHosts.select(id);
-    testConnection(host);
+    await selectAndProbeHost(host);
   };
 
   const onPickPublicServer = async (server: PublicServer) => {
@@ -131,12 +156,7 @@ export function useKnownHostsComponent({
       return;
     }
     const created = await knownHosts.add(toSavedHost(server));
-    if (created.id == null) {
-      return;
-    }
-    onChange(created);
-    await knownHosts.select(created.id);
-    testConnection(created);
+    await selectAndProbeHost(created);
   };
 
   const openAddKnownHostDialog = () => {
@@ -182,7 +202,8 @@ export function useKnownHostsComponent({
       fireToast('edited');
     } else {
       const newHost: Host = { name, host, port, desktopPort: desktopPort || undefined, editable: true };
-      await knownHosts.add(newHost);
+      const created = await knownHosts.add(newHost);
+      await selectAndProbeHost(created);
       fireToast('created');
     }
 

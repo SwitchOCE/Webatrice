@@ -10,7 +10,10 @@ import { getSettings, settingsStore } from '../../hooks/useSettings';
 
 const message = (senderName: string, text: string): PrivateConversationEntry => ({
   type: 'message',
-  message: create(Event_UserMessageSchema, { senderName, receiverName: senderName === 'me' ? 'bob' : 'me', message: text }),
+  message: Object.assign(
+    create(Event_UserMessageSchema, { senderName, receiverName: senderName === 'me' ? 'bob' : 'me', message: text }),
+    { timeReceived: 123 },
+  ),
 });
 
 const notice = (id: number, kind: 'userLeft' | 'recipientOffline'): PrivateConversationEntry => ({

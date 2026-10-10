@@ -15,13 +15,14 @@ import { Layout } from '@app/feature-wrappers/layout';
 import AddUserForm from './AddUserForm';
 import { ChangeAvatarDialog, ChangePasswordDialog, EditUserDialog } from './dialogs';
 import { useAccount } from './useAccount';
+import { formatAccountAge, formatUserLevel } from '@app/utils';
 
 import './Account.css';
 
 type AccountDialog = 'edit' | 'password' | 'avatar';
 
 const Account = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [openDialog, setOpenDialog] = useState<AccountDialog | null>(null);
   const closeDialog = () => setOpenDialog(null);
   const {
@@ -35,7 +36,7 @@ const Account = () => {
     handleAddToIgnore,
     handleDisconnect,
   } = useAccount();
-  const { country, realName, name, userLevel, accountageSecs } = user || {};
+  const { country, realName, name, userLevel, accountageSecs, privlevel } = user || {};
   const navigate = useNavigate();
   const reportsSupported = useAppSelector((state) => server.Selectors.supports(state, ServerCapability.REPORTS));
 
@@ -81,8 +82,10 @@ const Account = () => {
           {avatarUrl && <img src={avatarUrl} alt={name} />}
           <p><strong>{name}</strong></p>
           <p>{t('Account.details.location', { country: country?.toUpperCase() ?? '' })}</p>
-          <p>{t('Account.details.userLevel', { userLevel: userLevel ?? '' })}</p>
-          <p>{t('Account.details.accountAge', { accountAge: String(accountageSecs ?? '') })}</p>
+          <p>{t('Account.details.userLevel', { userLevel: user ? formatUserLevel(t, userLevel, privlevel) : '' })}</p>
+          <p>{t('Account.details.accountAge', {
+            accountAge: user ? formatAccountAge(t, accountageSecs, userLevel, i18n.language) : '',
+          })}</p>
           <p>{t('Account.details.realName', { realName: realName ?? '' })}</p>
           <div className="account-details__actions">
             <Button size="small" color="primary" variant="contained" onClick={() => setOpenDialog('edit')}>

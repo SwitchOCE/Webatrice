@@ -9,7 +9,7 @@ import { VirtualRows } from '@app/components';
 import { useCanOverrideGameRestrictions, useGridRows, useJoinGame, useJoinGameErrorMessage, useNavigateOnGameJoined } from '@app/hooks';
 import { useWebClient } from '@cockatrice/datatrice/react';
 import type { CreateGameParams } from '@cockatrice/sockatrice/generated';
-import { AlertDialog, PromptDialog } from '@app/dialogs';
+import { AlertDialog, ConfirmDialog, PromptDialog } from '@app/dialogs';
 import { formatRestrictions, formatSpectators } from '@app/utils';
 
 import CreateGameDialog from '../dialogs/CreateGameDialog/CreateGameDialog';
@@ -49,6 +49,9 @@ export default function GamesList({ room }: GamesListProps) {
     passwordRequired,
     submitPassword,
     cancelPassword,
+    spectatorConfirmationRequired,
+    confirmSpectatorJoin,
+    cancelSpectatorJoin,
     joinPending,
     joinError,
     clearJoinError,
@@ -318,6 +321,16 @@ export default function GamesList({ room }: GamesListProps) {
         gametypeMap={room.gametypeMap}
         onCancel={() => setFilterOpen(false)}
         onSubmit={handleFilterSubmit}
+      />
+      <ConfirmDialog
+        cancelDefault
+        title={t('GameLink.confirm.title')}
+        message={t('GameLink.full')}
+        confirmLabel={t('GameLink.yes')}
+        cancelLabel={t('GameLink.no')}
+        isOpen={spectatorConfirmationRequired}
+        onConfirm={confirmSpectatorJoin}
+        onCancel={cancelSpectatorJoin}
       />
       <PromptDialog
         isOpen={passwordRequired}

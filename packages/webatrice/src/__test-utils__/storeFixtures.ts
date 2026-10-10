@@ -48,6 +48,7 @@ export const disconnectedState: Partial<RootState> = {
     publicDecks: {},
     downloadedReplay: null,
     gamesOfUser: {},
+    gamesOfUserRoomNames: {},
     gamesOfUserStatus: {},
     registrationError: null,
     staff: { investigation: null, moderatorLastLogins: null, cardArtRules: null, serverStats: null },

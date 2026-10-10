@@ -458,11 +458,16 @@ describe('SessionResponseImpl forwards', () => {
     expect(dispatch).toHaveBeenCalledWith(ServerActions.serverShutdown({ data }));
   });
 
-  it('userMessage', () => {
+  it('stamps private messages at receipt before dispatching to the reducer', () => {
     const { impl, dispatch } = setup();
     const messageData = create(Event_UserMessageSchema, {});
-    impl.userMessage(messageData);
-    expect(dispatch).toHaveBeenCalledWith(ServerActions.userMessage({ messageData }));
+    const now = vi.spyOn(Date, 'now').mockReturnValue(123456789);
+    try {
+      impl.userMessage(messageData);
+      expect(dispatch).toHaveBeenCalledWith(ServerActions.userMessage({ messageData, timeReceived: 123456789 }));
+    } finally {
+      now.mockRestore();
+    }
   });
 
   it('addToList', () => {

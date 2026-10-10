@@ -1,6 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
 import {
-  Event_UserMessage,
   Response_DeckList,
   Response_WarnList,
   ServerInfo_ReplayMatch,
@@ -11,7 +10,9 @@ import { WebsocketTypes } from '@cockatrice/sockatrice/types';
 import { SortUtil } from '../../common';
 import { Enriched } from '../../types';
 import { ServerCapability, serverSupports } from './server.capabilities';
-import { GamesOfUserStatus, PrivateChatNotice, PrivateConversationEntry, ServerState, UserInvestigation } from './server.interfaces';
+import {
+  GamesOfUserStatus, PrivateChatNotice, PrivateConversationEntry, PrivateMessage, ServerState, UserInvestigation,
+} from './server.interfaces';
 import { EMPTY_LATENCY, HEALTHY_CONNECTION_HEALTH } from './server.reducer.connection';
 import { reportSelectors } from './server.selectors.reports';
 
@@ -19,9 +20,10 @@ type State = { server: ServerState };
 
 const EMPTY_USERS: ServerInfo_User[] = [];
 const EMPTY_REPLAYS: ServerInfo_ReplayMatch[] = [];
-const EMPTY_MESSAGES: Event_UserMessage[] = [];
+const EMPTY_MESSAGES: PrivateMessage[] = [];
 const EMPTY_NOTICES: PrivateChatNotice[] = [];
 const EMPTY_GAMES: { [gameId: number]: Enriched.Game } = {};
+const EMPTY_ROOM_NAMES: { [roomId: number]: string } = {};
 
 const getPrivateChatNotices = ({ server }: State, userName: string): PrivateChatNotice[] =>
   server.privateChatNotices[userName] ?? EMPTY_NOTICES;
@@ -152,7 +154,7 @@ export const Selectors = {
   // single lookup returns the full conversation. Returns a stable
   // empty array when there's no history yet so callers can rely on
   // referential equality in memoized selectors.
-  getPrivateMessagesForUser: ({ server }: State, userName: string): Event_UserMessage[] =>
+  getPrivateMessagesForUser: ({ server }: State, userName: string): PrivateMessage[] =>
     server.messages[userName] ?? EMPTY_MESSAGES,
 
   getPrivateConversation: createSelector(
@@ -184,6 +186,8 @@ export const Selectors = {
   ),
   getGamesOfUserStatus: ({ server }: State, userName: string): GamesOfUserStatus | undefined =>
     server.gamesOfUserStatus[userName],
+  getGamesOfUserRoomNames: ({ server }: State, userName: string): { [roomId: number]: string } =>
+    server.gamesOfUserRoomNames[userName] ?? EMPTY_ROOM_NAMES,
 
   getUsers: ({ server }: State) => server.users,
   getBuddyList: ({ server }: State) => server.buddyList,

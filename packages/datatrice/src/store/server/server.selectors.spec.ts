@@ -1,4 +1,4 @@
-﻿import { Selectors } from './server.selectors';
+import { Selectors } from './server.selectors';
 import { ServerState } from './server.interfaces';
 import {
   makeBanHistoryItem,
@@ -386,7 +386,9 @@ describe('Selectors', () => {
   it('getPrivateMessagesForUser → returns the stored conversation for that user', () => {
     // The reducer keys both sent + received under the OTHER user's
     // name, so a single lookup returns the full conversation.
-    const msg = { $typeName: 'Event_UserMessage' as const, senderName: 'Bob', receiverName: 'Alice', message: 'gg' } as never;
+    const msg = {
+      $typeName: 'Event_UserMessage' as const, senderName: 'Bob', receiverName: 'Alice', message: 'gg', timeReceived: 123,
+    } as never;
     const state = makeServerState({ messages: { Bob: [msg] } });
     expect(Selectors.getPrivateMessagesForUser(rootState(state), 'Bob')).toEqual([msg]);
   });
@@ -403,7 +405,7 @@ describe('Selectors', () => {
 
   it('getPrivateConversation → slots notices between messages by position', () => {
     const m = (message: string) =>
-      ({ $typeName: 'Event_UserMessage' as const, senderName: 'Bob', receiverName: 'Alice', message }) as never;
+      ({ $typeName: 'Event_UserMessage' as const, senderName: 'Bob', receiverName: 'Alice', message, timeReceived: 123 }) as never;
     const [a, b] = [m('a'), m('b')];
     const state = makeServerState({
       messages: { Bob: [a, b] },

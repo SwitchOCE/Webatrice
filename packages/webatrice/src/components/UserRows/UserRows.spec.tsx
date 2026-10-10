@@ -1,10 +1,16 @@
 import { screen, fireEvent, within } from '@testing-library/react';
 import { act } from 'react';
+import { ServerInfo_User_UserLevelFlag } from '@cockatrice/sockatrice/generated';
 
 import { renderWithProviders, connectedState, makeUser, createMockWebClient } from '../../__test-utils__';
 import UserRows from './UserRows';
 
 const mockWebClient = createMockWebClient();
+const registeredUser = (name: string) => makeUser({ name, country: 'us', userLevel: ServerInfo_User_UserLevelFlag.IsRegistered });
+const registeredState = {
+  ...connectedState,
+  server: { ...connectedState.server!, user: registeredUser('testUser') },
+};
 
 vi.mock('@cockatrice/datatrice/react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@cockatrice/datatrice/react')>();
@@ -73,8 +79,8 @@ describe('UserRows', () => {
 
   it('opens a user\'s action menu and sends the action for that user', () => {
     const { container } = renderWithProviders(
-      <UserRows users={[makeUser({ name: 'alice', country: 'us' }), makeUser({ name: 'bob', country: 'us' })]} empty="" />,
-      { preloadedState: connectedState },
+      <UserRows users={[registeredUser('alice'), registeredUser('bob')]} empty="" />,
+      { preloadedState: registeredState },
     );
     mountRows(container);
 
@@ -86,15 +92,15 @@ describe('UserRows', () => {
 
   it('never retargets an open menu to the user that slides into its row on roster churn', () => {
     const { container, rerender } = renderWithProviders(
-      <UserRows users={[makeUser({ name: 'alice', country: 'us' }), makeUser({ name: 'bob', country: 'us' })]} empty="" />,
-      { preloadedState: connectedState },
+      <UserRows users={[registeredUser('alice'), registeredUser('bob')]} empty="" />,
+      { preloadedState: registeredState },
     );
     mountRows(container);
 
     openMenuFor('alice');
     expect(screen.getByRole('menu')).toBeInTheDocument();
 
-    rerender(<UserRows users={[makeUser({ name: 'carol', country: 'us' }), makeUser({ name: 'bob', country: 'us' })]} empty="" />);
+    rerender(<UserRows users={[registeredUser('carol'), registeredUser('bob')]} empty="" />);
 
     const menu = screen.queryByRole('menu');
     if (menu) {

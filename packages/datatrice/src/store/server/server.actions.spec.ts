@@ -1,4 +1,4 @@
-﻿import { Actions } from './server.actions';
+import { Actions } from './server.actions';
 import {
   Event_NotifyUserSchema,
   Event_ServerShutdownSchema,
@@ -242,7 +242,9 @@ describe('Actions', () => {
 
   it('userMessage', () => {
     const messageData = create(Event_UserMessageSchema, { senderName: 'Alice', receiverName: 'Bob', message: 'hey' });
-    expect(Actions.userMessage({ messageData })).toEqual({ type: Types.USER_MESSAGE, payload: { messageData } });
+    expect(Actions.userMessage({ messageData, timeReceived: 123 })).toEqual({
+      type: Types.USER_MESSAGE, payload: { messageData, timeReceived: 123 },
+    });
   });
 
   it('addToList', () => {

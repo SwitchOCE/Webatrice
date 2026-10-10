@@ -235,7 +235,7 @@ export class SessionResponseImpl implements WebsocketTypes.ISessionResponse {
   }
 
   userMessage(messageData: Event_UserMessage): void {
-    this.store.dispatch(ServerActions.userMessage({ messageData }));
+    this.store.dispatch(ServerActions.userMessage({ messageData, timeReceived: Date.now() }));
   }
 
   privateMessageFailed(userName: string, message: string, responseCode: number, failure?: WebsocketTypes.CommandFailure): void {

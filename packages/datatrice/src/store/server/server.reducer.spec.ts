@@ -1,7 +1,6 @@
-﻿import {
+import {
   Event_NotifyUser,
   Event_ServerShutdown,
-  Event_UserMessage,
   Event_UserMessageSchema,
   Response_GetGamesOfUser,
   Response_GetGamesOfUserSchema,
@@ -438,24 +437,24 @@ describe('Logs', () => {
 describe('Messaging', () => {
   it('USER_MESSAGE → uses receiverName as key when current user is sender', () => {
     const state = makeServerState({ user: makeUser({ name: 'Alice' }), messages: {} });
-    const messageData = { senderName: 'Alice', receiverName: 'Bob', message: 'hi' } as Event_UserMessage;
-    const result = serverReducer(state, Actions.userMessage({ messageData }));
+    const messageData = create(Event_UserMessageSchema, { senderName: 'Alice', receiverName: 'Bob', message: 'hi' });
+    const result = serverReducer(state, Actions.userMessage({ messageData, timeReceived: 123 }));
     expect(result.messages['Bob']).toHaveLength(1);
-    expect(result.messages['Bob'][0]).toEqual(messageData);
+    expect(result.messages['Bob'][0]).toMatchObject({ ...messageData, timeReceived: 123 });
   });
 
   it('USER_MESSAGE → uses senderName as key when current user is receiver', () => {
     const state = makeServerState({ user: makeUser({ name: 'Bob' }), messages: {} });
-    const messageData = { senderName: 'Alice', receiverName: 'Bob', message: 'yo' } as Event_UserMessage;
-    const result = serverReducer(state, Actions.userMessage({ messageData }));
+    const messageData = create(Event_UserMessageSchema, { senderName: 'Alice', receiverName: 'Bob', message: 'yo' });
+    const result = serverReducer(state, Actions.userMessage({ messageData, timeReceived: 123 }));
     expect(result.messages['Alice']).toHaveLength(1);
-    expect(result.messages['Alice'][0]).toEqual(messageData);
+    expect(result.messages['Alice'][0]).toMatchObject({ ...messageData, timeReceived: 123 });
   });
 
   it('USER_MESSAGE → no-ops when user is null (not yet logged in)', () => {
     const state = makeServerState({ user: null, messages: {} });
-    const messageData = { senderName: 'Alice', receiverName: 'Bob', message: 'hi' } as Event_UserMessage;
-    const result = serverReducer(state, Actions.userMessage({ messageData }));
+    const messageData = create(Event_UserMessageSchema, { senderName: 'Alice', receiverName: 'Bob', message: 'hi' });
+    const result = serverReducer(state, Actions.userMessage({ messageData, timeReceived: 123 }));
     expect(result.messages).toEqual({});
   });
 
@@ -463,32 +462,32 @@ describe('Messaging', () => {
     const existingMsg = create(Event_UserMessageSchema, { senderName: 'Alice', receiverName: 'Bob', message: 'first' });
     const state = makeServerState({
       user: makeUser({ name: 'Bob' }),
-      messages: { Alice: [existingMsg] },
+      messages: { Alice: [Object.assign(existingMsg, { timeReceived: 0 })] },
     });
     const newMsg = create(Event_UserMessageSchema, { senderName: 'Alice', receiverName: 'Bob', message: 'second' });
-    const result = serverReducer(state, Actions.userMessage({ messageData: newMsg }));
+    const result = serverReducer(state, Actions.userMessage({ messageData: newMsg, timeReceived: 123 }));
     expect(result.messages['Alice']).toHaveLength(2);
   });
 
   it(`USER_MESSAGE → caps messages at MAX_USER_MESSAGES (${MAX_USER_MESSAGES})`, () => {
     const messages = Array.from({ length: MAX_USER_MESSAGES }, (_, i) =>
-      create(Event_UserMessageSchema, { senderName: 'Alice', receiverName: 'Bob', message: `msg-${i}` })
+      Object.assign(create(Event_UserMessageSchema, { senderName: 'Alice', receiverName: 'Bob', message: `msg-${i}` }), { timeReceived: i })
     );
     const state = makeServerState({
       user: makeUser({ name: 'Bob' }),
       messages: { Alice: messages },
     });
     const newMsg = create(Event_UserMessageSchema, { senderName: 'Alice', receiverName: 'Bob', message: 'overflow' });
-    const result = serverReducer(state, Actions.userMessage({ messageData: newMsg }));
+    const result = serverReducer(state, Actions.userMessage({ messageData: newMsg, timeReceived: 123 }));
     expect(result.messages['Alice']).toHaveLength(MAX_USER_MESSAGES);
-    expect(result.messages['Alice'][MAX_USER_MESSAGES - 1]).toEqual(newMsg);
+    expect(result.messages['Alice'][MAX_USER_MESSAGES - 1]).toMatchObject({ ...newMsg, timeReceived: 123 });
     expect(result.messages['Alice'][0].message).not.toBe('msg-0');
   });
 });
 
 describe('Private chat notices', () => {
   const msg = (message: string) =>
-    create(Event_UserMessageSchema, { senderName: 'Alice', receiverName: 'Bob', message });
+    Object.assign(create(Event_UserMessageSchema, { senderName: 'Alice', receiverName: 'Bob', message }), { timeReceived: 0 });
 
   it.each([
     [Response_ResponseCode.RespInIgnoreList, 'ignoredByRecipient'],
@@ -577,7 +576,7 @@ describe('Private chat notices', () => {
         ],
       },
     });
-    const result = serverReducer(state, Actions.userMessage({ messageData: msg('overflow') }));
+    const result = serverReducer(state, Actions.userMessage({ messageData: msg('overflow'), timeReceived: 123 }));
     expect(result.privateChatNotices['Alice']).toEqual([
       { id: 2, kind: 'userJoined', position: 0 },
       { id: 3, kind: 'chatFlood', position: MAX_USER_MESSAGES - 1 },
@@ -1155,7 +1154,7 @@ describe('malformed input', () => {
       senderName: 'Alice', receiverName: 'Bob', message: 'lost-in-the-mail',
     });
     const state = makeServerState({ user: null });
-    const result = serverReducer(state, Actions.userMessage({ messageData: msg }));
+    const result = serverReducer(state, Actions.userMessage({ messageData: msg, timeReceived: 123 }));
     expect(result.messages).toEqual({});
   });
 

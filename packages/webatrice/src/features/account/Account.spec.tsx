@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import { act, fireEvent, screen } from '@testing-library/react';
 import { server } from '@cockatrice/datatrice';
+import { ServerInfo_User_UserLevelFlag as Level } from '@cockatrice/sockatrice/generated';
 
 const flush = async () => {
   await act(async () => {
@@ -30,6 +31,19 @@ beforeAll(() => {
 });
 
 describe('Account', () => {
+  it('formats the level with judge and privilege suffixes and handles an unknown account age', () => {
+    renderWithProviders(<Account />, { preloadedState: {
+      ...connectedState,
+      server: { ...connectedState.server!, user: makeUser({
+        userLevel: Level.IsRegistered | Level.IsDeveloper | Level.IsModerator | Level.IsJudge,
+        privlevel: 'GOLD', accountageSecs: 0n,
+      }) },
+    } });
+    expect(screen.getByText('Account.details.userLevel {"userLevel":"Account.level.developer | Account.level.judge | GOLD"}'))
+      .toBeInTheDocument();
+    expect(screen.getByText('Account.details.accountAge {"accountAge":"Account.age.unknown"}')).toBeInTheDocument();
+  });
+
   it('renders server details and the current user', () => {
     const { container } = renderWithProviders(<Account />, { preloadedState: connectedState });
 
@@ -111,7 +125,7 @@ describe('Account', () => {
 
     expect(screen.getByText(/Account\.details\.location .*"country":"US"/)).toBeInTheDocument();
     expect(screen.getByText(/Account\.details\.realName .*"realName":"Real Person"/)).toBeInTheDocument();
-    expect(screen.getByText(/Account\.details\.userLevel .*"userLevel":4/)).toBeInTheDocument();
+    expect(screen.getByText(/Account\.details\.userLevel .*"userLevel":"Account.level.moderator"/)).toBeInTheDocument();
   });
 
   it('gives every detail label a value before the user info arrives, so ICU still formats it', () => {
