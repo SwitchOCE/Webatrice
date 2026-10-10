@@ -1290,24 +1290,25 @@
     "lockedNotice": "Functions are locked. Unlock them here or in the staff tools list."
   },
   "CardArtRules": {
-    "title": "Card Art Rules",
+    "title": "Card art rules",
     "label": {
       "card": "Card",
       "cardPlaceholder": "Type a card name...",
-      "providerId": "ProviderId",
+      "providerId": "Printing (provider ID)",
       "mode": "Mode",
       "reason": "Reason"
     },
     "column": {
       "card": "Card",
-      "providerId": "ProviderId",
+      "providerId": "Provider ID",
       "mode": "Mode",
       "reason": "Reason"
     },
     "button": {
       "add": "Add rule",
       "remove": "Remove rule",
-      "refresh": "Refresh"
+      "refresh": "Refresh",
+      "dismiss": "Dismiss"
     },
     "error": {
       "list": "Failed to load card art rules.",
@@ -1316,7 +1317,16 @@
     },
     "validation": {
       "tooLong": "At most {max} characters"
-    }
+    },
+    "subtitle": "Allow or deny the art of a card printing for everyone on this server.",
+    "empty": "No rules yet.",
+    "count": "{count, plural, one {# rule} other {# rules}}",
+    "drawer": "Rule details",
+    "noSelection": "No rule selected",
+    "noSelectionHint": "Pick a rule to remove it, or add one below.",
+    "anyPrinting": "Every printing",
+    "noReason": "No reason given.",
+    "addTitle": "Add a rule"
   },
   "DeckEditor": {
     "downloadFailed": "Failed to download this deck from the server.",
