@@ -127,7 +127,7 @@ function parseUrlChunk(chunk: string, highlight?: MessageHighlight): ReactNode {
     .filter((urlChunk) => !!urlChunk)
     .map((urlChunk, index) => {
       if (urlChunk.match(URL_REGEX)) {
-        return (<a className='link' href={urlChunk} key={index} target='_blank' rel='noopener noreferrer'>{urlChunk}</a>);
+        return (<a className='ui-link' href={urlChunk} key={index} target='_blank' rel='noopener noreferrer'>{urlChunk}</a>);
       }
 
       return <Fragment key={index}>{

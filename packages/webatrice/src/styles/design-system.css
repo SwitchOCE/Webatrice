@@ -21,3 +21,23 @@
 :root[data-theme='light'] {
   --shadow-pop: 0 12px 32px -10px rgb(40 20 80 / 0.25);
 }
+
+.ui-link,
+.ui-links a {
+  color: rgb(var(--text-link));
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  border-radius: 2px;
+}
+
+.ui-link:hover,
+.ui-links a:hover {
+  text-decoration-thickness: 2px;
+}
+
+.ui-link:focus-visible,
+.ui-links a:focus-visible {
+  outline: 2px solid rgb(var(--accent-primary));
+  outline-offset: 2px;
+}

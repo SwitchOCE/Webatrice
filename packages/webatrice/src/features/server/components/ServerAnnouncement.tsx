@@ -5,7 +5,7 @@ import { Panel } from '@app/components';
 
 const MESSAGE_CLASS = [
   'max-h-[156px] overflow-y-auto text-[13px] leading-relaxed text-text-secondary',
-  '[&_a]:text-accent [&_a]:underline [&_a]:decoration-accent/40 [&_a]:underline-offset-2 [&_a:hover]:decoration-accent',
+  'ui-links',
   '[&_p]:my-1 [&_b]:text-text-primary [&_strong]:text-text-primary',
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent',
 ].join(' ');

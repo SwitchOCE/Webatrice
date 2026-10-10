@@ -43,6 +43,7 @@ export default {
           secondary: 'rgb(var(--text-secondary) / <alpha-value>)',
           muted: 'rgb(var(--text-muted) / <alpha-value>)',
           disabled: 'rgb(var(--text-disabled) / <alpha-value>)',
+          link: 'rgb(var(--text-link) / <alpha-value>)',
         },
         'on-accent': 'rgb(var(--text-on-accent) / <alpha-value>)',
         danger: 'rgb(var(--status-danger) / <alpha-value>)',
