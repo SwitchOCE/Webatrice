@@ -1,8 +1,6 @@
 {
   "TopBar": {
     "replays": {
-      "button": "Replays",
-      "title": "Watch and manage replays",
       "tab": "Replays"
     },
     "replayTab": "Replay",
@@ -21,23 +19,32 @@
       "disconnected": "Disconnected",
       "stale": "Server not responding"
     },
-    "decks": {
-      "button": "Decks",
-      "title": "View your decks"
-    },
     "user": {
       "signedIn": "Signed in",
       "signOut": "Sign out"
     },
     "game": {
       "snapGrid": "Snap grid",
-      "phaseTrackToggle": "Toggle auto-hide phase tracker",
+      "phaseTrackToggle": "Auto-hide phase tracker",
       "phaseTrackCollapse": "Collapse the phase track into an auto-hiding HUD",
       "phaseTrackPin": "Keep the phase track always visible"
     },
     "tabs": {
       "label": "Open tabs",
-      "close": "Close {title}"
+      "close": "Close {title}",
+      "spectating": "Spectating"
+    },
+    "rail": {
+      "hide": "Hide the navigation rail",
+      "show": "Show the navigation rail"
+    },
+    "group": {
+      "rooms": "Rooms",
+      "games": "Games",
+      "decks": "Decks",
+      "replays": "Replays",
+      "chats": "Chats",
+      "pages": "Page"
     }
   }
 }

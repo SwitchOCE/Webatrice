@@ -1,4 +1,4 @@
-import type { NotificationEntry, NotificationKind } from './notificationStore';
+import type { NotificationEntry, NotificationKind } from '@app/services';
 
 export type NotificationFilter = 'all' | NotificationKind;
 

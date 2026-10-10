@@ -1,12 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 
-import { getPreferencesSnapshot, useActionFeed } from '@app/hooks';
+import { currentView, notificationStore, unreadChange, type VisibilityChecks } from '@app/services';
 import type { RootState } from '@app/store';
 import { chatFilterVerdicts, isRoomMessageVisible, visiblePrivateMessages } from '@app/utils';
 
-import { notificationStore } from './notificationStore';
-import { currentView, unreadChange, type VisibilityChecks } from './unreadEvents';
+import { useActionFeed } from './useActionFeed';
+import { getPreferencesSnapshot } from './useSettings';
 
 const checks: VisibilityChecks = {
   roomMessage: (roomId: number, state: RootState) => {

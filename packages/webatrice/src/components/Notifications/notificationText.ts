@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next';
 
-import type { NotificationInput, NotificationKind } from './notificationStore';
+import type { NotificationInput, NotificationKind } from '@app/services';
 
 export function entryTitle(t: TFunction, entry: NotificationInput): string {
   switch (entry.kind) {

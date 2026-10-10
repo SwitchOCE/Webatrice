@@ -7,7 +7,7 @@ import { connectedState, makeUser, renderWithProviders } from '../../__test-util
 import { playSound } from '../../hooks/playSound';
 import { getSettings, settingsStore } from '../../hooks/useSettings';
 import PrivateMessageNotifier from './PrivateMessageNotifier';
-import { markChatSeen, notificationStore } from '../../components/Notifications/notificationStore';
+import { markChatSeen, notificationStore } from '../../services/notifications/notificationStore';
 import { chatFilterVerdicts } from '../../utils/chatFilters';
 
 vi.mock('../../hooks/playSound');

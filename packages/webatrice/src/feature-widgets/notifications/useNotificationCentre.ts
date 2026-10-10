@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 
+import { useNotificationDrawer } from '@app/hooks';
 import { getNotificationPermission, watchNotificationPermission, type NotificationPermissionState } from '@app/services';
-
-import { useNotificationDrawer } from './useNotifications';
 
 export const BELL_ATTRIBUTE = 'data-notification-bell';
 const TICK = 30_000;

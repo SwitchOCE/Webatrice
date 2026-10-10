@@ -1,42 +1,31 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, generatePath } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Library, Circle, Film } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
-import { server, rooms, games } from '@cockatrice/datatrice';
+import { rooms, games } from '@cockatrice/datatrice';
 import { useAppSelector } from '@app/store';
 import { useWebClient } from '@cockatrice/datatrice/react';
-import {
-  useDocumentTitle, useLeaveGame, useOpenedReplays, usePhaseTrackPinnedSetting, useSnapGridSetting,
-} from '@app/hooks';
-import { Images } from '@app/images';
+import { IconButton } from '@app/components';
+import { useDocumentTitle, useLeaveGame, useOpenedReplays } from '@app/hooks';
 import { closeReplay } from '@app/services';
-import { DebugLogDialog } from '@app/dialogs';
 import { RouteEnum, type DeckRouteState } from '@app/types';
-import { CardImportDialog } from '@app/feature-widgets/card-import';
+import { NotificationBell } from '@app/feature-widgets/notifications';
+import { useUnreadCounts } from '@app/hooks';
 
-import LatencyStatus from './LatencyStatus';
 import TabList from './TabList';
-import UserMenu from './UserMenu';
 import { useBackendDeckNames } from './hooks/useBackendDeckNames';
+import { useConnectionState } from './hooks/useConnectionState';
 import { useIdentityChange } from './hooks/useIdentityChange';
+import { useNavRailHidden } from './hooks/useNavRailHidden';
 import { usePersistLastRoute } from './hooks/usePersistLastRoute';
 import { useStickyTabs } from './hooks/useStickyTabs';
 import { usePrivateChatRegistration } from './hooks/usePrivateChatRegistration';
 import {
-  addStickyTab, detectTransientTab, isStickyTabType, routeMatches, tabTitle, withDeckNames,
-  type Tab,
+  addStickyTab, detectTransientTab, isPlaceTab, isStickyTabType, routeMatches, stripGroups, tabTitle, tabUnread,
+  withDeckNames, type Tab,
 } from './topBarTabs';
-import { UserMenuDialog } from './userMenuEntries';
 
-/**
- * Fancy-themed top bar. Purely a view over react-router: tabs are
- * derived from the current route + Redux state (joined rooms, active
- * games) so navigating anywhere still works via `navigate()`. Clicking
- * a tab navigates; closing a room/game tab sends the corresponding
- * leave command through the WebSocket. The pinned "Lobby" tab is
- * always present and non-closeable, matching fancy's shape.
- */
 export default function TopBar() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -44,22 +33,18 @@ export default function TopBar() {
   const webClient = useWebClient();
   const leaveGameRequest = useLeaveGame();
 
-  const user = useAppSelector(server.Selectors.getUser);
-  const isConnected = useAppSelector(server.Selectors.getIsConnected);
-  const isServerUnresponsive = useAppSelector(server.Selectors.getIsServerUnresponsive);
-  const connectionState = !isConnected ? 'disconnected' : isServerUnresponsive ? 'stale' : 'connected';
+  const connectionState = useConnectionState();
+  const [railHidden, setRailHidden] = useNavRailHidden();
+  const unreadCounts = useUnreadCounts();
   const joinedRooms = useAppSelector(rooms.Selectors.getJoinedRooms);
   const activeGames = useAppSelector(games.Selectors.getActiveGames);
   const openedReplays = useOpenedReplays();
-  const [snapGridVisible, setSnapGridVisible] = useSnapGridSetting();
-  const [phaseTrackPinned, setPhaseTrackPinned] = usePhaseTrackPinnedSetting();
-  const [openDialog, setOpenDialog] = useState<UserMenuDialog | null>(null);
 
   const [stickyTabs, setStickyTabs] = useStickyTabs();
   const unregisterPrivateChat = usePrivateChatRegistration(stickyTabs);
   useEffect(() => {
     const transient = detectTransientTab(location.pathname);
-    if (!transient || !isStickyTabType(transient.type)) {
+    if (!transient || !isStickyTabType(transient.type) || isPlaceTab(transient)) {
       return;
     }
     const replacesDeckId = transient.type === 'deck'
@@ -81,11 +66,6 @@ export default function TopBar() {
     }
   });
 
-  // Whenever the deck name enrichment ("Deck #N" → real name) resolves,
-  // persist the freshly enriched title back into the sticky-tab list.
-  // Without this, the next refresh would repaint from the stale
-  // persisted title until deckList responds — a visible flash we can
-  // just avoid by saving the good title while we have it.
   useEffect(() => {
     if (deckIdToName.size === 0) {
       return;
@@ -127,6 +107,7 @@ export default function TopBar() {
         title,
         route: generatePath(RouteEnum.GAME, { gameId: gameId.toString() }),
         closeable: true,
+        spectating: game.spectator,
         onClose: () => leaveGameRequest(gameId),
       });
     }
@@ -142,12 +123,8 @@ export default function TopBar() {
       });
     }
 
-    // Sticky tabs (Decks list + open deck editor). Enrich the deck
-    // editor's title with its actual name if backendDecks has loaded.
     list.push(...withDeckNames(stickyTabs, deckIdToName));
 
-    // Transient tab for other non-primary routes (Settings, Account,
-    // Logs, Player). Appears only while active — non-sticky.
     const transient = detectTransientTab(location.pathname);
     if (
       transient &&
@@ -171,9 +148,6 @@ export default function TopBar() {
   const handleClose = (tab: Tab) => {
     tab.onClose?.();
     unregisterPrivateChat(tab);
-    // Sticky (decks / deck editor / shortcuts / player) tabs need to be
-    // removed from the sticky list too — otherwise the effect above
-    // would leave them pinned even after the user navigates away.
     if (isStickyTabType(tab.type)) {
       setStickyTabs((prev) => prev.filter((t) => t.key !== tab.key));
     }
@@ -182,83 +156,25 @@ export default function TopBar() {
     }
   };
 
+  const groups = useMemo(() => stripGroups(tabs), [tabs]);
+
   return (
-    <header className="relative z-40 h-14 shrink-0 bg-bg-surface/80 backdrop-blur-md border-b border-border-subtle">
-      <div className="flex h-full items-center">
-        {/* Logo — raw cockatrice green PNG; the brand color reads fine
-             next to the purple TopBar chrome. */}
-        <div className="flex items-center gap-2 shrink-0 pl-4 pr-3">
-          <div className="relative">
-            <img src={Images.Logo} alt="Webatrice" className="h-8 w-8 rounded-md shadow-glow" />
-            <Circle
-              size={12}
-              strokeWidth={3}
-              aria-hidden
-              className={[
-                'absolute -bottom-0.5 -right-0.5 stroke-bg-surface',
-                connectionState === 'disconnected'
-                  ? 'text-danger fill-danger'
-                  : connectionState === 'stale'
-                    ? 'text-warning fill-warning'
-                    : 'text-success fill-success',
-              ].join(' ')}
-            />
-            <span role="status" className="sr-only">{t(`TopBar.connection.${connectionState}`)}</span>
-          </div>
-          <span className="font-modern text-lg font-bold tracking-wide text-text-primary">
-            Webatrice
-          </span>
-        </div>
-
-        <div className="w-px h-6 bg-border-subtle shrink-0" />
-
-        {/* Tabs */}
-        <div className="flex-1 min-w-0 h-full px-3">
-          <TabList tabs={tabs} activeKey={activeKey} onClose={handleClose} />
-        </div>
-
-        {/* Right cluster */}
-        <div className="flex items-center gap-2 shrink-0 pl-3 pr-4">
-          <LatencyStatus />
-          <button
-            onClick={() => navigate(generatePath(RouteEnum.DECKS))}
-            className={[
-              'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium',
-              'text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors',
-            ].join(' ')}
-            title={t('TopBar.decks.title')}
-          >
-            <Library size={16} /> {t('TopBar.decks.button')}
-          </button>
-          <button
-            onClick={() => navigate(generatePath(RouteEnum.REPLAYS))}
-            className={[
-              'flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium',
-              'text-text-secondary hover:text-text-primary hover:bg-bg-elevated transition-colors',
-            ].join(' ')}
-            title={t('TopBar.replays.title')}
-          >
-            <Film size={16} /> {t('TopBar.replays.button')}
-          </button>
-          <div className="w-px h-6 bg-border-subtle mx-1" />
-          <UserMenu
-            userName={user?.name ?? null}
-            userLevel={user?.userLevel ?? 0}
-            snapGridVisible={snapGridVisible}
-            onToggleSnapGrid={() => setSnapGridVisible(!snapGridVisible)}
-            phaseTrackPinned={phaseTrackPinned}
-            onTogglePhaseTrackPinned={() => setPhaseTrackPinned(!phaseTrackPinned)}
-            onNavigate={(route) => navigate(generatePath(route))}
-            onOpenDialog={setOpenDialog}
-            onSignOut={() => webClient.request.authentication.disconnect()}
-          />
-        </div>
-      </div>
-      <CardImportDialog
-        isOpen={openDialog === UserMenuDialog.CardImport}
-        handleClose={() => setOpenDialog(null)}
+    <header className="relative z-40 flex h-11 shrink-0 items-center gap-2 border-b border-border-subtle bg-bg-surface pl-1.5 pr-2">
+      <IconButton
+        size="sm"
+        label={railHidden ? t('TopBar.rail.show') : t('TopBar.rail.hide')}
+        onClick={() => setRailHidden(!railHidden)}
+      >
+        {railHidden ? <PanelLeftOpen size={16} aria-hidden /> : <PanelLeftClose size={16} aria-hidden />}
+      </IconButton>
+      <span role="status" className="sr-only">{t(`TopBar.connection.${connectionState}`)}</span>
+      <TabList
+        groups={groups}
+        activeKey={activeKey}
+        onClose={handleClose}
+        unreadOf={(tab) => tabUnread(tab, unreadCounts)}
       />
-      <DebugLogDialog isOpen={openDialog === UserMenuDialog.DebugLog} onClose={() => setOpenDialog(null)} />
+      <NotificationBell />
     </header>
   );
 }

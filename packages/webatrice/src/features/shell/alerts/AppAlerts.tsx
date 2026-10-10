@@ -3,9 +3,9 @@ import { matchPath, useLocation } from 'react-router-dom';
 import { games, rooms, server, type GamesState, type Message } from '@cockatrice/datatrice';
 import { Event_RoomSay_RoomMessageType, type ServerInfo_User } from '@cockatrice/sockatrice/generated';
 
-import { detectGameReady, useNotify } from '@app/components';
+import { useNotify } from '@app/components';
 import { getPreferencesSnapshot, playSound, settingsStore, useActionFeed } from '@app/hooks';
-import { isPageInactive, requestAttention, soundEngine } from '@app/services';
+import { detectGameReady, isPageInactive, requestAttention, soundEngine } from '@app/services';
 import type { RootState } from '@app/store';
 import { RouteEnum } from '@app/types';
 import { chatFilterVerdicts, findChatAlert, isPrivilegedUser, isRoomMessageVisible, parseHighlightWords } from '@app/utils';

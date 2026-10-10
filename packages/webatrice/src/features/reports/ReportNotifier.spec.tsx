@@ -8,7 +8,7 @@ import { renderWithProviders } from '../../__test-utils__';
 import { RouteEnum } from '../../types';
 import { reportsRootState } from './__mocks__/reportState';
 import ReportNotifier from './ReportNotifier';
-import { notificationStore } from '../../components/Notifications/notificationStore';
+import { notificationStore } from '../../services/notifications/notificationStore';
 
 const Type = Event_NotifyUser_NotificationType;
 

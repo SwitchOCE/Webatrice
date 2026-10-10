@@ -3,9 +3,9 @@ import { matchPath, useLocation } from 'react-router-dom';
 import { server } from '@cockatrice/datatrice';
 import type { Event_UserMessage } from '@cockatrice/sockatrice/generated';
 
-import { afterChatRender, useNotify } from '@app/components';
+import { useNotify } from '@app/components';
 import { getPreferencesSnapshot, playSound, useActionFeed } from '@app/hooks';
-import { isPageInactive } from '@app/services';
+import { afterChatRender, isPageInactive } from '@app/services';
 import { RouteEnum } from '@app/types';
 import { chatFilterVerdicts, visiblePrivateMessages } from '@app/utils';
 

@@ -3,31 +3,30 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { BellOff, CheckCheck, CheckCircle2, X } from 'lucide-react';
 
+import { Button, IconButton, useOpenNotification } from '@app/components';
+import { useMarkRead, useNotificationLog, useUnreadTracker } from '@app/hooks';
+import type { NotificationEntry } from '@app/services';
 import { RouteEnum } from '@app/types';
 import { cx } from '@app/utils';
 
-import { Button, IconButton } from '../ds';
 import NotificationItem from './NotificationItem';
 import { filterCounts, groupEntries, NOTIFICATION_FILTERS, type NotificationFilter } from './notificationFilters';
-import type { NotificationEntry } from './notificationStore';
 import { useDrawerFocus, useNotificationPermission, useNow } from './useNotificationCentre';
-import { useMarkRead, useNotificationState, useOpenNotification } from './useNotifications';
-import { useUnreadTracker } from './useUnreadTracker';
 
 const FILTER_KEYS: Record<NotificationFilter, string> = {
-  all: 'Notifications.filter.all',
-  message: 'Notifications.filter.message',
-  mention: 'Notifications.filter.mention',
-  game: 'Notifications.filter.game',
-  buddy: 'Notifications.filter.buddy',
-  report: 'Notifications.filter.report',
+  all: 'NotificationCentre.filter.all',
+  message: 'NotificationCentre.filter.message',
+  mention: 'NotificationCentre.filter.mention',
+  game: 'NotificationCentre.filter.game',
+  buddy: 'NotificationCentre.filter.buddy',
+  report: 'NotificationCentre.filter.report',
 };
 
 const PERMISSION_KEYS: Record<string, string> = {
-  granted: 'Notifications.permission.granted',
-  default: 'Notifications.permission.default',
-  denied: 'Notifications.permission.denied',
-  unsupported: 'Notifications.permission.unsupported',
+  granted: 'NotificationCentre.permission.granted',
+  default: 'NotificationCentre.permission.default',
+  denied: 'NotificationCentre.permission.denied',
+  unsupported: 'NotificationCentre.permission.unsupported',
 };
 
 const focusRing = 'focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent';
@@ -43,7 +42,7 @@ function NotificationDrawer({ panel, onClose }: { panel: RefObject<HTMLElement |
   const { t } = useTranslation();
   const navigate = useNavigate();
   const headingId = useId();
-  const { entries } = useNotificationState();
+  const { entries } = useNotificationLog();
   const { markNotificationsRead } = useMarkRead();
   const openNotification = useOpenNotification();
   const permission = useNotificationPermission();
@@ -66,11 +65,11 @@ function NotificationDrawer({ panel, onClose }: { panel: RefObject<HTMLElement |
     >
       <header className="flex items-center gap-2 border-b border-border-subtle px-4 py-3">
         <h2 id={headingId} className="font-display text-[16px] font-semibold text-text-primary">
-          {t('Notifications.drawer.title')}
+          {t('NotificationCentre.drawer.title')}
         </h2>
         {unread > 0 && (
           <span className="rounded-full bg-danger/15 px-2 py-0.5 text-[11px] font-semibold text-danger">
-            {t('Notifications.drawer.new', { count: unread })}
+            {t('NotificationCentre.drawer.new', { count: unread })}
           </span>
         )}
         <Button
@@ -81,15 +80,15 @@ function NotificationDrawer({ panel, onClose }: { panel: RefObject<HTMLElement |
           disabled={unread === 0}
           onClick={markNotificationsRead}
         >
-          {t('Notifications.drawer.markAllRead')}
+          {t('NotificationCentre.drawer.markAllRead')}
         </Button>
-        <IconButton label={t('Notifications.drawer.close')} size="sm" onClick={onClose}>
+        <IconButton label={t('NotificationCentre.drawer.close')} size="sm" onClick={onClose}>
           <X size={16} />
         </IconButton>
       </header>
       <div
         role="group"
-        aria-label={t('Notifications.drawer.filters')}
+        aria-label={t('NotificationCentre.drawer.filters')}
         className="flex flex-wrap gap-1.5 border-b border-border-subtle px-4 py-2.5"
       >
         {NOTIFICATION_FILTERS.map((key) => (
@@ -114,13 +113,13 @@ function NotificationDrawer({ panel, onClose }: { panel: RefObject<HTMLElement |
       <div className="min-h-0 flex-1 overflow-y-auto px-1.5 py-2">
         {fresh.length === 0 && earlier.length === 0 && (
           <p className="px-3 py-8 text-center text-[13px] text-text-muted">
-            {t(filter === 'all' ? 'Notifications.drawer.empty' : 'Notifications.drawer.emptyFiltered')}
+            {t(filter === 'all' ? 'NotificationCentre.drawer.empty' : 'NotificationCentre.drawer.emptyFiltered')}
           </p>
         )}
         {fresh.length > 0 && (
-          <section aria-label={t('Notifications.drawer.sectionNew')}>
+          <section aria-label={t('NotificationCentre.drawer.sectionNew')}>
             <h3 className="px-3 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">
-              {t('Notifications.drawer.sectionNew')}
+              {t('NotificationCentre.drawer.sectionNew')}
             </h3>
             <ul className="flex flex-col gap-0.5">
               {fresh.map((entry) => <NotificationItem key={entry.id} entry={entry} now={now} onOpen={onOpen} />)}
@@ -128,9 +127,9 @@ function NotificationDrawer({ panel, onClose }: { panel: RefObject<HTMLElement |
           </section>
         )}
         {earlier.length > 0 && (
-          <section aria-label={t('Notifications.drawer.sectionEarlier')}>
+          <section aria-label={t('NotificationCentre.drawer.sectionEarlier')}>
             <h3 className="px-3 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">
-              {t('Notifications.drawer.sectionEarlier')}
+              {t('NotificationCentre.drawer.sectionEarlier')}
             </h3>
             <ul className="flex flex-col gap-0.5">
               {earlier.map((entry) => <NotificationItem key={entry.id} entry={entry} now={now} onOpen={onOpen} />)}
@@ -151,7 +150,7 @@ function NotificationDrawer({ panel, onClose }: { panel: RefObject<HTMLElement |
           }}
           className={cx('rounded-ui-sm font-medium text-accent hover:underline', focusRing)}
         >
-          {t('Notifications.drawer.settings')}
+          {t('NotificationCentre.drawer.settings')}
         </button>
       </footer>
     </aside>

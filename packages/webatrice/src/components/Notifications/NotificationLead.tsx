@@ -3,7 +3,7 @@ import { AtSign, Flag, MessageSquare, Swords, UserPlus, type LucideIcon } from '
 import { cx } from '@app/utils';
 
 import { Avatar } from '../ds';
-import type { NotificationInput, NotificationKind } from './notificationStore';
+import type { NotificationInput, NotificationKind } from '@app/services';
 
 export const KIND_ICON: Record<NotificationKind, LucideIcon> = {
   message: MessageSquare,

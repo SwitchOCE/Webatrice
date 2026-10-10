@@ -1,9 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { Bell } from 'lucide-react';
 
-import { IconButton } from '../ds';
+import { IconButton } from '@app/components';
+import { useNotificationDrawer, useUnreadCounts } from '@app/hooks';
+
 import { BELL_ATTRIBUTE } from './useNotificationCentre';
-import { useNotificationDrawer, useUnreadCounts } from './useNotifications';
 
 const MAX_BADGE = 99;
 
@@ -12,8 +13,8 @@ export default function NotificationBell() {
   const { open, setOpen } = useNotificationDrawer();
   const { notifications } = useUnreadCounts();
   const label = notifications > 0
-    ? t('Notifications.bell.labelUnread', { count: notifications })
-    : t('Notifications.bell.label');
+    ? t('NotificationCentre.bell.labelUnread', { count: notifications })
+    : t('NotificationCentre.bell.label');
   return (
     <span className="relative inline-flex shrink-0" {...{ [BELL_ATTRIBUTE]: '' }}>
       <IconButton label={label} active={open} aria-pressed={undefined} aria-expanded={open} onClick={() => setOpen(!open)}>

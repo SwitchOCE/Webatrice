@@ -3,10 +3,10 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import type { ReactNode } from 'react';
 
 const { showSystemNotification } = vi.hoisted(() => ({ showSystemNotification: vi.fn() }));
-vi.mock('@app/services', () => ({ showSystemNotification }));
+vi.mock('@app/services', async (importOriginal) => ({ ...await importOriginal<object>(), showSystemNotification }));
 
 import { ToastProvider } from '../Toast';
-import { notificationStore, type NotificationInput } from './notificationStore';
+import { notificationStore, type NotificationInput } from '../../services/notifications/notificationStore';
 import { useNotify } from './useNotify';
 
 const wrapper = ({ children }: { children: ReactNode }) => (

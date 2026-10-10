@@ -1,11 +1,8 @@
 import { useTranslation } from 'react-i18next';
 
+import { actionLabel, Button, entryAge, entryBody, entryTitle, NotificationLead } from '@app/components';
+import type { NotificationEntry } from '@app/services';
 import { cx } from '@app/utils';
-
-import { Button } from '../ds';
-import NotificationLead from './NotificationLead';
-import type { NotificationEntry } from './notificationStore';
-import { actionLabel, entryAge, entryBody, entryTitle } from './notificationText';
 
 interface NotificationItemProps {
   entry: NotificationEntry;
@@ -21,7 +18,7 @@ export default function NotificationItem({ entry, now, onOpen }: NotificationIte
     <li className={cx('relative flex gap-3 rounded-ui px-3 py-2.5', unread && 'bg-accent/[0.06]')}>
       {unread && (
         <span className="absolute left-1 top-[22px] h-1.5 w-1.5 rounded-full bg-accent">
-          <span className="sr-only">{t('Notifications.drawer.unread')}</span>
+          <span className="sr-only">{t('NotificationCentre.drawer.unread')}</span>
         </span>
       )}
       <span className="mt-0.5">

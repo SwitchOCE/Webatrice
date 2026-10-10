@@ -6,7 +6,7 @@ import { Event_RoomSay_RoomMessageType } from '@cockatrice/sockatrice/generated'
 import { connectedWithRoomsState, renderWithProviders } from '../../__test-utils__';
 import NotificationBell from './NotificationBell';
 import NotificationCentre from './NotificationCentre';
-import { logNotification, notificationStore } from './notificationStore';
+import { logNotification, notificationStore } from '../../services/notifications/notificationStore';
 
 function renderCentre(route = '/') {
   return renderWithProviders(
@@ -25,8 +25,8 @@ function renderCentre(route = '/') {
   );
 }
 
-const bell = () => screen.getByRole('button', { name: /^Notifications\.bell/ });
-const drawer = () => screen.getByRole('complementary', { name: 'Notifications.drawer.title' });
+const bell = () => screen.getByRole('button', { name: /^NotificationCentre\.bell/ });
+const drawer = () => screen.getByRole('complementary', { name: 'NotificationCentre.drawer.title' });
 
 describe('NotificationBell and NotificationCentre', () => {
   beforeEach(() => {
@@ -35,20 +35,20 @@ describe('NotificationBell and NotificationCentre', () => {
 
   it('counts unread entries on the bell and opens the session log from it', () => {
     renderCentre();
-    expect(bell()).toHaveAccessibleName('Notifications.bell.label');
+    expect(bell()).toHaveAccessibleName('NotificationCentre.bell.label');
     act(() => {
       logNotification({ kind: 'message', actor: 'bob', body: 'hi', target: { type: 'chat', userName: 'bob' } });
       logNotification({ kind: 'game', place: 'Pod', seats: { taken: 4, max: 4 }, target: { type: 'game', gameId: 7 } }, true);
     });
-    expect(bell()).toHaveAccessibleName('Notifications.bell.labelUnread');
+    expect(bell()).toHaveAccessibleName('NotificationCentre.bell.labelUnread');
     expect(bell().parentElement).toHaveTextContent('1');
 
     fireEvent.click(bell());
 
     expect(bell()).toHaveAttribute('aria-expanded', 'true');
     const panel = within(drawer());
-    expect(panel.getByRole('region', { name: 'Notifications.drawer.sectionNew' })).toHaveTextContent('bob');
-    expect(panel.getByRole('region', { name: 'Notifications.drawer.sectionEarlier' })).toHaveTextContent('Notifications.title.game');
+    expect(panel.getByRole('region', { name: 'NotificationCentre.drawer.sectionNew' })).toHaveTextContent('bob');
+    expect(panel.getByRole('region', { name: 'NotificationCentre.drawer.sectionEarlier' })).toHaveTextContent('Notifications.title.game');
   });
 
   it('filters by kind and runs one action per entry, marking it read and closing the drawer', () => {
@@ -59,7 +59,7 @@ describe('NotificationBell and NotificationCentre', () => {
     });
     fireEvent.click(bell());
 
-    fireEvent.click(within(drawer()).getByRole('button', { name: /Notifications\.filter\.mention/ }));
+    fireEvent.click(within(drawer()).getByRole('button', { name: /NotificationCentre\.filter\.mention/ }));
     expect(within(drawer()).queryByText('bob')).not.toBeInTheDocument();
 
     fireEvent.click(within(drawer()).getByRole('button', { name: 'Notifications.action.mention' }));
@@ -76,8 +76,8 @@ describe('NotificationBell and NotificationCentre', () => {
     });
     fireEvent.click(bell());
 
-    fireEvent.click(within(drawer()).getByRole('button', { name: 'Notifications.drawer.markAllRead' }));
-    expect(bell()).toHaveAccessibleName('Notifications.bell.label');
+    fireEvent.click(within(drawer()).getByRole('button', { name: 'NotificationCentre.drawer.markAllRead' }));
+    expect(bell()).toHaveAccessibleName('NotificationCentre.bell.label');
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
@@ -86,9 +86,9 @@ describe('NotificationBell and NotificationCentre', () => {
   it('shows an empty state and links to the notification settings', () => {
     renderCentre();
     fireEvent.click(bell());
-    expect(within(drawer()).getByText('Notifications.drawer.empty')).toBeInTheDocument();
+    expect(within(drawer()).getByText('NotificationCentre.drawer.empty')).toBeInTheDocument();
 
-    fireEvent.click(within(drawer()).getByRole('button', { name: 'Notifications.drawer.settings' }));
+    fireEvent.click(within(drawer()).getByRole('button', { name: 'NotificationCentre.drawer.settings' }));
     expect(screen.getByText('settings page')).toBeInTheDocument();
   });
 

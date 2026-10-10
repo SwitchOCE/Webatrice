@@ -1,13 +1,12 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { showSystemNotification } from '@app/services';
+import { logNotification, notificationStore, showSystemNotification, type NotificationInput } from '@app/services';
 import { usePushToast } from '../Toast';
 import NotificationLead from './NotificationLead';
 import NotificationToast from './NotificationToast';
-import { logNotification, notificationStore, type NotificationInput } from './notificationStore';
 import { actionLabel, entryBody, entryTitle, systemTitle } from './notificationText';
-import { useOpenNotification } from './useNotifications';
+import { useOpenNotification } from './useOpenNotification';
 
 export interface NotifyOptions {
   entry: NotificationInput;

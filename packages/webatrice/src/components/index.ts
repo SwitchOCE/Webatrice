@@ -36,23 +36,16 @@ export { default as Toast, useToast, usePushToast, ToastProvider } from './Toast
 export { ErrorBoundary, ErrorFallback, RouteErrorBoundary } from './ErrorBoundary';
 export {
   NotificationToast,
-  NotificationBell,
-  NotificationCentre,
+  NotificationLead,
   useNotify,
-  useMarkRead,
-  useUnreadCounts,
-  afterChatRender,
-  detectGameReady,
+  useOpenNotification,
+  targetPath,
+  actionLabel,
+  entryAge,
+  entryBody,
+  entryTitle,
 } from './Notifications';
-export type {
-  MarkRead,
-  NotifyOptions,
-  NotifyResult,
-  NotificationInput,
-  NotificationKind,
-  NotificationTarget,
-  UnreadCounts,
-} from './Notifications';
+export type { NotifyOptions, NotifyResult } from './Notifications';
 export { default as PlaymatImage } from './PlaymatImage/PlaymatImage';
 export { GameLinkButton, GameLinkJoinHost, renderGameLinks, requestGameLinkJoin } from './GameLink';
 export { default as PlaymatCropEditor } from './PlaymatCropEditor/PlaymatCropEditor';

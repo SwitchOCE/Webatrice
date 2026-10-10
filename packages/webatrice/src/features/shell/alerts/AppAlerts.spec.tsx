@@ -11,7 +11,7 @@ import { soundEngine } from '../../../services/sound/SoundEngine';
 import { ATTENTION_MARKER } from '../../../services/notifications/NotificationService';
 import type { Preferences } from '../../../types';
 import AppAlerts from './AppAlerts';
-import { notificationStore } from '../../../components/Notifications/notificationStore';
+import { notificationStore } from '../../../services/notifications/notificationStore';
 
 vi.mock('../../../hooks/playSound');
 

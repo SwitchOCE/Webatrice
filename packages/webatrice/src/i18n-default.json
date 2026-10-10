@@ -401,37 +401,6 @@
       "now": "just now",
       "minutes": "{count}m ago",
       "hours": "{count}h ago"
-    },
-    "bell": {
-      "label": "Notifications",
-      "labelUnread": "Notifications, {count} new"
-    },
-    "drawer": {
-      "title": "Notifications",
-      "new": "{count} new",
-      "markAllRead": "Mark all read",
-      "close": "Close notifications",
-      "filters": "Show",
-      "sectionNew": "New",
-      "sectionEarlier": "Earlier this session",
-      "empty": "Nothing yet this session. Messages, mentions, buddies coming online, games filling up and report updates will collect here.",
-      "emptyFiltered": "Nothing of this kind yet this session.",
-      "unread": "Unread",
-      "settings": "Notification settings"
-    },
-    "filter": {
-      "all": "All",
-      "message": "Messages",
-      "mention": "Mentions",
-      "game": "Games",
-      "buddy": "Buddies",
-      "report": "Reports"
-    },
-    "permission": {
-      "granted": "Browser notifications are on",
-      "default": "Browser notifications are off",
-      "denied": "Browser notifications are blocked",
-      "unsupported": "Browser notifications are not supported here"
     }
   },
   "Toast": {
@@ -859,6 +828,39 @@
       "demoteFailed": "Failed to demote user."
     }
   },
+  "NotificationCentre": {
+    "bell": {
+      "label": "Notifications",
+      "labelUnread": "Notifications, {count} new"
+    },
+    "drawer": {
+      "title": "Notifications",
+      "new": "{count} new",
+      "markAllRead": "Mark all read",
+      "close": "Close notifications",
+      "filters": "Show",
+      "sectionNew": "New",
+      "sectionEarlier": "Earlier this session",
+      "empty": "Nothing yet this session. Messages, mentions, buddies coming online, games filling up and report updates will collect here.",
+      "emptyFiltered": "Nothing of this kind yet this session.",
+      "unread": "Unread",
+      "settings": "Notification settings"
+    },
+    "filter": {
+      "all": "All",
+      "message": "Messages",
+      "mention": "Mentions",
+      "game": "Games",
+      "buddy": "Buddies",
+      "report": "Reports"
+    },
+    "permission": {
+      "granted": "Browser notifications are on",
+      "default": "Browser notifications are off",
+      "denied": "Browser notifications are blocked",
+      "unsupported": "Browser notifications are not supported here"
+    }
+  },
   "ShortcutsTab": {
     "title": "Keyboard Shortcuts",
     "description": "Customize keyboard shortcuts. Click a row to record a new key combination. Multiple combinations per action are supported.",
@@ -1114,12 +1116,22 @@
     "last": "Last: {ms} ms",
     "median": "Median: {ms} ms",
     "p95": "95th percentile: {ms} ms",
-    "max": "Maximum: {ms} ms"
+    "max": "Maximum: {ms} ms",
+    "short": "{ms} ms"
+  },
+  "NavRail": {
+    "label": "Main navigation",
+    "home": "Webatrice home",
+    "place": {
+      "play": "Play",
+      "decks": "Decks",
+      "replays": "Replays",
+      "people": "People",
+      "settings": "Settings"
+    }
   },
   "TopBar": {
     "replays": {
-      "button": "Replays",
-      "title": "Watch and manage replays",
       "tab": "Replays"
     },
     "replayTab": "Replay",
@@ -1138,24 +1150,36 @@
       "disconnected": "Disconnected",
       "stale": "Server not responding"
     },
-    "decks": {
-      "button": "Decks",
-      "title": "View your decks"
-    },
     "user": {
       "signedIn": "Signed in",
       "signOut": "Sign out"
     },
     "game": {
       "snapGrid": "Snap grid",
-      "phaseTrackToggle": "Toggle auto-hide phase tracker",
+      "phaseTrackToggle": "Auto-hide phase tracker",
       "phaseTrackCollapse": "Collapse the phase track into an auto-hiding HUD",
       "phaseTrackPin": "Keep the phase track always visible"
     },
     "tabs": {
       "label": "Open tabs",
-      "close": "Close {title}"
+      "close": "Close {title}",
+      "spectating": "Spectating"
+    },
+    "rail": {
+      "hide": "Hide the navigation rail",
+      "show": "Show the navigation rail"
+    },
+    "group": {
+      "rooms": "Rooms",
+      "games": "Games",
+      "decks": "Decks",
+      "replays": "Replays",
+      "chats": "Chats",
+      "pages": "Page"
     }
+  },
+  "UnreadBadge": {
+    "label": "{count} unread"
   },
   "UserMenu": {
     "account": "Account",
@@ -1169,7 +1193,17 @@
     "cardArtRules": "Card Art Rules",
     "developer": "Developer",
     "importCards": "Import cards",
-    "debugLog": "View debug log"
+    "debugLog": "Debug log",
+    "onTheBoard": "On the board",
+    "staff": "Staff tools",
+    "roleOnServer": "{role} · {server}",
+    "role": {
+      "admin": "Administrator",
+      "moderator": "Moderator",
+      "judge": "Judge",
+      "registered": "Registered user",
+      "unregistered": "Unregistered user"
+    }
   },
   "Account": {
     "action": {
