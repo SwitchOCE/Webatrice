@@ -5,7 +5,7 @@
     "searchLabel": "Search settings",
     "searchPlaceholder": "Search all {settings} settings and {shortcuts} shortcuts",
     "clearSearch": "Clear search",
-    "matchCount": "{count, plural, one {# matching setting} other {# matching settings}}",
+    "matchCount": "{count, plural, one {# matching setting} other {# matching settings}}{shortcuts, plural, =0 {} one {, # shortcut} other {, # shortcuts}}",
     "noResults": "No settings match \"{query}\"",
     "noResultsHint": "Try a shorter word, like \"card\" or \"sound\".",
     "jumpTo": "Jump to section",

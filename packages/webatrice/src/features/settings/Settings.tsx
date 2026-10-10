@@ -95,7 +95,7 @@ const Settings = ({ sections = settingsSections }: SettingsProps) => {
           </label>
           {searching && (
             <span role="status" className="text-[13px] tabular-nums text-text-secondary">
-              {t('Settings.matchCount', { count: result.settingCount })}
+              {t('Settings.matchCount', { count: result.settingCount, shortcuts: result.shortcuts.length })}
             </span>
           )}
           <span className="ml-auto">
