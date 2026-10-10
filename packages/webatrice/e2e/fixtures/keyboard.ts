@@ -5,7 +5,7 @@ export async function tabTo(page: Page, target: Locator, maxPresses = 60): Promi
   for (let i = 0; i < maxPresses; i++) {
     const { position, onCard } = await target.evaluate((element) => {
       const active = document.activeElement;
-      const card = active?.closest('[data-game-board] [role="option"]') != null;
+      const card = active?.closest('[data-game-board] [role="option"], [data-testid="board-tray"] [role="option"]') != null;
       if (element === active) {
         return { position: 'focused', onCard: card };
       }

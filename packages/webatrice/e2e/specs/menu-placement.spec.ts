@@ -9,9 +9,8 @@ const SPOTS = ['top-left', 'top', 'top-right', 'right', 'bottom-right', 'bottom'
 
 test('a context menu stays in view and off its anchor at every edge and corner', async ({ page }) => {
   test.setTimeout(90_000);
-  const { user } = await registerAndJoinFirstRoom(page);
-  const name = page.locator('aside').getByRole('link', { name: user.username });
-  await expect(name).toBeVisible({ timeout: 15_000 });
+  const { rooms, user } = await registerAndJoinFirstRoom(page);
+  const name = await rooms.findPerson(user.username);
   const viewport = page.viewportSize()!;
   const menu = page.getByRole('menu');
 
@@ -33,7 +32,7 @@ test('a context menu stays in view and off its anchor at every edge and corner',
     for (const opener of ['right-click', 'Shift+F10'] as const) {
       let point: { x: number; y: number } | null = null;
       if (opener === 'right-click') {
-        point = { x: anchor.x + anchor.width / 2, y: anchor.y + anchor.height / 2 };
+        point = { x: Math.round(anchor.x + anchor.width / 2), y: Math.round(anchor.y + anchor.height / 2) };
         await page.mouse.click(point.x, point.y, { button: 'right' });
       } else {
         await name.focus();

@@ -2,7 +2,7 @@ import { resolve } from 'node:path';
 
 import { expect, test } from '../fixtures/test';
 
-import { GamePage } from '../pages';
+import { GamePage, navRailLink } from '../pages';
 import { joinFirstRoom, registerAndJoinFirstRoom, registerAndReachRooms } from '../fixtures/flows';
 import { t } from '../fixtures/i18n';
 import { randomSuffix } from '../fixtures/users';
@@ -65,7 +65,7 @@ test('"View related cards" shows the related card in the card-info pane', async 
 
   await game.chooseCardMenuPath(game.cardsOnBoard().first(), t('CardMenu.viewRelated'), 'Human');
 
-  await expect(game.rightPanel.locator('img[src*="00000000-0000-4000-8000-0000000e2e03"]').first())
+  await expect(game.tray.locator('img[src*="00000000-0000-4000-8000-0000000e2e03"]').first())
     .toBeVisible({ timeout: 15_000 });
 
   await game.leaveGame();
@@ -77,8 +77,7 @@ test('Alt+1 sends the first message macro to the game chat', async ({ newContext
   const page = await ctx.newPage();
   const session = await registerAndReachRooms(page);
 
-  await page.getByRole('button', { name: session.user.username }).click();
-  await page.getByRole('menuitem', { name: t('UserMenu.settings'), exact: true }).click();
+  await navRailLink(page, t('NavRail.place.settings')).click();
   await page.getByRole('navigation', { name: t('Settings.jumpTo') }).getByRole('button', { name: t('Settings.section.chat') }).click();
   await page.getByRole('textbox', { name: t('SettingsChat.macros.newLabel'), exact: true }).fill('e2e macro says hi');
   await page.getByRole('button', { name: t('SettingsChat.macros.add'), exact: true }).click();

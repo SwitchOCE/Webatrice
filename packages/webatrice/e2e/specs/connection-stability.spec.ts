@@ -14,8 +14,8 @@ import { registerAndReachRooms } from '../fixtures/flows';
 // fires ticks, and the resulting Command_Ping cycle reaches real
 // Servatrice. None of that is reachable from Sockatrice's node-`ws` soak.
 //
-// Assertion surface: the TopBar connection indicator (a lucide Circle
-// with a `role="status"` reading "Connected"), shown iff Datatrice's
+// Assertion surface: the TopBar connection indicator (an sr-only
+// `role="status"` reading "Connected"), shown iff Datatrice's
 // `selectIsConnected` is true. There is no dedicated reconnect banner —
 // indicator absent == not LOGGED_IN.
 //
@@ -55,12 +55,13 @@ test('connection holds for 60 s in the foreground', async ({ page }) => {
   await status.expectConnected();
 });
 
-test('the top bar shows the measured server round trip', async ({ page }) => {
+test('the navigation rail shows the measured server round trip', async ({ page }) => {
   await registerAndReachRooms(page);
   const status = new ConnectionStatus(page);
 
   await expect(status.latency).toBeVisible({ timeout: 10_000 });
-  await expect(status.latency).toHaveText(/^Ping: \d+ ms$/);
+  await expect(status.latency).toHaveAccessibleName(/^Ping: \d+ ms$/);
+  await expect(status.latency).toHaveText(/^\d+ ms$/);
 
   await status.latency.click();
   await expect(page.getByRole('group', { name: 'Connection latency details' })).toContainText('Median:');

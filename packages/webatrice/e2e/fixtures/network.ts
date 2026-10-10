@@ -17,7 +17,7 @@ import { DefaultHosts } from '../../src/utils/HostService';
 // was slow or refused the TLS handshake.
 //
 // Known external traffic gets a deterministic stand-in: the Scryfall routes
-// the app reads (`/cards/named`, `/cards/<id>`), the public server list,
+// the app reads (`/cards/named`, `/cards/<id>`, `/cards/search`), the public server list,
 // fonts, and sockets to the known game servers (closed, so they read as
 // unreachable). Anything else — another Scryfall endpoint, another host, a
 // socket to an unknown server — is aborted and reported by
@@ -97,6 +97,15 @@ function scryfallAutocomplete(url: URL): string {
   return JSON.stringify({ object: 'catalog', total_values: data.length, data });
 }
 
+function scryfallSearch(url: URL): string {
+  const words = (url.searchParams.get('q') ?? '')
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((word) => word && !/[:<>=()]/.test(word));
+  const data = SCRYFALL_CARDS.filter((card) => words.every((word) => card.name.toLowerCase().includes(word)));
+  return JSON.stringify({ object: 'list', total_cards: data.length, has_more: false, data });
+}
+
 const PUBLIC_SERVERS_URL = 'https://cockatrice.github.io/public-servers.json';
 const PUBLIC_SERVERS = readFileSync(resolve(__dirname, 'public-servers.json'), 'utf8');
 
@@ -120,6 +129,14 @@ function stubFor(url: URL, method: string, postData: string | null): Parameters<
       contentType: 'application/json',
       headers: { 'Access-Control-Allow-Origin': '*' },
       body: scryfallAutocomplete(url),
+    };
+  }
+  if (url.hostname === 'api.scryfall.com' && url.pathname === '/cards/search') {
+    return {
+      status: 200,
+      contentType: 'application/json',
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: scryfallSearch(url),
     };
   }
   if (url.href === PUBLIC_SERVERS_URL) {

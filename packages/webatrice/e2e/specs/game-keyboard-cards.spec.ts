@@ -64,6 +64,7 @@ test('draw, play, tap, point and bin a card with the keyboard only', async ({ ne
   const hostActive = await hostGame.canAdvancePhase();
   const [game, watcher] = hostActive ? [hostGame, joinerGame] : [joinerGame, hostGame];
   const page = hostActive ? hostPage : joinerPage;
+  await page.mouse.move(0, 0);
   const [me, them] = hostActive ? [host.user.username, joiner.user.username] : [joiner.user.username, host.user.username];
 
   const hand = page.getByRole('listbox', { name: new RegExp(`^${me}'s hand`) });
@@ -134,10 +135,10 @@ test('draw, play, tap, point and bin a card with the keyboard only', async ({ ne
   const graveyardName = t('ZoneStack.pileWithTop', {
     zone: t('ZoneStack.graveyard'), count: 1, top: 'Forest',
   });
-  await expect(game.localBoard.getByRole('button', { name: graveyardName })).toBeVisible({ timeout: 15_000 });
+  await expect(game.localTray.getByRole('button', { name: graveyardName })).toBeVisible({ timeout: 15_000 });
   await expect(watcher.opponentBoard.getByRole('button', { name: graveyardName })).toBeVisible({ timeout: 15_000 });
 
-  const graveyard = game.localBoard.getByRole('button', { name: graveyardName });
+  const graveyard = game.localTray.getByRole('button', { name: graveyardName });
   await page.keyboard.press('Shift+Enter');
   await tabTo(page, graveyard);
   await page.keyboard.press('Enter');
@@ -151,7 +152,7 @@ test('draw, play, tap, point and bin a card with the keyboard only', async ({ ne
   await expect(watcher.opponentBoard.getByRole('button', { name: /^Exile, 1 card/ })).toBeVisible({ timeout: 15_000 });
 
   const watcherPage = hostActive ? joinerPage : hostPage;
-  await watcher.localBoard.getByRole('button', { name: /^Library, \d+ cards/ }).focus();
+  await watcher.localTray.getByRole('button', { name: /^Library, \d+ cards/ }).focus();
   await watcherPage.keyboard.press('Enter');
   await arrowToItem(watcherPage, watcherPage.getByRole('menu', { name: 'Library' }), 'Lend library to...');
   await watcherPage.keyboard.press('ArrowRight');

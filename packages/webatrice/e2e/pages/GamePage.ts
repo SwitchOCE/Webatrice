@@ -11,7 +11,11 @@ import { t } from '../fixtures/i18n';
 // DOM CONTRACT (the PlayerBoard seat):
 //   • Board scaffolding still exposes `data-testid`s:
 //       - `game-container`, `game-empty` (Game.tsx)
-//       - `right-panel`, `spectating-tag` (BattlefieldSidebar.tsx)
+//       - `right-panel`, `spectating-tag` (GameDock.tsx: the right dock,
+//         tabs `[data-dock-tab]` "log" (Chat & log), "players" (with the
+//         game menu) and "spectators")
+//       - `board-tray-seat` (BoardTray.tsx: the local hand, with its
+//         Library / Graveyard / Exile piles and quick actions)
 //       - `.game__board-grid`, `.game__board-cell`,
 //         `.game__board-cell--mirrored` (GameBoardCell.tsx)
 //   • Per-seat rendering is PlayerBoard and its regions. It does NOT emit
@@ -20,12 +24,13 @@ import { t } from '../fixtures/i18n';
 //         absent ONLY on the local seat (useGameBoardLayout guarantees
 //         `mirrored=false` iff local seat, in every N-player layout).
 //       - Zone piles (Library / Graveyard / Exile) expose a translated
-//         accessible name containing the count and optional top card. They
-//         live inside the `.game__board-cell` and are the entry point for the
-//         pile context menu (right-click) and drag-to-move (pointerdown).
+//         accessible name containing the count and optional top card. The
+//         local seat's piles live in the tray, opponents' inside their
+//         `.game__board-cell`; they are the entry point for the pile
+//         context menu (right-click) and drag-to-move (pointerdown).
 //       - Battlefield scroll container is `[data-battlefield-owner]`;
-//         cards are `[data-card][data-zone="battlefield"]`, and hand
-//         cards are `[data-card][data-zone="hand"]`. Card DOM wraps a
+//         cards are `[data-card][data-zone="battlefield"]`, and (tray)
+//         hand cards are `[data-card][data-zone="hand"]`. Card DOM wraps a
 //         `<Card>` whose outer div carries `title="{cardName}"`.
 //       - The seat context menus (card, pile, hand, player) are the
 //         shared `Menu`: portal-rendered `[role="menu"]`, one per open
@@ -77,6 +82,15 @@ export class GamePage {
     return this.page.getByTestId('spectating-tag');
   }
 
+  dockTab(tab: 'log' | 'players' | 'spectators'): Locator {
+    return this.rightPanel.locator(`[data-dock-tab="${tab}"]`);
+  }
+
+  async selectDockTab(tab: 'log' | 'players' | 'spectators'): Promise<void> {
+    await this.dockTab(tab).click();
+    await expect(this.dockTab(tab)).toHaveAttribute('aria-selected', 'true');
+  }
+
   async waitForBoard(): Promise<void> {
     await expect(this.container).toBeVisible({ timeout: 60_000 });
     await expect(this.rightPanel).toBeVisible();
@@ -120,6 +134,16 @@ export class GamePage {
     return this.page.locator('.game__board-cell.game__board-cell--mirrored').first();
   }
 
+  // The tray under the board: the card preview pane, then the local
+  // seat's hand, piles and quick actions (portalled into `localTray`).
+  get tray(): Locator {
+    return this.page.getByTestId('board-tray');
+  }
+
+  get localTray(): Locator {
+    return this.page.getByTestId('board-tray-seat');
+  }
+
   // ---- Card actions ----
 
   async drawCard(): Promise<void> {
@@ -132,10 +156,7 @@ export class GamePage {
     // Hand cards are `[data-card][data-zone="hand"]` whose inner Card
     // carries `title="{cardName}"`. Filter by that title to pick the
     // right one — hand cards have no direct text descendant.
-    const handCard = this.localBoard
-      .locator('[data-card][data-zone="hand"]')
-      .filter({ has: this.page.locator(`[title="${cardName}"]`) })
-      .first();
+    const handCard = this.handCard(cardName);
     await expect(handCard).toBeVisible();
     await handCard.dblclick();
   }
@@ -157,13 +178,13 @@ export class GamePage {
     await this.page.keyboard.press('Control+Enter');
   }
 
-  // Leave the in-progress game via BattlefieldSidebar's Leave button.
-  // That opens the "Leave this game?" ConfirmDialog (Game.tsx wires the
-  // sidebar's onRequestLeave → dialogs.openLeaveConfirm), which we then
-  // confirm to actually dispatch `leaveGame(gameId)`.
+  // Leave the in-progress game via the dock's Leave button. That opens
+  // the "Leave game" ConfirmDialog (Game.tsx wires the dock's
+  // onRequestLeave → dialogs.openLeaveConfirm), which we then confirm to
+  // actually dispatch `leaveGame(gameId)`.
   async leaveGame(): Promise<void> {
     const leave = this.rightPanel.getByRole('button', {
-      name: t('BattlefieldSidebar.leave'),
+      name: t('GameDock.leave'),
       exact: true,
     });
     await expect(leave).toBeEnabled({ timeout: 10_000 });
@@ -185,12 +206,14 @@ export class GamePage {
 
   async clickGameMenuItem(key: `GameMenu.item.${string}`): Promise<void> {
     const menuName = t('GameMenu.button');
+    await this.selectDockTab('players');
     await this.rightPanel.getByRole('button', { name: menuName, exact: true }).click();
     const menu = this.page.getByRole('menu', { name: menuName, exact: true });
     const item = menu.getByRole('menuitem', { name: t(key), exact: true });
     await expect(item).toBeEnabled({ timeout: 10_000 });
     await item.click();
     await expect(menu).toBeHidden();
+    await this.selectDockTab('log');
   }
 
   async canAdvancePhase(): Promise<boolean> {
@@ -208,7 +231,7 @@ export class GamePage {
 
   // ---- Zones / cards / popups ----
 
-  zoneStack(zoneName: PileZone, board: Locator = this.localBoard): Locator {
+  zoneStack(zoneName: PileZone, board: Locator = this.localTray): Locator {
     const zone = t(PILE_LABEL_KEYS[zoneName]);
     return board.getByLabel(new RegExp(`^${escapeRegex(zone)},`)).first();
   }
@@ -231,7 +254,7 @@ export class GamePage {
     return board.locator('[data-card][data-zone="battlefield"]');
   }
 
-  async zoneStackCount(zoneName: PileZone, board: Locator = this.localBoard): Promise<number> {
+  async zoneStackCount(zoneName: PileZone, board: Locator = this.localTray): Promise<number> {
     return Number(await this.zoneStack(zoneName, board).getAttribute('data-pile-count'));
   }
 
@@ -303,14 +326,11 @@ export class GamePage {
     const isHandSource = zone === 'hand';
     if (isHandSource || isPileCard) {
       if (target === 'grave' || target === 'rfg') {
-        const board = isHandSource
-          ? card.locator('xpath=ancestor::div[contains(@class, "game__board-cell")][1]')
-          : this.localBoard;
-        await dragTo(this.page, card, this.zoneStack(target, board));
+        await dragTo(this.page, card, this.zoneStack(target));
         return;
       }
       if (target === 'hand') {
-        const handButton = this.localBoard.getByRole('button', {
+        const handButton = this.localTray.getByRole('button', {
           name: new RegExp(`^${escapeRegex(t('HandZone.menu'))} `),
         }).first();
         await dragTo(this.page, card, handButton);
@@ -324,7 +344,7 @@ export class GamePage {
   }
 
   handCard(cardName: string): Locator {
-    return this.localBoard
+    return this.localTray
       .locator('[data-card][data-zone="hand"]')
       .filter({ has: this.page.locator(`[title="${cardName}"]`) })
       .first();

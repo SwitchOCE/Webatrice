@@ -1,16 +1,15 @@
 import { expect, test } from '../fixtures/test';
 import { E2E_HOST_LABEL, registerAndReachRooms } from '../fixtures/flows';
-import { LoginPage } from '../pages';
+import { LoginPage, navRailLink } from '../pages';
 
 test('the startup tab opens once per launch; signing in again and reloading keep the page', async ({ page, context, browserName }) => {
   test.setTimeout(120_000);
   const { login, rooms, user } = await registerAndReachRooms(page);
   const userMenu = page.getByRole('button', { name: user.username });
-  const replaysPage = page.getByRole('region', { name: /local replays/i });
+  const replaysPage = page.getByRole('heading', { level: 1, name: /^replays$/i });
   const lobbyRooms = page.getByRole('heading', { name: /^rooms$/i });
 
-  await userMenu.click();
-  await page.getByRole('menuitem', { name: /^settings$/i }).click();
+  await navRailLink(page, /^settings$/i).click();
   await page.getByLabel(/^startup tab$/i).selectOption({ label: 'Game Replays' });
   await expect(page.getByRole('textbox', { name: /^room$/i })).toBeHidden();
 
@@ -38,5 +37,5 @@ test('the startup tab opens once per launch; signing in again and reloading keep
   await launchLogin.goto();
   await launchLogin.selectHost(E2E_HOST_LABEL);
   await launchLogin.login(user.username, user.password);
-  await expect(launch.getByRole('region', { name: /local replays/i })).toBeVisible({ timeout: 30_000 });
+  await expect(launch.getByRole('heading', { level: 1, name: /^replays$/i })).toBeVisible({ timeout: 30_000 });
 });

@@ -7,11 +7,10 @@ test('a moderator warns a user and reads the warning back without a pointer', as
   const targetPage = await (await newContext()).newPage();
   const moderatorPage = await (await newContext()).newPage();
   const { user: target } = await registerAndJoinFirstRoom(targetPage);
-  await joinFirstRoomAs(moderatorPage, E2E_MODERATOR);
+  const { rooms } = await joinFirstRoomAs(moderatorPage, E2E_MODERATOR, { unlockStaff: true });
   const { keyboard } = moderatorPage;
 
-  const name = moderatorPage.locator('aside').getByRole('link', { name: target.username });
-  await expect(name).toBeVisible({ timeout: 15_000 });
+  const name = await rooms.findPerson(target.username);
   await name.focus();
 
   async function chooseFromUserMenu(entry: string): Promise<void> {

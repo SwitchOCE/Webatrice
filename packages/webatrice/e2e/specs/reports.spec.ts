@@ -6,7 +6,7 @@ import type { Page } from '@playwright/test';
 import { expect, test } from '../fixtures/test';
 import { E2E_MODERATOR, reachRoomsAs, registerAndJoinFirstRoom } from '../fixtures/flows';
 import { randomSuffix } from '../fixtures/users';
-import { GamePage, topBarTab } from '../pages';
+import { GamePage, topBarTab, type RoomsPage } from '../pages';
 import { ReplaysPage } from '../pages/ReplaysPage';
 
 function servatriceImage(): string {
@@ -22,12 +22,12 @@ const DECK_PATH = resolve(__dirname, '..', 'fixtures', 'decks', 'forest-60.cod')
 const SERVER_HAS_REPORTS = !/Release-3\.0\./.test(servatriceImage());
 
 async function openUserMenuItem(page: Page, userName: string, item: string): Promise<void> {
-  await page.getByRole('banner').getByRole('button', { name: userName }).click();
+  await page.getByRole('button', { name: userName, exact: true }).click();
   await page.getByRole('menuitem', { name: item }).click();
 }
 
-async function openPlayerPage(page: Page, userName: string): Promise<void> {
-  await page.getByRole('link', { name: userName, exact: true }).first().click();
+async function openPlayerPage(page: Page, rooms: RoomsPage, userName: string): Promise<void> {
+  await (await rooms.findPerson(userName)).click();
   await expect(page.locator('.player-view__card')).toContainText(userName, { timeout: 15_000 });
 }
 
@@ -38,9 +38,9 @@ test('3.0 servers show no report entry points', async ({ newContext }) => {
   const a = await registerAndJoinFirstRoom(pageA);
   const b = await registerAndJoinFirstRoom(pageB);
 
-  await openPlayerPage(pageA, b.user.username);
+  await openPlayerPage(pageA, a.rooms, b.user.username);
   await expect(pageA.getByRole('button', { name: 'Report user' })).toHaveCount(0);
-  await pageA.getByRole('banner').getByRole('button', { name: a.user.username }).click();
+  await pageA.getByRole('button', { name: a.user.username, exact: true }).click();
   await expect(pageA.getByRole('menuitem', { name: 'Account' })).toBeVisible();
   await expect(pageA.getByRole('menuitem', { name: 'My Reports' })).toHaveCount(0);
 });
@@ -55,7 +55,7 @@ test('a report goes from user A to a moderator and its resolution back to A', as
   const b = await registerAndJoinFirstRoom(pageB);
   const description = `e2e report ${a.user.username} -> ${b.user.username}`;
 
-  await openPlayerPage(pageA, b.user.username);
+  await openPlayerPage(pageA, a.rooms, b.user.username);
   await pageA.getByRole('button', { name: 'Report user' }).click();
   const reportDialog = pageA.getByRole('dialog', { name: 'Report User' });
   await expect(reportDialog.getByTestId('report-reported-user')).toHaveText(b.user.username);
@@ -126,7 +126,7 @@ test('a moderator watches the reported game\'s replay from the queue', async ({ 
   const gameId = /^replay-match-(\d+)$/.exec((await match.getAttribute('data-testid')) ?? '')?.[1];
   expect(gameId).toBeTruthy();
 
-  await openPlayerPage(pageA, b.user.username);
+  await openPlayerPage(pageA, a.rooms, b.user.username);
   await pageA.getByRole('button', { name: 'Report user' }).click();
   const reportDialog = pageA.getByRole('dialog', { name: 'Report User' });
   await reportDialog.getByLabel('Game ID:').fill(gameId!);

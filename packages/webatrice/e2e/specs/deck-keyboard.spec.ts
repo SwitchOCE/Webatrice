@@ -1,13 +1,14 @@
 import { expect, test } from '../fixtures/test';
 import { tabTo } from '../fixtures/keyboard';
 import { registerAndReachRooms } from '../fixtures/flows';
+import { navRailLink } from '../pages';
 
 // Audit rows D1–D6: the deck editor worked only with a mouse (an unnamed
 // quick-add field, rows whose actions needed hover, no focus in dialogs or
 // menus). This spec builds and shares a deck with the keyboard alone: create
-// it, quick-add a card through the combobox, change its count from the deck
-// list's grid, save, and share it. Account creation and opening My Decks are
-// mouse-driven setup.
+// it, add a card from the card search dock, change its count from the deck
+// list's grid, save, add to the sideboard from the dock, and share it.
+// Account creation and opening My Decks are mouse-driven setup.
 //
 // Sharing needs a 3.1 server
 // (SERVATRICE_IMAGE=webatrice-local/servatrice:master-add65ca); against the
@@ -17,7 +18,7 @@ const SERVER_IS_3_1 = /master|3\.1/.test(process.env.SERVATRICE_IMAGE ?? '');
 test('create, fill, save and share a deck with the keyboard only', async ({ page }) => {
   test.setTimeout(120_000);
   await registerAndReachRooms(page);
-  await page.getByTitle('View your decks').click();
+  await navRailLink(page, 'Decks').click();
   await expect(page.getByRole('heading', { level: 1, name: 'My Decks' })).toBeVisible();
 
   await tabTo(page, page.getByRole('button', { name: /New deck/ }).first());
@@ -26,13 +27,14 @@ test('create, fill, save and share a deck with the keyboard only', async ({ page
   await expect(createDialog.getByPlaceholder('Untitled Deck')).toBeFocused();
   await page.keyboard.type('Keyboard Brew');
   await page.keyboard.press('Enter');
-  await expect(page.getByPlaceholder('Untitled Deck')).toHaveValue('Keyboard Brew', { timeout: 15_000 });
+  await expect(page.getByRole('textbox', { name: 'Deck name' })).toHaveValue('Keyboard Brew', { timeout: 15_000 });
 
-  const quickAdd = page.getByRole('combobox', { name: 'Quick add a card' });
-  await tabTo(page, quickAdd);
+  const search = page.getByRole('textbox', { name: 'Search cards' });
+  const results = page.getByRole('region', { name: 'Search results' });
+  await tabTo(page, search);
   await page.keyboard.type('Fore');
-  await expect(page.getByRole('option', { name: 'Forest' })).toHaveAttribute('aria-selected', 'true');
-  await expect(quickAdd).toHaveAttribute('aria-activedescendant', /.+/);
+  await expect(results.getByRole('listitem').filter({ hasText: 'Forest' })).toHaveAttribute('aria-current', 'true');
+  await expect(page.getByText('Forest highlighted')).toBeAttached();
   await page.keyboard.press('Enter');
   const forest = page.getByRole('row', { name: /× Forest$/ });
   await expect(forest).toHaveAccessibleName('1 × Forest');
@@ -57,16 +59,13 @@ test('create, fill, save and share a deck with the keyboard only', async ({ page
   await page.keyboard.press('Control+s');
   await expect(page.getByText('Saved', { exact: true })).toBeVisible({ timeout: 15_000 });
 
-  await tabTo(page, quickAdd);
-  await page.keyboard.type('Fore');
-  const suggestion = page.getByRole('listbox', { name: 'Card suggestions' }).getByRole('option', { name: 'Forest' });
-  await expect(suggestion).toHaveAttribute('aria-selected', 'true');
-  await page.keyboard.press('Escape');
-  await expect(quickAdd).toHaveAttribute('aria-expanded', 'false');
-  await expect(quickAdd).not.toHaveAttribute('aria-activedescendant');
-  await page.keyboard.press('Enter');
-  await expect(page.getByRole('row', { name: /× Fore$/ })).toHaveAccessibleName('1 × Fore');
-  await expect(forest).toHaveAccessibleName('3 × Forest');
+  await tabTo(page, search);
+  await expect(search).toHaveValue('Fore');
+  await expect(results.getByRole('listitem').filter({ hasText: 'Forest' })).toHaveAttribute('aria-current', 'true');
+  await page.keyboard.press('Control+Enter');
+  await expect(page.getByText('Added Forest to the sideboard')).toBeAttached();
+  await expect(page.getByRole('row', { name: '1 × Forest' })).toBeVisible();
+  await expect(page.getByRole('row', { name: '3 × Forest' })).toBeVisible();
 
   if (!SERVER_IS_3_1) {
     return;

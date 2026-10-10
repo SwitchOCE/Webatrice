@@ -1,13 +1,7 @@
-import type { Page } from '@playwright/test';
-
 import { expect, test } from '../fixtures/test';
 import { GamePage } from '../pages';
 import { registerAndJoinFirstRoom } from '../fixtures/flows';
 import { randomSuffix } from '../fixtures/users';
-
-function userRow(page: Page, name: string) {
-  return page.locator('.user-display').filter({ hasText: name });
-}
 
 test('shows another user\'s games and joins one from the list', async ({ newContext }) => {
   test.setTimeout(120_000);
@@ -18,12 +12,12 @@ test('shows another user\'s games and joins one from the list', async ({ newCont
   const viewerPage = await viewerCtx.newPage();
 
   const host = await registerAndJoinFirstRoom(hostPage);
-  await registerAndJoinFirstRoom(viewerPage);
+  const viewer = await registerAndJoinFirstRoom(viewerPage);
 
   const gameDescription = `games-${randomSuffix()}`;
   await host.rooms.createGame(gameDescription, { maxPlayers: 2 });
 
-  await userRow(viewerPage, host.user.username).click({ button: 'right' });
+  await (await viewer.rooms.findPerson(host.user.username)).click({ button: 'right' });
   await viewerPage.getByRole('menuitem', { name: /show this user's games/i }).click();
 
   const dialog = viewerPage.getByRole('dialog', { name: `${host.user.username}'s games` });
@@ -52,27 +46,30 @@ test('a private chat keeps the draft when the partner goes offline', async ({ ne
   const senderPage = await senderCtx.newPage();
   const partnerPage = await partnerCtx.newPage();
 
-  await registerAndJoinFirstRoom(senderPage);
+  const sender = await registerAndJoinFirstRoom(senderPage);
   const partner = await registerAndJoinFirstRoom(partnerPage);
   const partnerName = partner.user.username;
 
-  await userRow(senderPage, partnerName).getByRole('link').click();
-  const presence = senderPage.getByTestId('private-chat-presence');
-  await expect(presence).toHaveText(/online/i, { timeout: 15_000 });
+  await (await sender.rooms.findPerson(partnerName)).click({ button: 'right' });
+  await senderPage.getByRole('menuitem', { name: 'Private chat' }).click();
+  const chat = senderPage.getByRole('region', { name: `Chat with ${partnerName}` });
+  const presence = chat.getByRole('button', { name: `${partnerName}: show profile` });
+  await expect(presence).toContainText(/online/i, { timeout: 15_000 });
 
-  const composer = senderPage.getByPlaceholder(`Message ${partnerName}`);
+  const composer = chat.getByPlaceholder(`Message ${partnerName}`);
+  await expect(composer).toBeFocused();
   await composer.fill('hello there');
-  await senderPage.getByRole('button', { name: 'Send' }).click();
-  await expect(senderPage.getByText('hello there')).toBeVisible();
+  await chat.getByRole('button', { name: 'Send' }).click();
+  await expect(chat.getByText('hello there')).toBeVisible();
 
   await partnerCtx.close();
 
-  await expect(senderPage.getByText(`${partnerName} has left the server.`)).toBeVisible({ timeout: 30_000 });
-  await expect(presence).toHaveText(/offline/i);
+  await expect(chat.getByText(`${partnerName} has left the server.`)).toBeVisible({ timeout: 30_000 });
+  await expect(presence).toContainText(/offline/i);
 
   await composer.fill('are you still there?');
-  await expect(senderPage.getByText(`${partnerName} is offline; messages cannot be delivered.`)).toBeVisible();
-  await expect(senderPage.getByRole('button', { name: 'Send' })).toBeDisabled();
+  await expect(chat.getByText(`${partnerName} is offline; messages cannot be delivered.`)).toBeVisible();
+  await expect(chat.getByRole('button', { name: 'Send' })).toBeDisabled();
   await composer.press('Enter');
   await expect(composer).toHaveValue('are you still there?');
 });

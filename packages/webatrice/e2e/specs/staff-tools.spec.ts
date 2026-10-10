@@ -3,9 +3,9 @@ import { execFileSync } from 'node:child_process';
 import type { Page } from '@playwright/test';
 
 import { expect, test } from '../fixtures/test';
-import { E2E_ADMIN, E2E_MODERATOR, reachRoomsAs, registerAndReachRooms } from '../fixtures/flows';
+import { E2E_ADMIN, E2E_MODERATOR, reachRoomsAs, registerAndReachRooms, unlockStaffFunctions } from '../fixtures/flows';
 import { randomSuffix } from '../fixtures/users';
-import { topBarTab } from '../pages';
+import { navRailLink } from '../pages';
 
 // Staff pages against the real Servatrice: the Administration tab's "Update
 // server message" (desktop TabAdmin) and the Moderation tab's alts lookup
@@ -27,12 +27,7 @@ function runSql(sql: string): void {
 }
 
 async function openUserMenu(page: Page, userName: string): Promise<void> {
-  await page.locator('header').getByRole('button', { name: userName, exact: true }).click();
-}
-
-async function openStaffPage(page: Page, userName: string, label: string): Promise<void> {
-  await openUserMenu(page, userName);
-  await page.getByRole('menuitem', { name: label, exact: true }).click();
+  await page.getByRole('button', { name: userName, exact: true }).click();
 }
 
 test('an admin publishes a new server message from Administration', async ({ page }) => {
@@ -42,11 +37,11 @@ test('an admin publishes a new server message from Administration', async ({ pag
   const message = `E2E server message ${randomSuffix()}`;
   runSql(`INSERT INTO cockatrice_servermessages (id_server, timest, message) VALUES (0, NOW() + INTERVAL 1 SECOND, '${message}')`);
 
-  await openStaffPage(page, E2E_ADMIN.username, 'Administration');
-  await page.getByRole('button', { name: 'Update server message' }).click();
+  await unlockStaffFunctions(page, E2E_ADMIN.username);
+  await page.getByRole('button', { name: /^Update server message/ }).click();
   await expect(page.getByText('Server message updated')).toBeVisible({ timeout: 15_000 });
 
-  await topBarTab(page).first().click();
+  await navRailLink(page, /^play$/i).click();
   await expect(page.getByText(message)).toBeVisible({ timeout: 15_000 });
 });
 

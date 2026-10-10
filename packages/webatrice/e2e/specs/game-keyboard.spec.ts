@@ -95,6 +95,12 @@ test('play a turn of the board controls with the keyboard only', async ({ newCon
   await expect(upkeep).toHaveAttribute('aria-current', 'step', { timeout: 15_000 });
   await expect(watcher.logLine('It is now the upkeep step.')).toHaveCount(2, { timeout: 15_000 });
 
+  const dockTabs = page.getByRole('tablist', { name: 'Dock panels' });
+  await tabTo(page, dockTabs.getByRole('tab', { name: 'Chat & log' }));
+  await page.keyboard.press('ArrowRight');
+  const playersTab = dockTabs.getByRole('tab', { name: /^Players/ });
+  await expect(playersTab).toBeFocused();
+  await expect(playersTab).toHaveAttribute('aria-selected', 'true');
   const more = page.getByRole('button', { name: `More actions for ${them}` });
   await tabTo(page, more);
   await page.keyboard.press('Enter');

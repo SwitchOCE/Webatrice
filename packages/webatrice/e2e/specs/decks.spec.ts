@@ -1,25 +1,29 @@
 import { expect, test } from '../fixtures/test';
 
 import { registerAndReachRooms } from '../fixtures/flows';
+import { navRailLink } from '../pages';
 
 test('deck folders, undo/redo and autosave round-trip through Servatrice', async ({ page }) => {
   test.setTimeout(120_000);
   await registerAndReachRooms(page);
 
-  await page.getByTitle('View your decks').click();
+  await navRailLink(page, 'Decks').click();
   await expect(page.getByRole('heading', { level: 1, name: 'My Decks' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'New folder' }).click();
+  const folders = page.getByRole('navigation', { name: 'Folders' });
+  const tournament = folders.getByRole('button', { name: /^Tournament/ });
+  await folders.getByRole('button', { name: 'New folder' }).click();
   await page.getByRole('textbox', { name: 'Name of new folder:' }).fill('Tournament');
   await page.getByRole('button', { name: 'Create' }).click();
-  await page.getByText('Tournament', { exact: true }).click();
-  const breadcrumb = page.getByRole('navigation', { name: 'Folder' });
-  await expect(breadcrumb.getByRole('button', { name: 'Tournament' })).toHaveAttribute('aria-current', 'location');
+  await tournament.click();
+  await expect(tournament).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('heading', { level: 2, name: 'Tournament' })).toBeVisible();
 
   await page.getByRole('button', { name: /New deck/ }).first().click();
-  await page.getByPlaceholder('Untitled Deck').fill('E2E Brew');
-  await page.getByRole('button', { name: 'Create' }).click();
-  const name = page.getByPlaceholder('Untitled Deck');
+  const createDialog = page.getByRole('dialog', { name: 'Create a deck' });
+  await createDialog.getByPlaceholder('Untitled Deck').fill('E2E Brew');
+  await createDialog.getByRole('button', { name: 'Create' }).click();
+  const name = page.getByRole('textbox', { name: 'Deck name' });
   await expect(name).toHaveValue('E2E Brew', { timeout: 15_000 });
   await expect(page.getByRole('button', { name: 'Undo', exact: true })).toBeVisible();
 
@@ -38,20 +42,23 @@ test('deck folders, undo/redo and autosave round-trip through Servatrice', async
   await expect(format).toHaveValue('legacy');
   await expect(page.getByText('Saved', { exact: true })).toBeVisible({ timeout: 15_000 });
 
-  const deckRow = page.getByRole('button', { name: /^E2E Brew / });
-  await page.getByTitle('View your decks').click();
-  await page.getByText('Tournament', { exact: true }).click();
-  await expect(deckRow).toBeVisible({ timeout: 15_000 });
+  const deckTile = page.getByRole('article', { name: 'E2E Brew' });
+  await navRailLink(page, 'Decks').click();
+  await tournament.click();
+  await expect(deckTile).toBeVisible({ timeout: 15_000 });
 
-  await page.getByRole('button', { name: 'Move E2E Brew to another folder' }).click();
+  await deckTile.getByRole('button', { name: 'More actions for E2E Brew' }).click();
+  await page.getByRole('menuitem', { name: 'Move to folder…' }).click();
   await page.getByRole('combobox', { name: 'To folder' }).selectOption({ label: 'Server deck storage' });
   await page.getByRole('button', { name: 'Move', exact: true }).click();
   await expect(page.getByText('This folder is empty.')).toBeVisible({ timeout: 15_000 });
 
-  await breadcrumb.getByRole('button', { name: /Server deck storage/ }).click();
-  await expect(deckRow).toBeVisible();
+  await folders.getByRole('button', { name: /^All decks/ }).click();
+  await expect(deckTile).toBeVisible();
 
-  await page.getByRole('button', { name: 'Delete Tournament' }).click();
+  await tournament.click();
+  await page.getByRole('button', { name: 'Folder actions for Tournament' }).click();
+  await page.getByRole('menuitem', { name: 'Delete folder' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Delete' }).click();
-  await expect(page.getByText('Tournament', { exact: true })).toHaveCount(0, { timeout: 15_000 });
+  await expect(tournament).toHaveCount(0, { timeout: 15_000 });
 });

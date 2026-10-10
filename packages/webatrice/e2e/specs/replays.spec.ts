@@ -79,11 +79,14 @@ test('a finished game can be found, managed and watched from the replays tab', a
     await hostPage.getByRole('button', { name: 'Forward 10 seconds' }).click();
   }
   await expect(replays.previewLog).toContainText(`${joiner.user.username} has joined the game.`);
+  await expect(replays.previewTime).not.toHaveText(/^0:00 /);
+  const previewAt = (await replays.previewTime.textContent())!.split(' / ')[0];
+  await expect(replays.watchFrom).toHaveText(`Watch from ${previewAt}`);
 
   await replays.watchFrom.click();
   await expect(replays.controls).toBeVisible({ timeout: 30_000 });
   await expect(replays.log).toContainText('You are watching a replay of game #');
-  await expect(replays.time).toHaveText(/^0:30 \/ \d+:\d\d$/);
+  await expect(replays.time).toHaveText(new RegExp(`^${previewAt} / \\d+:\\d\\d$`));
 
   await replays.open();
   await expect(replays.controls).toBeHidden();

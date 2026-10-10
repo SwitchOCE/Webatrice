@@ -2,7 +2,7 @@ import { expect, test } from '../fixtures/test';
 import { tabTo } from '../fixtures/keyboard';
 import { E2E_HOST_LABEL, joinFirstRoom, registerAndJoinFirstRoom, registerAndReachRooms } from '../fixtures/flows';
 import { randomSuffix } from '../fixtures/users';
-import { GamePage, LoginPage } from '../pages';
+import { GamePage, LoginPage, RoomsPage } from '../pages';
 
 test('log in, join a room and join a game with the keyboard only', async ({ newContext }) => {
   test.setTimeout(240_000);
@@ -49,8 +49,7 @@ test('log in, join a room and join a game with the keyboard only', async ({ newC
   await tabTo(page, login.loginButton);
   await page.keyboard.press('Enter');
 
-  const roomsTable = page.getByRole('table').filter({ has: page.getByRole('columnheader', { name: /^name$/i }) });
-  const joinRoom = roomsTable.getByRole('button', { name: /^(join|open)$/i }).first();
+  const joinRoom = new RoomsPage(page).roomsPanel.getByRole('button', { name: /^(join|open) /i }).first();
   await expect(joinRoom).toBeVisible({ timeout: 30_000 });
   await tabTo(page, joinRoom);
   await page.keyboard.press('Enter');

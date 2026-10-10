@@ -32,25 +32,16 @@ async function reachHost(login: LoginPage): Promise<void> {
 }
 
 // Click the first joinable room (server seeds at least one). Picking the first
-// row rather than naming the room avoids coupling to servatrice seed drift; two
+// room rather than naming it avoids coupling to servatrice seed drift; two
 // sessions both calling this land in the same room.
 //
-// RoomsList.tsx renders each row as a plain <tr> with a single per-row
-// button labelled "Join" (not-yet-joined) or "Open" (already joined).
-// The pre-redo `.rooms` container class is gone; the rooms table is
-// the one <table> under the "Name" column header on /server, so we
-// anchor the button lookup to the table's <tbody>.
-//
 // The e2e Servatrice auto-joins its one room on login. Like desktop
-// (setCurrent = false), the auto-join opens the room without leaving the
-// Lobby, so the row's button reads "Join" or "Open" and the click is what
-// enters the room — the manual path is exercised on every run.
+// (setCurrent = false), the auto-join opens the room without leaving Home,
+// so the Rooms panel's button reads "Join <room>" or "Open <room>" and the
+// click is what enters the room — the manual path is exercised on every run.
 export async function joinFirstRoom(page: Page, rooms: RoomsPage): Promise<void> {
-  const roomsTable = page.getByRole('table').filter({
-    has: page.getByRole('columnheader', { name: /^name$/i }),
-  });
-  const firstJoinable = roomsTable
-    .getByRole('button', { name: /^(join|open)$/i })
+  const firstJoinable = rooms.roomsPanel
+    .getByRole('button', { name: /^(join|open) /i })
     .first();
   await expect(firstJoinable).toBeVisible({ timeout: 15_000 });
   await firstJoinable.click();
@@ -100,12 +91,27 @@ export async function registerAndJoinFirstRoom(page: Page): Promise<RegisteredSe
   return session;
 }
 
-// Log in as an existing account and join the first room (for the seeded judge).
+// Staff functions start locked, which hides Warn and Ban everywhere. Unlock
+// them from Administration, as a moderator does before acting on users.
+export async function unlockStaffFunctions(page: Page, userName: string): Promise<void> {
+  await page.getByRole('button', { name: userName, exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Administration', exact: true }).click();
+  await page.getByRole('main').getByRole('button', { name: 'Unlock functions' }).first().click();
+  await expect(page.getByRole('button', { name: 'Lock functions' })).toBeVisible();
+}
+
+// Log in as an existing account and join the first room (for the seeded
+// judge and staff); `unlockStaff` unlocks the staff functions on the way.
 export async function joinFirstRoomAs(
   page: Page,
   credentials: { username: string; password: string },
+  options: { unlockStaff?: boolean } = {},
 ): Promise<{ login: LoginPage; rooms: RoomsPage }> {
   const session = await reachRoomsAs(page, credentials);
+  if (options.unlockStaff) {
+    await unlockStaffFunctions(page, credentials.username);
+    await session.rooms.waitForRoomList();
+  }
   await joinFirstRoom(page, session.rooms);
   return session;
 }
