@@ -1,4 +1,16 @@
-import { searchCardAsPreview, searchCardImage, searchCards, searchScryfallCards, type ScryfallSearchCard } from './search';
+import {
+  searchCardArt,
+  searchCardAsPreview,
+  searchCardImage,
+  searchCardManaCost,
+  searchCards,
+  searchCardTypeLine,
+  searchCardUsd,
+  searchScryfallCards,
+  searchScryfallPage,
+  scryfallSearchUrl,
+  type ScryfallSearchCard,
+} from './search';
 
 function json(body: unknown, ok = true, status = ok ? 200 : 500): Response {
   return { ok, status, json: async () => body } as Response;
@@ -116,5 +128,57 @@ describe('search results as previews', () => {
       imageUri: 'front-small',
       lookupSource: 'scryfall',
     });
+  });
+});
+
+describe('searchScryfallPage', () => {
+  it('reports the total and the next page', async () => {
+    const fetchMock = vi.fn(async () => json({
+      data: [{ id: 'a', name: 'Ponder' }],
+      total_cards: 412,
+      has_more: true,
+      next_page: 'https://api.scryfall.com/cards/search?page=2&q=t%3Asorcery',
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const page = await searchScryfallPage(scryfallSearchUrl(' t:sorcery '));
+    expect(page).toEqual({
+      cards: [{ id: 'a', name: 'Ponder' }],
+      total: 412,
+      nextPage: 'https://api.scryfall.com/cards/search?page=2&q=t%3Asorcery',
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.scryfall.com/cards/search?q=t%3Asorcery&unique=cards&order=name',
+      expect.anything(),
+    );
+  });
+
+  it('treats a not-found search as an empty last page', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => json({ object: 'error', code: 'not_found' }, false, 404)));
+    expect(await searchScryfallPage(scryfallSearchUrl('zzz'))).toEqual({ cards: [], total: 0, nextPage: null });
+  });
+});
+
+describe('search card fields', () => {
+  const dfc: ScryfallSearchCard = {
+    id: 'x',
+    name: 'Delver of Secrets // Insectile Aberration',
+    card_faces: [
+      { mana_cost: '{U}', type_line: 'Creature — Human Wizard', image_uris: { normal: 'n.jpg', art_crop: 'art.jpg' } },
+      { mana_cost: '', type_line: 'Creature — Human Insect' },
+    ],
+    prices: { usd: null, usd_foil: '2.50' },
+  };
+
+  it('reads cost, type and art from the front face of double-faced cards', () => {
+    expect(searchCardManaCost(dfc)).toBe('{U}');
+    expect(searchCardTypeLine(dfc)).toBe('Creature — Human Wizard');
+    expect(searchCardArt(dfc)).toBe('art.jpg');
+  });
+
+  it('prices from the non-foil USD, then foil, else none', () => {
+    expect(searchCardUsd(dfc)).toBe(2.5);
+    expect(searchCardUsd({ id: 'y', name: 'Y', prices: { usd: '43.37' } })).toBe(43.37);
+    expect(searchCardUsd({ id: 'z', name: 'Z' })).toBeUndefined();
   });
 });
